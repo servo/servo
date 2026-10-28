@@ -397,6 +397,7 @@ impl HTMLIFrameElement {
             document.get_referrer_policy(),
             Some(window.as_global_scope().is_secure_context()),
             Some(document.insecure_requests_policy()),
+            window.as_global_scope().upgrade_insecure_navigations_set().clone(),
             document.has_trustworthy_ancestor_or_current_origin(),
             self.sandboxing_flag_set(),
         );
@@ -518,6 +519,7 @@ impl HTMLIFrameElement {
             referrer_policy,
             Some(window.as_global_scope().is_secure_context()),
             Some(document.insecure_requests_policy()),
+            window.as_global_scope().upgrade_insecure_navigations_set().clone(),
             document.has_trustworthy_ancestor_or_current_origin(),
             self.sandboxing_flag_set(),
         );
@@ -577,6 +579,7 @@ impl HTMLIFrameElement {
             document.get_referrer_policy(),
             Some(window.as_global_scope().is_secure_context()),
             Some(document.insecure_requests_policy()),
+            window.as_global_scope().upgrade_insecure_navigations_set().clone(),
             document.has_trustworthy_ancestor_or_current_origin(),
             self.sandboxing_flag_set(),
         );

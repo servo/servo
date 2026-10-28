@@ -4,6 +4,7 @@
 
 //! Messages send from the ScriptThread to the Constellation.
 
+use std::collections::HashSet;
 use std::fmt;
 use std::sync::Arc;
 
@@ -21,7 +22,7 @@ use fonts_traits::SystemFontServiceProxySender;
 use http::{HeaderMap, Method};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::policy_container::PolicyContainer;
-use net_traits::request::{Destination, InsecureRequestsPolicy, Referrer, RequestBody};
+use net_traits::request::{Destination, InsecureRequestsPolicy, Referrer, RequestBody, UpgradeInsecureNavigations};
 use net_traits::{ReferrerPolicy, ResourceThreads};
 use paint_api::CrossProcessPaintApi;
 use profile_traits::mem::MemoryReportResult;
@@ -164,6 +165,8 @@ pub struct LoadData {
     pub inherited_secure_context: Option<bool>,
     /// The inherited policy for upgrading insecure requests; None if not inherited.
     pub inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
+    /// https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-insecure-navigations-set
+    pub inherited_upgrade_insecure_navigations_set: HashSet<UpgradeInsecureNavigations>,
     /// Whether the page's ancestors have potentially trustworthy origin
     pub has_trustworthy_ancestor_origin: bool,
     /// Servo internal: if crash details are present, trigger a crash error page with these details.
@@ -194,6 +197,7 @@ impl LoadData {
         referrer_policy: ReferrerPolicy,
         inherited_secure_context: Option<bool>,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
+        inherited_upgrade_insecure_navigations_set: HashSet<UpgradeInsecureNavigations>,
         has_trustworthy_ancestor_origin: bool,
         creation_sandboxing_flag_set: SandboxingFlagSet,
     ) -> Self {
@@ -215,6 +219,7 @@ impl LoadData {
             inherited_secure_context,
             crash: None,
             inherited_insecure_requests_policy,
+            inherited_upgrade_insecure_navigations_set,
             has_trustworthy_ancestor_origin,
             destination: Destination::Document,
             creation_sandboxing_flag_set,
@@ -236,6 +241,7 @@ impl LoadData {
             ReferrerPolicy::EmptyString,
             None,
             None,
+            HashSet::new(),
             false,
             SandboxingFlagSet::empty(),
         )
@@ -579,6 +585,8 @@ pub struct WorkerGlobalScopeInit {
     pub origin: ImmutableOrigin,
     /// True if secure context
     pub inherited_secure_context: Option<bool>,
+    /// https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-insecure-navigations-set
+    pub inherited_upgrade_insecure_navigations_set: HashSet<UpgradeInsecureNavigations>,
     /// Unminify Javascript.
     pub unminify_js: bool,
     /// Handle for communicating messages to the WebGL thread, if available.

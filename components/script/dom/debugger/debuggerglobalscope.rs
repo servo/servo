@@ -5,7 +5,7 @@
 #![cfg_attr(crown, allow(crown::jscontext_first_arg))]
 
 use std::cell::RefCell;
-
+use std::collections::HashSet;
 use devtools_traits::{
     BlackboxCoverage, DebuggerValue, DevtoolScriptControlMsg, EvaluateJSReply,
     GetEnvironmentRequest, ScriptToDevtoolsControlMsg, SourceInfo,
@@ -117,6 +117,7 @@ impl DebuggerGlobalScope {
                 #[cfg(feature = "webgpu")]
                 gpu_id_hub,
                 None,
+                HashSet::new(),
                 false,
             ),
             devtools_to_script_sender,

@@ -4,6 +4,7 @@
 
 #![cfg_attr(crown, allow(crown::jscontext_first_arg))]
 
+use std::collections::HashSet;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -25,7 +26,7 @@ use servo_constellation_traits::ScriptToConstellationSender;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 use stylo_atoms::Atom;
-
+use net_traits::request::UpgradeInsecureNavigations;
 use crate::dom::Window;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
@@ -146,6 +147,7 @@ impl WorkletGlobalScope {
                 #[cfg(feature = "webgpu")]
                 init.gpu_id_hub.clone(),
                 inherited_secure_context,
+                init.inherited_upgrade_insecure_navigations_set.clone(),
                 false,
             ),
             base_url,
@@ -234,6 +236,7 @@ impl From<&Window> for WorkletGlobalScopeInit {
             image_cache: global_scope.image_cache(),
             #[cfg(feature = "webgpu")]
             gpu_id_hub: global_scope.wgpu_id_hub(),
+            inherited_upgrade_insecure_navigations_set: window.as_global_scope().upgrade_insecure_navigations_set().clone(),
         }
     }
 }
@@ -262,6 +265,8 @@ pub(crate) struct WorkletGlobalScopeInit {
     #[cfg(feature = "webgpu")]
     pub(crate) gpu_id_hub: Arc<IdentityHub>,
     pub(crate) script_to_constellation_sender: ScriptToConstellationSender,
+    /// https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-insecure-navigations-set
+    pub inherited_upgrade_insecure_navigations_set: HashSet<UpgradeInsecureNavigations>,
 }
 
 /// <https://drafts.css-houdini.org/worklets/#worklet-global-scope-type>

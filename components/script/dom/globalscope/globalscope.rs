@@ -40,9 +40,7 @@ use net_traits::filemanager_thread::{
 };
 use net_traits::image_cache::ImageCache;
 use net_traits::policy_container::PolicyContainer;
-use net_traits::request::{
-    InsecureRequestsPolicy, Origin as RequestOrigin, Referrer, RequestBuilder, RequestClient,
-};
+use net_traits::request::{InsecureRequestsPolicy, Origin as RequestOrigin, Referrer, RequestBuilder, RequestClient, UpgradeInsecureNavigations};
 use net_traits::{CoreResourceMsg, CoreResourceThread, ReferrerPolicy, ResourceThreads};
 use profile_traits::{
     generic_callback as profile_generic_callback, generic_channel as profile_generic_channel,
@@ -337,6 +335,10 @@ pub(crate) struct GlobalScope {
 
     /// <https://fetch.spec.whatwg.org/#environment-settings-object-fetch-group>
     fetch_group: DomRefCell<FetchGroup>,
+
+    ///https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-insecure-navigations-set
+    #[no_trace]
+    inherited_upgrade_insecure_navigations_set: DomRefCell<HashSet<UpgradeInsecureNavigations>>
 }
 
 impl GlobalScope {
@@ -403,6 +405,7 @@ impl GlobalScope {
         top_level_creation_url: Option<ServoUrl>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
+        inherited_upgrade_insecure_navigations_set: HashSet<UpgradeInsecureNavigations>,
         unminify_js: bool,
     ) -> Self {
         let resource_threads_sender = resource_threads.sender();
@@ -448,6 +451,7 @@ impl GlobalScope {
             import_map: Default::default(),
             resolved_module_set: Default::default(),
             fetch_group: DomRefCell::new(FetchGroup::new(resource_threads_sender)),
+            inherited_upgrade_insecure_navigations_set: DomRefCell::new(inherited_upgrade_insecure_navigations_set),
         }
     }
 
@@ -2322,6 +2326,7 @@ impl GlobalScope {
             origin: RequestOrigin::Origin(self.origin().immutable().clone()),
             is_nested_browsing_context: false,
             insecure_requests_policy: self.insecure_requests_policy(),
+            upgrade_insecure_navigations_set: self.upgrade_insecure_navigations_set().clone(),
             has_trustworthy_ancestor_origin: false,
             network_partition_key: None,
         }
@@ -2451,6 +2456,16 @@ impl GlobalScope {
         }
         debug!("unsupported global, defaulting insecure requests policy to DoNotUpgrade");
         InsecureRequestsPolicy::DoNotUpgrade
+    }
+
+    /// https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-insecure-navigations-set
+    pub(crate) fn upgrade_insecure_navigations_set(&self) -> Ref<'_, HashSet<UpgradeInsecureNavigations>> {
+        self.inherited_upgrade_insecure_navigations_set.borrow()
+    }
+
+    /// https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-insecure-navigations-set
+    pub fn upgrade_insecure_navigations_set_mut(&self) -> RefMut<'_, HashSet<UpgradeInsecureNavigations>> {
+        self.inherited_upgrade_insecure_navigations_set.borrow_mut()
     }
 
     /// Whether this document has ancestor navigables that are trustworthy

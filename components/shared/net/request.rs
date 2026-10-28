@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use content_security_policy::{self as csp};
@@ -228,6 +228,8 @@ pub struct RequestClient {
     pub is_nested_browsing_context: bool,
     /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#insecure-requests-policy>
     pub insecure_requests_policy: InsecureRequestsPolicy,
+    /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-insecure-navigations-set>
+    pub upgrade_insecure_navigations_set: HashSet<UpgradeInsecureNavigations>,
     /// <https://w3c.github.io/webappsec-secure-contexts/#potentially-trustworthy-origin>
     pub has_trustworthy_ancestor_origin: bool,
     /// <https://fetch.spec.whatwg.org/#determining-the-network-partition-key>
@@ -417,6 +419,12 @@ impl RequestBodySize for Option<RequestBody> {
 pub enum InsecureRequestsPolicy {
     DoNotUpgrade,
     Upgrade,
+}
+
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Eq, Hash, Serialize)]
+pub struct UpgradeInsecureNavigations {
+    pub host: String,
+    pub port: u16
 }
 
 pub trait RequestHeadersSize {

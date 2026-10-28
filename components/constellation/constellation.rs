@@ -136,6 +136,7 @@ use rand::rngs::SmallRng;
 use rand::seq::IndexedRandom;
 use rand::{RngExt, SeedableRng, make_rng};
 use rustc_hash::{FxHashMap, FxHashSet};
+use net_traits::request::UpgradeInsecureNavigations;
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, MouseButtons,
     NewPipelineInfo, ScriptThreadMessage, UpdatePipelineIdReason,
@@ -1126,6 +1127,7 @@ where
         viewport_details: ViewportDetails,
         is_private: bool,
         inherited_secure_context: Option<bool>,
+        inherited_upgrade_insecure_navigations_set: HashSet<UpgradeInsecureNavigations>
     ) {
         debug!("{browsing_context_id}: Creating new browsing context");
         let Some(webview) = self.webviews.get_mut(&webview_id) else {
@@ -1145,6 +1147,7 @@ where
             viewport_details,
             is_private,
             inherited_secure_context,
+            inherited_upgrade_insecure_navigations_set
         );
         self.browsing_contexts
             .insert(browsing_context_id, browsing_context);
@@ -3462,6 +3465,7 @@ where
                 parent_pipeline_id: None,
                 is_private,
                 inherited_secure_context: None,
+                upgrade_insecure_navigations_set: HashSet::new()
             }),
             viewport_details,
         });
@@ -3719,9 +3723,9 @@ where
                     );
                 },
             };
-        let (is_parent_private, is_parent_secure) =
+        let (is_parent_private, is_parent_secure, parent_upgrade_insecure_navigations_set) =
             match self.browsing_contexts.get(&parent_browsing_context_id) {
-                Some(ctx) => (ctx.is_private, ctx.inherited_secure_context),
+                Some(ctx) => (ctx.is_private, ctx.inherited_secure_context, ctx.upgrade_insecure_navigations_set.clone()),
                 None => {
                     return warn!(
                         "{}: New iframe {} loaded in closed parent browsing context",
@@ -3760,6 +3764,7 @@ where
                     parent_pipeline_id: Some(parent_pipeline_id),
                     is_private,
                     inherited_secure_context: is_parent_secure,
+                    upgrade_insecure_navigations_set: parent_upgrade_insecure_navigations_set
                 }),
                 viewport_details: load_info.viewport_details,
             });
@@ -3818,9 +3823,9 @@ where
                     );
                 },
             };
-        let (is_opener_private, is_opener_secure) =
+        let (is_opener_private, is_opener_secure, opener_upgrade_insecure_navigations_set) =
             match self.browsing_contexts.get(&opener_browsing_context_id) {
-                Some(ctx) => (ctx.is_private, ctx.inherited_secure_context),
+                Some(ctx) => (ctx.is_private, ctx.inherited_secure_context, ctx.upgrade_insecure_navigations_set.clone()),
                 None => {
                     return warn!(
                         "{}: New auxiliary {} loaded in closed opener browsing context",
@@ -3876,6 +3881,7 @@ where
                 parent_pipeline_id: None,
                 is_private: is_opener_private,
                 inherited_secure_context: is_opener_secure,
+                upgrade_insecure_navigations_set: opener_upgrade_insecure_navigations_set
             }),
             viewport_details,
         });
@@ -4277,7 +4283,7 @@ where
         &mut self,
         webview_id: WebViewId,
         source_id: PipelineId,
-        load_data: LoadData,
+        mut load_data: LoadData,
         history_handling: NavigationHistoryBehavior,
         target_snapshot_params: TargetSnapshotParams,
     ) -> Option<PipelineId> {
@@ -4304,13 +4310,14 @@ where
                 return None;
             },
         };
-        let (viewport_details, pipeline_id, parent_pipeline_id, is_private) =
+        let (viewport_details, pipeline_id, parent_pipeline_id, is_private, upgrade_insecure_navigations_set) =
             match self.browsing_contexts.get(&browsing_context_id) {
                 Some(ctx) => (
                     ctx.viewport_details,
                     ctx.pipeline_id,
                     ctx.parent_pipeline_id,
                     ctx.is_private,
+                    ctx.upgrade_insecure_navigations_set.clone()
                 ),
                 None => {
                     // This should technically never happen (since `load_url` is
@@ -4324,6 +4331,8 @@ where
                     return None;
                 },
             };
+
+        load_data.inherited_upgrade_insecure_navigations_set = upgrade_insecure_navigations_set;
 
         #[cfg(feature = "devtools")]
         if let Some(ref chan) = self.devtools_sender {
@@ -5586,6 +5595,7 @@ where
                     change.viewport_details,
                     new_context_info.is_private,
                     new_context_info.inherited_secure_context,
+                    new_context_info.upgrade_insecure_navigations_set
                 );
                 self.update_activity(change.new_pipeline_id);
             },

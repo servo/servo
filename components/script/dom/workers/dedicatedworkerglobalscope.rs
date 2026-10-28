@@ -446,6 +446,7 @@ impl DedicatedWorkerGlobalScope {
         let parent = current_global.runtime_handle();
         let current_global_ancestor_trustworthy = current_global.has_trustworthy_ancestor_origin();
         let is_secure_context = current_global.is_secure_context();
+        let upgrade_insecure_navigations_set = current_global.upgrade_insecure_navigations_set().clone();
         let is_nested_browsing_context = current_global.is_nested_browsing_context();
 
         let worker_type = worker_options.type_;
@@ -472,6 +473,7 @@ impl DedicatedWorkerGlobalScope {
                     origin: Origin::Origin(origin.clone()),
                     is_nested_browsing_context,
                     insecure_requests_policy,
+                    upgrade_insecure_navigations_set,
                     has_trustworthy_ancestor_origin: current_global_ancestor_trustworthy,
                     network_partition_key: None,
                 };
