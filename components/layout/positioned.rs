@@ -644,6 +644,7 @@ impl IndependentFormattingContext {
                 block_stretch_size,
                 || block_content_size,
                 is_table,
+                None, /* ratio_dependent_block_size */
             ))
         } else {
             block_axis_solver.computed_sizes.resolve_extrinsic(
@@ -668,6 +669,7 @@ impl IndependentFormattingContext {
             inline_stretch_size,
             get_inline_content_size,
             is_table,
+            None, /* ratio_dependent_block_size */
         );
 
         let containing_block_for_children = ContainingBlock {

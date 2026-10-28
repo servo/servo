@@ -1820,6 +1820,7 @@ impl FlexItem<'_> {
                             block_stretch_size,
                             || block_content_size,
                             is_table,
+                            None, /* ratio_dependent_block_size */
                         ))
                     } else {
                         self.content_cross_sizes.resolve_extrinsic(
@@ -1842,6 +1843,7 @@ impl FlexItem<'_> {
                     stretch_size,
                     || self.inline_content_sizes(flex_context, used_main_size),
                     is_table,
+                    None, /* ratio_dependent_block_size */
                 )
             });
             // The main size of a flex item is considered to be definite if its flex basis is definite
@@ -2191,6 +2193,7 @@ impl FlexItem<'_> {
             // see https://github.com/w3c/csswg-drafts/issues/11408.
             self.box_.independent_formatting_context.is_table() &&
                 cross_axis == LogicalAxis::Inline,
+            None, /* ratio_dependent_block_size */
         )
     }
 
@@ -2718,6 +2721,7 @@ impl FlexItemBox {
                     stretch_size,
                     get_content_size,
                     false,
+                    None, /* ratio_dependent_block_size */
                 )
             };
 
@@ -2749,6 +2753,7 @@ impl FlexItemBox {
                     // so the content block size doesn't take sizing properties into account.
                     // Therefore, pretending that it's never a table tends to provide a better result.
                     false, /* is_table */
+                    None,  /* ratio_dependent_block_size */
                 );
                 inner_block_size + pbm_auto_is_zero.main
             },

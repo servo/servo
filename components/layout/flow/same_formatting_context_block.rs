@@ -347,24 +347,20 @@ impl SameFormattingContextBlock {
             content_block_size += collapsible_margins_in_children.end.solve();
         }
 
+        let ratio_dependent_block_size = preferred_aspect_ratio.map(|ratio| {
+            ratio.compute_dependent_size(
+                LogicalAxis::Block,
+                containing_block_for_children.size.inline,
+            )
+        });
         let block_size = block_sizes.resolve(
             LogicalAxis::Block,
             automatic_block_size,
             Au::zero,
             block_stretch_size,
-            || {
-                if let Some(ratio) = preferred_aspect_ratio {
-                    ratio
-                        .compute_dependent_size(
-                            LogicalAxis::Block,
-                            containing_block_for_children.size.inline,
-                        )
-                        .into()
-                } else {
-                    content_block_size.into()
-                }
-            },
+            || content_block_size.into(),
             false, /* is_table */
+            ratio_dependent_block_size,
         );
 
         // If the final block size is different than the intrinsic size of the contents,

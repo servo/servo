@@ -289,6 +289,7 @@ impl BlockLevelBox {
             inline_stretch_size,
             get_inline_content_sizes,
             false, /* is_table */
+            None,  /* ratio_dependent_block_size */
         );
 
         let containing_block_for_children = ContainingBlock {
@@ -1322,6 +1323,7 @@ impl IndependentFormattingContext {
                 stretch_size,
                 || get_inline_content_sizes(cache),
                 is_table,
+                None, /* ratio_dependent_block_size */
             )
         };
 
@@ -1654,6 +1656,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
             block_stretch_size,
             || block_content_size,
             is_table,
+            None, /* ratio_dependent_block_size */
         ))
     } else {
         content_box_sizes.block.resolve_extrinsic(
@@ -1683,6 +1686,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         inline_stretch_size,
         get_inline_content_sizes,
         is_table,
+        None, /* ratio_dependent_block_size */
     );
 
     let containing_block_for_children = ContainingBlock {
@@ -2233,6 +2237,7 @@ impl IndependentFormattingContext {
                     block_stretch_size,
                     || block_content_size,
                     is_table,
+                    None, /* ratio_dependent_block_size */
                 ))
             } else {
                 content_box_sizes_and_pbm
@@ -2258,6 +2263,7 @@ impl IndependentFormattingContext {
             inline_stretch_size,
             get_content_size,
             is_table,
+            None, /* ratio_dependent_block_size */
         );
 
         let containing_block_for_children = ContainingBlock {

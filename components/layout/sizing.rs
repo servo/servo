@@ -177,6 +177,7 @@ pub(crate) fn outer_inline(
                         block_stretch_size,
                         || block_content_size,
                         is_table,
+                        None, /* ratio_dependent_block_size */
                     ))
                 } else {
                     content_box_sizes.block.resolve_extrinsic(
@@ -685,6 +686,10 @@ impl Sizes {
     }
 
     /// Resolves the three sizes into a single numerical value.
+    ///
+    /// `ratio_dependent_block_size` is the block size obtained from a preferred
+    /// aspect ratio and the resolved inline size, if any. When present, it is
+    /// used instead of the content size for intrinsic block sizes.
     #[inline]
     pub(crate) fn resolve(
         &self,
@@ -694,7 +699,16 @@ impl Sizes {
         stretch_size: Option<Au>,
         get_content_size: impl FnOnce() -> ContentSizes,
         is_table: bool,
+        ratio_dependent_block_size: Option<Au>,
     ) -> Au {
+        let ratio_dependent_block_size = match axis {
+            LogicalAxis::Block => ratio_dependent_block_size,
+            LogicalAxis::Inline => None,
+        };
+        let get_content_size = || match ratio_dependent_block_size {
+            Some(size) => ContentSizes::from(size),
+            None => get_content_size(),
+        };
         if is_table && axis == LogicalAxis::Block {
             // The intrinsic block size of a table already takes sizing properties into account,
             // but it can be a smaller amount if there are collapsed rows.
@@ -857,6 +871,7 @@ impl<'a> LazySize<'a> {
                 data.stretch_size,
                 || get_content_size().into(),
                 data.is_table,
+                None, /* ratio_dependent_block_size */
             )
         })
     }
