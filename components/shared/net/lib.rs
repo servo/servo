@@ -314,14 +314,9 @@ pub trait FetchTaskTarget {
 /// <https://fetch.spec.whatwg.org/#concept-filtered-response>
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ExposedMetadata {
-    // Final URL after redirects.
     pub final_url: ServoUrl,
-    // Headers
     pub headers: Serde<HeaderMap>,
-
-    // HTTP Status
     pub status: HttpStatus,
-    // True if the request comes from a redirection
     pub redirected: bool,
 }
 
