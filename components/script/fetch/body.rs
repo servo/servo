@@ -4,7 +4,7 @@
 
 use std::io::Cursor;
 use std::rc::Rc;
-use std::{fs, ptr, slice, str};
+use std::{fs, ptr, str};
 
 use encoding_rs::{Encoding, UTF_8};
 use http::HeaderMap;
@@ -1086,7 +1086,6 @@ pub(crate) fn run_array_buffer_data_algorithm(
     Ok(FetchedData::ArrayBuffer(rooted_heap))
 }
 
-#[expect(unsafe_code)]
 pub(crate) fn decode_to_utf16_with_bom_removal(
     bytes: &[u8],
     encoding: &'static Encoding,
@@ -1095,11 +1094,10 @@ pub(crate) fn decode_to_utf16_with_bom_removal(
     let capacity = decoder
         .max_utf16_buffer_length(bytes.len())
         .expect("Overflow");
-    let mut utf16 = Vec::with_capacity(capacity);
-    let extra = unsafe { slice::from_raw_parts_mut(utf16.as_mut_ptr(), capacity) };
-    let (_, read, written, _) = decoder.decode_to_utf16(bytes, extra, true);
+    let mut utf16 = vec![0u16; capacity];
+    let (_, read, written, _) = decoder.decode_to_utf16(bytes, &mut utf16, true);
     assert_eq!(read, bytes.len());
-    unsafe { utf16.set_len(written) }
+    utf16.truncate(written);
     utf16
 }
 
