@@ -358,7 +358,7 @@ impl CloseWatcherMethods<DomTypeHolder> for CloseWatcher {
         let internal_close_watcher = InternalCloseWatcher::establish(
             cx.no_gc(),
             window,
-            InternalCloseWatcherOwner::CloseWatcher(Dom::from_ref(&*close_watcher)),
+            InternalCloseWatcherOwner::CloseWatcher(close_watcher.as_traced()),
         );
         // Step 3. If options["signal"] exists, then:
         if let Some(signal) = options.signal.as_ref() {
