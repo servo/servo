@@ -6,8 +6,10 @@ use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use paint_api::SerializableImageData;
 use pixels::Snapshot;
 use profile_traits::mem::ReportKind;
+use servo_base::id::WebViewId;
 use servo_canvas_traits::canvas::{
-    CompositionOptions, FillOrStrokeStyle, FillRule, LineOptions, Path, ShadowOptions, TextRun,
+    CanvasId, CompositionOptions, FillOrStrokeStyle, FillRule, LineOptions, Path, ShadowOptions,
+    TextRun,
 };
 use webrender_api::ImageDescriptor;
 
@@ -65,6 +67,7 @@ pub(crate) trait GenericDrawTarget {
     );
     fn fill_text(
         &mut self,
+        canvas_id: CanvasId,
         text_runs: Vec<TextRun>,
         style: FillOrStrokeStyle,
         composition_options: CompositionOptions,
@@ -91,6 +94,7 @@ pub(crate) trait GenericDrawTarget {
     );
     fn stroke_text(
         &mut self,
+        canvas_id: CanvasId,
         text_runs: Vec<TextRun>,
         style: FillOrStrokeStyle,
         line_options: LineOptions,

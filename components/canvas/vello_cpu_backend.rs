@@ -13,11 +13,12 @@ use malloc_size_of::MallocSizeOf;
 use paint_api::SerializableImageData;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use profile_traits::mem::ReportKind;
+use rustc_hash::FxHashSet;
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::id::WebViewId;
 use servo_canvas_traits::canvas::{
-    CompositionOptions, CompositionOrBlending, CompositionStyle, FillOrStrokeStyle, FillRule,
-    LineOptions, Path, ShadowOptions, TextRun,
+    CanvasId, CompositionOptions, CompositionOrBlending, CompositionStyle, FillOrStrokeStyle,
+    FillRule, LineOptions, Path, ShadowOptions, TextRun,
 };
 use servo_config::pref;
 use vello_cpu::{RenderSettings, kurbo, peniko};
@@ -28,14 +29,23 @@ use crate::canvas_data::Filter;
 
 thread_local! {
     /// The shared font cache used by all canvases that render on a thread.
-    static SHARED_FONT_CACHE: RefCell<HashMap<FontIdentifier, peniko::FontData>> = RefCell::default();
+    static SHARED_FONT_CACHE: RefCell<HashMap<FontIdentifier, FontCacheData>> = RefCell::default();
+}
+
+struct FontCacheData {
+    webviews: FxHashSet<CanvasId>,
+    data: peniko::FontData,
 }
 
 /// Clears the font cache.
-// TODO: Only clear fonts associated with a webviewid
-pub(crate) fn clear_shared_font_cache(_webview_id: WebViewId) {
+pub(crate) fn clear_shared_font_cache(canvas_id: CanvasId) {
     SHARED_FONT_CACHE.with(|font_cache| {
-        font_cache.borrow_mut().clear();
+        font_cache
+            .borrow_mut()
+            .extract_if(|_identifier, font_cache_data| {
+                font_cache_data.webviews.contains(&canvas_id) && font_cache_data.webviews.len() == 1
+            })
+            .collect::<Vec<_>>();
     })
 }
 
@@ -336,6 +346,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
 
     fn fill_text(
         &mut self,
+        canvas_id: CanvasId,
         text_runs: Vec<TextRun>,
         style: FillOrStrokeStyle,
         composition_options: CompositionOptions,
@@ -353,13 +364,21 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
                             return;
                         };
                         let font = font_data_and_index.convert();
-                        font_cache.borrow_mut().insert(identifier.clone(), font);
+                        font_cache.borrow_mut().insert(
+                            identifier.clone(),
+                            FontCacheData {
+                                webviews: FxHashSet::from_iter([canvas_id]),
+                                data: font,
+                            },
+                        );
                     }
 
-                    let font_cache = font_cache.borrow();
-                    let Some(font) = font_cache.get(identifier) else {
+                    let mut font_cache = font_cache.borrow_mut();
+                    let Some(font_cache_data) = font_cache.get_mut(identifier) else {
                         return;
                     };
+                    font_cache_data.webviews.insert(canvas_id);
+                    let font = &font_cache_data.data;
                     self_
                         .ctx
                         .glyph_run(&mut self_.resources, font)
@@ -441,6 +460,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
 
     fn stroke_text(
         &mut self,
+        canvas_id: CanvasId,
         text_runs: Vec<TextRun>,
         style: FillOrStrokeStyle,
         line_options: LineOptions,
@@ -460,13 +480,22 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
                             return;
                         };
                         let font = font_data_and_index.convert();
-                        font_cache.borrow_mut().insert(identifier.clone(), font);
+                        font_cache.borrow_mut().insert(
+                            identifier.clone(),
+                            FontCacheData {
+                                webviews: FxHashSet::from_iter([canvas_id]),
+                                data: font,
+                            },
+                        );
                     }
 
-                    let font_cache = font_cache.borrow();
-                    let Some(font) = font_cache.get(identifier) else {
+                    let mut font_cache = font_cache.borrow_mut();
+                    let Some(font_cache_data) = font_cache.get_mut(identifier) else {
                         return;
                     };
+
+                    font_cache_data.webviews.insert(canvas_id);
+                    let font = &font_cache_data.data;
                     self_
                         .ctx
                         .glyph_run(&mut self_.resources, font)
