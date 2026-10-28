@@ -4212,6 +4212,9 @@ impl Window {
             devtools_wants_updates: Default::default(),
             has_dispatched_scroll_event: Cell::new(false),
             has_dispatched_input_event: Cell::new(false),
+            // https://html.spec.whatwg.org/multipage/#last-history-action-activation-timestamp
+            // > A last history-action activation timestamp, which is either a DOMHighResTimeStamp
+            // > or positive infinity, initially positive infinity.
             last_history_action_activation_timestamp: Cell::new(
                 UserActivationTimestamp::PositiveInfinity,
             ),
