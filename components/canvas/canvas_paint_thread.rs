@@ -13,7 +13,7 @@ use pixels::Snapshot;
 use profile_traits::mem::{
     ProcessReports, ProfilerChan, Report, ReportsChan, perform_memory_report,
 };
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::WebViewId;
 use servo_base::{Epoch, generic_channel};
@@ -26,7 +26,7 @@ use crate::vello_cpu_backend::clear_shared_font_cache;
 
 pub struct CanvasPaintThread {
     canvases: FxHashMap<CanvasId, Canvas>,
-    canvas_webview_map: FxHashMap<WebViewId, CanvasId>,
+    canvas_webview_map: FxHashMap<WebViewId, FxHashSet<CanvasId>>,
     next_canvas_id: CanvasId,
     paint_api: CrossProcessPaintApi,
 }
@@ -92,8 +92,10 @@ impl CanvasPaintThread {
                                     break;
                                 },
                                 Ok(ConstellationCanvasMsg::ClearResources(webview_id)) => {
-                                    if let Some(canvas_id) = canvas_paint_thread.canvas_webview_map.get(&webview_id) {
-                                        clear_shared_font_cache(*canvas_id);
+                                    if let Some(canvas_ids) = canvas_paint_thread.canvas_webview_map.remove(&webview_id) {
+                                        for canvas_id in canvas_ids.iter() {
+                                            clear_shared_font_cache(*canvas_id);
+                                        }
                                     }
                                 }
                                 Err(e) => {
@@ -117,7 +119,8 @@ impl CanvasPaintThread {
 
         let canvas = Canvas::new(canvas_id, size, self.paint_api.clone())?;
         self.canvases.insert(canvas_id, canvas);
-        self.canvas_webview_map.insert(webview_id, canvas_id);
+        let entry = self.canvas_webview_map.entry(webview_id).or_default();
+        entry.insert(canvas_id);
 
         Some(canvas_id)
     }
