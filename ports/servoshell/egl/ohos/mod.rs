@@ -86,8 +86,8 @@ use raw_window_handle::{
     WindowHandle,
 };
 use servo::{
-    self, DevicePixel, EventLoopWaker, InputMethodControl, InputMethodType, LoadStatus,
-    MediaSessionPlaybackState, PrefValue, SelectElement, WebViewId, Zero,
+    self, DevicePixel, EventLoopWaker, InputMethodControl, InputMethodType, LoadStatus, PrefValue,
+    SelectElement, WebViewId, Zero,
 };
 use xcomponent_sys::keyboard_types_compat::{KeyEventConverter, ModifierState};
 use xcomponent_sys::{
