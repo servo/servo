@@ -241,9 +241,10 @@ impl InternalCloseWatcher {
                 event.fire(cx, close_watcher.upcast::<EventTarget>())
             },
             InternalCloseWatcherOwner::Dialog(dialog) => {
-                // cancelAction given canPreventClose being to return the result of firing an event
-                // named cancel at dialog, with the cancelable attribute initialized to
-                // canPreventClose.
+                // https://html.spec.whatwg.org/multipage/#the-dialog-element:create-close-watcher-cancelaction
+                // > cancelAction given canPreventClose being to return the result of firing an event
+                // > named cancel at dialog, with the cancelable attribute initialized to
+                // > canPreventClose.
                 let event = Event::new(
                     cx,
                     &self.window.global(),
