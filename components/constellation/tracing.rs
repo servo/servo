@@ -206,6 +206,8 @@ mod from_script {
                 Self::TriggerGarbageCollection => target!("TriggerGarbageCollection"),
                 Self::AcquireWakeLock(..) => target!("AcquireWakeLock"),
                 Self::ReleaseWakeLock(..) => target!("ReleaseWakeLock"),
+                Self::AddTupleToUpgradeInsecureNavigationsSet(..) => 
+                    target!("AddTupleToUpgradeInsecureNavigationsSet"),
             }
         }
     }

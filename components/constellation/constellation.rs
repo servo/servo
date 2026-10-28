@@ -2109,6 +2109,27 @@ where
                     }
                 },
             },
+            ScriptToConstellationMessage::AddTupleToUpgradeInsecureNavigationsSet(tuple) => {
+                let browsing_context_id = match self.pipelines.get(&source_pipeline_id) {
+                    Some(pipeline) => pipeline.browsing_context_id,
+                    None => {
+                        warn!("{}: AddTupleToUpgradeInsecureNavigationsSet after closure", source_pipeline_id);
+                        return;
+                    },
+                };
+                let upgrade_insecure_navigations_set = match self.browsing_contexts.get_mut(&browsing_context_id) {
+                    Some(ctx) => &mut ctx.upgrade_insecure_navigations_set,
+                    None => {
+                        warn!(
+                            "{}: AddTupleToUpgradeInsecureNavigationsSet in closed {}",
+                            source_pipeline_id, browsing_context_id,
+                        );
+                        return;
+                    },
+                };
+
+                upgrade_insecure_navigations_set.insert(tuple);
+            }
         }
     }
 
