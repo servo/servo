@@ -106,8 +106,6 @@
           const source = context.createBufferSource();
           source.buffer = buffer;
           source.loop = true;
-          // Test that loopEnd gets clamped.
-          source.loopEnd = (bufferLength + 1) / sampleRate;
 
           source.connect(context.destination);
           source.start(0, 0, durationSeconds);
