@@ -545,6 +545,7 @@ impl ReplacedContents {
                         layout_context.image_resolver.image_key_from_cached_image(
                             image,
                             size,
+                            *style.get_image_rendering(),
                             self.base_fragment_info.tag.map(|tag| tag.node),
                         )
                     };
