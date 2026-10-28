@@ -20,6 +20,7 @@ use rustc_hash::FxBuildHasher;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::DocumentFragmentBinding::DocumentFragmentMethods;
 use script_bindings::dom::UnrootedDom;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::match_domstring_ascii;
 use script_bindings::reflector::DomObject;
 use servo_constellation_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
@@ -651,7 +652,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
         let mut names_vec: Vec<DOMString> = Vec::new();
         for elem in sourced_names_vec.iter() {
             if !names_vec.iter().any(|name| *name == *elem.name) {
-                names_vec.push(DOMString::from(&*elem.name));
+                names_vec.push(TracedDOMString::from(elem.name.clone()).root());
             }
         }
 

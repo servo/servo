@@ -90,7 +90,7 @@ impl TransitionEventMethods<crate::DomTypeHolder> for TransitionEvent {
 
     /// <https://drafts.csswg.org/css-transitions/#Events-TransitionEvent-propertyName>
     fn PropertyName(&self) -> DOMString {
-        DOMString::from(&*self.property_name)
+        TracedDOMString::from(self.property_name.clone()).root()
     }
 
     /// <https://drafts.csswg.org/css-transitions/#Events-TransitionEvent-elapsedTime>

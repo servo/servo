@@ -40,8 +40,8 @@ impl MutationRecord {
         let record = Box::new(MutationRecord::new_inherited(
             "attributes",
             target,
-            Some(DOMString::from(&**attribute_name)),
-            attribute_namespace.map(|n| DOMString::from(&**n)),
+            Some(TracedDOMString::from(attribute_name.clone()).root()),
+            attribute_namespace.map(|n| TracedDOMString::from(n.clone()).root()),
             old_value,
             None,
             None,

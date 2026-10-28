@@ -83,7 +83,7 @@ impl AnimationEventMethods<crate::DomTypeHolder> for AnimationEvent {
 
     /// <https://drafts.csswg.org/css-animations/#interface-animationevent-attributes>
     fn AnimationName(&self) -> DOMString {
-        DOMString::from(&*self.animation_name)
+        TracedDOMString::from(self.animation_name.clone()).root()
     }
 
     /// <https://drafts.csswg.org/css-animations/#interface-animationevent-attributes>

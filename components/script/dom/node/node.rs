@@ -36,6 +36,7 @@ use script_bindings::codegen::GenericBindings::ElementBinding::ElementMethods;
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
 use script_bindings::codegen::GenericBindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
 use script_bindings::codegen::InheritTypes::{DocumentFragmentTypeId, TextTypeId};
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::{
     DomObject, DomObjectWrap, WeakReferenceableDomObjectWrap, reflect_dom_object_with_proto,
     reflect_weak_referenceable_dom_object_with_proto,
@@ -3442,8 +3443,7 @@ impl Node {
     pub(crate) fn namespace_to_string(namespace: Namespace) -> Option<DOMString> {
         match namespace {
             ns!() => None,
-            // FIXME(ajeffrey): convert directly from Namespace to DOMString
-            _ => Some(DOMString::from(&*namespace)),
+            _ => Some(TracedDOMString::from(namespace).root()),
         }
     }
 

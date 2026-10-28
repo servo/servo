@@ -15,6 +15,7 @@ use js::rust::HandleObject;
 use keyboard_types::{Key, NamedKey};
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::PointerEventBinding::PointerEventMethods;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::match_domstring_ascii;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use script_bindings::traits::DomEventTrait;
@@ -926,7 +927,7 @@ impl EventMethods<crate::DomTypeHolder> for Event {
 
     /// <https://dom.spec.whatwg.org/#dom-event-type>
     fn Type(&self) -> DOMString {
-        DOMString::from(&*self.type_()) // FIXME(ajeffrey): Directly convert from Atom to DOMString
+        TracedDOMString::from(self.type_()).root()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-target>

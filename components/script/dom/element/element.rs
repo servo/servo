@@ -40,6 +40,7 @@ use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::codegen::GenericBindings::AnimationBinding::AnimationMethods;
 use script_bindings::codegen::GenericBindings::KeyframeEffectBinding::KeyframeEffectMethods;
 use script_bindings::dom::UnrootedDom;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::DomObject;
 use selectors::attr::CaseSensitivity;
 use selectors::matching::ElementSelectorFlags;
@@ -2030,7 +2031,7 @@ impl Element {
                 if attr.prefix() == Some(&namespace_prefix!("xmlns")) &&
                     **attr.value() == *namespace
                 {
-                    return Some(DOMString::from(&**attr.local_name()));
+                    return Some(TracedDOMString::from(attr.local_name().clone()).root());
                 }
             }
         }
@@ -3029,7 +3030,10 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     /// <https://dom.spec.whatwg.org/#dom-element-prefix>
     fn GetPrefix(&self) -> Option<DOMString> {
-        self.prefix.borrow().as_ref().map(|p| DOMString::from(&**p))
+        self.prefix
+            .borrow()
+            .as_ref()
+            .map(|p| TracedDOMString::from(p.clone()).root())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-tagname>
@@ -3060,7 +3064,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             cache.borrow_mut().insert(key, name.clone());
             name
         });
-        DOMString::from(&*name)
+        TracedDOMString::from(name).root()
     }
 
     // https://dom.spec.whatwg.org/#dom-element-id
@@ -3113,7 +3117,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         self.attrs
             .borrow()
             .iter()
-            .map(|attr| DOMString::from(&**attr.name()))
+            .map(|attr| TracedDOMString::from(attr.name().clone()).root())
             .collect()
     }
 
@@ -5421,7 +5425,7 @@ impl Element {
             .owner_window()
             .accesskit_node_query(self.upcast::<Node>().to_trusted_node_address())?;
         let aria_role = ACCESSKIT_ROLE_TO_ARIA_ROLE.get(&accesskit_node.role())?;
-        Some(DOMString::from(aria_role.as_str()))
+        Some(TracedDOMString::from(aria_role.clone()).root())
     }
 }
 
