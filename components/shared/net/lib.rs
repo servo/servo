@@ -818,7 +818,6 @@ pub enum CoreResourceMsg {
     /// Delete all session cookies (cookies without an expiry or max-age).
     DeleteSessionCookies(GenericSender<()>),
     DeleteCookie(ServoUrl, String),
-    DeleteCookieAsync(CookieStoreId, ServoUrl, String),
     NewCookieListener(
         CookieStoreId,
         GenericCallback<CookieAsyncResponse>,
@@ -1240,7 +1239,6 @@ pub enum CookieData {
     Get(Option<Serde<Cookie<'static>>>),
     GetAll(Vec<Serde<Cookie<'static>>>),
     Set(Result<(), ()>),
-    Delete(Result<(), ()>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

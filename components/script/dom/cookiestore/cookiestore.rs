@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
 use std::collections::VecDeque;
 
 use cookie::{Cookie, SameSite};
@@ -26,6 +25,7 @@ use crate::dom::bindings::codegen::Bindings::CookieStoreBinding::{
     CookieInit, CookieListItem, CookieStoreDeleteOptions, CookieStoreGetOptions, CookieStoreMethods,
 };
 use crate::dom::bindings::error::Error;
+use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
@@ -103,7 +103,7 @@ impl CookieListener {
                         .map(|cookie| cookie_to_list_item(cookie.0))
                         .collect_vec(),);
                 },
-                CookieData::Delete(_) | CookieData::Change(_) | CookieData::Set(_) => {
+                CookieData::Change(_) | CookieData::Set(_) => {
                     promise.resolve_native(cx, &());
                 }
             }
@@ -430,7 +430,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         // 2. Let origin be settings’s origin.
         let origin = global.origin();
 
-        // 9. Let p be a new promise.
+        // 5. Let p be a new promise.
         let p = Promise::new(cx, &global);
 
         // 3. If origin is an opaque origin, then return a promise rejected with a "SecurityError" DOMException.
@@ -439,19 +439,22 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             return p;
         }
 
-        // 6.1 Let r be the result of running set a cookie with url, name, value, null, null, "/", "strict", false, and null.
-        let properties = CookieInit {
-            name,
-            value,
-            expires: None,
-            domain: None,
-            path: USVString(String::from("/")),
-            sameSite: CookieSameSite::Strict,
-            partitioned: false,
-        };
+        // 4. Let url be settings’s creation URL.
         let creation_url = global.creation_url();
-        let Some(cookie) = CookieStore::set_a_cookie(&creation_url, &properties) else {
-            // If r is failure, then reject p with a TypeError and abort these steps.
+
+        // 6.1 Let r be the result of running set a cookie with url, name, value, null, null, "/", "strict", false, and null.
+        let Some(cookie) = CookieStore::set_a_cookie(
+            &creation_url,
+            &name,
+            &value,
+            None,
+            None,
+            &USVString(String::from("/")),
+            CookieSameSite::Strict,
+            false,
+            None,
+        ) else {
+            // 6.2. If r is failure, then reject p with a TypeError and abort these steps.
             p.reject_error(cx, Error::Type(c"Invalid cookie".to_owned()));
             return p;
         };
@@ -463,7 +466,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             .send(CoreResourceMsg::SetCookieForUrlAsync(
                 self.droppable.store_id,
                 creation_url.clone(),
-                Serde(cookie.into_owned()),
+                Serde(cookie),
                 NonHTTP,
             ));
         if res.is_err() {
@@ -499,8 +502,20 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         let creation_url = global.creation_url();
 
         // 6.1. Let r be the result of running set a cookie with url, options["name"], options["value"],
-        // options["expires"], options["domain"], options["path"], options["sameSite"], and options["partitioned"].
-        let Some(cookie) = CookieStore::set_a_cookie(&creation_url, options) else {
+        // options["expires"], options["domain"], options["path"], options["sameSite"], options["partitioned"],
+        // and options["maxAge"].
+        let Some(cookie) = CookieStore::set_a_cookie(
+            &creation_url,
+            &options.name,
+            &options.value,
+            options.expires,
+            options.domain.as_ref(),
+            &options.path,
+            options.sameSite,
+            options.partitioned,
+            options.maxAge,
+        ) else {
+            // 6.2. If r is failure, then reject p with a TypeError and abort these steps.
             p.reject_error(cx, Error::Type(c"Invalid cookie".to_owned()));
             return p;
         };
@@ -512,7 +527,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             .send(CoreResourceMsg::SetCookieForUrlAsync(
                 self.droppable.store_id,
                 creation_url.clone(),
-                Serde(cookie.into_owned()),
+                Serde(cookie),
                 NonHTTP,
             ));
         if res.is_err() {
@@ -544,14 +559,30 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             return p;
         }
 
+        // 4. Let url be settings’s creation URL.
+        let creation_url = global.creation_url();
+
+        // 6.1. Let r be the result of running delete a cookie with url, name, null, "/", and true.
+        let Some(cookie) = CookieStore::delete_a_cookie(
+            &creation_url,
+            &name,
+            None,
+            &USVString(String::from("/")),
+            true,
+        ) else {
+            // 6.2. If r is failure, then reject p with a TypeError and abort these steps.
+            p.reject_error(cx, Error::Type(c"Invalid cookie".to_owned()));
+            return p;
+        };
+
         // 6. Run the following steps in parallel:
-        // TODO: the spec passes additional parameters to _delete a cookie_ that we don't handle yet
         let res = global
             .resource_threads()
-            .send(CoreResourceMsg::DeleteCookieAsync(
+            .send(CoreResourceMsg::SetCookieForUrlAsync(
                 self.droppable.store_id,
-                global.creation_url(),
-                name.0,
+                creation_url.clone(),
+                Serde(cookie),
+                NonHTTP,
             ));
         if res.is_err() {
             error!("Failed to send cookiestore message to resource threads");
@@ -582,14 +613,31 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             return p;
         }
 
+        // 4. Let url be settings’s creation URL.
+        let creation_url = global.creation_url();
+
+        // 6.1. Let r be the result of running delete a cookie with url, options["name"],
+        // options["domain"], options["path"], and options["partitioned"].
+        let Some(cookie) = CookieStore::delete_a_cookie(
+            &creation_url,
+            &options.name,
+            options.domain.as_ref(),
+            &options.path,
+            options.partitioned,
+        ) else {
+            // 6.2. If r is failure, then reject p with a TypeError and abort these steps.
+            p.reject_error(cx, Error::Type(c"Invalid cookie".to_owned()));
+            return p;
+        };
+
         // 6. Run the following steps in parallel:
-        // TODO: the spec passes additional parameters to _delete a cookie_ that we don't handle yet
         let res = global
             .resource_threads()
-            .send(CoreResourceMsg::DeleteCookieAsync(
+            .send(CoreResourceMsg::SetCookieForUrlAsync(
                 self.droppable.store_id,
-                global.creation_url(),
-                options.name.to_string(),
+                creation_url.clone(),
+                Serde(cookie),
+                NonHTTP,
             ));
         if res.is_err() {
             error!("Failed to send cookiestore message to resource threads");
@@ -611,11 +659,23 @@ impl CookieStore {
     }
 
     /// <https://cookiestore.spec.whatwg.org/#set-cookie-algorithm>
-    fn set_a_cookie<'a>(url: &'a ServoUrl, properties: &'a CookieInit) -> Option<Cookie<'a>> {
+    #[expect(clippy::too_many_arguments)]
+    fn set_a_cookie(
+        url: &ServoUrl,
+        name: &USVString,
+        value: &USVString,
+        expires: Option<Finite<f64>>,
+        domain: Option<&USVString>,
+        path: &USVString,
+        same_site: CookieSameSite,
+        partitioned: bool,
+        max_age: Option<i64>,
+    ) -> Option<Cookie<'static>> {
         // 1. Normalize name.
-        let name = CookieStore::normalize(&properties.name);
+        let name = CookieStore::normalize(name);
+
         // 2. Normalize value.
-        let value = CookieStore::normalize(&properties.value);
+        let value = CookieStore::normalize(value);
 
         // 3. If name or value contain U+003B (;), any C0 control character except U+0009 TAB, or U+007F DELETE, then return failure.
         if CookieStore::contains_control_characters(&name) ||
@@ -636,6 +696,7 @@ impl CookieStore {
             if value.contains('=') || value.is_empty() {
                 return None;
             }
+
             // 5.3 If value, byte-lowercased, starts with `__host-`, `__host-http-`, `__http-`, or `__secure-`, then return failure.
             if ["__host-", "__host-http-", "__http-", "__secure-"]
                 .into_iter()
@@ -654,31 +715,27 @@ impl CookieStore {
         }
         let name_starts_with_host = starts_with_ignore_ascii_case(&name, "__host-");
 
+        // 7. Let encodedName be the result of UTF-8 encoding name.
+        // 8. Let encodedValue be the result of UTF-8 encoding value.
+
         // 9. If the byte sequence length of encodedName plus the byte sequence length of encodedValue is greater than the maximum name/value pair size, then return failure.
         if name.len() + value.len() > 4096 {
             return None;
         }
 
-        let mut cookie = Cookie::build((Cow::Owned(name), Cow::Owned(value)))
-            // 21. Append ('Secure', '') to attributes
-            .secure(true)
-            // 23. If partitioned is true, Append (`Partitioned`, ``) to attributes.
-            .partitioned(properties.partitioned)
-            // 21. Switch on sameSite:
-            .same_site(match properties.sameSite {
-                CookieSameSite::Lax => SameSite::Lax,
-                CookieSameSite::Strict => SameSite::Strict,
-                CookieSameSite::None => SameSite::None,
-            });
+        // 10. Let host be url’s host
+        let host = url.host().map(|host| host.to_owned());
 
-        // 12. If domain is non-null
-        if let Some(domain) = &properties.domain {
-            // 10. Let host be url's host.
-            let host = url.host()?.to_owned();
-            // 12.1 If domain starts with U+002E (.), then return failure
+        // 11. Let attributes be « ».
+        let mut cookie = Cookie::build((name, value));
+
+        // 12. If domain is non-null:
+        if let Some(domain) = domain {
+            // 12.1 If domain starts with U+002E (.), then return failure.
             if domain.starts_with('.') {
                 return None;
             }
+
             // 12.2 If name, byte-lowercased, starts with `__host-`, then return failure.
             if name_starts_with_host {
                 return None;
@@ -688,67 +745,116 @@ impl CookieStore {
             // 12.4 Let parsedDomain be the result of host parsing domain.
             // 12.5 Assert: parsedDomain is not failure.
             // Note: this function parses the host and returns the parsed host on success
-            let domain = get_registrable_domain_suffix_of_or_is_equal_to(domain, host)?;
+            let domain = get_registrable_domain_suffix_of_or_is_equal_to(domain, host?)?;
 
             // 12.6 Let encodedDomain be the result of UTF-8 encoding parsedDomain.
             let domain = domain.to_string();
+
             // 12.7 If the byte sequence length of encodedDomain is greater than the maximum attribute value size, then return failure.
             if domain.len() > 1024 {
                 return None;
             }
+
             // 12.8 Append (`Domain`, encodedDomain) to attributes.
             cookie.inner_mut().set_domain(domain);
         }
 
         // 13. If expires is non-null:
-        if let Some(expiry) = properties.expires {
-            // TODO: update cookiestore to take new maxAge parameter
+        if let Some(expiry) = expires {
+            // 13.1 If maxAge is non-null, then return failure.
+            if max_age.is_some() {
+                return None;
+            }
+
             // 13.2 Append (`Expires`, expires (date serialized)) to attributes.
             cookie.inner_mut().set_expires(
                 OffsetDateTime::from_unix_timestamp((*expiry / 1000.0) as i64)
                     .expect("cookie expiry out of range"),
             );
         }
+        // 14. Otherwise, if maxAge is non-null, then append (`Max-Age`, ToString(maxAge)) to attributes.
+        else if let Some(max_age) = max_age {
+            cookie
+                .inner_mut()
+                .set_max_age(time::Duration::seconds(max_age));
+        }
 
         // 15. If path is the empty string, then set path to the serialized cookie default path of url.
-        let path = if properties.path.is_empty() {
-            // 15.1 Let cloneURL be a clone of url.
-            let mut cloned_url = url.clone();
-            {
-                // 15.2 Set cloneURL’s path to the cookie default path of cloneURL’s path.
-                // <https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-layered-cookies#name-cookie-default-path>
-                let mut path_segments = cloned_url
-                    .as_mut_url()
-                    .path_segments_mut()
-                    .expect("document creation url cannot be a base");
-                // 2. If path's size is greater than 1, then remove path's last item
-                if url.path_segments().is_some_and(|ps| ps.count() > 1) {
-                    path_segments.pop();
-                } else {
-                    // 3. Otherwise, set path[0] to the empty string.
-                    path_segments.clear();
-                }
-            }
-            cloned_url.path().to_owned()
+        let path = if path.is_empty() {
+            CookieStore::serialized_cookie_default_path(url)
         } else {
-            properties.path.to_string()
+            path.to_string()
         };
+
         // 16. If path does not start with U+002F (/), then return failure.
         if !path.starts_with('/') {
             return None;
         }
+
         // 17. If path is not U+002F (/), and name, byte-lowercased, starts with `__host-`, then return failure.
         if path != "/" && name_starts_with_host {
             return None;
         }
+
+        // 18. Let encodedPath be the result of UTF-8 encoding path.
+
         // 19. If the byte sequence length of encodedPath is greater than the maximum attribute value size, then return failure.
         if path.len() > 1024 {
             return None;
         }
+
         // 20. Append (`Path`, encodedPath) to attributes.
         cookie.inner_mut().set_path(path);
 
+        // 21. Append (`Secure`, ``) to attributes.
+        cookie.inner_mut().set_secure(true);
+
+        // 22. Switch on sameSite:
+        cookie.inner_mut().set_same_site(match same_site {
+            CookieSameSite::None => SameSite::None,
+            CookieSameSite::Strict => SameSite::Strict,
+            CookieSameSite::Lax => SameSite::Lax,
+        });
+
+        // 23. If partitioned is true, Append (`Partitioned`, ``) to attributes.
+        cookie.inner_mut().set_partitioned(partitioned);
+
+        // 24. Perform the steps defined in Cookies § Storage Model for when the user agent
+        // "receives a cookie" with url as request-uri, encodedName as cookie-name, encodedValue as
+        // cookie-value, and attributes as cookie-attribute-list.
+
+        // 25. Return success.
         Some(cookie.build())
+    }
+
+    /// <https://cookiestore.spec.whatwg.org/#delete-a-cookie>
+    fn delete_a_cookie(
+        url: &ServoUrl,
+        name: &USVString,
+        domain: Option<&USVString>,
+        path: &USVString,
+        partitioned: bool,
+    ) -> Option<Cookie<'static>> {
+        // 1. Normalize name.
+        let name = CookieStore::normalize(name);
+
+        // 2. Let value be the empty string.
+        // 3. If name’s length is 0, then set value to any non-empty implementation-defined string.
+        let value = if name.is_empty() { "servo" } else { "" };
+
+        // 4. Return the results of running set a cookie with url, name, value, null, domain, path,
+        // "strict", partitioned, and 0.
+        CookieStore::set_a_cookie(
+            url,
+            &USVString(name),
+            &USVString(value.to_owned()),
+            None,
+            domain,
+            path,
+            CookieSameSite::Strict,
+            partitioned,
+            Some(0),
+        )
     }
 
     /// <https://cookiestore.spec.whatwg.org/#set-cookie-algorithm>
@@ -757,5 +863,43 @@ impl CookieStore {
         val.contains(
             |v| matches!(v, '\u{0000}'..='\u{0008}' | '\u{000a}'..='\u{001f}' | '\u{007f}' | ';'),
         )
+    }
+
+    /// <https://fetch.spec.whatwg.org/#serialized-cookie-default-path>
+    fn serialized_cookie_default_path(url: &ServoUrl) -> String {
+        // 1. Let cloneURL be a clone of url.
+        let mut cloned_url = url.clone();
+
+        // 2. Set cloneURL’s path to the cookie default path of cloneURL’s path.
+        let path = cloned_url
+            .path_segments()
+            .expect("document creation url cannot be a base")
+            .map(String::from)
+            .collect();
+        let path = CookieStore::cookie_default_path(path);
+        cloned_url
+            .as_mut_url()
+            .set_path(&format!("/{}", path.join("/")));
+
+        // 3. Return the URL path serialization of cloneURL.
+        cloned_url.path().to_owned()
+    }
+
+    /// <https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-layered-cookies#name-cookie-default-path>
+    fn cookie_default_path(mut path: Vec<String>) -> Vec<String> {
+        // 1. Assert: path is a non-empty list.
+        assert!(!path.is_empty());
+
+        // 2. If path's size is greater than 1, then remove path's last item.
+        if path.len() > 1 {
+            path.pop();
+        }
+        // 3. Otherwise, set path[0] to the empty string.
+        else {
+            path[0] = String::new();
+        }
+
+        // 4. Return path.
+        path
     }
 }

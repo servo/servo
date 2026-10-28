@@ -482,13 +482,6 @@ impl ResourceChannelManager {
                     .delete_cookie_with_name(&request, name);
                 return true;
             },
-            CoreResourceMsg::DeleteCookieAsync(cookie_store_id, url, name) => {
-                http_state
-                    .cookie_jar
-                    .write()
-                    .delete_cookie_with_name(&url, name);
-                self.send_cookie_response(cookie_store_id, CookieData::Delete(Ok(())));
-            },
             CoreResourceMsg::FetchRedirect(request_builder, res_init, sender) => {
                 let cancellation_listener =
                     self.get_or_create_cancellation_listener(request_builder.id);
