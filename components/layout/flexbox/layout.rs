@@ -1277,15 +1277,14 @@ impl InitialFlexLineLayout<'_> {
             min_max_violation_kind: Cell<Ordering>,
         }
 
-        let outer_hypothetical_main_sizes_sum: Au = items
-            .iter()
-            .map(|item| item.hypothetical_main_size + item.pbm_auto_is_zero.main)
-            .sum();
-
         // > 1. Determine the used flex factor. Sum the outer hypothetical main sizes of all
         // > items on the line. If the sum is less than the flex container’s inner main
         // > size, use the flex grow factor for the rest of this algorithm; otherwise, use
         // > the flex shrink factor.
+        let outer_hypothetical_main_sizes_sum: Au = items
+            .iter()
+            .map(|item| item.hypothetical_main_size + item.pbm_auto_is_zero.main)
+            .sum();
         let grow = outer_hypothetical_main_sizes_sum < container_main_size;
 
         let mut frozen_count = 0;
