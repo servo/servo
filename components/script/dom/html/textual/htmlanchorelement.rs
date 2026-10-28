@@ -12,7 +12,6 @@ use js::rust::HandleObject;
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use num_traits::ToPrimitive;
 use script_bindings::cell::DomRefCell;
-use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
@@ -37,8 +36,8 @@ use crate::dom::html::links::htmlhyperlinkelementutils::{
 };
 use crate::dom::html::links::relations::{LinkRelations, follow_hyperlink};
 use crate::dom::mouseevent::MouseEvent;
+use crate::dom::node::Node;
 use crate::dom::node::virtualmethods::VirtualMethods;
-use crate::dom::node::{Node, NodeTraits};
 
 #[dom_struct]
 pub(crate) struct HTMLAnchorElement {
@@ -79,18 +78,6 @@ impl HTMLAnchorElement {
             document,
             proto,
         )
-    }
-
-    /// Get the full URL of the `href` attribute of this `<a>` element, returning `None` if
-    /// the URL could not be joined with the `Document` URL.
-    pub(crate) fn full_href_url_for_user_interface(&self, no_gc: &NoGC) -> Option<ServoUrl> {
-        if !self.upcast::<Element>().has_attribute(&local_name!("href")) {
-            return None;
-        }
-        self.owner_document()
-            .base_url()
-            .join(&self.Href(no_gc))
-            .ok()
     }
 }
 
