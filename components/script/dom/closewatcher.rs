@@ -277,8 +277,9 @@ impl InternalCloseWatcher {
                 event.fire(cx, close_watcher.upcast::<EventTarget>());
             },
             InternalCloseWatcherOwner::Dialog(dialog) => {
-                // closeAction being to close the dialog given dialog, dialog's request close
-                // return value, and dialog's request close source element.
+                // https://html.spec.whatwg.org/multipage/#the-dialog-element:create-close-watcher-closeaction
+                // > closeAction being to close the dialog given dialog, dialog's request close
+                // > return value, and dialog's request close source element.
                 dialog.close_watcher_close(cx)
             },
         }
