@@ -3768,9 +3768,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-currentcsszoom
-    fn CurrentCSSZoom(&self) -> Finite<f64> {
+    fn CurrentCSSZoom(&self, cx: &mut JSContext) -> Finite<f64> {
         let window = self.owner_window();
-        Finite::wrap(window.current_css_zoom_query(self.upcast::<Node>()) as f64)
+        Finite::wrap(window.current_css_zoom_query(cx, self.upcast::<Node>()) as f64)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-sethtmlunsafe>

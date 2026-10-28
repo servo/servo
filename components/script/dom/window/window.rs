@@ -3115,8 +3115,8 @@ impl Window {
             .query_client_rect(node.to_trusted_node_address())
     }
 
-    pub(crate) fn current_css_zoom_query(&self, node: &Node) -> f32 {
-        self.layout_reflow_deprecated(QueryMsg::CurrentCSSZoomQuery);
+    pub(crate) fn current_css_zoom_query(&self, cx: &mut JSContext, node: &Node) -> f32 {
+        self.layout_reflow(cx, QueryMsg::CurrentCSSZoomQuery);
         self.layout
             .borrow()
             .query_current_css_zoom(node.to_trusted_node_address())
