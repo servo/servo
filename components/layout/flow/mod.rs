@@ -39,7 +39,7 @@ use crate::layout_box_base::{IndependentFormattingContextLayoutResult, LayoutBox
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::sizing::{
     self, ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, LazySize, Size,
-    SizeConstraint, Sizes,
+    SizeConstraint, Sizes, compute_ratio_dependent_block_size,
 };
 use crate::style_ext::{
     AspectRatio, ComputedValuesExt, ContentBoxSizesAndPBM, LayoutStyle, PaddingBorderMargin,
@@ -1135,6 +1135,10 @@ impl IndependentFormattingContext {
             Au::zero,
             block_stretch_size,
             layout_style.is_table(),
+            compute_ratio_dependent_block_size(
+                preferred_aspect_ratio,
+                containing_block_for_children.size.inline,
+            ),
         );
 
         let layout = self.layout(
@@ -1327,7 +1331,7 @@ impl IndependentFormattingContext {
             )
         };
 
-        let get_lazy_block_size = || {
+        let get_lazy_block_size = |inline_size: Au| {
             LazySize::new(
                 &content_box_sizes.block,
                 LogicalAxis::Block,
@@ -1335,6 +1339,7 @@ impl IndependentFormattingContext {
                 Au::zero,
                 block_stretch_size,
                 is_table,
+                compute_ratio_dependent_block_size(preferred_aspect_ratio, inline_size),
             )
         };
 
@@ -1353,7 +1358,7 @@ impl IndependentFormattingContext {
             // compute it with an available inline space of zero. Then, after layout we can
             // compute the block size, and finally place among floats.
             let inline_size = inline_size_with_no_available_space;
-            let lazy_block_size = get_lazy_block_size();
+            let lazy_block_size = get_lazy_block_size(inline_size);
             layout = self.layout(
                 layout_context,
                 positioning_context,
@@ -1433,7 +1438,7 @@ impl IndependentFormattingContext {
                 // Later we'll check to see if the resulting block size is compatible with the
                 // placement.
                 let positioning_context_length = positioning_context.len();
-                let lazy_block_size = get_lazy_block_size();
+                let lazy_block_size = get_lazy_block_size(proposed_inline_size);
                 layout = self.layout(
                     layout_context,
                     positioning_context,
@@ -2286,6 +2291,7 @@ impl IndependentFormattingContext {
             Au::zero,
             block_stretch_size,
             is_table,
+            compute_ratio_dependent_block_size(preferred_aspect_ratio, inline_size),
         );
 
         let IndependentFormattingContextLayoutResult {

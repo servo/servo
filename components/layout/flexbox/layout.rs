@@ -40,7 +40,7 @@ use crate::positioned::{
 };
 use crate::sizing::{
     ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, IntrinsicSizingMode,
-    LazySize, Size, SizeConstraint, Sizes,
+    LazySize, Size, SizeConstraint, Sizes, compute_ratio_dependent_block_size,
 };
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, LayoutStyle};
 use crate::{ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock};
@@ -1572,9 +1572,19 @@ impl InitialFlexLineLayout<'_> {
                     .item
                     .inline_content_sizes(flex_context, item.used_main_size),
             };
-            let used_cross_size =
-                item.item
-                    .used_cross_size(cross_axis, final_line_cross_size, get_content_size);
+            let ratio_dependent_block_size = match cross_axis {
+                LogicalAxis::Block => compute_ratio_dependent_block_size(
+                    item.item.preferred_aspect_ratio,
+                    item.used_main_size,
+                ),
+                LogicalAxis::Inline => None,
+            };
+            let used_cross_size = item.item.used_cross_size(
+                cross_axis,
+                final_line_cross_size,
+                get_content_size,
+                ratio_dependent_block_size,
+            );
             item_used_cross_sizes.push(used_cross_size);
 
             // “If the flex item has `align-self: stretch`, redo layout for its contents,
@@ -1822,6 +1832,21 @@ impl FlexItem<'_> {
                             is_table,
                             None, /* ratio_dependent_block_size */
                         ))
+                    } else if let Some(ratio_dependent_block_size) =
+                        compute_ratio_dependent_block_size(
+                            self.preferred_aspect_ratio,
+                            used_main_size,
+                        )
+                    {
+                        SizeConstraint::Definite(self.content_cross_sizes.resolve(
+                            LogicalAxis::Block,
+                            Size::FitContent,
+                            Au::zero,
+                            block_stretch_size,
+                            ContentSizes::default,
+                            is_table,
+                            Some(ratio_dependent_block_size),
+                        ))
                     } else {
                         self.content_cross_sizes.resolve_extrinsic(
                             Size::FitContent,
@@ -1891,6 +1916,7 @@ impl FlexItem<'_> {
                 Au::zero,
                 stretch_size,
                 is_table,
+                compute_ratio_dependent_block_size(self.preferred_aspect_ratio, inline_size),
             )
         };
 
@@ -2180,6 +2206,7 @@ impl FlexItem<'_> {
         cross_axis: LogicalAxis,
         line_cross_size: Au,
         get_content_size: impl FnOnce() -> ContentSizes,
+        ratio_dependent_block_size: Option<Au>,
     ) -> Au {
         self.content_cross_sizes.resolve(
             cross_axis,
@@ -2193,7 +2220,7 @@ impl FlexItem<'_> {
             // see https://github.com/w3c/csswg-drafts/issues/11408.
             self.box_.independent_formatting_context.is_table() &&
                 cross_axis == LogicalAxis::Inline,
-            None, /* ratio_dependent_block_size */
+            ratio_dependent_block_size,
         )
     }
 
@@ -2210,17 +2237,24 @@ impl FlexItem<'_> {
                 LogicalAxis::Inline,
                 line_cross_size,
                 || self.inline_content_sizes(flex_context, used_main_size),
+                None, /* ratio_dependent_block_size */
             )),
             // The content size in the block axis is only known after laying out the item.
             // This is the same resolution as after the layout, so unlike an extrinsic
             // resolution, it's exact when intrinsic minimum or maximum sizes are involved.
             FlexAxis::Row => {
+                let ratio_dependent_block_size =
+                    compute_ratio_dependent_block_size(self.preferred_aspect_ratio, used_main_size);
                 let mut needs_content_size = false;
-                let used_cross_size =
-                    self.used_cross_size(LogicalAxis::Block, line_cross_size, || {
+                let used_cross_size = self.used_cross_size(
+                    LogicalAxis::Block,
+                    line_cross_size,
+                    || {
                         needs_content_size = true;
                         ContentSizes::default()
-                    });
+                    },
+                    ratio_dependent_block_size,
+                );
                 (!needs_content_size).then_some(used_cross_size)
             },
         }
@@ -2693,38 +2727,40 @@ impl FlexItemBox {
         automatic_inline_size: Size<Au>,
         intrinsic_sizing_mode: IntrinsicSizingMode,
     ) -> Au {
-        let content_block_size = || {
-            let mut positioning_context = PositioningContext::default();
+        let mut positioning_context = PositioningContext::default();
 
-            // We are computing the intrinsic block size, so the tentative block size that we use
-            // as an input to the intrinsic inline sizes needs to ignore the values of the sizing
-            // properties in the block axis.
-            let tentative_block_size = SizeConstraint::default();
+        // We are computing the intrinsic block size, so the tentative block size that we use
+        // as an input to the intrinsic inline sizes needs to ignore the values of the sizing
+        // properties in the block axis.
+        let tentative_block_size = SizeConstraint::default();
 
-            // TODO: This is wrong if the item writing mode is different from the flex
-            // container's writing mode.
-            let inline_size = {
-                let stretch_size = flex_context
-                    .containing_block
-                    .inline_stretch_size(pbm_auto_is_zero.cross);
-                let get_content_size = || {
-                    self.inline_content_sizes(
-                        flex_context,
-                        tentative_block_size,
-                        preferred_aspect_ratio,
-                    )
-                };
-                content_box_sizes.inline.resolve(
-                    LogicalAxis::Inline,
-                    automatic_inline_size,
-                    Au::zero,
-                    stretch_size,
-                    get_content_size,
-                    false,
-                    None, /* ratio_dependent_block_size */
+        // TODO: This is wrong if the item writing mode is different from the flex
+        // container's writing mode.
+        let inline_size = {
+            let stretch_size = flex_context
+                .containing_block
+                .inline_stretch_size(pbm_auto_is_zero.cross);
+            let get_content_size = || {
+                self.inline_content_sizes(
+                    flex_context,
+                    tentative_block_size,
+                    preferred_aspect_ratio,
                 )
             };
+            content_box_sizes.inline.resolve(
+                LogicalAxis::Inline,
+                automatic_inline_size,
+                Au::zero,
+                stretch_size,
+                get_content_size,
+                false,
+                None, /* ratio_dependent_block_size */
+            )
+        };
 
+        let ratio_dependent_block_size =
+            compute_ratio_dependent_block_size(preferred_aspect_ratio, inline_size);
+        let mut content_block_size = || {
             self.independent_formatting_context
                 .content_block_size_under_default_constraint(
                     flex_context.layout_context,
@@ -2753,11 +2789,13 @@ impl FlexItemBox {
                     // so the content block size doesn't take sizing properties into account.
                     // Therefore, pretending that it's never a table tends to provide a better result.
                     false, /* is_table */
-                    None,  /* ratio_dependent_block_size */
+                    ratio_dependent_block_size,
                 );
                 inner_block_size + pbm_auto_is_zero.main
             },
-            IntrinsicSizingMode::Size => content_block_size(),
+            IntrinsicSizingMode::Size => {
+                ratio_dependent_block_size.unwrap_or_else(content_block_size)
+            },
         }
     }
 

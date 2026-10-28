@@ -28,7 +28,7 @@ use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, CollapsedMargin, 
 use crate::geom::{LogicalRect, LogicalSides1D, LogicalVec2};
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::PositioningContext;
-use crate::sizing::InlineContentSizesResult;
+use crate::sizing::{InlineContentSizesResult, compute_ratio_dependent_block_size};
 use crate::style_ext::LayoutStyle;
 use crate::{ConstraintSpace, ContainingBlock};
 
@@ -347,12 +347,10 @@ impl SameFormattingContextBlock {
             content_block_size += collapsible_margins_in_children.end.solve();
         }
 
-        let ratio_dependent_block_size = preferred_aspect_ratio.map(|ratio| {
-            ratio.compute_dependent_size(
-                LogicalAxis::Block,
-                containing_block_for_children.size.inline,
-            )
-        });
+        let ratio_dependent_block_size = compute_ratio_dependent_block_size(
+            preferred_aspect_ratio,
+            containing_block_for_children.size.inline,
+        );
         let block_size = block_sizes.resolve(
             LogicalAxis::Block,
             automatic_block_size,

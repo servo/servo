@@ -451,7 +451,7 @@ impl IndependentFormattingContext {
         preferred_aspect_ratio: Option<AspectRatio>,
         lazy_block_size: &LazySize,
     ) -> IndependentFormattingContextLayoutResult {
-        let mut result = match &self.contents {
+        match &self.contents {
             IndependentFormattingContextContents::Replaced(replaced, widget) => {
                 let mut replaced_layout = replaced.layout(
                     layout_context,
@@ -511,19 +511,7 @@ impl IndependentFormattingContext {
                 containing_block_for_children,
                 containing_block,
             ),
-        };
-
-        // FIXME: This ignores the automatic content-based minimum size in the
-        // ratio-dependent axis, which should clamp this value.
-        if let Some(ratio) = preferred_aspect_ratio {
-            let inline_size = result
-                .content_inline_size_for_table
-                .unwrap_or(containing_block_for_children.size.inline);
-            result.content_block_size =
-                ratio.compute_dependent_size(LogicalAxis::Block, inline_size);
         }
-
-        result
     }
 
     pub(crate) fn layout_and_is_cached(
