@@ -3220,10 +3220,11 @@ impl Window {
     /// Otherwise, return `None`.
     pub(crate) fn get_iframe_viewport_details_if_known(
         &self,
+        cx: &mut JSContext,
         browsing_context_id: BrowsingContextId,
     ) -> Option<ViewportDetails> {
         // Reflow might fail, but do a best effort to return the right size.
-        self.layout_reflow_deprecated(QueryMsg::InnerWindowDimensionsQuery);
+        self.layout_reflow(cx, QueryMsg::InnerWindowDimensionsQuery);
         self.Document()
             .iframes()
             .viewport_details(browsing_context_id)
