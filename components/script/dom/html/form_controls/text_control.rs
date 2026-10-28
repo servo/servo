@@ -21,6 +21,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMo
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::event::inputevent::{InputEvent, InputEventFlags};
 use crate::dom::event::{EventBubbles, EventCancelable, EventFlags};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::form_controls::text_input::{
@@ -28,8 +29,7 @@ use crate::dom::html::form_controls::text_input::{
 };
 use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::{Node, NodeTraits};
-use crate::dom::text_input::{EmbedderClipboardProvider, InputEventType, IsComposing, KeyReaction};
-use crate::dom::types::InputEvent;
+use crate::dom::text_input::{EmbedderClipboardProvider, InputEventType, KeyReaction};
 use crate::dom::{Element, Event};
 
 pub(crate) trait TextControlElement {
@@ -96,16 +96,7 @@ pub(crate) trait TextControlElement {
             },
             _ => return false,
         };
-        self.fire_beforeinput_event(
-            cx,
-            data,
-            if event_type == InputEventType::InsertCompositionText {
-                IsComposing::Composing
-            } else {
-                IsComposing::NotComposing
-            },
-            event_type,
-        )
+        self.fire_beforeinput_event(cx, data, event_type)
     }
 
     /// <https://w3c.github.io/uievents/#event-type-beforeinput>
@@ -115,23 +106,27 @@ pub(crate) trait TextControlElement {
         &self,
         cx: &mut JSContext,
         data: Option<&str>,
-        is_composing: IsComposing,
         input_type: InputEventType,
     ) -> bool {
         let target = self.as_element().upcast::<EventTarget>();
         let global = target.global();
         let window = global.as_window();
+        let mut flags = InputEventFlags::BUBBLES;
+        if input_type.is_beforeinput_cancelable() {
+            flags |= InputEventFlags::CANCELABLE;
+        }
+        if input_type.is_composing() {
+            flags |= InputEventFlags::COMPOSING;
+        }
         let event = InputEvent::new(
             cx,
             window,
             None,
             atom!("beforeinput"),
-            true,
-            input_type.is_beforeinput_cancelable(),
+            flags,
             Some(window),
             0,
             data.map(DOMString::from),
-            is_composing.into(),
             input_type.as_str().into(),
         );
         let event = event.upcast::<Event>();
@@ -147,12 +142,7 @@ pub(crate) trait TextControlElement {
     }
 
     /// <https://w3c.github.io/uievents/#event-type-input>
-    fn queue_input_event(
-        &self,
-        data: Option<String>,
-        is_composing: IsComposing,
-        input_type: InputEventType,
-    ) {
+    fn queue_input_event(&self, data: Option<String>, input_type: InputEventType) {
         let element = self.as_element();
         let target = Trusted::new(element.upcast::<EventTarget>());
         element
@@ -163,17 +153,19 @@ pub(crate) trait TextControlElement {
                 let target = target.root();
                 let global = target.global();
                 let window = global.as_window();
+                let mut flags = InputEventFlags::BUBBLES;
+                if input_type.is_composing() {
+                    flags |= InputEventFlags::COMPOSING;
+                }
                 let event = InputEvent::new(
                     cx,
                     window,
                     None,
                     atom!("input"),
-                    true,
-                    false,
+                    flags,
                     Some(window),
                     0,
                     data.map(DOMString::from),
-                    is_composing.into(),
                     input_type.as_str().into(),
                 );
                 let event = event.upcast::<Event>();

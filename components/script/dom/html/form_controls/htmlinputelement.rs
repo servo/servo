@@ -1082,8 +1082,8 @@ impl TextControlElement for HTMLInputElement {
             KeyReaction::TriggerDefaultAction => {
                 self.implicit_submission(cx);
             },
-            KeyReaction::DispatchInput(text, is_composing, input_type) => {
-                self.queue_input_event(text, is_composing, input_type);
+            KeyReaction::DispatchInput(text, input_type) => {
+                self.queue_input_event(text, input_type);
                 self.value_dirty.set(true);
                 self.update_placeholder_shown_state(cx.no_gc());
                 self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
