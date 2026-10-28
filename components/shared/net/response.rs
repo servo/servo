@@ -253,16 +253,15 @@ impl Response {
             ResponseType::Default | ResponseType::Error(..)
         ));
 
-        let old_response = self.to_actual();
+        let mut old_response = self.to_actual();
 
         if let ResponseType::Error(e) = old_response.response_type {
             return Response::network_error(e);
         }
 
-        let mut response = old_response.clone();
         // This is ok as we always set the `response.headers` in all branches in the following.
-        let old_headers = std::mem::take(&mut response.headers);
-        response.internal_response = Some(Box::new(old_response));
+        let old_headers = std::mem::take(&mut old_response.headers);
+        let mut response = old_response.clone();
         response.response_type = filter_type;
 
         match response.response_type {
@@ -327,6 +326,9 @@ impl Response {
                 response.cache_state = CacheState::None;
             },
         }
+
+        old_response.headers = old_headers;
+        response.internal_response = Some(Box::new(old_response));
 
         response
     }
