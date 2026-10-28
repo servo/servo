@@ -227,7 +227,7 @@ impl MouseButtonEvent {
 /// The types of mouse buttons.
 ///
 /// <https://w3c.github.io/pointerevents/#the-button-property>
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum MouseButton {
     #[doc(hidden)]
     None,
