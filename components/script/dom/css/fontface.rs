@@ -355,7 +355,7 @@ impl FontFace {
             .descriptors
             .font_family
             .as_ref()
-            .map(|name| TracedDOMString::from(&name.name).root())
+            .map(|name| TracedDOMString::from(name.name.clone()).root())
         else {
             // Web fonts without a family name are not loaded, and they should not appear in document.fonts either.
             return None;

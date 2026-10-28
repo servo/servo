@@ -518,7 +518,7 @@ impl HTMLCollectionMethods<crate::DomTypeHolder> for HTMLCollection {
         for elem in self.elements_iter(no_gc) {
             // Step 2.1
             if let Some(id_atom) = elem.get_id() {
-                let id_str = TracedDOMString::from(&id_atom).root();
+                let id_str = TracedDOMString::from(id_atom).root();
                 if !result.contains(&id_str) {
                     result.push(id_str);
                 }
@@ -527,7 +527,7 @@ impl HTMLCollectionMethods<crate::DomTypeHolder> for HTMLCollection {
             if *elem.namespace() == ns!(html) &&
                 let Some(name_atom) = elem.get_name()
             {
-                let name_str = TracedDOMString::from(&name_atom).root();
+                let name_str = TracedDOMString::from(name_atom).root();
                 if !result.contains(&name_str) {
                     result.push(name_str)
                 }

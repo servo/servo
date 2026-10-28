@@ -652,7 +652,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
         let mut names_vec: Vec<DOMString> = Vec::new();
         for elem in sourced_names_vec.iter() {
             if !names_vec.iter().any(|name| *name == *elem.name) {
-                names_vec.push(TracedDOMString::from(&elem.name).root());
+                names_vec.push(TracedDOMString::from(elem.name.clone()).root());
             }
         }
 

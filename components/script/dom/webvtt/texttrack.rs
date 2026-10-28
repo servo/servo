@@ -173,7 +173,7 @@ impl TextTrack {
         *self.id.borrow_mut() = track_element
             .upcast::<Element>()
             .get_id()
-            .map(|value| TracedDOMString::from(&value).root())
+            .map(|value| TracedDOMString::from(value).root())
             .unwrap_or_default()
             .traced();
     }

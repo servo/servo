@@ -2031,7 +2031,7 @@ impl Element {
                 if attr.prefix() == Some(&namespace_prefix!("xmlns")) &&
                     **attr.value() == *namespace
                 {
-                    return Some(TracedDOMString::from(attr.local_name()).root());
+                    return Some(TracedDOMString::from(attr.local_name().clone()).root());
                 }
             }
         }
@@ -3033,7 +3033,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         self.prefix
             .borrow()
             .as_ref()
-            .map(|p| TracedDOMString::from(p).root())
+            .map(|p| TracedDOMString::from(p.clone()).root())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-tagname>
@@ -3064,7 +3064,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             cache.borrow_mut().insert(key, name.clone());
             name
         });
-        TracedDOMString::from(&name).root()
+        TracedDOMString::from(name).root()
     }
 
     // https://dom.spec.whatwg.org/#dom-element-id
@@ -3117,7 +3117,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         self.attrs
             .borrow()
             .iter()
-            .map(|attr| TracedDOMString::from(attr.name()).root())
+            .map(|attr| TracedDOMString::from(attr.name().clone()).root())
             .collect()
     }
 
@@ -5425,7 +5425,7 @@ impl Element {
             .owner_window()
             .accesskit_node_query(self.upcast::<Node>().to_trusted_node_address())?;
         let aria_role = ACCESSKIT_ROLE_TO_ARIA_ROLE.get(&accesskit_node.role())?;
-        Some(TracedDOMString::from(aria_role).root())
+        Some(TracedDOMString::from(aria_role.clone()).root())
     }
 }
 

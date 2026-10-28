@@ -179,7 +179,8 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
                 .borrow()
                 .read_with(&guard)
                 .name
-                .as_atom(),
+                .as_atom()
+                .clone(),
         )
         .root()
     }

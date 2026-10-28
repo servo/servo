@@ -927,7 +927,7 @@ impl EventMethods<crate::DomTypeHolder> for Event {
 
     /// <https://dom.spec.whatwg.org/#dom-event-type>
     fn Type(&self) -> DOMString {
-        TracedDOMString::from(&self.type_()).root()
+        TracedDOMString::from(self.type_()).root()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-target>

@@ -310,8 +310,8 @@ fn inner_sanitize_steps(
                 let child = DomRoot::downcast::<Element>(child).expect("Guaranteed by Step 1.1");
                 let element_name =
                     SanitizerElement::SanitizerElementNamespace(SanitizerElementNamespace {
-                        name: TracedDOMString::from(child.local_name()).root(),
-                        namespace: Some(TracedDOMString::from(child.namespace()).root()),
+                        name: TracedDOMString::from(child.local_name().clone()).root(),
+                        namespace: Some(TracedDOMString::from(child.namespace().clone()).root()),
                     });
 
                 // Step 1.5.2. If configuration["replaceWithChildrenElements"] exists and if
@@ -435,11 +435,11 @@ fn inner_sanitize_steps(
                     // local name and namespace.
                     let attribute_name = SanitizerAttribute::SanitizerAttributeNamespace(
                         SanitizerAttributeNamespace {
-                            name: TracedDOMString::from(attribute_local_name).root(),
+                            name: TracedDOMString::from(attribute_local_name.clone()).root(),
                             namespace: if attribute_namespace.is_empty() {
                                 None
                             } else {
-                                Some(TracedDOMString::from(attribute_namespace).root())
+                                Some(TracedDOMString::from(attribute_namespace.clone()).root())
                             },
                         },
                     );

@@ -659,7 +659,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
             .0
             .values()
             .find(|definition| definition.constructor.callback() == constructor.callback())
-            .map(|definition| TracedDOMString::from(&definition.name).root())
+            .map(|definition| TracedDOMString::from(definition.name.clone()).root())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-whendefined>
@@ -1418,7 +1418,7 @@ impl CustomElementReactionStack {
                 let mut realm = enter_auto_realm(cx, &*element.global());
                 let cx = &mut realm;
 
-                let local_name = TracedDOMString::from(&local_name).root();
+                let local_name = TracedDOMString::from(local_name).root();
                 rooted!(&in(cx) let mut name_value = UndefinedValue());
                 local_name.to_jsval(cx, name_value.handle_mut());
 
@@ -1434,7 +1434,7 @@ impl CustomElementReactionStack {
 
                 rooted!(&in(cx) let mut namespace_value = NullValue());
                 if namespace != ns!() {
-                    let namespace = TracedDOMString::from(&namespace).root();
+                    let namespace = TracedDOMString::from(namespace).root();
                     namespace.to_jsval(cx, namespace_value.handle_mut());
                 }
 

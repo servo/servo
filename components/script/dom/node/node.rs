@@ -3443,7 +3443,7 @@ impl Node {
     pub(crate) fn namespace_to_string(namespace: Namespace) -> Option<DOMString> {
         match namespace {
             ns!() => None,
-            _ => Some(TracedDOMString::from(&namespace).root()),
+            _ => Some(TracedDOMString::from(namespace).root()),
         }
     }
 

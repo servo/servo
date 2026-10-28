@@ -97,27 +97,27 @@ enum AtomTypes {
     Prefix(web_atoms::Prefix),
 }
 
-impl From<&LocalName> for AtomTypes {
-    fn from(value: &LocalName) -> Self {
-        AtomTypes::LocalName(value.clone())
+impl From<LocalName> for AtomTypes {
+    fn from(value: LocalName) -> Self {
+        AtomTypes::LocalName(value)
     }
 }
 
-impl From<&stylo_atoms::Atom> for AtomTypes {
-    fn from(value: &stylo_atoms::Atom) -> Self {
-        AtomTypes::Stylo(value.clone())
+impl From<stylo_atoms::Atom> for AtomTypes {
+    fn from(value: stylo_atoms::Atom) -> Self {
+        AtomTypes::Stylo(value)
     }
 }
 
-impl From<&web_atoms::Namespace> for AtomTypes {
-    fn from(value: &web_atoms::Namespace) -> Self {
-        AtomTypes::Namespace(value.clone())
+impl From<web_atoms::Namespace> for AtomTypes {
+    fn from(value: web_atoms::Namespace) -> Self {
+        AtomTypes::Namespace(value)
     }
 }
 
-impl From<&web_atoms::Prefix> for AtomTypes {
-    fn from(value: &web_atoms::Prefix) -> Self {
-        AtomTypes::Prefix(value.clone())
+impl From<web_atoms::Prefix> for AtomTypes {
+    fn from(value: web_atoms::Prefix) -> Self {
+        AtomTypes::Prefix(value)
     }
 }
 
@@ -1211,26 +1211,26 @@ impl From<DOMString> for Atom {
     }
 }
 
-impl From<&LocalName> for TracedDOMString {
-    fn from(value: &LocalName) -> Self {
+impl From<LocalName> for TracedDOMString {
+    fn from(value: LocalName) -> Self {
         TracedDOMString(RefCell::new(DOMStringType::Atom(value.into())))
     }
 }
 
-impl From<&stylo_atoms::Atom> for TracedDOMString {
-    fn from(value: &stylo_atoms::Atom) -> Self {
+impl From<stylo_atoms::Atom> for TracedDOMString {
+    fn from(value: stylo_atoms::Atom) -> Self {
         TracedDOMString(RefCell::new(DOMStringType::Atom(value.into())))
     }
 }
 
-impl From<&web_atoms::Namespace> for TracedDOMString {
-    fn from(value: &web_atoms::Namespace) -> Self {
+impl From<web_atoms::Namespace> for TracedDOMString {
+    fn from(value: web_atoms::Namespace) -> Self {
         TracedDOMString(RefCell::new(DOMStringType::Atom(value.into())))
     }
 }
 
-impl From<&web_atoms::Prefix> for TracedDOMString {
-    fn from(value: &web_atoms::Prefix) -> Self {
+impl From<web_atoms::Prefix> for TracedDOMString {
+    fn from(value: web_atoms::Prefix) -> Self {
         TracedDOMString(RefCell::new(DOMStringType::Atom(value.into())))
     }
 }
@@ -1880,19 +1880,19 @@ mod tests {
     #[test]
     fn test_atom_restore() {
         let local_name = LocalName::from("test_name");
-        let local_name_domstring = TracedDOMString::from(&local_name);
+        let local_name_domstring = TracedDOMString::from(local_name.clone());
         assert_eq!(local_name_domstring.str(), local_name.as_str());
 
         let stylo = stylo_atoms::Atom::from("test-atom-stylo");
-        let stylo_domstring = TracedDOMString::from(&stylo);
+        let stylo_domstring = TracedDOMString::from(stylo.clone());
         assert_eq!(stylo_domstring.str(), stylo.as_str());
 
         let namespace = web_atoms::Namespace::from("test-atom-namespace");
-        let namespace_domstring = TracedDOMString::from(&namespace);
+        let namespace_domstring = TracedDOMString::from(namespace.clone());
         assert_eq!(namespace_domstring.str(), namespace.as_str());
 
         let prefix = web_atoms::Prefix::from("prefix");
-        let prefix_domstring = TracedDOMString::from(&prefix);
+        let prefix_domstring = TracedDOMString::from(prefix.clone());
         assert_eq!(prefix_domstring.str(), prefix.as_str());
     }
 }

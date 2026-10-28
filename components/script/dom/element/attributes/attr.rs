@@ -97,7 +97,7 @@ impl Attr {
 impl AttrMethods<crate::DomTypeHolder> for Attr {
     /// <https://dom.spec.whatwg.org/#dom-attr-localname>
     fn LocalName(&self) -> DOMString {
-        TracedDOMString::from(self.local_name()).root()
+        TracedDOMString::from(self.local_name().clone()).root()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-attr-value>
@@ -140,20 +140,21 @@ impl AttrMethods<crate::DomTypeHolder> for Attr {
 
     /// <https://dom.spec.whatwg.org/#dom-attr-name>
     fn Name(&self) -> DOMString {
-        TracedDOMString::from(self.name()).root()
+        TracedDOMString::from(self.name().clone()).root()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-attr-namespaceuri>
     fn GetNamespaceURI(&self) -> Option<DOMString> {
         match *self.namespace() {
             ns!() => None,
-            ref url => Some(TracedDOMString::from(url).root()),
+            ref url => Some(TracedDOMString::from(url.clone()).root()),
         }
     }
 
     /// <https://dom.spec.whatwg.org/#dom-attr-prefix>
     fn GetPrefix(&self) -> Option<DOMString> {
-        self.prefix().map(|p| TracedDOMString::from(p).root())
+        self.prefix()
+            .map(|p| TracedDOMString::from(p.clone()).root())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-attr-ownerelement>
@@ -215,7 +216,7 @@ impl Attr {
     pub(crate) fn qualified_name(&self) -> DOMString {
         match self.prefix() {
             Some(ref prefix) => DOMString::from(format!("{}:{}", prefix, &**self.local_name())),
-            None => TracedDOMString::from(self.local_name()).root(),
+            None => TracedDOMString::from(self.local_name().clone()).root(),
         }
     }
 }

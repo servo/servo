@@ -85,7 +85,7 @@ impl StylePropertyMapReadOnlyMethods<crate::DomTypeHolder> for StylePropertyMapR
             .entries
             .0
             .keys()
-            .map(|key| TracedDOMString::from(key).root())
+            .map(|key| TracedDOMString::from(key.clone()).root())
             .collect();
         // https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-getproperties
         // requires this sort order
