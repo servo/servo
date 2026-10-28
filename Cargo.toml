@@ -81,7 +81,6 @@ ecdsa = "0.17"
 ed25519-dalek = { version = "3.0", features = ["alloc", "pkcs8", "rand_core", "zeroize"] }
 ed448-goldilocks = "=0.14.0-pre.15"
 egui = "0.34.3"
-egui-file-dialog = "0.13.0"
 egui-winit = { version = "0.34.3", default-features = false }
 egui_glow = "0.34.3"
 elliptic-curve = { version = "0.14", features = ["pkcs8"] }
@@ -216,6 +215,7 @@ read-fonts = "0.43.3"
 realfft = "3.5.0"
 regex = "1.12"
 resvg = "0.48.1"
+rfd = "0.17.2"
 rsa = "=0.10.0-rc.19"
 rusqlite = { version = "0.38", features = ["bundled"] }
 rustc-demangle = "0.1"

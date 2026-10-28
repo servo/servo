@@ -47,7 +47,7 @@ use super::geometry::{winit_position_to_euclid_point, winit_size_to_euclid_size}
 use super::keyutils::{CMD_OR_ALT, keyboard_event_from_winit};
 use crate::desktop::accelerated_gl_media::setup_gl_accelerated_media;
 use crate::desktop::dialog::Dialog;
-use crate::desktop::event_loop::AppEvent;
+use crate::desktop::event_loop::{AppEvent, RepaintEventLoopWaker};
 use crate::desktop::gui::Gui;
 use crate::desktop::keyutils::CMD_OR_CONTROL;
 use crate::prefs::ServoShellPreferences;
@@ -60,6 +60,8 @@ use crate::window::{
 pub(crate) const INITIAL_WINDOW_TITLE: &str = "Servo";
 
 pub struct HeadedWindow {
+    /// The [`EventLoopProxy`] for this [`HeadedWindow`].
+    event_loop_proxy: EventLoopProxy<AppEvent>,
     /// The egui interface that is responsible for showing the user interface elements of
     /// this headed `Window`.
     gui: RefCell<Gui>,
@@ -187,13 +189,14 @@ impl HeadedWindow {
         let gui = RefCell::new(Gui::new(
             &winit_window,
             event_loop,
-            event_loop_proxy,
+            event_loop_proxy.clone(),
             rendering_context.clone(),
             initial_url,
         ));
 
         debug!("Created window {:?}", winit_window.id());
         Rc::new(HeadedWindow {
+            event_loop_proxy,
             gui,
             winit_window,
             webview_relative_mouse_point: Cell::new(Point2D::zero()),
@@ -1089,7 +1092,11 @@ impl PlatformWindow for HeadedWindow {
                 self.show_ime(control_id, input_method_control);
             },
             EmbedderControl::FilePicker(file_picker) => {
-                self.add_dialog(webview_id, Dialog::new_file_dialog(file_picker));
+                let waker = RepaintEventLoopWaker::new(self.event_loop_proxy.clone(), self.id());
+                self.add_dialog(
+                    webview_id,
+                    Dialog::new_file_dialog(file_picker, &self.winit_window, waker),
+                );
             },
             EmbedderControl::SimpleDialog(simple_dialog) => {
                 self.add_dialog(webview_id, Dialog::new_simple_dialog(simple_dialog));

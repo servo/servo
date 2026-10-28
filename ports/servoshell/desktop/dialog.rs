@@ -2,29 +2,36 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::path::Path;
+use std::path::PathBuf;
+use std::pin::Pin;
+use std::sync::Arc;
+use std::task::{Context, Poll, Waker};
 
 use egui::{
     Area, Button, CornerRadius, Frame, Id, Modal, Order, RichText, Sense, Stroke, Vec2, pos2,
 };
-use egui_file_dialog::{DialogState, FileDialog as EguiFileDialog, Filter};
 use euclid::Length;
+use itertools::Either;
 use log::{error, warn};
+use rfd::AsyncFileDialog;
 use servo::{
     AlertDialog, AuthenticationRequest, BluetoothDeviceSelectionRequest, ColorPicker,
     ConfirmDialog, ContextMenu, ContextMenuItem, DeviceIndependentPixel, EmbedderControlId,
     FilePicker, PermissionRequest, PromptDialog, RgbColor, SelectElement, SelectElementOption,
     SelectElementOptionOrOptgroup, SimpleDialog,
 };
+use winit::window::Window as WinitWindow;
+
+use crate::desktop::event_loop::RepaintEventLoopWaker;
 
 /// The minimum width of many UI elements including dialog boxes and menus,
 /// for the sake of consistency.
 const MINIMUM_UI_ELEMENT_WIDTH: f32 = 150.0;
 
-#[expect(clippy::large_enum_variant)]
 pub enum Dialog {
     File {
-        dialog: EguiFileDialog,
+        future: Pin<Box<dyn Future<Output = Option<Vec<PathBuf>>>>>,
+        waker: Waker,
         maybe_picker: Option<FilePicker>,
     },
     Alert(Option<AlertDialog>),
@@ -59,25 +66,47 @@ pub enum Dialog {
 }
 
 impl Dialog {
-    pub fn new_file_dialog(file_picker: FilePicker) -> Self {
-        let mut dialog = EguiFileDialog::new();
+    pub fn new_file_dialog(
+        file_picker: FilePicker,
+        window: &WinitWindow,
+        waker: RepaintEventLoopWaker,
+    ) -> Self {
+        let mut dialog = AsyncFileDialog::new().set_parent(&window);
         if !file_picker.filter_patterns().is_empty() {
-            let filter_patterns = file_picker.filter_patterns().to_owned();
-            let filter = Filter::new(move |path: &Path| {
-                path.extension()
-                    .and_then(|e| e.to_str())
-                    .is_some_and(|ext| {
-                        let ext = ext.to_lowercase();
-                        filter_patterns.iter().any(|pattern| ext == pattern.0)
-                    })
-            });
-            dialog = dialog
-                .add_file_filter("All Supported Types", filter)
-                .default_file_filter("All Supported Types");
+            let filters: Vec<_> = file_picker
+                .filter_patterns()
+                .iter()
+                .map(|pattern| pattern.0.clone())
+                .collect();
+            dialog = dialog.add_filter("All Supported Types", &filters);
         }
 
+        // We need to call `pick_files` / pick_file` outside of the closure here
+        // in order to ensure they are called at least one time to trigger the
+        // dialog properly.
+        let allow_select_multiple = file_picker.allow_select_multiple();
+        let future = if allow_select_multiple {
+            Either::Left(dialog.pick_files())
+        } else {
+            Either::Right(dialog.pick_file())
+        };
+
+        let future = Box::pin(async move {
+            let handles = match future {
+                Either::Left(future) => future.await,
+                Either::Right(future) => future.await.map(|file_handle| vec![file_handle]),
+            };
+            handles.map(|handles| {
+                handles
+                    .iter()
+                    .map(|handle| handle.path().to_owned())
+                    .collect::<Vec<_>>()
+            })
+        });
+
         Dialog::File {
-            dialog,
+            future,
+            waker: Waker::from(Arc::new(waker)),
             maybe_picker: Some(file_picker),
         }
     }
@@ -151,36 +180,24 @@ impl Dialog {
 
         match self {
             Dialog::File {
-                dialog,
+                future,
+                waker,
                 maybe_picker,
             } => {
-                let action = maybe_picker
-                    .as_mut()
-                    .map(|picker| {
-                        if *dialog.state() == DialogState::Closed {
-                            if picker.allow_select_multiple() {
-                                dialog.pick_multiple();
-                            } else {
-                                dialog.pick_file();
-                            }
-                        }
-
-                        let state = dialog.update(ctx).state();
-                        match state {
-                            DialogState::Open => DialogAction::Continue,
-                            DialogState::Picked(path) => {
-                                let paths = std::slice::from_ref(path);
-                                picker.select(paths);
+                let action = match maybe_picker.as_mut() {
+                    Some(picker) => {
+                        let mut context = Context::from_waker(waker);
+                        match future.as_mut().poll(&mut context) {
+                            Poll::Ready(Some(file_paths)) => {
+                                picker.select(&file_paths);
                                 DialogAction::Submit
                             },
-                            DialogState::PickedMultiple(paths) => {
-                                picker.select(paths);
-                                DialogAction::Submit
-                            },
-                            DialogState::Cancelled | DialogState::Closed => DialogAction::Dismiss,
+                            Poll::Ready(None) => DialogAction::Dismiss,
+                            Poll::Pending => DialogAction::Continue,
                         }
-                    })
-                    .unwrap_or(DialogAction::Dismiss);
+                    },
+                    None => DialogAction::Dismiss,
+                };
 
                 match action {
                     DialogAction::Dismiss => {
