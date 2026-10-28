@@ -15,6 +15,7 @@ use profile_traits::mem::{
 };
 use rustc_hash::FxHashMap;
 use servo_base::generic_channel::GenericSender;
+use servo_base::id::WebViewId;
 use servo_base::{Epoch, generic_channel};
 use servo_canvas_traits::ConstellationCanvasMsg;
 use servo_canvas_traits::canvas::*;
@@ -110,7 +111,7 @@ impl CanvasPaintThread {
         let canvas_id = self.next_canvas_id;
         self.next_canvas_id.0 += 1;
 
-        let canvas = Canvas::new(size, self.paint_api.clone())?;
+        let canvas = Canvas::new(canvas_id, size, self.paint_api.clone())?;
         self.canvases.insert(canvas_id, canvas);
 
         Some(canvas_id)
@@ -345,14 +346,18 @@ enum Canvas {
 }
 
 impl Canvas {
-    fn new(size: Size2D<u64>, paint_api: CrossProcessPaintApi) -> Option<Self> {
+    fn new(
+        canvas_id: CanvasId,
+        size: Size2D<u64>,
+        paint_api: CrossProcessPaintApi,
+    ) -> Option<Self> {
         match servo_config::pref!(dom_canvas_backend)
             .to_lowercase()
             .as_str()
         {
             #[cfg(feature = "vello")]
-            "vello" => Some(Self::Vello(CanvasData::new(size, paint_api))),
-            _ => Some(Self::VelloCPU(CanvasData::new(size, paint_api))),
+            "vello" => Some(Self::Vello(CanvasData::new(canvas_id, size, paint_api))),
+            _ => Some(Self::VelloCPU(CanvasData::new(canvas_id, size, paint_api))),
         }
     }
 
