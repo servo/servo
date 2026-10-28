@@ -293,7 +293,9 @@ impl InternalCloseWatcher {
             // > getEnabledState being to return true if dialog's enable close watcher
             // > for request close is true or dialog's computed closed-by state is not None; otherwise false.
             InternalCloseWatcherOwner::Dialog(dialog) => dialog.close_watcher_enabled_state(),
-            _ => true,
+            // https://html.spec.whatwg.org/multipage/#the-closewatcher-interface:close-watcher-get-enabled-state
+            // > getEnabledState being to return true.
+            InternalCloseWatcherOwner::CloseWatcher(_) => true,
         }
     }
 }
