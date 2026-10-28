@@ -2494,6 +2494,8 @@ impl HTMLMediaElement {
 
                 // Step 3.3. Fire an event named ended at the media element.
                 this.upcast::<EventTarget>().fire_event(cx, atom!("ended"));
+
+                this.update_keep_alive();
             }));
 
         // <https://html.spec.whatwg.org/multipage/#dom-media-have_current_data>
@@ -2508,6 +2510,7 @@ impl HTMLMediaElement {
         // element.
         if self.current_playback_position.get() <= self.earliest_possible_position() {
             self.queue_media_element_task_to_fire_event(atom!("timeupdate"));
+            self.update_keep_alive();
         }
     }
 

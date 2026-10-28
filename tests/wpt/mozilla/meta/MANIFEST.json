@@ -13880,6 +13880,13 @@
       null,
       {}
      ]
+    ],
+    "playing_media_no_gc.html": [
+     "fe103c52d292fad241451699f3b7d123c4db593e",
+     [
+      null,
+      {}
+     ]
     ]
    },
    "mozilla": {
@@ -15180,13 +15187,6 @@
     ],
     "partial-shadow-dom.html": [
      "74e308f94036a6dbf5c4223cd3d229f49ffceb4e",
-     [
-      null,
-      {}
-     ]
-    ],
-    "playing_media_no_gc.html": [
-     "1f85584105b2db10ba72ebb34fc44bb5fa7c0a6e",
      [
       null,
       {}
