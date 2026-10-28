@@ -85,10 +85,7 @@ class HistoryManager(context: Context) {
                 jsonArray.put(entry.toJSON())
             }
 
-            FileWriter(historyFile).use { writer ->
-                // Pretty print with indent
-                writer.write(jsonArray.toString(2))
-            }
+            FileWriter(historyFile).use { writer -> writer.write(jsonArray.toString()) }
 
             Log.d(TAG, "History saved to JSON")
         } catch (e: IOException) {
