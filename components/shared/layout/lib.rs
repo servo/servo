@@ -188,18 +188,12 @@ impl SVGElementData<'_> {
         let _min_y = parse_double(iter.next()?).ok()?;
 
         let width = parse_double(iter.next()?).ok()?;
-        if width == 0f64 {
-            return None;
-        } else if width < 0f64 {
-            log::error!("Width of view box is negative");
+        if width <= 0f64 {
             return None;
         }
 
         let height = parse_double(iter.next()?).ok()?;
-        if height == 0f64 {
-            return None;
-        } else if height < 0f64 {
-            log::error!("Height of view box is negative");
+        if height <= 0f64 {
             return None;
         }
 
