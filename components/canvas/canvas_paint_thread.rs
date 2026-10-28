@@ -26,6 +26,7 @@ use crate::vello_cpu_backend::clear_shared_font_cache;
 
 pub struct CanvasPaintThread {
     canvases: FxHashMap<CanvasId, Canvas>,
+    canvas_webview_map: FxHashMap<WebViewId, CanvasId>,
     next_canvas_id: CanvasId,
     paint_api: CrossProcessPaintApi,
 }
@@ -34,6 +35,7 @@ impl CanvasPaintThread {
     fn new(paint_api: CrossProcessPaintApi) -> CanvasPaintThread {
         CanvasPaintThread {
             canvases: FxHashMap::default(),
+            canvas_webview_map: FxHashMap::default(),
             next_canvas_id: CanvasId(0),
             paint_api,
         }
@@ -77,8 +79,8 @@ impl CanvasPaintThread {
                         }
                         recv(create_receiver) -> msg => {
                             match msg {
-                                Ok(ConstellationCanvasMsg::Create { sender: creator, size }) => {
-                                    if let Err(error) = creator.send(canvas_paint_thread.create_canvas(size)) {
+                                Ok(ConstellationCanvasMsg::Create { sender: creator, webview_id, size }) => {
+                                    if let Err(error) = creator.send(canvas_paint_thread.create_canvas(size, webview_id)) {
                                         warn!("Create canvas response failed ({error})");
                                     }
                                 },
@@ -90,7 +92,9 @@ impl CanvasPaintThread {
                                     break;
                                 },
                                 Ok(ConstellationCanvasMsg::ClearResources(webview_id)) => {
-                                    clear_shared_font_cache(webview_id);
+                                    if let Some(canvas_id) = canvas_paint_thread.canvas_webview_map.get(&webview_id) {
+                                        clear_shared_font_cache(*canvas_id);
+                                    }
                                 }
                                 Err(e) => {
                                     warn!("Error on CanvasPaintThread receive ({})", e);
@@ -107,12 +111,13 @@ impl CanvasPaintThread {
     }
 
     #[servo_tracing::instrument(skip_all)]
-    pub fn create_canvas(&mut self, size: Size2D<u64>) -> Option<CanvasId> {
+    pub fn create_canvas(&mut self, size: Size2D<u64>, webview_id: WebViewId) -> Option<CanvasId> {
         let canvas_id = self.next_canvas_id;
         self.next_canvas_id.0 += 1;
 
         let canvas = Canvas::new(canvas_id, size, self.paint_api.clone())?;
         self.canvases.insert(canvas_id, canvas);
+        self.canvas_webview_map.insert(webview_id, canvas_id);
 
         Some(canvas_id)
     }
