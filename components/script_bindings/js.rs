@@ -12,6 +12,7 @@ use js::jsapi::{
     ExceptionStackBehavior, JSClass, JSObject, JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY,
     MutableHandleIdVector, PropertyDescriptor, jsid,
 };
+use js::realm::CurrentRealm;
 use js::rust::{
     HandleId, HandleObject, HandleValue, MutableHandle, MutableHandleObject, MutableHandleValue,
 };
@@ -101,7 +102,7 @@ pub fn JS_GetPropertyById(
 /// Passing `None` for `clasp` creates a plain object.
 #[allow(non_snake_case)]
 #[inline]
-pub fn JS_NewObject(cx: &mut JSContext, clasp: Option<&'static JSClass>) -> *mut JSObject {
+pub fn JS_NewObject(cx: &mut CurrentRealm, clasp: Option<&'static JSClass>) -> *mut JSObject {
     let clasp = clasp.map_or(ptr::null(), |clasp| clasp as *const JSClass);
     unsafe { js::rust::wrappers2::JS_NewObject(cx, clasp) }
 }
@@ -111,7 +112,7 @@ pub fn JS_NewObject(cx: &mut JSContext, clasp: Option<&'static JSClass>) -> *mut
 #[allow(non_snake_case)]
 #[inline]
 pub fn JS_NewObjectWithGivenProto(
-    cx: &mut JSContext,
+    cx: &mut CurrentRealm,
     clasp: Option<&'static JSClass>,
     proto: HandleObject,
 ) -> *mut JSObject {

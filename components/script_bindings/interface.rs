@@ -20,7 +20,7 @@ use js::jsapi::{
     OnNewGlobalHookOption, SymbolCode, TrueHandleValue, Value, jsid,
 };
 use js::jsval::{JSVal, NullValue, PrivateValue};
-use js::realm::AutoRealm;
+use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers2::{
     GetWellKnownSymbol, JS_AtomizeAndPinString, JS_DefineProperty3, JS_DefineProperty4,
     JS_DefineProperty5, JS_DefinePropertyById5, JS_FireOnNewGlobalObject, JS_IterateCompartments,
@@ -243,6 +243,7 @@ pub(crate) fn create_callback_interface_object<D: DomTypes>(
     name: &CStr,
     mut rval: MutableHandleObject,
 ) {
+    let cx = &mut CurrentRealm::assert(cx);
     assert!(!constants.is_empty());
     rval.set(JS_NewObject(cx, None));
     assert!(!rval.is_null());
@@ -381,6 +382,7 @@ pub(crate) fn create_object<D: DomTypes>(
     constants: &[Guard<&[ConstantSpec]>],
     mut rval: MutableHandleObject,
 ) {
+    let cx = &mut CurrentRealm::assert(cx);
     rval.set(JS_NewObjectWithGivenProto(cx, Some(class), proto));
     assert!(!rval.is_null());
     define_guarded_methods::<D>(cx, rval.handle(), methods, global);
@@ -496,6 +498,7 @@ fn create_unscopable_object(
     names: &[&CStr],
     mut rval: MutableHandleObject,
 ) {
+    let cx = &mut CurrentRealm::assert(cx);
     assert!(!names.is_empty());
     assert!(rval.is_null());
     unsafe {

@@ -2729,6 +2729,7 @@ pub(crate) struct KeyAlgorithm {
 
 impl ToJSValConvertible for KeyAlgorithm {
     fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
+        let cx = &mut CurrentRealm::assert(cx);
         rooted!(&in(cx) let mut object = JS_NewObject(cx, None));
 
         rooted!(&in(cx) let mut name_js = UndefinedValue());
@@ -2873,6 +2874,7 @@ pub(crate) struct RsaHashedKeyAlgorithm {
 
 impl ToJSValConvertible for RsaHashedKeyAlgorithm {
     fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
+        let cx = &mut CurrentRealm::assert(cx);
         rooted!(&in(cx) let mut object = JS_NewObject(cx, None));
 
         rooted!(&in(cx) let mut name_js = UndefinedValue());
@@ -3095,6 +3097,7 @@ pub(crate) struct EcKeyAlgorithm {
 
 impl ToJSValConvertible for EcKeyAlgorithm {
     fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
+        let cx = &mut CurrentRealm::assert(cx);
         rooted!(&in(cx) let mut object = JS_NewObject(cx, None));
 
         rooted!(&in(cx) let mut name_js = UndefinedValue());
@@ -3234,6 +3237,7 @@ pub(crate) struct AesKeyAlgorithm {
 
 impl ToJSValConvertible for AesKeyAlgorithm {
     fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
+        let cx = &mut CurrentRealm::assert(cx);
         rooted!(&in(cx) let mut object = JS_NewObject(cx, None));
 
         rooted!(&in(cx) let mut name_js = UndefinedValue());
@@ -3434,6 +3438,7 @@ pub(crate) struct HmacKeyAlgorithm {
 
 impl ToJSValConvertible for HmacKeyAlgorithm {
     fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
+        let cx = &mut CurrentRealm::assert(cx);
         rooted!(&in(cx) let mut object = JS_NewObject(cx, None));
 
         rooted!(&in(cx) let mut name_js = UndefinedValue());
@@ -3885,6 +3890,7 @@ pub(crate) struct KmacKeyAlgorithm {
 
 impl ToJSValConvertible for KmacKeyAlgorithm {
     fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
+        let cx = &mut CurrentRealm::assert(cx);
         rooted!(&in(cx) let mut object = JS_NewObject(cx, None));
 
         rooted!(&in(cx) let mut name_js = UndefinedValue());
@@ -4029,6 +4035,7 @@ struct EncapsulatedKey<D: DomTypes> {
 
 impl<D: DomTypes> ToJSValConvertible for EncapsulatedKey<D> {
     fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
+        let cx = &mut CurrentRealm::assert(cx);
         rooted!(&in(cx) let mut object = JS_NewObject(cx, None));
 
         rooted!(&in(cx) let mut shared_key_js = UndefinedValue());
@@ -4070,6 +4077,7 @@ struct EncapsulatedBits {
 
 impl ToJSValConvertible for EncapsulatedBits {
     fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
+        let cx = &mut CurrentRealm::assert(cx);
         rooted!(&in(cx) let mut object = JS_NewObject(cx, None));
 
         rooted!(&in(cx) let mut shared_key_js = UndefinedValue());

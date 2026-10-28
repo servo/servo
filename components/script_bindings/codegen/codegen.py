@@ -4103,6 +4103,7 @@ assert!((*cache)[PrototypeList::Constructor::{properties['id']} as usize].is_nul
                 holderProto = "prototype.handle()"
             code.append(CGGeneric(f"""
 rooted!(&in(cx) let mut unforgeable_holder = ptr::null_mut::<JSObject>());
+let cx = &mut CurrentRealm::assert(cx);
 unforgeable_holder.handle_mut().set(
     JS_NewObjectWithoutMetadata(cx, {holderClass}, {holderProto}));
 assert!(!unforgeable_holder.is_null());
@@ -4800,7 +4801,7 @@ class CGDefaultToJSONMethod(CGSpecializedMethod):
         ret = dedent("""
             use crate::inheritance::HasParent;
             let mut cx = JSContext::from_ptr(NonNull::new(cx).unwrap());
-            let cx = &mut cx;
+            let cx = &mut CurrentRealm::assert(&mut cx);
             rooted!(&in(cx) let result = JS_NewPlainObject(cx));
             if result.is_null() {
               return false;
@@ -8217,6 +8218,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             "\n"
             f"impl{self.generic} ToJSValConvertible for {selfName}{self.genericSuffix} {{\n"
             "    fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {\n"
+            "        let cx = &mut CurrentRealm::assert(cx);\n"
             "        rooted!(&in(cx) let mut obj = JS_NewObject(cx, None));\n"
             "        self.to_jsobject(cx, obj.handle_mut());\n"
             "        rval.set(ObjectOrNullValue(obj.get()))\n"

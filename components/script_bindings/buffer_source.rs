@@ -14,6 +14,7 @@ use js::jsapi::{
     JS_GetTypedArrayLength, JS_IsArrayBufferViewObject, JS_IsTypedArrayObject, JSObject, Type,
 };
 use js::jsval::{ObjectValue, UndefinedValue};
+use js::realm::CurrentRealm;
 use js::rust::wrappers2::{
     ArrayBufferClone, ArrayBufferCopyData, DetachArrayBuffer, HasDefinedArrayBufferDetachKey,
     JS_ClearPendingException, JS_GetArrayBufferViewBuffer, JS_GetPendingException,
@@ -271,6 +272,7 @@ where
         &self,
         cx: &mut JSContext,
     ) -> RootedTraceableBox<HeapBufferSource<ArrayBufferU8>> {
+        let cx = &mut CurrentRealm::assert(cx);
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) => unsafe {
                 let mut is_shared = false;
@@ -290,6 +292,7 @@ where
     /// <https://tc39.es/ecma262/#sec-detacharraybuffer>
     pub fn detach_buffer(&self, cx: &mut JSContext) -> bool {
         assert!(self.is_initialized());
+        let cx = &mut CurrentRealm::assert(cx);
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) => {
                 let mut is_shared = false;
@@ -321,6 +324,7 @@ where
 
     pub fn is_detached_buffer(&self, cx: &mut JSContext) -> bool {
         assert!(self.is_initialized());
+        let cx = &mut CurrentRealm::assert(cx);
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) => {
                 let mut is_shared = false;
@@ -340,6 +344,7 @@ where
 
     pub fn viewed_buffer_array_byte_length(&self, cx: &mut JSContext) -> usize {
         assert!(self.is_initialized());
+        let cx = &mut CurrentRealm::assert(cx);
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) => {
                 let mut is_shared = false;
@@ -424,6 +429,7 @@ where
         byte_offset: usize,
         byte_length: usize,
     ) -> Fallible<RootedTraceableBox<HeapBufferSource<ArrayBufferU8>>> {
+        let cx = &mut CurrentRealm::assert(cx);
         let result = match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) => {
                 let mut is_shared = false;

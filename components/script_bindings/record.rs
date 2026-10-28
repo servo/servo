@@ -16,6 +16,7 @@ use js::jsapi::{
     JSITER_HIDDEN, JSITER_OWNONLY, JSITER_SYMBOLS, JSPROP_ENUMERATE, PropertyDescriptor,
 };
 use js::jsval::{ObjectValue, UndefinedValue};
+use js::realm::CurrentRealm;
 use js::rust::wrappers2::{JS_DefineUCProperty2, JS_NewPlainObject};
 use js::rust::{HandleId, HandleValue, IdVector, MutableHandleValue};
 
@@ -184,6 +185,7 @@ where
 {
     #[inline]
     fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
+        let cx = &mut CurrentRealm::assert(cx);
         rooted!(&in(cx) let js_object = unsafe { JS_NewPlainObject(cx) });
         assert!(!js_object.handle().is_null());
 

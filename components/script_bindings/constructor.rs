@@ -8,6 +8,7 @@ use std::ptr;
 use ::js::rust::GCMethods;
 use js::gc::{MutableHandle, RootedGuard};
 use js::jsapi::{CallArgs, JSClass, JSFunctionSpec, JSObject, JSPropertySpec};
+use js::realm::CurrentRealm;
 use js::rooted;
 use js::rust::HandleObject;
 use js::rust::wrappers2::{
@@ -117,6 +118,7 @@ pub(crate) unsafe fn create_namespace_interface_objects<D: DomTypes>(
     global: HandleObject,
     cache: *mut ProtoOrIfaceArray,
 ) {
+    let cx = &mut CurrentRealm::assert(cx);
     rooted!(&in(cx) let mut proto: *mut JSObject = std::ptr::null_mut());
     unsafe {
         if init.is_proto_hack {

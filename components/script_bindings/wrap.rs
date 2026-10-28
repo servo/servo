@@ -10,6 +10,7 @@ use js::gc::{HandleObject, MutableHandleObject};
 use js::glue::SetProxyReservedSlot;
 use js::jsapi::{JS_SetReservedSlot, JSAutoRealm, JSClass, JSObject};
 use js::jsval::{PrivateValue, UndefinedValue};
+use js::realm::CurrentRealm;
 use js::rust::wrappers2::{
     JS_InitializePropertiesFromCompatibleNativeObject, JS_WrapObject, NewProxyObject,
 };
@@ -71,6 +72,7 @@ unsafe fn wrap_object(
     config: &WrapConfig,
     mut rval: MutableHandleObject,
 ) {
+    let cx = &mut CurrentRealm::assert(cx);
     unsafe {
         assert!(!scope.get().is_null());
         assert!(((*get_object_class(scope.get())).flags & JSCLASS_IS_GLOBAL) != 0);

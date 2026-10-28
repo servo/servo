@@ -236,6 +236,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn SetAnyAttribute(&self, _: HandleValue) {}
     #[expect(unsafe_code)]
     fn ObjectAttribute(&self, cx: &mut JSContext, mut return_value: MutableHandleObject) {
+        let cx = &mut CurrentRealm::assert(cx);
         return_value.set(unsafe { JS_NewPlainObject(cx) });
     }
     fn SetObjectAttribute(&self, _: *mut JSObject) {}
@@ -563,6 +564,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         cx: &mut JSContext,
         return_value: &mut RootedVec<'_, Box<Heap<*mut JSObject>>>,
     ) {
+        let cx = &mut CurrentRealm::assert(cx);
         return_value.push(Heap::boxed(unsafe { JS_NewPlainObject(cx) }));
     }
     fn GetDictionaryWithTypedArray(
