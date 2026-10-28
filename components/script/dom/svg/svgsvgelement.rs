@@ -11,8 +11,9 @@ use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use layout_api::SVGElementData;
 use servo_url::ServoUrl;
-use style::attr::AttrValue;
+use style::attr::{AttrValue, parse_double};
 use style::parser::ParserContext;
+use style::str::char_is_whitespace;
 use style::stylesheets::Origin;
 use style::values::specified::LengthPercentage;
 use style_traits::ParsingMode;
@@ -180,6 +181,20 @@ impl SVGSVGElement {
         *self.cached_serialized_data_url.borrow_mut() = None;
         self.upcast::<Node>().dirty(no_gc, NodeDamage::Other);
     }
+
+    /// <https://www.w3.org/TR/SVG11/coords.html#ViewBoxAttribute>
+    fn is_view_box_valid(&self, value: &DOMString) -> bool {
+        let value_str = value.str();
+        let mut iter = value_str
+            .split(|c| char_is_whitespace(c) || c == ',')
+            .filter(|part| !part.is_empty())
+            .skip(2);
+
+        let width = iter.next().and_then(|string| parse_double(string).ok());
+        let height = iter.next().and_then(|string| parse_double(string).ok());
+
+        width < Some(0f64) || height < Some(0f64)
+    }
 }
 
 impl<'dom> LayoutDom<'dom, SVGSVGElement> {
@@ -255,6 +270,18 @@ impl VirtualMethods for SVGSVGElement {
                     style::values::specified::AllowQuirks::Always,
                 );
                 AttrValue::LengthPercentage(value.to_string(), val.ok())
+            },
+            // TODO: Log a warning to Console when the viewBox is not valid.
+            local_name!("viewBox") => {
+                if self.is_view_box_valid(&value) {
+                    self.super_type()
+                        .unwrap()
+                        .parse_plain_attribute(name, "".into())
+                } else {
+                    self.super_type()
+                        .unwrap()
+                        .parse_plain_attribute(name, value)
+                }
             },
             _ => self
                 .super_type()
