@@ -408,7 +408,7 @@ impl Painter {
     #[servo_tracing::instrument(skip_all)]
     pub(crate) fn render(&mut self, time_profiler_channel: &ProfilerChan) {
         let refresh_driver = self.refresh_driver.clone();
-        refresh_driver.notify_will_paint(self);
+        let notified_refresh_driver_observers = refresh_driver.notify_will_paint(self);
 
         if let Err(error) = self.rendering_context.make_current() {
             error!("Failed to make the rendering context current: {error:?}");
@@ -439,6 +439,10 @@ impl Painter {
         // We've painted the default target, which means that from the embedder's perspective,
         // the scene no longer needs to be repainted.
         self.needs_repaint.set(RepaintReason::empty());
+
+        if !notified_refresh_driver_observers {
+            self.set_needs_repaint(RepaintReason::FrameStart);
+        }
 
         self.screenshot_taker.maybe_take_screenshots(self);
         self.send_pending_paint_metrics_messages_after_composite();
