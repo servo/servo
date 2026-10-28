@@ -384,7 +384,7 @@ impl CloseWatcherMethods<DomTypeHolder> for CloseWatcher {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-closewatcher-close>
     fn Close(&self, cx: &mut JSContext) {
-        // > The requestClose() method steps are to close this's internal close watcher.
+        // > The close() method steps are to close this's internal close watcher.
         if let Some(internal) = &*self.internal_close_watcher.borrow() {
             internal.close(cx);
         }
