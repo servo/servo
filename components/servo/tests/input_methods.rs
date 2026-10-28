@@ -7,9 +7,10 @@ mod common;
 
 use std::rc::Rc;
 
+use embedder_traits::InputMethodType;
 use servo::{
-    CompositionEvent, CompositionState, ImeEvent, InputEvent, JSValue, Key, KeyState,
-    KeyboardEvent, WebView, WebViewBuilder,
+    CompositionEvent, CompositionState, EmbedderControl, ImeEvent, InputEvent, JSValue, Key,
+    KeyState, KeyboardEvent, WebView, WebViewBuilder,
 };
 use url::Url;
 
@@ -255,4 +256,20 @@ fn test_attempting_to_cancel_beforeinput_composition() {
             InputMethodEvent::CompositionEnd("abc".to_owned()),
         ]
     );
+}
+
+#[test]
+fn test_ime_multiline_for_textarea() {
+    let test = InputMethodTest::new(
+        "<!DOCTYPE html> \
+        <textarea id=my-text-area style=\"width: 200px; height: 200px;\">servo</textarea>",
+    );
+    test.focus("my-text-area");
+
+    let controls = test.delegate.controls_shown.borrow();
+    let EmbedderControl::InputMethod(ime) = &controls[0] else {
+        panic!("Expected embedder control to be an InputMethod");
+    };
+    assert_eq!(ime.input_method_type(), InputMethodType::Text);
+    assert!(ime.multiline());
 }
