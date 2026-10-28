@@ -280,7 +280,7 @@ impl ConvertWithCx<AudioBufferSourceNodeOptions> for AudioBufferSourceOptions {
             buffer: self
                 .buffer
                 .as_ref()
-                .and_then(|b| b.as_ref()?.get_channels(cx).map(|buffer| (*buffer).clone())),
+                .and_then(|b| b.as_ref()?.get_channels(cx)),
             detune: *self.detune,
             loop_enabled: self.loop_,
             loop_end: Some(*self.loopEnd),
