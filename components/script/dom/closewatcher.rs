@@ -266,7 +266,8 @@ impl InternalCloseWatcher {
     pub(crate) fn close_action(&self, cx: &mut JSContext) {
         match &self.owner {
             InternalCloseWatcherOwner::CloseWatcher(close_watcher) => {
-                // closeAction being to fire an event named close at this.
+                // https://html.spec.whatwg.org/multipage/#the-closewatcher-interface:create-close-watcher-closeaction
+                // > closeAction being to fire an event named close at this.
                 let event = Event::new(
                     cx,
                     &self.window.global(),
