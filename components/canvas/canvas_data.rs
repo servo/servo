@@ -8,7 +8,6 @@ use paint_api::CrossProcessPaintApi;
 use pixels::Snapshot;
 use profile_traits::mem::Report;
 use servo_base::Epoch;
-use servo_base::id::WebViewId;
 use servo_canvas_traits::canvas::*;
 use webrender_api::ImageKey;
 

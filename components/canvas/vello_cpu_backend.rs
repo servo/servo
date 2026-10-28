@@ -15,7 +15,6 @@ use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use profile_traits::mem::ReportKind;
 use rustc_hash::FxHashSet;
 use servo_base::generic_channel::GenericSharedMemory;
-use servo_base::id::WebViewId;
 use servo_canvas_traits::canvas::{
     CanvasId, CompositionOptions, CompositionOrBlending, CompositionStyle, FillOrStrokeStyle,
     FillRule, LineOptions, Path, ShadowOptions, TextRun,
@@ -40,7 +39,7 @@ struct FontCacheData {
 /// Clears the font cache.
 pub(crate) fn clear_shared_font_cache(canvas_id: CanvasId) {
     SHARED_FONT_CACHE.with(|font_cache| {
-        font_cache
+        let _ = font_cache
             .borrow_mut()
             .extract_if(|_identifier, font_cache_data| {
                 font_cache_data.webviews.contains(&canvas_id) && font_cache_data.webviews.len() == 1

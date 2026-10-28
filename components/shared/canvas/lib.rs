@@ -20,6 +20,7 @@ pub mod webgl;
 pub enum ConstellationCanvasMsg {
     Create {
         sender: Sender<Option<CanvasId>>,
+        webview_id: WebViewId,
         size: Size2D<u64>,
     },
     CollectMemoryReport(ReportsChan),
