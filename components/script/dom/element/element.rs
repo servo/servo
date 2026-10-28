@@ -2104,15 +2104,20 @@ impl Element {
             identifier: AttrName::new(local_name, name, namespace, prefix),
             value,
         };
+
         let attr_ref = AttrRef::Raw(&data);
         self.will_mutate_attr(cx.no_gc(), attr_ref);
+
         // Step 1: Append to attribute list (push clone, keep original on stack).
         self.attrs.push_raw(ContentAttributeData {
-            identifier: data.identifier.clone(),
-            value: data.value.clone(),
+            identifier: data.identifier,
+            value: data.value,
         });
         // Step 4: Handle attribute changes using stack-local AttrRef.
-        self.handle_attribute_changes(cx, attr_ref, None, Some(&*attr_ref.value()));
+        // This has a read only borrow, so it is save to keep while other operations read attributes.
+        let borrow = self.attrs.borrow();
+        let last_value = borrow.last().map(|attrref| attrref.value());
+        self.handle_attribute_changes(cx, borrow.last().unwrap(), None, last_value.as_deref());
     }
 
     /// <https://dom.spec.whatwg.org/#handle-attribute-changes>
