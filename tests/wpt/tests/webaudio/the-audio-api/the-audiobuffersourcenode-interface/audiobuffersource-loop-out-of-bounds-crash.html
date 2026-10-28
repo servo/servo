@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Test AudioBufferSourceNode With Out-Of-Bounds Loop Endpoints Will Not Crash</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      const sampleRate = 48000;
+      const bufferLength = 1000;
+      // Duration specifies 2.5 buffer iterations of total output.
+      const durationSeconds = (bufferLength * 2.5) / sampleRate;
+      const totalRenderFrames = bufferLength * 4;
+
+      async function testLoop(loopStart, loopEnd) {
+        const context = new OfflineAudioContext(1, totalRenderFrames, sampleRate);
+
+        const buffer = new AudioBuffer({
+          numberOfChannels: 1,
+          length: bufferLength,
+          sampleRate: sampleRate,
+        });
+
+        const channelData = buffer.getChannelData(0);
+        channelData.fill(0.5);
+
+        const source = context.createBufferSource();
+        source.buffer = buffer;
+        source.loop = true;
+        source.loopStart = loopStart / sampleRate;
+        source.loopEnd = loopEnd / sampleRate;
+
+        source.connect(context.destination);
+        source.start(0, 0, durationSeconds);
+
+        const renderedBuffer = await context.startRendering();
+        const output = renderedBuffer.getChannelData(0);
+
+        const expectedPlayedFrames = Math.round(durationSeconds * sampleRate);
+        const expectedActive = new Float32Array(expectedPlayedFrames).fill(0.5);
+        assert_array_approx_equals(
+          output.subarray(0, expectedPlayedFrames),
+          expectedActive,
+          1e-4,
+          "Frames within duration must be active"
+        );
+
+        const remainingFrames = totalRenderFrames - expectedPlayedFrames;
+        const expectedSilent = new Float32Array(remainingFrames).fill(0);
+        assert_array_equals(
+          output.subarray(expectedPlayedFrames),
+          expectedSilent,
+          "Frames after duration must be silent"
+        );
+      }
+
+      promise_test(
+	() => testLoop(0, bufferLength + 1),
+        "Looping source with loop end greater than buffer length"
+      );
+
+      promise_test(
+	() => testLoop(-1, bufferLength),
+        "Looping source with negative loop start"
+      );
+    </script>
+  </body>
+</html>
+

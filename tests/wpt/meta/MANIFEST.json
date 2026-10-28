@@ -16530,6 +16530,15 @@
        ]
       }
      },
+     "the-audiobuffersourcenode-interface": {
+      "audiobuffersource-loop-out-of-bounds-crash.html": [
+       "f75a780d6965fc36c3b91ffe4611e1f5bb9ed509",
+       [
+        null,
+        {}
+       ]
+      ]
+     },
      "the-audiocontext-interface": {
       "crashtests": {
        "currentTime-after-discard.html": [
@@ -1437618,7 +1437627,7 @@
        ]
       ],
       "audiobuffersource-loop-continuous.html": [
-       "24e89d5dcf15fd98697a31de7875d9f68947c276",
+       "b0a746cd791b20ed53c107a35bfdb21e60b784f9",
        [
         null,
         {}
