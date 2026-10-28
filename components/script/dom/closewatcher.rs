@@ -289,6 +289,9 @@ impl InternalCloseWatcher {
     /// <https://html.spec.whatwg.org/multipage/#close-watcher-get-enabled-state>
     pub(crate) fn get_enabled_state(&self) -> bool {
         match &self.owner {
+            // https://html.spec.whatwg.org/multipage/#the-dialog-element:create-close-watcher-getenabledstate
+            // > getEnabledState being to return true if dialog's enable close watcher
+            // > for request close is true or dialog's computed closed-by state is not None; otherwise false.
             InternalCloseWatcherOwner::Dialog(dialog) => dialog.close_watcher_enabled_state(),
             _ => true,
         }
