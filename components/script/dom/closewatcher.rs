@@ -328,7 +328,6 @@ impl CloseWatcher {
     }
 }
 
-#[allow(non_snake_case)]
 impl CloseWatcherMethods<DomTypeHolder> for CloseWatcher {
     /// <https://html.spec.whatwg.org/multipage/#dom-closewatcher>
     fn Constructor(
