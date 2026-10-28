@@ -13863,6 +13863,17 @@
     },
     "webappapis": {
      "scripting": {
+      "processing-model-2": {
+       "unhandled-promise-rejections": {
+        "promise-rejection-during-parsing-crash.html": [
+         "fcbdc49e33fd9e305fb281e805f1847407cc0b54",
+         [
+          null,
+          {}
+         ]
+        ]
+       }
+      },
       "reporterror-in-detached-window-crash.html": [
        "33662caa4d1d1f207daab615d4d1a2796d12d8a5",
        [
