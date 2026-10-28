@@ -761,6 +761,7 @@ impl VirtualMethods for HTMLDialogElement {
         // given element.
         if matches!(mutation, AttributeMutation::Removed) {
             self.dialog_cleanup_steps(cx.no_gc());
+            return;
         }
 
         // Step 4. If element's node document is not fully active, then return.
