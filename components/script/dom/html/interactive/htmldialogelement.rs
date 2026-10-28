@@ -211,7 +211,7 @@ impl HTMLDialogElement {
         let close_watcher = InternalCloseWatcher::establish(
             no_gc,
             dialog.owner_document().window(),
-            InternalCloseWatcherOwner::Dialog(Dom::from_ref(self)),
+            &InternalCloseWatcherOwner::Dialog(Dom::from_ref(self)),
         );
         self.close_watcher
             .safe_borrow_mut(no_gc)

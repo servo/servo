@@ -35,12 +35,11 @@ pub(crate) struct InternalCloseWatcher {
 }
 
 impl InternalCloseWatcher {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn new(window: &Window, owner: InternalCloseWatcherOwner) -> Self {
+    pub(crate) fn new(window: &Window, owner: &InternalCloseWatcherOwner) -> Self {
         Self {
             window: Dom::from_ref(window),
             is_running_cancel_action: Cell::new(false),
-            owner,
+            owner: owner.clone(),
         }
     }
 
@@ -57,11 +56,10 @@ impl InternalCloseWatcher {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#establish-a-close-watcher>
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn establish(
         no_gc: &NoGC,
         window: &Window,
-        owner: InternalCloseWatcherOwner,
+        owner: &InternalCloseWatcherOwner,
     ) -> Rc<InternalCloseWatcher> {
         // Step 1. Assert: window's associated Document is fully active.
         assert!(window.Document().is_fully_active());
@@ -291,9 +289,8 @@ impl InternalCloseWatcher {
     }
 }
 
-#[derive(JSTraceable, MallocSizeOf, PartialEq)]
+#[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_in_rc)]
 pub(crate) enum InternalCloseWatcherOwner {
     /// <https://html.spec.whatwg.org/multipage/#dom-closewatcher>
     CloseWatcher(Dom<CloseWatcher>),
