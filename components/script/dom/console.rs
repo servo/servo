@@ -167,6 +167,14 @@ impl Console {
     pub(crate) fn internal_error(cx: &mut JSContext, global: &GlobalScope, message: String) {
         Console::send_string_message(cx, global, ConsoleLogLevel::Error, message);
     }
+
+    pub(crate) fn error_to_console(global: &GlobalScope, message: String) {
+        global.send_to_embedder(EmbedderMsg::ShowConsoleApiMessage(
+            global.webview_id(),
+            ConsoleLogLevel::Error,
+            message,
+        ));
+    }
 }
 
 #[expect(unsafe_code)]

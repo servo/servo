@@ -23,8 +23,10 @@ use xml5ever::serialize::TraversalScope;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::console::Console;
 use crate::dom::document::Document;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
@@ -271,12 +273,16 @@ impl VirtualMethods for SVGSVGElement {
                 );
                 AttrValue::LengthPercentage(value.to_string(), val.ok())
             },
-            // TODO: Log a warning to Console when the viewBox is not valid.
+
             local_name!("viewBox") => {
                 if self.is_view_box_valid(&value) {
+                    Console::error_to_console(
+                        &self.global(),
+                        "ViewBox does not have valid dimension".into(),
+                    );
                     self.super_type()
                         .unwrap()
-                        .parse_plain_attribute(name, "".into())
+                        .parse_plain_attribute(name, DOMString::new())
                 } else {
                     self.super_type()
                         .unwrap()
