@@ -22,6 +22,10 @@ updates:
     accesskit-related:
       patterns:
         - "accesskit*"
+    compression-related:
+      patterns:
+        - async-compression
+        - compression-codecs
     egui-related:
       patterns:
         - "ecolor"
