@@ -6,6 +6,7 @@ use html5ever::{local_name, ns};
 use js::context::{JSContext, NoGC};
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use script_bindings::cell::DomRefCell;
+use servo_url::ServoUrl;
 
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::inheritance::Castable;
@@ -51,6 +52,7 @@ pub(crate) trait HyperlinkElementTraits {
         attr: AttrRef<'_>,
         mutation: AttributeMutation,
     );
+    fn full_href_url_for_user_interface(&self) -> Option<ServoUrl>;
 }
 
 impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> HyperlinkElementTraits
@@ -539,5 +541,17 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
         // Step 4. If localName is href, referrerpolicy, or rel,
         // then consider speculative loads given element's node document.
         // TODO
+    }
+
+    /// Get the full URL of the `href` attribute of this hyperlink element, returning
+    /// `None` if the URL could not be parsed against the `Document`'s base URL.
+    fn full_href_url_for_user_interface(&self) -> Option<ServoUrl> {
+        let href = self
+            .upcast::<Element>()
+            .get_attribute_string_ref(&local_name!("href"))?;
+        self.owner_document()
+            .base_url()
+            .join(href.value().as_ref())
+            .ok()
     }
 }
