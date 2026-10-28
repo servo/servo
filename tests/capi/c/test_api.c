@@ -372,6 +372,37 @@ int test_webview_builder_build(void)
     return 0;
 }
 
+int test_webview_hidpi_scale_factor(void)
+{
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    RenderingContext* context = servo_rendering_context_create_software(100, 100);
+    if (context == NULL)
+        return 1;
+
+    ServoWebViewBuilder* webview_builder = servo_webview_builder_create(servo, context);
+    struct WebView* webview = servo_webview_builder_build(webview_builder);
+    if (webview == NULL)
+        return 1;
+
+    servo_webview_set_hidpi_scale_factor(webview, 2.0f);
+    if (servo_webview_get_hidpi_scale_factor(webview) != 2.0f) {
+        servo_webview_free(webview);
+        return 1;
+    }
+
+    servo_webview_set_hidpi_scale_factor(webview, 1.5f);
+    if (servo_webview_get_hidpi_scale_factor(webview) != 1.5f) {
+        servo_webview_free(webview);
+        return 1;
+    }
+
+    servo_webview_free(webview);
+    return 0;
+}
+
 int run_c_api_tests(void)
 {
     tests_run = 0;
@@ -396,6 +427,7 @@ int run_c_api_tests(void)
     RUN_TEST(test_webview_builder_set_url_valid);
     RUN_TEST(test_webview_builder_set_url_invalid);
     RUN_TEST(test_webview_builder_build);
+    RUN_TEST(test_webview_hidpi_scale_factor);
 
     free_test_servo();
 
