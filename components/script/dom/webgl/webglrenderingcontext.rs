@@ -2281,11 +2281,13 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         parameter: u32,
         mut retval: MutableHandleValue,
     ) {
-        let buffer = handle_potential_webgl_error!(
-            self,
-            self.bound_buffer(cx, target),
-            return retval.set(NullValue())
-        );
+        let buffer = match self.bound_buffer(cx, target) {
+            Ok(buffer) => buffer,
+            Err(error) => {
+                self.webgl_error(error);
+                return retval.set(NullValue());
+            },
+        };
         self.get_buffer_param(buffer, parameter, retval)
     }
 
@@ -2471,11 +2473,15 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             return;
         }
 
-        match handle_potential_webgl_error!(
-            self,
-            Parameter::from_u32(parameter),
-            return retval.set(NullValue())
-        ) {
+        let param = match Parameter::from_u32(parameter) {
+            Ok(param) => param,
+            Err(error) => {
+                self.webgl_error(error);
+                return retval.set(NullValue());
+            },
+        };
+
+        match param {
             Parameter::Bool(param) => {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetParameterBool(param, sender));
@@ -2544,17 +2550,20 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         pname: u32,
         mut retval: MutableHandleValue,
     ) {
-        let texture_slot = handle_potential_webgl_error!(
-            self,
-            self.textures
-                .active_texture_slot(target, self.webgl_version()),
-            return retval.set(NullValue())
-        );
-        let texture = handle_potential_webgl_error!(
-            self,
-            texture_slot.get().ok_or(InvalidOperation),
-            return retval.set(NullValue())
-        );
+        let texture_slot = match self
+            .textures
+            .active_texture_slot(target, self.webgl_version())
+        {
+            Ok(texture_slot) => texture_slot,
+            Err(error) => {
+                self.webgl_error(error);
+                return retval.set(NullValue());
+            },
+        };
+        let Some(texture) = texture_slot.get() else {
+            self.webgl_error(InvalidOperation);
+            return retval.set(NullValue());
+        };
 
         if !self
             .extension_manager
@@ -2570,11 +2579,13 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             _ => {},
         }
 
-        let texparam = handle_potential_webgl_error!(
-            self,
-            TexParameter::from_u32(pname),
-            return retval.set(NullValue())
-        );
+        let texparam = match TexParameter::from_u32(pname) {
+            Ok(texparam) => texparam,
+            Err(error) => {
+                self.webgl_error(error);
+                return retval.set(NullValue());
+            },
+        };
         if self.webgl_version() < texparam.required_webgl_version() {
             self.webgl_error(InvalidEnum);
             return retval.set(NullValue());
@@ -2986,7 +2997,9 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         height: i32,
         border: i32,
     ) {
-        handle_potential_webgl_error!(self, self.validate_read_framebuffer(), return);
+        if let Err(error) = self.validate_read_framebuffer() {
+            return self.webgl_error(error);
+        }
 
         let validator = CommonTexImage2DValidator::new(
             self,
@@ -3056,10 +3069,11 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         }
 
         // NB: TexImage2D depth is always equal to 1
-        handle_potential_webgl_error!(
-            self,
+        if let Err(error) =
             texture.initialize(target, width, height, 1, internal_format, level, None)
-        );
+        {
+            self.webgl_error(error);
+        }
 
         let msg = WebGLCommand::CopyTexImage2D(
             target.as_gl_constant(),
@@ -3091,7 +3105,9 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         width: i32,
         height: i32,
     ) {
-        handle_potential_webgl_error!(self, self.validate_read_framebuffer(), return);
+        if let Err(error) = self.validate_read_framebuffer() {
+            return self.webgl_error(error);
+        }
 
         // NB: We use a dummy (valid) format and border in order to reuse the
         // common validations, but this should have its own validator.
@@ -3150,7 +3166,9 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11>
     fn Clear(&self, mask: u32) {
-        handle_potential_webgl_error!(self, self.validate_framebuffer(), return);
+        if let Err(error) = self.validate_framebuffer() {
+            return self.webgl_error(error);
+        }
         if mask &
             !(constants::DEPTH_BUFFER_BIT |
                 constants::STENCIL_BUFFER_BIT |
@@ -3233,31 +3251,40 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn Enable(&self, cap: u32) {
-        if handle_potential_webgl_error!(self, self.capabilities.set(cap, true), return) {
+        let changed = match self.capabilities.set(cap, true) {
+            Ok(changed) => changed,
+            Err(error) => return self.webgl_error(error),
+        };
+        if changed {
             self.send_command(WebGLCommand::Enable(cap));
         }
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn Disable(&self, cap: u32) {
-        if handle_potential_webgl_error!(self, self.capabilities.set(cap, false), return) {
+        let changed = match self.capabilities.set(cap, false) {
+            Ok(changed) => changed,
+            Err(error) => return self.webgl_error(error),
+        };
+        if changed {
             self.send_command(WebGLCommand::Disable(cap));
         }
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn CompileShader(&self, shader: &WebGLShader) {
-        handle_potential_webgl_error!(self, self.validate_ownership(shader), return);
-        handle_potential_webgl_error!(
-            self,
-            shader.compile(
-                self.api_type,
-                self.webgl_version,
-                self.glsl_version,
-                &self.limits,
-                &self.extension_manager,
-            )
-        )
+        if let Err(error) = self.validate_ownership(shader) {
+            return self.webgl_error(error);
+        }
+        if let Err(error) = shader.compile(
+            self.api_type,
+            self.webgl_version,
+            self.glsl_version,
+            &self.limits,
+            &self.extension_manager,
+        ) {
+            self.webgl_error(error);
+        }
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
@@ -3303,7 +3330,9 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             Some(buffer) => buffer,
             None => return,
         };
-        handle_potential_webgl_error!(self, self.validate_ownership(buffer), return);
+        if let Err(error) = self.validate_ownership(buffer) {
+            return self.webgl_error(error);
+        }
         if buffer.is_marked_for_deletion() {
             return;
         }
@@ -3321,8 +3350,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             // https://immersive-web.github.io/webxr/#opaque-framebuffer
             // Can opaque framebuffers be deleted?
             // https://github.com/immersive-web/webxr/issues/855
-            handle_potential_webgl_error!(self, framebuffer.validate_transparent(), return);
-            handle_potential_webgl_error!(self, self.validate_ownership(framebuffer), return);
+            if let Err(error) = framebuffer.validate_transparent() {
+                return self.webgl_error(error);
+            }
+            if let Err(error) = self.validate_ownership(framebuffer) {
+                return self.webgl_error(error);
+            }
             if let Some(bound_object) = self.bound_draw_framebuffer.get() &&
                 bound_object.id() == framebuffer.id()
             {
@@ -3339,7 +3372,9 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7>
     fn DeleteRenderbuffer(&self, renderbuffer: Option<&WebGLRenderbuffer>) {
         if let Some(renderbuffer) = renderbuffer {
-            handle_potential_webgl_error!(self, self.validate_ownership(renderbuffer), return);
+            if let Err(error) = self.validate_ownership(renderbuffer) {
+                return self.webgl_error(error);
+            }
             if let Some(bound_object) = self.bound_renderbuffer.get() &&
                 bound_object.id() == renderbuffer.id()
             {
@@ -3356,7 +3391,9 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn DeleteTexture(&self, texture: Option<&WebGLTexture>) {
         if let Some(texture) = texture {
-            handle_potential_webgl_error!(self, self.validate_ownership(texture), return);
+            if let Err(error) = self.validate_ownership(texture) {
+                return self.webgl_error(error);
+            }
 
             // From the GLES 2.0.25 spec, page 85:
             //
@@ -3391,7 +3428,9 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn DeleteProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
-            handle_potential_webgl_error!(self, self.validate_ownership(program), return);
+            if let Err(error) = self.validate_ownership(program) {
+                return self.webgl_error(error);
+            }
             program.mark_for_deletion(Operation::Infallible)
         }
     }
@@ -3399,22 +3438,25 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn DeleteShader(&self, shader: Option<&WebGLShader>) {
         if let Some(shader) = shader {
-            handle_potential_webgl_error!(self, self.validate_ownership(shader), return);
+            if let Err(error) = self.validate_ownership(shader) {
+                return self.webgl_error(error);
+            }
             shader.mark_for_deletion(Operation::Infallible)
         }
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11>
     fn DrawArrays(&self, cx: &mut JSContext, mode: u32, first: i32, count: i32) {
-        handle_potential_webgl_error!(self, self.draw_arrays_instanced(cx, mode, first, count, 1));
+        if let Err(error) = self.draw_arrays_instanced(cx, mode, first, count, 1) {
+            self.webgl_error(error);
+        }
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11>
     fn DrawElements(&self, cx: &mut JSContext, mode: u32, count: i32, type_: u32, offset: i64) {
-        handle_potential_webgl_error!(
-            self,
-            self.draw_elements_instanced(cx, mode, count, type_, offset, 1)
-        );
+        if let Err(error) = self.draw_elements_instanced(cx, mode, count, type_, offset, 1) {
+            self.webgl_error(error);
+        }
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
