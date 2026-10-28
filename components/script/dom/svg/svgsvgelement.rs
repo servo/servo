@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
 use atomic_refcell::AtomicRefCell;
 use base64::Engine as _;
 use cssparser::Parser;
@@ -9,7 +11,7 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
-use layout_api::SVGElementData;
+use layout_api::{SVGElementData, SVGViewBoxRatio};
 use servo_url::ServoUrl;
 use style::attr::{AttrValue, parse_double};
 use style::parser::ParserContext;
@@ -42,6 +44,8 @@ pub(crate) struct SVGSVGElement {
     svggraphicselement: SVGGraphicsElement,
     #[no_trace]
     uuid: Uuid,
+    #[no_trace]
+    viewbox_ratio: Cell<SVGViewBoxRatio>,
     // The XML source of subtree rooted at this SVG element, serialized into
     // a base64 encoded `data:` url. This is cached to avoid recomputation
     // on each layout and must be invalidated when the subtree changes.
@@ -58,6 +62,7 @@ impl SVGSVGElement {
         SVGSVGElement {
             svggraphicselement: SVGGraphicsElement::new_inherited(local_name, prefix, document),
             uuid: Uuid::new_v4(),
+            viewbox_ratio: Default::default(),
             cached_serialized_data_url: Default::default(),
         }
     }
@@ -183,19 +188,47 @@ impl SVGSVGElement {
         *self.cached_serialized_data_url.borrow_mut() = None;
         self.upcast::<Node>().dirty(no_gc, NodeDamage::Other);
     }
+}
 
-    /// <https://www.w3.org/TR/SVG11/coords.html#ViewBoxAttribute>
-    fn is_view_box_valid(&self, value: &DOMString) -> bool {
-        let value_str = value.str();
-        let mut iter = value_str
-            .split(|c| char_is_whitespace(c) || c == ',')
-            .filter(|part| !part.is_empty())
-            .skip(2);
+/// <https://www.w3.org/TR/SVG11/coords.html#ViewBoxAttribute>
+pub fn ratio_from_view_box(view_box: Option<&DOMString>) -> SVGViewBoxRatio {
+    let Some(view_box) = view_box else {
+        return SVGViewBoxRatio::Empty;
+    };
 
-        let width = iter.next().and_then(|string| parse_double(string).ok());
-        let height = iter.next().and_then(|string| parse_double(string).ok());
+    let view_box_str = view_box.str();
+    let mut iter = view_box_str
+        .split(|c| char_is_whitespace(c) || c == ',')
+        .filter(|part| !part.is_empty());
+    let Some(_min_x) = iter.next().and_then(|string| parse_double(string).ok()) else {
+        return SVGViewBoxRatio::Empty;
+    };
+    let Some(_min_y) = iter.next().and_then(|string| parse_double(string).ok()) else {
+        return SVGViewBoxRatio::Empty;
+    };
 
-        width < Some(0f64) || height < Some(0f64)
+    let Some(width) = iter.next().and_then(|string| parse_double(string).ok()) else {
+        return SVGViewBoxRatio::Empty;
+    };
+    if width == 0f64 {
+        return SVGViewBoxRatio::Empty;
+    } else if width <= 0f64 {
+        return SVGViewBoxRatio::Invalid;
+    }
+
+    let Some(height) = iter.next().and_then(|string| parse_double(string).ok()) else {
+        return SVGViewBoxRatio::Empty;
+    };
+    if height == 0f64 {
+        return SVGViewBoxRatio::Empty;
+    } else if height <= 0f64 {
+        return SVGViewBoxRatio::Invalid;
+    }
+
+    if iter.next().is_none() {
+        SVGViewBoxRatio::Valid(width as f32 / height as f32)
+    } else {
+        SVGViewBoxRatio::Empty
     }
 }
 
@@ -205,7 +238,7 @@ impl<'dom> LayoutDom<'dom, SVGSVGElement> {
         let element = self.upcast::<Element>();
         let width = element.get_attr_for_layout(&ns!(), &local_name!("width"));
         let height = element.get_attr_for_layout(&ns!(), &local_name!("height"));
-        let view_box = element.get_attr_for_layout(&ns!(), &local_name!("viewBox"));
+        let view_box_ratio = self.unsafe_get().viewbox_ratio.get();
         SVGElementData {
             source: self
                 .unsafe_get()
@@ -214,7 +247,7 @@ impl<'dom> LayoutDom<'dom, SVGSVGElement> {
                 .clone(),
             width,
             height,
-            view_box,
+            view_box_ratio,
             svg_id,
         }
     }
@@ -275,19 +308,17 @@ impl VirtualMethods for SVGSVGElement {
             },
 
             local_name!("viewBox") => {
-                if self.is_view_box_valid(&value) {
+                let viewbox_ratio = ratio_from_view_box(Some(&value));
+                self.viewbox_ratio.set(viewbox_ratio);
+                if viewbox_ratio != SVGViewBoxRatio::Invalid {
                     Console::error_to_console(
                         &self.global(),
                         "ViewBox does not have valid dimension".into(),
                     );
-                    self.super_type()
-                        .unwrap()
-                        .parse_plain_attribute(name, DOMString::new())
-                } else {
-                    self.super_type()
-                        .unwrap()
-                        .parse_plain_attribute(name, value)
                 }
+                self.super_type()
+                    .unwrap()
+                    .parse_plain_attribute(name, value)
             },
             _ => self
                 .super_type()

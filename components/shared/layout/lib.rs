@@ -67,7 +67,7 @@ use servo_base::text::{RangeAny, Utf32CodeUnits, Utf32CodeUnitsOrNodeOffset};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::Atom;
 use style::animation::DocumentAnimationSet;
-use style::attr::{AttrValue, parse_double};
+use style::attr::AttrValue;
 use style::context::QuirksMode;
 use style::data::ElementDataWrapper;
 use style::device::Device;
@@ -76,7 +76,6 @@ use style::invalidation::element::restyle_hints::RestyleHint;
 use style::properties::style_structs::Font;
 use style::properties::{ComputedValues, PropertyId};
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
-use style::str::char_is_whitespace;
 use style::stylesheets::{DocumentStyleSheet, Stylesheet};
 use style::stylist::Stylist;
 #[cfg(debug_assertions)]
@@ -166,39 +165,34 @@ pub struct HTMLCanvasData {
     pub height: u32,
 }
 
+#[derive(Copy, Clone, Debug, Default, PartialEq, MallocSizeOf)]
+pub enum SVGViewBoxRatio {
+    /// A valid ratio
+    Valid(f32),
+    /// Not given a viewbox or the viewbox has size zero.
+    #[default]
+    Empty,
+    /// The viewbox has a negative size.
+    Invalid,
+}
+
+impl SVGViewBoxRatio {
+    /// Helper for layout to render with no ratio
+    pub fn as_opt_f32(&self) -> Option<f32> {
+        match self {
+            SVGViewBoxRatio::Valid(ratio) => Some(*ratio),
+            SVGViewBoxRatio::Empty | SVGViewBoxRatio::Invalid => None,
+        }
+    }
+}
+
 pub struct SVGElementData<'dom> {
     /// The SVG's XML source represented as a base64 encoded `data:` url.
     pub source: Option<Result<ServoUrl, ()>>,
+    pub view_box_ratio: SVGViewBoxRatio,
     pub width: Option<&'dom AttrValue>,
     pub height: Option<&'dom AttrValue>,
     pub svg_id: Uuid,
-    /// <https://www.w3.org/TR/SVG11/coords.html#ViewBoxAttribute>
-    pub view_box: Option<&'dom AttrValue>,
-}
-
-impl SVGElementData<'_> {
-    /// <https://www.w3.org/TR/SVG11/coords.html#ViewBoxAttribute>
-    // TODO: Negative values should set this element in an error state.
-    pub fn ratio_from_view_box(&self) -> Option<f32> {
-        let mut iter = self
-            .view_box?
-            .split(|c| char_is_whitespace(c) || c == ',')
-            .filter(|part| !part.is_empty());
-        let _min_x = parse_double(iter.next()?).ok()?;
-        let _min_y = parse_double(iter.next()?).ok()?;
-
-        let width = parse_double(iter.next()?).ok()?;
-        if width <= 0f64 {
-            return None;
-        }
-
-        let height = parse_double(iter.next()?).ok()?;
-        if height <= 0f64 {
-            return None;
-        }
-
-        iter.next().is_none().then(|| width as f32 / height as f32)
-    }
 }
 
 /// The address of a node known to be valid. These are sent from script to layout.
