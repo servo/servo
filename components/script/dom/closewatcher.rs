@@ -322,7 +322,7 @@ impl CloseWatcher {
     pub(crate) fn new_inherited() -> CloseWatcher {
         Self {
             eventtarget: EventTarget::new_inherited(),
-            internal_close_watcher: DomRefCell::new(None),
+            internal_close_watcher: Default::default(),
         }
     }
 
