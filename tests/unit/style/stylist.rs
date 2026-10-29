@@ -8,7 +8,7 @@ use selectors::parser::{AncestorHashes, Selector};
 use servo_arc::Arc;
 use style::context::QuirksMode;
 use style::device::Device;
-use style::device::servo::FontMetricsProvider;
+use style::device::servo::{FontMetricsProvider, MediaData};
 use style::font_metrics::FontMetrics;
 use style::media_queries::MediaType;
 use style::properties::style_structs::Font;
@@ -249,16 +249,18 @@ fn test_insert() {
 fn mock_stylist() -> Stylist {
     let initial_style = ComputedValues::initial_values_with_font_override(Font::initial_values());
     let device = Device::new(
-        MediaType::screen(),
-        QuirksMode::NoQuirks,
-        Size2D::new(0f32, 0f32),
-        Size2D::new(0f32, 0f32),
-        Scale::new(1.0),
-        Box::new(DummyMetricsProvider),
         initial_style,
-        PrefersColorScheme::Light,
-        PointerCapabilities::default(),
-        PointerCapabilities::default(),
+        Box::new(DummyMetricsProvider),
+        MediaData {
+            media_type: MediaType::screen(),
+            quirks_mode: QuirksMode::NoQuirks,
+            viewport_size: Size2D::new(0f32, 0f32),
+            device_size: Size2D::new(0f32, 0f32),
+            device_pixel_ratio: Scale::new(1.0),
+            prefers_color_scheme: PrefersColorScheme::Light,
+            primary_pointer_capabilities: PointerCapabilities::default(),
+            all_pointer_capabilities: PointerCapabilities::default(),
+        },
     );
     Stylist::new(device, QuirksMode::NoQuirks)
 }
