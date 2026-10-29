@@ -3016,7 +3016,9 @@ where
         // message the sw manager if no pipelines are left.
         self.service_workers_pending_update
             .retain(|worker_id, pending| {
-                pending.pipelines.remove(pipeline_id);
+                if !pending.pipelines.remove(pipeline_id) {
+                    return true;
+                }
                 if pending.pipelines.is_empty() {
                     // message sw manager
                     if let Some(manager) = self.sw_managers.get(&pending.origin) {
