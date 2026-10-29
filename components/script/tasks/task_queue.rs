@@ -8,11 +8,15 @@ use std::collections::VecDeque;
 use std::default::Default;
 
 use crossbeam_channel::{self, Receiver};
+use js::context::JSContext;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script_bindings::cell::DomRefCell;
+use script_bindings::root::DomRoot;
 use servo_base::id::PipelineId;
 
+use crate::dom::GlobalScope;
 use crate::dom::worker::TrustedWorkerAddress;
+use crate::realms::enter_auto_realm;
 use crate::runtime::script_runtime::ScriptThreadEventCategory;
 use crate::tasks::task::TaskBox;
 use crate::tasks::task_source::TaskSourceName;
@@ -159,5 +163,29 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
     ) -> Result<T, ()> {
         self.take_tasks(T::wake_up_msg(), fully_active);
         self.recv()
+    }
+
+    pub(crate) fn run_task(
+        &self,
+        cx: &mut JSContext,
+        pipeline_id: Option<PipelineId>,
+        global: Option<DomRoot<GlobalScope>>,
+        task: Box<dyn TaskBox>,
+    ) {
+        // If a task comes in for a pipeline that has already been closed somehow, do not run it.
+        // This is insurance in case tasks slip through. These pipelines have already had their
+        // runtime shut down, so it is never okay to run them.
+        if pipeline_id.is_some() && global.is_none() {
+            return;
+        }
+
+        let Some(global) = global else {
+            task.run_box(cx);
+            return;
+        };
+
+        let mut realm = enter_auto_realm(cx, &*global);
+        let cx = &mut realm.current_realm();
+        task.run_box(cx)
     }
 }

@@ -4359,6 +4359,13 @@ impl Document {
 
     pub(crate) fn detach_window(&self) {
         self.window_detached.set(true);
+
+        // Note: This is step 7 of "destroy a document"
+        // <https://html.spec.whatwg.org/multipage/#destroy-a-document>. Eventually
+        // document replacement should call `Document::destroy` via step 20 in
+        // "unload" <https://html.spec.whatwg.org/multipage/#unload-a-document>.
+        self.task_manager()
+            .cancel_all_tasks_and_ignore_future_tasks();
     }
 
     pub(crate) fn window_detached(&self) -> bool {
