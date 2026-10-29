@@ -24,6 +24,7 @@ use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
 use style::computed_values::background_blend_mode::SingleComputedValue as BackgroundBlendMode;
 use style::computed_values::border_image_outset::T as BorderImageOutset;
+use style::computed_values::image_rendering::T as ComputedImageRendering;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
@@ -935,7 +936,30 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
             .to_webrender();
         let common = self.common_properties(state, clip, &style);
 
-        if let Some(image_key) = fragment.image_key {
+        let image_key = if let Some(source) = &fragment.encoded_source {
+            let size = fragment.base.rect().size;
+            let scale = self.device_pixel_ratio.get();
+            // Return scaled dimentions if set to auto, and fallback to original if pixelated/crisp-edges
+            // As currently only auto-Lanczos3 is covered (TODO: add support for pixelated instead of fallback)
+            let requested = if *style.get_image_rendering() == ComputedImageRendering::Auto {
+                DeviceIntSize::new(
+                    (size.width.to_f32_px() * scale).ceil() as i32,
+                    (size.height.to_f32_px() * scale).ceil() as i32,
+                )
+            } else {
+                DeviceIntSize::new(source.metadata.width as i32, source.metadata.height as i32)
+            };
+            self.image_resolver
+                .raster_decode_demands
+                .lock()
+                .push((source.id, requested));
+            self.image_resolver
+                .image_cache
+                .demand_driven_raster_image_key(source.id)
+        } else {
+            fragment.image_key
+        };
+        if let Some(image_key) = image_key {
             self.wr().push_image(
                 &common,
                 rect,
@@ -2049,16 +2073,16 @@ impl<'a> BuilderForBoxFragment<'a> {
                     let default_size: DeviceIntSize =
                         Size2D::new(size.width * scale, size.height * scale).to_i32();
                     let preferred_size = layer.as_ref().map(|layer| {
-                        Size2D::new(
-                            layer.tile_size.width * scale,
-                            layer.tile_size.height * scale,
+                        DeviceIntSize::new(
+                            ((layer.tile_size.width * scale).ceil() as i32).max(1),
+                            ((layer.tile_size.height * scale).ceil() as i32).max(1),
                         )
-                        .to_i32()
                     });
 
                     let Some(image_key) = builder.image_resolver.image_key_from_cached_image(
                         &image,
                         preferred_size.unwrap_or(default_size),
+                        *style.get_image_rendering(),
                         node,
                     ) else {
                         continue;
@@ -2307,11 +2331,12 @@ impl<'a> BuilderForBoxFragment<'a> {
             Ok(ResolvedImage::Image { image, size, .. }) => {
                 let scale = builder.device_pixel_ratio.get();
                 let raster_size = Size2D::new(size.width * scale, size.height * scale).to_i32();
-                let Some(key) =
-                    builder
-                        .image_resolver
-                        .image_key_from_cached_image(&image, raster_size, node)
-                else {
+                let Some(key) = builder.image_resolver.image_key_from_cached_image(
+                    &image,
+                    raster_size,
+                    *style.get_image_rendering(),
+                    node,
+                ) else {
                     return false;
                 };
 
