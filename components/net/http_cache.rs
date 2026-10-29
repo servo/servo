@@ -204,7 +204,7 @@ impl CachedResource {
     /// > fields in the original request (i.e., the request that caused the cached response
     /// > to be stored).
     fn vary_header_matches(&self, request_headers: &HeaderMap) -> bool {
-        let cached_headers = self.metadata.headers.lock();
+        let cached_headers = &self.metadata.headers;
         let original_request_headers = self.request_headers.lock();
         let Some(vary_value) = cached_headers.typed_get::<Vary>() else {
             return true;

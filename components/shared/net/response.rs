@@ -258,7 +258,7 @@ impl Response {
         }
 
         // This is ok as we always set the `response.headers` in all branches in the following.
-        let old_headers =  old_response.headers.as_ref();
+        let old_headers = old_response.headers.as_ref();
         let mut response = old_response.clone();
         response.response_type = filter_type;
 
@@ -327,7 +327,7 @@ impl Response {
             },
         }
 
-        old_response.headers = old_headers;
+        old_response.headers = StdArc::new(old_headers.clone());
         response.internal_response = Some(Box::new(old_response));
 
         response
