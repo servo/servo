@@ -267,7 +267,7 @@ impl HTMLIFrameElement {
         };
 
         let viewport_details = window
-            .get_iframe_viewport_details_if_known(browsing_context_id)
+            .get_iframe_viewport_details_if_known(cx, browsing_context_id)
             .unwrap_or_else(|| ViewportDetails {
                 hidpi_scale_factor: window.device_pixel_ratio(),
                 ..Default::default()

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reference: br breaks the line, wbr does not</title>
+<style>
+.t { width: 100px; margin-bottom: 10px; font-size: 0; line-height: 0; }
+.t i { display: inline-block; width: 20px; height: 20px; background: green; }
+.t b { display: block; float: left; width: 40px; height: 40px; background: green; }
+</style>
+<div class=t><i></i><br><i></i></div>
+<div class=t><i></i><br><i></i></div>
+<div class=t><i></i><br><i></i></div>
+<div class=t><i></i><br><i></i></div>
+<div class=t><i></i><br><i></i></div>
+<div class=t><i></i><br><i></i></div>
+<div class=t><i></i><wbr><i></i></div>
+<div class=t><b></b><i></i><wbr><i></i></div>

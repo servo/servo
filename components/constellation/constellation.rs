@@ -2100,29 +2100,31 @@ where
         Err(())
     }
 
-    #[servo_tracing::instrument(skip_all)]
+    /// Returns `None` on every failure path, so callers can always reply to script.
     #[cfg(feature = "webgpu")]
-    fn handle_wgpu_request(
-        &mut self,
+    fn webgpu_chan_for_pipeline(
+        &self,
         webview_id: WebViewId,
         source_pipeline_id: PipelineId,
-        request: ScriptToConstellationMessage,
-    ) {
+    ) -> Option<WebGPU> {
         use webgpu::start_webgpu_thread;
 
         let Some(browsing_context_group) = self.browsing_context_group_for_webview_id(&webview_id)
         else {
-            return warn!("WebView ({webview_id:?}) not found when handling WebGPU request");
+            warn!("WebView ({webview_id:?}) not found when handling WebGPU request");
+            return None;
         };
         let Some(source_pipeline) = self.pipelines.get(&source_pipeline_id) else {
-            return warn!("{source_pipeline_id}: ScriptMsg from closed pipeline");
+            warn!("{source_pipeline_id}: ScriptMsg from closed pipeline");
+            return None;
         };
         let Some(host) = registered_domain_name(&source_pipeline.url) else {
-            return warn!("Invalid host url");
+            warn!("Invalid host url");
+            return None;
         };
 
         let mut browsing_context_group = browsing_context_group.borrow_mut();
-        let webgpu_chan = match browsing_context_group.webgpus.entry(host) {
+        match browsing_context_group.webgpus.entry(host) {
             Entry::Vacant(v) => start_webgpu_thread(
                 self.paint_proxy.cross_process_paint_api.clone(),
                 self.webrender_wgpu
@@ -2141,7 +2143,18 @@ where
                 v.insert(webgpu.0).clone()
             }),
             Entry::Occupied(o) => Some(o.get().clone()),
-        };
+        }
+    }
+
+    #[servo_tracing::instrument(skip_all)]
+    #[cfg(feature = "webgpu")]
+    fn handle_wgpu_request(
+        &mut self,
+        webview_id: WebViewId,
+        source_pipeline_id: PipelineId,
+        request: ScriptToConstellationMessage,
+    ) {
+        let webgpu_chan = self.webgpu_chan_for_pipeline(webview_id, source_pipeline_id);
         match request {
             ScriptToConstellationMessage::RequestAdapter(response_sender, options, adapter_id) => {
                 match webgpu_chan {
@@ -2970,6 +2983,10 @@ where
         let Some(pipeline) = self.pipelines.remove(&pipeline_id) else {
             return;
         };
+
+        // Let the embedding layer release resources it is holding on this pipeline's behalf.
+        self.constellation_to_embedder_proxy
+            .send(ConstellationToEmbedderMsg::PipelineExited(pipeline_id));
 
         // Clean up any registered interests for this pipeline.
         self.pipeline_interests.retain(|_, set| {

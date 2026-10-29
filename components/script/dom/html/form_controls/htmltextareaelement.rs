@@ -37,7 +37,6 @@ use crate::dom::html::form_controls::input_type::text_input_widget::TextInputWid
 use crate::dom::html::form_controls::text_control::TextControlElement;
 use crate::dom::html::form_controls::text_input::{KeyReaction, Lines, TextInput};
 use crate::dom::html::htmlelement::HTMLElement;
-use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
@@ -179,12 +178,13 @@ impl HTMLTextAreaElement {
             }
 
             document.embedder_controls().show_embedder_control(
+                cx,
                 ControlElement::Ime(Dom::from_ref(self.upcast())),
                 EmbedderControlRequest::InputMethod(InputMethodRequest {
                     input_method_type: InputMethodType::Text,
                     text: String::from(self.Value()),
                     insertion_point: self.GetSelectionEnd(),
-                    multiline: false,
+                    multiline: true,
                     // We follow chromium's heuristic to show the virtual keyboard only if user had interacted before.
                     allow_virtual_keyboard: self.owner_window().has_sticky_activation(),
                 }),
@@ -322,7 +322,7 @@ impl TextControlElement for HTMLTextAreaElement {
         let placeholder_shown =
             self.text_input.borrow().is_empty() && !self.placeholder.borrow().is_empty();
         self.upcast::<Element>()
-            .set_placeholder_shown_state(placeholder_shown);
+            .set_placeholder_shown_state(cx.no_gc(), placeholder_shown);
 
         self.text_input_widget.borrow().update_shadow_tree(cx, self);
         self.text_input_widget
@@ -334,8 +334,8 @@ impl TextControlElement for HTMLTextAreaElement {
     fn handle_key_reaction(&self, cx: &mut JSContext, action: KeyReaction) {
         match action {
             KeyReaction::TriggerDefaultAction => (),
-            KeyReaction::DispatchInput(text, is_composing, input_type) => {
-                self.queue_input_event(text, is_composing, input_type);
+            KeyReaction::DispatchInput(text, input_type) => {
+                self.queue_input_event(text, input_type);
                 self.value_dirty.set(true);
                 self.handle_text_content_changed(cx);
                 self.maybe_update_shared_selection();
@@ -622,18 +622,11 @@ impl VirtualMethods for HTMLTextAreaElement {
                 let el = self.upcast::<Element>();
                 match mutation {
                     AttributeMutation::Set(_) => {
-                        el.set_disabled_state(true);
-                        el.set_enabled_state(false);
-
-                        el.set_read_write_state(false);
+                        el.set_read_write_state(cx.no_gc(), false);
                     },
                     AttributeMutation::Removed => {
-                        el.set_disabled_state(false);
-                        el.set_enabled_state(true);
-                        el.check_ancestors_disabled_state_for_form_control(cx.no_gc());
-
                         if !el.disabled_state() && !el.read_write_state() {
-                            el.set_read_write_state(true);
+                            el.set_read_write_state(cx.no_gc(), true);
                         }
                     },
                 }
@@ -681,10 +674,10 @@ impl VirtualMethods for HTMLTextAreaElement {
                 let el = self.upcast::<Element>();
                 match mutation {
                     AttributeMutation::Set(_) => {
-                        el.set_read_write_state(false);
+                        el.set_read_write_state(cx.no_gc(), false);
                     },
                     AttributeMutation::Removed => {
-                        el.set_read_write_state(!el.disabled_state());
+                        el.set_read_write_state(cx.no_gc(), !el.disabled_state());
                     },
                 }
             },
@@ -702,10 +695,6 @@ impl VirtualMethods for HTMLTextAreaElement {
         if let Some(s) = self.super_type() {
             s.bind_to_tree(cx, context);
         }
-
-        self.upcast::<Element>()
-            .check_ancestors_disabled_state_for_form_control(cx.no_gc());
-
         self.handle_text_content_changed(cx);
     }
 
@@ -733,18 +722,6 @@ impl VirtualMethods for HTMLTextAreaElement {
             .hide_embedder_control(self.upcast());
 
         self.super_type().unwrap().unbind_from_tree(cx, context);
-
-        let node = self.upcast::<Node>();
-        let el = self.upcast::<Element>();
-        if node
-            .ancestors()
-            .any(|ancestor| ancestor.is::<HTMLFieldSetElement>())
-        {
-            el.check_ancestors_disabled_state_for_form_control(cx.no_gc());
-        } else {
-            el.check_disabled_attribute();
-        }
-
         self.validity_state(cx)
             .perform_validation_and_update(cx, ValidationFlags::all());
     }

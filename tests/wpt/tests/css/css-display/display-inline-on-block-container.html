@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>An element whose box is always a block container generates an atomic inline level box for display: inline</title>
+<link rel="help" href="https://drafts.csswg.org/css-display/#outer-role">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#the-fieldset-and-legend-elements">
+<link rel="match" href="display-inline-on-block-container-ref.html">
+<style>
+.t { width: 200px; margin-bottom: 10px; font-size: 0; line-height: 0; }
+.t i { display: inline-block; width: 20px; height: 20px; background: green; }
+.t .box { width: 40px; height: 40px; margin: 0; padding: 0; border: none; background: green; }
+</style>
+<div class=t><i></i><fieldset class=box style="display: inline"></fieldset><i></i></div>
+<div class=t><i></i><button class=box style="display: inline"></button><i></i></div>
+<div class=t><i></i><textarea class=box style="display: inline"></textarea><i></i></div>

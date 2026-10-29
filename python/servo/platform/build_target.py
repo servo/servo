@@ -408,12 +408,20 @@ class OpenHarmonyTarget(CrossBuildTarget):
         # `cargo ohos` currently doesn't set RUSTFLAGS in the environment (since it uses the encoded rustflags),
         # So we explicitly add the flags here and preserve any existing rustflags.
         env["RUSTFLAGS"] += " " + " ".join(ohos_info["flags"]["rustflags"])
+        # Packing the relative relocations shrinks the binary size by about 3.5 MiB
+        # and is supported on OpenHarmony since 4.0.
+        env["RUSTFLAGS"] += " -Clink-arg=-Wl,-z,pack-relative-relocs"
 
         # CC and CXX should already be set to appropriate host compilers by `build_env()`
         # TODO: HOST_CC and HOST_CXX are needed for mozjs, and should be set in the mozjs
         # buildscript in the future (also for android).
-        env["HOST_CC"] = env["CC"]
-        env["HOST_CXX"] = env["CXX"]
+        host_cc = env.get("HOST_CC") or shutil.which("clang")
+        host_cxx = env.get("HOST_CXX") or shutil.which("clang++")
+        assert host_cc
+        assert host_cxx
+
+        env["HOST_CC"] = host_cc
+        env["HOST_CXX"] = host_cxx
         env["HOST_CFLAGS"] = ""
         env["HOST_CXXFLAGS"] = ""
 
@@ -478,8 +486,10 @@ class OpenHarmonyTarget(CrossBuildTarget):
             link_args = [f"-Clink-arg={arg}" for arg in link_args]
             env["RUSTFLAGS"] += " " + " ".join(link_args)
             # If a non-SDK LLVM is used with cargo-ohos, then these flags will not be set.
-            env["TARGET_CFLAGS"] = env.get("TARGET_CFLAGS", "") + " " + " ".join(san_compile_flags)
-            env["TARGET_CXXFLAGS"] = env.get("TARGET_CXXFLAGS", "") + " " + " ".join(san_compile_flags)
+            triple = self.triple().replace("-", "_")
+            for flag_name in ("CFLAGS", "CXXFLAGS"):
+                target_var = f"{flag_name}_{triple}"
+                env[target_var] = env.get(target_var, "") + " " + " ".join(san_compile_flags)
 
     def runtime_libraries(self) -> List[pathlib.Path]:
         if self.cargo_ohos_info is None:

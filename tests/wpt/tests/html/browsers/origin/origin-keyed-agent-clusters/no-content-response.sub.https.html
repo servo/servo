@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>A 204 response that requests origin-keying does not affect later documents at its origin</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script type="module">
+import {
+  insertIframe,
+  testGetter
+} from "./resources/helpers.mjs";
+
+promise_setup(async () => {
+  const frame = document.createElement("iframe");
+  frame.src = "https://{{hosts[][www]}}:{{ports[https][0]}}/common/blank.html?pipe=status(204)|header(Origin-Agent-Cluster,?1)";
+  document.body.append(frame);
+
+  // There is no web API to detect that a navigation was canceled, so wait for it.
+  await new Promise(resolve => step_timeout(resolve, 1000));
+  frame.remove();
+
+  await insertIframe("{{hosts[][www]}}", "?0");
+});
+
+// The 204 response never became a document, so the historical agent cluster
+// key map has no entry for {{hosts[][www]}} and the site-keying request of the
+// child is respected.
+testGetter(0, false, "child");
+</script>

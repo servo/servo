@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>content: image-set() of a gradient on a pseudo element</title>
+<link rel="match" href="pseudo-element-image-set-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-content-3/#content-property">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#image-set-notation">
+<style>
+#target::before {
+  content: image-set(linear-gradient(purple, purple) 1x);
+  display: block;
+  width: 100px;
+  height: 100px;
+}
+</style>
+<div id="target"></div>

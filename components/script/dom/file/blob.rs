@@ -384,7 +384,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
                 // 4. Return the result of transforming promise by a fulfillment handler that returns a new
                 //    [ArrayBuffer]
                 let array_buffer =
-                    create_buffer_source::<ArrayBufferU8>(cx, bytes, js_object.handle_mut())
+                    create_buffer_source::<ArrayBufferU8>(cx, &bytes, js_object.handle_mut())
                         .expect("Converting input to ArrayBufferU8 should never fail");
                 success_promise.resolve_native(cx, &array_buffer);
             }),
@@ -420,7 +420,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
             cx,
             Rc::new(move |cx, bytes| {
                 rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
-                let arr = create_buffer_source::<Uint8>(cx, bytes, js_object.handle_mut())
+                let arr = create_buffer_source::<Uint8>(cx, &bytes, js_object.handle_mut())
                     .expect("Converting input to uint8 array should never fail");
                 p_success.resolve_native(cx, &arr);
             }),

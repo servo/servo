@@ -133,6 +133,7 @@ use crate::flow::inline::text_run::{
 use crate::flow::{
     BlockLevelBox, CollapsibleWithParentStartMargin, FloatSide, PlacementState,
     compute_inline_content_sizes_for_block_level_boxes, layout_block_level_child,
+    skippable_for_block_percentage_quirk,
 };
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{CollapsedMargin, Fragment, FragmentFlags, PositioningFragment};
@@ -3377,6 +3378,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
             &self.constraint_space.into(),
             &LogicalVec2::zero(),
             false, /* auto_block_size_stretches_to_containing_block */
+            skippable_for_block_percentage_quirk(self.layout_context, &context.base, Some(context)),
         );
         self.depends_on_block_constraints |= result.depends_on_block_constraints;
         result.sizes

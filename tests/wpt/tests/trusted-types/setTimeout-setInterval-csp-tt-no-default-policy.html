@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="variant" content="?default">
+  <meta name="variant" content="?trusted-types-eval">
+  <script nonce="abc" src="/resources/testharness.js"></script>
+  <script nonce="abc" src="/resources/testharnessreport.js"></script>
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'">
+  <script nonce="abc">
+    // With 'trusted-types-eval' and an enforced require-trusted-types-for
+    // 'script', the results must be the same as without a script-src.
+    if (location.search === "?trusted-types-eval") {
+      const meta = document.createElement("meta");
+      meta.httpEquiv = "Content-Security-Policy";
+      meta.content = "script-src 'nonce-abc' 'trusted-types-eval'";
+      document.head.appendChild(meta);
+    }
+  </script>
+</head>
+<body>
+<script nonce="abc">
+  const p = trustedTypes.createPolicy("p", {createScript: s => s});
+
+  // Strings are rejected, since there is no default policy to convert them.
+  promise_test(async t => {
+    globalThis.timeoutString = false;
+    assert_throws_js(TypeError,
+                     () => setTimeout('globalThis.timeoutString = true'));
+    await new Promise(resolve => t.step_timeout(resolve, 10));
+    assert_false(globalThis.timeoutString);
+  }, "setTimeout of string throws.");
+
+  promise_test(async t => {
+    globalThis.intervalString = false;
+    assert_throws_js(TypeError,
+                     () => setInterval('globalThis.intervalString = true'));
+    await new Promise(resolve => t.step_timeout(resolve, 10));
+    assert_false(globalThis.intervalString);
+  }, "setInterval of string throws.");
+
+  // TrustedScript values run.
+  promise_test(async t => {
+    globalThis.timeoutTrustedScript = false;
+    await new Promise(resolve => {
+      setTimeout(p.createScript('globalThis.timeoutTrustedScript = true'));
+      t.step_timeout(resolve, 10);
+    });
+    assert_true(globalThis.timeoutTrustedScript);
+  }, "setTimeout of TrustedScript runs.");
+
+  promise_test(async t => {
+    globalThis.intervalTrustedScript = false;
+    await new Promise(resolve => {
+      const id = setInterval(p.createScript('globalThis.intervalTrustedScript = true'));
+      t.add_cleanup(() => clearInterval(id));
+      t.step_timeout(resolve, 10);
+    });
+    assert_true(globalThis.intervalTrustedScript);
+  }, "setInterval of TrustedScript runs.");
+</script>
+</body>
+</html>

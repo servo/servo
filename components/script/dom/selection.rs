@@ -1415,6 +1415,11 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 
     /// <https://w3c.github.io/selection-api/#dom-selection-stringifier>
     fn Stringifier(&self, cx: &mut JSContext) -> DOMString {
+        // Flush all layout before stringifying so that rendered text is up-to-date.
+        self.document
+            .window()
+            .layout_reflow(cx, QueryMsg::StyleQuery);
+
         // > The stringification must return the string, which is the concatenation of the
         // > rendered text if there is a range associated with this.
         // >
@@ -1425,9 +1430,6 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         else {
             return DOMString::new();
         };
-
-        // Flush all layout before stringifying so that rendered text is up-to-date.
-        self.document.window().layout_reflow(QueryMsg::StyleQuery);
 
         let mut user_select_cache = Default::default();
         let mut string = DOMString::new();

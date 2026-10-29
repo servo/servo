@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Grid Lanes: grid-columns reading flow with reversals and auto height</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-layout">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/shadow-dom.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+
+<style>
+.lanes {
+  display: grid-lanes;
+  grid-template-columns: repeat(3, 90px);
+  flow-tolerance: 0;
+  reading-flow: grid-columns;
+  width: 270px;
+}
+.lanes > button {
+  box-sizing: border-box;
+  padding: 0;
+}
+</style>
+
+<div class="test-case" data-expect="k,o,n,l,m"
+     data-description="Grid-columns reads fill-reverse columns from top-to-bottom">
+  <div class="lanes"
+       style="grid-lanes-direction: column fill-reverse; height: auto">
+    <button id="k" style="height: 210px">K</button>
+    <button id="l" style="height: 60px">L</button>
+    <button id="m" style="height: 150px">M</button>
+    <button id="n" style="height: 45px">N</button>
+    <button id="o" style="height: 30px">O</button>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

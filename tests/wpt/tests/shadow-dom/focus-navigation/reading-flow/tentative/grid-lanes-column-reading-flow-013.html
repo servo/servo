@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Grid Lanes: stacking axis reading flow with densely-packed items</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-layout">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/shadow-dom.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+
+<style>
+.test-case {
+  margin-top: 20px;
+}
+.lanes {
+  display: grid-lanes;
+  grid-template-columns: repeat(4, 80px);
+  grid-lanes-pack: dense;
+  flow-tolerance: 0;
+  reading-flow: grid-columns;
+  width: 320px;
+}
+.lanes > button {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+}
+</style>
+
+<div class="test-case" data-expect="i,l,o,n,j,m,k">
+  <div class="lanes">
+    <button id="i" style="grid-column: 1; height: 60px">I</button>
+    <button id="j" style="grid-column: 3; height: 20px">J</button>
+    <button id="k" style="grid-column: 4; height: 60px">K</button>
+    <button id="l" style="grid-column: 1 / span 2; height: 40px">L</button>
+    <button id="m" style="grid-column: 3 / span 2; height: 40px">M</button>
+    <button id="n" style="grid-column: 2 / span 2; height: 20px">N</button>
+    <button id="o" style="grid-column: 2; height: 10px">O</button>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

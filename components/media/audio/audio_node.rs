@@ -15,6 +15,7 @@ use crate::block::{Block, Chunk, Tick};
 use crate::buffer_source_node::{AudioBufferSourceNodeMessage, AudioBufferSourceNodeOptions};
 use crate::channel_node::ChannelNodeOptions;
 use crate::constant_source_node::ConstantSourceNodeOptions;
+use crate::convolver_node::{ConvolverNodeMessage, ConvolverNodeOptions};
 use crate::delay_node::DelayNodeOptions;
 use crate::gain_node::GainNodeOptions;
 use crate::iir_filter_node::IIRFilterNodeOptions;
@@ -35,7 +36,7 @@ pub enum AudioNodeInit {
     ChannelMergerNode(ChannelNodeOptions),
     ChannelSplitterNode,
     ConstantSourceNode(ConstantSourceNodeOptions),
-    ConvolverNode,
+    ConvolverNode(ConvolverNodeOptions),
     DelayNode(DelayNodeOptions),
     DynamicsCompressionNode,
     GainNode(GainNodeOptions),
@@ -242,6 +243,7 @@ pub enum AudioNodeMessage {
     AudioBufferSourceNode(AudioBufferSourceNodeMessage),
     AudioScheduledSourceNode(AudioScheduledSourceNodeMessage),
     BiquadFilterNode(BiquadFilterNodeMessage),
+    ConvolverNode(ConvolverNodeMessage),
     GetParamValue(ParamType, Sender<f32>),
     MediaElementSourceNode(MediaElementSourceNodeMessage),
     OscillatorNode(OscillatorNodeMessage),

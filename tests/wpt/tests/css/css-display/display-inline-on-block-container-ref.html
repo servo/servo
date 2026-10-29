@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reference: a block container with an inline outside display is an atomic inline level box</title>
+<style>
+.t { width: 200px; margin-bottom: 10px; font-size: 0; line-height: 0; }
+.t i { display: inline-block; width: 20px; height: 20px; background: green; }
+.t .box { width: 40px; height: 40px; margin: 0; padding: 0; border: none; background: green; }
+</style>
+<div class=t><i></i><fieldset class=box style="display: inline-block"></fieldset><i></i></div>
+<div class=t><i></i><button class=box style="display: inline-block"></button><i></i></div>
+<div class=t><i></i><textarea class=box style="display: inline-block"></textarea><i></i></div>

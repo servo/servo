@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>View transitions: animation-frame callbacks run before the outbound cross-document capture (subframe)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/#setup-cross-document-view-transition">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#update-the-rendering">
+<link rel="author" href="mailto:opettay@mozilla.com">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/common.js"></script>
+<body>
+<script>
+// Like raf-before-outbound-capture.html, but for an iframe navigation. The
+// iframe reports the captured size to this page.
+promise_test(async t => {
+  assertViewTransitionOnNavigationImplemented();
+
+  const result = new Promise(resolve => {
+    window.addEventListener("message", e => resolve(e.data), { once: true });
+  });
+
+  const iframe = document.createElement("iframe");
+  iframe.src = "resources/raf-before-outbound-capture-subframe-old.html";
+  t.add_cleanup(() => iframe.remove());
+  document.body.appendChild(iframe);
+
+  const data = await result;
+
+  assert_true(data.hadTransition,
+      "a cross-document view transition must have occurred in the subframe");
+  assert_equals(data.capturedWidth, "300px",
+      "the captured old snapshot must reflect the rAF resize (300px), which " +
+      "only happens if the rAF callback ran before the outbound capture");
+}, "requestAnimationFrame callbacks run before the outbound cross-document view transition capture (subframe)");
+</script>

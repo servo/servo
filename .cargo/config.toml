@@ -47,6 +47,12 @@ SERVO_STYLE_THREAD_STACK_SIZE_KB = "8192"
 # Note: `tikv-jemalloc-sys` will along ready this variable on the platform specified in the
 # variable name.
 AARCH64_UNKNOWN_LINUX_GNU_JEMALLOC_SYS_WITH_LG_PAGE = "16"
+# mozjs builds with clang by default on Windows, so ensure that Windows builds use clang
+# when building all C++ code.
+CC_x86_64_pc_windows_msvc = "clang-cl.exe"
+CXX_x86_64_pc_windows_msvc = "clang-cl.exe"
+CC_aarch64_pc_windows_msvc = "clang-cl.exe"
+CXX_aarch64_pc_windows_msvc = "clang-cl.exe"
 
 [build]
 rustdocflags = ["--document-private-items"]

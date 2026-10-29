@@ -326,7 +326,7 @@ impl HTMLVideoElement {
         let blocker = &self.load_blocker;
         LoadBlocker::terminate(cx, blocker);
         let document = self.owner_document();
-        *blocker.borrow_mut() = Some(LoadBlocker::new(
+        *blocker.safe_borrow_mut(cx.no_gc()) = Some(LoadBlocker::new(
             &document,
             LoadType::Image(poster_url.url()),
         ));

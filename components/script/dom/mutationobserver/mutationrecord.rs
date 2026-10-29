@@ -40,8 +40,8 @@ impl MutationRecord {
         let record = Box::new(MutationRecord::new_inherited(
             "attributes",
             target,
-            Some(DOMString::from(&**attribute_name)),
-            attribute_namespace.map(|n| DOMString::from(&**n)),
+            Some(TracedDOMString::from(attribute_name.clone()).root()),
+            attribute_namespace.map(|n| TracedDOMString::from(n.clone()).root()),
             old_value,
             None,
             None,
@@ -106,7 +106,7 @@ impl MutationRecord {
 
     #[expect(clippy::too_many_arguments)]
     fn new_inherited(
-        record_type: &str,
+        record_type: &'static str,
         target: &Node,
         attribute_name: Option<DOMString>,
         attribute_namespace: Option<DOMString>,
@@ -118,7 +118,7 @@ impl MutationRecord {
     ) -> MutationRecord {
         MutationRecord {
             reflector_: Reflector::new(),
-            record_type: DOMString::from(record_type).traced(),
+            record_type: DOMString::from_static(record_type).traced(),
             target: Dom::from_ref(target),
             attribute_name: attribute_name.map(|domstring| domstring.traced()),
             attribute_namespace: attribute_namespace.map(|domstring| domstring.traced()),

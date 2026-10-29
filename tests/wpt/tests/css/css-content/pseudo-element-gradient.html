@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>content: gradient on a pseudo element</title>
+<link rel="match" href="pseudo-element-gradient-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-content-3/#content-property">
+<style>
+#target::before {
+  content: linear-gradient(purple, yellow);
+  display: block;
+  width: 100px;
+  height: 100px;
+}
+</style>
+<div id="target"></div>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+  <title>Removing a named descendant during Element.startViewTransition updateCallback</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+    #scope {
+      width: 200px;
+      height: 200px;
+      background: lightblue;
+    }
+    .item {
+      width: 100px;
+      height: 50px;
+      background: coral;
+    }
+  </style>
+</head>
+<body>
+  <div id="scope">
+    <div id="child1" class="item" style="view-transition-name: item1"></div>
+    <div id="child2" class="item" style="view-transition-name: item2"></div>
+  </div>
+  <script>
+    promise_test(async t => {
+      const scope = document.getElementById('scope');
+      const child1 = document.getElementById('child1');
+      const vt = scope.startViewTransition(() => {
+        child1.remove();
+      });
+      await vt.ready;
+      await vt.finished;
+    }, 'Removing a named child in updateCallback does not reject ready');
+
+    promise_test(async t => {
+      const scope = document.getElementById('scope');
+      const child2 = document.getElementById('child2');
+      const vt = scope.startViewTransition(async () => {
+        child2.remove();
+        await new Promise(resolve => requestAnimationFrame(resolve));
+      });
+      await vt.ready;
+      await vt.finished;
+    }, 'Removing a named child in async updateCallback across rAF does not reject ready');
+  </script>
+</body>
+</html>

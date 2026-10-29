@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG &lt;a&gt;: dynamic changes to the target attribute apply to the element and its &lt;use&gt; instances</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/linking.html#AElementTargetAttribute">
+<link rel="help" href="https://svgwg.org/svg2-draft/struct.html#UseElement">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  body { margin: 0; }
+  iframe { width: 50px; height: 50px; }
+</style>
+<svg width="300" height="120">
+  <!-- Only the target attribute is changed by the tests; changing href would
+       rebuild the <use> shadow tree and hide stale target values. -->
+  <a id="link" href="/common/blank.html" target="frameA">
+    <rect width="100" height="100" fill="blue"/>
+  </a>
+  <use id="use" href="#link" x="150"/>
+</svg>
+<iframe name="frameA"></iframe>
+<iframe name="frameB"></iframe>
+<script>
+const link = document.getElementById("link");
+const use = document.getElementById("use");
+
+// Clicks |element| and resolves with the name of the iframe that navigated.
+async function clickAndGetNavigatedFrame(element) {
+  // Flush style and layout so the <use> shadow tree is up to date.
+  document.body.offsetTop;
+  const navigated = new Promise(resolve => {
+    for (const frame of document.querySelectorAll("iframe"))
+      frame.addEventListener("load", () => resolve(frame.name), { once: true });
+  });
+  await test_driver.click(element);
+  return navigated;
+}
+
+promise_setup(() => new Promise(resolve => window.addEventListener("load", resolve)));
+
+promise_test(async t => {
+  link.setAttribute("target", "frameB");
+  assert_equals(link.target.baseVal, "frameB");
+  link.setAttribute("target", "frameA");
+  assert_equals(link.target.baseVal, "frameA");
+}, "setAttribute('target') updates SVGAElement.target.baseVal");
+
+promise_test(async t => {
+  link.setAttribute("target", "frameB");
+  assert_equals(await clickAndGetNavigatedFrame(link), "frameB");
+  link.setAttribute("target", "frameA");
+  assert_equals(await clickAndGetNavigatedFrame(link), "frameA");
+}, "Clicking the original <a> uses the updated target");
+
+promise_test(async t => {
+  link.setAttribute("target", "frameA");
+  assert_equals(await clickAndGetNavigatedFrame(use), "frameA", "initial target");
+  link.setAttribute("target", "frameB");
+  assert_equals(await clickAndGetNavigatedFrame(use), "frameB",
+                "after setAttribute('target', 'frameB')");
+  link.setAttribute("target", "frameA");
+  assert_equals(await clickAndGetNavigatedFrame(use), "frameA",
+                "after setAttribute('target', 'frameA')");
+}, "Clicking a <use> instance of <a> uses the target set via setAttribute");
+
+promise_test(async t => {
+  link.target.baseVal = "frameB";
+  assert_equals(link.getAttribute("target"), "frameB");
+  assert_equals(await clickAndGetNavigatedFrame(use), "frameB");
+  link.target.baseVal = "frameA";
+  assert_equals(await clickAndGetNavigatedFrame(use), "frameA");
+}, "Clicking a <use> instance of <a> uses the target set via target.baseVal");
+</script>

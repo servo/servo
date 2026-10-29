@@ -163,6 +163,20 @@ pub struct Preferences {
     pub dom_gamepad_enabled: bool,
     // feature: Geolocation API | #38903 | Web/API/Geolocation_API
     pub dom_geolocation_enabled: bool,
+    /// Make the built-in geolocation backend report a fixed position instead of reporting that
+    /// no position is available for testing purposes.
+    pub dom_geolocation_test_position_enabled: bool,
+    /// The accuracy, in meters, reported when `dom_geolocation_test_position_enabled` is set.
+    pub dom_geolocation_test_accuracy: f64,
+    /// The heading, in degrees, reported when `dom_geolocation_test_position_enabled` is set.
+    pub dom_geolocation_test_heading: f64,
+    /// The latitude, in degrees, reported when `dom_geolocation_test_position_enabled` is set.
+    pub dom_geolocation_test_latitude: f64,
+    /// The longitude, in degrees, reported when `dom_geolocation_test_position_enabled` is set.
+    pub dom_geolocation_test_longitude: f64,
+    /// The speed, in meters per second, reported when `dom_geolocation_test_position_enabled`
+    /// is set.
+    pub dom_geolocation_test_speed: f64,
     // feature: Screen Wake Lock API | #43615 | Web/API/Screen_Wake_Lock_API
     pub dom_wakelock_enabled: bool,
     // feature: IndexedDB | #6963 | Web/API/IndexedDB_API
@@ -333,6 +347,8 @@ pub struct Preferences {
     /// The goal of these two values is to allow tuning Servo's parallelism for both wide
     /// and deep trees.
     pub layout_parallelism_job_size_minimum: u64,
+    /// feature: MathML | #49078 | Web/MathML
+    pub mathml_core_enabled: bool,
     /// Enable hardware acceleration for video playback.
     pub media_glvideo_enabled: bool,
     /// Enable a non-standard event handler for verifying behavior of media elements during tests.
@@ -440,6 +456,12 @@ impl Preferences {
             dom_fullscreen_test: false,
             dom_gamepad_enabled: true,
             dom_geolocation_enabled: false,
+            dom_geolocation_test_position_enabled: false,
+            dom_geolocation_test_accuracy: 0.0,
+            dom_geolocation_test_heading: 0.0,
+            dom_geolocation_test_latitude: -37.0675,
+            dom_geolocation_test_longitude: -12.3111,
+            dom_geolocation_test_speed: 0.0,
             dom_wakelock_enabled: false,
             dom_indexeddb_enabled: false,
             dom_intersection_observer_enabled: false,
@@ -452,7 +474,7 @@ impl Preferences {
             dom_permissions_testing_allowed_in_nonsecure_contexts: false,
             dom_resize_observer_enabled: true,
             dom_sanitizer_enabled: false,
-            dom_script_asynch: true,
+            dom_script_asynch: false,
             dom_storage_manager_api_enabled: false,
             dom_serviceworker_enabled: false,
             dom_serviceworker_timeout_seconds: 60,
@@ -561,6 +583,7 @@ impl Preferences {
             layout_threads: 3,
             layout_parallelism_job_count_minimum: 4,
             layout_parallelism_job_size_minimum: 16,
+            mathml_core_enabled: false,
             media_glvideo_enabled: false,
             media_testing_enabled: false,
             network_connection_timeout: 15,

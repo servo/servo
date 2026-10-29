@@ -12,4 +12,5 @@
 interface GeolocationPosition {
   readonly attribute GeolocationCoordinates coords;
   readonly attribute EpochTimeStamp timestamp;
+  [Default] object toJSON();
 };

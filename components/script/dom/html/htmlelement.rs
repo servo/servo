@@ -25,7 +25,7 @@ use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
+use crate::dom::bindings::codegen::Bindings::HTMLOrSVGOrMathMLElementBinding::FocusOptions;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -147,7 +147,7 @@ impl HTMLElement {
             return node.GetTextContent().unwrap();
         }
 
-        window.layout_reflow(QueryMsg::ElementInnerOuterTextQuery);
+        window.layout_reflow_deprecated(QueryMsg::ElementInnerOuterTextQuery);
         let text = window
             .layout()
             .query_element_inner_outer_text(node.to_trusted_node_address());
@@ -210,6 +210,55 @@ impl HTMLElement {
         };
         element_internals
     }
+
+    pub(crate) fn is_disableable_form_control(&self) -> bool {
+        match self.upcast::<Node>().type_id() {
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLButtonElement |
+                HTMLElementTypeId::HTMLInputElement |
+                HTMLElementTypeId::HTMLSelectElement |
+                HTMLElementTypeId::HTMLTextAreaElement,
+            )) => true,
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLElement)) => {
+                self.is_form_associated_custom_element()
+            },
+            _ => false,
+        }
+    }
+
+    /// Update the disabled state of this disableable form control to the given `disabled` value
+    /// and enqueue callback reactions for it, if it's a form-associated custom element.
+    pub(crate) fn set_disabled_state_and_notify(&self, cx: &mut JSContext, disabled: bool) {
+        debug_assert!(self.is_disableable_form_control());
+        let element = self.as_element();
+        if disabled == element.disabled_state() {
+            return;
+        }
+
+        element.set_disabled_state(cx.no_gc(), disabled);
+        element.set_enabled_state(cx.no_gc(), !disabled);
+
+        if self.is_form_associated_custom_element() {
+            ScriptThread::enqueue_callback_reaction(
+                cx,
+                element,
+                CallbackReaction::FormDisabled(disabled),
+                None,
+            );
+        }
+    }
+
+    /// If this is a disableable form control, determine if it is disabled by an attribute or by an
+    /// ancestor fieldset and update its disabled state.
+    pub(crate) fn maybe_update_form_control_disabled(&self, cx: &mut JSContext) {
+        if !self.is_disableable_form_control() {
+            return;
+        }
+        let element = self.as_element();
+        let disabled = element.has_attribute(&local_name!("disabled")) ||
+            element.is_disabled_by_ancestor_fieldset(cx.no_gc());
+        self.set_disabled_state_and_notify(cx, disabled);
+    }
 }
 
 impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
@@ -253,6 +302,10 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     make_bool_getter!(Hidden, "hidden");
     // https://html.spec.whatwg.org/multipage/#dom-hidden
     make_bool_setter!(SetHidden, "hidden");
+
+    // https://html.spec.whatwg.org/multipage/#the-inert-attribute
+    make_bool_getter!(Inert, "inert");
+    make_bool_setter!(SetInert, "inert");
 
     // https://html.spec.whatwg.org/multipage/#globaleventhandlers
     global_event_handlers!(NoOnload);
@@ -822,7 +875,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
 
         if self.is_form_associated_custom_element() {
-            self.element.init_state_for_internals();
+            self.element.init_state_for_internals(cx.no_gc());
         }
 
         // Step 6-7: Set this's attached internals to a new ElementInternals instance
@@ -1301,46 +1354,29 @@ impl VirtualMethods for HTMLElement {
             (&local_name!("accesskey"), ..) => {
                 self.update_assigned_access_key();
             },
+            // <https://html.spec.whatwg.org/multipage/#the-inert-attribute>
+            (&local_name!("inert"), mutation) => {
+                element.set_state(
+                    cx.no_gc(),
+                    ElementState::INERT,
+                    !matches!(mutation, AttributeMutation::Removed),
+                );
+            },
             (&local_name!("form"), mutation) if self.is_form_associated_custom_element() => {
                 self.form_attribute_mutated(cx, mutation);
             },
-            // Adding a "disabled" attribute disables an enabled form element.
-            (&local_name!("disabled"), AttributeMutation::Set(_))
-                if self.is_form_associated_custom_element() && element.enabled_state() =>
-            {
-                element.set_disabled_state(true);
-                element.set_enabled_state(false);
-                ScriptThread::enqueue_callback_reaction(
-                    cx,
-                    element,
-                    CallbackReaction::FormDisabled(true),
-                    None,
-                );
-            },
-            // Removing the "disabled" attribute may enable a disabled
-            // form element, but a fieldset ancestor may keep it disabled.
-            (&local_name!("disabled"), AttributeMutation::Removed)
-                if self.is_form_associated_custom_element() && element.disabled_state() =>
-            {
-                element.set_disabled_state(false);
-                element.set_enabled_state(true);
-                element.check_ancestors_disabled_state_for_form_control(cx.no_gc());
-                if element.enabled_state() {
-                    ScriptThread::enqueue_callback_reaction(
-                        cx,
-                        element,
-                        CallbackReaction::FormDisabled(false),
-                        None,
-                    );
-                }
+            // Adding or removing a "disabled" attribute may disable or enable a disableable
+            // form control.
+            (&local_name!("disabled"), _) => {
+                self.maybe_update_form_control_disabled(cx);
             },
             (&local_name!("readonly"), mutation) if self.is_form_associated_custom_element() => {
                 match mutation {
                     AttributeMutation::Set(_) => {
-                        element.set_read_write_state(true);
+                        element.set_read_write_state(cx.no_gc(), true);
                     },
                     AttributeMutation::Removed => {
-                        element.set_read_write_state(false);
+                        element.set_read_write_state(cx.no_gc(), false);
                     },
                 }
             },
@@ -1367,23 +1403,8 @@ impl VirtualMethods for HTMLElement {
         if let Some(super_type) = self.super_type() {
             super_type.bind_to_tree(cx, context);
         }
-
-        // Binding to a tree can disable a form control if one of the new
-        // ancestors is a fieldset.
-        let element = self.as_element();
-        if self.is_form_associated_custom_element() && element.enabled_state() {
-            element.check_ancestors_disabled_state_for_form_control(cx.no_gc());
-            if element.disabled_state() {
-                ScriptThread::enqueue_callback_reaction(
-                    cx,
-                    element,
-                    CallbackReaction::FormDisabled(true),
-                    None,
-                );
-            }
-        }
-
-        if element.has_attribute(&local_name!("accesskey")) {
+        self.maybe_update_form_control_disabled(cx);
+        if self.element.has_attribute(&local_name!("accesskey")) {
             self.update_assigned_access_key();
         }
     }
@@ -1413,7 +1434,7 @@ impl VirtualMethods for HTMLElement {
         {
             document
                 .focus_handler()
-                .set_focused_area(FocusableArea::Viewport);
+                .set_focused_area(cx.no_gc(), FocusableArea::Viewport);
         }
 
         // 3. If removedNode is an element whose namespace is the HTML namespace, and this standard
@@ -1434,18 +1455,7 @@ impl VirtualMethods for HTMLElement {
         // disconnected, but it is an observable fact to keep track of.)
         //
         // TODO: This should likely just call reset on form owner.
-        if self.is_form_associated_custom_element() && element.disabled_state() {
-            element.check_disabled_attribute();
-            element.check_ancestors_disabled_state_for_form_control(cx.no_gc());
-            if element.enabled_state() {
-                ScriptThread::enqueue_callback_reaction(
-                    cx,
-                    element,
-                    CallbackReaction::FormDisabled(false),
-                    None,
-                );
-            }
-        }
+        self.maybe_update_form_control_disabled(cx);
 
         if element.has_attribute(&local_name!("accesskey")) {
             self.owner_document()
@@ -1503,7 +1513,11 @@ impl VirtualMethods for HTMLElement {
         // movedNode and its form owner are no longer in the same tree, then reset the form owner of
         // movedNode.
         if let Some(form_control) = self.element.as_maybe_form_control() {
-            form_control.moving_steps(cx)
+            form_control.moving_steps(cx);
+
+            // This isn't a part of the steps, but disabledness is specified in relation to
+            // an element's ancestry which is changing here.
+            self.maybe_update_form_control_disabled(cx);
         }
     }
 }

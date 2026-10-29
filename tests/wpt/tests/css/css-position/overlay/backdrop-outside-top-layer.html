@@ -1,0 +1,19 @@
+<!doctype html>
+<title>CSS Position Test: No backdrop outside the top layer</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-4/#backdrop">
+<link rel="match" href="/css/reference/blank.html">
+<meta name="assert"
+      content="An element outside the top layer does not render a backdrop, even with overlay: auto.">
+
+<style>
+  #target {
+    overlay: auto;
+  }
+  #target::backdrop {
+    position: fixed;
+    inset: 0;
+    background: red;
+  }
+</style>
+
+<div id="target"></div>

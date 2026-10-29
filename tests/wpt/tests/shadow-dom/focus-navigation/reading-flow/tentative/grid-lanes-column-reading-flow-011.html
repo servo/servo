@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Grid Lanes: grid-columns reading flow across fragments</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-layout">
+<link rel="help" href="https://drafts.csswg.org/css-break/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/shadow-dom.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+
+<style>
+.fragmentainers {
+  column-count: 3;
+  column-gap: 20px;
+  column-fill: auto;
+  width: 640px;
+  height: 60px;
+}
+.lanes {
+  display: grid-lanes;
+  grid-lanes-direction: column;
+  grid-template-columns: 100px 100px;
+  reading-flow: grid-columns;
+}
+.lanes > [tabindex] {
+  box-sizing: border-box;
+  height: 60px;
+  padding: 0;
+  break-inside: avoid;
+}
+</style>
+
+<div class="test-case" data-expect="a1,a2,a3,b1,b2,b3"
+     data-description="Grid-columns reads each complete column across fragments">
+  <div class="fragmentainers">
+    <div id="lanes" class="lanes">
+      <div id="a1" tabindex="0" style="grid-column: 1">A1</div>
+      <div id="b1" tabindex="0" style="grid-column: 2">B1</div>
+      <div id="a2" tabindex="0" style="grid-column: 1">A2</div>
+      <div id="b2" tabindex="0" style="grid-column: 2">B2</div>
+      <div id="a3" tabindex="0" style="grid-column: 1">A3</div>
+      <div id="b3" tabindex="0" style="grid-column: 2">B3</div>
+    </div>
+  </div>
+</div>
+
+<div class="test-case" data-expect="a3r,a2r,a1r,b3r,b2r,b1r"
+     data-description="Fill-reverse reads each complete column in reversed order across fragments">
+  <div class="fragmentainers">
+    <div id="reversed-lanes" class="lanes"
+         style="grid-lanes-direction: column fill-reverse">
+      <div id="a1r" tabindex="0" style="grid-column: 1">A1</div>
+      <div id="b1r" tabindex="0" style="grid-column: 2">B1</div>
+      <div id="a2r" tabindex="0" style="grid-column: 1">A2</div>
+      <div id="b2r" tabindex="0" style="grid-column: 2">B2</div>
+      <div id="a3r" tabindex="0" style="grid-column: 1">A3</div>
+      <div id="b3r" tabindex="0" style="grid-column: 2">B3</div>
+    </div>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

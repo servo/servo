@@ -1,0 +1,7 @@
+.bypass-mask {
+  width: 100px;
+  height: 100px;
+  background: green;
+  -webkit-mask-image: url('shared-stylesheet-mask-cache-bypass.svg#m');
+  mask-image: url('shared-stylesheet-mask-cache-bypass.svg#m');
+}

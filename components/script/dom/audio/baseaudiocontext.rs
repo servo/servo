@@ -14,8 +14,22 @@ use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{ArrayBuffer, ArrayBufferU8};
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
+use script_bindings::codegen::GenericBindings::AnalyserNodeBinding::AnalyserNodeMethods;
+use script_bindings::codegen::GenericBindings::AudioBufferSourceNodeBinding::AudioBufferSourceNodeMethods;
+use script_bindings::codegen::GenericBindings::BiquadFilterNodeBinding::BiquadFilterNodeMethods;
+use script_bindings::codegen::GenericBindings::ChannelMergerNodeBinding::ChannelMergerNodeMethods;
+use script_bindings::codegen::GenericBindings::ChannelSplitterNodeBinding::ChannelSplitterNodeMethods;
+use script_bindings::codegen::GenericBindings::ConstantSourceNodeBinding::ConstantSourceNodeMethods;
+use script_bindings::codegen::GenericBindings::ConvolverNodeBinding::{
+    ConvolverNodeMethods, ConvolverOptions,
+};
 use script_bindings::codegen::GenericBindings::DelayNodeBinding::{DelayNodeMethods, DelayOptions};
+use script_bindings::codegen::GenericBindings::GainNodeBinding::GainNodeMethods;
+use script_bindings::codegen::GenericBindings::IIRFilterNodeBinding::IIRFilterNodeMethods;
+use script_bindings::codegen::GenericBindings::OscillatorNodeBinding::OscillatorNodeMethods;
+use script_bindings::codegen::GenericBindings::PannerNodeBinding::PannerNodeMethods;
 use script_bindings::codegen::GenericBindings::PeriodicWaveBinding::PeriodicWaveMethods;
+use script_bindings::codegen::GenericBindings::StereoPannerNodeBinding::StereoPannerNodeMethods;
 use servo_base::id::PipelineId;
 use servo_media::audio::context::{
     AudioContext, AudioContextOptions, OfflineAudioContextOptions, ProcessingState,
@@ -37,6 +51,7 @@ use crate::dom::audio::biquadfilternode::BiquadFilterNode;
 use crate::dom::audio::channelmergernode::ChannelMergerNode;
 use crate::dom::audio::channelsplitternode::ChannelSplitterNode;
 use crate::dom::audio::constantsourcenode::ConstantSourceNode;
+use crate::dom::audio::convolvernode::ConvolverNode;
 use crate::dom::audio::delaynode::DelayNode;
 use crate::dom::audio::gainnode::GainNode;
 use crate::dom::audio::iirfilternode::IIRFilterNode;
@@ -351,11 +366,23 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-onstatechange
     event_handler!(statechange, GetOnstatechange, SetOnstatechange);
 
-    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createoscillator>
-    fn CreateOscillator(&self, cx: &mut JSContext) -> Fallible<DomRoot<OscillatorNode>> {
-        OscillatorNode::new(
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createconvolver>
+    fn CreateConvolver(&self, cx: &mut JSContext) -> Fallible<DomRoot<ConvolverNode>> {
+        ConvolverNode::Constructor(
             cx,
             self.global().as_window(),
+            None,
+            self,
+            &ConvolverOptions::empty(),
+        )
+    }
+
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createoscillator>
+    fn CreateOscillator(&self, cx: &mut JSContext) -> Fallible<DomRoot<OscillatorNode>> {
+        OscillatorNode::Constructor(
+            cx,
+            self.global().as_window(),
+            None,
             self,
             &OscillatorOptions::empty(),
         )
@@ -363,7 +390,13 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-creategain>
     fn CreateGain(&self, cx: &mut JSContext) -> Fallible<DomRoot<GainNode>> {
-        GainNode::new(cx, self.global().as_window(), self, &GainOptions::empty())
+        GainNode::Constructor(
+            cx,
+            self.global().as_window(),
+            None,
+            self,
+            &GainOptions::empty(),
+        )
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createdelay>
@@ -387,7 +420,13 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createpanner>
     fn CreatePanner(&self, cx: &mut JSContext) -> Fallible<DomRoot<PannerNode>> {
-        PannerNode::new(cx, self.global().as_window(), self, &PannerOptions::empty())
+        PannerNode::Constructor(
+            cx,
+            self.global().as_window(),
+            None,
+            self,
+            &PannerOptions::empty(),
+        )
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createperiodicwave>
@@ -414,9 +453,10 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createanalyser>
     fn CreateAnalyser(&self, cx: &mut JSContext) -> Fallible<DomRoot<AnalyserNode>> {
-        AnalyserNode::new(
+        AnalyserNode::Constructor(
             cx,
             self.global().as_window(),
+            None,
             self,
             &AnalyserOptions::empty(),
         )
@@ -424,9 +464,10 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbiquadfilter>
     fn CreateBiquadFilter(&self, cx: &mut JSContext) -> Fallible<DomRoot<BiquadFilterNode>> {
-        BiquadFilterNode::new(
+        BiquadFilterNode::Constructor(
             cx,
             self.global().as_window(),
+            None,
             self,
             &BiquadFilterOptions::empty(),
         )
@@ -434,9 +475,10 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createstereopanner>
     fn CreateStereoPanner(&self, cx: &mut JSContext) -> Fallible<DomRoot<StereoPannerNode>> {
-        StereoPannerNode::new(
+        StereoPannerNode::Constructor(
             cx,
             self.global().as_window(),
+            None,
             self,
             &StereoPannerOptions::empty(),
         )
@@ -444,9 +486,10 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createconstantsource>
     fn CreateConstantSource(&self, cx: &mut JSContext) -> Fallible<DomRoot<ConstantSourceNode>> {
-        ConstantSourceNode::new(
+        ConstantSourceNode::Constructor(
             cx,
             self.global().as_window(),
+            None,
             self,
             &ConstantSourceOptions::empty(),
         )
@@ -460,7 +503,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
     ) -> Fallible<DomRoot<ChannelMergerNode>> {
         let mut opts = ChannelMergerOptions::empty();
         opts.numberOfInputs = count;
-        ChannelMergerNode::new(cx, self.global().as_window(), self, &opts)
+        ChannelMergerNode::Constructor(cx, self.global().as_window(), None, self, &opts)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createchannelsplitter>
@@ -471,7 +514,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
     ) -> Fallible<DomRoot<ChannelSplitterNode>> {
         let mut opts = ChannelSplitterOptions::empty();
         opts.numberOfOutputs = count;
-        ChannelSplitterNode::new(cx, self.global().as_window(), self, &opts)
+        ChannelSplitterNode::Constructor(cx, self.global().as_window(), None, self, &opts)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffer>
@@ -501,9 +544,10 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffersource>
     fn CreateBufferSource(&self, cx: &mut JSContext) -> Fallible<DomRoot<AudioBufferSourceNode>> {
-        AudioBufferSourceNode::new(
+        AudioBufferSourceNode::Constructor(
             cx,
             self.global().as_window(),
+            None,
             self,
             &AudioBufferSourceOptions::empty(),
         )
@@ -598,21 +642,23 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                     decoded_audio[channel].extend_from_slice((*buffer).as_ref());
                 })
                 .eos(move || {
+                    let mut decoded_audio = std::mem::take(&mut *decoded_audio__.lock().unwrap());
+                    for channel in &mut decoded_audio {
+                        channel.shrink_to_fit();
+                    }
                     task_source.queue(task!(audio_decode_eos: move |cx| {
                         let this = this.root();
-                        let decoded_audio = decoded_audio__.lock().unwrap();
                         let length = if !decoded_audio.is_empty() {
                             decoded_audio[0].len()
                         } else {
                             0
                         };
-                        let buffer = AudioBuffer::new(
+                        let buffer = AudioBuffer::new_with_channel_data(
                             cx,
                             this.global().as_window(),
-                            decoded_audio.len() as u32 /* number of channels */,
                             length as u32,
                             this.sample_rate,
-                            Some(decoded_audio.as_slice()),
+                            decoded_audio,
                         );
                         rooted!(&in(cx) let resolver = this
                             .decode_resolvers
@@ -720,7 +766,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
             feedback,
             feedforward,
         };
-        IIRFilterNode::new(cx, self.global().as_window(), self, &opts)
+        IIRFilterNode::Constructor(cx, self.global().as_window(), None, self, &opts)
     }
 }
 

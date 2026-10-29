@@ -15,6 +15,7 @@ use std::str::FromStr;
 use std::sync::{Arc as StdArc, LazyLock};
 use std::time::Duration;
 
+use atomic_refcell::{AtomicRef, AtomicRefCell};
 use bitflags::bitflags;
 use chrono::Local;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
@@ -35,7 +36,7 @@ use indexmap::IndexSet;
 use js::context::{JSContext, NoGC};
 use js::jsapi::JSObject;
 use js::realm::CurrentRealm;
-use js::rust::{HandleObject, HandleValue, MutableHandleValue};
+use js::rust::{HandleObject, HandleValue};
 use layout_api::{
     ContainerTimingRecord, LCPCandidate, PendingRestyle, ReflowGoal, ReflowPhasesRun,
     ReflowStatistics, RestyleReason, ScrollContainerQueryFlags, TrustedNodeAddress,
@@ -46,7 +47,7 @@ use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookieStringForUrl, SetCookiesForUrl};
 use net_traits::image_cache::ImageCache;
 use net_traits::policy_container::PolicyContainer;
-use net_traits::pub_domains::is_pub_domain;
+use net_traits::pub_domains::{Site, is_pub_domain};
 use net_traits::request::{
     InsecureRequestsPolicy, PreloadId, PreloadKey, PreloadedResources, RequestBuilder,
 };
@@ -63,6 +64,7 @@ use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::domstring::TracedDOMString;
 use script_bindings::interfaces::DocumentHelpers;
 use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::tasks::NonSendTaskBox;
 use script_bindings::trace::CustomTraceable;
 use script_traits::{DocumentActivity, ProgressiveWebMetricType};
 use servo_arc::Arc;
@@ -125,7 +127,6 @@ use crate::dom::bindings::domname::{
     self, is_valid_attribute_local_name, is_valid_element_local_name, namespace_from_domstring,
 };
 use crate::dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible};
-use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
@@ -182,6 +183,7 @@ use crate::dom::html::htmlheadelement::HTMLHeadElement;
 use crate::dom::html::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::html::htmliframeelement::HTMLIFrameElement;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
+use crate::dom::html::htmlmediaelement::HTMLMediaElement;
 use crate::dom::html::htmlscriptelement::{HTMLScriptElement, ScriptResult, TracedScriptResult};
 use crate::dom::html::htmltitleelement::HTMLTitleElement;
 use crate::dom::htmldetailselement::DetailsNameGroups;
@@ -232,7 +234,6 @@ use crate::mime::{APPLICATION, CHARSET};
 use crate::navigation::navigate;
 use crate::runtime::script_runtime::compute_size;
 use crate::scripting::script_module::{ModuleRequest, ModuleStatus};
-use crate::tasks::task::NonSendTaskBox;
 use crate::tasks::task_manager::TaskManager;
 use crate::tasks::task_source::TaskSourceName;
 use crate::xpath::parse_expression;
@@ -455,7 +456,7 @@ pub(crate) struct Document {
     activity: Cell<DocumentActivity>,
     /// <https://html.spec.whatwg.org/multipage/#the-document%27s-address>
     #[no_trace]
-    url: DomRefCell<ServoUrl>,
+    url: AtomicRefCell<ServoUrl>,
     /// <https://html.spec.whatwg.org/multipage/#concept-document-about-base-url>
     #[no_trace]
     about_base_url: DomRefCell<Option<ServoUrl>>,
@@ -691,11 +692,9 @@ pub(crate) struct Document {
     #[no_trace]
     container_first_render_times: DomRefCell<HashMap<OpaqueNode, CrossProcessInstant>>,
     /// The constructed stylesheet that is adopted by this [Document].
+    /// The DOM-side adopted stylesheet list for this [Document], including duplicates.
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
     adopted_stylesheets: DomRefCell<Vec<Dom<CSSStyleSheet>>>,
-    /// Cached frozen array of [`Self::adopted_stylesheets`]
-    #[ignore_malloc_size_of = "mozjs"]
-    adopted_stylesheets_frozen_types: CachedFrozenArray,
     /// <https://drafts.csswg.org/cssom-view/#document-pending-scroll-events>
     /// > Each Document has an associated list of pending scroll events, which stores
     /// > pairs of (EventTarget, DOMString), initially empty.
@@ -737,6 +736,10 @@ pub(crate) struct Document {
 
     /// All websockets created that are associated with this document.
     websockets: DOMTracker<WebSocket>,
+
+    /// <https://html.spec.whatwg.org/multipage/#playing-the-media-resource>
+    /// Active media elements that are kept alive while playing or eligible for autoplay.
+    active_media_elements: DomRefCell<FxHashSet<Dom<HTMLMediaElement>>>,
 
     /// <https://html.spec.whatwg.org/multipage/#details-name-group>
     details_name_groups: DomRefCell<Option<DetailsNameGroups>>,
@@ -798,7 +801,8 @@ pub(crate) struct Document {
     theme_override: Cell<Option<Theme>>,
 
     /// Language specific for this document, set by a meta element
-    default_language: DomRefCell<Option<String>>,
+    #[no_trace]
+    default_language: AtomicRefCell<Option<String>>,
 
     /// True if this document is no longer the active document of its associated
     /// window.
@@ -876,6 +880,8 @@ impl Document {
             self.salvageable.set(false);
         }
 
+        self.clean_up_media_elements(cx.no_gc());
+
         // Step 3. For each WebTransport object transport whose relevant global object is window, run the context cleanup steps given transport.
         // TODO
 
@@ -907,6 +913,31 @@ impl Document {
             }
         });
         closed_any_websocket
+    }
+
+    pub(crate) fn register_active_media_element(&self, element: &HTMLMediaElement) {
+        self.active_media_elements
+            .borrow_mut()
+            .insert(Dom::from_ref(element));
+    }
+
+    pub(crate) fn unregister_active_media_element(&self, element: &HTMLMediaElement) {
+        self.active_media_elements
+            .borrow_mut()
+            .remove(&Dom::from_ref(element));
+    }
+
+    fn clean_up_media_elements(&self, no_gc: &NoGC) {
+        let media_elements: Vec<DomRoot<HTMLMediaElement>> = self
+            .active_media_elements
+            .borrow()
+            .iter()
+            .map(|e| DomRoot::from_ref(&**e))
+            .collect();
+        self.active_media_elements.borrow_mut().clear();
+        for element in &media_elements {
+            element.clean_up_on_document_unload(self, no_gc);
+        }
     }
 
     fn document_element_changed(&self) {
@@ -1501,13 +1532,13 @@ impl Document {
         // > For an HTML document document, its indicated part is the result of
         // > selecting the indicated part given document and document's URL.
         let Some(indicated_part) = self.select_indicated_part(cx, fragment) else {
-            self.set_target_element(None);
+            self.set_target_element(cx.no_gc(), None);
             return;
         };
         // Step 2. Otherwise, if document's indicated part is top of the document, then:
         if *indicated_part == *self.upcast() {
             // Step 2.1. Set document's target element to null.
-            self.set_target_element(None);
+            self.set_target_element(cx.no_gc(), None);
             // Step 2.2. Scroll to the beginning of the document for document. [CSSOMVIEW]
             //
             // FIXME(stshine): this should be the origin of the stacking context space,
@@ -1523,7 +1554,7 @@ impl Document {
             unreachable!("Indicated part should always be an element");
         };
         // Step 3.3. Set document's target element to target.
-        self.set_target_element(Some(target));
+        self.set_target_element(cx.no_gc(), Some(target));
         // Step 3.4. Run the ancestor revealing algorithm on target.
         // TODO
         // Step 3.5. Scroll target into view, with behavior set to "auto", block set to "start", and inline set to "nearest". [CSSOMVIEW]
@@ -2965,6 +2996,10 @@ impl Document {
         // Step 11. For each workletGlobalScope in document's worklet global scopes,
         // terminate workletGlobalScope.
         // TODO
+
+        // This is not a specification step but needs to be done in order to ensure proper
+        // garbage collection of this global scope.
+        exited_window.as_global_scope().tear_down();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#active-parser>
@@ -3434,23 +3469,33 @@ impl Document {
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-resizeobserver>
-    pub(crate) fn add_resize_observer(&self, resize_observer: &ResizeObserver) {
+    pub(crate) fn add_resize_observer(&self, cx: &mut JSContext, resize_observer: &ResizeObserver) {
         self.resize_observers
-            .borrow_mut()
+            .safe_borrow_mut(cx)
             .push(Dom::from_ref(resize_observer));
+    }
+
+    pub(crate) fn rooted_clone_of_resize_observers(&self) -> Vec<DomRoot<ResizeObserver>> {
+        self.resize_observers
+            .borrow()
+            .iter()
+            .map(Dom::as_rooted)
+            .collect()
     }
 
     /// <https://drafts.csswg.org/resize-observer/#gather-active-observations-h>
     /// <https://drafts.csswg.org/resize-observer/#has-active-resize-observations>
     pub(crate) fn gather_active_resize_observations_at_depth(
         &self,
-        no_gc: &NoGC,
+        cx: &mut JSContext,
         depth: &ResizeObservationDepth,
     ) -> bool {
+        // As the interior of the loop can trigger garbage collection, we must clone the resize observers
+        // before iterating them.
         let mut has_active_resize_observations = false;
-        for observer in self.resize_observers.borrow_mut().iter_mut() {
+        for observer in self.rooted_clone_of_resize_observers() {
             observer.gather_active_resize_observations_at_depth(
-                no_gc,
+                cx,
                 depth,
                 &mut has_active_resize_observations,
             );
@@ -3463,17 +3508,10 @@ impl Document {
         &self,
         cx: &mut JSContext,
     ) -> ResizeObservationDepth {
+        // As the interior of the loop can trigger garbage collection we must clone the resize observers
+        // before iterating them.
         let mut shallowest = ResizeObservationDepth::max();
-        // Breaking potential re-borrow cycle on `resize_observers`:
-        // broadcasting resize observations calls into a JS callback,
-        // which can add new observers.
-        let iterator: Vec<DomRoot<ResizeObserver>> = self
-            .resize_observers
-            .borrow()
-            .iter()
-            .map(|obs| obs.as_rooted())
-            .collect();
-        for observer in iterator {
+        for observer in self.rooted_clone_of_resize_observers() {
             observer.broadcast_active_resize_observations(cx, &mut shallowest);
         }
         shallowest
@@ -4029,9 +4067,8 @@ impl<'dom> LayoutDom<'dom, Document> {
         self.unsafe_get().id_map.get_all_for_layout(id)
     }
 
-    #[expect(unsafe_code)]
     pub(crate) fn url_for_layout(self) -> ServoUrl {
-        unsafe { self.unsafe_get().url.borrow_for_layout() }.clone()
+        self.unsafe_get().url.borrow().clone()
     }
 
     #[expect(unsafe_code)]
@@ -4039,9 +4076,8 @@ impl<'dom> LayoutDom<'dom, Document> {
         unsafe { self.unsafe_get().selection.to_layout() }
     }
 
-    #[expect(unsafe_code)]
-    pub(crate) fn default_language_for_layout(&self) -> Option<&'dom str> {
-        unsafe { self.unsafe_get().default_language.borrow_for_layout() }.as_deref()
+    pub(crate) fn default_language_for_layout(&self) -> AtomicRef<'dom, Option<String>> {
+        self.unsafe_get().default_language.borrow()
     }
 }
 
@@ -4181,7 +4217,7 @@ impl Document {
             implementation: Default::default(),
             content_type,
             last_modified,
-            url: DomRefCell::new(url),
+            url: AtomicRefCell::new(url),
             about_base_url: DomRefCell::new(about_base_url),
             quirks_mode: Cell::new(quirks_mode),
             event_handler: DocumentEventHandler::new(window),
@@ -4282,7 +4318,6 @@ impl Document {
             container_timing_records: DomRefCell::new(Default::default()),
             container_first_render_times: DomRefCell::new(Default::default()),
             adopted_stylesheets: Default::default(),
-            adopted_stylesheets_frozen_types: CachedFrozenArray::new(),
             pending_scroll_events: Default::default(),
             rendering_update_reasons: Default::default(),
             waiting_on_canvas_image_updates: Cell::new(false),
@@ -4293,6 +4328,7 @@ impl Document {
             creation_sandboxing_flag_set: Cell::new(creation_sandboxing_flag_set),
             favicon: RefCell::new(None),
             websockets: DOMTracker::new(),
+            active_media_elements: Default::default(),
             details_name_groups: Default::default(),
             protocol_handler_automation_mode: Default::default(),
             layout_animations_test_enabled: pref!(layout_animations_test_enabled),
@@ -4737,6 +4773,13 @@ impl Document {
     }
 
     pub(crate) fn element_attr_will_change(&self, el: &Element, attr: AttrRef<'_>) {
+        if !el.upcast::<Node>().is_connected() {
+            // Disconnected elements don’t need styling, and will get a full restyle when/if
+            // connected later. For elements created by scripts, it is common to set attributes
+            // before inserting them.
+            return;
+        }
+
         // FIXME(emilio): Kind of a shame we have to duplicate this.
         //
         // I'm getting rid of the whole hashtable soon anyway, since all it does
@@ -4798,15 +4841,15 @@ impl Document {
         self.policy_container.borrow().get_referrer_policy()
     }
 
-    pub(crate) fn set_target_element(&self, node: Option<&Element>) {
+    pub(crate) fn set_target_element(&self, no_gc: &NoGC, node: Option<&Element>) {
         if let Some(ref element) = self.target_element.get() {
-            element.set_target_state(false);
+            element.set_target_state(no_gc, false);
         }
 
         self.target_element.set(node);
 
         if let Some(ref element) = self.target_element.get() {
-            element.set_target_state(true);
+            element.set_target_state(no_gc, true);
         }
     }
 
@@ -5271,6 +5314,12 @@ impl Document {
         // Step 6 Run any page visibility change steps which may be defined in other specifications, with visibility
         // state and document. Any other specs' visibility steps will go here.
 
+        // <https://www.w3.org/TR/geolocation/#dfn-request-a-position>
+        // Position requests made while the document was hidden resume once it becomes visible.
+        if let Some(geolocation) = self.window.maybe_geolocation() {
+            geolocation.handle_visibility_change(visibility_state);
+        }
+
         // <https://www.w3.org/TR/gamepad/#handling-visibility-change>
         #[cfg(feature = "gamepad")]
         if visibility_state == DocumentVisibilityState::Hidden {
@@ -5308,6 +5357,46 @@ impl Document {
     pub(crate) fn has_trustworthy_ancestor_or_current_origin(&self) -> bool {
         self.has_trustworthy_ancestor_origin.get() ||
             self.origin().immutable().is_potentially_trustworthy()
+    }
+
+    /// <https://fetch.spec.whatwg.org/#determine-the-network-partition-key>
+    pub(crate) fn determine_the_network_partition_key(&self) -> Option<Site> {
+        // Step 1. Let topLevelOrigin be environment’s top-level origin.
+        // https://html.spec.whatwg.org/multipage/#concept-environment-top-level-origin
+        let top_level_origin = if self.window().is_top_level() {
+            Some(self.origin().immutable().clone())
+        } else if let Some(top_level_document) = self.window().top_level_document_if_local() {
+            Some(top_level_document.origin().immutable().clone())
+        } else if let Ok(ancestor_origins) = self.internal_ancestor_origin_objects_list.try_borrow()
+        {
+            ancestor_origins
+                .as_ref()
+                .and_then(|ancestors| ancestors.last().cloned())
+        } else {
+            None
+        };
+
+        // Step 2. If topLevelOrigin is null, then set topLevelOrigin to environment’s
+        // top-level creation URL’s origin.
+        let top_level_origin = top_level_origin.or_else(|| {
+            self.window()
+                .as_global_scope()
+                .top_level_creation_url()
+                .map(|url| url.origin())
+        });
+
+        // Step 3. Assert: topLevelOrigin is an origin.
+        let top_level_origin = top_level_origin.expect("topLevelOrigin must be an origin");
+
+        // Step 4. Let topLevelSite be the result of obtaining a site, given topLevelOrigin.
+        let top_level_site = Site::from_origin(&top_level_origin);
+
+        // Step 5. Let secondKey be null or an implementation-defined value.
+        //
+        // We choose to do nothing here
+
+        // Step 6. Return (topLevelSite, secondKey).
+        Some(top_level_site)
     }
 
     pub(crate) fn highlight_dom_node(&self, node: Option<&Node>) {
@@ -6841,7 +6930,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
         names_with_first_named_element_vec
             .into_iter()
-            .map(|(k, _)| DOMString::from(&*k))
+            .map(|(k, _)| TracedDOMString::from(k).root())
             .collect()
     }
 
@@ -7290,35 +7379,42 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
-    fn AdoptedStyleSheets(&self, cx: &mut JSContext, retval: MutableHandleValue) {
-        self.adopted_stylesheets_frozen_types.get_or_init(
-            cx,
-            || {
-                self.adopted_stylesheets
-                    .borrow()
-                    .clone()
-                    .iter()
-                    .map(|sheet| sheet.as_rooted())
-                    .collect()
-            },
-            retval,
-        );
+    ///
+    /// To react to an ObservableArray indexed write:
+    /// 1. Convert the binding-provided context into a JS API context.
+    /// 2. Insert `value` at `index` in the DOM-side list.
+    /// 3. Reconcile the effective constructed stylesheets for this document.
+    fn OnSetAdoptedStyleSheets(
+        &self,
+        cx: &mut JSContext,
+        value: DomRoot<CSSStyleSheet>,
+        index: u32,
+    ) -> ErrorResult {
+        DocumentOrShadowRoot::on_set_adopted_stylesheets(
+            self.adopted_stylesheets.safe_borrow_mut(cx).as_mut(),
+            &value,
+            index,
+            &StyleSheetListOwner::Document(Dom::from_ref(self)),
+        )
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
-    fn SetAdoptedStyleSheets(&self, cx: &mut JSContext, val: HandleValue) -> ErrorResult {
-        let result = DocumentOrShadowRoot::set_adopted_stylesheet_from_jsval(
-            cx,
-            &self.adopted_stylesheets,
-            val,
+    ///
+    /// To react to an ObservableArray deletion:
+    /// 1. Convert the binding-provided context into a JS API context.
+    /// 2. Remove the entry at `index` from the DOM-side list.
+    /// 3. Reconcile the effective constructed stylesheets for this document.
+    fn OnDeleteAdoptedStyleSheets(
+        &self,
+        cx: &mut JSContext,
+        _value: DomRoot<CSSStyleSheet>,
+        index: u32,
+    ) -> ErrorResult {
+        DocumentOrShadowRoot::on_delete_adopted_stylesheets(
+            self.adopted_stylesheets.safe_borrow_mut(cx).as_mut(),
+            index,
             &StyleSheetListOwner::Document(Dom::from_ref(self)),
-        );
-
-        if result.is_ok() {
-            self.adopted_stylesheets_frozen_types.clear()
-        }
-
-        result
+        )
     }
 
     fn Timeline(&self) -> DomRoot<DocumentTimeline> {

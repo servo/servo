@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/569286605">
+
+<style>
+input::-webkit-textfield-decoration-container {
+  content-visibility: hidden;
+  pointer-events: none;
+  height: 20px;
+}
+</style>
+<img id="img" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
+<div contenteditable>
+  <input id="inp" type="search" alt="x" style="width: 100px; height: 20px">
+</div>
+<script>
+const img = document.getElementById('img');
+const inp = document.getElementById('inp');
+const rect = inp.getBoundingClientRect();
+const pos = document.caretPositionFromPoint(rect.right - 5, rect.top + 5);
+inp.type = 'image';
+const sr = pos.offsetNode;
+inp.src = '';
+
+window.onload = () => {
+  const doc2 = document.implementation.createHTMLDocument();
+  doc2.body.appendChild(inp);
+  inp.src = img.src;
+  inp.style.content = `url(${img.src})`;
+  document.body.appendChild(inp);
+
+  const form = document.createElement('form');
+  form.innerHTML = '<textarea name="a">x</textarea><input name="b" value="y">';
+  sr.appendChild(form);
+
+  new FormData(form);
+};
+</script>

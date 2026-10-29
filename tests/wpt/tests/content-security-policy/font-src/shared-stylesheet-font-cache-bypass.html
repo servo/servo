@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSP: font-src is enforced on fonts from a memory-cached shared stylesheet</title>
+<link rel="author" title="Dileep Maurya" href="mailto:dileepmaurya@microsoft.com">
+<link rel="help" href="https://w3c.github.io/webappsec-csp/#directive-font-src">
+<!--
+  Regression test for crbug.com/504107363.
+
+  A parent document (no CSP) loads a font via a shared stylesheet. A same-origin
+  iframe served with Content-Security-Policy: font-src 'none' loads the same
+  stylesheet. The iframe must not render the font even though the stylesheet is
+  already in the MemoryCache; it must observe FontFace.status === "error" and a
+  securitypolicyviolation event.
+-->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="support/shared-stylesheet-font-cache-bypass.css">
+<div id="prime">primer text</div>
+<script>
+'use strict';
+
+promise_test(async t => {
+  await document.fonts.load('16px "csp-bypass-shared-font"');
+  assert_true(document.fonts.check('16px "csp-bypass-shared-font"'),
+              'Parent (no CSP) must load the font.');
+
+  const iframe = document.createElement('iframe');
+  iframe.src = 'support/shared-stylesheet-font-cache-bypass-strict.html';
+  const result = await new Promise(resolve => {
+    window.addEventListener('message', e => {
+      if (e.source === iframe.contentWindow) resolve(e.data);
+    });
+    document.body.appendChild(iframe);
+  });
+
+  assert_equals(result.fontStatus, 'error',
+                'Strict iframe: font must be blocked by CSP.');
+  assert_false(result.fontCheck,
+               'Strict iframe: document.fonts.check() must be false.');
+  assert_equals(result.violationCount, 1,
+                'Strict iframe: exactly one font-src violation must fire ' +
+                'even though the font is requested twice.');
+}, 'font-src "none" is enforced even when the stylesheet is already in the MemoryCache');
+</script>

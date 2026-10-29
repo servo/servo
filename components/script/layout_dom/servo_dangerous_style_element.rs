@@ -164,7 +164,15 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
     }
 
     fn may_have_animations(&self) -> bool {
-        true
+        unsafe { self.as_node().node.get_flag(NodeFlags::HAS_EVER_ANIMATED) }
+    }
+
+    fn set_may_have_animations(&self) {
+        unsafe {
+            self.as_node()
+                .node
+                .set_flag(NodeFlags::HAS_EVER_ANIMATED, true)
+        }
     }
 
     fn animation_rule(
@@ -199,7 +207,8 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
 
     #[inline]
     fn id(&self) -> Option<&Atom> {
-        unsafe { (*self.element.id_attribute()).as_ref() }
+        // Script can't mutate the element while layout runs.
+        unsafe { self.element.id_attribute_unguarded() }
     }
 
     #[inline(always)]
@@ -355,9 +364,12 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
     }
 
     fn has_animations(&self, context: &SharedStyleContext) -> bool {
-        // This is not used for pseudo elements currently so we can pass None.
-        self.has_css_animations(context, /* pseudo_element = */ None) ||
-            self.has_css_transitions(context, /* pseudo_element = */ None)
+        // This is not used for pseudo elements currently so we can use the non-pseudo key.
+        let key = AnimationSetKey::new_for_non_pseudo(self.as_node().opaque());
+        self.may_have_animations() &&
+            context
+                .animations
+                .has_active_animations_or_transitions(&key)
     }
 
     fn has_css_animations(
@@ -366,7 +378,7 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
         pseudo_element: Option<PseudoElement>,
     ) -> bool {
         let key = AnimationSetKey::new(self.as_node().opaque(), pseudo_element);
-        context.animations.has_active_animations(&key)
+        self.may_have_animations() && context.animations.has_active_animations(&key)
     }
 
     fn has_css_transitions(
@@ -375,7 +387,7 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
         pseudo_element: Option<PseudoElement>,
     ) -> bool {
         let key = AnimationSetKey::new(self.as_node().opaque(), pseudo_element);
-        context.animations.has_active_transitions(&key)
+        self.may_have_animations() && context.animations.has_active_transitions(&key)
     }
 
     #[inline]
@@ -809,6 +821,7 @@ impl<'dom> ::selectors::Element for ServoDangerousStyleElement<'dom> {
             NonTSPseudoClass::Indeterminate |
             NonTSPseudoClass::Invalid |
             NonTSPseudoClass::Modal |
+            NonTSPseudoClass::MozInert |
             NonTSPseudoClass::MozMeterOptimum |
             NonTSPseudoClass::MozMeterSubOptimum |
             NonTSPseudoClass::MozMeterSubSubOptimum |
@@ -856,11 +869,9 @@ impl<'dom> ::selectors::Element for ServoDangerousStyleElement<'dom> {
 
     #[inline]
     fn has_id(&self, id: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool {
-        unsafe {
-            (*self.element.id_attribute())
-                .as_ref()
-                .is_some_and(|atom| case_sensitivity.eq_atom(atom, id))
-        }
+        self.element
+            .id_attribute()
+            .is_some_and(|atom| case_sensitivity.eq_atom(&atom, id))
     }
 
     #[inline]

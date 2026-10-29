@@ -58,7 +58,7 @@ use style::context::{
     QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters, SharedStyleContext,
 };
 use style::device::Device;
-use style::device::servo::FontMetricsProvider;
+use style::device::servo::{FontMetricsProvider, MediaData};
 use style::dom::{OpaqueNode, ShowSubtreeDataAndPrimaryValues, TDocument, TElement, TNode};
 use style::font_metrics::FontMetrics;
 use style::global_style_data::GLOBAL_STYLE_DATA;
@@ -866,16 +866,18 @@ impl LayoutThread {
         // The device pixel ratio is incorrect (it does not have the hidpi value),
         // but it will be set correctly when the initial reflow takes place.
         let device = Device::new(
-            MediaType::screen(),
-            QuirksMode::NoQuirks,
-            config.viewport_details.size,
-            config.viewport_details.device_size.cast_unit(),
-            Scale::new(config.viewport_details.hidpi_scale_factor.get()),
-            Box::new(LayoutFontMetricsProvider(config.font_context.clone())),
             ComputedValues::initial_values_with_font_override(font),
-            config.theme.into(),
-            PointerCapabilities::default(),
-            PointerCapabilities::default(),
+            Box::new(LayoutFontMetricsProvider(config.font_context.clone())),
+            MediaData {
+                media_type: MediaType::screen(),
+                quirks_mode: QuirksMode::NoQuirks,
+                viewport_size: config.viewport_details.size,
+                device_size: config.viewport_details.device_size.cast_unit(),
+                device_pixel_ratio: Scale::new(config.viewport_details.hidpi_scale_factor.get()),
+                prefers_color_scheme: config.theme.into(),
+                primary_pointer_capabilities: PointerCapabilities::default(),
+                all_pointer_capabilities: PointerCapabilities::default(),
+            },
         );
 
         let locked_script_channel = Mutex::new(config.script_chan.clone());
@@ -1089,7 +1091,10 @@ impl LayoutThread {
     /// The high-level routine that performs layout.
     #[servo_tracing::instrument(
         skip_all,
-        fields(goal = tracing::field::debug(&reflow_request.reflow_goal))
+        fields(
+            goal = tracing::field::debug(&reflow_request.reflow_goal),
+            webview_id = tracing::field::display(self.webview_id),
+        )
     )]
     fn handle_reflow(&mut self, mut reflow_request: ReflowRequest) -> Option<ReflowResult> {
         self.maybe_print_reflow_event(&reflow_request);

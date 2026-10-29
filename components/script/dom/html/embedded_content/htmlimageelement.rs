@@ -288,7 +288,7 @@ impl ResourceTimingListener for ImageContext {
 impl HTMLImageElement {
     /// Update the current image with a valid URL.
     fn fetch_image(&self, cx: &mut JSContext, img_url: &ServoUrl) {
-        let window = self.owner_window();
+        let window = self.owner_window_unrooted(cx.no_gc());
 
         let cache_result = window.image_cache().get_cached_image_status(
             img_url.clone(),
@@ -401,7 +401,7 @@ impl HTMLImageElement {
     // Steps common to when an image has been loaded.
     fn handle_loaded_image(&self, cx: &mut JSContext, image: Image, url: ServoUrl) {
         {
-            let mut current_request = self.current_request.borrow_mut();
+            let mut current_request = self.current_request.safe_borrow_mut(cx.no_gc());
             current_request.metadata = Some(image.metadata());
             current_request.final_url = Some(url);
             current_request.image = Some(image);
@@ -409,7 +409,7 @@ impl HTMLImageElement {
             current_request.load_time = Some(CrossProcessInstant::now());
         }
 
-        self.pending_request.borrow_mut().take();
+        self.pending_request.safe_borrow_mut(cx.no_gc()).take();
 
         LoadBlocker::terminate(cx, &self.current_request.borrow().blocker);
         // Mark the node dirty
@@ -457,8 +457,8 @@ impl HTMLImageElement {
                 // and height, and image request is the current request, prepare image request for
                 // presentation given the img element and set image request's state to partially
                 // available.
-                self.current_request.borrow_mut().state = State::PartiallyAvailable;
-                self.current_request.borrow_mut().metadata = Some(meta);
+                self.current_request.safe_borrow_mut(cx.no_gc()).state = State::PartiallyAvailable;
+                self.current_request.safe_borrow_mut(cx.no_gc()).metadata = Some(meta);
                 (false, false)
             },
             (ImageResponse::MetadataLoaded(_), ImageRequestPhase::Pending) => {
@@ -466,7 +466,7 @@ impl HTMLImageElement {
                 // and image request is the pending request, set image request's state to partially
                 // available.
                 self.pending_request
-                    .borrow_mut()
+                    .safe_borrow_mut(cx.no_gc())
                     .get_or_insert_default()
                     .state = State::PartiallyAvailable;
                 (false, false)
@@ -498,13 +498,16 @@ impl HTMLImageElement {
                 // Step 2. Upgrade the pending request to the current request.
                 // This is written this way as otherwise crown complains
                 if self.pending_request.borrow().is_some() {
-                    *self.current_request.borrow_mut() =
-                        self.pending_request.borrow_mut().take().unwrap();
+                    *self.current_request.safe_borrow_mut(cx.no_gc()) = self
+                        .pending_request
+                        .safe_borrow_mut(cx.no_gc())
+                        .take()
+                        .unwrap();
                 }
                 self.image_request.set(ImageRequestPhase::Current);
 
                 // Step 3. Set the current request's state to broken.
-                self.current_request.borrow_mut().state = State::Broken;
+                self.current_request.safe_borrow_mut(cx.no_gc()).state = State::Broken;
 
                 self.load_broken_image_icon(cx.no_gc());
 
@@ -541,7 +544,9 @@ impl HTMLImageElement {
     ) {
         match image {
             ImageResponse::Loaded(image, url) => {
-                if let Some(pending_request) = self.pending_request.borrow_mut().as_mut() {
+                if let Some(pending_request) =
+                    self.pending_request.safe_borrow_mut(cx.no_gc()).as_mut()
+                {
                     pending_request.metadata = Some(image.metadata());
                     pending_request.final_url = Some(url);
                     pending_request.image = Some(image);
@@ -565,7 +570,7 @@ impl HTMLImageElement {
             },
             ImageResponse::MetadataLoaded(meta) => {
                 self.pending_request
-                    .borrow_mut()
+                    .safe_borrow_mut(cx.no_gc())
                     .get_or_insert_default()
                     .metadata = Some(meta);
             },
@@ -588,7 +593,7 @@ impl HTMLImageElement {
                 if let Some(pending_request) = &*self.pending_request.borrow() {
                     LoadBlocker::terminate(cx, &pending_request.blocker);
                 }
-                self.pending_request.borrow_mut().take();
+                self.pending_request.safe_borrow_mut(cx.no_gc()).take();
             },
         };
 
@@ -607,7 +612,7 @@ impl HTMLImageElement {
         src: &USVString,
     ) {
         {
-            let mut request = request.borrow_mut();
+            let mut request = request.safe_borrow_mut(cx.no_gc());
             request.parsed_url = Some(url.clone());
             request.source_url = Some(src.clone());
             request.image = None;
@@ -615,7 +620,10 @@ impl HTMLImageElement {
         }
         let document = self.owner_document();
         LoadBlocker::terminate(cx, &request.borrow().blocker);
-        *request.borrow_mut().blocker.borrow_mut() =
+        *request
+            .safe_borrow_mut(cx.no_gc())
+            .blocker
+            .safe_borrow_mut(cx.no_gc()) =
             Some(LoadBlocker::new(&document, LoadType::Image(url.clone())));
     }
 
@@ -648,7 +656,8 @@ impl HTMLImageElement {
             .as_mut()
             .expect("Just created a request")
             .blocker
-            .borrow_mut() = Some(LoadBlocker::new(&document, LoadType::Image(url.clone())));
+            .safe_borrow_mut(cx.no_gc()) =
+            Some(LoadBlocker::new(&document, LoadType::Image(url.clone())));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#update-the-image-data>
@@ -706,7 +715,7 @@ impl HTMLImageElement {
                             selected_source,
                         );
                         self.pending_request
-                            .borrow_mut()
+                            .safe_borrow_mut(cx.no_gc())
                             .as_mut()
                             .expect("Just created a pending request")
                             .current_pixel_density = Some(selected_pixel_density);
@@ -721,8 +730,9 @@ impl HTMLImageElement {
                             image_url,
                             selected_source,
                         );
-                        self.current_request.borrow_mut().current_pixel_density =
-                            Some(selected_pixel_density);
+                        self.current_request
+                            .safe_borrow_mut(cx.no_gc())
+                            .current_pixel_density = Some(selected_pixel_density);
                         self.reject_image_decode_promises(cx);
                     },
                     (_, _) => {
@@ -737,7 +747,7 @@ impl HTMLImageElement {
                             selected_source,
                         );
                         self.pending_request
-                            .borrow_mut()
+                            .safe_borrow_mut(cx.no_gc())
                             .as_mut()
                             .expect("Just created a pending image request")
                             .current_pixel_density = Some(selected_pixel_density);
@@ -755,7 +765,7 @@ impl HTMLImageElement {
         // results from selecting an image source, respectively.
         let Some((selected_source, selected_pixel_density)) = self
             .source_set
-            .borrow_mut()
+            .safe_borrow_mut(cx.no_gc())
             .select_image_source(cx.no_gc(), self.upcast::<Element>())
         else {
             // Step 11. If selected source is null, then:
@@ -777,7 +787,7 @@ impl HTMLImageElement {
                     // Step 11.2.1. Change the current request's current URL to the empty string.
                     {
                         let mut current_request =
-                            this.current_request.borrow_mut();
+                            this.current_request.safe_borrow_mut(cx.no_gc());
                         current_request.source_url = None;
                         current_request.parsed_url = None;
                     }
@@ -824,7 +834,7 @@ impl HTMLImageElement {
                     // Step 13.4.1. Change the current request's current URL to selected source.
                     {
                         let mut current_request =
-                            this.current_request.borrow_mut();
+                            this.current_request.safe_borrow_mut(cx.no_gc());
                         current_request.source_url = Some(selected_source);
                         current_request.parsed_url = None;
                     }
@@ -859,7 +869,7 @@ impl HTMLImageElement {
         // TODO(https://github.com/whatwg/html/issues/8207): Add spec step once spec is aligned
         // with implementations
         self.source_set
-            .borrow_mut()
+            .safe_borrow_mut(cx.no_gc())
             .update_source_set(cx.no_gc(), self.upcast::<Element>());
 
         // Step 2. If the user agent cannot support images, or its support for images has been
@@ -870,7 +880,7 @@ impl HTMLImageElement {
 
         // Always first set the current request to unavailable, ensuring img.complete is false.
         // <https://html.spec.whatwg.org/multipage/#when-to-obtain-images>
-        self.current_request.borrow_mut().state = State::Unavailable;
+        self.current_request.safe_borrow_mut(cx.no_gc()).state = State::Unavailable;
 
         // TODO Step 3. Let previousURL be the current request's current URL.
 
@@ -892,7 +902,7 @@ impl HTMLImageElement {
 
         // Step 6. Set the element's last selected source to selected source.
         self.last_selected_source
-            .borrow_mut()
+            .safe_borrow_mut(cx.no_gc())
             .clone_from(&selected_source);
 
         // Step 7. If selected source is not null, then:
@@ -925,7 +935,7 @@ impl HTMLImageElement {
 
                     // Step 7.4.4. Set the current request to a new image request whose image data
                     // is that of the entry and whose state is completely available.
-                    let mut current_request = self.current_request.borrow_mut();
+                    let mut current_request = self.current_request.safe_borrow_mut(cx.no_gc());
                     current_request.metadata = Some(image.metadata());
                     current_request.image = Some(image);
                     current_request.final_url = Some(image_url.clone());
@@ -954,7 +964,7 @@ impl HTMLImageElement {
                             // Step 7.4.7.2. Set the current request's current URL to urlString.
                             {
                                 let mut current_request =
-                                    this.current_request.borrow_mut();
+                                    this.current_request.safe_borrow_mut(cx.no_gc());
                                 current_request.source_url = Some(selected_source);
                                 current_request.parsed_url = Some(image_url);
                                 current_request.load_time = Some(CrossProcessInstant::now());
@@ -1009,7 +1019,7 @@ impl HTMLImageElement {
         // results from selecting an image source, respectively.
         let Some((selected_source, selected_pixel_density)) = self
             .source_set
-            .borrow_mut()
+            .safe_borrow_mut(cx.no_gc())
             .select_image_source(cx.no_gc(), self.upcast::<Element>())
         else {
             // Step 4. If selected source is null, then return.
@@ -1136,7 +1146,7 @@ impl HTMLImageElement {
             );
         } else {
             self.image_decode_promises
-                .borrow_mut()
+                .safe_borrow_mut(cx.no_gc())
                 .push(promise.to_traced());
         }
     }
@@ -1156,7 +1166,9 @@ impl HTMLImageElement {
             .map(|promise| TrustedPromise::from(&promise.root(cx)))
             .collect();
 
-        self.image_decode_promises.borrow_mut().clear();
+        self.image_decode_promises
+            .safe_borrow_mut(cx.no_gc())
+            .clear();
 
         self.owner_global()
             .task_manager()
@@ -1183,7 +1195,9 @@ impl HTMLImageElement {
             .map(|promise| TrustedPromise::from(&promise.root(cx)))
             .collect();
 
-        self.image_decode_promises.borrow_mut().clear();
+        self.image_decode_promises
+            .safe_borrow_mut(cx.no_gc())
+            .clear();
 
         self.owner_global()
             .task_manager()
@@ -1222,10 +1236,10 @@ impl HTMLImageElement {
 
                 // Step 16.2. Set the img element's last selected source to selected source and the
                 // img element's current pixel density to selected pixel density.
-                *this.last_selected_source.borrow_mut() = Some(selected_source);
+                *this.last_selected_source.safe_borrow_mut(cx.no_gc()) = Some(selected_source);
 
 
-                if let Some(pending_request) = &mut *this.pending_request.borrow_mut() {
+                if let Some(pending_request) = &mut *this.pending_request.safe_borrow_mut(cx.no_gc()) {
                     // Step 16.3. Set the image request's state to completely available.
                     pending_request.state = State::CompletelyAvailable;
 
@@ -1239,7 +1253,7 @@ impl HTMLImageElement {
                     log::error!("Pending request was null");
                     return
                 }
-                *this.current_request.borrow_mut() = this.pending_request.borrow_mut().take().expect("Should have a pending request");
+                *this.current_request.safe_borrow_mut(cx.no_gc()) = this.pending_request.safe_borrow_mut(cx.no_gc()).take().expect("Should have a pending request");
 
 
                 this.abort_request(cx, State::Unavailable, ImageRequestPhase::Pending);
@@ -1368,8 +1382,8 @@ impl HTMLImageElement {
             return;
         };
 
-        self.current_request.borrow_mut().metadata = Some(broken_image_icon.metadata);
-        self.current_request.borrow_mut().image = Some(Image::Raster(broken_image_icon));
+        self.current_request.safe_borrow_mut(no_gc).metadata = Some(broken_image_icon.metadata);
+        self.current_request.safe_borrow_mut(no_gc).image = Some(Image::Raster(broken_image_icon));
         self.upcast::<Node>().dirty(no_gc, NodeDamage::Other);
     }
 
@@ -1398,7 +1412,7 @@ impl HTMLImageElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#img-dimensions>
-    fn dimensions(&self) -> (u32, u32) {
+    fn dimensions(&self, cx: &mut JSContext) -> (u32, u32) {
         // Step 2. If image is available, then set naturalDimensions to
         // image's density-corrected natural width and height.
         let natural_dimensions = if self.image_is_available() {
@@ -1408,18 +1422,18 @@ impl HTMLImageElement {
             None
         };
         // Step 3. Return the result of determining the dimensions of image given naturalDimensions.
-        self.determine_dimensions(self.upcast(), natural_dimensions)
+        Self::determine_dimensions(cx, self.upcast(), natural_dimensions)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#determine-dimensions>
     pub(crate) fn determine_dimensions(
-        &self,
+        cx: &mut JSContext,
         element: &Element,
         natural_dimensions: Option<(u32, u32)>,
     ) -> (u32, u32) {
         // Step 1. If element is being rendered,
         // then return the width and height of element's content box, in CSS pixels. [CSS]
-        if let Some(content_box) = element.upcast::<Node>().content_box() {
+        if let Some(content_box) = element.upcast::<Node>().content_box(cx) {
             return (
                 content_box.size.width.to_px() as u32,
                 content_box.size.height.to_px() as u32,
@@ -1682,18 +1696,18 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     make_bool_setter!(SetIsMap, "ismap");
 
     // <https://html.spec.whatwg.org/multipage/#dom-img-width>
-    fn Width(&self) -> u32 {
+    fn Width(&self, cx: &mut JSContext) -> u32 {
         // > The width getter steps are to return the width of this's dimensions.
-        self.dimensions().0
+        self.dimensions(cx).0
     }
 
     // <https://html.spec.whatwg.org/multipage/#dom-img-width>
     make_dimension_uint_setter!(SetWidth, "width");
 
     // <https://html.spec.whatwg.org/multipage/#dom-img-height>
-    fn Height(&self) -> u32 {
+    fn Height(&self, cx: &mut JSContext) -> u32 {
         // > The height getter steps are to return the height of this's dimensions.
-        self.dimensions().1
+        self.dimensions(cx).1
     }
 
     // <https://html.spec.whatwg.org/multipage/#dom-img-height>
@@ -2010,10 +2024,9 @@ impl VirtualMethods for HTMLImageElement {
             super_type.moving_steps(cx, context);
         }
 
-        // Step 1. If oldParent is a picture element, then, count this as a relevant mutation for movedNode.
-        if let Some(old_parent) = context.old_parent &&
-            old_parent.is::<HTMLPictureElement>()
-        {
+        // Step 1. If isSubtreeRoot is true and oldAncestor is a picture element, then count this as
+        // a relevant mutation for movedNode.
+        if context.is_subtree_root && context.old_ancestor.is::<HTMLPictureElement>() {
             self.update_the_image_data(cx);
         }
     }

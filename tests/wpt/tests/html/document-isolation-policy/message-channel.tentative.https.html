@@ -1,0 +1,76 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Document-Isolation-Policy: posting a SharedArrayBuffer over a MessageChannel to a same-origin frame</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="./resources/common.js"></script>
+<body>
+<script>
+"use strict";
+
+// Opens a popup with isolate-and-require-corp, appends a same-origin frame with framePolicy to it, and transfers one
+// end of a new MessageChannel to the frame. Then posts message, given as script, on the other end. Returns what the
+// frame received.
+async function postOverMessageChannel(t, framePolicy, message) {
+  const popupUUID = token();
+  const popup = window.open(executorURL(dip_require_corp, popupUUID));
+  t.add_cleanup(() => popup.close());
+  const frameUUID = token();
+  await runInContext(popupUUID, `
+    ${appendFrameScript(executorURL(framePolicy, frameUUID))}
+    window.child = child;
+    return "loaded";
+  `);
+  await runInContext(frameUUID, `
+    window.received = new Promise(resolve => {
+      onmessage = ({ ports: [port] }) => {
+        window.port = port;
+        port.onmessage = ({ data }) => {
+          window.data = data;
+          resolve(Object.prototype.toString.call(data));
+        };
+        port.onmessageerror = () => resolve("messageerror");
+      };
+    });
+    return "ready";
+  `);
+  assert_equals(await runInContext(popupUUID, `
+    const { port1, port2 } = new MessageChannel();
+    window.port = port1;
+    child.contentWindow.postMessage(null, "*", [port2]);
+    window.message = ${message};
+    port.postMessage(message);
+    return "posted";
+  `), "posted", "posting from the popup");
+  return { popupUUID, frameUUID, received: await runInContext(frameUUID, "return received;") };
+}
+
+promise_test(async t => {
+  const { received } = await postOverMessageChannel(t, "", `{ text: "hello" }`);
+  assert_equals(received, "[object Object]");
+}, "A message without shared memory posted over a MessageChannel by a document with a policy reaches its same-origin frame without one");
+
+promise_test(async t => {
+  const { received } = await postOverMessageChannel(t, "", "new SharedArrayBuffer(8)");
+  assert_equals(received, "messageerror");
+}, "A SharedArrayBuffer posted over a MessageChannel by a document with a policy fires messageerror at its same-origin frame without one");
+
+promise_test(async t => {
+  const { popupUUID, frameUUID, received } = await postOverMessageChannel(t, dip_require_corp, "new SharedArrayBuffer(8)");
+  assert_equals(received, "[object SharedArrayBuffer]", "message event data");
+  await runInContext(popupUUID, `
+    new Int32Array(message)[0] = 1;
+    return "written";
+  `);
+  assert_equals(await runInContext(frameUUID, `
+    const view = new Int32Array(data);
+    view[1] = 2;
+    return view[0];
+  `), 1, "the frame sees what the popup wrote");
+  assert_equals(await runInContext(popupUUID, "return new Int32Array(message)[1];"), 2, "the popup sees what the frame wrote");
+}, "A SharedArrayBuffer posted over a MessageChannel by a document with a policy arrives at its same-origin frame with one and shares memory with it");
+</script>

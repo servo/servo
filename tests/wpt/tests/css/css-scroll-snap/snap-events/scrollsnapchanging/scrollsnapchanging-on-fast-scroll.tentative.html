@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Scroll Snap: scrollsnapchanging fires on a fast scroll that finishes between commits</title>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#scrollsnapchanging">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/dom/events/scrolling/scroll_support.js"></script>
+  <script src="/css/css-scroll-snap/snap-events/resources/common.js"></script>
+  <script src="/web-animations/testcommon.js"></script>
+</head>
+<body>
+  <style>
+    #scroller {
+      height: 200px;
+      width: 200px;
+      position: relative;
+      overflow: scroll;
+      scroll-snap-type: y mandatory;
+    }
+    .snap {
+      width: 100%;
+      height: 50px;
+      scroll-snap-align: start;
+    }
+    .spacer {
+      width: 100%;
+      height: 400px;
+    }
+  </style>
+  <div id="scroller">
+    <div id="snap_area_1" class="snap"></div>
+    <div id="snap_area_2" class="snap"></div>
+    <div class="spacer"></div>
+  </div>
+  <script>
+    const scroller = document.getElementById("scroller");
+    const snap_area_1 = document.getElementById("snap_area_1");
+    const snap_area_2 = document.getElementById("snap_area_2");
+
+    promise_test(async (t) => {
+      await waitForCompositorCommit();
+
+      const events = [];
+      scroller.addEventListener("scrollsnapchanging", (e) => {
+        events.push({ type: e.type, block: e.snapTargetBlock });
+      });
+      scroller.addEventListener("scrollsnapchange", (e) => {
+        events.push({ type: e.type, block: e.snapTargetBlock });
+      });
+
+      // Scroll directly to snap_area_2 (50px) in a single wheel tick so that
+      // the scroll starts and ends on the compositor between commits without
+      // needing a snap animation at scroll end.
+      let scrollend_promise = waitForScrollendEventNoTimeout(scroller);
+      await new test_driver.Actions()
+        .scroll(0, 0, 0, 50, { origin: scroller })
+        .send();
+      await scrollend_promise;
+
+      assert_equals(scroller.scrollTop, 50, "scrolled to snap_area_2");
+      assert_equals(events.length, 2, "both scrollsnapchanging and scrollsnapchange fired");
+      assert_equals(events[0].type, "scrollsnapchanging");
+      assert_equals(events[0].block, snap_area_2);
+      assert_equals(events[1].type, "scrollsnapchange");
+      assert_equals(events[1].block, snap_area_2);
+
+      events.length = 0;
+
+      // Scroll back to snap_area_1 (0px) in a single wheel tick.
+      scrollend_promise = waitForScrollendEventNoTimeout(scroller);
+      await new test_driver.Actions()
+        .scroll(0, 0, 0, -50, { origin: scroller })
+        .send();
+      await scrollend_promise;
+
+      assert_equals(scroller.scrollTop, 0, "scrolled back to snap_area_1");
+      assert_equals(events.length, 2, "both scrollsnapchanging and scrollsnapchange fired on return");
+      assert_equals(events[0].type, "scrollsnapchanging");
+      assert_equals(events[0].block, snap_area_1);
+      assert_equals(events[1].type, "scrollsnapchange");
+      assert_equals(events[1].block, snap_area_1);
+    }, "A fast wheel scroll that starts and ends between compositor commits fires scrollsnapchanging before scrollsnapchange.");
+  </script>
+</body>
+</html>

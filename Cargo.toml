@@ -81,7 +81,6 @@ ecdsa = "0.17"
 ed25519-dalek = { version = "3.0", features = ["alloc", "pkcs8", "rand_core", "zeroize"] }
 ed448-goldilocks = "=0.14.0-pre.15"
 egui = "0.34.3"
-egui-file-dialog = "0.13.0"
 egui-winit = { version = "0.34.3", default-features = false }
 egui_glow = "0.34.3"
 elliptic-curve = { version = "0.14", features = ["pkcs8"] }
@@ -89,6 +88,7 @@ encoding_rs = { version = "0.8", features = ["serde"] }
 env_filter = "0.1.4"
 env_logger = "0.11"
 euclid = "0.22"
+fft-convolver = "0.4"
 flate2 = "1.1"
 font-types = "0.12"
 fontconfig_sys = { package = "yeslogic-fontconfig-sys", version = "6" }
@@ -132,6 +132,7 @@ httparse = "1.9"
 hyper = "1.10"
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "logging", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "client-proxy", "http2", "tokio"] }
+icu_casemap = "2.1.0"
 icu_locale_core = "2.1.0"
 icu_properties = "2.1.0"
 icu_segmenter = "2.1.0"
@@ -142,7 +143,7 @@ inventory = "0.3.24"
 ipc-channel = "0.23"
 itertools = "0.15"
 jni = "0.22"
-js = { package = "mozjs", version = "=0.26.7", default-features = false, features = ["intl", "libz-sys"] }
+js = { package = "mozjs", version = "=0.26.13", default-features = false, features = ["intl", "libz-sys"] }
 k12 = "0.5"
 keccak = "0.2"
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
@@ -192,6 +193,7 @@ p256 = { version = "0.14", features = ["ecdh"] }
 p384 = { version = "0.14", features = ["ecdh"] }
 p521 = { version = "0.14", features = ["ecdh"] }
 parking_lot = { version = "0.12", features = ["serde"] }
+pbkdf2 = { version = "0.13", features = ["hmac"] }
 peniko = "0.6"
 percent-encoding = "2.3"
 petgraph = "0.8.3"
@@ -213,6 +215,7 @@ read-fonts = "0.43.3"
 realfft = "3.5.0"
 regex = "1.12"
 resvg = "0.48.1"
+rfd = "0.17.2"
 rsa = "=0.10.0-rc.19"
 rusqlite = { version = "0.38", features = ["bundled"] }
 rustc-demangle = "0.1"
@@ -222,14 +225,14 @@ rustls-pki-types = "1.14"
 rustls-platform-verifier = "0.7.0"
 sea-query = { version = "1.0.1", default-features = false, features = ["backend-sqlite", "derive"] }
 sea-query-rusqlite = "0.8.0"
-selectors = { git = "https://github.com/servo/stylo", rev = "a05fadffd43bc173b2d6e1e2caf44a36b45354af" }
+selectors = { git = "https://github.com/servo/stylo", rev = "842dc30bd18344912d39f1acbb40f99b9df7e302" }
 serde = "1.0.228"
 serde_bytes = "0.11"
 serde_core = "1.0.226"
 serde_json = "1.0"
 serde_test = "1.0"
 serde_with = "3.13"
-servo_arc = { git = "https://github.com/servo/stylo", rev = "a05fadffd43bc173b2d6e1e2caf44a36b45354af" }
+servo_arc = { git = "https://github.com/servo/stylo", rev = "842dc30bd18344912d39f1acbb40f99b9df7e302" }
 sha1 = "0.11"
 sha2 = "0.11"
 sha3 = "0.12"
@@ -240,19 +243,19 @@ speexdsp-resampler = "0.1.0"
 sponge-cursor = "0.1"
 string_cache = "0.11"
 strum = { version = "0.28", features = ["derive"] }
-stylo = { git = "https://github.com/servo/stylo", rev = "a05fadffd43bc173b2d6e1e2caf44a36b45354af" }
-stylo_atoms = { git = "https://github.com/servo/stylo", rev = "a05fadffd43bc173b2d6e1e2caf44a36b45354af" }
-stylo_dom = { git = "https://github.com/servo/stylo", rev = "a05fadffd43bc173b2d6e1e2caf44a36b45354af" }
-stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "a05fadffd43bc173b2d6e1e2caf44a36b45354af" }
-stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "a05fadffd43bc173b2d6e1e2caf44a36b45354af" }
-stylo_traits = { git = "https://github.com/servo/stylo", rev = "a05fadffd43bc173b2d6e1e2caf44a36b45354af" }
+stylo = { git = "https://github.com/servo/stylo", rev = "842dc30bd18344912d39f1acbb40f99b9df7e302" }
+stylo_atoms = { git = "https://github.com/servo/stylo", rev = "842dc30bd18344912d39f1acbb40f99b9df7e302" }
+stylo_dom = { git = "https://github.com/servo/stylo", rev = "842dc30bd18344912d39f1acbb40f99b9df7e302" }
+stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "842dc30bd18344912d39f1acbb40f99b9df7e302" }
+stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "842dc30bd18344912d39f1acbb40f99b9df7e302" }
+stylo_traits = { git = "https://github.com/servo/stylo", rev = "842dc30bd18344912d39f1acbb40f99b9df7e302" }
 surfman = "0.14.0"
 svgtypes = "0.16"
 swapper = "0.1"
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
 sys-locale = "0.3"
-taffy = { version = "0.15.0", default-features = false, features = ["calc", "grid", "std"] }
+taffy = { version = "0.15.1", default-features = false, features = ["calc", "grid", "std"] }
 tempfile = "3"
 tendril = { version = "0.5", features = ["encoding_rs"] }
 tikv-jemalloc-sys = "0.6.1"
@@ -282,7 +285,7 @@ warp = "0.4.2"
 web_atoms = "0.3.0"
 webdriver = "0.54.0"
 webpki-roots = "1.0"
-webrender = { version = "0.70", features = ["serde"] }
+webrender = { version = "0.70.1", features = ["serde"] }
 webrender_api = "0.70"
 wgpu-core = "30"
 wgpu-types = "30"
@@ -291,6 +294,7 @@ windows-sys = "0.61"
 winit = "0.30.13"
 winresource = "0.1"
 wio = "0.2"
+writeable = "0.6"
 wr_malloc_size_of = "0.2.2"
 x-wing = { version = "0.1.0", features = ["zeroize"] }
 x25519-dalek = { version = "3.0", features = ["getrandom", "static_secrets", "zeroize"] }
@@ -402,6 +406,14 @@ opt-level = 3
 # avoids the issue.
 codegen-units = 16
 
+# pbkdf2 could be very slow without compilation optimizations, which
+# causes timeout in the WPT tests for WebCrypto. Building with higher
+# optimization levels help prevent these false negative WPT results.
+[profile.dev.package.sha1]
+opt-level = 3
+[profile.dev.package.sha2]
+opt-level = 3
+
 # Force tikv-jemalloc-sys to build with at least -O1.
 # This can help with build environments that force _FORTIFY_SOURCE, such as Nix.
 # More details: <https://github.com/tikv/jemallocator/issues/108>
@@ -469,8 +481,6 @@ codegen-units = 1
 #
 # Or for mozjs:
 #
-# mozjs = { path = "../mozjs/mozjs" }
-# mozjs_sys = { path = "../mozjs/mozjs-sys" }
 #
 # Or for CSP crate:
 # content-security-policy = { path = "../rust-content-security-policy" }

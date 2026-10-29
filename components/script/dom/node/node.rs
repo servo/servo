@@ -36,10 +36,12 @@ use script_bindings::codegen::GenericBindings::ElementBinding::ElementMethods;
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
 use script_bindings::codegen::GenericBindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
 use script_bindings::codegen::InheritTypes::{DocumentFragmentTypeId, TextTypeId};
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::{
     DomObject, DomObjectWrap, WeakReferenceableDomObjectWrap, reflect_dom_object_with_proto,
     reflect_weak_referenceable_dom_object_with_proto,
 };
+use script_bindings::trace::{RootedTraceableBox, TraceableSmallVec};
 use script_traits::{DocumentActivity, MouseButtons};
 use servo_base::id::PipelineId;
 use smallvec::SmallVec;
@@ -48,6 +50,7 @@ use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::dom_apis::{QueryAll, QueryFirst};
 use style::selector_parser::PseudoElement;
+use style::values::computed::{Inert, Interactivity};
 use style_traits::CSSPixel;
 use uuid::Uuid;
 use xml5ever::{local_name, serialize as xml_serialize};
@@ -302,7 +305,13 @@ impl Node {
     /// Adds a new child to the end of this node's list of children.
     ///
     /// Fails unless `new_child` is disconnected from the tree.
-    fn add_child(&self, cx: &mut JSContext, new_child: &Node, before: Option<&Node>) {
+    fn add_child(
+        &self,
+        cx: &mut JSContext,
+        operation: MoveOrInsert,
+        new_child: &Node,
+        before: Option<&Node>,
+    ) {
         assert!(new_child.parent_node.get().is_none());
         assert!(new_child.prev_sibling.get().is_none());
         assert!(new_child.next_sibling.get().is_none());
@@ -348,8 +357,7 @@ impl Node {
         let parent_in_shadow_tree = self.is_in_a_shadow_tree();
         let parent_is_connected = self.is_connected();
         let parent_is_in_ua_widget = self.is_in_ua_widget();
-
-        let context = BindContext::new(self, IsShadowTree::No);
+        let context = LazyCell::new(|| BindContext::new(self, IsShadowTree::No));
 
         for node in new_child.traverse_preorder(ShadowIncluding::No) {
             if parent_in_shadow_tree {
@@ -368,7 +376,17 @@ impl Node {
 
             // Out-of-document elements never have the descendants flag set.
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
-            vtable_for(&node).bind_to_tree(cx, &context);
+
+            match operation {
+                MoveOrInsert::Move => {
+                    if (parent_is_in_a_document_tree || parent_in_shadow_tree) &&
+                        let Some(element) = node.downcast::<Element>()
+                    {
+                        element.register_current_id_and_name_attribute(cx);
+                    }
+                },
+                MoveOrInsert::Insert => vtable_for(&node).bind_to_tree(cx, &context),
+            }
         }
     }
 
@@ -409,8 +427,8 @@ impl Node {
 
         // Since both the initial traversal in light dom and the inner traversal
         // in shadow DOM share the same code, we define a closure to prevent omissions.
-        let document = root.owner_doc();
         let cleanup_node = |cx: &mut JSContext, node: &Node| {
+            let document = node.owner_document_unrooted(cx.no_gc());
             document.cancel_animations_for_node(node);
             document.clean_up_style_and_layout_data_for_node(node);
 
@@ -456,10 +474,12 @@ impl Node {
 
         // Make sure the node and its subtree aren't GCed until the accessibility tree has had a
         // chance to remove them.
-        if root.owner_document().accessibility_active() {
-            root.owner_document()
+        let no_gc = cx.no_gc();
+        let document = root.owner_document_unrooted(no_gc);
+        if document.accessibility_active() {
+            document
                 .accessibility_data_mut()
-                .root_removed_node(cx.no_gc(), root);
+                .root_removed_node(no_gc, root);
         }
     }
 
@@ -475,12 +495,19 @@ impl Node {
 
         let document = root.owner_document();
         for node in root.traverse_preorder(ShadowIncluding::No) {
-            node.set_flag(RESET_FLAGS | NodeFlags::IS_IN_SHADOW_TREE, false);
+            let node_was_in_tree = node.is_in_a_document_tree() || node.is_in_a_shadow_tree();
+
+            // Moving can never change the shadow-including root of a node, so IS_CONNECTED will
+            // maintain the value that it had before the move.
+            node.set_flag(
+                (RESET_FLAGS - NodeFlags::IS_CONNECTED) | NodeFlags::IS_IN_SHADOW_TREE,
+                false,
+            );
             document.clean_up_style_and_layout_data_for_node(&node);
 
             // Unregister the `id` and `name` attributes for this node. Note that they
             // will be re-registered when added to the tree again.
-            if let Some(element) = node.downcast::<Element>() {
+            if node_was_in_tree && let Some(element) = node.downcast::<Element>() {
                 element.unregister_current_id_and_name_attribute(cx);
             }
 
@@ -500,7 +527,9 @@ impl Node {
                     .upcast::<Node>()
                     .traverse_preorder(ShadowIncluding::Yes)
                 {
-                    node.set_flag(RESET_FLAGS, false);
+                    // Moving can never change the shadow-including root of a node, so IS_CONNECTED
+                    // will maintain the value that it had before the move.
+                    node.set_flag(RESET_FLAGS - NodeFlags::IS_CONNECTED, false);
                     document.clean_up_style_and_layout_data_for_node(&node);
                 }
             }
@@ -1147,14 +1176,14 @@ impl Node {
         self.owner_window().padding_query_without_reflow(self)
     }
 
-    pub(crate) fn content_box(&self) -> Option<Rect<Au, CSSPixel>> {
+    pub(crate) fn content_box(&self, cx: &mut JSContext) -> Option<Rect<Au, CSSPixel>> {
         self.owner_window()
-            .box_area_query(self, BoxAreaType::Content, false)
+            .box_area_query(cx, self, BoxAreaType::Content, false)
     }
 
-    pub(crate) fn border_box(&self) -> Option<Rect<Au, CSSPixel>> {
+    pub(crate) fn border_box(&self, cx: &mut JSContext) -> Option<Rect<Au, CSSPixel>> {
         self.owner_window()
-            .box_area_query(self, BoxAreaType::Border, false)
+            .box_area_query(cx, self, BoxAreaType::Border, false)
     }
 
     pub(crate) fn border_box_without_reflow(&self) -> Option<Rect<Au, CSSPixel>> {
@@ -1162,9 +1191,9 @@ impl Node {
             .box_area_query_without_reflow(self, BoxAreaType::Border, false)
     }
 
-    pub(crate) fn padding_box(&self) -> Option<Rect<Au, CSSPixel>> {
+    pub(crate) fn padding_box(&self, cx: &mut JSContext) -> Option<Rect<Au, CSSPixel>> {
         self.owner_window()
-            .box_area_query(self, BoxAreaType::Padding, false)
+            .box_area_query(cx, self, BoxAreaType::Padding, false)
     }
 
     pub(crate) fn padding_box_without_reflow(&self) -> Option<Rect<Au, CSSPixel>> {
@@ -1537,9 +1566,12 @@ impl Node {
             node.assign_slottables_for_a_tree(cx, ForceSlottableNodeReconciliation::Skip);
         }
 
-        // Step 17. If child is non-null:
+        // Step 17. Add transient registered observers given node and oldParent.
+        // TODO: Implement this.
+
+        // Step 18. If child is non-null:
         if let Some(child) = child {
-            // Steps 17.1-17.2: The live range move steps.
+            // Steps 18.1-18.2: The live range move steps.
             let document = new_parent.owner_doc_unrooted(cx.no_gc());
             if let Some(selection) = document.selection() {
                 selection.insert_steps(new_parent, child, 1);
@@ -1547,18 +1579,18 @@ impl Node {
             document.live_range_insert_steps(cx.no_gc(), new_parent, child, 1);
         }
 
-        // Step 18. Let newPreviousSibling be child’s previous sibling if child is non-null, and
+        // Step 19. Let newPreviousSibling be child’s previous sibling if child is non-null, and
         // newParent’s last child otherwise.
         let new_previous_sibling = child.map_or_else(
             || new_parent.last_child.get(),
             |child| child.prev_sibling.get(),
         );
 
-        // Step 19. If child is null, then append node to newParent’s children.
-        // Step 20. Otherwise, insert node into newParent’s children before child’s index.
-        new_parent.add_child(cx, node, child);
+        // Step 20. If child is null, then append node to newParent’s children.
+        // Step 21. Otherwise, insert node into newParent’s children before child’s index.
+        new_parent.add_child(cx, MoveOrInsert::Move, node, child);
 
-        // Step 21. If newParent is a shadow host whose shadow root’s slot assignment is "named" and
+        // Step 22. If newParent is a shadow host whose shadow root’s slot assignment is "named" and
         // node is a slottable, then assign a slot for node.
         if let Some(shadow_root) = new_parent
             .downcast::<Element>()
@@ -1570,7 +1602,7 @@ impl Node {
             slottable.assign_a_slot(cx);
         }
 
-        // Step 22. If newParent’s root is a shadow root, and newParent is a slot whose assigned
+        // Step 23. If newParent’s root is a shadow root, and newParent is a slot whose assigned
         // nodes is empty, then run signal a slot change for newParent.
         if new_parent.is_in_a_shadow_tree() &&
             let Some(slot_element) = new_parent.downcast::<HTMLSlotElement>() &&
@@ -1579,23 +1611,20 @@ impl Node {
             slot_element.signal_a_slot_change(cx);
         }
 
-        // Step 23. Run assign slottables for a tree with node’s root.
+        // Step 24. Run assign slottables for a tree with node’s root.
         node.GetRootNode(&GetRootNodeOptions::empty())
             .assign_slottables_for_a_tree(cx, ForceSlottableNodeReconciliation::Skip);
 
-        // Step 24. For each shadow-including inclusive descendant inclusiveDescendant of node, in
+        // Step 25. For each shadow-including inclusive descendant inclusiveDescendant of node, in
         // shadow-including tree order:
         for descendant in node.traverse_preorder(ShadowIncluding::Yes) {
-            // Step 24.1. If inclusiveDescendant is node, then run the moving steps with
-            // inclusiveDescendant and oldParent.
-            // Otherwise, run the moving steps with inclusiveDescendant and null.
-            if descendant.deref() == node {
-                vtable_for(&descendant).moving_steps(cx, &MoveContext::new(Some(&old_parent)));
-            } else {
-                vtable_for(&descendant).moving_steps(cx, &MoveContext::new(None));
-            }
+            // Step 25.1. Let isSubtreeRoot be true if inclusiveDescendant is node; otherwise false.
+            let is_subtree_root = descendant.deref() == node;
+            // Step 25.2. Run the moving steps with inclusiveDescendant, isSubtreeRoot, and oldParent.
+            vtable_for(&descendant)
+                .moving_steps(cx, &MoveContext::new(&old_parent, is_subtree_root));
 
-            // Step 24.2. If inclusiveDescendant is custom and newParent is connected,
+            // Step 25.3. If inclusiveDescendant is custom and newParent is connected,
             if let Some(descendant) = descendant.downcast::<Element>() &&
                 descendant.is_custom() &&
                 new_parent.is_connected()
@@ -1612,7 +1641,7 @@ impl Node {
             }
         }
 
-        // Step 25. Queue a tree mutation record for oldParent with « », « node »,
+        // Step 26. Queue a tree mutation record for oldParent with « », « node »,
         // oldPreviousSibling, and oldNextSibling.
         let moved = [node];
         let mutation = LazyCell::new(|| Mutation::ChildList {
@@ -1623,7 +1652,7 @@ impl Node {
         });
         MutationObserver::queue_a_mutation_record(cx, &old_parent, mutation);
 
-        // Step 26. Queue a tree mutation record for newParent with « node », « »,
+        // Step 27. Queue a tree mutation record for newParent with « node », « »,
         // newPreviousSibling, and child.
         let mutation = LazyCell::new(|| Mutation::ChildList {
             added: Some(&moved),
@@ -2261,6 +2290,12 @@ impl Node {
 
     /// <https://w3c.github.io/editing/docs/execCommand/#editable>
     pub(crate) fn is_editable(&self) -> bool {
+        // https://html.spec.whatwg.org/multipage/#inert
+        // When a node is inert: If it is editable, the node behaves as if it were non-editable.
+        if self.is_inert() {
+            return false;
+        }
+
         // > Something is editable if it is a node; it is not an editing host;
         if self.is_editing_host() {
             return false;
@@ -2279,6 +2314,19 @@ impl Node {
         }
         // > and either it is an HTML element, or it is an svg or math element, or it is not an Element and its parent is an HTML element.
         html_element.is_some() || (!self.is::<Element>() && parent.is::<HTMLElement>())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#inert>
+    /// A node (in particular elements and text nodes) can be inert.
+    ///
+    /// Inertness is propagated using the internal `-moz-inert` property.
+    pub(crate) fn is_inert(&self) -> bool {
+        self.downcast::<Element>()
+            .and_then(Element::style)
+            .is_some_and(|style| {
+                *style.get__moz_inert() == Inert::Inert ||
+                    *style.get_interactivity() == Interactivity::Inert
+            })
     }
 }
 
@@ -2758,7 +2806,11 @@ impl Node {
         };
 
         // Step 10. Let staticNodeList be a list of nodes, initially « ».
-        let mut static_node_list: SmallVec<[_; 4]> = Default::default();
+        //
+        // This is incredibly hot code, so in an effort to avoiding rooting every single
+        // node in the `static_node_list`, this code only roots the entire list itself.
+        let mut static_node_list: Option<RootedTraceableBox<TraceableSmallVec<[Dom<Node>; 4]>>> =
+            None;
 
         let parent_shadow_root = parent.downcast::<Element>().and_then(Element::shadow_root);
         let parent_in_shadow_tree = parent.is_in_a_shadow_tree();
@@ -2771,7 +2823,7 @@ impl Node {
 
             // Step 7.2. If child is null, then append node to parent’s children.
             // Step 7.3. Otherwise, insert node into parent’s children before child’s index.
-            parent.add_child(cx, kid, child);
+            parent.add_child(cx, MoveOrInsert::Insert, kid, child);
 
             // Step 7.4 If parent is a shadow host whose shadow root’s slot assignment is "named"
             // and node is a slottable, then assign a slot for node.
@@ -2864,7 +2916,9 @@ impl Node {
 
                 // Step 11.1 For each shadow-including inclusive descendant inclusiveDescendant of node,
                 //           in shadow-including tree order, append inclusiveDescendant to staticNodeList.
-                static_node_list.push(descendant.clone());
+                static_node_list
+                    .get_or_insert_default()
+                    .push(descendant.as_traced());
             }
         }
 
@@ -2899,15 +2953,15 @@ impl Node {
         // 2) post_connection_steps from Node::insert,
         // we use a delayed task that will run as soon as Node::insert removes its
         // script/layout blocker.
-        if !static_node_list.is_empty() {
+        if let Some(static_node_list) = static_node_list {
             parent_document.add_delayed_task(
-                task!(PostConnectionSteps: |cx, static_node_list: SmallVec<[DomRoot<Node>; 4]>| {
+                task!(PostConnectionSteps: |cx, static_node_list: RootedTraceableBox<TraceableSmallVec<[Dom<Node>; 4]>>| {
                     // Step 12. For each node of staticNodeList, if node is connected, then run the
                     //          post-connection steps with node.
                     //
                     // Note: We only add the nodes to the static_node_list which are connected.
-                    for node in static_node_list {
-                        vtable_for(&node).post_connection_steps(cx);
+                    for node in static_node_list.iter() {
+                        vtable_for(node).post_connection_steps(cx);
                     }
                 }),
             );
@@ -2943,7 +2997,8 @@ impl Node {
 
     /// <https://dom.spec.whatwg.org/#concept-node-replace-all>
     pub(crate) fn replace_all(cx: &mut JSContext, node: Option<&Node>, parent: &Node) {
-        parent.owner_doc().add_script_and_layout_blocker();
+        let document = parent.owner_document();
+        document.add_script_and_layout_blocker();
 
         // Step 1. Let removedNodes be parent’s children.
         rooted_vec!(let removed_nodes <- parent.children().map(|child| DomRoot::as_traced(&child)));
@@ -2986,7 +3041,7 @@ impl Node {
             });
             MutationObserver::queue_a_mutation_record(cx, parent, mutation);
         }
-        parent.owner_doc().remove_script_and_layout_blocker(cx);
+        document.remove_script_and_layout_blocker(cx);
     }
 
     /// <https://dom.spec.whatwg.org/multipage/#string-replace-all>
@@ -3034,7 +3089,8 @@ impl Node {
         parent: &Node,
         suppress_observers: SuppressObserver,
     ) {
-        parent.owner_doc().add_script_and_layout_blocker();
+        let document = parent.owner_document();
+        document.add_script_and_layout_blocker();
 
         // Step 1. Let parent be node’s parent.
         // Step 2. Assert: parent is non-null.
@@ -3117,7 +3173,7 @@ impl Node {
             });
             MutationObserver::queue_a_mutation_record(cx, parent, mutation);
         }
-        parent.owner_doc().remove_script_and_layout_blocker(cx);
+        document.remove_script_and_layout_blocker(cx);
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-clone>
@@ -3387,8 +3443,7 @@ impl Node {
     pub(crate) fn namespace_to_string(namespace: Namespace) -> Option<DOMString> {
         match namespace {
             ns!() => None,
-            // FIXME(ajeffrey): convert directly from Namespace to DOMString
-            _ => Some(DOMString::from(&*namespace)),
+            _ => Some(TracedDOMString::from(namespace).root()),
         }
     }
 
@@ -3743,7 +3798,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
         }
 
         if self.is_connected() {
-            DomRoot::from_ref(self.owner_doc().upcast::<Node>())
+            DomRoot::upcast(self.owner_document())
         } else {
             self.inclusive_ancestors(ShadowIncluding::Yes)
                 .last()
@@ -4532,6 +4587,10 @@ pub(crate) trait NodeTraits {
     /// differ from the [`Document`] that the node was created in if it was adopted by a
     /// different [`Document`] (the owner).
     fn owner_window(&self) -> DomRoot<Window>;
+    /// Get the [`Window`] of the [`Document`] that owns this node. Note that this may
+    /// differ from the [`Document`] that the node was created in if it was adopted by a
+    /// different [`Document`] (the owner).
+    fn owner_window_unrooted<'no_gc>(&self, no_gc: &'no_gc NoGC) -> UnrootedDom<'no_gc, Window>;
     /// Get the [`GlobalScope`] of the [`Document`] that owns this node. Note that this may
     /// differ from the [`GlobalScope`] that the node was created in if it was adopted by a
     /// different [`Document`] (the owner).
@@ -4557,6 +4616,10 @@ impl<T: DerivedFrom<Node> + DomObject> NodeTraits for T {
 
     fn owner_window(&self) -> DomRoot<Window> {
         DomRoot::from_ref(self.owner_document().window())
+    }
+
+    fn owner_window_unrooted<'no_gc>(&self, no_gc: &'no_gc NoGC) -> UnrootedDom<'no_gc, Window> {
+        UnrootedDom::from_ref(self.owner_document_unrooted(no_gc).window(), no_gc)
     }
 
     fn owner_global(&self) -> DomRoot<GlobalScope> {
@@ -4689,4 +4752,9 @@ impl<'a> FlatTreeParent<'a> {
             FlatTreeParent::NotInFlatTree | FlatTreeParent::RootNode => None,
         }
     }
+}
+
+enum MoveOrInsert {
+    Move,
+    Insert,
 }

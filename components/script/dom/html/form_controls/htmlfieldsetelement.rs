@@ -10,11 +10,11 @@ use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use stylo_dom::ElementState;
 
+use crate::dom::activation::Activatable;
 use crate::dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
-use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::customelementregistry::CallbackReaction;
 use crate::dom::document::Document;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
@@ -27,7 +27,6 @@ use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidityState;
-use crate::event_loop::script_thread::ScriptThread;
 
 #[dom_struct]
 pub(crate) struct HTMLFieldSetElement {
@@ -79,9 +78,9 @@ impl HTMLFieldSetElement {
             .any(|element| element.is_invalid(cx, false));
 
         self.upcast::<Element>()
-            .set_state(ElementState::VALID, !has_invalid_child);
+            .set_state(cx.no_gc(), ElementState::VALID, !has_invalid_child);
         self.upcast::<Element>()
-            .set_state(ElementState::INVALID, has_invalid_child);
+            .set_state(cx.no_gc(), ElementState::INVALID, has_invalid_child);
     }
 }
 
@@ -174,8 +173,8 @@ impl VirtualMethods for HTMLFieldSetElement {
                 };
                 let node = self.upcast::<Node>();
                 let element = self.upcast::<Element>();
-                element.set_disabled_state(disabled_state);
-                element.set_enabled_state(!disabled_state);
+                element.set_disabled_state(cx.no_gc(), disabled_state);
+                element.set_enabled_state(cx.no_gc(), !disabled_state);
                 let mut found_legend = false;
                 let children = node.children().filter(|node| {
                     if found_legend {
@@ -190,61 +189,16 @@ impl VirtualMethods for HTMLFieldSetElement {
                 let fields = children.flat_map(|child| {
                     child
                         .traverse_preorder(ShadowIncluding::No)
-                        .filter(|descendant| match descendant.type_id() {
-                            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                                HTMLElementTypeId::HTMLButtonElement |
-                                HTMLElementTypeId::HTMLInputElement |
-                                HTMLElementTypeId::HTMLSelectElement |
-                                HTMLElementTypeId::HTMLTextAreaElement,
-                            )) => true,
-                            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                                HTMLElementTypeId::HTMLElement,
-                            )) => descendant
-                                .downcast::<HTMLElement>()
-                                .unwrap()
-                                .is_form_associated_custom_element(),
-                            _ => false,
-                        })
+                        .filter_map(DomRoot::downcast::<HTMLElement>)
                 });
-                if disabled_state {
-                    for field in fields {
-                        let element = field.downcast::<Element>().unwrap();
-                        if element.enabled_state() {
-                            element.set_disabled_state(true);
-                            element.set_enabled_state(false);
-                            if element
-                                .downcast::<HTMLElement>()
-                                .is_some_and(|h| h.is_form_associated_custom_element())
-                            {
-                                ScriptThread::enqueue_callback_reaction(
-                                    cx,
-                                    element,
-                                    CallbackReaction::FormDisabled(true),
-                                    None,
-                                );
-                            }
-                        }
+                for field in fields {
+                    if !field.is_disableable_form_control() {
+                        continue;
                     }
-                } else {
-                    for field in fields {
-                        let element = field.downcast::<Element>().unwrap();
-                        if element.disabled_state() {
-                            element.check_disabled_attribute();
-                            element.check_ancestors_disabled_state_for_form_control(cx.no_gc());
-                            // Fire callback only if this has actually enabled the custom element
-                            if element.enabled_state() &&
-                                element
-                                    .downcast::<HTMLElement>()
-                                    .is_some_and(|h| h.is_form_associated_custom_element())
-                            {
-                                ScriptThread::enqueue_callback_reaction(
-                                    cx,
-                                    element,
-                                    CallbackReaction::FormDisabled(false),
-                                    None,
-                                );
-                            }
-                        }
+                    if disabled_state {
+                        field.set_disabled_state_and_notify(cx, disabled_state);
+                    } else if field.as_element().disabled_state() {
+                        field.maybe_update_form_control_disabled(cx);
                     }
                 }
             },

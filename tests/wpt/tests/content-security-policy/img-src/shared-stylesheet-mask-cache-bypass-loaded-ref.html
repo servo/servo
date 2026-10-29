@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Reference: shared-stylesheet SVG mask renders</title>
+<style>
+  html, body { margin: 0; }
+  iframe { border: none; width: 100px; height: 100px; display: block; }
+</style>
+<script>document.documentElement.classList.add('reftest-wait');</script>
+<body></body>
+<script>
+  'use strict';
+  // A permissive (no-CSP) document applies the shared full-coverage SVG mask, so
+  // its green background shows through. This is the expected result once the
+  // mask has loaded.
+  const permissive = document.createElement('iframe');
+  permissive.src = 'support/shared-stylesheet-mask-cache-bypass-permissive.html';
+  window.addEventListener('message', e => {
+    if (e.source === permissive.contentWindow && e.data === 'ready') {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        document.documentElement.classList.remove('reftest-wait');
+      }));
+    }
+  });
+  document.body.appendChild(permissive);
+</script>

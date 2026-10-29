@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::fmt::Write as _;
 use std::iter::Peekable;
 use std::str::{Chars, FromStr};
 
@@ -216,7 +217,7 @@ pub fn extract_mime_type_as_dataurl_mime(headers: &HeaderMap) -> Option<DataUrlM
         match DataUrlMime::from_str(header_value) {
             // > 6.2: If temporaryMimeType is failure or its essence is "*/*", then continue.
             Err(_) => continue,
-            Ok(temp_mime) => {
+            Ok(mut temp_mime) => {
                 let temp_essence = format!("{}/{}", temp_mime.type_, temp_mime.subtype);
 
                 // > 6.2: If temporaryMimeType is failure or its essence is "*/*", then
@@ -225,40 +226,27 @@ pub fn extract_mime_type_as_dataurl_mime(headers: &HeaderMap) -> Option<DataUrlM
                     continue;
                 }
 
-                // > 6.3: Set mimeType to temporaryMimeType.
-                mime_type = Some(DataUrlMime {
-                    type_: temp_mime.type_.to_string(),
-                    subtype: temp_mime.subtype.to_string(),
-                    parameters: temp_mime.parameters.clone(),
-                });
-
                 // > 6.4: If mimeType’s essence is not essence, then:
-                let temp_charset = &temp_mime.get_parameter("charset");
                 if temp_essence != essence {
                     // > 6.4.1: Set charset to null.
                     // > 6.4.2: If mimeType’s parameters["charset"] exists, then set
                     //   charset to mimeType’s parameters["charset"].
-                    charset = temp_charset.map(|c| c.to_string());
+                    charset = temp_mime.get_parameter("charset").map(ToString::to_string);
                     // > 6.4.3: Set essence to mimeType’s essence.
-                    essence = temp_essence.to_owned();
+                    essence = temp_essence;
                 } else {
                     // > 6.5: Otherwise, if mimeType’s parameters["charset"] does not exist,
                     //   and charset is non-null, set mimeType’s parameters["charset"] to charset.
-                    if temp_charset.is_none() && charset.is_some() {
-                        let DataUrlMime {
-                            type_: t,
-                            subtype: st,
-                            parameters: p,
-                        } = mime_type.unwrap();
-                        let mut params = p;
-                        params.push(("charset".to_string(), charset.clone().unwrap()));
-                        mime_type = Some(DataUrlMime {
-                            type_: t.to_string(),
-                            subtype: st.to_string(),
-                            parameters: params,
-                        })
+                    if temp_mime.get_parameter("charset").is_none() && charset.is_some() {
+                        temp_mime
+                            .parameters
+                            .push(("charset".to_string(), charset.clone().unwrap()));
                     }
                 }
+
+                // > 6.3: Set mimeType to temporaryMimeType.
+                // Deferred to here so steps 6.4 and 6.5 can use the owned value without cloning.
+                mime_type = Some(temp_mime);
             },
         }
     }
@@ -277,7 +265,7 @@ pub fn extract_mime_type_as_mime(headers: &HeaderMap) -> Option<mime::Mime> {
         // Try to transform a data-url::mime::Mime into a mime::Mime
         let mut mime_as_str = format!("{}/{}", mime.type_, mime.subtype);
         for p in mime.parameters {
-            mime_as_str.push_str(format!("; {}={}", p.0, p.1).as_str());
+            write!(mime_as_str, "; {}={}", p.0, p.1).unwrap();
         }
         mime_as_str.parse().ok()
     })

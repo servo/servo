@@ -42,6 +42,14 @@
       assert_true(track instanceof MediaStreamTrack, "camera.track is instance of MediaStreamTrack");
       assert_equals(track.kind, "video", "camera.track must be video kind");
       assert_not_equals(track.kind, "audio", "camera must never have audio track");
+
+      const appliedConstraints = track.getConstraints();
+      assert_equals(appliedConstraints.width, 640, "width constraint should be applied");
+      assert_equals(appliedConstraints.height, 480, "height constraint should be applied");
+
+      const settings = track.getSettings();
+      assert_equals(settings.width, 640, "width setting should be 640");
+      assert_equals(settings.height, 480, "height setting should be 480");
     }, "HTMLCameraElement initializes video track and never audio track");
 
     promise_test(async (t) => {
@@ -81,6 +89,11 @@
 
       assert_true(track instanceof MediaStreamTrack, "sanitized camera track successfully created");
       assert_equals(track.kind, "video", "sanitized track kind is video");
+
+      const appliedConstraints = track.getConstraints();
+      assert_equals(appliedConstraints.width, 640, "basic width constraint should be preserved");
+      assert_equals(appliedConstraints.height, 480, "basic height constraint should be preserved");
+      assert_false("frameRate" in appliedConstraints, "complex frameRate constraint should be stripped");
     }, "HTMLCameraElement setConstraints sanitization strips complex ranges without crashing");
   </script>
 </body>

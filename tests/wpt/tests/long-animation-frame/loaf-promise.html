@@ -38,11 +38,6 @@ test_promise_script(async (t, busy_wait) => {
 }, "resolve", "Response.json.then");
 
 test_promise_script(async (t, busy_wait) => {
-    const response = await import("/loading/resources/dummy.js");
-    busy_wait(very_long_frame_duration);
-}, "resolve", "import.then");
-
-test_promise_script(async (t, busy_wait) => {
     fetch(new URL("/common/dummy.xml", REMOTE_ORIGIN).href, {mode: "cors"})
         .catch(() => {
             busy_wait(very_long_frame_duration);

@@ -4,7 +4,7 @@
 ./components/script/dom/audio/audiobuffer.rs 7
 ./components/script/dom/audio/audiobuffersourcenode.rs 1
 ./components/script/dom/audio/audiocontext.rs 2
-./components/script/dom/audio/audionode.rs 18
+./components/script/dom/audio/audionode.rs 17
 ./components/script/dom/audio/audioparam.rs 2
 ./components/script/dom/audio/audioscheduledsourcenode.rs 2
 ./components/script/dom/audio/baseaudiocontext.rs 3
@@ -81,9 +81,6 @@
 ./components/script/dom/webxr/xrsystem.rs 4
 ./components/script/dom/webxr/xrwebglbinding.rs 10
 ./components/script/dom/webxr/xrwebgllayer.rs 4
-./components/script/dom/window/dissimilaroriginlocation.rs 6
-./components/script/dom/window/dissimilaroriginwindow.rs 1
-./components/script/dom/window/history.rs 9
 ./components/script/dom/window/window.rs 5
 ./components/script/dom/workers/sharedworker.rs 1
 ./components/script/dom/workers/worker.rs 1

@@ -80,7 +80,7 @@ impl VirtualMethods for HTMLLegendElement {
         {
             el.check_ancestors_disabled_state_for_form_control(cx.no_gc());
         } else {
-            el.check_disabled_attribute();
+            el.check_disabled_attribute(cx.no_gc());
         }
     }
 }

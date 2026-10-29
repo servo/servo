@@ -6,7 +6,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use js::jsapi::{Heap, JSObject};
+use js::jsapi::JSObject;
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooterGuard, HandleValue, MutableHandleValue};
 use script_bindings::interfaces::HasOrigin;
@@ -24,7 +24,6 @@ use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::structuredclone;
-use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::location::Location;
 use crate::dom::windowproxy::WindowProxy;
@@ -198,7 +197,7 @@ impl DissimilarOriginWindowMethods<crate::DomTypeHolder> for DissimilarOriginWin
                 .parent
                 .transfer
                 .iter()
-                .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+                .map(|js| js.get())
                 .collect::<Vec<_>>());
 
         self.post_message_impl(&options.targetOrigin, cx, message, transfer)
@@ -277,7 +276,7 @@ impl DissimilarOriginWindow {
             "/" => Some(source_origin.clone()),
             url => match ServoUrl::parse(url) {
                 Ok(url) => Some(url.origin()),
-                Err(_) => return Err(Error::Syntax(None)),
+                Err(_) => return Err(Error::Syntax(Some("Invalid target origin".into()))),
             },
         };
         let msg = ScriptToConstellationMessage::PostMessage {

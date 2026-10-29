@@ -3,15 +3,14 @@
 <head>
 <meta charset="utf-8">
 <title>CSS Multi-column Layout: parsing column-span with invalid values</title>
-<link rel="help" href="https://drafts.csswg.org/css-multicol/#propdef-column-span">
-<meta name="assert" content="column-span supports only the grammar 'none | all'.">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#propdef-column-span">
+<meta name="assert" content="column-span supports only the grammar 'none | <integer [1,∞]> | all | auto'.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
 </head>
 <body>
 <script>
-test_invalid_value("column-span", "auto");
 test_invalid_value("column-span", "none all");
 </script>
 </body>

@@ -1,0 +1,29 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<script>
+  customElements.define(
+    "x-test-button",
+    class extends HTMLButtonElement {
+      constructor() {
+        super();
+        this.setAttribute("data-test", "constructor");
+      }
+    },
+    {extends: "button"}
+  );
+  customElements.define(
+    "x-test-autonomous",
+    class extends HTMLElement {
+      constructor() {
+        super();
+        this.setAttribute("data-test", "constructor");
+      }
+    }
+  );
+</script>
+</head>
+<body>
+<button is="x-test-button" data-test="parser"></button>
+<x-test-autonomous data-test="parser"></x-test-autonomous>
+</body>
+</html>

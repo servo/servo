@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Reconstructing ancestor of replicated fixed-pos</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2083514">
+<!-- Really a crashtest but since we can't really have print crashtests, we assert that we print something -->
+<link rel="mismatch" href="/css/reference/blank.html">
+<style>
+@page { size: 360px 420px; margin: 15px; }
+body { font-size: 12px; }
+#box { container: box / inline-size; width: 220px; }
+#target::before, #target::after {
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: ruby;
+  content: "a";
+}
+@container box (min-width: 100px) {
+  #target { display: flex; }
+}
+.spacer { height: 2000px; }
+</style>
+<div id="box"><div id="target"></div></div>
+<div class="spacer">hello</div>

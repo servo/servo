@@ -109,6 +109,12 @@
           frame.src = SUPPORT + "dc-nest-csp-sandbox.html?id=" + id + "&child=aso";
         },
       ],
+      [
+        "data: iframe (a secure context, as its parent is)",
+        (frame, id) => {
+          frame.src = "data:text/html," + encodeURIComponent(reportDoc(id));
+        },
+      ],
     ];
     OPAQUE.forEach(([label, configure], index) => {
       promise_test(
@@ -171,18 +177,6 @@
           ") is not rejected as opaque",
       );
     });
-
-    promise_test(async () => {
-      const report = await runInFrame("data", (frame, id) => {
-        frame.src = "data:text/html," + encodeURIComponent(reportDoc(id));
-      });
-      assert_false(report.secure, "a data: document is not a secure context");
-      assert_equals(
-        report.result,
-        "TypeError",
-        "the API is unavailable, so it is a TypeError, not a SecurityError",
-      );
-    }, "get() in a data: iframe is unavailable (not a secure context) and never reaches the opaque-origin check");
 
     promise_test(async () => {
       const report = await runInFrame("blob-in-sandbox", (frame, id) => {

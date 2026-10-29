@@ -1,0 +1,91 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>The validity of a select updates when descendants of its placeholder label option change</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/form-elements.html#placeholder-label-option">
+<link rel=help href="https://html.spec.whatwg.org/multipage/form-elements.html#concept-option-value">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+// Returns a required select whose first option contains an empty <b><i></i></b>, followed by an
+// option containing "x". The first option is selected and is its placeholder label option as long
+// as its value is the empty string.
+function createSelect(t) {
+  const select = document.createElement("select");
+  select.required = true;
+  const placeholder = document.createElement("option");
+  const b = document.createElement("b");
+  const i = document.createElement("i");
+  b.append(i);
+  placeholder.append(b);
+  const other = document.createElement("option");
+  other.append("x");
+  select.append(placeholder, other);
+  document.body.append(select);
+  t.add_cleanup(() => select.remove());
+  return { select, placeholder, b, i, other };
+}
+
+function assert_valid(select, expected, description) {
+  assert_equals(select.checkValidity(), expected, description);
+  assert_equals(select.matches(":invalid"), !expected, `${description} (:invalid)`);
+}
+
+test(t => {
+  const { select, placeholder, i } = createSelect(t);
+  assert_true(placeholder.selected);
+  assert_valid(select, false, "The empty placeholder label option is selected");
+
+  i.append("a");
+  assert_equals(select.value, "a");
+  assert_valid(select, true, "After appending text to a descendant");
+
+  i.firstChild.remove();
+  assert_equals(select.value, "");
+  assert_valid(select, false, "After removing that text again");
+}, "Inserting and removing text in a descendant of the placeholder label option");
+
+test(t => {
+  const { select, i } = createSelect(t);
+  i.append("a");
+  assert_valid(select, true, "The placeholder label option has a non-empty value");
+
+  i.firstChild.data = "";
+  assert_equals(select.value, "");
+  assert_valid(select, false, "After emptying text in a descendant");
+
+  i.firstChild.data = "b";
+  assert_equals(select.value, "b");
+  assert_valid(select, true, "After changing that text again");
+}, "Changing the data of text in a descendant of the placeholder label option");
+
+test(t => {
+  const { select, b, i } = createSelect(t);
+  i.append("a");
+  assert_valid(select, true, "The placeholder label option has a non-empty value");
+
+  i.remove();
+  assert_equals(select.value, "");
+  assert_valid(select, false, "After removing the element containing the text");
+
+  b.append(i);
+  assert_equals(select.value, "a");
+  assert_valid(select, true, "After inserting that element again");
+}, "Inserting and removing an element containing text in a descendant of the placeholder label option");
+
+test(t => {
+  const { select, i, other } = createSelect(t);
+  const span = document.createElement("span");
+  span.append("a");
+  other.append(span);
+  assert_valid(select, false, "The empty placeholder label option is selected");
+
+  i.moveBefore(span.firstChild, null);
+  assert_equals(select.value, "a");
+  assert_valid(select, true, "After moving text into a descendant");
+
+  span.moveBefore(i.firstChild, null);
+  assert_equals(select.value, "");
+  assert_valid(select, false, "After moving that text out again");
+}, "Moving text into and out of a descendant of the placeholder label option");
+</script>

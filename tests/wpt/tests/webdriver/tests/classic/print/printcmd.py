@@ -47,14 +47,20 @@ def test_large_html_document(session, inline):
         canvas.width = width;
         canvas.height = height;
 
-        for (let x = 0; x < width; ++x) {
-            for (let y = 0; y < height; ++y) {
-                const colourHex = Math.floor(Math.random() * 0xffffff).toString(16);
-
-                context.fillStyle = `#${colourHex}`;
-                context.fillRect(x, y, 1, 1);
-            }
+        // Varied pixels keep the PDF large enough to exercise the size guard.
+        const image = context.createImageData(width, height);
+        let state = 0x9e3779b9;
+        for (let i = 0; i < image.data.length; i += 4) {
+            state ^= state << 13;
+            state ^= state >>> 17;
+            state ^= state << 5;
+            const pixel = state >>> 0;
+            image.data[i] = pixel & 0xff;
+            image.data[i + 1] = (pixel >>> 8) & 0xff;
+            image.data[i + 2] = (pixel >>> 16) & 0xff;
+            image.data[i + 3] = 0xff;
         }
+        context.putImageData(image, 0, 0);
         """
     )
 

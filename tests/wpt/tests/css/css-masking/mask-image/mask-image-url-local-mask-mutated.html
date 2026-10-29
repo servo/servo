@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Masking: SVG mask referenced by mask-image is dynamically updated</title>
+<link rel="help" href="https://drafts.csswg.org/css-masking-1/#the-mask-image">
+<link rel="match" href="reference/mask-image-url-local-mask-mutated-ref.html">
+<meta name="assert" content="Changing the geometry of a child of an SVG mask referenced by mask-image on an HTML element updates the rendering.">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+  mask-image: url(#mask);
+}
+</style>
+<div id="target"></div>
+<svg height="0" width="0">
+  <mask id="mask" maskContentUnits="objectBoundingBox">
+    <rect width="1" height="0" fill="white"></rect>
+  </mask>
+</svg>
+<script>
+waitForAtLeastOneFrame().then(function() {
+  document.querySelector('rect').setAttribute('height', 1);
+  takeScreenshot();
+});
+</script>

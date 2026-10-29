@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>New page: reports whether its pagereveal carried a view transition</title>
+<style>
+@view-transition { navigation: auto; }
+</style>
+<script>
+addEventListener('pagereveal', e => {
+  window.opener.postMessage(
+      'pagereveal:' + (e.viewTransition ? 'transition' : 'null'), '*');
+});
+</script>
+<div style="width: 100px; height: 100px; background: blue"></div>

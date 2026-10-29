@@ -152,11 +152,15 @@ impl ValidityState {
     pub(crate) fn update_pseudo_classes(&self, cx: &mut JSContext) {
         if self.element.is_instance_validatable(cx.no_gc()) {
             let is_valid = self.invalid_flags.get().is_empty();
-            self.element.set_state(ElementState::VALID, is_valid);
-            self.element.set_state(ElementState::INVALID, !is_valid);
+            self.element
+                .set_state(cx.no_gc(), ElementState::VALID, is_valid);
+            self.element
+                .set_state(cx.no_gc(), ElementState::INVALID, !is_valid);
         } else {
-            self.element.set_state(ElementState::VALID, false);
-            self.element.set_state(ElementState::INVALID, false);
+            self.element
+                .set_state(cx.no_gc(), ElementState::VALID, false);
+            self.element
+                .set_state(cx.no_gc(), ElementState::INVALID, false);
         }
 
         if let Some(form_control) = self.element.as_maybe_form_control() &&

@@ -56,7 +56,7 @@ use crate::dom::bindings::codegen::Bindings::ElementBinding::{
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
+use crate::dom::bindings::codegen::Bindings::HTMLOrSVGOrMathMLElementBinding::FocusOptions;
 use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -1193,6 +1193,7 @@ impl Element {
 }
 
 fn handle_send_keys_file(
+    cx: &mut JSContext,
     file_input: &HTMLInputElement,
     text: &str,
     reply_sender: GenericSender<Result<bool, ErrorStatus>>,
@@ -1234,7 +1235,7 @@ fn handle_send_keys_file(
     //
     // Do not reply to the response yet, as we are waiting for the files to arrive
     // asynchronously.
-    file_input.select_files_for_webdriver(files, reply_sender);
+    file_input.select_files_for_webdriver(cx, files, reply_sender);
 }
 
 /// We have verify previously that input element is not textual.
@@ -1344,7 +1345,7 @@ pub(crate) fn handle_will_send_keys(
     if let Some(input_element) = input_element {
         // Step 8 (Handle file upload)
         if is_file_input {
-            handle_send_keys_file(input_element, &text, reply);
+            handle_send_keys_file(cx, input_element, &text, reply);
             return;
         }
 
@@ -1391,6 +1392,7 @@ pub(crate) fn handle_get_active_element(
 }
 
 pub(crate) fn handle_get_computed_role(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
@@ -1407,7 +1409,7 @@ pub(crate) fn handle_get_computed_role(
                 window
                     .layout()
                     .set_accessibility_active(true, Epoch::default());
-                element.get_computed_role().map(String::from)
+                element.get_computed_role(cx).map(String::from)
             }),
         )
         .unwrap();

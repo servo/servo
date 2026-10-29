@@ -145,7 +145,7 @@ def update_event_commit_args(event):
 ~/start.sh   https://github.com/web-platform-tests/wpt.git   fetch_ref;
 
 cd web-platform-tests;
-./wpt tc-run --ref=fetch_ref --no-hosts -- test ;
+/usr/bin/tini ./wpt -- tc-run --ref=fetch_ref --no-hosts -- test ;
 """),
     ("pr_event.json",
      update_event_commit_args,
@@ -153,7 +153,7 @@ cd web-platform-tests;
 ~/start.sh   https://github.com/web-platform-tests/wpt.git   fetch_ref;
 
 cd web-platform-tests;
-./wpt tc-run --ref=fetch_ref --no-hosts -- test --test1 --test2=value;
+/usr/bin/tini ./wpt -- tc-run --ref=fetch_ref --no-hosts -- test --test1 --test2=value;
 """)
 ])
 def test_command(event_path, event_update, task, expected):

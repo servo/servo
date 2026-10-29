@@ -4,6 +4,7 @@
 
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
+use std::fmt::Write as _;
 use std::str;
 
 use devtools_traits::{
@@ -673,7 +674,7 @@ pub(crate) fn handle_get_xpath(
 
             if matching_elements_before + matching_elements_after != 0 {
                 // Need to add an index (note that XPath uses 1-based indexing)
-                result.push_str(&format!("[{}]", matching_elements_before + 1));
+                write!(result, "[{}]", matching_elements_before + 1).unwrap();
             }
 
             Some(result)

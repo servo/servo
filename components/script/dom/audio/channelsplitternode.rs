@@ -7,9 +7,11 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::audio_node::AudioNodeInit;
+use servo_media::audio::graph::NodeId;
 
 use crate::dom::audio::audionode::{AudioNode, AudioNodeOptionsHelper, MAX_CHANNEL_COUNT};
 use crate::dom::audio::baseaudiocontext::BaseAudioContext;
+use crate::dom::audionode::UnwrappedAudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };
@@ -26,65 +28,21 @@ pub(crate) struct ChannelSplitterNode {
 }
 
 impl ChannelSplitterNode {
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn new_inherited(
-        cx: &mut JSContext,
-        _: &Window,
+    fn new_inherited(
+        node_id: Option<NodeId>,
         context: &BaseAudioContext,
-        options: &ChannelSplitterOptions,
-    ) -> Fallible<ChannelSplitterNode> {
-        if options.numberOfOutputs < 1 || options.numberOfOutputs > MAX_CHANNEL_COUNT {
-            return Err(Error::IndexSize(None));
+        node_options: UnwrappedAudioNodeOptions,
+        number_of_outputs: u32,
+    ) -> Self {
+        ChannelSplitterNode {
+            node: AudioNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                1,                 // inputs
+                number_of_outputs, // outputs
+            ),
         }
-
-        let node_options = options.parent.unwrap_or(
-            options.numberOfOutputs,
-            ChannelCountMode::Explicit,
-            ChannelInterpretation::Discrete,
-        );
-
-        if node_options.count != options.numberOfOutputs ||
-            node_options.mode != ChannelCountMode::Explicit ||
-            node_options.interpretation != ChannelInterpretation::Discrete
-        {
-            return Err(Error::InvalidState(None));
-        }
-
-        let node = AudioNode::new_inherited(
-            cx,
-            AudioNodeInit::ChannelSplitterNode,
-            context,
-            node_options,
-            1,                       // inputs
-            options.numberOfOutputs, // outputs
-        )?;
-        Ok(ChannelSplitterNode { node })
-    }
-
-    pub(crate) fn new(
-        cx: &mut JSContext,
-        window: &Window,
-        context: &BaseAudioContext,
-        options: &ChannelSplitterOptions,
-    ) -> Fallible<DomRoot<ChannelSplitterNode>> {
-        Self::new_with_proto(cx, window, None, context, options)
-    }
-
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    fn new_with_proto(
-        cx: &mut JSContext,
-        window: &Window,
-        proto: Option<HandleObject>,
-        context: &BaseAudioContext,
-        options: &ChannelSplitterOptions,
-    ) -> Fallible<DomRoot<ChannelSplitterNode>> {
-        let node = ChannelSplitterNode::new_inherited(cx, window, context, options)?;
-        Ok(reflect_dom_object_with_proto(
-            cx,
-            Box::new(node),
-            window,
-            proto,
-        ))
     }
 }
 
@@ -97,6 +55,43 @@ impl ChannelSplitterNodeMethods<crate::DomTypeHolder> for ChannelSplitterNode {
         context: &BaseAudioContext,
         options: &ChannelSplitterOptions,
     ) -> Fallible<DomRoot<ChannelSplitterNode>> {
-        ChannelSplitterNode::new_with_proto(cx, window, proto, context, options)
+        if options.numberOfOutputs < 1 || options.numberOfOutputs > MAX_CHANNEL_COUNT {
+            return Err(Error::IndexSize(None));
+        }
+
+        let node_options = options.parent.unwrap_or(
+            options.numberOfOutputs,
+            ChannelCountMode::Explicit,
+            ChannelInterpretation::Discrete,
+        );
+
+        if AudioNode::channel_count_check(node_options.count) {
+            return Err(Error::NotSupported(Some(String::from(
+                "Channel count not supported",
+            ))));
+        }
+
+        if node_options.count != options.numberOfOutputs ||
+            node_options.mode != ChannelCountMode::Explicit ||
+            node_options.interpretation != ChannelInterpretation::Discrete
+        {
+            return Err(Error::InvalidState(None));
+        }
+
+        let audio_node_init = AudioNodeInit::ChannelSplitterNode;
+        let node_id =
+            AudioNode::generate_audio_node_id(cx, &node_options, audio_node_init, context);
+
+        Ok(reflect_dom_object_with_proto(
+            cx,
+            Box::new(ChannelSplitterNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                options.numberOfOutputs, // outputs
+            )),
+            window,
+            proto,
+        ))
     }
 }

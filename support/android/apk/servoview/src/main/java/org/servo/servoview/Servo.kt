@@ -47,6 +47,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun Servo(
+    experimentalModeEnabled: Boolean,
     softKeyboardVisible: Boolean,
     servo: Servo,
     navigator: ServoNavigator,
@@ -62,6 +63,7 @@ fun Servo(
         }
     }
     LaunchedEffect(servo, navigator) { navigator.consumeNavigationEvents(servo) }
+    LaunchedEffect(experimentalModeEnabled) { servo.setExperimentalMode(experimentalModeEnabled) }
 
     val focusRequester = remember { FocusRequester() }
     AndroidView(
@@ -299,10 +301,6 @@ class Servo(
         servoCallbacks.suspended = suspended
     }
 
-    fun mediaSessionAction(action: Int) {
-        scope.launch(glDispatcher) { jni.mediaSessionAction(action) }
-    }
-
     fun setExperimentalMode(enable: Boolean) {
         scope.launch(glDispatcher) { jni.setExperimentalMode(enable) }
     }
@@ -325,12 +323,6 @@ class Servo(
         fun onImeShow()
 
         fun onImeHide()
-
-        fun onMediaSessionMetadata(title: String, artist: String, album: String)
-
-        fun onMediaSessionPlaybackStateChange(state: Int)
-
-        fun onMediaSessionSetPositionState(duration: Float, position: Float, playbackRate: Float)
     }
 
     private class Callbacks(
@@ -379,22 +371,6 @@ class Servo(
         override fun onHistoryChanged(canGoBack: Boolean, canGoForward: Boolean) {
             navigator.canGoBack = canGoBack
             navigator.canGoForward = canGoForward
-        }
-
-        override fun onMediaSessionMetadata(title: String, artist: String, album: String) {
-            scope.launch { client.onMediaSessionMetadata(title, artist, album) }
-        }
-
-        override fun onMediaSessionPlaybackStateChange(state: Int) {
-            scope.launch { client.onMediaSessionPlaybackStateChange(state) }
-        }
-
-        override fun onMediaSessionSetPositionState(
-            duration: Float,
-            position: Float,
-            playbackRate: Float,
-        ) {
-            scope.launch { client.onMediaSessionSetPositionState(duration, position, playbackRate) }
         }
     }
 }

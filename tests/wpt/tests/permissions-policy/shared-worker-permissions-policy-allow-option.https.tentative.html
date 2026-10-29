@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<title>Permissions Policy for Shared Workers: SharedWorkerOptions.allow</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+function createWorkerBlobUrl(code) {
+  const blob = new Blob([code], { type: 'application/javascript' });
+  return URL.createObjectURL(blob);
+}
+
+promise_test(async t => {
+  const workerUrl = createWorkerBlobUrl(`
+    self.onconnect = (e) => {
+      const port = e.ports[0];
+      port.postMessage('running');
+    };
+  `);
+  const worker = new SharedWorker(workerUrl, { allow: 'serial' });
+  const errored = await new Promise(resolve => {
+    worker.onerror = e => {
+      resolve(true);
+    };
+    worker.port.onmessage = () => resolve(false);
+  });
+  assert_true(errored);
+}, "SharedWorker cannot be created with disallowed feature in 'allow'");
+
+promise_test(async t => {
+  const workerUrl = createWorkerBlobUrl(`
+    self.onconnect = (e) => {
+      const port = e.ports[0];
+      port.postMessage('running');
+    };
+  `);
+  const worker = new SharedWorker(workerUrl, { allow: 'usb' });
+  assert_equals(await new Promise(resolve => {
+    worker.port.onmessage = e => resolve(e.data);
+  }), 'running');
+}, "SharedWorker can be created with allowed feature in 'allow'");
+
+var dataWorkerUrlCounter = 0;
+function dataWorkerUrl() {
+  // Use a unique script per test so that each test gets its own SharedWorker
+  // instance.
+  return 'data:text/javascript,' + encodeURIComponent(`
+    // ${dataWorkerUrlCounter++}
+    self.onconnect = (e) => {
+      const port = e.ports[0];
+      port.postMessage('running');
+    };
+  `);
+}
+
+function workerOutcome(worker) {
+  return new Promise(resolve => {
+    worker.onerror = () => resolve('error');
+    worker.port.onmessage = e => resolve(e.data);
+  });
+}
+
+promise_test(async t => {
+  // 'usb' has a default allowlist of 'self' and no declared policy in this
+  // document, so it can be delegated to the opaque origin of a data: URL
+  // worker.
+  const worker = new SharedWorker(dataWorkerUrl(), { allow: 'usb' });
+  assert_equals(await workerOutcome(worker), 'running');
+}, "data: URL SharedWorker can be delegated a default 'self' feature " +
+   "without a declared policy");
+
+promise_test(async t => {
+  // 'hid' is declared as 'self' in this document, so it can be delegated to a
+  // same-origin worker...
+  const workerUrl = createWorkerBlobUrl(`
+    self.onconnect = (e) => {
+      const port = e.ports[0];
+      port.postMessage('running');
+    };
+  `);
+  const worker = new SharedWorker(workerUrl, { allow: 'hid' });
+  assert_equals(await workerOutcome(worker), 'running');
+}, "Same-origin SharedWorker can be delegated a feature declared as 'self'");
+
+promise_test(async t => {
+  // ...but not to the opaque origin of a data: URL worker.
+  const worker = new SharedWorker(dataWorkerUrl(), { allow: 'hid' });
+  assert_equals(await workerOutcome(worker), 'error');
+}, "data: URL SharedWorker cannot be delegated a feature declared as 'self'");
+
+test(t => {
+  const workerUrl = createWorkerBlobUrl("");
+  const worker = new Worker(workerUrl, { allow: 'serial' });
+  t.add_cleanup(() => worker.terminate());
+}, "DedicatedWorker ignores 'allow' option");
+</script>
+</body>

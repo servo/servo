@@ -162,9 +162,7 @@ class MachCommands(CommandBase):
             for key in env:
                 print((key, env[key]))
 
-        status = self.run_cargo_build_like_command(
-            "rustc", opts, env=env, verbose=verbose, sanitizer=sanitizer, **kwargs
-        )
+        status = self.run_cargo_build_like_command("rustc", opts, env=env, verbose=verbose, **kwargs)
 
         if status == 0:
             if not no_package and self.target.needs_packaging():
@@ -271,23 +269,32 @@ class MachCommands(CommandBase):
         llvm_major: int = rustc_llvm_version[0]
         target_clang = f"clang-{llvm_major}"
         target_cxx = f"clang++-{llvm_major}"
+
+        # libasan can be compatible across multiple compiler versions and has a
+        # runtime check, which would fail if we used incompatible compilers, so
+        # we can try and fall back to the default clang.
         if shutil.which(target_clang) is None or shutil.which(target_cxx) is None:
-            env.setdefault("TARGET_CC", "clang")
-            env.setdefault("TARGET_CXX", "clang++")
-        else:
-            # libasan can be compatible across multiple compiler versions and has a
-            # runtime check, which would fail if we used incompatible compilers, so
-            # we can try and fallback to the default clang.
-            env.setdefault("TARGET_CC", target_clang)
-            env.setdefault("TARGET_CXX", target_cxx)
+            target_clang = "clang"
+            target_cxx = "clang++"
+
+        env.setdefault("TARGET_CC", target_clang)
+        env.setdefault("TARGET_CXX", target_cxx)
+        target_triple_env = target_triple.replace("-", "_")
+        env.setdefault(f"CC_{target_triple_env}", target_clang)
+        env.setdefault(f"CXX_{target_triple_env}", target_cxx)
+
         # By default, build mozjs from source to enable Sanitizers in mozjs.
         env.setdefault("MOZJS_FROM_SOURCE", "1")
 
-        # We need to use `TARGET_CFLAGS`, since we don't want to compile host dependencies with ASAN,
+        # We need to use target specific CFLAGS, since we don't want to compile host dependencies with ASAN,
         # since that causes issues when building build-scripts / proc macros.
+        # `TARGET_CFLAGS` is ignored by `cc-rs` when not cross-compiling.
         # The actual flags will be appended below depending on the sanitizer kind.
-        env.setdefault("TARGET_CFLAGS", "")
-        env.setdefault("TARGET_CXXFLAGS", "")
+        triple = self.target.triple().replace("-", "_")
+        cflags_target_var = f"CFLAGS_{triple}"
+        cxxflags_target_var = f"CXXFLAGS_{triple}"
+        env.setdefault(cflags_target_var, "")
+        env.setdefault(cxxflags_target_var, "")
         env.setdefault("RUSTFLAGS", "")
 
         if sanitizer.is_asan():
@@ -300,8 +307,8 @@ class MachCommands(CommandBase):
 
             # Enable asan
             env["RUSTFLAGS"] += " -Zsanitizer=address"
-            env["TARGET_CFLAGS"] += " -fsanitize=address"
-            env["TARGET_CXXFLAGS"] += " -fsanitize=address"
+            env[cflags_target_var] += " -fsanitize=address"
+            env[cxxflags_target_var] += " -fsanitize=address"
 
         elif sanitizer.is_tsan():
             if target_triple not in SUPPORTED_TSAN_TARGETS:
@@ -311,8 +318,8 @@ class MachCommands(CommandBase):
                 )
                 sys.exit(1)
             env["RUSTFLAGS"] += " -Zsanitizer=thread"
-            env["TARGET_CFLAGS"] += " -fsanitize=thread"
-            env["TARGET_CXXFLAGS"] += " -fsanitize=thread"
+            env[cflags_target_var] += " -fsanitize=thread"
+            env[cxxflags_target_var] += " -fsanitize=thread"
 
 
 def copy_windows_dlls_to_build_directory(servo_binary: str, target: BuildTarget) -> bool:

@@ -138,6 +138,12 @@ async function DeleteCookieInFrame(frame, name, params) {
 async function SetFirstPartyCookie(origin, cookie="cookie=unpartitioned;Secure;SameSite=None;Path=/") {
   return new Promise((resolve) => {
     const onMessage = (event) => {
+      // Ignore unrelated messages (e.g. the `{type: "complete"}` message that
+      // testharness.js posts to ancestor windows from embedded frames when
+      // their harness timeout fires). Only remove this listener once the
+      // expected message has been processed; do not use `{ once: true }`, as
+      // that would detach the listener on the first unrelated message and the
+      // returned promise would never resolve.
       if (event && event.data === 'set-document-cookie-complete') {
         window.removeEventListener('message', onMessage);
         resolve();

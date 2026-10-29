@@ -1220,7 +1220,7 @@ impl ScriptThread {
 
             // Run the resize observer steps.
             let mut depth = Default::default();
-            while document.gather_active_resize_observations_at_depth(cx.no_gc(), &depth) {
+            while document.gather_active_resize_observations_at_depth(cx, &depth) {
                 // Note: this will reflow the doc.
                 depth = document.broadcast_active_resize_observations(cx);
             }
@@ -2577,6 +2577,7 @@ impl ScriptThread {
             },
             WebDriverScriptCommand::GetComputedRole(node_id, reply) => {
                 webdriver_handlers::handle_get_computed_role(
+                    cx,
                     &documents,
                     pipeline_id,
                     node_id,
@@ -3290,6 +3291,10 @@ impl ScriptThread {
                 // Clear the image cache now, instead of waiting for the Window to be
                 // garbage collected. See servo/servo#45239.
                 window.image_cache().clear();
+
+                // Tear down the GlobalScope to ensure that garbage collection happens
+                // immediately.
+                window.as_global_scope().tear_down();
 
                 debug!("{pipeline_id}: Clearing JavaScript runtime");
                 window.clear_js_runtime();

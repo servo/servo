@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>An option cloned into a selectedcontent element is not an option of the select</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/form-elements.html#clone-an-option-into-a-selectedcontent">
+<link rel=help href="https://github.com/whatwg/html/issues/13038">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+
+<!-- The <span> makes the parser nest the second <option> inside the first option's subtree.
+     The first option is selected by default, so its children (including the nested option)
+     are cloned into the <selectedcontent>. The nested option deliberately has no selected
+     attribute: that keeps this test from looping (see issue 13038) while still exercising
+     whether the clone is wrongly treated as an option of the select. -->
+<select id=select>
+  <button><selectedcontent></selectedcontent></button>
+  <option id=outer>X<span><option>Y</option></span></option>
+</select>
+
+<script>
+test(() => {
+  const select = document.getElementById("select");
+  assert_equals(document.querySelectorAll("#select selectedcontent option").length, 1,
+    "the nested option is cloned into the selectedcontent element");
+  // The clone lives inside a selectedcontent element, so it must not be an option of the
+  // select. If it were, selecting it would run the selectedcontent update again and, with
+  // a selected nested option, loop forever.
+  assert_equals(select.options.length, 1, "select.options excludes the clone");
+  assert_equals(select.options[0], document.getElementById("outer"),
+    "the only option is the authored one, not the clone");
+  assert_equals(select.length, 1, "select.length excludes the clone");
+}, "An option cloned into a selectedcontent element is not in the select's list of options");
+</script>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>drawElementImage with nested drawable inside filtered ancestor</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="match" href="nested-drawable-filter-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+  #canvas {
+    width: 200px;
+    height: 200px;
+    background: #eee;
+  }
+  #ancestor {
+    filter: blur(2px);
+    opacity: 0.5;
+  }
+  #target {
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+</style>
+
+<canvas id="canvas" width="200" height="200" content=drawable>
+  <div id="ancestor" drawable>
+    <div id="target" drawable></div>
+  </div>
+</canvas>
+
+<script>
+  onload = async () => {
+    await waitForCanvasPaint(canvas);
+    const ctx = canvas.getContext('2d');
+    ctx.drawElementImage(target, 0, 0, 100, 100);
+    takeScreenshot();
+  };
+</script>
+</html>

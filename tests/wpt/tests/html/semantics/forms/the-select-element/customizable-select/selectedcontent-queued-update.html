@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>selectedcontent updates queued by removing and moving</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+
+<script>
+function observeRecords(t, selectedcontent) {
+  const records = [];
+  const observer = new MutationObserver(newRecords => records.push(...newRecords));
+  t.add_cleanup(() => observer.disconnect());
+  observer.observe(selectedcontent, {childList: true});
+  return () => {
+    records.push(...observer.takeRecords());
+    return records;
+  };
+}
+</script>
+
+<select id=select1>
+  <button>
+    <selectedcontent></selectedcontent>
+  </button>
+  <option>one</option>
+  <option id=option1b>two</option>
+</select>
+
+<script>
+// When no option is selected, removing an option selects the first enabled
+// option, which need not be the removed one.
+promise_test(async () => {
+  const select = document.getElementById('select1');
+  const selectedcontent = select.querySelector('selectedcontent');
+
+  select.selectedIndex = -1;
+  assert_equals(selectedcontent.innerHTML, '',
+    'selectedcontent should be cleared when no option is selected.');
+
+  document.getElementById('option1b').remove();
+  await new Promise(queueMicrotask);
+
+  assert_equals(select.value, 'one',
+    'Removing an option should select the first enabled option.');
+  assert_equals(selectedcontent.innerHTML, 'one',
+    'selectedcontent should be updated when removing an option selects another option.');
+}, 'Removing an option that causes another option to be selected updates selectedcontent.');
+</script>
+
+<select id=select2>
+  <button>
+    <selectedcontent></selectedcontent>
+  </button>
+  <option>one</option>
+  <option>two</option>
+  <option>three</option>
+</select>
+
+<script>
+// Removing a selected option queues an update of the select's descendant
+// selectedcontent elements. Queuing another before it runs does nothing.
+promise_test(async t => {
+  const select = document.getElementById('select2');
+  const selectedcontent = select.querySelector('selectedcontent');
+  const [optionOne, optionTwo] = select.options;
+  const takeRecords = observeRecords(t, selectedcontent);
+
+  optionOne.remove();
+  optionTwo.remove();
+  await new Promise(queueMicrotask);
+
+  assert_equals(selectedcontent.textContent, 'three',
+    'selectedcontent should match the selected option.');
+  assert_equals(takeRecords().length, 1,
+    'Removing the selected option twice should update selectedcontent once.');
+}, 'Removing options queues a single update of selectedcontent.');
+</script>
+
+<select id=select3>
+  <button>
+    <selectedcontent></selectedcontent>
+  </button>
+  <option>one</option>
+  <option>two</option>
+  <option id=option3c>three</option>
+</select>
+
+<script>
+promise_test(async t => {
+  const select = document.getElementById('select3');
+  const selectedcontent = select.querySelector('selectedcontent');
+  const takeRecords = observeRecords(t, selectedcontent);
+
+  select.options[0].remove();
+  document.getElementById('option3c').selected = true;
+  assert_equals(selectedcontent.textContent, 'three',
+    'Setting selected should update selectedcontent synchronously.');
+  await new Promise(queueMicrotask);
+
+  assert_equals(selectedcontent.textContent, 'three',
+    'selectedcontent should still match the selected option.');
+  assert_equals(takeRecords().length, 1,
+    'The queued update should do nothing once selectedcontent was updated.');
+}, 'A queued update of selectedcontent does nothing if it was updated in the meantime.');
+</script>
+
+<select id=select4>
+  <button>
+    <selectedcontent></selectedcontent>
+  </button>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<script>
+// The option post-connection steps perform an update that is still pending.
+test(() => {
+  const select = document.getElementById('select4');
+  const selectedcontent = select.querySelector('selectedcontent');
+
+  select.options[0].remove();
+  assert_equals(selectedcontent.textContent, 'one',
+    'Removing the selected option should not update selectedcontent synchronously.');
+
+  select.append(new Option('three'));
+
+  assert_equals(select.value, 'two',
+    'Removing the selected option should select the next one.');
+  assert_equals(selectedcontent.textContent, 'two',
+    'Inserting an option should update selectedcontent synchronously.');
+}, 'Inserting an option performs a pending update of selectedcontent.');
+</script>
+
+<select id=select5a>
+  <button>
+    <selectedcontent id=selectedcontent5></selectedcontent>
+  </button>
+  <option>one</option>
+</select>
+<select id=select5b>
+  <button></button>
+  <option>two</option>
+</select>
+
+<script>
+promise_test(async t => {
+  const selectA = document.getElementById('select5a');
+  const selectB = document.getElementById('select5b');
+  const selectedcontent = document.getElementById('selectedcontent5');
+  const takeRecords = observeRecords(t, selectedcontent);
+
+  selectB.querySelector('button').moveBefore(selectedcontent, null);
+  selectA.querySelector('button').moveBefore(selectedcontent, null);
+  await new Promise(queueMicrotask);
+
+  assert_equals(selectedcontent.textContent, 'one',
+    'selectedcontent should match the selected option of its select.');
+  assert_equals(takeRecords().length, 1,
+    'Moving selectedcontent twice should update it once.');
+}, 'Moving a selectedcontent element twice queues a single update.');
+</script>
+
+<select id=select6a>
+  <button>
+    <selectedcontent id=selectedcontent6></selectedcontent>
+  </button>
+  <option>one</option>
+</select>
+<select id=select6b>
+  <button></button>
+  <option>two</option>
+  <option id=option6c>three</option>
+</select>
+
+<script>
+promise_test(async t => {
+  const selectB = document.getElementById('select6b');
+  const selectedcontent = document.getElementById('selectedcontent6');
+  const takeRecords = observeRecords(t, selectedcontent);
+
+  selectB.querySelector('button').moveBefore(selectedcontent, null);
+  document.getElementById('option6c').selected = true;
+  assert_equals(selectedcontent.textContent, 'three',
+    'Setting selected should update the moved selectedcontent synchronously.');
+  await new Promise(queueMicrotask);
+
+  assert_equals(selectedcontent.textContent, 'three',
+    'selectedcontent should still match the selected option.');
+  assert_equals(takeRecords().length, 1,
+    'The queued update should do nothing once selectedcontent was updated.');
+}, 'A queued update of a moved selectedcontent element does nothing if it was updated in the meantime.');
+</script>
+
+<select id=select7>
+  <button>
+    <selectedcontent></selectedcontent>
+  </button>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<script>
+// The selectedcontent post-connection steps leave the update queued by removing
+// the option to its microtask, which updates the inserted selectedcontent along
+// with the existing one.
+promise_test(async t => {
+  const select = document.getElementById('select7');
+  const selectedcontent = select.querySelector('selectedcontent');
+  const newSelectedcontent = document.createElement('selectedcontent');
+  const takeRecords = observeRecords(t, selectedcontent);
+  const takeNewRecords = observeRecords(t, newSelectedcontent);
+
+  select.options[0].remove();
+  select.querySelector('button').append(newSelectedcontent);
+
+  assert_equals(newSelectedcontent.textContent, '',
+    'Inserting selectedcontent should not update it while an update is queued.');
+  await new Promise(queueMicrotask);
+
+  assert_equals(selectedcontent.textContent, 'two',
+    'The existing selectedcontent should match the selected option.');
+  assert_equals(newSelectedcontent.textContent, 'two',
+    'The inserted selectedcontent should match the selected option.');
+  assert_equals(takeRecords().length, 1,
+    'The existing selectedcontent should be updated once.');
+  assert_equals(takeNewRecords().length, 1,
+    'The inserted selectedcontent should be updated once.');
+}, 'Inserting selectedcontent while an update of its select\'s selectedcontent elements is queued leaves it to that update.');
+</script>
+
+<select id=select8 size=2>
+  <button>
+    <selectedcontent></selectedcontent>
+  </button>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<script>
+// A list box does not select its first enabled option, so removing an
+// unselected option does not change selectedness.
+promise_test(async t => {
+  const select = document.getElementById('select8');
+  const selectedcontent = select.querySelector('selectedcontent');
+  assert_equals(select.selectedIndex, -1,
+    'No option should be selected at the start of the test.');
+  selectedcontent.textContent = 'none';
+  const takeRecords = observeRecords(t, selectedcontent);
+
+  select.options[1].remove();
+  await new Promise(queueMicrotask);
+
+  assert_equals(selectedcontent.textContent, 'none',
+    'selectedcontent should keep its children.');
+  assert_equals(takeRecords().length, 0,
+    'Removing an unselected option should not update selectedcontent.');
+}, 'Removing an unselected option from a list box without a selected option does not update selectedcontent.');
+</script>

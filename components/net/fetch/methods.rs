@@ -49,7 +49,6 @@ use crate::connector::CACertificates;
 use crate::devtools::{
     send_early_httprequest_to_devtools, send_response_to_devtools, send_security_info_to_devtools,
 };
-use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::{
     ConsumePreloadedResources, FetchParams, SharedPreloadedResources,
 };
@@ -177,24 +176,13 @@ pub type DoneChannel = Option<(TokioSender<Data>, TokioReceiver<Data>)>;
 
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
 pub async fn fetch(request: Request, target: Target<'_>, context: &FetchContext) -> Response {
-    fetch_with_cors_cache(request, &mut CorsCache::default(), target, context).await
-}
-
-/// Continuation of fetch from step 8.
-///
-/// <https://fetch.spec.whatwg.org#concept-fetch>
-pub async fn fetch_with_cors_cache(
-    request: Request,
-    cache: &mut CorsCache,
-    target: Target<'_>,
-    context: &FetchContext,
-) -> Response {
     // Step 7. Let timingInfo be a new fetch timing info whose start time
     // and post-redirect start time are the coarsened shared current time
     // given crossOriginIsolatedCapability,
     // and render-blocking is set to request’s render-blocking.
     let timing_info: ResourceFetchTimingContainer =
         ResourceFetchTiming::new(request.timing_type()).into();
+
     timing_info.set_attributes(&[
         ResourceAttribute::FetchStart,
         ResourceAttribute::StartTime(ResourceTimeValue::FetchStart),
@@ -293,7 +281,7 @@ pub async fn fetch_with_cors_cache(
     let request_id = request.id;
 
     // Step 17: Run main fetch given fetchParams.
-    let response = main_fetch(&mut fetch_params, cache, false, target, &mut None, context).await;
+    let response = main_fetch(&mut fetch_params, false, target, &mut None, context).await;
 
     if transfers_request_body_stream_to_later_manual_redirect(&fetch_params.request, &response) {
         request_body_stream_closer.disarm();
@@ -413,7 +401,6 @@ fn should_response_be_blocked_by_csp(
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
 pub async fn main_fetch(
     fetch_params: &mut FetchParams,
-    cache: &mut CorsCache,
     recursive_flag: bool,
     target: Target<'_>,
     done_chan: &mut DoneChannel,
@@ -610,7 +597,7 @@ pub async fn main_fetch(
                 request.response_tainting = ResponseTainting::Basic;
 
                 // Substep 2. Return the result of running scheme fetch given fetchParams.
-                scheme_fetch(fetch_params, cache, target, done_chan, context).await
+                scheme_fetch(fetch_params, target, done_chan, context).await
             } else if request.mode == RequestMode::SameOrigin {
                 Response::network_error(NetworkError::CrossOriginResponse)
             } else if request.mode == RequestMode::NoCors {
@@ -622,7 +609,7 @@ pub async fn main_fetch(
                     request.response_tainting = ResponseTainting::Opaque;
 
                     // Substep 3. Return the result of running scheme fetch given fetchParams.
-                    scheme_fetch(fetch_params, cache, target, done_chan, context).await
+                    scheme_fetch(fetch_params, target, done_chan, context).await
                 }
             } else if !matches!(current_scheme, "http" | "https") {
                 Response::network_error(NetworkError::UnsupportedScheme)
@@ -636,41 +623,29 @@ pub async fn main_fetch(
                 // Substep 1. Set request’s response tainting to "cors".
                 request.response_tainting = ResponseTainting::CorsTainting;
 
+                let origin = request.origin.clone();
+                let url = request.current_url();
+
                 // Substep 2. Let corsWithPreflightResponse be the result of running override fetch
                 // given "http-fetch", fetchParams, and true.
-                let response = http_fetch(
-                    fetch_params,
-                    cache,
-                    true,
-                    true,
-                    false,
-                    target,
-                    done_chan,
-                    context,
-                )
-                .await;
-                // Substep 3.
-                if response.is_network_error() {
-                    // TODO clear cache entries using request
+                let cors_with_preflight_response =
+                    http_fetch(fetch_params, true, true, false, target, done_chan, context).await;
+                // Substep 3. If corsWithPreflightResponse is a network error, then clear cache entries using request.
+                if cors_with_preflight_response.is_network_error() {
+                    context
+                        .state
+                        .cors_cache
+                        .write()
+                        .clear_entries_for_origin_and_url(&origin, &url);
                 }
-                // Substep 4.
-                response
+                // Substep 4. Return corsWithPreflightResponse.
+                cors_with_preflight_response
             } else {
                 // Substep 1. Set request’s response tainting to "cors".
                 request.response_tainting = ResponseTainting::CorsTainting;
 
                 // Substep 2. Return the result of running override fetch given "http-fetch" and fetchParams.
-                http_fetch(
-                    fetch_params,
-                    cache,
-                    true,
-                    false,
-                    false,
-                    target,
-                    done_chan,
-                    context,
-                )
-                .await
+                http_fetch(fetch_params, true, false, false, target, done_chan, context).await
             }
         },
     };
@@ -1104,7 +1079,6 @@ fn handle_allowcert_request(request: &mut Request, context: &FetchContext) -> io
 /// [Scheme fetch](https://fetch.spec.whatwg.org#scheme-fetch)
 async fn scheme_fetch(
     fetch_params: &mut FetchParams,
-    cache: &mut CorsCache,
     target: Target<'_>,
     done_chan: &mut DoneChannel,
     context: &FetchContext,
@@ -1134,7 +1108,6 @@ async fn scheme_fetch(
         "http" | "https" => {
             http_fetch(
                 fetch_params,
-                cache,
                 false,
                 false,
                 false,

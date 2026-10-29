@@ -253,16 +253,15 @@ impl Response {
             ResponseType::Default | ResponseType::Error(..)
         ));
 
-        let old_response = self.to_actual();
+        let mut old_response = self.to_actual();
 
         if let ResponseType::Error(e) = old_response.response_type {
             return Response::network_error(e);
         }
 
-        let mut response = old_response.clone();
         // This is ok as we always set the `response.headers` in all branches in the following.
-        let old_headers = std::mem::take(&mut response.headers);
-        response.internal_response = Some(Box::new(old_response));
+        let old_headers = std::mem::take(&mut old_response.headers);
+        let mut response = old_response.clone();
         response.response_type = filter_type;
 
         match response.response_type {
@@ -328,10 +327,14 @@ impl Response {
             },
         }
 
+        old_response.headers = old_headers;
+        response.internal_response = Some(Box::new(old_response));
+
         response
     }
 
     pub fn metadata(&self) -> Result<FetchMetadata, NetworkError> {
+        // TODO: Clean this up by only constructing necessary fields.
         fn init_metadata(response: &Response, url: &ServoUrl) -> Metadata {
             let mut metadata = Metadata::default(url.clone());
             metadata.set_content_type(extract_mime_type_as_mime(&response.headers).as_ref());
@@ -351,8 +354,9 @@ impl Response {
             return Err(error.clone());
         }
 
+        // `url`` is only Some for Basic and Cors, not for Opaque and OpaqueRedirect.
+        // Hence, the later unwrap are fine.
         let metadata = self.url.as_ref().map(|url| init_metadata(self, url));
-
         if let Some(ref response) = self.internal_response {
             match response.url {
                 Some(ref url) => {
@@ -360,11 +364,11 @@ impl Response {
 
                     match self.response_type {
                         ResponseType::Basic => Ok(FetchMetadata::Filtered {
-                            filtered: FilteredMetadata::Basic(metadata.unwrap()),
+                            filtered: FilteredMetadata::Basic(metadata.unwrap().into()),
                             unsafe_: unsafe_metadata,
                         }),
                         ResponseType::Cors => Ok(FetchMetadata::Filtered {
-                            filtered: FilteredMetadata::Cors(metadata.unwrap()),
+                            filtered: FilteredMetadata::Cors(metadata.unwrap().into()),
                             unsafe_: unsafe_metadata,
                         }),
                         ResponseType::Default => unreachable!(),

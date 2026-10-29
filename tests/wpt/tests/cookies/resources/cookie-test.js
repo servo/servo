@@ -37,7 +37,23 @@ async function getAndExpireCookiesForRedirectTest(location) {
       };
       window.addEventListener('message', listener);
       iframe.addEventListener('load', (e) => {
-        e.target.contentWindow.postMessage('getAndExpireCookiesForRedirectTest', '*');
+        // When redirecting to a directory path (e.g. ending in '/'), wptserve
+        // returns an auto-generated directory listing that does not include
+        // path-redirect-shared.js. For same-origin directory listings, read
+        // cookies from the iframe's document and expire them directly.
+        if (iframe.contentDocument &&
+            !iframe.contentWindow.setTestContextUsingRootWindow) {
+          const cookies = iframe.contentDocument.cookie;
+          test_driver.delete_all_cookies()
+              .finally(() => {
+                window.removeEventListener('message', listener);
+                document.documentElement.removeChild(iframe);
+              })
+              .then(() => resolve(cookies), reject);
+          return;
+        }
+        e.target.contentWindow.postMessage('getAndExpireCookiesForRedirectTest',
+                                           '*');
       }, {once: true});
       iframe.src = location;
       document.documentElement.appendChild(iframe);

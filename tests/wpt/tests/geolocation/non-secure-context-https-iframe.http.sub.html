@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Geolocation Test: https: iframe in a non-secure context</title>
+<link rel="help" href="https://w3c.github.io/permissions/#dfn-get-the-current-permission-state">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+  promise_setup(async () => {
+    // This can fail as this is a non-secure context. It's only here so that the request below
+    // is not denied for lack of permission instead.
+    try {
+      await test_driver.set_permission({ name: "geolocation" }, "granted");
+    } catch {}
+  });
+
+  promise_test(async t => {
+    const iframe = document.createElement("iframe");
+    iframe.allow = "geolocation";
+    iframe.src = "https://{{host}}:{{ports[https][0]}}/geolocation/resources/report-getCurrentPosition.html";
+    const result = new Promise(resolve => {
+      window.addEventListener("message", event => {
+        if (event.source === iframe.contentWindow)
+          resolve(event.data);
+      });
+    });
+    document.body.append(iframe);
+    t.add_cleanup(() => iframe.remove());
+
+    const { isSecureContext, code } = await result;
+    assert_false(isSecureContext, "An https: iframe in an http: document is not a secure context.");
+    assert_equals(code, GeolocationPositionError.PERMISSION_DENIED);
+  }, "getCurrentPosition() in an https: iframe with allow=\"geolocation\" in a non-secure context fails with PERMISSION_DENIED.");
+</script>

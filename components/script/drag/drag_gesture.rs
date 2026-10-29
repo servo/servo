@@ -42,7 +42,7 @@ impl DragGesture {
             return false;
         }
         match &self.handler {
-            DragHandler::TextInputSelection(handler) => handler.moved(hit_test_result),
+            DragHandler::TextInputSelection(handler) => handler.moved(cx, hit_test_result),
             DragHandler::DocumentSelection(handler) => handler.moved(cx, hit_test_result),
         }
     }

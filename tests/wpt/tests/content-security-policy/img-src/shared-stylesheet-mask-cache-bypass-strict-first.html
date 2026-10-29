@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSP: a strict iframe must not poison the shared stylesheet SVG mask cache</title>
+<link rel="author" title="Dileep Maurya" href="mailto:dileepmaurya@microsoft.com">
+<link rel="help" href="https://w3c.github.io/webappsec-csp/#directive-img-src">
+<link rel="match" href="shared-stylesheet-mask-cache-bypass-loaded-ref.html">
+<!--
+  Regression test for crbug.com/504107363, external SVG mask variant.
+
+  A strict iframe (Content-Security-Policy: img-src 'none') links the shared
+  stylesheet FIRST; its mask fetch is blocked and it is masked out. That blocked
+  mask must not poison the shared CSSImageValue / SVGResource, so a subsequent
+  permissive iframe can still fetch and apply the mask, showing its green
+  background and matching the (green) reference.
+-->
+<style>
+  html, body { margin: 0; }
+  #strict { position: absolute; top: -9999px; left: -9999px; }
+  iframe { border: none; width: 100px; height: 100px; display: block; }
+</style>
+<script>document.documentElement.classList.add('reftest-wait');</script>
+<body></body>
+<script>
+  'use strict';
+  const strict = document.createElement('iframe');
+  strict.id = 'strict';
+  strict.src = 'support/shared-stylesheet-mask-cache-bypass-strict.html';
+  window.addEventListener('message', e => {
+    if (e.source === strict.contentWindow && e.data === 'ready') {
+      const permissive = document.createElement('iframe');
+      permissive.src =
+          'support/shared-stylesheet-mask-cache-bypass-permissive.html';
+      window.addEventListener('message', e2 => {
+        if (e2.source === permissive.contentWindow && e2.data === 'ready') {
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            document.documentElement.classList.remove('reftest-wait');
+          }));
+        }
+      });
+      document.body.appendChild(permissive);
+    }
+  });
+  document.body.appendChild(strict);
+</script>

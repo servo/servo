@@ -9,6 +9,8 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
+use script_bindings::dom::{MutNullableDom, UnrootedDom};
+use script_bindings::root::Dom;
 use style::str::{split_html_space_chars, str_join};
 use stylo_dom::ElementState;
 
@@ -19,6 +21,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
@@ -40,6 +43,8 @@ use crate::dom::types::DocumentFragment;
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::window::Window;
+use crate::realms::enter_auto_realm;
+use crate::runtime::job_queue::MicrotaskRunnable;
 
 #[dom_struct]
 pub(crate) struct HTMLOptionElement {
@@ -50,6 +55,9 @@ pub(crate) struct HTMLOptionElement {
 
     /// <https://html.spec.whatwg.org/multipage/#concept-option-dirtiness>
     dirtiness: Cell<bool>,
+
+    /// <https://html.spec.whatwg.org/multipage/#cached-nearest-ancestor-select-element>
+    cached_nearest_ancestor_select: MutNullableDom<HTMLSelectElement>,
 }
 
 impl HTMLOptionElement {
@@ -67,6 +75,7 @@ impl HTMLOptionElement {
             ),
             selectedness: Cell::new(false),
             dirtiness: Cell::new(false),
+            cached_nearest_ancestor_select: MutNullableDom::default(),
         }
     }
 
@@ -87,32 +96,66 @@ impl HTMLOptionElement {
         )
     }
 
-    pub(crate) fn set_selectedness(&self, no_gc: &NoGC, selected: bool) {
+    /// Set the selectedness value of this [`HTMLOptionElement`] returning true if anything
+    /// changed.
+    ///
+    /// Note: This *does not* update the containing `<select>` element.
+    pub(crate) fn set_selectedness(&self, no_gc: &NoGC, selected: bool) -> bool {
+        if selected == self.selectedness.get() {
+            return false;
+        }
+
         self.selectedness.set(selected);
         self.upcast::<Element>()
-            .set_state(ElementState::CHECKED, selected);
+            .set_state(no_gc, ElementState::CHECKED, selected);
         // Bump the tree version so that any live HTMLCollection (e.g. selectedOptions)
         // rooted at an ancestor invalidates its cached length and cursor.
         self.upcast::<Node>().rev_version(no_gc);
+        true
     }
 
     pub(crate) fn set_dirtiness(&self, dirtiness: bool) {
         self.dirtiness.set(dirtiness);
     }
 
-    fn pick_if_selected_and_reset(&self, cx: &mut JSContext) {
-        if let Some(select) = self.owner_select_element() {
-            if self.Selected() {
-                select.pick_option(cx.no_gc(), self);
-                select.update_shadow_tree(cx);
-            }
-            select.ask_for_reset(cx.no_gc());
+    /// From <https://html.spec.whatwg.org/multipage/#the-select-element>:
+    ///
+    /// > If the multiple attribute is absent, whenever an option element in the select element's
+    /// > list of options has its selectedness set to true, and whenever an option element with its
+    /// > selectedness set to true is added to the select element's list of options, the user agent
+    /// > must set the selectedness of all the other option elements in its list of options to
+    /// > false.
+    fn pick_if_selected_in_select(&self, cx: &mut JSContext, select: &HTMLSelectElement) {
+        if !self.Selected() {
+            return;
+        }
+
+        debug_assert!(
+            select
+                .list_of_options(cx.no_gc())
+                .any(|option| *option == self)
+        );
+        select.pick_option(cx.no_gc(), self);
+
+        // This is not specified, but Servo needs to update the cached validity state and shadow
+        // tree of select elements when their descendants change.
+        select
+            .validity_state(cx)
+            .perform_validation_and_update(cx, ValidationFlags::all());
+        select.update_shadow_tree(cx);
+    }
+
+    fn pick_if_selected_in_cached_select(&self, cx: &mut JSContext) {
+        let select = self.cached_nearest_ancestor_select.get();
+        debug_assert!(select == self.nearest_ancestor_select());
+        if let Some(select) = select {
+            self.pick_if_selected_in_select(cx, &select);
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-option-index>
     fn index(&self, no_gc: &NoGC) -> i32 {
-        let Some(owner_select) = self.owner_select_element() else {
+        let Some(owner_select) = self.cached_nearest_ancestor_select() else {
             return 0;
         };
 
@@ -125,18 +168,8 @@ impl HTMLOptionElement {
         position.try_into().unwrap_or(0)
     }
 
-    fn owner_select_element(&self) -> Option<DomRoot<HTMLSelectElement>> {
-        let parent = self.upcast::<Node>().GetParentNode()?;
-
-        if parent.is::<HTMLOptGroupElement>() {
-            DomRoot::downcast::<HTMLSelectElement>(parent.GetParentNode()?)
-        } else {
-            DomRoot::downcast::<HTMLSelectElement>(parent)
-        }
-    }
-
     fn update_select_validity(&self, cx: &mut JSContext) {
-        if let Some(select) = self.owner_select_element() {
+        if let Some(select) = self.cached_nearest_ancestor_select() {
             select
                 .validity_state(cx)
                 .perform_validation_and_update(cx, ValidationFlags::all());
@@ -158,6 +191,11 @@ impl HTMLOptionElement {
         }
 
         label
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#cached-nearest-ancestor-select-element>
+    pub(crate) fn cached_nearest_ancestor_select(&self) -> Option<DomRoot<HTMLSelectElement>> {
+        self.cached_nearest_ancestor_select.get()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#option-element-nearest-ancestor-select>
@@ -220,7 +258,11 @@ impl HTMLOptionElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#clone-an-option-into-a-selectedcontent>
-    fn clone_an_option_into_selectedcontent(&self, cx: &mut JSContext, selectedcontent: &Element) {
+    pub(crate) fn clone_an_option_into_selectedcontent(
+        &self,
+        cx: &mut JSContext,
+        selectedcontent: &Element,
+    ) {
         // Step 1. Let documentFragment be a new DocumentFragment whose node document is option's node document.
         let document_fragment = DocumentFragment::new(cx, &self.owner_document());
 
@@ -241,6 +283,97 @@ impl HTMLOptionElement {
             Some(document_fragment.upcast()),
             selectedcontent.upcast(),
         );
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#update-an-option's-nearest-ancestor-select>
+    fn update_nearest_ancestor_selection(
+        &self,
+        cx: &mut JSContext,
+    ) -> Vec<DomRoot<HTMLSelectElement>> {
+        // Step 1. Let oldSelect be option's cached nearest ancestor select element.
+        let old_select = self.cached_nearest_ancestor_select.get();
+
+        // Step 2. Let newSelect be option's nearest ancestor select.
+        let new_select = self.nearest_ancestor_select();
+
+        // Step 3. Set option's cached nearest ancestor select element to newSelect.
+        self.cached_nearest_ancestor_select
+            .set(new_select.as_deref());
+
+        // Step 4. If oldSelect is newSelect, then return « ».
+        if old_select == new_select {
+            return Vec::new();
+        }
+
+        // Step 5. Let result be « ».
+        let mut result = Vec::new();
+
+        // Step 6. For each select of « oldSelect, newSelect »:
+        for select in [old_select, new_select] {
+            // Step 6.1. If select is null, then continue.
+            let Some(select) = select else {
+                continue;
+            };
+
+            // Step 6.2. Let hasChanged be the result of running the selectedness setting algorithm
+            // given select.
+            let has_changed = select.selectedness_setting_algorithm(cx.no_gc());
+
+            // This is not specified, but Servo needs to update the cached validity state and shadow
+            // tree of select elements when their descendants change.
+            select
+                .validity_state(cx)
+                .perform_validation_and_update(cx, ValidationFlags::all());
+            select.update_shadow_tree(cx);
+
+            // Step 6.3. If option's selectedness is true or hasChanged is true, then append select
+            // to result.
+            if self.Selected() || has_changed {
+                result.push(select);
+            }
+        }
+
+        // Step 7. Return result.
+        result
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#ask-for-a-reset>
+    fn ask_for_a_reset(&self, cx: &mut JSContext) {
+        // Step 1. Let select be option's cached nearest ancestor select element.
+        let select = self.cached_nearest_ancestor_select.get();
+        // Step 2. If select is null, then return.
+        let Some(select) = select else {
+            return;
+        };
+        // Step 3. Run the selectedness setting algorithm given select.
+        select.selectedness_setting_algorithm(cx.no_gc());
+        // Step 4. Update a select's descendant selectedcontent elements given select.
+        select.update_a_selects_descendant_selectedcontent_elements(cx);
+
+        // Note: This is unspecified, but this is where we update the cached validity
+        // and shadow tree when things change in this option element.
+        select
+            .validity_state(cx)
+            .perform_validation_and_update(cx, ValidationFlags::all());
+        select.update_shadow_tree(cx);
+    }
+
+    /// Update the disabled state of this [`HTMLOptionElement`] based on its
+    /// disabled attribute and whether or not its owning [`HTMLOptGroupElement`]
+    /// is disabled.
+    pub(crate) fn update_disabled_state(&self, no_gc: &NoGC) {
+        let element = self.upcast::<Element>();
+        let disabled = element.has_attribute(&local_name!("disabled")) ||
+            self.is_disabled_by_parent_optgroup(no_gc);
+        element.set_disabled_state(no_gc, disabled);
+        element.set_enabled_state(no_gc, !disabled);
+    }
+
+    fn is_disabled_by_parent_optgroup(&self, no_gc: &NoGC) -> bool {
+        self.upcast::<Node>()
+            .get_parent_node_unrooted(no_gc)
+            .and_then(UnrootedDom::downcast::<HTMLOptGroupElement>)
+            .is_some_and(|optgroup| optgroup.upcast::<Element>().disabled_state())
     }
 }
 
@@ -278,7 +411,7 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
         }
 
         option.SetDefaultSelected(cx, default_selected);
-        option.set_selectedness(cx.no_gc(), selected);
+        option.set_selectedness(cx, selected);
         option.update_select_validity(cx);
         Ok(option)
     }
@@ -324,15 +457,8 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-option-form>
     fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
-        let parent = self.upcast::<Node>().GetParentNode().and_then(|p| {
-            if p.is::<HTMLOptGroupElement>() {
-                p.upcast::<Node>().GetParentNode()
-            } else {
-                Some(p)
-            }
-        });
-
-        parent.and_then(|p| p.downcast::<HTMLSelectElement>().and_then(|s| s.GetForm()))
+        self.cached_nearest_ancestor_select()
+            .and_then(|s| s.GetForm())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#attr-option-value>
@@ -376,10 +502,14 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-option-selected>
     fn SetSelected(&self, cx: &mut JSContext, selected: bool) {
+        // Step 1. Set this's selectedness to the given value.
+        if self.set_selectedness(cx, selected) {
+            self.pick_if_selected_in_cached_select(cx);
+        }
+        // Step 2. Set this's dirtiness to true.
         self.dirtiness.set(true);
-        self.set_selectedness(cx.no_gc(), selected);
-        self.pick_if_selected_and_reset(cx);
-        self.update_select_validity(cx);
+        // Step 3. Ask for a reset given this.
+        self.ask_for_a_reset(cx);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-option-index>
@@ -404,18 +534,7 @@ impl VirtualMethods for HTMLOptionElement {
             .attribute_mutated(cx, attr, mutation);
         match *attr.local_name() {
             local_name!("disabled") => {
-                let el = self.upcast::<Element>();
-                match mutation {
-                    AttributeMutation::Set(_) => {
-                        el.set_disabled_state(true);
-                        el.set_enabled_state(false);
-                    },
-                    AttributeMutation::Removed => {
-                        el.set_disabled_state(false);
-                        el.set_enabled_state(true);
-                        el.check_parent_disabled_state_for_option();
-                    },
-                }
+                self.update_disabled_state(cx.no_gc());
                 self.update_select_validity(cx);
             },
             local_name!("selected") => {
@@ -438,19 +557,15 @@ impl VirtualMethods for HTMLOptionElement {
                 }
 
                 if selectedness_changed {
-                    self.pick_if_selected_and_reset(cx);
-
-                    if let Some(select_element) = self.owner_select_element() {
-                        select_element.update_shadow_tree(cx);
-                    }
+                    self.pick_if_selected_in_cached_select(cx);
+                    self.ask_for_a_reset(cx);
                 }
-
                 self.update_select_validity(cx);
             },
             local_name!("label") => {
                 // The label of the selected option is displayed inside the select element, so we need to repaint
                 // when it changes
-                if let Some(select_element) = self.owner_select_element() {
+                if let Some(select_element) = self.cached_nearest_ancestor_select() {
                     select_element.update_shadow_tree(cx);
                 }
             },
@@ -459,38 +574,43 @@ impl VirtualMethods for HTMLOptionElement {
     }
 
     fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
-        if let Some(s) = self.super_type() {
-            s.bind_to_tree(cx, context);
+        if let Some(super_type) = self.super_type() {
+            super_type.bind_to_tree(cx, context);
         }
 
-        self.upcast::<Element>()
-            .check_parent_disabled_state_for_option();
+        self.update_disabled_state(cx.no_gc());
 
-        self.pick_if_selected_and_reset(cx);
+        // TODO: When several selected option elements are added at once, the specification doesn't
+        // say which one should win. Firefox chooses the last one and we should do the same here.
+        // This should ensure that all selected `<option>` elements outside of the inserted subtree
+        // are unselected.
+        if let Some(select) = self.nearest_ancestor_select() {
+            self.pick_if_selected_in_select(cx, &select);
+        }
+
+        self.update_nearest_ancestor_selection(cx);
         self.update_select_validity(cx);
     }
 
     fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(cx, context);
 
-        if let Some(select) = context
-            .parent
-            .inclusive_ancestors(ShadowIncluding::No)
-            .find_map(DomRoot::downcast::<HTMLSelectElement>)
-        {
-            select
-                .validity_state(cx)
-                .perform_validation_and_update(cx, ValidationFlags::all());
-            select.ask_for_reset(cx.no_gc());
+        // Step 1. Let selects be the result of update an option's nearest ancestor select given
+        // removedNode.
+        let selects = self.update_nearest_ancestor_selection(cx);
+
+        // Step 2. For each select of selects: queue a microtask to update a select's descendant
+        // selectedcontent elements given select.
+        for select in selects {
+            self.global().enqueue_microtask(
+                cx,
+                Box::new(UpdateSelectedContentMicrotask {
+                    select: select.as_traced(),
+                }),
+            );
         }
 
-        let node = self.upcast::<Node>();
-        let el = self.upcast::<Element>();
-        if node.GetParentNode().is_some() {
-            el.check_parent_disabled_state_for_option();
-        } else {
-            el.check_disabled_attribute();
-        }
+        self.update_disabled_state(cx.no_gc());
     }
 
     fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
@@ -503,7 +623,7 @@ impl VirtualMethods for HTMLOptionElement {
         if !self
             .upcast::<Element>()
             .has_attribute(&local_name!("label")) &&
-            let Some(owner_select) = self.owner_select_element() &&
+            let Some(owner_select) = self.cached_nearest_ancestor_select() &&
             owner_select
                 .selected_option(cx.no_gc())
                 .is_some_and(|selected_option| *self == **selected_option)
@@ -518,30 +638,44 @@ impl VirtualMethods for HTMLOptionElement {
             super_type.moving_steps(cx, context);
         }
 
-        // The option HTML element moving steps, given movedNode and oldParent, are to run update an
-        // option's nearest ancestor select given movedNode.
-        let element = self.upcast::<Element>();
-        if let Some(old_parent) = context.old_parent {
-            if let Some(select) = old_parent
-                .inclusive_ancestors(ShadowIncluding::No)
-                .find_map(DomRoot::downcast::<HTMLSelectElement>)
-            {
-                select
-                    .validity_state(cx)
-                    .perform_validation_and_update(cx, ValidationFlags::all());
-                select.ask_for_reset(cx.no_gc());
-            }
+        self.update_disabled_state(cx.no_gc());
 
-            if self.upcast::<Node>().GetParentNode().is_some() {
-                element.check_parent_disabled_state_for_option();
-            } else {
-                element.check_disabled_attribute();
-            }
+        // TODO: When several selected option elements are added at once, the specification doesn't
+        // say which one should win. Firefox chooses the last one and we should do the same here.
+        // This should ensure that all selected `<option>` elements outside of the moved subtree
+        // are unselected.
+        if let Some(select) = self.nearest_ancestor_select() {
+            self.pick_if_selected_in_select(cx, &select);
         }
 
-        element.check_parent_disabled_state_for_option();
+        // Step 1. Let selects be the result of update an option's nearest ancestor select given
+        // movedNode.
+        let selects = self.update_nearest_ancestor_selection(cx);
 
-        self.pick_if_selected_and_reset(cx);
-        self.update_select_validity(cx);
+        // Step 2. For each select of selects: queue a microtask to update a select's descendant
+        // selectedcontent elements given select.
+        for select in selects {
+            self.global().enqueue_microtask(
+                cx,
+                Box::new(UpdateSelectedContentMicrotask {
+                    select: select.as_traced(),
+                }),
+            );
+        }
+    }
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct UpdateSelectedContentMicrotask {
+    select: Dom<HTMLSelectElement>,
+}
+
+impl MicrotaskRunnable for UpdateSelectedContentMicrotask {
+    fn handler(&self, cx: &mut JSContext) {
+        let mut realm = enter_auto_realm(cx, &*self.select);
+        let cx = &mut realm;
+        self.select
+            .update_a_selects_descendant_selectedcontent_elements(cx);
     }
 }

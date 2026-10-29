@@ -25,6 +25,7 @@ use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::focusevent::FocusEventType;
 use crate::dom::node::focus::{FocusNavigationScopeOwner, FocusTrigger};
 use crate::dom::types::{Element, EventTarget, FocusEvent, HTMLElement, HTMLIFrameElement, Window};
+use crate::dom::virtualmethods::vtable_for;
 use crate::dom::{Document, Event, EventBubbles, EventCancelable, Node, NodeTraits};
 use crate::realms::enter_auto_realm;
 
@@ -199,7 +200,7 @@ impl DocumentFocusHandler {
     /// the new element is the same as the previous one. Note that this *will not* fire any focus
     /// events. If that is necessary the [`DocumentFocusHandler::focus`] should be used.
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn set_focused_area(&self, new_focusable_area: FocusableArea) {
+    pub(crate) fn set_focused_area(&self, no_gc: &NoGC, new_focusable_area: FocusableArea) {
         if new_focusable_area == *self.focused_area.borrow() {
             return;
         }
@@ -218,20 +219,24 @@ impl DocumentFocusHandler {
         //
         // We are trying to accomplish the last requirement here, by walking up the tree and
         // marking each shadow host as focused.
-        fn recursively_set_focus_status(element: &Element, new_state: bool) {
-            element.set_focus_state(new_state);
+        fn recursively_set_focus_status(no_gc: &NoGC, element: &Element, new_state: bool) {
+            element.set_focus_state(no_gc, new_state);
 
             let Some(shadow_root) = element.containing_shadow_root() else {
                 return;
             };
-            recursively_set_focus_status(&shadow_root.Host(), new_state);
+            recursively_set_focus_status(no_gc, &shadow_root.Host(), new_state);
         }
 
         if let Some(previously_focused_element) = self.focused_area.borrow().element() {
-            recursively_set_focus_status(previously_focused_element, false);
+            recursively_set_focus_status(no_gc, previously_focused_element, false);
+            previously_focused_element.set_focusring_state(no_gc, false);
         }
         if let Some(newly_focused_element) = new_focusable_area.element() {
-            recursively_set_focus_status(newly_focused_element, true);
+            recursively_set_focus_status(no_gc, newly_focused_element, true);
+            if vtable_for(newly_focused_element.upcast()).focus_visible_applies() {
+                newly_focused_element.set_focusring_state(no_gc, true);
+            }
         }
 
         *self.focused_area.borrow_mut() = new_focusable_area;
@@ -374,7 +379,7 @@ impl DocumentFocusHandler {
         //
         // See https://github.com/whatwg/html/issues/1569
         if !for_system_focus_change {
-            self.set_focused_area(FocusableArea::Viewport);
+            self.set_focused_area(cx.no_gc(), FocusableArea::Viewport);
         }
 
         // Step 2: For each entry entry in old chain, in order, run these substeps:
@@ -469,7 +474,7 @@ impl DocumentFocusHandler {
 
                 // Step 4.1.2: Designate entry as the focused area of the document.
                 if !for_system_focus_change {
-                    self.set_focused_area(entry.clone());
+                    self.set_focused_area(cx.no_gc(), entry.clone());
                 }
             }
 

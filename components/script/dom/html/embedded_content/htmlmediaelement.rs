@@ -4,7 +4,6 @@
 
 use std::cell::{Cell, Ref, RefCell};
 use std::collections::VecDeque;
-use std::f64;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
@@ -24,7 +23,7 @@ use layout_api::MediaFrame;
 use net_traits::fetch::fetch_controller::FetchController;
 use net_traits::request::{Destination, RequestId};
 use net_traits::{CoreResourceThread, FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
-use pixels::RasterImage;
+use pixels::{CorsStatus, RasterImage};
 use script_bindings::assert::assert_in_script;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::InheritTypes::{
@@ -503,6 +502,57 @@ impl HTMLMediaElement {
         {
             error!("Could not pause player: {error:?}");
         }
+
+        self.update_keep_alive();
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#playing-the-media-resource>
+    /// > Media elements must not stop playing just because all references to them have been
+    /// > removed; only once a media element is in a state where no further audio could ever be
+    /// > played by that element may the element be garbage collected.
+    fn should_keep_alive(&self) -> bool {
+        let document = self.owner_document();
+        if !document.is_active() || document.is_prompting_or_unloading() {
+            return false;
+        }
+
+        if self.in_error_state() {
+            return false;
+        }
+
+        if self.ended_playback(LoopCondition::Included) {
+            return false;
+        }
+
+        if !self.Paused() {
+            return true;
+        }
+
+        if self.eligible_for_autoplay() {
+            return true;
+        }
+
+        false
+    }
+
+    pub(crate) fn update_keep_alive(&self) {
+        let document = self.owner_document();
+        if self.should_keep_alive() {
+            document.register_active_media_element(self);
+        } else {
+            document.unregister_active_media_element(self);
+        }
+    }
+
+    pub(crate) fn clean_up_on_document_unload(&self, unloading_doc: &Document, no_gc: &NoGC) {
+        if &*self.owner_document() != unloading_doc {
+            return;
+        }
+        self.paused.set(true);
+        if let Some(ref mut current_fetch_context) = *self.current_fetch_context.borrow_mut() {
+            current_fetch_context.cancel(CancelReason::Abort);
+        }
+        self.reset_media_player(no_gc);
     }
 
     /// Marks that element as delaying the load event or not.
@@ -1733,6 +1783,8 @@ impl HTMLMediaElement {
                 // Step 7. Set the element's delaying-the-load-event flag to false. This stops
                 // delaying the load event.
                 this.delay_load_event(cx, false);
+
+                this.update_keep_alive();
             }));
     }
 
@@ -1884,6 +1936,7 @@ impl HTMLMediaElement {
         self.invoke_resource_selection_algorithm(cx);
 
         // Step 11. Note: Playback of any previously playing media resource for this element stops.
+        self.update_keep_alive();
     }
 
     /// Queue a media element task given the media element to fire an event at the media element.
@@ -2052,6 +2105,7 @@ impl HTMLMediaElement {
         self.upcast::<EventTarget>().fire_event(cx, atom!("error"));
 
         // Step 6. Abort the overall resource selection algorithm.
+        self.update_keep_alive();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-seek>
@@ -2440,6 +2494,8 @@ impl HTMLMediaElement {
 
                 // Step 3.3. Fire an event named ended at the media element.
                 this.upcast::<EventTarget>().fire_event(cx, atom!("ended"));
+
+                this.update_keep_alive();
             }));
 
         // <https://html.spec.whatwg.org/multipage/#dom-media-have_current_data>
@@ -2454,6 +2510,7 @@ impl HTMLMediaElement {
         // element.
         if self.current_playback_position.get() <= self.earliest_possible_position() {
             self.queue_media_element_task_to_fire_event(atom!("timeupdate"));
+            self.update_keep_alive();
         }
     }
 
@@ -3683,6 +3740,9 @@ impl VirtualMethods for HTMLMediaElement {
                     self.media_element_load_algorithm(cx);
                 }
             },
+            local_name!("autoplay") | local_name!("loop") => {
+                self.update_keep_alive();
+            },
             local_name!("controls") => {
                 if mutation.new_value(attr).is_some() {
                     self.render_controls(cx);
@@ -3713,6 +3773,9 @@ impl VirtualMethods for HTMLMediaElement {
 
     fn adopting_steps(&self, cx: &mut JSContext, old_doc: &Document) {
         self.super_type().unwrap().adopting_steps(cx, old_doc);
+
+        old_doc.unregister_active_media_element(self);
+        self.update_keep_alive();
 
         // Note that media control id should be adopting between documents so "privileged"
         // document.servoGetMediaControls(id) API is keeping access to the whitelist of media
@@ -4007,12 +4070,12 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
     ) {
         let element = self.element.root();
 
-        let (metadata, origin_clean) = match metadata {
+        let (metadata, cors_status) = match metadata {
             Ok(fetch_metadata) => {
-                let is_cross_origin = fetch_metadata.is_cors_cross_origin();
-                (Some(fetch_metadata.into()), !is_cross_origin)
+                let cors_status = fetch_metadata.cors_status();
+                (Some(fetch_metadata.into()), cors_status)
             },
-            Err(_) => (None, true),
+            Err(_) => (None, CorsStatus::Safe),
         };
 
         let (status_is_success, is_seekable) =
@@ -4037,7 +4100,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
         if let Some(ref mut current_fetch_context) = *element.current_fetch_context.borrow_mut() {
             current_fetch_context.set_seekable(is_seekable);
-            current_fetch_context.set_origin_clean(origin_clean);
+            current_fetch_context.set_origin_clean(cors_status == CorsStatus::Safe);
         }
 
         if let Some(metadata) = metadata.as_ref() &&

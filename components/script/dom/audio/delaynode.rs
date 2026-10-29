@@ -9,17 +9,19 @@ use script_bindings::codegen::GenericBindings::DelayNodeBinding::{DelayNodeMetho
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::audio_node::{AudioNodeInit, AudioNodeType};
 use servo_media::audio::delay_node::DelayNodeOptions;
+use servo_media::audio::graph::NodeId;
 use servo_media::audio::param::ParamType;
 
 use crate::conversions::Convert;
 use crate::dom::audio::audionode::AudioNodeOptionsHelper;
 use crate::dom::audio::audioparam::AudioParam;
 use crate::dom::audio::baseaudiocontext::BaseAudioContext;
+use crate::dom::audionode::UnwrappedAudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };
 use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::types::AudioNode;
 use crate::dom::window::Window;
@@ -31,9 +33,22 @@ pub(crate) struct DelayNode {
     delay_time: Dom<AudioParam>,
 }
 
+impl DelayNode {
+    fn new_inherited(
+        node_id: Option<NodeId>,
+        context: &BaseAudioContext,
+        node_options: UnwrappedAudioNodeOptions,
+        delay_time: &AudioParam,
+    ) -> Self {
+        DelayNode {
+            source_node: AudioNode::new_inherited(node_id, context, node_options, 1, 1),
+            delay_time: Dom::from_ref(delay_time),
+        }
+    }
+}
+
 impl DelayNodeMethods<crate::DomTypeHolder> for DelayNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-delaynode-delaynode>
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn Constructor(
         cx: &mut JSContext,
         window: &Window,
@@ -45,11 +60,19 @@ impl DelayNodeMethods<crate::DomTypeHolder> for DelayNode {
             options
                 .parent
                 .unwrap_or(2, ChannelCountMode::Max, ChannelInterpretation::Speakers);
+
+        if AudioNode::channel_count_check(node_options.count) {
+            return Err(Error::NotSupported(Some(String::from(
+                "Channel count not supported",
+            ))));
+        }
+
         let delay_time = *options.delayTime;
         let max_delay_time = *options.maxDelayTime;
-        let delay_options = AudioNodeInit::DelayNode(options.convert());
-        let source_node = AudioNode::new_inherited(cx, delay_options, context, node_options, 1, 1)?;
-        let node_id = source_node.node_id();
+        let audio_node_init = AudioNodeInit::DelayNode(options.convert());
+        let node_id =
+            AudioNode::generate_audio_node_id(cx, &node_options, audio_node_init, context);
+
         let delay_time = AudioParam::new(
             cx,
             window,
@@ -62,14 +85,15 @@ impl DelayNodeMethods<crate::DomTypeHolder> for DelayNode {
             0.,
             max_delay_time as f32,
         );
-        let node = DelayNode {
-            source_node,
-            delay_time: Dom::from_ref(&delay_time),
-        };
 
         Ok(reflect_dom_object_with_proto(
             cx,
-            Box::new(node),
+            Box::new(DelayNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                &delay_time,
+            )),
             window,
             proto,
         ))

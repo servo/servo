@@ -1,0 +1,160 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Document-Isolation-Policy: dedicated workers take their owner's policy</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="./resources/common.js"></script>
+<body>
+<script>
+"use strict";
+
+const getIsolation = "return { crossOriginIsolated, SharedArrayBuffer: typeof SharedArrayBuffer };";
+const isolated = { crossOriginIsolated: true, SharedArrayBuffer: "function" };
+const notIsolated = { crossOriginIsolated: false, SharedArrayBuffer: "undefined" };
+
+function workerURL(uuid) {
+  return get_host_info().HTTPS_ORIGIN + executor_worker_path + `&uuid=${uuid}`;
+}
+
+// Returns script for runInContext() that starts a dedicated worker for uuid and keeps it as worker.
+function startWorkerScript(uuid) {
+  return `self.worker = new Worker(${JSON.stringify(workerURL(uuid))});`;
+}
+
+// Returns script for runInContext() that starts a dedicated worker for url, which posts one message, and returns that message.
+function startReportingWorkerScript(url) {
+  return `
+    const worker = new Worker(${url});
+    return await new Promise((resolve, reject) => {
+      worker.onmessage = ({ data }) => resolve(data);
+      worker.onerror = () => reject(new Error("worker error"));
+    });
+  `;
+}
+
+function openPopup(t, policy) {
+  const uuid = token();
+  const popup = window.open(executorURL(policy, uuid));
+  t.add_cleanup(() => popup.close());
+  return uuid;
+}
+
+// Has the context for senderUUID post a SharedArrayBuffer to the object senderPort names, and checks that the
+// context for receiverUUID gets it from the object receiverPort names and shares its memory.
+async function assertSharesMemory(senderUUID, senderPort, receiverUUID, receiverPort) {
+  await runInContext(receiverUUID, `
+    self.received = new Promise(resolve => {
+      ${receiverPort}.onmessage = event => {
+        self.sab = event.data;
+        resolve(Object.prototype.toString.call(event.data));
+      };
+      ${receiverPort}.onmessageerror = () => resolve("messageerror");
+    });
+    return "ready";
+  `);
+  assert_equals(await runInContext(senderUUID, `
+    self.sab = new SharedArrayBuffer(8);
+    ${senderPort}.postMessage(sab);
+    return "posted";
+  `), "posted", "creating and posting a SharedArrayBuffer");
+  assert_equals(await runInContext(receiverUUID, "return received;"), "[object SharedArrayBuffer]", "message event data");
+  await runInContext(senderUUID, `
+    new Int32Array(sab)[0] = 1;
+    return "written";
+  `);
+  assert_equals(await runInContext(receiverUUID, `
+    const view = new Int32Array(sab);
+    view[1] = 2;
+    return view[0];
+  `), 1, "the receiver sees what the sender wrote");
+  assert_equals(await runInContext(senderUUID, "return new Int32Array(sab)[1];"), 2, "the sender sees what the receiver wrote");
+}
+
+promise_test(async t => {
+  const popupUUID = openPopup(t, dip_require_corp);
+  const workerUUID = token();
+  await runInContext(popupUUID, `${startWorkerScript(workerUUID)} return "started";`);
+  assert_object_equals(await runInContext(workerUUID, getIsolation), isolated);
+}, "A dedicated worker of a popup with isolate-and-require-corp is cross-origin isolated and exposes SharedArrayBuffer");
+
+promise_test(async t => {
+  const popupUUID = openPopup(t, dip_require_corp);
+  const workerUUID = token();
+  const nestedWorkerUUID = token();
+  await runInContext(popupUUID, `${startWorkerScript(workerUUID)} return "started";`);
+  await runInContext(workerUUID, `${startWorkerScript(nestedWorkerUUID)} return "started";`);
+  assert_object_equals(await runInContext(nestedWorkerUUID, getIsolation), isolated);
+}, "A dedicated worker started by a dedicated worker of a popup with isolate-and-require-corp is cross-origin isolated and exposes SharedArrayBuffer");
+
+promise_test(async t => {
+  const popupUUID = openPopup(t, dip_require_corp);
+  const script = "postMessage({ crossOriginIsolated, SharedArrayBuffer: typeof SharedArrayBuffer });";
+  assert_object_equals(await runInContext(popupUUID, startReportingWorkerScript(`URL.createObjectURL(new Blob([${JSON.stringify(script)}], { type: "text/javascript" }))`)), isolated);
+}, "A blob: URL dedicated worker of a popup with isolate-and-require-corp is cross-origin isolated and exposes SharedArrayBuffer");
+
+// HTML never makes a data: URL dedicated worker cross-origin isolated.
+promise_test(async t => {
+  const popupUUID = openPopup(t, dip_require_corp);
+  const script = "postMessage(crossOriginIsolated);";
+  assert_false(await runInContext(popupUUID, startReportingWorkerScript(JSON.stringify("data:text/javascript," + encodeURIComponent(script)))));
+}, "A data: URL dedicated worker of a popup with isolate-and-require-corp is not cross-origin isolated");
+
+promise_test(async t => {
+  const popupUUID = openPopup(t, dip_require_corp);
+  const frameUUID = token();
+  const workerUUID = token();
+  await runInContext(popupUUID, `
+    ${appendFrameScript(executorURL("", frameUUID))}
+    return "loaded";
+  `);
+  await runInContext(frameUUID, `${startWorkerScript(workerUUID)} return "started";`);
+  assert_object_equals(await runInContext(workerUUID, getIsolation), notIsolated);
+}, "A dedicated worker of a same-origin frame without a policy in a popup with isolate-and-require-corp is not cross-origin isolated and does not expose SharedArrayBuffer");
+
+// Whether a document with a policy whose cross-origin-isolated feature is disabled is cross-origin
+// isolated is https://github.com/WICG/document-isolation-policy/issues/12. Either way, a dedicated
+// worker can't be cross-origin isolated when its owner isn't, and is in the same agent cluster.
+promise_test(async t => {
+  const frameUUID = token();
+  const workerUUID = token();
+  await createFrame(t, executorURL(dip_require_corp, frameUUID), "cross-origin-isolated 'none'");
+  const frameIsolation = await runInContext(frameUUID, getIsolation);
+  await runInContext(frameUUID, `${startWorkerScript(workerUUID)} return "started";`);
+  assert_object_equals(await runInContext(workerUUID, getIsolation), frameIsolation);
+}, "A dedicated worker of a frame with isolate-and-require-corp and the cross-origin-isolated feature disabled has the crossOriginIsolated and SharedArrayBuffer of the frame");
+
+promise_test(async t => {
+  const cacheName = token();
+  t.add_cleanup(() => caches.delete(cacheName));
+  const url = get_host_info().HTTPS_REMOTE_ORIGIN + "/images/blue.png?" + token();
+  const request = new Request(url, { mode: "no-cors" });
+  await (await caches.open(cacheName)).put(request, await fetch(request));
+  const popupUUID = openPopup(t, dip_require_corp);
+  const workerUUID = token();
+  await runInContext(popupUUID, `${startWorkerScript(workerUUID)} return "started";`);
+  assert_equals(await runInContext(workerUUID, `
+    const cache = await caches.open(${JSON.stringify(cacheName)});
+    await cache.match(new Request(${JSON.stringify(url)}, { mode: "no-cors" }));
+    return "retrieved";
+  `), "TypeError");
+}, "A dedicated worker of a popup with isolate-and-require-corp can't retrieve a cross-origin response without CORP from CacheStorage");
+
+promise_test(async t => {
+  const popupUUID = openPopup(t, dip_require_corp);
+  const workerUUID = token();
+  await runInContext(popupUUID, `${startWorkerScript(workerUUID)} return "started";`);
+  await assertSharesMemory(popupUUID, "worker", workerUUID, "self");
+}, "A SharedArrayBuffer posted by a popup with isolate-and-require-corp to its dedicated worker arrives and shares memory with it");
+
+// The worker can only serialize a SharedArrayBuffer if it is cross-origin isolated.
+promise_test(async t => {
+  const popupUUID = openPopup(t, dip_require_corp);
+  const workerUUID = token();
+  await runInContext(popupUUID, `${startWorkerScript(workerUUID)} return "started";`);
+  await assertSharesMemory(workerUUID, "self", popupUUID, "worker");
+}, "A SharedArrayBuffer posted by a dedicated worker of a popup with isolate-and-require-corp to the popup arrives and shares memory with it");
+</script>

@@ -38,7 +38,7 @@ use js::context::{JSContext, NoGC};
 use js::conversions::ToJSValConvertible;
 use js::glue::DumpJSStack;
 use js::jsapi::{
-    GCReason, GetObjectRealmOrNull, Heap, JSContext as RawJSContext, JSObject, SetRealmPrincipals,
+    GCReason, GetObjectRealmOrNull, JSContext as RawJSContext, JSObject, SetRealmPrincipals,
 };
 use js::jsval::{NullValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
@@ -141,13 +141,12 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::structuredclone;
-use crate::dom::bindings::trace::{
-    CustomTraceable, HashMapTracedValues, JSTraceable, RootedTraceableBox,
-};
+use crate::dom::bindings::trace::{CustomTraceable, HashMapTracedValues, JSTraceable};
 use crate::dom::bindings::utils::GlobalStaticData;
 use crate::dom::bindings::weakref::DOMTracker;
 #[cfg(feature = "bluetooth")]
 use crate::dom::bluetooth::BluetoothExtraPermissionData;
+use crate::dom::closewatchermanager::CloseWatcherManager;
 use crate::dom::cookiestore::cookiestore::CookieStore;
 use crate::dom::csp::GlobalCspReporting;
 use crate::dom::css::cssstyledeclaration::{
@@ -162,6 +161,7 @@ use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::fetchlaterresult::FetchLaterResult;
+use crate::dom::geolocation::Geolocation;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::history::History;
 use crate::dom::html::htmlcollection::{CollectionFilter, HTMLCollection};
@@ -507,6 +507,13 @@ pub(crate) struct Window {
 
     /// <https://wicg.github.io/event-timing/#has-dispatched-input-event>
     has_dispatched_input_event: Cell<bool>,
+
+    /// <https://html.spec.whatwg.org/multipage/#last-history-action-activation-timestamp>
+    #[no_trace]
+    last_history_action_activation_timestamp: Cell<UserActivationTimestamp>,
+
+    /// <https://html.spec.whatwg.org/multipage/#close-watcher-manager>
+    close_watcher_manager: CloseWatcherManager,
 }
 
 impl Window {
@@ -553,18 +560,36 @@ impl Window {
         self.exists_mut_observer.set(true);
     }
 
-    #[expect(unsafe_code)]
-    pub(crate) fn clear_js_runtime_for_script_deallocation(&self) {
+    fn clear_js_runtime_common(&self) {
+        self.stop_geolocation_watches();
         self.as_global_scope()
             .remove_web_messaging_and_dedicated_workers_infra();
+        self.current_state.set(WindowState::Zombie);
+        self.as_global_scope()
+            .task_manager()
+            .cancel_all_tasks_and_ignore_future_tasks();
+    }
+
+    #[expect(unsafe_code)]
+    pub(crate) fn clear_js_runtime_for_script_deallocation(&self) {
+        self.clear_js_runtime_common();
         unsafe {
             *self.js_runtime.borrow_for_script_deallocation() = None;
-            self.window_proxy.set(None);
-            self.current_state.set(WindowState::Zombie);
-            self.as_global_scope()
-                .task_manager()
-                .cancel_all_tasks_and_ignore_future_tasks();
         }
+        self.window_proxy.set(None);
+    }
+
+    /// Tell the embedder to stop producing position updates for this `Window`, so that a
+    /// location subscription does not outlive the pipeline that asked for it.
+    fn stop_geolocation_watches(&self) {
+        if let Some(geolocation) = self.maybe_geolocation() {
+            geolocation.stop_all_watches();
+        }
+    }
+
+    /// The `Geolocation` object of this `Window`'s `Navigator`.
+    pub(crate) fn maybe_geolocation(&self) -> Option<DomRoot<Geolocation>> {
+        self.navigator.get()?.maybe_geolocation()
     }
 
     /// A convenience method for
@@ -713,12 +738,6 @@ impl Window {
 
     #[cfg(feature = "webgl")]
     pub(crate) fn webgl_chan(&self) -> Option<WebGLChan> {
-        self.webgl_chan.clone()
-    }
-
-    // TODO: rename the function to webgl_chan after the existing `webgl_chan` function is removed.
-    #[cfg(feature = "webgl")]
-    pub(crate) fn webgl_chan_value(&self) -> Option<WebGLChan> {
         self.webgl_chan.clone()
     }
 
@@ -961,6 +980,25 @@ impl Window {
         false
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#notify-the-close-watcher-manager-about-user-activation>
+    pub(crate) fn notify_the_close_watcher_manager_about_user_activation(&self) {
+        // Step 1. Let manager be window's close watcher manager.
+        let manager = self.close_watcher_manager();
+
+        // Step 2. If manager's next user interaction allows a new group is true, then increment
+        // manager's allowed number of groups.
+        if manager.next_user_interaction_allows_a_new_group() {
+            manager.increment_allowed_number_of_groups();
+        }
+
+        // Step 3. Set manager's next user interaction allows a new group to false.
+        manager.set_next_user_interaction_allows_a_new_group(false);
+    }
+
+    pub(crate) fn close_watcher_manager(&self) -> &CloseWatcherManager {
+        &self.close_watcher_manager
+    }
+
     pub(crate) fn perform_a_microtask_checkpoint(&self, cx: &mut JSContext) {
         self.script_thread().perform_a_microtask_checkpoint(cx);
     }
@@ -993,6 +1031,7 @@ impl Window {
             has_trustworthy_ancestor_origin,
             policy_container,
             origin,
+            network_partition_key,
         ) = if let Some(no_gc) = no_gc {
             let document = self.document_unrooted(no_gc);
             (
@@ -1001,6 +1040,7 @@ impl Window {
                 document.has_trustworthy_ancestor_or_current_origin(),
                 document.policy_container().clone(),
                 document.origin().clone(),
+                document.determine_the_network_partition_key(),
             )
         } else {
             let document = self.Document();
@@ -1010,6 +1050,7 @@ impl Window {
                 document.has_trustworthy_ancestor_or_current_origin(),
                 document.policy_container().clone(),
                 document.origin().clone(),
+                document.determine_the_network_partition_key(),
             )
         };
         RequestClient {
@@ -1019,6 +1060,7 @@ impl Window {
             is_nested_browsing_context: !self.is_top_level(),
             insecure_requests_policy,
             has_trustworthy_ancestor_origin,
+            network_partition_key,
         }
     }
 
@@ -1886,7 +1928,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
                 .parent
                 .transfer
                 .iter()
-                .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+                .map(|js| js.get())
                 .collect::<Vec<_>>());
 
         let incumbent = GlobalScope::incumbent().expect("no incumbent global?");
@@ -2472,23 +2514,17 @@ impl Window {
     }
 
     pub(crate) fn clear_js_runtime(&self) {
-        self.as_global_scope()
-            .remove_web_messaging_and_dedicated_workers_infra();
+        self.clear_js_runtime_common();
 
         // Clean up any active promises
         // https://github.com/servo/servo/issues/15318
         self.Document().teardown_custom_element_registry();
 
-        self.current_state.set(WindowState::Zombie);
         *self.js_runtime.borrow_mut() = None;
 
         if let Some(performance) = self.performance.get() {
             performance.clear_and_disable_performance_entry_buffer();
         }
-
-        self.as_global_scope()
-            .task_manager()
-            .cancel_all_tasks_and_ignore_future_tasks();
 
         // From <https://w3c.github.io/IndexedDB/#database-connection>
         // > The connection can be closed through several means. If the execution context where
@@ -2989,12 +3025,16 @@ impl Window {
         }
     }
 
+    /// Trigger a reflow that is required by certain queries.
+    pub(crate) fn layout_reflow(&self, cx: &mut JSContext, query_msg: QueryMsg) {
+        self.reflow(cx, ReflowGoal::LayoutQuery(query_msg));
+    }
+
     /// Trigger a reflow that is required by a certain queries.
     #[expect(unsafe_code)]
-    pub(crate) fn layout_reflow(&self, query_msg: QueryMsg) {
+    pub(crate) fn layout_reflow_deprecated(&self, query_msg: QueryMsg) {
         // TODO https://github.com/servo/servo/issues/44499
         let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-
         self.reflow(&mut cx, ReflowGoal::LayoutQuery(query_msg));
     }
 
@@ -3008,10 +3048,11 @@ impl Window {
 
     pub(crate) fn resolved_font_style_query(
         &self,
+        cx: &mut JSContext,
         node: &Node,
         value: String,
     ) -> Option<ServoArc<Font>> {
-        self.layout_reflow(QueryMsg::ResolvedFontStyleQuery);
+        self.layout_reflow(cx, QueryMsg::ResolvedFontStyleQuery);
 
         let document = self.Document();
         let animations = document.animation_manager().sets();
@@ -3079,30 +3120,31 @@ impl Window {
 
     pub(crate) fn box_area_query(
         &self,
+        cx: &mut JSContext,
         node: &Node,
         area: BoxAreaType,
         exclude_transform_and_inline: bool,
     ) -> Option<Rect<Au, CSSPixel>> {
-        self.layout_reflow(QueryMsg::BoxArea);
+        self.layout_reflow(cx, QueryMsg::BoxArea);
         self.box_area_query_without_reflow(node, area, exclude_transform_and_inline)
     }
 
     pub(crate) fn box_areas_query(&self, node: &Node, area: BoxAreaType) -> CSSPixelRectVec {
-        self.layout_reflow(QueryMsg::BoxAreas);
+        self.layout_reflow_deprecated(QueryMsg::BoxAreas);
         self.layout
             .borrow()
             .query_box_areas(node.to_trusted_node_address(), area)
     }
 
     pub(crate) fn client_rect_query(&self, node: &Node) -> Rect<i32, CSSPixel> {
-        self.layout_reflow(QueryMsg::ClientRectQuery);
+        self.layout_reflow_deprecated(QueryMsg::ClientRectQuery);
         self.layout
             .borrow()
             .query_client_rect(node.to_trusted_node_address())
     }
 
-    pub(crate) fn current_css_zoom_query(&self, node: &Node) -> f32 {
-        self.layout_reflow(QueryMsg::CurrentCSSZoomQuery);
+    pub(crate) fn current_css_zoom_query(&self, cx: &mut JSContext, node: &Node) -> f32 {
+        self.layout_reflow(cx, QueryMsg::CurrentCSSZoomQuery);
         self.layout
             .borrow()
             .query_current_css_zoom(node.to_trusted_node_address())
@@ -3118,7 +3160,7 @@ impl Window {
     /// Find the scroll area of the given node, if it is not None. If the node
     /// is None, find the scroll area of the viewport.
     pub(crate) fn scrolling_area_query(&self, node: Option<&Node>) -> Rect<i32, CSSPixel> {
-        self.layout_reflow(QueryMsg::ScrollingAreaOrOffsetQuery);
+        self.layout_reflow_deprecated(QueryMsg::ScrollingAreaOrOffsetQuery);
         self.layout
             .borrow()
             .query_scrolling_area(node.map(Node::to_trusted_node_address))
@@ -3136,7 +3178,7 @@ impl Window {
         &self,
         external_scroll_id: ExternalScrollId,
     ) -> Vector2D<f32, LayoutPixel> {
-        self.layout_reflow(QueryMsg::ScrollingAreaOrOffsetQuery);
+        self.layout_reflow_deprecated(QueryMsg::ScrollingAreaOrOffsetQuery);
         self.scroll_offset_query_with_external_scroll_id_no_reflow(external_scroll_id)
     }
 
@@ -3180,7 +3222,7 @@ impl Window {
         pseudo: Option<PseudoElement>,
         property: PropertyId,
     ) -> DOMString {
-        self.layout_reflow(QueryMsg::ResolvedStyleQuery(property.clone()));
+        self.layout_reflow_deprecated(QueryMsg::ResolvedStyleQuery(property.clone()));
 
         let document = self.Document();
         let animations = document.animation_manager().sets();
@@ -3195,9 +3237,10 @@ impl Window {
 
     pub(crate) fn accesskit_node_query(
         &self,
+        cx: &mut JSContext,
         element: TrustedNodeAddress,
     ) -> Option<accesskit::Node> {
-        self.layout_reflow(QueryMsg::AccessKitNodeQuery);
+        self.layout_reflow(cx, QueryMsg::AccessKitNodeQuery);
         self.layout.borrow().query_accesskit_node(element)
     }
 
@@ -3206,10 +3249,11 @@ impl Window {
     /// Otherwise, return `None`.
     pub(crate) fn get_iframe_viewport_details_if_known(
         &self,
+        cx: &mut JSContext,
         browsing_context_id: BrowsingContextId,
     ) -> Option<ViewportDetails> {
         // Reflow might fail, but do a best effort to return the right size.
-        self.layout_reflow(QueryMsg::InnerWindowDimensionsQuery);
+        self.layout_reflow(cx, QueryMsg::InnerWindowDimensionsQuery);
         self.Document()
             .iframes()
             .viewport_details(browsing_context_id)
@@ -3220,7 +3264,7 @@ impl Window {
         &self,
         node: &Node,
     ) -> (Option<DomRoot<Element>>, Rect<Au, CSSPixel>) {
-        self.layout_reflow(QueryMsg::OffsetParentQuery);
+        self.layout_reflow_deprecated(QueryMsg::OffsetParentQuery);
         let response = self
             .layout
             .borrow()
@@ -3237,7 +3281,7 @@ impl Window {
         node: Option<&Node>,
         flags: ScrollContainerQueryFlags,
     ) -> Option<ScrollContainerResponse> {
-        self.layout_reflow(QueryMsg::ScrollParentQuery);
+        self.layout_reflow_deprecated(QueryMsg::ScrollParentQuery);
         self.layout
             .borrow()
             .query_scroll_container(node.map(Node::to_trusted_node_address), flags)
@@ -3270,10 +3314,11 @@ impl Window {
     #[expect(unsafe_code)]
     pub(crate) fn text_index_query_on_node_for_event(
         &self,
+        cx: &mut JSContext,
         node: &Node,
         point_in_viewport: Point2D<Au, CSSPixel>,
     ) -> Option<(DomRoot<Node>, Utf32CodeUnits)> {
-        self.layout_reflow(QueryMsg::TextIndexOrSegmentQuery);
+        self.layout_reflow(cx, QueryMsg::TextIndexOrSegmentQuery);
         let result = self
             .layout
             .borrow()
@@ -3293,7 +3338,7 @@ impl Window {
         offset: Utf32CodeUnitsOrNodeOffset,
         granularity: SegmentGranularity,
     ) -> Option<(RootedSelectionBoundary, RootedSelectionBoundary)> {
-        self.layout_reflow(QueryMsg::TextIndexOrSegmentQuery);
+        self.layout_reflow_deprecated(QueryMsg::TextIndexOrSegmentQuery);
         let ((start_node, start_offset), (end_node, end_offset)) = self
             .layout()
             .query_text_segment(node.to_trusted_node_address(), offset, granularity)?;
@@ -3313,12 +3358,12 @@ impl Window {
         flags: HitTestFlags,
         point: LayoutPoint,
     ) -> layout_api::HitTestResult {
-        self.layout_reflow(QueryMsg::ElementsFromPoint);
+        self.layout_reflow_deprecated(QueryMsg::ElementsFromPoint);
         self.layout().hit_test(flags, point)
     }
 
     pub(crate) fn query_effective_overflow(&self, node: &Node) -> Option<AxesOverflow> {
-        self.layout_reflow(QueryMsg::EffectiveOverflow);
+        self.layout_reflow_deprecated(QueryMsg::EffectiveOverflow);
         self.query_effective_overflow_without_reflow(node)
     }
 
@@ -3726,6 +3771,13 @@ impl Window {
         self.last_activation_timestamp.set(time);
     }
 
+    pub(crate) fn set_last_history_action_activation_timestamp(
+        &self,
+        time: UserActivationTimestamp,
+    ) {
+        self.last_history_action_activation_timestamp.set(time);
+    }
+
     pub(crate) fn send_to_embedder(&self, msg: EmbedderMsg) {
         self.as_global_scope()
             .script_to_embedder_chan()
@@ -3940,6 +3992,14 @@ impl Window {
             self.last_activation_timestamp.get()
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#history-action-activation>
+    pub(crate) fn has_history_action_activation(&self) -> bool {
+        // > When the last history-action activation timestamp of W
+        // > is not equal to the last activation timestamp of W,
+        // > then W is said to have history-action activation.
+        self.last_history_action_activation_timestamp.get() != self.last_activation_timestamp.get()
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#transient-activation>
     pub(crate) fn has_transient_activation(&self) -> bool {
         // > When the current high resolution time given W is greater than or equal to the last activation timestamp in W, and less than the last activation
@@ -3984,6 +4044,39 @@ impl Window {
             .consume_last_activation_timestamp();
         for document in SameOriginDescendantNavigablesIterator::new(&top_level_document) {
             document.window().consume_last_activation_timestamp();
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#consume-history-action-user-activation>
+    pub(crate) fn consume_history_action_user_activation(&self) {
+        // Step 1. If W's navigable is null, then return.
+        if self.undiscarded_window_proxy().is_none() {
+            return;
+        }
+
+        // Step 2. Let top be W's navigable's top-level traversable.
+        // TODO: This wouldn't work if top level document is in another ScriptThread.
+        let Some(top_level_document) = self.top_level_document_if_local() else {
+            return;
+        };
+
+        // Step 3. Let navigables be the inclusive descendant navigables of top's active document.
+        // Step 4. Let windows be the list of Window objects constructed by taking the active window
+        // of each item in navigables.
+        // Step 5. For each window in windows, set window's last history-action activation timestamp
+        // to window's last activation timestamp.
+        // TODO: this would not work for disimilar origin descendant, since we doesn't store the document in this script thread.
+        top_level_document
+            .window()
+            .set_last_history_action_activation_timestamp(
+                top_level_document.window().last_activation_timestamp.get(),
+            );
+        for document in SameOriginDescendantNavigablesIterator::new(&top_level_document) {
+            document
+                .window()
+                .set_last_history_action_activation_timestamp(
+                    document.window().last_activation_timestamp.get(),
+                );
         }
     }
 
@@ -4123,6 +4216,13 @@ impl Window {
             devtools_wants_updates: Default::default(),
             has_dispatched_scroll_event: Cell::new(false),
             has_dispatched_input_event: Cell::new(false),
+            // https://html.spec.whatwg.org/multipage/#last-history-action-activation-timestamp
+            // > A last history-action activation timestamp, which is either a DOMHighResTimeStamp
+            // > or positive infinity, initially positive infinity.
+            last_history_action_activation_timestamp: Cell::new(
+                UserActivationTimestamp::PositiveInfinity,
+            ),
+            close_watcher_manager: CloseWatcherManager::new(),
         });
 
         WindowBinding::Wrap::<crate::DomTypeHolder>(cx, &origin, win)

@@ -1,22 +1,46 @@
 def main(request, response):
     headers = [(b"Content-Type", b"text/plain")]
-    stashed_data = {b'control_request_headers': b"", b'preflight': b"0", b'preflight_referrer': b""}
+    stashed_data = {b'control_request_headers': b"", b'preflight': b"0", b'preflight_referrer': b"",
+                    b'preflight_user_agent': b"", b'options_count': 0, b'fail_next': False}
 
     token = None
     if b"token" in request.GET:
         token = request.GET.first(b"token")
 
-    if b"origin" in request.GET:
-        for origin in request.GET[b'origin'].split(b", "):
-            headers.append((b"Access-Control-Allow-Origin", origin))
+    if token:
+        data = request.server.stash.take(token)
+        if data is not None:
+            stashed_data = data
+
+    should_fail = (request.method != u"OPTIONS") and stashed_data[b'fail_next']
+    if should_fail:
+        stashed_data[b'fail_next'] = False
+
     else:
-        headers.append((b"Access-Control-Allow-Origin", b"*"))
+        if b"origin" in request.GET:
+            for origin in request.GET[b'origin'].split(b", "):
+                headers.append((b"Access-Control-Allow-Origin", origin))
+        else:
+            headers.append((b"Access-Control-Allow-Origin", b"*"))
 
     if b"clear-stash" in request.GET:
-        if request.server.stash.take(token) is not None:
+        # stash already taken above; return "1" if a preflight was ever recorded
+        if stashed_data[b'preflight'] == b"1":
             return headers, b"1"
         else:
             return headers, b"0"
+
+    if b"options-count" in request.GET:
+        count = stashed_data[b'options_count']
+        if token:
+            request.server.stash.put(token, stashed_data)
+        return headers, str(count).encode()
+
+    if b"fail-next" in request.GET:
+        stashed_data[b'fail_next'] = True
+        if token:
+            request.server.stash.put(token, stashed_data)
+        return headers, b"1"
 
     if b"credentials" in request.GET:
         headers.append((b"Access-Control-Allow-Credentials", b"true"))
@@ -49,16 +73,12 @@ def main(request, response):
         stashed_data[b'preflight'] = b"1"
         stashed_data[b'preflight_referrer'] = request.headers.get(b"Referer", b"")
         stashed_data[b'preflight_user_agent'] = request.headers.get(b"User-Agent", b"")
+        stashed_data[b'options_count'] = stashed_data[b'options_count'] + 1
         if token:
             request.server.stash.put(token, stashed_data)
 
         return preflight_status, headers, b""
 
-
-    if token:
-        data = request.server.stash.take(token)
-        if data:
-            stashed_data = data
 
     if b"checkUserAgentHeaderInPreflight" in request.GET and request.headers.get(b"User-Agent") != stashed_data[b'preflight_user_agent']:
         return 400, headers, b"ERROR: No user-agent header in preflight"

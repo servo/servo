@@ -29,6 +29,8 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::ElementBinding::ScrollLogicalPosition;
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
+#[cfg(feature = "gamepad")]
+use script_bindings::codegen::GenericBindings::GamepadBinding::GamepadMappingType;
 use script_bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElementMethods;
 use script_bindings::codegen::GenericBindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
@@ -40,7 +42,10 @@ use script_bindings::root::{Dom, DomRoot, DomSlice};
 use script_bindings::str::DOMString;
 use script_traits::{ConstellationInputEvent, MouseButtons};
 use servo_config::pref;
-use servo_constellation_traits::{KeyboardScroll, ScriptToConstellationMessage};
+use servo_constellation_traits::{
+    KeyboardScroll, LoadData, NavigationHistoryBehavior, ScriptToConstellationMessage,
+};
+use servo_url::ServoUrl;
 use style::Atom;
 use style_traits::CSSPixel;
 use webrender_api::ExternalScrollId;
@@ -66,20 +71,23 @@ use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::keyboardevent::KeyboardEvent;
+use crate::dom::links::htmlhyperlinkelementutils::HyperlinkElementTraits;
 use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::{self, Node, NodeTraits};
 use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::types::{
-    CompositionEvent, Element, Event, EventTarget, GlobalScope, HTMLAnchorElement, HTMLElement,
-    HTMLLabelElement, MouseEvent, Touch, TouchEvent, TouchList, WheelEvent, Window,
+    CompositionEvent, Element, Event, EventTarget, GlobalScope, HTMLAnchorElement, HTMLAreaElement,
+    HTMLElement, HTMLLabelElement, MouseEvent, Touch, TouchEvent, TouchList, WheelEvent, Window,
 };
 use crate::dom::window::scrolling_box::{ScrollAxisState, ScrollRequirement, ScrollingBoxAxis};
 use crate::drag::drag_gesture::DragGesture;
+use crate::navigation::navigate;
 use crate::realms::enter_auto_realm;
 
-/// A data structure used for tracking the current click count. This can be
-/// reset to 0 if a mouse button event happens at a sufficient distance or time
-/// from the previous one.
+/// A data structure used for tracking the state of a particular mouse button's clicks.
+/// This is used to determine when to fire click events and for click counting. Click
+/// counts can be reset to 0 if a mouse button event happens at a sufficient distance or
+/// time from the previous one.
 ///
 /// From <https://w3c.github.io/uievents/#current-click-count>:
 /// > Implementations MUST maintain the current click count when generating mouse
@@ -87,25 +95,49 @@ use crate::realms::enter_auto_realm;
 /// > clicks of a pointing device button within a specific time. The delay after which
 /// > the count resets is specific to the environment configuration.
 #[derive(Default, JSTraceable, MallocSizeOf)]
-struct ClickCountingInfo {
-    time: Option<Instant>,
+struct ButtonClickState {
     #[no_trace]
-    point: Option<Point2D<f32, CSSPixel>>,
+    down_point: Option<Point2D<f32, CSSPixel>>,
+    last_click_time: Option<Instant>,
     #[no_trace]
-    button: Option<MouseButton>,
-    count: usize,
+    last_click_point: Option<Point2D<f32, CSSPixel>>,
+    click_count: usize,
 }
 
-impl ClickCountingInfo {
-    fn reset_click_count_if_necessary(
-        &mut self,
-        button: MouseButton,
-        point_in_frame: Point2D<f32, CSSPixel>,
-    ) {
-        let (Some(previous_button), Some(previous_point), Some(previous_time)) =
-            (self.button, self.point, self.time)
+impl ButtonClickState {
+    fn reset_click_count(&mut self) {
+        self.click_count = 0;
+        self.last_click_time = None;
+        self.last_click_point = None;
+    }
+
+    fn increment_click_count(&mut self, point: Point2D<f32, CSSPixel>) -> usize {
+        self.last_click_time = Some(Instant::now());
+        self.last_click_point = Some(point);
+        self.click_count += 1;
+        self.click_count
+    }
+}
+
+#[derive(Default, JSTraceable, MallocSizeOf)]
+struct MouseClickTracker {
+    state: FxHashMap<NoTrace<MouseButton>, ButtonClickState>,
+}
+
+impl MouseClickTracker {
+    fn on_mouse_down(&mut self, button: MouseButton, point_in_frame: Point2D<f32, CSSPixel>) {
+        for (state_button, state) in &mut self.state {
+            if state_button.0 != button {
+                state.reset_click_count();
+            }
+        }
+
+        let state = self.state.entry(NoTrace(button)).or_default();
+        state.down_point = Some(point_in_frame);
+
+        let (Some(previous_point), Some(previous_time)) =
+            (state.last_click_point, state.last_click_time)
         else {
-            assert_eq!(self.count, 0);
             return;
         };
 
@@ -116,30 +148,43 @@ impl ClickCountingInfo {
         // Calculate distance between this click and the previous click.
         let line = point_in_frame - previous_point;
         let distance = (line.dot(line) as f64).sqrt();
-        if previous_button != button ||
-            Instant::now().duration_since(previous_time) > double_click_timeout ||
+        if Instant::now().duration_since(previous_time) > double_click_timeout ||
             distance > double_click_distance_threshold as f64
         {
-            self.reset_click_count();
+            state.reset_click_count();
         }
     }
 
-    fn increment_click_count(
+    fn on_mouse_up(
         &mut self,
         button: MouseButton,
-        point: Point2D<f32, CSSPixel>,
+        point_in_frame: Point2D<f32, CSSPixel>,
     ) -> usize {
-        self.time = Some(Instant::now());
-        self.point = Some(point);
-        self.button = Some(button);
-        self.count += 1;
-        self.count
+        self.state
+            .entry(NoTrace(button))
+            .or_default()
+            .increment_click_count(point_in_frame)
     }
 
-    fn reset_click_count(&mut self) {
-        self.count = 0;
-        self.time = None;
-        self.point = None;
+    fn click_count_for(&self, button: MouseButton) -> usize {
+        self.state
+            .get(&NoTrace(button))
+            .map_or(0, |state| state.click_count)
+    }
+
+    fn take_last_mouse_button_down_point(
+        &mut self,
+        mouse_button: MouseButton,
+    ) -> Option<Point2D<f32, CSSPixel>> {
+        self.state
+            .get_mut(&NoTrace(mouse_button))
+            .and_then(|state| state.down_point.take())
+    }
+
+    fn reset_all(&mut self) {
+        for state in self.state.values_mut() {
+            state.reset_click_count();
+        }
     }
 }
 
@@ -167,10 +212,8 @@ pub(crate) struct DocumentEventHandler {
     /// The [`InputEventId`]s of wheel events that have been coalesced.
     #[no_trace]
     coalesced_wheel_event_ids: DomRefCell<Vec<InputEventId>>,
-    /// <https://w3c.github.io/uievents/#event-type-dblclick>
-    click_counting_info: DomRefCell<ClickCountingInfo>,
-    #[no_trace]
-    last_mouse_button_down_point: Cell<Option<Point2D<f32, CSSPixel>>>,
+    /// State that is stored to track and count clicks per-mouse button.
+    button_click_state: DomRefCell<MouseClickTracker>,
     /// The current button state of the mouse. This is used to ensure that
     /// `pointerup` and `pointerdown` events are only sent when transitioning from
     /// having no mouse buttons pressed to having any and vice-versa.
@@ -224,8 +267,7 @@ impl DocumentEventHandler {
             coalesced_mouse_move_event_ids: Default::default(),
             wheel_event_index: Default::default(),
             coalesced_wheel_event_ids: Default::default(),
-            click_counting_info: Default::default(),
-            last_mouse_button_down_point: Default::default(),
+            button_click_state: Default::default(),
             mouse_button_state: Cell::new(MouseButtons::empty()),
             current_hover_target: Default::default(),
             current_active_element: Default::default(),
@@ -474,7 +516,7 @@ impl DocumentEventHandler {
                 .inclusive_ancestors(ShadowIncluding::Yes)
                 .filter_map(DomRoot::downcast::<Element>)
             {
-                element.set_hover_state(false);
+                element.set_hover_state(cx.no_gc(), false);
             }
 
             if let Some(hit_test_result) =
@@ -690,7 +732,7 @@ impl DocumentEventHandler {
                         .inclusive_ancestors(ShadowIncluding::Yes)
                         .filter_map(DomRoot::downcast::<Element>)
                     {
-                        element.set_hover_state(false);
+                        element.set_hover_state(cx.no_gc(), false);
                     }
                 }
 
@@ -739,7 +781,7 @@ impl DocumentEventHandler {
                 .inclusive_ancestors(ShadowIncluding::Yes)
                 .filter_map(DomRoot::downcast::<Element>)
             {
-                element.set_hover_state(true);
+                element.set_hover_state(cx.no_gc(), true);
             }
 
             if !capture_is_active {
@@ -820,14 +862,10 @@ impl DocumentEventHandler {
         // Send mousemove event. Routed to the capture target when capture is active.
         mouse_event.upcast::<Event>().fire(cx, &pointer_target);
 
-        self.update_current_hover_target_and_status(cx.no_gc(), Some(new_target));
+        self.update_current_hover_target_and_status(Some(new_target));
     }
 
-    fn update_current_hover_target_and_status(
-        &self,
-        no_gc: &NoGC,
-        new_hover_target: Option<DomRoot<Element>>,
-    ) {
+    fn update_current_hover_target_and_status(&self, new_hover_target: Option<DomRoot<Element>>) {
         let current_hover_target = self.current_hover_target.get();
         if current_hover_target == new_hover_target {
             return;
@@ -845,7 +883,7 @@ impl DocumentEventHandler {
                 .find_map(DomRoot::downcast::<HTMLAnchorElement>)
         {
             let status = anchor
-                .full_href_url_for_user_interface(no_gc)
+                .full_href_url_for_user_interface()
                 .map(|url| url.to_string());
             self.window
                 .send_to_embedder(EmbedderMsg::Status(self.window.webview_id(), status));
@@ -913,17 +951,17 @@ impl DocumentEventHandler {
             if currently_active_element == element_for_activation {
                 return;
             }
-            self.unset_active_element();
+            self.unset_active_element(no_gc);
         }
 
-        element_for_activation.set_active_state(true);
+        element_for_activation.set_active_state(no_gc, true);
         self.current_active_element
             .set(Some(&*element_for_activation));
     }
 
-    fn unset_active_element(&self) {
+    fn unset_active_element(&self, no_gc: &NoGC) {
         if let Some(active_element) = self.current_active_element.take() {
-            active_element.set_active_state(false);
+            active_element.set_active_state(no_gc, false);
         }
     }
 
@@ -994,13 +1032,12 @@ impl DocumentEventHandler {
                 self.set_active_element(cx.no_gc(), &element);
             }
             if mouse_button_event.action == MouseButtonAction::Up {
-                self.unset_active_element();
+                self.unset_active_element(cx.no_gc());
             }
         }
 
         // https://w3c.github.io/uievents/#hit-test
         // Prevent mouse event if element is disabled.
-        // TODO: also inert.
         if element.is_actually_disabled() {
             return;
         }
@@ -1010,20 +1047,24 @@ impl DocumentEventHandler {
             embedder_traits::MouseButtonAction::Down => atom!("mousedown"),
         };
 
+        let mouse_button = mouse_button_event.button;
+        if mouse_button_event.action == MouseButtonAction::Down {
+            self.button_click_state
+                .safe_borrow_mut(cx.no_gc())
+                .on_mouse_down(mouse_button, hit_test_result.point_in_frame);
+        }
+
         // From <https://w3c.github.io/pointerevents/#dfn-mousedown>
         // and <https://w3c.github.io/pointerevents/#mouseup>:
         //
-        // UIEvent.detail: indicates the current click count incremented by one. For
-        // example, if no click happened before the mousedown, detail will contain
-        // the value 1
-        if mouse_button_event.action == MouseButtonAction::Down {
-            self.click_counting_info
-                .safe_borrow_mut(cx.no_gc())
-                .reset_click_count_if_necessary(
-                    mouse_button_event.button,
-                    hit_test_result.point_in_frame,
-                );
-        }
+        // > UIEvent.detail: indicates the current click count incremented by one. For
+        // > example, if no click happened before the mousedown, detail will contain
+        // > the value 1.
+        let click_count = self
+            .button_click_state
+            .borrow()
+            .click_count_for(mouse_button) +
+            1;
 
         let mouse_event = MouseEvent::for_platform_button_event(
             cx,
@@ -1033,14 +1074,11 @@ impl DocumentEventHandler {
             &self.window,
             &hit_test_result,
             input_event.active_keyboard_modifiers,
-            self.click_counting_info.borrow().count + 1,
+            click_count,
         );
 
         match mouse_button_event.action {
             MouseButtonAction::Down => {
-                self.last_mouse_button_down_point
-                    .set(Some(hit_test_result.point_in_frame));
-
                 // Step 6. Dispatch pointerdown event.
                 let pointer_event_result = if is_compatibility_event_for_touch {
                     true
@@ -1189,12 +1227,9 @@ impl DocumentEventHandler {
                 // Click counts should still work for other buttons even though they
                 // do not trigger "click" and "dblclick" events, so we increment
                 // even when those events are not fired.
-                self.click_counting_info
+                self.button_click_state
                     .safe_borrow_mut(cx.no_gc())
-                    .increment_click_count(
-                        mouse_button_event.button,
-                        hit_test_result.point_in_frame,
-                    );
+                    .on_mouse_up(mouse_button_event.button, hit_test_result.point_in_frame);
 
                 self.maybe_trigger_click_for_mouse_button_down_event(
                     cx,
@@ -1217,11 +1252,11 @@ impl DocumentEventHandler {
         hit_test_result: &HitTestResult,
         element: &Element,
     ) {
-        if event.button != MouseButton::Primary {
-            return;
-        }
-
-        let Some(last_mouse_button_down_point) = self.last_mouse_button_down_point.take() else {
+        let Some(last_mouse_button_down_point) = self
+            .button_click_state
+            .safe_borrow_mut(cx.no_gc())
+            .take_last_mouse_button_down_point(event.button)
+        else {
             return;
         };
 
@@ -1231,48 +1266,69 @@ impl DocumentEventHandler {
             return;
         }
 
-        // From <https://w3c.github.io/pointerevents/#click>
-        // > The click event type MUST be dispatched on the topmost event target indicated by the
-        // > pointer, when the user presses down and releases the primary pointer button.
-        self.most_recently_clicked_element.set(Some(element));
-
-        let click_count = self.click_counting_info.borrow().count;
-        element.set_click_in_progress(true);
-        MouseEvent::for_platform_button_event(
-            cx,
-            atom!("click"),
-            event,
-            input_event.pressed_mouse_buttons,
-            &self.window,
-            hit_test_result,
-            input_event.active_keyboard_modifiers,
-            click_count,
-        )
-        .upcast::<Event>()
-        .dispatch(cx, element.upcast(), false);
-        element.set_click_in_progress(false);
-
-        // The firing of "dbclick" events is dependent on the platform, so we have
-        // some flexibility here. Some browsers on some platforms only fire a
-        // "dbclick" when the click count is 2 and others essentially fire one for
-        // every 2 clicks in a sequence. In all cases, browsers set the click count
-        // `detail` property to 2.
-        //
-        // We follow the latter approach here, considering that every sequence of
-        // even numbered clicks is a series of double clicks.
-        if click_count.is_multiple_of(2) {
-            MouseEvent::for_platform_button_event(
+        let mut dispatch_button_event = |event_name: Atom, click_count: usize| {
+            let mouse_event = MouseEvent::for_platform_button_event(
                 cx,
-                Atom::from("dblclick"),
+                event_name,
                 event,
                 input_event.pressed_mouse_buttons,
                 &self.window,
                 hit_test_result,
                 input_event.active_keyboard_modifiers,
-                2,
-            )
-            .upcast::<Event>()
-            .dispatch(cx, element.upcast(), false);
+                click_count,
+            );
+            let event = mouse_event.upcast::<Event>();
+            event.dispatch(cx, element.upcast(), false);
+            event.flags()
+        };
+
+        let click_count = self
+            .button_click_state
+            .borrow()
+            .click_count_for(event.button);
+        match event.button {
+            MouseButton::Primary => {
+                // From <https://w3c.github.io/pointerevents/#click>
+                // > The click event type MUST be dispatched on the topmost event target indicated by the
+                // > pointer, when the user presses down and releases the primary pointer button.
+                self.most_recently_clicked_element.set(Some(element));
+
+                element.set_click_in_progress(true);
+                dispatch_button_event(atom!("click"), click_count);
+                element.set_click_in_progress(false);
+
+                // The firing of "dblclick" events is dependent on the platform, so we have
+                // some flexibility here. Some browsers on some platforms only fire a
+                // "dblclick" when the click count is 2 and others essentially fire one for
+                // every 2 clicks in a sequence. In all cases, browsers set the click count
+                // `detail` property to 2.
+                //
+                // We follow the latter approach here, considering that every sequence of
+                // even numbered clicks is a series of double clicks.
+                if click_count.is_multiple_of(2) {
+                    dispatch_button_event(Atom::from("dblclick"), 2);
+                }
+            },
+            // From <https://w3c.github.io/pointerevents/#dfn-auxclick>:
+            // > The auxclick event type MUST be dispatched on the topmost event target
+            // > indicated by the pointer, when the user presses down and releases the
+            // > non-primary pointer button, or otherwise activates the pointer in a manner
+            // > that simulates such an action. The actuation method of the mouse button
+            // > depends upon the pointer device and the environment configuration, e.g., it
+            // > MAY depend on the screen location or the delay between the press and
+            // > release of the pointing device button.
+            MouseButton::Auxiliary |
+            MouseButton::Back |
+            MouseButton::Forward |
+            MouseButton::Other(..) => {
+                let event_flags = dispatch_button_event(Atom::from("auxclick"), click_count);
+                if !event_flags.intersects(EventFlags::Canceled | EventFlags::Handled) &&
+                    event.button == MouseButton::Auxiliary
+                {
+                    self.maybe_activate_link_due_to_auxiliary_click(cx, element.upcast());
+                }
+            },
+            _ => {},
         }
     }
 
@@ -1328,7 +1384,7 @@ impl DocumentEventHandler {
             self.window
                 .Document()
                 .embedder_controls()
-                .show_context_menu(cx.no_gc(), hit_test_result);
+                .show_context_menu(cx, hit_test_result);
         };
     }
 
@@ -1560,7 +1616,7 @@ impl DocumentEventHandler {
                     TouchEventType::Up | TouchEventType::Cancel => {
                         active_touch_points.swap_remove(index);
                         self.remove_pointer_id_for_touch(identifier);
-                        self.unset_active_element();
+                        self.unset_active_element(cx.no_gc());
                     },
                     TouchEventType::Down => unreachable!("Should have been handled above"),
                 }
@@ -1634,9 +1690,9 @@ impl DocumentEventHandler {
             // A touchend that doesn't synthesize compatibility mouse events ends the
             // click sequence.
             // See https://github.com/servo/servo/issues/46497#issuecomment-6030515485>
-            self.click_counting_info
+            self.button_click_state
                 .safe_borrow_mut(cx.no_gc())
-                .reset_click_count();
+                .reset_all();
         }
 
         flags.into()
@@ -1958,7 +2014,7 @@ impl DocumentEventHandler {
                     &window,
                     selected_index,
                     name,
-                    "standard".into(),
+                    GamepadMappingType::Standard,
                     axis_bounds,
                     button_bounds,
                     supported_haptic_effects,
@@ -2979,6 +3035,61 @@ impl DocumentEventHandler {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn install_drag_gesture(&self, drag_gesture: DragGesture) {
         *self.drag_gesture.borrow_mut() = Some(drag_gesture);
+    }
+
+    /// Maybe activate a link in this node or one of its ancestors when it is the target
+    /// of an auxiliary click.
+    fn maybe_activate_link_due_to_auxiliary_click(&self, cx: &mut JSContext, node: &Node) {
+        let no_gc = cx.no_gc();
+        let Some(url) = node
+            .inclusive_ancestors_unrooted(no_gc, ShadowIncluding::Yes)
+            .find_map(|node| {
+                if let Some(anchor) = node.downcast::<HTMLAnchorElement>() {
+                    return anchor.full_href_url_for_user_interface();
+                }
+                if let Some(area) = node.downcast::<HTMLAreaElement>() {
+                    return area.full_href_url_for_user_interface();
+                }
+                None
+            })
+        else {
+            return;
+        };
+        self.open_url_in_new_webview(cx, url);
+    }
+
+    /// Open the URL in a new WebView, if possible.
+    ///
+    /// TODO: This should be sending a referrer and not setting `noopener`.
+    pub(crate) fn open_url_in_new_webview(&self, cx: &mut JSContext, url: ServoUrl) {
+        let Some(browsing_context) = self.window.document_unrooted(cx.no_gc()).browsing_context()
+        else {
+            return;
+        };
+        let (browsing_context, new) = browsing_context.choose_a_navigable(
+            cx,
+            DOMString::from_static("_blank"),
+            true, /* noopener */
+        );
+        let Some(browsing_context) = browsing_context else {
+            return;
+        };
+        assert!(new);
+        let Some(target_document) = browsing_context.document() else {
+            return;
+        };
+
+        let target_window = target_document.window();
+        let target = Trusted::new(target_window);
+        let load_data = LoadData::new_for_new_unrelated_webview(url);
+        let task = task!(open_link_in_new_webview: move |cx| {
+            navigate(cx, &target.root(), NavigationHistoryBehavior::Replace, false, load_data);
+        });
+        target_document
+            .owner_global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task);
     }
 }
 

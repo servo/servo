@@ -4,7 +4,7 @@ components:
     workerType: ci-gw
     schedulerId: taskcluster-github
     deadline: "24 hours"
-    image: ghcr.io/web-platform-tests/wpt:3
+    image: ghcr.io/web-platform-tests/wpt:4
     maxRunTime: 7200
     artifacts:
       public/results:

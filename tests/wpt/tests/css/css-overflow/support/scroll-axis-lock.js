@@ -27,7 +27,7 @@ function test_driver_wheel_scroll(delta_x, delta_y, origin) {
  *
  * @param {test}          The test object that run the assertions.
  * @param {config}        Test configuration
- *   - scroller/doc: Element/Document whose scrolling is tested.
+ *   - scroller/iframe/doc: Element/iframe/Document whose scrolling is tested.
  *   - input_source: the input triggering the scroll ("touch" or "wheel").
  *   - expects_scroll_axis_lock: If true, the test will assert that the scroller
  *     will rail to the dominant axis. If false, it will assert the scroller can
@@ -44,10 +44,12 @@ function test_driver_wheel_scroll(delta_x, delta_y, origin) {
 async function check_scroll_axis_lock(test, config) {
   await waitForCompositorReady();
 
-  if (!config.scroller && !config.doc)
+  if (!config.scroller && !config.iframe && !config.doc)
     throw new Error('No scrolling element or document specified.');
 
-  const scroller = config.scroller || config.doc?.scrollingElement;
+  const scroller = config.scroller ||
+      config.iframe?.contentDocument.scrollingElement ||
+      config.doc?.scrollingElement;
 
   let received_wheel_event = null;
 
@@ -55,12 +57,13 @@ async function check_scroll_axis_lock(test, config) {
   // minor axis.
   // This steep angle would normally trigger railing to the dominant axis.
   // With scroll-axis-lock: none, it should not rail.
-  const bounds = config.scroller?.getBoundingClientRect() || {
-    left: 0,
-    top: 0,
-    width: config.doc?.defaultView.innerWidth,
-    height: config.doc?.defaultView.innerHeight,
-  };
+  const bounds =
+      (config.scroller || config.iframe)?.getBoundingClientRect() || {
+        left: 0,
+        top: 0,
+        width: config.doc?.defaultView.innerWidth,
+        height: config.doc?.defaultView.innerHeight,
+      };
   const start_x = bounds.left + bounds.width / 2;
   const start_y = bounds.top + bounds.height / 2;
   const delta_minor_axis = config.delta_minor_axis_sign * 2;
@@ -104,7 +107,8 @@ async function check_scroll_axis_lock(test, config) {
   const end_x = start_x - delta_x;
   const end_y = start_y - delta_y;
 
-  const scrollTarget = config.scroller || config.doc;
+  const scrollTarget =
+      config.scroller || config.iframe?.contentDocument || config.doc;
   const scrollend_promise =
       waitForScrollEndFallbackToDelayWithoutScrollEvent(scrollTarget);
 
@@ -116,8 +120,9 @@ async function check_scroll_axis_lock(test, config) {
       received_wheel_event = e;
     }, {once: true});
 
-    await test_driver_wheel_scroll(Math.round(delta_x), Math.round(delta_y),
-                                   config.scroller || 'viewport');
+    await test_driver_wheel_scroll(
+        Math.round(delta_x), Math.round(delta_y),
+        config.scroller || config.iframe || 'viewport');
   }
 
   // Wait for scroll to end.

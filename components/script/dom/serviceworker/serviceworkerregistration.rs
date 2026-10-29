@@ -145,7 +145,7 @@ impl ServiceWorkerRegistration {
         #[cfg(feature = "webgl")]
         let webgl_chan = global
             .downcast::<Window>()
-            .and_then(|window| window.webgl_chan_value());
+            .and_then(|window| window.webgl_chan());
         let worker_id = WorkerId(Uuid::new_v4());
         #[cfg(feature = "devtools")]
         let devtools_chan = global.devtools_chan().cloned();

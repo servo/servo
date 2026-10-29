@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+  <!-- Full-coverage luminance mask: white == fully opaque, so an element that
+       applies this mask is entirely visible. If the mask fails to load (e.g.
+       blocked by CSP) the element is masked out and paints blank instead. -->
+  <mask id="m" maskContentUnits="userSpaceOnUse">
+    <rect x="0" y="0" width="100" height="100" fill="white"/>
+  </mask>
+</svg>

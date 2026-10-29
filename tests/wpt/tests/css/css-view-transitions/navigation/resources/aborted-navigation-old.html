@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Old page: opts in and reports its pageswap</title>
+<style>
+@view-transition { navigation: auto; }
+</style>
+<script>
+// Post only strings, so that the test can ignore object messages. Post from a
+// rAF callback, since the document is revealed by then, and only a revealed
+// document can start an outbound transition.
+addEventListener('load', () => requestAnimationFrame(
+    () => window.opener.postMessage('loaded', '*')));
+addEventListener('pageswap', e => {
+  window.opener.postMessage(
+      'pageswap:' + (e.viewTransition ? 'transition' : 'null'), '*');
+});
+</script>
+<div style="width: 100px; height: 100px; background: green"></div>

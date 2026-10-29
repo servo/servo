@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset="utf-8">
+<script>
+// Reports history.length and navigation.activation's navigationType to whoever created this window and
+// navigates as they say. With "slow" in the query it reports before it has completely loaded too.
+function report(data = {}) {
+  const navigationType = self.navigation?.activation?.navigationType;
+  (opener || parent).postMessage({ type: "report", url: location.href, historyLength: history.length, navigationType, ...data }, "*");
+}
+
+onload = () => setTimeout(report);
+
+onmessage = ({ data }) => {
+  const targets = { self: () => window, top: () => top, opener: () => opener, frame: () => parent.frames[data.index] };
+  switch (data.action) {
+  case "replace":
+    targets[data.target]().location.replace(data.url);
+    break;
+  case "href":
+    targets[data.target]().location.href = data.url;
+    break;
+  case "navigate-replace":
+    navigation.navigate(data.url, { history: "replace" });
+    break;
+  case "open":
+    open(data.url);
+    break;
+  case "add-iframe":
+    document.body.append(Object.assign(document.createElement("iframe"), { src: data.url }));
+    break;
+  case "close":
+    close();
+    break;
+  }
+};
+</script>
+<body>
+<script>
+if (location.search.includes("slow")) {
+  document.body.append(Object.assign(new Image(), { src: "/common/slow.py" }));
+  report({ loading: true });
+}
+</script>

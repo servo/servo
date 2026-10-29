@@ -174,7 +174,7 @@ impl HTMLLinkElement {
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn remove_stylesheet(&self, no_gc: &NoGC) {
-        if let Some(stylesheet) = self.stylesheet.borrow_mut().take() {
+        if let Some(stylesheet) = self.stylesheet.safe_borrow_mut(no_gc).take() {
             let owner = self.stylesheet_list_owner();
             owner.remove_stylesheet(
                 StylesheetSource::Element(Dom::from_ref(self.upcast())),
@@ -190,7 +190,11 @@ impl HTMLLinkElement {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn set_stylesheet(&self, no_gc: &NoGC, new_stylesheet: Arc<Stylesheet>) {
         let owner = self.stylesheet_list_owner();
-        if let Some(old_stylesheet) = self.stylesheet.borrow_mut().replace(new_stylesheet.clone()) {
+        if let Some(old_stylesheet) = self
+            .stylesheet
+            .safe_borrow_mut(no_gc)
+            .replace(new_stylesheet.clone())
+        {
             owner.remove_stylesheet(
                 StylesheetSource::Element(Dom::from_ref(self.upcast())),
                 &old_stylesheet,
@@ -348,7 +352,7 @@ impl VirtualMethods for HTMLLinkElement {
             },
             local_name!("imagesrcset") => {
                 self.source_set
-                    .borrow_mut()
+                    .safe_borrow_mut(cx.no_gc())
                     .update_source_set(cx.no_gc(), self.upcast::<Element>());
             },
             local_name!("imagesizes") => {
@@ -357,7 +361,7 @@ impl VirtualMethods for HTMLLinkElement {
                     .has_attribute(&local_name!("imagesrcset"))
                 {
                     self.source_set
-                        .borrow_mut()
+                        .safe_borrow_mut(cx.no_gc())
                         .update_source_set(cx.no_gc(), self.upcast::<Element>());
                 }
             },
@@ -427,7 +431,7 @@ impl VirtualMethods for HTMLLinkElement {
                         _ => {},
                     };
                 } else if self.relations.get().contains(LinkRelations::STYLESHEET) &&
-                    let Some(ref stylesheet) = *self.stylesheet.borrow_mut()
+                    let Some(ref stylesheet) = *self.stylesheet.safe_borrow_mut(cx.no_gc())
                 {
                     let document = self.owner_document();
                     let shared_lock = document.style_shared_author_lock().clone();
@@ -929,7 +933,7 @@ impl HTMLLinkElement {
     fn handle_preload_url(&self, no_gc: &NoGC) {
         // Step 1. Update the source set for el.
         self.source_set
-            .borrow_mut()
+            .safe_borrow_mut(no_gc)
             .update_source_set(no_gc, self.upcast::<Element>());
         // Step 2. Let options be the result of creating link options from el.
         let mut options = self.processing_options();
@@ -953,7 +957,7 @@ impl HTMLLinkElement {
         // Step 6. Preload options, with the following steps given a response response:
         let document = self.upcast::<Node>().owner_doc();
         options.preload(
-            self.owner_window().webview_id(),
+            self.owner_window_unrooted(no_gc).webview_id(),
             Some(Trusted::new(self)),
             &document,
         );

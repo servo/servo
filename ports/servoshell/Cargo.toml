@@ -34,11 +34,19 @@ ProductName = "ServoShell"
 
 [features]
 # Don't add new features to `default` directly. Add to `default_base` instead.
-default = ["default_base", "jemalloc", "media-gstreamer"]
+default = ["default_base", "media-gstreamer"]
 # Feature groups:
-# Base default features, without GStreamer media support and without jemalloc.
-default_base = ["bundled", "default_web_features", "default_tooling", "max_log_level", "multiprocess", "js_jit"]
-# Enable jemalloc.
+# Base default features, without GStreamer media support.
+default_base = [
+    "bundled",
+    "default_web_features",
+    "default_tooling",
+    "jemalloc",
+    "max_log_level",
+    "multiprocess",
+    "js_jit",
+]
+# Enable jemalloc on platforms that support it (not OHOS and not Windows).
 jemalloc = ["servo-allocator/use-jemalloc"]
 # Default web features should be kept in sync with the list in servo/Cargo.toml.
 # We also need to enable our own features, since we also have `cfg` gated code here.
@@ -132,12 +140,13 @@ surfman = { workspace = true, features = ["sm-angle-default"] }
 [target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
 dirs = { workspace = true }
 egui = { workspace = true }
-egui-file-dialog = { workspace = true }
 egui-winit = { workspace = true, features = ["accesskit", "clipboard", "wayland"] }
 egui_glow = { workspace = true, features = ["winit"] }
 gilrs = { workspace = true }
 glow = { workspace = true }
 headers = { workspace = true }
+itertools = { workspace = true }
+rfd = { workspace = true }
 serde_json = { workspace = true }
 # For optional feature servo-allocator/use-jemalloc and servo-allocator/allocation-tracking
 servo-allocator = { workspace = true }

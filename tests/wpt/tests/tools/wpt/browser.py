@@ -2230,12 +2230,9 @@ class Safari(Browser):
             raise ValueError(f"no download for {system_version}")
 
         self.logger.info(f"Downloading Safari from {chosen_url}")
-        resp = get(chosen_url)
-
-        filename = get_download_filename(resp, "SafariTechnologyPreview.dmg")
-        installer_path = os.path.join(dest, filename)
+        installer_path = os.path.join(dest, "SafariTechnologyPreview.dmg")
         with open(installer_path, "wb") as f:
-            f.write(resp.content)
+            get_download_to_descriptor(f, chosen_url)
 
         return installer_path
 

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Masked and translucent content in an offset cross-site iframe</title>
+<link rel="help" href="https://drafts.fxtf.org/css-masking/#the-mask-image">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#transparency">
+<link rel="match" href="mask-image-cross-site-iframe-offset-ref.html">
+<meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-10000">
+<style>
+  body {
+    margin: 0;
+  }
+  iframe {
+    position: absolute;
+    top: 100px;
+    left: 100px;
+    width: 400px;
+    height: 300px;
+    border: 0;
+  }
+</style>
+<iframe src="http://{{hosts[alt][]}}:{{ports[http][0]}}/css/css-masking/mask-image/support/mask-image-cross-site-iframe-offset-frame.html"></iframe>

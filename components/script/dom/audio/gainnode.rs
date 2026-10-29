@@ -8,18 +8,20 @@ use js::rust::HandleObject;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::audio_node::{AudioNodeInit, AudioNodeType};
 use servo_media::audio::gain_node::GainNodeOptions;
+use servo_media::audio::graph::NodeId;
 use servo_media::audio::param::ParamType;
 
 use crate::conversions::Convert;
 use crate::dom::audio::audionode::{AudioNode, AudioNodeOptionsHelper};
 use crate::dom::audio::audioparam::AudioParam;
 use crate::dom::audio::baseaudiocontext::BaseAudioContext;
+use crate::dom::audionode::UnwrappedAudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };
 use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
 use crate::dom::bindings::codegen::Bindings::GainNodeBinding::{GainNodeMethods, GainOptions};
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
 
@@ -30,69 +32,22 @@ pub(crate) struct GainNode {
 }
 
 impl GainNode {
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn new_inherited(
-        cx: &mut JSContext,
-        window: &Window,
+    fn new_inherited(
+        node_id: Option<NodeId>,
         context: &BaseAudioContext,
-        options: &GainOptions,
-    ) -> Fallible<GainNode> {
-        let node_options =
-            options
-                .parent
-                .unwrap_or(2, ChannelCountMode::Max, ChannelInterpretation::Speakers);
-        let gain = *options.gain;
-        let node = AudioNode::new_inherited(
-            cx,
-            AudioNodeInit::GainNode(options.convert()),
-            context,
-            node_options,
-            1, // inputs
-            1, // outputs
-        )?;
-        // <https://webaudio.github.io/web-audio-api/#dom-gainnode-gain>
-        let gain = AudioParam::new(
-            cx,
-            window,
-            context,
-            node.node_id(),
-            AudioNodeType::GainNode,
-            ParamType::Gain,
-            AutomationRate::A_rate,
-            gain,     // default value
-            f32::MIN, // min value
-            f32::MAX, // max value
-        );
-        Ok(GainNode {
-            node,
-            gain: Dom::from_ref(&gain),
-        })
-    }
-
-    pub(crate) fn new(
-        cx: &mut JSContext,
-        window: &Window,
-        context: &BaseAudioContext,
-        options: &GainOptions,
-    ) -> Fallible<DomRoot<GainNode>> {
-        Self::new_with_proto(cx, window, None, context, options)
-    }
-
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    fn new_with_proto(
-        cx: &mut JSContext,
-        window: &Window,
-        proto: Option<HandleObject>,
-        context: &BaseAudioContext,
-        options: &GainOptions,
-    ) -> Fallible<DomRoot<GainNode>> {
-        let node = GainNode::new_inherited(cx, window, context, options)?;
-        Ok(reflect_dom_object_with_proto(
-            cx,
-            Box::new(node),
-            window,
-            proto,
-        ))
+        node_options: UnwrappedAudioNodeOptions,
+        gain: &AudioParam,
+    ) -> Self {
+        GainNode {
+            node: AudioNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                1, // inputs
+                1, // outputs
+            ),
+            gain: Dom::from_ref(gain),
+        }
     }
 }
 
@@ -105,7 +60,44 @@ impl GainNodeMethods<crate::DomTypeHolder> for GainNode {
         context: &BaseAudioContext,
         options: &GainOptions,
     ) -> Fallible<DomRoot<GainNode>> {
-        GainNode::new_with_proto(cx, window, proto, context, options)
+        let node_options =
+            options
+                .parent
+                .unwrap_or(2, ChannelCountMode::Max, ChannelInterpretation::Speakers);
+        if AudioNode::channel_count_check(node_options.count) {
+            return Err(Error::NotSupported(Some(String::from(
+                "Channel count not supported",
+            ))));
+        }
+
+        let gain = *options.gain;
+        let gain_init = AudioNodeInit::GainNode(options.convert());
+        let node_id = AudioNode::generate_audio_node_id(cx, &node_options, gain_init, context);
+
+        // <https://webaudio.github.io/web-audio-api/#dom-gainnode-gain>
+        let gain = AudioParam::new(
+            cx,
+            window,
+            context,
+            node_id,
+            AudioNodeType::GainNode,
+            ParamType::Gain,
+            AutomationRate::A_rate,
+            gain,     // default value
+            f32::MIN, // min value
+            f32::MAX, // max value
+        );
+        Ok(reflect_dom_object_with_proto(
+            cx,
+            Box::new(GainNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                &gain,
+            )),
+            window,
+            proto,
+        ))
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-gainnode-gain>

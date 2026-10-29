@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Nested OOFs with percentage height</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/40267498">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:5; column-fill:auto; gap:0; width:100px; height:100px; background:red;">
+  <div style="height:130px; background:green;"></div>
+  <div style="position:relative;">
+    <div style="height:370px;"></div>
+    <div style="position:absolute; top:0; width:100%; height:100%;">
+      <div style="position:absolute; width:100%; height:50%; background:green;">
+        <div style="position:absolute; top:100%; width:100%; height:100%; background:green;">
+      </div>
+    </div>
+  </div>
+</div>

@@ -6,9 +6,9 @@
 promise_test(async t => {
   const testId = token();
   const targetUrl = createPaymentMethodIdentifierUrl(
-      testId, {host: '{{hosts[][www]}}:{{ports[https][0]}}'});
+      testId, {host: '{{hosts[][www]}}:{{ports[https-public][0]}}'});
   const pmiUrl = createPaymentMethodIdentifierUrl(testId, {
-    host: '{{hosts[][]}}:{{ports[https][0]}}',
+    host: '{{hosts[][]}}:{{ports[https-public][0]}}',
     redirect_location: targetUrl,
   });
 
@@ -48,9 +48,9 @@ promise_test(async t => {
 promise_test(async t => {
   const testId = token();
   const targetUrl = createPaymentMethodIdentifierUrl(
-      testId, {host: '{{hosts[alt][]}}:{{ports[https][0]}}'});
+      testId, {host: '{{hosts[alt][]}}:{{ports[https-public][0]}}'});
   const pmiUrl = createPaymentMethodIdentifierUrl(testId, {
-    host: '{{hosts[][]}}:{{ports[https][0]}}',
+    host: '{{hosts[][]}}:{{ports[https-public][0]}}',
     redirect_location: targetUrl,
   });
 

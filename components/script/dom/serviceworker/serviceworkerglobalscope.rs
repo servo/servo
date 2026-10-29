@@ -399,7 +399,7 @@ impl ServiceWorkerGlobalScope {
                 let resource_threads_sender = init.resource_threads.sender();
                 #[cfg(feature = "devtools")]
                 let devtools_enabled = init.to_devtools_sender.is_some();
-                let global = ServiceWorkerGlobalScope::new(
+                let service_worker_global_scope = ServiceWorkerGlobalScope::new(
                     init,
                     script_url.clone(),
                     devtools_mpsc_port,
@@ -417,8 +417,8 @@ impl ServiceWorkerGlobalScope {
                     cx,
                 );
 
-                let worker_scope = global.upcast::<WorkerGlobalScope>();
-                let global_scope = global.upcast::<GlobalScope>();
+                let worker_global_scope = service_worker_global_scope.upcast::<WorkerGlobalScope>();
+                let global_scope = service_worker_global_scope.upcast::<GlobalScope>();
 
                 #[cfg(feature = "devtools")]
                 if devtools_enabled {
@@ -426,7 +426,7 @@ impl ServiceWorkerGlobalScope {
                         cx,
                         global_scope,
                         pipeline_id,
-                        Some(worker_scope.worker_id()),
+                        Some(worker_global_scope.worker_id()),
                     );
                 }
 
@@ -452,13 +452,13 @@ impl ServiceWorkerGlobalScope {
                 let (url, source) = match load_whole_resource(
                     request,
                     &resource_threads_sender,
-                    global.upcast(),
+                    service_worker_global_scope.upcast(),
                     &ServiceWorkerCspProcessor {},
                     cx,
                 ) {
                     Err(_) => {
                         error!("error loading script {}", serialized_worker_url);
-                        worker_scope.clear_js_runtime();
+                        worker_global_scope.clear_js_runtime();
                         return;
                     },
                     Ok((metadata, bytes, _)) => (metadata.final_url, bytes),
@@ -471,7 +471,7 @@ impl ServiceWorkerGlobalScope {
 
                 {
                     // TODO: use AutoWorkerReset as in dedicated worker?
-                    let mut realm = enter_auto_realm(cx, worker_scope);
+                    let mut realm = enter_auto_realm(cx, worker_global_scope);
                     let mut realm = realm.current_realm();
                     define_all_exposed_interfaces(&mut realm, global_scope);
 
@@ -490,7 +490,7 @@ impl ServiceWorkerGlobalScope {
                         RethrowErrors::No,
                         None, // return_value
                     );
-                    global.dispatch_activate(&mut realm);
+                    service_worker_global_scope.dispatch_activate(&mut realm);
                 }
 
                 let reporter_name = format!("service-worker-reporter-{}", random::<u64>());
@@ -502,16 +502,19 @@ impl ServiceWorkerGlobalScope {
                         // until the event loop is destroyed,
                         // which happens after the closing flag is set to true,
                         // or until the worker has run beyond its allocated time.
-                        while !worker_scope.is_closing() && !global.has_timed_out() {
-                            run_worker_event_loop(&*global, None, cx);
+                        while !worker_global_scope.is_closing() &&
+                            !service_worker_global_scope.has_timed_out()
+                        {
+                            run_worker_event_loop(&*service_worker_global_scope, None, cx);
                         }
                     },
                     reporter_name,
-                    global.event_loop_sender(),
+                    service_worker_global_scope.event_loop_sender(),
                     CommonScriptMsg::CollectReports,
                 );
 
-                worker_scope.clear_js_runtime();
+                global_scope.tear_down();
+                worker_global_scope.clear_js_runtime();
             })
             .expect("Thread spawning failed")
     }

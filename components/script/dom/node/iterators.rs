@@ -466,6 +466,10 @@ impl<'b> UnrootedTreeIterator<'b> {
         self.current = None;
         Some(current)
     }
+
+    pub(crate) fn peek(&self) -> Option<&UnrootedDom<'b, Node>> {
+        self.current.as_ref()
+    }
 }
 
 impl<'b> Iterator for UnrootedTreeIterator<'b> {

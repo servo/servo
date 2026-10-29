@@ -20,6 +20,8 @@ from geckordp.actors.descriptors.tab import TabActor
 from geckordp.actors.watcher import WatcherActor
 from geckordp.rdp_client import RDPClient
 
+from collections.abc import Callable
+
 # Set this to true to log requests in the internal web servers.
 LOG_REQUESTS = False
 # The devtools server will be served at 6000 (plus the worker index if running in parallel mode).
@@ -346,3 +348,51 @@ def assert_source_breakable_lines_and_positions(
 
         response = devtools.client.send_receive({"to": source_actor, "type": "getBreakpointPositionsCompressed"})
         assert response["positions"] == expected_positions
+
+
+def collect_network_events(
+    devtools: Devtools,
+    predicate: Callable[[dict[str, Any]], bool],
+    trigger: Optional[Callable[[], None]] = None,
+    timeout: int = 3,
+):
+    """
+    Watch network-event resources and return the first event matching `predicate`.
+    Also returns every event seen, which helps when an assertion fails.
+    """
+    done = Future()
+    seen = []
+
+    def on_resources(data):
+        try:
+            for [resource_type, resources] in data.get("array", []):
+                if resource_type != "network-event":
+                    continue
+                for event in resources:
+                    seen.append(event)
+                    if predicate(event) and not done.done():
+                        done.set_result(event)
+        except Exception as e:
+            if not done.done():
+                done.set_result(e)
+
+    # Firefox emits network events on the watcher; listen on targets too to be safe.
+    for actor in [devtools.watcher.actor_id] + [target["actor"] for target in devtools.targets]:
+        devtools.client.add_event_listener(actor, Events.Watcher.RESOURCES_AVAILABLE_ARRAY, on_resources)
+    devtools.watcher.watch_resources([Resources.NETWORK_EVENT])
+
+    if trigger is not None:
+        trigger()
+
+    try:
+        result = done.result(timeout)
+    except TimeoutError:
+        raise AssertionError(f"No matching network event. Seen: {seen}")
+    if isinstance(result, Exception):
+        raise result
+    return result, seen
+
+
+def get_request_headers(devtools: Devtools, network_event: dict[str, Any]):
+    response = devtools.client.send_receive({"to": network_event["actor"], "type": "getRequestHeaders"})
+    return {header["name"].lower(): header["value"] for header in response["headers"]}

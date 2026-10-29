@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+  body { margin: 0; }
+  .case { position: relative; width: max-content; }
+  .lanes {
+    background: #cdd5e0;
+    column-gap: 20px;
+    display: grid;
+    grid-template-columns: repeat(3, 60px);
+    grid-template-rows: repeat(16, 20px);
+    width: max-content;
+  }
+  .lanes > div {
+    background: #5b8def;
+    color: white;
+    font: 600 12px/1 sans-serif;
+    grid-column: 1;
+    grid-row: 15 / span 2;
+    height: 40px;
+  }
+  .lanes > .tall {
+    grid-column: 3;
+    grid-row: 7 / -1;
+    height: 200px;
+  }
+  .lanes > .second { grid-column: 2; }
+  .lanes > .spanner {
+    background: #8a6df0;
+    grid-column: 1 / -1;
+    grid-row: 4 / span 2;
+  }
+  .lanes > .centered {
+    background: #1f9d6b;
+    grid-column: 2;
+    grid-row: 10;
+    height: 20px;
+  }
+  .lanes > .packed-first { grid-row: 12 / span 2; }
+  .lanes > .packed-second { grid-row: 7 / span 2; }
+  .lanes > .tail { grid-column: 3; grid-row: 1 / span 2; }
+  .col-rule {
+    border-left: 4px solid blue;
+    position: absolute;
+    width: 0;
+  }
+</style>
+<div class="case">
+  <div class="lanes">
+    <div class="tall">1</div>
+    <div class="second">2</div>
+    <div>3</div>
+    <div class="spanner">4</div>
+    <div class="centered">5</div>
+    <div class="packed-first">6</div>
+    <div class="packed-second">7</div>
+    <div class="tail">8</div>
+  </div>
+  <div class="col-rule" style="left: 68px; top: 120px; height: 80px;"></div>
+  <div class="col-rule" style="left: 68px; top: 220px; height: 40px;"></div>
+  <div class="col-rule" style="left: 68px; top: 280px; height: 40px;"></div>
+  <div class="col-rule" style="left: 148px; top: 0; height: 40px;"></div>
+  <div class="col-rule" style="left: 148px; top: 120px; height: 140px;"></div>
+  <div class="col-rule" style="left: 148px; top: 280px; height: 40px;"></div>
+</div>

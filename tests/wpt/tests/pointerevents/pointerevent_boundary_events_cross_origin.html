@@ -1,0 +1,285 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Pointer boundary events across cross-origin documents</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    touch-action: none;
+  }
+  .target {
+    width: 100px;
+    height: 100px;
+    background: blue;
+    touch-action: none;
+  }
+  iframe {
+    width: 100px;
+    height: 100px;
+    border: none;
+    display: block;
+  }
+  #done {
+    display: block;
+    margin-top: 10px;
+    touch-action: none;
+  }
+</style>
+<body>
+<button id="done">Done</button>
+<script>
+'use strict';
+
+const hostInfo = get_host_info();
+const REMOTE_ORIGIN = hostInfo.HTTP_REMOTE_ORIGIN;
+const REMOTE_ORIGIN_2 = hostInfo.HTTP_REMOTE_ORIGIN_WITH_DIFFERENT_PORT;
+const CHILD_PAGE = '/pointerevents/resources/pointerevent_boundary_events_cross_origin_child.html';
+
+let receivedMessages = [];
+window.addEventListener('message', e => {
+  if (e.data && e.data.source === 'boundary-event-test' && e.data.type !== 'child-ready') {
+    receivedMessages.push({
+      frameId: e.data.frameId,
+      type: e.data.type,
+      relatedTargetIsNull: e.data.relatedTargetIsNull
+    });
+  }
+});
+
+function loadChildFrame(iframe, src, readyFrameId) {
+  return new Promise(resolve => {
+    function onMsg(e) {
+      if (e.data && e.data.source === 'boundary-event-test' && e.data.type === 'child-ready' && e.data.frameId === readyFrameId) {
+        window.removeEventListener('message', onMsg);
+        resolve();
+      }
+    }
+    window.addEventListener('message', onMsg);
+    iframe.src = src;
+  });
+}
+
+async function tapDoneButton() {
+  const doneButton = document.getElementById('done');
+  const donePromise = new Promise(resolve => {
+    const onDone = () => {
+      doneButton.removeEventListener('pointerup', onDone);
+      doneButton.removeEventListener('click', onDone);
+      resolve();
+    };
+    doneButton.addEventListener('pointerup', onDone);
+    doneButton.addEventListener('click', onDone);
+  });
+  await new test_driver.Actions()
+    .addPointer('touchPointerDone', 'touch')
+    .pointerMove(0, 0, {origin: doneButton})
+    .pointerDown()
+    .pointerUp()
+    .send();
+  await donePromise;
+}
+
+promise_test(async t => {
+  receivedMessages = [];
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  t.add_cleanup(() => container.remove());
+
+  const parentTarget = document.createElement('div');
+  parentTarget.id = 'parent-target';
+  parentTarget.className = 'target';
+  container.appendChild(parentTarget);
+
+  const iframe = document.createElement('iframe');
+  iframe.id = 'iframe';
+  container.appendChild(iframe);
+
+  const childSrc = `${REMOTE_ORIGIN}${CHILD_PAGE}?frame_id=child&target_id=child-target`;
+  await loadChildFrame(iframe, childSrc, 'child');
+
+  let parentEvents = [];
+  parentTarget.addEventListener('pointerdown', e => {
+    e.target.releasePointerCapture(e.pointerId);
+  });
+  ['pointerout', 'pointerleave'].forEach(type => {
+    parentTarget.addEventListener(type, e => {
+      parentEvents.push({ type: e.type, relatedTarget: e.relatedTarget });
+    });
+  });
+
+  await new test_driver.Actions()
+    .addPointer('touchPointer', 'touch')
+    .pointerMove(0, 0, {origin: parentTarget})
+    .pointerDown()
+    .pointerMove(0, 0, {origin: iframe})
+    .pointerUp()
+    .send();
+
+  await tapDoneButton();
+
+  assert_equals(
+    parentEvents.map(e => `${e.type} from ${e.relatedTarget.id}`).join(),
+    "pointerout from iframe,pointerleave from iframe"
+  );
+
+  assert_equals(JSON.stringify(receivedMessages), JSON.stringify([
+    { frameId: 'child', type: 'pointerover', relatedTargetIsNull: true },
+    { frameId: 'child', type: 'pointerenter', relatedTargetIsNull: true },
+    { frameId: 'child', type: 'pointerout', relatedTargetIsNull: true },
+    { frameId: 'child', type: 'pointerleave', relatedTargetIsNull: true }
+  ]), 'receivedMessages should match expected child events');
+}, 'Parent to iframe: relatedTarget in outer document is iframe, inner document is null');
+
+promise_test(async t => {
+  receivedMessages = [];
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  t.add_cleanup(() => container.remove());
+
+  const parentTarget = document.createElement('div');
+  parentTarget.id = 'parent-target';
+  parentTarget.className = 'target';
+  container.appendChild(parentTarget);
+
+  const iframe = document.createElement('iframe');
+  iframe.id = 'iframe';
+  container.appendChild(iframe);
+
+  const childSrc = `${REMOTE_ORIGIN}${CHILD_PAGE}?frame_id=child&target_id=child-target`;
+  await loadChildFrame(iframe, childSrc, 'child');
+
+  let parentEvents = [];
+  ['pointerover', 'pointerenter'].forEach(type => {
+    parentTarget.addEventListener(type, e => {
+      parentEvents.push({ type: e.type, relatedTarget: e.relatedTarget });
+    });
+  });
+
+  await new test_driver.Actions()
+    .addPointer('touchPointer', 'touch')
+    .pointerMove(0, 0, {origin: iframe})
+    .pointerDown()
+    .pointerMove(0, 0, {origin: parentTarget})
+    .pointerUp()
+    .send();
+
+  await tapDoneButton();
+
+  assert_equals(JSON.stringify(receivedMessages), JSON.stringify([
+    { frameId: 'child', type: 'pointerover', relatedTargetIsNull: true },
+    { frameId: 'child', type: 'pointerenter', relatedTargetIsNull: true },
+    { frameId: 'child', type: 'pointerout', relatedTargetIsNull: true },
+    { frameId: 'child', type: 'pointerleave', relatedTargetIsNull: true }
+  ]), 'receivedMessages should match expected child events');
+
+  assert_equals(
+    parentEvents.map(e => `${e.type} from ${e.relatedTarget.id}`).join(),
+    "pointerover from iframe,pointerenter from iframe"
+  );
+}, 'Iframe to parent: relatedTarget in inner document is null, outer document is iframe');
+
+promise_test(async t => {
+  receivedMessages = [];
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  t.add_cleanup(() => container.remove());
+
+  const sib1 = document.createElement('iframe');
+  sib1.id = 'sib1';
+  container.appendChild(sib1);
+
+  const sib2 = document.createElement('iframe');
+  sib2.id = 'sib2';
+  container.appendChild(sib2);
+
+  const sib1Src = `${REMOTE_ORIGIN}${CHILD_PAGE}?frame_id=sib1&target_id=s1`;
+  const sib2Src = `${REMOTE_ORIGIN_2}${CHILD_PAGE}?frame_id=sib2&target_id=s2`;
+
+  await Promise.all([
+    loadChildFrame(sib1, sib1Src, 'sib1'),
+    loadChildFrame(sib2, sib2Src, 'sib2')
+  ]);
+
+  await new test_driver.Actions()
+    .addPointer('touchPointer', 'touch')
+    .pointerMove(0, 0, {origin: sib1})
+    .pointerDown()
+    .pointerMove(0, 0, {origin: sib2})
+    .pointerUp()
+    .send();
+
+  await tapDoneButton();
+
+  assert_equals(JSON.stringify(receivedMessages), JSON.stringify([
+    { frameId: 'sib1', type: 'pointerover', relatedTargetIsNull: true },
+    { frameId: 'sib1', type: 'pointerenter', relatedTargetIsNull: true },
+    { frameId: 'sib1', type: 'pointerout', relatedTargetIsNull: true },
+    { frameId: 'sib1', type: 'pointerleave', relatedTargetIsNull: true },
+    { frameId: 'sib2', type: 'pointerover', relatedTargetIsNull: true },
+    { frameId: 'sib2', type: 'pointerenter', relatedTargetIsNull: true },
+    { frameId: 'sib2', type: 'pointerout', relatedTargetIsNull: true },
+    { frameId: 'sib2', type: 'pointerleave', relatedTargetIsNull: true }
+  ]), 'receivedMessages should match expected sibling events');
+}, 'Sibling iframes: relatedTarget is null for both documents');
+
+promise_test(async t => {
+  receivedMessages = [];
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  t.add_cleanup(() => container.remove());
+
+  const topTarget = document.createElement('div');
+  topTarget.id = 'top-target-nested';
+  topTarget.className = 'target';
+  topTarget.style.background = 'cyan';
+  container.appendChild(topTarget);
+
+  const outerIframe = document.createElement('iframe');
+  outerIframe.id = 'outer-iframe';
+  container.appendChild(outerIframe);
+
+  const deepSrc = `${REMOTE_ORIGIN_2}${CHILD_PAGE}?frame_id=deep&target_id=deep`;
+  const outerSrc = `${REMOTE_ORIGIN}${CHILD_PAGE}?frame_id=outer&nested_parent=true&inner_src=${encodeURIComponent(deepSrc)}`;
+
+  await loadChildFrame(outerIframe, outerSrc, 'deep');
+
+  let topEvents = [];
+  topTarget.addEventListener('pointerdown', e => {
+    e.target.releasePointerCapture(e.pointerId);
+  });
+  ['pointerout', 'pointerleave'].forEach(type => {
+    topTarget.addEventListener(type, e => {
+      topEvents.push({ type: e.type, relatedTarget: e.relatedTarget });
+    });
+  });
+
+  await new test_driver.Actions()
+    .addPointer('touchPointer', 'touch')
+    .pointerMove(0, 0, {origin: topTarget})
+    .pointerDown()
+    .pointerMove(0, 0, {origin: outerIframe})
+    .pointerUp()
+    .send();
+
+  await tapDoneButton();
+
+  assert_equals(
+    topEvents.map(e => `${e.type} from ${e.relatedTarget.id}`).join(),
+    "pointerout from outer-iframe,pointerleave from outer-iframe"
+  );
+
+  assert_equals(JSON.stringify(receivedMessages), JSON.stringify([
+    { frameId: 'deep', type: 'pointerover', relatedTargetIsNull: true },
+    { frameId: 'deep', type: 'pointerenter', relatedTargetIsNull: true },
+    { frameId: 'deep', type: 'pointerout', relatedTargetIsNull: true },
+    { frameId: 'deep', type: 'pointerleave', relatedTargetIsNull: true }
+  ]), 'receivedMessages should match expected deep child events');
+}, 'Nested iframes: relatedTarget in outer document is outermost iframe, inner document is null');
+</script>
+</body>

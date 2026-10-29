@@ -12,13 +12,16 @@ use servo_media::audio::audio_node::{AudioNodeInit, AudioNodeMessage, AudioNodeT
 use servo_media::audio::buffer_source_node::{
     AudioBufferSourceNodeMessage, AudioBufferSourceNodeOptions,
 };
+use servo_media::audio::graph::NodeId;
 use servo_media::audio::param::ParamType;
 
 use crate::conversions::ConvertWithCx;
 use crate::dom::audio::audiobuffer::AudioBuffer;
+use crate::dom::audio::audionode::AudioNode;
 use crate::dom::audio::audioparam::AudioParam;
 use crate::dom::audio::audioscheduledsourcenode::AudioScheduledSourceNode;
 use crate::dom::audio::baseaudiocontext::BaseAudioContext;
+use crate::dom::audionode::UnwrappedAudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::{
     AudioBufferSourceNodeMethods, AudioBufferSourceOptions,
 };
@@ -43,24 +46,50 @@ pub(crate) struct AudioBufferSourceNode {
 }
 
 impl AudioBufferSourceNode {
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_inherited(
+        node_id: Option<NodeId>,
+        context: &BaseAudioContext,
+        node_options: UnwrappedAudioNodeOptions,
+        playback_rate: &AudioParam,
+        detune: &AudioParam,
+        audio_buffer_source_options: &AudioBufferSourceOptions,
+    ) -> Self {
+        AudioBufferSourceNode {
+            source_node: AudioScheduledSourceNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                0, /* inputs */
+                1, /* outputs */
+            ),
+            buffer: Default::default(),
+            buffer_set: Cell::new(false),
+            playback_rate: Dom::from_ref(playback_rate),
+            detune: Dom::from_ref(detune),
+            loop_enabled: Cell::new(audio_buffer_source_options.loop_),
+            loop_start: Cell::new(*audio_buffer_source_options.loopStart),
+            loop_end: Cell::new(*audio_buffer_source_options.loopEnd),
+        }
+    }
+}
+
+impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNode {
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-audiobuffersourcenode>
+    fn Constructor(
         cx: &mut JSContext,
         window: &Window,
+        proto: Option<HandleObject>,
         context: &BaseAudioContext,
         options: &AudioBufferSourceOptions,
-    ) -> Fallible<AudioBufferSourceNode> {
-        let node_options = Default::default();
+    ) -> Fallible<DomRoot<AudioBufferSourceNode>> {
+        let node_options: UnwrappedAudioNodeOptions = Default::default();
+        if AudioNode::channel_count_check(node_options.count) {
+            return Err(Error::NotSupported(Some(String::from(
+                "Channel count not supported",
+            ))));
+        }
         let source_options = AudioNodeInit::AudioBufferSourceNode(options.convert(cx));
-        let source_node = AudioScheduledSourceNode::new_inherited(
-            cx,
-            source_options,
-            context,
-            node_options,
-            0, /* inputs */
-            1, /* outputs */
-        )?;
-        let node_id = source_node.node().node_id();
+        let node_id = AudioNode::generate_audio_node_id(cx, &node_options, source_options, context);
         // <https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-playbackrate>
         let playback_rate = AudioParam::new(
             cx,
@@ -87,59 +116,23 @@ impl AudioBufferSourceNode {
             f32::MIN,
             f32::MAX,
         );
-        let node = AudioBufferSourceNode {
-            source_node,
-            buffer: Default::default(),
-            buffer_set: Cell::new(false),
-            playback_rate: Dom::from_ref(&playback_rate),
-            detune: Dom::from_ref(&detune),
-            loop_enabled: Cell::new(options.loop_),
-            loop_start: Cell::new(*options.loopStart),
-            loop_end: Cell::new(*options.loopEnd),
-        };
+        let node = reflect_dom_object_with_proto(
+            cx,
+            Box::new(AudioBufferSourceNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                &playback_rate,
+                &detune,
+                options,
+            )),
+            window,
+            proto,
+        );
         if let Some(Some(ref buffer)) = options.buffer {
             node.SetBuffer(cx, Some(buffer))?;
         }
         Ok(node)
-    }
-
-    pub(crate) fn new(
-        cx: &mut JSContext,
-        window: &Window,
-        context: &BaseAudioContext,
-        options: &AudioBufferSourceOptions,
-    ) -> Fallible<DomRoot<AudioBufferSourceNode>> {
-        Self::new_with_proto(cx, window, None, context, options)
-    }
-
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    fn new_with_proto(
-        cx: &mut JSContext,
-        window: &Window,
-        proto: Option<HandleObject>,
-        context: &BaseAudioContext,
-        options: &AudioBufferSourceOptions,
-    ) -> Fallible<DomRoot<AudioBufferSourceNode>> {
-        let node = AudioBufferSourceNode::new_inherited(cx, window, context, options)?;
-        Ok(reflect_dom_object_with_proto(
-            cx,
-            Box::new(node),
-            window,
-            proto,
-        ))
-    }
-}
-
-impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNode {
-    /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-audiobuffersourcenode>
-    fn Constructor(
-        cx: &mut JSContext,
-        window: &Window,
-        proto: Option<HandleObject>,
-        context: &BaseAudioContext,
-        options: &AudioBufferSourceOptions,
-    ) -> Fallible<DomRoot<AudioBufferSourceNode>> {
-        AudioBufferSourceNode::new_with_proto(cx, window, proto, context, options)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-buffer>
@@ -287,7 +280,7 @@ impl ConvertWithCx<AudioBufferSourceNodeOptions> for AudioBufferSourceOptions {
             buffer: self
                 .buffer
                 .as_ref()
-                .and_then(|b| b.as_ref()?.get_channels(cx).map(|buffer| (*buffer).clone())),
+                .and_then(|b| b.as_ref()?.get_channels(cx)),
             detune: *self.detune,
             loop_enabled: self.loop_,
             loop_end: Some(*self.loopEnd),

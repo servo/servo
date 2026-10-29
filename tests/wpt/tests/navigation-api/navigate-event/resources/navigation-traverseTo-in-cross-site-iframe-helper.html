@@ -1,0 +1,41 @@
+<!doctype html>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+test_driver.set_test_context(parent);
+
+const events = [];
+navigation.onnavigate = () => events.push("navigate");
+navigation.onnavigateerror = () => events.push("navigateerror");
+
+function state() {
+  return { index: navigation.currentEntry.index, length: navigation.entries().length, hash: location.hash };
+}
+
+function settle(promise) {
+  return promise.then(() => "resolved", e => e.name);
+}
+
+const commands = {
+  async navigate() {
+    await navigation.navigate("#").finished;
+    return state();
+  },
+  async traverseTo() {
+    // Some browsers block a cross-site iframe that has not been interacted with from navigating its top-level
+    // traversable, so give this frame user activation first.
+    await test_driver.bless("traverse the session history");
+    events.length = 0;
+    const result = navigation.traverseTo(navigation.entries()[0].key);
+    return { committed: await settle(result.committed), finished: await settle(result.finished), events: [...events], ...state() };
+  },
+};
+
+window.onmessage = async e => {
+  if (e.data && e.data.command in commands)
+    parent.postMessage({ reply: await commands[e.data.command]() }, "*");
+};
+window.onload = () => parent.postMessage({ reply: "ready" }, "*");
+</script>
+</body>

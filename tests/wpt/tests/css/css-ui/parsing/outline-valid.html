@@ -2,11 +2,11 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>CSS UI Level 3: parsing outline with valid values</title>
+<title>CSS UI Level 4: parsing outline with valid values</title>
 <link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
-<link rel="help" href="https://drafts.csswg.org/css-ui-3/#outline">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#propdef-outline">
 <link rel="help" href="https://drafts.csswg.org/cssom/#serializing-css-values">
-<meta name="assert" content="outline supports the full grammar '<outline-color> || <outline> || <outline>'.">
+<meta name="assert" content="outline supports the full grammar '<outline-width> || <outline-style> || <outline-color>'.">
 <meta name="assert" content="outline serializes in canonical order, with shortest possible serialization.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -34,10 +34,10 @@ test_valid_value("outline", "thin");
 test_valid_value("outline", "medium", ["currentcolor", "none", "medium"]);
 test_valid_value("outline", "thick");
 
-test_valid_value("outline", "dashed thin");
-test_valid_value("outline", "medium rgba(10, 20, 30, 0.4)", ["rgba(10, 20, 30, 0.4) medium", "rgba(10, 20, 30, 0.4)"]);
+test_valid_value("outline", "dashed thin", "thin dashed");
+test_valid_value("outline", "medium rgba(10, 20, 30, 0.4)", ["medium rgba(10, 20, 30, 0.4)", "rgba(10, 20, 30, 0.4)"]);
 
-test_valid_value("outline", "3px ridge rgba(10, 20, 30, 0.4)", "rgba(10, 20, 30, 0.4) ridge 3px");
+test_valid_value("outline", "3px ridge rgba(10, 20, 30, 0.4)", "3px ridge rgba(10, 20, 30, 0.4)");
 </script>
 </body>
 </html>

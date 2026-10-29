@@ -1,0 +1,10 @@
+<!doctype html>
+<title>"expect" is a supported link type</title>
+<link rel="help" href="https://html.spec.whatwg.org/#link-type-expect">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(() => {
+  assert_true(document.createElement('link').relList.supports('expect'));
+}, 'link.relList.supports("expect") is true');
+</script>

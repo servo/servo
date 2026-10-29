@@ -27,7 +27,7 @@
 <p id='n40'>CCCHANGED</p>
 <p id='n41'>CHANGED</p>
 
-<p id="n50"><?processing data?></p>
+<p id="n50"></p>
 
 <p id="n60"><!-- data --></p>
 
@@ -126,10 +126,11 @@ runMutationTest(n41,
                   function() { n41.replaceData(0, 0, "CH"); },
                   "characterData Text.replaceData: empty mutation");
 
-  var n50 = document.getElementById('n50').firstChild;
+  var n50 = document.createProcessingInstruction('processing', 'data');
+  document.getElementById('n50').appendChild(n50);
 runMutationTest(n50,
                   {"characterData":true,"characterDataOldValue":true},
-                  [{type: "characterData", oldValue: "?processing data?" },{type: "characterData", oldValue: "CHANGED" },{type: "characterData", oldValue: "CHANGED" }],
+                  [{type: "characterData", oldValue: "data" },{type: "characterData", oldValue: "CHANGED" },{type: "characterData", oldValue: "CHANGED" }],
                   function() {
                     n50.data = "CHANGED";
                     n50.deleteData(0, 0);

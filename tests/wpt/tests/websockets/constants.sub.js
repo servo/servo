@@ -45,12 +45,6 @@ function CreateWebSocketWithAsciiSep(asciiWithSep) {
   return new WebSocket(url, asciiWithSep);
 }
 
-function CreateWebSocketWithBlockedPort(blockedPort) {
-  IsWebSocket();
-  const url = __SCHEME + "://" + __SERVER__NAME + ":" + blockedPort + "/" + __PATH;
-  return new WebSocket(url);
-}
-
 function CreateWebSocketWithSpaceInUrl(urlWithSpace) {
   IsWebSocket();
   const url = __SCHEME + "://" + urlWithSpace + ":" + __PORT + "/" + __PATH;

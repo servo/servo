@@ -80,3 +80,35 @@ promise_test(async () => {
     'The outer selectedcontent should still match the outer selected option.');
 }, 'A selectedcontent element inside a nested select is disabled and never updated.');
 </script>
+
+<select id=outer2>
+  <option>outer</option>
+</select>
+
+<script>
+// Removing an ancestor of a nested select leaves it as the only ancestor select
+// of its selectedcontent element, which is then no longer disabled.
+test(() => {
+  const outer = document.getElementById('outer2');
+  const wrapper = document.createElement('div');
+  const innerSelect = document.createElement('select');
+  const innerButton = document.createElement('button');
+  const innerSelectedcontent = document.createElement('selectedcontent');
+  innerButton.appendChild(innerSelectedcontent);
+  innerSelect.appendChild(innerButton);
+  innerSelect.appendChild(new Option('one'));
+  innerSelect.appendChild(new Option('two'));
+  wrapper.appendChild(innerSelect);
+  outer.appendChild(wrapper);
+
+  innerSelect.value = 'two';
+  assert_equals(innerSelectedcontent.innerHTML, '',
+    'The inner selectedcontent should not be updated while it is disabled.');
+
+  wrapper.remove();
+  innerSelect.value = 'one';
+
+  assert_equals(innerSelectedcontent.innerHTML, 'one',
+    'The selectedcontent should be updated once removing an ancestor enables it.');
+}, 'Removing an ancestor of a nested select enables its selectedcontent element.');
+</script>

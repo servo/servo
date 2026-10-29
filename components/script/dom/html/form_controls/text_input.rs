@@ -12,6 +12,7 @@ use embedder_traits::{
     EditingAction, EditingDirection, EditingMotion, EmbedderMsg, ModifySelection,
     ScriptToEmbedderChan,
 };
+use js::context::JSContext;
 use layout_api::SegmentGranularity;
 use script_bindings::match_domstring_ascii;
 use script_bindings::root::Dom;
@@ -159,21 +160,6 @@ pub struct TextInput<T: ClipboardProvider> {
     pub(crate) selection_for_layout: Option<RangeAny<Utf32CodeUnits>>,
 }
 
-#[derive(Clone, Copy, PartialEq)]
-pub enum IsComposing {
-    Composing,
-    NotComposing,
-}
-
-impl From<IsComposing> for bool {
-    fn from(is_composing: IsComposing) -> Self {
-        match is_composing {
-            IsComposing::Composing => true,
-            IsComposing::NotComposing => false,
-        }
-    }
-}
-
 /// <https://www.w3.org/TR/input-events-2/#interface-InputEvent-Attributes>
 #[derive(Clone, Copy, PartialEq)]
 pub enum InputEventType {
@@ -203,13 +189,17 @@ impl InputEventType {
     pub(crate) fn is_beforeinput_cancelable(self) -> bool {
         self != Self::InsertCompositionText
     }
+
+    pub(crate) fn is_composing(self) -> bool {
+        self == Self::InsertCompositionText
+    }
 }
 
 /// Resulting action to be taken by the owner of a text input that is handling an event.
 #[derive(PartialEq)]
 pub enum KeyReaction {
     TriggerDefaultAction,
-    DispatchInput(Option<String>, IsComposing, InputEventType),
+    DispatchInput(Option<String>, InputEventType),
     RedrawSelection,
     Nothing,
 }
@@ -507,11 +497,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         match self.mode {
             Lines::Multiple => {
                 self.insert('\n');
-                KeyReaction::DispatchInput(
-                    None,
-                    IsComposing::NotComposing,
-                    InputEventType::InsertLineBreak,
-                )
+                KeyReaction::DispatchInput(None, InputEventType::InsertLineBreak)
             },
             Lines::Single => KeyReaction::TriggerDefaultAction,
         }
@@ -570,19 +556,11 @@ impl<T: ClipboardProvider> TextInput<T> {
             EditingAction::InsertNewline | EditingAction::InsertParagraph => self.handle_return(),
             EditingAction::InsertText(text) => {
                 self.insert(&text);
-                KeyReaction::DispatchInput(
-                    Some(text),
-                    IsComposing::NotComposing,
-                    InputEventType::InsertText,
-                )
+                KeyReaction::DispatchInput(Some(text), InputEventType::InsertText)
             },
             EditingAction::InsertCompositionText(text) => {
                 self.insert_for_composition(&text);
-                KeyReaction::DispatchInput(
-                    Some(text),
-                    IsComposing::Composing,
-                    InputEventType::InsertCompositionText,
-                )
+                KeyReaction::DispatchInput(Some(text), InputEventType::InsertCompositionText)
             },
             EditingAction::EndComposition(..) => {
                 self.clear_selection();
@@ -591,11 +569,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             EditingAction::Delete => {
                 if self.delete_unit_or_selection(RopeMovement::Grapheme, EditingDirection::Forward)
                 {
-                    KeyReaction::DispatchInput(
-                        None,
-                        IsComposing::NotComposing,
-                        InputEventType::DeleteContentForward,
-                    )
+                    KeyReaction::DispatchInput(None, InputEventType::DeleteContentForward)
                 } else {
                     KeyReaction::Nothing
                 }
@@ -611,11 +585,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                     EditingMotion::DocumentStartOrEnd => RopeMovement::RopeStartOrEnd,
                 };
                 if self.delete_unit_or_selection(movement, EditingDirection::Backward) {
-                    KeyReaction::DispatchInput(
-                        None,
-                        IsComposing::NotComposing,
-                        InputEventType::DeleteContentBackward,
-                    )
+                    KeyReaction::DispatchInput(None, InputEventType::DeleteContentBackward)
                 } else {
                     KeyReaction::Nothing
                 }
@@ -651,12 +621,17 @@ impl<T: ClipboardProvider> TextInput<T> {
             .unwrap_or_else(|| self.rope.last_index())
     }
 
-    fn drag_moved(&mut self, element: &impl TextControlElement, hit_test_result: &HitTestResult) {
+    fn drag_moved(
+        &mut self,
+        cx: &mut JSContext,
+        element: &impl TextControlElement,
+        hit_test_result: &HitTestResult,
+    ) {
         let point_in_viewport = hit_test_result.point_in_frame.map(Au::from_f32_px);
         let element = element.as_element();
         self.edit_point = element
             .owner_window()
-            .text_index_query_on_node_for_event(element.upcast(), point_in_viewport)
+            .text_index_query_on_node_for_event(cx, element.upcast(), point_in_viewport)
             .map(|(_, character_offset)| {
                 self.rope.move_by(
                     Default::default(),
@@ -801,19 +776,21 @@ impl TextInputSelectionDragHandler {
     /// Process a mouse move event on this [`TextInputSelectionDragHandler`].
     ///
     /// Returns `true` if the drag should continue and `false` otherwise.
-    pub(crate) fn moved(&self, hit_test_result: &HitTestResult) -> bool {
+    pub(crate) fn moved(&self, cx: &mut JSContext, hit_test_result: &HitTestResult) -> bool {
         if !self.0.is_connected() {
             return false;
         }
 
         if let Some(input) = self.0.downcast::<HTMLInputElement>() {
-            input.text_input_mut().drag_moved(input, hit_test_result);
+            input
+                .text_input_mut()
+                .drag_moved(cx, input, hit_test_result);
             input.maybe_update_shared_selection();
             true
         } else if let Some(text_area) = self.0.downcast::<HTMLTextAreaElement>() {
             text_area
                 .text_input_mut()
-                .drag_moved(text_area, hit_test_result);
+                .drag_moved(cx, text_area, hit_test_result);
             text_area.maybe_update_shared_selection();
             true
         } else {

@@ -134,6 +134,7 @@ pub(super) enum LayoutBox {
     TableLevelBox(TableLevelBox),
     TaffyItemBox(ArcRefCell<TaffyItemBox>),
     Text(ArcRefCell<TextRun>),
+    Widget(ArcRefCell<IndependentFormattingContext>),
 }
 
 impl LayoutBox {
@@ -156,6 +157,7 @@ impl LayoutBox {
             LayoutBox::FlexLevel(flex_level_box) => flex_level_box.borrow().with_base(callback),
             LayoutBox::TaffyItemBox(taffy_item_box) => taffy_item_box.borrow().with_base(callback),
             LayoutBox::TableLevelBox(table_box) => table_box.with_base(callback),
+            LayoutBox::Widget(widget_context) => callback(&widget_context.borrow().base),
         })
     }
 
@@ -176,6 +178,7 @@ impl LayoutBox {
                 taffy_item_box.borrow_mut().with_base_mut(callback)
             },
             LayoutBox::TableLevelBox(table_box) => table_box.with_base_mut(callback),
+            LayoutBox::Widget(widget_context) => callback(&mut widget_context.borrow_mut().base),
         })
     }
 
@@ -210,6 +213,9 @@ impl LayoutBox {
             LayoutBox::Text(..) => {
                 // There is nothing to update in this case.
             },
+            LayoutBox::Widget(widget_context) => widget_context
+                .borrow_mut()
+                .repair_style(context, node, new_style),
         }
     }
 
@@ -231,6 +237,9 @@ impl LayoutBox {
             Self::Text(..) => {
                 // This kind of box cannot have children, so no need to do anything.
             },
+            LayoutBox::Widget(widget_context) => {
+                widget_context.borrow().attached_to_tree(layout_box)
+            },
         }
     }
 
@@ -251,6 +260,7 @@ impl LayoutBox {
                 WeakLayoutBox::TaffyItemBox(taffy_item_box.downgrade())
             },
             Self::Text(text_run) => WeakLayoutBox::Text(text_run.downgrade()),
+            Self::Widget(widget_context) => WeakLayoutBox::Widget(widget_context.downgrade()),
         }
     }
 
@@ -306,6 +316,7 @@ impl LayoutBox {
                 }
             },
             LayoutBox::Text(..) => None,
+            LayoutBox::Widget(widget_context) => callback(&widget_context.borrow()),
         }
     }
 
@@ -348,6 +359,7 @@ pub(super) enum WeakLayoutBox {
     TableLevelBox(WeakTableLevelBox),
     TaffyItemBox(WeakRefCell<TaffyItemBox>),
     Text(WeakRefCell<TextRun>),
+    Widget(WeakRefCell<IndependentFormattingContext>),
 }
 
 impl WeakLayoutBox {
@@ -366,6 +378,7 @@ impl WeakLayoutBox {
                 LayoutBox::TaffyItemBox(taffy_item_box.upgrade()?)
             },
             Self::Text(text_run) => LayoutBox::Text(text_run.upgrade()?),
+            Self::Widget(widget_context) => LayoutBox::Widget(widget_context.upgrade()?),
         })
     }
 }
@@ -837,6 +850,7 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
             ),
             LayoutBox::TaffyItemBox(..) => true,
             LayoutBox::Text(..) => unreachable!("An element should never be a text node"),
+            LayoutBox::Widget(..) => unreachable!("Widgets are always pseudo-elements."),
         }
     }
 
@@ -1012,6 +1026,7 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
             },
             LayoutBox::TaffyItemBox(..) => false,
             LayoutBox::Text(..) => unreachable!("An element should never be a text node"),
+            LayoutBox::Widget(..) => unreachable!("Widgets are always pseudo-elements."),
         }
     }
 

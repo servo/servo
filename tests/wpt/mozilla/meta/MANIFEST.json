@@ -192,6 +192,13 @@
       ]
      ]
     },
+    "webgpu-opaque-origin-crash.html": [
+     "42cf5e66c8d1efdc4d4a345b5d27c54dd0ba3f0e",
+     [
+      null,
+      {}
+     ]
+    ],
     "window-resizeTo-not-permitted-crash.html": [
      "7b6a67ff81436a91048bdb627f303f7fab2762f7",
      [
@@ -10705,7 +10712,7 @@
      []
     ],
     "text-transform-capitalize-ref.html": [
-     "1fd4ceb1b301d8aef0eb98eca56a7a8d03dc5d5a",
+     "a3bde624eaf8bf05b66bdefd5b39dfed24f69a56",
      []
     ],
     "text-transform-lowercase-ref.html": [
@@ -13266,7 +13273,7 @@
      ]
     ],
     "css-property-listing.html": [
-     "32b190f165c2cd564dfd46189d06a3c5b8ded921",
+     "b5a35fdb200ff73a28f89b93e042c7371ec2f6a3",
      [
       null,
       {}
@@ -13846,15 +13853,36 @@
     ]
    },
    "memory": {
-    "fetch-does-not-leak-document.html": [
+    "FileReader-does-not-leak-document.https.html": [
+     "40ca0754ae6b3ef86d8b02f9933a5ba19bdda773",
+     [
+      null,
+      {}
+     ]
+    ],
+    "fetch-body-does-not-leak-document.https.html": [
+     "a14165df3bf875d45506b341fa24206db807d596",
+     [
+      null,
+      {}
+     ]
+    ],
+    "fetch-does-not-leak-document.https.html": [
      "5d795effda7bce5ff5bf9992f3a2c7bcfec76453",
      [
       null,
       {}
      ]
     ],
-    "modules-do-not-leak-document.html": [
+    "modules-do-not-leak-document.https.html": [
      "e94e6ed4bf5f43d30970e4da29bd35ed59394f08",
+     [
+      null,
+      {}
+     ]
+    ],
+    "playing_media_no_gc.html": [
+     "fe103c52d292fad241451699f3b7d123c4db593e",
      [
       null,
       {}
@@ -14796,7 +14824,7 @@
      ]
     ],
     "interfaces.https.html": [
-     "d5eb8af441418639ef224afc0bff878afc89497c",
+     "6b86f9d8491d53915833b10c5c921a356fe8c7f1",
      [
       null,
       {}

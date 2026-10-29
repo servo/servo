@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter: An SVG feDisplacement filter is pass through</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match"  href="reference/backdrop-filter-svg-displacement-ref.html">
+
+<div class="whitebox"></div>
+<div class="filter"></div>
+
+<svg width="0" height="0">
+  <filter id="displacement">
+    <feFlood result="flood" flood-color="green" x="50" y="50" width="100" height="100"/>
+    <feDisplacementMap in2="SourceGraphic" in="flood" xChannelSelector="G" yChannelSelector="G" scale="20"/>
+  </filter>
+</svg>
+
+<style>
+.whitebox {
+  position: absolute;
+  background: white;
+  width: 100px;
+  height: 100px;
+  top: 50px;
+  left: 50px;
+}
+.filter {
+  background-color: transparent;
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  top: 0px;
+  left: 0px;
+  backdrop-filter: url(#displacement);
+}
+</style>

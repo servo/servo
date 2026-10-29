@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+<script>
+function parseAudioSpecificConfig(description) {
+    const bytes = new Uint8Array(description);
+    assert_equals(bytes.length, 2, 'AudioSpecificConfig length');
+    return {
+        objectType: bytes[0] >> 3,
+        frequencyIndex: ((bytes[0] & 7) << 1) | (bytes[1] >> 7),
+        channelConfiguration: (bytes[1] >> 3) & 15,
+    };
+}
+
+async function encodeAAC(t, sampleRate, numberOfChannels) {
+    const config = { codec: 'mp4a.40.2', sampleRate, numberOfChannels };
+    const support = await AudioEncoder.isConfigSupported(config);
+    if (!support.supported)
+        return null;
+
+    const outputs = [];
+    const encoder = new AudioEncoder({
+        output: (chunk, metadata) => outputs.push({ chunk, metadata }),
+        error: e => assert_unreached('Unexpected error: ' + e)
+    });
+    t.add_cleanup(() => { if (encoder.state !== 'closed') encoder.close(); });
+    encoder.configure(config);
+
+    const numberOfFrames = 1024;
+    for (let timestamp = 0, i = 0; i < 4; ++i, timestamp += 1000000 * numberOfFrames / sampleRate) {
+        const data = new Float32Array(numberOfFrames * numberOfChannels);
+        for (let j = 0; j < data.length; ++j)
+            data[j] = Math.sin(2 * Math.PI * 440 * j / sampleRate);
+        const audioData = new AudioData({ timestamp, data, numberOfChannels, numberOfFrames, sampleRate, format: 'f32-planar' });
+        encoder.encode(audioData);
+        audioData.close();
+    }
+    await encoder.flush();
+    encoder.close();
+
+    assert_greater_than(outputs.length, 0, 'outputs');
+    const withDecoderConfig = outputs.filter(({ metadata }) => metadata?.decoderConfig);
+    assert_greater_than(withDecoderConfig.length, 0, 'an output has a decoderConfig');
+    return { outputs, decoderConfig: withDecoderConfig[0].metadata.decoderConfig };
+}
+
+promise_test(async t => {
+    const result = await encodeAAC(t, 48000, 1);
+    if (!result)
+        return;
+    const { decoderConfig } = result;
+    assert_equals(decoderConfig.codec, 'mp4a.40.2', 'codec');
+    assert_equals(decoderConfig.sampleRate, 48000, 'sampleRate');
+    assert_equals(decoderConfig.numberOfChannels, 1, 'numberOfChannels');
+    const parsed = parseAudioSpecificConfig(decoderConfig.description);
+    assert_equals(parsed.objectType, 2, 'AAC LC');
+    assert_equals(parsed.frequencyIndex, 3, '48000 Hz');
+    assert_equals(parsed.channelConfiguration, 1, 'mono');
+    assert_array_equals(new Uint8Array(decoderConfig.description), [0x11, 0x88], 'description');
+}, 'The description of a 48000Hz mono AAC encoder is an AudioSpecificConfig');
+
+promise_test(async t => {
+    const result = await encodeAAC(t, 44100, 2);
+    if (!result)
+        return;
+    const parsed = parseAudioSpecificConfig(result.decoderConfig.description);
+    assert_equals(parsed.objectType, 2, 'AAC LC');
+    assert_equals(parsed.frequencyIndex, 4, '44100 Hz');
+    assert_equals(parsed.channelConfiguration, 2, 'stereo');
+}, 'The description of a 44100Hz stereo AAC encoder is an AudioSpecificConfig');
+
+promise_test(async t => {
+    const result = await encodeAAC(t, 48000, 1);
+    if (!result)
+        return;
+
+    // The decoder config of the encoder can be used as is to decode its outputs.
+    const { outputs, decoderConfig } = result;
+    const support = await AudioDecoder.isConfigSupported(decoderConfig);
+    assert_true(support.supported, 'decoder config is supported');
+
+    const decoded = [];
+    const decoder = new AudioDecoder({
+        output: audioData => decoded.push(audioData),
+        error: e => assert_unreached('Unexpected error: ' + e)
+    });
+    t.add_cleanup(() => { if (decoder.state !== 'closed') decoder.close(); });
+    decoder.configure(decoderConfig);
+    for (const { chunk } of outputs)
+        decoder.decode(chunk);
+    await decoder.flush();
+    assert_greater_than(decoded.length, 0, 'decoded outputs');
+    for (const audioData of decoded) {
+        assert_equals(audioData.sampleRate, 48000, 'decoded sampleRate');
+        assert_equals(audioData.numberOfChannels, 1, 'decoded numberOfChannels');
+        audioData.close();
+    }
+}, 'The decoderConfig of an AAC encoder can be used to configure an AudioDecoder');
+</script>
+</body>
+</html>

@@ -22,6 +22,7 @@ use js::rust::{HandleObject, MutableHandleValue};
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use script_bindings::callback::HasCallbackHolder;
 use script_bindings::cell::DomRefCell;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::js::JS_GetProperty;
 use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object_with_proto};
 use script_bindings::settings_stack::{run_a_callback, run_a_script};
@@ -658,7 +659,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
             .0
             .values()
             .find(|definition| definition.constructor.callback() == constructor.callback())
-            .map(|definition| DOMString::from(definition.name.to_string()))
+            .map(|definition| TracedDOMString::from(definition.name.clone()).root())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-whendefined>
@@ -1117,9 +1118,9 @@ pub(crate) fn upgrade_element(
         // a fact that's true or false about a node at a given time,
         // not a flag that belongs to the node and is updated,
         // so it doesn't describe this check as an action.)
-        element.check_disabled_attribute();
+        element.check_disabled_attribute(cx.no_gc());
         element.check_ancestors_disabled_state_for_form_control(cx.no_gc());
-        element.update_read_write_state_from_readonly_attribute();
+        element.update_read_write_state_from_readonly_attribute(cx.no_gc());
 
         // Step 9.2: If element is disabled, then enqueue a custom element callback reaction
         // with element.
@@ -1417,7 +1418,7 @@ impl CustomElementReactionStack {
                 let mut realm = enter_auto_realm(cx, &*element.global());
                 let cx = &mut realm;
 
-                let local_name = DOMString::from(&*local_name);
+                let local_name = TracedDOMString::from(local_name).root();
                 rooted!(&in(cx) let mut name_value = UndefinedValue());
                 local_name.to_jsval(cx, name_value.handle_mut());
 
@@ -1433,7 +1434,7 @@ impl CustomElementReactionStack {
 
                 rooted!(&in(cx) let mut namespace_value = NullValue());
                 if namespace != ns!() {
-                    let namespace = DOMString::from(&*namespace);
+                    let namespace = TracedDOMString::from(namespace).root();
                     namespace.to_jsval(cx, namespace_value.handle_mut());
                 }
 

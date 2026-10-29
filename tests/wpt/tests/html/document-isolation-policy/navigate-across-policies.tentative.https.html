@@ -1,0 +1,60 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Document-Isolation-Policy: navigations between documents with different policies</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="./resources/common.js"></script>
+<body>
+<script>
+"use strict";
+
+function openPopup(t, url) {
+  const popup = window.open(url);
+  t.add_cleanup(() => popup.close());
+}
+
+[
+  { from: dip_none, to: dip_require_corp, description: "without a policy to one with" },
+  { from: dip_require_corp, to: dip_none, description: "with a policy to one without" },
+].forEach(({ from, to, description }) => {
+  promise_test(async t => {
+    const uuid = token();
+    openPopup(t, executorURL(from, uuid));
+    const key = token();
+    const destination = token();
+    // The document goes away when the navigation commits, so any failure is stored for its successor.
+    await runInContext(uuid, `
+      const record = failure => sessionStorage.setItem("${key}", failure);
+      navigation.onnavigateerror = event => record("navigateerror " + event.error.name);
+      const { committed, finished } = navigation.navigate(${JSON.stringify(executorURL(to, destination))});
+      committed.catch(error => record("committed " + error.name));
+      finished.catch(error => record("finished " + error.name));
+      return "navigating";
+    `);
+    await runInContext(destination, `return "loaded";`);
+    // Give the first document's handlers time to store a failure.
+    await new Promise(resolve => t.step_timeout(resolve, 500));
+    assert_equals(await runInContext(destination, `return sessionStorage.getItem("${key}") ?? "none";`), "none");
+  }, `navigation.navigate() from a document ${description} does not abort the navigation`);
+});
+
+[204, 205].forEach(status => {
+  promise_test(async t => {
+    const uuid = token();
+    openPopup(t, executorURL(dip_require_corp, uuid));
+    await runInContext(uuid, `
+      window.failure = "none";
+      navigation.onnavigateerror = event => window.failure = "navigateerror " + event.error.name;
+      navigation.navigate("/common/blank.html?pipe=status(${status})");
+      return "navigating";
+    `);
+    // Give a cancelled navigation time to report its failure.
+    await new Promise(resolve => t.step_timeout(resolve, 500));
+    assert_equals(await runInContext(uuid, `return window.failure;`), "none");
+  }, `A navigation to a ${status} response from a document with a policy leaves the document alone`);
+});
+</script>

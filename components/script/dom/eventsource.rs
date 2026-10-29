@@ -22,7 +22,9 @@ use mime::{self, Mime};
 use net_traits::fetch::fetch_controller::FetchController;
 use net_traits::request::{CacheMode, CorsSettings, Destination, RequestBuilder, RequestId};
 use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
+use pixels::CorsStatus;
 use script_bindings::cell::DomRefCell;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::reflect_weak_referenceable_dom_object_with_proto;
 use servo_url::ServoUrl;
 use stylo_atoms::Atom;
@@ -96,7 +98,7 @@ pub(crate) struct EventSource {
     url: ServoUrl,
     #[no_trace]
     request: DomRefCell<Option<RequestBuilder>>,
-    last_event_id: DomRefCell<DOMString>,
+    last_event_id: DomRefCell<TracedDOMString>,
     reconnection_time: Cell<Duration>,
     generation_id: Cell<GenerationId>,
 
@@ -259,7 +261,7 @@ impl EventSourceContext {
         let event_source = self.event_source.root();
         // Step 1
         *event_source.last_event_id.safe_borrow_mut(cx.no_gc()) =
-            DOMString::from(self.last_event_id.clone());
+            DOMString::from(self.last_event_id.clone()).traced();
         // Step 2
         if self.data.is_empty() {
             self.data.clear();
@@ -293,7 +295,7 @@ impl EventSourceContext {
                 data.handle(),
                 DOMString::from(self.origin.clone()),
                 None,
-                event_source.last_event_id.borrow().clone(),
+                event_source.last_event_id.borrow().clone().root(),
                 Vec::with_capacity(0),
             )
         };
@@ -399,7 +401,7 @@ impl FetchResponseListener for EventSourceContext {
     ) {
         match metadata {
             Ok(fetch_metadata) => {
-                if fetch_metadata.is_cors_cross_origin() {
+                if fetch_metadata.cors_status() == CorsStatus::Unsafe {
                     return self.fail_the_connection();
                 }
                 let metadata: Metadata = fetch_metadata.into();
@@ -521,7 +523,7 @@ impl EventSource {
             eventtarget: EventTarget::new_inherited(),
             url,
             request: DomRefCell::new(None),
-            last_event_id: DomRefCell::new(DOMString::new()),
+            last_event_id: DomRefCell::new(DOMString::new().traced()),
             reconnection_time: Cell::new(DEFAULT_RECONNECTION_TIME),
             generation_id: Cell::new(GenerationId(0)),
 

@@ -1,0 +1,59 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Document-Isolation-Policy: the "cross-origin-isolated" permissions policy feature</title>
+<link rel="help" href="https://html.spec.whatwg.org/#concept-settings-object-cross-origin-isolated-capability">
+<link rel="help" href="https://github.com/WICG/document-isolation-policy/issues/12">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="./resources/common.js"></script>
+<body>
+<script>
+"use strict";
+
+// A document with a policy is in a cross-origin isolated agent cluster, which exposes the SharedArrayBuffer
+// constructor. But it is only cross-origin isolated, and can only serialize SharedArrayBuffer objects, if it is
+// allowed to use the "cross-origin-isolated" feature, whose default allowlist is 'self'. Whether a document
+// with a policy should be exempt from this is https://github.com/WICG/document-isolation-policy/issues/12.
+
+const getIsolation = `
+  let clone;
+  try {
+    structuredClone(new SharedArrayBuffer(8));
+    clone = "cloned";
+  } catch (e) {
+    clone = e.name;
+  }
+  return { crossOriginIsolated, SharedArrayBuffer: typeof SharedArrayBuffer, clone };
+`;
+
+[
+  {
+    origin: get_host_info().HTTPS_REMOTE_ORIGIN,
+    allow: undefined,
+    expected: { crossOriginIsolated: false, SharedArrayBuffer: "function", clone: "DataCloneError" },
+    description: `A cross-origin frame with isolate-and-require-corp without allow="cross-origin-isolated" is not cross-origin isolated and cannot serialize a SharedArrayBuffer`,
+  },
+  {
+    origin: get_host_info().HTTPS_ORIGIN,
+    allow: "cross-origin-isolated 'none'",
+    expected: { crossOriginIsolated: false, SharedArrayBuffer: "function", clone: "DataCloneError" },
+    description: `A same-origin frame with isolate-and-require-corp and allow="cross-origin-isolated 'none'" is not cross-origin isolated and cannot serialize a SharedArrayBuffer`,
+  },
+  {
+    origin: get_host_info().HTTPS_REMOTE_ORIGIN,
+    allow: "cross-origin-isolated",
+    expected: { crossOriginIsolated: true, SharedArrayBuffer: "function", clone: "cloned" },
+    description: `A cross-origin frame with isolate-and-require-corp and allow="cross-origin-isolated" is cross-origin isolated and can serialize a SharedArrayBuffer`,
+  },
+].forEach(({ origin, allow, expected, description }) => {
+  promise_test(async t => {
+    const uuid = token();
+    await createFrame(t, executorURL(dip_require_corp, uuid, origin), allow);
+    assert_object_equals(await runInContext(uuid, getIsolation), expected);
+  }, description);
+});
+</script>

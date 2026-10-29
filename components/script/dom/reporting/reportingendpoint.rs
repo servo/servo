@@ -25,10 +25,11 @@ use crate::dom::csp::Violation;
 use crate::dom::csppolicyviolationreport::serialize_disposition;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
-use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
+use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request_with_claim};
 use crate::fetch::network_listener::{
     FetchResponseListener, ResourceTimingListener, submit_timing,
 };
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 /// <https://w3c.github.io/reporting/#endpoint>
 #[derive(Clone, Eq, Hash, MallocSizeOf, PartialEq)]
@@ -194,9 +195,10 @@ impl SendReportsToEndpoints for GlobalScope {
         headers.typed_insert(ContentType::from(
             "application/reports+json".parse::<mime::Mime>().unwrap(),
         ));
-        let request = create_a_potential_cors_request(
+        let url = ensure_blob_referenced_by_url_is_kept_alive(self, endpoint.clone());
+        let request = create_a_potential_cors_request_with_claim(
             None,
-            endpoint.clone(),
+            url,
             Destination::Report,
             None,
             None,

@@ -14,11 +14,20 @@ const gInvalidTestCases = [
   { property: null, values: ['foo'], desc: 'an null property name' },
   { property: 'width', values: ['10px'], desc: 'a property that is not list valued' },
   { property: 'margin', values: ['10px'], desc: 'a shorthand property' },
+  { property: 'lemon', values: [], desc: 'no values and an unsupported property name' },
+  { property: 'width', values: [], desc: 'no values and a property that is not list valued' },
+  { property: 'margin', values: [], desc: 'no values and a shorthand property' },
+  { property: '--foo', values: [], desc: 'no values and a custom property' },
   { property: 'transition-duration', values: [CSS.px(10)], desc: 'an invalid CSSStyleValue' },
   { property: 'transition-duration', values: ['10px'], desc: 'an invalid String value' },
   { property: 'transition-duration', values: [CSS.s(1), '10px', CSS.px(10)], desc: 'a mix of valid and invalid values' },
   { property: 'transition-duration', values: [new CSSUnparsedValue([])], desc: 'a CSSUnparsedValue' },
+  { property: 'transition-duration', values: [new CSSUnparsedValue([' ', new CSSVariableReferenceValue('--A')])], desc: 'a non-empty CSSUnparsedValue' },
   { property: 'transition-duration', values: ['var(--A)'], desc: 'a var ref' },
+  { property: 'transition-duration', values: ['inherit'], desc: 'a CSS-wide keyword string' },
+  { property: 'transition-duration', values: [new CSSKeywordValue('initial')], desc: 'a CSS-wide keyword CSSKeywordValue' },
+  { property: 'transition-duration', values: ['1s', 'unset'], desc: 'a valid value and a CSS-wide keyword' },
+  { property: 'transition-timing-function', values: ['cubic-bezier(0', '0', '1', '1)'], desc: 'values that are only valid once joined' },
   { property: 'background-size', values: [document.getElementsByTagName('title')[0].computedStyleMap().get('mask-position')], desc: 'a CSSVariableReferenceValue property' },
 ];
 
@@ -62,5 +71,21 @@ test(t => {
   let styleMap = createInlineStyleMap(t, 'transition-duration: inherit');
   assert_throws_js(TypeError, () => styleMap.append('transition-duration', '1s'));
 }, 'StylePropertyMap.append rejects appending to CSS-wide keywords');
+
+test(t => {
+  let [owner, styleMap] = createElementWithInlineStyleMap(t, 'transition-duration: inherit');
+  styleMap.append('transition-duration');
+  assert_equals(owner.style.transitionDuration, 'inherit');
+}, 'Calling StylePropertyMap.append with no values does nothing');
+
+test(t => {
+  let [owner, styleMap] = createElementWithInlineStyleMap(t, '');
+
+  styleMap.append('animation-name', 'foo');
+  assert_equals(owner.style.animationName, 'foo');
+
+  styleMap.append('animation-name', 'bar', new CSSKeywordValue('baz'));
+  assert_equals(owner.style.animationName, 'foo, bar, baz');
+}, 'Appending to another list-valued property updates its values');
 
 </script>

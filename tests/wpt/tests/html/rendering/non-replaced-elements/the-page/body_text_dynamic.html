@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <title>Body's text attribute changing dynamically</title>
+  <link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#the-page">
+  <link rel="match" href="/css/reference/ref-filled-green-200px-square.html">
+  <meta name="assert" content="Changing the value of the `text` attribute on the `<body>`
+    should update the text color properly.
+  ">
+  <link rel="stylesheet" href="/fonts/ahem.css">
+  <style>
+    p { color: initial }
+    div { font: 200px/1 Ahem }
+  </style>
+  <body text="red">
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+    <div>X</div>
+    <script src="/common/rendering-utils.js"></script>
+    <script src="/common/reftest-wait.js"></script>
+    <script type="module">
+      await waitForAtLeastOneFrame();
+      document.body.setAttribute("text", "green");
+      takeScreenshot()
+    </script>
+  </body>
+</html>

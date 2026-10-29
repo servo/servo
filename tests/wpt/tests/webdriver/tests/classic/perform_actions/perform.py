@@ -6,29 +6,28 @@ from . import perform_actions
 
 @pytest.mark.parametrize("pointer_action", ["pointerDown", "pointerMove", "pointerUp"])
 @pytest.mark.parametrize("dimension", ["width", "height"])
+@pytest.mark.parametrize("value", [0, 0.1])
 def test_pointer_action_common_properties_dimensions_valid(
-    session, pointer_action, dimension
+    session, pointer_action, dimension, value
 ):
-    # Dimensions are Numbers; 2 ** 53 need not be a safe integer to be valid.
-    for value in [0, 0.1, 2 ** 53]:
-        action = {"type": pointer_action, "width": 0, "height": 0}
-        action[dimension] = value
-        if pointer_action == "pointerMove":
-            action.update({"x": 0, "y": 0})
-        else:
-            action["button"] = 0
+    action = {"type": pointer_action, "width": 0, "height": 0}
+    action[dimension] = value
+    if pointer_action == "pointerMove":
+        action.update({"x": 0, "y": 0})
+    else:
+        action["button"] = 0
 
-        actions = []
-        if pointer_action == "pointerUp":
-            actions.append({"type": "pointerDown", "button": 0})
-        actions.append(action)
-        if pointer_action == "pointerDown":
-            actions.append({"type": "pointerUp", "button": 0})
+    actions = []
+    if pointer_action == "pointerUp":
+        actions.append({"type": "pointerDown", "button": 0})
+    actions.append(action)
+    if pointer_action == "pointerDown":
+        actions.append({"type": "pointerUp", "button": 0})
 
-        response = perform_actions(
-            session, [{"type": "pointer", "id": "dimension-test", "actions": actions}]
-        )
-        assert_success(response)
+    response = perform_actions(
+        session, [{"type": "pointer", "id": "dimension-test", "actions": actions}]
+    )
+    assert_success(response)
 
 
 @pytest.mark.parametrize("pointer_action", ["pointerDown", "pointerMove", "pointerUp"])
@@ -43,6 +42,8 @@ def test_pointer_action_common_properties_dimensions_missing(session, pointer_ac
     if pointer_action == "pointerUp":
         actions.append({"type": "pointerDown", "button": 0})
     actions.append(action)
+    if pointer_action == "pointerDown":
+        actions.append({"type": "pointerUp", "button": 0})
 
     response = perform_actions(
         session, [{"type": "pointer", "id": "dimension-test", "actions": actions}]

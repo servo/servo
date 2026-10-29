@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Parser-inserted scripts in a selected option run once</title>
+<link rel=help href="https://html.spec.whatwg.org/#the-option-element:stack-of-open-elements">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  window.runs = 0;
+</script>
+<select>
+  <button><selectedcontent></selectedcontent></button>
+  <option>one</option>
+  <option selected>
+    <script>runs++</script>
+    <span>two</span>
+  </option>
+</select>
+<script>
+  test(() => {
+    assert_equals(runs, 1, "Script should run exactly once");
+    const selectedcontent = document.querySelector("selectedcontent");
+    assert_equals(selectedcontent.querySelectorAll("script").length, 1,
+                  "selectedcontent should contain the cloned script");
+    assert_equals(selectedcontent.querySelector("span")?.textContent, "two",
+                  "selectedcontent should contain the whole option");
+  }, "A parser-inserted script in a selected option isn't cloned into selectedcontent before it runs");
+</script>

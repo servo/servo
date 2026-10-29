@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Tests initial letter whose non-integer size is greater than its sink</title>
+<link rel="author" title="ChangSeok Oh" href="mailto:changseok@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-inline/#initial-letter-block-position">
+<meta name="assert" content="An initial letter whose non-integer size is greater than its sink is positioned to satisfy its under alignment on its sink-th line.">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" >
+<link rel="match" href="initial-letter-block-position-fractional-size-ref.html">
+<style>
+.sample {
+    border: solid 1px green;
+    font-family: Ahem;
+    font-size: 20px;
+    line-height: 32px;
+    width: 230px;
+}
+
+.initial-letter::first-letter {
+    color: lime;
+    font-size: 100px;   /* should be ignored in rendering */
+    line-height: 50px;  /* should be ignored in rendering */
+}
+
+#sink-2::first-letter { initial-letter: 2.5 2; }
+#raise::first-letter { initial-letter: 2.5 raise; }
+</style>
+<div class="sample initial-letter" id="sink-2">
+Abc<br>def<br>ghi<br>jkl<br>mno<br>
+</div>
+<div class="sample initial-letter" id="raise">
+Abc<br>def<br>ghi<br>jkl<br>mno<br>
+</div>

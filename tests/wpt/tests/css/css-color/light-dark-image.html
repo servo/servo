@@ -189,41 +189,64 @@ test_light_dark_image(
   'c.png")'
 );
 
-test(() => {
-  for (let element of [light, dark]) {
-    element.style.setProperty("background-image", "");
-    element.style.setProperty(
-        "background-image",
-        "image-set(-webkit-cross-fade(light-dark(url('dummy://light-a.png'), " +
-            "url('dummy://dark-a.png')), image-set(light-dark(" +
-            "url('dummy://light-b.png'), url('dummy://dark-b.png')) 1x), " +
-            "50%) 1x)");
-    assert_not_equals(element.style.getPropertyValue("background-image"), "",
-                      "Should parse nested image functions");
-
-    const computed = getComputedStyle(element).getPropertyValue(
-        "background-image");
-    const expected = element.id == "dark"
-        ? ["dummy://dark-a.png", "dummy://dark-b.png"]
-        : ["dummy://light-a.png", "dummy://light-b.png"];
-    const unexpected = element.id == "dark"
-        ? ["dummy://light-a.png", "dummy://light-b.png"]
-        : ["dummy://dark-a.png", "dummy://dark-b.png"];
-
-    for (const url of expected) {
-      assert_true(
-          computed.includes(url),
-          `Expected "${computed}" to include resolved URL "${url}"`);
+// Nested image functions, one wrapper per test, so a browser without
+// -webkit-cross-fade() still runs the image-set() cases. image-set() is never
+// nested inside image-set(): the spec forbids that, directly or indirectly.
+function test_nested_light_dark_image(value, description) {
+  test(() => {
+    const names = [...value.matchAll(/dummy:\/\/light-(\w)\.png/g)]
+        .map(match => match[1]);
+    for (let element of [light, dark]) {
+      element.style.setProperty("background-image", "");
+      element.style.setProperty("background-image", value);
+      assert_not_equals(element.style.getPropertyValue("background-image"), "",
+                        "Should parse as valid: " + value);
+      const computed = getComputedStyle(element).getPropertyValue(
+          "background-image");
+      const scheme = element.id == "dark" ? "dark" : "light";
+      const other = element.id == "dark" ? "light" : "dark";
+      for (const name of names) {
+        const expected = `dummy://${scheme}-${name}.png`;
+        const unexpected = `dummy://${other}-${name}.png`;
+        assert_true(
+            computed.includes(expected),
+            `Expected "${computed}" to include resolved URL "${expected}"`);
+        assert_false(
+            computed.includes(unexpected),
+            `Expected "${computed}" not to include unresolved URL "${unexpected}"`);
+      }
+      element.style.setProperty("background-image", "");
     }
-    for (const url of unexpected) {
-      assert_false(
-          computed.includes(url),
-          `Expected "${computed}" not to include unresolved URL "${url}"`);
-    }
+  }, `background-image: ${description}`);
+}
 
-    element.style.setProperty("background-image", "");
-  }
-}, "background-image: nested image-set() / -webkit-cross-fade() resolve light-dark() at any depth");
+test_nested_light_dark_image(
+  "image-set(light-dark(url('dummy://light-a.png'), " +
+      "url('dummy://dark-a.png')) 1x)",
+  "light-dark() inside image-set()"
+);
+
+test_nested_light_dark_image(
+  "light-dark(image-set(url('dummy://light-a.png') 1x), " +
+      "image-set(url('dummy://dark-a.png') 1x))",
+  "image-set() inside light-dark()"
+);
+
+test_nested_light_dark_image(
+  "-webkit-cross-fade(" +
+      "light-dark(url('dummy://light-a.png'), url('dummy://dark-a.png')), " +
+      "light-dark(url('dummy://light-b.png'), url('dummy://dark-b.png')), " +
+      "50%)",
+  "light-dark() inside -webkit-cross-fade()"
+);
+
+test_nested_light_dark_image(
+  "image-set(-webkit-cross-fade(" +
+      "light-dark(url('dummy://light-a.png'), url('dummy://dark-a.png')), " +
+      "light-dark(url('dummy://light-b.png'), url('dummy://dark-b.png')), " +
+      "50%) 1x)",
+  "light-dark() inside -webkit-cross-fade() inside image-set()"
+);
 
 // Serialization round-trip
 test(() => {

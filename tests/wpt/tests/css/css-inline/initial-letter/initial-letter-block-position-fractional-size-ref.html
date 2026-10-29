@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Tests initial letter whose non-integer size is greater than its sink</title>
+<link rel="author" title="ChangSeok Oh" href="mailto:changseok@chromium.org">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" >
+<style>
+.sample {
+    border: solid 1px green;
+    font-family: Ahem;
+    font-size: 20px;
+    line-height: 32px;
+    width: 230px;
+}
+
+/* The letter's baseline is at 70px, and the text moves down by
+   (size - sink) lines to put the sink-th line's baseline there. */
+.fake-initial-letter {
+    background: lime;
+    float: left;
+    height: 80px;
+    margin-top: 6px;
+    width: 80px;
+}
+
+#sink-2 { padding-top: 16px; }
+#raise { padding-top: 48px; }
+</style>
+<div class="sample">
+<div class="fake-initial-letter"></div>
+<div id="sink-2">bc<br>def<br>ghi<br>jkl<br>mno<br></div>
+</div>
+<div class="sample">
+<div class="fake-initial-letter"></div>
+<div id="raise">bc<br>def<br>ghi<br>jkl<br>mno<br></div>
+</div>

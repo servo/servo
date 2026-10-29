@@ -884,7 +884,13 @@ impl WindowProxy {
     /// If the containing `<iframe>` of this [`WindowProxy`] is from a same-origin page,
     /// this will return an [`Element`] of the `<iframe>` element in the realm of the parent
     /// page.
+    ///
+    /// This returns `None` if the browsing context for this [`WindowProxy`]
+    /// has been discarded.
     pub(crate) fn frame_element(&self) -> Option<&Element> {
+        if self.is_browsing_context_discarded() {
+            return None;
+        }
         self.frame_element.as_deref()
     }
 

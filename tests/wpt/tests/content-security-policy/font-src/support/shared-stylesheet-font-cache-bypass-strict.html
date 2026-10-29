@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta http-equiv="Content-Security-Policy" content="font-src 'none'">
+<link rel="stylesheet" href="shared-stylesheet-font-cache-bypass.css">
+<div id="use-font">strict text</div>
+<script>
+'use strict';
+
+let violationCount = 0;
+document.addEventListener('securitypolicyviolation', e => {
+  if (e.violatedDirective === 'font-src') violationCount++;
+});
+
+(async () => {
+  // Load twice to exercise the "already emulated" shortcut in
+  // ResourceFetcher::EmulateLoadStartedForInspector. Each load must surface
+  // the block, but only the first attempt should fire a violation report.
+  for (let i = 0; i < 2; i++) {
+    try {
+      await document.fonts.load('16px "csp-bypass-shared-font"');
+    } catch (_) {}
+  }
+  await new Promise(r => setTimeout(r, 0));
+
+  let fontStatus = 'unknown';
+  for (const f of document.fonts) {
+    if (f.family === 'csp-bypass-shared-font') { fontStatus = f.status; break; }
+  }
+  const fontCheck = document.fonts.check('16px "csp-bypass-shared-font"');
+  parent.postMessage({fontStatus, fontCheck, violationCount}, '*');
+})();
+</script>

@@ -1,0 +1,36 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Document-Isolation-Policy: cross-origin frames do not need Cross-Origin-Resource-Policy</title>
+<link rel="help" href="https://fetch.spec.whatwg.org/#cross-origin-resource-policy-internal-check">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="./resources/common.js"></script>
+<body>
+<script>
+"use strict";
+
+// Fetch's cross-origin resource policy check allows a navigation when the embedder policy is "unsafe-none",
+// whatever the document isolation policy, so a document with a policy and no Cross-Origin-Embedder-Policy
+// can embed any frame.
+
+[
+  { header: "", description: "without Cross-Origin-Resource-Policy" },
+  { header: "|header(Cross-Origin-Resource-Policy,same-origin)", description: "with Cross-Origin-Resource-Policy: same-origin" },
+].forEach(({ header, description }) => {
+  promise_test(async t => {
+    const popupUUID = token();
+    const popup = window.open(executorURL(dip_require_corp, popupUUID));
+    t.add_cleanup(() => popup.close());
+    const frameUUID = token();
+    await runInContext(popupUUID, `
+      ${appendFrameScript(executorURL(header, frameUUID, get_host_info().HTTPS_REMOTE_ORIGIN))}
+      return "loaded";
+    `);
+    assert_equals(await runInContext(frameUUID, "return location.origin;"), get_host_info().HTTPS_REMOTE_ORIGIN);
+  }, `A document with isolate-and-require-corp can embed a cross-origin frame ${description}`);
+});
+</script>

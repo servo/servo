@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>text-overflow applies to the lines of the anonymous block boxes of a block container</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#text-overflow">
+<link rel="help" href="https://drafts.csswg.org/css-display/#anonymous">
+<link rel="match" href="text-overflow-in-anonymous-block-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+div.clipped { overflow: hidden; text-overflow: ellipsis; width: 100px; white-space: pre; font: 10px/1 Ahem; }
+</style>
+<!-- The inline content ends up in an anonymous block box, which does not inherit overflow or text-overflow. -->
+<div class=clipped>this text should have ellipsis<div style="height: 0"></div></div>

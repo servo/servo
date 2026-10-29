@@ -307,14 +307,11 @@ fn test_pipeline_id_to_accesskit_tree_id() {
 }
 
 impl From<WebRenderPipelineId> for PipelineId {
-    #[expect(unsafe_code)]
     fn from(pipeline: WebRenderPipelineId) -> Self {
         let WebRenderPipelineId(namespace_id, index) = pipeline;
-        unsafe {
-            PipelineId {
-                namespace_id: PipelineNamespaceId(namespace_id),
-                index: Index(NonZeroU32::new_unchecked(index), PhantomData),
-            }
+        PipelineId {
+            namespace_id: PipelineNamespaceId(namespace_id),
+            index: Index::new(index).expect("Pipeline index must be nonzero"),
         }
     }
 }

@@ -43,7 +43,7 @@ impl ProtocolHandler for FileProtocolHander {
                 });
             }
 
-            if let Ok(file) = File::open(file_path.clone()) {
+            if let Ok(file) = File::open(&file_path) {
                 // Get range bounds (if any) and try to seek to the requested offset.
                 // If seeking fails, bail out with a NetworkError.
                 let file_size = match file.metadata() {
@@ -90,7 +90,7 @@ impl ProtocolHandler for FileProtocolHander {
                 }
 
                 // Set Content-Type header.
-                let mime = mime_guess::from_path(file_path).first_or_octet_stream();
+                let mime = mime_guess::from_path(&file_path).first_or_octet_stream();
                 response.headers.typed_insert(ContentType::from(mime));
 
                 // Setup channel to receive cross-thread messages about the file fetch

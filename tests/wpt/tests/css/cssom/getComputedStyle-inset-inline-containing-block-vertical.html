@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSSOM: resolved right and bottom of an out-of-flow box whose containing block is a vertical inline box</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#resolved-values">
+<link rel="help" href="https://drafts.csswg.org/css-position/#abspos-cb">
+<meta name="assert" content="The resolved value of an auto right or bottom measures the containing block's physical width or height, which for an inline box in a vertical writing mode is not its inline axis extent.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#container { writing-mode: vertical-rl; width: 200px; height: 200px; font: 20px/1 Ahem; }
+#inline-containing-block { position: relative; }
+#out-of-flow { position: absolute; width: 30px; height: 10px; }
+</style>
+<div id="container"><span id="inline-containing-block">xx<div id="out-of-flow"></div></span></div>
+<script>
+const containingBlock = document.getElementById("inline-containing-block").getBoundingClientRect();
+const outOfFlow = document.getElementById("out-of-flow");
+const resolved = getComputedStyle(outOfFlow);
+
+test(() => {
+  assert_equals(parseFloat(resolved.right), containingBlock.width - (outOfFlow.offsetLeft + outOfFlow.offsetWidth));
+}, "Resolved right measures the inline containing block's physical width");
+
+test(() => {
+  assert_equals(parseFloat(resolved.bottom), containingBlock.height - (outOfFlow.offsetTop + outOfFlow.offsetHeight));
+}, "Resolved bottom measures the inline containing block's physical height");
+</script>

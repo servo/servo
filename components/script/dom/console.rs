@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::convert::TryFrom;
+use std::fmt::Write as _;
 use std::ptr::{self, NonNull};
 use std::slice;
 
@@ -815,7 +816,7 @@ fn format_integer_substitution(result: &mut String, num: Result<f64, ()>) {
         Ok(n) if n.is_nan() => result.push_str("NaN"),
         Ok(n) if n == f64::INFINITY => result.push_str("Infinity"),
         Ok(n) if n == f64::NEG_INFINITY => result.push_str("-Infinity"),
-        Ok(n) => result.push_str(&(n.trunc() as i64).to_string()),
+        Ok(n) => write!(result, "{}", n.trunc() as i64).unwrap(),
         Err(_) => result.push_str("NaN"),
     }
 }
@@ -825,7 +826,7 @@ fn format_float_substitution(result: &mut String, num: Result<f64, ()>) {
         Ok(n) if n.is_nan() => result.push_str("NaN"),
         Ok(n) if n == f64::INFINITY => result.push_str("Infinity"),
         Ok(n) if n == f64::NEG_INFINITY => result.push_str("-Infinity"),
-        Ok(n) => result.push_str(&n.to_string()),
+        Ok(n) => write!(result, "{n}").unwrap(),
         Err(_) => result.push_str("NaN"),
     }
 }

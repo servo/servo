@@ -1,2 +1,11 @@
 <!DOCTYPE html>
+<html class="reftest-wait">
+<script src="/common/reftest-wait.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
 <div style="width: 100px; height: 8000px; background: green"></div>
+<script>
+  ensureOverlayScrollbarVisible().then(() => {
+    takeScreenshot();
+  });
+</script>
+</html>

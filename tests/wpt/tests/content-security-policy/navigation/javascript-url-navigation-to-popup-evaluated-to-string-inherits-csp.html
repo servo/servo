@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <script src="/resources/testharness.js"></script>
+      <script src="/resources/testharnessreport.js"></script>
+      <script src="support/utils.js"></script>
+      <link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#evaluate-a-javascript:-url">
+      <link rel="help" href="../README.html">
+  </head>
+    <body>
+      <script>
+        openWindowAssignJavascriptUrlEvaluatedToIframeStringAndCheckViolatedDirective(
+          { url: "support/doc-with-csp-frame-src-none-and-report-uri.sub.html" +
+              "?report_cookie_name=javascript-url-navigation-to-popup-evaluated-to-string-inherits-csp",
+            target: "otherTab",
+            windowFeatures: "popup",
+          },
+          "frame-src 'none'");
+        </script>
+    </body>
+</html>

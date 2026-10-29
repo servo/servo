@@ -1,0 +1,178 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Location-object navigate of a cross-site navigable</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/nav-history-apis.html#location-object-navigate">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script>
+// A browser can put a cross-site navigable in another process than the document navigating it, which
+// mustn't change whether the navigation replaces the current session history entry.
+const helperPath = "/html/browsers/history/the-location-interface/resources/cross-site-navigation-helper.html";
+const sameOriginHelper = get_host_info().ORIGIN + helperPath;
+const crossSiteHelper = get_host_info().HTTP_NOTSAMESITE_ORIGIN + helperPath;
+
+let urlCount = 0;
+function uniqueURL(helper, name) {
+  return `${helper}?${name}-${++urlCount}`;
+}
+
+// Resolves with the message event of the report of the document at url, as receiver gets it.
+function reportOf(url, receiver = window) {
+  return new Promise(resolve => {
+    receiver.addEventListener("message", function listener(event) {
+      if (event.data.type !== "report" || event.data.url !== url || event.data.loading)
+        return;
+      receiver.removeEventListener("message", listener);
+      resolve(event);
+    });
+  });
+}
+
+async function addIframe(t, url) {
+  const iframe = document.createElement("iframe");
+  const report = reportOf(url);
+  iframe.src = url;
+  document.body.append(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await report;
+  return iframe;
+}
+
+async function openPopup(t, url) {
+  const report = reportOf(url);
+  const popup = open(url);
+  t.add_cleanup(() => popup.close());
+  return { popup, historyLength: (await report).data.historyLength };
+}
+
+function frameIndex(iframe) {
+  return Array.from({ length: frames.length }, (_, i) => frames[i]).indexOf(iframe.contentWindow);
+}
+
+promise_test(async t => {
+  const iframe = await addIframe(t, uniqueURL(crossSiteHelper, "iframe"));
+  const historyLength = history.length;
+  const url = uniqueURL(crossSiteHelper, "iframe-replaced");
+  const report = reportOf(url);
+  iframe.contentWindow.location.replace(url);
+  const { data } = await report;
+  assert_equals(history.length, historyLength);
+  assert_equals(data.navigationType, "replace");
+}, "location.replace() of a cross-site iframe");
+
+promise_test(async t => {
+  const iframe = await addIframe(t, uniqueURL(crossSiteHelper, "iframe"));
+  const historyLength = history.length;
+  const url = uniqueURL(sameOriginHelper, "iframe-replaced");
+  const report = reportOf(url);
+  iframe.contentWindow.location.replace(url);
+  await report;
+  assert_equals(history.length, historyLength);
+}, "location.replace() of a cross-site iframe to a same-origin URL");
+
+promise_test(async t => {
+  const iframe = await addIframe(t, uniqueURL(sameOriginHelper, "iframe"));
+  const historyLength = history.length;
+  const url = uniqueURL(crossSiteHelper, "iframe-replaced");
+  const report = reportOf(url);
+  iframe.contentWindow.location.replace(url);
+  await report;
+  assert_equals(history.length, historyLength);
+}, "location.replace() of a same-origin iframe to a cross-site URL");
+
+promise_test(async t => {
+  const sibling = await addIframe(t, uniqueURL(sameOriginHelper, "sibling"));
+  const iframe = await addIframe(t, uniqueURL(crossSiteHelper, "iframe"));
+  const historyLength = history.length;
+  const url = uniqueURL(crossSiteHelper, "iframe-replaced-by-sibling");
+  const report = reportOf(url);
+  sibling.contentWindow.postMessage({ action: "replace", target: "frame", index: frameIndex(iframe), url }, "*");
+  const { data } = await report;
+  assert_equals(history.length, historyLength);
+  assert_equals(data.navigationType, "replace");
+}, "location.replace() of a cross-site iframe by its sibling");
+
+promise_test(async t => {
+  const { popup } = await openPopup(t, uniqueURL(sameOriginHelper, "popup"));
+  const childURL = uniqueURL(crossSiteHelper, "child");
+  const childReport = reportOf(childURL, popup);
+  popup.postMessage({ action: "add-iframe", url: childURL }, "*");
+  const child = (await childReport).source;
+  const historyLength = popup.history.length;
+  const url = uniqueURL(sameOriginHelper, "popup-replaced-by-child");
+  const report = reportOf(url);
+  child.postMessage({ action: "replace", target: "top", url }, "*");
+  const { data } = await report;
+  assert_equals(data.historyLength, historyLength);
+  assert_equals(data.navigationType, "replace");
+}, "location.replace() of a popup by its cross-site child");
+
+promise_test(async t => {
+  const { popup, historyLength } = await openPopup(t, uniqueURL(crossSiteHelper, "popup"));
+  const url = uniqueURL(crossSiteHelper, "popup-replaced");
+  const report = reportOf(url);
+  popup.location.replace(url);
+  const { data } = await report;
+  assert_equals(data.historyLength, historyLength);
+  assert_equals(data.navigationType, "replace");
+}, "location.replace() of a cross-site popup");
+
+promise_test(async t => {
+  const { popup: opener } = await openPopup(t, uniqueURL(sameOriginHelper, "opener"));
+  const popupURL = uniqueURL(crossSiteHelper, "popup-of-popup");
+  const popupReport = reportOf(popupURL, opener);
+  opener.postMessage({ action: "open", url: popupURL }, "*");
+  const popup = (await popupReport).source;
+  t.add_cleanup(() => popup.postMessage({ action: "close" }, "*"));
+  const historyLength = opener.history.length;
+  const url = uniqueURL(sameOriginHelper, "opener-replaced");
+  const report = reportOf(url);
+  popup.postMessage({ action: "replace", target: "opener", url }, "*");
+  const { data } = await report;
+  assert_equals(data.historyLength, historyLength);
+  assert_equals(data.navigationType, "replace");
+}, "location.replace() of a popup by the cross-site popup it opened");
+
+promise_test(async t => {
+  const iframe = await addIframe(t, uniqueURL(crossSiteHelper, "iframe"));
+  const historyLength = history.length;
+  const url = uniqueURL(crossSiteHelper, "iframe-navigated");
+  const report = reportOf(url);
+  iframe.contentWindow.location.href = url;
+  const { data } = await report;
+  assert_equals(history.length, historyLength + 1);
+  assert_equals(data.navigationType, "push");
+}, "Setting location.href of a cross-site iframe");
+
+promise_test(async t => {
+  const { popup, historyLength } = await openPopup(t, uniqueURL(crossSiteHelper, "popup"));
+  const url = uniqueURL(crossSiteHelper, "popup-navigated");
+  const report = reportOf(url);
+  popup.location.href = url;
+  const { data } = await report;
+  assert_equals(data.historyLength, historyLength + 1);
+  assert_equals(data.navigationType, "push");
+}, "Setting location.href of a cross-site popup");
+
+promise_test(async t => {
+  const iframe = document.createElement("iframe");
+  const loading = new Promise(resolve => addEventListener("message", function listener(event) {
+    if (event.source !== iframe.contentWindow || event.data.type !== "report" || !event.data.loading)
+      return;
+    removeEventListener("message", listener);
+    resolve();
+  }));
+  iframe.src = uniqueURL(crossSiteHelper, "slow");
+  document.body.append(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await loading;
+  const historyLength = history.length;
+  const url = uniqueURL(crossSiteHelper, "iframe-navigated-while-loading");
+  const report = reportOf(url);
+  iframe.contentWindow.location.href = url;
+  await report;
+  assert_equals(history.length, historyLength);
+}, "Setting location.href of a cross-site iframe that is not completely loaded");
+</script>

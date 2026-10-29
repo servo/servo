@@ -12,11 +12,13 @@ use js::rust::HandleObject;
 use js::typedarray::Float32Array;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::audio_node::AudioNodeInit;
+use servo_media::audio::graph::NodeId;
 use servo_media::audio::iir_filter_node::{IIRFilterNode as IIRFilter, IIRFilterNodeOptions};
 
 use crate::conversions::Convert;
 use crate::dom::audio::audionode::{AudioNode, AudioNodeOptionsHelper};
 use crate::dom::audio::baseaudiocontext::BaseAudioContext;
+use crate::dom::audionode::UnwrappedAudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };
@@ -36,67 +38,24 @@ pub(crate) struct IIRFilterNode {
 }
 
 impl IIRFilterNode {
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn new_inherited(
-        cx: &mut JSContext,
-        _window: &Window,
+    fn new_inherited(
+        node_id: Option<NodeId>,
         context: &BaseAudioContext,
-        options: &IIRFilterOptions,
-    ) -> Fallible<IIRFilterNode> {
-        if !(1..=20).contains(&options.feedforward.len()) ||
-            !(1..=20).contains(&options.feedback.len())
-        {
-            return Err(Error::NotSupported(None));
-        }
-        if options.feedforward.iter().all(|v| **v == 0.0) || *options.feedback[0] == 0.0 {
-            return Err(Error::InvalidState(None));
-        }
-        let node_options =
-            options
-                .parent
-                .unwrap_or(2, ChannelCountMode::Max, ChannelInterpretation::Speakers);
-        let feedforward = (*options.feedforward).to_vec();
-        let feedback = (*options.feedback).to_vec();
-        let init_options = options.clone().convert();
-        let node = AudioNode::new_inherited(
-            cx,
-            AudioNodeInit::IIRFilterNode(init_options),
-            context,
-            node_options,
-            1, // inputs
-            1, // outputs
-        )?;
-        Ok(IIRFilterNode {
-            node,
+        node_options: UnwrappedAudioNodeOptions,
+        feedforward: Vec<Finite<f64>>,
+        feedback: Vec<Finite<f64>>,
+    ) -> Self {
+        IIRFilterNode {
+            node: AudioNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                1, // inputs
+                1, // outputs
+            ),
             feedforward,
             feedback,
-        })
-    }
-
-    pub(crate) fn new(
-        cx: &mut JSContext,
-        window: &Window,
-        context: &BaseAudioContext,
-        options: &IIRFilterOptions,
-    ) -> Fallible<DomRoot<IIRFilterNode>> {
-        Self::new_with_proto(cx, window, None, context, options)
-    }
-
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    fn new_with_proto(
-        cx: &mut JSContext,
-        window: &Window,
-        proto: Option<HandleObject>,
-        context: &BaseAudioContext,
-        options: &IIRFilterOptions,
-    ) -> Fallible<DomRoot<IIRFilterNode>> {
-        let node = IIRFilterNode::new_inherited(cx, window, context, options)?;
-        Ok(reflect_dom_object_with_proto(
-            cx,
-            Box::new(node),
-            window,
-            proto,
-        ))
+        }
     }
 }
 
@@ -109,7 +68,44 @@ impl IIRFilterNodeMethods<crate::DomTypeHolder> for IIRFilterNode {
         context: &BaseAudioContext,
         options: &IIRFilterOptions,
     ) -> Fallible<DomRoot<IIRFilterNode>> {
-        IIRFilterNode::new_with_proto(cx, window, proto, context, options)
+        if !(1..=20).contains(&options.feedforward.len()) ||
+            !(1..=20).contains(&options.feedback.len())
+        {
+            return Err(Error::NotSupported(None));
+        }
+        if options.feedforward.iter().all(|v| **v == 0.0) || *options.feedback[0] == 0.0 {
+            return Err(Error::InvalidState(None));
+        }
+        let node_options =
+            options
+                .parent
+                .unwrap_or(2, ChannelCountMode::Max, ChannelInterpretation::Speakers);
+
+        if AudioNode::channel_count_check(node_options.count) {
+            return Err(Error::NotSupported(Some(String::from(
+                "Channel count not supported",
+            ))));
+        }
+
+        let feedforward = (*options.feedforward).to_vec();
+        let feedback = (*options.feedback).to_vec();
+        let init_options = options.clone().convert();
+        let audio_node_init = AudioNodeInit::IIRFilterNode(init_options);
+        let node_id =
+            AudioNode::generate_audio_node_id(cx, &node_options, audio_node_init, context);
+
+        Ok(reflect_dom_object_with_proto(
+            cx,
+            Box::new(IIRFilterNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                feedforward,
+                feedback,
+            )),
+            window,
+            proto,
+        ))
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-iirfilternode-getfrequencyresponse>

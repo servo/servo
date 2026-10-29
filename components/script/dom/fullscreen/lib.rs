@@ -113,7 +113,9 @@ impl Document {
         // Step 6
         // > If error is false, then consume user activation given pendingDoc’s relevant global object.
         if !error {
-            pending.owner_window().consume_user_activation();
+            pending
+                .owner_window_unrooted(cx.no_gc())
+                .consume_user_activation();
         }
 
         // Step 8.
@@ -318,7 +320,7 @@ impl TaskOnce for ElementPerformFullscreenEnter {
 
         // TODO(#42067): Implement step 11-13
         // The following operations is based on the old version of the specs.
-        element.set_fullscreen_state(true);
+        element.set_fullscreen_state(cx.no_gc(), true);
         document.set_fullscreen_element(Some(&element));
         document.upcast::<EventTarget>().fire_event_with_params(
             cx,
@@ -359,7 +361,7 @@ impl TaskOnce for ElementPerformFullscreenExit {
 
         // TODO(#42067): Implement step 10-15
         // The following operations is based on the old version of the specs.
-        element.set_fullscreen_state(false);
+        element.set_fullscreen_state(cx.no_gc(), false);
         document.set_fullscreen_element(None);
         document.upcast::<EventTarget>().fire_event_with_params(
             cx,

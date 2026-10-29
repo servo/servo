@@ -1,0 +1,71 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Document-Isolation-Policy: back/forward cache with child frames</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/helper.sub.js"></script>
+<script>
+"use strict";
+
+const dip = "&pipe=header(Document-Isolation-Policy,isolate-and-require-corp)";
+
+// Opens a document with policy in a new top-level traversable, gives it a child frame on frameOrigin with
+// framePolicy, navigates it cross-site, and goes back. Both documents have to come back from the back/forward
+// cache, as cross-origin isolated as they were.
+function runFrameTest({ policy, frameOrigin, framePolicy }, description) {
+  promise_test(async t => {
+    const pageA = new RemoteContext(token());
+    const pageB = new RemoteContext(token());
+    const urlA = originSameOrigin + executorPath + pageA.context_id + policy;
+    const urlB = originCrossSite + executorPath + pageB.context_id;
+    const frameURL = frameOrigin + "/html/document-isolation-policy/resources/back-forward-cache-frame.html" + framePolicy.replace("&", "?");
+    window.open(urlA, "_blank", "noopener");
+    await pageA.execute_script(waitForPageShow);
+    await pageA.execute_script(async url => {
+      const frame = document.createElement("iframe");
+      const loaded = new Promise(resolve => addEventListener("message", function listener(event) {
+        if (event.data !== "loaded")
+          return;
+        removeEventListener("message", listener);
+        resolve();
+      }));
+      frame.src = url;
+      document.body.append(frame);
+      await loaded;
+      window.askFrame = () => new Promise(resolve => {
+        addEventListener("message", function listener(event) {
+          if (event.data === "loaded")
+            return;
+          removeEventListener("message", listener);
+          resolve(JSON.stringify(event.data));
+        });
+        frame.contentWindow.postMessage("ping", "*");
+      });
+    }, [frameURL]);
+    const before = JSON.parse(await pageA.execute_script(() => askFrame()));
+    assert_array_equals(before.pageshows, [false], "child frame's pageshow events before navigating");
+    const crossOriginIsolated = await pageA.execute_script(() => self.crossOriginIsolated);
+    assert_equals(crossOriginIsolated, policy !== "", "crossOriginIsolated before navigating");
+
+    await navigateAndThenBack(pageA, pageB, urlB);
+    await assert_bfcached(pageA);
+    assert_equals(await pageA.execute_script(() => self.crossOriginIsolated), crossOriginIsolated, "crossOriginIsolated after going back");
+    const after = JSON.parse(await pageA.execute_script(() => askFrame()));
+    assert_equals(after.id, before.id, "child frame's document after going back");
+    assert_array_equals(after.pageshows, [false, true], "child frame's pageshow events after going back");
+    assert_equals(after.crossOriginIsolated, before.crossOriginIsolated, "child frame's crossOriginIsolated after going back");
+  }, description);
+}
+
+runFrameTest({ policy: "", frameOrigin: originSameOrigin, framePolicy: dip },
+  "A document without a policy and a same-origin child frame with one are restored after a cross-site navigation");
+runFrameTest({ policy: dip, frameOrigin: originSameOrigin, framePolicy: "" },
+  "A document with a policy and a same-origin child frame without one are restored after a cross-site navigation");
+runFrameTest({ policy: "", frameOrigin: originCrossSite, framePolicy: dip },
+  "A document without a policy and a cross-site child frame with one are restored after a cross-site navigation");
+runFrameTest({ policy: dip, frameOrigin: originCrossSite, framePolicy: "" },
+  "A document with a policy and a cross-site child frame without one are restored after a cross-site navigation");
+</script>

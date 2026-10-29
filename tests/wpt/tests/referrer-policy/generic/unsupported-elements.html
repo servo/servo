@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Referrer policy attribute is ignored on unsupported elements (object, embed, frame)</title>
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2068544">
+  <link rel="help" href="https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-delivery">
+  <!-- Explicit document policy to ensure unambiguous fallback expectation -->
+  <meta name="referrer" content="unsafe-url">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+  <script>
+    const HELPER_URL = "resources/referrer-info.sub.html";
+    function waitForReferrerMessage(t, expectedId) {
+      return new Promise(resolve => {
+        const handler = event => {
+          const url = event.data?.url || "";
+          if (url.includes(expectedId)) {
+            window.removeEventListener("message", handler);
+            resolve(event.data);
+          }
+        };
+        window.addEventListener("message", handler);
+        t.add_cleanup(() => window.removeEventListener("message", handler));
+      });
+    }
+    function testUnsupportedElement(elementName, createElement) {
+      promise_test(async t => {
+        const id = `test-${elementName}`;
+        const messagePromise = waitForReferrerMessage(t, id);
+        const el = createElement(id);
+        t.add_cleanup(() => el.remove());
+        document.body.appendChild(el);
+        const data = await messagePromise;
+        const expected = window.location.href;
+        assert_equals(
+          data.documentReferrer,
+          expected,
+          `<${elementName}> document.referrer should fall back to document policy`
+        );
+        assert_equals(
+          data.referrer,
+          expected,
+          `<${elementName}> HTTP Referer header should fall back to document policy`
+        );
+      }, `Referrerpolicy attribute on <${elementName}> is ignored and falls back to document policy`);
+    }
+    testUnsupportedElement("object", id => {
+      const obj = document.createElement("object");
+      obj.setAttribute("referrerpolicy", "no-referrer");
+      obj.data = `${HELPER_URL}?id=${id}`;
+      return obj;
+    });
+    testUnsupportedElement("embed", id => {
+      const embed = document.createElement("embed");
+      embed.setAttribute("referrerpolicy", "no-referrer");
+      embed.type = "text/html";
+      embed.src = `${HELPER_URL}?id=${id}`;
+      return embed;
+    });
+    // <frame> (hosted inside an inline srcdoc frameset)
+    testUnsupportedElement("frame", id => {
+      const iframe = document.createElement("iframe");
+      const targetUrl = `${HELPER_URL}?id=${id}`;
+      iframe.srcdoc = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <script>
+                        window.addEventListener("message", (e) => {
+                            parent.postMessage(e.data, "*");
+                        });
+                    <\/script>
+                </head>
+                <frameset rows="*">
+                    <frame referrerpolicy="no-referrer" src="${targetUrl}">
+                </frameset>
+                </html>
+            `;
+      return iframe;
+    });
+  </script>
+</body>
+
+</html>

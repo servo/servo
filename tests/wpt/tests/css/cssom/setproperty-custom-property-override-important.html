@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<title>CSSOM: setProperty() without priority overrides an existing important custom property</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-setproperty">
+<link rel="help" href="https://drafts.csswg.org/cssom/#set-a-css-declaration">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style id="sheet">
+#target {}
+</style>
+<div id="target"></div>
+<script>
+test(() => {
+  const style = document.getElementById("target").style;
+  style.setProperty("--x", "1", "important");
+  style.setProperty("--x", "2");
+  assert_equals(style.getPropertyValue("--x"), "2");
+  assert_equals(style.getPropertyPriority("--x"), "");
+  assert_equals(getComputedStyle(document.getElementById("target")).getPropertyValue("--x"), "2");
+  style.removeProperty("--x");
+}, "Inline style: setProperty() without priority overrides an important custom property");
+
+test(() => {
+  const style = document.getElementById("sheet").sheet.cssRules[0].style;
+  style.setProperty("--y", "1", "important");
+  style.setProperty("--y", "2");
+  assert_equals(style.getPropertyValue("--y"), "2");
+  assert_equals(style.getPropertyPriority("--y"), "");
+  style.removeProperty("--y");
+}, "Style rule: setProperty() without priority overrides an important custom property");
+
+test(() => {
+  const style = document.getElementById("target").style;
+  style.cssText = "--z: 1 !important";
+  style.setProperty("--z", "2");
+  assert_equals(style.getPropertyValue("--z"), "2");
+  assert_equals(style.getPropertyPriority("--z"), "");
+  style.removeProperty("--z");
+}, "setProperty() without priority overrides an important custom property set via cssText");
+
+test(() => {
+  const style = document.getElementById("target").style;
+  style.setProperty("width", "1px", "important");
+  style.setProperty("width", "2px");
+  assert_equals(style.getPropertyValue("width"), "2px");
+  assert_equals(style.getPropertyPriority("width"), "");
+  style.removeProperty("width");
+}, "setProperty() without priority overrides an important standard property");
+
+test(() => {
+  const style = document.getElementById("target").style;
+  style.cssText = "--w: 1 !important; --w: 2";
+  assert_equals(style.getPropertyValue("--w"), "1");
+  assert_equals(style.getPropertyPriority("--w"), "important");
+  style.cssText = "";
+}, "Within one declaration block, a later normal custom property does not override an earlier important one");
+</script>

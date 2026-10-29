@@ -455,6 +455,27 @@ async function waitForRtpAndRtcpStats(pc) {
   }
 }
 
+// Assert that every stats object reference in a getStats() report resolves to
+// a stats object in the same report. From
+// https://w3c.github.io/webrtc-stats/#dfn-stats-object-reference
+//   "All stats object references have type DOMString and member names ending
+//    in Id, or they have type sequence<DOMString> and member names ending in
+//    Ids."
+function assertStatsReferencesResolve(report) {
+  for (const stat of report.values()) {
+    for (const [key, value] of Object.entries(stat)) {
+      if (key.endsWith('Ids')) {
+        for (const id of value) {
+          assert_true(report.has(id),
+                      `${stat.type}.${key} entry ${id} can be resolved`);
+        }
+      } else if (key.endsWith('Id')) {
+        assert_true(report.has(value), `${stat.type}.${key} can be resolved`);
+      }
+    }
+  }
+}
+
 // Wait for a single message event and return
 // a promise that resolve when the event fires
 function awaitMessage(channel) {

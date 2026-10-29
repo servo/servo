@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>Chrome issue 575201060</title>
+<link rel="help" href="https://crbug.com/575201060">
+<div id="target"></div>
+<script>
+  const worker = new Worker('chrome-575201060.js');
+  worker.onmessage = e => {
+    target.style.listStyleType = 'disc';
+    worker.terminate();
+    document.documentElement.className = '';
+  };
+</script>

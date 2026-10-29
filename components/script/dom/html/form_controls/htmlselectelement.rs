@@ -45,17 +45,17 @@ use crate::dom::event::{EventBubbles, EventCancelable, EventComposed};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlcollection::{CollectionFilter, CollectionSource, HTMLCollection};
 use crate::dom::html::htmlelement::HTMLElement;
-use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{FormControl, FormDatum, FormDatumValue, HTMLFormElement};
 use crate::dom::html::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::html::htmloptionelement::HTMLOptionElement;
+use crate::dom::html::htmlhrelement::HTMLHRElement;
 use crate::dom::html::htmloptionscollection::HTMLOptionsCollection;
-use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeTraits,  UnbindContext};
+use crate::dom::node::{ChildrenMutation, Node, NodeTraits,  UnbindContext};
 use crate::dom::nodelist::NodeList;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::shadowroot::ua_shadowroot::{CreateUAShadowRootForSelf, UAShadowRoot};
 use crate::dom::text::Text;
-use crate::dom::types::FocusEvent;
+use crate::dom::types::{FocusEvent, HTMLDataListElement};
 use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::node::virtualmethods::VirtualMethods;
@@ -87,25 +87,18 @@ const CHEVRON_CONTAINER_STYLE: &str = "
 #[derive(JSTraceable, MallocSizeOf)]
 struct OptionsFilter;
 impl CollectionFilter for OptionsFilter {
-    fn filter<'a>(&self, elem: &'a Element, root: &'a Node) -> bool {
-        if !elem.is::<HTMLOptionElement>() {
+    fn filter<'a>(&self, element: &'a Element, root: &'a Node) -> bool {
+        let Some(option) = element.downcast::<HTMLOptionElement>() else {
             return false;
-        }
-
-        let node = elem.upcast::<Node>();
-        if root.is_parent_of(node) {
-            return true;
-        }
-
-        match node.GetParentNode() {
-            Some(optgroup) => optgroup.is::<HTMLOptGroupElement>() && root.is_parent_of(&optgroup),
-            None => false,
-        }
+        };
+        let Some(select) = option.cached_nearest_ancestor_select() else {
+            return false;
+        };
+        root == select.upcast()
     }
 }
 
-/// Provides selected options directly via [`HTMLSelectElement::list_of_options`],
-/// avoiding a full subtree traversal.
+/// Provides selected options directly via [`HTMLSelectElement::list_of_options`].
 #[derive(JSTraceable, MallocSizeOf)]
 struct SelectedOptionsSource;
 
@@ -240,31 +233,61 @@ impl HTMLSelectElement {
         &self,
         no_gc: &'b NoGC,
     ) -> impl Iterator<Item = UnrootedDom<'b, HTMLOptionElement>> + use<'b> {
-        self.upcast::<Node>()
-            .children_unrooted(no_gc)
-            .flat_map(|node| {
-                if node.is::<HTMLOptionElement>() {
-                    let node = UnrootedDom::downcast::<HTMLOptionElement>(node).unwrap();
-                    Choice3::First(iter::once(node))
-                } else if node.is::<HTMLOptGroupElement>() {
-                    Choice3::Second(
-                        node.children_unrooted(no_gc)
-                            .filter_map(UnrootedDom::downcast),
-                    )
+        let self_node = self.upcast::<Node>();
+
+        // Step 1. Let options be « ».
+        let mut iterator = self_node.traverse_preorder_unrooted(no_gc, ShadowIncluding::No);
+
+        // Step 2. Let node be the first child of select in tree order.
+        iterator.next();
+
+        // Step 3. While node is not null:
+        iter::from_fn(move || {
+            loop {
+                let node = iterator.peek()?.clone();
+
+                // Step 3.2. If any of the following conditions are true:
+                //   - node is a select element;
+                //   - node is an hr element;
+                //   - node is an option element;
+                //   - node is a datalist element;
+                //   - node is an optgroup element and node has an ancestor optgroup in between itself
+                //     and select,
+                // then set node to the next descendant of select in tree order, excluding node's
+                // descendants, if any such node exists; otherwise null.
+                if skip_descendants_for_list_of_options(no_gc, &node) {
+                    iterator.next_skipping_children();
                 } else {
-                    Choice3::Third(iter::empty())
+                    // Step 3.3. Otherwise, set node to the next descendant of select in tree order, if any
+                    // such node exists; otherwise null.
+                    iterator.next();
                 }
-            })
+
+                // Step 3.1. If node is an option element, then append node to options.
+                if let Some(option) = UnrootedDom::downcast::<HTMLOptionElement>(node) {
+                    return Some(option);
+                }
+            }
+        })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#placeholder-label-option>
+    /// > If a select element has a required attribute specified, and has a display size of 1; and
+    /// > if the value of the first option element in the select element's list of options (if any) is
+    /// > the empty string, and that option element does not have an ancestor optgroup in between
+    /// > itself and the select element, then that option is the select element's placeholder label
+    /// > option.
+    /// >
+    /// > If a select element has a required attribute specified, does not have a multiple attribute
+    /// > specified, and has a display size of 1, then the select element must have a placeholder label
+    /// > option.
     fn get_placeholder_label_option(&self, no_gc: &NoGC) -> Option<DomRoot<HTMLOptionElement>> {
         if self.Required() && !self.Multiple() && self.display_size() == 1 {
             self.list_of_options(no_gc)
                 .next()
                 .filter(|node| {
-                    let parent = node.upcast::<Node>().GetParentNode();
-                    node.Value().is_empty() && parent.as_deref() == Some(self.upcast())
+                    node.Value().is_empty() &&
+                        !has_ancestor_optgroup_between_self_and_select(no_gc, node.upcast())
                 })
                 .map(|node| node.as_rooted())
         } else {
@@ -278,36 +301,59 @@ impl HTMLSelectElement {
             opt.set_selectedness(no_gc, opt.DefaultSelected());
             opt.set_dirtiness(false);
         }
-        self.ask_for_reset(no_gc);
+        self.selectedness_setting_algorithm(no_gc);
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#ask-for-a-reset>
-    pub(crate) fn ask_for_reset(&self, no_gc: &NoGC) {
+    /// <https://html.spec.whatwg.org/multipage/#selectedness-setting-algorithm>
+    pub(crate) fn selectedness_setting_algorithm(&self, no_gc: &NoGC) -> bool {
+        // Step 1. If select has the multiple attribute, then return false.
         if self.Multiple() {
-            return;
+            return false;
         }
 
+        // Step 2. Let hasChanged be false.
+        let mut has_changed = false;
+        // Step 3. Let firstEnabledOption be null.
         let mut first_enabled: Option<DomRoot<HTMLOptionElement>> = None;
+        // Step 4. Let lastSelectedOption be null.
         let mut last_selected: Option<DomRoot<HTMLOptionElement>> = None;
 
-        for opt in self.list_of_options(no_gc) {
-            if opt.Selected() {
-                opt.set_selectedness(no_gc, false);
-                last_selected = Some(DomRoot::from_ref(&opt));
+        // Step 5. For each option of select's list of options:
+        for option in self.list_of_options(no_gc) {
+            // Step 5.1. If option's selectedness is true:
+            if option.Selected() {
+                // Step 5.1.1. If lastSelectedOption is not null:
+                if let Some(last_selected) = &last_selected {
+                    // Step 5.1.1.1. Set lastSelectedOption's selectedness to false.
+                    last_selected.set_selectedness(no_gc, false);
+                    // Step 5.1.1.2. Set hasChanged to true.
+                    has_changed = true;
+                }
+                // Step 5.1.2. Set lastSelectedOption to option.
+                last_selected = Some(option.as_rooted());
             }
-            let element = opt.upcast::<Element>();
+            // Step 5.2 If firstEnabledOption is null and option is not disabled, then set
+            // firstEnabledOption to option.
+            let element = option.upcast::<Element>();
             if first_enabled.is_none() && !element.disabled_state() {
-                first_enabled = Some(DomRoot::from_ref(&opt));
+                first_enabled = Some(option.as_rooted());
             }
         }
 
-        if let Some(last_selected) = last_selected {
-            last_selected.set_selectedness(no_gc, true);
-        } else if self.display_size() == 1 &&
-            let Some(first_enabled) = first_enabled
+        // Step 6. If lastSelectedOption is null, firstEnabledOption is not null, and select's
+        // display size is 1:
+        if last_selected.is_none() &&
+            let Some(first_enabled) = first_enabled &&
+            self.display_size() == 1
         {
+            // Step 6.1. Set firstEnabledOption's selectedness to true.
             first_enabled.set_selectedness(no_gc, true);
+            // Step 6.2 Set hasChanged to true.
+            has_changed = true;
         }
+
+        // Step 7. Return hasChanged.
+        has_changed
     }
 
     pub(crate) fn push_form_data(&self, no_gc: &NoGC, data_set: &mut Vec<FormDatum>) {
@@ -392,7 +438,7 @@ impl HTMLSelectElement {
             .collect()
     }
 
-    pub(crate) fn show_menu(&self, no_gc: &NoGC) {
+    pub(crate) fn show_menu(&self, cx: &mut JSContext) {
         // Collect list of optgroups and options
         let mut index = 0;
         let mut embedder_option_from_option = |option: &HTMLOptionElement| {
@@ -429,7 +475,7 @@ impl HTMLSelectElement {
             .collect();
 
         let selected_options = self
-            .list_of_options(no_gc)
+            .list_of_options(cx.no_gc())
             .enumerate()
             .filter(|(_, option)| option.Selected())
             .map(|(index, _)| index)
@@ -438,6 +484,7 @@ impl HTMLSelectElement {
         self.owner_document()
             .embedder_controls()
             .show_embedder_control(
+                cx,
                 ControlElement::Select(Dom::from_ref(self)),
                 EmbedderControlRequest::SelectElement(SelectElementRequest {
                     options,
@@ -446,11 +493,11 @@ impl HTMLSelectElement {
                 }),
                 None,
             );
-        self.upcast::<Element>().set_open_state(true);
+        self.upcast::<Element>().set_open_state(cx.no_gc(), true);
     }
 
     pub(crate) fn handle_embedder_response(&self, cx: &mut JSContext, selected_values: Vec<usize>) {
-        self.upcast::<Element>().set_open_state(false);
+        self.upcast::<Element>().set_open_state(cx.no_gc(), false);
 
         let selected_values = if self.Multiple() {
             selected_values
@@ -561,6 +608,55 @@ impl HTMLSelectElement {
             .skip(1)
             .filter_map(DomRoot::downcast::<Element>)
             .find(|element| element.local_name() == &local_name!("selectedcontent"))
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#update-a-select's-descendant-selectedcontent-elements>
+    pub(crate) fn update_a_selects_descendant_selectedcontent_elements(&self, cx: &mut JSContext) {
+        // Step 1. If select has the multiple attribute, then return.
+        if self.Multiple() {
+            return;
+        }
+
+        // Step 2. Let descendantSelectedcontents be a list of select's descendants, in tree order,
+        // that are selectedcontent elements whose disabled is false.
+        let descendant_selected_contents = self.get_enabled_selectedcontent();
+
+        // Step 3. For each selectedcontent of descendantSelectedcontents: update a selectedcontent
+        // given select and selectedcontent.
+        //
+        // Note: This is a bit different than the specification, because we do not yet support
+        // `selectedcontent`.
+        if let Some(selected_content) = descendant_selected_contents {
+            self.update_a_selected_content(cx, &selected_content);
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#update-a-selectedcontent>
+    fn update_a_selected_content(&self, cx: &mut JSContext, selected_content: &Element) {
+        // Step 1. If selectedcontent's disabled is true, then return.
+        // TODO: We do not yet calculate the selectedcontent's disabledness and it is
+        // different than the form control disabled state.
+
+        // Step 2. Let option be the first option in select's list of options whose selectedness is
+        // true, if any such option exists; otherwise null.
+        let option = self
+            .list_of_options(cx.no_gc())
+            .find(|option| option.Selected())
+            .map(|option| option.as_rooted());
+
+        match option {
+            None => {
+                // Step 3. If option is null, then clear a selectedcontent given selectedcontent.
+                // This is <https://html.spec.whatwg.org/multipage/#clear-a-selectedcontent>
+                // Step 1. Replace all with null within selectedcontent.
+                Node::replace_all(cx, None, selected_content.upcast());
+            },
+            Some(option) => {
+                // Step 4. Otherwise, clone an option into a selectedcontent given option and
+                // selectedcontent.
+                option.clone_an_option_into_selectedcontent(cx, selected_content);
+            },
+        }
     }
 }
 
@@ -814,19 +910,6 @@ impl VirtualMethods for HTMLSelectElement {
                     .perform_validation_and_update(cx, ValidationFlags::VALUE_MISSING);
             },
             local_name!("disabled") => {
-                let el = self.upcast::<Element>();
-                match mutation {
-                    AttributeMutation::Set(_) => {
-                        el.set_disabled_state(true);
-                        el.set_enabled_state(false);
-                    },
-                    AttributeMutation::Removed => {
-                        el.set_disabled_state(false);
-                        el.set_enabled_state(true);
-                        el.check_ancestors_disabled_state_for_form_control(cx.no_gc());
-                    },
-                }
-
                 self.validity_state(cx)
                     .perform_validation_and_update(cx, ValidationFlags::VALUE_MISSING);
             },
@@ -842,30 +925,9 @@ impl VirtualMethods for HTMLSelectElement {
         }
     }
 
-    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
-        if let Some(s) = self.super_type() {
-            s.bind_to_tree(cx, context);
-        }
-
-        self.upcast::<Element>()
-            .check_ancestors_disabled_state_for_form_control(cx.no_gc());
-    }
-
     fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(cx, context);
-
-        let node = self.upcast::<Node>();
-        let el = self.upcast::<Element>();
-        if node
-            .ancestors()
-            .any(|ancestor| ancestor.is::<HTMLFieldSetElement>())
-        {
-            el.check_ancestors_disabled_state_for_form_control(cx.no_gc());
-        } else {
-            el.check_disabled_attribute();
-        }
-
-        self.owner_document()
+        self.owner_document_unrooted(cx.no_gc())
             .embedder_controls()
             .hide_embedder_control(self.upcast());
     }
@@ -975,37 +1037,47 @@ impl Activatable for HTMLSelectElement {
             return;
         }
 
-        self.show_menu(cx.no_gc());
+        self.show_menu(cx);
     }
 }
 
-enum Choice3<I, J, K> {
-    First(I),
-    Second(J),
-    Third(K),
+/// Implements Step 3.2 of <https://html.spec.whatwg.org/multipage/#concept-select-option-list>.
+fn skip_descendants_for_list_of_options(no_gc: &NoGC, node: &Node) -> bool {
+    // Step 3.2. If any of the following conditions are true:
+    //   - node is a select element;
+    //   - node is an hr element;
+    //   - node is an option element;
+    //   - node is a datalist element;
+    if node.is::<HTMLSelectElement>() ||
+        node.is::<HTMLHRElement>() ||
+        node.is::<HTMLOptionElement>() ||
+        node.is::<HTMLDataListElement>()
+    {
+        return true;
+    }
+
+    //   - node is an optgroup element and node has an ancestor optgroup in between itself
+    //     and select,
+    //
+    // We shouldn't recurse into them because of the check above and `select` here is the
+    // originating select element of this call.
+    if node.is::<HTMLOptGroupElement>() &&
+        has_ancestor_optgroup_between_self_and_select(no_gc, node)
+    {
+        return true;
+    }
+
+    false
 }
 
-impl<I, J, K, T> Iterator for Choice3<I, J, K>
-where
-    I: Iterator<Item = T>,
-    J: Iterator<Item = T>,
-    K: Iterator<Item = T>,
-{
-    type Item = T;
-
-    fn next(&mut self) -> Option<T> {
-        match *self {
-            Choice3::First(ref mut i) => i.next(),
-            Choice3::Second(ref mut j) => j.next(),
-            Choice3::Third(ref mut k) => k.next(),
+fn has_ancestor_optgroup_between_self_and_select(no_gc: &NoGC, node: &Node) -> bool {
+    for ancestor in node.ancestors_unrooted(no_gc) {
+        if ancestor.is::<HTMLSelectElement>() {
+            return false;
+        }
+        if ancestor.is::<HTMLOptGroupElement>() {
+            return true;
         }
     }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        match *self {
-            Choice3::First(ref i) => i.size_hint(),
-            Choice3::Second(ref j) => j.size_hint(),
-            Choice3::Third(ref k) => k.size_hint(),
-        }
-    }
+    false
 }

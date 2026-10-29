@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://github.com/mfreed7/split-tabs">
+<meta name="variant" content="?split-basic">
+<meta name="variant" content="?split-hints">
+<meta name="variant" content="?fallback">
+<meta name="variant" content="?misc">
+<meta name=timeout content=long>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/PrefixedPostMessage.js"></script>
+
+<script>
+// The "split" feature requests that the new window be opened in a split view
+// next to the opener. Whether a split is actually created is up to the user
+// agent, and is not exposed to script. The fallback is a new tab, or a popup if
+// "popup" is also given. The legacy "any other feature means popup" heuristic
+// does not apply when "split" is given.
+//
+// The cases are split into variants to limit the number of windows opened by
+// a single test page.
+
+const barPropURL = 'resources/is-popup-barprop.html';
+
+const target = document.location.search.substring(1);
+
+// features, visible
+// NOTE: visible == !isPopup
+const barPropTests = {
+  'split-basic': [
+    ['split', true],
+    ['split=1', true],
+    ['split=yes', true],
+    ['split=true', true],
+    ['split,width=400,height=400', true],
+    ['split,left=10,top=10', true],
+    ['split,resizable=no', true],
+    ['split,menubar=no,toolbar=no,status=no,scrollbars=no', true],
+    ['popup=0,split', true],
+    ['split,popup=0', true],
+  ],
+  'split-hints': [
+    ['split,splitposition=left', true],
+    ['split,splitposition=right', true],
+    ['split,splitposition=top', true],
+    ['split,splitposition=bottom', true],
+    ['split,splitposition=bogus', true],
+    ['split,splitsize=30', true],
+    ['split,splitsize=0', true],
+    ['split,splitsize=100', true],
+    ['split,splitsize=bogus', true],
+    ['split,splitposition=left,splitsize=30', true],
+  ],
+  'fallback': [
+    // An explicit popup is the fallback, and is what BarProp reflects.
+    ['split,popup', false],
+    ['popup,split', false],
+    ['split,popup=1', false],
+
+    // split=0 does not request a split, so the legacy heuristic applies.
+    ['split=0', false],
+    ['split=no', false],
+    ['split=0,width=400', false],
+
+    // splitposition and splitsize alone do not request a split.
+    ['splitposition=left', false],
+    ['splitsize=30', false],
+  ],
+  'misc': [],
+};
+
+barPropTests[target].forEach(([features, visible]) => {
+  async_test(t => {
+    const prefixedMessage = new PrefixedMessageTest();
+    prefixedMessage.onMessage(t.step_func_done((data, e) => {
+      e.source.close();
+      assert_equals(data.locationbar, visible, 'window.locationbar.visible');
+      assert_equals(data.menubar, visible, 'window.menubar.visible');
+      assert_equals(data.personalbar, visible, 'window.personalbar.visible');
+      assert_equals(data.scrollbars, visible, 'window.scrollbars.visible');
+      assert_equals(data.statusbar, visible, 'window.statusbar.visible');
+      assert_equals(data.toolbar, visible, 'window.toolbar.visible');
+    }));
+    window.open(prefixedMessage.url(barPropURL), '', features);
+  }, `${format_value(features)} should set BarProp visibility to ${visible}`);
+});
+
+if (target === 'misc') {
+  test(t => {
+    const w = window.open('about:blank', '', 'split');
+    t.add_cleanup(() => w.close());
+    assert_not_equals(w, null, 'window.open() should return a WindowProxy');
+    assert_equals(w.opener, window, 'opener should be set');
+  }, '"split" should return a WindowProxy with opener set');
+
+  async_test(t => {
+    const prefixedMessage = new PrefixedMessageTest();
+    prefixedMessage.onMessage(t.step_func_done((data, e) => {
+      assert_equals(e.source, w, 'message source should be the opened window');
+      e.source.close();
+    }));
+    const w = window.open(prefixedMessage.url(barPropURL), '', 'split');
+    assert_not_equals(w, null);
+  }, '"split" window should be able to post messages to its opener');
+
+  test(() => {
+    const w = window.open('about:blank', '', 'split,noopener');
+    assert_equals(w, null);
+  }, '"split,noopener" should return null');
+
+  test(() => {
+    const w = window.open('about:blank', '', 'split,noreferrer');
+    assert_equals(w, null);
+  }, '"split,noreferrer" should return null');
+
+  test(t => {
+    const name = 'split-named-target';
+    const w1 = window.open('about:blank', name, 'split');
+    t.add_cleanup(() => w1.close());
+    const w2 = window.open('about:blank', name, 'split');
+    assert_equals(w2, w1, 'an existing named window should be reused');
+  }, '"split" with an existing target name should reuse that window');
+
+  promise_test(async t => {
+    const w = window.open('about:blank', '', 'split');
+    assert_not_equals(w, null);
+    assert_false(w.closed);
+    w.close();
+    await t.step_wait(() => w.closed, 'window should become closed');
+  }, '"split" window should be closable by its opener');
+}
+</script>

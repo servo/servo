@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8" />
+<meta name="timeout" content="long">
 <link rel="author" href="mailto:masonf@chromium.org">
 <link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
 <script src="/resources/testharness.js"></script>
@@ -70,12 +71,7 @@ function test(invoker) {
       .pointerUp()
       .send();
     assert_equals(interestFired, 1, 'Clicking/tapping the pseudo button should show interest immediately');
-    await new test_driver.Actions()
-      .addPointer("touchPointer", "touch")
-      .pointerMove(0,0,{origin: unrelated})
-      .send();
-    assert_equals(interestFired, 1, 'No extra events');
-    assert_equals(loseInterestFired, 0, 'No "hover" with touch pointers, so we should\'t lose interest yet');
+    assert_equals(loseInterestFired, 0, 'No loseinterest events');
     await new test_driver.Actions()
       .addPointer("touchPointer", "touch")
       .pointerMove(0,0,{origin: unrelated})
@@ -85,6 +81,35 @@ function test(invoker) {
     await waitForRender();
     assert_equals(interestFired, 1, 'No extra events');
     assert_equals(loseInterestFired, 1, 'Tapping outside should lose interest');
+
+    let events = [];
+    const controller = new AbortController();
+    const signal = controller.signal;
+    document.addEventListener('pointerdown', () => events.push('pointerdown'), {signal});
+    document.addEventListener('pointerup', () => events.push('pointerup'), {signal});
+    document.addEventListener('click', () => events.push('click'), {signal});
+    target.addEventListener('interest', () => events.push('interest'), {signal});
+    await new test_driver.Actions()
+      .addPointer("touchPointer", "touch")
+      .pointerMove(buttonlocX, buttonlocY, {sourceName: "touchPointer"})
+      .pointerDown({sourceName: "touchPointer"})
+      .pause(800, "pointer", {sourceName: "touchPointer"})
+      .pointerUp({sourceName: "touchPointer"})
+      .send();
+    controller.abort();
+    await waitForRender();
+    assert_equals(interestFired, 2, 'Long-pressing the pseudo button should show interest immediately');
+    assert_equals(loseInterestFired, 1, 'No extra loseinterest events');
+    assert_array_equals(events, ['pointerdown', 'interest', 'pointerup'], 'Interest should be triggered before pointerup, with no click event');
+    await new test_driver.Actions()
+      .addPointer("touchPointer", "touch")
+      .pointerMove(0,0,{origin: unrelated})
+      .pointerDown()
+      .pointerUp()
+      .send();
+    await waitForRender();
+    assert_equals(interestFired, 2, 'No extra events');
+    assert_equals(loseInterestFired, 2, 'Tapping outside should lose interest');
   },`pseudo element should work for ${invoker.textContent}`);
 }
 

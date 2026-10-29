@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2079035">
+<style>
+body { font: 20px/20px monospace; margin: 0 }
+#mc { column-count: 3; column-fill: auto; height: 100px; width: 150px; column-gap: 0 }
+#j { position: relative }
+#m { position: absolute; top: 0; left: 0; width: 20px; word-spacing: 2px }
+</style>
+<div id=mc><span id=j><div id=m>x<br>x<br>x<br>x<br>x<br>x<br><span id=t>yy yy yy yy yy yy yy yy yy</span></div>aa aa aa aa aa aa aa aa aa aa &#x5d0;&#x5d1; &#x5d0;&#x5d1; &#x5d0;&#x5d1; &#x5d0;&#x5d1;</span></div>
+<script>
+onload = () => {
+  document.documentElement.offsetHeight;
+  mc.style.width = "3000px";
+  document.documentElement.offsetHeight;
+  t.firstChild.data = "zzzz";
+  document.documentElement.offsetHeight;
+  m.style.width = "60px";
+  document.documentElement.offsetHeight;
+};
+</script>

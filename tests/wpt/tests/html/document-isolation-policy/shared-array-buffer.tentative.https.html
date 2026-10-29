@@ -1,0 +1,69 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Document-Isolation-Policy: posting a SharedArrayBuffer to a same-origin frame</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="./resources/common.js"></script>
+<body>
+<script>
+"use strict";
+
+// Opens a popup with isolate-and-require-corp, appends a same-origin frame with framePolicy to it, and
+// posts a new SharedArrayBuffer from the popup to the frame. Returns what the frame received.
+async function postSharedArrayBufferToFrame(t, framePolicy) {
+  const popupUUID = token();
+  const popup = window.open(executorURL(dip_require_corp, popupUUID));
+  t.add_cleanup(() => popup.close());
+  const frameUUID = token();
+  await runInContext(popupUUID, `
+    ${appendFrameScript(executorURL(framePolicy, frameUUID))}
+    window.child = child;
+    return "loaded";
+  `);
+  await runInContext(frameUUID, `
+    window.received = new Promise(resolve => {
+      onmessage = event => {
+        window.sab = event.data;
+        resolve(Object.prototype.toString.call(event.data));
+      };
+      onmessageerror = () => resolve("messageerror");
+    });
+    return "ready";
+  `);
+  assert_equals(await runInContext(popupUUID, `
+    window.sab = new SharedArrayBuffer(8);
+    child.contentWindow.postMessage(sab, "*");
+    return "posted";
+  `), "posted", "creating and posting a SharedArrayBuffer in the popup");
+  return { popupUUID, frameUUID, received: await runInContext(frameUUID, "return received;") };
+}
+
+[
+  { policy: dip_require_corp, label: "isolate-and-require-corp" },
+  { policy: dip_credentialless, label: "isolate-and-credentialless" },
+].forEach(({ policy, label }) => {
+  promise_test(async t => {
+    const { popupUUID, frameUUID, received } = await postSharedArrayBufferToFrame(t, policy);
+    assert_equals(received, "[object SharedArrayBuffer]", "message event data");
+    await runInContext(popupUUID, `
+      new Int32Array(sab)[0] = 1;
+      return "written";
+    `);
+    assert_equals(await runInContext(frameUUID, `
+      const view = new Int32Array(sab);
+      view[1] = 2;
+      return view[0];
+    `), 1, "the frame sees what the popup wrote");
+    assert_equals(await runInContext(popupUUID, "return new Int32Array(sab)[1];"), 2, "the popup sees what the frame wrote");
+  }, `A SharedArrayBuffer posted by a popup with isolate-and-require-corp to its same-origin frame with ${label} arrives and shares memory with it`);
+});
+
+promise_test(async t => {
+  const { received } = await postSharedArrayBufferToFrame(t, "");
+  assert_equals(received, "messageerror");
+}, "A SharedArrayBuffer posted by a popup with isolate-and-require-corp to its same-origin frame without a policy fires messageerror at the frame");
+</script>

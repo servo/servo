@@ -401,76 +401,38 @@ impl From<ElementTypeIdWrapper> for LayoutElementType {
     #[inline(always)]
     fn from(element_type: ElementTypeIdWrapper) -> LayoutElementType {
         match element_type.0 {
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement) => {
-                LayoutElementType::HTMLBodyElement
+            ElementTypeId::HTMLElement(id) => match id {
+                HTMLElementTypeId::HTMLBRElement => Self::HTMLBRElement,
+                HTMLElementTypeId::HTMLBodyElement => Self::HTMLBodyElement,
+                HTMLElementTypeId::HTMLButtonElement => Self::HTMLButtonElement,
+                HTMLElementTypeId::HTMLCanvasElement => Self::HTMLCanvasElement,
+                HTMLElementTypeId::HTMLHtmlElement => Self::HTMLHtmlElement,
+                HTMLElementTypeId::HTMLIFrameElement => Self::HTMLIFrameElement,
+                HTMLElementTypeId::HTMLImageElement => Self::HTMLImageElement,
+                HTMLElementTypeId::HTMLInputElement => Self::HTMLInputElement,
+                HTMLElementTypeId::HTMLMediaElement(_) => Self::HTMLMediaElement,
+                HTMLElementTypeId::HTMLMeterElement => Self::HTMLMeterElement,
+                HTMLElementTypeId::HTMLObjectElement => Self::HTMLObjectElement,
+                HTMLElementTypeId::HTMLOptGroupElement => Self::HTMLOptGroupElement,
+                HTMLElementTypeId::HTMLOptionElement => Self::HTMLOptionElement,
+                HTMLElementTypeId::HTMLParagraphElement => Self::HTMLParagraphElement,
+                HTMLElementTypeId::HTMLPreElement => Self::HTMLPreElement,
+                HTMLElementTypeId::HTMLProgressElement => Self::HTMLProgressElement,
+                HTMLElementTypeId::HTMLSelectElement => Self::HTMLSelectElement,
+                HTMLElementTypeId::HTMLTableCellElement => Self::HTMLTableCellElement,
+                HTMLElementTypeId::HTMLTableColElement => Self::HTMLTableColElement,
+                HTMLElementTypeId::HTMLTableElement => Self::HTMLTableElement,
+                HTMLElementTypeId::HTMLTableRowElement => Self::HTMLTableRowElement,
+                HTMLElementTypeId::HTMLTableSectionElement => Self::HTMLTableSectionElement,
+                HTMLElementTypeId::HTMLTextAreaElement => Self::HTMLTextAreaElement,
+                _ => Self::Element,
             },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement) => {
-                LayoutElementType::HTMLButtonElement
+            ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(id)) => match id {
+                SVGGraphicsElementTypeId::SVGImageElement => Self::SVGImageElement,
+                SVGGraphicsElementTypeId::SVGSVGElement => Self::SVGSVGElement,
+                _ => Self::Element,
             },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBRElement) => {
-                LayoutElementType::HTMLBRElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLCanvasElement) => {
-                LayoutElementType::HTMLCanvasElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHtmlElement) => {
-                LayoutElementType::HTMLHtmlElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement) => {
-                LayoutElementType::HTMLIFrameElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLImageElement) => {
-                LayoutElementType::HTMLImageElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMediaElement(_)) => {
-                LayoutElementType::HTMLMediaElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement) => {
-                LayoutElementType::HTMLInputElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptGroupElement) => {
-                LayoutElementType::HTMLOptGroupElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptionElement) => {
-                LayoutElementType::HTMLOptionElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement) => {
-                LayoutElementType::HTMLObjectElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLParagraphElement) => {
-                LayoutElementType::HTMLParagraphElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLPreElement) => {
-                LayoutElementType::HTMLPreElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement) => {
-                LayoutElementType::HTMLSelectElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableCellElement) => {
-                LayoutElementType::HTMLTableCellElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableColElement) => {
-                LayoutElementType::HTMLTableColElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableElement) => {
-                LayoutElementType::HTMLTableElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableRowElement) => {
-                LayoutElementType::HTMLTableRowElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableSectionElement) => {
-                LayoutElementType::HTMLTableSectionElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement) => {
-                LayoutElementType::HTMLTextAreaElement
-            },
-            ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
-                SVGGraphicsElementTypeId::SVGImageElement,
-            )) => LayoutElementType::SVGImageElement,
-            ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
-                SVGGraphicsElementTypeId::SVGSVGElement,
-            )) => LayoutElementType::SVGSVGElement,
-            _ => LayoutElementType::Element,
+            _ => Self::Element,
         }
     }
 }

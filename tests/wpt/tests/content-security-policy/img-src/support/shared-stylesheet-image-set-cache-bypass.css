@@ -1,0 +1,6 @@
+.bypass-image {
+  background-image: image-set(url('/images/green-100x100.png') 1x);
+  background-repeat: no-repeat;
+  width: 100px;
+  height: 100px;
+}

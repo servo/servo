@@ -1,0 +1,115 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>External scripts from *HTMLUnsafe({ runScripts: true }) execute as async</title>
+<link rel="help" href="https://html.spec.whatwg.org/#html-parsing-methods" />
+<link rel="help" href="https://html.spec.whatwg.org/#prepare-the-script-element" />
+<link rel="help" href="https://html.spec.whatwg.org/#scriptTag" />
+<link rel="help" href="https://github.com/whatwg/html/issues/13079" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  let counter = 0;
+  function setupEvents(t) {
+    const id = ++counter;
+    window.current_test_id = id;
+    window.events = [];
+    const slowRan = new Promise((resolve) => { window.on_slow = resolve; });
+    const fastRan = new Promise((resolve) => { window.resolve_fast = resolve; });
+    t.add_cleanup(() => {
+      if (window.current_test_id === id) {
+        delete window.current_test_id;
+      }
+      delete window.on_slow;
+      delete window.resolve_fast;
+    });
+    const markup =
+      `<script src="resources/slow.js?pipe=trickle(d0.3)&id=${id}"><` + "/script>" +
+      `<script src="data:text/javascript,if (window.current_test_id === ${id}) { window.events.push('fast'); window.resolve_fast(); }"><` + "/script>" +
+      `<script>if (window.current_test_id === ${id}) window.events.push('inline');<` + "/script>";
+    return { markup, slowRan, fastRan };
+  }
+
+  function invokeMethod(container, method, html, options) {
+    switch (method) {
+      case "setHTMLUnsafe":
+      case "appendHTMLUnsafe":
+      case "prependHTMLUnsafe":
+        container[method](html, options);
+        break;
+      case "beforeHTMLUnsafe":
+      case "afterHTMLUnsafe":
+      case "replaceWithHTMLUnsafe": {
+        const child = document.createElement("span");
+        container.replaceChildren(child);
+        child[method](html, options);
+        break;
+      }
+    }
+  }
+
+  const unsafeMethods = [
+    "setHTMLUnsafe",
+    "appendHTMLUnsafe",
+    "prependHTMLUnsafe",
+    "beforeHTMLUnsafe",
+    "afterHTMLUnsafe",
+    "replaceWithHTMLUnsafe",
+  ];
+
+  for (const method of unsafeMethods) {
+    promise_test(async (t) => {
+      const { markup, slowRan, fastRan } = setupEvents(t);
+      const container = document.createElement("div");
+      document.body.append(container);
+      t.add_cleanup(() => container.remove());
+
+      invokeMethod(container, method, markup, { runScripts: true });
+      for (const script of container.querySelectorAll("script")) {
+        assert_true(script.async, "script.async is true");
+      }
+      assert_array_equals(window.events, ["inline"], "inline script runs synchronously");
+      await Promise.all([slowRan, fastRan]);
+      assert_array_equals(window.events, ["inline", "fast", "slow"],
+                          "external scripts without async execute as async");
+    }, `${method} with { runScripts: true } on connected element: external scripts execute as async`);
+
+    promise_test(async (t) => {
+      const { markup, slowRan, fastRan } = setupEvents(t);
+      const container = document.createElement("div");
+
+      invokeMethod(container, method, markup, { runScripts: true });
+      assert_array_equals(window.events, [], "scripts do not run while disconnected");
+      for (const script of container.querySelectorAll("script")) {
+        assert_true(script.async, "script.async is true before insertion");
+      }
+
+      document.body.append(container);
+      t.add_cleanup(() => container.remove());
+      assert_array_equals(window.events, ["inline"], "inline script runs synchronously when connected");
+      await Promise.all([slowRan, fastRan]);
+      assert_array_equals(window.events, ["inline", "fast", "slow"],
+                          "external scripts without async execute as async");
+    }, `${method} with { runScripts: true } on disconnected element: external scripts have async=true and execute as async once connected`);
+  }
+
+  for (const method of ["setHTMLUnsafe", "appendHTMLUnsafe", "prependHTMLUnsafe"]) {
+    promise_test(async (t) => {
+      const { markup, slowRan, fastRan } = setupEvents(t);
+      const host = document.createElement("div");
+      const shadow = host.attachShadow({ mode: "open" });
+      document.body.append(host);
+      t.add_cleanup(() => host.remove());
+
+      invokeMethod(shadow, method, markup, { runScripts: true });
+      for (const script of shadow.querySelectorAll("script")) {
+        assert_true(script.async, "script.async is true");
+      }
+      assert_array_equals(window.events, ["inline"], "inline script runs synchronously");
+      await Promise.all([slowRan, fastRan]);
+      assert_array_equals(window.events, ["inline", "fast", "slow"],
+                          "external scripts without async execute as async");
+    }, `ShadowRoot.${method} with { runScripts: true }: external scripts execute as async`);
+  }
+</script>
+</body>

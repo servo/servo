@@ -14,7 +14,9 @@ use crate::dom::bindings::codegen::UnionTypes::{TrustedHTMLOrString, TrustedScri
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::element::Element;
 use crate::dom::element::attributes::storage::AttrRef;
-use crate::dom::element::storage::{AttrName, AttributesBorrow, ContentAttributeData};
+use crate::dom::element::storage::{
+    AttrName, AttrValueRef, AttributesBorrow, ContentAttributeData,
+};
 use crate::dom::node::NodeTraits;
 
 static EMPTY_CONTENTATTRIBUTE_DATA: LazyLock<ContentAttributeData> =
@@ -28,16 +30,19 @@ pub(crate) struct AttrStrRefInner<'a> {
     position: usize,
 }
 
-/// A reference to an attribute value as `&str`. Keeps the borrow alive.
-// We need to support `get_attribute_string_ref().unwrap_or_default()` and return an empty `&str` for this.
-// To support this, we always return `Some(AttrStrRef(Some(AttrStrRefInner)))` if we find an attribute and `None` otherwise.
-// We only create a `AttrStrRef(None)` with the default constructor. For `as_attr_ref`, we can then return a special empty `ContentAttribute`
-// packages in a `AttrRef`.
+/// A reference to an attribute string value as that keeps the element's attributes
+/// borrowed while it is still alive. To convert this value to a `&str` use
+/// `value().as_ref()`.
+///
+/// This contains an `Option` in able to support the `Default` attribute, which allows
+/// treating a missing attribute as an empty string. This is kind of value is *only*
+/// created by `Default`, never returned from the attribute getter.
 #[derive(Default)]
 pub(crate) struct AttrStrRef<'a>(Option<AttrStrRefInner<'a>>);
 
 impl<'a> AttrStrRef<'a> {
-    /// Create a new [`AttrStrRef`] from localname. Returns None if the attribute was not found.
+    /// Create a new [`AttrStrRef`] for the attribute named by `local_name`. Returns None
+    /// if the attribute was not found.
     pub(in crate::dom::element) fn maybe_new(
         attrs: AttributesBorrow<'a>,
         namespace: &Namespace,
@@ -61,6 +66,11 @@ impl<'a> AttrStrRef<'a> {
         } else {
             AttrRef::Raw(&EMPTY_CONTENTATTRIBUTE_DATA)
         }
+    }
+
+    /// Return the [`AttrValueRef`] that underlies this [`AttrStrRef`].
+    pub(crate) fn value(&self) -> AttrValueRef<'_> {
+        self.as_attr_ref().value()
     }
 
     pub(crate) fn is_empty(&self) -> bool {

@@ -81,12 +81,24 @@ impl<'a> ConstraintSpace<'a> {
     }
 }
 
+#[inline]
+fn stretch_size(size: Option<Au>, pbm_sum: Au) -> Option<Au> {
+    size.map(|size| Au(0).max(size - pbm_sum))
+}
+
 /// A variant of [`ContainingBlock`] that allows an indefinite inline size.
 /// Useful for code that is shared for both layout (where we know the inline size
 /// of the containing block) and intrinsic sizing (where we don't know it).
 pub(crate) struct IndefiniteContainingBlock<'a> {
     pub size: LogicalVec2<Option<Au>>,
     pub style: &'a ComputedValues,
+}
+
+impl IndefiniteContainingBlock<'_> {
+    #[inline]
+    fn block_stretch_size(&self, block_pbm_sum: Au) -> Option<Au> {
+        stretch_size(self.size.block, block_pbm_sum)
+    }
 }
 
 impl<'a> From<&ConstraintSpace<'a>> for IndefiniteContainingBlock<'a> {
@@ -131,6 +143,18 @@ pub(crate) struct ContainingBlockSize {
 pub(crate) struct ContainingBlock<'a> {
     size: ContainingBlockSize,
     style: &'a ComputedValues,
+}
+
+impl ContainingBlock<'_> {
+    #[inline]
+    fn inline_stretch_size(&self, inline_pbm_sum: Au) -> Option<Au> {
+        stretch_size(Some(self.size.inline), inline_pbm_sum)
+    }
+
+    #[inline]
+    fn block_stretch_size(&self, block_pbm_sum: Au) -> Option<Au> {
+        stretch_size(self.size.block.to_definite(), block_pbm_sum)
+    }
 }
 
 struct DefiniteContainingBlock<'a> {

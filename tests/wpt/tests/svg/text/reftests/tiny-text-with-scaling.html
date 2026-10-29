@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+
+<title>Tiny font-size in SVG, hugely scaled</title>
+
+<!-- check that the text does not collapse to size 0, and fail to render -->
+<link rel="mismatch" href="about:blank">
+
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2082794">
+
+<svg width="400" height="200" viewBox="0 0 0.004 0.002">
+  <style>
+    text {
+      font-family: sans-serif;
+    }
+  </style>
+  <text x="0.002" y="0.001" text-anchor="middle" font-size="0.00025">Hello World</text>
+</svg>

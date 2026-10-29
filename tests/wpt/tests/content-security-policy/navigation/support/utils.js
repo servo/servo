@@ -37,3 +37,20 @@ function encodeURIWithApostrophes(uriWithApostrophes) {
   // https://developer.mozilla.org/en-US/docs/Glossary/Percent-encoding
   return encodedURI.replaceAll("'","%27");
 }
+
+function openWindowAssignJavascriptUrlEvaluatedToIframeStringAndCheckViolatedDirective(
+  windowOpenArguments, reportValue) {
+  const win = window.open(windowOpenArguments.url, windowOpenArguments.target,
+    windowOpenArguments.windowFeatures);
+
+  win.addEventListener("load", () => {
+    // <frame-wth-csp.sub.html> has no CSP if no "?csp=..." argument is passed.
+    win.location.href =
+      "javascript:'<iframe src=support/frame-with-csp.sub.html></iframe>'";
+
+    const checkReportScript = document.createElement("script");
+    checkReportScript.src = encodeURIWithApostrophes(
+      "../support/checkReport.sub.js?reportField=violated-directive&reportValue=" + reportValue);
+    document.body.appendChild(checkReportScript);
+  });
+}

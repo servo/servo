@@ -9,14 +9,17 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::audio_node::{AudioNodeInit, AudioNodeMessage};
+use servo_media::audio::graph::NodeId;
 use servo_media::audio::media_element_source_node::MediaElementSourceNodeMessage;
 
 use crate::dom::audio::audiocontext::AudioContext;
 use crate::dom::audio::audionode::AudioNode;
+use crate::dom::audio::baseaudiocontext::BaseAudioContext;
+use crate::dom::audionode::UnwrappedAudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::MediaElementAudioSourceNodeBinding::{
     MediaElementAudioSourceNodeMethods, MediaElementAudioSourceOptions,
 };
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::html::htmlmediaelement::HTMLMediaElement;
 use crate::dom::window::Window;
@@ -28,57 +31,16 @@ pub(crate) struct MediaElementAudioSourceNode {
 }
 
 impl MediaElementAudioSourceNode {
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_inherited(
-        cx: &mut JSContext,
-        context: &AudioContext,
+        node_id: Option<NodeId>,
+        context: &BaseAudioContext,
+        node_options: UnwrappedAudioNodeOptions,
         media_element: &HTMLMediaElement,
-    ) -> Fallible<MediaElementAudioSourceNode> {
-        let node = AudioNode::new_inherited(
-            cx,
-            AudioNodeInit::MediaElementSourceNode,
-            &context.base(),
-            Default::default(),
-            0,
-            1,
-        )?;
-        let (sender, receiver) = mpsc::channel();
-        node.message(AudioNodeMessage::MediaElementSourceNode(
-            MediaElementSourceNodeMessage::GetAudioRenderer(sender),
-        ));
-        let audio_renderer = receiver.recv();
-        media_element.set_audio_renderer(cx, audio_renderer.ok());
-        let media_element = Dom::from_ref(media_element);
-        Ok(MediaElementAudioSourceNode {
-            node,
-            media_element,
-        })
-    }
-
-    pub(crate) fn new(
-        cx: &mut JSContext,
-        window: &Window,
-        context: &AudioContext,
-        media_element: &HTMLMediaElement,
-    ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
-        Self::new_with_proto(cx, window, None, context, media_element)
-    }
-
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    fn new_with_proto(
-        cx: &mut JSContext,
-        window: &Window,
-        proto: Option<HandleObject>,
-        context: &AudioContext,
-        media_element: &HTMLMediaElement,
-    ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
-        let node = MediaElementAudioSourceNode::new_inherited(cx, context, media_element)?;
-        Ok(reflect_dom_object_with_proto(
-            cx,
-            Box::new(node),
-            window,
-            proto,
-        ))
+    ) -> Self {
+        MediaElementAudioSourceNode {
+            node: AudioNode::new_inherited(node_id, context, node_options, 0, 1),
+            media_element: Dom::from_ref(media_element),
+        }
     }
 }
 
@@ -91,13 +53,40 @@ impl MediaElementAudioSourceNodeMethods<crate::DomTypeHolder> for MediaElementAu
         context: &AudioContext,
         options: &MediaElementAudioSourceOptions,
     ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
-        MediaElementAudioSourceNode::new_with_proto(
+        let node_options: UnwrappedAudioNodeOptions = Default::default();
+        if AudioNode::channel_count_check(node_options.count) {
+            return Err(Error::NotSupported(Some(String::from(
+                "Channel count not supported",
+            ))));
+        }
+        let context = context.base();
+        let node_id = AudioNode::generate_audio_node_id(
             cx,
+            &node_options,
+            AudioNodeInit::MediaElementSourceNode,
+            &context,
+        );
+
+        let node = reflect_dom_object_with_proto(
+            cx,
+            Box::new(MediaElementAudioSourceNode::new_inherited(
+                node_id,
+                &context,
+                node_options,
+                &options.mediaElement,
+            )),
             window,
             proto,
-            context,
-            &options.mediaElement,
-        )
+        );
+        let (sender, receiver) = mpsc::channel();
+        node.node.message(AudioNodeMessage::MediaElementSourceNode(
+            MediaElementSourceNodeMessage::GetAudioRenderer(sender),
+        ));
+        let audio_renderer = receiver.recv();
+        node.media_element
+            .set_audio_renderer(cx, audio_renderer.ok());
+
+        Ok(node)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-mediaelementaudiosourcenode-mediaelement>

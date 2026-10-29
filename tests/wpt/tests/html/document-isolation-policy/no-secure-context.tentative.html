@@ -9,4 +9,9 @@ promise_test(async t => {
   const response = await fetch(get_host_info().HTTPS_REMOTE_ORIGIN+"/html/document-isolation-policy/resources/nothing-no-corp.js", {mode: "no-cors"});
   assert_equals(response.type, "opaque");
 }, "DIP requires a secure context");
+
+test(() => {
+  assert_false(crossOriginIsolated, "crossOriginIsolated");
+  assert_equals(typeof SharedArrayBuffer, "undefined", "SharedArrayBuffer");
+}, "A document with DIP that is not a secure context is not cross-origin isolated and does not expose SharedArrayBuffer");
 </script>

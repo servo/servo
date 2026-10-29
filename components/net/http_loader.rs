@@ -86,6 +86,9 @@ use crate::decoder::Decoder;
 use crate::devtools::{
     prepare_devtools_request, send_request_to_devtools, send_response_values_to_devtools,
 };
+use crate::devtools::{
+    send_early_httprequest_to_devtools, send_response_to_devtools, send_security_info_to_devtools,
+};
 use crate::embedder::NetToEmbedderMsg;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::FetchParams;
@@ -121,6 +124,7 @@ pub struct HttpState {
     pub cookie_jar: RwLock<CookieStorage>,
     pub http_cache: HttpCache,
     pub auth_cache: RwLock<AuthCache>,
+    pub cors_cache: RwLock<CorsCache>,
     pub history_states: RwLock<FxHashMap<HistoryStateId, Vec<u8>>>,
     pub client: ServoClient,
     pub override_manager: CertificateErrorOverrideManager,
@@ -875,10 +879,8 @@ fn obtain_response_setup_router_callback(
 
 /// [HTTP fetch](https://fetch.spec.whatwg.org/#concept-http-fetch)
 #[async_recursion]
-#[expect(clippy::too_many_arguments)]
 pub(crate) async fn http_fetch(
     fetch_params: &mut FetchParams,
-    cache: &mut CorsCache,
     cors_flag: bool,
     cors_preflight_flag: bool,
     authentication_fetch_flag: bool,
@@ -926,26 +928,30 @@ pub(crate) async fn http_fetch(
     if response.is_none() {
         // Step 4.1. If makeCORSPreflight is true and one of these conditions is true:
         if cors_preflight_flag {
-            let method_cache_match = cache.match_method(request, request.method.clone());
+            let (method_mismatch, header_mismatch) = {
+                let mut cors_cache = context.state.cors_cache.write();
+                let method_cache_match = cors_cache.match_method(request, &request.method);
 
-            // There is no method cache entry match for request’s method using request, and either
-            // request’s method is not a CORS-safelisted method or request’s use-CORS-preflight flag
-            // is set.
-            let method_mismatch = !method_cache_match &&
-                (!is_cors_safelisted_method(&request.method) || request.use_cors_preflight);
+                // > There is no method cache entry match for request's method using request, and either
+                // > request's method is not a CORS-safelisted method or request's use-CORS-preflight flag
+                // > is set.
+                let method_mismatch = !method_cache_match &&
+                    (!is_cors_safelisted_method(&request.method) || request.use_cors_preflight);
 
-            // There is at least one item in the CORS-unsafe request-header names with request’s
-            // header list for which there is no header-name cache entry match using request.
-            let header_mismatch = request.headers.iter().any(|(name, value)| {
-                !cache.match_header(request, name) &&
-                    !is_cors_safelisted_request_header(&name, &value)
-            });
+                // > There is at least one item in the CORS-unsafe request-header names with request's
+                // > header list for which there is no header-name cache entry match using request.
+                let header_mismatch = request.headers.iter().any(|(name, value)| {
+                    !cors_cache.match_header(request, name) &&
+                        !is_cors_safelisted_request_header(&name, &value)
+                });
+                (method_mismatch, header_mismatch)
+            };
 
             // Then:
             if method_mismatch || header_mismatch {
                 // Step 4.1.1. Let preflightResponse be the result of running
                 // CORS-preflight fetch given request.
-                let preflight_response = cors_preflight_fetch(request, cache, context).await;
+                let preflight_response = cors_preflight_fetch(request, context).await;
                 // Step 4.1.2. If preflightResponse is a network error, then return preflightResponse.
                 if let Some(error) = preflight_response.get_network_error() {
                     return Response::network_error(error.clone());
@@ -1055,7 +1061,6 @@ pub(crate) async fn http_fetch(
                 // given fetchParams and response.
                 http_redirect_fetch(
                     fetch_params,
-                    cache,
                     response,
                     cors_flag,
                     target,
@@ -1197,7 +1202,6 @@ fn location_url_for_response(
 #[async_recursion]
 pub async fn http_redirect_fetch(
     fetch_params: &mut FetchParams,
-    cache: &mut CorsCache,
     mut response: Response,
     cors_flag: bool,
     target: Target<'async_recursion>,
@@ -1340,15 +1344,7 @@ pub async fn http_redirect_fetch(
     let recursive_flag = request.redirect_mode != RedirectMode::Manual;
 
     // Step 22: Return the result of running main fetch given fetchParams and recursive.
-    let fetch_response = main_fetch(
-        fetch_params,
-        cache,
-        recursive_flag,
-        target,
-        done_chan,
-        context,
-    )
-    .await;
+    let fetch_response = main_fetch(fetch_params, recursive_flag, target, done_chan, context).await;
 
     // TODO: timing allow check
     fetch_params
@@ -1482,7 +1478,7 @@ async fn http_network_or_cache_fetch(
                     .map(|record| {
                         if record.request_id == http_request.id {
                             // Don't double count for this request. We have already added it in
-                            // `fetch::methods::fetch_with_cors_cache`
+                            // `fetch::methods::fetch`
                             0
                         } else {
                             record.keep_alive_body_length
@@ -2510,11 +2506,7 @@ async fn http_network_fetch(
 }
 
 /// [CORS preflight fetch](https://fetch.spec.whatwg.org#cors-preflight-fetch)
-async fn cors_preflight_fetch(
-    request: &Request,
-    cache: &mut CorsCache,
-    context: &FetchContext,
-) -> Response {
+async fn cors_preflight_fetch(request: &Request, context: &FetchContext) -> Response {
     // Step 1. Let preflight be a new request whose method is `OPTIONS`, URL list is a clone
     // of request’s URL list, initiator is request’s initiator, destination is request’s destination,
     // origin is request’s origin, referrer is request’s referrer, referrer policy is request’s
@@ -2575,11 +2567,17 @@ async fn cors_preflight_fetch(
     // Step 6. Let response be the result of running HTTP-network-or-cache fetch given a
     // new fetch params whose request is preflight.
     let mut fetch_params = FetchParams::new(
-        preflight,
+        preflight.clone(),
         ResourceFetchTiming::new(ResourceTimingType::None).into(),
     );
+
+    send_early_httprequest_to_devtools(&preflight, context);
+
     let response =
         http_network_or_cache_fetch(&mut fetch_params, false, false, &mut None, context).await;
+
+    send_response_to_devtools(&preflight, context, &response, None);
+    send_security_info_to_devtools(&preflight, context, &response);
 
     // Step 7. If a CORS check for request and response returns success and response’s status is an ok status, then:
     if cors_check(request, &response).is_ok() && response.status.code().is_success() {
@@ -2688,20 +2686,23 @@ async fn cors_preflight_fetch(
         // Step 7.11 If the user agent does not provide for a cache, then return response.
         // NOTE: This can be ignored, we do have a CORS cache
 
-        // Step 7.12 For each method in methods for which there is a method cache entry match using request,
-        // set matching entry’s max-age to max-age.
-        // Step 7.13 For each method in methods for which there is no method cache entry match using request,
-        // create a new cache entry with request, max-age, method, and null.
-        for method in &methods {
-            cache.match_method_and_update(request, method.clone(), max_age);
-        }
+        {
+            let mut cors_cache = context.state.cors_cache.write();
+            // Step 7.12 For each method in methods for which there is a method cache entry match using request,
+            // set matching entry’s max-age to max-age.
+            // Step 7.13 For each method in methods for which there is no method cache entry match using request,
+            // create a new cache entry with request, max-age, method, and null.
+            for method in &methods {
+                cors_cache.match_method_and_update(request, method, max_age);
+            }
 
-        // Step 7.14 For each headerName in headerNames for which there is a header-name cache entry match using request,
-        // set matching entry’s max-age to max-age.
-        // Step 7.15 For each headerName in headerNames for which there is no header-name cache entry match using request,
-        // create a new cache entry with request, max-age, null, and headerName.
-        for header_name in &header_names {
-            cache.match_header_and_update(request, header_name, max_age);
+            // Step 7.14 For each headerName in headerNames for which there is a header-name cache entry match using request,
+            // set matching entry’s max-age to max-age.
+            // Step 7.15 For each headerName in headerNames for which there is no header-name cache entry match using request,
+            // create a new cache entry with request, max-age, null, and headerName.
+            for header_name in &header_names {
+                cors_cache.match_header_and_update(request, header_name, max_age);
+            }
         }
 
         // Step 7.16 Return response.

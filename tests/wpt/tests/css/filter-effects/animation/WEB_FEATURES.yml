@@ -1,3 +1,5 @@
 rules:
 - backdrop-filter-*: [backdrop-filter]
+- css-backdrop-filters-*: [backdrop-filter]
 - filter-*: [filter]
+- css-filters-*: [filter]

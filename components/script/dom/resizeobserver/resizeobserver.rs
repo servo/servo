@@ -86,7 +86,7 @@ impl ResizeObserver {
     /// <https://drafts.csswg.org/resize-observer/#has-active-resize-observations>
     pub(crate) fn gather_active_resize_observations_at_depth(
         &self,
-        no_gc: &NoGC,
+        cx: &mut JSContext,
         depth: &ResizeObservationDepth,
         has_active: &mut bool,
     ) {
@@ -98,9 +98,9 @@ impl ResizeObserver {
             observation.state.set(Default::default());
 
             // Step 2.2.1 If observation.isActive() is true
-            if observation.is_active(target) {
+            if observation.is_active(cx, target) {
                 // Step 2.2.1.1 Let targetDepth be result of calculate depth for node for observation.target.
-                let target_depth = calculate_depth_for_node(no_gc, target);
+                let target_depth = calculate_depth_for_node(cx, target);
 
                 // Step 2.2.1.2 If targetDepth is greater than depth then add observation to [[activeTargets]].
                 if target_depth > *depth {
@@ -178,13 +178,16 @@ fn create_and_populate_a_resizeobserverentry(
     observation: &ResizeObservation,
 ) -> DomRoot<ResizeObserverEntry> {
     // Step 3. Set this.borderBoxSize slot to result of calculating box size given target and observedBox of "border-box".
-    let border_box_size = calculate_box_size(target, &ResizeObserverBoxOptions::Border_box);
+    let border_box_size = calculate_box_size(cx, target, &ResizeObserverBoxOptions::Border_box);
     // Step 4. Set this.contentBoxSize slot to result of calculating box size given target and observedBox of "content-box".
-    let content_box_size = calculate_box_size(target, &ResizeObserverBoxOptions::Content_box);
+    let content_box_size = calculate_box_size(cx, target, &ResizeObserverBoxOptions::Content_box);
 
     // Step 5. Set this.devicePixelContentBoxSize slot to result of calculating box size given target and observedBox of "device-pixel-content-box".
-    let device_pixel_content_box =
-        calculate_box_size(target, &ResizeObserverBoxOptions::Device_pixel_content_box);
+    let device_pixel_content_box = calculate_box_size(
+        cx,
+        target,
+        &ResizeObserverBoxOptions::Device_pixel_content_box,
+    );
 
     // Note: this is safe because an observation is
     // initialized with one reported size (zero).
@@ -272,7 +275,7 @@ impl ResizeObserverMethods<crate::DomTypeHolder> for ResizeObserver {
     ) -> DomRoot<ResizeObserver> {
         let rooted_observer = ResizeObserver::new(cx, window, proto, callback);
         let document = window.Document();
-        document.add_resize_observer(&rooted_observer);
+        document.add_resize_observer(cx, &rooted_observer);
         rooted_observer
     }
 
@@ -354,11 +357,11 @@ impl ResizeObservation {
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobservation-isactive>
-    fn is_active(&self, target: &Element) -> bool {
+    fn is_active(&self, cx: &mut JSContext, target: &Element) -> bool {
         let Some(last_reported_size) = self.last_reported_sizes.borrow().first().copied() else {
             return true;
         };
-        let box_size = calculate_box_size(target, &self.observed_box);
+        let box_size = calculate_box_size(cx, target, &self.observed_box);
         box_size.width() != last_reported_size.inline_size() ||
             box_size.height() != last_reported_size.block_size()
     }
@@ -380,6 +383,7 @@ fn calculate_depth_for_node(no_gc: &NoGC, target: &Element) -> ResizeObservation
 /// the values will be in `px`. For `ResizeObserverBoxOptions::Device_pixel_content_box` they
 /// will be in integral device pixels.
 fn calculate_box_size(
+    cx: &mut JSContext,
     target: &Element,
     observed_box: &ResizeObserverBoxOptions,
 ) -> Rect<f64, CSSPixel> {
@@ -389,7 +393,7 @@ fn calculate_box_size(
             // but the spec will expand to cover all fragments.
             let content_box = target
                 .owner_window()
-                .box_area_query(target.upcast(), BoxAreaType::Content, true)
+                .box_area_query(cx, target.upcast(), BoxAreaType::Content, true)
                 .unwrap_or_else(Rect::zero);
 
             Rect::new(
@@ -405,7 +409,7 @@ fn calculate_box_size(
             // but the spec will expand to cover all fragments.
             let border_box = target
                 .owner_window()
-                .box_area_query(target.upcast(), BoxAreaType::Border, true)
+                .box_area_query(cx, target.upcast(), BoxAreaType::Border, true)
                 .unwrap_or_else(Rect::zero);
 
             Rect::new(
@@ -420,7 +424,7 @@ fn calculate_box_size(
             let device_pixel_ratio = target.owner_window().device_pixel_ratio().get() as f64;
             let content_box = target
                 .owner_window()
-                .box_area_query(target.upcast(), BoxAreaType::Content, true)
+                .box_area_query(cx, target.upcast(), BoxAreaType::Content, true)
                 .unwrap_or_else(Rect::zero);
 
             let to_device_px = |length: Au| (length.to_f64_px() * device_pixel_ratio).round();

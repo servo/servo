@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>An SVG document in an embed element follows the embed's size</title>
+<link rel="author" title="Felipe Erias" href="mailto:felipeerias@igalia.com">
+<link rel="help" href="https://svgwg.org/svg2-draft/coords.html#SizingSVGInCSS">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/iframe-embed-object.html#the-embed-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  embed { display: block; width: 200px; height: 100px; }
+</style>
+<embed id="embed" src="/images/green.svg" onload="run()">
+<script>
+function run() {
+  const embed = document.getElementById('embed');
+  const svg = embed.getSVGDocument().documentElement;
+  test(() => {
+    assert_equals(svg.getBoundingClientRect().width, 200, 'width');
+    assert_equals(svg.getBoundingClientRect().height, 100, 'height');
+  }, 'initial size');
+  test(() => {
+    embed.style.height = '50px';
+    assert_equals(svg.getBoundingClientRect().height, 50);
+  }, 'after changing the height');
+  test(() => {
+    embed.style.width = '100px';
+    assert_equals(svg.getBoundingClientRect().width, 100);
+  }, 'after changing the width');
+}
+</script>

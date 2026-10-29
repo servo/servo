@@ -137,14 +137,15 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     fn SetData(&self, cx: &mut JSContext, data: DOMString) {
         self.queue_mutation_record(cx);
         let old_length = self.Length();
-        *self.data.safe_borrow_mut(cx.no_gc()) = String::from(data.str());
+        *self.data.safe_borrow_mut(cx.no_gc()) = data.into();
         self.content_changed(cx);
 
         let mut utf16_length = None;
         // TODO: ensure that DOMString’s are under 4 GiB?
         let mut lazy_length = move || {
-            *utf16_length
-                .get_or_insert_with(|| Utf16CodeUnits::length_of(AssumeUnder4GB, &data.str()).0)
+            *utf16_length.get_or_insert_with(|| {
+                Utf16CodeUnits::length_of(AssumeUnder4GB, &self.data.borrow()).0
+            })
         };
 
         let node: &Node = self.upcast();
@@ -231,41 +232,37 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
         let mut new_data;
         {
             let data = self.data.borrow();
-            let prefix;
-            let replacement_before;
-            let remaining;
-            match split_at_utf16_code_unit_offset(&data, offset) {
-                Ok((p, astral, r)) => {
-                    prefix = p;
-                    // As if we had split the UTF-16 surrogate pair in half
-                    // and then transcoded that to UTF-8 lossily,
-                    // since our DOMString is currently strict UTF-8.
-                    replacement_before = if astral.is_some() { "\u{FFFD}" } else { "" };
-                    remaining = r;
-                },
-                // Step 2.
-                Err(()) => {
-                    return Err(Error::IndexSize(Some(
-                        "Offset is greater than the node's length".into(),
-                    )));
-                },
-            };
-            let replacement_after;
-            let suffix;
-            match split_at_utf16_code_unit_offset(remaining, count) {
-                // Steps 3.
-                Err(()) => {
-                    replacement_after = "";
-                    suffix = "";
-                },
-                Ok((_, astral, s)) => {
-                    // As if we had split the UTF-16 surrogate pair in half
-                    // and then transcoded that to UTF-8 lossily,
-                    // since our DOMString is currently strict UTF-8.
-                    replacement_after = if astral.is_some() { "\u{FFFD}" } else { "" };
-                    suffix = s;
-                },
-            };
+
+            let (prefix, replacement_before, remaining) =
+                match split_at_utf16_code_unit_offset(&data, offset) {
+                    Ok((prefix, astral, remaining)) => {
+                        // As if we had split the UTF-16 surrogate pair in half
+                        // and then transcoded that to UTF-8 lossily,
+                        // since our DOMString is currently strict UTF-8.
+                        let replacement_before = if astral.is_some() { "\u{FFFD}" } else { "" };
+                        (prefix, replacement_before, remaining)
+                    },
+                    // Step 2.
+                    Err(()) => {
+                        return Err(Error::IndexSize(Some(
+                            "Offset is greater than the node's length".into(),
+                        )));
+                    },
+                };
+
+            let (replacement_after, suffix) =
+                match split_at_utf16_code_unit_offset(remaining, count) {
+                    // Steps 3.
+                    Err(()) => ("", ""),
+                    Ok((_, astral, suffix)) => {
+                        // As if we had split the UTF-16 surrogate pair in half
+                        // and then transcoded that to UTF-8 lossily,
+                        // since our DOMString is currently strict UTF-8.
+                        let replacement_after = if astral.is_some() { "\u{FFFD}" } else { "" };
+                        (replacement_after, suffix)
+                    },
+                };
+
             // Step 4: Mutation observers.
             self.queue_mutation_record(cx);
 

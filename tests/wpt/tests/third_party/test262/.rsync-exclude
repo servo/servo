@@ -3,3 +3,4 @@ DIR_METADATA
 OWNERS
 WEB_FEATURES.yml
 .rsync-exclude
+__dir__.headers
