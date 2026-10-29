@@ -9,10 +9,11 @@ use std::mem;
 use std::time::{Duration, Instant};
 
 use embedder_traits::{
-    Cursor, EmbedderMsg, ImeEvent, InputEvent, InputEventId, InputEventOutcome, InputEventResult,
-    KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction, MouseButtonEvent,
-    MouseLeftViewportEvent, MouseMoveEvent, TouchEvent as EmbedderTouchEvent, TouchEventType,
-    TouchId, TouchPointerType, UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
+    Cursor, EditingAction, EmbedderMsg, ImeEvent, InputEvent, InputEventId, InputEventOutcome,
+    InputEventResult, KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction,
+    MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, TouchEvent as EmbedderTouchEvent,
+    TouchEventType, TouchId, TouchPointerType, UntrustedNodeAddress,
+    WheelEvent as EmbedderWheelEvent,
 };
 #[cfg(feature = "gamepad")]
 use embedder_traits::{
@@ -1824,17 +1825,28 @@ impl DocumentEventHandler {
     }
 
     fn handle_ime_event(&self, cx: &mut JSContext, event: ImeEvent) -> InputEventResult {
-        let document = self.window.Document();
-        let composition_event = match event {
+        match event {
             ImeEvent::Dismissed => {
-                document
-                    .focus_handler()
-                    .focus(cx, &FocusableArea::Viewport, FocusTrigger::Script);
-                return Default::default();
+                self.window.Document().focus_handler().focus(
+                    cx,
+                    &FocusableArea::Viewport,
+                    FocusTrigger::Script,
+                );
+                Default::default()
             },
-            ImeEvent::Composition(composition_event) => composition_event,
-        };
+            ImeEvent::Commit(text) => self.handle_ime_commit(cx, text),
+            ImeEvent::Composition(composition_event) => {
+                self.handle_ime_composition(cx, composition_event)
+            },
+        }
+    }
 
+    fn handle_ime_composition(
+        &self,
+        cx: &mut JSContext,
+        composition_event: keyboard_types::CompositionEvent,
+    ) -> InputEventResult {
+        let document = self.window.Document();
         // spec: https://w3c.github.io/uievents/#compositionstart
         // spec: https://w3c.github.io/uievents/#compositionupdate
         // spec: https://w3c.github.io/uievents/#compositionend
@@ -1875,6 +1887,20 @@ impl DocumentEventHandler {
         }
 
         composition_event_result
+    }
+
+    fn handle_ime_commit(&self, cx: &mut JSContext, text: String) -> InputEventResult {
+        let document = self.window.Document();
+        let focused_area = document.focus_handler().focused_area();
+        let Some(focused_element) = focused_area.element() else {
+            // Event is only dispatched if there is a focused element.
+            return Default::default();
+        };
+        let editing_host = document.editing_context(cx.no_gc(), focused_element.upcast());
+        if editing_host.perform_editing_action(cx, EditingAction::InsertText(text)) {
+            return InputEventResult::Consumed;
+        }
+        Default::default()
     }
 
     fn handle_wheel_event(
