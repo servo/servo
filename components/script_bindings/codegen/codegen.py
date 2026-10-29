@@ -725,35 +725,6 @@ class CGMethodCall(CGThing):
         return self.cgRoot.define()
 
 
-def dictionaryHasSequenceMember(dictionary: IDLDictionary) -> bool:
-    for member in dictionary.members:
-        if typeIsSequenceOrHasSequenceMember(member.type):
-            return True
-
-    if dictionary.parent:
-        # pyrefly: ignore  # bad-argument-type
-        return dictionaryHasSequenceMember(dictionary.parent)
-
-    return False
-
-
-def typeIsSequenceOrHasSequenceMember(type: IDLType) -> bool:
-    if type.nullable():
-        assert isinstance(type, IDLNullableType)
-        type = type.inner
-    if type.isSequence():
-        return True
-    if type.isDictionary():
-        # pyrefly: ignore  # missing-attribute
-        return dictionaryHasSequenceMember(type.inner)
-    if type.isUnion():
-        assert isinstance(type, IDLUnionType)
-        assert type.flatMemberTypes is not None
-        return any(typeIsSequenceOrHasSequenceMember(m.type) for m in
-                   type.flatMemberTypes)
-    return False
-
-
 def union_native_type(t: IDLType) -> str:
     name = t.unroll().name
     generic = "::<D>" if containsDomInterface(t) else ""
