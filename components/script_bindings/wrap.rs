@@ -21,6 +21,7 @@ use crate::conversions::DOM_OBJECT_SLOT;
 use crate::import::module::JS_GetReservedSlot;
 use crate::js::JS_NewObjectWithGivenProto;
 use crate::proxyhandler::ensure_expando_object;
+use crate::realms::enter_auto_realm;
 use crate::root::{DomRoot, MaybeUnreflectedDom, Root};
 use crate::utils::DOM_PROTO_UNFORGEABLE_HOLDER_SLOT;
 use crate::{DomObject, DomTypes, MutDomObject};
@@ -47,6 +48,8 @@ pub(crate) unsafe fn wrap<T: MutDomObject, D: DomTypes>(
     raw: Root<MaybeUnreflectedDom<T>>,
     config: WrapConfig,
 ) -> DomRoot<T> {
+    let mut realm = enter_auto_realm::<D>(cx, scope);
+    let cx = &mut realm.current_realm();
     unsafe {
         rooted!(&in(cx) let mut obj = ptr::null_mut::<JSObject>());
         wrap_object(
@@ -65,7 +68,7 @@ pub(crate) unsafe fn wrap<T: MutDomObject, D: DomTypes>(
 
 // `wrap` is instantiated many times, so we move most of the code into this non-generic helper.
 unsafe fn wrap_object(
-    cx: &mut JSContext,
+    cx: &mut CurrentRealm,
     scope: &HandleObject,
     given_proto: Option<js::rust::Handle<*mut JSObject>>,
     raw: *const c_void,
