@@ -22,9 +22,10 @@ use net_traits::request::{
     RequestBuilder, RequestId, RequestMode, ServiceWorkersMode,
 };
 use net_traits::{
-    CoreResourceMsg, CoreResourceThread, FetchChannels, FetchMetadata, FetchResponseMsg,
-    FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming, fetch_async,
+    CoreResourceMsg, CoreResourceThread, ExposedMetadata, FetchChannels, FetchMetadata,
+    FetchResponseMsg, FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming, fetch_async,
 };
+use pixels::CorsStatus;
 use rustc_hash::FxHashMap;
 use script_bindings::cformat;
 use script_bindings::js::{JS_IsExceptionPending, JS_SetPendingException};
@@ -656,7 +657,7 @@ impl FetchCallState {
             // given response, "immutable", and relevantRealm.
             Ok(metadata) => match metadata {
                 FetchMetadata::Unfiltered(m) => {
-                    fill_headers_with_metadata(cx, &self.response, m);
+                    fill_headers_with_metadata(cx, &self.response, m.into());
                     self.response.set_type(cx, DOMResponseType::Default);
                 },
                 FetchMetadata::Filtered { filtered, .. } => match filtered {
@@ -834,8 +835,8 @@ impl ResourceTimingListener for FetchLaterListener {
     }
 }
 
-fn fill_headers_with_metadata(cx: &mut JSContext, r: &Response, m: Metadata) {
-    r.set_headers(cx, m.headers);
+fn fill_headers_with_metadata(cx: &mut JSContext, r: &Response, m: ExposedMetadata) {
+    r.set_headers(cx, Some(m.headers));
     r.set_status(&m.status);
     r.set_final_url(m.final_url);
     r.set_redirected(m.redirected);
@@ -869,15 +870,12 @@ pub(crate) fn load_whole_resource(
         match action_receiver.recv().unwrap() {
             FetchResponseMsg::ProcessRequestBody(..) => {},
             FetchResponseMsg::ProcessResponse(_, Ok(m)) => {
-                muted_errors = m.is_cors_cross_origin();
-                metadata = Some(match m {
-                    FetchMetadata::Unfiltered(m) => m,
-                    FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
-                })
+                muted_errors = m.cors_status() == CorsStatus::Unsafe;
+                metadata = Some(m.into());
             },
             FetchResponseMsg::ProcessResponseChunk(_, data) => buf.extend_from_slice(&data),
             FetchResponseMsg::ProcessResponseEOF(_, Ok(_), _) => {
-                let metadata = metadata.unwrap();
+                let metadata: Metadata = metadata.unwrap();
                 if let Some(timing) = &metadata.timing {
                     submit_timing_data(cx, global, url, InitiatorType::Other, timing);
                 }
