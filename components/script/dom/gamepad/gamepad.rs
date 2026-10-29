@@ -13,7 +13,9 @@ use script_bindings::reflector::{Reflector, reflect_dom_object};
 use super::gamepadbutton::GamepadButton;
 use super::gamepadhapticactuator::GamepadHapticActuator;
 use super::gamepadpose::GamepadPose;
-use crate::dom::bindings::codegen::Bindings::GamepadBinding::{GamepadHand, GamepadMethods};
+use crate::dom::bindings::codegen::Bindings::GamepadBinding::{
+    GamepadHand, GamepadMappingType, GamepadMethods,
+};
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
@@ -40,7 +42,7 @@ pub(crate) struct Gamepad {
     index: Cell<i32>,
     connected: Cell<bool>,
     timestamp: Cell<f64>,
-    mapping_type: String,
+    mapping_type: GamepadMappingType,
     #[ignore_malloc_size_of = "mozjs"]
     frozen_buttons: CachedFrozenArray,
     buttons: Vec<Dom<GamepadButton>>,
@@ -64,7 +66,7 @@ impl Gamepad {
         index: i32,
         connected: bool,
         timestamp: f64,
-        mapping_type: String,
+        mapping_type: GamepadMappingType,
         buttons: &[&GamepadButton],
         pose: Option<&GamepadPose>,
         hand: GamepadHand,
@@ -111,7 +113,7 @@ impl Gamepad {
         window: &Window,
         gamepad_id: u32,
         id: String,
-        mapping_type: String,
+        mapping_type: GamepadMappingType,
         axis_bounds: (f64, f64),
         button_bounds: (f64, f64),
         supported_haptic_effects: GamepadSupportedHapticEffects,
@@ -167,8 +169,8 @@ impl GamepadMethods<crate::DomTypeHolder> for Gamepad {
     }
 
     /// <https://w3c.github.io/gamepad/#dom-gamepad-mapping>
-    fn Mapping(&self) -> DOMString {
-        DOMString::from(self.mapping_type.clone())
+    fn Mapping(&self) -> GamepadMappingType {
+        self.mapping_type
     }
 
     /// <https://w3c.github.io/gamepad/#dom-gamepad-axes>

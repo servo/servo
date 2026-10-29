@@ -11,10 +11,17 @@ interface Gamepad {
     readonly attribute long index;
     readonly attribute boolean connected;
     readonly attribute DOMHighResTimeStamp timestamp;
-    readonly attribute DOMString mapping;
-    readonly attribute any buttons;
+    readonly attribute GamepadMappingType mapping;
     readonly attribute /* FrozenArray<double> */ any axes;
+    readonly attribute /* FrozenArray<GamepadButton> */ any buttons;
     [SameObject] readonly attribute GamepadHapticActuator vibrationActuator;
+};
+
+// https://w3c.github.io/gamepad/#dom-gamepadmappingtype
+enum GamepadMappingType {
+  "",
+  "standard",
+  "xr-standard",
 };
 
 // https://w3c.github.io/gamepad/extensions.html#partial-gamepad-interface
