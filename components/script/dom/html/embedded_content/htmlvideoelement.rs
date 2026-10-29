@@ -352,11 +352,11 @@ impl HTMLVideoElement {
         match response {
             ImageResponse::Loaded(image, url) => {
                 debug!("Loaded poster image for video element: {:?}", url);
-                match image.as_raster_image() {
-                    Some(image) => self
-                        .htmlmediaelement
-                        .set_poster_frame(cx.no_gc(), Some(image)),
-                    None => warn!("Vector images are not yet supported in video poster"),
+                if matches!(image, net_traits::image_cache::Image::Vector(_)) {
+                    warn!("Vector images are not yet supported in video poster");
+                } else {
+                    self.htmlmediaelement
+                        .set_poster_frame(cx.no_gc(), Some(image));
                 }
                 LoadBlocker::terminate(cx, &self.load_blocker);
             },
@@ -544,9 +544,26 @@ impl FetchResponseListener for PosterFrameFetchContext {
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
+        self.process_response_eof_with_body(cx, global, request_id, response, timing, None);
+    }
+
+    fn process_response_eof_with_body(
+        self,
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        request_id: RequestId,
+        response: Result<(), NetworkError>,
+        timing: ResourceFetchTiming,
+        body: Option<servo_arc::Arc<parking_lot::Mutex<net_traits::response::ResponseBody>>>,
+    ) {
         self.image_cache.notify_pending_response(
             self.id,
-            FetchResponseMsg::ProcessResponseEOF(request_id, response.clone(), timing.clone()),
+            FetchResponseMsg::ProcessResponseEOF(
+                request_id,
+                response.clone(),
+                timing.clone(),
+                body,
+            ),
         );
         network_listener::submit_timing(cx, global, &self, &response, &timing);
     }
@@ -612,8 +629,14 @@ impl LayoutDom<'_, HTMLVideoElement> {
             .zip(video.get_video_height())
             .map(|(width, height)| MediaMetadata { width, height });
 
+        let static_poster = video.htmlmediaelement.get_encoded_poster_to_present();
         HTMLMediaData {
-            current_frame,
+            current_frame: if static_poster.is_some() {
+                None
+            } else {
+                current_frame
+            },
+            encoded_poster: static_poster,
             metadata,
             poster_or_src_url: if video.htmlmediaelement.show_poster() {
                 video.poster_url.borrow().clone().map(|url| url.url())

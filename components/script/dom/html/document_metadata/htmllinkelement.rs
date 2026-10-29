@@ -904,6 +904,11 @@ impl HTMLLinkElement {
 
         match image {
             Image::Raster(raster_image) => send_rasterized_favicon_to_embedder(&raster_image),
+            Image::Encoded(source) => {
+                if let Some(image) = source.decode_to_original_size() {
+                    send_rasterized_favicon_to_embedder(&image);
+                }
+            },
             Image::Vector(vector_image) => {
                 // This size is completely arbitrary.
                 let size = DeviceIntSize::new(250, 250);
@@ -1349,9 +1354,26 @@ impl FetchResponseListener for FaviconFetchContext {
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
+        self.process_response_eof_with_body(cx, global, request_id, response, timing, None);
+    }
+
+    fn process_response_eof_with_body(
+        self,
+        cx: &mut js::context::JSContext,
+        global: &GlobalScope,
+        request_id: RequestId,
+        response: Result<(), NetworkError>,
+        timing: ResourceFetchTiming,
+        body: Option<servo_arc::Arc<parking_lot::Mutex<net_traits::response::ResponseBody>>>,
+    ) {
         self.image_cache.notify_pending_response(
             self.id,
-            FetchResponseMsg::ProcessResponseEOF(request_id, response.clone(), timing.clone()),
+            FetchResponseMsg::ProcessResponseEOF(
+                request_id,
+                response.clone(),
+                timing.clone(),
+                body,
+            ),
         );
         submit_timing(cx, global, &self, &response, &timing);
     }
