@@ -51,7 +51,27 @@ typedef struct {
     // The dimensions of the software rendering context.
     uint32_t expected_width;
     uint32_t expected_height;
+    // The dimensions before the last resize. Screenshots of this size are
+    // of frames painted before the resize, so they are skipped.
+    uint32_t previous_width;
+    uint32_t previous_height;
 } test_state_t;
+
+// Spin the event loop until `state` reaches `step` or we time out.
+static void spin_until(struct Servo* servo, const test_state_t* state, test_step_t step)
+{
+    log("  Spinning event loop... (timeout 30s)\n");
+    int elapsed_ms = 0;
+    int poll_ms = 15;
+    while (elapsed_ms < 30000) {
+        servo_spin_event_loop(servo);
+        if (state->step >= step) {
+            break;
+        }
+        sleep_ms(poll_ms);
+        elapsed_ms += poll_ms;
+    }
+}
 
 static atomic_int waker_triggered;
 
@@ -104,6 +124,10 @@ static void on_screenshot(const uint8_t* data, uint32_t width, uint32_t height,
         log("  [screenshot] failed with error=%d\n", error);
         return;
     }
+    if (width == state->previous_width && height == state->previous_height) {
+        log("  [screenshot] skipping %ux%u frame from before the resize\n", width, height);
+        return;
+    }
     if (width != state->expected_width || height != state->expected_height) {
         state->step = TEST_STEP_SCREENSHOT_FAILED;
         log("  [screenshot] incorrect dimensions: expected %ux%u, got %ux%u\n",
@@ -132,6 +156,7 @@ static void on_screenshot(const uint8_t* data, uint32_t width, uint32_t height,
  *  3. Load a simple page with `data:html` protocol
  *  4. Waits for rendering to complete
  *  5. Takes a screenshot and verifies the image has the expected pixel color.
+ *  6. Resizes the WebView and verifies the next screenshot has the new size.
  */
 int test_webview_load_and_screenshot(void)
 {
@@ -196,20 +221,7 @@ int test_webview_load_and_screenshot(void)
         goto cleanup;
     }
 
-    // Spin the event loop until screenshot completes or we timeout.
-    log("  Spinning event loop... (timeout 30s)\n");
-    {
-        int elapsed_ms = 0;
-        int poll_ms = 15;
-        while (elapsed_ms < 30000) {
-            servo_spin_event_loop(servo);
-            if (state.step >= TEST_STEP_SCREENSHOT_DONE) {
-                break;
-            }
-            sleep_ms(poll_ms);
-            elapsed_ms += poll_ms;
-        }
-    }
+    spin_until(servo, &state, TEST_STEP_SCREENSHOT_DONE);
 
     // Validate the screenshot
     test_step_t final_step = state.step;
@@ -219,6 +231,27 @@ int test_webview_load_and_screenshot(void)
     }
     if (final_step != TEST_STEP_SCREENSHOT_DONE) {
         log("  FAIL: screenshot callback never fired (step=%d)\n", (int)final_step);
+        goto cleanup;
+    }
+
+    // Resize the WebView and verify the next screenshot has the new size.
+    state.previous_width = state.expected_width;
+    state.previous_height = state.expected_height;
+    state.expected_width = 50;
+    state.expected_height = 40;
+    state.step = TEST_STEP_LOAD_COMPLETE;
+    servo_webview_resize(webview, state.expected_width, state.expected_height);
+
+    spin_until(servo, &state, TEST_STEP_SCREENSHOT_DONE);
+
+    // Validate the screenshot
+    final_step = state.step;
+    if (final_step == TEST_STEP_SCREENSHOT_FAILED) {
+        log("  FAIL: screenshot failed after resize\n");
+        goto cleanup;
+    }
+    if (final_step != TEST_STEP_SCREENSHOT_DONE) {
+        log("  FAIL: screenshot callback never fired after resize (step=%d)\n", (int)final_step);
         goto cleanup;
     }
 

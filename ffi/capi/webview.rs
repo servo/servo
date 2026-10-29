@@ -312,6 +312,36 @@ pub unsafe extern "C" fn servo_webview_get_hidpi_scale_factor(webview: *mut WebV
     webview.hidpi_scale_factor().get()
 }
 
+/// Resizes the rendering context of the `WebView` to `width` x `height`
+/// pixels. Sizes below 1 x 1 are clamped to 1 x 1.
+///
+/// A `WebView` is always as big as its rendering context, so this also
+/// resizes any other `WebView` that uses the same rendering context.
+///
+/// `webview` is a handle to a `WebView` object.
+/// The ownership of `webview` remains with the caller after the call.
+///
+/// # Safety
+///
+/// The caller must ensure that:
+///
+/// - `webview` is a non-null pointer to a `WebView` previously returned
+///   by `servo_webview_builder_build` and not yet passed to
+///   `servo_webview_free`. No other code may read or write `*webview`
+///   for the duration of this call.
+/// - The call is made from the same thread that originally created the
+///   `WebView` via `servo_webview_builder_build`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_webview_resize(webview: *mut WebView, width: u32, height: u32) {
+    assert!(!webview.is_null(), "webview pointer must not be null");
+
+    // SAFETY: The caller is assumed to uphold the safety requirements
+    // for `webview` documented above.
+    let webview = unsafe { &*webview };
+
+    webview.resize(dpi::PhysicalSize::new(width, height));
+}
+
 /// Loads the given URL into the `WebView`.
 ///
 /// `webview` is a handle to a `WebView` object.
