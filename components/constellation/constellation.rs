@@ -2559,7 +2559,27 @@ where
         worker_id: ServiceWorkerId,
         pipeline_id: PipelineId,
     ) {
-        // TODO.
+        let (is_empty, origin) = {
+            let Some(pending) = self.service_workers_pending_update.get_mut(&worker_id) else {
+                return;
+            };
+            pending.pipelines.remove(&pipeline_id);
+            (pending.pipelines.is_empty(), pending.origin.clone())
+        };
+
+        if is_empty {
+            self.service_workers_pending_update.remove(&worker_id);
+            let Some(manager) = self.sw_managers.get(&origin) else {
+                error!("No service worker manager found for origin {:?}", origin);
+                return;
+            };
+            if manager
+                .send(ServiceWorkerMsg::FinishInstall(worker_id.clone()))
+                .is_err()
+            {
+                warn!("Failed to send FinishInstall message to service worker manager");
+            }
+        }
     }
 
     /// <https://www.w3.org/TR/service-workers/#algorithms>
