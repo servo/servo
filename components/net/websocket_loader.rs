@@ -11,6 +11,7 @@
 //! over events from the network and events from the DOM, using async/await to avoid
 //! the need for a dedicated thread per websocket.
 
+use std::net::SocketAddr;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -38,7 +39,7 @@ use tungstenite::protocol::CloseFrame;
 use tungstenite::{ClientRequestBuilder, Message};
 
 use crate::async_runtime::spawn_task;
-use crate::connector::TlsConfig;
+use crate::connector::{NameResolver, TlsConfig};
 use crate::cookie::ServoCookie;
 use crate::hosts::replace_host;
 use crate::http_loader::HttpState;
@@ -309,6 +310,7 @@ pub(crate) async fn start_websocket(
     client: &net_traits::request::Request,
     tls_config: TlsConfig,
     dom_action_receiver: CallbackSetter<WebSocketDomAction>,
+    name_resolver: Option<NameResolver>,
 ) -> Result<Response, Error> {
     trace!("starting WS connection to {}", client.url());
 
@@ -329,7 +331,18 @@ pub(crate) async fn start_websocket(
         .port_or_known_default()
         .ok_or_else(|| Error::Url(UrlError::UnableToConnect("Unknown port".into())))?;
 
-    let try_socket = TcpStream::connect((&*domain.to_string(), port)).await;
+    let try_socket =
+        if let (Some(name_resolver), url::Host::Domain(domain)) = (name_resolver, &domain) {
+            let socket_addrs: Vec<_> = name_resolver(domain)
+                .await
+                .map_err(|e| Error::Io(e))?
+                .iter()
+                .map(|ip_addr| SocketAddr::new(*ip_addr, 0))
+                .collect();
+            TcpStream::connect(socket_addrs.as_slice()).await
+        } else {
+            TcpStream::connect((&*domain.to_string(), port)).await
+        };
     let socket = try_socket.map_err(Error::Io)?;
     let connector = TlsConnector::from(Arc::new(tls_config));
 

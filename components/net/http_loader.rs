@@ -2255,6 +2255,7 @@ async fn http_network_fetch(
                 request,
                 tls_config,
                 dom_action_receiver,
+                context.name_resolver.clone(),
             )
             .await
             {
