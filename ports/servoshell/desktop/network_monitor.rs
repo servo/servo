@@ -31,133 +31,372 @@ mod dummy {
 /// that is not loopback or tun,
 #[cfg(target_os = "linux")]
 mod linux {
-    use std::collections::HashMap;
-    use std::thread;
+    use std::{
+        collections::HashMap,
+        ffi::{CStr, c_char, c_int, c_uchar, c_void},
+        io,
+        mem::MaybeUninit,
+        os::fd::{AsRawFd, FromRawFd, OwnedFd},
+        thread,
+    };
 
-    use futures_util::StreamExt;
+    use libc::{
+        AF_NETLINK, AF_UNSPEC, IFLA_IFNAME, NETLINK_ROUTE, NLM_F_DUMP, NLM_F_REQUEST, NLMSG_ALIGN,
+        NLMSG_DATA, NLMSG_LENGTH, NLMSG_NEXT, NLMSG_OK, RTM_DELLINK, RTM_GETLINK, RTM_NEWLINK,
+        RTMGRP_LINK, SOCK_CLOEXEC, SOCK_NONBLOCK, SOCK_RAW, bind, ifinfomsg, nlmsgerr, nlmsghdr,
+        recv, rtattr, sa_family_t, sendto, sockaddr, sockaddr_nl, socket, socklen_t,
+    };
     use log::error;
-    use rtnetlink::constants::RTMGRP_LINK;
-    use rtnetlink::new_connection;
-    use rtnetlink::packet_core::{NLM_F_DUMP, NLM_F_REQUEST, NetlinkMessage, NetlinkPayload};
-    use rtnetlink::packet_route::RouteNetlinkMessage;
-    use rtnetlink::packet_route::link::{LinkAttribute, LinkFlags, LinkHeader, LinkMessage};
-    use rtnetlink::sys::{AsyncSocket, SocketAddr};
-    use tokio::sync::mpsc::{self, Receiver, Sender};
+    use tokio::{
+        io::unix::AsyncFd,
+        sync::oneshot::{self, Sender},
+    };
     use winit::event_loop::EventLoopProxy;
 
     use crate::desktop::event_loop::AppEvent;
+    use macros::*;
 
-    pub(crate) struct NetworkMonitor {
-        shutdown_sender: Sender<()>,
+    /// Macros that are not provided by `libc`.
+    #[allow(non_snake_case)]
+    mod macros {
+        use std::ffi::{c_int, c_uint, c_void};
+
+        use libc::rtattr;
+
+        pub(super) const IFF_LOOPBACK: c_uint = libc::IFF_LOOPBACK as c_uint;
+        pub(super) const IFF_UP: c_uint = libc::IFF_UP as c_uint;
+        pub(super) const IFF_LOWER_UP: c_uint = libc::IFF_LOWER_UP as c_uint;
+        pub(super) const IFF_RUNNING: c_uint = libc::IFF_RUNNING as c_uint;
+        pub(super) const NLMSG_DONE: u16 = libc::NLMSG_DONE as u16;
+        pub(super) const NLMSG_ERROR: u16 = libc::NLMSG_ERROR as u16;
+
+        const RTA_ALIGNTO: usize = 4;
+
+        /// ```c
+        /// #define RTA_ALIGN(len) ( ((len)+RTA_ALIGNTO-1) & ~(RTA_ALIGNTO-1) )
+        /// ```
+        #[inline]
+        pub(super) const fn RTA_ALIGN(len: usize) -> usize {
+            (len + RTA_ALIGNTO - 1) & !(RTA_ALIGNTO - 1)
+        }
+
+        /// ```c
+        /// #define RTA_OK(rta,len) ((len) >= (int)sizeof(struct rtattr) && \
+        ///	  (rta)->rta_len >= sizeof(struct rtattr) && \
+        ///	  (rta)->rta_len <= (len))
+        /// ```
+        #[inline]
+        pub(super) const fn RTA_OK(rta: *const rtattr, len: c_int) -> bool {
+            len >= size_of::<rtattr>() as c_int
+                && unsafe { (*rta).rta_len } as usize >= size_of::<rtattr>()
+                && (unsafe { (*rta).rta_len } as c_int) <= len
+        }
+
+        /// ```c
+        /// #define RTA_NEXT(rta,attrlen)	((attrlen) -= RTA_ALIGN((rta)->rta_len), \
+        /// 				 (struct rtattr*)(((char*)(rta)) + RTA_ALIGN((rta)->rta_len)))
+        /// ```
+        #[inline]
+        pub(super) const fn RTA_NEXT(rta: *mut rtattr, attrlen: &mut c_int) -> *mut rtattr {
+            *attrlen -= RTA_ALIGN(unsafe { (*rta).rta_len } as usize) as c_int;
+            unsafe { (rta as *mut u8).add(RTA_ALIGN((*rta).rta_len as usize)) as *mut rtattr }
+        }
+
+        /// ```c
+        /// #define RTA_LENGTH(len)	(RTA_ALIGN(sizeof(struct rtattr)) + (len))
+        /// ```
+        #[inline]
+        pub(super) const fn RTA_LENGTH(len: usize) -> usize {
+            RTA_ALIGN(size_of::<rtattr>()) + len
+        }
+
+        /// ```c
+        /// #define RTA_DATA(rta)   ((void*)(((char*)(rta)) + RTA_LENGTH(0)))
+        /// ```
+        #[inline]
+        pub(super) const fn RTA_DATA(rta: *const rtattr) -> *mut c_void {
+            unsafe { (rta as *mut u8).add(RTA_LENGTH(0)) as *mut c_void }
+        }
+    }
+
+    fn link_name(ifi: *const ifinfomsg, msg_len: u32) -> Option<String> {
+        let mut len = msg_len as c_int - NLMSG_LENGTH(size_of::<ifinfomsg>());
+
+        let mut attr = unsafe { (ifi as *mut u8).add(NLMSG_ALIGN(size_of::<ifinfomsg>()) as usize) }
+            as *mut rtattr;
+
+        while RTA_OK(attr, len) {
+            if unsafe { (*attr).rta_type } == IFLA_IFNAME {
+                let name = unsafe { CStr::from_ptr(RTA_DATA(attr) as *const c_char) };
+                return Some(name.to_string_lossy().into_owned());
+            }
+
+            attr = RTA_NEXT(attr, &mut len);
+        }
+
+        None
+    }
+
+    #[repr(C)]
+    struct Request {
+        nlh: nlmsghdr,
+        ifi: ifinfomsg,
+    }
+
+    pub struct NetworkMonitor {
+        shutdown_sender: Option<Sender<()>>,
     }
 
     impl NetworkMonitor {
-        pub(crate) fn new(event_loop_proxy: EventLoopProxy<AppEvent>) -> Self {
-            let (shutdown_sender, shutdown_receiver) = mpsc::channel(1);
+        pub fn new(event_loop_proxy: EventLoopProxy<AppEvent>) -> Self {
+            let (shutdown_sender, shutdown_receiver) = oneshot::channel();
+
             thread::Builder::new()
                 .name("network-monitor".into())
                 .spawn(move || {
                     let runtime = tokio::runtime::Builder::new_current_thread()
-                        .enable_all()
+                        .enable_io()
                         .build()
                         .expect("failed to build tokio runtime");
-                    runtime.block_on(watch_rtnetlink(event_loop_proxy, shutdown_receiver))
+                    runtime.block_on(watch_netlink(event_loop_proxy, shutdown_receiver))
                 })
                 .expect("failed to spawn network monitor thread");
-            Self { shutdown_sender }
+
+            Self {
+                shutdown_sender: Some(shutdown_sender),
+            }
         }
     }
 
     impl Drop for NetworkMonitor {
         fn drop(&mut self) {
-            if let Err(err) = self.shutdown_sender.blocking_send(()) {
-                error!("failed to shutdown network monitor {:?}", err);
+            if let Some(sender) = self.shutdown_sender.take() {
+                let _ = sender.send(());
             }
         }
     }
 
-    async fn watch_rtnetlink(
+    async fn watch_netlink(
         event_loop_proxy: EventLoopProxy<AppEvent>,
-        mut shutdown_receiver: Receiver<()>,
+        mut shutdown_receiver: oneshot::Receiver<()>,
     ) {
-        let mut links = HashMap::new();
+        let mut online_links: HashMap<i32, Option<String>> = HashMap::new();
         let mut previous_online = true;
 
-        let update_online = |online_links: &HashMap<u32, Option<String>>, previous: &mut bool| {
-            let current = online_links
-                .values()
-                .any(|name| !name.as_ref().is_some_and(|name| name.starts_with("tun")));
-
-            if current != *previous {
-                *previous = current;
-
-                let _ = event_loop_proxy.send_event(AppEvent::SetNetworkOnlineState(current));
-            }
+        let netlink = match open_netlink()
+            // .and_then(|fd| unsafe { AsyncFd::register(fd) }.map_err(Into::into))
+            .and_then(|fd| AsyncFd::new(fd))
+        {
+            Ok(netlink) => netlink,
+            Err(err) => {
+                error!("failed to connect to rtnetlink: {err}");
+                return;
+            },
         };
 
-        let Ok((mut connection, mut handle, mut messages)) = new_connection() else {
-            error!("failed to connection to rtnetlink");
+        if let Err(err) = request_dump(netlink.get_ref()) {
+            error!("sendto: {err}");
             return;
-        };
-
-        let addr = SocketAddr::new(0, RTMGRP_LINK);
-        let Ok(_) = connection.socket_mut().socket_mut().bind(&addr) else {
-            error!("failed to register rtnetlink broadcast");
-            return;
-        };
-        tokio::spawn(connection);
-
-        // initial dump
-        let mut msg = NetlinkMessage::from(RouteNetlinkMessage::GetLink(LinkMessage::default()));
-        msg.header.flags = NLM_F_REQUEST | NLM_F_DUMP;
-
-        if let Ok(mut stream) = handle.request(msg) {
-            while let Some(msg) = stream.next().await {
-                handle_rtnetlink_message(msg, &mut links);
-            }
-            update_online(&links, &mut previous_online);
         }
 
-        // listen to link change notifications
+        let mut is_dump_done = false;
+        let mut buf = [0u64; 4096];
+
         loop {
             tokio::select! {
-                _ = shutdown_receiver.recv() => return,
-                Ok((msg, _)) = messages.recv() => {
-                    handle_rtnetlink_message(msg, &mut links);
-                    update_online(&links, &mut previous_online);
-                },
-            };
+                biased;
+
+                _ = &mut shutdown_receiver => return,
+
+                ready = netlink.readable() => {
+                    let mut guard = match ready {
+                        Ok(guard) => guard,
+                        Err(err) => {
+                            error!("readable: {err}");
+                            return;
+                        }
+                    };
+
+                    loop {
+                        match guard.try_io(|inner| recv_netlink(inner.get_ref(), &mut buf)) {
+                            Ok(Ok(n)) => {
+                                if n > 0 {
+                                    if !handle_netlink(
+                                        &mut buf,
+                                        n,
+                                        &mut online_links,
+                                        &mut is_dump_done,
+                                    ) {
+                                        return;
+                                    }
+
+                                    if is_dump_done {
+                                        update_online(
+                                            &online_links,
+                                            &mut previous_online,
+                                            &event_loop_proxy,
+                                        );
+                                    }
+                                }
+                            }
+                            Ok(Err(err)) => {
+                                error!("recv: {err}");
+                                return;
+                            }
+                            Err(_would_block) => break,
+                        }
+                    }
+                }
+            }
         }
     }
 
-    fn handle_rtnetlink_message(
-        msg: NetlinkMessage<RouteNetlinkMessage>,
-        online_links: &mut HashMap<u32, Option<String>>,
-    ) {
-        match msg.payload {
-            NetlinkPayload::Done(_done_message) => {},
-            NetlinkPayload::Error(_error_message) => {},
-            NetlinkPayload::InnerMessage(inner) => match inner {
-                RouteNetlinkMessage::NewLink(msg) => {
-                    let LinkHeader { flags, index, .. } = msg.header;
-                    if !flags.contains(LinkFlags::Loopback) &&
-                        flags.contains(LinkFlags::Up | LinkFlags::LowerUp | LinkFlags::Running)
-                    {
-                        let name = msg.attributes.into_iter().find_map(|attr| match attr {
-                            LinkAttribute::IfName(name) => Some(name),
-                            _ => None,
-                        });
-                        online_links.insert(index, name);
+    fn open_netlink() -> io::Result<OwnedFd> {
+        let fd = unsafe {
+            socket(
+                AF_NETLINK,
+                SOCK_RAW | SOCK_CLOEXEC | SOCK_NONBLOCK,
+                NETLINK_ROUTE,
+            )
+        };
+        if fd < 0 {
+            return Err(io::Error::last_os_error());
+        }
+
+        let netlink = unsafe { OwnedFd::from_raw_fd(fd) };
+
+        let mut addr: sockaddr_nl = unsafe { MaybeUninit::zeroed().assume_init() };
+        addr.nl_family = AF_NETLINK as sa_family_t;
+        addr.nl_groups = RTMGRP_LINK as u32;
+
+        if unsafe {
+            bind(
+                fd,
+                &addr as *const _ as *const sockaddr,
+                size_of_val(&addr) as socklen_t,
+            )
+        } < 0
+        {
+            return Err(io::Error::last_os_error());
+        }
+
+        Ok(netlink)
+    }
+
+    fn request_dump(netlink: &OwnedFd) -> io::Result<()> {
+        let mut nlh: nlmsghdr = unsafe { MaybeUninit::zeroed().assume_init() };
+        nlh.nlmsg_len = NLMSG_LENGTH(size_of::<ifinfomsg>()) as u32;
+        nlh.nlmsg_type = RTM_GETLINK;
+        nlh.nlmsg_flags = (NLM_F_REQUEST | NLM_F_DUMP) as u16;
+        nlh.nlmsg_seq = 1;
+
+        let mut ifi: ifinfomsg = unsafe { MaybeUninit::zeroed().assume_init() };
+        ifi.ifi_family = AF_UNSPEC as c_uchar;
+
+        let req = Request { nlh, ifi };
+
+        let mut kernel: sockaddr_nl = unsafe { MaybeUninit::zeroed().assume_init() };
+        kernel.nl_family = AF_NETLINK as sa_family_t;
+
+        let sent = unsafe {
+            sendto(
+                netlink.as_raw_fd(),
+                &req as *const _ as *const c_void,
+                req.nlh.nlmsg_len as usize,
+                0,
+                &kernel as *const _ as *const sockaddr,
+                size_of_val(&kernel) as socklen_t,
+            )
+        };
+
+        if sent < 0 {
+            return Err(io::Error::last_os_error());
+        }
+
+        Ok(())
+    }
+
+    fn recv_netlink(netlink: &OwnedFd, buf: &mut [u64]) -> io::Result<isize> {
+        let n = unsafe {
+            recv(
+                netlink.as_raw_fd(),
+                buf.as_mut_ptr() as *mut c_void,
+                buf.len() * size_of::<u64>(),
+                0,
+            )
+        };
+
+        if n < 0 {
+            Err(io::Error::last_os_error())
+        } else {
+            Ok(n)
+        }
+    }
+
+    fn handle_netlink(
+        buf: &mut [u64],
+        len: isize,
+        online_links: &mut HashMap<i32, Option<String>>,
+        is_dump_done: &mut bool,
+    ) -> bool {
+        let mut remaining = len as c_int;
+
+        let mut p = buf.as_mut_ptr() as *mut nlmsghdr;
+        while unsafe { NLMSG_OK(p, remaining) } {
+            let next = unsafe { NLMSG_NEXT(p, &mut remaining) };
+            let msg_type = unsafe { (*p).nlmsg_type };
+
+            match msg_type {
+                NLMSG_DONE => {
+                    *is_dump_done = true;
+                },
+                NLMSG_ERROR => {
+                    let error = unsafe { (*(NLMSG_DATA(p) as *const nlmsgerr)).error };
+                    if error != 0 {
+                        error!("netlink: {}", io::Error::from_raw_os_error(-error));
+                        return false;
+                    }
+                },
+                RTM_NEWLINK => {
+                    let ifi = unsafe { NLMSG_DATA(p) as *const ifinfomsg };
+                    let (index, flags) = unsafe { ((*ifi).ifi_index, (*ifi).ifi_flags) };
+
+                    let loopback = flags & IFF_LOOPBACK != 0;
+                    let up = flags & IFF_UP != 0;
+                    let lower_up = flags & IFF_LOWER_UP != 0;
+                    let running = flags & IFF_RUNNING != 0;
+
+                    if !loopback && up && lower_up && running {
+                        online_links.insert(index, link_name(ifi, unsafe { (*p).nlmsg_len }));
                     } else {
                         online_links.remove(&index);
                     }
                 },
-                RouteNetlinkMessage::DelLink(msg) => {
-                    online_links.remove(&msg.header.index);
+                RTM_DELLINK => {
+                    let index = unsafe { (*(NLMSG_DATA(p) as *const ifinfomsg)).ifi_index };
+                    online_links.remove(&index);
                 },
                 _ => {},
-            },
-            _ => {},
+            }
+
+            p = next;
+        }
+
+        true
+    }
+
+    fn update_online(
+        links: &HashMap<i32, Option<String>>,
+        previous_online: &mut bool,
+        event_loop_proxy: &EventLoopProxy<AppEvent>,
+    ) {
+        let current = links
+            .values()
+            .any(|name| !name.as_ref().is_some_and(|name| name.starts_with("tun")));
+
+        if current != *previous_online {
+            *previous_online = current;
+            let _ = event_loop_proxy.send_event(AppEvent::SetNetworkOnlineState(current));
         }
     }
 }

@@ -148,8 +148,8 @@ winit = { workspace = true }
 signal-hook-registry = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
-futures-util = { workspace = true }
-rtnetlink = { workspace = true }
+libc = { workspace = true }
+tokio = { workspace = true, features = ["net"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 servo = { workspace = true, features = ["no-wgl"] }
