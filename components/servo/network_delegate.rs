@@ -167,8 +167,7 @@ mod linux {
         let mut previous_online = true;
 
         let netlink = match open_netlink()
-            // .and_then(|fd| unsafe { AsyncFd::register(fd) }.map_err(Into::into))
-            .and_then(|fd| AsyncFd::new(fd))
+            .and_then(|fd| unsafe { AsyncFd::register(fd) }.map_err(Into::into))
         {
             Ok(netlink) => netlink,
             Err(err) => {
@@ -220,7 +219,7 @@ mod linux {
                                         update_online(
                                             &online_links,
                                             &mut previous_online,
-                                            &callback,
+                                            callback,
                                         );
                                     }
                                 }
@@ -307,7 +306,7 @@ mod linux {
             recv(
                 netlink.as_raw_fd(),
                 buf.as_mut_ptr() as *mut c_void,
-                buf.len() * size_of::<u64>(),
+                size_of_val(buf),
                 0,
             )
         };
