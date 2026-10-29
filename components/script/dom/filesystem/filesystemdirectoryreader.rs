@@ -21,6 +21,10 @@ use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::filesystemdirectoryentry::FileSystemDirectoryEntry;
 use crate::dom::globalscope::GlobalScope;
 
+/// Maximum number of entries returned by a single `readEntries()` call,
+/// matching Chromium's limit.
+const READ_ENTRIES_BATCH_SIZE: usize = 100;
+
 #[dom_struct]
 pub(crate) struct FileSystemDirectoryReader {
     reflector_: Reflector,
@@ -190,13 +194,9 @@ impl FileSystemDirectoryReaderMethods<crate::DomTypeHolder> for FileSystemDirect
                             //      entries from this’s directory that have
                             //      not yet been produced by this
                             //      FileSystemDirectoryReader, if any.
-                            let all_entries = this.dir.children();
                             let start = this.idx.get();
-                            let entries = all_entries
-                                .get(start..)
-                                .unwrap_or(&[])
-                                .to_vec();
-                            this.idx.set(all_entries.len());
+                            let entries = this.dir.children_batch(start, READ_ENTRIES_BATCH_SIZE);
+                            this.idx.set(start + entries.len());
                             //
                             // 5.3. If the previous step failed (for example,
                             //      the directory was deleted or permission is denied), then:
