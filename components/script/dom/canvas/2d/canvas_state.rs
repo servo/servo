@@ -1517,6 +1517,7 @@ impl CanvasState {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext>
+    #[expect(clippy::too_many_arguments)]
     pub(super) fn fill_text(
         &self,
         cx: &mut JSContext,
@@ -1562,6 +1563,7 @@ impl CanvasState {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-stroketext>
+    #[expect(clippy::too_many_arguments)]
     pub(super) fn stroke_text(
         &self,
         cx: &mut JSContext,
