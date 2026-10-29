@@ -416,9 +416,9 @@ dependencies = [
  "objc2-core-foundation",
  "objc2-core-graphics",
  "objc2-foundation 0.3.2",
- "parking_lot",
+ "parking_lot 0.12.5",
  "percent-encoding",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
  "wl-clipboard-rs",
  "x11rb",
 ]
@@ -1837,7 +1837,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d045de693cb712d0b22c6a64be5b953f67b3ce00ab5ad3dd5d8b441886ab8e1a"
 dependencies = [
  "quote",
- "syn 2.0.119",
+ "syn 3.0.4",
 ]
 
 [[package]]
@@ -1976,9 +1976,9 @@ dependencies = [
  "cfg-if",
  "crossbeam-utils",
  "hashbrown 0.14.5",
- "lock_api",
+ "lock_api 0.4.14",
  "once_cell",
- "parking_lot_core",
+ "parking_lot_core 0.9.12",
 ]
 
 [[package]]
@@ -2565,7 +2565,7 @@ dependencies = [
  "font-types 0.11.3",
  "log",
  "nohash-hasher",
- "parking_lot",
+ "parking_lot 0.12.5",
  "profiling",
  "self_cell",
  "skrifa 0.40.0",
@@ -2612,7 +2612,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2991,8 +2991,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d930c203dd0b6ff06e0201a4a2fe9149b43c684fd4420555b26d21b1a02956f"
 dependencies = [
  "futures-core",
- "lock_api",
- "parking_lot",
+ "lock_api 0.4.14",
+ "parking_lot 0.12.5",
 ]
 
 [[package]]
@@ -3191,7 +3191,7 @@ dependencies = [
  "gobject-sys",
  "libc",
  "system-deps",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5082,6 +5082,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "224399e74b87b5f3557511d98dff8b14089b3dadafcab6bb93eab67d3aace965"
 dependencies = [
  "scopeguard",
+]
+
+[[package]]
+name = "lock_api"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "65d91b22da179613dcf4d6ec8349563f52a363f6849e03b00dd0a185ec4a59af"
+dependencies = [
+ "scopeguard",
  "serde",
 ]
 
@@ -6473,7 +6482,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d8fae84b431384b68627d0f9b3b1245fcf9f46f6c0e3dc902e9dce64edd1967"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -6548,8 +6557,18 @@ version = "0.12.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93857453250e3077bd71ff98b6a65ea6621a19bb0f559a85248955ac12c45a1a"
 dependencies = [
- "lock_api",
- "parking_lot_core",
+ "lock_api 0.4.14",
+ "parking_lot_core 0.9.12",
+]
+
+[[package]]
+name = "parking_lot"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a9cf937ca4e1d0b7578784559063422fc39ae7c5a00f02471f2614d5486fd226"
+dependencies = [
+ "lock_api 0.5.0",
+ "parking_lot_core 0.10.0",
 ]
 
 [[package]]
@@ -6561,6 +6580,18 @@ dependencies = [
  "cfg-if",
  "libc",
  "redox_syscall 0.5.18",
+ "smallvec",
+ "windows-link",
+]
+
+[[package]]
+name = "parking_lot_core"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9cfff060068cc18aa7815010fcaf80c68c7fb9e85fc7f5c0f9bf142c21d19826"
+dependencies = [
+ "libc",
+ "redox_syscall 0.9.5",
  "smallvec",
  "windows-link",
 ]
@@ -7768,7 +7799,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -7825,7 +7856,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -8219,7 +8250,7 @@ dependencies = [
  "log",
  "mozangle",
  "ohos-pasteboard",
- "parking_lot",
+ "parking_lot 0.13.0",
  "rustc-hash 2.1.3",
  "rustls",
  "serde",
@@ -8322,7 +8353,7 @@ dependencies = [
  "log",
  "mach2",
  "malloc_size_of_derive",
- "parking_lot",
+ "parking_lot 0.13.0",
  "rayon",
  "regex",
  "serde",
@@ -8471,7 +8502,7 @@ dependencies = [
  "ipc-channel",
  "keyboard-types",
  "log",
- "parking_lot",
+ "parking_lot 0.13.0",
  "rand 0.10.3",
  "rustc-hash 2.1.3",
  "serde",
@@ -8568,7 +8599,7 @@ dependencies = [
  "http",
  "log",
  "malloc_size_of_derive",
- "parking_lot",
+ "parking_lot 0.13.0",
  "rand 0.10.3",
  "rustc-hash 2.1.3",
  "serde",
@@ -8673,7 +8704,7 @@ dependencies = [
  "objc2-core-graphics",
  "objc2-core-text",
  "ohos-deviceinfo",
- "parking_lot",
+ "parking_lot 0.13.0",
  "postcard",
  "read-fonts 0.43.3",
  "rustc-hash 2.1.3",
@@ -8715,7 +8746,7 @@ dependencies = [
  "memmap2",
  "num-derive",
  "num-traits",
- "parking_lot",
+ "parking_lot 0.13.0",
  "read-fonts 0.43.3",
  "serde",
  "servo-base",
@@ -8789,7 +8820,7 @@ dependencies = [
  "num-derive",
  "num-traits",
  "once_cell",
- "parking_lot",
+ "parking_lot 0.13.0",
  "phf 0.14.0",
  "quickcheck",
  "rayon",
@@ -8842,7 +8873,7 @@ dependencies = [
  "html5ever",
  "libc",
  "malloc_size_of_derive",
- "parking_lot",
+ "parking_lot 0.13.0",
  "rustc-hash 2.1.3",
  "selectors",
  "serde",
@@ -8887,7 +8918,7 @@ dependencies = [
  "memmap2",
  "mime",
  "once_cell",
- "parking_lot",
+ "parking_lot 0.13.0",
  "resvg",
  "serde_core",
  "servo-allocator",
@@ -8936,7 +8967,7 @@ dependencies = [
  "malloc_size_of_derive",
  "num-complex",
  "num-traits",
- "parking_lot",
+ "parking_lot 0.13.0",
  "petgraph",
  "realfft",
  "rustc-hash 2.1.3",
@@ -9189,7 +9220,7 @@ dependencies = [
  "mime",
  "mime_guess",
  "nom 8.0.0",
- "parking_lot",
+ "parking_lot 0.13.0",
  "postcard",
  "quick_cache",
  "rand 0.10.3",
@@ -9252,7 +9283,7 @@ dependencies = [
  "malloc_size_of_derive",
  "mime",
  "num-traits",
- "parking_lot",
+ "parking_lot 0.13.0",
  "percent-encoding",
  "rand 0.10.3",
  "resvg",
@@ -9332,7 +9363,7 @@ dependencies = [
  "image",
  "log",
  "malloc_size_of_derive",
- "parking_lot",
+ "parking_lot 0.13.0",
  "raw-window-handle",
  "rustc-hash 2.1.3",
  "serde",
@@ -9447,7 +9478,7 @@ dependencies = [
  "nom-rfc8288",
  "num-traits",
  "num_cpus",
- "parking_lot",
+ "parking_lot 0.13.0",
  "percent-encoding",
  "phf 0.14.0",
  "postcard",
@@ -9535,7 +9566,7 @@ dependencies = [
  "malloc_size_of_derive",
  "mozjs",
  "num-traits",
- "parking_lot",
+ "parking_lot 0.13.0",
  "phf 0.14.0",
  "phf_codegen",
  "phf_shared 0.14.0",
@@ -9813,7 +9844,7 @@ dependencies = [
  "itertools 0.15.0",
  "log",
  "num-traits",
- "parking_lot",
+ "parking_lot 0.13.0",
  "rustc-hash 2.1.3",
  "servo-base",
  "servo-canvas-traits",
@@ -10345,7 +10376,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ffa8a5dbe8b3f0bbe29d4c3225daafaeead63afdc1b65fc4c01a1384166038e6"
 dependencies = [
  "new_debug_unreachable",
- "parking_lot",
+ "parking_lot 0.12.5",
  "phf_shared 0.14.0",
  "precomputed-hash",
  "serde",
@@ -10435,7 +10466,7 @@ dependencies = [
  "num-integer",
  "num-traits",
  "num_cpus",
- "parking_lot",
+ "parking_lot 0.12.5",
  "precomputed-hash",
  "rand 0.8.7",
  "rayon",
@@ -10505,7 +10536,7 @@ dependencies = [
  "cssparser",
  "euclid",
  "hashbrown 0.17.1",
- "parking_lot",
+ "parking_lot 0.12.5",
  "selectors",
  "servo_arc",
  "smallbitvec",
@@ -10701,7 +10732,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix 1.1.5",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -12109,7 +12140,7 @@ dependencies = [
  "js-sys",
  "log",
  "naga",
- "parking_lot",
+ "parking_lot 0.12.5",
  "portable-atomic",
  "profiling",
  "raw-window-handle",
@@ -12143,7 +12174,7 @@ dependencies = [
  "naga",
  "naga-types",
  "once_cell",
- "parking_lot",
+ "parking_lot 0.12.5",
  "portable-atomic",
  "profiling",
  "raw-window-handle",
@@ -12221,7 +12252,7 @@ dependencies = [
  "objc2-quartz-core 0.3.2",
  "once_cell",
  "ordered-float",
- "parking_lot",
+ "parking_lot 0.12.5",
  "portable-atomic",
  "portable-atomic-util",
  "profiling",
@@ -12291,7 +12322,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
