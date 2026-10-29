@@ -19,6 +19,7 @@ use js::conversions::ToJSValConvertible;
 use js::jsval::UndefinedValue;
 use js::rust::HandleObject;
 use mime::{self, Mime};
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::fetch::fetch_controller::FetchController;
 use net_traits::request::{CacheMode, CorsSettings, Destination, RequestBuilder, RequestId};
 use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
@@ -45,9 +46,10 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::event_loop::timers::OneshotTimerCallback;
-use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
+use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request_with_claim};
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 const DEFAULT_RECONNECTION_TIME: Duration = Duration::from_millis(5000);
 
@@ -95,13 +97,12 @@ impl Drop for DroppableEventSource {
 pub(crate) struct EventSource {
     eventtarget: EventTarget,
     #[no_trace]
-    url: ServoUrl,
+    url: UrlWithBlobClaim,
     #[no_trace]
     request: DomRefCell<Option<RequestBuilder>>,
     last_event_id: DomRefCell<TracedDOMString>,
     reconnection_time: Cell<Duration>,
     generation_id: Cell<GenerationId>,
-
     ready_state: Cell<ReadyState>,
     with_credentials: bool,
     droppable: DroppableEventSource,
@@ -513,12 +514,12 @@ impl FetchResponseListener for EventSourceContext {
 
 impl ResourceTimingListener for EventSourceContext {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
-        (InitiatorType::Other, self.event_source.root().url().clone())
+        (InitiatorType::Other, self.event_source.root().url())
     }
 }
 
 impl EventSource {
-    fn new_inherited(url: ServoUrl, with_credentials: bool) -> EventSource {
+    fn new_inherited(url: UrlWithBlobClaim, with_credentials: bool) -> EventSource {
         EventSource {
             eventtarget: EventTarget::new_inherited(),
             url,
@@ -526,7 +527,6 @@ impl EventSource {
             last_event_id: DomRefCell::new(DOMString::new().traced()),
             reconnection_time: Cell::new(DEFAULT_RECONNECTION_TIME),
             generation_id: Cell::new(GenerationId(0)),
-
             ready_state: Cell::new(ReadyState::Connecting),
             with_credentials,
             droppable: DroppableEventSource::new(DomRefCell::new(Default::default())),
@@ -537,7 +537,7 @@ impl EventSource {
         cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        url: ServoUrl,
+        url: UrlWithBlobClaim,
         with_credentials: bool,
     ) -> DomRoot<EventSource> {
         reflect_weak_referenceable_dom_object_with_proto(
@@ -573,8 +573,8 @@ impl EventSource {
         self.request.borrow().clone().unwrap()
     }
 
-    pub(crate) fn url(&self) -> &ServoUrl {
-        &self.url
+    pub(crate) fn url(&self) -> ServoUrl {
+        self.url.url()
     }
 }
 
@@ -595,6 +595,9 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
             // Step 4 If urlRecord is failure, then throw a "SyntaxError" DOMException.
             Err(_) => return Err(Error::Syntax(None)),
         };
+
+        let url_record = ensure_blob_referenced_by_url_is_kept_alive(global, url_record);
+
         // Step 1 Let ev be a new EventSource object.
         let event_source = EventSource::new(
             cx,
@@ -618,7 +621,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         // given urlRecord, the empty string, and corsAttributeState.
         // Step 9. Set request's client to the environment settings object and other state;
         // `with_global_scope` supplies client, origin, policy container, etc.
-        let mut request = create_a_potential_cors_request(
+        let mut request = create_a_potential_cors_request_with_claim(
             global.webview_id(),
             url_record,
             Destination::None,
@@ -679,7 +682,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-eventsource-url>
     fn Url(&self) -> DOMString {
-        DOMString::from(self.url.as_str())
+        DOMString::from(self.url.url().as_str())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-eventsource-withcredentials>
