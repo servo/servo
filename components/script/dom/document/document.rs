@@ -1572,7 +1572,7 @@ impl Document {
         indicated_part.run_the_focusing_steps(
             cx,
             Some(FocusableArea::Viewport),
-            FocusTrigger::Other,
+            FocusTrigger::Script,
         );
 
         // Step 3.7. Move the sequential focus navigation starting point to target.
