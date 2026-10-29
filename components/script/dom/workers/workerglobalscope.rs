@@ -157,7 +157,9 @@ pub(crate) fn prepare_workerscope_init(
         pipeline_id: global.pipeline_id(),
         origin: global.origin().immutable().clone(),
         inherited_secure_context: Some(global.is_secure_context()),
-        inherited_upgrade_insecure_navigations_set: global.upgrade_insecure_navigations_set().clone(),
+        inherited_upgrade_insecure_navigations_set: global
+            .upgrade_insecure_navigations_set()
+            .clone(),
         unminify_js: global.unminify_js(),
         #[cfg(feature = "webgl")]
         webgl_chan,

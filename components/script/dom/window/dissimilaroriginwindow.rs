@@ -81,7 +81,9 @@ impl DissimilarOriginWindow {
                 #[cfg(feature = "webgpu")]
                 global_to_clone_from.wgpu_id_hub(),
                 Some(global_to_clone_from.is_secure_context()),
-                global_to_clone_from.upgrade_insecure_navigations_set().clone(),
+                global_to_clone_from
+                    .upgrade_insecure_navigations_set()
+                    .clone(),
                 false,
             ),
             window_proxy: Dom::from_ref(window_proxy),

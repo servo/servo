@@ -125,6 +125,7 @@ use log::{debug, error, info, trace, warn};
 use media::WindowGLContext;
 use net::image_cache::ImageCacheFactoryImpl;
 use net_traits::pub_domains::registered_domain_name;
+use net_traits::request::UpgradeInsecureNavigations;
 use net_traits::{self, AsyncRuntime, FetchThread, ResourceThreads};
 use paint_api::{
     PaintMessage, PaintProxy, PinchZoomInfos, PipelineExitSource, SendableFrameTree,
@@ -136,7 +137,6 @@ use rand::rngs::SmallRng;
 use rand::seq::IndexedRandom;
 use rand::{RngExt, SeedableRng, make_rng};
 use rustc_hash::{FxHashMap, FxHashSet};
-use net_traits::request::UpgradeInsecureNavigations;
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, MouseButtons,
     NewPipelineInfo, ScriptThreadMessage, UpdatePipelineIdReason,
@@ -1127,7 +1127,7 @@ where
         viewport_details: ViewportDetails,
         is_private: bool,
         inherited_secure_context: Option<bool>,
-        inherited_upgrade_insecure_navigations_set: HashSet<UpgradeInsecureNavigations>
+        inherited_upgrade_insecure_navigations_set: HashSet<UpgradeInsecureNavigations>,
     ) {
         debug!("{browsing_context_id}: Creating new browsing context");
         let Some(webview) = self.webviews.get_mut(&webview_id) else {
@@ -1147,7 +1147,7 @@ where
             viewport_details,
             is_private,
             inherited_secure_context,
-            inherited_upgrade_insecure_navigations_set
+            inherited_upgrade_insecure_navigations_set,
         );
         self.browsing_contexts
             .insert(browsing_context_id, browsing_context);
@@ -2113,23 +2113,27 @@ where
                 let browsing_context_id = match self.pipelines.get(&source_pipeline_id) {
                     Some(pipeline) => pipeline.browsing_context_id,
                     None => {
-                        warn!("{}: AddTupleToUpgradeInsecureNavigationsSet after closure", source_pipeline_id);
-                        return;
-                    },
-                };
-                let upgrade_insecure_navigations_set = match self.browsing_contexts.get_mut(&browsing_context_id) {
-                    Some(ctx) => &mut ctx.upgrade_insecure_navigations_set,
-                    None => {
                         warn!(
-                            "{}: AddTupleToUpgradeInsecureNavigationsSet in closed {}",
-                            source_pipeline_id, browsing_context_id,
+                            "{}: AddTupleToUpgradeInsecureNavigationsSet after closure",
+                            source_pipeline_id
                         );
                         return;
                     },
                 };
+                let upgrade_insecure_navigations_set =
+                    match self.browsing_contexts.get_mut(&browsing_context_id) {
+                        Some(ctx) => &mut ctx.upgrade_insecure_navigations_set,
+                        None => {
+                            warn!(
+                                "{}: AddTupleToUpgradeInsecureNavigationsSet in closed {}",
+                                source_pipeline_id, browsing_context_id,
+                            );
+                            return;
+                        },
+                    };
 
                 upgrade_insecure_navigations_set.insert(tuple);
-            }
+            },
         }
     }
 
@@ -3486,7 +3490,7 @@ where
                 parent_pipeline_id: None,
                 is_private,
                 inherited_secure_context: None,
-                upgrade_insecure_navigations_set: HashSet::new()
+                upgrade_insecure_navigations_set: HashSet::new(),
             }),
             viewport_details,
         });
@@ -3746,7 +3750,11 @@ where
             };
         let (is_parent_private, is_parent_secure, parent_upgrade_insecure_navigations_set) =
             match self.browsing_contexts.get(&parent_browsing_context_id) {
-                Some(ctx) => (ctx.is_private, ctx.inherited_secure_context, ctx.upgrade_insecure_navigations_set.clone()),
+                Some(ctx) => (
+                    ctx.is_private,
+                    ctx.inherited_secure_context,
+                    ctx.upgrade_insecure_navigations_set.clone(),
+                ),
                 None => {
                     return warn!(
                         "{}: New iframe {} loaded in closed parent browsing context",
@@ -3785,7 +3793,7 @@ where
                     parent_pipeline_id: Some(parent_pipeline_id),
                     is_private,
                     inherited_secure_context: is_parent_secure,
-                    upgrade_insecure_navigations_set: parent_upgrade_insecure_navigations_set
+                    upgrade_insecure_navigations_set: parent_upgrade_insecure_navigations_set,
                 }),
                 viewport_details: load_info.viewport_details,
             });
@@ -3846,7 +3854,11 @@ where
             };
         let (is_opener_private, is_opener_secure, opener_upgrade_insecure_navigations_set) =
             match self.browsing_contexts.get(&opener_browsing_context_id) {
-                Some(ctx) => (ctx.is_private, ctx.inherited_secure_context, ctx.upgrade_insecure_navigations_set.clone()),
+                Some(ctx) => (
+                    ctx.is_private,
+                    ctx.inherited_secure_context,
+                    ctx.upgrade_insecure_navigations_set.clone(),
+                ),
                 None => {
                     return warn!(
                         "{}: New auxiliary {} loaded in closed opener browsing context",
@@ -3902,7 +3914,7 @@ where
                 parent_pipeline_id: None,
                 is_private: is_opener_private,
                 inherited_secure_context: is_opener_secure,
-                upgrade_insecure_navigations_set: opener_upgrade_insecure_navigations_set
+                upgrade_insecure_navigations_set: opener_upgrade_insecure_navigations_set,
             }),
             viewport_details,
         });
@@ -4331,27 +4343,32 @@ where
                 return None;
             },
         };
-        let (viewport_details, pipeline_id, parent_pipeline_id, is_private, upgrade_insecure_navigations_set) =
-            match self.browsing_contexts.get(&browsing_context_id) {
-                Some(ctx) => (
-                    ctx.viewport_details,
-                    ctx.pipeline_id,
-                    ctx.parent_pipeline_id,
-                    ctx.is_private,
-                    ctx.upgrade_insecure_navigations_set.clone()
-                ),
-                None => {
-                    // This should technically never happen (since `load_url` is
-                    // only called on existing browsing contexts), but we prefer to
-                    // avoid `expect`s or `unwrap`s in `Constellation` to ward
-                    // against future changes that might break things.
-                    warn!(
-                        "{}: Loaded url in closed {}",
-                        source_id, browsing_context_id,
-                    );
-                    return None;
-                },
-            };
+        let (
+            viewport_details,
+            pipeline_id,
+            parent_pipeline_id,
+            is_private,
+            upgrade_insecure_navigations_set,
+        ) = match self.browsing_contexts.get(&browsing_context_id) {
+            Some(ctx) => (
+                ctx.viewport_details,
+                ctx.pipeline_id,
+                ctx.parent_pipeline_id,
+                ctx.is_private,
+                ctx.upgrade_insecure_navigations_set.clone(),
+            ),
+            None => {
+                // This should technically never happen (since `load_url` is
+                // only called on existing browsing contexts), but we prefer to
+                // avoid `expect`s or `unwrap`s in `Constellation` to ward
+                // against future changes that might break things.
+                warn!(
+                    "{}: Loaded url in closed {}",
+                    source_id, browsing_context_id,
+                );
+                return None;
+            },
+        };
 
         load_data.inherited_upgrade_insecure_navigations_set = upgrade_insecure_navigations_set;
 
@@ -5616,7 +5633,7 @@ where
                     change.viewport_details,
                     new_context_info.is_private,
                     new_context_info.inherited_secure_context,
-                    new_context_info.upgrade_insecure_navigations_set
+                    new_context_info.upgrade_insecure_navigations_set,
                 );
                 self.update_activity(change.new_pipeline_id);
             },

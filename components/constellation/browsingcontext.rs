@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::collections::HashSet;
+
 use embedder_traits::ViewportDetails;
 use log::warn;
-use rustc_hash::{FxHashMap, FxHashSet};
 use net_traits::request::UpgradeInsecureNavigations;
+use rustc_hash::{FxHashMap, FxHashSet};
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 
 use crate::pipeline::Pipeline;
@@ -28,8 +29,8 @@ pub struct NewBrowsingContextInfo {
     /// Whether this browsing context inherits a secure context.
     pub inherited_secure_context: Option<bool>,
 
-    /// https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-insecure-navigations-set
-    pub upgrade_insecure_navigations_set: HashSet<UpgradeInsecureNavigations>
+    /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-insecure-navigations-set>
+    pub upgrade_insecure_navigations_set: HashSet<UpgradeInsecureNavigations>,
 }
 
 /// The constellation's view of a browsing context.
@@ -54,7 +55,7 @@ pub struct BrowsingContext {
     /// Whether this browsing context inherits a secure context.
     pub inherited_secure_context: Option<bool>,
 
-    /// https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-insecure-navigations-set
+    /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-insecure-navigations-set>
     pub upgrade_insecure_navigations_set: HashSet<UpgradeInsecureNavigations>,
 
     /// The pipeline for the current session history entry.
@@ -80,7 +81,7 @@ impl BrowsingContext {
         viewport_details: ViewportDetails,
         is_private: bool,
         inherited_secure_context: Option<bool>,
-        inherited_upgrade_insecure_navigations_set: HashSet<UpgradeInsecureNavigations>
+        inherited_upgrade_insecure_navigations_set: HashSet<UpgradeInsecureNavigations>,
     ) -> BrowsingContext {
         let mut pipelines = FxHashSet::default();
         pipelines.insert(pipeline_id);

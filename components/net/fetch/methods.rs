@@ -22,7 +22,12 @@ use net_traits::fetch::headers::{determine_nosniff, extract_mime_type_as_mime};
 use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
 use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::PolicyContainer;
-use net_traits::request::{is_cors_safelisted_method, is_cors_safelisted_request_header, BodyChunkRequest, BodyChunkResponse, CredentialsMode, Destination, Initiator, InsecureRequestsPolicy, InternalRequest, Origin, ParserMetadata, RedirectMode, Referrer, Request, RequestBody, RequestId, RequestMode, ResponseTainting, UpgradeInsecureNavigations};
+use net_traits::request::{
+    BodyChunkRequest, BodyChunkResponse, CredentialsMode, Destination, Initiator,
+    InsecureRequestsPolicy, InternalRequest, Origin, ParserMetadata, RedirectMode, Referrer,
+    Request, RequestBody, RequestId, RequestMode, ResponseTainting, UpgradeInsecureNavigations,
+    is_cors_safelisted_method, is_cors_safelisted_request_header,
+};
 use net_traits::response::{Response, ResponseBody, ResponseType, TerminationReason};
 use net_traits::{
     FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,
@@ -1339,7 +1344,10 @@ fn should_upgrade_request_to_potentially_trustworthy(
         // Step 2.3  Let tuple be a tuple of request’s URL's host and port.
         let tuple = match request.url().origin() {
             ImmutableOrigin::Opaque(_) => None,
-            ImmutableOrigin::Tuple(_, host, port) => Some(UpgradeInsecureNavigations { host: host.to_string(), port })
+            ImmutableOrigin::Tuple(_, host, port) => Some(UpgradeInsecureNavigations {
+                host: host.to_string(),
+                port,
+            }),
         };
 
         // Step 2.4 If tuple is contained in client's upgrade insecure navigations set,
@@ -1348,9 +1356,8 @@ fn should_upgrade_request_to_potentially_trustworthy(
             if request
                 .client
                 .as_ref()
-                .is_some_and(
-                    |client| client.upgrade_insecure_navigations_set.contains(&tuple)
-                ) {
+                .is_some_and(|client| client.upgrade_insecure_navigations_set.contains(&tuple))
+            {
                 return true;
             }
         }

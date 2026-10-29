@@ -424,7 +424,7 @@ pub enum InsecureRequestsPolicy {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Eq, Hash, Serialize)]
 pub struct UpgradeInsecureNavigations {
     pub host: String,
-    pub port: u16
+    pub port: u16,
 }
 
 pub trait RequestHeadersSize {

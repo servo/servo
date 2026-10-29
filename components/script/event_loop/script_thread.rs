@@ -3601,7 +3601,9 @@ impl ScriptThread {
                     #[cfg(feature = "webgpu")]
                     self.gpu_id_hub.clone(),
                     incomplete.load_data.inherited_secure_context,
-                    incomplete.load_data.inherited_upgrade_insecure_navigations_set,
+                    incomplete
+                        .load_data
+                        .inherited_upgrade_insecure_navigations_set,
                     self.this.clone(),
                 )
             },

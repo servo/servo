@@ -40,7 +40,10 @@ use net_traits::filemanager_thread::{
 };
 use net_traits::image_cache::ImageCache;
 use net_traits::policy_container::PolicyContainer;
-use net_traits::request::{InsecureRequestsPolicy, Origin as RequestOrigin, Referrer, RequestBuilder, RequestClient, UpgradeInsecureNavigations};
+use net_traits::request::{
+    InsecureRequestsPolicy, Origin as RequestOrigin, Referrer, RequestBuilder, RequestClient,
+    UpgradeInsecureNavigations,
+};
 use net_traits::{CoreResourceMsg, CoreResourceThread, ReferrerPolicy, ResourceThreads};
 use profile_traits::{
     generic_callback as profile_generic_callback, generic_channel as profile_generic_channel,
@@ -336,9 +339,9 @@ pub(crate) struct GlobalScope {
     /// <https://fetch.spec.whatwg.org/#environment-settings-object-fetch-group>
     fetch_group: DomRefCell<FetchGroup>,
 
-    ///https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-insecure-navigations-set
+    /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-insecure-navigations-set>
     #[no_trace]
-    inherited_upgrade_insecure_navigations_set: DomRefCell<HashSet<UpgradeInsecureNavigations>>
+    inherited_upgrade_insecure_navigations_set: DomRefCell<HashSet<UpgradeInsecureNavigations>>,
 }
 
 impl GlobalScope {
@@ -451,7 +454,9 @@ impl GlobalScope {
             import_map: Default::default(),
             resolved_module_set: Default::default(),
             fetch_group: DomRefCell::new(FetchGroup::new(resource_threads_sender)),
-            inherited_upgrade_insecure_navigations_set: DomRefCell::new(inherited_upgrade_insecure_navigations_set),
+            inherited_upgrade_insecure_navigations_set: DomRefCell::new(
+                inherited_upgrade_insecure_navigations_set,
+            ),
         }
     }
 
@@ -2458,13 +2463,17 @@ impl GlobalScope {
         InsecureRequestsPolicy::DoNotUpgrade
     }
 
-    /// https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-insecure-navigations-set
-    pub(crate) fn upgrade_insecure_navigations_set(&self) -> Ref<'_, HashSet<UpgradeInsecureNavigations>> {
+    /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-insecure-navigations-set>
+    pub(crate) fn upgrade_insecure_navigations_set(
+        &self,
+    ) -> Ref<'_, HashSet<UpgradeInsecureNavigations>> {
         self.inherited_upgrade_insecure_navigations_set.borrow()
     }
 
-    /// https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-insecure-navigations-set
-    pub fn upgrade_insecure_navigations_set_mut(&self) -> RefMut<'_, HashSet<UpgradeInsecureNavigations>> {
+    /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-insecure-navigations-set>
+    pub fn upgrade_insecure_navigations_set_mut(
+        &self,
+    ) -> RefMut<'_, HashSet<UpgradeInsecureNavigations>> {
         self.inherited_upgrade_insecure_navigations_set.borrow_mut()
     }
 

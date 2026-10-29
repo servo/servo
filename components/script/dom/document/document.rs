@@ -48,7 +48,10 @@ use net_traits::CoreResourceMsg::{GetCookieStringForUrl, SetCookiesForUrl};
 use net_traits::image_cache::ImageCache;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::pub_domains::{Site, is_pub_domain};
-use net_traits::request::{InsecureRequestsPolicy, PreloadId, PreloadKey, PreloadedResources, RequestBuilder, UpgradeInsecureNavigations};
+use net_traits::request::{
+    InsecureRequestsPolicy, PreloadId, PreloadKey, PreloadedResources, RequestBuilder,
+    UpgradeInsecureNavigations,
+};
 use net_traits::{ReferrerPolicy, ResourceFetchTiming};
 use paint_api::display_list::PaintTimingInfo;
 use percent_encoding::percent_decode;
@@ -2123,14 +2126,19 @@ impl Document {
                     policy.disposition == PolicyDisposition::Enforce
                 {
                     if let ImmutableOrigin::Tuple(_, host, port) = self.url.borrow().origin() {
-                        let tuple = UpgradeInsecureNavigations { host: host.to_string(), port };
+                        let tuple = UpgradeInsecureNavigations {
+                            host: host.to_string(),
+                            port,
+                        };
                         let global_scope = self.window.as_global_scope();
-                        
+
                         global_scope
                             .script_to_constellation_chan()
                             .send(ScriptToConstellationMessage::AddTupleToUpgradeInsecureNavigationsSet(tuple.clone()))
                             .unwrap();
-                        global_scope.upgrade_insecure_navigations_set_mut().insert(tuple);
+                        global_scope
+                            .upgrade_insecure_navigations_set_mut()
+                            .insert(tuple);
                     }
                     return;
                 }

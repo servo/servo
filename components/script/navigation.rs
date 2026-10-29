@@ -239,7 +239,10 @@ impl InProgressLoad {
             origin: Origin::Origin(client_origin),
             is_nested_browsing_context: self.parent_info.is_some(),
             insecure_requests_policy,
-            upgrade_insecure_navigations_set: self.load_data.inherited_upgrade_insecure_navigations_set.clone(),
+            upgrade_insecure_navigations_set: self
+                .load_data
+                .inherited_upgrade_insecure_navigations_set
+                .clone(),
             has_trustworthy_ancestor_origin: self.load_data.has_trustworthy_ancestor_origin,
             network_partition_key: None,
         };

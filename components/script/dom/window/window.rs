@@ -6,8 +6,8 @@
 
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell, RefMut};
-use std::collections::hash_map::Entry;
 use std::collections::HashSet;
+use std::collections::hash_map::Entry;
 use std::default::Default;
 use std::ffi::c_void;
 use std::io::{Write, stderr, stdout};
@@ -1079,7 +1079,10 @@ impl Window {
             origin: Origin::Origin(origin.immutable().clone()),
             is_nested_browsing_context: !self.is_top_level(),
             insecure_requests_policy,
-            upgrade_insecure_navigations_set: self.as_global_scope().upgrade_insecure_navigations_set().clone(),
+            upgrade_insecure_navigations_set: self
+                .as_global_scope()
+                .upgrade_insecure_navigations_set()
+                .clone(),
             has_trustworthy_ancestor_origin,
             network_partition_key,
         }

@@ -6,6 +6,7 @@
 
 use std::cell::RefCell;
 use std::collections::HashSet;
+
 use devtools_traits::{
     BlackboxCoverage, DebuggerValue, DevtoolScriptControlMsg, EvaluateJSReply,
     GetEnvironmentRequest, ScriptToDevtoolsControlMsg, SourceInfo,

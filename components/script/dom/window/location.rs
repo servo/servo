@@ -198,7 +198,10 @@ impl Location {
             referrer_policy,
             None, // Top navigation doesn't inherit secure context
             Some(source_document.insecure_requests_policy()),
-            source_window.as_global_scope().upgrade_insecure_navigations_set().clone(),
+            source_window
+                .as_global_scope()
+                .upgrade_insecure_navigations_set()
+                .clone(),
             source_document.has_trustworthy_ancestor_origin(),
             source_document.creation_sandboxing_flag_set_considering_parent_iframe(),
         );
