@@ -1,0 +1,93 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>An unsized copyTexImage2D image takes the effective format of its source</title>
+<link rel="author" title="mxmgorin" href="mailto:102797145+mxmgorin@users.noreply.github.com">
+<link rel="help" href="https://registry.khronos.org/webgl/specs/latest/2.0/">
+<link rel="help" href="https://registry.khronos.org/OpenGL/specs/es/3.0/es_spec_3.0.pdf#page=152">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+// Binds a framebuffer whose color attachment is a 2x2 texture of `internalformat`, cleared to blue.
+function bindSource(gl, internalformat, format, type) {
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, internalformat, 2, 2, 0, format, type, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, gl.createFramebuffer());
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+    assert_equals(gl.checkFramebufferStatus(gl.FRAMEBUFFER), gl.FRAMEBUFFER_COMPLETE, "source");
+    gl.clearColor(0, 0, 1, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    assert_equals(gl.getError(), gl.NO_ERROR, "source");
+}
+
+// Copies the bound framebuffer into a new texture of unsized `internalformat` and binds a
+// framebuffer with that texture as its color attachment.
+function bindUnsizedCopy(gl, internalformat) {
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.copyTexImage2D(gl.TEXTURE_2D, 0, internalformat, 0, 0, 2, 2, 0);
+    assert_equals(gl.getError(), gl.NO_ERROR, "copyTexImage2D");
+    gl.bindFramebuffer(gl.FRAMEBUFFER, gl.createFramebuffer());
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+    assert_equals(gl.checkFramebufferStatus(gl.FRAMEBUFFER), gl.FRAMEBUFFER_COMPLETE, "copy");
+}
+
+function assertReadsBlue(gl) {
+    const pixel = new Uint8Array(4);
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+    assert_equals(gl.getError(), gl.NO_ERROR, "readPixels");
+    assert_array_equals(pixel, [0, 0, 255, 255]);
+}
+
+function assertSizedCopy(gl, internalformat, error) {
+    gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+    gl.copyTexImage2D(gl.TEXTURE_2D, 0, internalformat, 0, 0, 2, 2, 0);
+    assert_equals(gl.getError(), error, "copyTexImage2D into " + internalformat);
+}
+
+test(function() {
+    const gl = document.createElement("canvas").getContext("webgl2");
+    bindSource(gl, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE);
+    bindUnsizedCopy(gl, gl.RGBA);
+    assert_not_equals(gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_FORMAT), null);
+    assert_not_equals(gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_TYPE), null);
+    assert_equals(gl.getError(), gl.NO_ERROR, "getParameter");
+    assertReadsBlue(gl);
+}, "An unsized RGBA copy of an RGBA8 image reads back as RGBA/UNSIGNED_BYTE");
+
+test(function() {
+    const gl = document.createElement("canvas").getContext("webgl2");
+    bindSource(gl, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE);
+    bindUnsizedCopy(gl, gl.RGBA);
+    assertSizedCopy(gl, gl.RGBA8, gl.NO_ERROR);
+    assertSizedCopy(gl, gl.RGBA4, gl.INVALID_OPERATION);
+}, "An unsized RGBA copy of an RGBA8 image is an RGBA8 source");
+
+test(function() {
+    const gl = document.createElement("canvas").getContext("webgl2");
+    bindSource(gl, gl.RGBA4, gl.RGBA, gl.UNSIGNED_SHORT_4_4_4_4);
+    bindUnsizedCopy(gl, gl.RGBA);
+    assertReadsBlue(gl);
+    assertSizedCopy(gl, gl.RGBA4, gl.NO_ERROR);
+    assertSizedCopy(gl, gl.RGBA8, gl.INVALID_OPERATION);
+}, "An unsized RGBA copy of an RGBA4 image is an RGBA4 source");
+
+test(function() {
+    const gl = document.createElement("canvas").getContext("webgl2");
+    bindSource(gl, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE);
+    bindUnsizedCopy(gl, gl.RGB);
+    assertReadsBlue(gl);
+    assertSizedCopy(gl, gl.RGB8, gl.NO_ERROR);
+    assertSizedCopy(gl, gl.RGBA8, gl.INVALID_OPERATION);
+}, "An unsized RGB copy of an RGBA8 image is an RGB8 source");
+
+test(function() {
+    const gl = document.createElement("canvas").getContext("webgl");
+    gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+    gl.copyTexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 0, 0, 2, 2, 0);
+    assert_equals(gl.getError(), gl.NO_ERROR, "copyTexImage2D");
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+    assert_equals(gl.getError(), gl.NO_ERROR, "texSubImage2D");
+}, "WebGL 1 texSubImage2D updates an unsized copyTexImage2D image");
+</script>
