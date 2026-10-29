@@ -741,6 +741,44 @@ impl ScrollTree {
         transforms
     }
 
+    /// This is a replication of WebRender's code for determining the transform to use for
+    /// a reference frame which takes into account perspective frames that scroll relative
+    /// to different scroll frames.
+    fn reference_frame_transform(
+        &self,
+        node: &ScrollTreeNode,
+        info: &ReferenceFrameNodeInfo,
+        cumulative_sticky_offset: LayoutVector2D,
+    ) -> FastLayoutTransform {
+        let ReferenceFrameKind::Perspective {
+            scrolling_relative_to: Some(scrolling_relative_to),
+        } = &info.kind
+        else {
+            return info.transform;
+        };
+
+        let mut scroll_offset = LayoutVector2D::zero();
+        let mut current_node = node;
+        let mut ending_cumulative_sticky_offset = LayoutVector2D::zero();
+
+        while let Some(parent_id) = current_node.parent {
+            let parent_node = self.get_node(parent_id);
+            if let SpatialTreeNodeInfo::Scroll(parent_info) = &parent_node.info {
+                if parent_info.external_id == *scrolling_relative_to {
+                    ending_cumulative_sticky_offset = self.cumulative_sticky_offsets(parent_id);
+                    break;
+                }
+                scroll_offset += parent_info.offset;
+            }
+            current_node = parent_node;
+        }
+
+        scroll_offset -= cumulative_sticky_offset - ending_cumulative_sticky_offset;
+        info.transform
+            .pre_translate(-scroll_offset)
+            .then_translate(scroll_offset)
+    }
+
     /// Traverse a scroll node to its root to calculate the transform.
     #[servo_tracing::instrument(name = "ScrollTree::cumulative_node_transform_inner", skip_all)]
     fn cumulative_node_transform_inner(
@@ -768,9 +806,14 @@ impl ScrollTree {
                 // To apply a transformation we need to make sure the rectangle's
                 // coordinate space is the same as reference frame's coordinate space.
                 let offset = info.frame_origin_for_query.to_vector();
+                let transform = self.reference_frame_transform(
+                    node,
+                    info,
+                    parent_transforms.cumulative_sticky_offsets,
+                );
                 let node_to_parent_transform =
-                    info.transform.pre_translate(-offset).then_translate(offset);
-                let parent_to_node_transform = info.transform.inverse().map(|inverse_transform| {
+                    transform.pre_translate(-offset).then_translate(offset);
+                let parent_to_node_transform = transform.inverse().map(|inverse_transform| {
                     FastLayoutTransform::Offset(-info.origin.to_vector()).then(&inverse_transform)
                 });
                 ScrollTreeNodeTransformationCache {
@@ -1075,6 +1118,9 @@ impl PaintDisplayListInfo {
         }
     }
 
+    /// Find the [`ExternalScrollId`] of the scroll node identified by the given
+    /// [`ScrollTreeNodeId`]. This will walk up the tree to find the first inclusive
+    /// ancestor scroll node.
     pub fn external_scroll_id_for_scroll_tree_node(
         &self,
         id: ScrollTreeNodeId,
