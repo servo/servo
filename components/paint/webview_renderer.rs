@@ -31,7 +31,7 @@ use webrender::RenderApi;
 use webrender_api::units::{
     DevicePixel, DevicePoint, DeviceRect, DeviceVector2D, LayoutTransform, LayoutVector2D,
 };
-use webrender_api::{DocumentId, ExternalScrollId, ScrollLocation};
+use webrender_api::{DocumentId, ExternalScrollId, PropertyBindingKey, ScrollLocation};
 
 use crate::paint::RepaintReason;
 use crate::painter::Painter;
@@ -121,9 +121,10 @@ pub(crate) struct WebViewRenderer {
     /// A [`ViewportDescription`] for this [`WebViewRenderer`], which contains the limitations
     /// and initial values for zoom derived from the `viewport` meta tag in web content.
     viewport_description: ViewportDescription,
-
     /// The dimensions of the screen on which this WebView is rendering.
     screen_size: Size2D<f32, DevicePixel>,
+    /// The [`PropertyBindingKey`] that this [`WebViewRenderer`] uses for pinch zoom.
+    pinch_zoom_property_binding_key: PropertyBindingKey<LayoutTransform>,
 
     //
     // Data that is shared with the parent renderer.
@@ -143,6 +144,7 @@ impl WebViewRenderer {
         embedder_to_constellation_sender: Sender<EmbedderToConstellationMessage>,
         refresh_driver: Rc<BaseRefreshDriver>,
         webrender_document: DocumentId,
+        pinch_zoom_property_binding_key: PropertyBindingKey<LayoutTransform>,
     ) -> Self {
         let hidpi_scale_factor = viewport_details.hidpi_scale_factor;
         let size = viewport_details.size * viewport_details.hidpi_scale_factor;
@@ -167,6 +169,7 @@ impl WebViewRenderer {
             embedder_to_constellation_sender,
             refresh_driver,
             webrender_document,
+            pinch_zoom_property_binding_key,
         }
     }
 
@@ -1050,6 +1053,10 @@ impl WebViewRenderer {
         PinchZoomResult::DidPinchZoom
     }
 
+    pub(crate) fn pinch_zoom_property_binding_key(&self) -> PropertyBindingKey<LayoutTransform> {
+        self.pinch_zoom_property_binding_key
+    }
+
     /// Set the page zoom for this renderer, returning `true` if the value actually changed.
     pub(crate) fn set_page_zoom(
         &mut self,
@@ -1201,10 +1208,9 @@ impl WebViewRenderer {
         }
     }
 
-    /// Get the device to layout transformation of a webview, currently containing the HiDPI,
-    /// page zoom and pinch zoom. Returning [`LayoutTransform`] to support its inclusion in
-    /// webrender.
-    pub(crate) fn get_webview_transform(&self) -> LayoutTransform {
+    /// Get the transform from page to device pixels of this [`WebViewRenderer`]
+    /// incorporating the device pixel ratio, page zoom, and pinch zoom.
+    pub(crate) fn root_transform(&self) -> LayoutTransform {
         let pinch_zoom_transform = self.pinch_zoom.transform().to_untyped();
         let device_pixels_per_page_pixel_not_including_pinch_zoom = self
             .device_pixels_per_page_pixel_not_including_pinch_zoom()

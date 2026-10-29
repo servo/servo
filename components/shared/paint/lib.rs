@@ -6,14 +6,13 @@
 
 use std::collections::HashMap;
 use std::fmt::{Debug, Error, Formatter};
-use std::sync::atomic::{AtomicU64, Ordering};
 
 use crossbeam_channel::Sender;
 use embedder_traits::{AnimationState, EventLoopWaker};
 use euclid::{Rect, Scale, Size2D};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
-use parking_lot::{Mutex, RwLock};
+use parking_lot::RwLock;
 use rustc_hash::FxHashMap;
 use servo_base::Epoch;
 use servo_base::id::{PainterId, PipelineId, WebViewId};
@@ -27,7 +26,7 @@ pub mod display_list;
 pub mod rendering_context;
 pub mod viewport_description;
 
-use std::sync::{Arc, LazyLock, Mutex as StdMutex};
+use std::sync::{Arc, Mutex};
 
 use bitflags::bitflags;
 use display_list::PaintDisplayListInfo;
@@ -525,7 +524,7 @@ pub struct PainterSurfmanDetails {
 }
 
 #[derive(Clone, Default)]
-pub struct PainterSurfmanDetailsMap(Arc<StdMutex<HashMap<PainterId, PainterSurfmanDetails>>>);
+pub struct PainterSurfmanDetailsMap(Arc<Mutex<HashMap<PainterId, PainterSurfmanDetails>>>);
 
 impl PainterSurfmanDetailsMap {
     pub fn get(&self, painter_id: PainterId) -> Option<PainterSurfmanDetails> {
@@ -819,36 +818,4 @@ impl PinchZoomInfos {
             rect: Rect::from_size(size),
         }
     }
-}
-
-static NEXT_AVAILABLE_PROPERTY_BINDING_ID: AtomicU64 = AtomicU64::new(0);
-
-#[derive(
-    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
-)]
-pub enum PropertyBindingType {
-    Caret,
-    PinchZoom,
-}
-
-#[expect(clippy::type_complexity)]
-static PROPERTY_BINDING_ID_RECORD: LazyLock<
-    Arc<Mutex<FxHashMap<(PropertyBindingType, PipelineId), u64>>>,
-> = LazyLock::new(|| Arc::new(Mutex::new(FxHashMap::default())));
-
-pub fn get_property_binding_key<T>(
-    binding_type: PropertyBindingType,
-    pipeline_id: PipelineId,
-) -> PropertyBindingKey<T> {
-    let mut records = PROPERTY_BINDING_ID_RECORD.lock();
-    let inner_id = match records.get(&(binding_type, pipeline_id)) {
-        Some(id) => *id,
-        None => {
-            let next_available_id =
-                NEXT_AVAILABLE_PROPERTY_BINDING_ID.fetch_add(1, Ordering::SeqCst) + 1;
-            records.insert((binding_type, pipeline_id), next_available_id);
-            next_available_id
-        },
-    };
-    PropertyBindingKey::<T>::new(inner_id)
 }
