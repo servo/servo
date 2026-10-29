@@ -549136,6 +549136,10 @@
      "451dc5a82ab29284469e69b465cf42db7a5adbb2",
      []
     ],
+    "automated-support.js": [
+     "154315d0190d09938bd5b44cbdfc28c03c9004e2",
+     []
+    ],
     "support": {
      "a": {
       "b": {
@@ -1251282,8 +1251286,15 @@
     ]
    },
    "entries-api": {
+    "filesystemdirectoryreader.html": [
+     "8f875b662dbb3dc6b69269c4261f7bda6f98cd8e",
+     [
+      null,
+      {}
+     ]
+    ],
     "filesystementry-getParent.html": [
-     "f7fc5c810646f1e4d108e0246592a80946fc606d",
+     "53574d5b5112fc81b4fa26f1971cf7c3afde6cde",
      [
       null,
       {}
@@ -1251308,7 +1251319,7 @@
      ]
     ],
     "webkitGetAsEntry.html": [
-     "bd6f07e3bfde5fb4f346d37956cb41ab89202ffd",
+     "d6eb02c8a7350a2585718195728f5dab1c118d30",
      [
       null,
       {}

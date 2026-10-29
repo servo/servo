@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Entries API: FileSystemDirectoryReader with script-created DataTransfer</title>
+<link rel=help href="https://wicg.github.io/entries-api/#api-directoryreader">
+<link rel=author title="Euclid Ye" href="mailto:yezhizhenjiakang@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="automated-support.js"></script>
+<script>
+promise_test(async () => {
+  const entries = await readAll(createRoot().createReader());
+  assert_equals(entries.length, 1);
+  assert_true(entries[0].isFile);
+  assert_false(entries[0].isDirectory);
+  assert_equals(entries[0].name, 'test.txt');
+  assert_equals(entries[0].fullPath, '/test.txt');
+}, 'readEntries() enumerates the root directory');
+
+promise_test(async () => {
+  const reader = createRoot().createReader();
+  await readAll(reader);
+  const entries = await new Promise((resolve, reject) => {
+    reader.readEntries(resolve, reject);
+  });
+  assert_equals(entries.length, 0,
+                'calling readEntries() when done yields an empty sequence');
+}, 'readEntries() returns an empty sequence once done');
+
+promise_test(async t => {
+  const reader = createRoot().createReader();
+  const first = new Promise((resolve, reject) => {
+    reader.readEntries(resolve, reject);
+  });
+  const second = new Promise(resolve => {
+    reader.readEntries(
+        t.unreached_func('readEntries() should fail if already reading'),
+        resolve);
+  });
+  const [entries, error] = await Promise.all([first, second]);
+  assert_equals(entries.length, 1, 'the first read succeeds');
+  assert_equals(error.name, 'InvalidStateError');
+  assert_equals(typeof error.message, 'string');
+}, 'readEntries() fails with InvalidStateError when a read is in progress');
+
+test(() => {
+  const root = createRoot();
+  assert_not_equals(root.createReader(), root.createReader());
+}, 'createReader() returns a new reader each time');
+</script>

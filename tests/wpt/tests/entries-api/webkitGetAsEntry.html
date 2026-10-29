@@ -5,6 +5,7 @@
 <link rel="author" title="Euclid Ye" href="mailto:yezhizhenjiakang@gmail.com">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="automated-support.js"></script>
 
 <script>
 test(t => {
@@ -17,11 +18,7 @@ test(t => {
 }, 'webkitGetAsEntry() returns null for text items');
 
 test(t => {
-  const file = new File(['hello world'], 'test.txt', { type: 'text/plain' });
-  const dt = new DataTransfer();
-  dt.items.add(file);
-
-  const item = dt.items[0];
+  const item = createDataTransferItem();
   assert_equals(item.kind, 'file');
 
   const entry = item.webkitGetAsEntry();
@@ -35,11 +32,7 @@ test(t => {
 }, 'webkitGetAsEntry() returns FileSystemFileEntry with correct attributes');
 
 async_test(t => {
-  const file = new File(['hello world'], 'test.txt', { type: 'text/plain' });
-  const dt = new DataTransfer();
-  dt.items.add(file);
-
-  const entry = dt.items[0].webkitGetAsEntry();
+  const entry = createFileEntry();
 
   entry.file(
     t.step_func_done(f => {
