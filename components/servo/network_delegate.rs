@@ -172,13 +172,13 @@ mod linux {
         {
             Ok(netlink) => netlink,
             Err(err) => {
-                error!("failed to connect to rtnetlink: {err}");
+                error!("failed to connect to netlink: {err}");
                 return;
             },
         };
 
         if let Err(err) = request_dump(netlink.get_ref()) {
-            error!("sendto: {err}");
+            error!("failed to send dump request: {err}");
             return;
         }
 
@@ -198,7 +198,7 @@ mod linux {
                     let mut guard = match ready {
                         Ok(guard) => guard,
                         Err(err) => {
-                            error!("readable: {err}");
+                            error!("failed to poll netlink readiness: {err}");
                             return;
                         }
                     };
@@ -226,7 +226,7 @@ mod linux {
                                 }
                             }
                             Ok(Err(err)) => {
-                                error!("recv: {err}");
+                                error!("failed to receive netlink message: {err}");
                                 return;
                             }
                             Err(_would_block) => break,
@@ -339,7 +339,10 @@ mod linux {
                 NLMSG_ERROR => {
                     let error = unsafe { (*(NLMSG_DATA(p) as *const nlmsgerr)).error };
                     if error != 0 {
-                        error!("netlink: {}", io::Error::from_raw_os_error(-error));
+                        error!(
+                            "received netlink error message: {}",
+                            io::Error::from_raw_os_error(-error)
+                        );
                         return false;
                     }
                 },
