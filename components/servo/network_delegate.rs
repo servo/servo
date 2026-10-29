@@ -9,8 +9,16 @@ enum Message {
     SetCallback(NetworkDelegateCallback),
 }
 
+/// A delegate that is responsible for system network detection. This currently
+/// works for Linux and Windows. The macOS inplementation is blocked by objc2-network
+/// crate. A default delegate is automatically used that implements network support.
+/// An embedding application can override this delegate by using this trait.
 pub trait NetworkDelegate {
+    /// A request to setup callback for network delegate.
+    ///
+    /// Servo will call this when `set_network_delegate` is called.
     fn start(&self, callback: NetworkDelegateCallback);
+    /// A request to shutdown the background network tasks.
     fn shutdown(&self);
 }
 
