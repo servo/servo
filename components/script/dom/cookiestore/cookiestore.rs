@@ -12,13 +12,16 @@ use itertools::Itertools;
 use js::context::JSContext;
 use js::jsval::NullValue;
 use net_traits::CookieSource::NonHTTP;
-use net_traits::{CookieAsyncResponse, CookieData, CoreResourceMsg};
+use net_traits::{
+    CookieAsyncResponse, CookieChange, CookieChangeType, CookieData, CoreResourceMsg,
+};
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::CookieStoreBinding::CookieSameSite;
 use script_bindings::reflector::reflect_dom_object;
 use servo_base::generic_channel::{GenericCallback, GenericSend, GenericSender};
 use servo_base::id::CookieStoreId;
 use servo_url::ServoUrl;
+use style::Atom;
 use style::str::starts_with_ignore_ascii_case;
 use time::OffsetDateTime;
 
@@ -26,11 +29,14 @@ use crate::dom::bindings::codegen::Bindings::CookieStoreBinding::{
     CookieInit, CookieListItem, CookieStoreDeleteOptions, CookieStoreGetOptions, CookieStoreMethods,
 };
 use crate::dom::bindings::error::Error;
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
+use crate::dom::cookiechangeevent::CookieChangeEvent;
 use crate::dom::document::get_registrable_domain_suffix_of_or_is_equal_to;
+use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
@@ -78,6 +84,23 @@ struct CookieListener {
 impl CookieListener {
     pub(crate) fn handle(&self, message: CookieAsyncResponse) {
         let context = self.context.clone();
+
+        // https://cookiestore.spec.whatwg.org/#process-cookie-changes
+        if let CookieData::Change(changes) = message.data {
+            // 1.4. Queue a global task on the DOM manipulation task source given window to fire a
+            // change event named "change" with changes at window’s CookieStore.
+            self.task_source.queue(task!(cookie_change: move |cx| {
+                let store = context.root();
+                let global = store.global();
+                let Some(window) = global.downcast::<Window>() else {
+                    return;
+                };
+                store.fire_a_change_event(cx, atom!("change"), changes, window);
+            }));
+
+            return;
+        }
+
         self.task_source.queue(task!(cookie_message: move |cx| {
             let Some(promise) = context.root().in_flight.safe_borrow_mut(cx.no_gc()).pop_front().map(|promise| promise.root(cx)) else {
                 warn!("No promise exists for cookie store response");
@@ -103,9 +126,10 @@ impl CookieListener {
                         .map(|cookie| cookie_to_list_item(cookie.0))
                         .collect_vec(),);
                 },
-                CookieData::Delete(_) | CookieData::Change(_) | CookieData::Set(_) => {
+                CookieData::Delete(_) | CookieData::Set(_) => {
                     promise.resolve_native(cx, &());
                 }
+                CookieData::Change(_) => unreachable!("Change events are not promise responses"),
             }
         }));
     }
@@ -177,6 +201,39 @@ fn cookie_to_list_item(cookie: Cookie) -> CookieListItem {
         // Let value be the result of running UTF-8 decode without BOM on cookie’s value.
         value: Some(cookie.value().to_string().into()),
     }
+}
+
+/// <https://cookiestore.spec.whatwg.org/#prepare-lists>
+fn prepare_lists(changes: Vec<CookieChange>) -> (Vec<CookieListItem>, Vec<CookieListItem>) {
+    // 1. Let changedList be « ».
+    let mut changed_list = Vec::<CookieListItem>::new();
+
+    // 2. Let deletedList be « ».
+    let mut deleted_list = Vec::<CookieListItem>::new();
+
+    // 3. For each change in changes, run these steps:
+    for change in changes {
+        // 3.1. Let item be the result of running create a CookieListItem from change’s cookie.
+        let mut item = cookie_to_list_item(change.cookie.into_inner());
+
+        match change.type_ {
+            // 3.2. If change’s type is changed, then append item to changedList.
+            CookieChangeType::Changed => {
+                changed_list.push(item);
+            },
+            // 3.3. Otherwise, run these steps:
+            CookieChangeType::Deleted => {
+                // 3.3.1. Set item["value"] to undefined.
+                item.value = None;
+
+                // 3.3.2. Append item to deletedList.
+                deleted_list.push(item);
+            },
+        }
+    }
+
+    // 4. Return changedList and deletedList.
+    (changed_list, deleted_list)
 }
 
 impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
@@ -602,6 +659,9 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         // 7. Return p.
         p
     }
+
+    // <https://cookiestore.spec.whatwg.org/#dom-cookiestore-onchange>
+    event_handler!(change, GetOnchange, SetOnchange);
 }
 
 impl CookieStore {
@@ -757,5 +817,29 @@ impl CookieStore {
         val.contains(
             |v| matches!(v, '\u{0000}'..='\u{0008}' | '\u{000a}'..='\u{001f}' | '\u{007f}' | ';'),
         )
+    }
+
+    /// <https://cookiestore.spec.whatwg.org/#fire-a-change-event>
+    fn fire_a_change_event(
+        &self,
+        cx: &mut JSContext,
+        type_: Atom,
+        changes: Vec<CookieChange>,
+        window: &Window,
+    ) {
+        // 4. Let changedList and deletedList be the result of running prepare lists from changes.
+        let (changed, deleted) = prepare_lists(changes);
+
+        // 1. Let event be the result of creating an Event using CookieChangeEvent.
+        // 2. Set event’s type attribute to type.
+        // 3. Set event’s bubbles and cancelable attributes to false.
+        // 5. Set event’s changed attribute to changedList.
+        // 6. Set event’s deleted attribute to deletedList.
+        let event = CookieChangeEvent::new_with_proto(
+            cx, window, None, type_, false, false, &changed, &deleted,
+        );
+
+        // 7. Dispatch event at target.
+        event.upcast::<Event>().fire(cx, self.upcast());
     }
 }

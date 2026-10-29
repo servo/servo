@@ -1230,13 +1230,19 @@ pub enum CookieSource {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CookieChange {
-    changed: Vec<Serde<Cookie<'static>>>,
-    deleted: Vec<Serde<Cookie<'static>>>,
+    pub cookie: Serde<Cookie<'static>>,
+    pub type_: CookieChangeType,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum CookieChangeType {
+    Changed,
+    Deleted,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum CookieData {
-    Change(CookieChange),
+    Change(Vec<CookieChange>),
     Get(Option<Serde<Cookie<'static>>>),
     GetAll(Vec<Serde<Cookie<'static>>>),
     Set(Result<(), ()>),
