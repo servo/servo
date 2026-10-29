@@ -678,7 +678,7 @@ impl ImageCacheStore {
             Some(load) => load,
             None => return,
         };
-        let url = pending_load.final_url.clone();
+        let url = pending_load.final_url;
         let image_response = match load_result {
             LoadResult::LoadedRasterImage(mut raster_image) => {
                 assert!(raster_image.id.is_some());
@@ -1257,13 +1257,17 @@ impl ImageCache for ImageCacheImpl {
                         },
                         Err(_) => (CorsStatus::Unsafe, None),
                     };
-                    let final_url = metadata.as_ref().map(|m| m.final_url.clone());
+                    let (final_url, content_type) = metadata.map_or((None, None), |metadata| {
+                        (
+                            Some(metadata.final_url),
+                            metadata
+                                .content_type
+                                .map(|content_type| content_type.into_inner().into()),
+                        )
+                    });
                     pending_load.final_url = final_url;
+                    pending_load.content_type = content_type;
                     pending_load.cors_status = cors_status;
-                    pending_load.content_type = metadata
-                        .as_ref()
-                        .and_then(|metadata| metadata.content_type.clone())
-                        .map(|content_type| content_type.into_inner().into());
                 } else {
                     debug!("Pending load for id {:?} already evicted from cache", id);
                 }
