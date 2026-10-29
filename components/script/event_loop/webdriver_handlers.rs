@@ -1392,6 +1392,7 @@ pub(crate) fn handle_get_active_element(
 }
 
 pub(crate) fn handle_get_computed_role(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
@@ -1408,7 +1409,7 @@ pub(crate) fn handle_get_computed_role(
                 window
                     .layout()
                     .set_accessibility_active(true, Epoch::default());
-                element.get_computed_role().map(String::from)
+                element.get_computed_role(cx).map(String::from)
             }),
         )
         .unwrap();
