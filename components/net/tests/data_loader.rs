@@ -42,13 +42,14 @@ fn assert_parse(
             let header_content_type = response.headers.typed_get::<ContentType>();
             assert_eq!(header_content_type, content_type);
 
-            let metadata = match response.metadata() {
+            match response.metadata() {
                 Ok(FetchMetadata::Filtered {
                     filtered: FilteredMetadata::Basic(m),
                     ..
                 }) => m,
                 result => panic!("{:?}", result),
             };
+            let metadata = response.metadata().unwrap().metadata().clone();
             assert_eq!(metadata.content_type.map(Serde::into_inner), content_type);
             assert_eq!(metadata.charset.as_ref().map(String::deref), charset);
 
