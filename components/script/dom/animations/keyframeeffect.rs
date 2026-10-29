@@ -16,6 +16,7 @@ use js::conversions::{
 use js::gc::{HandleValue, RootedVec};
 use js::jsapi::{Heap, JS_GetPropertyById, JSITER_OWNONLY, JSObject};
 use js::jsval::{ObjectValue, UndefinedValue};
+use js::realm::CurrentRealm;
 use js::rust::{
     ForOfIterationFailure, HandleObject, IdVector, IntoHandle, IntoMutableHandle, for_of,
 };
@@ -140,6 +141,8 @@ impl KeyframeEffectMethods<crate::DomTypeHolder> for KeyframeEffect {
         cx: &mut JSContext,
         result: &mut RootedVec<'_, Box<Heap<*mut JSObject>>>,
     ) -> Fallible<()> {
+        let cx = &mut CurrentRealm::assert(cx);
+
         let window = self.upcast::<AnimationEffect>().window();
 
         // Step 1. Let result be an empty sequence of objects.

@@ -238,6 +238,7 @@ pub(crate) fn ensure_expando_object(
     obj: HandleObject,
     mut expando: MutableHandleObject,
 ) {
+    let cx = &mut CurrentRealm::assert(cx);
     unsafe {
         assert!(is_dom_proxy(obj.get()));
         get_expando_object(obj, expando.reborrow());

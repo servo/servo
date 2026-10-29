@@ -10,6 +10,7 @@ use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::JSObject;
 use js::jsval::UndefinedValue;
+use js::realm::CurrentRealm;
 use js::rust::{CustomAutoRooterGuard, HandleValue};
 use rustc_hash::FxHashMap;
 use script_bindings::callback::RootedCallback;
@@ -217,6 +218,8 @@ impl MessagePort {
         type_: &str,
         value: HandleValue,
     ) -> ErrorResult {
+        let cx = &mut CurrentRealm::assert(cx);
+
         // Let message be OrdinaryObjectCreate(null).
         rooted!(&in(cx) let mut message = JS_NewObject(cx, None));
         rooted!(&in(cx) let mut type_string = UndefinedValue());

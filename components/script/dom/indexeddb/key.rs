@@ -13,6 +13,7 @@ use js::jsapi::{
     JS_GetStringLength, JS_IsArrayBufferViewObject, NewArrayObject1, PropertyKey,
 };
 use js::jsval::{DoubleValue, ObjectValue, UndefinedValue};
+use js::realm::CurrentRealm;
 use js::rust::wrappers2::{
     GetArrayLength, IsArrayObject, JS_HasOwnPropertyById, JS_IndexToId, JS_IsIdentifier,
     NewDateObject, ObjectIsDate, SameValue,
@@ -445,6 +446,8 @@ pub(crate) fn evaluate_key_path_on_value(
     key_path: &KeyPath,
     mut return_val: MutableHandleValue,
 ) -> Result<EvaluationResult, Error> {
+    let cx = &mut CurrentRealm::assert(cx);
+
     match key_path {
         // Step 1. If keyPath is a list of strings, then:
         KeyPath::StringSequence(key_path) => {
@@ -697,6 +700,8 @@ pub(crate) fn inject_key_into_value(
     key: &IndexedDBKeyType,
     key_path: &DOMString,
 ) -> Result<bool, Error> {
+    let cx = &mut CurrentRealm::assert(cx);
+
     // Step 1. Let identifiers be the result of strictly splitting keyPath on U+002E FULL STOP characters (.).
     let key_path_string = key_path.str();
     let mut identifiers: Vec<&str> = key_path_string.split('.').collect();

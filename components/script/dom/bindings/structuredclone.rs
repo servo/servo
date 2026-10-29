@@ -645,6 +645,8 @@ pub(crate) fn write(
     message: HandleValue,
     transfer: Option<CustomAutoRooterGuard<Vec<*mut JSObject>>>,
 ) -> Fallible<StructuredSerializedData> {
+    let cx = &mut CurrentRealm::assert(cx);
+
     unsafe {
         rooted!(&in(cx) let mut val = UndefinedValue());
         if let Some(transfer) = transfer {

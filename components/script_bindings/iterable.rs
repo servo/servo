@@ -167,6 +167,7 @@ fn dict_return(
     done: bool,
     value: HandleValue,
 ) -> Fallible<()> {
+    let cx = &mut CurrentRealm::assert(cx);
     let mut dict = IterableKeyOrValueResult::empty();
     dict.done = done;
     dict.value.set(value.get());
@@ -182,6 +183,7 @@ fn key_and_value_return(
     key: HandleValue,
     value: HandleValue,
 ) -> Fallible<()> {
+    let cx = &mut CurrentRealm::assert(cx);
     let mut dict = IterableKeyAndValueResult::empty();
     dict.done = false;
     dict.value = Some(
