@@ -357,19 +357,11 @@ impl WebGLThread {
     fn handle_msg(&mut self, msg: WebGLMsg, webgl_chan: &WebGLChan) -> bool {
         trace!("processing {:?}", msg);
         match msg {
-            WebGLMsg::CreateContext(
-                painter_id,
-                version,
-                size,
-                attributes,
-                result_sender,
-                size_sender,
-            ) => {
-                let result =
-                    self.create_webgl_context(painter_id, version, size, attributes, size_sender);
+            WebGLMsg::CreateContext(painter_id, version, size, attributes, result_sender) => {
+                let result = self.create_webgl_context(painter_id, version, size, attributes);
 
                 result_sender
-                    .send(result.map(|(id, limits)| {
+                    .send(result.map(|(id, limits, size)| {
                         let data = self
                             .make_current_if_needed(id)
                             .expect("WebGLContext not found");
@@ -388,6 +380,7 @@ impl WebGLThread {
                             limits,
                             glsl_version,
                             api_type,
+                            size,
                         }
                     }))
                     .unwrap();
@@ -543,8 +536,7 @@ impl WebGLThread {
         webgl_version: WebGLVersion,
         requested_size: Size2D<u32>,
         attributes: GLContextAttributes,
-        size_returner: GenericSender<Size2D<u32>>,
-    ) -> Result<(WebGLContextId, webgl::GLLimits), String> {
+    ) -> Result<(WebGLContextId, webgl::GLLimits, Size2D<u32>), String> {
         debug!(
             "WebGLThread::create_webgl_context({:?}, {:?}, {:?})",
             webgl_version, requested_size, attributes
@@ -646,7 +638,6 @@ impl WebGLThread {
 
         let size = clamp_viewport(&gl, requested_size);
         debug_assert_eq!(unsafe { gl.get_error() }, gl::NO_ERROR);
-        let _ = size_returner.send(size);
 
         if safe_size != size {
             debug!("Resizing swap chain from {:?} to {:?}", safe_size, size);
@@ -720,7 +711,7 @@ impl WebGLThread {
             },
         );
 
-        Ok((context_id, limits))
+        Ok((context_id, limits, size))
     }
 
     /// Resizes a WebGLContext

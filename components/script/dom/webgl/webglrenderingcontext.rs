@@ -234,7 +234,6 @@ impl WebGLRenderingContext {
         };
 
         let (sender, receiver) = webgl_channel().unwrap();
-        let (size_sender, size_receiver) = generic_channel::channel().unwrap();
         webgl_chan
             .send(WebGLMsg::CreateContext(
                 window.webview_id().into(),
@@ -242,14 +241,9 @@ impl WebGLRenderingContext {
                 size,
                 attrs,
                 sender,
-                size_sender,
             ))
             .unwrap();
         let result = receiver.recv().unwrap();
-        let size = size_receiver
-            .recv()
-            .expect("Could not get actual size from webgl");
-
         result.map(|ctx_data| {
             let max_combined_texture_image_units = ctx_data.limits.max_combined_texture_image_units;
             let max_vertex_attribs = ctx_data.limits.max_vertex_attribs as usize;
@@ -275,7 +269,7 @@ impl WebGLRenderingContext {
                 current_scissor: Cell::new((0, 0, size.width, size.height)),
                 // FIXME(#21718) The backend is allowed to choose a size smaller than
                 // what was requested
-                size: Cell::new(size),
+                size: Cell::new(ctx_data.size),
                 current_clear_color: Cell::new((0.0, 0.0, 0.0, 0.0)),
                 extension_manager: WebGLExtensions::new(
                     webgl_version,
@@ -2165,7 +2159,7 @@ impl CanvasContext for WebGLRenderingContext {
 
         self.size.set(size);
 
-        self.reflector_.update_memory_size(self, area);
+        self.reflector_.update_memory_size(self, area * 4);
 
         if let Err(msg) = receiver.recv().unwrap() {
             error!("Error resizing WebGLContext: {}", msg);
