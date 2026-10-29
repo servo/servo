@@ -184,7 +184,7 @@ impl HTMLTextAreaElement {
                     input_method_type: InputMethodType::Text,
                     text: String::from(self.Value()),
                     insertion_point: self.GetSelectionEnd(),
-                    multiline: false,
+                    multiline: true,
                     // We follow chromium's heuristic to show the virtual keyboard only if user had interacted before.
                     allow_virtual_keyboard: self.owner_window().has_sticky_activation(),
                 }),
