@@ -286,7 +286,7 @@ impl ReplacedContents {
             (Some(width), Some(height)) if !width.is_zero() && !height.is_zero() => {
                 Some(width.px() / height.px())
             },
-            _ => svg_data.view_box_ratio.as_opt_f32(),
+            _ => svg_data.view_box_ratio,
         };
 
         let natural_size = NaturalSizes {
@@ -332,7 +332,7 @@ impl ReplacedContents {
         (
             ReplacedContentKind::SVGElement {
                 vector_image,
-                has_viewbox: svg_data.view_box_ratio.as_opt_f32().is_some(),
+                has_viewbox: svg_data.view_box_ratio.is_some(),
             },
             natural_size,
         )

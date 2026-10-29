@@ -165,31 +165,10 @@ pub struct HTMLCanvasData {
     pub height: u32,
 }
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, MallocSizeOf)]
-pub enum SVGViewBoxRatio {
-    /// A valid ratio
-    Valid(f32),
-    /// Not given a viewbox or the viewbox has size zero.
-    #[default]
-    Empty,
-    /// The viewbox has a negative size.
-    Invalid,
-}
-
-impl SVGViewBoxRatio {
-    /// Helper for layout to render with no ratio
-    pub fn as_opt_f32(&self) -> Option<f32> {
-        match self {
-            SVGViewBoxRatio::Valid(ratio) => Some(*ratio),
-            SVGViewBoxRatio::Empty | SVGViewBoxRatio::Invalid => None,
-        }
-    }
-}
-
 pub struct SVGElementData<'dom> {
     /// The SVG's XML source represented as a base64 encoded `data:` url.
     pub source: Option<Result<ServoUrl, ()>>,
-    pub view_box_ratio: SVGViewBoxRatio,
+    pub view_box_ratio: Option<f32>,
     pub width: Option<&'dom AttrValue>,
     pub height: Option<&'dom AttrValue>,
     pub svg_id: Uuid,
