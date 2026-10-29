@@ -12,6 +12,7 @@ use embedder_traits::{
     EditingAction, EditingDirection, EditingMotion, EmbedderMsg, ModifySelection,
     ScriptToEmbedderChan,
 };
+use js::context::JSContext;
 use layout_api::SegmentGranularity;
 use script_bindings::match_domstring_ascii;
 use script_bindings::root::Dom;
@@ -620,12 +621,17 @@ impl<T: ClipboardProvider> TextInput<T> {
             .unwrap_or_else(|| self.rope.last_index())
     }
 
-    fn drag_moved(&mut self, element: &impl TextControlElement, hit_test_result: &HitTestResult) {
+    fn drag_moved(
+        &mut self,
+        cx: &mut JSContext,
+        element: &impl TextControlElement,
+        hit_test_result: &HitTestResult,
+    ) {
         let point_in_viewport = hit_test_result.point_in_frame.map(Au::from_f32_px);
         let element = element.as_element();
         self.edit_point = element
             .owner_window()
-            .text_index_query_on_node_for_event(element.upcast(), point_in_viewport)
+            .text_index_query_on_node_for_event(cx, element.upcast(), point_in_viewport)
             .map(|(_, character_offset)| {
                 self.rope.move_by(
                     Default::default(),
@@ -770,19 +776,21 @@ impl TextInputSelectionDragHandler {
     /// Process a mouse move event on this [`TextInputSelectionDragHandler`].
     ///
     /// Returns `true` if the drag should continue and `false` otherwise.
-    pub(crate) fn moved(&self, hit_test_result: &HitTestResult) -> bool {
+    pub(crate) fn moved(&self, cx: &mut JSContext, hit_test_result: &HitTestResult) -> bool {
         if !self.0.is_connected() {
             return false;
         }
 
         if let Some(input) = self.0.downcast::<HTMLInputElement>() {
-            input.text_input_mut().drag_moved(input, hit_test_result);
+            input
+                .text_input_mut()
+                .drag_moved(cx, input, hit_test_result);
             input.maybe_update_shared_selection();
             true
         } else if let Some(text_area) = self.0.downcast::<HTMLTextAreaElement>() {
             text_area
                 .text_input_mut()
-                .drag_moved(text_area, hit_test_result);
+                .drag_moved(cx, text_area, hit_test_result);
             text_area.maybe_update_shared_selection();
             true
         } else {
