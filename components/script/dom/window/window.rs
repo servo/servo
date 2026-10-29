@@ -3021,10 +3021,11 @@ impl Window {
 
     pub(crate) fn resolved_font_style_query(
         &self,
+        cx: &mut JSContext,
         node: &Node,
         value: String,
     ) -> Option<ServoArc<Font>> {
-        self.layout_reflow_deprecated(QueryMsg::ResolvedFontStyleQuery);
+        self.layout_reflow(cx, QueryMsg::ResolvedFontStyleQuery);
 
         let document = self.Document();
         let animations = document.animation_manager().sets();
