@@ -29,6 +29,8 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::ElementBinding::ScrollLogicalPosition;
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
+#[cfg(feature = "gamepad")]
+use script_bindings::codegen::GenericBindings::GamepadBinding::GamepadMappingType;
 use script_bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElementMethods;
 use script_bindings::codegen::GenericBindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
@@ -2012,7 +2014,7 @@ impl DocumentEventHandler {
                     &window,
                     selected_index,
                     name,
-                    "standard".into(),
+                    GamepadMappingType::Standard,
                     axis_bounds,
                     button_bounds,
                     supported_haptic_effects,
