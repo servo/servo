@@ -103,6 +103,7 @@ use crate::clipboard_delegate::StringRequest;
 #[cfg(feature = "gamepad")]
 use crate::gamepad_delegate::{GamepadHapticEffectRequest, GamepadHapticEffectRequestType};
 use crate::javascript_evaluator::JavaScriptEvaluator;
+use crate::network_delegate::{DefaultNetworkDelegate, NetworkDelegate};
 use crate::network_manager::NetworkManager;
 use crate::proxies::ConstellationProxy;
 use crate::responders::ServoErrorChannel;
@@ -254,6 +255,7 @@ pub struct PendingHandledInputEvent {
 
 struct ServoInner {
     delegate: RefCell<Rc<dyn ServoDelegate>>,
+    network_delegate: RefCell<Rc<dyn NetworkDelegate>>,
     paint: Rc<RefCell<Paint>>,
     constellation_proxy: ConstellationProxy,
     embedder_receiver: Receiver<EmbedderMsg>,
@@ -892,6 +894,7 @@ impl Drop for ServoInner {
     fn drop(&mut self) {
         self.constellation_proxy
             .send(EmbedderToConstellationMessage::Exit);
+        self.network_delegate.borrow().shutdown();
         self.shutdown_state.set(ShutdownState::ShuttingDown);
         while self.spin_event_loop() {
             std::thread::sleep(Duration::from_micros(500));
@@ -1045,8 +1048,19 @@ impl Servo {
             prefs::add_observer(Box::new(constellation_proxy.clone()));
         }
 
+        let network_delegate = DefaultNetworkDelegate::new();
+        network_delegate.start({
+            let constellation_proxy = constellation_proxy.clone();
+            Box::new(move |online| {
+                constellation_proxy.send(EmbedderToConstellationMessage::SetNetworkOnlineState(
+                    online,
+                ))
+            })
+        });
+
         Servo(Rc::new(ServoInner {
             delegate: RefCell::new(Rc::new(DefaultServoDelegate)),
+            network_delegate: RefCell::new(Rc::new(network_delegate)),
             paint,
             network_manager: Rc::new(RefCell::new(NetworkManager::new(
                 public_resource_threads.clone(),
@@ -1081,6 +1095,23 @@ impl Servo {
 
     pub fn set_delegate(&self, delegate: Rc<dyn ServoDelegate>) {
         *self.0.delegate.borrow_mut() = delegate;
+    }
+
+    pub fn network_delegate(&self) -> Rc<dyn NetworkDelegate> {
+        self.0.network_delegate.borrow().clone()
+    }
+
+    pub fn set_network_delegate(&self, delegate: Rc<dyn NetworkDelegate>) {
+        self.0.network_delegate.borrow().shutdown();
+        delegate.start({
+            let constellation_proxy = self.0.constellation_proxy.clone();
+            Box::new(move |online| {
+                constellation_proxy.send(EmbedderToConstellationMessage::SetNetworkOnlineState(
+                    online,
+                ))
+            })
+        });
+        *self.0.network_delegate.borrow_mut() = delegate;
     }
 
     /// **EXPERIMENTAL:** Intialize GL accelerated media playback. This currently only works on a limited number

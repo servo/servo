@@ -147,10 +147,6 @@ winit = { workspace = true }
 [target.'cfg(any(all(target_os = "linux", not(target_env = "ohos")), target_os = "macos"))'.dependencies]
 signal-hook-registry = { workspace = true }
 
-[target.'cfg(target_os = "linux")'.dependencies]
-libc = { workspace = true }
-tokio = { workspace = true, features = ["net"] }
-
 [target.'cfg(target_os = "windows")'.dependencies]
 servo = { workspace = true, features = ["no-wgl"] }
 windows-sys = { workspace = true, features = [

@@ -55,9 +55,6 @@ mod from_winit {
                 Self::UserEvent(AppEvent::Accessibility(..)) => target!("UserEvent(Accessibility)"),
                 #[cfg(feature = "gamepad")]
                 Self::UserEvent(AppEvent::Gamepad(..)) => target!("UserEvent(Gamepad)"),
-                Self::UserEvent(AppEvent::SetNetworkOnlineState(..)) => {
-                    target!("UserEvent(SetNetworkOnlineState)")
-                },
                 Self::Suspended => target!("Suspended"),
                 Self::Resumed => target!("Resumed"),
                 Self::AboutToWait => target!("AboutToWait"),

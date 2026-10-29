@@ -1,44 +1,41 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+type NetworkDelegateCallback = Box<dyn Fn(bool) + Send + Sync + 'static>;
+
+enum Message {
+    Shutdown,
+    SetCallback(NetworkDelegateCallback),
+}
+
+pub trait NetworkDelegate {
+    fn start(&self, callback: NetworkDelegateCallback);
+    fn shutdown(&self);
+}
+
 cfg_select! {
     target_os = "linux" => {
-        pub type NetworkMonitor = linux::NetworkMonitor;
+        pub type DefaultNetworkDelegate = linux::LinuxNetworkDelegate;
     },
     target_os = "windows" => {
-        pub type NetworkMonitor = windows::NetworkMonitor;
+        pub type DefaultNetworkDelegate = windows::WindowsNetworkDelegate;
     },
-    // TODO: macos depends on an unreleased objc2 version (objc2-network)
     _ => {
-        pub type NetworkMonitor = dummy::NetworkMonitor;
+        pub type DefaultNetworkDelegate = dummy::DummyNetworkDelegate;
     }
 }
 
-#[cfg(not(any(target_os = "linux", target_os = "windows")))]
-mod dummy {
-    use winit::event_loop::EventLoopProxy;
-
-    use crate::desktop::event_loop::AppEvent;
-
-    pub(crate) struct NetworkMonitor;
-
-    impl NetworkMonitor {
-        pub(crate) fn new(_event_loop_proxy: EventLoopProxy<AppEvent>) -> Self {
-            Self
-        }
-    }
-}
-
-/// Monitor active network links via `rtnetlink`, using an initial dump followed
+/// Monitor active network links via netlink api, using an initial dump followed
 /// by change notifications. Linux device is online if there is at least one active link
 /// that is not loopback or tun,
 #[cfg(target_os = "linux")]
 mod linux {
-    use std::{
-        collections::HashMap,
-        ffi::{CStr, c_char, c_int, c_uchar, c_void},
-        io,
-        mem::MaybeUninit,
-        os::fd::{AsRawFd, FromRawFd, OwnedFd},
-        thread,
-    };
+    use std::collections::HashMap;
+    use std::ffi::{CStr, c_char, c_int, c_uchar, c_void};
+    use std::mem::MaybeUninit;
+    use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
+    use std::{io, thread};
 
     use libc::{
         AF_NETLINK, AF_UNSPEC, IFLA_IFNAME, NETLINK_ROUTE, NLM_F_DUMP, NLM_F_REQUEST, NLMSG_ALIGN,
@@ -47,17 +44,47 @@ mod linux {
         recv, rtattr, sa_family_t, sendto, sockaddr, sockaddr_nl, socket, socklen_t,
     };
     use log::error;
-    use tokio::{
-        io::unix::AsyncFd,
-        sync::oneshot::{self, Sender},
-    };
-    use winit::event_loop::EventLoopProxy;
+    use tokio::io::unix::AsyncFd;
+    use tokio::sync::mpsc::{self, Receiver, Sender};
 
-    use crate::desktop::event_loop::AppEvent;
-    use macros::*;
+    use crate::network_delegate::linux::macros::*;
+    use crate::network_delegate::{Message, NetworkDelegate, NetworkDelegateCallback};
 
-    /// Macros that are not provided by `libc`.
-    #[allow(non_snake_case)]
+    pub struct LinuxNetworkDelegate {
+        sender: Sender<Message>,
+    }
+
+    impl LinuxNetworkDelegate {
+        pub fn new() -> Self {
+            let (sender, receiver) = mpsc::channel(8);
+
+            thread::Builder::new()
+                .name("network-monitor".into())
+                .spawn(move || {
+                    let runtime = tokio::runtime::Builder::new_current_thread()
+                        .enable_io()
+                        .build()
+                        .expect("failed to build tokio runtime");
+                    runtime.block_on(watch_netlink(receiver))
+                })
+                .expect("failed to spawn network monitor thread");
+
+            Self { sender }
+        }
+    }
+
+    impl NetworkDelegate for LinuxNetworkDelegate {
+        fn start(&self, callback: NetworkDelegateCallback) {
+            _ = self.sender.try_send(Message::SetCallback(callback));
+        }
+
+        fn shutdown(&self) {
+            _ = self.sender.try_send(Message::Shutdown);
+        }
+    }
+
+    /// C macros that are not provided by `libc`.
+    #[expect(non_snake_case)]
     mod macros {
         use std::ffi::{c_int, c_uint, c_void};
 
@@ -72,47 +99,29 @@ mod linux {
 
         const RTA_ALIGNTO: usize = 4;
 
-        /// ```c
-        /// #define RTA_ALIGN(len) ( ((len)+RTA_ALIGNTO-1) & ~(RTA_ALIGNTO-1) )
-        /// ```
         #[inline]
         pub(super) const fn RTA_ALIGN(len: usize) -> usize {
             (len + RTA_ALIGNTO - 1) & !(RTA_ALIGNTO - 1)
         }
 
-        /// ```c
-        /// #define RTA_OK(rta,len) ((len) >= (int)sizeof(struct rtattr) && \
-        ///	  (rta)->rta_len >= sizeof(struct rtattr) && \
-        ///	  (rta)->rta_len <= (len))
-        /// ```
         #[inline]
         pub(super) const fn RTA_OK(rta: *const rtattr, len: c_int) -> bool {
-            len >= size_of::<rtattr>() as c_int
-                && unsafe { (*rta).rta_len } as usize >= size_of::<rtattr>()
-                && (unsafe { (*rta).rta_len } as c_int) <= len
+            len >= size_of::<rtattr>() as c_int &&
+                unsafe { (*rta).rta_len } as usize >= size_of::<rtattr>() &&
+                (unsafe { (*rta).rta_len } as c_int) <= len
         }
 
-        /// ```c
-        /// #define RTA_NEXT(rta,attrlen)	((attrlen) -= RTA_ALIGN((rta)->rta_len), \
-        /// 				 (struct rtattr*)(((char*)(rta)) + RTA_ALIGN((rta)->rta_len)))
-        /// ```
         #[inline]
         pub(super) const fn RTA_NEXT(rta: *mut rtattr, attrlen: &mut c_int) -> *mut rtattr {
             *attrlen -= RTA_ALIGN(unsafe { (*rta).rta_len } as usize) as c_int;
             unsafe { (rta as *mut u8).add(RTA_ALIGN((*rta).rta_len as usize)) as *mut rtattr }
         }
 
-        /// ```c
-        /// #define RTA_LENGTH(len)	(RTA_ALIGN(sizeof(struct rtattr)) + (len))
-        /// ```
         #[inline]
         pub(super) const fn RTA_LENGTH(len: usize) -> usize {
             RTA_ALIGN(size_of::<rtattr>()) + len
         }
 
-        /// ```c
-        /// #define RTA_DATA(rta)   ((void*)(((char*)(rta)) + RTA_LENGTH(0)))
-        /// ```
         #[inline]
         pub(super) const fn RTA_DATA(rta: *const rtattr) -> *mut c_void {
             unsafe { (rta as *mut u8).add(RTA_LENGTH(0)) as *mut c_void }
@@ -143,43 +152,9 @@ mod linux {
         ifi: ifinfomsg,
     }
 
-    pub struct NetworkMonitor {
-        shutdown_sender: Option<Sender<()>>,
-    }
+    async fn watch_netlink(mut receiver: Receiver<Message>) {
+        let mut callback = None;
 
-    impl NetworkMonitor {
-        pub fn new(event_loop_proxy: EventLoopProxy<AppEvent>) -> Self {
-            let (shutdown_sender, shutdown_receiver) = oneshot::channel();
-
-            thread::Builder::new()
-                .name("network-monitor".into())
-                .spawn(move || {
-                    let runtime = tokio::runtime::Builder::new_current_thread()
-                        .enable_io()
-                        .build()
-                        .expect("failed to build tokio runtime");
-                    runtime.block_on(watch_netlink(event_loop_proxy, shutdown_receiver))
-                })
-                .expect("failed to spawn network monitor thread");
-
-            Self {
-                shutdown_sender: Some(shutdown_sender),
-            }
-        }
-    }
-
-    impl Drop for NetworkMonitor {
-        fn drop(&mut self) {
-            if let Some(sender) = self.shutdown_sender.take() {
-                let _ = sender.send(());
-            }
-        }
-    }
-
-    async fn watch_netlink(
-        event_loop_proxy: EventLoopProxy<AppEvent>,
-        mut shutdown_receiver: oneshot::Receiver<()>,
-    ) {
         let mut online_links: HashMap<i32, Option<String>> = HashMap::new();
         let mut previous_online = true;
 
@@ -206,7 +181,10 @@ mod linux {
             tokio::select! {
                 biased;
 
-                _ = &mut shutdown_receiver => return,
+                msg = receiver.recv() => match msg {
+                    Some(Message::Shutdown) | None => return,
+                    Some(Message::SetCallback(cb)) => callback = Some(cb),
+                },
 
                 ready = netlink.readable() => {
                     let mut guard = match ready {
@@ -230,11 +208,11 @@ mod linux {
                                         return;
                                     }
 
-                                    if is_dump_done {
+                                    if is_dump_done && let Some(callback) = &callback {
                                         update_online(
                                             &online_links,
                                             &mut previous_online,
-                                            &event_loop_proxy,
+                                            &callback,
                                         );
                                     }
                                 }
@@ -388,7 +366,7 @@ mod linux {
     fn update_online(
         links: &HashMap<i32, Option<String>>,
         previous_online: &mut bool,
-        event_loop_proxy: &EventLoopProxy<AppEvent>,
+        callback: impl Fn(bool),
     ) {
         let current = links
             .values()
@@ -396,7 +374,7 @@ mod linux {
 
         if current != *previous_online {
             *previous_online = current;
-            let _ = event_loop_proxy.send_event(AppEvent::SetNetworkOnlineState(current));
+            callback(current);
         }
     }
 }
@@ -418,42 +396,42 @@ mod windows {
     use windows::Win32::Networking::WinSock::{
         AF_UNSPEC, NL_NETWORK_CONNECTIVITY_HINT, NetworkConnectivityLevelHintNone,
     };
-    use winit::event_loop::EventLoopProxy;
 
-    use crate::desktop::event_loop::AppEvent;
+    use crate::network_delegate::{Message, NetworkDelegate};
 
     const MAX_POLL: usize = 20;
     const POLL_INTERVAL: Duration = Duration::from_secs(1);
 
-    pub(crate) struct NetworkMonitor {
-        shutdown_sender: Sender<()>,
+    pub(crate) struct WindowsNetworkDelegate {
+        sender: Sender<Message>,
     }
 
-    impl NetworkMonitor {
-        pub(crate) fn new(event_loop_proxy: EventLoopProxy<AppEvent>) -> Self {
-            let (shutdown_sender, shutdown_receiver) = crossbeam_channel::bounded(1);
+    impl WindowsNetworkDelegate {
+        pub(crate) fn new() -> Self {
+            let (sender, receiver) = crossbeam_channel::bounded(8);
 
             thread::Builder::new()
                 .name("network-monitor".into())
                 .spawn(move || {
-                    watch_connectivity(event_loop_proxy, shutdown_receiver);
+                    watch_connectivity(receiver);
                 })
                 .expect("failed to spawn network monitor thread");
 
-            Self { shutdown_sender }
+            Self { sender }
         }
     }
 
-    impl Drop for NetworkMonitor {
-        fn drop(&mut self) {
-            let _ = self.shutdown_sender.send(());
+    impl NetworkDelegate for WindowsNetworkDelegate {
+        fn start(&self, callback: super::NetworkDelegateCallback) {
+            _ = self.sender.send(Message::SetCallback(callback));
+        }
+
+        fn shutdown(&self) {
+            let _ = self.sender.send(Message::Shutdown);
         }
     }
 
-    fn watch_connectivity(
-        event_loop_proxy: EventLoopProxy<AppEvent>,
-        shutdown_receiver: Receiver<()>,
-    ) {
+    fn watch_connectivity(receiver: Receiver<Message>) {
         let (address_change_sender, address_change_receiver) = crossbeam_channel::bounded::<()>(1);
         let mut handle = HANDLE::default();
 
@@ -476,11 +454,15 @@ mod windows {
             return;
         }
 
+        let mut callback = None;
         let mut previous_online = true;
 
         'monitor: loop {
             select_biased! {
-                recv(shutdown_receiver) -> _ => break 'monitor,
+                recv(receiver) -> msg => match msg {
+                    Ok(Message::Shutdown) | Err(_) => break 'monitor,
+                    Ok(Message::SetCallback(cb)) => callback = Some(cb),
+                },
                 recv(address_change_receiver) -> result => {
                     if result.is_err() {
                         break 'monitor;
@@ -495,8 +477,9 @@ mod windows {
                 if let Some(current) = get_current_online() {
                     if current != previous_online {
                         previous_online = current;
-                        let _ =
-                            event_loop_proxy.send_event(AppEvent::SetNetworkOnlineState(current));
+                        if let Some(callback) = callback {
+                            let _ = callback(current);
+                        }
                     }
                 }
 
@@ -505,7 +488,10 @@ mod windows {
                 }
 
                 select_biased! {
-                    recv(shutdown_receiver) -> _ => break 'monitor,
+                    recv(receiver) -> msg => match msg {
+                        Ok(Message::Shutdown) | Err(_) => break 'monitor,
+                        Ok(Message::SetCallback(cb)) => callback = Some(cb),
+                    },
                     recv(address_change_receiver) -> result => {
                         if result.is_err() {
                             break 'monitor;
@@ -557,5 +543,24 @@ mod windows {
             hint.ConnectivityLevel,
             NetworkConnectivityLevelHintNone
         ))
+    }
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "windows")))]
+mod dummy {
+    use crate::network_delegate::NetworkDelegate;
+
+    pub(crate) struct DummyNetworkDelegate;
+
+    impl DummyNetworkDelegate {
+        pub(crate) fn new() -> Self {
+            Self
+        }
+    }
+
+    impl NetworkDelegate for DummyNetworkDelegate {
+        fn start(&self, _callback: super::NetworkDelegateCallback) {}
+
+        fn shutdown(&self) {}
     }
 }
