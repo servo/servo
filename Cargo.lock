@@ -10129,7 +10129,7 @@ dependencies = [
  "image",
  "ipc-channel",
  "itertools 0.15.0",
- "jni",
+ "jni 0.22.4",
  "keyboard-types",
  "libc",
  "log",
