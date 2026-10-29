@@ -117,8 +117,6 @@ pub enum WebGLMsg {
         Size2D<u32>,
         GLContextAttributes,
         GenericSender<Result<WebGLCreateContextResult, String>>,
-        /// Returns which size it was actually resized to.
-        GenericSender<Size2D<u32>>,
     ),
     /// Set an [`ImageKey`] on a `WebGLContext`.
     SetImageKey(WebGLContextId, ImageKey),
@@ -170,6 +168,8 @@ pub struct WebGLCreateContextResult {
     pub glsl_version: WebGLSLVersion,
     /// The GL API used by the context.
     pub api_type: GlType,
+    /// The size the context choose.
+    pub size: Size2D<u32>,
 }
 
 /// Defines the WebGL version

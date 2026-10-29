@@ -48,8 +48,6 @@ enum WebGLTextureOwner {
 
 const MAX_LEVEL_COUNT: usize = 31;
 const MAX_FACE_COUNT: usize = 6;
-// The maximum physical size an image has so that the sum of all sizes fits in usize. Smaller than `usize::MAX / (MAX_LEVEL_COUNT * MAX_FACE_COUNT) - 1`
-const MAX_IMAGE_INFO_PHYSICAL_SIZE: usize = 5000 * 5000;
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
@@ -555,10 +553,6 @@ impl WebGLTexture {
     }
 
     fn set_image_infos_at_level_and_face(&self, level: u32, face: u8, image_info: ImageInfo) {
-        if image_info.physical_size() >= MAX_IMAGE_INFO_PHYSICAL_SIZE {
-            log::error!("Image Info too large. Ignoring the image.");
-            return;
-        }
         debug_assert!(face < self.face_count.get());
         let pos = (level * self.face_count.get() as u32) + face as u32;
         self.image_info_array.borrow_mut()[pos as usize] = Some(image_info);
