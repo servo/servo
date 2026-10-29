@@ -1262,19 +1262,17 @@ impl ImageCache for ImageCacheImpl {
                         },
                         Err(_) => (CorsStatus::Unsafe, None),
                     };
-                    pending_load.cors_status = cors_status;
-                    match metadata {
-                        Some(metadata) => {
-                            pending_load.final_url = Some(metadata.final_url);
-                            pending_load.content_type = metadata
+                    let (final_url, content_type) = metadata.map_or((None, None), |metadata| {
+                        (
+                            Some(metadata.final_url),
+                            metadata
                                 .content_type
-                                .map(|content_type| content_type.into_inner().into());
-                        },
-                        None => {
-                            pending_load.final_url = None;
-                            pending_load.content_type = None;
-                        },
-                    }
+                                .map(|content_type| content_type.into_inner().into()),
+                        )
+                    });
+                    pending_load.final_url = final_url;
+                    pending_load.content_type = content_type;
+                    pending_load.cors_status = cors_status;
                 } else {
                     debug!("Pending load for id {:?} already evicted from cache", id);
                 }
