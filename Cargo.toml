@@ -80,9 +80,9 @@ dwrote = "0.11.5"
 ecdsa = "0.17"
 ed25519-dalek = { version = "3.0", features = ["alloc", "pkcs8", "rand_core", "zeroize"] }
 ed448-goldilocks = "=0.14.0-pre.15"
-egui = "0.34.3"
-egui-winit = { version = "0.34.3", default-features = false }
-egui_glow = "0.34.3"
+egui = "0.37.0"
+egui-winit = { version = "0.37.0", default-features = false }
+egui_glow = "0.37.0"
 elliptic-curve = { version = "0.14", features = ["pkcs8"] }
 encoding_rs = { version = "0.8", features = ["serde"] }
 env_filter = "0.1.4"
