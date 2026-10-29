@@ -1381,6 +1381,153 @@ impl TexFormat {
     }
 }
 
+/// How a color format stores each component.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum TexComponentType {
+    UnsignedNormalized,
+    SignedNormalized,
+    Float,
+    SignedInt,
+    UnsignedInt,
+}
+
+impl TexFormat {
+    /// Returns the component type of a sized color format; `None` for unsized, depth, stencil
+    /// and compressed formats.
+    pub fn component_type(self) -> Option<TexComponentType> {
+        use TexComponentType::*;
+        Some(match self {
+            TexFormat::R8 |
+            TexFormat::RG8 |
+            TexFormat::RGB8 |
+            TexFormat::SRGB8 |
+            TexFormat::RGB565 |
+            TexFormat::RGBA8 |
+            TexFormat::SRGB8Alpha8 |
+            TexFormat::RGB5A1 |
+            TexFormat::RGBA4 |
+            TexFormat::RGB10A2 => UnsignedNormalized,
+            TexFormat::R8SNorm |
+            TexFormat::RG8SNorm |
+            TexFormat::RGB8SNorm |
+            TexFormat::RGBA8SNorm => SignedNormalized,
+            TexFormat::R16f |
+            TexFormat::R32f |
+            TexFormat::RG16f |
+            TexFormat::RG32f |
+            TexFormat::R11fG11fB10f |
+            TexFormat::RGB9E5 |
+            TexFormat::RGB16f |
+            TexFormat::RGB32f |
+            TexFormat::RGBA16f |
+            TexFormat::RGBA32f |
+            TexFormat::Alpha16f |
+            TexFormat::Alpha32f |
+            TexFormat::Luminance16f |
+            TexFormat::Luminance32f |
+            TexFormat::LuminanceAlpha16f |
+            TexFormat::LuminanceAlpha32f => Float,
+            TexFormat::R8i |
+            TexFormat::R16i |
+            TexFormat::R32i |
+            TexFormat::RG8i |
+            TexFormat::RG16i |
+            TexFormat::RG32i |
+            TexFormat::RGB8i |
+            TexFormat::RGB16i |
+            TexFormat::RGB32i |
+            TexFormat::RGBA8i |
+            TexFormat::RGBA16i |
+            TexFormat::RGBA32i => SignedInt,
+            TexFormat::R8ui |
+            TexFormat::R16ui |
+            TexFormat::R32ui |
+            TexFormat::RG8ui |
+            TexFormat::RG16ui |
+            TexFormat::RG32ui |
+            TexFormat::RGB8ui |
+            TexFormat::RGB16ui |
+            TexFormat::RGB32ui |
+            TexFormat::RGBA8ui |
+            TexFormat::RGB10A2ui |
+            TexFormat::RGBA16ui |
+            TexFormat::RGBA32ui => UnsignedInt,
+            _ => return None,
+        })
+    }
+
+    /// Returns the bits per red, green, blue and alpha component of a sized color format, with
+    /// luminance counted as red; `None` for unsized, depth, stencil and compressed formats.
+    pub fn component_sizes(self) -> Option<[u8; 4]> {
+        Some(match self {
+            TexFormat::R8 | TexFormat::R8SNorm | TexFormat::R8i | TexFormat::R8ui => [8, 0, 0, 0],
+            TexFormat::R16f | TexFormat::R16i | TexFormat::R16ui | TexFormat::Luminance16f => {
+                [16, 0, 0, 0]
+            },
+            TexFormat::R32f | TexFormat::R32i | TexFormat::R32ui | TexFormat::Luminance32f => {
+                [32, 0, 0, 0]
+            },
+            TexFormat::Alpha16f => [0, 0, 0, 16],
+            TexFormat::Alpha32f => [0, 0, 0, 32],
+            TexFormat::LuminanceAlpha16f => [16, 0, 0, 16],
+            TexFormat::LuminanceAlpha32f => [32, 0, 0, 32],
+            TexFormat::RG8 | TexFormat::RG8SNorm | TexFormat::RG8i | TexFormat::RG8ui => {
+                [8, 8, 0, 0]
+            },
+            TexFormat::RG16f | TexFormat::RG16i | TexFormat::RG16ui => [16, 16, 0, 0],
+            TexFormat::RG32f | TexFormat::RG32i | TexFormat::RG32ui => [32, 32, 0, 0],
+            TexFormat::RGB8 |
+            TexFormat::SRGB8 |
+            TexFormat::RGB8SNorm |
+            TexFormat::RGB8i |
+            TexFormat::RGB8ui => [8, 8, 8, 0],
+            TexFormat::RGB565 => [5, 6, 5, 0],
+            TexFormat::R11fG11fB10f => [11, 11, 10, 0],
+            TexFormat::RGB9E5 => [9, 9, 9, 0],
+            TexFormat::RGB16f | TexFormat::RGB16i | TexFormat::RGB16ui => [16, 16, 16, 0],
+            TexFormat::RGB32f | TexFormat::RGB32i | TexFormat::RGB32ui => [32, 32, 32, 0],
+            TexFormat::RGBA8 |
+            TexFormat::SRGB8Alpha8 |
+            TexFormat::RGBA8SNorm |
+            TexFormat::RGBA8i |
+            TexFormat::RGBA8ui => [8, 8, 8, 8],
+            TexFormat::RGB5A1 => [5, 5, 5, 1],
+            TexFormat::RGBA4 => [4, 4, 4, 4],
+            TexFormat::RGB10A2 | TexFormat::RGB10A2ui => [10, 10, 10, 2],
+            TexFormat::RGBA16f | TexFormat::RGBA16i | TexFormat::RGBA16ui => [16, 16, 16, 16],
+            TexFormat::RGBA32f | TexFormat::RGBA32i | TexFormat::RGBA32ui => [32, 32, 32, 32],
+            _ => return None,
+        })
+    }
+
+    pub fn is_srgb(self) -> bool {
+        matches!(self, TexFormat::SRGB8 | TexFormat::SRGB8Alpha8)
+    }
+
+    /// Returns the sized format corresponding to this unsized format and `data_type`
+    /// (OpenGL ES 3.0.6 table 3.12); a sized format is returned unchanged.
+    pub fn effective_internal_format(self, data_type: TexDataType) -> TexFormat {
+        match (self, data_type) {
+            (TexFormat::RGBA, TexDataType::UnsignedByte) => TexFormat::RGBA8,
+            (TexFormat::RGBA, TexDataType::UnsignedShort4444) => TexFormat::RGBA4,
+            (TexFormat::RGBA, TexDataType::UnsignedShort5551) => TexFormat::RGB5A1,
+            (TexFormat::RGBA, TexDataType::HalfFloat) => TexFormat::RGBA16f,
+            (TexFormat::RGBA, TexDataType::Float) => TexFormat::RGBA32f,
+            (TexFormat::RGB, TexDataType::UnsignedByte) => TexFormat::RGB8,
+            (TexFormat::RGB, TexDataType::UnsignedShort565) => TexFormat::RGB565,
+            (TexFormat::RGB, TexDataType::HalfFloat) => TexFormat::RGB16f,
+            (TexFormat::RGB, TexDataType::Float) => TexFormat::RGB32f,
+            (TexFormat::Alpha, TexDataType::HalfFloat) => TexFormat::Alpha16f,
+            (TexFormat::Alpha, TexDataType::Float) => TexFormat::Alpha32f,
+            (TexFormat::Luminance, TexDataType::HalfFloat) => TexFormat::Luminance16f,
+            (TexFormat::Luminance, TexDataType::Float) => TexFormat::Luminance32f,
+            (TexFormat::LuminanceAlpha, TexDataType::HalfFloat) => TexFormat::LuminanceAlpha16f,
+            (TexFormat::LuminanceAlpha, TexDataType::Float) => TexFormat::LuminanceAlpha32f,
+            _ => self,
+        }
+    }
+}
+
 #[derive(PartialEq)]
 pub enum SizedDataType {
     Int8,
