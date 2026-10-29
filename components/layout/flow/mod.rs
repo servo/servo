@@ -2256,11 +2256,8 @@ impl IndependentFormattingContext {
             },
             style,
         };
-        assert_eq!(
-            container_writing_mode.is_horizontal(),
-            style.writing_mode.is_horizontal(),
-            "Mixed horizontal and vertical writing modes are not supported yet"
-        );
+
+        // TODO: https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
 
         let lazy_block_size = LazySize::new(
             &content_box_sizes_and_pbm.content_box_sizes.block,
