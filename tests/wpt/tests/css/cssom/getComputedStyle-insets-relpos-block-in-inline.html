@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>getComputedStyle inset percentage on relpos block-in-inline</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/cssom-1/#resolved-values">
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#insets">
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#relpos-insets">
+<meta name="assert" content="The resolved value of inset properties is the used value">
+
+<div style="width: 100px; height: 100px; border: solid">
+  <span>
+    <div id="target" style="position: relative; top: 50%; left: 75%; background: cyan">A</div>
+  </span>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  const target = document.getElementById("target");
+  const cs = getComputedStyle(target);
+  function check(prop, expected) {
+    test(() => assert_equals(cs.getPropertyValue(prop), expected), prop);
+  }
+  check("top", "50px");
+  check("bottom", "-50px");
+  check("left", "75px");
+  check("right", "-75px");
+</script>

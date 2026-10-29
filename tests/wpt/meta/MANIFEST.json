@@ -1217470,6 +1217470,20 @@
        {}
       ]
      ],
+     "getComputedStyle-insets-relpos-block-in-inline.html": [
+      "b57aec80535c134461620f822f18bb08455a09e6",
+      [
+       null,
+       {}
+      ]
+     ],
+     "getComputedStyle-insets-relpos-inline-002.html": [
+      "f4f0a0f1675ede2c00bdb2e409c1682efb1a874e",
+      [
+       null,
+       {}
+      ]
+     ],
      "getComputedStyle-insets-relpos-inline.html": [
       "7d53f316396bb4d68bc6e600ff81b12a1fc38e56",
       [
