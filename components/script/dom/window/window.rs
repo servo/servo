@@ -3209,9 +3209,10 @@ impl Window {
 
     pub(crate) fn accesskit_node_query(
         &self,
+        cx: &mut JSContext,
         element: TrustedNodeAddress,
     ) -> Option<accesskit::Node> {
-        self.layout_reflow_deprecated(QueryMsg::AccessKitNodeQuery);
+        self.layout_reflow(cx, QueryMsg::AccessKitNodeQuery);
         self.layout.borrow().query_accesskit_node(element)
     }
 
