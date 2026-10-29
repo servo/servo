@@ -2577,6 +2577,7 @@ impl ScriptThread {
             },
             WebDriverScriptCommand::GetComputedRole(node_id, reply) => {
                 webdriver_handlers::handle_get_computed_role(
+                    cx,
                     &documents,
                     pipeline_id,
                     node_id,

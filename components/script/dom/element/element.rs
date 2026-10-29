@@ -5420,10 +5420,10 @@ impl Element {
         !document.is_fully_active() || (!self.is::<HTMLAnchorElement>() && !self.is_connected())
     }
 
-    pub(crate) fn get_computed_role(&self) -> Option<DOMString> {
+    pub(crate) fn get_computed_role(&self, cx: &mut JSContext) -> Option<DOMString> {
         let accesskit_node = self
             .owner_window()
-            .accesskit_node_query(self.upcast::<Node>().to_trusted_node_address())?;
+            .accesskit_node_query(cx, self.upcast::<Node>().to_trusted_node_address())?;
         let aria_role = ACCESSKIT_ROLE_TO_ARIA_ROLE.get(&accesskit_node.role())?;
         Some(TracedDOMString::from(aria_role.clone()).root())
     }
