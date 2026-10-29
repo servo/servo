@@ -779,7 +779,7 @@ fn handle_range_request(
                         let cached_response = create_cached_response(
                             request,
                             &new_resource,
-                            &cached_headers,
+                            cached_headers,
                             done_chan,
                         );
                         if let Some(cached_response) = cached_response {
@@ -799,7 +799,7 @@ fn handle_range_request(
                         let cached_response = create_cached_response(
                             request,
                             &new_resource,
-                            &cached_headers,
+                            cached_headers,
                             done_chan,
                         );
                         if let Some(cached_response) = cached_response {
@@ -844,7 +844,7 @@ fn handle_range_request(
                             let new_resource =
                                 create_resource_with_bytes_from_resource(bytes, partial_resource);
                             let cached_response =
-                                create_cached_response(request, &new_resource, &headers, done_chan);
+                                create_cached_response(request, &new_resource, headers, done_chan);
                             if let Some(cached_response) = cached_response {
                                 return Some(cached_response);
                             }
@@ -884,7 +884,7 @@ fn handle_range_request(
                             let new_resource =
                                 create_resource_with_bytes_from_resource(bytes, partial_resource);
                             let cached_response =
-                                create_cached_response(request, &new_resource, &headers, done_chan);
+                                create_cached_response(request, &new_resource, headers, done_chan);
                             if let Some(cached_response) = cached_response {
                                 return Some(cached_response);
                             }
@@ -935,7 +935,7 @@ pub(crate) fn construct_response(
         // or using the Date header to return the most recent one.
         let cached_headers = cached_resource.metadata.headers.as_ref();
         let cached_response =
-            create_cached_response(request, cached_resource, &cached_headers, done_chan);
+            create_cached_response(request, cached_resource, cached_headers, done_chan);
         if let Some(cached_response) = cached_response {
             return Some(cached_response);
         }
@@ -1204,7 +1204,7 @@ impl HttpCache {
 
 /// Returns an writeable entry into the cache or a guard for insertint an entry
 /// The guard will block other queries to the cache entry in both cases.
-pub enum CachedResourcesOrGuard<'a> {
+pub enum    CachedResourcesOrGuard<'a> {
     /// The value of the resource in the cache.
     Value(OwnedRwLockWriteGuard<Vec<CachedResource>>),
     /// A guard that blocks requests to the cache entry this guard is for.

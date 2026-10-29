@@ -2210,7 +2210,7 @@ async fn http_network_fetch(
     // Step 6. Let newConnection be "yes" if forceNewConnection is true; otherwise "no".
 
     // Step 7. Switch on request’s mode:
-    let (response_stream, msg) = match &request.mode {
+    let (mut response_stream, msg) = match &request.mode {
         // Let connection be the result of obtaining a WebSocket connection, given request’s current URL.
         RequestMode::WebSocket {
             protocols,
@@ -2336,7 +2336,7 @@ async fn http_network_fetch(
         response_stream.status(),
         request.url()
     );
-    response.headers = StdArc::new(Serde(response_stream.headers().clone()));
+    response.headers = StdArc::new(Serde(std::mem::take(response_stream.headers_mut())));
     response.referrer = request.referrer.to_url().cloned();
     response.referrer_policy = request.referrer_policy;
 
@@ -2432,7 +2432,7 @@ async fn http_network_fetch(
                 *body = ResponseBody::Done(completed_body);
                 #[cfg(feature = "devtools")]
                 send_response_values_to_devtools(
-                    Some(StdArc::unwrap_or_clone(headers).0),
+                    Some(headers),
                     status,
                     devtools_response_body,
                     CacheState::None,
