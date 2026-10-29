@@ -91,9 +91,6 @@ use crate::dom::webgl::webglvertexarrayobject::WebGLVertexArrayObject;
 use crate::dom::webgl::webglvertexarrayobjectoes::WebGLVertexArrayObjectOES;
 use crate::dom::window::Window;
 
-/// This is the maximum that we allow resize and should be bounded by the memory we allocate to the JS engine.
-const MAX_WEBGL_CONTEXT_AREA_SIZE: usize = usize::MAX / 4 - 1;
-
 fn has_invalid_blend_constants(arg1: u32, arg2: u32) -> bool {
     match (arg1, arg2) {
         (constants::CONSTANT_COLOR, constants::CONSTANT_ALPHA) => true,
@@ -235,6 +232,7 @@ impl WebGLRenderingContext {
         };
 
         let (sender, receiver) = webgl_channel().unwrap();
+        let (size_sender, size_receiver) = generic_channel::channel().unwrap();
         webgl_chan
             .send(WebGLMsg::CreateContext(
                 window.webview_id().into(),
@@ -242,9 +240,13 @@ impl WebGLRenderingContext {
                 size,
                 attrs,
                 sender,
+                size_sender,
             ))
             .unwrap();
         let result = receiver.recv().unwrap();
+        let size = size_receiver
+            .recv()
+            .expect("Could not get actual size from webgl");
 
         result.map(|ctx_data| {
             let max_combined_texture_image_units = ctx_data.limits.max_combined_texture_image_units;
@@ -2116,19 +2118,18 @@ impl CanvasContext for WebGLRenderingContext {
     fn resize(&self) {
         let size = self.size().cast();
 
-        let area = size.cast::<usize>().area();
-        if area >= MAX_WEBGL_CONTEXT_AREA_SIZE {
-            error!("Error resizing WebGLContext. Size too large.");
-            return;
-        }
-
         let (sender, receiver) = webgl_channel().unwrap();
+        let (size_sender, size_receiver) = generic_channel::channel().unwrap();
         self.droppable
             .webgl_sender
-            .send_resize(size, sender)
+            .send_resize(size, sender, size_sender)
             .unwrap();
-        // FIXME(#21718) The backend is allowed to choose a size smaller than
-        // what was requested
+
+        let size = size_receiver
+            .recv()
+            .expect("Could not receive size from webgl thread");
+        let area = size.cast::<usize>().area();
+
         self.size.set(size);
 
         self.reflector_.update_memory_size(self, area);

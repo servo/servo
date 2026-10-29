@@ -117,6 +117,8 @@ pub enum WebGLMsg {
         Size2D<u32>,
         GLContextAttributes,
         GenericSender<Result<WebGLCreateContextResult, String>>,
+        /// Returns which size it was actually resized to.
+        GenericSender<Size2D<u32>>,
     ),
     /// Set an [`ImageKey`] on a `WebGLContext`.
     SetImageKey(WebGLContextId, ImageKey),
@@ -125,6 +127,8 @@ pub enum WebGLMsg {
         WebGLContextId,
         Size2D<u32>,
         GenericSender<Result<(), String>>,
+        /// Returns which size it was actually resized to.
+        GenericSender<Size2D<u32>>,
     ),
     /// Drops a WebGLContext.
     RemoveContext(WebGLContextId),
@@ -228,9 +232,14 @@ impl WebGLMsgSender {
         &self,
         size: Size2D<u32>,
         sender: GenericSender<Result<(), String>>,
+        size_returner: GenericSender<Size2D<u32>>,
     ) -> WebGLSendResult {
-        self.sender
-            .send(WebGLMsg::ResizeContext(self.ctx_id, size, sender))
+        self.sender.send(WebGLMsg::ResizeContext(
+            self.ctx_id,
+            size,
+            sender,
+            size_returner,
+        ))
     }
 
     #[inline]
