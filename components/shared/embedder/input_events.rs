@@ -417,7 +417,11 @@ impl WheelEvent {
 /// The types of an input method event.
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum ImeEvent {
+    /// See [CompositionEvent].
     Composition(CompositionEvent),
+    /// Text that an input method directly commits without a composition.
+    Commit(String),
+    /// The Input method was dismissed.
     Dismissed,
 }
 
