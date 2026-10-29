@@ -389,7 +389,7 @@ mod linux {
     }
 }
 
-/// Monitor active network links via `NotifyUnicastI[AddressChange` and `GetNetworkConnectivityHint`
+/// Monitor active network links via `NotifyUnicastIpAddressChange` and `GetNetworkConnectivityHint`
 #[cfg(target_os = "windows")]
 mod windows {
     use std::ffi::c_void;
