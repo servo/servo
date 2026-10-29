@@ -1157,7 +1157,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         let prefix = global.current_group_label().unwrap_or_default();
         Self::send_to_embedder(
             global,
-            ConsoleLogLevel::Log,
+            ConsoleLogLevel::Table,
             format!("{prefix}\n{}", table.render()),
         );
     }

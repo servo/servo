@@ -50,7 +50,7 @@ use crate::actors::framerate::FramerateActor;
 use crate::actors::inspector::InspectorActor;
 use crate::actors::inspector::walker::WalkerActor;
 use crate::actors::network_event::NetworkEventActor;
-use crate::actors::object::ObjectActor;
+use crate::actors::object::{ObjectActor, ObjectPropertyDescriptor};
 use crate::actors::pause::PauseActor;
 use crate::actors::root::RootActor;
 use crate::actors::source::SourceActor;
@@ -1068,39 +1068,6 @@ pub(crate) fn debugger_value_to_json(registry: &ActorRegistry, value: DebuggerVa
     }
 }
 
-/// Port of the `message.level === "table"` branch of Firefox's
-/// `prepareConsoleMessageForRemote`:
-/// <https://searchfox.org/firefox-main/source/devtools/server/actors/resources/console-messages.js>
-///
-/// - `arguments[0].ownProperties` holds the table rows (with one level of sub-properties),
-/// - `arguments[0].preview` is set to null,
-/// - only the first two arguments (data, columns) are sent.
-pub(crate) fn console_table_arguments(
-    registry: &ActorRegistry,
-    arguments: Vec<DebuggerValue>,
-) -> Vec<Value> {
-    let table_items = arguments
-        .first()
-        .and_then(|data| console_table_items(registry, data, true));
-
-    // "Only return the 2 first params."
-    let mut grips: Vec<Value> = arguments
-        .into_iter()
-        .take(2)
-        .map(|argument| debugger_value_to_json(registry, argument))
-        .collect();
-
-    if let (Some(items), Some(grip)) = (
-        table_items,
-        grips.first_mut().and_then(Value::as_object_mut),
-    ) {
-        grip.insert("ownProperties".to_owned(), Value::Object(items));
-        grip.insert("preview".to_owned(), Value::Null);
-    }
-
-    grips
-}
-
 /// Port of Firefox's `getConsoleTableMessageItems`.
 fn console_table_items(
     registry: &ActorRegistry,
@@ -1143,7 +1110,14 @@ fn console_table_items(
 
             items.insert(
                 index.to_string(),
-                property_descriptor_json(Value::Object(entry), false, true, false),
+                serde_json::to_value(ObjectPropertyDescriptor {
+                    value: Value::Object(entry),
+                    configurable: Some(false),
+                    enumerable: true,
+                    writable: Some(false),
+                    is_accessor: None,
+                })
+                .unwrap(),
             );
         }
     } else if let Some(properties) = &preview.own_properties {
@@ -1184,19 +1158,12 @@ fn table_descriptor(
         grip_object.insert("ownProperties".to_owned(), Value::Object(sub_properties));
     }
 
-    property_descriptor_json(grip, configurable, enumerable, writable)
-}
-
-fn property_descriptor_json(
-    value: Value,
-    configurable: bool,
-    enumerable: bool,
-    writable: bool,
-) -> Value {
-    let mut descriptor = Map::new();
-    descriptor.insert("configurable".to_owned(), Value::Bool(configurable));
-    descriptor.insert("enumerable".to_owned(), Value::Bool(enumerable));
-    descriptor.insert("writable".to_owned(), Value::Bool(writable));
-    descriptor.insert("value".to_owned(), value);
-    Value::Object(descriptor)
+    serde_json::to_value(ObjectPropertyDescriptor {
+        value: grip,
+        configurable: Some(configurable),
+        enumerable,
+        writable: Some(writable),
+        is_accessor: None,
+    })
+    .unwrap()
 }

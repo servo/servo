@@ -411,8 +411,6 @@ class TestConsoleTab:
             assert "case_" in result_ll["matches"]
             assert "CASE_" in result_ll["matches"]
 
-        # console.table
-
     # Firefox expects (see `prepareConsoleMessageForRemote` in devtools/server/actors/resources/console-messages.js):
     # - level == "table"
     # - at most 2 arguments (data, columns)

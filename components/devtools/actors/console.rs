@@ -12,8 +12,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use atomic_refcell::AtomicRefCell;
 use devtools_traits::{
-    ConsoleMessage, ConsoleMessageFields, DevtoolScriptControlMsg, GetEnvironmentRequest,
-    PageError, StackFrame, get_time_stamp,
+    ConsoleMessage, ConsoleMessageFields, DebuggerValue, DevtoolScriptControlMsg,
+    GetEnvironmentRequest, PageError, StackFrame, get_time_stamp,
 };
 use embedder_traits::ConsoleLogLevel;
 use malloc_size_of_derive::MallocSizeOf;
@@ -29,7 +29,37 @@ use crate::actors::environment::EnvironmentActor;
 use crate::actors::worker::WorkerTargetActor;
 use crate::protocol::{ClientRequest, DevtoolsConnection, JsonPacketStream};
 use crate::resource::{ResourceArrayType, ResourceAvailable};
-use crate::{EmptyReplyMsg, StreamId, UniqueId, debugger_value_to_json};
+use crate::{EmptyReplyMsg, StreamId, UniqueId, console_table_items, debugger_value_to_json};
+
+/// Port of the `message.level === "table"` branch of Firefox's
+/// `prepareConsoleMessageForRemote`:
+/// <https://searchfox.org/firefox-main/source/devtools/server/actors/resources/console-messages.js>
+///
+/// - `arguments[0].ownProperties` holds the table rows (with one level of sub-properties),
+/// - `arguments[0].preview` is set to null,
+/// - only the first two arguments (data, columns) are sent.
+fn console_table_arguments(registry: &ActorRegistry, arguments: Vec<DebuggerValue>) -> Vec<Value> {
+    let table_items = arguments
+        .first()
+        .and_then(|data| console_table_items(registry, data, true));
+
+    // "Only return the 2 first params."
+    let mut grips: Vec<Value> = arguments
+        .into_iter()
+        .take(2)
+        .map(|argument| debugger_value_to_json(registry, argument))
+        .collect();
+
+    if let (Some(items), Some(grip)) = (
+        table_items,
+        grips.first_mut().and_then(Value::as_object_mut),
+    ) {
+        grip.insert("ownProperties".to_owned(), Value::Object(items));
+        grip.insert("preview".to_owned(), Value::Null);
+    }
+
+    grips
+}
 
 #[derive(Clone, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
@@ -50,7 +80,7 @@ impl DevtoolsConsoleMessage {
         if matches!(message.fields.level, ConsoleLogLevel::Table) {
             Self {
                 fields: message.fields,
-                arguments: crate::console_table_arguments(registry, message.arguments),
+                arguments: console_table_arguments(registry, message.arguments),
                 stacktrace: message.stacktrace,
             }
         } else {
