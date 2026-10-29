@@ -3287,10 +3287,11 @@ impl Window {
     #[expect(unsafe_code)]
     pub(crate) fn text_index_query_on_node_for_event(
         &self,
+        cx: &mut JSContext,
         node: &Node,
         point_in_viewport: Point2D<Au, CSSPixel>,
     ) -> Option<(DomRoot<Node>, Utf32CodeUnits)> {
-        self.layout_reflow_deprecated(QueryMsg::TextIndexOrSegmentQuery);
+        self.layout_reflow(cx, QueryMsg::TextIndexOrSegmentQuery);
         let result = self
             .layout
             .borrow()
