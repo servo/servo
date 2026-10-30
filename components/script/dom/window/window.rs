@@ -2795,7 +2795,7 @@ impl Window {
         };
 
         if let Some(selection) = document.selection() {
-            selection.update_overlaps_document_selection_flags(cx.no_gc());
+            selection.update_overlaps_document_selection_flags(cx);
         }
 
         let restyle_reason = document.restyle_reason(cx.no_gc());

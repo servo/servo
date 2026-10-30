@@ -69,17 +69,19 @@ impl Range {
             .unwrap_or(ancestor_container)
     }
 
-    pub(crate) fn first_formattable_contained_node(&self, no_gc: &NoGC) -> Option<DomRoot<Node>> {
+    pub(crate) fn first_formattable_contained_node(
+        &self,
+        cx: &mut JSContext,
+    ) -> Option<DomRoot<Node>> {
         if self.collapsed() {
             return None;
         }
 
         self.ancestor_for_effectively_contained()
-            .traverse_preorder_unrooted(no_gc, ShadowIncluding::No)
+            .traverse_preorder(ShadowIncluding::No)
             .find(|child| {
-                child.is_formattable(no_gc) && self.is_effectively_contained_node(no_gc, child)
+                child.is_formattable(cx) && self.is_effectively_contained_node(cx.no_gc(), child)
             })
-            .map(|node| node.as_rooted())
     }
 
     pub(crate) fn for_each_effectively_contained_child<Callback: FnMut(&mut JSContext, &Node)>(
@@ -134,7 +136,7 @@ impl Range {
                 .expect("Must always have a parent");
         }
         // Step 3. If (start node, start offset) is not a block start point, repeat the following steps:
-        if !start_node.is_block_start_point(cx.no_gc(), start_offset as usize) {
+        if !start_node.is_block_start_point(cx, start_offset as usize) {
             loop {
                 // Step 3.1. If start offset is zero, set it to start node's index, then set start node to its parent.
                 if start_offset == 0 {
@@ -147,7 +149,7 @@ impl Range {
                     start_offset -= 1;
                 }
                 // Step 3.3. If (start node, start offset) is a block boundary point, break from this loop.
-                if start_node.is_block_boundary_point(cx.no_gc(), start_offset) {
+                if start_node.is_block_boundary_point(cx, start_offset) {
                     break;
                 }
             }
@@ -173,7 +175,7 @@ impl Range {
                 .expect("Must always have a parent");
         }
         // Step 6. If (end node, end offset) is not a block end point, repeat the following steps:
-        if !end_node.is_block_end_point(end_offset, cx.no_gc()) {
+        if !end_node.is_block_end_point(cx, end_offset) {
             loop {
                 // Step 6.1. If end offset is end node's length, set it to one plus end node's index, then set end node to its parent.
                 if end_offset == end_node.len() {
@@ -184,7 +186,7 @@ impl Range {
                     end_offset += 1;
                 }
                 // Step 6.3. If (end node, end offset) is a block boundary point, break from this loop.
-                if end_node.is_block_boundary_point(cx.no_gc(), end_offset) {
+                if end_node.is_block_boundary_point(cx, end_offset) {
                     break;
                 }
             }
@@ -217,7 +219,7 @@ impl Range {
 
         // Step 2. Let node be the first formattable node effectively contained in the active range,
         // or null if there is none.
-        let Some(node) = self.first_formattable_contained_node(cx.no_gc()) else {
+        let Some(node) = self.first_formattable_contained_node(cx) else {
             // Step 3. If node is null, return overrides.
             return vec![];
         };
@@ -225,32 +227,38 @@ impl Range {
         let document = node.owner_doc();
         vec![
             // Step 4. Add ("createLink", node's effective command value for "createLink") to overrides.
-            RecordedStateOfCommand::for_command_node(CommandName::CreateLink, &node),
+            RecordedStateOfCommand::for_command_node(cx, CommandName::CreateLink, &node),
             // Step 5. For each command in the list
             // "bold", "italic", "strikethrough", "subscript", "superscript", "underline", in order:
             // if node's effective command value for command is one of its inline command activated values,
             // add (command, true) to overrides, and otherwise add (command, false) to overrides.
             RecordedStateOfCommand::for_command_node_with_inline_activated_values(
+                cx,
                 CommandName::Bold,
                 &node,
             ),
             RecordedStateOfCommand::for_command_node_with_inline_activated_values(
+                cx,
                 CommandName::Italic,
                 &node,
             ),
             RecordedStateOfCommand::for_command_node_with_inline_activated_values(
+                cx,
                 CommandName::Strikethrough,
                 &node,
             ),
             RecordedStateOfCommand::for_command_node_with_inline_activated_values(
+                cx,
                 CommandName::Subscript,
                 &node,
             ),
             RecordedStateOfCommand::for_command_node_with_inline_activated_values(
+                cx,
                 CommandName::Superscript,
                 &node,
             ),
             RecordedStateOfCommand::for_command_node_with_inline_activated_values(
+                cx,
                 CommandName::Underline,
                 &node,
             ),
@@ -272,7 +280,7 @@ impl Range {
                 &document,
             ),
             // Step 7. Add ("fontSize", node's effective command value for "fontSize") to overrides.
-            RecordedStateOfCommand::for_command_node(CommandName::FontSize, &node),
+            RecordedStateOfCommand::for_command_node(cx, CommandName::FontSize, &node),
         ]
     }
 
@@ -286,8 +294,7 @@ impl Range {
     ) {
         // Step 1. Let node be the first formattable node effectively contained in the active range,
         // or null if there is none.
-        let mut first_formattable_contained_node =
-            self.first_formattable_contained_node(cx.no_gc());
+        let mut first_formattable_contained_node = self.first_formattable_contained_node(cx);
         for override_state in overrides {
             // Step 2. If node is not null, then for each (command, override) pair in overrides, in order:
             if let Some(ref node) = first_formattable_contained_node {
@@ -336,8 +343,11 @@ impl Range {
                                 if value_override != optional_string ||
                                     (value_override.is_none() &&
                                         !CommandName::FontSize.are_loosely_equivalent_values(
-                                            node.effective_command_value(&CommandName::FontSize)
-                                                .as_ref(),
+                                            node.effective_command_value(
+                                                cx,
+                                                &CommandName::FontSize,
+                                            )
+                                            .as_ref(),
                                             optional_string.as_ref(),
                                         ))
                                 {
@@ -383,8 +393,7 @@ impl Range {
                     },
                 }
                 // Step 2.6. Set node to the first formattable node effectively contained in the active range, if there is one.
-                first_formattable_contained_node =
-                    self.first_formattable_contained_node(cx.no_gc());
+                first_formattable_contained_node = self.first_formattable_contained_node(cx);
             } else {
                 // Step 3. Otherwise, for each (command, override) pair in overrides, in order:
                 // Step 3.1. If override is a boolean, set the state override for command to override.

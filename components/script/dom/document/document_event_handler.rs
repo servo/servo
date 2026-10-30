@@ -1159,10 +1159,10 @@ impl DocumentEventHandler {
                     // Note that this differs from the specification, because we are going to look
                     // for the first inclusive ancestor that is click focusable and then focus it.
                     // See documentation for [`Node::find_click_focusable_area`].
-                    let node_click_focusable_area = &node.find_click_focusable_area(cx);
+                    rooted!(&in(cx) let node_click_focusable_area = node.find_click_focusable_area(cx));
                     document.focus_handler().focus(
                         cx,
-                        node_click_focusable_area,
+                        &node_click_focusable_area,
                         FocusTrigger::Click,
                     );
                 }
@@ -2636,7 +2636,7 @@ impl DocumentEventHandler {
             return false;
         };
 
-        if command.disabled() || command.hidden() {
+        if command.disabled(cx) || command.hidden() {
             return false;
         }
 

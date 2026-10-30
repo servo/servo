@@ -100,16 +100,17 @@ pub(crate) struct RecordedStateOfCommand {
 }
 
 impl RecordedStateOfCommand {
-    pub(crate) fn for_command_node(command: CommandName, node: &Node) -> Self {
-        let value = node.effective_command_value(&command).into();
+    pub(crate) fn for_command_node(cx: &mut JSContext, command: CommandName, node: &Node) -> Self {
+        let value = node.effective_command_value(cx, &command).into();
         Self { command, value }
     }
 
     pub(crate) fn for_command_node_with_inline_activated_values(
+        cx: &mut JSContext,
         command: CommandName,
         node: &Node,
     ) -> Self {
-        let effective_command_value = node.effective_command_value(&command);
+        let effective_command_value = node.effective_command_value(cx, &command);
         let value = effective_command_value
             .is_some_and(|effective_command_value| {
                 command
@@ -155,8 +156,12 @@ pub(crate) enum CssPropertyName {
 }
 
 impl CssPropertyName {
-    pub(crate) fn resolved_value_for_node(&self, element: &Element) -> Option<DOMString> {
-        let style = element.style()?;
+    pub(crate) fn resolved_value_for_node(
+        &self,
+        cx: &mut JSContext,
+        element: &Element,
+    ) -> Option<DOMString> {
+        let style = element.style(cx)?;
 
         Some(
             match self {
@@ -380,10 +385,10 @@ impl CommandName {
         let mut at_least_two_different_effective_values = false;
         let mut previous_effective_value: Option<DOMString> = None;
         active_range.for_each_effectively_contained_child(cx, |cx, node| {
-            if at_least_two_different_effective_values || !node.is_formattable(cx.no_gc()) {
+            if at_least_two_different_effective_values || !node.is_formattable(cx) {
                 return;
             }
-            if let Some(effective_command_value) = node.effective_command_value(self) {
+            if let Some(effective_command_value) = node.effective_command_value(cx, self) {
                 // https://w3c.github.io/editing/docs/execCommand/#the-subscript-command
                 // https://w3c.github.io/editing/docs/execCommand/#the-superscript-command
                 // > or if there is some formattable node effectively contained in
@@ -429,12 +434,12 @@ impl CommandName {
                 let mut at_least_one_child_is_formattable = false;
                 let mut all_children_have_matching_command_values = true;
                 active_range.for_each_effectively_contained_child(cx, |cx, node| {
-                    if !node.is_formattable(cx.no_gc()) {
+                    if !node.is_formattable(cx) {
                         return;
                     }
                     at_least_one_child_is_formattable = true;
                     all_children_have_matching_command_values &= node
-                        .effective_command_value(self)
+                        .effective_command_value(cx, self)
                         .is_some_and(|effective_value| {
                             inline_command_activated_values.contains(&&*effective_value.str())
                         });
@@ -444,7 +449,7 @@ impl CommandName {
                 } else {
                     active_range
                         .start_container()
-                        .effective_command_value(self)
+                        .effective_command_value(cx, self)
                         .is_some_and(|effective_value| {
                             inline_command_activated_values.contains(&&*effective_value.str())
                         })
@@ -476,9 +481,9 @@ impl CommandName {
                 let active_range = selection.active_range(cx)?;
 
                 active_range
-                    .first_formattable_contained_node(cx.no_gc())
+                    .first_formattable_contained_node(cx)
                     .unwrap_or_else(|| active_range.start_container())
-                    .effective_command_value(self)
+                    .effective_command_value(cx, self)
                     .unwrap_or_default()
             },
             _ => return None,
@@ -620,9 +625,13 @@ impl CommandName {
         })
     }
 
-    pub(crate) fn resolved_value_for_node(&self, element: &Element) -> Option<DOMString> {
+    pub(crate) fn resolved_value_for_node(
+        &self,
+        cx: &mut JSContext,
+        element: &Element,
+    ) -> Option<DOMString> {
         let property = self.relevant_css_property()?;
-        property.resolved_value_for_node(element)
+        property.resolved_value_for_node(cx, element)
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#standard-inline-value-command>

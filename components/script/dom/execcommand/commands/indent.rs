@@ -6,6 +6,7 @@ use std::collections::HashSet;
 
 use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
+use script_bindings::dom::UnrootedDom;
 use script_bindings::inheritance::Castable;
 
 use crate::dom::bindings::root::DomRoot;
@@ -46,7 +47,7 @@ pub(crate) fn indent(cx: &mut JSContext, context_object: &Document, node_list: V
         wrap_node_list(
             cx,
             node_list,
-            |sibling| {
+            |_cx, sibling| {
                 sibling
                     .downcast::<Element>()
                     .is_some_and(|sibling| sibling.local_name() == tag)
@@ -69,7 +70,7 @@ pub(crate) fn indent(cx: &mut JSContext, context_object: &Document, node_list: V
     let new_parent = wrap_node_list(
         cx,
         node_list,
-        |sibling| {
+        |_cx, sibling| {
             sibling
                 .downcast::<Element>()
                 .is_some_and(|sibling| sibling.is_simple_indentation_element())
@@ -124,25 +125,35 @@ pub(crate) fn execute_indent_command(
     //         if node is editable and is an allowed child of "div" or "ol"
     //         and if the last member of node list (if any) is not an ancestor of node,
     //         append node to node list.
-    for node in new_range.contained_nodes(cx.no_gc()) {
-        if node.is_editable() &&
+    let nodes = new_range
+        .contained_nodes(cx.no_gc())
+        .map(|node| node.as_rooted())
+        .collect::<Vec<DomRoot<Node>>>();
+    for node in nodes {
+        if node.is_editable(cx) &&
             (is_allowed_child(
-                NodeOrString::Node(node.clone()),
+                NodeOrString::Node({
+                    let no_gc = cx.no_gc();
+                    UnrootedDom::from_ref(&*node, no_gc)
+                }),
                 NodeOrString::String("div".to_owned()),
             ) || is_allowed_child(
-                NodeOrString::Node(node.clone()),
+                NodeOrString::Node({
+                    let no_gc = cx.no_gc();
+                    UnrootedDom::from_ref(&*node, no_gc)
+                }),
                 NodeOrString::String("ol".to_owned()),
             )) &&
             node_list
                 .last()
                 .is_none_or(|last| !last.is_ancestor_of(&node))
         {
-            node_list.push(node.as_rooted());
+            node_list.push(node);
         }
     }
 
     // Step 6. If the first visible member of node list is an li whose parent is an ol or ul:
-    if let Some(first_visible_member) = node_list.iter().find(|node| node.is_visible(cx.no_gc())) &&
+    if let Some(first_visible_member) = node_list.iter().find(|node| node.is_visible(cx)) &&
         first_visible_member.is::<HTMLLIElement>() &&
         let Some(parent) = first_visible_member.GetParentNode() &&
         (parent.is::<HTMLOListElement>() || parent.is::<HTMLUListElement>())
@@ -152,7 +163,7 @@ pub(crate) fn execute_indent_command(
 
         // Step 6.2. While sibling is invisible, set sibling to its previousSibling.
         while let Some(ref some_sibling) = sibling &&
-            some_sibling.is_invisible(cx.no_gc())
+            some_sibling.is_invisible(cx)
         {
             sibling = some_sibling.GetPreviousSibling();
         }
