@@ -17,8 +17,8 @@
 
         if (rel === "icon") {
             // Icons don't have load or error events.
-            await new Promise(r => t.step_timeout(r, 2000));
             document.head.append(link);
+            await new Promise(r => t.step_timeout(r, 2000));
         }else {
             const loaded = new Promise((resolve, reject) => {
                 link.onload = () => resolve();
