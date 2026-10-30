@@ -738,11 +738,7 @@ impl ServiceWorkerManager {
         // probably because we are still lacking functionality elsewhere.
 
         // Step 21: Wait for all the tasks queued by Update Worker State invoked in this algorithm to have executed.
-        // TODO: wait for the tasks queued to fire the "statechange" events
-        // to return control to the engine and for script to message back here.
-
-        // Step 22: Invoke Try Activate with registration.
-        // TODO.
+        // Note: the algorithm will continue in the handler for the ServiceWorkerMsg::FinishInstall message.
     }
 
     /// <https://w3c.github.io/ServiceWorker/#update>
