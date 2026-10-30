@@ -623,7 +623,9 @@ impl WebGLTexture {
 
             width = cmp::max(1, width / 2);
             height = cmp::max(1, height / 2);
-            depth = cmp::max(1, depth / 2);
+            if target == TexImageTarget::Texture3D {
+                depth = cmp::max(1, depth / 2);
+            }
         }
 
         self.immutable_levels.set(Some(levels));
