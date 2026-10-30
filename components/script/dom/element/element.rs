@@ -3379,7 +3379,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     /// <https://drafts.csswg.org/cssom-view/#dom-element-getclientrects>
     fn GetClientRects(&self, cx: &mut JSContext) -> DomRoot<DOMRectList> {
         let win = self.owner_window();
-        let raw_rects = self.upcast::<Node>().border_boxes();
+        let raw_rects = self.upcast::<Node>().border_boxes(cx);
         let rects: Vec<DomRoot<DOMRect>> = raw_rects
             .into_iter()
             .map(|rect| {

@@ -3137,8 +3137,13 @@ impl Window {
         self.box_area_query_without_reflow(node, area, exclude_transform_and_inline)
     }
 
-    pub(crate) fn box_areas_query(&self, node: &Node, area: BoxAreaType) -> CSSPixelRectVec {
-        self.layout_reflow_deprecated(QueryMsg::BoxAreas);
+    pub(crate) fn box_areas_query(
+        &self,
+        cx: &mut JSContext,
+        node: &Node,
+        area: BoxAreaType,
+    ) -> CSSPixelRectVec {
+        self.layout_reflow(cx, QueryMsg::BoxAreas);
         self.layout
             .borrow()
             .query_box_areas(node.to_trusted_node_address(), area)

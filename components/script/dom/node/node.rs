@@ -1201,9 +1201,9 @@ impl Node {
             .box_area_query_without_reflow(self, BoxAreaType::Padding, false)
     }
 
-    pub(crate) fn border_boxes(&self) -> CSSPixelRectVec {
+    pub(crate) fn border_boxes(&self, cx: &mut JSContext) -> CSSPixelRectVec {
         self.owner_window()
-            .box_areas_query(self, BoxAreaType::Border)
+            .box_areas_query(cx, self, BoxAreaType::Border)
     }
 
     pub(crate) fn client_rect(&self) -> Rect<i32, CSSPixel> {

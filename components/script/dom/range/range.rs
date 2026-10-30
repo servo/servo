@@ -375,7 +375,7 @@ impl Range {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-range-getclientrects>
-    fn client_rects(&self, no_gc: &NoGC) -> Vec<Rect<Au, CSSPixel>> {
+    fn client_rects(&self, cx: &mut JSContext) -> Vec<Rect<Au, CSSPixel>> {
         // FIXME: For text nodes that are only partially selected, this should return the client
         // rect of the selected part, not the whole text node.
         let start = self.start_container();
@@ -390,19 +390,27 @@ impl Range {
         // (including when the boundary points are identical).
         if self.collapsed() {
             if start.is::<CharacterData>() {
-                return start.border_boxes();
+                return start.border_boxes(cx);
             } else {
                 return vec![];
             }
         }
 
         let document = start.owner_doc();
-        let unrooted_end = end.as_unrooted(no_gc);
-        start
-            .following_nodes_unrooted(no_gc, document.upcast::<Node>(), ShadowIncluding::No)
-            .take_while(move |node| *node != *end)
-            .chain(iter::once(unrooted_end))
-            .flat_map(move |node| node.border_boxes())
+        let nodes: Vec<DomRoot<Node>> = {
+            let no_gc = cx.no_gc();
+            let unrooted_end = end.as_unrooted(no_gc);
+            start
+                .following_nodes_unrooted(no_gc, document.upcast::<Node>(), ShadowIncluding::No)
+                .take_while(|node| *node != *end)
+                .chain(iter::once(unrooted_end))
+                .map(|node| node.as_rooted())
+                .collect()
+        };
+
+        nodes
+            .iter()
+            .flat_map(move |node| node.border_boxes(cx))
             .collect()
     }
 
@@ -1371,7 +1379,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         let start = self.start_container();
         let window = start.owner_window();
 
-        let client_rects = self.client_rects(cx.no_gc());
+        let client_rects = self.client_rects(cx);
         let client_rects = client_rects
             .iter()
             .map(|rect| {
@@ -1394,7 +1402,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         let window = self.start_container().owner_window();
 
         // Step 1. Let list be the result of invoking getClientRects() on the same range this method was invoked on.
-        let list = self.client_rects(cx.no_gc());
+        let list = self.client_rects(cx);
 
         // Step 2. If list is empty return a DOMRect object whose x, y, width and height members are zero.
         // Step 3. If all rectangles in list have zero width or height, return the first rectangle in list.
