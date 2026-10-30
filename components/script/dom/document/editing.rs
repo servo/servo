@@ -490,7 +490,12 @@ impl Document {
             },
             MouseButtonSelectionAction::SelectRange(granularity) => self
                 .window()
-                .query_text_segment(&boundary.container, boundary.utf32_offset(), granularity)
+                .query_text_segment(
+                    cx,
+                    &boundary.container,
+                    boundary.utf32_offset(),
+                    granularity,
+                )
                 .map(|(start, end)| {
                     selection.set_anchor_and_focus(cx, &start, &end);
                     (granularity, start, end)

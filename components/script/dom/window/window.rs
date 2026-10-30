@@ -3337,11 +3337,12 @@ impl Window {
     #[expect(unsafe_code)]
     pub(crate) fn query_text_segment(
         &self,
+        cx: &mut JSContext,
         node: &Node,
         offset: Utf32CodeUnitsOrNodeOffset,
         granularity: SegmentGranularity,
     ) -> Option<(RootedSelectionBoundary, RootedSelectionBoundary)> {
-        self.layout_reflow_deprecated(QueryMsg::TextIndexOrSegmentQuery);
+        self.layout_reflow(cx, QueryMsg::TextIndexOrSegmentQuery);
         let ((start_node, start_offset), (end_node, end_offset)) = self
             .layout()
             .query_text_segment(node.to_trusted_node_address(), offset, granularity)?;

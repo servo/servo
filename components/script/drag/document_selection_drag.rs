@@ -99,6 +99,7 @@ impl DocumentSelectionDragHandler {
             .document
             .window()
             .query_text_segment(
+                cx,
                 &boundary.container,
                 boundary.utf32_offset(),
                 segment.granularity,
