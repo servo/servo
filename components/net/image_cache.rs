@@ -18,7 +18,7 @@ use mime::Mime;
 use net_traits::image_cache::{
     FontResolver, Image, ImageCache, ImageCacheFactory, ImageCacheResponseCallback,
     ImageCacheResponseMessage, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable,
-    ImageResponse, PendingImageId, RasterizationCompleteResponse, VectorImage,
+    ImageResponse, PendingImageId, RasterizationCompleteResponse, RasterizationResult, VectorImage,
 };
 use net_traits::request::CorsSettings;
 use net_traits::{FetchResponseMsg, Metadata, NetworkError};
@@ -1057,11 +1057,11 @@ impl ImageCache for ImageCacheImpl {
         image_id: PendingImageId,
         requested_size: DeviceIntSize,
         svg_id: Option<Uuid>,
-    ) -> Option<RasterImage> {
+    ) -> RasterizationResult {
         let mut store = self.store.lock();
         let Some(vector_image) = store.vector_images.get(&image_id).cloned() else {
             warn!("Unknown image id {image_id:?} requested for rasterization");
-            return None;
+            return RasterizationResult::InvalidSvgParameters;
         };
 
         // This early return relies on the fact that the result of image rasterization cannot
@@ -1072,7 +1072,7 @@ impl ImageCache for ImageCacheImpl {
             .entry((image_id, requested_size))
             .or_default();
         if let Some(result) = entry.result.as_ref() {
-            return Some(result.clone());
+            return RasterizationResult::Image(result.clone());
         }
 
         if let Some(svg_id) = svg_id &&
@@ -1089,14 +1089,12 @@ impl ImageCache for ImageCacheImpl {
                 .remove_all_for_id(old_mapped_image_id);
         }
 
-        if store
-            .svg_rasterization_task_store
-            .is_or_set_being_rasterized(image_id, requested_size)
-        {
-            return None;
-        }
-
         let natural_size = vector_image.svg_tree.size().to_int_size();
+        let natural_tinyskia_size = {
+            let width = natural_size.width().min(MAX_SVG_PIXMAP_DIMENSION);
+            let height = natural_size.height().min(MAX_SVG_PIXMAP_DIMENSION);
+            tiny_skia::IntSize::from_wh(width, height)
+        };
         let tinyskia_requested_size = {
             let width = requested_size
                 .width
@@ -1108,19 +1106,26 @@ impl ImageCache for ImageCacheImpl {
                 .try_into()
                 .unwrap_or(0)
                 .min(MAX_SVG_PIXMAP_DIMENSION);
-            tiny_skia::IntSize::from_wh(width, height).unwrap_or(natural_size)
+            tiny_skia::IntSize::from_wh(width, height).or(natural_tinyskia_size)
+        };
+        let Some(tinyskia_requested_size) = tinyskia_requested_size else {
+            debug!(
+                "Asked for requested size {:?} which has zero size, and natural size {:?} has zero dimension. Not returning image",
+                requested_size, natural_size
+            );
+            return RasterizationResult::InvalidSvgParameters;
         };
 
-        // Requirements from tiny_skia::Pixmap::new
-        if tinyskia_requested_size.width() == 0 ||
-            tinyskia_requested_size.width() > (i32::MAX / 4).try_into().unwrap() ||
-            tinyskia_requested_size.height() == 0
+        if natural_tinyskia_size.is_none() {
+            debug!("SVG natural size has zero dimension. Not returning image");
+            return RasterizationResult::InvalidSvgParameters;
+        }
+
+        if store
+            .svg_rasterization_task_store
+            .is_or_set_being_rasterized(image_id, requested_size)
         {
-            debug!(
-                "Asked for requested size {:?} which has zero size. Not returning image",
-                requested_size
-            );
-            return None;
+            return RasterizationResult::PendingRasterization;
         }
 
         let store = self.store.clone();
@@ -1205,7 +1210,7 @@ impl ImageCache for ImageCacheImpl {
                 },
             }
         });
-        None
+        RasterizationResult::PendingRasterization
     }
 
     /// Add a new listener for the given pending image id. If the image is already present,
