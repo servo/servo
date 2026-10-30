@@ -69,6 +69,18 @@ impl PubDomainRules {
     }
     fn suffix_pair<'a>(&self, domain: &'a str) -> (&'a str, &'a str) {
         let domain = domain.trim_start_matches('.');
+        // <https://url.spec.whatwg.org/#host-public-suffix>
+        // A trailing dot does not take part in the public suffix list lookup, but it is
+        // kept in the result, so that "example.com." and "example.com" stay distinct.
+        let trailing_dot = usize::from(domain.ends_with('.'));
+        let (public, registrable) =
+            self.suffix_pair_without_trailing_dot(&domain[..domain.len() - trailing_dot]);
+        (
+            &domain[domain.len() - trailing_dot - public.len()..],
+            &domain[domain.len() - trailing_dot - registrable.len()..],
+        )
+    }
+    fn suffix_pair_without_trailing_dot<'a>(&self, domain: &'a str) -> (&'a str, &'a str) {
         let mut suffix = domain;
         let mut prev_suffix = domain;
         for (index, _) in domain.match_indices('.') {
@@ -97,6 +109,7 @@ impl PubDomainRules {
         // domain != "" &&
         // self.public_suffix(domain) == domain.
         let domain = domain.trim_start_matches('.');
+        let domain = domain.strip_suffix('.').unwrap_or(domain);
         match domain.find('.') {
             None => !domain.is_empty(),
             Some(index) => {
@@ -110,6 +123,7 @@ impl PubDomainRules {
         // self.public_suffix(domain) != domain &&
         // self.registrable_suffix(domain) == domain.
         let domain = domain.trim_start_matches('.');
+        let domain = domain.strip_suffix('.').unwrap_or(domain);
         match domain.find('.') {
             None => false,
             Some(index) => {

@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use net_traits::pub_domains::{is_pub_domain, is_reg_domain, pub_suffix, reg_suffix};
+use net_traits::pub_domains::{is_pub_domain, is_reg_domain, is_same_site, pub_suffix, reg_suffix};
 use servo_default_resources as _;
+use servo_url::ServoUrl;
 
 // These tests may need to be updated if the PSL changes.
 
@@ -120,4 +121,30 @@ fn test_weirdness() {
         pub_suffix(pub_suffix("city.yokohama.jp"))
     );
     assert!(!is_pub_domain(pub_suffix("city.yokohama.jp")));
+}
+
+#[test]
+fn test_trailing_dot() {
+    // <https://url.spec.whatwg.org/#host-public-suffix>: the trailing dot is not
+    // part of the public suffix list lookup, but it is kept in the result.
+    assert_eq!(pub_suffix("com."), "com.");
+    assert_eq!(pub_suffix("foo.bar.com."), "com.");
+    assert_eq!(pub_suffix("foo.city.yokohama.jp."), "yokohama.jp.");
+    assert_eq!(reg_suffix("com."), "com.");
+    assert_eq!(reg_suffix("foo.com."), "foo.com.");
+    assert_eq!(reg_suffix("foo.bar.com."), "bar.com.");
+    assert_eq!(reg_suffix("foo.bar.yokohama.jp."), "foo.bar.yokohama.jp.");
+    assert!(is_pub_domain("com."));
+    assert!(is_pub_domain("tokyo.jp."));
+    assert!(!is_pub_domain("foo.com."));
+    assert!(is_reg_domain("foo.com."));
+    assert!(!is_reg_domain("foo.bar.com."));
+    assert!(!is_reg_domain("com."));
+
+    // Two unrelated hosts with a trailing dot must not share a registrable domain.
+    let a = ServoUrl::parse("https://a.example./").unwrap().origin();
+    let b = ServoUrl::parse("https://b.example./").unwrap().origin();
+    let c = ServoUrl::parse("https://www.a.example./").unwrap().origin();
+    assert!(!is_same_site(&a, &b));
+    assert!(is_same_site(&a, &c));
 }
