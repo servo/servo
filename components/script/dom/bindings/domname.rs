@@ -155,8 +155,9 @@ pub(crate) fn validate_and_extract(
         local_name = name;
         // Step 4.3 If prefix is not a valid namespace prefix, then throw an "InvalidCharacterError" DOMException.
         if !is_valid_namespace_prefix(pre) {
-            debug!("Not a valid namespace prefix");
-            return Err(Error::InvalidCharacter(None));
+            return Err(Error::InvalidCharacter(Some(
+                "Not a valid namespace prefix".into(),
+            )));
         }
     }
 
@@ -164,8 +165,9 @@ pub(crate) fn validate_and_extract(
         // Step 5. If prefix is not a valid namespace prefix,
         // then throw an "InvalidCharacterError" DOMException.
         if !is_valid_namespace_prefix(p) {
-            debug!("Not a valid namespace prefix");
-            return Err(Error::InvalidCharacter(None));
+            return Err(Error::InvalidCharacter(Some(
+                "Not a valid namespace prefix".into(),
+            )));
         }
     }
 
@@ -175,8 +177,9 @@ pub(crate) fn validate_and_extract(
         //      throw an "InvalidCharacterError" DOMException.
         Context::Attribute => {
             if !is_valid_attribute_local_name(local_name) {
-                debug!("Not a valid attribute name");
-                return Err(Error::InvalidCharacter(None));
+                return Err(Error::InvalidCharacter(Some(
+                    "Not a valid attribute name".into(),
+                )));
             }
         },
         // Step 7. If context is "element" and localName
@@ -184,8 +187,9 @@ pub(crate) fn validate_and_extract(
         //      throw an "InvalidCharacterError" DOMException.
         Context::Element => {
             if !is_valid_element_local_name(local_name) {
-                debug!("Not a valid element name");
-                return Err(Error::InvalidCharacter(None));
+                return Err(Error::InvalidCharacter(Some(
+                    "Not a valid element name".into(),
+                )));
             }
         },
     }
@@ -193,26 +197,34 @@ pub(crate) fn validate_and_extract(
     match prefix {
         // Step 8. If prefix is non-null and namespace is null,
         //      then throw a "NamespaceError" DOMException.
-        Some(_) if namespace.is_empty() => Err(Error::Namespace(None)),
+        Some(_) if namespace.is_empty() => Err(Error::Namespace(Some(
+            "A prefix requires a non-null namespace".into(),
+        ))),
         // Step 9. If prefix is "xml" and namespace is not the XML namespace,
         //      then throw a "NamespaceError" DOMException.
-        Some("xml") if *namespace != *XML_NAMESPACE => Err(Error::Namespace(None)),
+        Some("xml") if *namespace != *XML_NAMESPACE => Err(Error::Namespace(Some(
+            "Prefix \"xml\" requires the XML namespace".into(),
+        ))),
         // Step 10. If either qualifiedName or prefix is "xmlns" and namespace
         //      is not the XMLNS namespace, then throw a "NamespaceError" DOMException.
         p if (qualified_name == "xmlns" || p == Some("xmlns")) &&
             *namespace != *XMLNS_NAMESPACE =>
         {
-            Err(Error::Namespace(None))
+            Err(Error::Namespace(Some(
+                "\"xmlns\" requires the XMLNS namespace".into(),
+            )))
         },
-        Some(_) if qualified_name == "xmlns" && *namespace != *XMLNS_NAMESPACE => {
-            Err(Error::Namespace(None))
-        },
+        Some(_) if qualified_name == "xmlns" && *namespace != *XMLNS_NAMESPACE => Err(
+            Error::Namespace(Some("\"xmlns\" requires the XMLNS namespace".into())),
+        ),
         // Step 11. If namespace is the XMLNS namespace and neither qualifiedName
         //      nor prefix is "xmlns", then throw a "NamespaceError" DOMException.
         p if *namespace == *XMLNS_NAMESPACE &&
             (qualified_name != "xmlns" && p != Some("xmlns")) =>
         {
-            Err(Error::Namespace(None))
+            Err(Error::Namespace(Some(
+                "The XMLNS namespace requires \"xmlns\" as prefix or qualified name".into(),
+            )))
         },
         // Step 12. Return (namespace, prefix, localName).
         _ => Ok((
