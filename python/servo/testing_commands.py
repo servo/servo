@@ -221,6 +221,7 @@ class MachCommands(CommandBase):
             "servo-deny-public-fields",
             "servo-dom-struct",
             "servo-webvtt",
+            "servo-webgl",
         ]
         if not packages:
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set([".DS_Store"])
