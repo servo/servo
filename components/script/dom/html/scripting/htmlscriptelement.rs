@@ -1362,9 +1362,9 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     make_setter!(SetReferrerPolicy, "referrerpolicy");
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#dom-htmlscriptelement-innertext>
-    fn InnerText(&self) -> TrustedScriptOrString {
+    fn InnerText(&self, cx: &mut JSContext) -> TrustedScriptOrString {
         // Step 1: Return the result of running get the text steps with this.
-        TrustedScriptOrString::String(self.upcast::<HTMLElement>().get_inner_outer_text())
+        TrustedScriptOrString::String(self.upcast::<HTMLElement>().get_inner_outer_text(cx))
     }
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#the-innerText-idl-attribute>

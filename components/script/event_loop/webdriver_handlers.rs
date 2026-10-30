@@ -298,18 +298,19 @@ pub(crate) fn find_node_by_unique_id_in_document(
 }
 
 /// <https://w3c.github.io/webdriver/#dfn-link-text-selector>
-fn matching_links<'a>(
-    cx: &'a NoGC,
-    links: &'a NodeList,
+fn matching_links(
+    cx: &mut JSContext,
+    links: &NodeList,
     link_text: String,
     partial: bool,
-) -> impl Iterator<Item = String> + 'a {
+) -> Vec<String> {
+    let links: Vec<_> = links.iter(cx).map(|node| node.as_rooted()).collect();
     links
-        .iter(cx)
-        .filter(move |node| {
+        .into_iter()
+        .filter(|node| {
             let content = node
                 .downcast::<HTMLElement>()
-                .map(|element| element.InnerText())
+                .map(|element| element.InnerText(cx))
                 .map_or(String::new(), String::from)
                 .trim()
                 .to_owned();
@@ -320,6 +321,7 @@ fn matching_links<'a>(
             }
         })
         .map(|node| node.unique_id(node.owner_doc().window().pipeline_id()))
+        .collect()
 }
 
 fn all_matching_links(
@@ -334,7 +336,7 @@ fn all_matching_links(
     root_node
         .query_selector_all(cx, DOMString::from_static("a"))
         .map_err(|_| ErrorStatus::InvalidSelector)
-        .map(|nodes| matching_links(cx, &nodes, link_text, partial).collect())
+        .map(|nodes| matching_links(cx, &nodes, link_text, partial))
 }
 
 #[expect(unsafe_code)]
@@ -1688,6 +1690,7 @@ pub(crate) fn handle_scroll_and_get_bounding_client_rect(
 
 /// <https://w3c.github.io/webdriver/#dfn-get-element-text>
 pub(crate) fn handle_get_text(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
@@ -1698,7 +1701,7 @@ pub(crate) fn handle_get_text(
             get_known_element(documents, pipeline, node_id).map(|element| {
                 element
                     .downcast::<HTMLElement>()
-                    .map(|htmlelement| String::from(htmlelement.InnerText()))
+                    .map(|htmlelement| String::from(htmlelement.InnerText(cx)))
                     .unwrap_or_else(|| {
                         element
                             .upcast::<Node>()

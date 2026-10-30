@@ -136,7 +136,7 @@ impl HTMLElement {
     /// `.outerText` in JavaScript.`
     ///
     /// <https://html.spec.whatwg.org/multipage/#get-the-text-steps>
-    pub(crate) fn get_inner_outer_text(&self) -> DOMString {
+    pub(crate) fn get_inner_outer_text(&self, cx: &mut JSContext) -> DOMString {
         let node = self.upcast::<Node>();
         let window = node.owner_window();
         let element = self.as_element();
@@ -147,7 +147,7 @@ impl HTMLElement {
             return node.GetTextContent().unwrap();
         }
 
-        window.layout_reflow_deprecated(QueryMsg::ElementInnerOuterTextQuery);
+        window.layout_reflow(cx, QueryMsg::ElementInnerOuterTextQuery);
         let text = window
             .layout()
             .query_element_inner_outer_text(node.to_trusted_node_address());
@@ -684,8 +684,8 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute>
-    fn InnerText(&self) -> DOMString {
-        self.get_inner_outer_text()
+    fn InnerText(&self, cx: &mut JSContext) -> DOMString {
+        self.get_inner_outer_text(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#set-the-inner-text-steps>
@@ -694,8 +694,8 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-outertext>
-    fn GetOuterText(&self) -> Fallible<DOMString> {
-        Ok(self.get_inner_outer_text())
+    fn GetOuterText(&self, cx: &mut JSContext) -> Fallible<DOMString> {
+        Ok(self.get_inner_outer_text(cx))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute:dom-outertext-2>
