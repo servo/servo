@@ -8020,6 +8020,8 @@ class CGDictionary(CGThing):
                                          exceptionCode="return Err(());\n"))
             for member in dictionary.members]
 
+        self.parentNeedsToBeTraced = self.dictionary.parent and type_needs_tracing(self.dictionary.parent)
+
     def define(self) -> str:
         if not self.generatable:
             return ""
@@ -8056,8 +8058,8 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             typeName = f"{self.makeModuleName(d.parent)}::{self.makeClassName(d.parent)}"
             _, parentSuffix = genericsForType(d.parent)
             typeName += parentSuffix
-            if type_needs_tracing(d.parent):
-                typeName = f"RootedTraceableBox<{typeName}>"
+            if self.parentNeedsToBeTraced:
+                typeName = f"Box<{typeName}>"
             inheritance = f"    pub parent: {typeName},\n"
         else:
             inheritance = ""
@@ -8115,10 +8117,11 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         d = self.dictionary
         if d.parent:
             assert isinstance(d.parent, IDLDictionary)
+            modifier = ".into_box()" if self.parentNeedsToBeTraced else ""
             initParent = (
                 "{\n"
                 f"    match {self.makeModuleName(d.parent)}::{self.makeClassName(d.parent)}::new(cx, val)? {{\n"
-                "        ConversionResult::Success(v) => v,\n"
+                f"        ConversionResult::Success(v) => v{modifier},\n"
                 "        ConversionResult::Failure(error) => {\n"
                 "            throw_type_error(cx, error.as_ref());\n"
                 "            return Err(());\n"
@@ -8289,7 +8292,10 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
     def makeEmpty(self) -> str:
         if self.hasRequiredFields(self.dictionary):
             return ""
-        parentTemplate = "parent: %s::%s::empty(),\n"
+
+        modifier = ".into_box()" if self.parentNeedsToBeTraced else ""
+
+        parentTemplate = f"parent: %s::%s::empty(){modifier},\n"
         fieldTemplate = "%s: %s,\n"
         functionTemplate = (
             "pub fn empty() -> Self {\n"
@@ -8299,7 +8305,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             "}"
         )
         if self.membersNeedTracing():
-            parentTemplate = "dictionary.parent = %s::%s::empty();\n"
+            parentTemplate = f"dictionary.parent = %s::%s::empty(){modifier};\n"
             fieldTemplate = "dictionary.%s = %s;\n"
             functionTemplate = (
                 "pub fn empty() -> RootedTraceableBox<Self> {\n"
@@ -8357,6 +8363,14 @@ def getTracingConversion(type: IDLType, resolvedType: str) -> tuple[str, str | N
 
     elif type.isCallback():
         return (resolvedType.replace("RootedCallback", "TracedCallback"), ".to_traced()")
+
+    elif type.isDictionary() and type_needs_tracing(type):
+        return (resolvedType.replace("RootedTraceableBox", "Box"), ".into_box()")
+
+    elif type.isSequence():
+        tracedType, conversionCode = getTracingConversion(innerContainerType(type), resolvedType)
+        if conversionCode is not None:
+            return (tracedType, f".into_iter().map(|val| val{conversionCode}).collect()")
 
     return (resolvedType, None)
 
