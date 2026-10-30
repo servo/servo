@@ -1,16 +1,10 @@
 <body style="height: 10000px">
-<script>
-onscroll = () => {
-  const [a] = new ReadableStream({ type: "bytes", start(c) { c.enqueue(new Uint8Array([1])); } }).tee();
-  a.getReader().read();
-};
-scrollTo(0, 100);
 <link rel="help" href="https://github.com/servo/servo/pull/49311">
 <body style="height: 10000px">
 <script>
 onscroll = () => {
   const [readableStream] = new ReadableStream({
-       type: "bytes",
+       type: "bytes", 
        start(c) { c.enqueue(new Uint8Array([1])); }
    }).tee();
   readableStream.getReader().read();
