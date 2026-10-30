@@ -17,7 +17,7 @@ use euclid::default::Size2D;
 use glow::{
     self as gl, ActiveTransformFeedback, Context as Gl, HasContext, NativeTransformFeedback,
     NativeUniformLocation, NativeVertexArray, PixelUnpackData, ShaderPrecisionFormat,
-    bytes_per_type, components_per_format,
+    bytes_per_type,
 };
 use half::f16;
 use itertools::Itertools;
@@ -1273,9 +1273,8 @@ impl WebGLImpl {
                 gl.polygon_offset(factor, units)
             },
             WebGLCommand::ReadPixels(rect, format, pixel_type, ref sender) => {
-                let len = bytes_per_type(pixel_type) *
-                    components_per_format(format) *
-                    rect.size.area() as usize;
+                let len =
+                    read_pixels_bytes_per_pixel(format, pixel_type) * rect.size.area() as usize;
                 let mut pixels = vec![0; len];
                 unsafe {
                     // We don't want any alignment padding on pixel rows.
@@ -3438,5 +3437,24 @@ impl FramebufferRebindingInfo {
                 self.viewport[3],
             )
         };
+    }
+}
+
+/// Returns the bytes per pixel of a `readPixels` format and type, including the integer
+/// formats and the packed types that glow's size helpers reject.
+fn read_pixels_bytes_per_pixel(format: u32, pixel_type: u32) -> usize {
+    let components = match format {
+        gl::RED | gl::RED_INTEGER | gl::ALPHA | gl::LUMINANCE => 1,
+        gl::RG | gl::RG_INTEGER | gl::LUMINANCE_ALPHA => 2,
+        gl::RGB | gl::RGB_INTEGER => 3,
+        gl::RGBA | gl::RGBA_INTEGER => 4,
+        _ => unreachable!("readPixels formats are validated on the script side"),
+    };
+    match pixel_type {
+        gl::UNSIGNED_SHORT_4_4_4_4 | gl::UNSIGNED_SHORT_5_5_5_1 | gl::UNSIGNED_SHORT_5_6_5 => 2,
+        gl::UNSIGNED_INT_2_10_10_10_REV |
+        gl::UNSIGNED_INT_10F_11F_11F_REV |
+        gl::UNSIGNED_INT_5_9_9_9_REV => 4,
+        _ => components * bytes_per_type(pixel_type),
     }
 }

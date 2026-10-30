@@ -28,10 +28,10 @@ use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::{Epoch, generic_channel};
 use servo_canvas_traits::webgl::WebGLError::*;
 use servo_canvas_traits::webgl::{
-    AlphaTreatment, GLContextAttributes, GLLimits, GlType, Parameter, SizedDataType, TexDataType,
-    TexFormat, TexParameter, WebGLCommand, WebGLCommandBacktrace, WebGLContextId, WebGLError,
-    WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId, WebGLResult,
-    WebGLSLVersion, WebGLVersion, YAxisTreatment, webgl_channel,
+    AlphaTreatment, GLContextAttributes, GLLimits, GlType, Parameter, SizedDataType,
+    TexComponentType, TexDataType, TexFormat, TexParameter, WebGLCommand, WebGLCommandBacktrace,
+    WebGLContextId, WebGLError, WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender,
+    WebGLProgramId, WebGLResult, WebGLSLVersion, WebGLVersion, YAxisTreatment, webgl_channel,
 };
 use servo_config::pref;
 use webrender_api::ImageKey;
@@ -982,7 +982,7 @@ impl WebGLRenderingContext {
                 size.width,
                 size.height,
                 1,
-                format,
+                internal_format,
                 level,
                 Some(data_type)
             )
@@ -3032,50 +3032,28 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             return self.webgl_error(InvalidOperation);
         }
 
-        let framebuffer_format = match self.bound_draw_framebuffer.get() {
-            Some(fb) => match fb.attachment(constants::COLOR_ATTACHMENT0) {
-                Some(WebGLFramebufferAttachmentRoot::Renderbuffer(rb)) => {
-                    TexFormat::from_gl_constant(rb.internal_format())
-                },
-                Some(WebGLFramebufferAttachmentRoot::Texture(texture)) => texture
-                    .image_info_for_target(&target, 0)
-                    .map(|info| info.internal_format()),
-                None => None,
-            },
+        let source_format = match self.bound_draw_framebuffer.get() {
+            Some(fb) => fb.attachment_effective_format(fb.read_buffer()),
             None => {
                 let attrs = self.GetContextAttributes().unwrap();
                 Some(if attrs.alpha {
-                    TexFormat::RGBA
+                    TexFormat::RGBA8
                 } else {
-                    TexFormat::RGB
+                    TexFormat::RGB8
                 })
             },
         };
-
-        let framebuffer_format = match framebuffer_format {
-            Some(f) => f,
-            None => {
-                self.webgl_error(InvalidOperation);
-                return;
-            },
+        let Some(source_format) = source_format else {
+            return self.webgl_error(InvalidOperation);
         };
-
-        match (framebuffer_format, internal_format) {
-            (a, b) if a == b => (),
-            (TexFormat::RGBA, TexFormat::RGB) => (),
-            (TexFormat::RGBA, TexFormat::Alpha) => (),
-            (TexFormat::RGBA, TexFormat::Luminance) => (),
-            (TexFormat::RGBA, TexFormat::LuminanceAlpha) => (),
-            (TexFormat::RGB, TexFormat::Luminance) => (),
-            _ => {
-                self.webgl_error(InvalidOperation);
-                return;
-            },
-        }
+        let data_type = match validate_copy_tex_image_formats(source_format, internal_format) {
+            Ok(data_type) => data_type,
+            Err(error) => return self.webgl_error(error),
+        };
 
         // NB: TexImage2D depth is always equal to 1
         if let Err(error) =
-            texture.initialize(target, width, height, 1, internal_format, level, None)
+            texture.initialize(target, width, height, 1, internal_format, level, data_type)
         {
             self.webgl_error(error);
         }
@@ -5522,4 +5500,94 @@ fn array_buffer_type_to_sized_type(type_: Type) -> Option<SizedDataType> {
 /// The bytes one pixel of `format` and `data_type` takes in client memory.
 pub(crate) fn bytes_per_pixel(format: TexFormat, data_type: TexDataType) -> u32 {
     data_type.element_size() * format.components() / data_type.components_per_element()
+}
+
+/// Checks that `copyTexImage2D` may fill a texture of `destination` format from a color buffer
+/// of `source` format (OpenGL ES 3.0.6 section 3.8.5); `InvalidOperation` otherwise. Returns the
+/// type whose table 3.12 row is the new image's effective format, `None` for a sized destination.
+fn validate_copy_tex_image_formats(
+    source: TexFormat,
+    destination: TexFormat,
+) -> WebGLResult<Option<TexDataType>> {
+    // Table 3.16: the texture may drop components but not add them; luminance reads red.
+    let components = |format: TexFormat| -> Option<(u8, bool)> {
+        Some(match format.to_unsized() {
+            TexFormat::Alpha => (0b0001, false),
+            TexFormat::Luminance | TexFormat::Red => (0b1000, false),
+            TexFormat::LuminanceAlpha => (0b1001, false),
+            TexFormat::RG => (0b1100, false),
+            TexFormat::RGB => (0b1110, false),
+            TexFormat::RGBA => (0b1111, false),
+            TexFormat::RedInteger => (0b1000, true),
+            TexFormat::RGInteger => (0b1100, true),
+            TexFormat::RGBInteger => (0b1110, true),
+            TexFormat::RGBAInteger => (0b1111, true),
+            _ => return None,
+        })
+    };
+    let (source_components, source_integer) = components(source).ok_or(InvalidOperation)?;
+    let (destination_components, destination_integer) =
+        components(destination).ok_or(InvalidOperation)?;
+    if destination_components & !source_components != 0 ||
+        source_integer != destination_integer ||
+        source.is_srgb() != destination.is_srgb()
+    {
+        return Err(InvalidOperation);
+    }
+    let source_sizes = source.component_sizes().ok_or(InvalidOperation)?;
+    // A sized destination must store its components exactly as the source does.
+    if let Some(destination_sizes) = destination.component_sizes() {
+        if destination.component_type() != source.component_type() ||
+            destination_sizes
+                .iter()
+                .zip(source_sizes)
+                .any(|(destination, source)| *destination != 0 && *destination != source)
+        {
+            return Err(InvalidOperation);
+        }
+        return Ok(None);
+    }
+    // An unsized destination uses the effective format with matching source sizes, if available;
+    // otherwise, the closest larger sizes, falling back to the closest smaller ones. Float data stays float.
+    let candidates: &[TexDataType] = match (source.component_type(), destination) {
+        (Some(TexComponentType::Float), _) => &[TexDataType::HalfFloat, TexDataType::Float],
+        (Some(TexComponentType::UnsignedNormalized), TexFormat::RGBA) => &[
+            TexDataType::UnsignedByte,
+            TexDataType::UnsignedShort4444,
+            TexDataType::UnsignedShort5551,
+        ],
+        (Some(TexComponentType::UnsignedNormalized), TexFormat::RGB) => {
+            &[TexDataType::UnsignedByte, TexDataType::UnsignedShort565]
+        },
+        (Some(TexComponentType::UnsignedNormalized), _) => {
+            return Ok(Some(TexDataType::UnsignedByte));
+        },
+        _ => return Err(InvalidOperation),
+    };
+    let closest = |rule: fn(u8, u8) -> bool| {
+        candidates
+            .iter()
+            .filter_map(|&data_type| {
+                let sizes = destination
+                    .effective_internal_format(data_type)
+                    .component_sizes()
+                    .expect("every candidate maps to a sized format");
+                let distance = sizes
+                    .iter()
+                    .zip(source_sizes)
+                    .filter(|(size, _)| **size != 0)
+                    .map(|(size, source)| {
+                        rule(*size, source).then_some(u32::from(size.abs_diff(source)))
+                    })
+                    .sum::<Option<u32>>()?;
+                Some((distance, data_type))
+            })
+            .min_by_key(|(distance, _)| *distance)
+            .map(|(_, data_type)| data_type)
+    };
+    closest(|size, source| size == source)
+        .or_else(|| closest(|size, source| size >= source))
+        .or_else(|| closest(|size, source| size <= source))
+        .map(Some)
+        .ok_or(InvalidOperation)
 }

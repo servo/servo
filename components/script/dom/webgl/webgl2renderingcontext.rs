@@ -20,8 +20,9 @@ use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel::{self, GenericSharedMemory};
 use servo_canvas_traits::webgl::WebGLError::*;
 use servo_canvas_traits::webgl::{
-    AlphaTreatment, GLContextAttributes, InternalFormatParameter, TexDataType, TexFormat,
-    WebGLCommand, WebGLContextId, WebGLResult, WebGLVersion, YAxisTreatment, webgl_channel,
+    AlphaTreatment, GLContextAttributes, InternalFormatParameter, TexComponentType, TexDataType,
+    TexFormat, WebGLCommand, WebGLContextId, WebGLResult, WebGLVersion, YAxisTreatment,
+    webgl_channel,
 };
 use servo_config::pref;
 use url::Host;
@@ -124,7 +125,7 @@ pub(crate) struct WebGL2RenderingContext {
 
 struct ReadPixelsAllowedFormats<'a> {
     array_types: &'a [Type],
-    channels: usize,
+    elements_per_pixel: usize,
 }
 
 struct ReadPixelsSizes {
@@ -372,6 +373,33 @@ impl WebGL2RenderingContext {
         }
     }
 
+    /// Returns the `format`/`type` pairs accepted by `readPixels` for the current read buffer:
+    /// first, the one required by OpenGL ES 3.0.6 section 4.3.2 for its component type, then
+    /// the implementation-chosen pair (table 3.15); `InvalidOperation` if it has no image.
+    fn accepted_read_pixels_format_types(&self) -> WebGLResult<&'static [(u32, u32)]> {
+        let Some(fb) = self.base.get_draw_framebuffer_slot().get() else {
+            if self.default_fb_readbuffer.get() == constants::NONE {
+                return Err(InvalidOperation);
+            }
+            return Ok(&[(constants::RGBA, constants::UNSIGNED_BYTE)]);
+        };
+        let format = fb
+            .attachment_effective_format(fb.read_buffer())
+            .ok_or(InvalidOperation)?;
+        Ok(match format.component_type().ok_or(InvalidOperation)? {
+            TexComponentType::UnsignedNormalized if format == TexFormat::RGB10A2 => &[
+                (constants::RGBA, constants::UNSIGNED_BYTE),
+                (constants::RGBA, constants::UNSIGNED_INT_2_10_10_10_REV),
+            ],
+            TexComponentType::UnsignedNormalized | TexComponentType::SignedNormalized => {
+                &[(constants::RGBA, constants::UNSIGNED_BYTE)]
+            },
+            TexComponentType::Float => &[(constants::RGBA, constants::FLOAT)],
+            TexComponentType::SignedInt => &[(constants::RGBA_INTEGER, constants::INT)],
+            TexComponentType::UnsignedInt => &[(constants::RGBA_INTEGER, constants::UNSIGNED_INT)],
+        })
+    }
+
     fn calc_read_pixel_formats(
         &self,
         pixel_type: u32,
@@ -401,9 +429,19 @@ impl WebGL2RenderingContext {
             constants::RGBA | constants::RGBA_INTEGER => 4,
             _ => return Err(InvalidEnum),
         };
+        // A packed type stores the whole pixel in one array element.
+        let elements_per_pixel = match pixel_type {
+            constants::UNSIGNED_SHORT_4_4_4_4 |
+            constants::UNSIGNED_SHORT_5_5_5_1 |
+            constants::UNSIGNED_SHORT_5_6_5 |
+            constants::UNSIGNED_INT_2_10_10_10_REV |
+            constants::UNSIGNED_INT_10F_11F_11F_REV |
+            constants::UNSIGNED_INT_5_9_9_9_REV => 1,
+            _ => channels,
+        };
         Ok(ReadPixelsAllowedFormats {
             array_types,
-            channels,
+            elements_per_pixel,
         })
     }
 
@@ -492,14 +530,10 @@ impl WebGL2RenderingContext {
             return self.base.webgl_error(InvalidOperation);
         }
 
-        let fb_slot = self.base.get_draw_framebuffer_slot();
-        let fb_readbuffer_valid = match fb_slot.get() {
-            Some(fb) => fb.attachment(fb.read_buffer()).is_some(),
-            None => self.default_fb_readbuffer.get() != constants::NONE,
+        let accepted = match self.accepted_read_pixels_format_types() {
+            Ok(accepted) => accepted,
+            Err(error) => return self.base.webgl_error(error),
         };
-        if !fb_readbuffer_valid {
-            return self.base.webgl_error(InvalidOperation);
-        }
 
         let dst_byte_offset = {
             let dst_elem_size = dst.get_array_type().byte_size().unwrap();
@@ -512,7 +546,7 @@ impl WebGL2RenderingContext {
         let dst_array_type = dst.get_array_type();
         let ReadPixelsAllowedFormats {
             array_types: allowed_array_types,
-            channels,
+            elements_per_pixel,
         } = match self.calc_read_pixel_formats(pixel_type, format) {
             Ok(result) => result,
             Err(error) => return self.base.webgl_error(error),
@@ -520,11 +554,11 @@ impl WebGL2RenderingContext {
         if !allowed_array_types.contains(&dst_array_type) {
             return self.base.webgl_error(InvalidOperation);
         }
-        if format != constants::RGBA || pixel_type != constants::UNSIGNED_BYTE {
+        if !accepted.contains(&(format, pixel_type)) {
             return self.base.webgl_error(InvalidOperation);
         }
 
-        let bytes_per_pixel = dst_array_type.byte_size().unwrap() * channels;
+        let bytes_per_pixel = dst_array_type.byte_size().unwrap() * elements_per_pixel;
         let ReadPixelsSizes {
             row_stride,
             skipped_bytes,
@@ -1053,6 +1087,28 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             },
             constants::SHADING_LANGUAGE_VERSION => {
                 "WebGL GLSL ES 3.00".to_jsval(cx, rval);
+                return;
+            },
+            constants::IMPLEMENTATION_COLOR_READ_FORMAT |
+            constants::IMPLEMENTATION_COLOR_READ_TYPE => {
+                // The WebGL spec makes an incomplete framebuffer INVALID_OPERATION here.
+                let (format, pixel_type) = match self
+                    .base
+                    .validate_framebuffer()
+                    .and_then(|()| self.accepted_read_pixels_format_types())
+                {
+                    Ok(accepted) => accepted[accepted.len() - 1],
+                    Err(_) => {
+                        self.base.webgl_error(InvalidOperation);
+                        return rval.set(NullValue());
+                    },
+                };
+                let value = if parameter == constants::IMPLEMENTATION_COLOR_READ_FORMAT {
+                    format
+                } else {
+                    pixel_type
+                };
+                rval.set(Int32Value(value as i32));
                 return;
             },
             constants::MAX_CLIENT_WAIT_TIMEOUT_WEBGL => {
@@ -2288,6 +2344,10 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             Some(buffer) => buffer,
             None => return self.base.webgl_error(InvalidOperation),
         };
+        let accepted = match self.accepted_read_pixels_format_types() {
+            Ok(accepted) => accepted,
+            Err(error) => return self.base.webgl_error(error),
+        };
 
         if dst_byte_offset < 0 {
             return self.base.webgl_error(InvalidValue);
@@ -2298,13 +2358,17 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         }
 
         let ReadPixelsAllowedFormats {
-            array_types: _,
-            channels: bytes_per_pixel,
+            array_types,
+            elements_per_pixel,
         } = match self.calc_read_pixel_formats(pixel_type, format) {
             Ok(result) => result,
             Err(error) => return self.base.webgl_error(error),
         };
-        if format != constants::RGBA || pixel_type != constants::UNSIGNED_BYTE {
+        let bytes_per_pixel = array_types[0]
+            .byte_size()
+            .expect("readPixels pixel types map to scalar array types") *
+            elements_per_pixel;
+        if !accepted.contains(&(format, pixel_type)) {
             return self.base.webgl_error(InvalidOperation);
         }
 

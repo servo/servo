@@ -13,7 +13,7 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::reflect_dom_object;
 use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::{
-    WebGLCommand, WebGLError, WebGLFramebufferBindingRequest, WebGLFramebufferId,
+    TexFormat, WebGLCommand, WebGLError, WebGLFramebufferBindingRequest, WebGLFramebufferId,
     WebGLRenderbufferId, WebGLResult, WebGLTextureId, WebGLVersion, webgl_channel,
 };
 #[cfg(feature = "webxr")]
@@ -439,56 +439,42 @@ impl WebGLFramebuffer {
             constants::RGBA,
             constants::RGBA4,
         ][..];
+        // The color-renderable formats of OpenGL ES 3.0.6 table 3.13, plus those of
+        // EXT_color_buffer_float.
         let webgl2_color_constraints = &[
-            constants::ALPHA,
-            constants::LUMINANCE,
-            constants::LUMINANCE_ALPHA,
-            constants::R11F_G11F_B10F,
-            constants::R16F,
-            constants::R16I,
-            constants::R16UI,
-            constants::R32F,
-            constants::R32I,
-            constants::R32UI,
             constants::R8,
-            constants::R8_SNORM,
             constants::R8I,
             constants::R8UI,
-            constants::RG16F,
-            constants::RG16I,
-            constants::RG16UI,
-            constants::RG32F,
-            constants::RG32I,
-            constants::RG32UI,
+            constants::R16I,
+            constants::R16UI,
+            constants::R32I,
+            constants::R32UI,
             constants::RG8,
-            constants::RG8_SNORM,
             constants::RG8I,
             constants::RG8UI,
+            constants::RG16I,
+            constants::RG16UI,
+            constants::RG32I,
+            constants::RG32UI,
+            constants::RGB8,
+            constants::RGBA8,
+            constants::SRGB8_ALPHA8,
             constants::RGB10_A2,
             constants::RGB10_A2UI,
-            constants::RGB16F,
-            constants::RGB16I,
-            constants::RGB16UI,
-            constants::RGB32F,
-            constants::RGB32I,
-            constants::RGB32UI,
-            constants::RGB8,
-            constants::RGB8_SNORM,
-            constants::RGB8I,
-            constants::RGB8UI,
-            constants::RGB9_E5,
-            constants::RGBA16F,
-            constants::RGBA16I,
-            constants::RGBA16UI,
-            constants::RGBA32F,
-            constants::RGBA32I,
-            constants::RGBA32UI,
-            constants::RGBA8,
-            constants::RGBA8_SNORM,
             constants::RGBA8I,
             constants::RGBA8UI,
-            constants::SRGB8,
-            constants::SRGB8_ALPHA8,
+            constants::RGBA16I,
+            constants::RGBA16UI,
+            constants::RGBA32I,
+            constants::RGBA32UI,
+            // TODO: gate these behind EXT_color_buffer_float once Servo exposes it.
+            constants::R16F,
+            constants::RG16F,
+            constants::RGBA16F,
+            constants::R32F,
+            constants::RG32F,
+            constants::RGBA32F,
+            constants::R11F_G11F_B10F,
         ][..];
         let empty_color_constrains = &[][..];
         let extra_color_constraints = match self.webgl_version {
@@ -788,6 +774,24 @@ impl WebGLFramebuffer {
             .borrow()
             .as_ref()
             .map(WebGLFramebufferAttachment::root)
+    }
+
+    /// Returns the effective internal format of the image bound to `attachment`: the sized
+    /// format it was created with, or the sized format corresponding to its unsized format
+    /// and type; `None` if no image is bound.
+    pub(crate) fn attachment_effective_format(&self, attachment: u32) -> Option<TexFormat> {
+        match self.attachment_binding(attachment)?.borrow().as_ref()? {
+            WebGLFramebufferAttachment::Renderbuffer(rb) => {
+                TexFormat::from_gl_constant(rb.internal_format())
+            },
+            WebGLFramebufferAttachment::Texture { texture, level } => {
+                let info = texture.image_info_at_face(0, *level as u32)?;
+                Some(match info.data_type() {
+                    Some(data_type) => info.internal_format().effective_internal_format(data_type),
+                    None => info.internal_format(),
+                })
+            },
+        }
     }
 
     pub(crate) fn texture2d(
