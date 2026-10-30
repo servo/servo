@@ -28,10 +28,10 @@ use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::{Epoch, generic_channel};
 use servo_canvas_traits::webgl::WebGLError::*;
 use servo_canvas_traits::webgl::{
-    AlphaTreatment, GLContextAttributes, GLLimits, GlType, Parameter, SizedDataType, TexDataType,
-    TexFormat, TexParameter, WebGLCommand, WebGLCommandBacktrace, WebGLContextId, WebGLError,
-    WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId, WebGLResult,
-    WebGLSLVersion, WebGLVersion, YAxisTreatment, webgl_channel,
+    AlphaTreatment, GLContextAttributes, GLLimits, GlType, Parameter, ParameterString,
+    SizedDataType, TexDataType, TexFormat, TexParameter, WebGLCommand, WebGLCommandBacktrace,
+    WebGLContextId, WebGLError, WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender,
+    WebGLProgramId, WebGLResult, WebGLSLVersion, WebGLVersion, YAxisTreatment, webgl_channel,
 };
 use servo_config::pref;
 use webrender_api::ImageKey;
@@ -43,6 +43,7 @@ use crate::dom::bindings::buffer_source::{create_buffer_source, get_buffer_sourc
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use crate::dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding::EXTBlendMinmaxConstants;
 use crate::dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;
+use crate::dom::bindings::codegen::Bindings::WEBGLDebugRendererInfoBinding::WEBGLDebugRendererInfoConstants;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{
     TexImageSource, WebGLContextAttributes, WebGLRenderingContextConstants as constants,
@@ -2407,6 +2408,18 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             },
             constants::RENDERER | constants::VENDOR => {
                 "Mozilla/Servo".to_jsval(cx, retval);
+                return;
+            },
+            WEBGLDebugRendererInfoConstants::UNMASKED_VENDOR_WEBGL |
+            WEBGLDebugRendererInfoConstants::UNMASKED_RENDERER_WEBGL => {
+                let param = if parameter == WEBGLDebugRendererInfoConstants::UNMASKED_VENDOR_WEBGL {
+                    ParameterString::UnmaskedVendor
+                } else {
+                    ParameterString::UnmaskedRenderer
+                };
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.send_command(WebGLCommand::GetParameterString(param, sender));
+                receiver.recv().unwrap().to_jsval(cx, retval);
                 return;
             },
             constants::SHADING_LANGUAGE_VERSION => {

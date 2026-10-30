@@ -22,6 +22,7 @@ use crate::dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding:
 use crate::dom::bindings::codegen::Bindings::OESStandardDerivativesBinding::OESStandardDerivativesConstants;
 use crate::dom::bindings::codegen::Bindings::OESTextureHalfFloatBinding::OESTextureHalfFloatConstants;
 use crate::dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;
+use crate::dom::bindings::codegen::Bindings::WEBGLDebugRendererInfoBinding::WEBGLDebugRendererInfoConstants;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::webgl::extensions::extcolorbufferhalffloat::EXTColorBufferHalfFloat;
@@ -50,17 +51,22 @@ const DEFAULT_NOT_FILTERABLE_TEX_TYPES: [GLenum; 2] = [
 // Param names that are implemented for glGetParameter in a WebGL 1.0 context
 // but must trigger a InvalidEnum error until the related WebGL Extensions are enabled.
 // Example: https://www.khronos.org/registry/webgl/extensions/OES_standard_derivatives/
-const DEFAULT_DISABLED_GET_PARAMETER_NAMES_WEBGL1: [GLenum; 3] = [
+const DEFAULT_DISABLED_GET_PARAMETER_NAMES_WEBGL1: [GLenum; 5] = [
     EXTTextureFilterAnisotropicConstants::MAX_TEXTURE_MAX_ANISOTROPY_EXT,
     OESStandardDerivativesConstants::FRAGMENT_SHADER_DERIVATIVE_HINT_OES,
     OESVertexArrayObjectConstants::VERTEX_ARRAY_BINDING_OES,
+    WEBGLDebugRendererInfoConstants::UNMASKED_VENDOR_WEBGL,
+    WEBGLDebugRendererInfoConstants::UNMASKED_RENDERER_WEBGL,
 ];
 
 // Param names that are implemented for glGetParameter in a WebGL 2.0 context
 // but must trigger a InvalidEnum error until the related WebGL Extensions are enabled.
 // Example: https://www.khronos.org/registry/webgl/extensions/EXT_texture_filter_anisotropic/
-const DEFAULT_DISABLED_GET_PARAMETER_NAMES_WEBGL2: [GLenum; 1] =
-    [EXTTextureFilterAnisotropicConstants::MAX_TEXTURE_MAX_ANISOTROPY_EXT];
+const DEFAULT_DISABLED_GET_PARAMETER_NAMES_WEBGL2: [GLenum; 3] = [
+    EXTTextureFilterAnisotropicConstants::MAX_TEXTURE_MAX_ANISOTROPY_EXT,
+    WEBGLDebugRendererInfoConstants::UNMASKED_VENDOR_WEBGL,
+    WEBGLDebugRendererInfoConstants::UNMASKED_RENDERER_WEBGL,
+];
 
 // Param names that are implemented for glGetTexParameter in a WebGL 1.0 context
 // but must trigger a InvalidEnum error until the related WebGL Extensions are enabled.
@@ -431,6 +437,7 @@ impl WebGLExtensions {
         self.register::<ext::webglcolorbufferfloat::WEBGLColorBufferFloat>();
         self.register::<ext::webglcompressedtextureetc1::WEBGLCompressedTextureETC1>();
         self.register::<ext::webglcompressedtextures3tc::WEBGLCompressedTextureS3TC>();
+        self.register::<ext::webgldebugrendererinfo::WEBGLDebugRendererInfo>();
     }
 
     pub(crate) fn enable_element_index_uint(&self) {

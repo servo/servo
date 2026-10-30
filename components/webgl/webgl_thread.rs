@@ -2032,6 +2032,14 @@ impl WebGLImpl {
                 }
                 sender.send(value).unwrap()
             },
+            WebGLCommand::GetParameterString(param, ref sender) => {
+                let gl_param = match param {
+                    webgl::ParameterString::UnmaskedVendor => gl::VENDOR,
+                    webgl::ParameterString::UnmaskedRenderer => gl::RENDERER,
+                };
+                let value = unsafe { gl.get_parameter_string(gl_param) };
+                sender.send(value).unwrap()
+            },
             WebGLCommand::GetProgramValidateStatus(program, ref sender) => sender
                 .send(unsafe { gl.get_program_validate_status(program.glow()) })
                 .unwrap(),
