@@ -22,11 +22,11 @@ struct Index {
         .fontColor(Color.Black)
         .fontWeight(FontWeight.Bolder)
         .onClick((event) => {
+          // TODO: Instead of defaulting to the first, remember the previously focused Webview.
           this.currentId = this.tablist[0];
-          servoshell.deleteWebview(index, this.tablist);
-          this.tablist.splice(index, 1);
-          // TODO: Instead of defaulting to 0, remember the previously focused Webview.
-          servoshell.focusWebview(0, this.tablist)
+          servoshell.focusWindow(this.currentId);
+          servoshell.closeWindow(id);
+          this.tablist.splice(this.tablist.indexOf(id), 1);
         })
     }
     .width(65)
@@ -42,7 +42,7 @@ struct Index {
     })
     .onClick(() => {
       this.currentId = id;
-      servoshell.focusWebview(index, this.tablist)
+      servoshell.focusWindow(id)
     })
   }
 
@@ -87,8 +87,6 @@ struct Index {
           .width('12%')
           .onClick((event) => {
             const new_id = this.nextTabId++;
-            // the order is important as adding a new tab will automatically create a new surface.
-            servoshell.nextWindowId(new_id);
             this.tablist.push(new_id)
             this.currentId = new_id;
           })
