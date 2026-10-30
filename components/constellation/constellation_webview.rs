@@ -350,6 +350,17 @@ impl ConstellationWebView {
         Some(self.pending_changes.swap_remove(pending_index))
     }
 
+    pub(crate) fn remove_pending_changes_for_browsing_context_id(
+        &mut self,
+        browsing_context_id: BrowsingContextId,
+    ) -> Vec<SessionHistoryChange> {
+        self.pending_changes
+            .extract_if(.., |change| {
+                change.browsing_context_id == browsing_context_id
+            })
+            .collect()
+    }
+
     #[servo_tracing::instrument(skip_all)]
     pub(crate) fn handle_screenshot_readiness_request(
         &mut self,
