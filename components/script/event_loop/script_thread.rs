@@ -1267,8 +1267,8 @@ impl ScriptThread {
                 painters_generating_frames.insert(document.webview_id().into());
             }
 
-            // TODO: Process top layer removals according to
-            // https://drafts.csswg.org/css-position-4/#process-top-layer-removals.
+            // > 23. For each doc of docs, process top layer removals given doc.
+            document.process_top_layer_removals(cx.no_gc());
         }
 
         let should_generate_frame = !painters_generating_frames.is_empty();
