@@ -5,14 +5,11 @@
 <link rel=author title="Euclid Ye" href="mailto:yezhizhenjiakang@gmail.com">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="automated-support.js"></script>
 
 <script>
 async_test(t => {
-  const file = new File(['hello world'], 'test.txt', { type: 'text/plain' });
-  const dt = new DataTransfer();
-  dt.items.add(file);
-
-  const entry = dt.items[0].webkitGetAsEntry();
+  const entry = createFileEntry();
 
   entry.getParent(
     t.step_func_done(parent => {
@@ -26,12 +23,7 @@ async_test(t => {
 }, 'getParent() on a root-level file entry returns the root directory');
 
 async_test(t => {
-  const file = new File(['hello world'], 'test.txt', { type: 'text/plain' });
-  const dt = new DataTransfer();
-  dt.items.add(file);
-
-  const entry = dt.items[0].webkitGetAsEntry();
-  const root = entry.filesystem.root;
+  const root = createRoot();
 
   root.getParent(
     t.step_func_done(parent => {

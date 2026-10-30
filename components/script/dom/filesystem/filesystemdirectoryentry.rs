@@ -57,10 +57,13 @@ impl FileSystemDirectoryEntry {
         self.children.borrow_mut().push(Dom::from_ref(child));
     }
 
-    pub(crate) fn children(&self) -> Vec<DomRoot<FileSystemEntry>> {
+    /// Returns up to `max` children starting at index `start`.
+    pub(crate) fn children_batch(&self, start: usize, max: usize) -> Vec<DomRoot<FileSystemEntry>> {
         self.children
             .borrow()
             .iter()
+            .skip(start)
+            .take(max)
             .map(|child| DomRoot::from_ref(&**child))
             .collect()
     }
