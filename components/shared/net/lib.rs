@@ -1162,7 +1162,6 @@ pub struct Metadata {
     pub redirected: bool,
     /// Detailed TLS metadata associated with the response, if any.
     pub tls_security_info: Option<TlsSecurityInfo>,
-
     /// Redirect taint of response
     pub redirect_taint: RedirectTaint,
 }
