@@ -35,6 +35,7 @@ use crate::dom::customelementregistry::CustomElementReactionStack;
 use crate::dom::document::Document;
 use crate::dom::documenttype::DocumentType;
 use crate::dom::element::{Element, ElementCreator};
+use crate::dom::html::form_controls::htmlformelement::FormControl;
 use crate::dom::html::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
 use crate::dom::html::htmlscriptelement::HTMLScriptElement;
 use crate::dom::html::htmltemplateelement::HTMLTemplateElement;

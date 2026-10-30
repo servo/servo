@@ -23,6 +23,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::FormControlElementHelpers;
+use crate::dom::htmlformelement::FormControl;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
 

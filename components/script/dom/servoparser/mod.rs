@@ -82,6 +82,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::document_metadata::processingoptions::{
     LinkHeader, LinkProcessingPhase, extract_links_from_headers, process_link_headers,
 };
+use crate::dom::html::form_controls::htmlformelement::FormControl;
 use crate::dom::html::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
 use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::html::htmlscriptelement::{HTMLScriptElement, ScriptResult};

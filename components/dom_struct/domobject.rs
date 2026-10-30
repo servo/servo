@@ -6,7 +6,10 @@ use quote::{TokenStreamExt, quote};
 
 /// First field of DomObject must be either reflector or another dom_struct,
 /// all other fields must not implement DomObject
-pub(crate) fn expand_dom_object(input: syn::ItemStruct) -> proc_macro2::TokenStream {
+pub(crate) fn expand_dom_object(
+    input: syn::ItemStruct,
+    no_has_parent: bool,
+) -> proc_macro2::TokenStream {
     let fields = input.fields.iter().collect::<Vec<&syn::Field>>();
     let (first_field, fields) = fields
         .split_first()
@@ -29,6 +32,13 @@ pub(crate) fn expand_dom_object(input: syn::ItemStruct) -> proc_macro2::TokenStr
 
     let name = &input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+
+    let prototype_id_field = if no_has_parent {
+        quote! { const PROTOTYPE_ID: u16 = crate::codegen::PrototypeList::ID::Last as u16; }
+    } else {
+        quote! { const PROTOTYPE_ID: u16 = crate::dom::bindings::codegen::PrototypeList::ID::#name as u16; }
+    };
+
     let items = quote! {
         impl #impl_generics ::js::conversions::ToJSValConvertible for #name #ty_generics #where_clause {
             fn to_jsval(&self, cx: &mut js::context::JSContext, rval: js::rust::MutableHandleValue) {
@@ -40,9 +50,16 @@ pub(crate) fn expand_dom_object(input: syn::ItemStruct) -> proc_macro2::TokenStr
         impl #impl_generics crate::DomObject for #name #ty_generics #where_clause {
             type ReflectorType = <#first_field_ty as crate::DomObject>::ReflectorType;
 
+            #prototype_id_field
+
             #[inline]
             fn reflector(&self) -> &crate::Reflector<Self::ReflectorType> {
                 self.#first_field_name.reflector()
+            }
+
+            #[inline]
+            fn reflector_mut(&mut self) -> &mut crate::Reflector<Self::ReflectorType> {
+                self.#first_field_name.reflector_mut()
             }
         }
 

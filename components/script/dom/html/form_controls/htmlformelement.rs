@@ -22,13 +22,14 @@ use script_bindings::codegen::GenericBindings::DocumentFragmentBinding::Document
 use script_bindings::dom::UnrootedDom;
 use script_bindings::domstring::TracedDOMString;
 use script_bindings::match_domstring_ascii;
-use script_bindings::reflector::DomObject;
+use script_bindings::reflector::{DomObject, Reflector};
 use servo_constellation_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
 use style::attr::AttrValue;
 use style::str::split_html_space_chars;
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
 
+use crate::dom::GlobalScope;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -82,6 +83,8 @@ use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeFlags, NodeTraits, UnbindContext, VecPreOrderInsertionHelper};
 use crate::dom::nodelist::{NodeList, RadioListMode};
 use crate::dom::radionodelist::RadioNodeList;
+use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::stylesheetlist::StyleSheetListOwner;
 use crate::dom::submitevent::SubmitEvent;
 use crate::dom::types::{DocumentFragment, HTMLIFrameElement};
 use crate::dom::window::Window;
@@ -2031,49 +2034,249 @@ impl VirtualMethods for HTMLFormElement {
 }
 
 pub(crate) trait FormControlElementHelpers {
-    fn as_maybe_form_control(&self) -> Option<&dyn FormControl>;
+    fn as_maybe_form_control<'a>(&'a self) -> Option<FormControls>;
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+pub(crate) enum FormControls {
+    HTMLButtonElement(Dom<HTMLButtonElement>),
+    HTMLFieldSetElement(Dom<HTMLFieldSetElement>),
+    HTMLElement(Dom<HTMLElement>),
+    HTMLImageElement(Dom<HTMLImageElement>),
+    HTMLInputElement(Dom<HTMLInputElement>),
+    HTMLLegendElement(Dom<HTMLLegendElement>),
+    HTMLObjectElement(Dom<HTMLObjectElement>),
+    HTMLOutputElement(Dom<HTMLOutputElement>),
+    HTMLSelectElement(Dom<HTMLSelectElement>),
+    HTMLTextAreaElement(Dom<HTMLTextAreaElement>),
+}
+
+impl FormControls {
+    fn as_node(&self) -> Dom<HTMLElement> {
+        Dom::from_ref(match self {
+            FormControls::HTMLButtonElement(htmlbutton_element) => {
+                htmlbutton_element.upcast::<HTMLElement>()
+            },
+            FormControls::HTMLFieldSetElement(htmlfield_set_element) => {
+                htmlfield_set_element.upcast::<HTMLElement>()
+            },
+            FormControls::HTMLElement(htmlelement) => htmlelement.upcast::<HTMLElement>(),
+            FormControls::HTMLImageElement(htmlimage_element) => {
+                htmlimage_element.upcast::<HTMLElement>()
+            },
+            FormControls::HTMLInputElement(htmlinput_element) => {
+                htmlinput_element.upcast::<HTMLElement>()
+            },
+            FormControls::HTMLLegendElement(htmllegend_element) => {
+                htmllegend_element.upcast::<HTMLElement>()
+            },
+            FormControls::HTMLObjectElement(htmlobject_element) => {
+                htmlobject_element.upcast::<HTMLElement>()
+            },
+            FormControls::HTMLOutputElement(htmloutput_element) => {
+                htmloutput_element.upcast::<HTMLElement>()
+            },
+            FormControls::HTMLSelectElement(htmlselect_element) => {
+                htmlselect_element.upcast::<HTMLElement>()
+            },
+            FormControls::HTMLTextAreaElement(htmltext_area_element) => {
+                htmltext_area_element.upcast::<HTMLElement>()
+            },
+        })
+    }
 }
 
 impl FormControlElementHelpers for Element {
-    fn as_maybe_form_control(&self) -> Option<&dyn FormControl> {
+    fn as_maybe_form_control(&self) -> Option<FormControls> {
         let node = self.upcast::<Node>();
 
         match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLButtonElement,
-            )) => Some(self.downcast::<HTMLButtonElement>().unwrap() as &dyn FormControl),
+            )) => Some(FormControls::HTMLButtonElement(Dom::from_ref(
+                self.downcast::<HTMLButtonElement>().unwrap(),
+            ))),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLFieldSetElement,
-            )) => Some(self.downcast::<HTMLFieldSetElement>().unwrap() as &dyn FormControl),
+            )) => Some(FormControls::HTMLFieldSetElement(Dom::from_ref(
+                self.downcast::<HTMLFieldSetElement>().unwrap(),
+            ))),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLImageElement,
-            )) => Some(self.downcast::<HTMLImageElement>().unwrap() as &dyn FormControl),
+            )) => Some(FormControls::HTMLImageElement(Dom::from_ref(
+                self.downcast::<HTMLImageElement>().unwrap(),
+            ))),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLInputElement,
-            )) => Some(self.downcast::<HTMLInputElement>().unwrap() as &dyn FormControl),
+            )) => Some(FormControls::HTMLInputElement(Dom::from_ref(
+                self.downcast::<HTMLInputElement>().unwrap(),
+            ))),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLLegendElement,
-            )) => Some(self.downcast::<HTMLLegendElement>().unwrap() as &dyn FormControl),
+            )) => Some(FormControls::HTMLLegendElement(Dom::from_ref(
+                self.downcast::<HTMLLegendElement>().unwrap(),
+            ))),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLObjectElement,
-            )) => Some(self.downcast::<HTMLObjectElement>().unwrap() as &dyn FormControl),
+            )) => Some(FormControls::HTMLObjectElement(Dom::from_ref(
+                self.downcast::<HTMLObjectElement>().unwrap(),
+            ))),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLOutputElement,
-            )) => Some(self.downcast::<HTMLOutputElement>().unwrap() as &dyn FormControl),
+            )) => Some(FormControls::HTMLOutputElement(Dom::from_ref(
+                self.downcast::<HTMLOutputElement>().unwrap(),
+            ))),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLSelectElement,
-            )) => Some(self.downcast::<HTMLSelectElement>().unwrap() as &dyn FormControl),
+            )) => Some(FormControls::HTMLSelectElement(Dom::from_ref(
+                self.downcast::<HTMLSelectElement>().unwrap(),
+            ))),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLTextAreaElement,
-            )) => Some(self.downcast::<HTMLTextAreaElement>().unwrap() as &dyn FormControl),
+            )) => Some(FormControls::HTMLTextAreaElement(Dom::from_ref(
+                self.downcast::<HTMLTextAreaElement>().unwrap(),
+            ))),
             _ => self.downcast::<HTMLElement>().and_then(|elem| {
                 if elem.is_form_associated_custom_element() {
-                    Some(elem as &dyn FormControl)
+                    Some(FormControls::HTMLElement(Dom::from_ref(elem)))
                 } else {
                     None
                 }
             }),
         }
+    }
+}
+
+impl DomObject for FormControls {
+    const PROTOTYPE_ID: u16 = u16::MAX;
+
+    type ReflectorType = ();
+
+    fn reflector(&self) -> &Reflector<Self::ReflectorType> {
+        unreachable!()
+    }
+
+    fn reflector_mut(&mut self) -> &mut Reflector<Self::ReflectorType> {
+        unreachable!()
+    }
+}
+
+impl FormControl for FormControls {
+    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
+        match self {
+            FormControls::HTMLButtonElement(htmlbutton_element) => htmlbutton_element.form_owner(),
+            FormControls::HTMLFieldSetElement(htmlfield_set_element) => {
+                htmlfield_set_element.form_owner()
+            },
+            FormControls::HTMLElement(htmlelement) => htmlelement.form_owner(),
+            FormControls::HTMLImageElement(htmlimage_element) => htmlimage_element.form_owner(),
+            FormControls::HTMLInputElement(htmlinput_element) => htmlinput_element.form_owner(),
+            FormControls::HTMLLegendElement(htmllegend_element) => htmllegend_element.form_owner(),
+            FormControls::HTMLObjectElement(htmlobject_element) => htmlobject_element.form_owner(),
+            FormControls::HTMLOutputElement(htmloutput_element) => htmloutput_element.form_owner(),
+            FormControls::HTMLSelectElement(htmlselect_element) => htmlselect_element.form_owner(),
+            FormControls::HTMLTextAreaElement(htmltext_area_element) => {
+                htmltext_area_element.form_owner()
+            },
+        }
+    }
+
+    fn set_form_owner(&self, cx: &mut JSContext, form: Option<&HTMLFormElement>) {
+        match self {
+            FormControls::HTMLButtonElement(htmlbutton_element) => {
+                htmlbutton_element.set_form_owner(cx, form)
+            },
+            FormControls::HTMLFieldSetElement(htmlfield_set_element) => {
+                htmlfield_set_element.set_form_owner(cx, form)
+            },
+            FormControls::HTMLElement(htmlelement) => htmlelement.set_form_owner(cx, form),
+            FormControls::HTMLImageElement(htmlimage_element) => {
+                htmlimage_element.set_form_owner(cx, form)
+            },
+            FormControls::HTMLInputElement(htmlinput_element) => {
+                htmlinput_element.set_form_owner(cx, form)
+            },
+            FormControls::HTMLLegendElement(htmllegend_element) => {
+                htmllegend_element.set_form_owner(cx, form)
+            },
+            FormControls::HTMLObjectElement(htmlobject_element) => {
+                htmlobject_element.set_form_owner(cx, form)
+            },
+            FormControls::HTMLOutputElement(htmloutput_element) => {
+                htmloutput_element.set_form_owner(cx, form)
+            },
+            FormControls::HTMLSelectElement(htmlselect_element) => {
+                htmlselect_element.set_form_owner(cx, form)
+            },
+            FormControls::HTMLTextAreaElement(htmltext_area_element) => {
+                htmltext_area_element.set_form_owner(cx, form)
+            },
+        }
+    }
+
+    fn to_html_element(&self) -> &HTMLElement {
+        match self {
+            FormControls::HTMLButtonElement(htmlbutton_element) => {
+                htmlbutton_element.to_html_element()
+            },
+            FormControls::HTMLFieldSetElement(htmlfield_set_element) => {
+                htmlfield_set_element.to_html_element()
+            },
+            FormControls::HTMLElement(htmlelement) => htmlelement.to_html_element(),
+            FormControls::HTMLImageElement(htmlimage_element) => {
+                htmlimage_element.to_html_element()
+            },
+            FormControls::HTMLInputElement(htmlinput_element) => {
+                htmlinput_element.to_html_element()
+            },
+            FormControls::HTMLLegendElement(htmllegend_element) => {
+                htmllegend_element.to_html_element()
+            },
+            FormControls::HTMLObjectElement(htmlobject_element) => {
+                htmlobject_element.to_html_element()
+            },
+            FormControls::HTMLOutputElement(htmloutput_element) => {
+                htmloutput_element.to_html_element()
+            },
+            FormControls::HTMLSelectElement(htmlselect_element) => {
+                htmlselect_element.to_html_element()
+            },
+            FormControls::HTMLTextAreaElement(htmltext_area_element) => {
+                htmltext_area_element.to_html_element()
+            },
+        }
+    }
+}
+
+impl NodeTraits for FormControls {
+    fn owner_document(&self) -> DomRoot<Document> {
+        self.as_node().owner_document()
+    }
+    fn owner_document_unrooted<'no_gc>(
+        &self,
+        no_gc: &'no_gc NoGC,
+    ) -> UnrootedDom<'no_gc, Document> {
+        self.as_node().owner_document_unrooted(no_gc)
+    }
+
+    fn owner_window(&self) -> DomRoot<Window> {
+        self.as_node().owner_window()
+    }
+
+    fn owner_window_unrooted<'no_gc>(&self, no_gc: &'no_gc NoGC) -> UnrootedDom<'no_gc, Window> {
+        self.as_node().owner_window_unrooted(no_gc)
+    }
+
+    fn owner_global(&self) -> DomRoot<GlobalScope> {
+        self.as_node().owner_global()
+    }
+
+    fn containing_shadow_root(&self) -> Option<DomRoot<ShadowRoot>> {
+        self.as_node().containing_shadow_root()
+    }
+
+    fn stylesheet_list_owner(&self) -> StyleSheetListOwner {
+        self.as_node().stylesheet_list_owner()
     }
 }
 

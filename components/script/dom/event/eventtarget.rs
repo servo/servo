@@ -63,6 +63,7 @@ use crate::dom::element::Element;
 use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::html::form_controls::htmlformelement::FormControl;
 use crate::dom::html::htmlformelement::FormControlElementHelpers;
 use crate::dom::indexeddb::idbdatabase::IDBDatabase;
 use crate::dom::indexeddb::idbrequest::IDBRequest;
