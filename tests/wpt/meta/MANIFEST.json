@@ -13071,6 +13071,15 @@
          }
         ]
        ],
+       "disabled-file-input-click-crash.html": [
+        "cbe1d58c85bd3378b33d2da3a530440808c8d124",
+        [
+         null,
+         {
+          "testdriver": true
+         }
+        ]
+       ],
        "input-form-detach-style-crash.html": [
         "547256376362ee03df9f23387b64ea83c5354fcd",
         [

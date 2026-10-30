@@ -15,7 +15,6 @@ use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use style::selector_parser::PseudoElement;
 use stylo_dom::ElementState;
 
-use crate::dom::FlatTreeParent;
 use crate::dom::activation::Activatable;
 use crate::dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
@@ -37,7 +36,6 @@ use crate::dom::html::htmlformelement::{
 use crate::dom::node::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::nodelist::NodeList;
-use crate::dom::types::HTMLInputElement;
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 
@@ -437,16 +435,25 @@ impl Activatable for HTMLButtonElement {
 
     fn is_instance_activatable(&self) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-button-element
-        !self.upcast::<Element>().disabled_state()
+        !self.upcast::<Element>().disabled_state() &&
+        // In addition, if this button is the file selector button, let the containing
+        // `<input>` handle activation.
+            self.upcast::<Node>().implemented_pseudo_element() !=
+                Some(PseudoElement::FileSelectorButton)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-button-element:activation-behaviour>
     fn activation_behavior(
         &self,
         cx: &mut js::context::JSContext,
-        event: &Event,
+        _: &Event,
         target: &EventTarget,
     ) {
+        // Step 1. If element is disabled, then return.
+        if self.upcast::<Element>().disabled_state() {
+            return;
+        }
+
         // Step 2. If element's node document is not fully active, then return.
         if !target
             .downcast::<Node>()
@@ -483,24 +490,6 @@ impl Activatable for HTMLButtonElement {
             {
                 return;
             }
-        }
-        // Adhoc, this step is needed so that file inputs button activates the input.
-        if let Some(pseudo_element) = self.upcast::<Node>().implemented_pseudo_element() {
-            if pseudo_element == PseudoElement::FileSelectorButton {
-                let FlatTreeParent::Parent(parent) =
-                    self.upcast::<Node>().parent_in_flat_tree(cx.no_gc())
-                else {
-                    return;
-                };
-
-                parent
-                    .as_rooted()
-                    .downcast::<HTMLInputElement>()
-                    .expect("File select button should always be a child of an input element")
-                    .activation_behavior(cx, event, target);
-            }
-
-            return;
         }
 
         // Step 4. Let target be the result of running element's get the commandfor-associated
