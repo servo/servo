@@ -74,7 +74,7 @@ impl DocumentSelectionDragHandler {
         };
 
         let adjust_for_user_select =
-            |no_gc: NoGc,
+            |no_gc: &NoGC,
              anchor: Option<&RootedSelectionBoundary>,
              focus: RootedSelectionBoundary| {
                 adjust_focus_for_user_select(
