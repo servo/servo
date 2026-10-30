@@ -5003,11 +5003,11 @@ mod {namespace} {{
     pub(crate) static HANDLER: ThreadUnsafeOnceLock<*const libc::c_void> = ThreadUnsafeOnceLock::new();
 
     pub(crate) fn init_proxy_handler<D: DomTypes>() {{
-        let config = Box::new(crate::observablearray::ObservableArrayProxyHandlerConfig {{
+        let config = const {{ &crate::observablearray::ObservableArrayProxyHandlerConfig {{
             on_delete_item: on_delete_item::<D>,
             set_indexed_value: set_indexed_value::<D>,
-        }});
-        HANDLER.set( unsafe {{ crate::observablearray::create_proxy_handler(Box::into_raw(config)) }} );
+        }} }};
+        HANDLER.set( unsafe {{ crate::observablearray::create_proxy_handler(config) }} );
     }}
 
     {on_delete}
@@ -7652,6 +7652,10 @@ class CGInitStatics(CGThing):
             if descriptor.emitsCrossOriginPropertyTable()
             else ""
         )
+        observable_arrays = '\n'.join(
+                    f'ObservableArray{MakeNativeName(m.identifier.name)}::init_proxy_handler::<D>();'
+                    for m in descriptor.interface.members if m.isAttr() and m.type.isObservableArray()
+                )
         interface = (
             "init_interface_object::<D>();"
             if descriptor.interface.hasInterfaceObject()
@@ -7672,6 +7676,7 @@ class CGInitStatics(CGThing):
             {interface}
             {nonproxy}
             {crossorigin}
+            {observable_arrays}
         }}
         """
 
