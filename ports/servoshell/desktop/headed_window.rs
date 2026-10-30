@@ -703,50 +703,24 @@ impl HeadedWindow {
                     });
                 },
                 WindowEvent::Ime(ime) => match ime {
-                    Ime::Enabled => {
-                        webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
-                            servo::CompositionEvent {
-                                state: servo::CompositionState::Start,
-                                data: String::new(),
-                            },
-                        )));
-                    },
-                    Ime::Preedit(text, _) => {
-                        webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
-                            servo::CompositionEvent {
-                                state: servo::CompositionState::Update,
-                                data: text,
-                            },
-                        )));
-                    },
-                    Ime::Commit(text) => {
-                        webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
-                            servo::CompositionEvent {
-                                state: servo::CompositionState::Update,
-                                data: text.clone(),
-                            },
-                        )));
-                        webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
-                            servo::CompositionEvent {
-                                state: servo::CompositionState::End,
-                                data: text,
-                            },
-                        )));
-                    },
-                    Ime::Disabled => {
-                        // There are two reasons we receive this message from winit:
-                        //
-                        // 1. The user dismissed the IME. In that case we want to inform Servo
-                        //    so it can unfocus the current editable element.
-                        // 2. Servo changed focus and requested that we dismiss the IME, which
-                        //    in turn triggers this message. We know this is the case when we don't
-                        //    expect any IME to be open and shouldn't send any more messages to
-                        //    Servo as it might cause unexpected blurring of the newly focused
-                        //    element.
-                        if self.visible_input_method.take().is_some() {
-                            webview.notify_input_event(InputEvent::Ime(ImeEvent::Dismissed));
+                    Ime::Preedit(text, range) => {
+                        // TODO: this naively filters out empty preedits. We have to do this
+                        // because winit sends an empty preedit before a commit. which we
+                        // don't want to send to the webview. However, empty preedits are also
+                        // used for cancelations, which we do want to send the embedder. Right
+                        // now, winit provides no means to distinguish synthetic, pre-commit
+                        // preedits and actual cancelations.
+                        // This should be resolved in winit 0.31.0
+                        // See: https://github.com/rust-windowing/winit/pull/4768
+                        if !text.is_empty() {
+                            webview
+                                .notify_input_event(InputEvent::Ime(ImeEvent::Update(text, range)));
                         }
                     },
+                    Ime::Commit(text) => {
+                        webview.notify_input_event(InputEvent::Ime(ImeEvent::Commit(text)));
+                    },
+                    _ => {},
                 },
                 WindowEvent::DroppedFile(dropped_file) => {
                     if let Ok(url) = Url::from_file_path(&dropped_file) {

@@ -30,6 +30,7 @@ use crate::dom::html::form_controls::text_input::{
 use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::text_input::{EmbedderClipboardProvider, InputEventType, KeyReaction};
+use crate::dom::types::CompositionEvent;
 use crate::dom::{Element, Event};
 
 pub(crate) trait TextControlElement {
@@ -37,6 +38,7 @@ pub(crate) trait TextControlElement {
     fn text_input<'a>(&'a self) -> Ref<'a, TextInput<EmbedderClipboardProvider>>;
     fn text_input_mut<'a>(&'a self) -> RefMut<'a, TextInput<EmbedderClipboardProvider>>;
     fn selection_api_applies(&self) -> bool;
+    fn has_composing_text(&self) -> bool;
     fn has_selectable_text(&self) -> bool;
     fn has_uncollapsed_selection(&self) -> bool;
     fn set_dirty_value_flag(&self, value: bool);
@@ -63,6 +65,10 @@ pub(crate) trait TextControlElement {
 
     fn perform_editing_action(&self, cx: &mut JSContext, action: EditingAction) -> bool {
         let canceled = self.maybe_fire_beforeinput_event_for_editing_action(cx, &action);
+        if canceled {
+            return false;
+        }
+        let canceled = self.maybe_fire_composition_events_for_editing_action(cx, &action);
         if canceled {
             return false;
         }
@@ -172,6 +178,84 @@ pub(crate) trait TextControlElement {
                 event.set_composed(true);
                 event.fire(cx, &target);
             }));
+    }
+
+    fn queue_compositionend_event(&self, data: String) {
+        let element = self.as_element();
+        let target = Trusted::new(element.upcast::<EventTarget>());
+        element
+            .owner_global()
+            .task_manager()
+            .user_interaction_task_source()
+            .queue(task!(fire_input_event: move |cx| {
+                let target = target.root();
+                let global = target.global();
+                let window = global.as_window();
+                let event = CompositionEvent::new(
+                    cx,
+                    window,
+                    atom!("compositionend"),
+                    true,
+                    false,
+                    Some(window),
+                    0,
+                    data.into(),
+                );
+                let event = event.upcast::<Event>();
+                event.set_composed(true);
+                event.fire(cx, &target);
+            }));
+    }
+
+    fn maybe_fire_composition_events_for_editing_action(
+        &self,
+        cx: &mut JSContext,
+        action: &EditingAction,
+    ) -> bool {
+        match action {
+            EditingAction::InsertCompositionText(data) => {
+                let target = self.as_element().upcast::<EventTarget>();
+                let global = target.global();
+                let window = global.as_window();
+                let event = CompositionEvent::new(
+                    cx,
+                    window,
+                    atom!("compositionupdate"),
+                    true,
+                    false,
+                    Some(window),
+                    0,
+                    DOMString::from(data.as_str()),
+                );
+                let event = event.upcast::<Event>();
+                event.set_composed(true);
+                event.fire(cx, target);
+            },
+            EditingAction::StartComposition => {
+                let target = self.as_element().upcast::<EventTarget>();
+                let global = target.global();
+                let window = global.as_window();
+                let event = CompositionEvent::new(
+                    cx,
+                    window,
+                    atom!("compositionstart"),
+                    true,
+                    false,
+                    Some(window),
+                    0,
+                    DOMString::new(),
+                );
+                let event = event.upcast::<Event>();
+                event.set_composed(true);
+                event.fire(cx, target);
+            },
+            _ => return false,
+        }
+        let node = self.as_element().upcast::<Node>();
+        // A composition event might have hidden this element, so we should do a style reflow
+        // and check if we can still write to the text control.
+        node.owner_window().layout_reflow(cx, QueryMsg::StyleQuery);
+        !node.is_being_rendered_or_delegates_rendering(None)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-select>

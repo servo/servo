@@ -5,7 +5,7 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use bitflags::bitflags;
-use keyboard_types::{Code, CompositionEvent, Key, KeyState, Location, Modifiers};
+use keyboard_types::{Code, Key, KeyState, Location, Modifiers};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 
@@ -120,13 +120,15 @@ pub enum EditingAction {
     Backspace(EditingMotion),
     Clipboard(ClipboardAction),
     Delete,
-    EndComposition(String),
+    DeleteSurrounding { before: usize, after: usize },
+    EndComposition,
     InsertCompositionText(String),
     InsertNewline,
     InsertParagraph,
     InsertText(String),
     MoveCursor(EditingDirection, EditingMotion, ModifySelection),
     SelectAll,
+    SetCompositionCursor(Option<(usize, usize)>),
     StartComposition,
 }
 
@@ -417,8 +419,26 @@ impl WheelEvent {
 /// The types of an input method event.
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum ImeEvent {
-    Composition(CompositionEvent),
-    Dismissed,
+    /// Update the composing text of the IME. The second parameter are the start and end offsets
+    /// of the selection that should be highlighted, relative to the composing text (the same value
+    /// indicates indictes a caret).
+    Update(String, Option<(usize, usize)>),
+    /// Commit the current state of the IME, ending the composition.
+    Commit(String),
+    /// Delete a certain amount of bytes before the start of the selection and after the end of the
+    /// selection.
+    DeleteSurrounding { before: usize, after: usize },
+}
+
+impl ImeEvent {
+    /// Returns true if and only if the `ImeEvent` corresponds to the end of a composition session.
+    pub fn is_terminating(&self) -> bool {
+        match self {
+            ImeEvent::Update(s, _) if s.is_empty() => true,
+            ImeEvent::Commit(..) => true,
+            _ => false,
+        }
+    }
 }
 
 #[cfg(feature = "gamepad")]

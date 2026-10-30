@@ -9,10 +9,11 @@ use std::mem;
 use std::time::{Duration, Instant};
 
 use embedder_traits::{
-    Cursor, EmbedderMsg, ImeEvent, InputEvent, InputEventId, InputEventOutcome, InputEventResult,
-    KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction, MouseButtonEvent,
-    MouseLeftViewportEvent, MouseMoveEvent, TouchEvent as EmbedderTouchEvent, TouchEventType,
-    TouchId, TouchPointerType, UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
+    Cursor, EditingAction, EmbedderMsg, ImeEvent, InputEvent, InputEventId, InputEventOutcome,
+    InputEventResult, KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction,
+    MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, TouchEvent as EmbedderTouchEvent,
+    TouchEventType, TouchId, TouchPointerType, UntrustedNodeAddress,
+    WheelEvent as EmbedderWheelEvent,
 };
 #[cfg(feature = "gamepad")]
 use embedder_traits::{
@@ -21,7 +22,7 @@ use embedder_traits::{
 use euclid::{Point2D, Vector2D};
 use js::context::{JSContext, NoGC};
 use keyboard_types::{
-    Code, CompositionState, Key, KeyState, KeyboardEvent as KeyboardTypesEvent, Modifiers, NamedKey,
+    Code, Key, KeyState, KeyboardEvent as KeyboardTypesEvent, Modifiers, NamedKey,
 };
 use layout_api::{HitTestFlags, ScrollContainerQueryFlags, node_id_from_scroll_id};
 use rustc_hash::FxHashMap;
@@ -57,9 +58,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::bindings::trace::NoTrace;
 use crate::dom::document::FireMouseEventType;
-use crate::dom::document::editing::{
-    editing_action_from_composition_event, editing_action_from_keyboard_event,
-};
+use crate::dom::document::editing::editing_action_from_keyboard_event;
 use crate::dom::document::focus::FocusableArea;
 use crate::dom::document::interactive_element_command::InteractiveElementCommand;
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventFlags};
@@ -76,8 +75,8 @@ use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::{self, Node, NodeTraits};
 use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::types::{
-    CompositionEvent, Element, Event, EventTarget, GlobalScope, HTMLAnchorElement, HTMLAreaElement,
-    HTMLElement, HTMLLabelElement, MouseEvent, Touch, TouchEvent, TouchList, WheelEvent, Window,
+    Element, Event, EventTarget, GlobalScope, HTMLAnchorElement, HTMLAreaElement, HTMLElement,
+    HTMLLabelElement, MouseEvent, Touch, TouchEvent, TouchList, WheelEvent, Window,
 };
 use crate::dom::window::scrolling_box::{ScrollAxisState, ScrollRequirement, ScrollingBoxAxis};
 use crate::drag::drag_gesture::DragGesture;
@@ -1825,56 +1824,66 @@ impl DocumentEventHandler {
 
     fn handle_ime_event(&self, cx: &mut JSContext, event: ImeEvent) -> InputEventResult {
         let document = self.window.Document();
-        let composition_event = match event {
-            ImeEvent::Dismissed => {
-                document
-                    .focus_handler()
-                    .focus(cx, &FocusableArea::Viewport, FocusTrigger::Script);
-                return Default::default();
-            },
-            ImeEvent::Composition(composition_event) => composition_event,
-        };
-
         // spec: https://w3c.github.io/uievents/#compositionstart
         // spec: https://w3c.github.io/uievents/#compositionupdate
         // spec: https://w3c.github.io/uievents/#compositionend
         // > Event.target : focused element processing the composition
-        let focused_area = document.focus_handler().focused_area();
-        let Some(focused_element) = focused_area.element() else {
-            // Event is only dispatched if there is a focused element.
-            return Default::default();
+        let focused_element = {
+            let focused_area = document.focus_handler().focused_area();
+            let Some(element) = focused_area.element() else {
+                // Event is only dispatched if there is a focused element.
+                return Default::default();
+            };
+            // Root the focused element. This is to prevent a double borrow if the focused
+            // area is changed during a composition event
+            DomRoot::from_ref(element)
         };
-
-        let cancelable = composition_event.state == CompositionState::Start;
-        let event = CompositionEvent::new(
-            cx,
-            &self.window,
-            composition_event.state.event_type().into(),
-            true,
-            cancelable,
-            Some(&self.window),
-            0,
-            DOMString::from(composition_event.data.as_str()),
-        );
-
-        let event = event.upcast::<Event>();
-        event.fire(cx, focused_element.upcast());
-        let composition_event_result: InputEventResult = event.flags().into();
-
-        if event
-            .flags()
-            .intersects(EventFlags::Canceled | EventFlags::Handled)
-        {
-            return composition_event_result;
-        }
-
-        let editing_action = editing_action_from_composition_event(&composition_event);
         let editing_host = document.editing_context(cx.no_gc(), focused_element.upcast());
-        if editing_host.perform_editing_action(cx, editing_action) {
-            return composition_event_result | InputEventResult::Consumed;
+        let mut result = InputEventResult::empty();
+        match &event {
+            // Special case: committing text without a prior composition. We should turn this
+            // into an InsertText
+            ImeEvent::Commit(s) if !editing_host.has_composing_text() => {
+                if editing_host.perform_editing_action(cx, EditingAction::InsertText(s.to_string()))
+                {
+                    result |= InputEventResult::Consumed;
+                }
+            },
+            ImeEvent::Update(s, _) | ImeEvent::Commit(s) => {
+                if !editing_host.has_composing_text() &&
+                    editing_host.perform_editing_action(cx, EditingAction::StartComposition)
+                {
+                    result |= InputEventResult::Consumed;
+                }
+                if editing_host
+                    .perform_editing_action(cx, EditingAction::InsertCompositionText(s.to_string()))
+                {
+                    result |= InputEventResult::Consumed;
+                }
+                // Perform EndComposition if the event marks the end of a composition sequence
+                if event.is_terminating() &&
+                    editing_host.perform_editing_action(cx, EditingAction::EndComposition)
+                {
+                    result |= InputEventResult::Consumed;
+                }
+            },
+            ImeEvent::DeleteSurrounding { before, after } => {
+                if editing_host.perform_editing_action(
+                    cx,
+                    EditingAction::DeleteSurrounding {
+                        before: *before,
+                        after: *after,
+                    },
+                ) {
+                    result |= InputEventResult::Consumed;
+                }
+            },
         }
-
-        composition_event_result
+        if let ImeEvent::Update(_, cursor) = &event {
+            // Set composition cursor if possible
+            editing_host.perform_editing_action(cx, EditingAction::SetCompositionCursor(*cursor));
+        }
+        result
     }
 
     fn handle_wheel_event(
