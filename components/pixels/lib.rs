@@ -565,8 +565,16 @@ pub struct ImageMetadata {
 impl ImageMetadata {
     /// Calculate new dimensions so that the smallest axis matched required aspect ratio
     /// also checks to not exceed source dimensions of the image
+    /// Small sources retain their original resolution to avoid resampling artifacts
+    /// when the potential decoded-memory savings are small.
     pub fn fit_decode_size(self, target: Self) -> Self {
         if self.width == 0 || self.height == 0 {
+            return self;
+        }
+        // At most 40,000 bytes of RGBA8 pixels: preserve small textures rather
+        // than introducing a separate CPU-resampled version of their edges.
+        const SMALL_IMAGE_MAX_DIMENSION: u32 = 100;
+        if self.width <= SMALL_IMAGE_MAX_DIMENSION && self.height <= SMALL_IMAGE_MAX_DIMENSION {
             return self;
         }
         if target.width >= self.width || target.height >= self.height {
@@ -780,7 +788,53 @@ fn is_webp(buffer: &[u8]) -> bool {
 
 #[cfg(test)]
 mod test {
-    use super::detect_image_format;
+    use super::{ImageMetadata, detect_image_format};
+
+    #[test]
+    fn test_fit_decode_size_preserves_small_sources() {
+        let target = ImageMetadata {
+            width: 45,
+            height: 45,
+        };
+        for (width, height) in [(81, 81), (99, 99), (100, 100), (100, 50), (50, 100)] {
+            let source = ImageMetadata { width, height };
+            assert_eq!(source.fit_decode_size(target), source);
+        }
+    }
+
+    #[test]
+    fn test_fit_decode_size_downscales_larger_sources() {
+        for (width, height) in [
+            (101, 101),
+            (101, 100),
+            (100, 101),
+            (10, 10_000),
+            (10_000, 10),
+        ] {
+            let source = ImageMetadata { width, height };
+            let target = ImageMetadata {
+                width: 1,
+                height: 1,
+            };
+            assert_ne!(source.fit_decode_size(target), source);
+        }
+
+        // A small display target must not exempt a large source.
+        assert_eq!(
+            ImageMetadata {
+                width: 4000,
+                height: 3000,
+            }
+            .fit_decode_size(ImageMetadata {
+                width: 100,
+                height: 75,
+            }),
+            ImageMetadata {
+                width: 100,
+                height: 75,
+            }
+        );
+    }
 
     fn png_bytes(width: u32, height: u32, pixel: [u8; 4]) -> Vec<u8> {
         use image::ImageEncoder;
