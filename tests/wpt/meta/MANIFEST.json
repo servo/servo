@@ -16072,6 +16072,20 @@
        null,
        {}
       ]
+     ],
+     "negative-viewbox-crash.html": [
+      "019414b3ed5385cf41343a4041e076a1bfd0331d",
+      [
+       null,
+       {}
+      ]
+     ],
+     "negative-viewbox.html": [
+      "dd158a5223fae8d147852b48f9cd943ca454eb87",
+      [
+       null,
+       {}
+      ]
      ]
     },
     "embedded": {
