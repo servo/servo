@@ -1776,6 +1776,16 @@ impl DocumentEventHandler {
         cx: &mut JSContext,
         keyboard_event: EmbedderKeyboardEvent,
     ) -> InputEventResult {
+        // We should update the state of the focus handler even if the default action
+        // of the keyboard event will be prevented. That could be the case where in
+        // the callback of a keydown event we cancel the event, but also pass on focus
+        // to another element. In that case, the newly script focused element should
+        // still match `:focus-visible`.
+        self.window
+            .Document()
+            .focus_handler()
+            .set_last_non_script_focus_triggered_by_keyboard(true);
+
         let target = &self.target_for_events_following_focus();
         let keyevent = KeyboardEvent::new_with_platform_keyboard_event(
             cx,
