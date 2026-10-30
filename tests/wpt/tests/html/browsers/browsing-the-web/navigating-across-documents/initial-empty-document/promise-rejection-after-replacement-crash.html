@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/servo/servo/issues/49305">
+<link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+<iframe id=frame></iframe>
+<script>
+onload = () => {
+  frame.contentWindow.Promise.reject(new frame.contentWindow.Date(0));
+  frame.srcdoc = "x";
+};
+</script>
+

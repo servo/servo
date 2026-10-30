@@ -12202,6 +12202,15 @@
     "browsers": {
      "browsing-the-web": {
       "navigating-across-documents": {
+       "initial-empty-document": {
+        "promise-rejection-after-replacement-crash.html": [
+         "050b08dce2127646871e9ca60ea104f56f3bb6a7",
+         [
+          null,
+          {}
+         ]
+        ]
+       },
        "unknown-protocol-reload-crash.html": [
         "b274e5706939088a702042e07aa2c8af3f9bd3bd",
         [
