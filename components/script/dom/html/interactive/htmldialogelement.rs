@@ -783,7 +783,7 @@ impl VirtualMethods for HTMLDialogElement {
 
         // Step 6. If value is not null and oldValue is null, then run the dialog setup steps given
         // element.
-        if matches!(mutation, AttributeMutation::Set(..)) {
+        if matches!(mutation, AttributeMutation::Set(None)) {
             self.dialog_setup_steps(cx.no_gc());
         }
     }

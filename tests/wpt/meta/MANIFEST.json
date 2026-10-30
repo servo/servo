@@ -13492,6 +13492,13 @@
          {}
         ]
        ],
+       "dialog-set-open-twice-crash.html": [
+        "08bec9771ee5ca5bd69e967db026afa6d1ba396d",
+        [
+         null,
+         {}
+        ]
+       ],
        "dialog-setup-cleanup-crash.html": [
         "e0a6e2d50a891ac7327f38f8872e9694f63fef6e",
         [
