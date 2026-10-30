@@ -4,7 +4,7 @@
 
 use std::cell::UnsafeCell;
 use std::hash::{Hash, Hasher};
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use std::{fmt, mem, ptr};
 
@@ -118,6 +118,12 @@ where
     }
 }
 
+impl<T: Deref + DerefMut + StableTraceObject> DerefMut for Root<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.value
+    }
+}
+
 impl<T> Drop for Root<T>
 where
     T: StableTraceObject,
@@ -226,6 +232,13 @@ impl<T: DomObject> Deref for Dom<T> {
         // We can only have &Dom<T> from a rooted thing, so it's safe to deref
         // it to &T.
         unsafe { &*self.ptr.as_ptr() }
+    }
+}
+
+impl<T: DomObject> DerefMut for Dom<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        assert_in_script();
+        unsafe { self.ptr.as_mut() }
     }
 }
 

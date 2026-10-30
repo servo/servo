@@ -48,7 +48,7 @@ pub struct Reflector<T = ()> {
     /// Associated memory size (of rust side). Used for memory reporting to SM.
     size: T,
     /// Cached prototype ID for fast type checks.
-    proto_id: Cell<u16>,
+    proto_id: u16,
 }
 
 unsafe impl<T> js::gc::Traceable for Reflector<T> {
@@ -76,13 +76,13 @@ impl<T> Reflector<T> {
     /// Get the cached prototype ID.
     #[inline]
     pub fn proto_id(&self) -> u16 {
-        self.proto_id.get()
+        self.proto_id
     }
 
     /// Set the cached prototype ID.
     #[inline]
-    pub fn set_proto_id(&self, id: u16) {
-        self.proto_id.set(id);
+    pub fn set_proto_id(&mut self, id: u16) {
+        self.proto_id = id;
     }
 
     /// Initialize the reflector. (May be called only once.)
@@ -111,7 +111,7 @@ impl<T: AssociatedMemorySize> Reflector<T> {
     pub fn new() -> Reflector<T> {
         Reflector {
             object: Heap::default(),
-            proto_id: Cell::new(u16::MAX),
+            proto_id: u16::MAX,
             size: T::default(),
         }
     }
@@ -147,6 +147,7 @@ pub trait DomObject: js::gc::Traceable + 'static {
     type ReflectorType: AssociatedMemorySize;
     /// Returns the receiver's reflector.
     fn reflector(&self) -> &Reflector<Self::ReflectorType>;
+    fn reflector_mut(&mut self) -> &mut Reflector<Self::ReflectorType>;
 }
 
 impl DomObject for Reflector<()> {
@@ -155,12 +156,20 @@ impl DomObject for Reflector<()> {
     fn reflector(&self) -> &Reflector<Self::ReflectorType> {
         self
     }
+
+    fn reflector_mut(&mut self) -> &mut Reflector<Self::ReflectorType> {
+        self
+    }
 }
 
 impl DomObject for Reflector<AssociatedMemory> {
     type ReflectorType = AssociatedMemory;
 
     fn reflector(&self) -> &Reflector<Self::ReflectorType> {
+        self
+    }
+
+    fn reflector_mut(&mut self) -> &mut Reflector<Self::ReflectorType> {
         self
     }
 }

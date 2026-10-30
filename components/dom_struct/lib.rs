@@ -136,6 +136,11 @@ fn test_valid_dom_struct_generation() {
             fn reflector(&self) -> &crate::Reflector<Self::ReflectorType> {
                 self.reflector.reflector()
             }
+
+            #[inline]
+            fn reflector_mut(&mut self) -> &mut crate::Reflector<Self::ReflectorType> {
+                self.reflector.reflector_mut()
+            }
         }
         impl crate::MutDomObject for DomElement {
             unsafe fn init_reflector<Actual>(&self, obj: *mut js::jsapi::JSObject) {

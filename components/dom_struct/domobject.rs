@@ -44,6 +44,11 @@ pub(crate) fn expand_dom_object(input: syn::ItemStruct) -> proc_macro2::TokenStr
             fn reflector(&self) -> &crate::Reflector<Self::ReflectorType> {
                 self.#first_field_name.reflector()
             }
+
+            #[inline]
+            fn reflector_mut(&mut self) -> &mut crate::Reflector<Self::ReflectorType> {
+                self.#first_field_name.reflector_mut()
+            }
         }
 
         impl #impl_generics crate::MutDomObject for #name #ty_generics #where_clause {
