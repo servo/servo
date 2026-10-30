@@ -327,11 +327,11 @@ impl ServiceWorkerManager {
                 // Find the relevant worker in the registration map.
                 let mut url = None;
                 for (scope_url, registration) in self.registrations.iter() {
-                    if let Some(worker) = &registration.installing_worker {
-                        if worker.id == worker_id {
-                            url = Some(scope_url.clone());
-                            break;
-                        }
+                    if let Some(worker) = &registration.installing_worker &&
+                        worker.id == worker_id
+                    {
+                        url = Some(scope_url.clone());
+                        break;
                     }
                 }
                 if let Some(url) = url {
@@ -409,7 +409,7 @@ impl ServiceWorkerManager {
     }
 
     /// <https://w3c.github.io/ServiceWorker/#try-activate>
-    fn try_activate_registration(&mut self, url: ServoUrl) {
+    fn try_activate_registration(&mut self, _url: ServoUrl) {
         // TODO: implement.
     }
 

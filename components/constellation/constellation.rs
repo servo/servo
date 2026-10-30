@@ -2574,7 +2574,7 @@ where
                 return;
             };
             if manager
-                .send(ServiceWorkerMsg::FinishInstall(worker_id.clone()))
+                .send(ServiceWorkerMsg::FinishInstall(worker_id))
                 .is_err()
             {
                 warn!("Failed to send FinishInstall message to service worker manager");
@@ -3043,7 +3043,7 @@ where
                     // message sw manager
                     if let Some(manager) = self.sw_managers.get(&pending.origin) {
                         if manager
-                            .send(ServiceWorkerMsg::FinishInstall(worker_id.clone()))
+                            .send(ServiceWorkerMsg::FinishInstall(*worker_id))
                             .is_err()
                         {
                             error!("Failed to send FinishInstall for worker {}", worker_id);
