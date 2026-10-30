@@ -216,13 +216,13 @@ impl FetchResponseListener for ImageContext {
             }
         }
 
-        // The HTTP status code is ignored here. Ok NetworkError is treated
-        // as real error
-        self.status = match metadata.as_ref().map(|m| m.status.clone()) {
-            None => Err(NetworkError::ResourceLoadError(
+        // The HTTP status code is ignored here. Only NetworkError is treated as real error.
+        self.status = if metadata.is_some() {
+            Ok(())
+        } else {
+            Err(NetworkError::ResourceLoadError(
                 "No http status code received".to_owned(),
-            )),
-            Some(_) => Ok(()),
+            ))
         };
     }
 
