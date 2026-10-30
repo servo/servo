@@ -14,6 +14,7 @@ use layout_api::{
 };
 use net_traits::image_cache::{
     Image as CachedImage, ImageCache, ImageCacheResult, ImageOrMetadataAvailable, PendingImageId,
+    RasterizationResult,
 };
 use net_traits::request::InternalRequest;
 use parking_lot::{Mutex, RwLock};
@@ -259,19 +260,23 @@ impl ImageResolver {
         node: OpaqueNode,
         svg_id: Option<Uuid>,
     ) -> Option<RasterImage> {
-        let result = self
+        match self
             .image_cache
-            .rasterize_vector_image(image_id, size, svg_id);
-        if result.is_none() {
-            self.pending_rasterization_images
-                .lock()
-                .push(PendingRasterizationImage {
-                    id: image_id,
-                    node: node.into(),
-                    size,
-                });
+            .rasterize_vector_image(image_id, size, svg_id)
+        {
+            RasterizationResult::Image(raster_image) => Some(raster_image),
+            RasterizationResult::PendingRasterization => {
+                self.pending_rasterization_images
+                    .lock()
+                    .push(PendingRasterizationImage {
+                        id: image_id,
+                        node: node.into(),
+                        size,
+                    });
+                None
+            },
+            RasterizationResult::InvalidSvgParameters => None,
         }
-        result
     }
 
     /// Resolve a cached image to a WebRender [`ImageKey`]

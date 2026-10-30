@@ -59,3 +59,30 @@ promise_test(async t => {
   const loadImagePromise = loadImage('?action=use-stored-ranged-response', { doc: w.document });
   await promise_rejects_js(t, Error, loadImagePromise);
 }, `416 response not allowed following no-cors ranged request`);
+
+promise_test(async t => {
+  const scope = BASE_SCOPE + Math.random();
+  await setupRegistration(t, scope);
+  const iframe = await with_iframe(scope);
+  const w = iframe.contentWindow;
+  const id = Math.random() + '';
+  const cachedRangeResponse = awaitMessage(w.navigator.serviceWorker, id);
+
+  const url = new URL('partial-script.py', w.location);
+  url.searchParams.set('require-range', '1');
+  url.searchParams.set('range-not-satisfiable', '1');
+  url.searchParams.set('type', 'image/png');
+  url.searchParams.set('action', 'cache-ranged-response');
+  url.searchParams.set('id', id);
+  url.hostname = REMOTE_HOST;
+
+  appendAudio(w.document, url);
+
+  await cachedRangeResponse;
+
+  const fetchPromise = w.fetch('?action=use-cached-ranged-response', { mode: 'no-cors' });
+  await promise_rejects_js(t, w.TypeError, fetchPromise);
+
+  const loadImagePromise = loadImage('?action=use-cached-ranged-response', { doc: w.document });
+  await promise_rejects_js(t, Error, loadImagePromise);
+}, `Cached 416 response not allowed following no-cors ranged request`);

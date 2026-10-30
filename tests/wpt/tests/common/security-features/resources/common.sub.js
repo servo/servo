@@ -875,6 +875,51 @@ function requestViaSVGAnchor(url, additionalAttributes) {
 }
 
 /**
+ * Creates a MathML anchor element and the corresponding MathML setup, appends
+ * the setup to {@code document.body} and performs the navigation.
+ * @param {string} url The URL to navigate to.
+ * @return {Promise} The promise for success/error events.
+ */
+function requestViaMathMLAnchor(url, additionalAttributes) {
+  const name = guid();
+
+  const iframe =
+      createElement('iframe', {'name': name, 'id': name}, document.body, false);
+
+  // Create MathML container
+  const math =
+      document.createElementNS('http://www.w3.org/1998/Math/MathML', 'math');
+
+  // Create MathML anchor element
+  const mathmlAnchor =
+      document.createElementNS('http://www.w3.org/1998/Math/MathML', 'a');
+  const link_attributes =
+      Object.assign({'href': url, 'target': name}, additionalAttributes);
+  setAttributes(mathmlAnchor, link_attributes);
+
+  // Add text content
+  mathmlAnchor.textContent = 'MathML Link to resource';
+
+  math.appendChild(mathmlAnchor);
+  document.body.appendChild(math);
+
+  const promise =
+      bindEvents2(window, 'message', iframe, 'error', window, 'error')
+          .then(event => {
+            if (event.source !== iframe.contentWindow)
+              return Promise.reject(new Error('Unexpected event.source'));
+            return event.data;
+          });
+
+  // Simulate a click event on the MathML anchor
+  const event =
+      new MouseEvent('click', {view: window, bubbles: true, cancelable: true});
+  mathmlAnchor.dispatchEvent(event);
+
+  return promise;
+}
+
+/**
   @typedef SubresourceType
   @type {string}
 
@@ -923,6 +968,10 @@ const subresourceMap = {
   "link-prefetch-tag": {
     path: "/common/security-features/subresource/empty.py",
     invoker: requestViaLinkPrefetch,
+  },
+  "mathml-a-tag": {
+    path: "/common/security-features/subresource/document.py",
+    invoker: requestViaMathMLAnchor,
   },
   "object-tag": {
     path: "/common/security-features/subresource/empty.py",

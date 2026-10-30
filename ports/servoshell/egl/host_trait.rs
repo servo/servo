@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use servo::{InputMethodControl, LoadStatus, MediaSessionPlaybackState, SelectElement, WebViewId};
+use servo::{InputMethodControl, LoadStatus, SelectElement, WebViewId};
 
 /// Callbacks implemented by embedder. Called by our RunningAppState, generally on behalf of Servo.
 pub trait HostTrait {
@@ -32,12 +32,6 @@ pub trait HostTrait {
     fn on_ime_show(&self, input_method_control: InputMethodControl);
     /// Input lost focus
     fn on_ime_hide(&self);
-    /// Called when we get the media session metadata/
-    fn on_media_session_metadata(&self, title: String, artist: String, album: String);
-    /// Called when the media session playback state changes.
-    fn on_media_session_playback_state_change(&self, state: MediaSessionPlaybackState);
-    /// Called when the media session position state is set.
-    fn on_media_session_set_position_state(&self, duration: f64, position: f64, playback_rate: f64);
     /// Called when a `<select>` element is clicked.
     fn on_show_select_element(&self, webview_id: WebViewId, prompt: SelectElement);
     /// Called when we get a panic message from constellation

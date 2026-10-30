@@ -1,8 +1,15 @@
 // META: timeout=long
 // META: script=constants.sub.js
-// META: variant=?default
-// META: variant=?wss
-// META: variant=?wpt_flags=h2
+// META: pac=resources/https-proxy.sub.pac
+
+// This requires the PAC above. One host per port
+// as browsers can delay connections to a host when
+// preceding connections failed.
+function CreateWebSocketWithBlockedPort(port) {
+  IsWebSocket()
+  return new WebSocket(
+    `ws://bad-port-${port}.wpt:${port}/websockets/resources/accept-handshake.py`)
+}
 
 async_test(t => {
   const ws = CreateWebSocketWithBlockedPort(__PORT)

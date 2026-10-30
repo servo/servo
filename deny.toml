@@ -215,6 +215,9 @@ skip = [
     "darling",
     "darling_core",
     "darling_macro",
+
+    # Duplicated by rfd and vello.
+    "pollster",
 ]
 
 # github.com organizations to allow git sources for

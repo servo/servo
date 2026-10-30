@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>br keeps breaking the line and wbr keeps not breaking it whatever display, float and clear say</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#phrasing-content-3">
+<link rel="match" href="br-and-wbr-with-non-inline-display-ref.html">
+<style>
+.t { width: 100px; margin-bottom: 10px; font-size: 0; line-height: 0; }
+.t i { display: inline-block; width: 20px; height: 20px; background: green; }
+.t b { display: block; float: left; width: 40px; height: 40px; background: green; }
+</style>
+<div class=t><i></i><br style="display: block"><i></i></div>
+<div class=t><i></i><br style="display: inline-block"><i></i></div>
+<div class=t><i></i><br style="display: table-cell"><i></i></div>
+<div class=t><i></i><br style="display: flex"><i></i></div>
+<div class=t><i></i><br style="display: list-item"><i></i></div>
+<div class=t><i></i><br style="float: left"><i></i></div>
+<div class=t><i></i><wbr style="display: block"><i></i></div>
+<div class=t><b></b><i></i><wbr style="clear: left"><i></i></div>

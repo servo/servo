@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use euclid::Box2D;
 use js::context::JSContext;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::reflect_dom_object;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use time::Duration;
@@ -24,7 +25,7 @@ use crate::dom::globalscope::GlobalScope;
 #[dom_struct]
 pub(crate) struct PerformanceContainerTiming {
     entry: PerformanceEntry,
-    identifier: DOMString,
+    identifier: TracedDOMString,
     #[no_trace]
     intersection_rect: Box2D<f32, LayoutPixel>,
     size: f32,
@@ -55,7 +56,7 @@ impl PerformanceContainerTiming {
                 Some(paint_time),
                 Duration::ZERO,
             ),
-            identifier,
+            identifier: identifier.traced(),
             intersection_rect,
             size,
             first_render_time,
@@ -96,7 +97,7 @@ impl PerformanceContainerTiming {
 impl PerformanceContainerTimingMethods<crate::DomTypeHolder> for PerformanceContainerTiming {
     /// <https://wicg.github.io/container-timing/#dom-performancecontainertiming-identifier>
     fn Identifier(&self) -> DOMString {
-        self.identifier.clone()
+        self.identifier.clone().root()
     }
 
     /// <https://wicg.github.io/container-timing/#dom-performancecontainertiming-intersectionrect>

@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<title>Slow page: committed, but render-blocked so it never reveals</title>
+<!-- No @view-transition opt-in, so this page can never start an outbound
+     transition of its own. The script arrives 10s late and blocks rendering,
+     which keeps the document from being revealed until the test supersedes
+     this navigation. -->
+<script blocking="render" src="common.js?pipe=trickle(d10)"></script>
+<div style="width: 100px; height: 100px; background: red"></div>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <title>Table's background-color changing dynamically</title>
+  <link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+  <link rel="help" href="https://www.w3.org/TR/CSS2/tables.html#value-def-table">
+  <link rel="help" href="https://www.w3.org/TR/CSS2/colors.html#propdef-background-color">
+  <link rel="help" href="https://github.com/servo/servo/issues/49109">
+  <link rel="match" href="/css/reference/ref-filled-green-200px-square.html">
+  <style>
+    #target { display: table; width: 200px; height: 200px; background-color: red }
+  </style>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div id="target"></div>
+  <script src="/common/rendering-utils.js"></script>
+  <script src="/common/reftest-wait.js"></script>
+  <script type="module">
+    await waitForAtLeastOneFrame();
+    document.getElementById("target").style.backgroundColor = "green";
+    takeScreenshot();
+  </script>
+</html>

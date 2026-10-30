@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>The label of an optgroup in a list box updates when its legend or the descendants of that legend change</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/form-elements.html#concept-optgroup-label">
+<link rel=match href="select-optgroup-legend-label-mutation-ref.html">
+
+<select size="3">
+  <optgroup>
+    <legend>Before</legend>
+    <option>One</option>
+  </optgroup>
+</select>
+
+<select size="3">
+  <optgroup>
+    <legend><span>Before</span></legend>
+    <option>One</option>
+  </optgroup>
+</select>
+
+<select size="3">
+  <optgroup label="Before">
+    <option>One</option>
+  </optgroup>
+</select>
+
+<select size="3">
+  <optgroup label="After the change">
+    <legend>Before</legend>
+    <option>One</option>
+  </optgroup>
+</select>
+
+<select size="3">
+  <optgroup label="After the change">
+    <legend>Before</legend>
+    <option>One</option>
+  </optgroup>
+</select>
+
+<select size="3">
+  <optgroup label="Before">
+    <div></div>
+    <legend>After the change</legend>
+    <option>One</option>
+  </optgroup>
+</select>
+
+<script>
+document.documentElement.addEventListener("TestRendered", () => {
+  const optgroups = document.querySelectorAll("optgroup");
+  optgroups[0].querySelector("legend").textContent = "After the change";
+  optgroups[1].querySelector("span").firstChild.data = "After the change";
+  const legend = document.createElement("legend");
+  legend.textContent = "After the change";
+  optgroups[2].prepend(legend);
+  optgroups[3].querySelector("legend").remove();
+  optgroups[4].prepend(document.createElement("div"));
+  optgroups[5].querySelector("div").remove();
+  document.documentElement.classList.remove("reftest-wait");
+});
+</script>

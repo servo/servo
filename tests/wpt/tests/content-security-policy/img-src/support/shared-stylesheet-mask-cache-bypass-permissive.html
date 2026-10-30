@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset=utf-8>
+<link rel="stylesheet" href="shared-stylesheet-mask-cache-bypass.css">
+<body style="margin:0">
+  <div class="bypass-mask"></div>
+  <script>
+    'use strict';
+    // No CSP here. Ensure the shared SVG mask is fully loaded, then signal so
+    // the parent can capture a stable, painted frame. With the mask applied the
+    // full-coverage box shows its green background.
+    const primer = new Image();
+    primer.onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+      parent.postMessage('ready', '*');
+    }));
+    primer.onerror = () => parent.postMessage('ready', '*');
+    primer.src = 'shared-stylesheet-mask-cache-bypass.svg';
+  </script>
+</body>

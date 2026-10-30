@@ -1,0 +1,41 @@
+<!doctype html>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+test_driver.set_test_context(parent);
+
+function state() {
+  return { index: navigation.currentEntry.index, length: navigation.entries().length, hash: location.hash };
+}
+
+async function traverse(traversal) {
+  try {
+    await traversal().finished;
+    return state();
+  } catch (e) {
+    return { error: e.name, ...state() };
+  }
+}
+
+const commands = {
+  async setup() {
+    await navigation.navigate("#1").finished;
+    await navigation.navigate("#2").finished;
+    // Some browsers block a cross-site iframe that has not been interacted with from navigating its top-level
+    // traversable, so give this frame user activation first.
+    await test_driver.bless("traverse the session history");
+    return state();
+  },
+  traverseTo: () => traverse(() => navigation.traverseTo(navigation.entries()[0].key)),
+  forward: () => traverse(() => navigation.forward()),
+};
+
+window.onmessage = async e => {
+  if (e.data && e.data.command in commands)
+    parent.postMessage({ reply: await commands[e.data.command]() }, "*");
+};
+
+window.onload = () => parent.postMessage({ reply: "ready" }, "*");
+</script>
+</body>

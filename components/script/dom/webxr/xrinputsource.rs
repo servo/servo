@@ -9,6 +9,7 @@ use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::MutableHandleValue;
+use script_bindings::codegen::GenericBindings::GamepadBinding::GamepadMappingType;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use webxr_api::{Handedness, InputFrame, InputId, InputSource, TargetRayMode};
 
@@ -64,7 +65,7 @@ impl XRInputSource {
             window,
             0,
             String::new(),
-            "xr-standard".into(),
+            GamepadMappingType::Xr_standard,
             (-1.0, 1.0),
             (0.0, 1.0),
             GamepadSupportedHapticEffects {

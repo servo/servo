@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>StylePropertyMap.append on space-separated list-valued properties</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#append-to-a-stylepropertymap">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/testhelper.js"></script>
+<body>
+<script>
+'use strict';
+
+for (const [kind, create] of [
+  ['inline', createElementWithInlineStyleMap],
+  ['declared', createRuleWithDeclaredStyleMap],
+]) {
+  test(t => {
+    let [owner, styleMap] = create(t, '');
+
+    styleMap.append('filter', 'blur(1px)', 'grayscale(1)');
+    assert_equals(owner.style.filter, 'blur(1px) grayscale(1)');
+
+    styleMap.append('filter', 'invert(1) opacity(0.5)');
+    assert_equals(owner.style.filter, 'blur(1px) grayscale(1) invert(1) opacity(0.5)');
+  }, `Appending to filter joins values with spaces (${kind})`);
+
+  test(t => {
+    let [owner, styleMap] = create(t, 'filter: blur(1px)');
+    styleMap.append('filter', 'grayscale(1)');
+    assert_equals(owner.style.filter, 'blur(1px) grayscale(1)');
+  }, `Appending to an existing filter list (${kind})`);
+
+  test(t => {
+    let [owner, styleMap] = create(t, '');
+    assert_throws_js(TypeError, () => styleMap.append('filter', 'blur(1px), grayscale(1)'));
+    assert_equals(owner.style.filter, '');
+  }, `Appending a comma-separated string to filter throws TypeError (${kind})`);
+
+  test(t => {
+    let [owner, styleMap] = create(t, 'filter: none');
+    assert_throws_js(TypeError, () => styleMap.append('filter', 'blur(1px)'));
+    assert_equals(owner.style.filter, 'none');
+  }, `Appending to filter: none throws TypeError (${kind})`);
+}
+</script>

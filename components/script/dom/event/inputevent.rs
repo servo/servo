@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use bitflags::bitflags;
 use dom_struct::dom_struct;
 use embedder_traits::Cursor;
 use euclid::Point2D;
@@ -39,12 +40,10 @@ impl InputEvent {
         window: &Window,
         proto: Option<HandleObject>,
         event_type: Atom,
-        can_bubble: bool,
-        cancelable: bool,
+        flags: InputEventFlags,
         view: Option<&Window>,
         detail: i32,
         data: Option<DOMString>,
-        is_composing: bool,
         input_type: DOMString,
     ) -> DomRoot<InputEvent> {
         let event = reflect_dom_object_with_proto(
@@ -52,15 +51,19 @@ impl InputEvent {
             Box::new(InputEvent {
                 uievent: UIEvent::new_inherited(),
                 data: data.map(|domstring| domstring.traced()),
-                is_composing,
+                is_composing: flags.intersects(InputEventFlags::COMPOSING),
                 input_type: input_type.traced(),
             }),
             window,
             proto,
         );
-        event
-            .uievent
-            .init_event(event_type, can_bubble, cancelable, view, detail);
+        event.uievent.init_event(
+            event_type,
+            flags.intersects(InputEventFlags::BUBBLES),
+            flags.intersects(InputEventFlags::CANCELABLE),
+            view,
+            detail,
+        );
         event
     }
 }
@@ -74,17 +77,25 @@ impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
         event_type: DOMString,
         init: &InputEventBinding::InputEventInit,
     ) -> Fallible<DomRoot<InputEvent>> {
+        let mut flags = InputEventFlags::empty();
+        if init.parent.parent.bubbles {
+            flags |= InputEventFlags::BUBBLES;
+        }
+        if init.parent.parent.cancelable {
+            flags |= InputEventFlags::CANCELABLE;
+        }
+        if init.isComposing {
+            flags |= InputEventFlags::COMPOSING;
+        }
         let event = InputEvent::new(
             cx,
             window,
             proto,
             event_type.into(),
-            init.parent.parent.bubbles,
-            init.parent.parent.cancelable,
+            flags,
             init.parent.view.as_deref(),
             init.parent.detail,
             init.data.clone(),
-            init.isComposing,
             init.inputType.clone(),
         );
         Ok(event)
@@ -123,6 +134,14 @@ impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
     }
 }
 
+bitflags! {
+    #[derive(Clone, Copy, Eq, PartialEq)]
+    pub struct InputEventFlags: u8 {
+        const BUBBLES = 1 << 0;
+        const CANCELABLE = 1 << 1;
+        const COMPOSING = 1 << 2;
+    }
+}
 /// A [`HitTestResult`] that is the result of doing a hit test based on a less-fine-grained
 /// `PaintHitTestResult` against our current layout.
 pub(crate) struct HitTestResult {

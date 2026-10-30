@@ -113,7 +113,9 @@ impl Document {
         // Step 6
         // > If error is false, then consume user activation given pendingDoc’s relevant global object.
         if !error {
-            pending.owner_window().consume_user_activation();
+            pending
+                .owner_window_unrooted(cx.no_gc())
+                .consume_user_activation();
         }
 
         // Step 8.

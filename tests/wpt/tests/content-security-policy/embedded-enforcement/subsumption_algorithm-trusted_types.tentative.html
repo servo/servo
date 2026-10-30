@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Embedded Enforcement: Subsumption Algorithm - Trusted Types directives.</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/testharness-helper.sub.js"></script>
+</head>
+<body>
+  <script>
+    // Note that the returned csp should always allow execution of an
+    // inline script with nonce "abc" (as returned by
+    // support/echo-policy-multiple.py), otherwise the test might
+    // return false negatives. Test cases below therefore only add a
+    // script-src restriction when it is nonce-abc-compatible.
+    var tests = [
+      // 'require-trusted-types-for' is absent from the required csp: it
+      // imposes no restriction, whatever the returned csp does.
+      { "name": "require-trusted-types-for absent in required is not checked.",
+        "required_csp": "img-src 'none'",
+        "returned_csp_1": "img-src 'none'; require-trusted-types-for 'script'",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_LOAD },
+      // 'require-trusted-types-for' is present in required but absent from
+      // returned. A required csp with only Trusted Types directives must not
+      // be trivially subsumed.
+      { "name": "require-trusted-types-for present in required, absent in returned.",
+        "required_csp": "require-trusted-types-for 'script'",
+        "returned_csp_1": "img-src 'none'",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "require-trusted-types-for present in required and returned.",
+        "required_csp": "require-trusted-types-for 'script'",
+        "returned_csp_1": "require-trusted-types-for 'script'",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "require-trusted-types-for satisfied by only one of several returned policies.",
+        "required_csp": "require-trusted-types-for 'script'",
+        "returned_csp_1": "img-src 'none'",
+        "returned_csp_2": "require-trusted-types-for 'script'",
+        "expected": IframeLoad.EXPECT_LOAD },
+      // 'trusted-types' is absent from the required csp: it imposes no
+      // restriction, whatever the returned csp does.
+      { "name": "trusted-types absent in required is not checked.",
+        "required_csp": "img-src 'none'",
+        "returned_csp_1": "img-src 'none'; trusted-types foo",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_LOAD },
+      // The conservative MVP uses normalized exact equality for
+      // 'trusted-types'; policy names are a set (order independent).
+      { "name": "trusted-types exact match with policy names in different order.",
+        "required_csp": "trusted-types foo bar",
+        "returned_csp_1": "trusted-types bar foo",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "trusted-types ignores duplicate policy names.",
+        "required_csp": "trusted-types foo foo",
+        "returned_csp_1": "trusted-types foo",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_LOAD },
+      // The conservative MVP intentionally rejects a stricter returned subset
+      // (see crbug.com/40912894).
+      { "name": "trusted-types stricter returned subset is not an exact match.",
+        "required_csp": "trusted-types foo bar",
+        "returned_csp_1": "trusted-types foo",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_BLOCK },
+      // '*' must match on both sides.
+      { "name": "trusted-types '*' matches '*'.",
+        "required_csp": "trusted-types *",
+        "returned_csp_1": "trusted-types *",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "trusted-types '*' required but returned has an explicit list only.",
+        "required_csp": "trusted-types *",
+        "returned_csp_1": "trusted-types foo",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_BLOCK },
+      // 'none' (empty list) must match 'none'.
+      { "name": "trusted-types 'none' matches 'none'.",
+        "required_csp": "trusted-types 'none'",
+        "returned_csp_1": "trusted-types 'none'",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_LOAD },
+      // Duplicate permission must match for a non-empty policy-name domain.
+      { "name": "trusted-types 'allow-duplicates' present on both sides.",
+        "required_csp": "trusted-types foo 'allow-duplicates'",
+        "returned_csp_1": "trusted-types foo 'allow-duplicates'",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "trusted-types 'allow-duplicates' required but missing in returned.",
+        "required_csp": "trusted-types foo 'allow-duplicates'",
+        "returned_csp_1": "trusted-types foo",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "trusted-types duplicate permission is ignored for an empty policy-name domain.",
+        "required_csp": "trusted-types 'allow-duplicates'",
+        "returned_csp_1": "trusted-types 'none'",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_LOAD },
+      // Multiple returned policies are intersected, mirroring source-list
+      // combination semantics.
+      { "name": "trusted-types intersection of several returned policies matches required.",
+        "required_csp": "trusted-types foo",
+        "returned_csp_1": "trusted-types foo bar",
+        "returned_csp_2": "trusted-types foo",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "trusted-types intersection of several returned policies differs from required.",
+        "required_csp": "trusted-types foo bar",
+        "returned_csp_1": "trusted-types foo bar",
+        "returned_csp_2": "trusted-types foo",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "trusted-types intersected duplicate permission is false for an empty policy-name domain.",
+        "required_csp": "trusted-types 'none'",
+        "returned_csp_1": "trusted-types foo 'allow-duplicates'",
+        "returned_csp_2": "trusted-types bar 'allow-duplicates'",
+        "expected": IframeLoad.EXPECT_LOAD },
+      // 'trusted-types' present in required but absent from every returned
+      // policy: no exact match.
+      { "name": "trusted-types present in required, absent from all returned policies.",
+        "required_csp": "trusted-types foo",
+        "returned_csp_1": "img-src 'none'",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_BLOCK },
+      // Combined source-list and Trusted Types requirements: both must hold.
+      { "name": "Combined script-src and require-trusted-types-for both match.",
+        "required_csp": "script-src 'nonce-abc'; require-trusted-types-for 'script'",
+        "returned_csp_1": "script-src 'nonce-abc'; require-trusted-types-for 'script'",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Combined requirement: script-src mismatches even though require-trusted-types-for matches.",
+        "required_csp": "script-src 'nonce-abc'; require-trusted-types-for 'script'",
+        "returned_csp_1": "script-src * 'nonce-abc'; require-trusted-types-for 'script'",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Combined requirement: require-trusted-types-for mismatches even though script-src matches.",
+        "required_csp": "script-src 'nonce-abc'; require-trusted-types-for 'script'",
+        "returned_csp_1": "script-src 'nonce-abc'",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_BLOCK },
+    ];
+
+    tests.forEach(test => {
+      async_test(t =>  {
+        let url = generateUrlWithPolicies(Host.CROSS_ORIGIN, test.returned_csp_1);
+        if (test.returned_csp_2)
+          url.searchParams.append("policy2", test.returned_csp_2);
+        assert_iframe_with_csp(t, url, test.required_csp, test.expected, test.name, null);
+      }, test.name);
+    });
+  </script>
+</body>
+</html>

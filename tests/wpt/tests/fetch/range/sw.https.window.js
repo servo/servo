@@ -103,6 +103,37 @@ promise_test(async t => {
   const iframe = await with_iframe(scope);
   const w = iframe.contentWindow;
   const id = Math.random() + '';
+  const cachedRangeResponse = awaitMessage(t, w.navigator.serviceWorker, id);
+
+  // Trigger a cross-origin range request using media and store the opaque 206
+  // response in Cache Storage.
+  const url = new URL('partial-script.py', w.location);
+  url.searchParams.set('require-range', '1');
+  url.searchParams.set('action', 'cache-ranged-response');
+  url.searchParams.set('id', id);
+  url.hostname = REMOTE_HOST;
+
+  appendAudio(w.document, url);
+
+  await cachedRangeResponse;
+
+  // Fetching should reject
+  const fetchPromise = w.fetch('?action=use-cached-ranged-response', { mode: 'no-cors' });
+  await promise_rejects_js(t, w.TypeError, fetchPromise);
+
+  // Script loading should error too
+  const loadScriptPromise = loadScript('?action=use-cached-ranged-response', { doc: w.document });
+  await promise_rejects_js(t, Error, loadScriptPromise);
+
+  assert_false(!!w.scriptExecuted, `Cached partial response shouldn't be executed`);
+}, `Cached ranged response not allowed following no-cors ranged request`);
+
+promise_test(async t => {
+  const scope = BASE_SCOPE + Math.random();
+  await setupRegistration(t, scope);
+  const iframe = await with_iframe(scope);
+  const w = iframe.contentWindow;
+  const id = Math.random() + '';
   const storedRangeResponse = awaitMessage(t, w.navigator.serviceWorker, id);
 
   // Trigger a range request using media

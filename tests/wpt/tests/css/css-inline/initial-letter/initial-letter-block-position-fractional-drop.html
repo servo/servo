@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Tests initial letter whose non-integer size has a drop sink</title>
+<link rel="author" title="ChangSeok Oh" href="mailto:changseok@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-inline/#valdef-initial-letter-drop">
+<link rel="help" href="https://drafts.csswg.org/css-inline/#initial-letter-block-position">
+<meta name="assert" content="drop, and an omitted sink, compute to the initial letter size floored, and the initial letter is positioned to satisfy its under alignment on that line.">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" >
+<link rel="match" href="initial-letter-block-position-fractional-drop-ref.html">
+<style>
+.sample {
+    border: solid 1px green;
+    font-family: Ahem;
+    font-size: 20px;
+    line-height: 32px;
+    width: 230px;
+}
+
+.initial-letter::first-letter {
+    color: lime;
+    font-size: 100px;   /* should be ignored in rendering */
+    line-height: 50px;  /* should be ignored in rendering */
+}
+
+#size-2-5::first-letter { initial-letter: 2.5; }
+#size-2-5-drop::first-letter { initial-letter: 2.5 drop; }
+#size-1-5::first-letter { initial-letter: 1.5; }
+</style>
+<div class="sample initial-letter" id="size-2-5">
+Abc<br>def<br>ghi<br>jkl<br>mno<br>
+</div>
+<div class="sample initial-letter" id="size-2-5-drop">
+Abc<br>def<br>ghi<br>jkl<br>mno<br>
+</div>
+<div class="sample initial-letter" id="size-1-5">
+Abc<br>def<br>ghi<br>jkl<br>mno<br>
+</div>

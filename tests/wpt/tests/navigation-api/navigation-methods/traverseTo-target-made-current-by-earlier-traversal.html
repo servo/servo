@@ -1,0 +1,32 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  const start_index = navigation.currentEntry.index;
+  await i.contentWindow.navigation.navigate("#1").finished;
+  await navigation.navigate("#a").finished;
+  const target = navigation.entries()[start_index];
+
+  // The joint session history now has three steps: (top start, iframe initial), (top start, iframe #1)
+  // and (top #a, iframe #1). history.back() takes the top window to the target. If that traversal has
+  // not been applied when traverseTo() runs, traverseTo() is queued behind it, and must then do nothing
+  // rather than go to the first step, which also holds the target but takes the iframe back.
+  history.back();
+  const result = await new Promise(resolve => t.step_timeout(() => resolve(navigation.traverseTo(target.key)), 0));
+  await result.committed;
+  await result.finished;
+  assert_equals(navigation.currentEntry.key, target.key);
+
+  // Give the iframe time to navigate in case it was incorrectly taken back.
+  await new Promise(resolve => t.step_timeout(resolve, 100));
+  assert_equals(navigation.currentEntry.key, target.key);
+  assert_equals(i.contentWindow.navigation.currentEntry.index, 1, "the iframe stays on its entry");
+  assert_equals(i.contentWindow.location.hash, "#1", "the iframe stays on its entry");
+}, "navigation.traverseTo() to an entry that an earlier traversal made current does not traverse again");
+</script>

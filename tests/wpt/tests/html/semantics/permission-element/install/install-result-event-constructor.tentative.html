@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>InstallResultEvent constructor</title>
+<link rel="help" href="https://github.com/WICG/install-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+test(() => {
+  const event = new InstallResultEvent("installresult");
+
+  assert_equals(event.result, "aborted");
+}, "An omitted initializer defaults result to aborted");
+
+for (const [description, initializer] of [
+  ["an empty initializer", {}],
+  ["an undefined initializer", undefined],
+  ["a null initializer", null],
+  ["an undefined result", {result: undefined}],
+]) {
+  test(() => {
+    const event = new InstallResultEvent("installresult", initializer);
+
+    assert_equals(event.result, "aborted");
+  }, `The constructor defaults result to aborted with ${description}`);
+}
+
+for (const result of ["success", "aborted", "invalid-data"]) {
+  test(() => {
+    const event = new InstallResultEvent("installresult", {result});
+
+    assert_equals(event.result, result);
+  }, `The constructor preserves the explicit result "${result}"`);
+}
+
+for (const result of ["", "unknown", null]) {
+  test(() => {
+    assert_throws_js(TypeError, () => {
+      new InstallResultEvent("installresult", {result});
+    });
+  }, `The constructor rejects the invalid result ${JSON.stringify(result)}`);
+}
+
+test(() => {
+  const event = new InstallResultEvent("installresult");
+
+  assert_false(event.bubbles);
+  assert_false(event.cancelable);
+  assert_false(event.composed);
+}, "Standard event flags default to false");
+
+test(() => {
+  const event = new InstallResultEvent("installresult", {
+    bubbles: true,
+    cancelable: true,
+    composed: true,
+  });
+
+  assert_equals(event.result, "aborted");
+  assert_true(event.bubbles);
+  assert_true(event.cancelable);
+  assert_true(event.composed);
+}, "The constructor preserves inherited event flags set to true");
+</script>

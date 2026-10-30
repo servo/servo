@@ -323,59 +323,77 @@ cache_test(async function(cache, test) {
 
 // VARY header matching is asymmetric.  Determining if two entries are duplicate
 // depends on which entry's response is used in the comparison.  The target
-// response's VARY header determines what request headers are examined.  This
-// test verifies that Cache.addAll() duplicate checking handles this asymmetric
-// behavior correctly.
+// response's VARY header determines what request headers are examined.  Per
+// the Batch Cache Operations algorithm each entry is only compared against the
+// entries added before it, using the VARY header of the earlier entry's
+// response, so whether Cache.addAll() rejects depends on the entry order.
+// These tests add the same two entries in both orders.
+//
+// The two requests share a URL and have these responses:
+//
+//   shape: {x-shape: circle, x-size: big}, response "Vary: x-shape"
+//   size:  {x-shape: square, x-size: big}, response "Vary: x-size"
+//
+// Compared using shape's VARY header the requests differ.  Compared using
+// size's VARY header they are duplicates.
+async function create_asymmetric_vary_requests(test) {
+  const base_url = './resources/vary.py';
+
+  // Define a request URL that sets a VARY header in the
+  // query string to be echoed back by the server.
+  const url = base_url + '?vary=x-size';
+
+  // Set a cookie to override the VARY header of the response
+  // when the request is made with credentials.  This will
+  // take precedence over the query string vary param.  This
+  // is a bit confusing, but it's necessary to construct a test
+  // where the URL is the same, but the VARY headers differ.
+  //
+  // Note, the test could also pass this information in additional
+  // request headers.  If the cookie approach becomes too unwieldy
+  // this test could be rewritten to use that technique.
+  await fetch(base_url + '?set-vary-value-override-cookie=x-shape');
+  test.add_cleanup(_ => fetch(base_url + '?clear-vary-value-override-cookie'));
+
+  return {
+    // This request will result in a Response with a "Vary: x-shape"
+    // header.
+    shape: new Request(url, { headers: { 'x-shape': 'circle',
+                                         'x-size': 'big' },
+                              credentials: 'same-origin' }),
+
+    // This request will result in a Response with a "Vary: x-size"
+    // header.
+    size: new Request(url, { headers: { 'x-shape': 'square',
+                                        'x-size': 'big' },
+                             credentials: 'omit' }),
+  };
+}
+
 cache_test(async function(cache, test) {
-    const base_url = './resources/vary.py';
+    const { shape, size } = await create_asymmetric_vary_requests(test);
 
-    // Define a request URL that sets a VARY header in the
-    // query string to be echoed back by the server.
-    const url = base_url + '?vary=x-size';
+    // The size entry is compared against the shape entry using
+    // "Vary: x-shape", and circle does not match square.  The shape entry
+    // would match the size entry under "Vary: x-size", but that comparison
+    // is never made because the size entry comes later.
+    const result = await cache.addAll([shape, size]);
+    assert_equals(result, undefined, 'Cache.addAll() should succeed');
+  }, 'Cache.addAll should succeed when an entry matches an earlier entry ' +
+     'only under its own vary header');
 
-    // Set a cookie to override the VARY header of the response
-    // when the request is made with credentials.  This will
-    // take precedence over the query string vary param.  This
-    // is a bit confusing, but it's necessary to construct a test
-    // where the URL is the same, but the VARY headers differ.
-    //
-    // Note, the test could also pass this information in additional
-    // request headers.  If the cookie approach becomes too unwieldy
-    // this test could be rewritten to use that technique.
-    await fetch(base_url + '?set-vary-value-override-cookie=x-shape');
-    test.add_cleanup(_ => fetch(base_url + '?clear-vary-value-override-cookie'));
+cache_test(async function(cache, test) {
+    const { shape, size } = await create_asymmetric_vary_requests(test);
 
-    let requests = [
-      // This request will result in a Response with a "Vary: x-shape"
-      // header.  This *will not* result in a duplicate match with the
-      // other entry.
-      new Request(url, { headers: { 'x-shape': 'circle',
-                                    'x-size': 'big' },
-                         credentials: 'same-origin' }),
-
-      // This request will result in a Response with a "Vary: x-size"
-      // header.  This *will* result in a duplicate match with the other
-      // entry.
-      new Request(url, { headers: { 'x-shape': 'square',
-                                    'x-size': 'big' },
-                         credentials: 'omit' }),
-    ];
+    // The shape entry is compared against the size entry using
+    // "Vary: x-size", and both requests are big.
     await promise_rejects_dom(
       test,
       'InvalidStateError',
-      cache.addAll(requests),
-      'Cache.addAll() should reject when one entry has a vary header ' +
-      'matching an earlier entry.');
-
-    // Test the reverse order now.
-    await promise_rejects_dom(
-      test,
-      'InvalidStateError',
-      cache.addAll(requests.reverse()),
-      'Cache.addAll() should reject when one entry has a vary header ' +
-      'matching a later entry.');
-
-  }, 'Cache.addAll should reject when one entry has a vary header ' +
-     'matching another entry');
+      cache.addAll([size, shape]),
+      'Cache.addAll() should reject when an entry matches an earlier entry ' +
+      'under the earlier entry\'s vary header.');
+  }, 'Cache.addAll should reject when an entry matches an earlier entry ' +
+     'under the earlier entry\'s vary header');
 
 done();

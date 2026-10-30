@@ -31,14 +31,33 @@
     await new Promise(setTimeout);
   }
 
+  test(() => {
+    const defaultEvent = new CanvasPaintEvent('paint');
+    assert_true(defaultEvent instanceof CanvasPaintEvent);
+    assert_true(defaultEvent instanceof Event);
+    assert_equals(defaultEvent.type, 'paint');
+    assert_array_equals(defaultEvent.changedElements, []);
+    assert_true(Object.isFrozen(defaultEvent.changedElements));
+    assert_equals(defaultEvent.changedElements, defaultEvent.changedElements);
+
+    const customEvent = new CanvasPaintEvent('paint', {
+      changedElements: [childa, childb],
+    });
+    assert_array_equals(customEvent.changedElements, [childa, childb]);
+    assert_true(Object.isFrozen(customEvent.changedElements));
+    assert_equals(customEvent.changedElements, customEvent.changedElements);
+  }, 'CanvasPaintEvent constructor and [SameObject] changedElements');
+
   promise_test(async t => {
     // Wait a frame.
     await waitForOneFrame();
 
     let onPaintCount = 0;
+    let lastEvent = null;
     let lastChanged = [];
     canvas.onpaint = (event) => {
       onPaintCount++;
+      lastEvent = event;
       lastChanged = event.changedElements;
     };
 
@@ -49,6 +68,12 @@
     await waitForOneFrame();
     assert_equals(onPaintCount, 1,
       'onpaint should fire after #childa changes.');
+    assert_true(lastEvent instanceof CanvasPaintEvent,
+      'onpaint event should be an instance of CanvasPaintEvent.');
+    assert_true(Object.isFrozen(lastChanged),
+      'changedElements should be frozen.');
+    assert_equals(lastEvent.changedElements, lastChanged,
+      'changedElements should return the same object on repeated access.');
     assert_array_equals(lastChanged, [childa]);
 
     // 3. Make a change that causes #childb to repaint.
@@ -58,6 +83,8 @@
     await waitForOneFrame();
     assert_equals(onPaintCount, 2,
       'onpaint should fire after #childb changes.');
+    assert_equals(lastEvent.changedElements, lastChanged,
+      'changedElements should return the same object on repeated access.');
     assert_array_equals(lastChanged, [childb]);
 
     // 5. Make a change that causes #childa and #childb to repaint.

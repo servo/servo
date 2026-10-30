@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<title>pageswap fires once when its handler changes the session history during a traversal</title>
+<link rel="help" href="https://html.spec.whatwg.org/#fire-the-pageswap-event">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js"></script>
+<script>
+const PREFIX = "pageswap-history-change-during-traverse-";
+const SCRIPT =
+    "/css/css-view-transitions/navigation/resources/pageswap-history-change-during-traverse.js";
+const twoFrames = () =>
+    new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+promise_test(async t => {
+  localStorage.removeItem(PREFIX + "armed");
+  localStorage.removeItem(PREFIX + "events");
+  t.add_cleanup(() => {
+    localStorage.removeItem(PREFIX + "armed");
+    localStorage.removeItem(PREFIX + "events");
+  });
+
+  // Step 1. Open page A without an opener, so that it can use the
+  // back/forward cache, and navigate it to page B.
+  const helper = new RemoteContextHelper({scripts: [SCRIPT]});
+  const rcA = await helper.addWindow(undefined, {features: "noopener"});
+  const rcB = await rcA.navigateToNew();
+  await rcB.executeScript(twoFrames);
+
+  // Step 2. Go back to page A.
+  await rcB.historyBack();
+  await rcA.executeScript(twoFrames);
+
+  // Step 3. Go forward to page B. The pageswap handler of page A calls
+  // pushState, which removes the forward entries.
+  localStorage.setItem(PREFIX + "armed", "1");
+  await rcA.historyForward();
+  await rcB.executeScript(twoFrames);
+
+  // Step 4. Page A fired pageswap once, for the traversal.
+  const events = JSON.parse(localStorage.getItem(PREFIX + "events"));
+  assert_equals(events.length, 1, "pageswap fired once");
+  assert_equals(events[0].navigationType, "traverse",
+                "the activation is for the traversal");
+});
+</script>

@@ -1,0 +1,72 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script>
+const iframe = document.createElement("iframe");
+
+// testdriver may relay the iframe's actions through messages too, so only take the helper's replies.
+function nextReply() {
+  return new Promise(resolve => {
+    window.addEventListener("message", function onMessage(e) {
+      if (e.source !== iframe.contentWindow || !e.data || !("reply" in e.data))
+        return;
+      window.removeEventListener("message", onMessage);
+      resolve(e.data.reply);
+    });
+  });
+}
+
+const iframeReady = nextReply();
+iframe.src = get_host_info().HTTP_NOTSAMESITE_ORIGIN + "/navigation-api/navigate-event/resources/navigation-traverseTo-in-cross-site-iframe-helper.html";
+document.body.appendChild(iframe);
+
+function sendCommand(command) {
+  const reply = nextReply();
+  iframe.contentWindow.postMessage({ command }, "*");
+  return reply;
+}
+
+promise_test(async t => {
+  let start_length = navigation.entries().length;
+  let start_index = navigation.currentEntry.index;
+
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+  assert_equals(await iframeReady, "ready");
+
+  // Navigate the iframe, then the top window, so that when the iframe goes back
+  // to its initial entry, the top window navigates as well.
+  const iframeState = await sendCommand("navigate");
+  await navigation.navigate("#").finished;
+  assert_equals(navigation.entries().length, start_length + 1);
+  assert_equals(iframeState.length, 2);
+  assert_equals(navigation.currentEntry.index, start_index + 1);
+  assert_equals(iframeState.index, 1);
+
+  // Ensure the top window, which is allowed to cancel the traversal, does so.
+  navigation.onnavigate = e => e.preventDefault();
+
+  let top_navigateerror_fired = false;
+  navigation.onnavigateerror = t.step_func(e => {
+    assert_equals(e.constructor, ErrorEvent);
+    assert_equals(e.filename, location.href);
+    top_navigateerror_fired = true;
+  });
+
+  // When the top window blocks the traversal, it should be blocked in the
+  // iframe as well, and the traversal promises in the iframe should be rejected.
+  const result = await sendCommand("traverseTo");
+  assert_equals(result.committed, "AbortError");
+  assert_equals(result.finished, "AbortError");
+  assert_array_equals(result.events, [], "neither navigate nor navigateerror fires in the iframe, because the traversal was cancelled in the top window");
+  assert_true(top_navigateerror_fired);
+  assert_equals(navigation.currentEntry.index, start_index + 1);
+  assert_equals(result.index, 1);
+}, "navigation.traverseTo() in a cross-site iframe with same-document preventDefault in its parent");
+</script>
+</body>

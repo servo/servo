@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reftest Reference</title>
+<style>
+#lines {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100px;
+    column-gap: 10px;
+    row-gap: 10px;
+}
+#lines > div {
+    height: 20px;
+    background: green;
+    flex-shrink: 0;
+}
+</style>
+<p>Test passes if there are three green rows and the last one holds two separate squares.</p>
+<div id="lines">
+  <div style="width: 50px"></div>
+  <div style="width: 300px"></div>
+  <div style="width: 20px"></div>
+  <div style="width: 20px"></div>
+</div>

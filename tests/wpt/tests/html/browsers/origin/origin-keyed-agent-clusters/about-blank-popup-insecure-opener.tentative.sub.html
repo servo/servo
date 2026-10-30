@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>A frame in an about:blank popup of an opener over insecure HTTP cannot request origin-keying</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script type="module">
+import { waitForIframe, testGetter } from "./resources/helpers.mjs";
+
+let popup;
+promise_setup(async () => {
+  popup = window.open();
+  add_completion_callback(() => popup.close());
+
+  const url = new URL("resources/send-oac-header.py", location.href);
+  url.protocol = "https:";
+  url.host = "{{hosts[][www]}}:{{ports[https][0]}}";
+  url.searchParams.set("header", "?1");
+
+  const iframe = popup.document.createElement("iframe");
+  const loaded = waitForIframe(iframe, url.href);
+  iframe.src = url.href;
+  popup.document.body.append(iframe);
+  await loaded;
+});
+
+// The popup's initial about:blank document has this page's origin, which is not potentially
+// trustworthy, so the frame is not in a secure context and its origin-keying request is ignored.
+// HTML currently only checks whether the top-level creation URL, about:blank, is potentially
+// trustworthy, which it always is: https://github.com/whatwg/html/issues/6369
+testGetter(() => popup.frames[0], false, "frame in about:blank popup");
+</script>

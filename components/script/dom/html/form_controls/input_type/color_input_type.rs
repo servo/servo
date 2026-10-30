@@ -175,7 +175,7 @@ impl SpecificInputType for ColorInputType {
         !value.str().is_valid_simple_color_string()
     }
 
-    fn show_the_picker_if_applicable(&self, input: &HTMLInputElement) {
+    fn show_the_picker_if_applicable(&self, cx: &mut JSContext, input: &HTMLInputElement) {
         let document = input.owner_document();
         let current_value = input.Value();
         let current_color =
@@ -186,6 +186,7 @@ impl SpecificInputType for ColorInputType {
             blue: (current_color.components.2 * 255.0).round() as u8,
         };
         document.embedder_controls().show_embedder_control(
+            cx,
             ControlElement::ColorInput(Dom::from_ref(input)),
             EmbedderControlRequest::ColorPicker(current_color),
             None,
@@ -236,12 +237,12 @@ impl SpecificInputActivationType for ColorInputActivation {
     /// <https://html.spec.whatwg.org/multipage/#color-state-(type=color):input-activation-behavior>
     fn activation_behavior(
         &self,
-        _cx: &mut js::context::JSContext,
+        cx: &mut js::context::JSContext,
         input: &HTMLInputElement,
         _event: &Event,
         _target: &EventTarget,
     ) {
-        input.show_the_picker_if_applicable();
+        input.show_the_picker_if_applicable(cx);
     }
 }
 

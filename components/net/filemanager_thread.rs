@@ -696,7 +696,7 @@ impl FileManagerStore {
                     .and_then(|osstr| osstr.to_str())
                     .map(|s| s.to_string());
 
-                let mime = mime_guess::from_path(metadata.path.clone()).first();
+                let mime = mime_guess::from_path(&metadata.path).first();
                 let range = rel_pos.to_abs_range(metadata.size as usize);
 
                 let mut file = tokio::fs::File::open(&metadata.path)

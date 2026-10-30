@@ -29,16 +29,15 @@ impl ProtocolHandler for DataProtocolHander {
 
         assert_eq!(url.scheme(), "data");
 
-        let response = match DataUrl::process(url.clone().as_str()) {
+        let response = match DataUrl::process(url.as_str()) {
             Ok(data_url) => match data_url.decode_to_vec() {
                 Ok((bytes, _fragment_id)) => {
+                    let content_type = data_url.mime_type().to_string();
                     let mut response =
                         Response::new(url, ResourceFetchTiming::new(request.timing_type()));
                     *response.body.lock() = ResponseBody::Done(bytes);
 
-                    if let Ok(content_type_header_value) =
-                        HeaderValue::from_str(&data_url.mime_type().to_string())
-                    {
+                    if let Ok(content_type_header_value) = HeaderValue::from_str(&content_type) {
                         response
                             .headers
                             .insert(http::header::CONTENT_TYPE, content_type_header_value);

@@ -21,6 +21,7 @@ use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use parking_lot::RwLock;
+use pixels::CorsStatus;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use profile_traits::mem::ReportsChan;
 use rand::{Rng, rng};
@@ -37,6 +38,8 @@ use servo_base::generic_channel::{
 use servo_base::id::{CookieStoreId, HistoryStateId, PipelineId};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
+
+use crate::response::RedirectTaint;
 
 /// Identifies a pending asynchronous cookie operation initiated by the embedder.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
@@ -310,10 +313,30 @@ pub trait FetchTaskTarget {
     fn process_response_length_hint(&mut self, request_id: &Request, length: usize);
 }
 
+/// <https://fetch.spec.whatwg.org/#concept-filtered-response>
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ExposedMetadata {
+    pub final_url: ServoUrl,
+    pub headers: Serde<HeaderMap>,
+    pub status: HttpStatus,
+    pub redirected: bool,
+}
+
+impl From<Metadata> for ExposedMetadata {
+    fn from(value: Metadata) -> Self {
+        ExposedMetadata {
+            final_url: value.final_url,
+            headers: value.headers.unwrap_or_else(|| Serde(HeaderMap::new())),
+            status: value.status,
+            redirected: value.redirected,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FilteredMetadata {
-    Basic(Metadata),
-    Cors(Metadata),
+    Basic(ExposedMetadata),
+    Cors(ExposedMetadata),
     Opaque,
     OpaqueRedirect(ServoUrl),
 }
@@ -330,8 +353,6 @@ impl From<FetchMetadata> for Metadata {
     }
 }
 
-// FIXME: https://github.com/servo/servo/issues/34591
-#[expect(clippy::large_enum_variant)]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FetchMetadata {
     Unfiltered(Metadata),
@@ -350,14 +371,16 @@ impl FetchMetadata {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#cors-cross-origin>
-    pub fn is_cors_cross_origin(&self) -> bool {
+    pub fn cors_status(&self) -> CorsStatus {
         if let Self::Filtered { filtered, .. } = self {
             match filtered {
-                FilteredMetadata::Basic(_) | FilteredMetadata::Cors(_) => false,
-                FilteredMetadata::Opaque | FilteredMetadata::OpaqueRedirect(_) => true,
+                FilteredMetadata::Basic(_) | FilteredMetadata::Cors(_) => CorsStatus::Safe,
+                FilteredMetadata::Opaque | FilteredMetadata::OpaqueRedirect(_) => {
+                    CorsStatus::Unsafe
+                },
             }
         } else {
-            false
+            CorsStatus::Safe
         }
     }
 }
@@ -883,8 +906,6 @@ impl CacheEntryDescriptor {
     }
 }
 
-// FIXME: https://github.com/servo/servo/issues/34591
-#[expect(clippy::large_enum_variant)]
 enum ToFetchThreadMessage {
     Cancel {
         request_ids: Vec<RequestId>,
@@ -1141,6 +1162,8 @@ pub struct Metadata {
     pub redirected: bool,
     /// Detailed TLS metadata associated with the response, if any.
     pub tls_security_info: Option<TlsSecurityInfo>,
+    /// Redirect taint of response
+    pub redirect_taint: RedirectTaint,
 }
 
 impl Metadata {
@@ -1158,6 +1181,7 @@ impl Metadata {
             timing: None,
             redirected: false,
             tls_security_info: None,
+            redirect_taint: Default::default(),
         }
     }
 

@@ -93,6 +93,16 @@ promise_test(async t => {
 
 promise_test(async t => {
   const el = createTestElement(t);
+  el.attributeStyleMap.set('transition-duration', '1s');
+  await flushReactions();
+  el.calls.length = 0;
+  el.attributeStyleMap.append('transition-duration');
+  await flushReactions();
+  assert_equals(el.calls.length, 0, 'attributeChangedCallback should not fire');
+}, 'attributeStyleMap.append() with no values does not trigger attributeChangedCallback');
+
+promise_test(async t => {
+  const el = createTestElement(t);
   el.attributeStyleMap.set('--my-var', new CSSUnparsedValue(['hello']));
   await flushReactions();
   assert_equals(el.calls.length, 1, 'attributeChangedCallback should fire for custom property');

@@ -776,6 +776,7 @@ impl WorkletThread {
             is_nested_browsing_context: global.is_nested_browsing_context(),
             insecure_requests_policy: global.insecure_requests_policy(),
             has_trustworthy_ancestor_origin: global.has_trustworthy_ancestor_origin(),
+            network_partition_key: None,
         };
 
         // Step 2. If moduleResponsesMap[requestURL] is "fetching", wait in parallel until that entry's value changes, then queue a task on the networking task source to proceed with running the following steps.
@@ -895,7 +896,13 @@ impl WorkletThread {
     fn process_control(&mut self, control: WorkletControl, cx: &mut js::context::JSContext) {
         match control {
             WorkletControl::ExitWorklet(worklet_id) => {
-                self.global_scopes.remove(&worklet_id);
+                if let Some(global_scope) = self
+                    .global_scopes
+                    .remove(&worklet_id)
+                    .map(|global_scope| global_scope.as_rooted())
+                {
+                    global_scope.upcast::<GlobalScope>().tear_down();
+                }
             },
             WorkletControl::FetchAndInvokeAWorkletScript {
                 pipeline_id,

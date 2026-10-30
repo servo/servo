@@ -90,7 +90,7 @@ use crate::flow::BlockContainer;
 use crate::formatting_contexts::{
     IndependentFormattingContext, IndependentFormattingContextContents,
 };
-use crate::fragment_tree::BaseFragmentInfo;
+use crate::fragment_tree::{BaseFragmentInfo, Fragment};
 use crate::geom::PhysicalVec;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::BorderStyleColor;
@@ -201,15 +201,34 @@ impl Table {
         &mut self,
         context: &SharedStyleContext,
         new_style: &Arc<ComputedValues>,
+        base: &LayoutBoxBase,
     ) {
         self.style = new_style.clone();
-        self.grid_style = context
+        let new_grid_style = context
             .stylist
             .style_for_anonymous::<ServoDangerousStyleElement>(
                 &context.guards,
                 &PseudoElement::ServoTableGrid,
                 new_style,
             );
+
+        // Update the style of the fragments of the table grid. This is typically handled in
+        // `LayoutBoxBase::repair_style()`, but the table grid doesn't have a `LayoutBoxBase`.
+        // The fragments of the table grid are children of the fragments of the table wrapper,
+        // but there can also be fragments of table captions, so we need to check.
+        for fragment in base.fragments.borrow().iter() {
+            if let Some(children) = fragment.children() {
+                for child_fragment in &*children {
+                    if let Fragment::Box(box_fragment) = child_fragment &&
+                        Arc::ptr_eq(&self.grid_style, &box_fragment.style.borrow())
+                    {
+                        child_fragment.repair_style(&new_grid_style);
+                    }
+                }
+            }
+            fragment.repair_style(new_style);
+        }
+        self.grid_style = new_grid_style;
     }
 
     pub(crate) fn subtree_size(&self) -> usize {

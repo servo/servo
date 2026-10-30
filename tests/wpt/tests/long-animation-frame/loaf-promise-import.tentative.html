@@ -1,0 +1,20 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: dynamic import promise resolver</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<h1>Long Animation Frame: dynamic import promise resolver</h1>
+<div id="log"></div>
+<script type="module">
+
+test_promise_script(async (t, busy_wait) => {
+    const response = await import("/loading/resources/dummy.js");
+    busy_wait(very_long_frame_duration);
+}, "resolve", "import.then");
+
+</script>
+</body>

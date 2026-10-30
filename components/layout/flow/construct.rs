@@ -332,7 +332,7 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
         let inline_table = self.currently_processing_inline_box();
 
         let mut contents: Vec<AnonymousTableContent<'dom>> =
-            self.anonymous_table_content.drain(..).collect();
+            std::mem::take(&mut self.anonymous_table_content);
         let last_element_index = contents
             .iter()
             .rposition(|content| matches!(content, AnonymousTableContent::Element { .. }))

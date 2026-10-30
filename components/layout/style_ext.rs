@@ -344,6 +344,8 @@ pub(crate) trait ComputedValuesExt {
     ) -> LogicalSides<LengthPercentageOrAuto<'_>>;
     fn is_transformable(&self, fragment_flags: FragmentFlags) -> bool;
     fn has_transform_or_perspective_style(&self) -> bool;
+    fn has_transform_style(&self) -> bool;
+    fn has_effective_transform(&self, fragment_flags: FragmentFlags) -> bool;
     fn has_effective_transform_or_perspective(&self, fragment_flags: FragmentFlags) -> bool;
     fn z_index_applies(&self, fragment_flags: FragmentFlags) -> bool;
     fn effective_z_index(&self, fragment_flags: FragmentFlags) -> i32;
@@ -568,11 +570,15 @@ impl ComputedValuesExt for ComputedValues {
 
     /// Returns true if this style has a transform or perspective property set.
     fn has_transform_or_perspective_style(&self) -> bool {
+        self.has_transform_style() || self.get_box().perspective != Perspective::None
+    }
+
+    /// Returns true if this style has a transform property set.
+    fn has_transform_style(&self) -> bool {
         !self.get_box().transform.0.is_empty() ||
             self.get_box().scale != GenericScale::None ||
             self.get_box().rotate != GenericRotate::None ||
-            self.get_box().translate != GenericTranslate::None ||
-            self.get_box().perspective != Perspective::None
+            self.get_box().translate != GenericTranslate::None
     }
 
     /// Returns true if this style has a transform or perspective property set, and
@@ -580,6 +586,13 @@ impl ComputedValuesExt for ComputedValues {
     #[inline]
     fn has_effective_transform_or_perspective(&self, fragment_flags: FragmentFlags) -> bool {
         self.is_transformable(fragment_flags) && self.has_transform_or_perspective_style()
+    }
+
+    /// Returns true if this style has the transform property set, and it applies to this
+    /// element.
+    #[inline]
+    fn has_effective_transform(&self, fragment_flags: FragmentFlags) -> bool {
+        self.is_transformable(fragment_flags) && self.has_transform_style()
     }
 
     /// Whether the `z-index` property applies to this fragment.

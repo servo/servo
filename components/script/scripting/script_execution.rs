@@ -11,12 +11,15 @@ use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use js::context::JSContext;
 use js::gc::Handle;
 use js::jsapi::{
-    ExceptionStackBehavior, Heap, JSObject, JSScript, ModuleErrorBehaviour, SetScriptPrivate,
+    ExceptionStackBehavior, HadFrontendErrors, Heap, JSObject, JSScript, ModuleErrorBehaviour,
+    SetScriptPrivate,
 };
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
+use js::offthread::CompilationResult;
 use js::panic::maybe_resume_unwind;
 use js::rust::wrappers2::{
-    Compile1, JS_ClearPendingException, JS_ExecuteScript, JS_GetScriptPrivate, ModuleEvaluate,
+    Compile1, ConvertFrontendErrorsToRuntimeErrors, InstantiateGlobalStencil,
+    JS_ClearPendingException, JS_ExecuteScript, JS_GetScriptPrivate, ModuleEvaluate,
     ThrowOnModuleEvaluationFailure,
 };
 use js::rust::{
@@ -86,6 +89,63 @@ impl ClassicScript {
 
     pub(crate) fn has_rethrow_error(&self) -> bool {
         self.error_to_rethrow.is_some()
+    }
+
+    #[expect(unsafe_code)]
+    pub(crate) fn from_stencil(
+        cx: &mut JSContext,
+        compilation_result: CompilationResult,
+        url: ServoUrl,
+        script_options: ScriptOptions,
+        fetch_options: ScriptFetchOptions,
+    ) -> RootedTraceableBox<ClassicScript> {
+        let mut classic_script = RootedTraceableBox::new(ClassicScript {
+            record: None,
+            error_to_rethrow: None,
+            options: script_options,
+        });
+
+        let CompilationResult {
+            stencil,
+            mut storage,
+            fc,
+            compile_options,
+        } = compilation_result;
+
+        match stencil {
+            Some(stencil) => {
+                debug_assert!(!stencil.is_null());
+                let instantiate_options = (&compile_options).into();
+
+                rooted!(&in(cx) let script = unsafe { InstantiateGlobalStencil(
+                    cx,
+                    &instantiate_options,
+                    *stencil,
+                    storage.as_mut_ptr(),
+                )});
+                maybe_associate_with_script(cx, script.handle(), url, fetch_options);
+
+                classic_script.record = Some(Heap::default());
+                classic_script.record.as_ref().unwrap().set(script.get());
+            },
+            None => {
+                debug_assert!(unsafe { HadFrontendErrors(*fc) });
+
+                let options = compile_options.read_only();
+                unsafe { ConvertFrontendErrorsToRuntimeErrors(cx, *fc, options) };
+
+                let error = RethrowError::from_pending_exception(cx);
+
+                classic_script.error_to_rethrow = Some(Heap::default());
+                classic_script
+                    .error_to_rethrow
+                    .as_ref()
+                    .unwrap()
+                    .set(error.handle().get());
+            },
+        }
+
+        classic_script
     }
 }
 

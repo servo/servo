@@ -15,7 +15,6 @@ use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use style::selector_parser::PseudoElement;
 use stylo_dom::ElementState;
 
-use crate::dom::FlatTreeParent;
 use crate::dom::activation::Activatable;
 use crate::dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
@@ -30,15 +29,13 @@ use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
-use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{
     FormControl, FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement, ResetFrom,
     SubmittedFrom,
 };
 use crate::dom::node::virtualmethods::{VirtualMethods, vtable_for};
-use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::nodelist::NodeList;
-use crate::dom::types::HTMLInputElement;
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 
@@ -115,6 +112,7 @@ impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
             // Step 4. Return the keyword corresponding to the value of command.
             CommandState::Close => DOMString::from_static("close"),
             CommandState::ShowModal => DOMString::from_static("show-modal"),
+            CommandState::RequestClose => DOMString::from_static("request-close"),
         }
     }
 
@@ -312,6 +310,9 @@ impl HTMLButtonElement {
         if command.eq_ignore_ascii_case("close") {
             return CommandState::Close;
         }
+        if command.eq_ignore_ascii_case("request-close") {
+            return CommandState::RequestClose;
+        }
         if command.eq_ignore_ascii_case("show-modal") {
             return CommandState::ShowModal;
         }
@@ -369,19 +370,6 @@ impl VirtualMethods for HTMLButtonElement {
             .attribute_mutated(cx, attr, mutation);
         match *attr.local_name() {
             local_name!("disabled") => {
-                let el = self.upcast::<Element>();
-                match mutation {
-                    AttributeMutation::Set(Some(_)) => {},
-                    AttributeMutation::Set(None) => {
-                        el.set_disabled_state(cx.no_gc(), true);
-                        el.set_enabled_state(cx.no_gc(), false);
-                    },
-                    AttributeMutation::Removed => {
-                        el.set_disabled_state(cx.no_gc(), false);
-                        el.set_enabled_state(cx.no_gc(), true);
-                        el.check_ancestors_disabled_state_for_form_control(cx.no_gc());
-                    },
-                }
                 self.validity_state(cx)
                     .perform_validation_and_update(cx, ValidationFlags::all());
             },
@@ -402,30 +390,6 @@ impl VirtualMethods for HTMLButtonElement {
                     .perform_validation_and_update(cx, ValidationFlags::empty());
             },
             _ => {},
-        }
-    }
-
-    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
-        if let Some(s) = self.super_type() {
-            s.bind_to_tree(cx, context);
-        }
-
-        self.upcast::<Element>()
-            .check_ancestors_disabled_state_for_form_control(cx.no_gc());
-    }
-
-    fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
-        self.super_type().unwrap().unbind_from_tree(cx, context);
-
-        let node = self.upcast::<Node>();
-        let el = self.upcast::<Element>();
-        if node
-            .ancestors()
-            .any(|ancestor| ancestor.is::<HTMLFieldSetElement>())
-        {
-            el.check_ancestors_disabled_state_for_form_control(cx.no_gc());
-        } else {
-            el.check_disabled_attribute(cx.no_gc());
         }
     }
 }
@@ -471,16 +435,25 @@ impl Activatable for HTMLButtonElement {
 
     fn is_instance_activatable(&self) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-button-element
-        !self.upcast::<Element>().disabled_state()
+        !self.upcast::<Element>().disabled_state() &&
+        // In addition, if this button is the file selector button, let the containing
+        // `<input>` handle activation.
+            self.upcast::<Node>().implemented_pseudo_element() !=
+                Some(PseudoElement::FileSelectorButton)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-button-element:activation-behaviour>
     fn activation_behavior(
         &self,
         cx: &mut js::context::JSContext,
-        event: &Event,
+        _: &Event,
         target: &EventTarget,
     ) {
+        // Step 1. If element is disabled, then return.
+        if self.upcast::<Element>().disabled_state() {
+            return;
+        }
+
         // Step 2. If element's node document is not fully active, then return.
         if !target
             .downcast::<Node>()
@@ -517,24 +490,6 @@ impl Activatable for HTMLButtonElement {
             {
                 return;
             }
-        }
-        // Adhoc, this step is needed so that file inputs button activates the input.
-        if let Some(pseudo_element) = self.upcast::<Node>().implemented_pseudo_element() {
-            if pseudo_element == PseudoElement::FileSelectorButton {
-                let FlatTreeParent::Parent(parent) =
-                    self.upcast::<Node>().parent_in_flat_tree(cx.no_gc())
-                else {
-                    return;
-                };
-
-                parent
-                    .as_rooted()
-                    .downcast::<HTMLInputElement>()
-                    .expect("File select button should always be a child of an input element")
-                    .activation_behavior(cx, event, target);
-            }
-
-            return;
         }
 
         // Step 4. Let target be the result of running element's get the commandfor-associated
@@ -590,5 +545,6 @@ pub(crate) enum CommandState {
     Unknown,
     Custom,
     ShowModal,
+    RequestClose,
     Close,
 }

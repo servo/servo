@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Animations: inheriting an animated transform</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animations">
+<link rel="author" title="Free Debreuil" href="mailto:freedebreuil@google.com">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<script src="support/inherited-animation-reftest.js"></script>
+
+<style>
+.square, .child {
+  width: 100px;
+  height: 100px;
+}
+
+.square {
+  background: red;
+}
+
+/* 100px in 500ms: one frame of lag (16.7ms) moves the parent by over 3px,
+   which uncovers part of the red square. */
+.parent {
+  animation: anim 500ms linear infinite;
+}
+
+/* The mirror reverses the inherited translation, so the child only covers
+   the red square while its translation matches the parent's. will-change
+   draws the child in its own layer, so its edges land on whole pixels and
+   no red shows through around them. */
+.child {
+  background: green;
+  scale: -1 1;
+  transform: inherit;
+  will-change: transform;
+}
+
+@keyframes anim {
+  from { transform: translateX(0px); }
+  to   { transform: translateX(100px); }
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="square">
+  <div class="parent">
+    <div class="child"></div>
+  </div>
+</div>
+</html>

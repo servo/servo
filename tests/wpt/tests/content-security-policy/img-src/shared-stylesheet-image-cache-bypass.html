@@ -1,0 +1,46 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSP: img-src is enforced on background images from a memory-cached shared stylesheet</title>
+<link rel="author" title="Dileep Maurya" href="mailto:dileepmaurya@microsoft.com">
+<link rel="help" href="https://w3c.github.io/webappsec-csp/#directive-img-src">
+<link rel="match" href="shared-stylesheet-image-cache-bypass-ref.html">
+<!--
+  Regression test for crbug.com/504107363.
+
+  This top-level document has no CSP and loads a background image through a
+  shared (memory-cached) stylesheet, which caches the resolved image on the
+  stylesheet's shared CSSImageValue. A same-origin iframe served with
+  Content-Security-Policy: img-src 'none' then links the same stylesheet. It
+  must NOT render the cached background image; enforcing its own CSP, the box
+  must paint blank, matching the reference.
+-->
+<link rel="stylesheet" href="support/shared-stylesheet-image-cache-bypass.css">
+<style>
+  html, body { margin: 0; }
+  /* Prime the shared CSSImageValue off-screen so only the iframe is compared. */
+  #primer { position: absolute; top: -9999px; left: -9999px; }
+  iframe { border: none; width: 100px; height: 100px; display: block; }
+</style>
+<script>document.documentElement.classList.add('reftest-wait');</script>
+<div class="bypass-image" id="primer"></div>
+<script>
+  'use strict';
+  // Ensure the shared image resource is fully loaded and the primer element's
+  // CSSImageValue has cached it before the strict iframe resolves style.
+  const primer = new Image();
+  primer.onload = () => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const iframe = document.createElement('iframe');
+      iframe.src = 'support/shared-stylesheet-image-cache-bypass-strict.html';
+      window.addEventListener('message', e => {
+        if (e.source === iframe.contentWindow && e.data === 'ready') {
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            document.documentElement.classList.remove('reftest-wait');
+          }));
+        }
+      });
+      document.body.appendChild(iframe);
+    }));
+  };
+  primer.src = '/images/green-100x100.png';
+</script>

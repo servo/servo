@@ -20,6 +20,9 @@ use script_bindings::codegen::GenericBindings::BiquadFilterNodeBinding::BiquadFi
 use script_bindings::codegen::GenericBindings::ChannelMergerNodeBinding::ChannelMergerNodeMethods;
 use script_bindings::codegen::GenericBindings::ChannelSplitterNodeBinding::ChannelSplitterNodeMethods;
 use script_bindings::codegen::GenericBindings::ConstantSourceNodeBinding::ConstantSourceNodeMethods;
+use script_bindings::codegen::GenericBindings::ConvolverNodeBinding::{
+    ConvolverNodeMethods, ConvolverOptions,
+};
 use script_bindings::codegen::GenericBindings::DelayNodeBinding::{DelayNodeMethods, DelayOptions};
 use script_bindings::codegen::GenericBindings::GainNodeBinding::GainNodeMethods;
 use script_bindings::codegen::GenericBindings::IIRFilterNodeBinding::IIRFilterNodeMethods;
@@ -48,6 +51,7 @@ use crate::dom::audio::biquadfilternode::BiquadFilterNode;
 use crate::dom::audio::channelmergernode::ChannelMergerNode;
 use crate::dom::audio::channelsplitternode::ChannelSplitterNode;
 use crate::dom::audio::constantsourcenode::ConstantSourceNode;
+use crate::dom::audio::convolvernode::ConvolverNode;
 use crate::dom::audio::delaynode::DelayNode;
 use crate::dom::audio::gainnode::GainNode;
 use crate::dom::audio::iirfilternode::IIRFilterNode;
@@ -362,6 +366,17 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-onstatechange
     event_handler!(statechange, GetOnstatechange, SetOnstatechange);
 
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createconvolver>
+    fn CreateConvolver(&self, cx: &mut JSContext) -> Fallible<DomRoot<ConvolverNode>> {
+        ConvolverNode::Constructor(
+            cx,
+            self.global().as_window(),
+            None,
+            self,
+            &ConvolverOptions::empty(),
+        )
+    }
+
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createoscillator>
     fn CreateOscillator(&self, cx: &mut JSContext) -> Fallible<DomRoot<OscillatorNode>> {
         OscillatorNode::Constructor(
@@ -627,21 +642,23 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                     decoded_audio[channel].extend_from_slice((*buffer).as_ref());
                 })
                 .eos(move || {
+                    let mut decoded_audio = std::mem::take(&mut *decoded_audio__.lock().unwrap());
+                    for channel in &mut decoded_audio {
+                        channel.shrink_to_fit();
+                    }
                     task_source.queue(task!(audio_decode_eos: move |cx| {
                         let this = this.root();
-                        let decoded_audio = decoded_audio__.lock().unwrap();
                         let length = if !decoded_audio.is_empty() {
                             decoded_audio[0].len()
                         } else {
                             0
                         };
-                        let buffer = AudioBuffer::new(
+                        let buffer = AudioBuffer::new_with_channel_data(
                             cx,
                             this.global().as_window(),
-                            decoded_audio.len() as u32 /* number of channels */,
                             length as u32,
                             this.sample_rate,
-                            Some(decoded_audio.as_slice()),
+                            decoded_audio,
                         );
                         rooted!(&in(cx) let resolver = this
                             .decode_resolvers

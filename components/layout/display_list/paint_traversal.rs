@@ -18,6 +18,7 @@ use crate::fragment_tree::{
     PositioningFragment, Tag, TextFragment,
 };
 use crate::geom::{PhysicalPoint, PhysicalRect};
+use crate::style_ext::ComputedValuesExt;
 
 pub(crate) struct PaintTraversal<'a, Handler: PaintTraversalHandler> {
     handler: &'a mut Handler,
@@ -227,6 +228,17 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
             },
             Fragment::Box(box_fragment) => {
                 let box_fragment = &box_fragment.with_style();
+
+                // The stacking context tree traversal doesn't descend into collapsed block-level
+                // fragments, so it is important not to do this here either.
+                if box_fragment
+                    .base
+                    .flags
+                    .contains(FragmentFlags::IS_COLLAPSED)
+                {
+                    return false;
+                }
+
                 // If this box establishes a stacking context or stacking container, do not paint
                 // it during this phase. Instead it is painted when the stacking context or container
                 // is processed.
@@ -338,6 +350,16 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
                 at_root_of_stacking_context,
             ),
             Fragment::Box(box_fragment) => {
+                // The stacking context tree traversal doesn't descend into collapsed block-level
+                // fragments, so it is important not to do this here either.
+                if box_fragment
+                    .base
+                    .flags
+                    .contains(FragmentFlags::IS_COLLAPSED)
+                {
+                    return;
+                }
+
                 // If this box establishes a stacking context or stacking container, do not paint
                 // it during this phase. Instead it is painted when the stacking context or container
                 // is processed.
@@ -556,9 +578,10 @@ pub(crate) struct TraversalState {
     pub text_decorations: Rc<Vec<FragmentTextDecoration>>,
     /// The product of the used opacity of the fragments visited.
     pub accumulated_opacity: f32,
-    /// The tag of the nearest ancestor box fragment that has a tag.
-    /// Used for text LCP candidate grouping — all text fragments within
-    /// a single element are unioned before computing effective visual size.
+    /// <https://www.w3.org/TR/paint-timing/#sec-modifications-dom>:
+    ///
+    /// The tag of the nearest ancestor box that determines the containing block of
+    /// text, used to group text fragments for LCP.
     pub containing_element_tag: Option<Tag>,
     /// The Container Timing roots enclosing this point in the traversal, nearest first.
     /// Note that this does not include the box currently being visited, see
@@ -624,8 +647,23 @@ impl TraversalState {
             clip_id: box_fragment.generated_clip_id().unwrap_or(self.clip_id),
             text_decorations,
             accumulated_opacity: self.accumulated_opacity * style.slow_clone_opacity(),
-            containing_element_tag: box_fragment.base.tag.or(self.containing_element_tag),
             container_timing_roots: self.container_timing_roots_including(box_fragment),
+            // From <https://www.w3.org/TR/paint-timing/#sec-modifications-dom>:
+            // > Let element be the Element which determines the containing block of text.
+            // > Append text to element’s set of owned text nodes.
+            //
+            // In the following cases this box establishes its own containing block,
+            // so use its tag:
+            // - Non-inline box
+            // - Style establishes a containing block
+            containing_element_tag: if !box_fragment.is_inline_box() ||
+                style.establishes_containing_block_for_absolute_descendants(
+                    box_fragment.base.flags,
+                ) {
+                box_fragment.base.tag.or(self.containing_element_tag)
+            } else {
+                self.containing_element_tag
+            },
         }
     }
 

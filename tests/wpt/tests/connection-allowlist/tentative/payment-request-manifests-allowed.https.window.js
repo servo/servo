@@ -15,7 +15,7 @@
 // Note: `response-origin` is required for the test to communicate with the test
 // runner (testharness.js and testdriver.js).
 
-const cross_origin = get_host_info().HTTPS_REMOTE_ORIGIN;
+const cross_origin = get_host_info().HTTPS_REMOTE_PUBLIC_ORIGIN;
 
 // 1. Payment Request API initiates a HEAD request to the payment URL "/pay",
 //    which is allowed by the connection allowlist.

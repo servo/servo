@@ -347,6 +347,8 @@ pub struct Preferences {
     /// The goal of these two values is to allow tuning Servo's parallelism for both wide
     /// and deep trees.
     pub layout_parallelism_job_size_minimum: u64,
+    /// feature: MathML | #49078 | Web/MathML
+    pub mathml_core_enabled: bool,
     /// Enable hardware acceleration for video playback.
     pub media_glvideo_enabled: bool,
     /// Enable a non-standard event handler for verifying behavior of media elements during tests.
@@ -472,7 +474,7 @@ impl Preferences {
             dom_permissions_testing_allowed_in_nonsecure_contexts: false,
             dom_resize_observer_enabled: true,
             dom_sanitizer_enabled: false,
-            dom_script_asynch: true,
+            dom_script_asynch: false,
             dom_storage_manager_api_enabled: false,
             dom_serviceworker_enabled: false,
             dom_serviceworker_timeout_seconds: 60,
@@ -581,6 +583,7 @@ impl Preferences {
             layout_threads: 3,
             layout_parallelism_job_count_minimum: 4,
             layout_parallelism_job_size_minimum: 16,
+            mathml_core_enabled: false,
             media_glvideo_enabled: false,
             media_testing_enabled: false,
             network_connection_timeout: 15,

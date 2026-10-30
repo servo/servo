@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#geometry">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-rows: repeat(3, 80px);
+    grid-lanes-direction: row;
+    gap: 20px;
+    background: #cdd5e0;
+    width: max-content;
+  }
+  .lanes > div { grid-row: 1; width: 60px; background: #5b8def; }
+  .lanes > div.span { grid-row: 1 / -1; background: #8a6df0; }
+  .row-rule { position: absolute; height: 0; border-top: 4px solid blue; }
+</style>
+<div class="lanes">
+  <div></div>
+  <div class="span"></div>
+  <div></div>
+</div>
+<div class="row-rule" style="top: 88px; left: 0; width: 60px;"></div>
+<div class="row-rule" style="top: 88px; left: 160px; width: 60px;"></div>
+<div class="row-rule" style="top: 188px; left: 0; width: 60px;"></div>
+<div class="row-rule" style="top: 188px; left: 160px; width: 60px;"></div>

@@ -27,7 +27,7 @@
 
       // Pass complex range parameters (exact/ideal) for both video and audio.
       usermedia.setConstraints({
-        video: { width: 1280, height: 720, frameRate: { exact: 30 } },
+        video: { width: 640, height: 480, frameRate: { exact: 30 } },
         audio: { sampleSize: 16, echoCancellation: { ideal: true } }
       });
 
@@ -48,6 +48,15 @@
       assert_equals(stream.getAudioTracks().length, 1, "audio track initialized");
       assert_equals(stream.getVideoTracks()[0].kind, "video", "video track kind check");
       assert_equals(stream.getAudioTracks()[0].kind, "audio", "audio track kind check");
+
+      const videoConstraints = stream.getVideoTracks()[0].getConstraints();
+      assert_equals(videoConstraints.width, 640, "basic video width constraint preserved");
+      assert_equals(videoConstraints.height, 480, "basic video height constraint preserved");
+      assert_false("frameRate" in videoConstraints, "complex video frameRate constraint stripped");
+
+      const audioConstraints = stream.getAudioTracks()[0].getConstraints();
+      assert_equals(audioConstraints.sampleSize, 16, "basic audio sampleSize constraint preserved");
+      assert_false("echoCancellation" in audioConstraints, "complex audio echoCancellation constraint stripped");
     }, "HTMLUserMediaElement setConstraints sanitization handles video and audio constraint dictionaries correctly");
   </script>
 </body>

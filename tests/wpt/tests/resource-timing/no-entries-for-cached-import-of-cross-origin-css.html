@@ -1,0 +1,53 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Resource timing entries for cached @import children of stylesheets</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2083733">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<body>
+<script>
+const {ORIGIN, HTTP_REMOTE_ORIGIN} = get_host_info();
+const RESOURCES = "/resource-timing/resources/";
+
+async function loadInFrame(t, href) {
+  const iframe = document.createElement("iframe");
+  iframe.srcdoc = `<link rel="stylesheet" href="${href}">`;
+  await new Promise(resolve => {
+    iframe.onload = resolve;
+    document.body.appendChild(iframe);
+  });
+  t.add_cleanup(() => iframe.remove());
+  return iframe.contentWindow;
+}
+
+// The first load caches the child stylesheet, but not the parent, which is
+// no-store, so the second load re-parses the parent and gets the child from
+// the cache.
+async function loadTwice(t, parentOrigin, childOrigin) {
+  const id = token();
+  const child = `${childOrigin}${RESOURCES}cacheable-import-child.css?${id}`;
+  const parent = v =>
+    `${parentOrigin}${RESOURCES}no-store-importer.sub.css?import=${encodeURIComponent(child)}&v=${v}`;
+  await loadInFrame(t, parent(1));
+  const win = await loadInFrame(t, parent(2));
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+  assert_equals(win.performance.getEntriesByName(parent(2)).length, 1,
+                "Parent stylesheet should be in the timeline");
+  return win.performance.getEntriesByName(child).length;
+}
+
+promise_test(async t => {
+  assert_equals(await loadTwice(t, HTTP_REMOTE_ORIGIN, HTTP_REMOTE_ORIGIN), 0);
+}, "Cached @import children of cross-origin stylesheets are not in the timeline");
+
+promise_test(async t => {
+  assert_equals(await loadTwice(t, ORIGIN, ORIGIN), 1);
+}, "Cached same-origin @import children of same-origin stylesheets are in the timeline");
+
+promise_test(async t => {
+  assert_equals(await loadTwice(t, ORIGIN, HTTP_REMOTE_ORIGIN), 1);
+}, "Cached cross-origin @import children of same-origin stylesheets are in the timeline");
+</script>
+</body>

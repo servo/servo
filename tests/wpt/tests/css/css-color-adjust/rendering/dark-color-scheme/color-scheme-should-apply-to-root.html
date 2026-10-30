@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+<head>
+<title>CSS Color Adjustment Test: CanvasText should apply to :root not html</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-adjust/#color-scheme-processing">
+<link rel="match" href="color-scheme-should-apply-to-root-ref.html">
+<style>:root { color-scheme: dark }</style>
+</head>
+<body>
+  Text
+</body>
+<script>
+let root = document.createElement("div");
+root.append(...document.documentElement.childNodes);
+document.documentElement.replaceWith(root);
+</script>
+</html>

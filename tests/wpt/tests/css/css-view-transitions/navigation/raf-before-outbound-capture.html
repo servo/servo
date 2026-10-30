@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>View transitions: animation-frame callbacks run before the outbound cross-document capture</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/#setup-cross-document-view-transition">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#update-the-rendering">
+<link rel="author" href="mailto:opettay@mozilla.com">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/common.js"></script>
+<script>
+// In "update the rendering", animation frame callbacks run before the outbound
+// capture. So when a rAF callback during pageswap resizes #box from 100px to
+// 300px, the old snapshot must be 300px wide. The test uses a popup, so that
+// the navigation is top-level.
+promise_test(async t => {
+  assertViewTransitionOnNavigationImplemented();
+
+  const channel_name = `raf-before-outbound-capture-${token()}`;
+  const bc = new BroadcastChannel(channel_name);
+  t.add_cleanup(() => bc.close());
+
+  const result = new Promise(resolve => {
+    bc.addEventListener("message", e => resolve(e.data), { once: true });
+  });
+
+  let popup = null;
+  await test_driver.bless("open a popup", () => {
+    popup = window.open(
+        `resources/raf-before-outbound-capture-old.html?channel=${channel_name}`);
+  });
+  t.add_cleanup(() => popup.close());
+
+  const data = await result;
+
+  assert_true(data.hadTransition,
+      "a cross-document view transition must have occurred");
+  assert_equals(data.capturedWidth, "300px",
+      "the captured old snapshot must reflect the rAF resize (300px), which " +
+      "only happens if the rAF callback ran before the outbound capture");
+}, "requestAnimationFrame callbacks run before the outbound cross-document view transition capture");
+</script>

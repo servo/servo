@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Transforms: a transformed table section is the containing block for its absolutely positioned descendants</title>
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#containing-block-for-all-descendants">
+<link rel="help" href="https://drafts.csswg.org/css-position/#abspos-cb">
+<meta name="assert" content="A table section with a transform is the containing block for its absolutely positioned descendants, whether the transform is present from the start or added later.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body { margin: 0; }
+.container { position: relative; width: 400px; border: 5px solid blue; }
+table { margin-left: 100px; border: 0; border-spacing: 0; }
+td { padding: 0; width: 200px; height: 40px; background-color: silver; }
+.out-of-flow { position: absolute; top: 0; left: 0; width: 20px; height: 20px; background-color: green; }
+.transformed { transform: translateX(0); }
+</style>
+<p>The test passes if both squares are green and sit at the left edge of the grey cell.</p>
+<div class="container"><table><tbody class="transformed"><tr><td><div class="out-of-flow" id="already-transformed"></div></td></tr></tbody></table></div>
+<div class="container"><table><tbody id="section"><tr><td><div class="out-of-flow" id="becomes-transformed"></div></td></tr></tbody></table></div>
+<script>
+// The section's padding box starts at the container's 5px border plus the table's 100px margin, and
+// the absolutely positioned box resolves left: 0 against it.
+const expectedLeft = 105;
+
+document.body.offsetHeight;
+document.getElementById("section").classList.add("transformed");
+
+const measured = {};
+for (const id of ["already-transformed", "becomes-transformed"]) {
+  const box = document.getElementById(id);
+  measured[id] = box.getBoundingClientRect().left;
+  if (measured[id] !== expectedLeft)
+    box.style.backgroundColor = "red";
+}
+
+test(() => {
+  assert_equals(measured["already-transformed"], expectedLeft);
+}, "A transformed table section is the containing block for an absolutely positioned descendant");
+
+test(() => {
+  assert_equals(measured["becomes-transformed"], expectedLeft);
+}, "A table section that gains a transform becomes the containing block for an absolutely positioned descendant");
+</script>

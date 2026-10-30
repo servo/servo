@@ -139,6 +139,7 @@ use crate::dom::document::{
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmliframeelement::{HTMLIFrameElement, IframeContext, ProcessingMode};
+use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::servoparser::{ParserContext, ServoParser};
 #[cfg(feature = "devtools")]
@@ -1220,7 +1221,7 @@ impl ScriptThread {
 
             // Run the resize observer steps.
             let mut depth = Default::default();
-            while document.gather_active_resize_observations_at_depth(cx.no_gc(), &depth) {
+            while document.gather_active_resize_observations_at_depth(cx, &depth) {
                 // Note: this will reflow the doc.
                 depth = document.broadcast_active_resize_observations(cx);
             }
@@ -2577,6 +2578,7 @@ impl ScriptThread {
             },
             WebDriverScriptCommand::GetComputedRole(node_id, reply) => {
                 webdriver_handlers::handle_get_computed_role(
+                    cx,
                     &documents,
                     pipeline_id,
                     node_id,
@@ -2638,7 +2640,7 @@ impl ScriptThread {
                 )
             },
             WebDriverScriptCommand::GetElementText(node_id, reply) => {
-                webdriver_handlers::handle_get_text(&documents, pipeline_id, node_id, reply)
+                webdriver_handlers::handle_get_text(cx, &documents, pipeline_id, node_id, reply)
             },
             WebDriverScriptCommand::GetElementInViewCenterPoint(node_id, reply) => {
                 webdriver_handlers::handle_get_element_in_view_center_point(
@@ -2964,6 +2966,7 @@ impl ScriptThread {
             old_focus_chain,
             &focusable_area,
             false, /* for_system_focus_change */
+            FocusTrigger::Script,
         );
 
         document.refresh_focus_rendering();
@@ -3025,6 +3028,7 @@ impl ScriptThread {
             old_focus_chain,
             &FocusableArea::Viewport,
             false, /* for_system_focus_change */
+            FocusTrigger::Script,
         );
 
         document.refresh_focus_rendering();
@@ -3290,6 +3294,10 @@ impl ScriptThread {
                 // Clear the image cache now, instead of waiting for the Window to be
                 // garbage collected. See servo/servo#45239.
                 window.image_cache().clear();
+
+                // Tear down the GlobalScope to ensure that garbage collection happens
+                // immediately.
+                window.as_global_scope().tear_down();
 
                 debug!("{pipeline_id}: Clearing JavaScript runtime");
                 window.clear_js_runtime();

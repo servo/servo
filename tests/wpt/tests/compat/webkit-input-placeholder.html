@@ -1,0 +1,12 @@
+<!doctype html>
+<link rel="help" href="https://github.com/whatwg/compat/issues/65">
+<link rel="match" href="webkit-input-placeholder-ref.html">
+<style>
+input::placeholder {
+  color: red;
+}
+input::-webkit-input-placeholder {
+  color: green;
+}
+</style>
+<input placeholder="foo">

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: between column rule visibility applies to the whole segment with column-rule-break: normal in grid lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#visibility">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#break">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-model">
+<link rel="match" href="column-gap-decorations-rule-visibility-items-between-016-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(3, 60px);
+    gap: 20px;
+    width: max-content;
+    background: #cdd5e0;
+    column-rule: 4px solid blue;
+    column-rule-inset: 0px;
+    column-rule-break: normal;
+    column-rule-visibility-items: between;
+  }
+  .lanes > div {
+    height: 40px;
+    background: #5b8def;
+  }
+  .lanes > .spanner {
+    grid-column: 2 / span 2;
+    height: 60px;
+    background: #2a4f8f;
+  }
+  .lane-one { grid-column: 1; }
+  .lane-three { grid-column: 3; }
+</style>
+<div class="lanes">
+  <div class="spanner"></div>
+  <div class="lane-three"></div>
+  <div class="lane-three"></div>
+  <div class="lane-three"></div>
+  <div class="lane-one"></div>
+  <div class="lane-one"></div>
+  <div class="lane-one"></div>
+  <div class="lane-one"></div>
+  <div class="lane-one"></div>
+</div>

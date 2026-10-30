@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS integration - Image from inline style after color-scheme meta - no referrer</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/utils.js"></script>
+    <!-- Common global functions for referrer-policy tests. -->
+    <script src="/common/security-features/resources/common.sub.js"></script>
+    <meta name="color-scheme" content="light">
+    <meta name="referrer" content="no-referrer">
+  </head>
+  <body>
+    <p>Check that resources from inline styles are loaded with the document's
+    referrer policy even when the element sheet was initialized before the
+    referrer meta element.</p>
+
+    <div class="styled"></div>
+
+    <script>
+      promise_test(function(css_test) {
+        let id = token();
+        let css_url = location.protocol + "//www1." + location.hostname + ":" +
+                      location.port +
+                      "/common/security-features/subresource/image.py" + "?id=" +
+                      id;
+        let img_url = css_url + "&report-headers";
+
+        let div = document.querySelector("div.styled");
+        div.setAttribute("style", "background-image: url(" + css_url + ")");
+        return timeoutPromise(css_test, 1000)
+          .then(() => requestViaXhr(img_url))
+          .then(function(message) {
+              assert_own_property(message, "headers");
+              assert_own_property(message, "referrer");
+              assert_equals(message.referrer, undefined);
+            });
+      }, "Image from inline style after color-scheme meta.");
+    </script>
+
+    <div id="log"></div>
+  </body>
+</html>

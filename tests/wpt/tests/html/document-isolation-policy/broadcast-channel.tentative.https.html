@@ -1,0 +1,112 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Document-Isolation-Policy: BroadcastChannel between same-origin documents with and without a policy</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="./resources/common.js"></script>
+<body>
+<script>
+"use strict";
+
+// Script for runInContext() that listens on the BroadcastChannel named channelName and stores what the first event delivers.
+function listenScript(channelName) {
+  return `
+    window.channel = new BroadcastChannel(${JSON.stringify(channelName)});
+    window.received = new Promise(resolve => {
+      channel.onmessage = ({ data }) => {
+        window.data = data;
+        resolve(Object.prototype.toString.call(data));
+      };
+      channel.onmessageerror = () => resolve("messageerror");
+    });
+    return "listening";
+  `;
+}
+
+// Listens on the BroadcastChannel named channelName in this document and resolves with what the first event delivers.
+function listen(t, channelName) {
+  const channel = new BroadcastChannel(channelName);
+  t.add_cleanup(() => channel.close());
+  return new Promise(resolve => {
+    channel.onmessage = ({ data }) => resolve(Object.prototype.toString.call(data));
+    channel.onmessageerror = () => resolve("messageerror");
+  });
+}
+
+// Opens a popup with isolate-and-require-corp that has a same-origin frame with framePolicy, and returns their uuids.
+async function openPopupWithFrame(t, framePolicy) {
+  const popup = token();
+  const frame = token();
+  const popupWindow = window.open(executorURL(dip_require_corp, popup));
+  t.add_cleanup(() => popupWindow.close());
+  await runInContext(popup, `
+    ${appendFrameScript(executorURL(framePolicy, frame))}
+    return "loaded";
+  `);
+  return { popup, frame };
+}
+
+// Posts message, given as script, on the BroadcastChannel named channelName from the context identified by uuid.
+async function post(uuid, channelName, message) {
+  assert_equals(await runInContext(uuid, `
+    window.message = ${message};
+    window.postingChannel = new BroadcastChannel(${JSON.stringify(channelName)});
+    postingChannel.postMessage(message);
+    return "posted";
+  `), "posted");
+}
+
+promise_test(async t => {
+  const channelName = token();
+  const { popup, frame } = await openPopupWithFrame(t, "");
+  const frameWithPolicy = token();
+  await createFrame(t, executorURL(dip_require_corp, frameWithPolicy));
+  const receivedHere = listen(t, channelName);
+  for (const receiver of [frame, frameWithPolicy])
+    await runInContext(receiver, listenScript(channelName));
+  await post(popup, channelName, `{ text: "hello" }`);
+  assert_equals(await receivedHere, "[object Object]", "this document, without a policy");
+  assert_equals(await runInContext(frame, "return received;"), "[object Object]", "same-origin frame without a policy in the popup");
+  assert_equals(await runInContext(frame, "return data.text;"), "hello", "same-origin frame without a policy in the popup");
+  assert_equals(await runInContext(frameWithPolicy, "return received;"), "[object Object]", "same-origin frame with a policy in this document");
+}, "A message without shared memory posted on a BroadcastChannel by a document with a policy reaches same-origin documents with and without one");
+
+promise_test(async t => {
+  const channelName = token();
+  const { popup, frame } = await openPopupWithFrame(t, "");
+  const receivedHere = listen(t, channelName);
+  await runInContext(frame, listenScript(channelName));
+  await post(popup, channelName, "new SharedArrayBuffer(8)");
+  assert_equals(await receivedHere, "messageerror", "this document, without a policy");
+  assert_equals(await runInContext(frame, "return received;"), "messageerror", "same-origin frame without a policy in the popup");
+}, "A SharedArrayBuffer posted on a BroadcastChannel by a document with a policy fires messageerror at same-origin documents without one");
+
+promise_test(async t => {
+  const channelName = token();
+  const { popup, frame } = await openPopupWithFrame(t, dip_require_corp);
+  // This frame is not in the popup, but it is in the popup's browsing context group and has the same origin and policy, so it is in the popup's agent cluster.
+  const frameWithPolicy = token();
+  await createFrame(t, executorURL(dip_require_corp, frameWithPolicy));
+  for (const receiver of [frame, frameWithPolicy])
+    await runInContext(receiver, listenScript(channelName));
+  await post(popup, channelName, "new SharedArrayBuffer(12)");
+  assert_equals(await runInContext(frame, "return received;"), "[object SharedArrayBuffer]", "same-origin frame with a policy in the popup");
+  assert_equals(await runInContext(frameWithPolicy, "return received;"), "[object SharedArrayBuffer]", "same-origin frame with a policy in this document");
+  await runInContext(popup, `
+    new Int32Array(message)[0] = 1;
+    return "written";
+  `);
+  for (const [index, receiver] of [frame, frameWithPolicy].entries()) {
+    assert_equals(await runInContext(receiver, `
+      const view = new Int32Array(data);
+      view[${index + 1}] = 2;
+      return view[0];
+    `), 1, `receiver ${index} sees what the popup wrote`);
+  }
+  assert_array_equals(await runInContext(popup, "return Array.from(new Int32Array(message).subarray(1));"), [2, 2], "the popup sees what the receivers wrote");
+}, "A SharedArrayBuffer posted on a BroadcastChannel by a document with a policy arrives at same-origin documents with one in its agent cluster and shares memory with them");
+</script>

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>A fieldset with an internal table display value generates a regular block level box</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#the-fieldset-and-legend-elements">
+<link rel="help" href="https://drafts.csswg.org/css-display/#layout-specific-display">
+<link rel="match" href="table-display-on-fieldset-ref.html">
+<style>
+.t { width: 200px; margin-bottom: 10px; font-size: 0; line-height: 0; }
+.t i { display: inline-block; width: 20px; height: 20px; background: green; }
+.t fieldset { width: 40px; height: 20px; margin: 0; padding: 0; border: none; background: green; }
+</style>
+<div class=t><span><fieldset style="display: table-cell"></fieldset></span><i></i></div>
+<div class=t><span><fieldset style="display: table-caption"></fieldset></span><i></i></div>
+<div class=t><span><fieldset style="display: table-row"></fieldset></span><i></i></div>

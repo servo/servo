@@ -341,5 +341,17 @@ promise_test(t => {
   }));
 }, "Test that decodingInfo rejects if transferFunction is specified for type webrtc");
 
-
-
+promise_test(t => {
+  return promise_rejects_js(t, TypeError,
+                            navigator.mediaCapabilities.decodingInfo({
+                              type: 'webrtc',
+                              video: {
+                                contentType: 'video/VP9',
+                                width: 800,
+                                height: 600,
+                                bitrate: 3000,
+                                framerate: 24,
+                                hdrMetadataType: 'smpteSt2086',
+                              }
+                            }));
+}, 'Test that decodingInfo rejects if hdrMetadataType is specified for type webrtc');

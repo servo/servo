@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Masked and translucent groups away from the page origin print in the right place</title>
+<link rel="match" href="mask-and-opacity-offset-print-ref.html">
+<link rel="help" href="https://drafts.fxtf.org/css-masking/#the-mask-image">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#transparency">
+<meta name="fuzzy" content="maxDifference=0-25;totalPixels=0-10">
+<style>
+  :root {
+    print-color-adjust: exact;
+  }
+  body {
+    margin: 0;
+  }
+  div {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+  }
+  #corner {
+    top: 0;
+    left: 0;
+    background: blue;
+  }
+  .left {
+    top: 250px;
+    left: 250px;
+  }
+  .right {
+    top: 250px;
+    left: 450px;
+  }
+  #masked {
+    background: lime;
+    mask-image: linear-gradient(black, black);
+  }
+  #below {
+    background: black;
+  }
+  #group {
+    opacity: 0.5;
+  }
+  #group > div {
+    background: lime;
+  }
+  /* Hides the edges, which may be antialiased differently. */
+  .frame {
+    box-sizing: border-box;
+    border: 5px solid black;
+  }
+</style>
+<div id="corner"></div>
+<div id="masked" class="left"></div>
+<div id="below" class="right"></div>
+<div id="group" class="right"><div></div></div>
+<div class="left frame"></div>
+<div class="right frame"></div>

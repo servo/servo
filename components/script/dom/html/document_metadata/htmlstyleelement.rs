@@ -108,7 +108,7 @@ impl HTMLStyleElement {
         // That's self
 
         // Step 2. If element has an associated CSS style sheet, remove the CSS style sheet in question.
-        self.remove_stylesheet();
+        self.remove_stylesheet(cx.no_gc());
 
         // Step 3. If element is not connected, then return.
         let node = self.upcast::<Node>();
@@ -209,7 +209,7 @@ impl HTMLStyleElement {
         //     and element is potentially render-blocking, then block rendering on element.
 
         // Finally, update our stylesheet, regardless of which scenario we ran into
-        self.clean_stylesheet_ownership();
+        self.clean_stylesheet_ownership(cx.no_gc());
         self.set_stylesheet(cx.no_gc(), sheet, cache_key);
     }
 
@@ -223,15 +223,15 @@ impl HTMLStyleElement {
         stylesheet: Arc<Stylesheet>,
         cache_key: Option<StylesheetContentsCacheKey>,
     ) {
-        *self.stylesheet.borrow_mut() = Some(stylesheet.clone());
-        *self.stylesheetcontents_cache_key.borrow_mut() = cache_key;
+        *self.stylesheet.safe_borrow_mut(no_gc) = Some(stylesheet.clone());
+        *self.stylesheetcontents_cache_key.safe_borrow_mut(no_gc) = cache_key;
         self.stylesheet_list_owner()
             .add_owned_stylesheet(no_gc, self.upcast(), stylesheet);
     }
 
     pub(crate) fn will_modify_stylesheet(&self, no_gc: &NoGC) {
-        if let Some(stylesheet_with_owned_contents) = self.create_owned_contents_stylesheet() {
-            self.remove_stylesheet();
+        if let Some(stylesheet_with_owned_contents) = self.create_owned_contents_stylesheet(no_gc) {
+            self.remove_stylesheet(no_gc);
             if let Some(cssom_stylesheet) = self.cssom_stylesheet.get() {
                 let guard = stylesheet_with_owned_contents.shared_lock.read();
                 cssom_stylesheet.update_style_stylesheet(&stylesheet_with_owned_contents, &guard);
@@ -264,8 +264,11 @@ impl HTMLStyleElement {
         })
     }
 
-    fn create_owned_contents_stylesheet(&self) -> Option<Arc<Stylesheet>> {
-        let cache_key = self.stylesheetcontents_cache_key.borrow_mut().take()?;
+    fn create_owned_contents_stylesheet(&self, no_gc: &NoGC) -> Option<Arc<Stylesheet>> {
+        let cache_key = self
+            .stylesheetcontents_cache_key
+            .safe_borrow_mut(no_gc)
+            .take()?;
         if cache_key.is_uniquely_owned() {
             StylesheetContentsCache::remove(cache_key);
             return None;
@@ -292,13 +295,13 @@ impl HTMLStyleElement {
         Some(stylesheet_with_owned_contents)
     }
 
-    fn clean_stylesheet_ownership(&self) {
+    fn clean_stylesheet_ownership(&self, no_gc: &NoGC) {
         if let Some(cssom_stylesheet) = self.cssom_stylesheet.get() {
             // If the CSSOMs change from having an owner node to being ownerless, they may still
             // potentially modify shared stylesheets. Thus, create an new `Stylesheet` with owned
             // `StylesheetContents` to ensure that the potentially modifications are only made on
             // the owned `StylesheetContents`.
-            if let Some(stylesheet) = self.create_owned_contents_stylesheet() {
+            if let Some(stylesheet) = self.create_owned_contents_stylesheet(no_gc) {
                 let guard = stylesheet.shared_lock.read();
                 cssom_stylesheet.update_style_stylesheet(&stylesheet, &guard);
             }
@@ -307,12 +310,15 @@ impl HTMLStyleElement {
         self.cssom_stylesheet.set(None);
     }
 
-    fn remove_stylesheet(&self) {
-        self.clean_stylesheet_ownership();
-        if let Some(s) = self.stylesheet.borrow_mut().take() {
+    fn remove_stylesheet(&self, no_gc: &NoGC) {
+        self.clean_stylesheet_ownership(no_gc);
+        if let Some(s) = self.stylesheet.safe_borrow_mut(no_gc).take() {
             self.stylesheet_list_owner()
                 .remove_stylesheet(StylesheetSource::Element(Dom::from_ref(self.upcast())), &s);
-            let _ = self.stylesheetcontents_cache_key.borrow_mut().take();
+            let _ = self
+                .stylesheetcontents_cache_key
+                .safe_borrow_mut(no_gc)
+                .take();
         }
     }
 }
@@ -386,10 +392,10 @@ impl VirtualMethods for HTMLStyleElement {
             {
                 return;
             }
-            self.remove_stylesheet();
+            self.remove_stylesheet(cx.no_gc());
             self.update_a_style_block(cx);
         } else if attr.name() == "media" &&
-            let Some(ref stylesheet) = *self.stylesheet.borrow_mut()
+            let Some(ref stylesheet) = *self.stylesheet.safe_borrow_mut(cx.no_gc())
         {
             let shared_lock = node.owner_doc().style_shared_author_lock().clone();
             let mut guard = shared_lock.write();

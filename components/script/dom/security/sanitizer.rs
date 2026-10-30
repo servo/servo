@@ -11,6 +11,7 @@ use html5ever::{LocalName, Namespace, local_name, ns};
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use style::attr::AttrValue;
 use url::Url;
@@ -309,8 +310,8 @@ fn inner_sanitize_steps(
                 let child = DomRoot::downcast::<Element>(child).expect("Guaranteed by Step 1.1");
                 let element_name =
                     SanitizerElement::SanitizerElementNamespace(SanitizerElementNamespace {
-                        name: DOMString::from(&**child.local_name()),
-                        namespace: Some(DOMString::from(&**child.namespace())),
+                        name: TracedDOMString::from(child.local_name().clone()).root(),
+                        namespace: Some(TracedDOMString::from(child.namespace().clone()).root()),
                     });
 
                 // Step 1.5.2. If configuration["replaceWithChildrenElements"] exists and if
@@ -434,11 +435,11 @@ fn inner_sanitize_steps(
                     // local name and namespace.
                     let attribute_name = SanitizerAttribute::SanitizerAttributeNamespace(
                         SanitizerAttributeNamespace {
-                            name: DOMString::from(attribute_local_name.as_ref()),
+                            name: TracedDOMString::from(attribute_local_name.clone()).root(),
                             namespace: if attribute_namespace.is_empty() {
                                 None
                             } else {
-                                Some(DOMString::from(attribute_namespace.as_ref()))
+                                Some(TracedDOMString::from(attribute_namespace.clone()).root())
                             },
                         },
                     );

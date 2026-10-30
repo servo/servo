@@ -24,6 +24,10 @@ promise_test(async () => {
   assert_true(error instanceof ErrorEvent,
       'onprocessorerror argument should be an ErrorEvent when ' +
       'the constructor of AudioWorkletProcessor has an error.');
+  assert_greater_than(error.lineno, 0, 'Error line number should be set');
+  assert_greater_than(error.colno, 0, 'Error column number should be set');
+  assert_true(error.filename.endsWith(ERROR_PROCESSOR_FILENAME),
+      'Error filename should end with ' + ERROR_PROCESSOR_FILENAME);
 }, 'Test if |onprocessorerror| is called for an exception thrown from the ' +
     'processor constructor.');
 

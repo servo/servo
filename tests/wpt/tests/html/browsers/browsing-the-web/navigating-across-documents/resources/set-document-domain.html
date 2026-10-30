@@ -1,0 +1,8 @@
+<!doctype html>
+<script>
+const domain = new URL(location).searchParams.get("domain");
+if (domain)
+  document.domain = domain;
+onload = () => parent.postMessage({ navigationType: navigation.activation.navigationType, index: navigation.currentEntry.index }, "*");
+navigation.oncurrententrychange = event => parent.postMessage({ navigationType: event.navigationType, index: navigation.currentEntry.index }, "*");
+</script>

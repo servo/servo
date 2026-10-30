@@ -7,6 +7,7 @@ use std::iter::Iterator;
 
 use dom_struct::dom_struct;
 use rustc_hash::FxBuildHasher;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use style::custom_properties;
 use stylo_atoms::Atom;
@@ -84,7 +85,7 @@ impl StylePropertyMapReadOnlyMethods<crate::DomTypeHolder> for StylePropertyMapR
             .entries
             .0
             .keys()
-            .map(|key| DOMString::from(&**key))
+            .map(|key| TracedDOMString::from(key.clone()).root())
             .collect();
         // https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-getproperties
         // requires this sort order

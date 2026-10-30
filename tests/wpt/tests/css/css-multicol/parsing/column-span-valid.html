@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <title>CSS Multi-column Layout: parsing column-span with valid values</title>
-<link rel="help" href="https://drafts.csswg.org/css-multicol/#propdef-column-span">
-<meta name="assert" content="column-span supports the full grammar 'none | all'.">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#propdef-column-span">
+<meta name="assert" content="column-span supports the full grammar 'none | <integer [1,∞]> | all | auto'.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -13,6 +13,7 @@
 <script>
 test_valid_value("column-span", "none");
 test_valid_value("column-span", "all");
+test_valid_value("column-span", "auto");
 </script>
 </body>
 </html>

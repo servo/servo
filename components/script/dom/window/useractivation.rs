@@ -75,7 +75,7 @@ impl UserActivation {
 
             // Step 5.2.
             // > Notify the close watcher manager about user activation given window.
-            // TODO: impl close watcher
+            window.notify_the_close_watcher_manager_about_user_activation();
         }
     }
 }

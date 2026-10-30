@@ -1,0 +1,349 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Pointer boundary events across same-origin documents (tentative)</title>
+<!--
+
+Issue: https://github.com/w3c/pointerevents/issues/656
+
+This test is tentative because I'm not sure whether it's the correct behavior.
+It's possible that cross-document should be treated the same as cross-origin.
+
+pointerevent_boundary_events_cross_origin.html tests that the cross-origin
+cases do not expose the true relatedTarget node (which is required for
+security).  This test tests that the same-origin but cross-document cases do
+expose the relatedTarget node.
+
+-->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    touch-action: none;
+  }
+  .target {
+    width: 100px;
+    height: 100px;
+    background: blue;
+    touch-action: none;
+  }
+  iframe {
+    width: 100px;
+    height: 100px;
+    border: none;
+    display: block;
+  }
+  #done {
+    display: block;
+    margin-top: 10px;
+    touch-action: none;
+  }
+</style>
+<body>
+<button id="done">Done</button>
+<script>
+'use strict';
+
+function loadIframe(iframe) {
+  return new Promise(resolve => {
+    iframe.srcdoc = `<!doctype html>
+      <style>
+        html, body { margin: 0; padding: 0; touch-action: none; }
+        #child-target { width: 100px; height: 100px; background: green; touch-action: none; }
+      </style>
+      <div id="child-target"></div>`;
+    iframe.onload = resolve;
+  });
+}
+
+async function tapDoneButton() {
+  const doneButton = document.getElementById('done');
+  const donePromise = new Promise(resolve => {
+    const onDone = () => {
+      doneButton.removeEventListener('pointerup', onDone);
+      doneButton.removeEventListener('click', onDone);
+      resolve();
+    };
+    doneButton.addEventListener('pointerup', onDone);
+    doneButton.addEventListener('click', onDone);
+  });
+  await new test_driver.Actions()
+    .addPointer('touchPointerDone', 'touch')
+    .pointerMove(0, 0, {origin: doneButton})
+    .pointerDown()
+    .pointerUp()
+    .send();
+  await donePromise;
+}
+
+promise_test(async t => {
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  t.add_cleanup(() => container.remove());
+
+  const parentTarget = document.createElement('div');
+  parentTarget.id = 'parent-target';
+  parentTarget.className = 'target';
+  container.appendChild(parentTarget);
+
+  const iframe = document.createElement('iframe');
+  iframe.id = 'iframe';
+  container.appendChild(iframe);
+
+  await loadIframe(iframe);
+  const childDoc = iframe.contentDocument;
+  const childTarget = childDoc.getElementById('child-target');
+
+  let parentEvents = [];
+  let childEvents = [];
+
+  parentTarget.addEventListener('pointerdown', e => {
+    e.target.releasePointerCapture(e.pointerId);
+  });
+  parentTarget.addEventListener('pointerout', e => {
+    parentEvents.push({ type: e.type, relatedTarget: e.relatedTarget });
+  });
+  parentTarget.addEventListener('pointerleave', e => {
+    parentEvents.push({ type: e.type, relatedTarget: e.relatedTarget });
+  });
+
+  childTarget.addEventListener('pointerover', e => {
+    childEvents.push({ type: e.type, relatedTarget: e.relatedTarget });
+  });
+  childTarget.addEventListener('pointerenter', e => {
+    childEvents.push({ type: e.type, relatedTarget: e.relatedTarget });
+  });
+
+  await new test_driver.Actions()
+    .addPointer('touchPointer', 'touch')
+    .pointerMove(0, 0, {origin: parentTarget})
+    .pointerDown()
+    .pointerMove(0, 0, {origin: iframe})
+    .pointerUp()
+    .send();
+
+  await tapDoneButton();
+
+  assert_equals(
+    parentEvents.map(e => `${e.type} from ${e.relatedTarget.id}`).join(),
+    "pointerout from child-target,pointerleave from child-target"
+  );
+
+  assert_equals(
+    childEvents.map(e => `${e.type} from ${e.relatedTarget.id}`).join(),
+    "pointerover from parent-target,pointerenter from parent-target"
+  );
+}, 'Parent to same-origin iframe: relatedTarget is exposed across documents');
+
+promise_test(async t => {
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  t.add_cleanup(() => container.remove());
+
+  const parentTarget = document.createElement('div');
+  parentTarget.id = 'parent-target';
+  parentTarget.className = 'target';
+  container.appendChild(parentTarget);
+
+  const iframe = document.createElement('iframe');
+  iframe.id = 'iframe';
+  container.appendChild(iframe);
+
+  await loadIframe(iframe);
+  const childDoc = iframe.contentDocument;
+  const childTarget = childDoc.getElementById('child-target');
+
+  let parentEvents = [];
+  let childEvents = [];
+
+  childTarget.addEventListener('pointerdown', e => {
+    e.target.releasePointerCapture(e.pointerId);
+  });
+  childTarget.addEventListener('pointerout', e => {
+    childEvents.push({ type: e.type, relatedTarget: e.relatedTarget });
+  });
+  childTarget.addEventListener('pointerleave', e => {
+    childEvents.push({ type: e.type, relatedTarget: e.relatedTarget });
+  });
+
+  parentTarget.addEventListener('pointerover', e => {
+    parentEvents.push({ type: e.type, relatedTarget: e.relatedTarget });
+  });
+  parentTarget.addEventListener('pointerenter', e => {
+    parentEvents.push({ type: e.type, relatedTarget: e.relatedTarget });
+  });
+
+  await new test_driver.Actions()
+    .addPointer('touchPointer', 'touch')
+    .pointerMove(0, 0, {origin: iframe})
+    .pointerDown()
+    .pointerMove(0, 0, {origin: parentTarget})
+    .pointerUp()
+    .send();
+
+  await tapDoneButton();
+
+  assert_equals(
+    childEvents.map(e => `${e.type} from ${e.relatedTarget.id}`).join(),
+    "pointerout from parent-target,pointerleave from parent-target"
+  );
+
+  assert_equals(
+    parentEvents.map(e => `${e.type} from ${e.relatedTarget.id}`).join(),
+    "pointerover from child-target,pointerenter from child-target"
+  );
+}, 'Same-origin iframe to parent: relatedTarget is exposed across documents');
+
+promise_test(async t => {
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  t.add_cleanup(() => container.remove());
+
+  const sib1 = document.createElement('iframe');
+  container.appendChild(sib1);
+
+  const sib2 = document.createElement('iframe');
+  container.appendChild(sib2);
+
+  await Promise.all([
+    new Promise(resolve => {
+      sib1.srcdoc = `<!doctype html>
+        <style>html, body { margin: 0; padding: 0; touch-action: none; }
+        #s1 { width: 100px; height: 100px; background: green; touch-action: none; }</style>
+        <div id="s1"></div>`;
+      sib1.onload = resolve;
+    }),
+    new Promise(resolve => {
+      sib2.srcdoc = `<!doctype html>
+        <style>html, body { margin: 0; padding: 0; touch-action: none; }
+        #s2 { width: 100px; height: 100px; background: red; touch-action: none; }</style>
+        <div id="s2"></div>`;
+      sib2.onload = resolve;
+    })
+  ]);
+
+  const s1 = sib1.contentDocument.getElementById('s1');
+  const s2 = sib2.contentDocument.getElementById('s2');
+
+  let s1Events = [];
+  let s2Events = [];
+
+  s1.addEventListener('pointerdown', e => {
+    e.target.releasePointerCapture(e.pointerId);
+  });
+  s1.addEventListener('pointerout', e => {
+    s1Events.push({ type: e.type, relatedTarget: e.relatedTarget });
+  });
+  s1.addEventListener('pointerleave', e => {
+    s1Events.push({ type: e.type, relatedTarget: e.relatedTarget });
+  });
+
+  s2.addEventListener('pointerover', e => {
+    s2Events.push({ type: e.type, relatedTarget: e.relatedTarget });
+  });
+  s2.addEventListener('pointerenter', e => {
+    s2Events.push({ type: e.type, relatedTarget: e.relatedTarget });
+  });
+
+  await new test_driver.Actions()
+    .addPointer('touchPointer', 'touch')
+    .pointerMove(0, 0, {origin: sib1})
+    .pointerDown()
+    .pointerMove(0, 0, {origin: sib2})
+    .pointerUp()
+    .send();
+
+  await tapDoneButton();
+
+  assert_equals(
+    s1Events.map(e => `${e.type} from ${e.relatedTarget.id}`).join(),
+    "pointerout from s2,pointerleave from s2"
+  );
+
+  assert_equals(
+    s2Events.map(e => `${e.type} from ${e.relatedTarget.id}`).join(),
+    "pointerover from s1,pointerenter from s1"
+  );
+}, 'Sibling same-origin iframes: relatedTarget is exposed across documents');
+
+promise_test(async t => {
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  t.add_cleanup(() => container.remove());
+
+  const topTarget = document.createElement('div');
+  topTarget.id = 'top-target-nested';
+  topTarget.className = 'target';
+  topTarget.style.background = 'cyan';
+  container.appendChild(topTarget);
+
+  const outerIframe = document.createElement('iframe');
+  container.appendChild(outerIframe);
+
+  await new Promise(resolve => {
+    outerIframe.srcdoc = `<!doctype html>
+      <style>html, body { margin: 0; padding: 0; touch-action: none; }
+      iframe { width: 100px; height: 100px; border: none; display: block; }</style>
+      <iframe id="inner-iframe" srcdoc="<!doctype html>
+        <style>html, body { margin: 0; padding: 0; touch-action: none; }
+        #deep { width: 100px; height: 100px; background: orange; touch-action: none; }</style>
+        <div id='deep'></div>"></iframe>`;
+    outerIframe.onload = () => {
+      const inner = outerIframe.contentDocument.getElementById('inner-iframe');
+      if (inner.contentDocument && inner.contentDocument.getElementById('deep')) {
+        resolve();
+      } else {
+        inner.onload = resolve;
+      }
+    };
+  });
+
+  const innerIframe = outerIframe.contentDocument.getElementById('inner-iframe');
+  const deepTarget = innerIframe.contentDocument.getElementById('deep');
+
+  let topEvents = [];
+  let deepEvents = [];
+
+  topTarget.addEventListener('pointerdown', e => {
+    e.target.releasePointerCapture(e.pointerId);
+  });
+  topTarget.addEventListener('pointerout', e => {
+    topEvents.push({ type: e.type, relatedTarget: e.relatedTarget });
+  });
+  topTarget.addEventListener('pointerleave', e => {
+    topEvents.push({ type: e.type, relatedTarget: e.relatedTarget });
+  });
+
+  deepTarget.addEventListener('pointerover', e => {
+    deepEvents.push({ type: e.type, relatedTarget: e.relatedTarget });
+  });
+  deepTarget.addEventListener('pointerenter', e => {
+    deepEvents.push({ type: e.type, relatedTarget: e.relatedTarget });
+  });
+
+  await new test_driver.Actions()
+    .addPointer('touchPointer', 'touch')
+    .pointerMove(0, 0, {origin: topTarget})
+    .pointerDown()
+    .pointerMove(0, 0, {origin: outerIframe})
+    .pointerUp()
+    .send();
+
+  await tapDoneButton();
+
+  assert_equals(
+    topEvents.map(e => `${e.type} from ${e.relatedTarget.id}`).join(),
+    "pointerout from deep,pointerleave from deep"
+  );
+
+  assert_equals(
+    deepEvents.map(e => `${e.type} from ${e.relatedTarget.id}`).join(),
+    "pointerover from top-target-nested,pointerenter from top-target-nested"
+  );
+}, 'Nested same-origin iframes: relatedTarget is exposed across documents');
+</script>
+</body>

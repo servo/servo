@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>DOMParser documents suppress the CSP warning for inline styles</title>
+<link rel="help" href="https://github.com/w3c/webappsec-csp/issues/824">
+<meta http-equiv="Content-Security-Policy" content="style-src 'none'">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+promise_test(async t => {
+  const doc = new DOMParser().parseFromString(
+    '<div style="color: red;"></div><style>.x { color: blue; }</style>',
+    'text/html');
+
+  const div = doc.querySelector('div');
+  const style = doc.querySelector('style');
+
+  assert_equals(div.style.color, '',
+    'style="" must still be blocked by the calling document\'s CSP ' +
+    'inside a DOMParser document — only the console warning is ' +
+    'suppressed, not the enforcement.');
+  assert_equals(style.sheet, null,
+    '<style> elements must still be blocked by the calling document\'s ' +
+    'CSP inside a DOMParser document, for the same reason.');
+
+  document.body.appendChild(div);
+  t.add_cleanup(() => div.remove());
+  assert_equals(div.style.color, '',
+    'Moving a DOMParser-parsed element into a live document must not ' +
+    'cause a previously-blocked inline style to apply.');
+}, "DOMParser-parsed inline styles remain blocked by the calling page's " +
+   'CSP; only the console warning is suppressed');
+</script>
+</body>
+</html>

@@ -3,6 +3,7 @@
   <title>CSS OM: CSS Values</title>
   <link rel="author" title="Divya Manian" href="mailto:manian@adobe.com">
   <link rel="help" href="https://drafts.csswg.org/cssom/#serialize-a-css-declaration-block">
+  <link rel="help" href="https://drafts.csswg.org/css-ui-4/#propdef-outline">
   <meta name="flags" content="dom">
   <meta name="assert" content="Testing Serialization of Shorthand Values">
   <script src="/resources/testharness.js"></script>
@@ -35,7 +36,7 @@
         'border-width: 1px;': 'border-width: 1px;',
         'overflow-x: scroll; overflow-y: hidden;': 'overflow: scroll hidden;',
         'overflow-x: scroll; overflow-y: scroll;': 'overflow: scroll;',
-        'outline-width: 2px; outline-style: dotted; outline-color: blue;': 'outline: blue dotted 2px;',
+        'outline-width: 2px; outline-style: dotted; outline-color: blue;': 'outline: 2px dotted blue;',
         'margin-top: 1px; margin-right: 2px; margin-bottom: 3px; margin-left: 4px;': 'margin: 1px 2px 3px 4px;',
         'list-style-type: circle; list-style-position: inside; list-style-image: none;': 'list-style: inside circle;',
         'list-style-type: lower-alpha;': 'list-style-type: lower-alpha;',

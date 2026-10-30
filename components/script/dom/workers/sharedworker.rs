@@ -619,7 +619,7 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
             Some(devtools_sender),
             worker_id,
             #[cfg(feature = "webgl")]
-            window.webgl_chan_value(),
+            window.webgl_chan(),
         );
 
         let (setup_sender, setup_receiver) = unbounded();

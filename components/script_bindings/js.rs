@@ -97,6 +97,15 @@ pub fn JS_GetPropertyById(
     unsafe { js::rust::wrappers2::JS_GetPropertyById(cx, obj, id, vp) }
 }
 
+/// Safe wrapper around [`js::rust::wrappers2::JS_NewObject`].
+/// Passing `None` for `clasp` creates a plain object.
+#[allow(non_snake_case)]
+#[inline]
+pub fn JS_NewObject(cx: &mut JSContext, clasp: Option<&'static JSClass>) -> *mut JSObject {
+    let clasp = clasp.map_or(ptr::null(), |clasp| clasp as *const JSClass);
+    unsafe { js::rust::wrappers2::JS_NewObject(cx, clasp) }
+}
+
 /// Safe wrapper around [`js::rust::wrappers2::JS_NewObjectWithGivenProto`].
 /// Passing `None` for `clasp` creates a plain object.
 #[allow(non_snake_case)]

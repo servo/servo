@@ -15,7 +15,7 @@ with import (builtins.fetchTarball {
       # Bumped the channel in rust-toolchain.toml? Bump this commit too!
       # Use the latest commit hash for the manifest associated with the relevant version number in
       # https://github.com/oxalica/rust-overlay/tree/master/manifests
-      url = "https://github.com/oxalica/rust-overlay/archive/57a23bfaf4f7017267294b161175db1e32eb1c85.tar.gz";
+      url = "https://github.com/oxalica/rust-overlay/archive/87ffb7f777aef2e2647fd8fd718a5b3cbc825588.tar.gz";
     }))
   ];
   config = {

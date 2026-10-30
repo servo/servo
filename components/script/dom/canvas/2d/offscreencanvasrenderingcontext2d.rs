@@ -286,13 +286,27 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext>
-    fn FillText(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>) {
-        self.context.FillText(text, x, y, max_width)
+    fn FillText(
+        &self,
+        cx: &mut JSContext,
+        text: DOMString,
+        x: f64,
+        y: f64,
+        max_width: Option<f64>,
+    ) {
+        self.context.FillText(cx, text, x, y, max_width)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-stroketext>
-    fn StrokeText(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>) {
-        self.context.StrokeText(text, x, y, max_width)
+    fn StrokeText(
+        &self,
+        cx: &mut JSContext,
+        text: DOMString,
+        x: f64,
+        y: f64,
+        max_width: Option<f64>,
+    ) {
+        self.context.StrokeText(cx, text, x, y, max_width)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#textmetrics>
@@ -306,8 +320,8 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-font>
-    fn SetFont(&self, value: DOMString) {
-        self.context.SetFont(value)
+    fn SetFont(&self, cx: &mut JSContext, value: DOMString) {
+        self.context.SetFont(cx, value)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-textalign>

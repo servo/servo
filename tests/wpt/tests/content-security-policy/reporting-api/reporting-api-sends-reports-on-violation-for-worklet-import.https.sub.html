@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSP violation of an AudioWorklet's module graph is reported on the creator document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  promise_test(async t => {
+    const moduleURL = "/worklets/resources/import-remote-origin-empty-worklet-script.sub.js";
+    const expectedBlockedURL = "https://{{domains[www1]}}:{{ports[https][0]}}/worklets/resources/empty-worklet-script-with-cors-header.js";
+    const expectedDirective = "script-src-elem";
+    const expectedOriginalPolicy = "script-src 'self' 'unsafe-inline'; report-to csp-group";
+
+    const report_promise = new Promise((resolve, reject) => {
+      new ReportingObserver(t.step_func((reports, observer) => {
+        observer.disconnect();
+        assert_equals(reports.length, 1, "reports.length");
+        assert_equals(reports[0].type, "csp-violation", "report.type");
+        assert_equals(reports[0].url, location.href, "report.url");
+        assert_equals(reports[0].body.documentURL, location.href, "report.body.documentURL");
+        assert_equals(reports[0].body.referrer, document.referrer, "report.body.referrer");
+        assert_equals(reports[0].body.blockedURL, expectedBlockedURL, "report.body.blockedURL");
+        assert_equals(reports[0].body.effectiveDirective, expectedDirective, "report.body.effectiveDirective");
+        assert_equals(reports[0].body.originalPolicy, expectedOriginalPolicy, "report.body.originalPolicy");
+        assert_equals(reports[0].body.disposition, "enforce", "report.body.disposition");
+        assert_equals(reports[0].body.statusCode, 200, "report.body.statusCode");
+        assert_equals(reports[0].body.sample, "", "report.body.sample");
+        assert_equals(reports[0].body.sourceFile, null, "report.body.sourceFile");
+        assert_equals(reports[0].body.lineNumber, null, "report.body.lineNumber");
+        assert_equals(reports[0].body.columnNumber, null, "report.body.columnNumber");
+        resolve();
+      }), {types: ["csp-violation"]}).observe();
+      t.step_timeout(() => reject(new Error("No report received")), 3000);
+    });
+
+    const event_watcher_promise = new EventWatcher(t, document, "securitypolicyviolation")
+        .wait_for("securitypolicyviolation").then(e => {
+      assert_equals(e.documentURI, location.href, "event.documentURI");
+      assert_equals(e.referrer, document.referrer, "event.referrer");
+      assert_equals(e.blockedURI, expectedBlockedURL, "event.blockedURI");
+      assert_equals(e.effectiveDirective, expectedDirective, "event.effectiveDirective");
+      assert_equals(e.violatedDirective, expectedDirective, "event.violatedDirective");
+      assert_equals(e.originalPolicy, expectedOriginalPolicy, "event.originalPolicy");
+      assert_equals(e.disposition, "enforce", "event.disposition");
+      assert_equals(e.statusCode, 200, "event.statusCode");
+      assert_equals(e.sample, "", "event.sample");
+    });
+
+    const addmodule_promise = promise_rejects_dom(
+        t, "AbortError", new AudioContext().audioWorklet.addModule(moduleURL));
+    return Promise.all([report_promise, event_watcher_promise, addmodule_promise]);
+  }, "A blocked static import in an AudioWorklet is reported on the creator document.");
+</script>
+<script async defer src="../support/checkReport.sub.js?reportField=effectiveDirective&reportValue=script-src-elem"></script>
+</body>

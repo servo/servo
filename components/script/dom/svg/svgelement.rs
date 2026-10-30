@@ -18,7 +18,7 @@ use style::values::specified;
 use style_traits::ParsingMode;
 use stylo_dom::ElementState;
 
-use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
+use crate::dom::bindings::codegen::Bindings::HTMLOrSVGOrMathMLElementBinding::FocusOptions;
 use crate::dom::bindings::codegen::Bindings::SVGElementBinding::SVGElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
@@ -197,7 +197,7 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
         // 2. Run the focusing steps for this.
         if !self
             .upcast::<Node>()
-            .run_the_focusing_steps(cx, None, FocusTrigger::Other)
+            .run_the_focusing_steps(cx, None, FocusTrigger::Script)
         {
             // The specification seems to imply we should scroll into view even if this element
             // is not a focusable area. No browser does this, so we return early in that case.
@@ -236,9 +236,11 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
             return;
         }
         // <https://html.spec.whatwg.org/multipage/#unfocusing-steps>
-        self.owner_document()
-            .focus_handler()
-            .focus(cx, &FocusableArea::Viewport);
+        self.owner_document().focus_handler().focus(
+            cx,
+            &FocusableArea::Viewport,
+            FocusTrigger::Script,
+        );
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>
@@ -463,7 +465,7 @@ impl<'dom> LayoutDom<'dom, SVGElement> {
         parse: F,
         push: &mut impl FnMut(PropertyDeclaration),
     ) where
-        F: for<'i, 't> FnOnce(
+        F: for<'i> FnOnce(
             &ParserContext,
             &mut cssparser::Parser<'i>,
         ) -> Result<PropertyDeclaration, style_traits::ParseError>,

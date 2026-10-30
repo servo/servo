@@ -1517,8 +1517,10 @@ impl CanvasState {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext>
+    #[expect(clippy::too_many_arguments)]
     pub(super) fn fill_text(
         &self,
+        cx: &mut JSContext,
         global_scope: &GlobalScope,
         canvas: Option<&HTMLCanvasElement>,
         text: DOMString,
@@ -1535,7 +1537,7 @@ impl CanvasState {
         }
 
         if self.state.borrow().font_style.is_none() {
-            self.set_font(canvas, CanvasContextState::DEFAULT_FONT_STYLE.into())
+            self.set_font(cx, canvas, CanvasContextState::DEFAULT_FONT_STYLE.into())
         }
         // This may be `None` if if this is offscreen canvas, in which case just use
         // the initial values for the text style.
@@ -1561,8 +1563,10 @@ impl CanvasState {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-stroketext>
+    #[expect(clippy::too_many_arguments)]
     pub(super) fn stroke_text(
         &self,
+        cx: &mut JSContext,
         global_scope: &GlobalScope,
         canvas: Option<&HTMLCanvasElement>,
         text: DOMString,
@@ -1579,7 +1583,7 @@ impl CanvasState {
         }
 
         if self.state.borrow().font_style.is_none() {
-            self.set_font(canvas, CanvasContextState::DEFAULT_FONT_STYLE.into())
+            self.set_font(cx, canvas, CanvasContextState::DEFAULT_FONT_STYLE.into())
         }
         // This may be `None` if if this is offscreen canvas, in which case just use
         // the initial values for the text style.
@@ -1624,7 +1628,7 @@ impl CanvasState {
         // > Step 3: Let font be the current font of target, as given by that object's font
         // > attribute.
         if self.state.borrow().font_style.is_none() {
-            self.set_font(canvas, CanvasContextState::DEFAULT_FONT_STYLE.into());
+            self.set_font(cx, canvas, CanvasContextState::DEFAULT_FONT_STYLE.into());
         }
 
         let font_context = &global.font_context();
@@ -1698,7 +1702,12 @@ impl CanvasState {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-font>
-    pub(super) fn set_font(&self, canvas: Option<&HTMLCanvasElement>, value: DOMString) {
+    pub(super) fn set_font(
+        &self,
+        cx: &mut JSContext,
+        canvas: Option<&HTMLCanvasElement>,
+        value: DOMString,
+    ) {
         let canvas = match canvas {
             Some(element) => element,
             None => return, // offscreen canvas doesn't have a placeholder canvas
@@ -1706,7 +1715,8 @@ impl CanvasState {
         let node = canvas.upcast::<Node>();
         let window = canvas.owner_window();
 
-        let Some(resolved_font_style) = window.resolved_font_style_query(node, String::from(value))
+        let Some(resolved_font_style) =
+            window.resolved_font_style_query(cx, node, String::from(value))
         else {
             // This will happen when there is a syntax error.
             return;

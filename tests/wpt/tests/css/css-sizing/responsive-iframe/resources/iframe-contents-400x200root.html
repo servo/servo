@@ -11,4 +11,17 @@
 }
 </style>
 <meta name="responsive-embedded-sizing" content="allow-origins=*">
+<script>
+const params = new URLSearchParams(window.location.search);
+const size = params.get('size');
+if (size) {
+  const [width, height] = size.split(',');
+  document.documentElement.style.width = `${width}px`;
+  document.documentElement.style.height = `${height}px`;
+}
+const wm = params.get('wm');
+if (wm) {
+  document.documentElement.style.writingMode = wm;
+}
+</script>
 </head>

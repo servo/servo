@@ -736,6 +736,7 @@ impl<'a> TableLayout<'a> {
                         &containing_block,
                         &LogicalVec2::zero(),
                         false, /* auto_block_size_stretches_to_containing_block */
+                        false, /* skippable_for_block_percentage_quirk */
                     )
                     .sizes
                     .min_content

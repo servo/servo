@@ -24,7 +24,13 @@
         mic.ontrack = resolve;
       });
 
-      mic.setConstraints({ sampleSize: 16 });
+      mic.setConstraints({
+        sampleSize: 16,
+        channelCount: 2,
+        echoCancellation: false,
+        autoGainControl: false,
+        noiseSuppression: false,
+      });
 
       // Wait until the element is clickable.
       await new Promise((r) => t.step_timeout(r, PEPC_CLICK_DELAY));
@@ -42,7 +48,76 @@
       assert_true(track instanceof MediaStreamTrack, "mic.track is instance of MediaStreamTrack");
       assert_equals(track.kind, "audio", "mic.track must be audio kind");
       assert_not_equals(track.kind, "video", "microphone must never have video track");
+
+      const appliedConstraints = track.getConstraints();
+      assert_equals(appliedConstraints.sampleSize, 16, "sampleSize constraint should be applied");
+      assert_equals(appliedConstraints.channelCount, 2, "channelCount constraint should be applied");
+      assert_equals(appliedConstraints.echoCancellation, false, "echoCancellation constraint should be applied");
+      assert_equals(appliedConstraints.autoGainControl, false, "autoGainControl constraint should be applied");
+      assert_equals(appliedConstraints.noiseSuppression, false, "noiseSuppression constraint should be applied");
+
+      const settings = track.getSettings();
+      assert_equals(settings.echoCancellation, false, "echoCancellation setting should be false");
+      assert_equals(settings.autoGainControl, false, "autoGainControl setting should be false");
+      assert_equals(settings.noiseSuppression, false, "noiseSuppression setting should be false");
     }, "HTMLMicrophoneElement initializes audio track and never video track");
+
+    promise_test(async (t) => {
+      await test_driver.set_permission({ name: "microphone" }, "granted");
+
+      const mic = document.createElement("microphone");
+      document.body.appendChild(mic);
+      t.add_cleanup(() => {
+        if (mic.parentNode) {
+          document.body.removeChild(mic);
+        }
+      });
+
+      const track_promise = new Promise((resolve) => {
+        mic.ontrack = resolve;
+      });
+
+      mic.addEventListener(
+        "click",
+        () => {
+          mic.setConstraints({
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+            channelCount: 2,
+          });
+        },
+        { capture: true }
+      );
+
+      await new Promise((r) => t.step_timeout(r, PEPC_CLICK_DELAY));
+
+      await test_driver.click(mic);
+      await track_promise;
+
+      const track = mic.track;
+      t.add_cleanup(() => {
+        if (track) {
+          track.stop();
+        }
+      });
+
+      assert_object_equals(
+        track.getConstraints(),
+        {
+          autoGainControl: false,
+          channelCount: 2,
+          echoCancellation: false,
+          noiseSuppression: false,
+        },
+        "constraints set in click capture listener should be applied"
+      );
+
+      const settings = track.getSettings();
+      assert_equals(settings.echoCancellation, false, "echoCancellation setting should be false");
+      assert_equals(settings.autoGainControl, false, "autoGainControl setting should be false");
+      assert_equals(settings.noiseSuppression, false, "noiseSuppression setting should be false");
+    }, "HTMLMicrophoneElement applies constraints set in a capture-phase click listener");
 
     promise_test(async (t) => {
       await test_driver.set_permission({ name: "microphone" }, "granted");
@@ -81,6 +156,11 @@
 
       assert_true(track instanceof MediaStreamTrack, "sanitized microphone track successfully created");
       assert_equals(track.kind, "audio", "sanitized track kind is audio");
+
+      const appliedConstraints = track.getConstraints();
+      assert_equals(appliedConstraints.sampleSize, 16, "basic sampleSize constraint should be preserved");
+      assert_false("echoCancellation" in appliedConstraints, "complex echoCancellation constraint should be stripped");
+      assert_false("frameRate" in appliedConstraints, "complex frameRate constraint should be stripped");
     }, "HTMLMicrophoneElement setConstraints sanitization strips complex ranges without crashing");
   </script>
 </body>

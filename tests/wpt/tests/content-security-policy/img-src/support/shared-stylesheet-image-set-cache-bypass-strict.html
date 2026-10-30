@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta http-equiv="Content-Security-Policy" content="img-src 'none'">
+<link rel="stylesheet" href="shared-stylesheet-image-set-cache-bypass.css">
+<body style="margin:0">
+  <div class="bypass-image"></div>
+  <script>
+    'use strict';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      parent.postMessage('ready', '*');
+    }));
+  </script>
+</body>

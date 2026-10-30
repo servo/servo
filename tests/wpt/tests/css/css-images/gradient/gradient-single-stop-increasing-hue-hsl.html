@@ -1,0 +1,13 @@
+<!doctype html>
+<title>Single stop gradient in HSL space with increasing hue interpolation method</title>
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#coloring-gradient-line">
+<meta name="assert" content="Tests that a single-stop increasing-hue gradient just renders a solid color">
+<link rel="match" href="gradient-single-stop-increasing-hue-hsl-ref.html">
+<style>
+  #target {
+    width: 100px;
+    height: 100px;
+    background-image: linear-gradient(to right in hsl increasing hue, #ff4000 50%);
+  }
+</style>
+<div id="target"></div>

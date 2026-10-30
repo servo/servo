@@ -6,6 +6,7 @@ use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::match_domstring_ascii;
 use script_bindings::reflector::{Reflector, reflect_dom_object, reflect_dom_object_with_proto};
 use script_bindings::serializable::Serializable;
@@ -60,7 +61,7 @@ pub(crate) enum DOMErrorName {
 }
 
 impl DOMErrorName {
-    pub(crate) fn from(s: &DOMString) -> Option<DOMErrorName> {
+    pub(crate) fn from(s: &TracedDOMString) -> Option<DOMErrorName> {
         match_domstring_ascii!(s,
             "IndexSizeError" => Some(DOMErrorName::IndexSizeError),
             "HierarchyRequestError" => Some(DOMErrorName::HierarchyRequestError),
@@ -101,8 +102,8 @@ impl DOMErrorName {
 #[dom_struct]
 pub(crate) struct DOMException {
     reflector_: Reflector,
-    message: DOMString,
-    name: DOMString,
+    message: TracedDOMString,
+    name: TracedDOMString,
 }
 
 impl DOMException {
@@ -171,8 +172,8 @@ impl DOMException {
     pub(crate) fn new_inherited(message: DOMString, name: DOMString) -> DOMException {
         DOMException {
             reflector_: Reflector::new(),
-            message,
-            name,
+            message: message.traced(),
+            name: name.traced(),
         }
     }
 
@@ -238,12 +239,12 @@ impl DOMExceptionMethods<crate::DomTypeHolder> for DOMException {
 
     /// <https://webidl.spec.whatwg.org/#dom-domexception-name>
     fn Name(&self) -> DOMString {
-        self.name.clone()
+        self.name.clone().root()
     }
 
     /// <https://webidl.spec.whatwg.org/#dom-domexception-message>
     fn Message(&self) -> DOMString {
-        self.message.clone()
+        self.message.clone().root()
     }
 }
 

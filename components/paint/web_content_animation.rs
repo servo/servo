@@ -72,38 +72,50 @@ impl WebContentAnimator {
         self.timer_scheduled.set(true);
     }
 
-    pub(crate) fn update(
-        &self,
-        webview_renderers: &FxHashMap<WebViewId, WebViewRenderer>,
-    ) -> Option<Vec<PropertyValue<ColorF>>> {
+    /// Trigger a potential update to this [`WebContentAnimator`], returning `true` if
+    /// anything was updated and `false` otherwise.
+    pub(crate) fn update(&self, webview_renderers: &FxHashMap<WebViewId, WebViewRenderer>) -> bool {
         if !self.need_update.load(Ordering::Relaxed) {
-            return None;
+            return false;
         }
 
-        let mut colors = Vec::new();
+        let mut anything_updated = false;
         for renderer in webview_renderers.values() {
             renderer.for_each_connected_pipeline(&mut |pipeline_details| {
-                if let Some(property_value) =
-                    pipeline_details.animations.update(self.caret_visible.get())
-                {
-                    colors.push(property_value);
-                }
+                anything_updated = pipeline_details.animations.update() || anything_updated;
             });
         }
 
         self.timer_scheduled.set(false);
         self.need_update.store(false, Ordering::Relaxed);
 
-        if colors.is_empty() {
+        if !anything_updated {
             // All animations have stopped. When a new blinking caret is activated we want
             // it to start in the visible state, so we set `caret_visible` to true here.
             self.caret_visible.set(true);
-            return None;
+            return false;
         }
 
         self.caret_visible.set(!self.caret_visible.get());
         self.schedule_timer_if_necessary();
-        Some(colors)
+        true
+    }
+
+    pub(crate) fn values(
+        &self,
+        webview_renderers: &FxHashMap<WebViewId, WebViewRenderer>,
+    ) -> Vec<PropertyValue<ColorF>> {
+        let mut colors = Vec::new();
+        for renderer in webview_renderers.values() {
+            renderer.for_each_connected_pipeline(&mut |pipeline_details| {
+                if let Some(property_value) =
+                    pipeline_details.animations.values(self.caret_visible.get())
+                {
+                    colors.push(property_value);
+                }
+            });
+        }
+        colors
     }
 }
 
@@ -115,15 +127,23 @@ pub(crate) struct PipelineAnimations {
 }
 
 impl PipelineAnimations {
-    pub(crate) fn update(&self, caret_visible: bool) -> Option<PropertyValue<ColorF>> {
+    /// Update this [`PipelineAnimations`], returning `true` if anything updated and
+    /// `false` otherwise.
+    pub(crate) fn update(&self) -> bool {
         let mut maybe_caret = self.caret.borrow_mut();
-        let caret = maybe_caret.as_mut()?;
-
-        if let Some(update) = caret.update(caret_visible) {
-            return Some(update);
+        let Some(caret) = maybe_caret.as_mut() else {
+            return false;
+        };
+        caret.update();
+        if caret.done() {
+            *maybe_caret = None;
         }
-        *maybe_caret = None;
-        None
+        true
+    }
+
+    pub(crate) fn values(&self, caret_visible: bool) -> Option<PropertyValue<ColorF>> {
+        let maybe_caret = self.caret.borrow();
+        Some(maybe_caret.as_ref()?.value(caret_visible))
     }
 
     pub(crate) fn handle_new_display_list(
@@ -159,21 +179,24 @@ struct CaretAnimation {
 }
 
 impl CaretAnimation {
-    pub(crate) fn update(&mut self, caret_visible: bool) -> Option<PropertyValue<ColorF>> {
-        if self.remaining_blink_count == 0 {
-            return None;
-        }
+    pub(crate) fn done(&self) -> bool {
+        self.remaining_blink_count == 0
+    }
 
+    pub(crate) fn update(&mut self) {
         self.remaining_blink_count = self.remaining_blink_count.saturating_sub(1);
-        let value = if caret_visible || self.remaining_blink_count == 0 {
+    }
+
+    pub(crate) fn value(&self, caret_visible: bool) -> PropertyValue<ColorF> {
+        debug_assert!(self.remaining_blink_count != 0);
+        let value = if caret_visible {
             self.original_caret_color
         } else {
             ColorF::TRANSPARENT
         };
-
-        Some(PropertyValue {
+        PropertyValue {
             key: self.caret_property_key,
             value,
-        })
+        }
     }
 }

@@ -9,6 +9,7 @@ use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use servo_url::ServoUrl;
 
+use crate::dom::MoveContext;
 use crate::dom::bindings::codegen::Bindings::HTMLBaseElementBinding::HTMLBaseElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
@@ -180,9 +181,19 @@ impl VirtualMethods for HTMLBaseElement {
     fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
         self.super_type().unwrap().bind_to_tree(cx, context);
         // https://html.spec.whatwg.org/multipage/#frozen-base-url
-        // > The base element becomes the first base element in tree order with an href content attribute in its Document.
-        let document = self.owner_document();
-        document.refresh_base_element(cx);
+        // > The base element becomes the first base element in tree order with an href content
+        // > attribute in its Document.
+        self.owner_document().refresh_base_element(cx);
+    }
+
+    fn moving_steps(&self, cx: &mut JSContext, context: &MoveContext) {
+        if let Some(super_type) = self.super_type() {
+            super_type.moving_steps(cx, context);
+        }
+        // https://html.spec.whatwg.org/multipage/#frozen-base-url
+        // > The base element becomes the first base element in tree order with an href content
+        // > attribute in its Document.
+        self.owner_document().refresh_base_element(cx);
     }
 
     fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {

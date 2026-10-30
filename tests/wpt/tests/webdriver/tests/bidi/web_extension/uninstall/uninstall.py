@@ -5,10 +5,11 @@ pytestmark = pytest.mark.asyncio
 
 
 async def test_uninstall(bidi_session, extension_data):
+    # Use "path" as it is supported more widely.
     web_extension = await bidi_session.web_extension.install(
         extension_data={
-            "type": "base64",
-            "value": extension_data["base64"],
+            "type": "path",
+            "path": extension_data["path"],
         }
     )
     await bidi_session.web_extension.uninstall(

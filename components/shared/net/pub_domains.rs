@@ -21,6 +21,7 @@ use embedder_traits::resources::{self, Resource};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use rustc_hash::FxHashSet;
+use serde::{Deserialize, Serialize};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 
 // We can use FxHash here.
@@ -189,5 +190,32 @@ pub fn registered_domain_name(url: &ServoUrl) -> Option<Host> {
         },
         ImmutableOrigin::Tuple(_, ip, _) => Some(ip),
         ImmutableOrigin::Opaque(_) => None,
+    }
+}
+
+/// A [site](https://html.spec.whatwg.org/multipage/#site).
+#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub enum Site {
+    Opaque(ImmutableOrigin),
+    Tuple { scheme: String, host: Host },
+}
+
+impl Site {
+    /// <https://html.spec.whatwg.org/multipage/#obtain-a-site>
+    pub fn from_origin(origin: &ImmutableOrigin) -> Self {
+        match origin {
+            // Step 1. If origin is an opaque origin, then return origin.
+            ImmutableOrigin::Opaque(_) => Site::Opaque(origin.clone()),
+            // Step 3. Return (origin's scheme, origin's host's registrable domain).
+            ImmutableOrigin::Tuple(scheme, Host::Domain(domain), _) => Site::Tuple {
+                scheme: scheme.clone(),
+                host: Host::Domain(reg_suffix(domain).to_owned()),
+            },
+            // Step 2. If origin's host's registrable domain is null, then return (origin's scheme, origin's host).
+            ImmutableOrigin::Tuple(scheme, host, _) => Site::Tuple {
+                scheme: scheme.clone(),
+                host: host.clone(),
+            },
+        }
     }
 }

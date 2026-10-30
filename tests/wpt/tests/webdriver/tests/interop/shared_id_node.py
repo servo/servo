@@ -2,6 +2,7 @@ import pytest
 
 from webdriver import ShadowRoot, WebElement
 from webdriver.bidi.modules.script import ContextTarget
+from webdriver.error import NoSuchShadowRootException
 
 pytestmark = pytest.mark.asyncio
 
@@ -99,3 +100,22 @@ async def test_shadow_root_reference_created_in_bidi(
         """return arguments[0].nodeType""", args=(node,)
     )
     assert nodeType == DOCUMENT_FRAGMENT_NODE
+
+
+async def test_document_fragment_reference_rejected_as_shadow_root(
+    bidi_session,
+    current_session,
+    get_test_page,
+    top_context,
+):
+    current_session.url = get_test_page()
+
+    result = await bidi_session.script.evaluate(
+        expression="document.createDocumentFragment()",
+        target=ContextTarget(top_context["context"]),
+        await_promise=False,
+    )
+
+    node = ShadowRoot(current_session, result["sharedId"])
+    with pytest.raises(NoSuchShadowRootException):
+        node.find_elements("css selector", "*")

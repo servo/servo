@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Invalidation test on changing the alt attribute of an img in an &lt;option></title>
+<link rel="help" href="https://html.spec.whatwg.org/C/#concept-option-label">
+<link rel="help" href="https://html.spec.whatwg.org/C/#get-html-aware-text-content">
+<link rel="match" href="dynamic-img-alt-change-rendering-ref.html">
+<body>
+
+<select id="dropdown">
+<option><img alt="old"></option>
+</select>
+
+<select id="listbox" multiple>
+<option><img alt="old"></option>
+</select>
+
+<script>
+document.documentElement.addEventListener('TestRendered', e => {
+  for (const img of document.querySelectorAll('img'))
+    img.alt = 'new and longer';
+  e.target.removeAttribute('class');
+});
+</script>
+</body>
+</html>

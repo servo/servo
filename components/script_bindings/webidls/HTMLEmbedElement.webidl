@@ -11,10 +11,10 @@ interface HTMLEmbedElement : HTMLElement {
   //         attribute DOMString src;
   // [CEReactions]
   //         attribute DOMString type;
-  // [CEReactions]
-  //         attribute DOMString width;
-  // [CEReactions]
-  //         attribute DOMString height;
+  [CEReactions]
+          attribute DOMString width;
+  [CEReactions]
+          attribute DOMString height;
   //legacycaller any (any... arguments);
 
   // also has obsolete members
@@ -26,4 +26,6 @@ partial interface HTMLEmbedElement {
   //         attribute DOMString align;
   // [CEReactions]
   //         attribute DOMString name;
+  [CEReactions] attribute unsigned long hspace;
+  [CEReactions] attribute unsigned long vspace;
 };

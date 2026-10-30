@@ -10,19 +10,24 @@ pytestmark = pytest.mark.asyncio
 USER_PROMPT_OPENED_EVENT = "browsingContext.userPromptOpened"
 
 
-async def wait_for_reload(bidi_session, context, wait, expect_timeout):
+async def wait_for_reload(bidi_session, configuration, context, wait, expect_timeout):
+    # Keep the shielded reload task so callers can await it before closing the tab.
+    reload_task = asyncio.create_task(
+        bidi_session.browsing_context.reload(context=context, wait=wait)
+    )
+
     # Ultimately, "interactive" and "complete" should support a timeout argument.
     # See https://github.com/w3c/webdriver-bidi/issues/188.
     if expect_timeout:
         with pytest.raises(asyncio.TimeoutError):
             await asyncio.wait_for(
-                asyncio.shield(
-                    bidi_session.browsing_context.reload(context=context,
-                                                         wait=wait)),
-                timeout=1,
+                asyncio.shield(reload_task),
+                timeout=1 * configuration["timeout_multiplier"],
             )
     else:
-        await bidi_session.browsing_context.reload(context=context, wait=wait)
+        await reload_task
+
+    return reload_task
 
 
 @pytest.mark.parametrize("wait", ["none", "interactive", "complete"])
@@ -56,18 +61,26 @@ async def test_expected_url(bidi_session, inline, new_tab, wait):
         ("complete", True),
     ],
 )
-async def test_slow_image_blocks_load(bidi_session, inline, new_tab, wait,
-                                      expect_timeout):
-
+async def test_slow_image_blocks_load(
+    bidi_session,
+    configuration,
+    inline,
+    new_tab,
+    wait,
+    expect_timeout,
+    wait_for_future_safe,
+):
+    delay = 3 * configuration["timeout_multiplier"]
     image_url = "/webdriver/tests/bidi/browsing_context/support/empty.svg"
-    url = inline(f"<img src='{image_url}?pipe=trickle(d3)'>")
+    url = inline(f"<img src='{image_url}?pipe=trickle(d{delay})'>")
 
     await bidi_session.browsing_context.navigate(context=new_tab["context"],
                                                  url=url,
                                                  wait="complete")
 
-    await wait_for_reload(bidi_session, new_tab["context"], wait,
-                          expect_timeout)
+    reload_task = await wait_for_reload(
+        bidi_session, configuration, new_tab["context"], wait, expect_timeout
+    )
 
     # We cannot assert the URL for "complete", since we expect a timeout. For
     # this case, the wait_for_navigation helper will resume after 1 second,
@@ -76,6 +89,8 @@ async def test_slow_image_blocks_load(bidi_session, inline, new_tab, wait,
         contexts = await bidi_session.browsing_context.get_tree(
             root=new_tab["context"], max_depth=0)
         assert contexts[0]["url"] == url
+
+    await wait_for_future_safe(reload_task, timeout=6)
 
 
 @pytest.mark.parametrize(
@@ -88,6 +103,7 @@ async def test_slow_image_blocks_load(bidi_session, inline, new_tab, wait,
 )
 async def test_slow_page(
     bidi_session,
+    configuration,
     new_tab,
     url,
     wait,
@@ -96,8 +112,9 @@ async def test_slow_page(
     wait_for_event,
     wait_for_future_safe,
 ):
+    delay = 3 * configuration["timeout_multiplier"]
     url = url(
-        "/webdriver/tests/bidi/browsing_context/support/empty.html?pipe=trickle(d3)"
+        f"/webdriver/tests/bidi/browsing_context/support/empty.html?pipe=trickle(d{delay})"
     )
 
     await bidi_session.browsing_context.navigate(
@@ -126,12 +143,15 @@ async def test_slow_page(
     on_dom_content_load = wait_for_event("browsingContext.domContentLoaded")
     on_load = wait_for_event("browsingContext.load")
 
-    await wait_for_reload(bidi_session, new_tab["context"], wait, expect_timeout)
+    reload_task = await wait_for_reload(
+        bidi_session, configuration, new_tab["context"], wait, expect_timeout
+    )
     # Note that we cannot assert the top context url here, because the navigation
     # is blocked on the initial url for this test case.
 
-    await wait_for_future_safe(on_load, timeout=5)
-    await wait_for_future_safe(on_dom_content_load, timeout=5)
+    await wait_for_future_safe(on_load, timeout=6)
+    await wait_for_future_safe(on_dom_content_load, timeout=6)
+    await wait_for_future_safe(reload_task, timeout=6)
 
     assert len(events) == 2
 
@@ -149,6 +169,7 @@ async def test_slow_page(
 )
 async def test_slow_script_blocks_domContentLoaded(
     bidi_session,
+    configuration,
     inline,
     new_tab,
     wait,
@@ -157,9 +178,9 @@ async def test_slow_script_blocks_domContentLoaded(
     wait_for_event,
     wait_for_future_safe,
 ):
-    delay_in_seconds = 3
+    delay = 3 * configuration["timeout_multiplier"]
     script_url = "/webdriver/tests/bidi/browsing_context/support/empty.js"
-    url = inline(f"<script src='{script_url}?pipe=trickle(d{delay_in_seconds})'></script>")
+    url = inline(f"<script src='{script_url}?pipe=trickle(d{delay})'></script>")
 
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=url, wait="complete"
@@ -187,12 +208,15 @@ async def test_slow_script_blocks_domContentLoaded(
     on_dom_content_load = wait_for_event("browsingContext.domContentLoaded")
     on_load = wait_for_event("browsingContext.load")
 
-    await wait_for_reload(bidi_session, new_tab["context"], wait, expect_timeout)
+    reload_task = await wait_for_reload(
+        bidi_session, configuration, new_tab["context"], wait, expect_timeout
+    )
 
-    # Use twice the delay_in_seconds for the page load to wait for the navigation
-    # events.
-    await wait_for_future_safe(on_dom_content_load, timeout=delay_in_seconds*2)
-    await wait_for_future_safe(on_load, timeout=delay_in_seconds*2)
+    # Use twice the base delay (6s, scaled by wait_for_future_safe) to wait for
+    # the navigation events and reload task.
+    await wait_for_future_safe(on_dom_content_load, timeout=6)
+    await wait_for_future_safe(on_load, timeout=6)
+    await wait_for_future_safe(reload_task, timeout=6)
 
     assert len(events) == 2
 
@@ -225,17 +249,22 @@ async def test_beforeunload_prompt(
         bidi_session.browsing_context.reload(context=new_tab["context"], wait=wait)
     )
 
-    await wait_for_future_safe(on_prompt_opened)
-    # Make sure the navigation is not finished.
-    assert (
-        not reloaded_future.done()
-    ), "Reload should not be finished before prompt is handled."
+    try:
+        await wait_for_future_safe(on_prompt_opened)
+        # Make sure the navigation is not finished.
+        assert (
+            not reloaded_future.done()
+        ), "Reload should not be finished before prompt is handled."
 
-    await bidi_session.browsing_context.handle_user_prompt(
-        context=new_tab["context"], accept=True
-    )
+        await bidi_session.browsing_context.handle_user_prompt(
+            context=new_tab["context"], accept=True
+        )
 
-    reloaded_result = await reloaded_future
+        reloaded_result = await wait_for_future_safe(reloaded_future)
 
-    assert reloaded_result["url"] == page_url
-    any_string(reloaded_result["navigation"])
+        assert reloaded_result["url"] == page_url
+        any_string(reloaded_result["navigation"])
+    finally:
+        # Cancel any pending reload command so a late reply does not leak into teardown.
+        if not reloaded_future.done():
+            reloaded_future.cancel()

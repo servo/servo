@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Playing media elements with no references are not collected</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/leak-helpers.js"></script>
+<body>
+  <script>
+    promise_test(async t => {
+        let elem = new Audio("/media/sine440.mp3?pipe=trickle(d2)");
+        const weakElem = new WeakRef(elem);
+        let p = elem.play();
+        let p2 = new Promise(resolve => elem.onended = () => resolve());
+        elem = null;
+        await p;
+        await TestUtils.gc();
+        await TestUtils.gc();
+        assert_not_equals(weakElem.deref(), undefined);
+        // Wait for the audio to finish playing
+        await p2;
+        // After it has finished playing
+        await TestUtils.gc();
+        await TestUtils.gc();
+        assert_equals(weakElem.deref(), undefined);
+    });
+  </script>
+</body>

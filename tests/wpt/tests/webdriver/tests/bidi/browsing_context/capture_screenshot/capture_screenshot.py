@@ -118,8 +118,14 @@ async def test_clip_huge_element_to_viewport(bidi_session, top_context, inline):
         context=top_context["context"]
     )
 
-    viewport = await get_viewport_dimensions(bidi_session, top_context)
+    # The screenshot covers the visual viewport, which excludes scrollbars.
+    viewport = await get_viewport_dimensions(
+        bidi_session, top_context, with_scrollbar=False
+    )
+    dpr = await get_device_pixel_ratio(bidi_session, top_context)
     (actual_width, actual_height) = png_dimensions(data)
 
-    assert actual_width == viewport["width"]
-    assert actual_height == viewport["height"]
+    expected_width = viewport["width"] * dpr
+    expected_height = viewport["height"] * dpr
+    assert floor(expected_width) <= actual_width <= ceil(expected_width)
+    assert floor(expected_height) <= actual_height <= ceil(expected_height)

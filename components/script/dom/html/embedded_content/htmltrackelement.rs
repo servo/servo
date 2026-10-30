@@ -409,9 +409,8 @@ impl VirtualMethods for HTMLTrackElement {
             super_type.moving_steps(cx, context);
         }
 
-        if let Some(parent) = context
-            .old_parent
-            .and_then(|node| node.downcast::<HTMLMediaElement>())
+        if context.is_subtree_root &&
+            let Some(parent) = context.old_ancestor.downcast::<HTMLMediaElement>()
         {
             // https://html.spec.whatwg.org/multipage/#sourcing-out-of-band-text-tracks
             // > When a track element's parent element changes and the old parent was a media element,

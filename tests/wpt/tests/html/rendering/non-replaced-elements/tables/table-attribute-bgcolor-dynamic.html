@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <title>Table's bgcolor attribute changing dynamically</title>
+  <link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#tables-2">
+  <link rel="match" href="/css/reference/ref-filled-green-200px-square.html">
+  <meta name="assert" content="Changing the value of the `bgcolor` attribute on the `<table>`
+    should update the background color properly.
+  ">
+  <style>
+    #target { width: 200px; height: 200px }
+  </style>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <table id="target" bgcolor="red"></table>
+  <script src="/common/rendering-utils.js"></script>
+  <script src="/common/reftest-wait.js"></script>
+  <script type="module">
+    await waitForAtLeastOneFrame();
+    document.getElementById("target").setAttribute("bgcolor", "green");
+    takeScreenshot();
+  </script>
+</html>

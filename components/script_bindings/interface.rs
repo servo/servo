@@ -14,8 +14,8 @@ use js::jsapi::JS::CompartmentIterResult;
 use js::jsapi::{
     CallArgs, CheckedUnwrapStatic, Compartment, CompartmentSpecifier, GetNonCCWObjectGlobal,
     GetRealmGlobalOrNull, HandleObject as RawHandleObject, IsSharableCompartment,
-    IsSystemCompartment, JS_GetFunctionObject, JS_NewObject, JS_NewStringCopyN, JS_SetReservedSlot,
-    JSClass, JSClassOps, JSContext, JSFUN_CONSTRUCTOR, JSFunctionSpec, JSObject, JSPROP_PERMANENT,
+    IsSystemCompartment, JS_GetFunctionObject, JS_NewStringCopyN, JS_SetReservedSlot, JSClass,
+    JSClassOps, JSContext, JSFUN_CONSTRUCTOR, JSFunctionSpec, JSObject, JSPROP_PERMANENT,
     JSPROP_READONLY, JSPROP_RESOLVING, JSPropertySpec, JSString, JSTracer, ObjectOps,
     OnNewGlobalHookOption, SymbolCode, TrueHandleValue, Value, jsid,
 };
@@ -39,7 +39,7 @@ use crate::codegen::PrototypeList;
 use crate::constant::{ConstantSpec, define_constants};
 use crate::conversions::{DOM_OBJECT_SLOT, get_dom_class};
 use crate::guard::Guard;
-use crate::js::{JS_DefineProperty, JS_NewObjectWithGivenProto, PropertyFlags};
+use crate::js::{JS_DefineProperty, JS_NewObject, JS_NewObjectWithGivenProto, PropertyFlags};
 use crate::principals::ServoJSPrincipals;
 use crate::utils::{
     DOM_PROTOTYPE_SLOT, DOMJSClass, JSCLASS_DOM_GLOBAL, ProtoOrIfaceArray, get_proto_or_iface_array,
@@ -244,9 +244,7 @@ pub(crate) fn create_callback_interface_object<D: DomTypes>(
     mut rval: MutableHandleObject,
 ) {
     assert!(!constants.is_empty());
-    unsafe {
-        rval.set(JS_NewObject(cx.raw_cx(), ptr::null()));
-    }
+    rval.set(JS_NewObject(cx, None));
     assert!(!rval.is_null());
     define_guarded_constants::<D>(cx, rval.handle(), constants, global);
     define_name(cx, rval.handle(), name);

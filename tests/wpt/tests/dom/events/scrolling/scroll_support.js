@@ -116,8 +116,9 @@ async function waitForScrollReset(test, scroller, x = 0, y = 0) {
     if (scroller.scrollLeft == x && scroller.scrollTop == y) {
       resolve();
     } else {
-      const eventTarget =
-        scroller == document.scrollingElement ? document : scroller;
+      const eventTarget = scroller == scroller.ownerDocument.scrollingElement ?
+          scroller.ownerDocument :
+          scroller;
       scroller.scrollTo(x, y);
       waitForScrollendEventNoTimeout(eventTarget).then(resolve);
     }
@@ -211,6 +212,19 @@ async function waitForCompositorReady() {
   const animation =
       document.body.animate({ opacity: [ 0, 1 ] }, {duration: 1 });
   return animation.finished;
+}
+
+// Overlay scrollbars are not visible by default, so this initiates a scroll to
+// show the scrollbar and then restores the initial scroll position.
+async function ensureOverlayScrollbarVisible(scroller =
+                                                 document.scrollingElement) {
+  await waitForCompositorReady();
+  const initialLeft = scroller.scrollLeft;
+  const initialTop = scroller.scrollTop;
+  scroller.scrollTo(initialLeft == 0 ? 1 : initialLeft - 1,
+                    initialTop == 0 ? 1 : initialTop - 1);
+  await waitForCompositorCommit();
+  scroller.scrollTo(initialLeft, initialTop);
 }
 
 function waitForNextFrame() {

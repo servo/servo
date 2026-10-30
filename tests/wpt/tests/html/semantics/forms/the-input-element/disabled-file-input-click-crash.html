@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>Clicking in a disabled input type=text field should not cause a crash</title>
+<link rel="help" href="https://github.com/servo/servo/issues/42074">
+<head>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+
+<input id=target type=file disabled>
+
+<script>
+    async function test() {
+      let rect = target.getBoundingClientRect();
+      await new test_driver.Actions()
+        .pointerMove(rect.left + 10, rect.top + 10)
+        .pointerDown()
+        .pointerUp()
+        .send();
+      document.documentElement.classList.remove("test-wait");
+    }
+    test();
+</script>
+
+</html>

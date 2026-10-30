@@ -92,13 +92,18 @@ impl<'a> UnbindContext<'a> {
 /// The context of the moving from a tree of a node when one of its
 /// inclusive ancestors is moved.
 pub(crate) struct MoveContext<'a> {
-    /// The old parent, if any, of the inclusive ancestor that was moved.
-    pub(crate) old_parent: Option<&'a Node>,
+    /// The old ancestor, i.e. the old parent of the root of the moved subtree.
+    pub(crate) old_ancestor: &'a Node,
+    /// Whether this node is the subtree root during a move.
+    pub(crate) is_subtree_root: bool,
 }
 
 impl<'a> MoveContext<'a> {
     /// Create a new `MoveContext` value.
-    pub(crate) fn new(old_parent: Option<&'a Node>) -> Self {
-        MoveContext { old_parent }
+    pub(crate) fn new(old_ancestor: &'a Node, is_subtree_root: bool) -> Self {
+        MoveContext {
+            old_ancestor,
+            is_subtree_root,
+        }
     }
 }

@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use aws_lc_rs::digest;
 use script_bindings::error::Error;
+use sha1::{Digest, Sha1};
+use sha2::{Sha256, Sha384, Sha512};
 
 use crate::subtlecrypto::{Algorithm, CryptoAlgorithm};
 
@@ -24,12 +25,10 @@ pub(crate) fn digest(nomrmalized_algorithm: &Algorithm, message: &[u8]) -> Resul
     //     of [FIPS-180-4] using message as the input message, M.
     // Step 2. If performing the operation results in an error, then throw an OperationError.
     let result = match nomrmalized_algorithm.name {
-        CryptoAlgorithm::Sha1 => digest::digest(&digest::SHA1_FOR_LEGACY_USE_ONLY, message)
-            .as_ref()
-            .to_vec(),
-        CryptoAlgorithm::Sha256 => digest::digest(&digest::SHA256, message).as_ref().to_vec(),
-        CryptoAlgorithm::Sha384 => digest::digest(&digest::SHA384, message).as_ref().to_vec(),
-        CryptoAlgorithm::Sha512 => digest::digest(&digest::SHA512, message).as_ref().to_vec(),
+        CryptoAlgorithm::Sha1 => Sha1::digest(message).to_vec(),
+        CryptoAlgorithm::Sha256 => Sha256::digest(message).to_vec(),
+        CryptoAlgorithm::Sha384 => Sha384::digest(message).to_vec(),
+        CryptoAlgorithm::Sha512 => Sha512::digest(message).to_vec(),
         _ => {
             return Err(Error::NotSupported(Some("Algorithm not supported".into())));
         },

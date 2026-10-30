@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::fmt::Write as _;
 use std::fs::Metadata;
 use std::path::PathBuf;
 
@@ -29,7 +30,7 @@ pub(crate) async fn fetch(request: &mut Request, url: ServoUrl, path_buf: PathBu
         return Response::network_error(NetworkError::LocalDirectoryError);
     }
 
-    let directory_contents = match tokio::fs::read_dir(path_buf.clone()).await {
+    let directory_contents = match tokio::fs::read_dir(&path_buf).await {
         Ok(directory_contents) => directory_contents,
         Err(error) => {
             return Response::network_error(NetworkError::ResourceLoadError(format!(
@@ -75,11 +76,13 @@ pub(crate) async fn build_html_directory_listing(
     page_html.push_str(&read_string(Resource::DirectoryListingHTML));
 
     page_html.push_str("<script>\n");
-    page_html.push_str(&format!(
+    write!(
+        page_html,
         "setData({:?}, {:?}, [",
         url.as_str(),
         parent_url_string
-    ));
+    )
+    .unwrap();
 
     while let Ok(Some(directory_entry)) = directory_contents.next_entry().await {
         let Ok(metadata) = directory_entry.metadata().await else {
@@ -120,7 +123,7 @@ fn write_directory_entry(
         "file"
     };
 
-    let file_url_string = &file_url.to_string();
+    let file_url_string = file_url.as_str();
     let file_size = metadata_to_file_size_string(&metadata);
     let last_modified = metadata
         .modified()
@@ -133,9 +136,11 @@ fn write_directory_entry(
     // fields are produced by us. `{:?}` is not enough on its own because it
     // leaves `</script>` intact inside the script element below.
     let name = script_string_literal(&name);
-    output.push_str(&format!(
+    write!(
+        output,
         "[{class:?}, {name}, {file_url_string:?}, {file_size:?}, {last_modified:?}],"
-    ));
+    )
+    .unwrap();
 }
 
 /// Serialise `value` as a JavaScript string literal that is safe to embed in the

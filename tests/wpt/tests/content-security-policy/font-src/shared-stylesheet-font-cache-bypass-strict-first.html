@@ -1,0 +1,49 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSP: a strict iframe must not poison the shared stylesheet font cache</title>
+<link rel="author" title="Dileep Maurya" href="mailto:dileepmaurya@microsoft.com">
+<link rel="help" href="https://w3c.github.io/webappsec-csp/#directive-font-src">
+<!--
+  Regression test for crbug.com/504107363.
+
+  A strict iframe (Content-Security-Policy: font-src 'none') loads the shared
+  stylesheet first. Its blocked FontResource must not be cached in the shared
+  CSSFontFaceSrcValue, so a subsequent permissive iframe can still fetch and
+  render the font.
+-->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+'use strict';
+
+function loadIframe(src) {
+  return new Promise(resolve => {
+    const iframe = document.createElement('iframe');
+    iframe.src = src;
+    function onMessage(e) {
+      if (e.source === iframe.contentWindow) {
+        window.removeEventListener('message', onMessage);
+        resolve(e.data);
+      }
+    }
+    window.addEventListener('message', onMessage);
+    document.body.appendChild(iframe);
+  });
+}
+
+promise_test(async t => {
+  const strict = await loadIframe(
+      'support/shared-stylesheet-font-cache-bypass-strict.html');
+  assert_equals(strict.fontStatus, 'error',
+                'Strict iframe must see the font blocked by CSP.');
+
+  const permissive = await loadIframe(
+      'support/shared-stylesheet-font-cache-bypass-permissive.html');
+  assert_equals(permissive.fontStatus, 'loaded',
+                'Permissive iframe must still be able to load the font ' +
+                'after the strict iframe blocked it.');
+  assert_true(permissive.fontCheck,
+              'Permissive iframe: document.fonts.check() must be true.');
+}, 'A strict iframe loading first must not poison the shared CSSFontFaceSrcValue cache');
+</script>

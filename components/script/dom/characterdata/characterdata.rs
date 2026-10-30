@@ -232,41 +232,37 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
         let mut new_data;
         {
             let data = self.data.borrow();
-            let prefix;
-            let replacement_before;
-            let remaining;
-            match split_at_utf16_code_unit_offset(&data, offset) {
-                Ok((p, astral, r)) => {
-                    prefix = p;
-                    // As if we had split the UTF-16 surrogate pair in half
-                    // and then transcoded that to UTF-8 lossily,
-                    // since our DOMString is currently strict UTF-8.
-                    replacement_before = if astral.is_some() { "\u{FFFD}" } else { "" };
-                    remaining = r;
-                },
-                // Step 2.
-                Err(()) => {
-                    return Err(Error::IndexSize(Some(
-                        "Offset is greater than the node's length".into(),
-                    )));
-                },
-            };
-            let replacement_after;
-            let suffix;
-            match split_at_utf16_code_unit_offset(remaining, count) {
-                // Steps 3.
-                Err(()) => {
-                    replacement_after = "";
-                    suffix = "";
-                },
-                Ok((_, astral, s)) => {
-                    // As if we had split the UTF-16 surrogate pair in half
-                    // and then transcoded that to UTF-8 lossily,
-                    // since our DOMString is currently strict UTF-8.
-                    replacement_after = if astral.is_some() { "\u{FFFD}" } else { "" };
-                    suffix = s;
-                },
-            };
+
+            let (prefix, replacement_before, remaining) =
+                match split_at_utf16_code_unit_offset(&data, offset) {
+                    Ok((prefix, astral, remaining)) => {
+                        // As if we had split the UTF-16 surrogate pair in half
+                        // and then transcoded that to UTF-8 lossily,
+                        // since our DOMString is currently strict UTF-8.
+                        let replacement_before = if astral.is_some() { "\u{FFFD}" } else { "" };
+                        (prefix, replacement_before, remaining)
+                    },
+                    // Step 2.
+                    Err(()) => {
+                        return Err(Error::IndexSize(Some(
+                            "Offset is greater than the node's length".into(),
+                        )));
+                    },
+                };
+
+            let (replacement_after, suffix) =
+                match split_at_utf16_code_unit_offset(remaining, count) {
+                    // Steps 3.
+                    Err(()) => ("", ""),
+                    Ok((_, astral, suffix)) => {
+                        // As if we had split the UTF-16 surrogate pair in half
+                        // and then transcoded that to UTF-8 lossily,
+                        // since our DOMString is currently strict UTF-8.
+                        let replacement_after = if astral.is_some() { "\u{FFFD}" } else { "" };
+                        (replacement_after, suffix)
+                    },
+                };
+
             // Step 4: Mutation observers.
             self.queue_mutation_record(cx);
 

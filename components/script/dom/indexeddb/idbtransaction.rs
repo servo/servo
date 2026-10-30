@@ -11,6 +11,7 @@ use profile_traits::generic_callback::GenericCallback;
 use profile_traits::generic_channel::channel;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericUnionTypes::StringOrStringSequence;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::reflect_dom_object;
 use servo_base::generic_channel::{GenericSend, GenericSender, SendError};
 use servo_base::id::ScriptEventLoopId;
@@ -67,7 +68,7 @@ pub struct IDBTransaction {
     version_change_old_version: Cell<Option<u64>>,
     // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
     // Step 4. NOTE: This reverts the value of objectStoreNames returned by the IDBDatabase object.
-    version_change_old_object_store_names: DomRefCell<Option<Vec<DOMString>>>,
+    version_change_old_object_store_names: DomRefCell<Option<Vec<TracedDOMString>>>,
     // https://w3c.github.io/IndexedDB/#transaction-concept
     // “A transaction optionally has a cleanup event loop which is an event loop.”
     #[no_trace]
@@ -114,8 +115,13 @@ impl IDBTransaction {
             commit_started: Cell::new(false),
             version_change_old_version: Cell::new(None),
             version_change_old_object_store_names: DomRefCell::new(
-                (mode == IDBTransactionMode::Versionchange)
-                    .then(|| connection.object_store_names_snapshot()),
+                (mode == IDBTransactionMode::Versionchange).then(|| {
+                    connection
+                        .object_store_names_snapshot()
+                        .into_iter()
+                        .map(|domstring| domstring.traced())
+                        .collect()
+                }),
             ),
             cleanup_event_loop: Cell::new(None),
             registered_in_global: Cell::new(false),
@@ -278,8 +284,8 @@ impl IDBTransaction {
 
     pub(crate) fn rename_object_store_handle_cache(
         &self,
-        old_name: &DOMString,
-        new_name: &DOMString,
+        old_name: &TracedDOMString,
+        new_name: &TracedDOMString,
         store: &IDBObjectStore,
     ) {
         let mut store_handles = self.store_handles.borrow_mut();
@@ -490,6 +496,12 @@ impl IDBTransaction {
                 .borrow()
                 .as_ref()
                 .cloned()
+                .map(|domstring_vec| {
+                    domstring_vec
+                        .into_iter()
+                        .map(|domstring| domstring.root())
+                        .collect::<Vec<_>>()
+                })
             {
                 self.db.restore_object_store_names(names);
             }

@@ -16,6 +16,7 @@ path = "lib.rs"
 [dependencies]
 byte-slice-cast = { workspace = true }
 euclid = { workspace = true }
+fft-convolver = { workspace = true }
 log = { workspace = true }
 parking_lot = { workspace = true }
 malloc_size_of = { workspace = true }

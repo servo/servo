@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2081940">
+<style>
+#mc {
+  columns: 4;
+  column-gap: 0;
+  column-fill: balance;
+  width: 118px;
+  height: 133px;
+  font: 12px/15px monospace;
+}
+#cb {
+  filter: opacity(1);
+}
+#fl {
+  float: right;
+  max-width: 39px;
+}
+#fixed {
+  position: fixed;
+  inset-block-start: 100%;
+  width: 30px;
+  height: 20px;
+}
+#table {
+  position: absolute;
+  display: table;
+  inset-block-start: 301px;
+  width: 30px;
+  height: 20px;
+  margin: 0;
+}
+#grid {
+  position: fixed;
+  display: grid;
+  inset-block-start: 0;
+  width: max-content;
+  height: 130px;
+}
+</style>
+
+<div id="mc">
+  <div>
+    <div style="height: 15px">lead</div>
+    <span id="cb">
+      a
+      <div>b</div>
+      c
+      <span id="fl">one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty
+        <article id="fixed">A</article>
+        <p id="table">B</p>
+        <section id="grid">C</section>
+      </span>
+      d
+    </span>
+  </div>
+</div>
+
+<script>
+const columns = document.getElementById('mc');
+const cb = document.getElementById('cb');
+const grid = document.getElementById('grid');
+function reflow() { columns.getBoundingClientRect(); }
+reflow();
+columns.style.height = '83px';
+reflow();
+grid.style.width = '260px';
+grid.style.height = '18px';
+reflow();
+columns.style.height = '21px';
+reflow();
+columns.style.columnCount = '2';
+reflow();
+grid.remove();
+cb.style.filter = 'none';
+void getComputedStyle(cb).filter; // Flush style only, not layout.
+cb.remove();
+</script>

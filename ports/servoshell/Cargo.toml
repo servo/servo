@@ -140,12 +140,13 @@ surfman = { workspace = true, features = ["sm-angle-default"] }
 [target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
 dirs = { workspace = true }
 egui = { workspace = true }
-egui-file-dialog = { workspace = true }
 egui-winit = { workspace = true, features = ["accesskit", "clipboard", "wayland"] }
 egui_glow = { workspace = true, features = ["winit"] }
 gilrs = { workspace = true }
 glow = { workspace = true }
 headers = { workspace = true }
+itertools = { workspace = true }
+rfd = { workspace = true }
 serde_json = { workspace = true }
 # For optional feature servo-allocator/use-jemalloc and servo-allocator/allocation-tracking
 servo-allocator = { workspace = true }

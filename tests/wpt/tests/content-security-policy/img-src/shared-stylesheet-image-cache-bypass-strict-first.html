@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSP: a strict iframe must not poison the shared stylesheet image cache</title>
+<link rel="author" title="Dileep Maurya" href="mailto:dileepmaurya@microsoft.com">
+<link rel="help" href="https://w3c.github.io/webappsec-csp/#directive-img-src">
+<link rel="match" href="shared-stylesheet-image-cache-bypass-loaded-ref.html">
+<!--
+  Regression test for crbug.com/504107363.
+
+  A strict iframe (Content-Security-Policy: img-src 'none') links the shared
+  stylesheet FIRST and is blocked. Its blocked image must not poison the shared
+  CSSImageValue, so a subsequent permissive iframe can still fetch and render
+  the background image, matching the (green) reference.
+-->
+<style>
+  html, body { margin: 0; }
+  /* The strict iframe only primes the shared stylesheet; keep it off-screen so
+     only the permissive iframe is compared against the reference. */
+  #strict { position: absolute; top: -9999px; left: -9999px; }
+  iframe { border: none; width: 100px; height: 100px; display: block; }
+</style>
+<script>document.documentElement.classList.add('reftest-wait');</script>
+<body></body>
+<script>
+  'use strict';
+  const strict = document.createElement('iframe');
+  strict.id = 'strict';
+  strict.src = 'support/shared-stylesheet-image-cache-bypass-strict.html';
+  window.addEventListener('message', e => {
+    if (e.source === strict.contentWindow && e.data === 'ready') {
+      // Strict document has resolved (and been blocked). Now load a permissive
+      // document that must still render the image.
+      const permissive = document.createElement('iframe');
+      permissive.src =
+          'support/shared-stylesheet-image-cache-bypass-permissive.html';
+      window.addEventListener('message', e2 => {
+        if (e2.source === permissive.contentWindow && e2.data === 'ready') {
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            document.documentElement.classList.remove('reftest-wait');
+          }));
+        }
+      });
+      document.body.appendChild(permissive);
+    }
+  });
+  document.body.appendChild(strict);
+</script>

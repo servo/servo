@@ -29,6 +29,7 @@ use markup5ever::TokenizerResult;
 use mime::{self, Mime};
 use net_traits::mime_classifier::{ApacheBugFlag, MediaType, MimeClassifier, NoSniffFlag};
 use net_traits::policy_container::PolicyContainer;
+use net_traits::response::RedirectTaint;
 use net_traits::{
     FetchMetadata, LoadContext, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming,
 };
@@ -938,6 +939,8 @@ struct NavigationParams {
     content_type: Option<Mime>,
     /// link headers from the response
     link_headers: Vec<LinkHeader>,
+    /// redirect taint from the response
+    redirect_taint: RedirectTaint,
     /// <https://html.spec.whatwg.org/multipage/#navigation-params-sandboxing>
     final_sandboxing_flag_set: SandboxingFlagSet,
     /// <https://mimesniff.spec.whatwg.org/#resource-header>
@@ -1006,6 +1009,7 @@ impl ParserContext {
                 resource_header: vec![],
                 about_base_url: Default::default(),
                 iframe_element_referrer_policy: Default::default(),
+                redirect_taint: Default::default(),
             },
             target_snapshot_params,
             source_origin,
@@ -1402,25 +1406,27 @@ impl ParserContext {
         // Step 21.9. Set responsePolicyContainer to the result of creating a
         // policy container from a fetch response given response and request's
         // reserved client.
-        let (policy_container, endpoints_list, link_headers, content_language) = metadata
-            .as_ref()
-            .map(|metadata| {
-                (
-                    Self::create_policy_container_from_fetch_response(metadata),
-                    ReportingEndpoint::parse_reporting_endpoints_header(
-                        &self.url.clone(),
-                        &metadata.headers,
-                    ),
-                    extract_links_from_headers(&metadata.headers),
-                    metadata
-                        .headers
-                        .as_ref()
-                        .and_then(|headers| headers.get("Content-Language"))
-                        .and_then(|header| header.to_str().ok())
-                        .map(|string| string.to_owned()),
-                )
-            })
-            .unwrap_or_default();
+        let (policy_container, endpoints_list, link_headers, content_language, redirect_taint) =
+            metadata
+                .as_ref()
+                .map(|metadata| {
+                    (
+                        Self::create_policy_container_from_fetch_response(metadata),
+                        ReportingEndpoint::parse_reporting_endpoints_header(
+                            &self.url.clone(),
+                            &metadata.headers,
+                        ),
+                        extract_links_from_headers(&metadata.headers),
+                        metadata
+                            .headers
+                            .as_ref()
+                            .and_then(|headers| headers.get("Content-Language"))
+                            .and_then(|header| header.to_str().ok())
+                            .map(|string| string.to_owned()),
+                        metadata.redirect_taint,
+                    )
+                })
+                .unwrap_or_default();
 
         // Step 21.10. Set finalSandboxFlags to the union of targetSnapshotParams's
         // sandboxing flags and responsePolicyContainer's CSP list's CSP-derived
@@ -1526,6 +1532,7 @@ impl ParserContext {
             iframe_element_referrer_policy: self
                 .target_snapshot_params
                 .iframe_element_referrer_policy,
+            redirect_taint,
         };
         self.submit_resource_timing(cx);
 
@@ -1659,7 +1666,31 @@ impl ParserContext {
         let cx = &mut realm;
 
         if status.is_ok() {
-            document.set_resource_fetch_timing(timing);
+            // Step 15 of https://html.spec.whatwg.org/multipage/#initialise-the-document-object
+
+            // Step 15.1. Let fullTimingInfo be the result of extracting the full timing info
+            // from navigationParams's fetch controller.
+            let mut full_timing_info = timing;
+
+            // Step 15.3. If navigationParams's response's redirect taint is "same-origin", or all of the following are true:
+            //   * navigationParams's request's client is null, or navigationParams's request's referrer is not "no-referrer", and
+            //   * navigation TAO check given navigationParams's response and navigationParams's origin returns success,
+            // then set redirectCount to navigationParams's request's redirect count.
+            //
+            // TODO: Implement the two other bullet points
+            let redirect_count =
+                if self.navigation_params.redirect_taint == RedirectTaint::SameOrigin {
+                    full_timing_info.redirect_count
+                } else {
+                    // Step 15.2. Let redirectCount be 0.
+                    0
+                };
+
+            // Step 15.4. Create the navigation timing entry for document, given fullTimingInfo, redirectCount,
+            // navigationTimingType, navigationParams's response's service worker timing info,
+            // and navigationParams's response's body info.
+            full_timing_info.redirect_count = redirect_count;
+            document.set_resource_fetch_timing(full_timing_info);
         }
 
         if let Some(parser) = parser {

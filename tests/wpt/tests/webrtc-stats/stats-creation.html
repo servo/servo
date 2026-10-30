@@ -1,0 +1,182 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>Stats creation time is well-defined</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webrtc/third_party/sdp/sdp.js"></script>
+<script src="../webrtc/RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+// The stages below follow https://github.com/w3c/webrtc-stats/issues/805
+// Only the creation times that webrtc-stats actually defines are asserted.
+// The specification does not define when "transport", "certificate",
+// "local-candidate", "remote-candidate", "candidate-pair" and "media-playout"
+// objects are created so the presence of those types is not checked after the
+// first stage.
+
+// https://w3c.github.io/webrtc-stats/#dom-rtcstatstype-media-source
+//   "The media source stats objects are created when a track is attached to
+//    any RTCRtpSender"
+const MEDIA_SOURCE = ['media-source'];
+
+// https://w3c.github.io/webrtc-stats/#the-rtp-statistics-hierarchy
+//   "The RTCOutboundRtpStreamStats is created when the RTP sender is
+//    configured by setting a local or remote SDP answer (via
+//    setLocalDescription() or setRemoteDescription() and the signaling state
+//    returning to "stable")"
+const OUTBOUND_RTP = ['outbound-rtp'];
+
+// https://w3c.github.io/webrtc-stats/#the-rtp-statistics-hierarchy
+//   "The RTCInboundRtpStreamStats is created when the first RTP packet for
+//    this SSRC is received and the remote RTP stream stats objects
+//    (RTCRemoteInboundRtpStreamStats and RTCRemoteOutboundRtpStreamStats) are
+//    created when the corresponding RTCP packet is first received."
+const RTP_AFTER_PACKETS =
+    ['inbound-rtp', 'remote-inbound-rtp', 'remote-outbound-rtp'];
+
+// https://w3c.github.io/webrtc-stats/#dom-rtccodecstats
+//   "The RTCCodecStats object is created when one or more codecId references
+//    the codec."
+// which means no codec stats can exist while there are no RTP stream stats.
+const CODEC = ['codec'];
+
+// Waiting between the stages gives the ICE agent time to gather candidates
+// which then end up in localDescription. Removing them from the descriptions
+// used for the first negotiation keeps the connection from being established
+// before the "after-connected" stage.
+function withoutCandidates({type, sdp}) {
+  const lines = SDPUtils.splitLines(sdp)
+      .filter(line => !line.startsWith('a=candidate:') &&
+                      !line.startsWith('a=end-of-candidates'));
+  return {type, sdp: lines.join('\r\n') + '\r\n'};
+}
+
+async function gatherStatsAtStages(test) {
+  const pc1 = createPeerConnectionWithCleanup(test);
+  const pc2 = createPeerConnectionWithCleanup(test);
+
+  const stats = {};
+  // Wait a bit to avoid stats caching.
+  const settle = () => new Promise(r => test.step_timeout(r, 100));
+
+  const [track, stream] = await createTrackAndStreamWithCleanup(test, 'audio');
+  pc1.createDataChannel('test');
+  await settle();
+  stats['after-createDataChannel'] = await pc1.getStats();
+
+  pc1.addTrack(track, stream);
+  pc2.addTrack(track, stream);
+  await settle();
+  stats['after-addTrack'] = await pc1.getStats();
+
+  await pc1.setLocalDescription();
+  await settle();
+  stats['after-setLocalDescription'] = await pc1.getStats();
+
+  await pc2.setRemoteDescription(withoutCandidates(pc1.localDescription));
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(withoutCandidates(pc2.localDescription));
+  await settle();
+  stats['after-negotiation'] = await pc1.getStats();
+
+  // Renegotiation to add ICE candidates.
+  await Promise.all([
+    waitForIceGatheringState(pc1, ['complete']),
+    waitForIceGatheringState(pc2, ['complete']),
+  ]);
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(pc2.localDescription);
+
+  await waitForConnectionStateChange(pc1, ['connected']);
+  await settle();
+  stats['after-connected'] = await pc1.getStats();
+
+  return stats;
+}
+
+function typesOf(report) {
+  return [...new Set([...report.values()].map(({type}) => type))].sort();
+}
+
+function assertPresent(types, expected, stage) {
+  for (const type of expected) {
+    assert_true(types.includes(type),
+        `${type} stats exist ${stage}, got [${types.join(', ')}]`);
+  }
+}
+
+function assertAbsent(types, unexpected, stage) {
+  for (const type of unexpected) {
+    assert_false(types.includes(type),
+        `${type} stats do not exist ${stage}, got [${types.join(', ')}]`);
+  }
+}
+
+promise_test(async (test) => {
+  const stats = await gatherStatsAtStages(test);
+  const values = [...stats['after-createDataChannel'].values()];
+  const types = [...new Set(values.map(s => s.type))].sort();
+  assert_array_equals(types, ['data-channel', 'peer-connection']);
+  const peerConnectionStats = values.find(s => s.type === 'peer-connection');
+  assert_true('dataChannelsOpened' in peerConnectionStats,
+    'peer-connection stats have dataChannelsOpened');
+  assert_true('dataChannelsClosed' in peerConnectionStats,
+    'peer-connection stats have dataChannelsClosed');
+  const dataChannelStats = values.find(s => s.type === 'data-channel');
+  for (const attr of ['label', 'protocol', 'state',
+                      'messagesSent', 'bytesSent',
+                      'messagesReceived', 'bytesReceived']) {
+    assert_true(attr in dataChannelStats, `data-channel stats have ${attr}`);
+  }
+  assert_false('dataChannelIdentifier' in dataChannelStats,
+    'data-channel stats do not have dataChannelIdentifier yet');
+  assertStatsReferencesResolve(stats['after-createDataChannel']);
+}, 'Stats creation time: after createDataChannel');
+
+promise_test(async (test) => {
+  const stats = await gatherStatsAtStages(test);
+  const types = typesOf(stats['after-addTrack']);
+  const stage = 'after addTrack';
+  assertStatsReferencesResolve(stats['after-addTrack']);
+  assertPresent(types, MEDIA_SOURCE, stage);
+  assertAbsent(types, [...OUTBOUND_RTP, ...RTP_AFTER_PACKETS, ...CODEC],
+      stage);
+}, 'Stats creation time: after addTrack');
+
+promise_test(async (test) => {
+  const stats = await gatherStatsAtStages(test);
+  const types = typesOf(stats['after-setLocalDescription']);
+  const stage = 'after setLocalDescription';
+  assertStatsReferencesResolve(stats['after-setLocalDescription']);
+  assertPresent(types, MEDIA_SOURCE, stage);
+  // The signaling state is "have-local-offer", not "stable", so the sender is
+  // not configured yet.
+  assertAbsent(types, [...OUTBOUND_RTP, ...RTP_AFTER_PACKETS, ...CODEC],
+      stage);
+}, 'Stats creation time: after setLocalDescription');
+
+promise_test(async (test) => {
+  const stats = await gatherStatsAtStages(test);
+  const types = typesOf(stats['after-negotiation']);
+  const stage = 'after negotiation';
+  assertStatsReferencesResolve(stats['after-negotiation']);
+  assertPresent(types, [...MEDIA_SOURCE, ...OUTBOUND_RTP], stage);
+  // The descriptions exchanged above carry no ICE candidates so no RTP or RTCP
+  // packet can have been received yet.
+  assertAbsent(types, RTP_AFTER_PACKETS, stage);
+}, 'Stats creation time: after negotiation');
+
+promise_test(async (test) => {
+  const stats = await gatherStatsAtStages(test);
+  const types = typesOf(stats['after-connected']);
+  const stage = 'after connected';
+  assertStatsReferencesResolve(stats['after-connected']);
+  assertPresent(types, [...MEDIA_SOURCE, ...OUTBOUND_RTP], stage);
+  // Packets may or may not have been received already so the creation of the
+  // remaining RTP stats types can not be asserted here.
+}, 'Stats creation time: after connected');
+</script>

@@ -1,0 +1,56 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>A complete framebuffer without a color attachment can be drawn to but not read from</title>
+<link rel="author" title="mxmgorin" href="mailto:102797145+mxmgorin@users.noreply.github.com">
+<link rel="help" href="https://registry.khronos.org/webgl/specs/latest/1.0/#READING_FROM_MISSING_ATTACHMENT">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function depthOnlyContext(version) {
+    const gl = document.createElement("canvas").getContext(version);
+    const renderbuffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, 4, 4);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, gl.createFramebuffer());
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);
+    assert_equals(gl.checkFramebufferStatus(gl.FRAMEBUFFER), gl.FRAMEBUFFER_COMPLETE);
+    return gl;
+}
+
+function pointProgram(gl) {
+    const shader = (type, source) => {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        return shader;
+    };
+    const program = gl.createProgram();
+    gl.attachShader(program, shader(gl.VERTEX_SHADER,
+        "void main() { gl_Position = vec4(0.0, 0.0, 0.0, 1.0); gl_PointSize = 1.0; }"));
+    gl.attachShader(program, shader(gl.FRAGMENT_SHADER,
+        "void main() { gl_FragColor = vec4(1.0); }"));
+    gl.linkProgram(program);
+    return program;
+}
+
+for (const version of ["webgl", "webgl2"]) {
+    test(function() {
+        const gl = depthOnlyContext(version);
+        gl.clear(gl.DEPTH_BUFFER_BIT);
+        assert_equals(gl.getError(), gl.NO_ERROR);
+    }, `${version}: clear`);
+
+    test(function() {
+        const gl = depthOnlyContext(version);
+        gl.useProgram(pointProgram(gl));
+        gl.drawArrays(gl.POINTS, 0, 1);
+        assert_equals(gl.getError(), gl.NO_ERROR);
+    }, `${version}: drawArrays`);
+
+    test(function() {
+        const gl = depthOnlyContext(version);
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+        assert_equals(gl.getError(), gl.INVALID_OPERATION);
+    }, `${version}: readPixels`);
+}
+</script>

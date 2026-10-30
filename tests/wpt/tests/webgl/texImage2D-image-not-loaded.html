@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>texImage2D with a same-origin image that is still loading does not throw</title>
+<link rel="author" title="Maxim Gorin" href="mailto:code@mxmgorin.dev">
+<link rel="help" href="https://registry.khronos.org/webgl/specs/latest/1.0/#ORIGIN_RESTRICTIONS">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async function() {
+    var gl = document.createElement("canvas").getContext("webgl");
+    gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+
+    var image = new Image();
+    var loaded = new Promise(function(resolve, reject) {
+        image.onload = resolve;
+        image.onerror = reject;
+    });
+    // Delays the response so that the image is still loading during the first upload.
+    image.src = "/images/green.png?pipe=trickle(d1)";
+    assert_false(image.complete, "image is loading");
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+
+    await loaded;
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+    assert_equals(gl.getError(), gl.NO_ERROR, "texImage2D after load");
+}, "texImage2D with a same-origin image that is still loading");
+</script>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <title>Table's border attribute changing dynamically</title>
+  <link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#tables-2">
+  <link rel="match" href="/css/reference/ref-filled-green-200px-square.html">
+  <meta name="assert" content="Changing the value of the `border` attribute on the `<table>`
+    should update the `border-width` properly.
+  ">
+  <style>
+    #wrapper { width: 200px; height: 200px; background: red }
+    #target { border-style: solid; border-color: green }
+  </style>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div id="wrapper">
+    <table id="target" border="10"></table>
+  </div>
+  <script src="/common/rendering-utils.js"></script>
+  <script src="/common/reftest-wait.js"></script>
+  <script type="module">
+    await waitForAtLeastOneFrame();
+    document.getElementById("target").setAttribute("border", "100");
+    takeScreenshot()
+  </script>
+</html>

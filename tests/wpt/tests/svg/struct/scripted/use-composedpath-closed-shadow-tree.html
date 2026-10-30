@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>composedPath() in a listener on a use element does not expose the use shadow tree</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-event-composedpath">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/struct.html#UseShadowTree">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<svg width="100" height="100">
+  <defs><rect id="original" width="50" height="50" fill="green"/></defs>
+  <use id="u" href="#original"/>
+</svg>
+<script>
+// The click has to be a real one: use.dispatchEvent() starts the event at the use
+// element and never enters its shadow tree.
+async function pathOfClickOn(listenerTarget) {
+  let path;
+  const handler = e => { path ??= e.composedPath(); };
+  listenerTarget.addEventListener("click", handler);
+  await test_driver.click(document.getElementById("u"));
+  listenerTarget.removeEventListener("click", handler);
+  return path;
+}
+
+promise_test(async () => {
+  const u = document.getElementById("u");
+  const path = await pathOfClickOn(u);
+  assert_false(path.some(n => n instanceof ShadowRoot), "no ShadowRoot");
+  assert_equals(path.filter(n => n === u).length, 1, "use appears once");
+  assert_equals(path[0], u, "use is first");
+}, "composedPath() in a listener on the use element");
+
+promise_test(async () => {
+  const u = document.getElementById("u");
+  const path = await pathOfClickOn(document.querySelector("svg"));
+  assert_false(path.some(n => n instanceof ShadowRoot), "no ShadowRoot");
+  assert_equals(path.filter(n => n === u).length, 1, "use appears once");
+  assert_equals(path[0], u, "use is first");
+}, "composedPath() in a listener on an ancestor of the use element");
+</script>

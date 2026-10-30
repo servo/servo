@@ -506,3 +506,27 @@ promise_test(async t => {
   decoder.reset();
   assert_equals(decoder.decodeQueueSize, 0);
 }, 'AudioDecoder decodeQueueSize test');
+
+if (location.search === '?opus') {
+  promise_test(async t => {
+    const callbacks = {};
+    const decoder = createAudioDecoder(t, callbacks);
+
+    let outputSampleRate = 0;
+    callbacks.output = frame => {
+      outputSampleRate = frame.sampleRate;
+      frame.close();
+    };
+
+    let config = Object.assign({}, CONFIG);
+    config.sampleRate = 44100;
+
+    decoder.configure(config);
+    decoder.decode(CHUNKS[0]);
+    await decoder.flush();
+
+    // RFC 7845 Section 5.1: Opus audio is decoded at 48000 Hz regardless of
+    // configured rate.
+    assert_equals(outputSampleRate, 48000);
+  }, 'Test Opus decoding with non-48k sample rate');
+}

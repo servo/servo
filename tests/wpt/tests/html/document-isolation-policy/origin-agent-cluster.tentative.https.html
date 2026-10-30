@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Document-Isolation-Policy: interaction with Origin-Agent-Cluster</title>
+<link rel="help" href="https://html.spec.whatwg.org/#origin-keyed-agent-clusters">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="./resources/common.js"></script>
+<body>
+<script>
+"use strict";
+
+// The agent cluster of a document with a policy is keyed by its origin and policy. It does not use or change
+// the browsing context group's historical agent cluster key map, which decides whether same-origin documents
+// without a policy are origin-keyed.
+
+const oacSiteKeyed = "|header(Origin-Agent-Cluster,%3F0)";
+const oacOriginKeyed = "|header(Origin-Agent-Cluster,%3F1)";
+
+promise_test(async t => {
+  const uuid = token();
+  await createFrame(t, executorURL(dip_require_corp + oacSiteKeyed, uuid));
+  assert_true(await runInContext(uuid, "return originAgentCluster;"));
+}, "A document with a policy that sends Origin-Agent-Cluster: ?0 is in an origin-keyed agent cluster");
+
+[
+  { header: oacSiteKeyed, expected: false, description: "Origin-Agent-Cluster: ?0 is in a site-keyed agent cluster" },
+  { header: oacOriginKeyed, expected: true, description: "Origin-Agent-Cluster: ?1 is in an origin-keyed agent cluster" },
+].forEach(({ header, expected, description }) => {
+  promise_test(async t => {
+    // A noopener popup is in a new browsing context group, which hasn't decided the keying of this origin yet.
+    const popup = token();
+    window.open(executorURL(dip_require_corp, popup), "_blank", "noopener");
+    t.add_cleanup(() => send(popup, "window.close();"));
+    assert_true(await runInContext(popup, "return originAgentCluster;"), "the popup with a policy is origin-keyed");
+    const frame = token();
+    await runInContext(popup, `
+      ${appendFrameScript(executorURL(header, frame))}
+      return "loaded";
+    `);
+    assert_equals(await runInContext(frame, "return originAgentCluster;"), expected);
+  }, `After a document with a policy, a same-origin document without one that sends ${description}`);
+});
+</script>

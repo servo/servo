@@ -86,8 +86,8 @@ use raw_window_handle::{
     WindowHandle,
 };
 use servo::{
-    self, DevicePixel, EventLoopWaker, InputMethodControl, InputMethodType, LoadStatus,
-    MediaSessionPlaybackState, PrefValue, SelectElement, WebViewId, Zero,
+    self, DevicePixel, EventLoopWaker, InputMethodControl, InputMethodType, LoadStatus, PrefValue,
+    SelectElement, WebViewId, Zero,
 };
 use xcomponent_sys::keyboard_types_compat::{KeyEventConverter, ModifierState};
 use xcomponent_sys::{
@@ -1289,23 +1289,6 @@ impl HostTrait for HostCallbacks {
         } else {
             warn!("IME hide called, but no active IME found!")
         }
-    }
-
-    fn on_media_session_metadata(&self, title: String, artist: String, album: String) {
-        warn!("on_media_session_metadata not implemented");
-    }
-
-    fn on_media_session_playback_state_change(&self, state: MediaSessionPlaybackState) {
-        warn!("on_media_session_playback_state_change not implemented");
-    }
-
-    fn on_media_session_set_position_state(
-        &self,
-        duration: f64,
-        position: f64,
-        playback_rate: f64,
-    ) {
-        warn!("on_media_session_set_position_state not implemented");
     }
 
     fn on_show_select_element(&self, _webview_id: WebViewId, _prompt: SelectElement) {}

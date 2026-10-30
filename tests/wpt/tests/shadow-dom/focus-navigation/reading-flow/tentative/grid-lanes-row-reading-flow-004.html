@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Grid Lanes: reversed grid-rows reading flow with dense items</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-layout">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/shadow-dom.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+
+<style>
+.test-case {
+  margin-top: 20px;
+}
+.lanes {
+  display: grid-lanes;
+  grid-template-rows: repeat(4, 80px);
+  grid-lanes-pack: dense;
+  grid-lanes-direction: row fill-reverse;
+  flow-tolerance: 0;
+  reading-flow: grid-rows;
+  width: 120px;
+}
+.lanes > button {
+  box-sizing: border-box;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+}
+</style>
+
+<!-- L starts in row 1, but its row-2 subtree owns N and O. -->
+<div class="test-case" data-expect="l,i,n,o,m,j,k"
+     data-description="Grid-rows reverses nested dense items within each row, not the rows">
+  <div class="lanes">
+    <button id="i" style="grid-row: 1; width: 60px">I</button>
+    <button id="j" style="grid-row: 3; width: 20px">J</button>
+    <button id="k" style="grid-row: 4; width: 60px">K</button>
+    <button id="l" style="grid-row: 1 / span 2; width: 40px">L</button>
+    <button id="m" style="grid-row: 3 / span 2; width: 40px">M</button>
+    <button id="n" style="grid-row: 2 / span 2; width: 20px">N</button>
+    <button id="o" style="grid-row: 2; width: 10px">O</button>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

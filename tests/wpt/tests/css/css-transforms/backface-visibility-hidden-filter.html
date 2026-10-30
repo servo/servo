@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>backface visibility: hidden does not hide an element with a 360 degree transform that uses a filter</title>
+<link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+<link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-property">
+<link rel="help" href="http://www.w3.org/TR/css-transforms-2/#propdef-backface-visibility">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<style>
+.outer {
+  width: 100px;
+  height: 100px;
+  transform-style: preserve-3d;
+  transform: rotateY(180deg);
+}
+
+.inner {
+  width: 100px;
+  height: 100px;
+  backface-visibility: hidden;
+  transform: rotateY(180deg);
+  background: green;
+  filter: brightness(1);
+}
+</style>
+
+<div class="outer">
+  <div class="inner"></div>
+</div>

@@ -38,7 +38,8 @@
   }, "Serialization of quoted \"<generic-family>\"");
 
   test(function() {
-    kGenericFontFamilyKeywords.forEach(keyword => {
+    // Prefix keywords only: `-webkit-generic(...)` is not a valid family identifier.
+    kGenericFontFamilyKeywords.filter(keyword => !keyword.includes("(")).forEach(keyword => {
       var prefixed_keyword = `-webkit-${keyword}`;
       assert_equals(SetFontFamilyAndSerialize(prefixed_keyword), prefixed_keyword);
     });

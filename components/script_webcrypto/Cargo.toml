@@ -50,6 +50,7 @@ ocb3 = { workspace = true }
 p256 = { workspace = true }
 p384 = { workspace = true }
 p521 = { workspace = true }
+pbkdf2 = { workspace = true }
 pkcs8 = { workspace = true }
 rand = { workspace = true }
 rsa = { workspace = true }

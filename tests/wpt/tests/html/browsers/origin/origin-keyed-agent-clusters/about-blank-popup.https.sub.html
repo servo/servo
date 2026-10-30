@@ -21,7 +21,7 @@ promise_setup(async () => {
   await loaded;
 });
 
-// The popup's top-level creation URL is about:blank, which is potentially trustworthy, so the frame
-// is in a secure context and its origin-keying request is honored.
+// The popup's initial about:blank document has this page's origin, which is potentially
+// trustworthy, so the frame is in a secure context and its origin-keying request is honored.
 testGetter(() => popup.frames[0], true, "frame in about:blank popup");
 </script>

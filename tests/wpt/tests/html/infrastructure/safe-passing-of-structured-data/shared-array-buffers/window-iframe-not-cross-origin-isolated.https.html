@@ -1,0 +1,60 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>SharedArrayBuffer serialization in a cross-origin frame with and without the "cross-origin-isolated" feature</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/structured-data.html#structuredserializeinternal">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#concept-settings-object-cross-origin-isolated-capability">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<body>
+<script>
+"use strict";
+
+// A frame in this cross-origin isolated browsing context group has the SharedArrayBuffer constructor. But it can only
+// serialize a SharedArrayBuffer if it is cross-origin isolated, for which it needs the "cross-origin-isolated"
+// feature, whose default allowlist is 'self'.
+
+const executorPath = "/common/dispatcher/executor.html?pipe=header(Cross-Origin-Embedder-Policy,require-corp)|header(Cross-Origin-Resource-Policy,cross-origin)";
+
+[
+  {
+    allow: undefined,
+    expected: { crossOriginIsolated: false, SharedArrayBuffer: "function", clone: "DataCloneError" },
+    description: `A cross-origin frame without allow="cross-origin-isolated" is not cross-origin isolated and cannot serialize a SharedArrayBuffer`,
+  },
+  {
+    allow: "cross-origin-isolated",
+    expected: { crossOriginIsolated: true, SharedArrayBuffer: "function", clone: "cloned" },
+    description: `A cross-origin frame with allow="cross-origin-isolated" is cross-origin isolated and can serialize a SharedArrayBuffer`,
+  },
+].forEach(({ allow, expected, description }) => {
+  promise_test(async t => {
+    assert_true(crossOriginIsolated, "precondition: this document is cross-origin isolated");
+    const uuid = token();
+    const frame = document.createElement("iframe");
+    t.add_cleanup(() => frame.remove());
+    if (allow)
+      frame.allow = allow;
+    const loaded = new Promise(resolve => frame.onload = resolve);
+    frame.src = get_host_info().HTTPS_REMOTE_ORIGIN + executorPath + `&uuid=${uuid}`;
+    document.body.append(frame);
+    await loaded;
+
+    const reply = token();
+    send(uuid, `
+      let clone;
+      try {
+        structuredClone(new SharedArrayBuffer(8));
+        clone = "cloned";
+      } catch (e) {
+        clone = e.name;
+      }
+      send("${reply}", JSON.stringify({ crossOriginIsolated, SharedArrayBuffer: typeof SharedArrayBuffer, clone }));
+    `);
+    assert_object_equals(JSON.parse(await receive(reply)), expected);
+  }, description);
+});
+</script>

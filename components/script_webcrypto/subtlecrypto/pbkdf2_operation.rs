@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::num::NonZero;
-
-use aws_lc_rs::pbkdf2;
 use js::context::JSContext;
+use pbkdf2::pbkdf2_hmac;
 use script_bindings::codegen::GenericBindings::CryptoKeyBinding::{KeyType, KeyUsage};
 use script_bindings::codegen::GenericBindings::SubtleCryptoBinding::KeyFormat;
 use script_bindings::error::Error;
 use script_bindings::root::DomRoot;
+use sha1::Sha1;
+use sha2::{Sha256, Sha384, Sha512};
 
 use crate::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::subtlecrypto::{
@@ -33,12 +33,13 @@ pub(crate) fn derive_bits<D: Equivalence>(
         )));
     };
 
-    // Step 2. If the iterations member of normalizedAlgorithm is zero, then throw an OperationError.
-    let Ok(iterations) = NonZero::<u32>::try_from(normalized_algorithm.iterations) else {
+    // Step 2. If the iterations member of normalizedAlgorithm is zero, then throw an
+    // OperationError.
+    if normalized_algorithm.iterations == 0 {
         return Err(Error::Operation(Some(
             "Normalized algorithm's iterations is zero".into(),
         )));
-    };
+    }
 
     // Step 3. If length is zero, return an empty byte sequence.
     if length == 0 {
@@ -47,11 +48,52 @@ pub(crate) fn derive_bits<D: Equivalence>(
 
     // Step 4. Let prf be the MAC Generation function described in Section 4 of [FIPS-198-1] using
     // the hash function described by the hash member of normalizedAlgorithm.
-    let prf = match normalized_algorithm.hash.name() {
-        CryptoAlgorithm::Sha1 => pbkdf2::PBKDF2_HMAC_SHA1,
-        CryptoAlgorithm::Sha256 => pbkdf2::PBKDF2_HMAC_SHA256,
-        CryptoAlgorithm::Sha384 => pbkdf2::PBKDF2_HMAC_SHA384,
-        CryptoAlgorithm::Sha512 => pbkdf2::PBKDF2_HMAC_SHA512,
+    // Step 5. Let result be the result of performing the PBKDF2 operation defined in Section 5.2
+    // of [RFC8018] using prf as the pseudo-random function, PRF, the password represented by the
+    // [[handle]] internal slot of key as the password, P, the salt attribute of
+    // normalizedAlgorithm as the salt, S, the value of the iterations attribute of
+    // normalizedAlgorithm as the iteration count, c, and length divided by 8 as the intended key
+    // length, dkLen.
+    // Step 6. If the key derivation operation fails, then throw an OperationError.
+    let Handle::Pbkdf2Password(password) = key.handle() else {
+        return Err(Error::Operation(Some(
+            "[[handle]] internal slot of key is not a PBKDF2 password".into(),
+        )));
+    };
+    let mut result = vec![0; length as usize / 8];
+    match normalized_algorithm.hash.name() {
+        CryptoAlgorithm::Sha1 => {
+            pbkdf2_hmac::<Sha1>(
+                password,
+                &normalized_algorithm.salt,
+                normalized_algorithm.iterations,
+                &mut result,
+            );
+        },
+        CryptoAlgorithm::Sha256 => {
+            pbkdf2_hmac::<Sha256>(
+                password,
+                &normalized_algorithm.salt,
+                normalized_algorithm.iterations,
+                &mut result,
+            );
+        },
+        CryptoAlgorithm::Sha384 => {
+            pbkdf2_hmac::<Sha384>(
+                password,
+                &normalized_algorithm.salt,
+                normalized_algorithm.iterations,
+                &mut result,
+            );
+        },
+        CryptoAlgorithm::Sha512 => {
+            pbkdf2_hmac::<Sha512>(
+                password,
+                &normalized_algorithm.salt,
+                normalized_algorithm.iterations,
+                &mut result,
+            );
+        },
         _ => {
             return Err(Error::NotSupported(Some(
                 "Normalized algorithm's hash name is not supported".into(),
@@ -59,26 +101,7 @@ pub(crate) fn derive_bits<D: Equivalence>(
         },
     };
 
-    // Step 5. Let result be the result of performing the PBKDF2 operation defined in Section 5.2
-    // of [RFC8018] using prf as the pseudo-random function, PRF, the password represented by the
-    // [[handle]] internal slot of key as the password, P, the salt attribute of
-    // normalizedAlgorithm as the salt, S, the value of the iterations attribute of
-    // normalizedAlgorithm as the iteration count, c, and length divided by 8 as the intended key
-    // length, dkLen.
-    let mut result = vec![0; length as usize / 8];
-    pbkdf2::derive(
-        prf,
-        iterations,
-        &normalized_algorithm.salt,
-        key.handle().as_bytes(),
-        &mut result,
-    );
-
-    // Step 5. If the key derivation operation fails, then throw an OperationError.
-    // TODO: Investigate when key derivation can fail and how ring handles that case
-    // (pbkdf2::derive does not return a Result type)
-
-    // Step 6. Return result
+    // Step 7. Return result.
     Ok(result)
 }
 
@@ -96,7 +119,8 @@ pub(crate) fn import_key<D: Equivalence>(
         return Err(Error::NotSupported(Some("Format is not raw".into())));
     }
 
-    // Step 2. If usages contains a value that is not "deriveKey" or "deriveBits", then throw a SyntaxError.
+    // Step 2. If usages contains a value that is not "deriveKey" or "deriveBits", then throw a
+    // SyntaxError.
     usages.ensure_only_contain_entries_from(&[KeyUsage::DeriveKey, KeyUsage::DeriveBits])?;
 
     // Step 3. If extractable is not false, then throw a SyntaxError.
@@ -119,7 +143,7 @@ pub(crate) fn import_key<D: Equivalence>(
         extractable,
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
         usages.normalized_value(),
-        Handle::Pbkdf2(key_data.to_vec().into()),
+        Handle::Pbkdf2Password(key_data.to_vec().into()),
     );
 
     // Step 9. Return key.

@@ -51,4 +51,42 @@
       'AnalyserNode output matches expected input'
     );
   }, 'AnalyserNode output passes through input signal unmodified');
+
+  promise_test(async t => {
+    const length = 128;
+    const sampleRate = 48000;
+    const context = new OfflineAudioContext(1, length, sampleRate);
+
+    const modSource = new ConstantSourceNode(context, {offset: 0.3});
+    const analyser = new AnalyserNode(context, {fftSize: 128});
+    const carrier = new ConstantSourceNode(context, {offset: 0});
+
+    modSource.connect(analyser);
+    analyser.connect(carrier.offset);
+    carrier.connect(context.destination);
+
+    modSource.start();
+    carrier.start();
+
+    const renderedBuffer = await context.startRendering();
+    const renderedData = renderedBuffer.getChannelData(0);
+    const expectedData = new Float32Array(length).fill(0.3);
+
+    const timeDomainData = new Float32Array(analyser.fftSize);
+    analyser.getFloatTimeDomainData(timeDomainData);
+
+    assert_array_approx_equals(
+      timeDomainData,
+      expectedData,
+      1e-7,
+      'AnalyserNode recorded expected input'
+    );
+
+    assert_array_approx_equals(
+      renderedData,
+      expectedData,
+      1e-7,
+      'AnalyserNode connected only to an AudioParam passes signal through'
+    );
+  }, 'AnalyserNode connected only to an AudioParam passes through input signal');
 </script>

@@ -47,7 +47,9 @@ struct TraceInNoTraceDiagnostic {
 pub fn register(lint_store: &mut LintStore) {
     let symbols = Symbols::new();
     lint_store.register_lints(&[TRACE_IN_NO_TRACE, EMPTY_TRACE_IN_NO_TRACE]);
-    lint_store.register_late_pass(move |_| Box::new(NotracePass::new(symbols.clone())));
+    lint_store.register_late_lint_pass(Box::new(move |_| {
+        Box::new(NotracePass::new(symbols.clone()))
+    }));
 }
 
 /// Lint for ensuring safe usage of NoTrace wrappers

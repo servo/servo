@@ -23,7 +23,9 @@ declare_tool_lint! {
 pub fn register(lint_store: &mut LintStore) {
     let symbols = Symbols::new();
     lint_store.register_lints(&[UNROOTED_MUST_ROOT]);
-    lint_store.register_late_pass(move |_| Box::new(UnrootedPass::new(symbols.clone())));
+    lint_store.register_late_lint_pass(Box::new(move |_| {
+        Box::new(UnrootedPass::new(symbols.clone()))
+    }));
 }
 
 /// Lint for ensuring safe usage of unrooted pointers
@@ -78,13 +80,16 @@ fn associated_type_has_attr<'tcx>(
                     .next()
                     .is_some();
             },
-            ty::Alias(AliasTy {
-                kind:
-                    ty::AliasTyKind::Projection { def_id } |
-                    ty::AliasTyKind::Inherent { def_id } |
-                    ty::AliasTyKind::Free { def_id },
-                ..
-            }) => {
+            ty::Alias(
+                _,
+                AliasTy {
+                    kind:
+                        ty::AliasTyKind::Projection { def_id } |
+                        ty::AliasTyKind::Inherent { def_id } |
+                        ty::AliasTyKind::Free { def_id },
+                    ..
+                },
+            ) => {
                 return cx
                     .tcx
                     .get_attrs_by_path(*def_id, &[sym.crown, sym.unrooted_must_root_lint, attr])
@@ -132,13 +137,16 @@ fn is_unrooted_ty<'tcx>(
                     let inner = substs.type_at(0);
                     match inner.kind() {
                         ty::Adt(did, _) => !has_attr(did.did(), sym.allow_unrooted_in_rc),
-                        ty::Alias(AliasTy {
-                            kind:
-                                ty::AliasTyKind::Projection { def_id } |
-                                ty::AliasTyKind::Inherent { def_id } |
-                                ty::AliasTyKind::Free { def_id },
-                            ..
-                        }) => !has_attr(*def_id, sym.allow_unrooted_in_rc),
+                        ty::Alias(
+                            _,
+                            AliasTy {
+                                kind:
+                                    ty::AliasTyKind::Projection { def_id } |
+                                    ty::AliasTyKind::Inherent { def_id } |
+                                    ty::AliasTyKind::Free { def_id },
+                                ..
+                            },
+                        ) => !has_attr(*def_id, sym.allow_unrooted_in_rc),
                         _ => true,
                     }
                 } else if match_def_path(cx, did.did(), &[sym::core, sym.cell, sym.Ref]) ||
@@ -218,7 +226,8 @@ fn is_unrooted_ty<'tcx>(
             ty::RawPtr(..) => false, // don't recurse down *ptrs
             ty::FnDef(..) | ty::FnPtr(..) => false,
             ty::Alias(
-                aliast_ty @ AliasTy {
+                _,
+                alias_ty @ AliasTy {
                     kind:
                         ty::AliasTyKind::Projection { def_id } |
                         ty::AliasTyKind::Inherent { def_id } |
@@ -235,7 +244,7 @@ fn is_unrooted_ty<'tcx>(
                     // If this is a projection (i.e. Self::FOO), recursing will
                     // make us consider Self, which is overly conservative for
                     // this analysys.
-                    !matches!(aliast_ty.kind, ty::AliasTyKind::Projection { .. })
+                    !matches!(alias_ty.kind, ty::AliasTyKind::Projection { .. })
                 }
             },
             _ => true,

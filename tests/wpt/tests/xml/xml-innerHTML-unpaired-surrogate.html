@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Unpaired surrogate in XML innerHTML is not well-formed</title>
+<link rel="help" href="https://www.w3.org/TR/REC-xml/#wf-Legalchar">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  function xhtml_document() {
+    return (new DOMParser()).parseFromString(
+      "<html xmlns='http://www.w3.org/1999/xhtml'></html>",
+      "application/xhtml+xml"
+    );
+  }
+
+  test(function() {
+    let doc = xhtml_document();
+    assert_throws_dom("SyntaxError", () => {
+      doc.documentElement.innerHTML = "\uD800";
+    });
+  }, "Lone high surrogate in XML innerHTML throws a SyntaxError");
+
+  test(function() {
+    let doc = xhtml_document();
+    doc.documentElement.innerHTML = "\uD83D\uDD25";
+    assert_equals(doc.documentElement.textContent, "\uD83D\uDD25");
+  }, "Valid surrogate pair in XML innerHTML is preserved");
+</script>

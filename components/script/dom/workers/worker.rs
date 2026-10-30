@@ -249,7 +249,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
         #[cfg(feature = "webgl")]
         let webgl_chan = global
             .downcast::<Window>()
-            .and_then(|window| window.webgl_chan_value());
+            .and_then(|window| window.webgl_chan());
         let init = prepare_workerscope_init(
             global,
             #[cfg(feature = "devtools")]

@@ -340,6 +340,13 @@ pub(crate) struct GlobalScope {
 }
 
 impl GlobalScope {
+    /// Terminate any ongoing fetches, close event source, and clear loaded script modules.
+    pub(crate) fn tear_down(&self) {
+        self.fetch_group_mut().terminate(self);
+        self.close_event_sources();
+        self.with_module_map(|module_map| std::mem::take(&mut *module_map.borrow_mut()));
+    }
+
     /// <https://storage.spec.whatwg.org/#obtain-a-storage-key-for-non-storage-purposes>
     pub(crate) fn obtain_storage_key_for_non_storage_purposes(&self) -> ImmutableOrigin {
         // Step 1: Let origin be environment’s origin if environment is an environment settings object; otherwise environment’s creation URL’s origin.
@@ -2305,6 +2312,7 @@ impl GlobalScope {
             is_nested_browsing_context: false,
             insecure_requests_policy: self.insecure_requests_policy(),
             has_trustworthy_ancestor_origin: false,
+            network_partition_key: None,
         }
     }
 

@@ -22,7 +22,7 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use parking_lot::RwLock;
 use servo_arc::Arc as ServoArc;
 use servo_base::text::{Utf8CodeUnits, Utf16CodeUnits};
-use smallvec::SmallVec;
+use smallvec::{Array, SmallVec};
 use style::author_styles::AuthorStyles;
 use style::stylesheet_set::{AuthorStylesheetSet, DocumentStylesheetSet};
 use tendril::TendrilSink;
@@ -449,6 +449,42 @@ unsafe impl<T: CustomTraceable> CustomTraceable for Option<T> {
     unsafe fn trace(&self, tracer: *mut JSTracer) {
         unsafe {
             self.as_ref().inspect(|value| value.trace(tracer));
+        }
+    }
+}
+
+/// A newtype wrapper for [`SmallVec`] that allows tracing its contents. This allows creating
+/// [`SmallVec`]s of unrooted nodes on the stack that are contained within a containing
+/// [`RootedTraceableBox`].
+pub struct TraceableSmallVec<A: Array>(SmallVec<A>);
+
+impl<A: Array> Default for TraceableSmallVec<A> {
+    fn default() -> Self {
+        Self(Default::default())
+    }
+}
+
+impl<A: Array> Deref for TraceableSmallVec<A> {
+    type Target = SmallVec<A>;
+    fn deref(&self) -> &SmallVec<A> {
+        &self.0
+    }
+}
+
+impl<A: Array> DerefMut for TraceableSmallVec<A> {
+    fn deref_mut(&mut self) -> &mut SmallVec<A> {
+        &mut self.0
+    }
+}
+
+unsafe impl<A: Array> js::rust::Trace for TraceableSmallVec<A>
+where
+    A::Item: JSTraceable,
+{
+    #[inline]
+    unsafe fn trace(&self, tracer: *mut JSTracer) {
+        for value in self.0.iter() {
+            unsafe { value.trace(tracer) };
         }
     }
 }

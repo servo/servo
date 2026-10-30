@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Sizing Test: stretch size with huge padding, while avoiding floats</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/css-sizing-3/#stretch-fit-sizing">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#floats">
+<link rel="help" href="https://github.com/servo/servo/issues/49235">
+
+<style>
+#target {
+  display: flow-root;
+  padding-right: 10000000000px;
+  width: stretch;
+  min-width: stretch;
+}
+</style>
+<div style="display: flow-root">
+  <div style="margin: 0 100px">
+    <div style="float: left">float</div>
+    <div id="target">target</div>
+  </div>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  assert_equals(getComputedStyle(target).width, "0px", "width");
+});
+</script>
+</body>

@@ -32,20 +32,9 @@
         }
 
         #div4::first-line {
-            position: var(--my-position);
-            --my-position: absolute;
-        }
-
-        #div5::first-line {
             color: var(--my-color1);
             --my-color1: var(--my-color2);
             --my-color2: rgb(0, 0, 255);
-        }
-
-        #div6::first-line {
-            position: var(--my-position1);
-            --my-position1: var(--my-position2);
-            --my-position2: absolute;
         }
     </style>
 </head>
@@ -56,11 +45,7 @@
     <br />
     <div id="div3">CSS variable defining 'font-weight' property should be applied to ::first-line and its font-weight should be 900.</div>
     <br />
-    <div id="div4">CSS variable defining 'position' property should not be applied to ::first-line and its position should be static.</div>
-    <br />
-    <div id="div5">CSS variable referencing another CSS variable that defines 'color' property should be applied to ::first-line and its color should be blue.</div>
-    <br />
-    <div id="div6">CSS variable referencing another CSS variable that defines 'position' property should not be applied to ::first-line and its position should be static.</div>
+    <div id="div4">CSS variable referencing another CSS variable that defines 'color' property should be applied to ::first-line and its color should be blue.</div>
 
     <script>
         "use strict";
@@ -69,9 +54,7 @@
             { elementId: "div1", property: "color", expectedValue: "rgb(0, 0, 255)", testName: "color" },
             { elementId: "div2", property: "font-size", expectedValue: "25px", testName: "font-size" },
             { elementId: "div3", property: "font-weight", expectedValue: "900", testName: "font-weight" },
-            { elementId: "div4", property: "position", expectedValue: "static", testName: "position" },
-            { elementId: "div5", property: "color", expectedValue: "rgb(0, 0, 255)", testName: "nested color" },
-            { elementId: "div6", property: "position", expectedValue: "static", testName: "abspos" },
+            { elementId: "div4", property: "color", expectedValue: "rgb(0, 0, 255)", testName: "nested color" },
         ];
 
         templates.forEach(function (template) {

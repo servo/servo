@@ -1,0 +1,72 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>navigation.navigate() with history: "replace" to another site</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script>
+// A browser can put a document of another site in another process, which mustn't change whether the
+// navigation replaces the current session history entry.
+const helperPath = "/html/browsers/history/the-location-interface/resources/cross-site-navigation-helper.html";
+const sameOriginHelper = get_host_info().ORIGIN + helperPath;
+const crossSiteHelper = get_host_info().HTTP_NOTSAMESITE_ORIGIN + helperPath;
+
+let urlCount = 0;
+function uniqueURL(helper, name) {
+  return `${helper}?${name}-${++urlCount}`;
+}
+
+function reportOf(url) {
+  return new Promise(resolve => {
+    addEventListener("message", function listener(event) {
+      if (event.data.type !== "report" || event.data.url !== url || event.data.loading)
+        return;
+      removeEventListener("message", listener);
+      resolve(event);
+    });
+  });
+}
+
+async function addIframe(t, url) {
+  const iframe = document.createElement("iframe");
+  const report = reportOf(url);
+  iframe.src = url;
+  document.body.append(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await report;
+  return iframe;
+}
+
+promise_test(async t => {
+  const iframe = await addIframe(t, uniqueURL(sameOriginHelper, "iframe"));
+  const historyLength = history.length;
+  const url = uniqueURL(crossSiteHelper, "iframe-replaced");
+  const report = reportOf(url);
+  iframe.contentWindow.postMessage({ action: "navigate-replace", url }, "*");
+  await report;
+  assert_equals(history.length, historyLength);
+}, "navigate() with history: 'replace' from a same-origin iframe to another site");
+
+promise_test(async t => {
+  const iframe = await addIframe(t, uniqueURL(crossSiteHelper, "iframe"));
+  const historyLength = history.length;
+  const url = uniqueURL(sameOriginHelper, "iframe-replaced");
+  const report = reportOf(url);
+  iframe.contentWindow.postMessage({ action: "navigate-replace", url }, "*");
+  await report;
+  assert_equals(history.length, historyLength);
+}, "navigate() with history: 'replace' from a cross-site iframe to this site");
+
+promise_test(async t => {
+  const popupURL = uniqueURL(crossSiteHelper, "popup");
+  const popupReport = reportOf(popupURL);
+  const popup = open(popupURL);
+  t.add_cleanup(() => popup.close());
+  const historyLength = (await popupReport).data.historyLength;
+  const url = uniqueURL(sameOriginHelper, "popup-replaced");
+  const report = reportOf(url);
+  popup.postMessage({ action: "navigate-replace", url }, "*");
+  assert_equals((await report).data.historyLength, historyLength);
+}, "navigate() with history: 'replace' from a cross-site popup to this site");
+</script>

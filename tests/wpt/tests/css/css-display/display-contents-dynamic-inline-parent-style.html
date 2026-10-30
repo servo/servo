@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Display: Text in display:contents keeps its style when the parent inline box changes style</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#valdef-display-contents">
+<link rel="match" href="display-contents-pass-green-no-red-ref.html">
+<p>You should see the word PASS in green and no red below.</p>
+<div><span id="inline" style="color: blue"><div style="display: contents; color: green">PASS</div></span></div>
+<script>
+document.body.offsetTop;
+document.getElementById("inline").style.color = "red";
+</script>

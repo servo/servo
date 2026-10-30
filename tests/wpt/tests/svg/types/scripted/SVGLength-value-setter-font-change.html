@@ -1,0 +1,53 @@
+<!DOCTYPE HTML>
+<title>SVGLength, setting value uses up-to-date style</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/types.html#__svg__SVGLength__value">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  :root { font: 10px Ahem; }
+  rect { visibility: hidden; font: 10px Ahem; }
+</style>
+<svg width="200" height="100">
+  <rect id="rect"/>
+</svg>
+<script>
+// For each font-relative unit, change the font-size that unit depends on to
+// twice its value without flushing style, then set .value to twice the
+// previously observed value. With up-to-date style one unit is now twice as
+// many pixels, so the specified value must be unchanged. With stale style the
+// conversion would yield twice the specified value.
+const rect = document.getElementById("rect");
+
+const units = [
+  { unit: "em", target: () => rect },
+  { unit: "ex", target: () => rect },
+  { unit: "ch", target: () => rect },
+  { unit: "lh", target: () => rect },
+  { unit: "rem", target: () => document.documentElement },
+  { unit: "rlh", target: () => document.documentElement },
+];
+
+for (const { unit, target } of units) {
+  promise_test(async function(t) {
+    await document.fonts.load("10px Ahem");
+    rect.setAttribute("x", "10" + unit);
+    // setAttribute rebuilds x.baseVal, so fetch the live SVGLength afterwards.
+    const length = rect.x.baseVal;
+
+    const element = target();
+    const originalFontSize = element.style.fontSize;
+    t.add_cleanup(() => { element.style.fontSize = originalFontSize; });
+
+    const originalValue = length.value;
+    const originalSpecifiedValue = length.valueInSpecifiedUnits;
+    assert_greater_than(originalValue, 0);
+    assert_equals(originalSpecifiedValue, 10);
+
+    // No style flush between the font-size change and the setter.
+    element.style.fontSize = "20px";
+    length.value = originalValue * 2;
+    assert_approx_equals(length.valueInSpecifiedUnits, originalSpecifiedValue, 0.1);
+  }, document.title + ", " + unit);
+}
+</script>

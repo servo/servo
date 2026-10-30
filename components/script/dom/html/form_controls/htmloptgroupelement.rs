@@ -9,6 +9,7 @@ use js::rust::HandleObject;
 use script_bindings::str::DOMString;
 use stylo_dom::ElementState;
 
+use crate::dom::MoveContext;
 use crate::dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding::HTMLOptGroupElementMethods;
 use crate::dom::bindings::codegen::GenericBindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -115,25 +116,16 @@ impl VirtualMethods for HTMLOptGroupElement {
                 },
                 AttributeMutation::Removed => false,
             };
-            let el = self.upcast::<Element>();
-            el.set_disabled_state(cx.no_gc(), disabled_state);
-            el.set_enabled_state(cx.no_gc(), !disabled_state);
-            let options = el
+            let element = self.upcast::<Element>();
+            element.set_disabled_state(cx.no_gc(), disabled_state);
+            element.set_enabled_state(cx.no_gc(), !disabled_state);
+
+            let options = element
                 .upcast::<Node>()
                 .children()
-                .filter(|child| child.is::<HTMLOptionElement>())
-                .map(|child| DomRoot::from_ref(child.downcast::<HTMLOptionElement>().unwrap()));
-            if disabled_state {
-                for option in options {
-                    let el = option.upcast::<Element>();
-                    el.set_disabled_state(cx.no_gc(), true);
-                    el.set_enabled_state(cx.no_gc(), false);
-                }
-            } else {
-                for option in options {
-                    let el = option.upcast::<Element>();
-                    el.check_disabled_attribute(cx.no_gc());
-                }
+                .filter_map(DomRoot::downcast::<HTMLOptionElement>);
+            for option in options {
+                option.update_disabled_state(cx.no_gc());
             }
         }
     }
@@ -142,7 +134,13 @@ impl VirtualMethods for HTMLOptGroupElement {
         if let Some(super_type) = self.super_type() {
             super_type.bind_to_tree(cx, context);
         }
+        self.update_select_validity(cx);
+    }
 
+    fn moving_steps(&self, cx: &mut JSContext, context: &MoveContext) {
+        if let Some(super_type) = self.super_type() {
+            super_type.moving_steps(cx, context);
+        }
         self.update_select_validity(cx);
     }
 

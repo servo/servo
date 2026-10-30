@@ -31,7 +31,7 @@ use crate::dom::execcommand::execcommands::DocumentExecCommandSupport;
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::selection_range::{RootedSelectionBoundary, SelectionRange};
 use crate::dom::text_control::TextControlElement;
-use crate::dom::text_input::{InputEventType, IsComposing};
+use crate::dom::text_input::InputEventType;
 use crate::dom::types::{
     ClipboardEvent, DataTransfer, Event, EventTarget, HTMLInputElement, HTMLTextAreaElement,
     MouseEvent, UIEvent,
@@ -490,7 +490,12 @@ impl Document {
             },
             MouseButtonSelectionAction::SelectRange(granularity) => self
                 .window()
-                .query_text_segment(&boundary.container, boundary.utf32_offset(), granularity)
+                .query_text_segment(
+                    cx,
+                    &boundary.container,
+                    boundary.utf32_offset(),
+                    granularity,
+                )
                 .map(|(start, end)| {
                     selection.set_anchor_and_focus(cx, &start, &end);
                     (granularity, start, end)
@@ -673,14 +678,9 @@ impl EditingContext {
     /// Returns true if and only if the cut should be canceled.
     pub(crate) fn fire_cut_beforeinput_event(&self, cx: &mut JSContext) -> bool {
         match self {
-            EditingContext::TextControl(element) => {
-                element.text_control_element().fire_beforeinput_event(
-                    cx,
-                    None,
-                    IsComposing::NotComposing,
-                    InputEventType::DeleteByCut,
-                )
-            },
+            EditingContext::TextControl(element) => element
+                .text_control_element()
+                .fire_beforeinput_event(cx, None, InputEventType::DeleteByCut),
             EditingContext::Document(..) => false,
         }
     }
@@ -688,14 +688,9 @@ impl EditingContext {
     /// Returns true if and only if the paste should be canceled.
     pub(crate) fn fire_paste_beforeinput_event(&self, cx: &mut JSContext, text: &str) -> bool {
         match self {
-            EditingContext::TextControl(element) => {
-                element.text_control_element().fire_beforeinput_event(
-                    cx,
-                    Some(text),
-                    IsComposing::NotComposing,
-                    InputEventType::InsertFromPaste,
-                )
-            },
+            EditingContext::TextControl(element) => element
+                .text_control_element()
+                .fire_beforeinput_event(cx, Some(text), InputEventType::InsertFromPaste),
             EditingContext::Document(..) => false,
         }
     }
@@ -703,11 +698,9 @@ impl EditingContext {
     pub(crate) fn fire_cut_events(&self) {
         match self {
             EditingContext::TextControl(element) => {
-                element.text_control_element().queue_input_event(
-                    None,
-                    IsComposing::NotComposing,
-                    InputEventType::DeleteByCut,
-                );
+                element
+                    .text_control_element()
+                    .queue_input_event(None, InputEventType::DeleteByCut);
             },
             EditingContext::Document(..) => {},
         }
@@ -731,7 +724,6 @@ impl EditingContext {
             EditingContext::TextControl(element) => {
                 element.text_control_element().queue_input_event(
                     Some(text_content.to_owned()),
-                    IsComposing::NotComposing,
                     InputEventType::InsertFromPaste,
                 );
             },
@@ -763,7 +755,7 @@ impl EditingContext {
             // hidden the event target. So we should re-check the layout and see if
             // the node is still being rendered before performing an editing action
             // on it.
-            node.owner_window().layout_reflow(QueryMsg::StyleQuery);
+            node.owner_window().layout_reflow(cx, QueryMsg::StyleQuery);
             if !node.is_being_rendered_or_delegates_rendering(None) {
                 return false;
             }

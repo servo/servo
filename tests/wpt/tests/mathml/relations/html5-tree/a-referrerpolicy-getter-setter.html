@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>MathML anchor element: referrerPolicy functionality</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#the-a-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<math>
+  <a id="testAnchor" href="#" referrerpolicy="strict-origin-when-cross-origin"></a>
+</math>
+
+<script>
+test(() => {
+  const a = document.getElementById('testAnchor');
+
+  assert_equals(a.referrerPolicy, "strict-origin-when-cross-origin", "Attribute should reflect content attribute");
+
+  a.referrerPolicy = "no-referrer";
+  assert_equals(a.getAttribute('referrerpolicy'), "no-referrer", "Attribute should reflect IDL setter");
+
+  a.removeAttribute('referrerpolicy');
+  assert_equals(a.referrerPolicy, "", "IDL getter should return empty string if attribute is missing");
+
+  a.referrerPolicy = "origin";
+  assert_equals(a.referrerPolicy, "origin", "IDL getter should return valid policy value");
+
+  a.setAttribute('referrerpolicy', "invalid-policy");
+  assert_equals(a.referrerPolicy, "", "IDL getter should return empty string if attribute is invalid");
+
+}, "MathMLAnchorElement referrerPolicy should reflect referrerpolicy attribute");
+</script>

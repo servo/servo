@@ -32,7 +32,8 @@ pub enum AudioBufferSourceNodeMessage {
 #[derive(Debug, Clone, MallocSizeOf)]
 pub struct AudioBufferSourceNodeOptions {
     /// The audio asset to be played.
-    pub buffer: Option<AudioBuffer>,
+    #[conditional_malloc_size_of]
+    pub buffer: Option<Arc<AudioBuffer>>,
     /// The initial value for the detune AudioParam.
     pub detune: f32,
     /// The initial value for the loop_enabled attribute.
@@ -109,7 +110,7 @@ impl AudioBufferSourceNode {
     pub fn new(options: AudioBufferSourceNodeOptions, channel_info: ChannelInfo) -> Self {
         Self {
             channel_info,
-            buffer: options.buffer.map(Arc::new),
+            buffer: options.buffer,
             buffer_pos: 0.,
             detune: Param::new_krate(options.detune),
             initialized_pos: false,
@@ -434,6 +435,15 @@ impl AudioBuffer {
                     self.buffers[chan as usize][prev]
                 }
             },
+        }
+    }
+
+    pub fn scale(&mut self, scale: f64) {
+        for buffer in self.buffers.as_mut_slice() {
+            *buffer = buffer
+                .iter()
+                .map(|x| (*x as f64 * scale) as f32)
+                .collect::<Vec<_>>();
         }
     }
 

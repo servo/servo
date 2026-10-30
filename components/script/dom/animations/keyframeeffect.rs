@@ -4,7 +4,7 @@
 
 use std::ffi::CString;
 use std::ops::ControlFlow;
-use std::ptr::{self, NonNull};
+use std::ptr::NonNull;
 use std::sync::LazyLock;
 
 use cssparser::Parser;
@@ -16,7 +16,6 @@ use js::conversions::{
 use js::gc::{HandleValue, RootedVec};
 use js::jsapi::{Heap, JS_GetPropertyById, JSITER_OWNONLY, JSObject};
 use js::jsval::{ObjectValue, UndefinedValue};
-use js::rust::wrappers2::JS_NewObject;
 use js::rust::{
     ForOfIterationFailure, HandleObject, IdVector, IntoHandle, IntoMutableHandle, for_of,
 };
@@ -30,7 +29,9 @@ use script_bindings::codegen::GenericUnionTypes::UnrestrictedDoubleOrKeyframeEff
 use script_bindings::conversions::StringificationBehavior;
 use script_bindings::error::{Error, Fallible};
 use script_bindings::inheritance::Castable;
-use script_bindings::js::{GetPropertyKeys, JS_DefineProperty, JS_IdToValue, PropertyFlags};
+use script_bindings::js::{
+    GetPropertyKeys, JS_DefineProperty, JS_IdToValue, JS_NewObject, PropertyFlags,
+};
 use script_bindings::num::Finite;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_bindings::root::DomRoot;
@@ -134,7 +135,6 @@ impl KeyframeEffectMethods<crate::DomTypeHolder> for KeyframeEffect {
     }
 
     /// <https://drafts.csswg.org/web-animations-1/#dom-keyframeeffect-getkeyframes>
-    #[expect(unsafe_code)]
     fn GetKeyframes(
         &self,
         cx: &mut JSContext,
@@ -168,7 +168,7 @@ impl KeyframeEffectMethods<crate::DomTypeHolder> for KeyframeEffect {
                 computedOffset: keyframe.offset,
                 easing: keyframe.easing_function.clone(),
             };
-            rooted!(&in(cx) let mut output_keyframe = unsafe { JS_NewObject(cx, ptr::null()) });
+            rooted!(&in(cx) let mut output_keyframe = JS_NewObject(cx, None));
             base_keyframe.to_jsobject(cx, output_keyframe.handle_mut());
 
             // Step 3.3 For each animation property-value pair declaration in keyframe, perform the following steps:
