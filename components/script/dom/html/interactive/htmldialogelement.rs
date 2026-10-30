@@ -156,14 +156,20 @@ impl HTMLDialogElement {
         subject.set_bool_attribute(cx, &local_name!("open"), true);
         subject.set_open_state(cx.no_gc(), true);
 
-        // TODO: Step 12. Assert: subject's close watcher is not null.
+        // Step 12. Assert: subject's close watcher is not null.
+        assert!(self.close_watcher.borrow().is_some());
 
         // Step 13. Set is modal of subject to true.
         self.upcast::<Element>().set_modal_state(cx.no_gc(), true);
 
-        // TODO: Step 14. Set subject's node document to be blocked by the modal dialog subject.
+        // Step 14. Set subject's node document to be blocked by the modal dialog subject.
+        // This is computed based on the top layer.
 
-        // TODO: Step 15. If subject's node document's top layer does not already contain subject, then add an element to the top layer given subject.
+        // Step 15. If subject's node document's top layer does not already contain subject, then add an element to the top layer given subject.
+        // Note: Just checking the top layer would break when a modal is shown right after being closed, as the dialog would still be pending removal.
+        if !subject.is_in_the_top_layer() {
+            subject.add_to_the_top_layer(cx.no_gc());
+        }
 
         // Step 16. Set subject's previously focused element to the focused element.
         self.upcast::<HTMLElement>().set_previously_focused_element(
@@ -257,10 +263,13 @@ impl HTMLDialogElement {
         subject.remove_attribute(cx, &ns!(), &local_name!("open"));
         subject.set_open_state(cx.no_gc(), false);
 
-        // TODO: Step 6. If is modal of subject is true, then request an element to be removed from the top layer given subject.
-
         // Step 7. Let wasModal be the value of subject's is modal flag.
         let was_modal = subject.state().contains(ElementState::MODAL);
+
+        // Step 6. If is modal of subject is true, then request an element to be removed from the top layer given subject.
+        if was_modal {
+            subject.request_to_be_removed_from_the_top_layer(cx.no_gc());
+        }
 
         // Step 8. Set is modal of subject to false.
         self.upcast::<Element>().set_modal_state(cx.no_gc(), false);
@@ -736,8 +745,17 @@ impl VirtualMethods for HTMLDialogElement {
             self.dialog_cleanup_steps(cx.no_gc());
         }
 
-        // TODO Step 2. If removedNode's node document's top layer contains removedNode, then remove
+        // Step 2. If removedNode's node document's top layer contains removedNode, then remove
         // an element from the top layer immediately given removedNode.
+        if removed_node
+            .owner_document()
+            .top_layer()
+            .borrow()
+            .iter()
+            .any(|element| &**element == removed_node)
+        {
+            removed_node.remove_from_the_top_layer_immediately(cx.no_gc());
+        }
 
         // Step 3. Set is modal of removedNode to false.
         removed_node.set_modal_state(cx.no_gc(), false)

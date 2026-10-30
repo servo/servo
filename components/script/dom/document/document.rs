@@ -89,6 +89,7 @@ use style::stylesheet_set::DocumentStylesheetSet;
 use style::stylesheets::{Origin, OriginSet, Stylesheet};
 use style::stylist::Stylist;
 use stylo_atoms::Atom;
+use stylo_dom::ElementState;
 use time::Duration as TimeDuration;
 use url::{Host, Position};
 
@@ -566,6 +567,14 @@ pub(crate) struct Document {
 
     /// Entry node for fullscreen.
     fullscreen_element: MutNullableDom<Element>,
+
+    /// <https://drafts.csswg.org/css-position-4/#document-top-layer>
+    top_layer: DomRefCell<Vec<Dom<Element>>>,
+    /// <https://drafts.csswg.org/css-position-4/#document-pending-top-layer-removals>
+    pending_top_layer_removals: DomRefCell<Vec<Dom<Element>>>,
+    /// <https://html.spec.whatwg.org/multipage/#blocked-by-a-modal-dialog>
+    topmost_modal: MutNullableDom<Element>,
+
     /// Map from ID to set of form control elements that have that ID as
     /// their 'form' content attribute. Used to reset form controls
     /// whenever any element with the same ID as the form attribute
@@ -4313,6 +4322,9 @@ impl Document {
             ignore_opens_during_unload_counter: Default::default(),
             spurious_animation_frames: Cell::new(0),
             fullscreen_element: MutNullableDom::new(None),
+            top_layer: Default::default(),
+            pending_top_layer_removals: Default::default(),
+            topmost_modal: Default::default(),
             form_id_listener_map: Default::default(),
             interactive_time: DomRefCell::new(interactive_time),
             tti_window: DomRefCell::new(InteractiveWindow::default()),
@@ -4924,6 +4936,70 @@ impl Document {
 
     pub(crate) fn set_fullscreen_element(&self, element: Option<&Element>) {
         self.fullscreen_element.set(element);
+    }
+
+    pub(crate) fn top_layer(&self) -> &DomRefCell<Vec<Dom<Element>>> {
+        &self.top_layer
+    }
+
+    pub(crate) fn pending_top_layer_removals(&self) -> &DomRefCell<Vec<Dom<Element>>> {
+        &self.pending_top_layer_removals
+    }
+
+    /// <https://drafts.csswg.org/css-position-4/#process-top-layer-removals>
+    pub(crate) fn process_top_layer_removals(&self, no_gc: &NoGC) {
+        // Step 1. For each element el in doc’s pending top layer removals: if el's computed value
+        // of overlay is none, or el is not rendered, remove from the top layer immediately el.
+        // TODO: Check `overlay` once it is supported.
+        let pending_removals: Vec<_> = self
+            .pending_top_layer_removals()
+            .borrow()
+            .iter()
+            .map(|element| DomRoot::from_ref(&**element))
+            .collect();
+        for element in pending_removals {
+            if !element.has_css_layout_box() {
+                element.remove_from_the_top_layer_immediately(no_gc)
+            }
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#blocked-by-a-modal-dialog>
+    pub(crate) fn update_topmost_modal(&self, no_gc: &NoGC) {
+        // > A Document document is blocked by a modal dialog subject if subject is the topmost
+        // > dialog element in document's top layer.
+        let new_topmost_modal = self
+            .top_layer()
+            .borrow()
+            .iter()
+            .rev()
+            .find(|element| {
+                element.state().contains(ElementState::MODAL) && element.is_in_the_top_layer()
+            })
+            .map(|element| DomRoot::from_ref(&**element));
+        let old_topmost_modal = self.topmost_modal.get();
+
+        if let Some(old_topmost_modal) = old_topmost_modal {
+            old_topmost_modal.set_state(no_gc, ElementState::TOPMOST_MODAL, false);
+        }
+        if let Some(new_topmost_modal) = &new_topmost_modal {
+            new_topmost_modal.set_state(no_gc, ElementState::TOPMOST_MODAL, true);
+        }
+
+        self.topmost_modal.set(new_topmost_modal.as_deref());
+
+        // > While document is so blocked, every node that is connected to document, with the
+        // > exception of the subject element and its flat tree descendants, must become inert.
+        if let Some(document_element) = self.GetDocumentElement() {
+            let is_inert = new_topmost_modal.is_some() ||
+                document_element.has_attribute(&local_name!("inert"));
+            document_element.set_state(no_gc, ElementState::INERT, is_inert);
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#blocked-by-a-modal-dialog>
+    pub(crate) fn is_blocked_by_a_modal_dialog(&self) -> bool {
+        self.topmost_modal.get().is_some()
     }
 
     fn reset_form_owner_for_listeners(&self, cx: &mut JSContext, id: &Atom) {
