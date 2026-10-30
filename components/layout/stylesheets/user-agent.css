@@ -99,6 +99,7 @@ select > button:first-child { -moz-inert: inert; }
 dialog:modal { interactivity: auto; }
 :fullscreen { interactivity: auto; }
 
+/* https://html.spec.whatwg.org/multipage#phrasing-content-3 */
 cite, dfn, em, i, var { font-style: italic; }
 b, strong { font-weight: bolder; }
 code, kbd, samp, tt { font-family: monospace; }
@@ -126,16 +127,7 @@ a:link[rel~=help], a:visited[rel~=help],
 area:link[rel~=help], area:visited[rel~=help],
 link:link[rel~=help], link:visited[rel~=help] { cursor: help; }
 
-/*
- * FIXME: use `outline: auto;`
- */
-a:focus, area:focus {
-  outline: thin dotted;
-}
-
-input:focus, textarea:focus, button:focus {
-  outline: thin solid black;
-}
+:focus-visible { outline: auto; }
 
 mark { background: Mark; color: MarkText; }
 
