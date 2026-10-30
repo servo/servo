@@ -74,9 +74,11 @@ impl DocumentSelectionDragHandler {
         };
 
         let adjust_for_user_select =
-            |anchor: Option<&RootedSelectionBoundary>, focus: RootedSelectionBoundary| {
+            |no_gc: NoGc,
+             anchor: Option<&RootedSelectionBoundary>,
+             focus: RootedSelectionBoundary| {
                 adjust_focus_for_user_select(
-                    cx,
+                    no_gc,
                     anchor,
                     focus,
                     self.user_select_contain_node_for_selection_anchor
@@ -88,6 +90,7 @@ impl DocumentSelectionDragHandler {
             selection.collapse_or_extend_to_dom_position(
                 cx,
                 &adjust_for_user_select(
+                    cx.no_gc(),
                     selection.composed_anchor_position().as_ref(),
                     boundary.clone(),
                 ),
@@ -122,7 +125,7 @@ impl DocumentSelectionDragHandler {
             (original_start, original_end)
         };
 
-        let focus = adjust_for_user_select(Some(&anchor), focus);
+        let focus = adjust_for_user_select(cx.no_gc(), Some(&anchor), focus);
         selection.set_anchor_and_focus(cx, &anchor, &focus);
         true
     }
