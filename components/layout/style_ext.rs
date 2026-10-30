@@ -351,6 +351,8 @@ pub(crate) trait ComputedValuesExt {
     fn used_transform_style(&self, fragment_flags: FragmentFlags) -> ComputedTransformStyle;
     fn establishes_block_formatting_context(&self, fragment_flags: FragmentFlags) -> bool;
     fn establishes_stacking_context(&self, fragment_flags: FragmentFlags) -> bool;
+    fn has_backdrop_filter(&self, fragment_flags: FragmentFlags) -> bool;
+    fn establishes_backdrop_root(&self, fragment_flags: FragmentFlags) -> bool;
     fn establishes_scroll_container(&self, fragment_flags: FragmentFlags) -> bool;
     fn establishes_or_extends_3d_rendering_context(&self, fragment_flags: FragmentFlags) -> bool;
     fn establishes_containing_block_for_absolute_descendants(
@@ -843,9 +845,7 @@ impl ComputedValuesExt for ComputedValues {
         // > context.
         // Note `will-change: backdrop-filter` is handled above by
         // `WillChangeBits::STACKING_CONTEXT_UNCONDITIONAL`.
-        if !effects.backdrop_filter.0.is_empty() &&
-            !fragment_flags.contains(FragmentFlags::IS_ROOT_ELEMENT)
-        {
+        if self.has_backdrop_filter(fragment_flags) {
             return true;
         }
 
@@ -878,6 +878,63 @@ impl ComputedValuesExt for ComputedValues {
 
         // TODO: We need to handle CSS Contain here.
         false
+    }
+
+    /// Returns true if this style has a backdrop filter that applies to its descendants.
+    fn has_backdrop_filter(&self, fragment_flags: FragmentFlags) -> bool {
+        !fragment_flags.contains(FragmentFlags::IS_ROOT_ELEMENT) &&
+            !self.get_effects().backdrop_filter.0.is_empty()
+    }
+
+    /// Returns true if this style forms a backdrop root for its descendants.
+    ///
+    /// <https://drafts.fxtf.org/filter-effects-2/#BackdropRoot>:
+    fn establishes_backdrop_root(&self, fragment_flags: FragmentFlags) -> bool {
+        // > - The root element of the document (HTML)
+        if fragment_flags.contains(FragmentFlags::IS_ROOT_ELEMENT) {
+            return false;
+        }
+
+        let effects = self.get_effects();
+
+        // > - An element with a filter property other than "none".
+        if !effects.filter.0.is_empty() {
+            return true;
+        }
+
+        // > - An element with an opacity value less than 1.
+        if effects.opacity < 1.0 {
+            return true;
+        }
+
+        // > - An element with mask, mask-image, mask-border, or clip-path properties with
+        // > values other than “none”.
+        // TODO: `mask-border` is not supported yet.
+        if self.get_svg().clip_path != ClipPath::None ||
+            self.get_svg()
+                .mask_image
+                .0
+                .iter()
+                .any(|image| !matches!(image, ComputedImageLayer::None))
+        {
+            return true;
+        }
+
+        // > - An element with a backdrop-filter value other than "none".
+        if self.has_backdrop_filter(fragment_flags) {
+            return true;
+        }
+
+        // > - An element with a mix-blend-mode value other than "normal".
+        if effects.mix_blend_mode != ComputedMixBlendMode::Normal {
+            return true;
+        }
+
+        // > - An element with a will-change value specifying any property that would create a
+        // > Backdrop Root on non-initial value.
+        self.get_will_change()
+            .bits
+            .intersects(WillChangeBits::BACKDROP_ROOT)
     }
 
     /// Returns true if this style establishes a containing block for absolute

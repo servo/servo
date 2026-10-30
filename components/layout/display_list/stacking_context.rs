@@ -468,6 +468,9 @@ pub struct StackingContext {
     /// Whether or not this [`StackingContext`] participates in a 3D rendering context.
     /// See <https://www.w3.org/TR/css-transforms-2/#3d-rendering-contexts>
     pub(crate) participates_in_a_3d_rendering_context: bool,
+
+    /// Whether or not any descendant of this [`StackingContext`] has a backdrop filter.
+    pub(crate) contains_backdrop_filter: bool,
 }
 
 impl StackingContext {
@@ -484,6 +487,7 @@ impl StackingContext {
             container_timing_roots: None,
             reference_frame_info: None,
             participates_in_a_3d_rendering_context: false,
+            contains_backdrop_filter: false,
         }
     }
 
@@ -514,6 +518,7 @@ impl StackingContext {
             reference_frame_info,
             participates_in_a_3d_rendering_context: parent_info
                 .participates_in_a_3d_rendering_context,
+            contains_backdrop_filter: false,
         }
     }
 
@@ -522,6 +527,13 @@ impl StackingContext {
             StackingContextFragments::Root => None,
             StackingContextFragments::Fragment(box_fragment) => Some(box_fragment),
         }
+    }
+
+    /// Whether the WebRender stacking contexts created for this [`StackingContext`] wrap a
+    /// backdrop filter.
+    pub(crate) fn wraps_backdrop_filter(&self) -> bool {
+        self.fragment()
+            .is_some_and(|fragment| fragment.style().has_backdrop_filter(fragment.base.flags))
     }
 
     fn sort(&mut self) {
@@ -850,6 +862,11 @@ impl BoxFragment {
         } else {
             child_stacking_context.sort();
         }
+
+        // Propagate whether this subtree contains a backdrop filter
+        parent_stacking_context.contains_backdrop_filter |= child_stacking_context
+            .contains_backdrop_filter ||
+            style.has_backdrop_filter(self.base.flags);
 
         parent_stacking_context
             .children
