@@ -4,13 +4,12 @@
 
 //! Property-based randomized testing for the core float layout algorithm.
 
-use std::f32::INFINITY;
 use std::ops::Range;
 use std::panic::{self, PanicHookInfo};
 use std::sync::{Mutex, MutexGuard};
-use std::{thread, u32};
+use std::thread;
 
-use app_units::Au;
+use app_units::{Au, MAX_AU};
 use layout::flow::float::{
     Clear, ContainingBlockPositionInfo, FloatBand, FloatBandNode, FloatBandTree, FloatContext,
     FloatSide, PlacementInfo,
@@ -251,7 +250,7 @@ fn test_tree_find() {
             inline_end: None,
         });
         bands.push(FloatBand {
-            top: Au::from_f32_px(INFINITY),
+            top: MAX_AU,
             inline_start: None,
             inline_end: None,
         });
@@ -279,7 +278,7 @@ fn test_tree_find_next() {
             inline_end: None,
         });
         bands.push(FloatBand {
-            top: Au::from_f32_px(INFINITY),
+            top: MAX_AU,
             inline_start: None,
             inline_end: None,
         });
@@ -307,7 +306,7 @@ fn test_tree_range_setting() {
         }
 
         let mut tops: Vec<Au> = bands.iter().map(|band| band.0.top).collect();
-        tops.push(Au::from_f32_px(INFINITY));
+        tops.push(MAX_AU);
         tops.sort_by(|a, b| a.to_px().partial_cmp(&b.to_px()).unwrap());
 
         for range in ranges {
@@ -474,7 +473,7 @@ impl PlacedFloat {
 
 impl FloatPlacement {
     fn place(floats: Vec<FloatInput>) -> FloatPlacement {
-        let mut float_context = FloatContext::new(Au::from_f32_px(INFINITY));
+        let mut float_context = FloatContext::new(MAX_AU);
         let mut placed_floats = vec![];
         for float in floats {
             let ceiling = float.ceiling;
