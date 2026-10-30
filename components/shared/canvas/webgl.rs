@@ -497,6 +497,7 @@ pub enum WebGLCommand {
     GetParameterFloat(ParameterFloat, GenericSender<f32>),
     GetParameterFloat2(ParameterFloat2, GenericSender<[f32; 2]>),
     GetParameterFloat4(ParameterFloat4, GenericSender<[f32; 4]>),
+    GetParameterString(ParameterString, GenericSender<String>),
     GetProgramValidateStatus(WebGLProgramId, GenericSender<bool>),
     GetProgramActiveUniforms(WebGLProgramId, GenericSender<i32>),
     GetCurrentVertexAttrib(u32, GenericSender<[f32; 4]>),
@@ -953,6 +954,12 @@ parameters! {
             ColorClearValue = gl::COLOR_CLEAR_VALUE,
         }),
     }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub enum ParameterString {
+    UnmaskedVendor,
+    UnmaskedRenderer,
 }
 
 parameters! {

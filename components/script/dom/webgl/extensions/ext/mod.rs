@@ -21,3 +21,4 @@ pub(crate) mod oesvertexarrayobject;
 pub(crate) mod webglcolorbufferfloat;
 pub(crate) mod webglcompressedtextureetc1;
 pub(crate) mod webglcompressedtextures3tc;
+pub(crate) mod webgldebugrendererinfo;
