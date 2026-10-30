@@ -11,6 +11,7 @@ use std::fs::File;
 use std::future::Future;
 use std::io::BufReader;
 use std::pin::Pin;
+use std::sync::Arc;
 
 use headers::{ContentType, HeaderMapExt};
 use servo::protocol_handler::{
@@ -60,7 +61,10 @@ impl ResourceProtocolHandler {
 
             // Set Content-Type header.
             let mime = mime_guess::from_path(file_path).first_or_octet_stream();
-            response.headers.typed_insert(ContentType::from(mime));
+            Arc::get_mut(&mut response.headers)
+                .expect("Just created")
+                .0
+                .typed_insert(ContentType::from(mime));
 
             // Setup channel to receive cross-thread messages about the file fetch
             // operation.

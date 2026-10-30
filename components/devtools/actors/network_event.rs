@@ -425,7 +425,7 @@ impl Actor for NetworkEventActor {
                     .response
                     .headers
                     .as_ref()
-                    .map(get_header_list)
+                    .map(|headers| get_header_list(&headers.0))
                     .unwrap_or_default();
                 let raw_headers = get_raw_headers(&list);
 
@@ -463,11 +463,13 @@ impl Actor for NetworkEventActor {
                 let response = response.as_ref().ok_or(ActorError::Internal)?;
 
                 let headers = response.response.headers.as_ref();
-                let list = headers.map(get_header_list).unwrap_or_default();
+                let list = headers
+                    .map(|headers| get_header_list(&headers.0))
+                    .unwrap_or_default();
                 let raw_headers = get_raw_headers(&list);
 
                 let mime_type = headers
-                    .and_then(extract_mime_type_as_dataurl_mime)
+                    .and_then(|headers| extract_mime_type_as_dataurl_mime(&headers.0))
                     .map(|url| url.to_string());
                 let transferred_size = headers
                     .and_then(|header| header.typed_get::<ContentLength>())

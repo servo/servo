@@ -31,6 +31,7 @@ use hyper::Response as HyperResponse;
 use hyper::body::{Bytes, Frame};
 use hyper::ext::ReasonPhrase;
 use hyper::header::{HeaderName, TRANSFER_ENCODING};
+use hyper_serde::Serde;
 use ipc_channel::IpcError;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -2205,7 +2206,7 @@ async fn http_network_fetch(
     // Step 6. Let newConnection be "yes" if forceNewConnection is true; otherwise "no".
 
     // Step 7. Switch on request’s mode:
-    let (response_stream, msg) = match &request.mode {
+    let (mut response_stream, msg) = match &request.mode {
         // Let connection be the result of obtaining a WebSocket connection, given request’s current URL.
         RequestMode::WebSocket {
             protocols,
@@ -2331,7 +2332,7 @@ async fn http_network_fetch(
         response_stream.status(),
         request.url()
     );
-    response.headers = response_stream.headers().clone();
+    response.headers = StdArc::new(Serde(std::mem::take(response_stream.headers_mut())));
     response.referrer = request.referrer.to_url().cloned();
     response.referrer_policy = request.referrer_policy;
 

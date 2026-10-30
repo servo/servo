@@ -308,8 +308,11 @@ impl FileManager {
                     None
                 };
 
+                let response_headers = &mut Arc::get_mut(&mut response.headers)
+                    .expect("Have mutable reference")
+                    .0;
                 set_blob_response_headers(
-                    &mut response.headers,
+                    response_headers,
                     len,
                     buf.type_string.parse().unwrap_or(mime::TEXT_PLAIN),
                     content_range,
@@ -360,8 +363,11 @@ impl FileManager {
                 } else {
                     None
                 };
+                let headers = &mut Arc::get_mut(&mut response.headers)
+                    .expect("Have mutable reference")
+                    .0;
                 set_blob_response_headers(
-                    &mut response.headers,
+                    headers,
                     metadata.size,
                     mime_guess::from_path(metadata.path)
                         .first()

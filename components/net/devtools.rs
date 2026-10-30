@@ -42,6 +42,7 @@ mod disabled {
 
 #[cfg(feature = "devtools")]
 mod enabled {
+    use std::sync::Arc;
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
     use bytes::Bytes;
@@ -124,7 +125,7 @@ mod enabled {
             return;
         };
         send_response_values_to_devtools(
-            metadata.headers.map(Serde::into_inner),
+            metadata.headers.map(Arc::new),
             metadata.status,
             body_data,
             response.cache_state,
@@ -135,7 +136,7 @@ mod enabled {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn send_response_values_to_devtools(
-        headers: Option<HeaderMap>,
+        headers: Option<Arc<Serde<HeaderMap>>>,
         status: HttpStatus,
         body: Option<Vec<u8>>,
         cache_state: CacheState,

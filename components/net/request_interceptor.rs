@@ -2,8 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
+
 use content_security_policy::Destination;
 use embedder_traits::{GenericEmbedderProxy, WebResourceRequest, WebResourceResponseMsg};
+use hyper_serde::Serde;
 use log::error;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::Request;
@@ -55,7 +58,7 @@ impl RequestInterceptor {
                     let timing = timing_info.inner().clone();
                     let mut response_override =
                         Response::new(webresource_response.url.into(), timing);
-                    response_override.headers = webresource_response.headers;
+                    response_override.headers = Arc::new(Serde(webresource_response.headers));
                     response_override.status = HttpStatus::new(
                         webresource_response.status_code,
                         webresource_response.status_message,

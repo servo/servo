@@ -4,6 +4,7 @@
 
 use std::future::Future;
 use std::pin::Pin;
+use std::sync::Arc;
 
 use headers::{ContentType, HeaderMapExt};
 use servo::protocol_handler::{
@@ -35,7 +36,10 @@ impl ProtocolHandler for UrlInfoProtocolHander {
         );
         let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
         *response.body.lock() = ResponseBody::Done(content.as_bytes().to_vec());
-        response.headers.typed_insert(ContentType::text());
+        Arc::get_mut(&mut response.headers)
+            .expect("Just created")
+            .0
+            .typed_insert(ContentType::text());
         response.status = HttpStatus::default();
 
         Box::pin(std::future::ready(response))

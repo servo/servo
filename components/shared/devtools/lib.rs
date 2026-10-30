@@ -19,11 +19,13 @@
 use core::fmt;
 use std::collections::HashMap;
 use std::net::TcpStream;
+use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub use embedder_traits::ConsoleLogLevel;
 use embedder_traits::Theme;
 use http::{HeaderMap, Method};
+use hyper_serde::Serde;
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::TlsSecurityInfo;
 use net_traits::http_status::HttpStatus;
@@ -583,7 +585,8 @@ pub struct HttpRequest {
 
 #[derive(Debug, PartialEq, MallocSizeOf)]
 pub struct HttpResponse {
-    pub headers: Option<HeaderMap>,
+    #[conditional_malloc_size_of]
+    pub headers: Option<Arc<Serde<HeaderMap>>>,
     pub status: HttpStatus,
     pub body: Option<bytes::Bytes>,
     pub from_cache: bool,
