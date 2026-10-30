@@ -11,9 +11,11 @@ import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.Surface
 import android.view.inputmethod.BaseInputConnection
+import androidx.compose.foundation.AndroidExternalSurface
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -32,9 +34,9 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.PlatformTextInputModifierNode
 import androidx.compose.ui.platform.establishTextInputSession
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import java.util.concurrent.Executors
 import kotlin.coroutines.EmptyCoroutineContext
@@ -64,10 +66,11 @@ fun Servo(
     }
     LaunchedEffect(servo, navigator) { navigator.consumeNavigationEvents(servo) }
     LaunchedEffect(experimentalModeEnabled) { servo.setExperimentalMode(experimentalModeEnabled) }
+    DisposableEffect(servo) { onDispose { servo.glDispatcher.close() } }
 
+    val resources = LocalResources.current
     val focusRequester = remember { FocusRequester() }
-    AndroidView(
-        factory = { context -> ServoView(context, servo) },
+    AndroidExternalSurface(
         modifier =
             modifier
                 .focusRequester(focusRequester)
@@ -113,9 +116,32 @@ fun Servo(
                     }
 
                     true
-                },
-        onRelease = { servo.glDispatcher.close() },
-    )
+                }
+    ) {
+        var paused = false
+
+        onSurface { surface, width, height ->
+            val size = Size(width, height)
+
+            if (!paused) {
+                servo.addPlatformWindow(
+                    size,
+                    resources.displayMetrics.density,
+                    surface,
+                )
+            } else {
+                paused = false
+                servo.resumePainting(surface, size)
+            }
+
+            surface.onChanged { width, height -> servo.resize(Size(width, height)) }
+
+            surface.onDestroyed {
+                paused = true
+                servo.pausePainting()
+            }
+        }
+    }
 }
 
 @Stable
