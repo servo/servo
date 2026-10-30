@@ -3519,8 +3519,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
     }}
     assert!(!obj.is_null());
 
-    let mut root = unsafe {{ raw.reflect_with(obj.get()) }};
-    root.reflector_mut().set_proto_id(PrototypeList::ID::{name} as u16);
+    let root = unsafe {{ raw.reflect_with(obj.get()) }};
 
     let mut cx = AutoRealm::new_from_handle(cx, obj.handle());
     let cx = &mut cx;

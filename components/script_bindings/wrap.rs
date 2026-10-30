@@ -56,10 +56,7 @@ pub(crate) unsafe fn wrap<T: MutDomObject, D: DomTypes>(
             &config,
             obj.handle_mut(),
         );
-        let mut root = raw.reflect_with(obj.get());
-        root.reflector_mut()
-            .set_proto_id(config.prototype_id as u16);
-        root
+        raw.reflect_with(obj.get())
     }
 }
 

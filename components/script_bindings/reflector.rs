@@ -144,6 +144,7 @@ impl Reflector<AssociatedMemory> {
 
 /// A trait to provide access to the `Reflector` for a DOM object.
 pub trait DomObject: js::gc::Traceable + 'static {
+    const PROTOTYPE_ID: u16;
     type ReflectorType: AssociatedMemorySize;
     /// Returns the receiver's reflector.
     fn reflector(&self) -> &Reflector<Self::ReflectorType>;
@@ -152,6 +153,7 @@ pub trait DomObject: js::gc::Traceable + 'static {
 
 impl DomObject for Reflector<()> {
     type ReflectorType = ();
+    const PROTOTYPE_ID: u16 = u16::MAX;
 
     fn reflector(&self) -> &Reflector<Self::ReflectorType> {
         self
@@ -164,6 +166,7 @@ impl DomObject for Reflector<()> {
 
 impl DomObject for Reflector<AssociatedMemory> {
     type ReflectorType = AssociatedMemory;
+    const PROTOTYPE_ID: u16 = u16::MAX;
 
     fn reflector(&self) -> &Reflector<Self::ReflectorType> {
         self
