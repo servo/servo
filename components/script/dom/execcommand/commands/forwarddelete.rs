@@ -51,8 +51,8 @@ pub(crate) fn execute_forward_delete_command(
         //           remove node's nextSibling from its parent.
         if offset == node.len() &&
             let Some(sibling) = node.GetNextSibling() &&
-            sibling.is_editable() &&
-            sibling.is_invisible(cx.no_gc())
+            sibling.is_editable(cx) &&
+            sibling.is_invisible(cx)
         {
             sibling.remove_self(cx);
             continue;
@@ -61,8 +61,8 @@ pub(crate) fn execute_forward_delete_command(
         // Step 4.2. Otherwise, if node has a child with index offset and that child is an editable invisible node,
         //           remove that child from node.
         if let Some(child) = node.children().nth(offset as usize) &&
-            child.is_editable() &&
-            child.is_invisible(cx.no_gc())
+            child.is_editable(cx) &&
+            child.is_invisible(cx)
         {
             child.remove_self(cx);
             continue;
@@ -70,7 +70,7 @@ pub(crate) fn execute_forward_delete_command(
 
         // Step 4.3. Otherwise, if offset is the length of node and node is an inline node, or if node is invisible,
         //           set offset to one plus the index of node, then set node to its parent.
-        if (offset == node.len() && node.is_inline_node()) || node.is_invisible(cx.no_gc()) {
+        if (offset == node.len() && node.is_inline_node(cx)) || node.is_invisible(cx) {
             offset = 1 + node.index();
             node = node
                 .GetParentNode()
@@ -81,10 +81,10 @@ pub(crate) fn execute_forward_delete_command(
         // Step 4.4. Otherwise, if node has a child with index offset and that child is neither a block node nor a br
         //           nor an img nor a collapsed block prop, set node to that child, then set offset to zero.
         if let Some(child) = node.children().nth(offset as usize) &&
-            !(child.is_block_node() ||
+            !(child.is_block_node(cx) ||
                 child.is::<HTMLBRElement>() ||
                 child.is::<HTMLImageElement>() ||
-                child.is_collapsed_block_prop(cx.no_gc()))
+                child.is_collapsed_block_prop(cx))
         {
             node = child;
             offset = 0;
@@ -129,7 +129,7 @@ pub(crate) fn execute_forward_delete_command(
     }
 
     // Step 6. If node is an inline node, return true.
-    if node.is_inline_node() {
+    if node.is_inline_node(cx) {
         return true;
     }
 
@@ -138,7 +138,7 @@ pub(crate) fn execute_forward_delete_command(
         (child.is::<HTMLBRElement>() ||
             child.is::<HTMLHRElement>() ||
             child.is::<HTMLImageElement>()) &&
-        !child.is_collapsed_block_prop(cx.no_gc())
+        !child.is_collapsed_block_prop(cx)
     {
         // Step 7.1. Call collapse(node, offset) on the context object's selection.
         if selection.Collapse(cx, Some(&node), offset).is_err() {
@@ -169,7 +169,7 @@ pub(crate) fn execute_forward_delete_command(
 
     // Step 9. If end node has a child with index end offset, and that child is a collapsed block prop, add one to end offset.
     if let Some(child) = end_node.children().nth(end_offset as usize) &&
-        child.is_collapsed_block_prop(cx.no_gc())
+        child.is_collapsed_block_prop(cx)
     {
         end_offset += 1;
     }
@@ -191,8 +191,8 @@ pub(crate) fn execute_forward_delete_command(
 
         // Step 10.2. Otherwise, if end node has an editable invisible child with index end offset, remove it from end node.
         if let Some(child) = end_node.children().nth(end_offset as usize) &&
-            child.is_editable() &&
-            child.is_invisible(cx.no_gc())
+            child.is_editable(cx) &&
+            child.is_invisible(cx)
         {
             child.remove_self(cx);
             continue;
@@ -264,7 +264,7 @@ pub(crate) fn execute_forward_delete_command(
     // Step 14. While end node has a child with index end offset:
     while let Some(child) = end_node.children().nth(end_offset as usize) {
         // Step 14.1. If end node's child with index end offset is editable and invisible, remove it from end node.
-        if child.is_editable() && child.is_invisible(cx.no_gc()) {
+        if child.is_editable(cx) && child.is_invisible(cx) {
             child.remove_self(cx);
             continue;
         }

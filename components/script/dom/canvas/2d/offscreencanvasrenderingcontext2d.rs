@@ -179,8 +179,8 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor>
-    fn SetShadowColor(&self, value: DOMString) {
-        self.context.SetShadowColor(value)
+    fn SetShadowColor(&self, cx: &mut JSContext, value: DOMString) {
+        self.context.SetShadowColor(cx, value)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle>
@@ -189,8 +189,8 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle>
-    fn SetStrokeStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
-        self.context.SetStrokeStyle(value)
+    fn SetStrokeStyle(&self, cx: &mut JSContext, value: StringOrCanvasGradientOrCanvasPattern) {
+        self.context.SetStrokeStyle(cx, value)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle>
@@ -199,8 +199,8 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle>
-    fn SetFillStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
-        self.context.SetFillStyle(value)
+    fn SetFillStyle(&self, cx: &mut JSContext, value: StringOrCanvasGradientOrCanvasPattern) {
+        self.context.SetFillStyle(cx, value)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-createlineargradient>

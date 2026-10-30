@@ -31,7 +31,7 @@ use crate::dom::selection::Selection;
 /// <https://w3c.github.io/editing/docs/execCommand/#outdent>
 pub(crate) fn outdent(cx: &mut JSContext, context_object: &Document, node: &Node) {
     // Step 1. If node is not editable, abort these steps.
-    if !node.is_editable() {
+    if !node.is_editable(cx) {
         return;
     }
 
@@ -82,7 +82,7 @@ pub(crate) fn outdent(cx: &mut JSContext, context_object: &Document, node: &Node
     //         element nor an ol nor a ul, append current ancestor to ancestor list and then set
     //         current ancestor to its parent.
     while let Some(ancestor) = current_ancestor.clone() &&
-        ancestor.is_editable() &&
+        ancestor.is_editable(cx) &&
         ancestor
             .downcast::<Element>()
             .is_some_and(|element| !element.is_simple_indentation_element()) &&
@@ -95,7 +95,7 @@ pub(crate) fn outdent(cx: &mut JSContext, context_object: &Document, node: &Node
 
     // Step 7. If current ancestor is not an editable simple indentation element:
     if !current_ancestor.as_ref().is_some_and(|ancestor| {
-        ancestor.is_editable() &&
+        ancestor.is_editable(cx) &&
             ancestor
                 .downcast::<Element>()
                 .is_some_and(|element| element.is_simple_indentation_element())
@@ -110,7 +110,7 @@ pub(crate) fn outdent(cx: &mut JSContext, context_object: &Document, node: &Node
         //           element nor an ol nor a ul, append current ancestor to ancestor list and then
         //           set current ancestor to its parent.
         while let Some(ancestor) = current_ancestor.clone() &&
-            ancestor.is_editable() &&
+            ancestor.is_editable(cx) &&
             ancestor
                 .downcast::<Element>()
                 .is_some_and(|element| !element.is_indentation_element()) &&
@@ -126,7 +126,7 @@ pub(crate) fn outdent(cx: &mut JSContext, context_object: &Document, node: &Node
     if let Some(node_as_element) = node.downcast::<Element>() &&
         (node.is::<HTMLOListElement>() || node.is::<HTMLUListElement>()) &&
         !current_ancestor.as_ref().is_some_and(|ancestor| {
-            ancestor.is_editable() &&
+            ancestor.is_editable(cx) &&
                 ancestor
                     .downcast::<Element>()
                     .is_some_and(|element| element.is_indentation_element())
@@ -151,7 +151,7 @@ pub(crate) fn outdent(cx: &mut JSContext, context_object: &Document, node: &Node
         // Step 8.4. Otherwise:
         else {
             // Step 8.4.1. Record the values of node's children, and let values be the result.
-            let values = record_the_values(node.children().collect());
+            let values = record_the_values(cx, node.children().collect());
 
             // Step 8.4.2. Remove node, preserving its descendants.
             node.remove_preserving_its_descendants(cx);
@@ -171,7 +171,7 @@ pub(crate) fn outdent(cx: &mut JSContext, context_object: &Document, node: &Node
 
     // Step 9. If current ancestor is not an editable indentation element, abort these steps.
     if !current_ancestor.as_ref().is_some_and(|ancestor| {
-        ancestor.is_editable() &&
+        ancestor.is_editable(cx) &&
             ancestor
                 .downcast::<Element>()
                 .is_some_and(|element| element.is_indentation_element())
@@ -205,7 +205,7 @@ pub(crate) fn outdent(cx: &mut JSContext, context_object: &Document, node: &Node
 
         // Step 12.4. If target is an inline node that is not a br, and its nextSibling is a br,
         //            remove target's nextSibling from its parent.
-        if target.is_inline_node() &&
+        if target.is_inline_node(cx) &&
             !target.is::<HTMLBRElement>() &&
             let Some(next_br_sibling) = target.GetNextSibling() &&
             next_br_sibling.is::<HTMLBRElement>()
@@ -271,7 +271,11 @@ pub(crate) fn execute_outdent_command(
     //         is not an ancestor of node; node is editable;
     //         and either node has no editable descendants, or is an ol or ul,
     //         or is an li whose parent is an ol or ul.
-    for node in new_range.contained_nodes(cx.no_gc()) {
+    let contained: Vec<DomRoot<Node>> = new_range
+        .contained_nodes(cx.no_gc())
+        .map(|node| node.as_rooted())
+        .collect();
+    for node in contained {
         // This type is only used to tell the compiler how to handle the type of `node_list.last()`.
         // It is not allowed to add a `& DomRoot<Node>` annotation, as test-tidy disallows that.
         // However, if we omit the type, the compiler doesn't know what it is, since we also
@@ -284,10 +288,10 @@ pub(crate) fn execute_outdent_command(
         if !node_list
             .last()
             .is_some_and(|last: &DomRootNode| last.is_ancestor_of(&node)) &&
-            node.is_editable() &&
+            node.is_editable(cx) &&
             (!node
                 .traverse_preorder(ShadowIncluding::No)
-                .any(|node| node.is_editable()) ||
+                .any(|node| node.is_editable(cx)) ||
                 node.is::<HTMLOListElement>() ||
                 node.is::<HTMLUListElement>() ||
                 (node.is::<HTMLLIElement>() &&
@@ -295,7 +299,7 @@ pub(crate) fn execute_outdent_command(
                         parent.is::<HTMLOListElement>() || parent.is::<HTMLUListElement>()
                     })))
         {
-            node_list.push(node.as_rooted());
+            node_list.push(node);
         }
     }
 
@@ -342,7 +346,7 @@ pub(crate) fn execute_outdent_command(
         }
 
         // Step 6.6. Record the values of sublist, and let values be the result.
-        let values = record_the_values(sublist.iter().map(|node| node.as_rooted()).collect());
+        let values = record_the_values(cx, sublist.iter().map(|node| node.as_rooted()).collect());
 
         // Step 6.7. Split the parent of sublist.
         split_the_parent(cx, sublist.r());

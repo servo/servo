@@ -2290,10 +2290,10 @@ impl Node {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#editable>
-    pub(crate) fn is_editable(&self) -> bool {
+    pub(crate) fn is_editable(&self, cx: &mut JSContext) -> bool {
         // https://html.spec.whatwg.org/multipage/#inert
         // When a node is inert: If it is editable, the node behaves as if it were non-editable.
-        if self.is_inert() {
+        if self.is_inert(cx) {
             return false;
         }
 
@@ -2321,9 +2321,9 @@ impl Node {
     /// A node (in particular elements and text nodes) can be inert.
     ///
     /// Inertness is propagated using the internal `-moz-inert` property.
-    pub(crate) fn is_inert(&self) -> bool {
+    pub(crate) fn is_inert(&self, cx: &mut JSContext) -> bool {
         self.downcast::<Element>()
-            .and_then(Element::style)
+            .and_then(|element| element.style(cx))
             .is_some_and(|style| {
                 *style.get__moz_inert() == Inert::Inert ||
                     *style.get_interactivity() == Interactivity::Inert

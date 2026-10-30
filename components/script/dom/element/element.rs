@@ -537,23 +537,27 @@ impl Element {
     }
 
     // https://drafts.csswg.org/cssom-view/#css-layout-box
-    pub(crate) fn has_css_layout_box(&self) -> bool {
-        self.style().is_some_and(|s| !s.get_display().is_none())
+    pub(crate) fn has_css_layout_box(&self, cx: &mut JSContext) -> bool {
+        self.style(cx).is_some_and(|s| !s.get_display().is_none())
     }
 
     /// <https://drafts.csswg.org/cssom-view/#potentially-scrollable>
-    pub(crate) fn is_potentially_scrollable_body(&self) -> bool {
-        self.is_potentially_scrollable_body_shared_logic(false)
+    pub(crate) fn is_potentially_scrollable_body(&self, cx: &mut JSContext) -> bool {
+        self.is_potentially_scrollable_body_shared_logic(cx, false)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#potentially-scrollable>
-    pub(crate) fn is_potentially_scrollable_body_for_scrolling_element(&self) -> bool {
-        self.is_potentially_scrollable_body_shared_logic(true)
+    pub(crate) fn is_potentially_scrollable_body_for_scrolling_element(
+        &self,
+        cx: &mut JSContext,
+    ) -> bool {
+        self.is_potentially_scrollable_body_shared_logic(cx, true)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#potentially-scrollable>
     fn is_potentially_scrollable_body_shared_logic(
         &self,
+        cx: &mut JSContext,
         treat_overflow_clip_on_parent_as_hidden: bool,
     ) -> bool {
         let node = self.upcast::<Node>();
@@ -565,14 +569,14 @@ impl Element {
         // "An element body (which will be the body element) is potentially
         // scrollable if all of the following conditions are true:
         //  - body has an associated box."
-        if !self.has_css_layout_box() {
+        if !self.has_css_layout_box(cx) {
             return false;
         }
 
         // " - body’s parent element’s computed value of the overflow-x or
         //     overflow-y properties is neither visible nor clip."
         if let Some(parent) = node.GetParentElement() &&
-            let Some(style) = parent.style()
+            let Some(style) = parent.style(cx)
         {
             let mut overflow_x = style.get_box().get_overflow_x();
             let mut overflow_y = style.get_box().get_overflow_y();
@@ -595,7 +599,7 @@ impl Element {
 
         // " - body’s computed value of the overflow-x or overflow-y properties
         //     is neither visible nor clip."
-        if let Some(style) = self.style() &&
+        if let Some(style) = self.style(cx) &&
             !style.get_box().get_overflow_x().is_scrollable() &&
             !style.get_box().get_overflow_y().is_scrollable()
         {
@@ -633,7 +637,9 @@ impl Element {
     ///  2. The style specifies that overflow should be scrollable (`auto`, `hidden` or `scroll`).
     ///  3. The fragment actually has content that overflows the box.
     fn has_scrolling_box(&self, cx: &mut JSContext) -> bool {
-        self.has_css_layout_box() && self.establishes_scroll_container(cx) && self.has_overflow(cx)
+        self.has_css_layout_box(cx) &&
+            self.establishes_scroll_container(cx) &&
+            self.has_overflow(cx)
     }
 
     pub(crate) fn shadow_root(&self) -> Option<DomRoot<ShadowRoot>> {
@@ -1032,9 +1038,8 @@ impl Element {
         document.finish_handle_scroll_event(self.upcast());
     }
 
-    pub(crate) fn style(&self) -> Option<ServoArc<ComputedValues>> {
-        self.owner_window()
-            .layout_reflow_deprecated(QueryMsg::StyleQuery);
+    pub(crate) fn style(&self, cx: &mut JSContext) -> Option<ServoArc<ComputedValues>> {
+        self.owner_window().layout_reflow(cx, QueryMsg::StyleQuery);
         self.style_without_reflow()
     }
 
@@ -2761,7 +2766,7 @@ impl Element {
         // TODO: Implement the promise and smooth scroll behavior.
         if document.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             document.quirks_mode() == QuirksMode::Quirks &&
-            !self.is_potentially_scrollable_body()
+            !self.is_potentially_scrollable_body(cx)
         {
             window.scroll(cx, x, y, behavior);
             return;
@@ -3491,14 +3496,14 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // scrollY on window.
         if document.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             document.quirks_mode() == QuirksMode::Quirks &&
-            !self.is_potentially_scrollable_body()
+            !self.is_potentially_scrollable_body(cx)
         {
             return window.ScrollY(cx) as f64;
         }
 
         // Step 8. If the element does not have any associated box, return zero and
         // terminate these steps.
-        if !self.has_css_layout_box() {
+        if !self.has_css_layout_box(cx) {
             return 0.0;
         }
 
@@ -3553,7 +3558,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // these steps.
         if document.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             document.quirks_mode() == QuirksMode::Quirks &&
-            !self.is_potentially_scrollable_body()
+            !self.is_potentially_scrollable_body(cx)
         {
             let window_scroll_x = window.ScrollX(cx) as f32;
             window.scroll(cx, window_scroll_x, y, behavior);
@@ -3608,14 +3613,14 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // scrollX on window.
         if document.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             document.quirks_mode() == QuirksMode::Quirks &&
-            !self.is_potentially_scrollable_body()
+            !self.is_potentially_scrollable_body(cx)
         {
             return window.ScrollX(cx) as f64;
         }
 
         // Step 8. If the element does not have any associated box, return zero and
         // terminate these steps.
-        if !self.has_css_layout_box() {
+        if !self.has_css_layout_box(cx) {
             return 0.0;
         }
 
@@ -3669,7 +3674,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // terminate these steps.
         if document.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             document.quirks_mode() == QuirksMode::Quirks &&
-            !self.is_potentially_scrollable_body()
+            !self.is_potentially_scrollable_body(cx)
         {
             let window_scroll_y = window.ScrollY(cx) as f32;
             window.scroll(cx, x, window_scroll_y, behavior);
@@ -3724,7 +3729,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // Step 7: If the element does not have any associated box, or is not
         //         available to user-agent features, then return.
-        if !self.has_css_layout_box() {
+        if !self.has_css_layout_box(cx) {
             return;
         }
 
