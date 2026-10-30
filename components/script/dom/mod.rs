@@ -230,8 +230,6 @@ pub(crate) mod characterdata;
 pub(crate) use self::characterdata::*;
 pub(crate) mod clipboard;
 pub(crate) use self::clipboard::*;
-pub(crate) mod closewatcher;
-pub(crate) use self::closewatcher::*;
 pub(crate) mod console;
 pub(crate) mod cookiestore;
 pub(crate) use self::cookiestore::*;
