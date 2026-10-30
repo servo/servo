@@ -581,7 +581,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
             anyValue: Box::new(Heap::default()),
             booleanValue: None,
             byteValue: None,
-            dict: RootedTraceableBox::new(TestDictionaryDefaults {
+            dict: Box::new(TestDictionaryDefaults {
                 UnrestrictedDoubleValue: 0.0,
                 anyValue: Box::new(Heap::default()),
                 arrayValue: Vec::new(),
