@@ -813,28 +813,30 @@ fn containing_block_fragment(
     fragment: &BoxFragment,
 ) -> Option<Arc<BoxFragment>> {
     let containing_block_node = containing_block_for_node(node)?;
-    containing_block_node.with_layout_box_base(|layout_box_base| {
-        let fragments = layout_box_base.fragments();
+    containing_block_node
+        .with_layout_box_base(|layout_box_base| {
+            let fragments = layout_box_base.fragments();
 
-        // When there is more than a single fragment the containing block has been fragmented,
-        // so we need to search for the fragment that contains the one we are looking for.
-        if fragments.len() > 1 {
-            for potential_fragment in fragments.iter() {
-                if let Some(potential_box_fragment) = potential_fragment.retrieve_box_fragment() &&
-                    potential_box_fragment
-                        .children
-                        .iter()
-                        .any(|child_fragment| child_fragment.is_box_fragment(fragment))
-                {
-                    return Some(potential_box_fragment.clone());
+            // When there is more than a single fragment the containing block has been fragmented,
+            // so we need to search for the fragment that contains the one we are looking for.
+            if fragments.len() > 1 {
+                for potential_fragment in fragments.iter() {
+                    if let Some(potential_box_fragment) = potential_fragment.retrieve_box_fragment()
+                        && potential_box_fragment
+                            .children
+                            .iter()
+                            .any(|child_fragment| child_fragment.is_box_fragment(fragment))
+                    {
+                        return Some(potential_box_fragment.clone());
+                    }
                 }
             }
-        }
 
-        // Fall back to the first fragment which is necessary for the case of inline
-        // formatting contexts which establish containing blocks for their nested contents.
-        Some(fragments.first()?.retrieve_box_fragment()?.clone())
-    }).flatten()
+            // Fall back to the first fragment which is necessary for the case of inline
+            // formatting contexts which establish containing blocks for their nested contents.
+            Some(fragments.first()?.retrieve_box_fragment()?.clone())
+        })
+        .flatten()
 }
 
 /// An implementation of `scrollParent` that can also be used to for `scrollIntoView`:
