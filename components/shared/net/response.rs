@@ -347,6 +347,7 @@ impl Response {
             metadata
                 .tls_security_info
                 .clone_from(&response.tls_security_info);
+            metadata.redirect_taint = response.redirect_taint;
             metadata
         }
 
