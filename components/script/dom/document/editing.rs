@@ -11,8 +11,7 @@ use embedder_traits::{
 };
 use js::context::{JSContext, NoGC};
 use keyboard_types::{
-    CompositionEvent, CompositionState, Key, KeyState, KeyboardEvent as KeyboardTypesEvent,
-    Modifiers, NamedKey, ShortcutMatcher,
+    Key, KeyState, KeyboardEvent as KeyboardTypesEvent, Modifiers, NamedKey, ShortcutMatcher,
 };
 use layout_api::{QueryMsg, SegmentGranularity};
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
@@ -397,7 +396,9 @@ impl Document {
             // TODO: composition should be supported once editing hosts have selection support
             EditingAction::MoveCursor(..) |
             EditingAction::StartComposition |
-            EditingAction::EndComposition(..) => return false,
+            EditingAction::EndComposition |
+            EditingAction::SetCompositionCursor(..) |
+            EditingAction::DeleteSurrounding { .. } => return false,
             EditingAction::SelectAll | EditingAction::Clipboard(_) => {
                 unreachable!("Should have been handled before this point.")
             },
@@ -632,6 +633,15 @@ impl EditingContext {
             EditingContext::Document(document) => document
                 .selection()
                 .is_some_and(|selection| selection.RangeCount() > 0),
+        }
+    }
+
+    pub(crate) fn has_composing_text(&self) -> bool {
+        match self {
+            EditingContext::TextControl(element) => {
+                element.text_control_element().has_composing_text()
+            },
+            EditingContext::Document(..) => false,
         }
     }
 
@@ -983,12 +993,4 @@ pub(crate) fn editing_action_from_keyboard_event(
             _ => None,
         })
         .flatten()
-}
-
-pub(crate) fn editing_action_from_composition_event(event: &CompositionEvent) -> EditingAction {
-    match event.state {
-        CompositionState::Start => EditingAction::StartComposition,
-        CompositionState::Update => EditingAction::InsertCompositionText(event.data.to_string()),
-        CompositionState::End => EditingAction::EndComposition(event.data.to_string()),
-    }
 }

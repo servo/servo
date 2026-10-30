@@ -91,6 +91,7 @@ use crate::dom::svg::svgsymbolelement::SVGSymbolElement;
 use crate::dom::svg::svgtextelement::SVGTextElement;
 use crate::dom::svg::svgtspanelement::SVGTSpanElement;
 use crate::dom::svg::svguseelement::SVGUseElement;
+use crate::dom::types::FocusEvent;
 
 /// Trait to allow DOM nodes to opt-in to overriding (or adding to) common
 /// behaviours. Replicates the effect of C++ virtual methods.
@@ -174,6 +175,13 @@ pub(crate) trait VirtualMethods {
     fn handle_event(&self, cx: &mut js::context::JSContext, event: &Event) {
         if let Some(s) = self.super_type() {
             s.handle_event(cx, event);
+        }
+    }
+
+    /// Called before a focus event fires.
+    fn handle_before_focus_event(&self, cx: &mut js::context::JSContext, event: &FocusEvent) {
+        if let Some(s) = self.super_type() {
+            s.handle_before_focus_event(cx, event);
         }
     }
 
