@@ -220,6 +220,37 @@ impl DocumentFocusHandler {
                 .is_some_and(|html_element| html_element.is_editing_host())
     }
 
+    /// Updates the focus-within state for all relevent ancestors. In case there were both
+    /// a previous and new focused element, all ancestors up to the common ancestor are
+    /// traversed. If that's not the case, all ancestors of the respective all updated up
+    /// to the root node.
+    fn update_focus_within_state(
+        no_gc: &NoGC,
+        previous_element: Option<&Element>,
+        new_element: Option<&Element>,
+    ) {
+        let maybe_common_ancestor = match (previous_element, new_element) {
+            (Some(previous_element), Some(new_element)) => previous_element
+                .upcast::<Node>()
+                .common_ancestor_in_flat_tree(no_gc, new_element.upcast()),
+            _ => None,
+        };
+        if let Some(previous_element) = previous_element {
+            previous_element.set_focus_within_state_for_ancestors_of_element(
+                no_gc,
+                maybe_common_ancestor.as_deref(),
+                false,
+            );
+        }
+        if let Some(new_element) = new_element {
+            new_element.set_focus_within_state_for_ancestors_of_element(
+                no_gc,
+                maybe_common_ancestor.as_deref(),
+                true,
+            );
+        }
+    }
+
     /// Set the element that currently has focus and update the focus state for both the previously
     /// set element (if any) and the new one, as well as the new one. This will not do anything if
     /// the new element is the same as the previous one. Note that this *will not* fire any focus
@@ -269,6 +300,12 @@ impl DocumentFocusHandler {
                 newly_focused_element.set_focusring_state(no_gc, true);
             }
         }
+
+        Self::update_focus_within_state(
+            no_gc,
+            self.focused_area.borrow().element(),
+            new_focusable_area.element(),
+        );
 
         *self.focused_area.borrow_mut() = new_focusable_area;
     }

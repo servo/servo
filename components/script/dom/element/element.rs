@@ -174,8 +174,8 @@ use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::namednodemap::NamedNodeMap;
 use crate::dom::node::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::node::{
-    BindContext, ChildrenMutation, CloneChildrenFlag, IsShadowTree, Node, NodeDamage, NodeFlags,
-    NodeTraits, UnbindContext,
+    BindContext, ChildrenMutation, CloneChildrenFlag, IsShadowTree, MoveContext, Node, NodeDamage,
+    NodeFlags, NodeTraits, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::range::Range;
@@ -5068,6 +5068,16 @@ impl VirtualMethods for Element {
         }
 
         self.unregister_current_id_and_name_attribute(cx);
+
+        self.maybe_reset_focus_within_state(cx.no_gc(), context.parent.downcast::<Element>());
+    }
+
+    fn moving_steps(&self, cx: &mut JSContext, context: &MoveContext) {
+        if let Some(super_type) = self.super_type() {
+            super_type.moving_steps(cx, context);
+        }
+
+        self.maybe_reset_focus_within_state(cx.no_gc(), context.old_ancestor.downcast::<Element>());
     }
 
     fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
@@ -5358,6 +5368,14 @@ impl Element {
         self.set_state(no_gc, ElementState::FOCUSRING, value);
     }
 
+    pub(crate) fn focus_within_state(&self) -> bool {
+        self.state.get().contains(ElementState::FOCUS_WITHIN)
+    }
+
+    pub(crate) fn set_focus_within_state(&self, no_gc: &NoGC, value: bool) {
+        self.set_state(no_gc, ElementState::FOCUS_WITHIN, value);
+    }
+
     pub(crate) fn set_hover_state(&self, no_gc: &NoGC, value: bool) {
         self.set_state(no_gc, ElementState::HOVER, value);
     }
@@ -5404,6 +5422,34 @@ impl Element {
 
     pub(crate) fn set_fullscreen_state(&self, no_gc: &NoGC, value: bool) {
         self.set_state(no_gc, ElementState::FULLSCREEN, value)
+    }
+
+    pub(crate) fn set_focus_within_state_for_ancestors_of_element(
+        &self,
+        no_gc: &NoGC,
+        maybe_common_ancestor: Option<&Node>,
+        focus_within_state: bool,
+    ) {
+        for ancestor in self
+            .upcast::<Node>()
+            .inclusive_ancestors_in_flat_tree_unrooted(no_gc)
+            .take_while(|ancestor| {
+                maybe_common_ancestor.is_none_or(|common_ancestor| **ancestor != common_ancestor)
+            })
+            .filter_map(UnrootedDom::downcast::<Element>)
+        {
+            ancestor.set_focus_within_state(no_gc, focus_within_state);
+        }
+    }
+
+    fn maybe_reset_focus_within_state(&self, no_gc: &NoGC, parent_element: Option<&Element>) {
+        if !self.focus_within_state() {
+            return;
+        }
+        if let Some(parent_element) = parent_element {
+            parent_element.set_focus_within_state_for_ancestors_of_element(no_gc, None, false);
+        }
+        self.set_focus_within_state(no_gc, false);
     }
 
     /// <https://dom.spec.whatwg.org/#connected>
