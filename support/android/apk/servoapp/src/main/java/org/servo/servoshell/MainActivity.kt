@@ -12,7 +12,6 @@ import android.system.ErrnoException
 import android.system.Os
 import android.util.Log
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.component1
@@ -242,7 +241,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
                     navigator = navigator,
                     modifier = Modifier.padding(innerPadding).focusRequester(servoFocusRequester),
                 )
-                BackHandler(enabled = navigator.canGoBack) { navigator.back() }
                 LaunchedEffect(servoFocusRequester) { servoFocusRequester.requestFocus() }
                 alertMessage?.let { alertMessage ->
                     AlertDialog(
