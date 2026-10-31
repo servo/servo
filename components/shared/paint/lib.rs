@@ -542,6 +542,11 @@ impl PainterSurfmanDetailsMap {
         let mut map = self.0.lock().expect("poisoned");
         map.remove(&painter_id);
     }
+
+    pub fn first_painter_id(&self) -> Option<PainterId> {
+        let map = self.0.lock().expect("poisoned");
+        map.keys().next().cloned()
+    }
 }
 
 /// This trait is used as a bridge between the different GL clients

@@ -254,6 +254,9 @@ pub(crate) struct WebGLThread {
     #[cfg(feature = "webxr")]
     /// The bridge to WebXR
     pub webxr_bridge: Option<WebXRBridge>,
+    #[cfg(feature = "webxr")]
+    /// The underlying surfman device to be used for WebXR
+    xr_device: Option<Rc<Device>>,
 }
 
 /// The data required to initialize an instance of the WebGLThread type.
@@ -301,6 +304,8 @@ impl WebGLThread {
             busy_webgl_context_map,
             #[cfg(feature = "webxr")]
             webxr_bridge: Some(WebXRBridge::new(webxr_init)),
+            #[cfg(feature = "webxr")]
+            xr_device: None,
         }
     }
 
@@ -1046,6 +1051,26 @@ impl WebGLThread {
             external_image_data,
             false,
         );
+    }
+
+    #[cfg(feature = "webxr")]
+    pub fn get_or_create_xr_device(&mut self) -> Option<Rc<Device>> {
+        if let Some(device) = &self.xr_device {
+            return Some(device.clone());
+        }
+
+        // Prefer an already-created WebGL context's device to share with OpenXR
+        let device = if let Some(data) = self.contexts.values().next() {
+            data.device.clone()
+        } else {
+            // If requestSession called before getContext: pick first available painter,
+            // create its device, and cache it for later XR usage.
+            let painter_id = self.painter_surfman_details_map.first_painter_id()?;
+            self.get_or_create_device_for_painter(painter_id).ok()?
+        };
+
+        self.xr_device = Some(device.clone());
+        Some(device)
     }
 }
 
