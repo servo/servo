@@ -3599,18 +3599,32 @@ where
             name,
         );
 
-        if let Some(webview) = self.webviews.get_mut(&webview_id) {
-            webview.add_pending_change(SessionHistoryChange {
-                webview_id,
-                browsing_context_id,
-                new_pipeline_id,
-                replace,
-                // Browsing context for iframe already exists.
-                new_browsing_context_info: None,
-                viewport_details: load_info.viewport_details,
-            });
-        } else {
+        let Some(webview) = self.webviews.get_mut(&webview_id) else {
             warn!("Could not find WebView for script-loaded iframe: ({webview_id:?})");
+            return;
+        };
+
+        // This is a transitional implementation of
+        // <https://html.spec.whatwg.org/multipage/#set-the-ongoing-navigation>
+        // where setting the ongoing navigation should cancel any previously ongoing
+        // navigation.
+        let superseded_pending_changes =
+            webview.remove_pending_changes_for_browsing_context_id(browsing_context_id);
+        webview.add_pending_change(SessionHistoryChange {
+            webview_id,
+            browsing_context_id,
+            new_pipeline_id,
+            replace,
+            // Browsing context for iframe already exists.
+            new_browsing_context_info: None,
+            viewport_details: load_info.viewport_details,
+        });
+        for change in superseded_pending_changes {
+            self.close_pipeline(
+                change.new_pipeline_id,
+                DiscardBrowsingContext::No,
+                ExitPipelineMode::Normal,
+            );
         }
     }
 
