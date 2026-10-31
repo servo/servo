@@ -4,6 +4,7 @@
 
 mod options;
 mod preferences;
+mod refresh_driver;
 mod rendering_context;
 mod servo;
 mod webview;
