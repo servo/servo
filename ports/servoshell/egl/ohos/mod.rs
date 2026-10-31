@@ -63,7 +63,7 @@ use std::path::PathBuf;
 use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{LazyLock, Mutex, Once, OnceLock, mpsc};
 use std::{fs, thread};
 
@@ -390,6 +390,7 @@ pub(super) enum ServoAction {
     FocusWindow(u32, Vec<u32>),
     CreatePlatformWindow(XComponentWrapper, WindowWrapper),
     RemovePlatformWindow(u32, Vec<u32>),
+    SaveToDisk(Sender<()>),
 }
 
 impl std::fmt::Debug for ServoAction {
@@ -436,6 +437,7 @@ impl std::fmt::Debug for ServoAction {
                 .field(window)
                 .field(arkts_ids)
                 .finish(),
+            Self::SaveToDisk(..) => f.debug_tuple("SaveToDisk").finish(),
         }
     }
 }
@@ -563,6 +565,14 @@ impl ServoAction {
                         error!("Window is already closed.");
                     }
                 }
+            },
+            SaveToDisk(sender) => {
+                servo
+                    .state
+                    .servo
+                    .network_manager()
+                    .store_http_cache_to_disk();
+                let _ = sender.send(());
             },
         };
     }
@@ -1042,6 +1052,14 @@ fn delete_webview(index: u32, arkts_ids: Vec<u32>) {
 #[napi]
 fn next_window_id(id: u32) {
     NEXT_WINDOW_ID.store(id.into(), std::sync::atomic::Ordering::SeqCst);
+}
+
+#[napi]
+fn on_background() {
+    debug!("on_background called");
+    let (sender, receiver) = channel();
+    call(ServoAction::SaveToDisk(sender)).expect("Could not save to disk");
+    let _ = receiver.recv();
 }
 
 struct OhosImeOptions {
