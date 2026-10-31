@@ -26,6 +26,7 @@ use crate::dom::focusevent::FocusEventType;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::node::focus::{FocusNavigationScopeOwner, FocusTrigger};
+use crate::dom::node::virtualmethods::vtable_for;
 use crate::dom::types::{Element, EventTarget, FocusEvent, HTMLElement, HTMLIFrameElement, Window};
 use crate::dom::{Document, Event, EventBubbles, EventCancelable, Node, NodeTraits};
 use crate::realms::enter_auto_realm;
@@ -605,6 +606,9 @@ impl DocumentFocusHandler {
             0i32,
             related_target,
         );
+        if let Some(node) = event_target.downcast::<Node>() {
+            vtable_for(node).handle_before_focus_event(cx, &event);
+        }
         let event = event.upcast::<Event>();
         event.set_trusted(true);
         event.set_composed(true);

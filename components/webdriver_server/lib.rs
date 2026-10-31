@@ -36,7 +36,7 @@ use euclid::{Point2D, Rect, Size2D};
 use http::method::Method;
 use image::{DynamicImage, ImageFormat};
 use keyboard_types::webdriver::{Event as DispatchStringEvent, KeyInputState, send_keys};
-use keyboard_types::{Code, Key, KeyState, KeyboardEvent, Location, NamedKey};
+use keyboard_types::{Code, CompositionState, Key, KeyState, KeyboardEvent, Location, NamedKey};
 use log::{debug, error, info};
 use serde::de::{Deserializer, MapAccess, Visitor};
 use serde::ser::Serializer;
@@ -2240,9 +2240,22 @@ impl Handler {
                     }
                 },
                 DispatchStringEvent::Composition(event) => {
-                    self.send_blocking_input_event_to_embedder(InputEvent::Ime(
-                        ImeEvent::Composition(event),
-                    ));
+                    // Instead of sending start, update, and end, we send IME events to the
+                    // embedder that correspond to compositionstart, compositionupdate, and
+                    // compositionend.
+                    match event.state {
+                        CompositionState::Start => {},
+                        CompositionState::Update => {
+                            self.send_blocking_input_event_to_embedder(InputEvent::Ime(
+                                ImeEvent::Update(event.data, None),
+                            ));
+                        },
+                        CompositionState::End => {
+                            self.send_blocking_input_event_to_embedder(InputEvent::Ime(
+                                ImeEvent::Commit(event.data),
+                            ));
+                        },
+                    }
                 },
             }
         }

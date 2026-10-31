@@ -120,6 +120,12 @@ pub(crate) struct SelectionState {
     direction: SelectionDirection,
 }
 
+#[derive(Debug, MallocSizeOf, Clone, Copy, PartialEq)]
+struct CompositionRange {
+    start: RopeIndex,
+    end: RopeIndex,
+}
+
 /// Encapsulated state for handling keyboard input in a single or multiline text input control.
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct TextInput<T: ClipboardProvider> {
@@ -155,6 +161,9 @@ pub struct TextInput<T: ClipboardProvider> {
     was_last_change_by_set_content: bool,
 
     #[no_trace]
+    composition_range: Option<CompositionRange>,
+
+    #[no_trace]
     pub(crate) previous_selection_range: Range<RopeIndex>,
     #[no_trace]
     pub(crate) selection_for_layout: Option<RangeAny<Utf32CodeUnits>>,
@@ -170,6 +179,7 @@ pub enum InputEventType {
     DeleteByCut,
     DeleteContentBackward,
     DeleteContentForward,
+    DeleteSurrounding,
 }
 
 impl InputEventType {
@@ -182,6 +192,7 @@ impl InputEventType {
             Self::DeleteByCut => "deleteByCut",
             Self::DeleteContentBackward => "deleteContentBackward",
             Self::DeleteContentForward => "deleteContentForward",
+            Self::DeleteSurrounding => "deleteSurrounding",
         }
     }
 
@@ -200,6 +211,7 @@ impl InputEventType {
 pub enum KeyReaction {
     TriggerDefaultAction,
     DispatchInput(Option<String>, InputEventType),
+    DispatchCompositionEnd(String),
     RedrawSelection,
     Nothing,
 }
@@ -217,6 +229,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             min_length: Default::default(),
             selection_direction: SelectionDirection::None,
             was_last_change_by_set_content: true,
+            composition_range: None,
             previous_selection_range: Default::default(),
             selection_for_layout: None,
         }
@@ -306,11 +319,6 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.rope.index_to_utf16_offset(self.selection_start())
     }
 
-    /// The byte offset of the selection_start()
-    fn selection_start_offset(&self) -> Utf8CodeUnits {
-        self.rope.index_to_utf8_offset(self.selection_start())
-    }
-
     /// The end of the selection (or the edit point, if there is no selection). Always greater
     /// than or equal to selection_start(), regardless of the selection direction.
     pub fn selection_end(&self) -> RopeIndex {
@@ -322,6 +330,10 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     pub(crate) fn selection_end_utf16(&self) -> Utf16CodeUnits {
         self.rope.index_to_utf16_offset(self.selection_end())
+    }
+
+    pub(crate) fn has_composing_text(&self) -> bool {
+        self.composition_range.is_some()
     }
 
     /// Whether or not there is an active uncollapsed selection. This means that the
@@ -528,6 +540,21 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.edit_point = Default::default();
     }
 
+    /// End the current composition, returning the contents of the composition. Returns
+    /// `None` if there was no active composition.
+    pub fn end_composition(&mut self) -> Option<String> {
+        self.composition_range.take().map(|range| {
+            let contents: String = self
+                .rope
+                .slice(
+                    Some(self.rope.normalize_index(range.start)),
+                    Some(self.rope.normalize_index(range.end)),
+                )
+                .into();
+            contents
+        })
+    }
+
     /// Process a given `EditingAction` and return an action for the caller to execute.
     ///
     /// This is public so that it can be used in external unit tests.
@@ -558,13 +585,59 @@ impl<T: ClipboardProvider> TextInput<T> {
                 self.insert(&text);
                 KeyReaction::DispatchInput(Some(text), InputEventType::InsertText)
             },
-            EditingAction::InsertCompositionText(text) => {
-                self.insert_for_composition(&text);
-                KeyReaction::DispatchInput(Some(text), InputEventType::InsertCompositionText)
+            EditingAction::StartComposition => {
+                self.composition_range = Some(CompositionRange {
+                    start: self.edit_point,
+                    end: self.edit_point,
+                });
+                KeyReaction::Nothing
             },
-            EditingAction::EndComposition(..) => {
-                self.clear_selection();
-                KeyReaction::RedrawSelection
+            EditingAction::InsertCompositionText(text) => {
+                if self.insert_for_composition(&text) {
+                    KeyReaction::DispatchInput(Some(text), InputEventType::InsertCompositionText)
+                } else {
+                    KeyReaction::Nothing
+                }
+            },
+            EditingAction::SetCompositionCursor(cursor) => {
+                if let Some(range) = self.composition_range {
+                    if let Some((start, end)) = cursor {
+                        let composition_start = self.rope.index_to_utf8_offset(range.start);
+                        let relative_start = Utf8CodeUnits(start as u32);
+                        let relative_end = Utf8CodeUnits(end as u32);
+                        self.set_selection_range_utf8(
+                            composition_start + relative_start,
+                            composition_start + relative_end,
+                            SelectionDirection::Forward,
+                        );
+                    } else {
+                        self.clear_selection();
+                    }
+                    KeyReaction::RedrawSelection
+                } else {
+                    KeyReaction::Nothing
+                }
+            },
+            EditingAction::EndComposition => self
+                .end_composition()
+                .map(KeyReaction::DispatchCompositionEnd)
+                .unwrap_or(KeyReaction::Nothing),
+            EditingAction::DeleteSurrounding { before, after } => {
+                let start = self.rope.index_to_utf8_offset(self.selection_start());
+                let end = self.rope.index_to_utf8_offset(self.selection_end());
+                self.set_selection_range_utf8(
+                    end,
+                    end + Utf8CodeUnits(after as u32),
+                    SelectionDirection::Forward,
+                );
+                self.delete_selection();
+                self.set_selection_range_utf8(
+                    start - Utf8CodeUnits(before as u32),
+                    start,
+                    SelectionDirection::Forward,
+                );
+                self.delete_selection();
+                KeyReaction::DispatchInput(None, InputEventType::DeleteSurrounding)
             },
             EditingAction::Delete => {
                 if self.delete_unit_or_selection(RopeMovement::Grapheme, EditingDirection::Forward)
@@ -590,21 +663,32 @@ impl<T: ClipboardProvider> TextInput<T> {
                     KeyReaction::Nothing
                 }
             },
-            EditingAction::SelectAll |
-            EditingAction::Clipboard(..) |
-            EditingAction::StartComposition => KeyReaction::Nothing,
+            EditingAction::SelectAll | EditingAction::Clipboard(..) => KeyReaction::Nothing,
         }
     }
 
-    fn insert_for_composition<S: Into<String>>(&mut self, insertion: S) {
-        let start = self.selection_start_offset();
+    fn insert_for_composition<S: Into<String>>(&mut self, insertion: S) -> bool {
+        // TODO: composition_range is currently very fragile. If something artificially sets
+        // the text input contents (i.e. set_content), our composition range stays the same.
+        // When such an interruption happens, we should cancel the composition and notify
+        // the embedder.
+        let Some(range) = self.composition_range.as_mut() else {
+            return false;
+        };
+        let start = self.rope.index_to_utf8_offset(range.start);
+        self.selection_origin = Some(range.start);
+        self.edit_point = range.end;
+        self.selection_direction = SelectionDirection::Forward;
         let insertion = insertion.into();
-        self.insert(&insertion);
-        self.set_selection_range_utf8(
-            start,
-            start + Utf8CodeUnits(insertion.len() as u32),
-            SelectionDirection::Forward,
-        );
+        let insertion_len = insertion.len();
+        self.insert(insertion);
+        *self.composition_range.as_mut().unwrap() = CompositionRange {
+            start: self.rope.utf8_offset_to_rope_index(start),
+            end: self
+                .rope
+                .utf8_offset_to_rope_index(start + Utf8CodeUnits(insertion_len as u32)),
+        };
+        true
     }
 
     fn edit_point_for_hit_test_result(&self, hit_test_result: &HitTestResult) -> RopeIndex {
