@@ -8,6 +8,6 @@
   "name": "servoshell",
   "description": "Servo browser shell",
   "main": "",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "dependencies": {}
 }
