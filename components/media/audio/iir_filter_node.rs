@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::any::Any;
 use std::collections::VecDeque;
 use std::sync::Arc;
 
@@ -187,5 +188,9 @@ impl AudioNodeEngine for IIRFilterNode {
             });
         }
         inputs
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
