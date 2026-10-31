@@ -5,10 +5,13 @@
 pub mod paint;
 pub mod paint_servers;
 
+use malloc_size_of_derive::MallocSizeOf;
+
 pub use self::paint::{FillParams, MarkerRefs, StrokeParams};
 use crate::model::document::{ClipPathDef, DefRef, FilterDef, MaskDef};
 use crate::model::units::Opacity;
 
+#[derive(Debug, MallocSizeOf)]
 pub struct NodeStyle {
     pub visibility: Visibility,
     pub display: Display,
@@ -39,17 +42,20 @@ impl Default for NodeStyle {
     }
 }
 
+#[derive(Debug, MallocSizeOf)]
 pub enum Visibility {
     Visible,
     Hidden,
 }
 
+#[derive(Debug, MallocSizeOf)]
 pub enum Display {
     Inline,
     Block,
     None,
 }
 
+#[derive(Debug, MallocSizeOf)]
 pub struct RenderHints {
     pub vector_effect: Option<VectorEffect>,
     pub color_rendering: Option<ColorRendering>,
@@ -60,23 +66,27 @@ pub struct RenderHints {
     pub image_rendering: Option<ImageRendering>,
 }
 
+#[derive(Debug, MallocSizeOf)]
 pub enum VectorEffect {
     None,
     NonScalingStroke,
 }
 
+#[derive(Debug, MallocSizeOf)]
 pub enum ColorRendering {
     Auto,
     OptimizeSpeed,
     OptimizeQuality,
 }
 
+#[derive(Debug, MallocSizeOf)]
 pub enum ColorInterpolation {
     Auto,
     Srgb,
     LinearRGB,
 }
 
+#[derive(Debug, MallocSizeOf)]
 pub enum ShapeRendering {
     Auto,
     OptimizeSpeed,
@@ -84,6 +94,7 @@ pub enum ShapeRendering {
     GeometricPrecision,
 }
 
+#[derive(Debug, MallocSizeOf)]
 pub struct PaintOrder {
     pub order: [PaintOperation; 3],
 }
@@ -100,12 +111,14 @@ impl Default for PaintOrder {
     }
 }
 
+#[derive(Debug, MallocSizeOf)]
 pub enum PaintOperation {
     Fill,
     Stroke,
     Markers,
 }
 
+#[derive(Debug, MallocSizeOf)]
 pub enum TextRendering {
     Auto,
     OptimizeSpeed,
@@ -113,6 +126,7 @@ pub enum TextRendering {
     GeometricPrecision,
 }
 
+#[derive(Debug, MallocSizeOf)]
 pub enum ImageRendering {
     Auto,
     OptimizeSpeed,

@@ -4,16 +4,22 @@
 
 use std::sync::Arc;
 
+use malloc_size_of_derive::MallocSizeOf;
 use svgtypes::Color as SvgColor;
 
 use crate::model::document::{GradientDef, PatternDef};
 use crate::model::units::Id;
 
+#[derive(Debug, MallocSizeOf)]
 pub enum PaintServer {
-    Solid(SvgColor),
-    Gradient(Arc<GradientDef>),
-    Pattern(Arc<PatternDef>),
-    Ref { id: Id, fallback: Option<SvgColor> },
+    Solid(#[ignore_malloc_size_of = "External Type"] SvgColor),
+    Gradient(#[conditional_malloc_size_of] Arc<GradientDef>),
+    Pattern(#[conditional_malloc_size_of] Arc<PatternDef>),
+    Ref {
+        id: Id,
+        #[ignore_malloc_size_of = "External Type"]
+        fallback: Option<SvgColor>,
+    },
     ContextFill,
     ContextStroke,
 }

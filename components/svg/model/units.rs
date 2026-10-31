@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use malloc_size_of_derive::MallocSizeOf;
+
+#[derive(Debug, MallocSizeOf)]
 pub struct Opacity(f32);
 impl Opacity {
     pub const ONE: Opacity = Opacity(1.0);
@@ -21,7 +24,7 @@ impl Default for Opacity {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, MallocSizeOf)]
 pub struct Id(String);
 
 impl Id {
@@ -34,6 +37,7 @@ impl Id {
     }
 }
 
+#[derive(Debug, Clone, Copy, MallocSizeOf)]
 pub struct Length(f32);
 
 impl Length {

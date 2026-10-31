@@ -8,6 +8,7 @@ use layout_api::{
     DangerousStyleElement, DangerousStyleNode, LayoutDamage, LayoutElement, LayoutNode,
 };
 use script::layout_dom::ServoLayoutNode;
+use servo_config::pref;
 use style::context::{SharedStyleContext, StyleContext};
 use style::dom::{NodeInfo, TElement, TNode};
 use style::selector_parser::RestyleDamage;
@@ -183,13 +184,22 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_below_dirty_root<'dom>(
         return damage_from_parent;
     };
 
-    let (element_damage, is_display_none) = {
+    let (mut element_damage, is_display_none) = {
         let mut element_data = element.element_data_mut();
         (
             LayoutDamage::from(std::mem::take(&mut element_data.damage)),
             element_data.styles.is_display_none(),
         )
     };
+
+    // SVG paint properties produce only `Repaint` damage, which never reaches the `<svg>` box.
+    // Upgrade any restyle damage to rebuild the `SvgTree`
+    if pref!(layout_servo_svg_enabled) &&
+        element.is_svg_element() &&
+        element_damage.intersects(LayoutDamage::Relayout)
+    {
+        element_damage.insert(LayoutDamage::DescendantHasBoxDamage);
+    }
 
     let has_dirty_descendants;
     #[expect(unsafe_code)]

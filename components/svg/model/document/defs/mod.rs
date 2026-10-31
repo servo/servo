@@ -4,6 +4,8 @@
 
 use std::sync::Arc;
 
+use malloc_size_of_derive::MallocSizeOf;
+
 use crate::model::units::Id;
 
 mod clip_path;
@@ -20,11 +22,12 @@ pub use self::marker::MarkerDef;
 pub use self::mask::MaskDef;
 pub use self::pattern::PatternDef;
 
+#[derive(Debug, MallocSizeOf)]
 pub enum DefRef<T> {
     // Raw '#id' (without '#'), not resolved yet.
     Ref(Id),
     // Typed definition, resolved
-    Resolved(Arc<T>),
+    Resolved(#[conditional_malloc_size_of] Arc<T>),
 }
 
 impl<T> Clone for DefRef<T> {
