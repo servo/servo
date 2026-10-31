@@ -1147,14 +1147,13 @@ impl DocumentEventHandler {
                     editing_context.handle_mousedown_event(cx, &mouse_event, &hit_test_result);
                 }
 
-                let node_click_focusable_area = &node.find_click_focusable_area(cx);
-
                 // Step 8. If result is true and target is a focusable area
                 // that is click focusable, then Run the focusing steps at target.
                 if result {
                     // Note that this differs from the specification, because we are going to look
                     // for the first inclusive ancestor that is click focusable and then focus it.
                     // See documentation for [`Node::find_click_focusable_area`].
+                    let node_click_focusable_area = &node.find_click_focusable_area(cx);
                     document.focus_handler().focus(
                         cx,
                         node_click_focusable_area,
