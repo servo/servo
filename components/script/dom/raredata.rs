@@ -6,7 +6,10 @@ use std::rc::Rc;
 
 use euclid::Rect;
 use html5ever::LocalName;
+use servo_arc::Arc;
+use style::properties::PropertyDeclarationBlock;
 use style::selector_parser::PseudoElement;
+use style::shared_lock::Locked;
 use style_traits::CSSPixel;
 use stylo_atoms::Atom;
 use uuid::Uuid;
@@ -109,4 +112,10 @@ pub(crate) struct ElementRareData {
     /// Only ever set on customized built-in elements, which are very rare.
     #[no_trace]
     pub(crate) is_value: Option<LocalName>,
+
+    /// Presentational hints for this node. They will be read from Stylo
+    /// during style resolution.
+    #[no_trace]
+    #[conditional_malloc_size_of]
+    pub(crate) pres_hints: Option<Arc<Locked<PropertyDeclarationBlock>>>,
 }
