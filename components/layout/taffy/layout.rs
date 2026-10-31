@@ -34,7 +34,10 @@ use crate::sizing::{
     SizeConstraint,
 };
 use crate::style_ext::{Clamp, ContentBoxSizesAndPBM, LayoutStyle};
-use crate::{ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock};
+use crate::{
+    ConstraintSpace, ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize,
+    IndefiniteContainingBlock, IndefiniteContainingBlockSize,
+};
 
 const DUMMY_NODE_ID: taffy::NodeId = taffy::NodeId::new(u64::MAX);
 
@@ -155,9 +158,10 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                 let style = independent_context.style();
 
                 let child_containing_block = IndefiniteContainingBlock {
-                    size: LogicalVec2 {
+                    size: IndefiniteContainingBlockSize {
                         inline: inputs.parent_size.width.map(Au::from_f32_px),
                         block: inputs.parent_size.height.map(Au::from_f32_px),
+                        has_quirky_block_size: HasQuirkyBlockSize(false),
                     },
                     style: containing_block.style,
                 };
@@ -194,6 +198,7 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                 let inline_size = content_box_known_dimensions.width.unwrap_or_else(|| {
                     let constraint_space = ConstraintSpace {
                         block_size: tentative_block_size,
+                        has_quirky_block_size: HasQuirkyBlockSize(false),
                         style,
                         preferred_aspect_ratio,
                     };
@@ -241,6 +246,7 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                     ),
                     Some(height) => Au::from_f32_px(height).into(),
                 };
+                let has_quirky_block_size = HasQuirkyBlockSize(false);
 
                 if inputs.run_mode == RunMode::ComputeSize {
                     if let Some(height) = inputs.known_dimensions.height {
@@ -264,6 +270,7 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                             containing_block,
                             preferred_aspect_ratio,
                             &lazy_block_size,
+                            has_quirky_block_size,
                         );
                     let block_size = lazy_block_size.resolve(|| content_block_size).to_f32_px();
                     return taffy::LayoutOutput::from_outer_size(taffy::Size {
@@ -276,6 +283,7 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                     size: ContainingBlockSize {
                         inline: Au::from_f32_px(inline_size),
                         block: tentative_block_size,
+                        has_quirky_block_size,
                     },
                     style,
                 };
@@ -397,6 +405,7 @@ impl ComputeInlineContentSizes for TaffyContainer {
             size: ContainingBlockSize {
                 inline: Au::zero(),
                 block: SizeConstraint::default(),
+                has_quirky_block_size: HasQuirkyBlockSize(false),
             },
             style,
         };
