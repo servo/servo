@@ -26,7 +26,7 @@ checksum = "5351dcebb14b579ccab05f288596b2ae097005be7ee50a7c3d4ca9d0d5a66f6a"
 dependencies = [
  "enumn",
  "serde",
- "uuid",
+ "uuid 1.29.0",
 ]
 
 [[package]]
@@ -993,7 +993,7 @@ dependencies = [
  "serde-xml-rs",
  "thiserror 2.0.21",
  "tokio",
- "uuid",
+ "uuid 1.29.0",
 ]
 
 [[package]]
@@ -1086,7 +1086,7 @@ dependencies = [
  "thiserror 2.0.21",
  "tokio",
  "tokio-stream",
- "uuid",
+ "uuid 1.29.0",
  "windows",
  "windows-future",
 ]
@@ -1837,7 +1837,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d045de693cb712d0b22c6a64be5b953f67b3ce00ab5ad3dd5d8b441886ab8e1a"
 dependencies = [
  "quote",
- "syn 2.0.119",
+ "syn 3.0.4",
 ]
 
 [[package]]
@@ -3150,7 +3150,7 @@ dependencies = [
  "fnv",
  "gilrs-core",
  "log",
- "uuid",
+ "uuid 1.29.0",
  "vec_map",
 ]
 
@@ -3168,7 +3168,7 @@ dependencies = [
  "nix",
  "objc2-core-foundation",
  "objc2-io-kit",
- "uuid",
+ "uuid 1.29.0",
  "vec_map",
  "wasm-bindgen",
  "web-sys",
@@ -4652,7 +4652,7 @@ dependencies = [
  "serde_core",
  "tempfile",
  "thiserror 2.0.21",
- "uuid",
+ "uuid 0.8.2",
  "windows",
 ]
 
@@ -8335,7 +8335,7 @@ dependencies = [
  "smallvec",
  "time",
  "unicode-segmentation",
- "uuid",
+ "uuid 1.29.0",
  "webrender_api",
  "windows-sys 0.61.2",
 ]
@@ -8355,7 +8355,7 @@ dependencies = [
  "servo-config",
  "servo-embedder-traits",
  "tokio",
- "uuid",
+ "uuid 1.29.0",
 ]
 
 [[package]]
@@ -8537,7 +8537,7 @@ dependencies = [
  "servo-url",
  "servo-webgpu-traits",
  "strum",
- "uuid",
+ "uuid 1.29.0",
  "webrender_api",
  "wgpu-core",
  "zeroize",
@@ -8585,7 +8585,7 @@ dependencies = [
  "servo-net-traits",
  "servo-profile-traits",
  "servo-url",
- "uuid",
+ "uuid 1.29.0",
 ]
 
 [[package]]
@@ -8602,7 +8602,7 @@ dependencies = [
  "servo-net-traits",
  "servo-profile-traits",
  "servo-url",
- "uuid",
+ "uuid 1.29.0",
 ]
 
 [[package]]
@@ -8643,7 +8643,7 @@ dependencies = [
  "stylo",
  "stylo_traits",
  "url",
- "uuid",
+ "uuid 1.29.0",
  "webdriver",
  "webrender_api",
 ]
@@ -8700,7 +8700,7 @@ dependencies = [
  "unicode-properties",
  "unicode-script",
  "url",
- "uuid",
+ "uuid 1.29.0",
  "webrender_api",
  "winapi",
  "xml",
@@ -8727,7 +8727,7 @@ dependencies = [
  "servo-url",
  "servo_arc",
  "stylo",
- "uuid",
+ "uuid 1.29.0",
  "webrender_api",
 ]
 
@@ -8827,7 +8827,7 @@ dependencies = [
  "unicode-script",
  "unicode_categories",
  "url",
- "uuid",
+ "uuid 1.29.0",
  "web_atoms",
  "webrender_api",
  "writeable",
@@ -8863,7 +8863,7 @@ dependencies = [
  "servo_arc",
  "stylo",
  "stylo_traits",
- "uuid",
+ "uuid 1.29.0",
  "webrender_api",
 ]
 
@@ -8909,7 +8909,7 @@ dependencies = [
  "unicode-script",
  "url",
  "urlpattern",
- "uuid",
+ "uuid 1.29.0",
  "vello_cpu 0.2.0",
  "webrender",
  "webrender_api",
@@ -9104,7 +9104,7 @@ version = "0.7.0"
 dependencies = [
  "malloc_size_of_derive",
  "servo-malloc-size-of",
- "uuid",
+ "uuid 1.29.0",
 ]
 
 [[package]]
@@ -9141,7 +9141,7 @@ dependencies = [
  "malloc_size_of_derive",
  "servo-malloc-size-of",
  "servo-media-streams",
- "uuid",
+ "uuid 1.29.0",
 ]
 
 [[package]]
@@ -9233,7 +9233,7 @@ dependencies = [
  "tracing",
  "tungstenite",
  "url",
- "uuid",
+ "uuid 1.29.0",
  "webpki-roots",
  "webrender_api",
 ]
@@ -9279,7 +9279,7 @@ dependencies = [
  "sys-locale",
  "tokio",
  "url",
- "uuid",
+ "uuid 1.29.0",
  "webrender_api",
 ]
 
@@ -9514,7 +9514,7 @@ dependencies = [
  "unicode-script",
  "url",
  "urlpattern",
- "uuid",
+ "uuid 1.29.0",
  "web_atoms",
  "webdriver",
  "webrender_api",
@@ -9657,7 +9657,7 @@ dependencies = [
  "sponge-cursor",
  "strum",
  "trait-set",
- "uuid",
+ "uuid 1.29.0",
  "x-wing",
  "x25519-dalek",
  "x448",
@@ -9714,7 +9714,7 @@ dependencies = [
  "servo-url",
  "tempfile",
  "url",
- "uuid",
+ "uuid 1.29.0",
 ]
 
 [[package]]
@@ -9727,7 +9727,7 @@ dependencies = [
  "servo-malloc-size-of",
  "servo-profile-traits",
  "servo-url",
- "uuid",
+ "uuid 1.29.0",
 ]
 
 [[package]]
@@ -9766,7 +9766,7 @@ dependencies = [
  "servo-malloc-size-of",
  "servo_arc",
  "url",
- "uuid",
+ "uuid 1.29.0",
 ]
 
 [[package]]
@@ -9799,7 +9799,7 @@ dependencies = [
  "servo-url",
  "stylo_traits",
  "time",
- "uuid",
+ "uuid 1.29.0",
  "webdriver",
 ]
 
@@ -11522,9 +11522,18 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
-version = "1.26.1"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ef6dac1e96601b4fb3acccccff2139741fcb757cb9a36089bf5be91cfb285ce"
+checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
+dependencies = [
+ "getrandom 0.2.17",
+]
+
+[[package]]
+name = "uuid"
+version = "1.29.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4a0e2d11620c50695fe12bbbfde96b3477fe606e7284c22d505c12ce51214514"
 dependencies = [
  "getrandom 0.4.1",
  "js-sys",
@@ -12993,7 +13002,7 @@ dependencies = [
  "serde_repr",
  "tracing",
  "uds_windows",
- "uuid",
+ "uuid 1.29.0",
  "windows-sys 0.61.2",
  "winnow 1.0.4",
  "zbus_macros",
