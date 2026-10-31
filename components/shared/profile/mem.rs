@@ -10,6 +10,7 @@ use std::cell::{LazyCell, RefCell};
 use std::collections::HashSet;
 use std::ffi::c_void;
 use std::marker::Send;
+use std::sync::OnceLock;
 
 use crossbeam_channel::Sender;
 use ipc_channel::ipc::IpcSender;
@@ -18,6 +19,8 @@ use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{GenericCallback, GenericSender};
+
+static MEM_PROFILER: OnceLock<ProfilerChan> = OnceLock::new();
 
 /// A trait to abstract away the various kinds of message senders we use.
 pub trait OpaqueSender<T> {
@@ -60,6 +63,14 @@ where
                 "Error communicating with the target thread from the profiler: {}",
                 e
             );
+        }
+    }
+}
+
+impl<T> OpaqueSender<T> for std::sync::mpsc::Sender<T> {
+    fn send(&self, message: T) {
+        if let Err(e) = std::sync::mpsc::Sender::send(self, message) {
+            warn!("Error communicating with the target thread: {}", e);
         }
     }
 }
@@ -315,4 +326,16 @@ pub fn perform_memory_report<F: FnOnce(&mut MallocSizeOfOps)>(f: F) {
         pointers.clear();
         pointers.shrink_to_fit();
     });
+}
+
+/// Publish the memory profiler channel so long-lived threads in other crates
+/// (e.g. the media threads) can register their own reporters. Called once,
+/// when the memory profiler is created.
+pub fn set_memory_profiler(chan: ProfilerChan) {
+    let _ = MEM_PROFILER.set(chan);
+}
+
+/// Returns the global memory profiler channel, if it has been created.
+pub fn memory_profiler_chan() -> Option<ProfilerChan> {
+    MEM_PROFILER.get().cloned()
 }
