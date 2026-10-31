@@ -551,9 +551,7 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
                 let gl = contexts.bindings(context_id).unwrap();
                 unsafe { gl.delete_texture(depth_stencil_texture) };
             }
-            let device = contexts
-                .device(context_id)
-                .expect("missing device for context");
+            let device = contexts.device().expect("missing device for context");
             let context = contexts.context(context_id).expect("missing GL context");
             for surface_texture in std::mem::take(&mut layer.surface_textures)
                 .into_iter()
@@ -738,7 +736,7 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
         layers
             .iter()
             .map(|&(context_id, layer_id)| {
-                let device = contexts.device(context_id).ok_or(Error::NoMatchingDevice)?;
+                let device = contexts.device().ok_or(Error::NoMatchingDevice)?;
                 let context = contexts
                     .context(context_id)
                     .ok_or(Error::NoMatchingDevice)?;
@@ -841,9 +839,10 @@ impl OpenXrDevice {
         let shared_data_clone = shared_data.clone();
         let mut data = shared_data.lock().unwrap();
 
-        let layer_manager = grand_manager.create_layer_manager(move |_| {
+        let layer_manager = grand_manager.create_layer_manager(move |contexts| {
+            let device = contexts.device().ok_or(Error::NoMatchingDevice)?;
             let (session, frame_waiter, frame_stream) =
-                GraphicsProvider::create_session(&instance_clone, system)?;
+                GraphicsProvider::create_session(&instance_clone, system, &device)?;
             let (passthrough, passthrough_layer) = if supports_passthrough {
                 let flags = PassthroughFlagsFB::IS_RUNNING_AT_CREATION;
                 let purpose = PassthroughLayerPurposeFB::RECONSTRUCTION;
