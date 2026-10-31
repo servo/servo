@@ -635,6 +635,20 @@ impl IndependentFormattingContext {
         }
     }
 
+    /// Call the given callback with the [`LayoutBoxBase`] of the inner widget of this
+    /// formatting context, if it is a replaced element with one.
+    pub(crate) fn with_widget_base<T>(
+        &self,
+        callback: impl FnOnce(&LayoutBoxBase) -> T,
+    ) -> Option<T> {
+        match &self.contents {
+            IndependentFormattingContextContents::Replaced(_, Some(widget)) => {
+                Some(callback(&widget.borrow().base))
+            },
+            _ => None,
+        }
+    }
+
     pub(crate) fn attached_to_tree(&self, layout_box: WeakLayoutBox) {
         match &self.contents {
             IndependentFormattingContextContents::Replaced(_, widget) => {
