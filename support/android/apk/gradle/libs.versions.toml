@@ -1,5 +1,5 @@
 [versions]
-android-gradle-plugin = "9.2.1"
+android-gradle-plugin = "9.5.0"
 # The `minSdk` configuration affects both the `NDK` version we require,
 # and the `minSdk` version for the gradle build.
 # This value should only be bumped if necessary, and after discussion
