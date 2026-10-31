@@ -38,7 +38,7 @@ use servo_base::generic_channel::{
 };
 use servo_base::id::{PipelineId, WebViewId};
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize};
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use strum::{EnumMessage, IntoStaticStr};
 use style::queries::values::PrefersColorScheme;
 use style_traits::CSSPixel;
@@ -495,6 +495,17 @@ pub enum EmbedderMsg {
     GetClipboardText(WebViewId, GenericCallback<Result<String, String>>),
     /// Sets system clipboard contents
     SetClipboardText(WebViewId, String),
+    StoreSecret(
+        WebViewId,
+        ImmutableOrigin,
+        Vec<u8>,
+        GenericSender<Result<(), String>>,
+    ),
+    RetrieveSecret(
+        WebViewId,
+        ImmutableOrigin,
+        GenericSender<Result<Option<Vec<u8>>, String>>,
+    ),
     /// Changes the cursor.
     SetCursor(WebViewId, Cursor),
     /// A favicon was detected
