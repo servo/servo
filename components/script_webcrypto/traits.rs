@@ -3,14 +3,19 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use script_bindings::DomTypes;
+#[cfg(feature = "subtlecrypto")]
 use script_bindings::reflector::DomObject;
+#[cfg(feature = "subtlecrypto")]
 use script_bindings::tasks::TaskOnce;
 
 use crate::crypto::Crypto;
+#[cfg(feature = "subtlecrypto")]
 use crate::cryptokey::CryptoKey;
+#[cfg(feature = "subtlecrypto")]
 use crate::subtlecrypto::SubtleCrypto;
 
 // This trait enforces the equivalence of all local types with the types in DomTypes.
+#[cfg(feature = "subtlecrypto")]
 trait_set::trait_set! {
     pub trait Equivalence = DomTypes<
         Crypto = Crypto<Self>,
@@ -20,6 +25,12 @@ trait_set::trait_set! {
         GlobalScope: WebCryptoGlobalTrait<Self>>;
 }
 
+#[cfg(not(feature = "subtlecrypto"))]
+trait_set::trait_set! {
+    pub trait Equivalence = DomTypes<Crypto = Crypto<Self>>;
+}
+
+#[cfg(feature = "subtlecrypto")]
 pub trait WebCryptoGlobalTrait<D: DomTypes>: Sized + DomObject {
     fn queue_crypto_task_source(&self, task: impl TaskOnce + 'static);
     fn queue_dom_manipulation_task_source(&self, task: impl TaskOnce + 'static);
