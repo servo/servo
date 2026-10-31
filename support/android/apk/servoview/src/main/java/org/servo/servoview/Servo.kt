@@ -21,6 +21,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
@@ -34,6 +35,7 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.PlatformTextInputModifierNode
 import androidx.compose.ui.platform.establishTextInputSession
@@ -51,10 +53,28 @@ import kotlinx.coroutines.launch
 fun Servo(
     experimentalModeEnabled: Boolean,
     softKeyboardVisible: Boolean,
-    servo: Servo,
+    args: String?,
+    initialUrl: String?,
+    logStr: String?,
+    client: Servo.Client,
     navigator: ServoNavigator,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val servo = remember {
+        Servo(
+            args = args,
+            url = initialUrl,
+            logStr = logStr,
+            experimentalMode = experimentalModeEnabled,
+            scope = scope,
+            client = client,
+            context = context,
+            navigator = navigator,
+        )
+    }
+
     LifecycleResumeEffect(servo) {
         servo.suspend(false)
         onPauseOrDispose { servo.suspend(true) }
@@ -226,7 +246,8 @@ private class SoftKeyboardVisibleNode : Modifier.Node(), PlatformTextInputModifi
     }
 }
 
-class Servo(
+class Servo
+internal constructor(
     args: String?,
     url: String?,
     logStr: String?,
