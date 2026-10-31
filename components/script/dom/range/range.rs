@@ -398,10 +398,13 @@ impl Range {
 
         let document = start.owner_doc();
         let nodes: Vec<DomRoot<Node>> = {
-            let no_gc = cx.no_gc();
-            let unrooted_end = end.as_unrooted(no_gc);
+            let unrooted_end = end.as_unrooted(cx.no_gc());
             start
-                .following_nodes_unrooted(no_gc, document.upcast::<Node>(), ShadowIncluding::No)
+                .following_nodes_unrooted(
+                    cx.no_gc(),
+                    document.upcast::<Node>(),
+                    ShadowIncluding::No,
+                )
                 .take_while(|node| *node != *end)
                 .chain(iter::once(unrooted_end))
                 .map(|node| node.as_rooted())
