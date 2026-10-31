@@ -152,6 +152,11 @@ pub mod protocol_handler {
     pub use crate::webview_delegate::ProtocolHandlerRegistration;
 }
 
+pub use pixels::image_encoder_decoder_factory::{
+    ImageEncoderDecoderFactory, ServoAnimation, ServoImageDecoder,
+};
+#[cfg(target_env = "ohos")]
+pub use pixels::ohos_decoder::OhosImageEncoderDecoderFactory;
 // We need to reference this crate, in order for the linker not to remove it.
 #[cfg(all(feature = "baked-in-resources", not(target_env = "ohos")))]
 use servo_default_resources as _;
