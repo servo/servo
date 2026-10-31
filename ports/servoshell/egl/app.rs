@@ -125,7 +125,8 @@ impl PlatformWindow for EmbeddedPlatformWindow {
         let load_status_changed = Some(new_load_status) != self.current_load_status.get();
         if load_status_changed {
             self.host.notify_load_status_changed(new_load_status);
-            if state.servoshell_preferences.memory_output && new_load_status == LoadStatus::Complete
+            if state.servoshell_preferences.memory_output &&
+                matches!(new_load_status, LoadStatus::Complete | LoadStatus::Stopped)
             {
                 #[cfg(all(feature = "tracing", feature = "tracing-hitrace"))]
                 {

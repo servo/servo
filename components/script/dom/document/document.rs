@@ -1590,7 +1590,7 @@ impl Document {
     }
 
     pub(crate) fn notify_embedder_of_load_completion(&self) {
-        if self.window().is_top_level() {
+        if self.window().is_top_level() && !self.loader().aborted() {
             self.send_to_embedder(EmbedderMsg::NotifyLoadStatusChanged(
                 self.webview_id(),
                 LoadStatus::Complete,
@@ -2504,7 +2504,7 @@ impl Document {
         //
         // Note: this will also result in the "iframe-load-event-steps" being run.
         // https://html.spec.whatwg.org/multipage/#iframe-load-event-steps
-        self.notify_constellation_load();
+        self.notify_constellation_that_load_finished(false /* aborted */);
 
         // Step 5. Otherwise, if container is non-null, then queue an element task on the DOM manipulation task source
         // given container to fire an event named load at container.
@@ -2779,24 +2779,32 @@ impl Document {
             return;
         }
 
-        // Step 5.1. Spin the event loop until the first script in the list of scripts that will execute when the
-        // document has finished parsing has its ready to be parser-executed set to true and the parser's Document
-        // has no style sheet that is blocking scripts.
+        // Step 5. While the list of scripts that will execute when the document has finished
+        // parsing is not empty:
+        // Step 5.1. Spin the event loop until the first script in the list of scripts that will
+        // execute when the document has finished parsing has its ready to be parser-executed set to
+        // true and the parser's Document has no style sheet that is blocking scripts.
         loop {
+            if self.deferred_scripts.is_empty() {
+                break;
+            }
             if self.has_a_stylesheet_that_is_blocking_scripts() {
                 return;
             }
-            // Step 5.3. Remove the first script element from the list of scripts that will execute when the
-            // document has finished parsing (i.e. shift out the first entry in the list).
+            // Step 5.3. Remove the first script element from the list of scripts that will execute
+            // when the document has finished parsing (i.e. shift out the first entry in the list).
             if let Some((element, result)) = self.deferred_scripts.take_next_ready_to_be_executed()
             {
-                // Step 5.2. Execute the script element given by the first script in the list of scripts that will execute when the document has finished parsing.
+                // Step 5.2. Execute the script element given by the first script in the list of
+                // scripts that will execute when the document has finished parsing.
                 element.execute(cx, result);
             } else {
                 break;
             }
         }
-        // Step 5. While the list of scripts that will execute when the document has finished parsing is not empty:
+
+        // If the list of scripts is empty, we can move on to the next step, otherwise we will
+        // re-enter this method as the ScriptThread's event loop spins.
         if self.deferred_scripts.is_empty() {
             self.current_the_end_loading_phase
                 .set(TheEndLoadingPhase::ProcessingAsSoonAsPossibleScripts);
@@ -3012,8 +3020,11 @@ impl Document {
 
     /// <https://html.spec.whatwg.org/multipage/#abort-a-document>
     pub(crate) fn abort(&self, cx: &mut JSContext, reason: AbortReason) {
-        // We need to inhibit the loader before anything else.
-        self.loader.borrow_mut().inhibit_events();
+        // We need to inhibit the loader before anything else and prevent any further movement
+        // through "the-end" loading phases.
+        self.loader.borrow_mut().abort();
+        self.current_the_end_loading_phase
+            .set(TheEndLoadingPhase::Done);
 
         // Step 1. Assert: this is running as part of a task queued on document's relevant agent's event loop.
         // TODO
@@ -3057,7 +3068,23 @@ impl Document {
             parser.abort(cx, reason);
             // Step 4.3. Make document unsalvageable given document and "parser-aborted".
             self.salvageable.set(false);
+        } else if self.ready_state.get() != DocumentReadyState::Complete {
+            // See <https://github.com/whatwg/html/issues/5535>.
+            // All browsers set the document readiness to "complete" when aborting, even though it
+            // is isn't specified. In addition, WPT tests depend on this happening.
+            let document = Trusted::new(self);
+            self.owner_global()
+                .task_manager()
+                .dom_manipulation_task_source()
+                .queue(task!(fire_complete: move |cx| {
+                    let document = document.root();
+                    if document.is_fully_active() {
+                        document.update_the_current_document_readiness(cx, DocumentReadyState::Complete)
+                    }
+                }));
         }
+
+        self.window().allow_layout_if_necessary(cx);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#abort-a-document-and-its-descendants>
@@ -3097,9 +3124,9 @@ impl Document {
         self.abort(cx, reason);
     }
 
-    pub(crate) fn notify_constellation_load(&self) {
+    pub(crate) fn notify_constellation_that_load_finished(&self, aborted: bool) {
         self.window()
-            .send_to_constellation(ScriptToConstellationMessage::LoadComplete);
+            .send_to_constellation(ScriptToConstellationMessage::LoadFinished { aborted });
     }
 
     pub(crate) fn set_current_parser(&self, script: Option<&ServoParser>, reason: SetParserReason) {
