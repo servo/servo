@@ -1315,7 +1315,10 @@ impl HTMLMediaElement {
         // Step 9.attribute.2. Let urlRecord be the result of encoding-parsing a URL given
         // the src attribute's value, relative to the media element's node document when the
         // src attribute was last changed.
-        let Ok(url_record) = base_url.join(src) else {
+        let Ok(url_record) = self
+            .owner_document()
+            .encoding_parse_a_url_with_base(src, &base_url)
+        else {
             self.queue_dedicated_media_source_failure_steps();
             return;
         };
@@ -1371,7 +1374,7 @@ impl HTMLMediaElement {
         // Step 9.children.4. Let urlRecord be the result of encoding-parsing a URL given
         // candidate's src attribute's value, relative to candidate's node document when the src
         // attribute was last changed.
-        let Ok(url_record) = source.owner_document().base_url().join(&src) else {
+        let Ok(url_record) = source.owner_document().encoding_parse_a_url(&src) else {
             // Step 9.children.5. If urlRecord is failure, then end the synchronous section,
             // and jump down to the failed with elements step below.
             self.load_from_source_child_failure_steps(cx, source);
