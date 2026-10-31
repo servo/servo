@@ -77,7 +77,7 @@ pub enum Serializable {
     /// The `ImageData` interface.
     ImageData,
     /// The `CryptoKey` interface.
-    #[cfg(feature = "webcrypto")]
+    #[cfg(feature = "subtlecrypto")]
     CryptoKey,
 }
 
@@ -114,7 +114,7 @@ impl Serializable {
             Serializable::ImageData => {
                 StructuredSerializedData::clone_all_of_type::<SerializableImageData>
             },
-            #[cfg(feature = "webcrypto")]
+            #[cfg(feature = "subtlecrypto")]
             Serializable::CryptoKey => {
                 StructuredSerializedData::clone_all_of_type::<SerializableCryptoKey>
             },
