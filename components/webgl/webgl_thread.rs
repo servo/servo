@@ -1870,7 +1870,17 @@ impl WebGLImpl {
                     internal_format.as_gl_constant(),
                     width as i32,
                     height as i32,
-                )
+                );
+                // Zero-initialize the texture for security
+                Self::zero_initialize_texture_2d(
+                    gl,
+                    state,
+                    target,
+                    internal_format,
+                    width,
+                    height,
+                    levels,
+                );
             },
             WebGLCommand::TexStorage3D(target, levels, internal_format, width, height, depth) => unsafe {
                 gl.tex_storage_3d(
@@ -1880,7 +1890,18 @@ impl WebGLImpl {
                     width as i32,
                     height as i32,
                     depth as i32,
-                )
+                );
+                // Zero-initialize the texture for security
+                Self::zero_initialize_texture_3d(
+                    gl,
+                    state,
+                    target,
+                    internal_format,
+                    width,
+                    height,
+                    depth,
+                    levels,
+                );
             },
             WebGLCommand::DrawingBufferWidth(ref sender) => {
                 let size = device
@@ -2607,6 +2628,200 @@ impl WebGLImpl {
                     error,
                     error,
                     command
+                );
+            }
+        }
+    }
+
+    fn tex_bytes_per_pixel(format: TexFormat, data_type: TexDataType) -> usize {
+        match data_type {
+            TexDataType::Float32UnsignedInt248Rev => 8,
+            _ if data_type.components_per_element() > 1 => data_type.element_size() as usize,
+            _ => (format.components() * data_type.element_size()) as usize,
+        }
+    }
+
+    /// Zero-initializes a 2D or cube map texture after texStorage allocation using tex_sub_image_2d.
+    /// This is required by WebGL for security to prevent information leakage
+    /// from uninitialized GPU memory without causing state corruption or format incompatibility.
+    fn zero_initialize_texture_2d(
+        gl: &Gl,
+        state: &GLState,
+        target: u32,
+        internal_format: TexFormat,
+        width: u32,
+        height: u32,
+        levels: u32,
+    ) {
+        if internal_format.is_compressed() {
+            return;
+        }
+        let Some(&data_type) = internal_format.compatible_data_types().first() else {
+            return;
+        };
+        let unsized_format = internal_format.to_unsized();
+        let bpp = Self::tex_bytes_per_pixel(unsized_format, data_type);
+        let max_slice_bytes = (width as usize) * bpp * (height as usize);
+        if max_slice_bytes == 0 {
+            return;
+        }
+        let zeros = vec![0u8; max_slice_bytes];
+
+        let gl_type =
+            if data_type == TexDataType::HalfFloat && state.webgl_version == WebGLVersion::WebGL2 {
+                gl::HALF_FLOAT
+            } else {
+                data_type.as_gl_constant()
+            };
+
+        let prev_pbo = if state.webgl_version == WebGLVersion::WebGL2 {
+            unsafe { gl.get_parameter_i32(gl::PIXEL_UNPACK_BUFFER_BINDING) }
+        } else {
+            0
+        };
+        if prev_pbo != 0 {
+            unsafe { gl.bind_buffer(gl::PIXEL_UNPACK_BUFFER, None) };
+        }
+        let prev_alignment = unsafe { gl.get_parameter_i32(gl::UNPACK_ALIGNMENT) };
+        if prev_alignment != 1 {
+            unsafe { gl.pixel_store_i32(gl::UNPACK_ALIGNMENT, 1) };
+        }
+
+        for level in 0..levels {
+            let level_width = (width >> level).max(1);
+            let level_height = (height >> level).max(1);
+            let level_bytes = (level_width as usize) * bpp * (level_height as usize);
+
+            if target == gl::TEXTURE_CUBE_MAP {
+                for face in 0..6 {
+                    let face_target = gl::TEXTURE_CUBE_MAP_POSITIVE_X + face;
+                    unsafe {
+                        gl.tex_sub_image_2d(
+                            face_target,
+                            level as i32,
+                            0,
+                            0,
+                            level_width as i32,
+                            level_height as i32,
+                            unsized_format.as_gl_constant(),
+                            gl_type,
+                            PixelUnpackData::Slice(Some(&zeros[..level_bytes])),
+                        );
+                    }
+                }
+            } else {
+                unsafe {
+                    gl.tex_sub_image_2d(
+                        target,
+                        level as i32,
+                        0,
+                        0,
+                        level_width as i32,
+                        level_height as i32,
+                        unsized_format.as_gl_constant(),
+                        gl_type,
+                        PixelUnpackData::Slice(Some(&zeros[..level_bytes])),
+                    );
+                }
+            }
+        }
+
+        if prev_alignment != 1 {
+            unsafe { gl.pixel_store_i32(gl::UNPACK_ALIGNMENT, prev_alignment) };
+        }
+        if prev_pbo != 0 {
+            unsafe {
+                gl.bind_buffer(
+                    gl::PIXEL_UNPACK_BUFFER,
+                    NonZeroU32::new(prev_pbo as u32).map(gl::NativeBuffer),
+                );
+            }
+        }
+    }
+
+    /// Zero-initializes a 3D or 2D array texture after texStorage allocation using tex_sub_image_3d.
+    #[expect(clippy::too_many_arguments)]
+    fn zero_initialize_texture_3d(
+        gl: &Gl,
+        state: &GLState,
+        target: u32,
+        internal_format: TexFormat,
+        width: u32,
+        height: u32,
+        depth: u32,
+        levels: u32,
+    ) {
+        if internal_format.is_compressed() {
+            return;
+        }
+        let Some(&data_type) = internal_format.compatible_data_types().first() else {
+            return;
+        };
+        let unsized_format = internal_format.to_unsized();
+        let bpp = Self::tex_bytes_per_pixel(unsized_format, data_type);
+        let max_slice_bytes = (width as usize) * bpp * (height as usize);
+        if max_slice_bytes == 0 {
+            return;
+        }
+        let zeros = vec![0u8; max_slice_bytes];
+
+        let gl_type =
+            if data_type == TexDataType::HalfFloat && state.webgl_version == WebGLVersion::WebGL2 {
+                gl::HALF_FLOAT
+            } else {
+                data_type.as_gl_constant()
+            };
+
+        let prev_pbo = if state.webgl_version == WebGLVersion::WebGL2 {
+            unsafe { gl.get_parameter_i32(gl::PIXEL_UNPACK_BUFFER_BINDING) }
+        } else {
+            0
+        };
+        if prev_pbo != 0 {
+            unsafe { gl.bind_buffer(gl::PIXEL_UNPACK_BUFFER, None) };
+        }
+        let prev_alignment = unsafe { gl.get_parameter_i32(gl::UNPACK_ALIGNMENT) };
+        if prev_alignment != 1 {
+            unsafe { gl.pixel_store_i32(gl::UNPACK_ALIGNMENT, 1) };
+        }
+
+        for level in 0..levels {
+            let level_width = (width >> level).max(1);
+            let level_height = (height >> level).max(1);
+            let level_depth = if target == gl::TEXTURE_3D {
+                (depth >> level).max(1)
+            } else {
+                depth
+            };
+            let slice_bytes = (level_width as usize) * bpp * (level_height as usize);
+
+            for layer in 0..level_depth {
+                unsafe {
+                    gl.tex_sub_image_3d(
+                        target,
+                        level as i32,
+                        0,
+                        0,
+                        layer as i32,
+                        level_width as i32,
+                        level_height as i32,
+                        1,
+                        unsized_format.as_gl_constant(),
+                        gl_type,
+                        PixelUnpackData::Slice(Some(&zeros[..slice_bytes])),
+                    );
+                }
+            }
+        }
+
+        if prev_alignment != 1 {
+            unsafe { gl.pixel_store_i32(gl::UNPACK_ALIGNMENT, prev_alignment) };
+        }
+        if prev_pbo != 0 {
+            unsafe {
+                gl.bind_buffer(
+                    gl::PIXEL_UNPACK_BUFFER,
+                    NonZeroU32::new(prev_pbo as u32).map(gl::NativeBuffer),
                 );
             }
         }
@@ -3448,3 +3663,124 @@ impl FramebufferRebindingInfo {
         };
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use servo_canvas_traits::webgl::{TexDataType, TexFormat};
+
+    #[test]
+    fn test_tex_bytes_per_pixel() {
+        // Standard uncompressed formats
+        assert_eq!(WebGLImpl::tex_bytes_per_pixel(TexFormat::RGBA, TexDataType::UnsignedByte), 4);
+        assert_eq!(WebGLImpl::tex_bytes_per_pixel(TexFormat::RGB, TexDataType::UnsignedByte), 3);
+        assert_eq!(WebGLImpl::tex_bytes_per_pixel(TexFormat::RG, TexDataType::UnsignedByte), 2);
+        assert_eq!(WebGLImpl::tex_bytes_per_pixel(TexFormat::Red, TexDataType::UnsignedByte), 1);
+        assert_eq!(WebGLImpl::tex_bytes_per_pixel(TexFormat::RGBA, TexDataType::Float), 16);
+        assert_eq!(WebGLImpl::tex_bytes_per_pixel(TexFormat::RGBA, TexDataType::HalfFloat), 8);
+        assert_eq!(WebGLImpl::tex_bytes_per_pixel(TexFormat::DepthComponent, TexDataType::UnsignedShort), 2);
+        assert_eq!(WebGLImpl::tex_bytes_per_pixel(TexFormat::DepthComponent, TexDataType::UnsignedInt), 4);
+        assert_eq!(WebGLImpl::tex_bytes_per_pixel(TexFormat::DepthComponent, TexDataType::Float), 4);
+
+        // Packed types
+        assert_eq!(WebGLImpl::tex_bytes_per_pixel(TexFormat::RGB, TexDataType::UnsignedShort565), 2);
+        assert_eq!(WebGLImpl::tex_bytes_per_pixel(TexFormat::RGBA, TexDataType::UnsignedShort4444), 2);
+        assert_eq!(WebGLImpl::tex_bytes_per_pixel(TexFormat::RGBA, TexDataType::UnsignedShort5551), 2);
+        assert_eq!(WebGLImpl::tex_bytes_per_pixel(TexFormat::RGB, TexDataType::UnsignedInt10f11f11fRev), 4);
+        assert_eq!(WebGLImpl::tex_bytes_per_pixel(TexFormat::RGBA, TexDataType::UnsignedInt2101010Rev), 4);
+        assert_eq!(WebGLImpl::tex_bytes_per_pixel(TexFormat::RGB, TexDataType::UnsignedInt5999Rev), 4);
+        assert_eq!(WebGLImpl::tex_bytes_per_pixel(TexFormat::DepthStencil, TexDataType::UnsignedInt248), 4);
+        assert_eq!(WebGLImpl::tex_bytes_per_pixel(TexFormat::DepthStencil, TexDataType::Float32UnsignedInt248Rev), 8);
+    }
+
+    #[test]
+    fn test_sized_internal_formats_resolution() {
+        let test_formats = [
+            (TexFormat::R8, TexFormat::Red, TexDataType::UnsignedByte, 1),
+            (TexFormat::R8SNorm, TexFormat::Red, TexDataType::Byte, 1),
+            (TexFormat::R16f, TexFormat::Red, TexDataType::HalfFloat, 2),
+            (TexFormat::R32f, TexFormat::Red, TexDataType::Float, 4),
+            (TexFormat::R8ui, TexFormat::RedInteger, TexDataType::UnsignedByte, 1),
+            (TexFormat::R8i, TexFormat::RedInteger, TexDataType::Byte, 1),
+            (TexFormat::RG8, TexFormat::RG, TexDataType::UnsignedByte, 2),
+            (TexFormat::RG16f, TexFormat::RG, TexDataType::HalfFloat, 4),
+            (TexFormat::RG32f, TexFormat::RG, TexDataType::Float, 8),
+            (TexFormat::RGB8, TexFormat::RGB, TexDataType::UnsignedByte, 3),
+            (TexFormat::SRGB8, TexFormat::RGB, TexDataType::UnsignedByte, 3),
+            (TexFormat::RGB565, TexFormat::RGB, TexDataType::UnsignedByte, 3),
+            (TexFormat::R11fG11fB10f, TexFormat::RGB, TexDataType::UnsignedInt10f11f11fRev, 4),
+            (TexFormat::RGB9E5, TexFormat::RGB, TexDataType::UnsignedInt5999Rev, 4),
+            (TexFormat::RGB16f, TexFormat::RGB, TexDataType::HalfFloat, 6),
+            (TexFormat::RGB32f, TexFormat::RGB, TexDataType::Float, 12),
+            (TexFormat::RGBA8, TexFormat::RGBA, TexDataType::UnsignedByte, 4),
+            (TexFormat::SRGB8Alpha8, TexFormat::RGBA, TexDataType::UnsignedByte, 4),
+            (TexFormat::RGB5A1, TexFormat::RGBA, TexDataType::UnsignedByte, 4),
+            (TexFormat::RGBA4, TexFormat::RGBA, TexDataType::UnsignedByte, 4),
+            (TexFormat::RGB10A2, TexFormat::RGBA, TexDataType::UnsignedInt2101010Rev, 4),
+            (TexFormat::RGBA16f, TexFormat::RGBA, TexDataType::HalfFloat, 8),
+            (TexFormat::RGBA32f, TexFormat::RGBA, TexDataType::Float, 16),
+            (TexFormat::RGBA8ui, TexFormat::RGBAInteger, TexDataType::UnsignedByte, 4),
+            (TexFormat::RGB10A2ui, TexFormat::RGBAInteger, TexDataType::UnsignedInt2101010Rev, 4),
+            (TexFormat::RGBA16ui, TexFormat::RGBAInteger, TexDataType::UnsignedShort, 8),
+            (TexFormat::RGBA32ui, TexFormat::RGBAInteger, TexDataType::UnsignedInt, 16),
+            (TexFormat::DepthComponent16, TexFormat::DepthComponent, TexDataType::UnsignedShort, 2),
+            (TexFormat::DepthComponent24, TexFormat::DepthComponent, TexDataType::UnsignedInt, 4),
+            (TexFormat::DepthComponent32f, TexFormat::DepthComponent, TexDataType::Float, 4),
+            (TexFormat::Depth24Stencil8, TexFormat::DepthStencil, TexDataType::UnsignedInt248, 4),
+            (TexFormat::Depth32fStencil8, TexFormat::DepthStencil, TexDataType::Float32UnsignedInt248Rev, 8),
+        ];
+
+        for (sized, expected_unsized, expected_type, expected_bpp) in test_formats {
+            let unsized_format = sized.to_unsized();
+            assert_eq!(unsized_format, expected_unsized, "Unsized format mismatch for {:?}", sized);
+            let first_type = *sized.compatible_data_types().first().expect("Compatible data type missing");
+            assert_eq!(first_type, expected_type, "Data type mismatch for {:?}", sized);
+            let bpp = WebGLImpl::tex_bytes_per_pixel(unsized_format, first_type);
+            assert_eq!(bpp, expected_bpp, "Bpp mismatch for {:?}", sized);
+        }
+    }
+
+    #[test]
+    fn test_mip_level_dimension_invariants() {
+        let width = 64u32;
+        let height = 32u32;
+        let depth = 8u32;
+        let levels = 4u32;
+
+        for level in 0..levels {
+            let w = (width >> level).max(1);
+            let h = (height >> level).max(1);
+            let depth_3d = (depth >> level).max(1);
+            let depth_2d_array = depth;
+
+            match level {
+                0 => {
+                    assert_eq!(w, 64);
+                    assert_eq!(h, 32);
+                    assert_eq!(depth_3d, 8);
+                    assert_eq!(depth_2d_array, 8);
+                },
+                1 => {
+                    assert_eq!(w, 32);
+                    assert_eq!(h, 16);
+                    assert_eq!(depth_3d, 4);
+                    assert_eq!(depth_2d_array, 8);
+                },
+                2 => {
+                    assert_eq!(w, 16);
+                    assert_eq!(h, 8);
+                    assert_eq!(depth_3d, 2);
+                    assert_eq!(depth_2d_array, 8);
+                },
+                3 => {
+                    assert_eq!(w, 8);
+                    assert_eq!(h, 4);
+                    assert_eq!(depth_3d, 1);
+                    assert_eq!(depth_2d_array, 8);
+                },
+                _ => unreachable!(),
+            }
+        }
+    }
+}
+
