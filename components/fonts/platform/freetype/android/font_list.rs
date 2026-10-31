@@ -88,11 +88,9 @@ impl FontList {
             }
         }
 
-        FontList {
-            families,
-            // TODO: Also get localized names for these fonts.
-            aliases: Vec::new(),
-        }
+        let aliases = Self::generate_aliases(&families);
+
+        FontList { families, aliases }
     }
 
     fn create_font_family_entry(
@@ -165,6 +163,37 @@ impl FontList {
         self.aliases
             .iter()
             .find(|family| family.from.eq_ignore_ascii_case(name))
+    }
+
+    // TODO: use fontconfig (or whatever the pref json file is called in Android) to generate alias
+    fn generate_aliases(families: &[FontFamily]) -> Vec<FontAlias> {
+        let mut aliases = Vec::new();
+
+        let mappings: &[(&str, &[&str])] = &[
+            ("sans-serif", &["Roboto", "Noto Sans", "Droid Sans"]),
+            ("serif", &["Noto Serif", "Droid Serif"]),
+            ("monospace", &["Roboto Mono", "Droid Sans Mono"]),
+            ("cursive", &["Dancing Script"]),
+            ("system-ui", &["Roboto", "Noto Sans"]),
+        ];
+
+        for (alias_name, candidates) in mappings {
+            let target = candidates.iter().find(|candidate| {
+                families
+                    .iter()
+                    .any(|family| family.name.eq_ignore_ascii_case(candidate))
+            });
+
+            if let Some(target) = target {
+                aliases.push(FontAlias {
+                    from: (*alias_name).to_string(),
+                    to: (*target).to_string(),
+                    weight: None,
+                })
+            }
+        }
+
+        aliases
     }
 }
 
