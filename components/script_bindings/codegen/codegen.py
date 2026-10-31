@@ -922,12 +922,9 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
         return templateBody
 
     # A helper function for types that implement FromJSValConvertible trait
-    def fromJSValTemplate(config: str, errorHandler: str, exceptionCode: str, type_name: str = "FromJSValConvertible",
-                          needsToBeTraced: bool = False) -> str:
-        returnValue = "value.to_traced()" if needsToBeTraced else "value"
-
-        return f"""match {type_name}::from_jsval(cx, ${{val}}, {config}) {{
-    Ok(ConversionResult::Success(value)) => {returnValue},
+    def fromJSValTemplate(config: str, errorHandler: str, exceptionCode: str) -> str:
+        return f"""match FromJSValConvertible::from_jsval(cx, ${{val}}, {config}) {{
+    Ok(ConversionResult::Success(value)) => value,
     Ok(ConversionResult::Failure(error)) => {{
         {errorHandler}
     }}
@@ -1031,14 +1028,10 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
         #    once again be providing a Promise to signal completion of an
         #    operation, which would then not be exposed to anyone other than
         #    our own implementation code.
-
-        needsToBeTraced = isMember == "Dictionary"
-        templateBody = fromJSValTemplate("()", failOrPropagate, exceptionCode, "<<D::Promise as PromiseHelpers<D>>::StackRoot>", needsToBeTraced)
+        templateBody = fromJSValTemplate("()", failOrPropagate, exceptionCode)
 
         if isArgument:
             declType = CGGeneric("&D::Promise")
-        elif needsToBeTraced:
-            declType = CGGeneric("<D::Promise as PromiseHelpers<D>>::HeapTraced")
         else:
             declType = CGGeneric("<D::Promise as PromiseHelpers<D>>::StackRoot")
         return handleOptional(templateBody, declType, handleDefault("None"))
@@ -1260,14 +1253,9 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
         # pyrefly: ignore  # missing-attribute
         callback = type.unroll().callback
         declType = CGGeneric(f"{callback.identifier.name}<D>")
-        needTraced = isMember == "Dictionary"
-        if needTraced:
-            typeName = "TracedCallback"
-        else:
-            typeName = "RootedCallback"
-        finalDeclType = CGTemplatedType(typeName, declType)
+        finalDeclType = CGTemplatedType("RootedCallback", declType)
 
-        conversion = CGCallbackTempRoot(declType.define(), needTraced)
+        conversion = CGCallbackTempRoot(declType.define())
 
         if type.nullable():
             declType = CGTemplatedType("Option", declType)
@@ -2934,9 +2922,8 @@ class CGGeneric(CGThing):
 
 
 class CGCallbackTempRoot(CGGeneric):
-    def __init__(self, name: str, needTraced: bool) -> None:
-        extra = ".to_traced()" if needTraced else ""
-        inner = f"unsafe {{ {name.replace('<D>', '::<D>')}::new(cx, ${{val}}.get().to_object()) }}{extra}"
+    def __init__(self, name: str) -> None:
+        inner = f"unsafe {{ {name.replace('<D>', '::<D>')}::new(cx, ${{val}}.get().to_object()) }}"
         CGGeneric.__init__(self, inner)
 
 
@@ -8033,6 +8020,8 @@ class CGDictionary(CGThing):
                                          exceptionCode="return Err(());\n"))
             for member in dictionary.members]
 
+        self.parentNeedsToBeTraced = self.dictionary.parent and type_needs_tracing(self.dictionary.parent)
+
     def define(self) -> str:
         if not self.generatable:
             return ""
@@ -8069,8 +8058,6 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             typeName = f"{self.makeModuleName(d.parent)}::{self.makeClassName(d.parent)}"
             _, parentSuffix = genericsForType(d.parent)
             typeName += parentSuffix
-            if type_needs_tracing(d.parent):
-                typeName = f"RootedTraceableBox<{typeName}>"
             inheritance = f"    pub parent: {typeName},\n"
         else:
             inheritance = ""
@@ -8128,10 +8115,11 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         d = self.dictionary
         if d.parent:
             assert isinstance(d.parent, IDLDictionary)
+            modifier = ".into_inner()" if self.parentNeedsToBeTraced else ""
             initParent = (
                 "{\n"
                 f"    match {self.makeModuleName(d.parent)}::{self.makeClassName(d.parent)}::new(cx, val)? {{\n"
-                "        ConversionResult::Success(v) => v,\n"
+                f"        ConversionResult::Success(v) => v{modifier},\n"
                 "        ConversionResult::Failure(error) => {\n"
                 "            throw_type_error(cx, error.as_ref());\n"
                 "            return Err(());\n"
@@ -8145,7 +8133,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         def memberInit(memberInfo: tuple[IDLArgument, JSToNativeConversionInfo]) -> CGThing:
             member, _ = memberInfo
             name = self.makeMemberName(member.identifier.name)
-            conversion = self.getMemberConversion(memberInfo, member.type)
+            conversion = self.getMemberConversion(memberInfo)
             return CGGeneric(f"{name}: {conversion.define()},\n")
 
         def varInsert(varName: str, dictionaryName: str) -> CGThing:
@@ -8251,9 +8239,11 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         declType = info.declType
         if member.optional and not member.defaultValue:
             declType = CGWrapper(info.declType, pre="Option<", post=">")
-        return declType.define()
 
-    def getMemberConversion(self, memberInfo: tuple[IDLArgument, JSToNativeConversionInfo], memberType: IDLType) -> CGThing:
+        memberType, _ = getTracingConversion(member.type, declType.define())
+        return memberType
+
+    def getMemberConversion(self, memberInfo: tuple[IDLArgument, JSToNativeConversionInfo]) -> CGThing:
         def indent(s: str) -> str:
             return CGIndenter(CGGeneric(s), 12).define()
 
@@ -8262,6 +8252,17 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         default = info.default
         replacements = {"val": "rval.handle()"}
         conversion = string.Template(templateBody).substitute(replacements)
+
+        memberIsOptional = member.optional and not member.defaultValue
+
+        assert info.declType is not None
+        declType = CGTemplatedType("Option", info.declType) if memberIsOptional else info.declType
+
+        _, modifier = getTracingConversion(member.type, declType.define())
+
+        memberTypeConversion = ""
+        if modifier is not None:
+            memberTypeConversion = f".map(|val| val{modifier})" if memberIsOptional else modifier
 
         assert (member.defaultValue is None) == (default is None)
         if not member.optional:
@@ -8275,12 +8276,13 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         conversion = (
             "{\n"
             "    rooted!(&in(cx) let mut rval = UndefinedValue());\n"
-            f'    if get_dictionary_property(cx, object.handle(), c"{member.identifier.name}", '
+            f'    let value: {declType.define()} = if get_dictionary_property(cx, object.handle(), c"{member.identifier.name}", '
             "rval.handle_mut())? && !rval.is_undefined() {\n"
             f"{indent(conversion)}\n"
             "    } else {\n"
             f"{indent(default)}\n"
-            "    }\n"
+            "    };\n"
+            f"    value{memberTypeConversion}\n"
             "}")
 
         return CGGeneric(conversion)
@@ -8288,7 +8290,10 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
     def makeEmpty(self) -> str:
         if self.hasRequiredFields(self.dictionary):
             return ""
-        parentTemplate = "parent: %s::%s::empty(),\n"
+
+        modifier = ".into_inner()" if self.parentNeedsToBeTraced else ""
+
+        parentTemplate = f"parent: %s::%s::empty(){modifier},\n"
         fieldTemplate = "%s: %s,\n"
         functionTemplate = (
             "pub fn empty() -> Self {\n"
@@ -8298,7 +8303,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             "}"
         )
         if self.membersNeedTracing():
-            parentTemplate = "dictionary.parent = %s::%s::empty();\n"
+            parentTemplate = f"dictionary.parent = %s::%s::empty(){modifier};\n"
             fieldTemplate = "dictionary.%s = %s;\n"
             functionTemplate = (
                 "pub fn empty() -> RootedTraceableBox<Self> {\n"
@@ -8348,6 +8353,25 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             if member.type.isDictionary():
                 deps.add(member.type.unroll().inner)
         return deps
+
+
+def getTracingConversion(type: IDLType, resolvedType: str) -> tuple[str, str | None]:
+    if type.isPromise():
+        return (resolvedType.replace("StackRoot", "HeapTraced"), ".to_traced()")
+
+    elif type.isCallback():
+        return (resolvedType.replace("RootedCallback", "TracedCallback"), ".to_traced()")
+
+    elif type.isDictionary() and type_needs_tracing(type):
+        unwrapped = resolvedType.replace("RootedTraceableBox<", "").removesuffix(">")
+        return (unwrapped, ".into_inner()")
+
+    elif type.isSequence():
+        tracedType, conversionCode = getTracingConversion(innerContainerType(type), resolvedType)
+        if conversionCode is not None:
+            return (tracedType, f".into_iter().map(|val| val{conversionCode}).collect()")
+
+    return (resolvedType, None)
 
 
 class CGInitAllStatics(CGAbstractMethod):
