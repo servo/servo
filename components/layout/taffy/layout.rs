@@ -150,8 +150,17 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
         let output = with_independent_formatting_context(
             &mut child.taffy_level_box,
             |independent_context| -> taffy::LayoutOutput {
-                // TODO: re-evaluate sizing constraint conversions in light of recent layout changes
-                let containing_block = self.content_box_size_override;
+                let containing_block = ContainingBlock {
+                    size: ContainingBlockSize {
+                        inline: Au::from_f32_px(inputs.parent_size.width.unwrap_or(0.0)),
+                        block: inputs
+                            .parent_size
+                            .height
+                            .map(Au::from_f32_px)
+                            .map_or_else(SizeConstraint::default, SizeConstraint::Definite),
+                    },
+                    style: self.content_box_size_override.style,
+                };
                 let style = independent_context.style();
 
                 let child_containing_block = IndefiniteContainingBlock {
@@ -261,7 +270,7 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                             self.layout_context,
                             &mut PositioningContext::default(),
                             Au::from_f32_px(inline_size),
-                            containing_block,
+                            &containing_block,
                             preferred_aspect_ratio,
                             &lazy_block_size,
                         );
@@ -285,7 +294,7 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                     self.layout_context,
                     &mut child.positioning_context,
                     &content_box_size_override,
-                    containing_block,
+                    &containing_block,
                     preferred_aspect_ratio,
                     &lazy_block_size,
                 );
