@@ -174,7 +174,7 @@ impl WebView {
                 .unwrap_or_else(|| Rc::new(DefaultGamepadDelegate)),
             geolocation_delegate: builder
                 .geolocation_delegate
-                .unwrap_or_else(|| Rc::new(DefaultGeolocationDelegate)),
+                .unwrap_or_else(|| Rc::new(DefaultGeolocationDelegate::default())),
             accesskit_tree_id: None,
             grafted_accesskit_tree_id: None,
             grafted_accesskit_tree_epoch: None,

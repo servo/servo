@@ -147,6 +147,55 @@ fn default_position_response() -> GeolocationResult {
     })
 }
 
-pub(crate) struct DefaultGeolocationDelegate;
+/// The delegate installed when the embedder does not supply one. It uses the platform's location
+/// service when Servo has a backend for it, and otherwise reports that no position is available.
+#[derive(Default)]
+pub(crate) struct DefaultGeolocationDelegate {
+    #[cfg(all(feature = "geolocation", target_os = "linux"))]
+    geoclue: std::cell::OnceCell<Option<crate::geoclue::Geoclue>>,
+}
 
-impl GeolocationDelegate for DefaultGeolocationDelegate {}
+#[cfg(all(feature = "geolocation", target_os = "linux"))]
+impl DefaultGeolocationDelegate {
+    /// The system backend, or `None` if it is unavailable or the testing preferences are standing
+    /// in for one.
+    fn backend(&self) -> Option<&crate::geoclue::Geoclue> {
+        if pref!(dom_geolocation_test_position_enabled) {
+            return None;
+        }
+        self.geoclue
+            .get_or_init(crate::geoclue::Geoclue::spawn)
+            .as_ref()
+    }
+}
+
+impl GeolocationDelegate for DefaultGeolocationDelegate {
+    fn request_position(&self, _webview: WebView, request: PositionRequest) {
+        #[cfg(all(feature = "geolocation", target_os = "linux"))]
+        if let Some(geoclue) = self.backend() {
+            return geoclue.request_position(request);
+        }
+        match default_position_response() {
+            Ok(position) => request.success(position),
+            Err(error) => request.failure(error),
+        }
+    }
+
+    fn start_watch(&self, _webview: WebView, watch: PositionWatch) {
+        #[cfg(all(feature = "geolocation", target_os = "linux"))]
+        if let Some(geoclue) = self.backend() {
+            return geoclue.start_watch(watch);
+        }
+        match default_position_response() {
+            Ok(position) => watch.update(position),
+            Err(error) => watch.error(error),
+        }
+    }
+
+    fn stop_watch(&self, _webview: WebView, _id: &GeolocationWatchId) {
+        #[cfg(all(feature = "geolocation", target_os = "linux"))]
+        if let Some(geoclue) = self.backend() {
+            geoclue.stop_watch(_id);
+        }
+    }
+}

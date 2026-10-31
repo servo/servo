@@ -24,7 +24,7 @@ default = ["bundled", "clipboard", "default_tooling", "js_jit", "multiprocess"]
 #  configuration with `--no-default-features` build
 #
 # A convenience feature to enable all default web features servo has.
-default_web_features = ["brotli-compression-stream", "clipboard", "webcrypto", "webgpu", "webgl", "webxr"]
+default_web_features = ["brotli-compression-stream", "clipboard", "geolocation", "webcrypto", "webgpu", "webgl", "webxr"]
 default_tooling = ["devtools"]
 
 # Bundle required resources in the binary.
@@ -64,6 +64,7 @@ gamepad = [
     "servo-constellation/gamepad",
     "embedder_traits/gamepad",
 ]
+geolocation = ["dep:futures", "dep:zbus"]
 jitspew = ["script/jitspew"]
 js_backtrace = ["script/js_backtrace"]
 js_jit = ["script/js_jit"]
@@ -203,6 +204,10 @@ gaol = { workspace = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 webxr = { workspace = true, optional = true, features = ["glwindow", "headless", "openxr-api"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+zbus = { workspace = true, optional = true }
+futures = { workspace = true, features = ["async-await", "std"], optional = true }
 
 [target.'cfg(target_env = "ohos")'.dependencies]
 servo-media-ohos = { workspace = true }
