@@ -727,6 +727,7 @@ pub enum ScriptToConstellationMessage {
     /// 2D canvases may use the GPU and we don't want to give untrusted content access to the GPU.)
     CreateCanvasPaintThread(
         UntypedSize2D<u64>,
+        WebViewId,
         GenericSender<Option<(GenericSender<CanvasMsg>, CanvasId)>>,
     ),
     /// Notifies the constellation that this pipeline is requesting focus.
@@ -870,6 +871,8 @@ pub enum ScriptToConstellationMessage {
     /// aggregate lock count and notify the provider only when the count transitions from N to 0.
     /// <https://w3c.github.io/screen-wake-lock/#dfn-release-wake-lock>
     ReleaseWakeLock(WakeLockType),
+    /// Tells canvas thread to clear resources from its caches.
+    ClearCanvasResources(WebViewId),
 }
 
 impl fmt::Debug for ScriptToConstellationMessage {

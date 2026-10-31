@@ -1850,9 +1850,11 @@ where
                     warn!("Error replying to remove iframe ({})", e);
                 }
             },
-            ScriptToConstellationMessage::CreateCanvasPaintThread(size, response_sender) => {
-                self.handle_create_canvas_paint_thread_msg(size, response_sender)
-            },
+            ScriptToConstellationMessage::CreateCanvasPaintThread(
+                size,
+                webview_id,
+                response_sender,
+            ) => self.handle_create_canvas_paint_thread_msg(webview_id, size, response_sender),
             ScriptToConstellationMessage::LogEntry(event_loop_id, thread_name, entry) => {
                 self.handle_log_entry(event_loop_id, thread_name, entry);
             },
@@ -2075,6 +2077,13 @@ where
                         warn!("Failed to release screen wake lock: {e}");
                     }
                 },
+            },
+            ScriptToConstellationMessage::ClearCanvasResources(webview_id) => {
+                if let Some(canvas_constellation_sender) = self.canvas.get() {
+                    let _ = canvas_constellation_sender
+                        .0
+                        .send(ConstellationCanvasMsg::ClearResources(webview_id));
+                }
             },
         }
     }
@@ -5222,6 +5231,7 @@ where
     #[servo_tracing::instrument(skip_all)]
     fn handle_create_canvas_paint_thread_msg(
         &mut self,
+        webview_id: WebViewId,
         size: UntypedSize2D<u64>,
         response_sender: GenericSender<Option<(GenericSender<CanvasMsg>, CanvasId)>>,
     ) {
@@ -5232,6 +5242,7 @@ where
 
         let response = if let Err(e) = canvas_sender.send(ConstellationCanvasMsg::Create {
             sender: canvas_data_sender,
+            webview_id,
             size,
         }) {
             warn!("Create canvas paint thread failed ({})", e);
