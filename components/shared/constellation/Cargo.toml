@@ -19,6 +19,7 @@ webcrypto = []
 devtools = ["dep:devtools_traits"]
 webgpu = ["dep:webgpu_traits", "dep:wgpu-core"]
 webgl = []
+webmidi = ["dep:servo-webmidi-traits"]
 
 [dependencies]
 accesskit = { workspace = true }
@@ -44,6 +45,7 @@ servo-base = { workspace = true }
 servo-canvas-traits = { workspace = true }
 servo-config = { workspace = true }
 servo-url = { workspace = true }
+servo-webmidi-traits = { workspace = true, optional = true }
 storage_traits = { workspace = true }
 strum = { workspace = true }
 uuid = { workspace = true }

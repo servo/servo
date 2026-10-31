@@ -52,6 +52,7 @@ webgpu = [
     "script_bindings/webgpu",
     "script_traits/webgpu",
 ]
+webmidi = ["servo-webmidi-traits", "script_bindings/webmidi"]
 webxr = ["webgl", "gamepad", "webxr-api", "script_bindings/webxr"]
 
 [lints]
@@ -139,6 +140,7 @@ servo-constellation-traits = { workspace = true }
 servo-geometry = { workspace = true }
 servo-media = { workspace = true }
 servo-tracing = { workspace = true }
+servo-webmidi-traits = { workspace = true, optional = true }
 servo-url = { workspace = true }
 servo-webvtt = { workspace = true }
 servo_arc = { workspace = true }
