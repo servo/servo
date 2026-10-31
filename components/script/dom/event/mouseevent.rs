@@ -572,7 +572,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-mouseevent-offsetx>
-    fn OffsetX(&self) -> i32 {
+    fn OffsetX(&self, cx: &mut JSContext) -> i32 {
         // > The offsetX attribute must follow these steps:
         // > 1. If the event’s dispatch flag is set, return the x-coordinate of the position
         // >    where the event occurred relative to the origin of the padding edge of the
@@ -586,7 +586,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
             let Some(node) = target.downcast::<Node>() else {
                 return 0;
             };
-            return self.ClientX() - node.client_rect().origin.x;
+            return self.ClientX() - node.client_rect(cx).origin.x;
         }
 
         // > 2. Return the value of the event’s pageX attribute.
@@ -594,7 +594,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-mouseevent-offsety>
-    fn OffsetY(&self) -> i32 {
+    fn OffsetY(&self, cx: &mut JSContext) -> i32 {
         // > The offsetY attribute must follow these steps:
         // > 1. If the event’s dispatch flag is set, return the y-coordinate of the
         // >    position where the event occurred relative to the origin of the padding edge of
@@ -608,7 +608,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
             let Some(node) = target.downcast::<Node>() else {
                 return 0;
             };
-            return self.ClientY() - node.client_rect().origin.y;
+            return self.ClientY() - node.client_rect(cx).origin.y;
         }
 
         // 2. Return the value of the event’s pageY attribute.

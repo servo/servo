@@ -3147,8 +3147,8 @@ impl Window {
             .query_box_areas(node.to_trusted_node_address(), area)
     }
 
-    pub(crate) fn client_rect_query(&self, node: &Node) -> Rect<i32, CSSPixel> {
-        self.layout_reflow_deprecated(QueryMsg::ClientRectQuery);
+    pub(crate) fn client_rect_query(&self, cx: &mut JSContext, node: &Node) -> Rect<i32, CSSPixel> {
+        self.layout_reflow(cx, QueryMsg::ClientRectQuery);
         self.layout
             .borrow()
             .query_client_rect(node.to_trusted_node_address())
