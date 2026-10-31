@@ -585987,12 +585987,20 @@
       "f4bc87940ec9b55737aaec28c3a21cafe8b420d1",
       []
      ],
+     "stash-read.py": [
+      "6bff190b916e2133acbf0dbd05c0bb2b66582cba",
+      []
+     ],
      "stash-referrer.py": [
       "db498f35507cd339ba8124d024c5f7dc4e9661d2",
       []
      ],
      "stash-take.py": [
       "9977197cae5591f62240a2d97a0c66be1f8bbeeb",
+      []
+     ],
+     "stash-url.py": [
+      "f80ffe0deac54358874226a6425d2d8d594f451c",
       []
      ],
      "syntax-error.css": [
@@ -1375563,6 +1375571,13 @@
     ],
     "link-preload-as-case-insensitive.html": [
      "429fd2a13571177c518917d3493bdc02fc6d17a9",
+     [
+      null,
+      {}
+     ]
+    ],
+    "link-url-encoding.html": [
+     "fc96cad4cd263f15555aa0db112703c123f6a2ca",
      [
       null,
       {}

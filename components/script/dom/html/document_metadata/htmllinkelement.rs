@@ -552,7 +552,6 @@ impl HTMLLinkElement {
             policy_container: document.policy_container().clone(),
             source_set: Some(self.source_set.borrow().clone()),
             origin: document.borrow().origin().immutable().to_owned(),
-            base_url: document.borrow().base_url(),
             request_client: global.request_client(None),
             referrer: global.get_referrer(),
         };
@@ -591,9 +590,12 @@ impl HTMLLinkElement {
         let options = self.processing_options();
 
         // Step 2. Let request be the result of creating a link request given options.
-        let Some(request) =
-            options.create_link_request(self.owner_window().webview_id(), &self.owner_global())
-        else {
+        let document = self.upcast::<Node>().owner_doc();
+        let Some(request) = options.create_link_request(
+            self.owner_window().webview_id(),
+            &self.owner_global(),
+            &document,
+        ) else {
             // Step 3. If request is null, then return.
             return None;
         };
@@ -667,9 +669,12 @@ impl HTMLLinkElement {
         options.destination = Destination::None;
 
         // Step 4. Let request be the result of creating a link request given options.
-        let Some(request) =
-            options.create_link_request(self.owner_window().webview_id(), &self.owner_global())
-        else {
+        let document = self.upcast::<Node>().owner_doc();
+        let Some(request) = options.create_link_request(
+            self.owner_window().webview_id(),
+            &self.owner_global(),
+            &document,
+        ) else {
             // Step 5. If request is null, then return.
             return;
         };
@@ -681,7 +686,6 @@ impl HTMLLinkElement {
         // (Step 7, firing load/error events is handled in the FetchResponseListener impl for LinkFetchContext)
 
         // Step 8. The user agent should fetch request, with processResponseConsumeBody set to processPrefetchResponse.
-        let document = self.upcast::<Node>().owner_doc();
         let fetch_context = LinkFetchContext {
             url,
             link: Some(Trusted::new(self)),
@@ -783,7 +787,10 @@ impl HTMLLinkElement {
         if !window.is_top_level() {
             return;
         }
-        let Ok(href) = self.Href().parse() else {
+
+        // Use the document's encoding to parse the URL, as the favicon URL is not necessarily UTF-8.
+        let document = self.upcast::<Node>().owner_doc();
+        let Ok(href) = document.encoding_parse_a_url(&self.Href()) else {
             return;
         };
 
