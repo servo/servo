@@ -4,7 +4,7 @@
 
 use std::cell::UnsafeCell;
 use std::hash::{Hash, Hasher};
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use std::{fmt, mem, ptr};
 
@@ -115,6 +115,12 @@ where
     fn deref(&self) -> &Self::Target {
         assert_in_script();
         &self.value
+    }
+}
+
+impl<T: Deref + DerefMut + StableTraceObject> DerefMut for Root<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.value
     }
 }
 
@@ -253,14 +259,20 @@ where
     T: DomObject,
 {
     /// Create a new MaybeUnreflectedDom value from the given boxed DOM object.
-    pub fn from_box(value: Box<T>) -> Self {
+    pub fn from_box(mut value: Box<T>) -> Self {
+        value.reflector_mut().set_proto_id(T::PROTOTYPE_ID);
+
         Self {
             ptr: Box::leak(value).into(),
         }
     }
 
     /// Create a new MaybeUnreflectedDom value from the given RCed DOM object.
-    pub fn from_rc(value: Rc<T>) -> Self {
+    pub fn from_rc(mut value: Rc<T>) -> Self {
+        Rc::get_mut(&mut value)
+            .expect("Could not set reflector")
+            .reflector_mut()
+            .set_proto_id(T::PROTOTYPE_ID);
         Self {
             ptr: ptr::NonNull::new(Rc::into_raw(value) as *mut T).unwrap(),
         }
