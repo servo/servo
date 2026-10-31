@@ -44,6 +44,8 @@ use storage_traits::webstorage_thread::WebStorageType;
 use strum::IntoStaticStr;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPU, WebGPUAdapterResponse};
+#[cfg(feature = "webmidi")]
+use webmidi_traits::MIDIRequest;
 
 use crate::structured_data::{BroadcastChannelMsg, StructuredSerializedData};
 use crate::{
@@ -870,6 +872,9 @@ pub enum ScriptToConstellationMessage {
     /// aggregate lock count and notify the provider only when the count transitions from N to 0.
     /// <https://w3c.github.io/screen-wake-lock/#dfn-release-wake-lock>
     ReleaseWakeLock(WakeLockType),
+    #[cfg(feature = "webmidi")]
+    /// Request data from the MIDI thread
+    MIDIRequest(MIDIRequest),
 }
 
 impl fmt::Debug for ScriptToConstellationMessage {

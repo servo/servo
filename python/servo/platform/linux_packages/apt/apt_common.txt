@@ -12,6 +12,7 @@ curl
 g++
 git
 gperf
+libasound2-dev
 libdbus-1-dev
 libfreetype6-dev
 libgl1-mesa-dri

@@ -3,5 +3,6 @@
   "editing_caret_blink_time": 0,
   "gfx_text_antialiasing_enabled": false,
   "dom_testutils_enabled": true,
-  "accessibility_enabled": true
+  "accessibility_enabled": true,
+  "dom_webmidi_enabled": true
 }

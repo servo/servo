@@ -231,6 +231,8 @@ pub struct Preferences {
     /// Enable WebGL2 APIs.
     // feature: WebGL2 | #41394 | Web/API/WebGL2RenderingContext
     pub dom_webgl2_enabled: bool,
+    // feature: WebMIDI | #37739 | Web/API/WebMIDI_API
+    pub dom_webmidi_enabled: bool,
     // feature: WebRTC | #41396 | Web/API/WebRTC_API
     pub dom_webrtc_enabled: bool,
     // feature: WebRTC Transceiver | #41396 | Web/API/RTCRtpTransceiver
@@ -503,6 +505,7 @@ impl Preferences {
             dom_webgl2_enabled: false,
             dom_webgpu_enabled: false,
             dom_webgpu_wgpu_backend: String::new(),
+            dom_webmidi_enabled: false,
             dom_webrtc_enabled: false,
             dom_webrtc_transceiver_enabled: false,
             dom_webxr_enabled: true,
