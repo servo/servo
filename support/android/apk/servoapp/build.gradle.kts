@@ -121,11 +121,7 @@ project.afterEvaluate {
 }
 
 dependencies {
-    if (findProject(":servoview-local") != null) {
-        implementation(project(":servoview-local"))
-    } else {
-        implementation(project(":servoview"))
-    }
+    implementation(project(":servoview"))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.material3.compose)
     implementation(libs.androidx.material3.compose.adaptive)
