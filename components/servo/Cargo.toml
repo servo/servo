@@ -91,7 +91,8 @@ tracing = [
 ]
 vello = ["servo-constellation/vello"]
 
-## Enable SubtleCrypto
+## Enable SubtleCrypto in the WebCrypto API (<https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API>)
+## Without this feature only the core `Crypto` Object is available.
 subtlecrypto = ["script/subtlecrypto", "servo-constellation-traits/subtlecrypto"]
 webgl_backtrace = [
     "script/webgl_backtrace",
