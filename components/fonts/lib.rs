@@ -12,6 +12,7 @@ mod glyph;
 #[expect(unsafe_code)]
 pub mod platform; // Public because integration tests need this
 mod shapers;
+use smallvec::SmallVec;
 mod system_font_service;
 
 pub(crate) use font::*;
@@ -35,6 +36,8 @@ pub(crate) use shapers::*;
 pub use system_font_service::SystemFontService;
 use unicode_properties::{EmojiStatus, UnicodeEmoji, emoji};
 
+use crate::FontGroupFamily;
+
 /// Whether or not font fallback selection prefers the emoji or text representation
 /// of a character. If `None` then either presentation is acceptable.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -44,25 +47,33 @@ pub(crate) enum EmojiPresentationPreference {
     Emoji,
 }
 
-#[derive(Clone, Debug)]
-pub struct FallbackFontSelectionOptions {
+#[derive(Clone)]
+pub struct FallbackFontSelectionOptions<'a> {
     pub(crate) character: char,
     pub(crate) presentation_preference: EmojiPresentationPreference,
     pub(crate) language: Language,
+    #[cfg_attr(not(target_os = "android"), allow(unused))]
+    pub(crate) preferred_font_families: Option<&'a SmallVec<[FontGroupFamily; 8]>>,
 }
 
-impl Default for FallbackFontSelectionOptions {
+impl Default for FallbackFontSelectionOptions<'_> {
     fn default() -> Self {
         Self {
             character: ' ',
             presentation_preference: EmojiPresentationPreference::None,
             language: Language::UNKNOWN,
+            preferred_font_families: None,
         }
     }
 }
 
-impl FallbackFontSelectionOptions {
-    pub fn new(character: char, next_character: Option<char>, language: Language) -> Self {
+impl<'a> FallbackFontSelectionOptions<'a> {
+    pub fn new(
+        character: char,
+        next_character: Option<char>,
+        language: Language,
+        preferred_font_families: Option<&'a SmallVec<[FontGroupFamily; 8]>>,
+    ) -> Self {
         let presentation_preference = match next_character {
             Some(next_character) if emoji::is_emoji_presentation_selector(next_character) => {
                 EmojiPresentationPreference::Emoji
@@ -91,6 +102,7 @@ impl FallbackFontSelectionOptions {
             character,
             presentation_preference,
             language,
+            preferred_font_families,
         }
     }
 }

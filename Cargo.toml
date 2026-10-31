@@ -161,6 +161,7 @@ ml-kem = { version = "0.3", features = ["getrandom", "pkcs8", "zeroize"] }
 mozangle = "0.7"
 napi-derive-ohos = "1.2.0"
 napi-ohos = "1.2.0"
+ndk = { version = "0.9.0", features = ["api-level-29"] }
 nix = "0.30"
 nom = "8.0.0"
 nom-rfc8288 = "0.4.0"
