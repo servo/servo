@@ -92,7 +92,7 @@ tracing = [
 vello = ["servo-constellation/vello"]
 
 ## Enable SubtleCrypto
-subtlecrypto = ["script/subtlecrypto"]
+subtlecrypto = ["script/subtlecrypto", "servo-constellation-traits/subtlecrypto"]
 webgl_backtrace = [
     "script/webgl_backtrace",
     "webgl/webgl_backtrace",
