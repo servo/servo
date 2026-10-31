@@ -74,10 +74,14 @@ impl StereoPannerNodeMethods<crate::DomTypeHolder> for StereoPannerNode {
             ))));
         }
         if node_options.mode == ChannelCountMode::Max {
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(
+                "Channel count mode cannot be \"max\"".into(),
+            )));
         }
         if node_options.count > 2 || node_options.count == 0 {
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(
+                "Channel count must be 1 or 2".into(),
+            )));
         }
         let pan = *options.pan;
         let audio_node_init = AudioNodeInit::StereoPannerNode(options.convert());

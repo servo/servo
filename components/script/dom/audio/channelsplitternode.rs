@@ -56,7 +56,9 @@ impl ChannelSplitterNodeMethods<crate::DomTypeHolder> for ChannelSplitterNode {
         options: &ChannelSplitterOptions,
     ) -> Fallible<DomRoot<ChannelSplitterNode>> {
         if options.numberOfOutputs < 1 || options.numberOfOutputs > MAX_CHANNEL_COUNT {
-            return Err(Error::IndexSize(None));
+            return Err(Error::IndexSize(Some(
+                "numberOfOutputs is out of range".into(),
+            )));
         }
 
         let node_options = options.parent.unwrap_or(
@@ -75,7 +77,9 @@ impl ChannelSplitterNodeMethods<crate::DomTypeHolder> for ChannelSplitterNode {
             node_options.mode != ChannelCountMode::Explicit ||
             node_options.interpretation != ChannelInterpretation::Discrete
         {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Invalid channel options for ChannelSplitterNode".into(),
+            )));
         }
 
         let audio_node_init = AudioNodeInit::ChannelSplitterNode;

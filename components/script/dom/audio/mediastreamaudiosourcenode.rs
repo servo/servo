@@ -69,7 +69,9 @@ impl MediaStreamAudioSourceNodeMethods<crate::DomTypeHolder> for MediaStreamAudi
             .get_tracks()
             .iter()
             .find(|t| t.ty() == MediaStreamType::Audio)
-            .ok_or(Error::InvalidState(None))?
+            .ok_or(Error::InvalidState(Some(
+                "MediaStream has no audio track".into(),
+            )))?
             .id();
         let audio_node_init = AudioNodeInit::MediaStreamSourceNode(track);
         let node_id =

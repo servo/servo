@@ -185,7 +185,9 @@ impl OscillatorNodeMethods<crate::DomTypeHolder> for OscillatorNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-oscillatornode-type>
     fn SetType(&self, type_: OscillatorType) -> ErrorResult {
         if type_ == OscillatorType::Custom {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Use setPeriodicWave() to set a custom type".into(),
+            )));
         }
         self.oscillator_type.set(type_);
         self.source_node
