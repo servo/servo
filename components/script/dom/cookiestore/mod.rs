@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 pub(crate) use self::cookiestore::*;
+pub(crate) mod cookiechangeevent;
 #[expect(clippy::module_inception, reason = "The interface name is CookieStore")]
 pub(crate) mod cookiestore;
 pub(crate) mod cookiestoremanager;
