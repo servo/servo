@@ -163,6 +163,10 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
         self.node.opaque()
     }
 
+    fn inclusive_descendants_version(&self) -> u64 {
+        self.node.inclusive_descendants_version()
+    }
+
     fn pseudo_element_chain(&self) -> PseudoElementChain {
         self.pseudo_element_chain
     }
