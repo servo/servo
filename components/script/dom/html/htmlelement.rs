@@ -18,6 +18,7 @@ use script_bindings::dom::UnrootedDom;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
 
+use crate::dom::NodeFlags;
 use crate::dom::activation::Activatable;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterData_Binding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::{
@@ -1366,6 +1367,15 @@ impl VirtualMethods for HTMLElement {
             },
             (&local_name!("form"), mutation) if self.is_form_associated_custom_element() => {
                 self.form_attribute_mutated(cx, mutation);
+            },
+            // Adding or removing a "contenteditable" attribute might make a 0-size selection
+            // render its caret or not.
+            (&local_name!("contenteditable"), ..)
+                if let Some(selection) = self.owner_document().selection() &&
+                    self.upcast::<Node>()
+                        .get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) =>
+            {
+                selection.set_visible_selection_dirty();
             },
             // Adding or removing a "disabled" attribute may disable or enable a disableable
             // form control.
