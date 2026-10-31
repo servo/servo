@@ -208,6 +208,10 @@ webxr = { workspace = true, optional = true, features = ["glwindow", "headless",
 servo-media-ohos = { workspace = true }
 ohos-pasteboard = { workspace = true, optional = true }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+libc = { workspace = true }
+tokio = { workspace = true, features = ["net"] }
+
 [dev-dependencies]
 accesskit_consumer = { workspace = true }
 content-security-policy = { workspace = true }

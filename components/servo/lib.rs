@@ -51,6 +51,7 @@ mod geolocation_delegate;
 ))]
 mod gstreamer_plugins;
 mod javascript_evaluator;
+mod network_delegate;
 mod network_manager;
 mod proxies;
 mod responders;
