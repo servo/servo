@@ -193,6 +193,14 @@ impl DocumentFocusHandler {
         self.has_focus.set(has_focus);
     }
 
+    pub(crate) fn set_last_non_script_focus_triggered_by_keyboard(
+        &self,
+        last_non_script_focus_triggered_by_keyboard: bool,
+    ) {
+        self.last_non_script_focus_triggered_by_keyboard
+            .set(last_non_script_focus_triggered_by_keyboard);
+    }
+
     /// Return the element that currently has focus. If `None` is returned the viewport itself has focus.
     pub(crate) fn focused_area(&self) -> Ref<'_, FocusableArea> {
         self.focused_area.borrow()
@@ -251,8 +259,12 @@ impl DocumentFocusHandler {
         }
         if let Some(newly_focused_element) = new_focusable_area.element() {
             recursively_set_focus_status(no_gc, newly_focused_element, true);
-            if self.last_non_script_focus_triggered_by_keyboard.get() ||
-                Self::focused_element_supports_keyboard_input(newly_focused_element)
+
+            // We should never show a focus ring on an iframe, since focus is handled separately
+            // inside of that iframe
+            if !newly_focused_element.is::<HTMLIFrameElement>() &&
+                (self.last_non_script_focus_triggered_by_keyboard.get() ||
+                    Self::focused_element_supports_keyboard_input(newly_focused_element))
             {
                 newly_focused_element.set_focusring_state(no_gc, true);
             }
