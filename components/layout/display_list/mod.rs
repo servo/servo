@@ -467,6 +467,13 @@ impl DisplayListBuilder<'_> {
         };
         let spatial_id = self.spatial_id(stacking_context.scroll_tree_node_id);
 
+        // This stacking context only groups the transformed element, so it must be skipped
+        // when selecting the backdrop root for a backdrop filter that wraps it.
+        let mut stacking_context_flags = StackingContextFlags::empty();
+        if stacking_context.wraps_backdrop_filter() {
+            stacking_context_flags.insert(StackingContextFlags::WRAPS_BACKDROP_FILTER);
+        }
+
         self.wr().push_stacking_context(
             spatial_id,
             style.webrender_primitive_flags(),
@@ -476,7 +483,7 @@ impl DisplayListBuilder<'_> {
             &[], // filters
             &[], // filter_datas
             wr::RasterSpace::Screen,
-            StackingContextFlags::empty(),
+            stacking_context_flags,
             None, // snapshot
         );
         true
@@ -499,10 +506,18 @@ impl DisplayListBuilder<'_> {
         let mix_blend_mode;
         let mut filters: Vec<_>;
         let mut stacking_context_flags = StackingContextFlags::empty();
+        let mut needs_backdrop_root_surface = false;
         match &stacking_context.fragment {
             StackingContextFragments::Fragment(fragment) => {
                 let style = fragment.style();
                 let effects = style.get_effects();
+
+                // Only create an isolation surface when this subtree actually contains a
+                // backdrop filter that would sample from it.
+                let establishes_backdrop_root =
+                    style.establishes_backdrop_root(fragment.base.flags);
+                needs_backdrop_root_surface =
+                    establishes_backdrop_root && stacking_context.contains_backdrop_filter;
 
                 mix_blend_mode = effects.mix_blend_mode.to_webrender();
 
@@ -517,8 +532,8 @@ impl DisplayListBuilder<'_> {
                 // WebRender only uses the stacking context to apply certain effects. If we don't
                 // actually need to create a stacking context, just avoid creating one.
                 if !is_blend_container &&
+                    !needs_backdrop_root_surface &&
                     effects.filter.0.is_empty() &&
-                    effects.backdrop_filter.0.is_empty() &&
                     effects.opacity == 1.0 &&
                     effects.mix_blend_mode == ComputedMixBlendMode::Normal &&
                     style.get_svg().clip_path == ComputedClipPath::None
@@ -552,6 +567,27 @@ impl DisplayListBuilder<'_> {
 
         if is_blend_container {
             stacking_context_flags.insert(StackingContextFlags::IS_BLEND_CONTAINER);
+        }
+
+        if stacking_context.wraps_backdrop_filter() {
+            // From <https://drafts.fxtf.org/filter-effects-2/#backdrop-filter-operation>:
+            // > 6. If element B has any transforms, effects, or clips, apply those to T’.
+            // > 7. Composite the contents of T′ into element B's parent, using source-over
+            // >    compositing.
+            // The element's own effects therefore apply.
+            stacking_context_flags.insert(StackingContextFlags::WRAPS_BACKDROP_FILTER);
+        } else if needs_backdrop_root_surface {
+            // This element is a backdrop root and its subtree contains a backdrop filter, so it
+            // needs its own surface for the Backdrop Root Image:
+            // > The Backdrop Root Image for an element E is the final image that would be
+            // > produced by the following steps:
+            // > 1. Start at the Backdrop Root element that is the nearest ancestor of E.
+            // > 2. Paint all content, in painting order, between (and including) the ancestor
+            // > Backdrop Root element and element E.
+            // > 3. Flatten the painted content into a 2D screen-space buffer.
+            // > 4. Transform the border box of element E to 2D screen-space, and clip the final
+            // > painted output to this border quad.
+            stacking_context_flags.insert(StackingContextFlags::FORCED_ISOLATION);
         }
 
         // WebRender has two different ways of expressing "no clip." ClipChainId::INVALID
@@ -810,6 +846,12 @@ impl DisplayListBuilder<'_> {
         // `ClipId::INVALID` during stacking context tree construction.
         let clip_chain_id = Some(self.clip_chain_id(reference_frame_info.captured_clip_id));
         let spatial_id = self.spatial_id(reference_frame_info.parent_spatial_node_id);
+
+        let mut stacking_context_flags = wr::StackingContextFlags::empty();
+        if stacking_context.wraps_backdrop_filter() {
+            stacking_context_flags.insert(wr::StackingContextFlags::WRAPS_BACKDROP_FILTER);
+        }
+
         self.wr().push_stacking_context(
             spatial_id,
             PrimitiveFlags::default(),
@@ -819,7 +861,7 @@ impl DisplayListBuilder<'_> {
             &[], // filters,
             &[], // filter_datas
             wr::RasterSpace::Screen,
-            wr::StackingContextFlags::empty(),
+            stacking_context_flags,
             None, // snapshot
         );
 
@@ -1848,22 +1890,12 @@ impl<'a> BuilderForBoxFragment<'a> {
 
     fn build_backdrop_filter(&mut self, builder: &mut DisplayListBuilder, state: &TraversalState) {
         // https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty
-        // > ... unless the element it applies to is a document root element in
-        // > the current browsing context.
-        if self
-            .fragment
-            .base
-            .flags
-            .contains(FragmentFlags::IS_ROOT_ELEMENT)
-        {
-            return;
-        }
 
         let style = self.fragment.style();
-        let effects = style.get_effects();
-        if effects.backdrop_filter.0.is_empty() {
+        if !style.has_backdrop_filter(self.fragment.base.flags) {
             return;
         }
+        let effects = style.get_effects();
 
         let current_color = style.get_color();
         let filters: Vec<_> = effects
