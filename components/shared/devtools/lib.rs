@@ -465,6 +465,8 @@ pub enum DevtoolScriptControlMsg {
     GoForward(PipelineId),
     /// Direct the given pipeline to reload the current page.
     Reload(PipelineId),
+    /// Retrieve the favicon bytes for the given pipeline.
+    GetFavicon(PipelineId, GenericSender<Option<Vec<u8>>>),
     /// Gets the list of all allowed CSS rules and possible values.
     GetCssDatabase(GenericSender<HashMap<String, CssDatabaseProperty>>),
     /// Simulates a light or dark color scheme for the given pipeline

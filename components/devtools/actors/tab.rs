@@ -15,6 +15,7 @@ use devtools_traits::DevtoolScriptControlMsg;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
+use servo_base::generic_channel;
 use servo_url::ServoUrl;
 
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
@@ -51,7 +52,7 @@ struct GetTargetReply {
 #[derive(Serialize)]
 struct GetFaviconReply {
     from: String,
-    favicon: String,
+    favicon: Option<Vec<u8>>,
 }
 
 #[derive(Serialize)]
@@ -76,7 +77,7 @@ impl Actor for TabDescriptorActor {
     ///
     /// - `getTarget`: Returns the surrounding `BrowsingContextActor`.
     ///
-    /// - `getFavicon`: Should return the tab favicon, but it is not yet supported.
+    /// - `getFavicon`: Returns the tab favicon.
     ///
     /// - `getWatcher`: Returns a `WatcherActor` linked to the tab's `BrowsingContext`. It is used
     ///   to describe the debugging capabilities of this tab.
@@ -100,10 +101,15 @@ impl Actor for TabDescriptorActor {
                 frame: browsing_context_actor.encode(registry),
             })?,
             "getFavicon" => {
-                // TODO: Return a favicon when available
+                let (tx, rx) = generic_channel::channel().ok_or(ActorError::Internal)?;
+                browsing_context_actor
+                    .script_chan()
+                    .send(DevtoolScriptControlMsg::GetFavicon(pipeline, tx))
+                    .map_err(|_| ActorError::Internal)?;
+                let favicon = rx.recv().map_err(|_| ActorError::Internal)?;
                 request.reply_final(&GetFaviconReply {
                     from: self.name().into(),
-                    favicon: String::new(),
+                    favicon,
                 })?
             },
             "getWatcher" => request.reply_final(&GetWatcherReply {

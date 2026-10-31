@@ -2249,6 +2249,9 @@ impl ScriptThread {
                 self.handle_traverse_history(pipeline_id, TraversalDirection::Forward(1))
             },
             DevtoolScriptControlMsg::Reload(id) => self.handle_reload(cx, id),
+            DevtoolScriptControlMsg::GetFavicon(id, reply) => {
+                devtools::handle_get_favicon(&documents, id, reply)
+            },
             DevtoolScriptControlMsg::GetCssDatabase(reply) => {
                 devtools::handle_get_css_database(reply)
             },
