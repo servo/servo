@@ -1147,6 +1147,8 @@ impl DocumentEventHandler {
                     editing_context.handle_mousedown_event(cx, &mouse_event, &hit_test_result);
                 }
 
+                let node_click_focusable_area = &node.find_click_focusable_area(cx);
+
                 // Step 8. If result is true and target is a focusable area
                 // that is click focusable, then Run the focusing steps at target.
                 if result {
@@ -1155,7 +1157,7 @@ impl DocumentEventHandler {
                     // See documentation for [`Node::find_click_focusable_area`].
                     document.focus_handler().focus(
                         cx,
-                        &node.find_click_focusable_area(cx),
+                        node_click_focusable_area,
                         FocusTrigger::Click,
                     );
                 }
@@ -2316,7 +2318,7 @@ impl DocumentEventHandler {
                 document.viewport_scrolling_box(ScrollContainerQueryFlags::Inclusive)
             });
 
-        while !scrolling_box.can_keyboard_scroll_in_axis(cx.no_gc(), scroll_axis) {
+        while !scrolling_box.can_keyboard_scroll_in_axis(cx, scroll_axis) {
             // Always fall back to trying to scroll the entire document.
             if scrolling_box.is_viewport() {
                 break;
@@ -2327,7 +2329,7 @@ impl DocumentEventHandler {
             scrolling_box = parent;
         }
 
-        let calculate_current_scroll_offset_and_delta = || {
+        let calculate_current_scroll_offset_and_delta = |cx: &mut JSContext| {
             const LINE_HEIGHT: f32 = 76.0;
             const LINE_WIDTH: f32 = 76.0;
 
@@ -2339,16 +2341,14 @@ impl DocumentEventHandler {
                     KeyboardScroll::End => Vector2D::new(
                         0.0,
                         -current_scroll_offset.y + scrolling_box.content_size().height -
-                            scrolling_box.size(cx.no_gc()).height,
+                            scrolling_box.size(cx).height,
                     ),
-                    KeyboardScroll::PageDown => Vector2D::new(
-                        0.0,
-                        scrolling_box.size(cx.no_gc()).height - 2.0 * LINE_HEIGHT,
-                    ),
-                    KeyboardScroll::PageUp => Vector2D::new(
-                        0.0,
-                        2.0 * LINE_HEIGHT - scrolling_box.size(cx.no_gc()).height,
-                    ),
+                    KeyboardScroll::PageDown => {
+                        Vector2D::new(0.0, scrolling_box.size(cx).height - 2.0 * LINE_HEIGHT)
+                    },
+                    KeyboardScroll::PageUp => {
+                        Vector2D::new(0.0, 2.0 * LINE_HEIGHT - scrolling_box.size(cx).height)
+                    },
                     KeyboardScroll::Up => Vector2D::new(0.0, -LINE_HEIGHT),
                     KeyboardScroll::Down => Vector2D::new(0.0, LINE_HEIGHT),
                     KeyboardScroll::Left => Vector2D::new(-LINE_WIDTH, 0.0),
@@ -2362,7 +2362,7 @@ impl DocumentEventHandler {
         // can properly pan any pinch zoom viewport.
         let parent_pipeline = self.window.parent_info();
         if scrolling_box.is_viewport() && parent_pipeline.is_none() {
-            let (_, delta) = calculate_current_scroll_offset_and_delta();
+            let (_, delta) = calculate_current_scroll_offset_and_delta(cx);
             self.window
                 .paint_api()
                 .scroll_viewport_by_delta(self.window.webview_id(), delta);
@@ -2370,7 +2370,7 @@ impl DocumentEventHandler {
 
         // If this is the viewport and we cannot scroll, try to ask a parent viewport to scroll,
         // if we are inside an `<iframe>`.
-        if !scrolling_box.can_keyboard_scroll_in_axis(cx.no_gc(), scroll_axis) {
+        if !scrolling_box.can_keyboard_scroll_in_axis(cx, scroll_axis) {
             assert!(scrolling_box.is_viewport());
 
             let window_proxy = document.window().window_proxy();
@@ -2395,7 +2395,7 @@ impl DocumentEventHandler {
             return;
         }
 
-        let (current_scroll_offset, delta) = calculate_current_scroll_offset_and_delta();
+        let (current_scroll_offset, delta) = calculate_current_scroll_offset_and_delta(cx);
         scrolling_box.scroll_to(cx, delta + current_scroll_offset, ScrollBehavior::Auto);
     }
 
