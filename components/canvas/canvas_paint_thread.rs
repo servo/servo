@@ -13,17 +13,20 @@ use pixels::Snapshot;
 use profile_traits::mem::{
     ProcessReports, ProfilerChan, Report, ReportsChan, perform_memory_report,
 };
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use servo_base::generic_channel::GenericSender;
+use servo_base::id::WebViewId;
 use servo_base::{Epoch, generic_channel};
 use servo_canvas_traits::ConstellationCanvasMsg;
 use servo_canvas_traits::canvas::*;
 use webrender_api::ImageKey;
 
 use crate::canvas_data::*;
+use crate::vello_cpu_backend::clear_shared_font_cache;
 
 pub struct CanvasPaintThread {
     canvases: FxHashMap<CanvasId, Canvas>,
+    canvas_webview_map: FxHashMap<WebViewId, FxHashSet<CanvasId>>,
     next_canvas_id: CanvasId,
     paint_api: CrossProcessPaintApi,
 }
@@ -32,6 +35,7 @@ impl CanvasPaintThread {
     fn new(paint_api: CrossProcessPaintApi) -> CanvasPaintThread {
         CanvasPaintThread {
             canvases: FxHashMap::default(),
+            canvas_webview_map: FxHashMap::default(),
             next_canvas_id: CanvasId(0),
             paint_api,
         }
@@ -75,8 +79,8 @@ impl CanvasPaintThread {
                         }
                         recv(create_receiver) -> msg => {
                             match msg {
-                                Ok(ConstellationCanvasMsg::Create { sender: creator, size }) => {
-                                    if let Err(error) = creator.send(canvas_paint_thread.create_canvas(size)) {
+                                Ok(ConstellationCanvasMsg::Create { sender: creator, webview_id, size }) => {
+                                    if let Err(error) = creator.send(canvas_paint_thread.create_canvas(size, webview_id)) {
                                         warn!("Create canvas response failed ({error})");
                                     }
                                 },
@@ -87,6 +91,13 @@ impl CanvasPaintThread {
                                     let _ = exit_sender.send(());
                                     break;
                                 },
+                                Ok(ConstellationCanvasMsg::ClearResources(webview_id)) => {
+                                    if let Some(canvas_ids) = canvas_paint_thread.canvas_webview_map.remove(&webview_id) {
+                                        for canvas_id in canvas_ids.iter() {
+                                            clear_shared_font_cache(*canvas_id);
+                                        }
+                                    }
+                                }
                                 Err(e) => {
                                     warn!("Error on CanvasPaintThread receive ({})", e);
                                     break;
@@ -102,12 +113,14 @@ impl CanvasPaintThread {
     }
 
     #[servo_tracing::instrument(skip_all)]
-    pub fn create_canvas(&mut self, size: Size2D<u64>) -> Option<CanvasId> {
+    pub fn create_canvas(&mut self, size: Size2D<u64>, webview_id: WebViewId) -> Option<CanvasId> {
         let canvas_id = self.next_canvas_id;
         self.next_canvas_id.0 += 1;
 
-        let canvas = Canvas::new(size, self.paint_api.clone())?;
+        let canvas = Canvas::new(canvas_id, size, self.paint_api.clone())?;
         self.canvases.insert(canvas_id, canvas);
+        let entry = self.canvas_webview_map.entry(webview_id).or_default();
+        entry.insert(canvas_id);
 
         Some(canvas_id)
     }
@@ -341,14 +354,18 @@ enum Canvas {
 }
 
 impl Canvas {
-    fn new(size: Size2D<u64>, paint_api: CrossProcessPaintApi) -> Option<Self> {
+    fn new(
+        canvas_id: CanvasId,
+        size: Size2D<u64>,
+        paint_api: CrossProcessPaintApi,
+    ) -> Option<Self> {
         match servo_config::pref!(dom_canvas_backend)
             .to_lowercase()
             .as_str()
         {
             #[cfg(feature = "vello")]
-            "vello" => Some(Self::Vello(CanvasData::new(size, paint_api))),
-            _ => Some(Self::VelloCPU(CanvasData::new(size, paint_api))),
+            "vello" => Some(Self::Vello(CanvasData::new(canvas_id, size, paint_api))),
+            _ => Some(Self::VelloCPU(CanvasData::new(canvas_id, size, paint_api))),
         }
     }
 

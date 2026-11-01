@@ -24,6 +24,7 @@ pub(crate) enum Filter {
 }
 
 pub(crate) struct CanvasData<DrawTarget: GenericDrawTarget> {
+    canvas_id: CanvasId,
     draw_target: DrawTarget,
     paint_api: CrossProcessPaintApi,
     image_key: Option<ImageKey>,
@@ -31,6 +32,7 @@ pub(crate) struct CanvasData<DrawTarget: GenericDrawTarget> {
 
 impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
     pub(crate) fn new(
+        canvas_id: CanvasId,
         size: Size2D<u64>,
         paint_api: CrossProcessPaintApi,
     ) -> CanvasData<DrawTarget> {
@@ -38,6 +40,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
             draw_target: DrawTarget::new(size.max(MIN_WR_IMAGE_SIZE).cast()),
             paint_api,
             image_key: None,
+            canvas_id,
         }
     }
 
@@ -133,15 +136,20 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         composition_options: CompositionOptions,
         transform: Transform2D<f64>,
     ) {
+        let canvas_id = self.canvas_id;
         self.maybe_bound_shape_with_pattern(
             fill_or_stroke_style,
             composition_options,
             &text_bounds,
             transform,
             |self_, style| {
-                self_
-                    .draw_target
-                    .fill_text(text_runs, style, composition_options, transform);
+                self_.draw_target.fill_text(
+                    canvas_id,
+                    text_runs,
+                    style,
+                    composition_options,
+                    transform,
+                );
             },
         );
     }
@@ -156,6 +164,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         composition_options: CompositionOptions,
         transform: Transform2D<f64>,
     ) {
+        let canvas_id = self.canvas_id;
         self.maybe_bound_shape_with_pattern(
             fill_or_stroke_style,
             composition_options,
@@ -163,6 +172,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
             transform,
             |self_, style| {
                 self_.draw_target.stroke_text(
+                    canvas_id,
                     text_runs,
                     style,
                     line_options,
