@@ -40,7 +40,7 @@ fn dom_struct_impl(
     let item: Item = syn::parse2(output).unwrap();
 
     if let Item::Struct(s) = item {
-        let expanded_dom_object = expand_dom_object(s.clone());
+        let expanded_dom_object = expand_dom_object(s.clone(), no_has_parent);
         let s2 = quote! { #s #expanded_dom_object };
         if no_has_parent {
             return s2;
@@ -135,6 +135,11 @@ fn test_valid_dom_struct_generation() {
             #[inline]
             fn reflector(&self) -> &crate::Reflector<Self::ReflectorType> {
                 self.reflector.reflector()
+            }
+
+            #[inline]
+            fn reflector_mut(&mut self) -> &mut crate::Reflector<Self::ReflectorType> {
+                self.reflector.reflector_mut()
             }
         }
         impl crate::MutDomObject for DomElement {
