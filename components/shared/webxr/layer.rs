@@ -22,7 +22,7 @@ pub trait GLTypes {
 }
 
 pub trait GLContexts<GL: GLTypes> {
-    fn device(&self, context_id: ContextId) -> Option<GL::Device>;
+    fn device(&mut self) -> Option<GL::Device>;
     fn bindings(&mut self, context_id: ContextId) -> Option<&GL::Bindings>;
     fn context(&mut self, context_id: ContextId) -> Option<&mut GL::Context>;
 }
@@ -34,7 +34,7 @@ impl GLTypes for () {
 }
 
 impl GLContexts<()> for () {
-    fn device(&self, _: ContextId) -> Option<()> {
+    fn device(&mut self) -> Option<()> {
         Some(())
     }
 
