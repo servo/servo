@@ -188,13 +188,13 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
             // In Japanese typography, it is not common to use different fonts
             // for Kanji(Han), Hiragana, and Katakana within the same document.
             // We uniformly fallback to Japanese fonts when the document language is Japanese.
-            _ if options.language == language!("ja") => {
+            _ if options.language.language == language!("ja") => {
                 families.push("TakaoPGothic");
             },
             _ if matches!(
                 Script::from(options.character),
                 Script::Bopomofo | Script::Han
-            ) && options.language != language!("ja") =>
+            ) && options.language.language != language!("ja") =>
             {
                 families.push("WenQuanYi Micro Hei");
             },
