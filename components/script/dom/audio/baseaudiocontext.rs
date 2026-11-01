@@ -254,6 +254,13 @@ impl BaseAudioContext {
         self.state.set(state);
     }
 
+    pub(crate) fn close_from_document_unload(&self) {
+        if self.state.get() != AudioContextState::Closed {
+            self.state.set(AudioContextState::Closed);
+            let _ = self.audio_context_impl.lock().unwrap().close();
+        }
+    }
+
     pub(crate) fn resume(&self) {
         let this = Trusted::new(self);
         // Set the rendering thread state to 'running' and start

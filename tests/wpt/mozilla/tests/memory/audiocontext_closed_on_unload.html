@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>AudioContext is closed when document unloads</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async () => {
+    const iframe = document.createElement("iframe");
+    document.body.appendChild(iframe);
+    const ctx = new iframe.contentWindow.AudioContext();
+    assert_not_equals(ctx.state, "closed");
+    iframe.remove();
+    assert_equals(ctx.state, "closed");
+}, "AudioContext is closed when iframe is removed");
+</script>
+</body>
