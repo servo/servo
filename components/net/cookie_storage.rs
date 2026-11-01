@@ -12,12 +12,17 @@ use std::net::IpAddr;
 use std::time::SystemTime;
 
 use cookie::Cookie;
+use hyper_serde::Serde;
 use itertools::Itertools;
-use log::info;
+use log::{info, warn};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::pub_domains::reg_suffix;
-use net_traits::{CookieSource, SiteDescriptor};
+use net_traits::{
+    CookieAsyncResponse, CookieChange, CookieChangeType, CookieData, CookieSource, SiteDescriptor,
+};
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::GenericCallback;
+use servo_base::id::CookieStoreId;
 use servo_url::ServoUrl;
 
 use crate::cookie::ServoCookie;
@@ -27,6 +32,14 @@ pub struct CookieStorage {
     version: u32,
     cookies_map: HashMap<String, Vec<ServoCookie>>,
     max_per_host: usize,
+    #[serde(skip)]
+    #[ignore_malloc_size_of = "Channels"]
+    listeners: HashMap<CookieStoreId, (ServoUrl, GenericCallback<CookieAsyncResponse>)>,
+}
+
+struct ServoCookieChange {
+    cookie: ServoCookie,
+    type_: CookieChangeType,
 }
 
 #[derive(Debug)]
@@ -41,7 +54,62 @@ impl CookieStorage {
             version: 1,
             cookies_map: HashMap::new(),
             max_per_host: max_cookies,
+            listeners: HashMap::new(),
         }
+    }
+
+    pub fn add_listener(
+        &mut self,
+        store_id: CookieStoreId,
+        url: ServoUrl,
+        callback: GenericCallback<CookieAsyncResponse>,
+    ) {
+        self.listeners.insert(store_id, (url, callback));
+    }
+
+    pub fn remove_listener(&mut self, store_id: CookieStoreId) {
+        self.listeners.remove(&store_id);
+    }
+
+    pub fn send_response(&self, store_id: CookieStoreId, data: CookieData) {
+        let Some((_, callback)) = self.listeners.get(&store_id) else {
+            warn!("Async cookie request made for store id that is non-existent {store_id:?}");
+            return;
+        };
+        if callback.send(CookieAsyncResponse { data }).is_err() {
+            warn!("Unable to send cookie response to script thread");
+        }
+    }
+
+    /// <https://cookiestore.spec.whatwg.org/#process-cookie-changes>
+    fn process_cookie_changes(&self, changes: &[ServoCookieChange]) {
+        // 1. For every Window window, run the following steps:
+        for (url, callback) in self.listeners.values() {
+            // 1.1. Let url be window’s relevant settings object’s creation URL.
+            // 1.2. Let changes be the observable changes for url.
+            let changes = observable_changes(url, changes);
+
+            // 1.3. If changes is empty, then continue.
+            if changes.is_empty() {
+                continue;
+            }
+
+            // 1.4. Queue a global task on the DOM manipulation task source given window to fire a
+            // change event named "change" with changes at window’s CookieStore.
+            //
+            // This is implemented in CookieListener::handle.
+            if callback
+                .send(CookieAsyncResponse {
+                    data: CookieData::Change(changes),
+                })
+                .is_err()
+            {
+                warn!("Unable to send cookie change to script thread");
+            }
+        }
+
+        // TODO: 2. For every service worker registration registration, fire a functional event
+        // named "cookiechange" for the changes matching its cookie change subscription list.
     }
 
     // http://tools.ietf.org/html/rfc6265#section-5.3
@@ -157,16 +225,31 @@ impl CookieStorage {
             return;
         }
 
-        let old_cookie = self.remove(&cookie, url, source);
-        if old_cookie.is_err() {
+        let Ok(old_cookie) = self.remove(&cookie, url, source) else {
             // This new cookie is not allowed to overwrite an existing one.
             return;
-        }
+        };
 
         // Step 11
-        if let Some(old_cookie) = old_cookie.unwrap() {
+        if let Some(old_cookie) = &old_cookie {
             // Step 11.3
             cookie.creation_time = old_cookie.creation_time;
+        }
+
+        // https://cookiestore.spec.whatwg.org/#cookie-change
+        // > A newly-created cookie which is immediately evicted is considered deleted.
+        let mut changes = vec![];
+        if is_cookie_expired(&cookie) {
+            cookie.immediately_evicted = true;
+            // NOTE: We do not process a change if the immediately evicted cookie does not overwrite
+            // an existing cookie, as that cookie would not be observable by the browser. This
+            // mirrors the behaviour of other browsers and WPT expectations.
+            if old_cookie.is_some() {
+                changes.push(ServoCookieChange {
+                    cookie: cookie.clone(),
+                    type_: CookieChangeType::Deleted,
+                });
+            }
         }
 
         // Step 12
@@ -175,17 +258,51 @@ impl CookieStorage {
 
         if cookies.len() == self.max_per_host {
             let old_len = cookies.len();
-            cookies.retain(|c| !is_cookie_expired(c));
-            let new_len = cookies.len();
+            changes.extend(evict_expired_cookies(cookies));
 
             // https://www.ietf.org/id/draft-ietf-httpbis-cookie-alone-01.txt
-            if new_len == old_len &&
-                !evict_one_cookie(cookie.cookie.secure().unwrap_or(false), cookies)
-            {
-                return;
+            if cookies.len() == old_len {
+                let Some(evicted) =
+                    evict_one_cookie(cookie.cookie.secure().unwrap_or(false), cookies)
+                else {
+                    return;
+                };
+
+                // https://cookiestore.spec.whatwg.org/#cookie-change
+                // > A cookie which is otherwise evicted or removed is considered deleted
+                changes.push(ServoCookieChange {
+                    cookie: evicted,
+                    type_: CookieChangeType::Deleted,
+                });
             }
         }
+
+        // https://cookiestore.spec.whatwg.org/#cookie-change
+        // > A newly-created cookie which is not immediately evicted is considered changed.
+        // NOTE: We do not process a change if the new cookie is identical to the existing one, as
+        // that cookie would not be observable by the browser. This mirrors the behaviour of other
+        // browsers and WPT expectations.
+        let is_identical = old_cookie.is_some_and(|old_cookie| {
+            old_cookie.cookie == cookie.cookie &&
+                old_cookie.cookie.same_site() == cookie.cookie.same_site() &&
+                old_cookie.expiry_time == cookie.expiry_time
+        });
+        if !cookie.immediately_evicted && !is_identical {
+            changes.push(ServoCookieChange {
+                cookie: cookie.clone(),
+                type_: CookieChangeType::Changed,
+            });
+        }
+
         cookies.push(cookie);
+
+        // https://cookiestore.spec.whatwg.org/#ref-for-process-cookie-changes
+        // > When any of the following conditions occur for a cookie store, perform the steps to
+        // > process cookie changes.
+        // > - A newly-created cookie is inserted into the cookie store.
+        // > - A user agent evicts expired cookies from the cookie store.
+        // > - A user agent removes excess cookies from the cookie store.
+        self.process_cookie_changes(&changes);
     }
 
     pub fn cookie_comparator(a: &ServoCookie, b: &ServoCookie) -> Ordering {
@@ -203,18 +320,32 @@ impl CookieStorage {
         let domain = reg_host(url.host_str().unwrap_or(""));
         if let Entry::Occupied(mut entry) = self.cookies_map.entry(domain) {
             let cookies = entry.get_mut();
-            cookies.retain(|c| !is_cookie_expired(c));
+            let expired = evict_expired_cookies(cookies);
             if cookies.is_empty() {
                 entry.remove_entry();
             }
+
+            // https://cookiestore.spec.whatwg.org/#ref-for-process-cookie-changes
+            // > When any of the following conditions occur for a cookie store, perform the steps to
+            // > process cookie changes.
+            // > - A user agent evicts expired cookies from the cookie store.
+            self.process_cookie_changes(&expired);
         }
     }
 
     pub fn remove_all_expired_cookies(&mut self) {
-        self.cookies_map.retain(|_, cookies| {
-            cookies.retain(|c| !is_cookie_expired(c));
-            !cookies.is_empty()
-        });
+        let expired: Vec<_> = self
+            .cookies_map
+            .values_mut()
+            .flat_map(evict_expired_cookies)
+            .collect();
+        self.cookies_map.retain(|_, cookies| !cookies.is_empty());
+
+        // https://cookiestore.spec.whatwg.org/#ref-for-process-cookie-changes
+        // > When any of the following conditions occur for a cookie store, perform the steps to
+        // > process cookie changes.
+        // > - A user agent evicts expired cookies from the cookie store.
+        self.process_cookie_changes(&expired);
     }
 
     // http://tools.ietf.org/html/rfc6265#section-5.4
@@ -299,6 +430,25 @@ impl CookieStorage {
     }
 }
 
+/// <https://cookiestore.spec.whatwg.org/#observable-changes>
+fn observable_changes(url: &ServoUrl, changes: &[ServoCookieChange]) -> Vec<CookieChange> {
+    // > The observable changes for url are the set of cookie changes to cookies in a cookie store
+    // > which meet the requirements in step 1 of Cookies § Retrieval Algorithm’s steps to compute
+    // > the "cookie-string from a given cookie store" with url as request-uri, for a "non-HTTP" API.
+    changes
+        .iter()
+        .filter(|change| {
+            change
+                .cookie
+                .appropriate_for_url(url, CookieSource::NonHTTP)
+        })
+        .map(|change| CookieChange {
+            cookie: Serde(change.cookie.cookie.clone()),
+            type_: change.type_.clone(),
+        })
+        .collect()
+}
+
 fn reg_host(url: &str) -> String {
     let host_for_ip_parse = url
         .strip_prefix('[')
@@ -316,23 +466,32 @@ fn is_cookie_expired(cookie: &ServoCookie) -> bool {
     matches!(cookie.expiry_time, Some(date_time) if date_time <= SystemTime::now())
 }
 
-fn evict_one_cookie(is_secure_cookie: bool, cookies: &mut Vec<ServoCookie>) -> bool {
+fn evict_one_cookie(is_secure_cookie: bool, cookies: &mut Vec<ServoCookie>) -> Option<ServoCookie> {
     // Remove non-secure cookie with oldest access time
-    let oldest_accessed = get_oldest_accessed(false, cookies);
-
-    if let Some((index, _)) = oldest_accessed {
-        cookies.remove(index);
-    } else {
-        // All secure cookies were found
-        if !is_secure_cookie {
-            return false;
-        }
-        let oldest_accessed = get_oldest_accessed(true, cookies);
-        if let Some((index, _)) = oldest_accessed {
-            cookies.remove(index);
-        }
+    if let Some((index, _)) = get_oldest_accessed(false, cookies) {
+        return Some(cookies.remove(index));
     }
-    true
+
+    // All secure cookies were found
+    if !is_secure_cookie {
+        return None;
+    }
+    let (index, _) = get_oldest_accessed(true, cookies)?;
+    Some(cookies.remove(index))
+}
+
+fn evict_expired_cookies(cookies: &mut Vec<ServoCookie>) -> Vec<ServoCookieChange> {
+    cookies
+        .extract_if(.., |c| is_cookie_expired(c))
+        // https://cookiestore.spec.whatwg.org/#cookie-change
+        // > A cookie which is otherwise evicted or removed is considered deleted.
+        // NOTE: An immediately evicted cookie has already been processed on insertion.
+        .filter(|c| !c.immediately_evicted)
+        .map(|cookie| ServoCookieChange {
+            cookie,
+            type_: CookieChangeType::Deleted,
+        })
+        .collect()
 }
 
 fn get_oldest_accessed(
