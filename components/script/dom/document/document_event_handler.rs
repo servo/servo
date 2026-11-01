@@ -522,7 +522,7 @@ impl DocumentEventHandler {
             if let Some(hit_test_result) =
                 self.most_recent_mousemove_point.get().and_then(|point| {
                     self.window
-                        .hit_test_from_point_in_viewport(HitTestFlags::empty(), point)
+                        .hit_test_from_point_in_viewport(cx, HitTestFlags::empty(), point)
                 })
             {
                 let mouse_out_event = MouseEvent::new_for_platform_motion_event(
@@ -670,9 +670,9 @@ impl DocumentEventHandler {
         // with the actual element under the pointer. Boundary events for hover
         // transitions are suppressed while pointer capture is active: per spec,
         // pointer events are retargeted to the capture element.
-        let Some(hit_test_result) = self
-            .window
-            .hit_test_from_input_event(hit_test_flags, input_event)
+        let Some(hit_test_result) =
+            self.window
+                .hit_test_from_input_event(cx, hit_test_flags, input_event)
         else {
             return;
         };
@@ -905,15 +905,16 @@ impl DocumentEventHandler {
         }
     }
 
-    pub(crate) fn handle_refresh_cursor(&self) {
+    pub(crate) fn handle_refresh_cursor(&self, cx: &mut JSContext) {
         let Some(most_recent_mousemove_point) = self.most_recent_mousemove_point.get() else {
             return;
         };
 
-        let Some(hit_test_result) = self
-            .window
-            .hit_test_from_point_in_viewport(HitTestFlags::empty(), most_recent_mousemove_point)
-        else {
+        let Some(hit_test_result) = self.window.hit_test_from_point_in_viewport(
+            cx,
+            HitTestFlags::empty(),
+            most_recent_mousemove_point,
+        ) else {
             return;
         };
 
@@ -993,7 +994,9 @@ impl DocumentEventHandler {
             HitTestFlags::empty()
         };
         // Ignore all incoming events without a hit test.
-        let Some(hit_test_result) = self.window.hit_test_from_input_event(flags, input_event)
+        let Some(hit_test_result) = self
+            .window
+            .hit_test_from_input_event(cx, flags, input_event)
         else {
             return;
         };
@@ -1153,9 +1156,10 @@ impl DocumentEventHandler {
                     // Note that this differs from the specification, because we are going to look
                     // for the first inclusive ancestor that is click focusable and then focus it.
                     // See documentation for [`Node::find_click_focusable_area`].
+                    let node_click_focusable_area = &node.find_click_focusable_area(cx);
                     document.focus_handler().focus(
                         cx,
-                        &node.find_click_focusable_area(cx),
+                        node_click_focusable_area,
                         FocusTrigger::Click,
                     );
                 }
@@ -1398,7 +1402,9 @@ impl DocumentEventHandler {
     ) -> InputEventResult {
         let flags = HitTestFlags::empty();
         // Ignore all incoming events without a hit test.
-        let Some(hit_test_result) = self.window.hit_test_from_input_event(flags, input_event)
+        let Some(hit_test_result) = self
+            .window
+            .hit_test_from_input_event(cx, flags, input_event)
         else {
             self.update_active_touch_points_when_early_return(event);
             return Default::default();
@@ -1421,9 +1427,9 @@ impl DocumentEventHandler {
         let client_x = Finite::wrap(hit_test_result.point_in_frame.x as f64);
         let client_y = Finite::wrap(hit_test_result.point_in_frame.y as f64);
         let page_x =
-            Finite::wrap(hit_test_result.point_in_frame.x as f64 + window.PageXOffset() as f64);
+            Finite::wrap(hit_test_result.point_in_frame.x as f64 + window.PageXOffset(cx) as f64);
         let page_y =
-            Finite::wrap(hit_test_result.point_in_frame.y as f64 + window.PageYOffset() as f64);
+            Finite::wrap(hit_test_result.point_in_frame.y as f64 + window.PageYOffset(cx) as f64);
 
         // This is used to construct pointerevent and touchdown event.
         let pointer_touch = Touch::new(
@@ -1885,7 +1891,9 @@ impl DocumentEventHandler {
     ) -> InputEventResult {
         // Ignore all incoming events without a hit test.
         let flags = HitTestFlags::empty();
-        let Some(hit_test_result) = self.window.hit_test_from_input_event(flags, input_event)
+        let Some(hit_test_result) = self
+            .window
+            .hit_test_from_input_event(cx, flags, input_event)
         else {
             return Default::default();
         };
@@ -2316,7 +2324,7 @@ impl DocumentEventHandler {
                 document.viewport_scrolling_box(ScrollContainerQueryFlags::Inclusive)
             });
 
-        while !scrolling_box.can_keyboard_scroll_in_axis(cx.no_gc(), scroll_axis) {
+        while !scrolling_box.can_keyboard_scroll_in_axis(cx, scroll_axis) {
             // Always fall back to trying to scroll the entire document.
             if scrolling_box.is_viewport() {
                 break;
@@ -2327,18 +2335,18 @@ impl DocumentEventHandler {
             scrolling_box = parent;
         }
 
-        let calculate_current_scroll_offset_and_delta = || {
+        let calculate_current_scroll_offset_and_delta = |cx: &mut JSContext| {
             const LINE_HEIGHT: f32 = 76.0;
             const LINE_WIDTH: f32 = 76.0;
 
-            let current_scroll_offset = scrolling_box.scroll_position();
+            let current_scroll_offset = scrolling_box.scroll_position(cx);
             (
                 current_scroll_offset,
                 match scroll {
                     KeyboardScroll::Home => Vector2D::new(0.0, -current_scroll_offset.y),
                     KeyboardScroll::End => Vector2D::new(
                         0.0,
-                        -current_scroll_offset.y + scrolling_box.content_size().height -
+                        -current_scroll_offset.y + scrolling_box.content_size(cx).height -
                             scrolling_box.size(cx.no_gc()).height,
                     ),
                     KeyboardScroll::PageDown => Vector2D::new(
@@ -2362,7 +2370,7 @@ impl DocumentEventHandler {
         // can properly pan any pinch zoom viewport.
         let parent_pipeline = self.window.parent_info();
         if scrolling_box.is_viewport() && parent_pipeline.is_none() {
-            let (_, delta) = calculate_current_scroll_offset_and_delta();
+            let (_, delta) = calculate_current_scroll_offset_and_delta(cx);
             self.window
                 .paint_api()
                 .scroll_viewport_by_delta(self.window.webview_id(), delta);
@@ -2370,7 +2378,7 @@ impl DocumentEventHandler {
 
         // If this is the viewport and we cannot scroll, try to ask a parent viewport to scroll,
         // if we are inside an `<iframe>`.
-        if !scrolling_box.can_keyboard_scroll_in_axis(cx.no_gc(), scroll_axis) {
+        if !scrolling_box.can_keyboard_scroll_in_axis(cx, scroll_axis) {
             assert!(scrolling_box.is_viewport());
 
             let window_proxy = document.window().window_proxy();
@@ -2395,7 +2403,7 @@ impl DocumentEventHandler {
             return;
         }
 
-        let (current_scroll_offset, delta) = calculate_current_scroll_offset_and_delta();
+        let (current_scroll_offset, delta) = calculate_current_scroll_offset_and_delta(cx);
         scrolling_box.scroll_to(cx, delta + current_scroll_offset, ScrollBehavior::Auto);
     }
 

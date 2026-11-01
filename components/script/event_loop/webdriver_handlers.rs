@@ -14,7 +14,7 @@ use embedder_traits::{
 };
 use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
-use js::context::{JSContext, NoGC};
+use js::context::JSContext;
 use js::conversions::{FromJSValConvertible, jsstr_to_string};
 use js::jsapi::{HandleValueArray, JSITER_OWNONLY, JSType, PropertyDescriptor};
 use js::jsval::UndefinedValue;
@@ -1189,8 +1189,8 @@ pub(crate) fn handle_get_element_shadow_root(
 
 impl Element {
     /// <https://w3c.github.io/webdriver/#dfn-keyboard-interactable>
-    fn is_keyboard_interactable(&self, no_gc: &NoGC) -> bool {
-        self.is_focusable_area(no_gc) || self.is::<HTMLBodyElement>() || self.is_document_element()
+    fn is_keyboard_interactable(&self, cx: &mut JSContext) -> bool {
+        self.is_focusable_area(cx) || self.is::<HTMLBodyElement>() || self.is_document_element()
     }
 }
 
@@ -1320,7 +1320,7 @@ pub(crate) fn handle_will_send_keys(
 
         // Step 7.6. If element is not keyboard-interactable,
         // return ErrorStatus::ElementNotInteractable.
-        if !element.is_keyboard_interactable(cx.no_gc()) {
+        if !element.is_keyboard_interactable(cx) {
             let _ = reply.send(Err(ErrorStatus::ElementNotInteractable));
             return;
         }
@@ -1616,6 +1616,7 @@ pub(crate) fn handle_get_title(
 
 /// <https://w3c.github.io/webdriver/#dfn-calculate-the-absolute-position>
 fn calculate_absolute_position(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: &PipelineId,
     rect: &DOMRect,
@@ -1634,8 +1635,8 @@ fn calculate_absolute_position(
     };
 
     // Step 3 - 5
-    let x = win.ScrollX() as f64 + rect.X();
-    let y = win.ScrollY() as f64 + rect.Y();
+    let x = win.ScrollX(cx) as f64 + rect.X();
+    let y = win.ScrollY(cx) as f64 + rect.Y();
 
     Ok((x, y))
 }
@@ -1655,7 +1656,7 @@ pub(crate) fn handle_get_rect(
                 // We pass the rect instead of element so we don't have to
                 // call `GetBoundingClientRect` twice.
                 let rect = element.GetBoundingClientRect(cx);
-                let (x, y) = calculate_absolute_position(documents, &pipeline, &rect)?;
+                let (x, y) = calculate_absolute_position(cx, documents, &pipeline, &rect)?;
 
                 // Step 6-7
                 Ok(Rect::new(
@@ -1937,7 +1938,7 @@ pub(crate) fn handle_element_clear(
 
                 // Step 10. If element is not keyboard-interactable or not pointer-interactable,
                 // return error with error code element not interactable.
-                if !element.is_keyboard_interactable(cx.no_gc()) {
+                if !element.is_keyboard_interactable(cx) {
                     return Err(ErrorStatus::ElementNotInteractable);
                 }
 
