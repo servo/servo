@@ -114,6 +114,8 @@ class Linux(Base):
         return installed_something
 
     def install_non_gstreamer_dependencies(self, force: bool, yes: bool = False) -> bool:
+        root_warned = False
+
         def check_sudo() -> bool:
             if os.geteuid() != 0:  # pyrefly: ignore[missing-attribute]
                 if shutil.which("sudo") is None:
@@ -121,7 +123,11 @@ class Linux(Base):
             return True
 
         def run_as_root(command: list[str], force: bool = False, yes: bool = False) -> int:
+            nonlocal root_warned
             if os.geteuid() != 0:  # pyrefly: ignore[missing-attribute]
+                if not root_warned:
+                    root_warned = True
+                    print("Now installing dependencies. You may be asked for your sudo password.")
                 command.insert(0, "sudo")
             if force or yes:
                 command.append("-y")
