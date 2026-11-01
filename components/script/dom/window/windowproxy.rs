@@ -91,6 +91,13 @@ use crate::event_loop::script_thread::{ScriptThread, with_script_thread};
 use crate::event_loop::script_window_proxies::ScriptWindowProxies;
 use crate::navigation::navigate;
 
+#[derive(Clone, Copy, PartialEq)]
+pub(crate) enum WindowOpenType {
+    ExistingOrNone,
+    NewAndUnrestricted,
+    NewWithNoOpener,
+}
+
 #[dom_struct]
 // NOTE: the browsing context for a window is managed in two places:
 // here, in script, but also in the constellation. The constellation
@@ -323,42 +330,17 @@ impl WindowProxy {
         }
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#auxiliary-browsing-context>
-    fn create_auxiliary_browsing_context(
+    /// <https://html.spec.whatwg.org/multipage/#creating-a-new-top-level-traversable>
+    fn creating_a_new_top_level_traversable(
         &self,
         cx: &mut JSContext,
-        name: DOMString,
         noopener: bool,
+        name: DOMString,
+        document: &Document,
+        sandboxing_flag_set: SandboxingFlagSet,
     ) -> Option<DomRoot<WindowProxy>> {
+        let window = document.window();
         let (response_sender, response_receiver) = generic_channel::channel().unwrap();
-        let window = self
-            .currently_active
-            .get()
-            .and_then(ScriptThread::find_document)
-            .map(|doc| DomRoot::from_ref(doc.window()))
-            .unwrap();
-
-        let document = self
-            .currently_active
-            .get()
-            .and_then(ScriptThread::find_document)
-            .expect("A WindowProxy creating an auxiliary to have an active document");
-
-        // <https://html.spec.whatwg.org/multipage/#navigable-target-names>
-        // > If the user agent has been configured such that in this instance it
-        // > will create a new top-level traversable
-        // >
-        // Step 9. If sandboxingFlagSet's sandbox propagates to auxiliary browsing
-        //   contexts flag is set, then all the flags that are set in sandboxingFlagSet
-        // must be set in chosen's active browsing context's popup sandboxing flag set.
-        let sandboxing_flag_set = document.active_sandboxing_flag_set();
-        let propagate_sandbox = sandboxing_flag_set
-            .contains(SandboxingFlagSet::SANDBOX_PROPOGATES_TO_AUXILIARY_BROWSING_CONTEXTS_FLAG);
-        let sandboxing_flag_set = if propagate_sandbox {
-            sandboxing_flag_set
-        } else {
-            SandboxingFlagSet::empty()
-        };
 
         let blank_url = ServoUrl::parse("about:blank").ok().unwrap();
         let mut load_data = LoadData::new(
@@ -419,6 +401,8 @@ impl WindowProxy {
         if !name.eq_ignore_ascii_case("_blank") {
             new_window_proxy.set_name(name);
         }
+        // Step 2. If opener is null, then set document to the second return value
+        // of creating a new top-level browsing context and document.
         if noopener {
             new_window_proxy.disown();
         } else {
@@ -437,6 +421,7 @@ impl WindowProxy {
             GenericSend::send(document.global().storage_threads(), msg).unwrap();
             receiver.recv().unwrap();
         }
+        // Step 13. Return traversable.
         Some(new_window_proxy)
     }
 
@@ -557,101 +542,118 @@ impl WindowProxy {
         };
         // Step 6. Let tokenizedFeatures be the result of tokenizing features.
         let tokenized_features = tokenize_open_features(features);
-        // Step 7 - 8.
-        // If tokenizedFeatures["noreferrer"] exists, then set noreferrer to
-        // the result of parsing tokenizedFeatures["noreferrer"] as a boolean feature.
+        // Step 7. Let noreferrer be false.
+        // Step 8. If tokenizedFeatures["noreferrer"] exists,
+        // then set noreferrer to the result of parsing tokenizedFeatures["noreferrer"] as a boolean feature.
         let noreferrer = parse_open_feature_boolean(&tokenized_features, "noreferrer");
 
-        // Step 9. Let noopener be the result of getting noopener for window
-        // open with sourceDocument, tokenizedFeatures, and urlRecord.
-        let noopener = if noreferrer {
-            true
+        // Step 12. If noreferrer is true, then set noopener to true
+        // and set referrerPolicy to "no-referrer".
+        let (noopener, referrer_policy) = if noreferrer {
+            (true, ReferrerPolicy::NoReferrer)
         } else {
-            parse_open_feature_boolean(&tokenized_features, "noopener")
+            // Step 9. Let noopener be the result of getting noopener for window open with sourceDocument,
+            // tokenizedFeatures, and urlRecord.
+            // Step 11. Let referrerPolicy be the empty string.
+            (
+                parse_open_feature_boolean(&tokenized_features, "noopener"),
+                ReferrerPolicy::EmptyString,
+            )
         };
         // (TODO) Step 10. Remove tokenizedFeatures["noopener"] and tokenizedFeatures["noreferrer"].
 
-        // (TODO) Step 11. Let referrerPolicy be the empty string.
-        // (TODO) Step 12. If noreferrer is true, then set referrerPolicy to "no-referrer".
-
-        // Step 13 - 14
-        // Let targetNavigable and windowType be the result of applying the rules for
+        // Step 13. Let targetNavigable and windowType be the result of applying the rules for
         // choosing a navigable given target, sourceDocument's node navigable, and noopener.
-        // If targetNavigable is null, then return null.
-        let (chosen, new) = match self.choose_a_navigable(cx, non_empty_target, noopener) {
-            (Some(chosen), new) => (chosen, new),
+        let (chosen, window_type) = match self.choose_a_navigable(cx, non_empty_target, noopener) {
+            (Some(chosen), window_type) => (chosen, window_type),
+            // Step 14. If targetNavigable is null, then return null.
             (None, _) => return Ok(None),
         };
-        // TODO Step 15.2, Set up browsing context features for targetNavigable's
-        // active browsing context given tokenizedFeatures.
         let target_document = match chosen.document() {
             Some(target_document) => target_document,
             None => return Ok(None),
         };
-        let has_trustworthy_ancestor_origin = if new {
-            target_document.has_trustworthy_ancestor_or_current_origin()
-        } else {
-            false
-        };
-        let target_window = target_document.window();
-        // Step 15.3. If urlRecord is null, then set urlRecord to a URL record representing about:blank.
-        let url_record = url_record.unwrap_or(ServoUrl::parse("about:blank").unwrap());
-        // Step 15.4. If urlRecord matches about:blank, then perform the URL and history update steps given targetNavigable's active document and urlRecord.
-        //
-        // This happened in the constellation as part of creating the auxiliary browsing context.
-        if !url_record.matches_about_blank() {
-            let referrer = if noreferrer {
-                Referrer::NoReferrer
+
+        // Step 15. If windowType is either "new and unrestricted" or "new with no opener":
+        if matches!(
+            window_type,
+            WindowOpenType::NewAndUnrestricted | WindowOpenType::NewWithNoOpener
+        ) {
+            // Step 15.1. Set targetNavigable's active browsing context's is popup to
+            // the result of checking if a popup window is requested, given tokenizedFeatures.
+            // TODO
+
+            // TODO Step 15.2, Set up browsing context features for targetNavigable's
+            // active browsing context given tokenizedFeatures.
+            let has_trustworthy_ancestor_origin = if window_type != WindowOpenType::ExistingOrNone {
+                target_document.has_trustworthy_ancestor_or_current_origin()
             } else {
-                target_window.as_global_scope().get_referrer()
+                false
             };
-            // Propagate CSP list and about-base-url from opener to new document
-            let csp_list = source_document.get_csp_list().clone();
-            target_document.set_csp_list(csp_list);
+            let target_window = target_document.window();
+            // Step 15.3. If urlRecord is null, then set urlRecord to a URL record representing about:blank.
+            let url_record = url_record.unwrap_or(ServoUrl::parse("about:blank").unwrap());
+            // Step 15.4. If urlRecord matches about:blank,
+            // then perform the URL and history update steps given targetNavigable's active document and urlRecord.
+            //
+            // This happened in the constellation as part of creating the auxiliary browsing context.
+            if !url_record.matches_about_blank() {
+                let referrer = if noreferrer {
+                    Referrer::NoReferrer
+                } else {
+                    target_window.as_global_scope().get_referrer()
+                };
+                // Propagate CSP list and about-base-url from opener to new document
+                let csp_list = source_document.get_csp_list().clone();
+                target_document.set_csp_list(csp_list);
 
-            // Step 15.5 Otherwise, navigate targetNavigable to urlRecord using sourceDocument,
-            // with referrerPolicy set to referrerPolicy and exceptionsEnabled set to true.
-            // FIXME: referrerPolicy may not be used properly here. exceptionsEnabled not used.
-            let mut load_data = LoadData::new(
-                LoadOrigin::Script(source_document.origin().snapshot()),
-                url_record,
-                target_document.about_base_url(),
-                Some(target_window.pipeline_id()),
-                referrer,
-                target_document.get_referrer_policy(),
-                Some(target_window.as_global_scope().is_secure_context()),
-                Some(target_document.insecure_requests_policy()),
-                has_trustworthy_ancestor_origin,
-                target_document.creation_sandboxing_flag_set_considering_parent_iframe(),
-            );
+                // Step 15.5 Otherwise, navigate targetNavigable to urlRecord using sourceDocument,
+                // with referrerPolicy set to referrerPolicy and exceptionsEnabled set to true.
+                // FIXME: exceptionsEnabled not used.
+                let mut load_data = LoadData::new(
+                    LoadOrigin::Script(source_document.origin().snapshot()),
+                    url_record,
+                    target_document.about_base_url(),
+                    Some(target_window.pipeline_id()),
+                    referrer,
+                    referrer_policy,
+                    Some(target_window.as_global_scope().is_secure_context()),
+                    Some(target_document.insecure_requests_policy()),
+                    has_trustworthy_ancestor_origin,
+                    target_document.creation_sandboxing_flag_set_considering_parent_iframe(),
+                );
 
-            // Handle javascript: URLs specially to report CSP violations to the source window
-            // https://html.spec.whatwg.org/multipage/#navigate-to-a-javascript:-url
-            if load_data.url.scheme() == "javascript" {
-                let existing_global = source_document.global();
+                // Handle javascript: URLs specially to report CSP violations to the source window
+                // https://html.spec.whatwg.org/multipage/#navigate-to-a-javascript:-url
+                if load_data.url.scheme() == "javascript" {
+                    let existing_global = source_document.global();
 
-                // Check CSP and report violations to the source (existing) window
-                if !ScriptThread::can_navigate_to_javascript_url(
-                    cx,
-                    &existing_global,
-                    target_window.as_global_scope(),
-                    &mut load_data,
-                    None,
-                ) {
-                    // CSP blocked the navigation, don't proceed
-                    return Ok(target_document.browsing_context());
+                    // Check CSP and report violations to the source (existing) window
+                    if !ScriptThread::can_navigate_to_javascript_url(
+                        cx,
+                        &existing_global,
+                        target_window.as_global_scope(),
+                        &mut load_data,
+                        None,
+                    ) {
+                        // CSP blocked the navigation, don't proceed
+                        return Ok(target_document.browsing_context());
+                    }
                 }
-            }
 
-            let history_handling = if new {
-                NavigationHistoryBehavior::Replace
-            } else {
-                NavigationHistoryBehavior::Push
-            };
-            navigate(cx, target_window, history_handling, false, load_data);
+                let history_handling = if window_type != WindowOpenType::ExistingOrNone {
+                    NavigationHistoryBehavior::Replace
+                } else {
+                    NavigationHistoryBehavior::Push
+                };
+                navigate(cx, target_window, history_handling, false, load_data);
+            }
         }
-        // Step 17 (Dis-owning has been done in create_auxiliary_browsing_context).
-        if noopener {
+        // Step 16. Otherwise:
+        // TODO
+
+        // Step 17. If windowType is "new with no opener", then return null.
+        if window_type == WindowOpenType::NewWithNoOpener {
             return Ok(None);
         }
         // Step 18
@@ -664,10 +666,7 @@ impl WindowProxy {
         cx: &mut JSContext,
         name: DOMString,
         noopener: bool,
-    ) -> (Option<DomRoot<WindowProxy>>, bool) {
-        // Step 1. Let chosen be null.
-        // Step 2. Let windowType be "existing or none".
-
+    ) -> (Option<DomRoot<WindowProxy>>, WindowOpenType) {
         // Step 3. Let sandboxingFlagSet be currentNavigable's active document's active
         // sandboxing flag set.
         let sandboxing_flag_set = self
@@ -678,20 +677,19 @@ impl WindowProxy {
         let chosen = if name.is_empty() || name.eq_ignore_ascii_case("_self") {
             // Step 4. If name is the empty string or an ASCII case-insensitive match for
             // "_self", then set chosen to currentNavigable.
-            Some((Some(DomRoot::from_ref(self)), false))
+            Some(DomRoot::from_ref(self))
         } else if name.eq_ignore_ascii_case("_parent") {
             // Step 5. Otherwise, if name is an ASCII case-insensitive match for
             // "_parent", set chosen to currentNavigable's parent, if any, and
             // currentNavigable otherwise.
             Some(
                 self.parent()
-                    .map(|parent| (Some(DomRoot::from_ref(parent)), false))
-                    .unwrap_or_else(|| (Some(DomRoot::from_ref(self)), false)),
+                    .map_or_else(|| DomRoot::from_ref(self), DomRoot::from_ref),
             )
         } else if name.eq_ignore_ascii_case("_top") {
             // Step 6. Otherwise, if name is an ASCII case-insensitive match for "_top",
             // set chosen to currentNavigable's traversable navigable.
-            Some((Some(DomRoot::from_ref(self.top())), false))
+            Some(DomRoot::from_ref(self.top()))
         } else if !name.eq_ignore_ascii_case("_blank") {
             // Step 7. Otherwise, if name is not an ASCII case-insensitive match for
             // "_blank" and noopener is false, then set chosen to the result of finding a
@@ -701,13 +699,17 @@ impl WindowProxy {
             // is likely a specification bug.
             // See <https://github.com/whatwg/html/issues/12839>
             self.find_navigable_by_target_name(&name)
-                .map(|proxy| (Some(proxy), false))
         } else {
+            // Step 1. Let chosen be null.
             None
         };
 
+        // Step 9. Return chosen and windowType.
+        //
+        // Early-return here to save indentation on all the other steps
         if let Some(chosen) = chosen {
-            return chosen;
+            // Step 2. Let windowType be "existing or none".
+            return (Some(chosen), WindowOpenType::ExistingOrNone);
         }
 
         // Step 8. If chosen is null, then a new top-level traversable is being requested,
@@ -726,17 +728,90 @@ impl WindowProxy {
         if sandboxing_flag_set
             .contains(SandboxingFlagSet::SANDBOXED_AUXILIARY_NAVIGATION_BROWSING_CONTEXT_FLAG)
         {
-            (None, false)
+            return (None, WindowOpenType::ExistingOrNone);
         }
         // ↪ If the user agent has been configured such that in this instance it
         // will create a new top-level traversable
-        // TODO: Integrate `create_auxiliary_browsing_context` here and have it follow the spec.
-        else {
-            (
-                self.create_auxiliary_browsing_context(cx, name, noopener),
+
+        // Substep 2. Set windowType to "new and unrestricted".
+        let mut window_type = WindowOpenType::NewAndUnrestricted;
+
+        // Substep 3. Let currentDocument be currentNavigable's active document.
+        let current_document = self
+            .currently_active
+            .get()
+            .and_then(ScriptThread::find_document)
+            .unwrap();
+
+        // Substep 1. Consume user activation of currentNavigable's active window.
+        current_document.window().consume_user_activation();
+
+        // Substep 4. If currentDocument's opener policy's value is "same-origin" or "same-origin-plus-COEP",
+        // and currentDocument's origin is not same origin with currentDocument's
+        // relevant settings object's top-level origin:
+        // TODO
+
+        // Substep 6. If name is not an ASCII case-insensitive match for "_blank", then set targetName to name.
+        let target_name = if !name.eq_ignore_ascii_case("_blank") {
+            name
+        } else {
+            // Substep 5. Let targetName be the empty string.
+            Default::default()
+        };
+
+        // Substep 9. If sandboxingFlagSet's sandbox propagates to auxiliary browsing contexts flag is set,
+        // then all the flags that are set in sandboxingFlagSet must be set in chosen's
+        // active browsing context's popup sandboxing flag set.
+        //
+        // We do this step first so we can pass it to LoadData
+        let sandboxing_flag_set = current_document.active_sandboxing_flag_set();
+        let propagate_sandbox = sandboxing_flag_set
+            .contains(SandboxingFlagSet::SANDBOX_PROPOGATES_TO_AUXILIARY_BROWSING_CONTEXTS_FLAG);
+        let sandboxing_flag_set = if propagate_sandbox {
+            sandboxing_flag_set
+        } else {
+            SandboxingFlagSet::empty()
+        };
+
+        // Substep 7. If noopener is true:
+        let chosen = if noopener {
+            // Substep 7.1. Set windowType to "new with no opener"
+            window_type = WindowOpenType::NewWithNoOpener;
+
+            // Substep 7.2. Set chosen to the result of creating a new top-level traversable
+            // given null, targetName, and currentNavigable.
+            // TODO: pass `null` here instead
+            self.creating_a_new_top_level_traversable(
+                cx,
                 true,
+                target_name,
+                &current_document,
+                sandboxing_flag_set,
             )
-        }
+        } else {
+            // Substep 8. Otherwise:
+            // Substep 8.1. Set chosen to the result of creating a new top-level traversable given
+            // currentNavigable's active browsing context, targetName, and currentNavigable.
+            // TODO: instead of the boolean, pass the browsing context here
+            self.creating_a_new_top_level_traversable(
+                cx,
+                false,
+                target_name,
+                &current_document,
+                sandboxing_flag_set,
+            )
+
+            // Substep 8.2. If sandboxingFlagSet's sandboxed navigation browsing context flag is set,
+            // then set chosen's active browsing context's one permitted sandboxed navigator
+            // to currentNavigable's active browsing context.
+            // TODO
+        };
+
+        // Substep 10. Set chosen's is created by web content to true.
+        // TODO
+
+        // Step 9. Return chosen and windowType.
+        (chosen, window_type)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#find-a-navigable-by-target-name>
@@ -1104,26 +1179,29 @@ impl CreatorBrowsingContextInfo {
 /// <https://html.spec.whatwg.org/multipage/#concept-window-open-features-tokenize>
 fn tokenize_open_features(features: DOMString) -> IndexMap<String, String> {
     let is_feature_sep = |c: char| c.is_ascii_whitespace() || ['=', ','].contains(&c);
-    // Step 1
+    // Step 1. Let tokenizedFeatures be a new ordered map.
     let mut tokenized_features = IndexMap::new();
-    // Step 2
+    // Step 2. Let position point at the first code point of features.
     let features = features.str();
     let mut iter = features.chars();
     let mut cur = iter.next();
 
-    // Step 3
+    // Step 3. While position is not past the end of features:
     while cur.is_some() {
-        // Step 3.1 & 3.2
+        // Step 3.1. Let name be the empty string.
+        // Step 3.2. Let value be the empty string.
         let mut name = String::new();
         let mut value = String::new();
-        // Step 3.3
+        // Step 3.3. Collect a sequence of code points that are feature separators
+        // from features given position. This skips past leading separators before the name.
         while let Some(cur_char) = cur {
             if !is_feature_sep(cur_char) {
                 break;
             }
             cur = iter.next();
         }
-        // Step 3.4
+        // Step 3.4. Collect a sequence of code points that are not feature separators
+        // from features given position. Set name to the collected characters, converted to ASCII lowercase.
         while let Some(cur_char) = cur {
             if is_feature_sep(cur_char) {
                 break;
@@ -1131,7 +1209,7 @@ fn tokenize_open_features(features: DOMString) -> IndexMap<String, String> {
             name.push(cur_char.to_ascii_lowercase());
             cur = iter.next();
         }
-        // Step 3.5
+        // Step 3.5. Set name to the result of normalizing the feature name name.
         let normalized_name = String::from(match name.as_ref() {
             "screenx" => "left",
             "screeny" => "top",
@@ -1139,23 +1217,36 @@ fn tokenize_open_features(features: DOMString) -> IndexMap<String, String> {
             "innerheight" => "height",
             _ => name.as_ref(),
         });
-        // Step 3.6
-        while let Some(cur_char) = cur {
-            if cur_char == '=' || cur_char == ',' || !is_feature_sep(cur_char) {
+        // Step 3.6. While position is not past the end of features
+        // and the code point at position in features is not U+003D (=):
+        while let Some(cur_char) = cur &&
+            cur_char != '='
+        {
+            // Step 3.6.1. If the code point at position in features is U+002C (,),
+            // or if it is not a feature separator, then break.
+            if cur_char == ',' || !is_feature_sep(cur_char) {
                 break;
             }
+            // Step 3.6.2. Advance position by 1.
             cur = iter.next();
         }
-        // Step 3.7
+        // Step 3.7. If the code point at position in features is a feature separator:
         if cur.is_some() && is_feature_sep(cur.unwrap()) {
-            // Step 3.7.1
-            while let Some(cur_char) = cur {
-                if !is_feature_sep(cur_char) || cur_char == ',' {
+            // Step 3.7.1. While position is not past the end of features and
+            // the code point at position in features is a feature separator:
+            while let Some(cur_char) = cur &&
+                is_feature_sep(cur_char)
+            {
+                // Step 3.7.1.1. If the code point at position in features is U+002C (,), then break.
+                if cur_char == ',' {
                     break;
                 }
+                // Step 3.7.1.2. Advance position by 1.
                 cur = iter.next();
             }
-            // Step 3.7.2
+            // Step 3.7.2. Collect a sequence of code points that are not feature separators
+            // code points from features given position.
+            // Set value to the collected code points, converted to ASCII lowercase.
             while let Some(cur_char) = cur {
                 if is_feature_sep(cur_char) {
                     break;
@@ -1164,12 +1255,12 @@ fn tokenize_open_features(features: DOMString) -> IndexMap<String, String> {
                 cur = iter.next();
             }
         }
-        // Step 3.8
+        // Step 3.8. If name is not the empty string, then set tokenizedFeatures[name] to value.
         if !name.is_empty() {
             tokenized_features.insert(normalized_name, value);
         }
     }
-    // Step 4
+    // Step 4. Return tokenizedFeatures.
     tokenized_features
 }
 
