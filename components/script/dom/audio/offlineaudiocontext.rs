@@ -23,6 +23,7 @@ use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioC
 use crate::dom::bindings::codegen::Bindings::OfflineAudioContextBinding::{
     OfflineAudioContextMethods, OfflineAudioContextOptions,
 };
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
@@ -87,12 +88,9 @@ impl OfflineAudioContext {
         let pipeline_id = window.pipeline_id();
         let context =
             OfflineAudioContext::new_inherited(channel_count, length, sample_rate, pipeline_id)?;
-        Ok(reflect_dom_object_with_proto(
-            cx,
-            Box::new(context),
-            window,
-            proto,
-        ))
+        let context = reflect_dom_object_with_proto(cx, Box::new(context), window, proto);
+        window.Document().register_audio_context(context.upcast());
+        Ok(context)
     }
 }
 
