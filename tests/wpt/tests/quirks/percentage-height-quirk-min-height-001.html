@@ -1,0 +1,23 @@
+<!-- quirks -->
+<title>Percentage height quirk with min-height</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://quirks.spec.whatwg.org/#the-percentage-height-calculation-quirk">
+<link rel="help" href="https://github.com/whatwg/quirks/issues/95">
+<link rel="match" href="../css/reference/ref-filled-green-200px-square.html">
+<meta name="assert" content="
+  Due to the quirk, #target resolves is size using #grandparent as the containing block.
+  Therefore, this also affects the percentage in `min-height`.
+">
+
+<style>
+#grandparent { height: 200px; width: 200px }
+#parent { background: red }
+#target { height: 0%; min-height: 100%; background: green }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="grandparent">
+  <div id="parent">
+    <div id="target"></div>
+  </div>
+</div>

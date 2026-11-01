@@ -33,7 +33,7 @@ use crate::geom::{
 use crate::positioned::{
     AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, relative_adjustement,
 };
-use crate::{ContainingBlock, ContainingBlockSize};
+use crate::{ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize};
 
 pub(super) struct LineMetrics {
     /// The block offset of the line start in the containing
@@ -560,6 +560,7 @@ impl LineItemLayout<'_, '_> {
                     size: ContainingBlockSize {
                         inline: content_rect.size.inline,
                         block: Default::default(),
+                        has_quirky_block_size: HasQuirkyBlockSize(false),
                     },
                     style: containing_block.style,
                 },

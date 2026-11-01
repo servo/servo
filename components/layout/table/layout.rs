@@ -53,7 +53,8 @@ use crate::style_ext::{
 };
 use crate::table::WeakTableLevelBox;
 use crate::{
-    ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock, WritingMode,
+    ConstraintSpace, ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize,
+    IndefiniteContainingBlock, WritingMode,
 };
 
 #[derive(PartialEq)]
@@ -336,6 +337,7 @@ impl<'a> TableLayout<'a> {
                 } else {
                     let constraint_space = ConstraintSpace::new(
                         SizeConstraint::default(),
+                        HasQuirkyBlockSize(false),
                         &cell.context.base.style,
                         cell.context.preferred_aspect_ratio(&padding_border_sums),
                     );
@@ -721,7 +723,7 @@ impl<'a> TableLayout<'a> {
     /// Compute CAPMIN: <https://drafts.csswg.org/css-tables/#capmin>
     fn compute_caption_minimum_inline_size(&self, layout_context: &LayoutContext) -> Au {
         let containing_block = IndefiniteContainingBlock {
-            size: LogicalVec2::default(),
+            size: Default::default(),
             style: &self.table.style,
         };
         self.table
@@ -1123,6 +1125,7 @@ impl<'a> TableLayout<'a> {
                 size: ContainingBlockSize {
                     inline: total_cell_width,
                     block: SizeConstraint::default(),
+                    has_quirky_block_size: HasQuirkyBlockSize(false),
                 },
                 style: &cell.context.base.style,
             };
@@ -1528,6 +1531,7 @@ impl<'a> TableLayout<'a> {
             size: ContainingBlockSize {
                 inline: self.table_width + self.pbm.padding_border_sums.inline,
                 block: SizeConstraint::default(),
+                has_quirky_block_size: HasQuirkyBlockSize(false),
             },
             style: &self.table.style,
         };
@@ -1592,12 +1596,13 @@ impl<'a> TableLayout<'a> {
         //
         // Get the padding, border, and margin of the table using the inline size of the table's containing
         // block but in the writing of the table itself.
-        // TODO: This is broken for orthoganol flows, because the inline size of the parent isn't necessarily
+        // TODO: This is broken for orthogonal flows, because the inline size of the parent isn't necessarily
         // the inline size of the table.
         let containing_block_for_logical_conversion = ContainingBlock {
             size: ContainingBlockSize {
                 inline: self.table_width,
                 block: containing_block_for_table.size.block,
+                has_quirky_block_size: HasQuirkyBlockSize(false),
             },
             style: containing_block_for_children.style,
         };
@@ -2298,6 +2303,7 @@ impl<'a> RowFragmentLayout<'a> {
             size: ContainingBlockSize {
                 inline: rect.size.inline,
                 block: SizeConstraint::Definite(rect.size.block),
+                has_quirky_block_size: HasQuirkyBlockSize(false),
             },
             style: table_style,
         };
@@ -2339,6 +2345,7 @@ impl<'a> RowFragmentLayout<'a> {
             size: ContainingBlockSize {
                 inline: inline_size,
                 block: block_size,
+                has_quirky_block_size: HasQuirkyBlockSize(false),
             },
             style: containing_block_for_logical_conversion.style,
         };

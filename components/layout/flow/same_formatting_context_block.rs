@@ -333,6 +333,7 @@ impl SameFormattingContextBlock {
             // set to their initial values, so it's fine to use the default.
             &Default::default()
         } else {
+            // TODO: check has_quirky_block_size
             &containing_block_for_children.size.block
         };
         let collapsed_through = collapsible_margins_in_children.collapsed_through &&
