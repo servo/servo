@@ -441,6 +441,7 @@ pub enum ConsoleLogLevel {
     Error,
     Trace,
     Dir,
+    Table,
 }
 
 impl From<ConsoleLogLevel> for log::Level {
@@ -453,6 +454,7 @@ impl From<ConsoleLogLevel> for log::Level {
             ConsoleLogLevel::Error => log::Level::Error,
             ConsoleLogLevel::Trace => log::Level::Trace,
             ConsoleLogLevel::Dir => log::Level::Info,
+            ConsoleLogLevel::Table => log::Level::Info,
         }
     }
 }
