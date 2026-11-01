@@ -32,6 +32,7 @@ use crate::dom::bindings::codegen::Bindings::AudioContextBinding::{
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::AudioContextState;
 use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContext_Binding::BaseAudioContextMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::AudioContextLatencyCategoryOrDouble;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -102,6 +103,7 @@ impl AudioContext {
         let context = AudioContext::new_inherited(options, pipeline_id)?;
         let context = reflect_dom_object_with_proto(cx, Box::new(context), window, proto);
         context.resume();
+        window.Document().register_audio_context(context.upcast());
         Ok(context)
     }
 
@@ -231,6 +233,10 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
         let trusted_promise = TrustedPromise::from(&promise);
         match self.context.audio_context_impl().lock().unwrap().close() {
             Some(_) => {
+                self.global()
+                    .as_window()
+                    .Document()
+                    .unregister_audio_context(self.upcast());
                 let base_context = Trusted::new(&self.context);
                 let context = Trusted::new(self);
                 self.global().task_manager().dom_manipulation_task_source().queue(

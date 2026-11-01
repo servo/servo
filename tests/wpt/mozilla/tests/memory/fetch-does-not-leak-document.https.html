@@ -35,6 +35,8 @@
         "<iframe src=\"/common/slow.py?delay=60000\"></iframe>",
         "<script>new Worker(\"/common/slow.py?delay=60000\");<\/script>",
         "<script>fetchLater(\"/common/slow.py?delay=60000\", {activateAfter: 60000});<\/script>",
+        "<script>new AudioContext();<\/script>",
+        "<script>const ctx = new AudioContext(); const osc = ctx.createOscillator(); osc.connect(ctx.destination); osc.start();<\/script>",
       ];
 
       for (const test of tests) {

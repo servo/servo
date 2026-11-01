@@ -248,6 +248,6 @@ impl AudioSink for GStreamerAudioSink {
 
 impl Drop for GStreamerAudioSink {
     fn drop(&mut self) {
-        let _ = self.stop();
+        let _ = self.pipeline.set_state(gstreamer::State::Null);
     }
 }
