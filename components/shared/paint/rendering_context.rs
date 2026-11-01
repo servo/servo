@@ -293,6 +293,20 @@ pub struct SoftwareRenderingContext {
 
 impl SoftwareRenderingContext {
     pub fn new(size: PhysicalSize<u32>) -> Result<Self, Error> {
+        Self::new_with_optional_refresh_driver(size, None)
+    }
+
+    pub fn new_with_refresh_driver(
+        size: PhysicalSize<u32>,
+        refresh_driver: Rc<dyn RefreshDriver>,
+    ) -> Result<Self, Error> {
+        Self::new_with_optional_refresh_driver(size, Some(refresh_driver))
+    }
+
+    fn new_with_optional_refresh_driver(
+        size: PhysicalSize<u32>,
+        refresh_driver: Option<Rc<dyn RefreshDriver>>,
+    ) -> Result<Self, Error> {
         if size.width == 0 || size.height == 0 {
             log::error!(
                 "Unable to create SoftwareRenderingContext with size under 1x1 ({size:?} provided)"
@@ -302,7 +316,8 @@ impl SoftwareRenderingContext {
 
         let connection = Connection::new()?;
         let adapter = connection.create_software_adapter()?;
-        let surfman_rendering_info = SurfmanRenderingContext::new(&connection, &adapter, None)?;
+        let surfman_rendering_info =
+            SurfmanRenderingContext::new(&connection, &adapter, refresh_driver)?;
 
         let surfman_size = Size2D::new(size.width as i32, size.height as i32);
         let surface =
@@ -392,6 +407,10 @@ impl RenderingContext for SoftwareRenderingContext {
 
     fn connection(&self) -> Option<Connection> {
         self.surfman_rendering_info.connection()
+    }
+
+    fn refresh_driver(&self) -> Option<Rc<dyn RefreshDriver>> {
+        self.surfman_rendering_info.refresh_driver()
     }
 }
 
