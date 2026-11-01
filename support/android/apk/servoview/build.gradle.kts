@@ -138,4 +138,7 @@ project.afterEvaluate {
     }
 }
 
-dependencies { implementation(libs.androidx.compose.foundation) }
+dependencies {
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.compose.foundation)
+}

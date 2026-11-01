@@ -11,6 +11,7 @@ import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.Surface
 import android.view.inputmethod.BaseInputConnection
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.AndroidExternalSurface
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.Interaction
@@ -85,6 +86,7 @@ fun Servo(
         }
     }
     LaunchedEffect(servo, navigator) { navigator.consumeNavigationEvents(servo) }
+    BackHandler(enabled = navigator.canGoBack) { navigator.back() }
     LaunchedEffect(experimentalModeEnabled) { servo.setExperimentalMode(experimentalModeEnabled) }
     DisposableEffect(servo) { onDispose { servo.glDispatcher.close() } }
 
