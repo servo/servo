@@ -65,7 +65,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
     private lateinit var historyManager: HistoryManager
     private var currentUrl = ""
     private var currentTitle = ""
-    private var softKeyboardVisible by mutableStateOf(false)
     private var alertMessage by mutableStateOf<String?>(null)
 
     private class Settings(preferences: SharedPreferences) {
@@ -232,7 +231,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
             ) { innerPadding ->
                 Servo(
                     experimentalModeEnabled = experimentalModeEnabled,
-                    softKeyboardVisible = softKeyboardVisible,
                     args = intent.getStringExtra("servoargs"),
                     initialUrl =
                         if (Intent.ACTION_VIEW == intent.action) intent.data.toString() else null,
@@ -289,14 +287,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
         historyActivityResultLauncher: ActivityResultLauncher<Intent>
     ) {
         historyActivityResultLauncher.launch(Intent(this, HistoryActivity::class.java))
-    }
-
-    override fun onImeShow() {
-        softKeyboardVisible = true
-    }
-
-    override fun onImeHide() {
-        softKeyboardVisible = false
     }
 
     override fun onAlert(message: String) {

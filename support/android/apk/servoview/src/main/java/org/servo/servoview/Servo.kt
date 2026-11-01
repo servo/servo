@@ -53,7 +53,6 @@ import kotlinx.coroutines.launch
 @Composable
 fun Servo(
     experimentalModeEnabled: Boolean,
-    softKeyboardVisible: Boolean,
     args: String?,
     initialUrl: String?,
     logStr: String?,
@@ -63,6 +62,7 @@ fun Servo(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    var softKeyboardVisible by remember { mutableStateOf(false) }
     val servo = remember {
         Servo(
             args = args,
@@ -73,6 +73,8 @@ fun Servo(
             client = client,
             context = context,
             navigator = navigator,
+            onImeShow = { softKeyboardVisible = true },
+            onImeHide = { softKeyboardVisible = false },
         )
     }
 
@@ -258,10 +260,21 @@ internal constructor(
     client: Client,
     context: Context,
     navigator: ServoNavigator,
+    onImeShow: () -> Unit,
+    onImeHide: () -> Unit,
 ) {
     private val jni = JNIServo()
     internal val glDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
-    private val servoCallbacks = Callbacks(client, jni, scope, glDispatcher, navigator)
+    private val servoCallbacks =
+        Callbacks(
+            client,
+            jni,
+            scope,
+            glDispatcher,
+            navigator,
+            onImeShow,
+            onImeHide,
+        )
 
     init {
         scope.launch(glDispatcher) {
@@ -368,10 +381,6 @@ internal constructor(
         fun onTitleChanged(title: String)
 
         fun onUrlChanged(url: String)
-
-        fun onImeShow()
-
-        fun onImeHide()
     }
 
     private class Callbacks(
@@ -380,6 +389,8 @@ internal constructor(
         private val scope: CoroutineScope,
         private val glDispatcher: CoroutineDispatcher,
         private val navigator: ServoNavigator,
+        private val onImeShow: () -> Unit,
+        private val onImeHide: () -> Unit,
     ) : JNIServo.Callbacks, Client {
         var suspended: Boolean = false
 
@@ -394,11 +405,11 @@ internal constructor(
         }
 
         override fun onImeShow() {
-            scope.launch { client.onImeShow() }
+            scope.launch { onImeShow.invoke() }
         }
 
         override fun onImeHide() {
-            scope.launch { client.onImeHide() }
+            scope.launch { onImeHide.invoke() }
         }
 
         override fun onLoadStarted() {
