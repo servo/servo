@@ -151,16 +151,47 @@ impl ValidityState {
 
     pub(crate) fn update_pseudo_classes(&self, cx: &mut JSContext) {
         if self.element.is_instance_validatable(cx.no_gc()) {
-            let is_valid = self.invalid_flags.get().is_empty();
+            let invalid_flags = self.invalid_flags();
+            let is_valid = invalid_flags.is_empty();
             self.element
                 .set_state(cx.no_gc(), ElementState::VALID, is_valid);
             self.element
                 .set_state(cx.no_gc(), ElementState::INVALID, !is_valid);
+
+            // https://html.spec.whatwg.org/multipage/#selector-in-range
+            // > The :in-range pseudo-class must match all elements that are candidates for constraint
+            // > validation, have range limitations, and that are neither suffering from an underflow
+            // > nor suffering from an overflow.
+            let has_range = self
+                .element
+                .as_maybe_validatable()
+                .is_some_and(|validatable| validatable.has_range_limitations());
+            let out_of_range = invalid_flags
+                .intersects(ValidationFlags::RANGE_UNDERFLOW | ValidationFlags::RANGE_OVERFLOW);
+            self.element.set_state(
+                cx.no_gc(),
+                ElementState::INRANGE,
+                has_range && !out_of_range,
+            );
+
+            // https://html.spec.whatwg.org/multipage/#selector-out-of-range
+            // > The :out-of-range pseudo-class must match all elements that are candidates for constraint
+            // > validation, have range limitations, and that are either suffering from an underflow
+            // > or suffering from an overflow.
+            self.element.set_state(
+                cx.no_gc(),
+                ElementState::OUTOFRANGE,
+                has_range && out_of_range,
+            );
         } else {
             self.element
                 .set_state(cx.no_gc(), ElementState::VALID, false);
             self.element
                 .set_state(cx.no_gc(), ElementState::INVALID, false);
+            self.element
+                .set_state(cx.no_gc(), ElementState::INRANGE, false);
+            self.element
+                .set_state(cx.no_gc(), ElementState::OUTOFRANGE, false);
         }
 
         if let Some(form_control) = self.element.as_maybe_form_control() &&
