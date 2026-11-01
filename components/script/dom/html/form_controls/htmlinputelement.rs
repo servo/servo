@@ -2267,6 +2267,10 @@ impl VirtualMethods for HTMLInputElement {
                 }
                 self.update_default_state_indirectly(cx.no_gc());
             },
+            local_name!("min") | local_name!("max") => {
+                self.validity_state(cx)
+                    .perform_validation_and_update(cx, ValidationFlags::all());
+            },
             local_name!("size") => {
                 let size = mutation.new_value(attr).map(|value| value.as_uint());
                 self.size.set(size.unwrap_or(DEFAULT_INPUT_SIZE));
@@ -2377,6 +2381,8 @@ impl VirtualMethods for HTMLInputElement {
                     .as_specific()
                     .update_placeholder_contents(cx, self);
 
+                self.validity_state(cx)
+                    .perform_validation_and_update(cx, ValidationFlags::all());
                 self.update_checked_state(cx.no_gc());
                 self.update_indeterminate_state(cx.no_gc());
                 self.update_default_state_indirectly(cx.no_gc());
@@ -2607,6 +2613,11 @@ impl FormControl for HTMLInputElement {
 impl Validatable for HTMLInputElement {
     fn as_element(&self) -> &Element {
         self.upcast()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#have-range-limitations>
+    fn has_range_limitations(&self) -> bool {
+        self.does_value_as_number_apply() && (self.minimum().is_some() || self.maximum().is_some())
     }
 
     fn validity_state(&self, cx: &mut JSContext) -> DomRoot<ValidityState> {
