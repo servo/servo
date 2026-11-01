@@ -186,6 +186,8 @@ bitflags! {
         const StartedFlinging = 1 << 4;
         /// A blinking text caret requires a redraw.
         const BlinkingCaret = 1 << 5;
+        /// The observers of the refresh driver wait for a paint after the next frame start.
+        const FrameStart = 1 << 6;
     }
 }
 

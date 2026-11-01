@@ -61,7 +61,11 @@ impl BaseRefreshDriver {
         }
     }
 
-    pub(crate) fn notify_will_paint(&self, painter: &mut Painter) {
+    pub(crate) fn notify_will_paint(&self, painter: &mut Painter) -> bool {
+        if self.wait_to_paint() {
+            return false;
+        }
+
         // Limit the borrow of `self.observers` to the minimum here.
         let still_has_observers = {
             let mut observers = self.observers.borrow_mut();
@@ -72,6 +76,7 @@ impl BaseRefreshDriver {
         if still_has_observers {
             self.observe_next_frame();
         }
+        true
     }
 
     fn observe_next_frame(&self) {
