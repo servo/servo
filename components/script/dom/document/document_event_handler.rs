@@ -80,6 +80,7 @@ use crate::dom::types::{
     HTMLElement, HTMLLabelElement, MouseEvent, Touch, TouchEvent, TouchList, WheelEvent, Window,
 };
 use crate::dom::window::scrolling_box::{ScrollAxisState, ScrollRequirement, ScrollingBoxAxis};
+use crate::dom::window::windowproxy::WindowOpenType;
 use crate::drag::drag_gesture::DragGesture;
 use crate::navigation::navigate;
 use crate::realms::enter_auto_realm;
@@ -3070,7 +3071,7 @@ impl DocumentEventHandler {
         else {
             return;
         };
-        let (browsing_context, new) = browsing_context.choose_a_navigable(
+        let (browsing_context, window_open_type) = browsing_context.choose_a_navigable(
             cx,
             DOMString::from_static("_blank"),
             true, /* noopener */
@@ -3078,7 +3079,7 @@ impl DocumentEventHandler {
         let Some(browsing_context) = browsing_context else {
             return;
         };
-        assert!(new);
+        assert!(window_open_type != WindowOpenType::ExistingOrNone);
         let Some(target_document) = browsing_context.document() else {
             return;
         };
