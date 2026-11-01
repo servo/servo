@@ -4971,15 +4971,15 @@ impl Document {
 
             // Step 2.2. Remove el from both doc's top layer and pending top layer removals.
             self.top_layer
-                .borrow_mut()
+                .safe_borrow_mut(no_gc)
                 .retain(|top_layer_element| &**top_layer_element != element);
             self.pending_top_layer_removals
-                .borrow_mut()
+                .safe_borrow_mut(no_gc)
                 .retain(|pending_element| &**pending_element != element);
         }
 
         // Step 3. Append el to doc's top layer.
-        self.top_layer.borrow_mut().push(Dom::from_ref(element));
+        self.top_layer.safe_borrow_mut(no_gc).push(Dom::from_ref(element));
 
         // TODO: Step 4. At the UA !important cascade origin, add a rule targeting el
         // containing an overlay: auto declaration.
@@ -5001,7 +5001,7 @@ impl Document {
 
         // Step 4. Append el to doc's pending top layer removals.
         self.pending_top_layer_removals
-            .borrow_mut()
+            .safe_borrow_mut(no_gc)
             .push(Dom::from_ref(element));
 
         self.update_topmost_modal(no_gc);
@@ -5013,10 +5013,10 @@ impl Document {
 
         // Step 2. Remove el from doc's top layer and pending top layer removals.
         self.top_layer
-            .borrow_mut()
+            .safe_borrow_mut(no_gc)
             .retain(|top_layer_element| &**top_layer_element != element);
         self.pending_top_layer_removals
-            .borrow_mut()
+            .safe_borrow_mut(no_gc)
             .retain(|pending_element| &**pending_element != element);
 
         // TODO: Step 3. Remove the UA !important overlay: auto rule targeting el, if it exists.
