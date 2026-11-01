@@ -71,10 +71,14 @@ impl IIRFilterNodeMethods<crate::DomTypeHolder> for IIRFilterNode {
         if !(1..=20).contains(&options.feedforward.len()) ||
             !(1..=20).contains(&options.feedback.len())
         {
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(
+                "Invalid number of filter coefficients".into(),
+            )));
         }
         if options.feedforward.iter().all(|v| **v == 0.0) || *options.feedback[0] == 0.0 {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Invalid filter coefficients".into(),
+            )));
         }
         let node_options =
             options
@@ -121,7 +125,9 @@ impl IIRFilterNodeMethods<crate::DomTypeHolder> for IIRFilterNode {
 
         let len = frequency_hz.len();
         if len != mag_response.len() || len != phase_response.len() {
-            return Err(Error::InvalidAccess(None));
+            return Err(Error::InvalidAccess(Some(
+                "Arrays must have the same length".into(),
+            )));
         }
         let feedforward: Vec<f64> = (self.feedforward.iter().map(|v| **v).collect_vec()).to_vec();
         let feedback: Vec<f64> = (self.feedback.iter().map(|v| **v).collect_vec()).to_vec();

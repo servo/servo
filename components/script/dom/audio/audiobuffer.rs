@@ -229,7 +229,9 @@ impl AudioBufferMethods<crate::DomTypeHolder> for AudioBuffer {
             *options.sampleRate < MIN_SAMPLE_RATE ||
             *options.sampleRate > MAX_SAMPLE_RATE
         {
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(
+                "Invalid number of channels, length or sample rate".into(),
+            )));
         }
         Ok(AudioBuffer::new_with_proto(
             cx,
@@ -269,7 +271,9 @@ impl AudioBufferMethods<crate::DomTypeHolder> for AudioBuffer {
         channel: u32,
     ) -> Fallible<RootedTraceableBox<HeapFloat32Array>> {
         if channel >= self.number_of_channels {
-            return Err(Error::IndexSize(None));
+            return Err(Error::IndexSize(Some(
+                "Channel index is out of range".into(),
+            )));
         }
 
         if !self.restore_js_channel_data(cx) {
@@ -294,7 +298,9 @@ impl AudioBufferMethods<crate::DomTypeHolder> for AudioBuffer {
         }
 
         if channel_number >= self.number_of_channels || start_in_channel >= self.length {
-            return Err(Error::IndexSize(None));
+            return Err(Error::IndexSize(Some(
+                "Channel number or start index is out of range".into(),
+            )));
         }
 
         let bytes_to_copy = min(self.length - start_in_channel, destination.len() as u32) as usize;
@@ -309,7 +315,7 @@ impl AudioBufferMethods<crate::DomTypeHolder> for AudioBuffer {
                 .copy_data_to(cx, &mut dest, offset, offset + bytes_to_copy)
                 .is_err()
             {
-                return Err(Error::IndexSize(None));
+                return Err(Error::IndexSize(Some("Failed to copy channel data".into())));
             }
         } else if let Some(ref shared_channels) = *self.shared_channels.borrow() &&
             let Some(shared_channel) = shared_channels.buffers.get(channel_number)
@@ -335,7 +341,9 @@ impl AudioBufferMethods<crate::DomTypeHolder> for AudioBuffer {
         }
 
         if channel_number >= self.number_of_channels || start_in_channel > (source.len() as u32) {
-            return Err(Error::IndexSize(None));
+            return Err(Error::IndexSize(Some(
+                "Channel number or start index is out of range".into(),
+            )));
         }
 
         if !self.restore_js_channel_data(cx) {
@@ -345,12 +353,14 @@ impl AudioBufferMethods<crate::DomTypeHolder> for AudioBuffer {
         let js_channel = &self.js_channels.borrow()[channel_number as usize];
         if !js_channel.is_initialized() {
             // The array buffer was detached.
-            return Err(Error::IndexSize(None));
+            return Err(Error::IndexSize(Some(
+                "Channel data buffer is detached".into(),
+            )));
         }
 
         let bytes_to_copy = min(self.length - start_in_channel, source.len() as u32) as usize;
         js_channel
             .copy_data_from(cx, source, start_in_channel as usize, bytes_to_copy)
-            .map_err(|_| Error::IndexSize(None))
+            .map_err(|_| Error::IndexSize(Some("Failed to copy channel data".into())))
     }
 }
