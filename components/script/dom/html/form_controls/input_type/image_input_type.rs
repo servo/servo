@@ -151,6 +151,12 @@ impl ImageInputShadowTree {
     pub(crate) fn new(cx: &mut JSContext, shadow_root: &Node) -> Self {
         let document = shadow_root.owner_document();
         let img = Self::create_element_in_ua_shadowroot(cx, &document, local_name!("img"));
+        // An inline image would sit on the baseline, making the input taller than the image.
+        img.set_string_attribute(
+            cx,
+            &local_name!("style"),
+            "display: block; width: 100%; height: 100%;".into(),
+        );
         Node::replace_all(cx, Some(img.upcast()), shadow_root);
         let img = img
             .downcast::<HTMLImageElement>()
