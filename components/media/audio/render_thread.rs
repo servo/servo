@@ -5,6 +5,8 @@
 use std::sync::mpsc::{Receiver, Sender};
 
 use malloc_size_of_derive::MallocSizeOf;
+use profile_traits::mem::{ProcessReports, Report, ReportKind, ReportsChan, perform_memory_report};
+use profile_traits::path;
 use servo_media_streams::{MediaSocket, MediaStreamId};
 
 use crate::analyser_node::AnalyserNode;
@@ -54,6 +56,8 @@ pub enum AudioRenderThreadMsg {
     SetSinkEosCallback(#[ignore_malloc_size_of = "Fn"] SinkEosCallback),
 
     SetMute(bool),
+
+    CollectorMemoryReport(ReportsChan),
 }
 
 pub enum Sink {
@@ -285,6 +289,17 @@ impl AudioRenderThread {
         self.muted = val;
     }
 
+    fn collect_memory_reports(&self, reports_chan: ReportsChan) {
+        perform_memory_report(|ops| {
+            let size = self.graph.size_of(ops);
+            reports_chan.send(ProcessReports::new(vec![Report {
+                path: path!["media", "audio", "render-graph"],
+                kind: ReportKind::ExplicitJemallocHeapSize,
+                size,
+            }]));
+        });
+    }
+
     fn event_loop(&mut self, event_queue: Receiver<AudioRenderThreadMsg>) {
         let sample_rate = self.sample_rate;
         let handle_msg = move |context: &mut Self, msg: AudioRenderThreadMsg| -> bool {
@@ -337,6 +352,9 @@ impl AudioRenderThread {
                 },
                 AudioRenderThreadMsg::SetMute(val) => {
                     context.set_mute(val);
+                },
+                AudioRenderThreadMsg::CollectorMemoryReport(reports_chan) => {
+                    context.collect_memory_reports(reports_chan);
                 },
             };
 
