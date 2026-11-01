@@ -49,5 +49,5 @@ img {
     <div class="w4" data-expected-height=20><img class="w3"><img class="w2"><img class="w1" style="margin-left: -2ch"></div>
     <div class="w4" data-expected-height=20><img class="w2"> <img class="w2"><img class="w1" style="margin-left: -2ch"></div>
   </section>
-<script>checkLayout('[data-expected-height]');</script>
+<script>document.fonts.ready.then(() => checkLayout('[data-expected-height]'));</script>
 </body>

@@ -22,6 +22,9 @@ body { margin: 0; }
 <div class="container" dir="rtl" id="sibling"><div class="orthogonal"></div>123</div>
 
 <script>
+// Measure only once Ahem has loaded, otherwise the line metrics come from a fallback font.
+setup({explicit_done: true});
+document.fonts.ready.then(() => {
 const LINE_HEIGHT = 20;
 
 for (const id of ["nested", "sibling"]) {
@@ -46,4 +49,6 @@ test(() => {
     assert_equals(document.getElementById("nested").offsetHeight,
                   document.getElementById("sibling").offsetHeight);
 }, "The empty orthogonal box behaves the same whether it is nested in an inline box or a sibling of inline content");
+done();
+});
 </script>

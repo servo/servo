@@ -29,6 +29,9 @@ body { margin: 0; }
 <div class="container" id="plain-sibling"><div class="selfCollapsing"></div><span class="probe">X</span></div>
 
 <script>
+// Measure only once Ahem has loaded, otherwise the line metrics come from a fallback font.
+setup({explicit_done: true});
+document.fonts.ready.then(() => {
 // bordered: the 1px border stops the collapse, so the margin sits inside the container. The probe starts
 //   below the border and the margin, at 1 + 200, and the container encloses border + margin + line + border.
 // plain: no border, so the margin collapses out through the container's before edge and moves the container
@@ -67,4 +70,6 @@ for (const root of ["bordered", "plain"]) {
     }, `The margin behaves the same whether the self collapsing block is nested in an inline box or a sibling `
        + `of inline content (${root} containing block)`);
 }
+done();
+});
 </script>
