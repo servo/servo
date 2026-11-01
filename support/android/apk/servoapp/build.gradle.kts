@@ -8,7 +8,6 @@ plugins {
 
 android {
     compileSdk = 37
-    buildToolsVersion = "36.0.0"
 
     namespace = "org.servo.servoshell"
 
