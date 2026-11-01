@@ -2083,10 +2083,11 @@ class MethodDefiner(PropertyDefiner):
                                                                      descriptor)
             })
 
-        isLegacyUnforgeableInterface = bool(descriptor.interface.getExtendedAttribute("LegacyUnforgeable"))
-        if not static and unforgeable == isLegacyUnforgeableInterface and not crossorigin:
+        if not static:
             stringifier = descriptor.operations['Stringifier']
-            if stringifier:
+            if stringifier and unforgeable == MemberIsLegacyUnforgeable(
+                stringifier, descriptor
+            ):
                 self.regular.append({
                     "name": "toString",
                     "nativeName": stringifier.identifier.name,
@@ -2094,6 +2095,19 @@ class MethodDefiner(PropertyDefiner):
                     "flags": "JSPROP_ENUMERATE",
                     "condition": PropertyDefiner.getControllingCondition(stringifier, descriptor)
                 })
+            if unforgeable and descriptor.interface.getExtendedAttribute(
+                "LegacyUnforgeable"
+            ):
+                # Synthesize our valueOf method
+                self.regular.append({
+                    "name": "valueOf",
+                    "selfHostedName": "Object_valueOf",
+                    "methodInfo": False,
+                    "length": 0,
+                    "flags": "0",  # readonly/permanent added automatically.
+                    "condition": "Condition::Satisfied",
+                })
+
         self.unforgeable = unforgeable
         self.crossorigin = crossorigin
 
@@ -2167,6 +2181,7 @@ class MethodDefiner(PropertyDefiner):
             '        name: %s,\n'
             '        call: JSNativeWrapper { op: %s, info: %s },\n'
             '        nargs: %s,\n'
+            '        #[allow(clippy::identity_op)]\n'
             '        flags: %s,\n'
             '        selfHostedName: %s\n'
             '    }')
@@ -3384,6 +3399,23 @@ def InitLegacyUnforgeablePropertiesOnHolder(descriptor: Descriptor, properties: 
     for template, array in unforgeableMembers:
         if array.length() > 0:
             unforgeables.append(CGGeneric(template % f"unsafe {{ {array.variableName()}.get() }}"))
+
+    if descriptor.interface.getExtendedAttribute("LegacyUnforgeable"):
+        # We do our undefined toPrimitive here, not as a regular property
+        # because we don't have a concept of value props anywhere in IDL.
+        unforgeables.append(
+            CGGeneric(
+                fill(
+                    f"""
+            rooted!(&in(cx) let to_primitive = GetWellKnownSymbolKey(cx, SymbolCode::toPrimitive));
+            assert!(JS_DefinePropertyById2(cx, {unforgeable_holder}.handle(), to_primitive.handle(),
+                                           HandleValue::undefined(),
+                                           (JSPROP_READONLY | JSPROP_PERMANENT).into()));
+            """,
+                )
+            )
+        )
+
     return CGList(unforgeables, "\n")
 
 
