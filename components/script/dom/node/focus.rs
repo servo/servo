@@ -112,7 +112,7 @@ impl Node {
     /// the node from the hit test. This isn't exactly how browsers work though, as they seem
     /// to look for the first inclusive ancestor node that has a focusable area associated with it.
     /// Note also that this may return [`FocusableArea::Viewport`].
-    pub(crate) fn find_click_focusable_area(&self, cx: &JSContext) -> FocusableArea {
+    pub(crate) fn find_click_focusable_area(&self, cx: &mut JSContext) -> FocusableArea {
         self.inclusive_ancestors(ShadowIncluding::Yes)
             .find_map(|node| {
                 node.get_the_focusable_area(cx, FocusTrigger::Click)
@@ -132,12 +132,12 @@ impl Node {
     /// specification.
     pub(crate) fn get_the_focusable_area(
         &self,
-        cx: &JSContext,
+        cx: &mut JSContext,
         focus_trigger: FocusTrigger,
     ) -> Option<FocusableArea> {
         let kind = self
             .downcast::<Element>()
-            .map(|element| Element::focusable_area_kind(element, cx.no_gc()))
+            .map(|element| Element::focusable_area_kind(element, cx))
             .unwrap_or_default();
         if !kind.is_empty() {
             if let Some(iframe_element) = self.downcast::<HTMLIFrameElement>() {
@@ -166,7 +166,7 @@ impl Node {
     /// TODO: It might be better to distinguish these two cases in the future.
     fn get_the_focusable_area_if_not_a_focusable_area(
         &self,
-        cx: &JSContext,
+        cx: &mut JSContext,
         focus_trigger: FocusTrigger,
     ) -> Option<FocusableArea> {
         // > To get the focusable area for a focus target that is either an element that is not a
@@ -233,7 +233,7 @@ impl Node {
     /// the [`FocusableAreaKind`] for efficiency reasons.
     pub(crate) fn focus_delegate(
         &self,
-        cx: &JSContext,
+        cx: &mut JSContext,
         focus_trigger: Option<FocusTrigger>,
     ) -> Option<FocusableArea> {
         let focus_trigger = focus_trigger.unwrap_or(FocusTrigger::Script);
@@ -273,7 +273,7 @@ impl Node {
             // >      set focusableArea to descendant.
             let kind = descendant
                 .downcast::<Element>()
-                .map(|node| Element::focusable_area_kind(node, cx.no_gc()))
+                .map(|node| Element::focusable_area_kind(node, cx))
                 .unwrap_or_default();
             if is_dialog_element && kind.contains(FocusableAreaKind::Sequential) {
                 return Some(FocusableArea::Node {
@@ -310,7 +310,7 @@ impl Node {
     /// <https://html.spec.whatwg.org/multipage/#autofocus-delegate>
     fn autofocus_delegate(
         &self,
-        cx: &JSContext,
+        cx: &mut JSContext,
         focus_trigger: FocusTrigger,
     ) -> Option<FocusableArea> {
         // > 1. For each descendant descendant of focus target, in tree order:
