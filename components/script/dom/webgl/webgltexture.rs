@@ -559,6 +559,7 @@ impl WebGLTexture {
     }
 
     fn update_size(&self) {
+        // This will not overflow by the `MAX_IMAGE_INFO_PHYSICAL_SIZE` check.
         let size = self
             .image_info_array
             .borrow()
