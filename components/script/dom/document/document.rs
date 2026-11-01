@@ -4938,12 +4938,90 @@ impl Document {
         self.fullscreen_element.set(element);
     }
 
-    pub(crate) fn top_layer(&self) -> &DomRefCell<Vec<Dom<Element>>> {
-        &self.top_layer
+    pub(crate) fn top_layer_contains(&self, element: &Element) -> bool {
+        self.top_layer
+            .borrow()
+            .iter()
+            .any(|top_layer_element| &**top_layer_element == element)
     }
 
-    pub(crate) fn pending_top_layer_removals(&self) -> &DomRefCell<Vec<Dom<Element>>> {
-        &self.pending_top_layer_removals
+    fn pending_top_layer_removals_contains(&self, element: &Element) -> bool {
+        self.pending_top_layer_removals
+            .borrow()
+            .iter()
+            .any(|pending_element| &**pending_element == element)
+    }
+
+    /// <https://drafts.csswg.org/css-position-4/#in-the-top-layer>
+    pub(crate) fn is_in_the_top_layer(&self, element: &Element) -> bool {
+        // > An element el is in the top layer if el is contained in its node document’s top layer
+        // > but not contained in its node document’s pending top layer removals.
+        self.top_layer_contains(element) && !self.pending_top_layer_removals_contains(element)
+    }
+
+    /// <https://drafts.csswg.org/css-position-4/#add-an-element-to-the-top-layer>
+    pub(crate) fn add_an_element_to_the_top_layer(&self, element: &Element, no_gc: &NoGC) {
+        // Step 1. Let doc be el’s node document.
+
+        // Step 2. If el is already contained in doc's top layer:
+        if self.top_layer_contains(element) {
+            // Step 2.1. Assert: el is also in doc's pending top layer removals. (Otherwise, this is
+            // a spec error.)
+            assert!(self.pending_top_layer_removals_contains(element));
+
+            // Step 2.2. Remove el from both doc's top layer and pending top layer removals.
+            self.top_layer
+                .borrow_mut()
+                .retain(|top_layer_element| &**top_layer_element != element);
+            self.pending_top_layer_removals
+                .borrow_mut()
+                .retain(|pending_element| &**pending_element != element);
+        }
+
+        // Step 3. Append el to doc's top layer.
+        self.top_layer.borrow_mut().push(Dom::from_ref(element));
+
+        // TODO: Step 4. At the UA !important cascade origin, add a rule targeting el
+        // containing an overlay: auto declaration.
+
+        self.update_topmost_modal(no_gc);
+    }
+
+    /// <https://drafts.csswg.org/css-position-4/#request-an-element-to-be-removed-from-the-top-layer>
+    pub(crate) fn request_an_element_to_be_removed_from_the_top_layer(&self, element: &Element, no_gc: &NoGC) {
+        // Step 1. Let doc be el's node document.
+
+        // Step 2. If el is not contained doc's top layer, or el is already contained in doc's
+        // pending top layer removals, return.
+        if !self.top_layer_contains(element) || self.pending_top_layer_removals_contains(element) {
+            return;
+        }
+
+        // TODO: Step 3. Remove the UA !important overlay: auto rule targeting el.
+
+        // Step 4. Append el to doc's pending top layer removals.
+        self.pending_top_layer_removals
+            .borrow_mut()
+            .push(Dom::from_ref(element));
+
+        self.update_topmost_modal(no_gc);
+    }
+
+    /// <https://drafts.csswg.org/css-position-4/#remove-an-element-from-the-top-layer-immediately>
+    pub(crate) fn remove_an_element_from_the_top_layer_immediately(&self, element: &Element, no_gc: &NoGC) {
+        // Step 1. Let doc be el's node document.
+
+        // Step 2. Remove el from doc's top layer and pending top layer removals.
+        self.top_layer
+            .borrow_mut()
+            .retain(|top_layer_element| &**top_layer_element != element);
+        self.pending_top_layer_removals
+            .borrow_mut()
+            .retain(|pending_element| &**pending_element != element);
+
+        // TODO: Step 3. Remove the UA !important overlay: auto rule targeting el, if it exists.
+
+        self.update_topmost_modal(no_gc);
     }
 
     /// <https://drafts.csswg.org/css-position-4/#process-top-layer-removals>
@@ -4952,14 +5030,14 @@ impl Document {
         // of overlay is none, or el is not rendered, remove from the top layer immediately el.
         // TODO: Check `overlay` once it is supported.
         let pending_removals: Vec<_> = self
-            .pending_top_layer_removals()
+            .pending_top_layer_removals
             .borrow()
             .iter()
             .map(|element| DomRoot::from_ref(&**element))
             .collect();
         for element in pending_removals {
             if !element.has_css_layout_box() {
-                element.remove_from_the_top_layer_immediately(no_gc)
+                self.remove_an_element_from_the_top_layer_immediately(&element, no_gc)
             }
         }
     }
@@ -4969,12 +5047,13 @@ impl Document {
         // > A Document document is blocked by a modal dialog subject if subject is the topmost
         // > dialog element in document's top layer.
         let new_topmost_modal = self
-            .top_layer()
+            .top_layer
             .borrow()
             .iter()
             .rev()
             .find(|element| {
-                element.state().contains(ElementState::MODAL) && element.is_in_the_top_layer()
+                element.state().contains(ElementState::MODAL) &&
+                    !self.pending_top_layer_removals_contains(element)
             })
             .map(|element| DomRoot::from_ref(&**element));
         let old_topmost_modal = self.topmost_modal.get();

@@ -168,8 +168,9 @@ impl HTMLDialogElement {
 
         // Step 15. If subject's node document's top layer does not already contain subject, then add an element to the top layer given subject.
         // Note: Just checking the top layer would break when a modal is shown right after being closed, as the dialog would still be pending removal.
-        if !subject.is_in_the_top_layer() {
-            subject.add_to_the_top_layer(cx.no_gc());
+        let document = subject.owner_document();
+        if !document.is_in_the_top_layer(subject) {
+            document.add_an_element_to_the_top_layer(subject, cx.no_gc());
         }
 
         // Step 16. Set subject's previously focused element to the focused element.
@@ -750,14 +751,9 @@ impl VirtualMethods for HTMLDialogElement {
 
         // Step 2. If removedNode's node document's top layer contains removedNode, then remove
         // an element from the top layer immediately given removedNode.
-        if removed_node
-            .owner_document()
-            .top_layer()
-            .borrow()
-            .iter()
-            .any(|element| &**element == removed_node)
-        {
-            removed_node.remove_from_the_top_layer_immediately(cx.no_gc());
+        let document = removed_node.owner_document();
+        if document.top_layer_contains(removed_node) {
+            document.remove_an_element_from_the_top_layer_immediately(removed_node, cx.no_gc());
         }
 
         // Step 3. Set is modal of removedNode to false.
