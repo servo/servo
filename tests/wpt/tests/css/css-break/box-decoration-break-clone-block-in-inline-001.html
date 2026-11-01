@@ -31,6 +31,9 @@ body {
 <div id="container"><span id="wrapper">a<div class="block" id="first-block"></div><span id="empty"></span><div class="block" id="second-block"></div>c</span></div>
 
 <script>
+// Measure only once Ahem has loaded, otherwise the line metrics come from a fallback font.
+setup({explicit_done: true});
+document.fonts.ready.then(() => {
 const rect = id => document.getElementById(id).getBoundingClientRect();
 
 // A 20px line for "a", the two 50px tall blocks, then a 20px line for "c". The empty inline
@@ -63,4 +66,6 @@ test(() => {
     assert_equals(rect("first-block").left, rect("container").left, "first block");
     assert_equals(rect("second-block").left, rect("container").left, "second block");
 }, "Cloned decoration does not wrap the inline box fragments around the block level boxes");
+done();
+});
 </script>

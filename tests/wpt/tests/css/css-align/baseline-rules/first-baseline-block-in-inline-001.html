@@ -43,6 +43,9 @@ body { margin: 0; }
 </div>
 
 <script>
+// Measure only once Ahem has loaded, otherwise the line metrics come from a fallback font.
+setup({explicit_done: true});
+document.fonts.ready.then(() => {
 const offsetTop = id => document.getElementById(id).offsetTop;
 
 test(() => {
@@ -63,4 +66,6 @@ test(() => {
     assert_greater_than_equal(offsetTop('cell-plain'), 49,
         "the cell without padding is pushed down by (about) the 50px padding of the other cell");
 }, "Table cell baseline includes the offset of a block-level box nested in an inline box");
+done();
+});
 </script>
