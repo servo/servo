@@ -318,6 +318,7 @@ pub enum ServiceWorkerMsg {
     },
     /// <https://w3c.github.io/ServiceWorker/#algorithms>
     HandleAlgorithm(ServiceWorkerAlgorithm),
+    FinishInstall(ServiceWorkerId),
     SetNetworkOnlineState(bool),
     /// Exit the service worker manager
     Exit,
@@ -655,6 +656,7 @@ pub enum ConstellationInterest {
 /// Messages from the script to the constellation.
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum ScriptToConstellationMessage {
+    ServiceWorkerStateUpdateDone(ServiceWorkerId, PipelineId),
     ServiceWorkerAlgorithm(ServiceWorkerAlgorithm),
     /// Request to complete the transfer of a set of ports to a router.
     CompleteMessagePortTransfer(MessagePortRouterId, Vec<MessagePortId>),

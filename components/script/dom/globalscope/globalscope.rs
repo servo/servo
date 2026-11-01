@@ -535,6 +535,18 @@ impl GlobalScope {
         new_registration
     }
 
+    fn send_service_worker_state_update_done(&self, worker_id: ServiceWorkerId) {
+        let res = self.script_to_constellation_chan().send(
+            ScriptToConstellationMessage::ServiceWorkerStateUpdateDone(
+                worker_id,
+                self.pipeline_id(),
+            ),
+        );
+        if res.is_err() {
+            error!("Sending ServiceWorkerStateUpdateDone failed");
+        }
+    }
+
     /// <https://w3c.github.io/ServiceWorker/#update-state-algorithm>
     pub(crate) fn update_service_worker_state(
         &self,
@@ -548,6 +560,7 @@ impl GlobalScope {
         // Step 4.3: Let workerObj be objectMap[worker].
         let Some(worker) = object_map.get(&worker_id) else {
             // Step 4.2: If objectMap[worker] does not exist, then abort these steps.
+            self.send_service_worker_state_update_done(worker_id);
             return;
         };
 
@@ -556,6 +569,8 @@ impl GlobalScope {
 
         // Step 4.5: Fire an event named statechange at workerObj.
         worker.upcast().fire_event(cx, atom!("statechange"));
+
+        self.send_service_worker_state_update_done(worker_id);
     }
 
     /// <https://w3c.github.io/ServiceWorker/#get-the-service-worker-object>
