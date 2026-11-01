@@ -96,6 +96,17 @@ impl HTMLButtonElement {
     pub(crate) fn is_submit_button(&self) -> bool {
         self.button_type.get() == ButtonType::Submit
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#selector-default>
+    pub(crate) fn update_default_state(&self, is_default_button: bool, no_gc: &NoGC) {
+        // > The :default pseudo-class must match any element falling into one of the following categories:
+        // > - Submit buttons that are default buttons of their form owner.
+        self.upcast::<Element>().set_state(
+            no_gc,
+            ElementState::DEFAULT,
+            self.is_submit_button() && is_default_button,
+        );
+    }
 }
 
 impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
@@ -280,6 +291,10 @@ impl HTMLButtonElement {
         self.button_type.set(value);
         self.validity_state(cx)
             .perform_validation_and_update(cx, ValidationFlags::all());
+
+        if let Some(form) = self.form_owner() {
+            form.invalidate_default_button(cx.no_gc());
+        }
     }
 
     fn command_for_element(&self, cx: &mut JSContext) -> Option<DomRoot<Element>> {
