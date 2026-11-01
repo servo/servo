@@ -109,7 +109,7 @@ impl HTMLTextAreaElement {
             .clone();
         HTMLTextAreaElement {
             htmlelement: HTMLElement::new_inherited_with_state(
-                ElementState::ENABLED | ElementState::READWRITE,
+                ElementState::ENABLED | ElementState::READWRITE | ElementState::OPTIONAL_,
                 local_name,
                 prefix,
                 document,
@@ -683,6 +683,19 @@ impl VirtualMethods for HTMLTextAreaElement {
             },
             local_name!("form") => {
                 self.form_attribute_mutated(cx, mutation);
+            },
+            local_name!("required") => {
+                // https://html.spec.whatwg.org/multipage/#selector-required
+                // > The :required pseudo-class must match any element falling into one of the following categories:
+                // > - textarea elements that have a required attribute
+                let element = self.upcast::<Element>();
+                let required = matches!(mutation, AttributeMutation::Set(_));
+                element.set_state(cx.no_gc(), ElementState::REQUIRED, required);
+
+                // https://html.spec.whatwg.org/multipage/#selector-optional
+                // > The :optional pseudo-class must match any element falling into one of the following categories:
+                // > - textarea elements that do not have a required attribute
+                element.set_state(cx.no_gc(), ElementState::OPTIONAL_, !required);
             },
             _ => {},
         }

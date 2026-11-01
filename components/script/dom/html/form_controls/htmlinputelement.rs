@@ -164,7 +164,7 @@ impl HTMLInputElement {
             .clone();
         HTMLInputElement {
             htmlelement: HTMLElement::new_inherited_with_state(
-                ElementState::ENABLED | ElementState::READWRITE,
+                ElementState::ENABLED | ElementState::READWRITE | ElementState::OPTIONAL_,
                 local_name,
                 prefix,
                 document,
@@ -346,6 +346,47 @@ impl HTMLInputElement {
 
     fn does_multiple_apply(&self) -> bool {
         matches!(*self.input_type(), InputType::Email(_))
+    }
+
+    fn does_required_apply(&self) -> bool {
+        matches!(
+            *self.input_type(),
+            InputType::Text(_) |
+                InputType::Search(_) |
+                InputType::Tel(_) |
+                InputType::Url(_) |
+                InputType::Email(_) |
+                InputType::Password(_) |
+                InputType::Date(_) |
+                InputType::Month(_) |
+                InputType::Week(_) |
+                InputType::Time(_) |
+                InputType::DatetimeLocal(_) |
+                InputType::Number(_) |
+                InputType::Checkbox(_) |
+                InputType::Radio(_) |
+                InputType::File(_)
+        )
+    }
+
+    fn update_required_and_optional_state(&self, no_gc: &NoGC) {
+        let element = self.upcast::<Element>();
+        let required_applies = self.does_required_apply();
+        let required = element.has_attribute(&local_name!("required"));
+
+        // https://html.spec.whatwg.org/multipage/#selector-required
+        // > The :required pseudo-class must match any element falling into one of the following categories:
+        // > - input elements that are required
+        element.set_state(no_gc, ElementState::REQUIRED, required_applies && required);
+
+        // https://html.spec.whatwg.org/multipage/#selector-optional
+        // > The :optional pseudo-class must match any element falling into one of the following categories:
+        // > - input elements to which the required attribute applies that are not required
+        element.set_state(
+            no_gc,
+            ElementState::OPTIONAL_,
+            required_applies && !required,
+        );
     }
 
     // valueAsNumber, step, min, and max all share the same set of
@@ -2354,6 +2395,7 @@ impl VirtualMethods for HTMLInputElement {
                 if element.focus_state() {
                     element.set_focusring_state(cx.no_gc(), self.is_textual_or_password());
                 }
+                self.update_required_and_optional_state(cx.no_gc());
             },
             local_name!("value") if !self.value_dirty.get() => {
                 // This is only run when the `value` or `defaultValue` attribute is set. It
@@ -2421,6 +2463,9 @@ impl VirtualMethods for HTMLInputElement {
             },
             local_name!("form") => {
                 self.form_attribute_mutated(cx, mutation);
+            },
+            local_name!("required") => {
+                self.update_required_and_optional_state(cx.no_gc());
             },
             _ => {
                 self.input_type()
