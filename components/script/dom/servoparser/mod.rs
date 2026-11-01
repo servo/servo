@@ -1413,7 +1413,7 @@ impl ParserContext {
                     (
                         Self::create_policy_container_from_fetch_response(metadata),
                         ReportingEndpoint::parse_reporting_endpoints_header(
-                            &self.url.clone(),
+                            &self.url,
                             &metadata.headers,
                         ),
                         extract_links_from_headers(&metadata.headers),

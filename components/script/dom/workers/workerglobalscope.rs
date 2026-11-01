@@ -752,7 +752,7 @@ impl WorkerGlobalScope {
         // Step 3. Initialize worker global scope's policy container given worker global scope, response, and inside settings.
         self.initialize_policy_container_for_worker_global_scope(metadata, policy_container);
         self.set_endpoints_list(ReportingEndpoint::parse_reporting_endpoints_header(
-            &metadata.final_url.clone(),
+            &metadata.final_url,
             &metadata.headers,
         ));
     }
