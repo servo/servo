@@ -114,7 +114,14 @@ impl InnerDOMLayoutData {
     }
 
     fn with_layout_box_base_including_pseudos(&self, mut callback: impl FnMut(&LayoutBoxBase)) {
-        self.with_layout_box_base(&mut callback);
+        if let Some(self_box) = &*self.self_box.borrow() {
+            self_box.with_base(&mut callback);
+            // The inner widget of a replaced element is not stored in the layout data of any
+            // node, so reach its base through the box of the replaced element.
+            self_box.with_independent_formatting_context(|independent_formatting_context| {
+                independent_formatting_context.with_widget_base(&mut callback)
+            });
+        }
         for pseudo_layout_data in self.pseudo_boxes.iter() {
             pseudo_layout_data
                 .data
