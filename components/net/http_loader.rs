@@ -675,6 +675,8 @@ async fn obtain_response(
         .timing_info
         .set_attribute(ResourceAttribute::RequestStart);
 
+    let should_store =
+        request.method() == Method::GET && !request.headers().contains_key(header::AUTHORIZATION);
     let client_future = client
         .request(request)
         .and_then(move |res| {
@@ -721,7 +723,13 @@ async fn obtain_response(
             };
 
             future::ready(Ok((
-                Decoder::detect(res.map(|r| r.boxed()), is_secure_scheme),
+                Decoder::detect(
+                    res.map(|r| r.boxed()),
+                    is_secure_scheme,
+                    should_store,
+                    url.clone().into(),
+                    context.state.clone(),
+                ),
                 #[cfg(feature = "devtools")]
                 msg,
                 #[cfg(not(feature = "devtools"))]
@@ -2252,7 +2260,17 @@ async fn http_network_fetch(
                     .map_err(|_| unreachable!())
                     .boxed(),
             });
-            (Decoder::detect(response, url.is_secure_scheme()), None)
+            (
+                Decoder::detect(
+                    response,
+                    url.is_secure_scheme(),
+                    request.method == Method::GET &&
+                        !request.headers.contains_key(header::AUTHORIZATION),
+                    url.clone().into(),
+                    context.state.clone(),
+                ),
+                None,
+            )
         },
         // Let connection be the result of obtaining a connection, given networkPartitionKey,
         // request’s current URL, includeCredentials, and newConnection.
