@@ -214,7 +214,7 @@ rayon = "1"
 read-fonts = "0.46"
 realfft = "3.5.0"
 regex = "1.12"
-resvg = "0.48.1"
+resvg = "0.49.0"
 rfd = "0.17.2"
 rsa = "=0.10.0-rc.19"
 rusqlite = { version = "0.38", features = ["bundled"] }
