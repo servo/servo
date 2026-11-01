@@ -35,34 +35,39 @@ impl PaintedRegion {
             .unwrap_or_else(Box2D::zero)
     }
 
-    /// Returns `true` if `rect` is already entirely covered by this region, i.e.
-    /// merging it in would add no new area.
-    pub(crate) fn contains(&self, rect: Box2D<f32, LayoutPixel>) -> bool {
+    /// Merges `rect` into the region, splitting it against existing rects so the
+    /// region remains disjoint.
+    pub(crate) fn union(&mut self, rect: Box2D<f32, LayoutPixel>) {
+        let rect = rect.round_out();
         if rect.is_empty() {
-            return true;
+            return;
         }
-        // Fast path: a single existing rect fully containing the new one is the
-        // common case (the same fragment, unchanged, revisited on
-        // an unrelated repaint).
-        if self
+
+        // Only existing rects that overlap `rect` can take anything away from it. For
+        // typical content (e.g. a page of text), new fragments rarely overlap what is
+        // already painted, so this is usually empty and `rect` can be added as is,
+        // without any allocation.
+        let overlapping: Vec<_> = self
             .rects
+            .iter()
+            .copied()
+            .filter(|existing| existing.intersects(&rect))
+            .collect();
+        if overlapping.is_empty() {
+            self.rects.push(rect);
+            return;
+        }
+
+        // Fast path: a single existing rect fully containing the new one is the
+        // common overlapping case (the same fragment, unchanged, revisited on an
+        // unrelated repaint).
+        if overlapping
             .iter()
             .any(|existing| existing.contains_box(&rect))
         {
-            return true;
-        }
-        subtract_all(rect, &self.rects).is_empty()
-    }
-
-    /// Merges `rect` into the region, splitting it against existing rects so the
-    /// region remains disjoint. (matches Chromium's use of
-    /// `gfx::ToEnclosingRect` before touching `cc::Region`).
-    pub(crate) fn union(&mut self, rect: Box2D<f32, LayoutPixel>) {
-        let rect = rect.round_out();
-        if rect.is_empty() || self.contains(rect) {
             return;
         }
-        self.rects.extend(subtract_all(rect, &self.rects));
+        self.rects.extend(subtract_all(rect, &overlapping));
     }
 
     pub(crate) fn merge(&mut self, other: &PaintedRegion) {
@@ -79,32 +84,35 @@ fn subtract_all(
     others: &[Box2D<f32, LayoutPixel>],
 ) -> Vec<Box2D<f32, LayoutPixel>> {
     let mut pieces = vec![rect];
+    let mut remaining = Vec::new();
     for other in others {
         if pieces.is_empty() {
             break;
         }
-        pieces = pieces
-            .into_iter()
-            .flat_map(|piece| subtract_one(piece, *other))
-            .collect();
+        for piece in pieces.drain(..) {
+            subtract_one(piece, *other, &mut remaining);
+        }
+        std::mem::swap(&mut pieces, &mut remaining);
     }
     pieces
 }
 
-/// Splits `a` into the (up to four) disjoint rects that remain once `b` is removed
-/// from it.
+/// Pushes onto `out` the (up to four) disjoint rects that remain once `b` is removed
+/// from `a`.
 fn subtract_one(
     a: Box2D<f32, LayoutPixel>,
     b: Box2D<f32, LayoutPixel>,
-) -> Vec<Box2D<f32, LayoutPixel>> {
+    out: &mut Vec<Box2D<f32, LayoutPixel>>,
+) {
     let Some(i) = a.intersection(&b) else {
-        return vec![a];
+        out.push(a);
+        return;
     };
     if i.is_empty() {
-        return vec![a];
+        out.push(a);
+        return;
     }
 
-    let mut out = Vec::with_capacity(4);
     if i.min.y > a.min.y {
         out.push(Box2D::new(
             Point2D::new(a.min.x, a.min.y),
@@ -129,7 +137,6 @@ fn subtract_one(
             Point2D::new(a.max.x, i.max.y),
         ));
     }
-    out
 }
 
 #[cfg(test)]
@@ -148,7 +155,6 @@ mod tests {
         region.union(rect(0.0, 0.0, 10.0, 10.0));
         assert_eq!(region.area(), 100.0);
         for _ in 0..5 {
-            assert!(region.contains(rect(0.0, 0.0, 10.0, 10.0)));
             region.union(rect(0.0, 0.0, 10.0, 10.0));
         }
         assert_eq!(region.area(), 100.0);
@@ -183,7 +189,6 @@ mod tests {
     fn fully_contained_rect_is_a_noop() {
         let mut region = PaintedRegion::default();
         region.union(rect(0.0, 0.0, 100.0, 100.0));
-        assert!(region.contains(rect(10.0, 10.0, 20.0, 20.0)));
         region.union(rect(10.0, 10.0, 20.0, 20.0));
         assert_eq!(region.area(), 10_000.0);
     }
@@ -193,6 +198,43 @@ mod tests {
         let mut region = PaintedRegion::default();
         region.union(rect(5.0, 5.0, 5.0, 5.0));
         assert_eq!(region.area(), 0.0);
-        assert!(region.contains(rect(5.0, 5.0, 5.0, 5.0)));
+    }
+
+    #[test]
+    fn rect_partially_covered_by_several_rects() {
+        let mut region = PaintedRegion::default();
+        region.union(rect(0.0, 0.0, 10.0, 10.0));
+        region.union(rect(20.0, 0.0, 30.0, 10.0));
+        // Far away, so it is not one of the rects overlapping the next one.
+        region.union(rect(100.0, 100.0, 110.0, 110.0));
+        // Spans both of the first two rects and the gap between them.
+        region.union(rect(5.0, 5.0, 25.0, 15.0));
+        // 3 * 100 + the 20x10 rect minus its two 5x5 overlaps.
+        assert_eq!(region.area(), 300.0 + 200.0 - 50.0);
+    }
+
+    #[test]
+    fn touching_rects_are_not_overlapping() {
+        let mut region = PaintedRegion::default();
+        region.union(rect(0.0, 0.0, 10.0, 10.0));
+        region.union(rect(10.0, 0.0, 20.0, 10.0));
+        assert_eq!(region.area(), 200.0);
+        assert_eq!(region.bounds(), rect(0.0, 0.0, 20.0, 10.0));
+    }
+
+    #[test]
+    fn many_disjoint_rects() {
+        // A grid of small rects, like a page of text. Each rect is added unsplit.
+        let mut region = PaintedRegion::default();
+        for row in 0..100 {
+            for column in 0..40 {
+                let (x, y) = (column as f32 * 12.0, row as f32 * 8.0);
+                region.union(rect(x, y, x + 10.0, y + 6.0));
+                // Revisiting the same fragment adds nothing.
+                region.union(rect(x, y, x + 10.0, y + 6.0));
+            }
+        }
+        assert_eq!(region.rects.len(), 4000);
+        assert_eq!(region.area(), 4000.0 * 60.0);
     }
 }
