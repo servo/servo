@@ -36,6 +36,9 @@ mod jscontext_first_arg;
 #[cfg(feature = "manual_domstring_new")]
 mod manual_domstring_new;
 
+#[cfg(feature = "no_gc_no_domroot")]
+mod no_gc_no_domroot;
+
 #[cfg(feature = "unrooted_must_root_lint")]
 mod unrooted_must_root;
 
@@ -60,6 +63,8 @@ impl Callbacks for MyCallbacks {
             jscontext_first_arg::register(lint_store);
             #[cfg(feature = "manual_domstring_new")]
             manual_domstring_new::register(lint_store);
+            #[cfg(feature = "no_gc_no_domroot")]
+            no_gc_no_domroot::register(lint_store);
             #[cfg(feature = "unrooted_must_root_lint")]
             unrooted_must_root::register(lint_store);
             #[cfg(feature = "trace_in_no_trace_lint")]
