@@ -740,10 +740,9 @@ impl VirtualMethods for HTMLTextAreaElement {
         }
         let el = copy.downcast::<HTMLTextAreaElement>().unwrap();
         el.value_dirty.set(self.value_dirty.get());
-        {
-            let mut text_input = el.text_input.safe_borrow_mut(cx.no_gc());
-            text_input.set_content(self.text_input.borrow().get_content());
-        }
+        el.text_input
+            .safe_borrow_mut(cx.no_gc())
+            .clone_content_from(&self.text_input.borrow());
         el.validity_state(cx)
             .perform_validation_and_update(cx, ValidationFlags::all());
     }
