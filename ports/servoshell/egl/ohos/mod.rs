@@ -438,9 +438,7 @@ impl std::fmt::Debug for ServoAction {
                 .debug_tuple("CreatePlatformWindow")
                 .field(window_id)
                 .finish(),
-            Self::CloseWindow(window) => {
-                f.debug_tuple("RemovePlatformWindow").field(window).finish()
-            },
+            Self::CloseWindow(window) => f.debug_tuple("CloseWindow").field(window).finish(),
         }
     }
 }
@@ -730,7 +728,7 @@ extern "C" fn on_surface_changed_cb(
     debug!("on_surface_changed_cb: xc: {xcomponent:?}, window: {native_window:?}");
     // SAFETY: We assume the system calls us with a valid xcomponent.
     let Some(window_id) = (unsafe { get_xcomponent_window_id(xcomponent) }) else {
-        log::error!("on_surface_created_cb failed to obtain window id");
+        log::error!("on_surface_changed_cb failed to obtain window id");
         return;
     };
     // SAFETY: We just obtained these pointers from the callback, so we can assume them to be valid.
@@ -1063,7 +1061,7 @@ fn focus_window(window_id: u32) {
     call(ServoAction::FocusWindow(ServoShellWindowId::from(
         window_id,
     )))
-    .expect("Could not focus webview");
+    .expect("Could not focus window");
 }
 
 #[napi]
