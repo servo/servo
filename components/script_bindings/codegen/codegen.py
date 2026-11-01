@@ -8070,33 +8070,30 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         if self.membersNeedTracing():
             mustRoot = "#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]\n"
 
-        # We can't unconditionally derive Default here, because union types can have unique
-        # default values provided for each usage. Instead, whenever possible we re-use the empty()
-        # method that is generated.
         if not self.hasRequiredFields(self.dictionary):
-            if d.parent:
-                inheritanceDefault = "        parent: Default::default(),\n"
-            else:
-                inheritanceDefault = ""
-            if not self.membersNeedTracing():
-                impl = "        Self::empty()\n"
-            else:
-                memberDefaults = [f"        {self.makeMemberName(m[0].identifier.name)}: Default::default(),"
-                                  for m in self.memberInfo]
-                joinedDefaults = '\n'.join(memberDefaults)
-                impl = (
-                    "        Self {\n"
-                    f"            {inheritanceDefault}{joinedDefaults}"
-                    "        }\n"
-                )
+            hasDefaults = self.generic or any(info.default is not None for _, info in self.memberInfo)
 
-            default = (
-                f"impl{self.generic} Default for {self.makeClassName(d)}{self.genericSuffix} {{\n"
-                "    fn default() -> Self {\n"
-                f"{impl}"
-                "    }\n"
-                "}\n"
-            )
+            if hasDefaults:
+                memberDecls = [f"{self.makeMemberName(member.identifier.name)}: {info.default or 'None'},"
+                               for member, info in self.memberInfo]
+
+                if d.parent:
+                    defaultFields.insert(0, "parent: Default::default(),")
+
+                joinedDefaultFields = '\n'.join(defaultFields)
+                joinedDefaultFields = CGIndenter(CGGeneric(joinedDefaultFields), 12).define()
+
+                default = f"""
+impl{self.generic} Default for {self.makeClassName(d)}{self.genericSuffix} {{
+    fn default() -> Self {{
+        Self {{
+{joinedMemberDecls}
+        }}
+    }}
+}}
+"""
+            else:
+                derive.append("Default")
 
         manualImpls = "\n".join(map(lambda t: self.manualImpl(t), self.manualImpls))
         joinedMemberDecls = '\n'.join(memberDecls)
@@ -8291,40 +8288,16 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         if self.hasRequiredFields(self.dictionary):
             return ""
 
-        modifier = ".into_inner()" if self.parentNeedsToBeTraced else ""
-
-        parentTemplate = f"parent: %s::%s::empty(){modifier},\n"
-        fieldTemplate = "%s: %s,\n"
-        functionTemplate = (
-            "pub fn empty() -> Self {\n"
-            "    Self {\n"
-            "%s"
-            "    }\n"
-            "}"
-        )
         if self.membersNeedTracing():
-            parentTemplate = f"dictionary.parent = %s::%s::empty(){modifier};\n"
-            fieldTemplate = "dictionary.%s = %s;\n"
-            functionTemplate = (
-                "pub fn empty() -> RootedTraceableBox<Self> {\n"
-                "    let mut dictionary = RootedTraceableBox::new(Self::default());\n"
-                "%s"
-                "    dictionary\n"
-                "}"
-            )
-        s = ""
-        if self.dictionary.parent:
-            assert isinstance(self.dictionary.parent, IDLDictionary)
-            s += parentTemplate % (self.makeModuleName(self.dictionary.parent),
-                                   self.makeClassName(self.dictionary.parent))
-        for member, info in self.memberInfo:
-            if not member.optional:
-                return ""
-            default = info.default
-            if not default:
-                default = "None"
-            s += fieldTemplate % (self.makeMemberName(member.identifier.name), default)
-        return functionTemplate % CGIndenter(CGGeneric(s), 12).define()
+            return """pub fn empty() -> RootedTraceableBox<Self> {
+    RootedTraceableBox::new(Self::default())
+}
+"""
+        else:
+            return """pub fn empty() -> Self {
+    Self::default()
+}
+"""
 
     def hasRequiredFields(self, dictionary: IDLDictionary) -> bool:
         if dictionary.parent:
