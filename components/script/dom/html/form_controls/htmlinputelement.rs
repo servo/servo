@@ -2540,8 +2540,8 @@ impl VirtualMethods for HTMLInputElement {
         elem.SetIndeterminate(cx, self.Indeterminate());
         elem.text_input
             .safe_borrow_mut(cx.no_gc())
-            .set_content(self.text_input.borrow().get_content());
-        self.value_changed(cx);
+            .clone_content_from(&self.text_input.borrow());
+        elem.value_changed(cx);
     }
 
     fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
