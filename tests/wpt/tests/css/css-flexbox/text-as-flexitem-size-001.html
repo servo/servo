@@ -56,7 +56,7 @@
     <script src="/resources/testharnessreport.js"></script>
     <script src="/resources/check-layout-th.js"></script>
   </head>
-  <body onload="checkLayout('.flexbox > div')">
+  <body onload="document.fonts.ready.then(() => checkLayout('.flexbox > div'))">
     <!-- Row 1: no special sizing: -->
     <div class="flexbox">
       <div data-expected-width="70" data-expected-height="35">
