@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset=windows-1252>
+<title>resource selection uses the document encoding to parse the URL</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+// U+00DF is encoded as %DF in windows-1252 and as %C3%9F in UTF-8.
+async_test(function(t) {
+  var v = document.createElement('video');
+  v.onloadstart = t.step_func_done(function() {
+    assert_equals(new URL(v.currentSrc).search, '?q=%DF');
+  });
+  v.src = '/media/movie_5.webm?q=\u00DF';
+}, 'src attribute');
+
+async_test(function(t) {
+  var v = document.createElement('video');
+  v.onloadstart = t.step_func_done(function() {
+    assert_equals(new URL(v.currentSrc).search, '?q=%DF');
+  });
+  var s = document.createElement('source');
+  s.src = '/media/movie_5.webm?q=\u00DF';
+  v.appendChild(s);
+}, 'source element');
+</script>
