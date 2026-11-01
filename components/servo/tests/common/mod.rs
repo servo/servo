@@ -14,7 +14,8 @@ use paint_api::rendering_context::{RenderingContext, SoftwareRenderingContext};
 use servo::{
     ConsoleLogLevel, EmbedderControl, InputEvent, InputEventId, InputEventResult, JSValue,
     JavaScriptEvaluationError, LoadStatus, MouseButton, MouseButtonAction, MouseButtonEvent,
-    MouseMoveEvent, Preferences, Servo, ServoBuilder, SimpleDialog, WebView, WebViewDelegate,
+    MouseMoveEvent, Preferences, ScrollState, Servo, ServoBuilder, SimpleDialog, WebView,
+    WebViewDelegate,
 };
 use webrender_api::units::DevicePoint;
 
@@ -98,6 +99,7 @@ pub(crate) struct WebViewDelegateImpl {
     pub(crate) fullscreen: Cell<bool>,
     pub(crate) crashes: Cell<usize>,
     pub(crate) input_event_result: RefCell<Option<InputEventResult>>,
+    pub(crate) scroll_states: RefCell<Vec<ScrollState>>,
 }
 
 #[allow(dead_code)] // Used by some tests and not others
@@ -116,6 +118,7 @@ impl WebViewDelegateImpl {
         self.fullscreen.set(false);
         self.crashes.set(0);
         *self.input_event_result.borrow_mut() = None;
+        self.scroll_states.borrow_mut().clear();
     }
 }
 
@@ -131,6 +134,10 @@ impl WebViewDelegate for WebViewDelegateImpl {
     fn notify_new_frame_ready(&self, webview: WebView) {
         self.new_frame_ready.set(true);
         webview.paint();
+    }
+
+    fn notify_scroll_state_changed(&self, _webview: WebView, scroll_state: ScrollState) {
+        self.scroll_states.borrow_mut().push(scroll_state);
     }
 
     fn notify_load_status_changed(&self, _webview: WebView, status: LoadStatus) {

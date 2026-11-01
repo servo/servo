@@ -217,3 +217,186 @@ fn test_scroll_tree_chain_through_overflow_hidden() {
         Some(LayoutVector2D::new(0.0, 0.0))
     );
 }
+
+/// Add a scroll node with the given geometry and sensitivity under `parent`, returning its
+/// [`ExternalScrollId`].
+fn add_sized_scroll_node(
+    tree: &mut ScrollTree,
+    parent: Option<ScrollTreeNodeId>,
+    id: u64,
+    clip_size: (f32, f32),
+    content_size: (f32, f32),
+    sensitivity: ScrollType,
+) -> (ScrollTreeNodeId, ExternalScrollId) {
+    let external_id = ExternalScrollId(id, PipelineId(0, 0));
+    let node_id = tree.add_scroll_tree_node(
+        parent,
+        SpatialTreeNodeInfo::Scroll(ScrollableNodeInfo {
+            external_id,
+            content_rect: Size2D::new(content_size.0, content_size.1).into(),
+            clip_rect: Size2D::new(clip_size.0, clip_size.1).into(),
+            scroll_sensitivity: AxesScrollSensitivity {
+                x: sensitivity,
+                y: sensitivity,
+            },
+            touch_action: TouchAction::Auto,
+            offset: LayoutVector2D::zero(),
+            offset_changed: Cell::new(false),
+        }),
+    );
+    (node_id, external_id)
+}
+
+/// The sensitivity of an `overflow: auto` node.
+fn scrollable() -> ScrollType {
+    ScrollType::Script | ScrollType::InputEvents | ScrollType::Touch
+}
+
+/// A viewport that does not respond to input events, as with `overflow: hidden`, with two
+/// inner scrollers: a large one covering most of the viewport and a small one.
+fn tree_with_unscrollable_root() -> (
+    ScrollTree,
+    ExternalScrollId,
+    ExternalScrollId,
+    ExternalScrollId,
+) {
+    let mut tree = ScrollTree::default();
+    let (root_id, root) = add_sized_scroll_node(
+        &mut tree,
+        None,
+        0,
+        (500., 500.),
+        (500., 3000.),
+        ScrollType::Script,
+    );
+    let (_, large) = add_sized_scroll_node(
+        &mut tree,
+        Some(root_id),
+        1,
+        (500., 450.),
+        (500., 5000.),
+        scrollable(),
+    );
+    let (_, small) = add_sized_scroll_node(
+        &mut tree,
+        Some(root_id),
+        2,
+        (100., 100.),
+        (100., 400.),
+        scrollable(),
+    );
+    (tree, root, large, small)
+}
+
+#[test]
+fn test_main_scroll_node_prefers_scrollable_root() {
+    let mut tree = ScrollTree::default();
+    let (root_id, root) = add_sized_scroll_node(
+        &mut tree,
+        None,
+        0,
+        (500., 500.),
+        (500., 3000.),
+        scrollable(),
+    );
+    add_sized_scroll_node(
+        &mut tree,
+        Some(root_id),
+        1,
+        (500., 500.),
+        (500., 9000.),
+        scrollable(),
+    );
+    assert_eq!(tree.main_scroll_node(root, None, 0.25), Some(root));
+}
+
+#[test]
+fn test_main_scroll_node_falls_back_to_largest_inner_scroller() {
+    let (tree, root, large, _) = tree_with_unscrollable_root();
+    assert_eq!(tree.main_scroll_node(root, None, 0.25), Some(large));
+}
+
+#[test]
+fn test_main_scroll_node_rejects_scrollers_below_area_floor() {
+    let mut tree = ScrollTree::default();
+    let (root_id, root) =
+        add_sized_scroll_node(&mut tree, None, 0, (500., 500.), (500., 500.), scrollable());
+    let (_, small) = add_sized_scroll_node(
+        &mut tree,
+        Some(root_id),
+        1,
+        (100., 100.),
+        (100., 400.),
+        scrollable(),
+    );
+    assert_eq!(tree.main_scroll_node(root, None, 0.25), None);
+    // Nor is a small scroller kept just because it was chosen before.
+    assert_eq!(tree.main_scroll_node(root, Some(small), 0.25), None);
+}
+
+#[test]
+fn test_main_scroll_node_keeps_valid_previous_choice() {
+    let (mut tree, root, large, _) = tree_with_unscrollable_root();
+    let (_, other) = add_sized_scroll_node(
+        &mut tree,
+        Some(ScrollTreeNodeId { index: 0 }),
+        3,
+        (500., 480.),
+        (500., 900.),
+        scrollable(),
+    );
+    // `other` is now the largest, but the previous choice still qualifies.
+    assert_eq!(tree.main_scroll_node(root, None, 0.25), Some(other));
+    assert_eq!(tree.main_scroll_node(root, Some(large), 0.25), Some(large));
+}
+
+#[test]
+fn test_main_scroll_node_drops_stale_previous_choice() {
+    let (mut tree, root, large, _) = tree_with_unscrollable_root();
+
+    // A previous choice that is no longer in the tree.
+    let gone = ExternalScrollId(42, PipelineId(0, 0));
+    assert_eq!(tree.main_scroll_node(root, Some(gone), 0.25), Some(large));
+
+    // A previous choice that can no longer be scrolled.
+    let (_, shrunk) = add_sized_scroll_node(
+        &mut tree,
+        Some(ScrollTreeNodeId { index: 0 }),
+        4,
+        (500., 480.),
+        (500., 480.),
+        scrollable(),
+    );
+    assert_eq!(tree.main_scroll_node(root, Some(shrunk), 0.25), Some(large));
+}
+
+#[test]
+fn test_main_scroll_node_empty_tree() {
+    let tree = ScrollTree::default();
+    let root = ExternalScrollId(0, PipelineId(0, 0));
+    assert_eq!(tree.main_scroll_node(root, None, 0.25), None);
+}
+
+#[test]
+fn test_scroll_node_info() {
+    let (tree, root, large, _) = tree_with_unscrollable_root();
+    let info = tree.scroll_node_info(large).unwrap();
+    assert_eq!(info.external_id, large);
+    assert_eq!(info.scrollable_size(), Size2D::new(0., 4550.));
+    assert!(info.can_scroll(ScrollType::InputEvents));
+    assert!(
+        !tree
+            .scroll_node_info(root)
+            .unwrap()
+            .can_scroll(ScrollType::InputEvents)
+    );
+    assert!(
+        tree.scroll_node_info(root)
+            .unwrap()
+            .can_scroll(ScrollType::Script)
+    );
+    assert!(
+        tree.scroll_node_info(ExternalScrollId(42, PipelineId(0, 0)))
+            .is_none()
+    );
+}

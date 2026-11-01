@@ -323,8 +323,19 @@ impl ScrollableNodeInfo {
 }
 
 impl ScrollableNodeInfo {
-    fn scrollable_size(&self) -> LayoutSize {
+    /// The maximum scroll offset of this node in each axis: how far its content extends
+    /// past its clip rectangle. An axis with a non-positive value cannot be scrolled.
+    pub fn scrollable_size(&self) -> LayoutSize {
         self.content_rect.size() - self.clip_rect.size()
+    }
+
+    /// Whether this node can actually be scrolled, in at least one axis, by a scroll of
+    /// the given [`ScrollType`]: it has something to scroll in that axis and is sensitive
+    /// to that kind of scroll there.
+    pub fn can_scroll(&self, context: ScrollType) -> bool {
+        let scrollable_size = self.scrollable_size();
+        (scrollable_size.width > 0. && self.scroll_sensitivity.x.contains(context)) ||
+            (scrollable_size.height > 0. && self.scroll_sensitivity.y.contains(context))
     }
 }
 
@@ -583,6 +594,63 @@ impl ScrollTree {
             scrollable_size.width > 0.,
             scrollable_size.height > 0.,
         ))
+    }
+
+    /// Get the [`ScrollableNodeInfo`] of the scroll node with the given [`ExternalScrollId`],
+    /// or `None` if there is no such scroll node in this tree.
+    pub fn scroll_node_info(&self, external_id: ExternalScrollId) -> Option<&ScrollableNodeInfo> {
+        self.nodes.iter().find_map(|node| match &node.info {
+            SpatialTreeNodeInfo::Scroll(info) if info.external_id == external_id => Some(info),
+            _ => None,
+        })
+    }
+
+    /// Find the scroll node that acts as the main scroller of the page described by this
+    /// tree, which is what an embedder's scrollbars should reflect.
+    ///
+    /// This is usually the viewport, `root`. Some pages, though, make the viewport
+    /// unscrollable and scroll an inner container that fills most of it instead -- document
+    /// viewers such as PDF.js do this. So:
+    ///
+    ///  1. `previous`, the node returned last time, is kept while it can still be scrolled by
+    ///     input events and still covers at least `min_area_fraction` of the viewport's area.
+    ///     This keeps the choice stable when several nodes would qualify.
+    ///  2. Otherwise `root` is chosen if it can be scrolled by input events.
+    ///  3. Otherwise the largest node that can be scrolled by input events and covers at least
+    ///     `min_area_fraction` of the viewport's area is chosen. The floor stops an incidental
+    ///     small overflow box, such as a dropdown, from being taken for the page's scroller.
+    ///
+    /// Returns `None` if `root` is not in the tree or nothing qualifies.
+    pub fn main_scroll_node(
+        &self,
+        root: ExternalScrollId,
+        previous: Option<ExternalScrollId>,
+        min_area_fraction: f32,
+    ) -> Option<ExternalScrollId> {
+        let root_info = self.scroll_node_info(root)?;
+        let min_area = root_info.clip_rect.area() * min_area_fraction;
+        let qualifies = |info: &ScrollableNodeInfo| {
+            info.can_scroll(ScrollType::InputEvents) && info.clip_rect.area() >= min_area
+        };
+
+        if let Some(previous) = previous &&
+            self.scroll_node_info(previous).is_some_and(qualifies)
+        {
+            return Some(previous);
+        }
+
+        if root_info.can_scroll(ScrollType::InputEvents) {
+            return Some(root);
+        }
+
+        self.nodes
+            .iter()
+            .filter_map(|node| match &node.info {
+                SpatialTreeNodeInfo::Scroll(info) if qualifies(info) => Some(info),
+                _ => None,
+            })
+            .max_by(|a, b| a.clip_rect.area().total_cmp(&b.clip_rect.area()))
+            .map(|info| info.external_id)
     }
 
     /// Scroll the scroll node with the given [`ExternalScrollId`] on this scroll tree. If

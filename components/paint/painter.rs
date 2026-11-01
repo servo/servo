@@ -313,16 +313,15 @@ impl Painter {
 
     pub(crate) fn perform_updates(&mut self) {
         let mut need_zoom = false;
-        let scroll_offset_updates: Vec<_> = self
-            .webview_renderers
-            .values_mut()
-            .filter_map(|webview_renderer| {
-                let (zoom, scroll_result) = webview_renderer
-                    .process_pending_scroll_and_pinch_zoom_events(&self.webrender_api);
-                need_zoom = need_zoom || (zoom == PinchZoomResult::DidPinchZoom);
-                scroll_result
-            })
-            .collect();
+        let mut scroll_offset_updates = Vec::new();
+        for webview_renderer in self.webview_renderers.values_mut() {
+            let (zoom, scroll_result) =
+                webview_renderer.process_pending_scroll_and_pinch_zoom_events(&self.webrender_api);
+            need_zoom = need_zoom || (zoom == PinchZoomResult::DidPinchZoom);
+            scroll_offset_updates.extend(scroll_result);
+            // Applied last, so that it wins over relative scrolls from the same update.
+            scroll_offset_updates.extend(webview_renderer.process_pending_scroll_to());
+        }
 
         let dynamic_properties_updated =
             self.web_content_animator.update(&self.webview_renderers) || need_zoom;
@@ -330,6 +329,10 @@ impl Painter {
             dynamic_properties_updated,
             scroll_offset_updates,
         );
+
+        for webview_renderer in self.webview_renderers.values_mut() {
+            webview_renderer.update_scroll_state();
+        }
     }
 
     #[track_caller]
@@ -980,6 +983,7 @@ impl Painter {
             warn!("Could not scroll node with id: {external_scroll_id:?}");
             return;
         };
+        webview_renderer.mark_scroll_state_dirty();
 
         let mut transaction = Transaction::new();
         transaction.set_scroll_offsets(
@@ -1053,6 +1057,7 @@ impl Painter {
         let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) else {
             return warn!("Could not find WebView for incoming display list");
         };
+        webview_renderer.mark_scroll_state_dirty();
 
         let old_scale = webview_renderer.device_pixels_per_page_pixel();
         let pipeline_id = display_list_info.pipeline_id;
@@ -1464,6 +1469,12 @@ impl Painter {
     ) {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
             webview_renderer.notify_scroll_event(scroll, point);
+        }
+    }
+
+    pub(crate) fn scroll_to(&mut self, webview_id: WebViewId, offset: LayoutVector2D) {
+        if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
+            webview_renderer.scroll_to(offset);
         }
     }
 

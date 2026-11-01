@@ -14,7 +14,7 @@ use std::sync::{Arc, Mutex};
 use dpi::PhysicalSize;
 use embedder_traits::{RefreshDriver, UrlRequest};
 use euclid::default::Size2D as UntypedSize2D;
-use euclid::{Point2D, Size2D};
+use euclid::{Point2D, Size2D, Vector2D};
 use http::{HeaderMap, HeaderName, HeaderValue};
 use http_body_util::combinators::BoxBody;
 use hyper::body::{Bytes, Incoming};
@@ -27,8 +27,8 @@ use servo::profile_traits::mem::MemoryReportResult;
 use servo::{
     CreateNewWebViewRequest, Cursor, EmbedderControl, InputEvent, InputMethodType, JSValue,
     LoadStatus, MouseButton, MouseLeftViewportEvent, MouseMoveEvent, PrefValue, RenderingContext,
-    Scroll, SimpleDialog, Theme, WebView, WebViewBuilder, WebViewDelegate, WebViewPoint,
-    WebViewVector,
+    Scroll, ScrollState, SimpleDialog, Theme, WebView, WebViewBuilder, WebViewDelegate,
+    WebViewPoint, WebViewVector,
 };
 use servo_base::generic_channel::GenericCallback;
 use servo_config::prefs::Preferences;
@@ -1264,4 +1264,253 @@ fn test_about_memory_page_loads() {
             value => panic!("unexpected JSValue: {value:?}"),
         }
     });
+}
+
+/// A page whose viewport scrolls: 3000px tall, in a 500x500 viewport.
+const TALL_PAGE: &str =
+    "data:text/html,<!DOCTYPE html><body style='margin:0'><div style='height:3000px'></div></body>";
+
+/// A page whose viewport cannot be scrolled by the user, which scrolls an inner container
+/// covering the whole viewport instead, like the PDF.js viewer.
+const INNER_SCROLLER_PAGE: &str = "data:text/html,<!DOCTYPE html>\
+    <style>html,body{margin:0;height:100%;overflow:hidden} \
+    %23scroller{height:100%;overflow:auto}</style>\
+    <div id='scroller'><div style='height:4000px'></div></div>";
+
+fn load_page_and_wait_for_scroll_state(
+    servo_test: &ServoTest,
+    delegate: &Rc<WebViewDelegateImpl>,
+    url: &str,
+    expected_content_height: f32,
+) -> WebView {
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(Url::parse(url).unwrap())
+        .build();
+    show_webview_and_wait_for_rendering_to_be_ready(servo_test, &webview, delegate);
+    wait_for_scroll_state(servo_test, &webview, |state| {
+        state.content_size.height == expected_content_height
+    });
+    webview
+}
+
+fn wait_for_scroll_state(
+    servo_test: &ServoTest,
+    webview: &WebView,
+    predicate: impl Fn(&ScrollState) -> bool,
+) -> ScrollState {
+    servo_test.spin(|| {
+        !webview
+            .scroll_state()
+            .is_some_and(|state| predicate(&state))
+    });
+    webview.scroll_state().unwrap()
+}
+
+fn evaluate_number(servo_test: &ServoTest, webview: &WebView, script: &str) -> f64 {
+    match evaluate_javascript(servo_test, webview.clone(), script) {
+        Ok(JSValue::Number(number)) => number,
+        value => panic!("unexpected result for {script}: {value:?}"),
+    }
+}
+
+/// Assert that the delegate was told about every change, and only about changes.
+fn assert_no_duplicate_scroll_state_notifications(delegate: &WebViewDelegateImpl) {
+    let states = delegate.scroll_states.borrow();
+    for pair in states.windows(2) {
+        assert_ne!(pair[0], pair[1], "duplicate notification in {states:?}");
+    }
+}
+
+#[test]
+fn test_scroll_state_of_scrollable_viewport() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = load_page_and_wait_for_scroll_state(&servo_test, &delegate, TALL_PAGE, 3000.);
+
+    let state = webview.scroll_state().unwrap();
+    assert_eq!(state.offset, Vector2D::zero());
+    assert_eq!(state.content_size, Size2D::new(500., 3000.));
+    assert_eq!(state.viewport_size, Size2D::new(500., 500.));
+    assert_eq!(state.max_offset(), Vector2D::new(0., 2500.));
+    assert_eq!(delegate.scroll_states.borrow().last(), Some(&state));
+    assert_no_duplicate_scroll_state_notifications(&delegate);
+}
+
+#[test]
+fn test_scroll_state_follows_input_and_script_scrolls() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = load_page_and_wait_for_scroll_state(&servo_test, &delegate, TALL_PAGE, 3000.);
+
+    webview.notify_scroll_event(
+        Scroll::Delta(WebViewVector::Device(DeviceVector2D::new(0., 100.))),
+        WebViewPoint::Device(DevicePoint::new(250., 250.)),
+    );
+    let state = wait_for_scroll_state(&servo_test, &webview, |state| state.offset.y == 100.);
+    assert_eq!(state.offset.x, 0.);
+    assert_eq!(delegate.scroll_states.borrow().last(), Some(&state));
+
+    let _ = evaluate_javascript(&servo_test, webview.clone(), "window.scrollTo(0, 1000)");
+    let state = wait_for_scroll_state(&servo_test, &webview, |state| state.offset.y == 1000.);
+    assert_eq!(delegate.scroll_states.borrow().last(), Some(&state));
+
+    assert_no_duplicate_scroll_state_notifications(&delegate);
+}
+
+#[test]
+fn test_scroll_state_of_inner_scroller() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview =
+        load_page_and_wait_for_scroll_state(&servo_test, &delegate, INNER_SCROLLER_PAGE, 4000.);
+
+    let state = webview.scroll_state().unwrap();
+    let scroller = "document.getElementById('scroller')";
+    assert_eq!(
+        state.content_size.height as f64,
+        evaluate_number(&servo_test, &webview, &format!("{scroller}.scrollHeight"))
+    );
+    assert_eq!(
+        state.viewport_size.height as f64,
+        evaluate_number(&servo_test, &webview, &format!("{scroller}.clientHeight"))
+    );
+    assert_eq!(
+        state.viewport_size.width as f64,
+        evaluate_number(&servo_test, &webview, &format!("{scroller}.clientWidth"))
+    );
+
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        format!("{scroller}.scrollTop = 250"),
+    );
+    wait_for_scroll_state(&servo_test, &webview, |state| state.offset.y == 250.);
+}
+
+#[test]
+fn test_scroll_state_not_reported_again_without_changes() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = load_page_and_wait_for_scroll_state(&servo_test, &delegate, TALL_PAGE, 3000.);
+    delegate.scroll_states.borrow_mut().clear();
+
+    // Produce new display lists that do not change the scroll geometry.
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "document.body.style.background = 'blue'",
+    );
+    wait_for_webview_scene_to_be_up_to_date(&servo_test, &webview);
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "document.body.style.background = 'yellow'",
+    );
+    wait_for_webview_scene_to_be_up_to_date(&servo_test, &webview);
+
+    assert!(delegate.scroll_states.borrow().is_empty());
+}
+
+#[test]
+fn test_scroll_to() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = load_page_and_wait_for_scroll_state(&servo_test, &delegate, TALL_PAGE, 3000.);
+
+    webview.scroll_to(Point2D::new(0., 500.));
+    let state = wait_for_scroll_state(&servo_test, &webview, |state| state.offset.y == 500.);
+    assert_eq!(delegate.scroll_states.borrow().last(), Some(&state));
+    assert_eq!(
+        evaluate_number(&servo_test, &webview, "window.scrollY"),
+        500.
+    );
+
+    // Out of range offsets are clamped to the scrollable extent.
+    webview.scroll_to(Point2D::new(100., 100000.));
+    let state = wait_for_scroll_state(&servo_test, &webview, |state| state.offset.y == 2500.);
+    assert_eq!(state.offset.x, 0.);
+    webview.scroll_to(Point2D::new(-10., -10.));
+    wait_for_scroll_state(&servo_test, &webview, |state| {
+        state.offset == Vector2D::zero()
+    });
+
+    assert_no_duplicate_scroll_state_notifications(&delegate);
+}
+
+#[test]
+fn test_scroll_to_is_coalesced() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = load_page_and_wait_for_scroll_state(&servo_test, &delegate, TALL_PAGE, 3000.);
+    delegate.scroll_states.borrow_mut().clear();
+
+    // Without spinning the event loop in between, only the last request is applied.
+    webview.scroll_to(Point2D::new(0., 100.));
+    webview.scroll_to(Point2D::new(0., 200.));
+    webview.scroll_to(Point2D::new(0., 700.));
+    wait_for_scroll_state(&servo_test, &webview, |state| state.offset.y == 700.);
+
+    let offsets: Vec<f32> = delegate
+        .scroll_states
+        .borrow()
+        .iter()
+        .map(|state| state.offset.y)
+        .collect();
+    assert_eq!(offsets, vec![700.]);
+}
+
+#[test]
+fn test_scroll_to_scrolls_inner_scroller() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview =
+        load_page_and_wait_for_scroll_state(&servo_test, &delegate, INNER_SCROLLER_PAGE, 4000.);
+
+    webview.scroll_to(Point2D::new(0., 300.));
+    wait_for_scroll_state(&servo_test, &webview, |state| state.offset.y == 300.);
+
+    // Layout and script learn about the new offset of the inner scroller, while the
+    // `overflow: hidden` viewport stays put.
+    assert_eq!(
+        evaluate_number(
+            &servo_test,
+            &webview,
+            "document.getElementById('scroller').scrollTop"
+        ),
+        300.
+    );
+    assert_eq!(
+        evaluate_number(&servo_test, &webview, "document.scrollingElement.scrollTop"),
+        0.
+    );
+}
+
+#[test]
+fn test_scroll_to_fires_scroll_event() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = load_page_and_wait_for_scroll_state(&servo_test, &delegate, TALL_PAGE, 3000.);
+
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "window.scrolledTo = null; \
+         window.addEventListener('scroll', () => window.scrolledTo = window.scrollY);",
+    );
+    webview.scroll_to(Point2D::new(0., 400.));
+    wait_for_scroll_state(&servo_test, &webview, |state| state.offset.y == 400.);
+
+    // The scroll event is dispatched during the next update of the rendering.
+    let scrolled_to = (0..200).find_map(|_| {
+        match evaluate_javascript(
+            &servo_test,
+            webview.clone(),
+            "requestAnimationFrame(() => {}); window.scrolledTo",
+        ) {
+            Ok(JSValue::Number(number)) => Some(number),
+            _ => None,
+        }
+    });
+    assert_eq!(scrolled_to, Some(400.));
 }

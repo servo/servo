@@ -9,8 +9,8 @@ use std::rc::Rc;
 use crossbeam_channel::Sender;
 use embedder_traits::{
     AnimationState, InputEvent, InputEventAndId, InputEventId, InputEventResult,
-    PaintHitTestResult, Scroll, TouchEvent, TouchEventType, ViewportDetails, WebViewPoint,
-    WheelEvent,
+    PaintHitTestResult, Scroll, ScrollState, TouchEvent, TouchEventType, ViewportDetails,
+    WebViewPoint, WheelEvent,
 };
 use euclid::{Scale, Size2D, Vector2D};
 use log::{debug, warn};
@@ -29,7 +29,8 @@ use servo_geometry::DeviceIndependentPixel;
 use style_traits::CSSPixel;
 use webrender::RenderApi;
 use webrender_api::units::{
-    DevicePixel, DevicePoint, DeviceRect, DeviceVector2D, LayoutTransform, LayoutVector2D,
+    DevicePixel, DevicePoint, DeviceRect, DeviceVector2D, LayoutSize, LayoutTransform,
+    LayoutVector2D,
 };
 use webrender_api::{DocumentId, ExternalScrollId, PropertyBindingKey, ScrollLocation};
 
@@ -42,6 +43,10 @@ use crate::touch::{
     PanPolicyInput, PendingTouchInputEvent, TouchHandler, TouchIdMoveTracking, TouchMoveAllowed,
     TouchSequenceState,
 };
+
+/// The smallest share of the viewport's area that an inner scroller must cover to be
+/// reported to the embedder as the main scroller of the page.
+const MAIN_SCROLLER_MIN_AREA_FRACTION: f32 = 0.25;
 
 #[derive(Clone, Copy)]
 pub(crate) struct ScrollEvent {
@@ -126,6 +131,20 @@ pub(crate) struct WebViewRenderer {
     /// The [`PropertyBindingKey`] that this [`WebViewRenderer`] uses for pinch zoom.
     pinch_zoom_property_binding_key: PropertyBindingKey<LayoutTransform>,
 
+    /// Whether something that can change the [`ScrollState`] of this `WebView` happened
+    /// since it was last computed by [`Self::update_scroll_state`].
+    scroll_state_dirty: bool,
+    /// The main scroller last reported to the embedder, as the root pipeline it belongs to
+    /// and its scroll node. See [`ScrollTree::main_scroll_node`].
+    ///
+    /// [`ScrollTree::main_scroll_node`]: paint_api::display_list::ScrollTree::main_scroll_node
+    reported_scroller: Option<(PipelineId, ExternalScrollId)>,
+    /// The [`ScrollState`] last reported to the embedder.
+    last_scroll_state: Option<ScrollState>,
+    /// An absolute scroll offset for the main scroller requested by the embedder, which
+    /// is applied the next time scroll events are processed.
+    pending_scroll_to: Option<LayoutVector2D>,
+
     //
     // Data that is shared with the parent renderer.
     //
@@ -166,6 +185,10 @@ impl WebViewRenderer {
             animating: false,
             viewport_description: Default::default(),
             screen_size: viewport_details.device_size,
+            scroll_state_dirty: false,
+            reported_scroller: None,
+            last_scroll_state: None,
+            pending_scroll_to: None,
             embedder_to_constellation_sender,
             refresh_driver,
             webrender_document,
@@ -263,6 +286,7 @@ impl WebViewRenderer {
         }
 
         self.set_frame_tree_on_pipeline_details(frame_tree, None);
+        self.mark_scroll_state_dirty();
     }
 
     pub(crate) fn send_scroll_positions_to_layout_for_pipeline(
@@ -883,6 +907,7 @@ impl WebViewRenderer {
                 scroll_result.hit_test_result.pipeline_id,
                 scroll_result.external_scroll_id,
             );
+            self.mark_scroll_state_dirty();
         } else {
             self.touch_handler.stop_fling_if_needed();
         }
@@ -1011,6 +1036,7 @@ impl WebViewRenderer {
         };
 
         self.send_scroll_positions_to_layout_for_pipeline(root_pipeline_id, external_scroll_id);
+        self.mark_scroll_state_dirty();
 
         if pinch_zoom_result == PinchZoomResult::DidPinchZoom {
             self.send_pinch_zoom_infos_to_script();
@@ -1022,6 +1048,107 @@ impl WebViewRenderer {
             offset,
         };
         (pinch_zoom_result, vec![scroll_result])
+    }
+
+    /// Make the next [`Self::update_scroll_state`] recompute the [`ScrollState`].
+    pub(crate) fn mark_scroll_state_dirty(&mut self) {
+        self.scroll_state_dirty = true;
+    }
+
+    /// The scroll node of the root pipeline that scrolls requested by the embedder apply
+    /// to: the main scroller last reported, or the viewport if there is none yet.
+    fn embedder_scroll_target(&self) -> Option<(PipelineId, ExternalScrollId)> {
+        let root_pipeline_id = self.root_pipeline_id?;
+        let scroller = self
+            .reported_scroller
+            .filter(|(pipeline_id, _)| *pipeline_id == root_pipeline_id)
+            .map(|(_, scroller)| scroller)
+            .unwrap_or(ExternalScrollId(0, root_pipeline_id.into()));
+        Some((root_pipeline_id, scroller))
+    }
+
+    /// Request that the main scroller of this `WebView` be scrolled to the given absolute
+    /// offset. Only the last request made before scroll events are next processed is applied.
+    pub(crate) fn scroll_to(&mut self, offset: LayoutVector2D) {
+        self.pending_scroll_to = Some(offset);
+    }
+
+    /// Apply the scroll requested by [`Self::scroll_to`], if any, returning a
+    /// [`ScrollResult`] if the main scroller actually moved.
+    pub(crate) fn process_pending_scroll_to(&mut self) -> Option<ScrollResult> {
+        let offset = self.pending_scroll_to.take()?;
+        let (pipeline_id, external_scroll_id) = self.embedder_scroll_target()?;
+        let offset = self
+            .pipelines
+            .get_mut(&pipeline_id)?
+            .scroll_tree
+            .set_scroll_offset_for_node_with_external_scroll_id(
+                external_scroll_id,
+                offset,
+                // Scrollbars must not scroll what the user cannot scroll otherwise.
+                ScrollType::InputEvents,
+            )?;
+
+        self.send_scroll_positions_to_layout_for_pipeline(pipeline_id, external_scroll_id);
+        self.mark_scroll_state_dirty();
+
+        Some(ScrollResult {
+            hit_test_result: PaintHitTestResult {
+                pipeline_id,
+                point_in_viewport: Default::default(),
+                external_scroll_id,
+            },
+            external_scroll_id,
+            offset,
+        })
+    }
+
+    /// Recompute the [`ScrollState`] of this `WebView` if anything that can affect it
+    /// happened since the last call, and report it to the embedding layer if it changed.
+    pub(crate) fn update_scroll_state(&mut self) {
+        if !std::mem::take(&mut self.scroll_state_dirty) {
+            return;
+        }
+
+        // Before the first display list of a new page arrives, its scroll tree is empty.
+        // Keep the last state until then, so that scrollbars do not flicker.
+        let Some((root_pipeline_id, previous)) = self.embedder_scroll_target() else {
+            return;
+        };
+        let Some(scroll_tree) = self
+            .pipelines
+            .get(&root_pipeline_id)
+            .map(|details| &details.scroll_tree)
+        else {
+            return;
+        };
+        let root = ExternalScrollId(0, root_pipeline_id.into());
+        let previous = Some(previous).filter(|previous| *previous != root);
+        // When nothing can be scrolled, report the viewport, so the embedder hides its
+        // scrollbars.
+        let scroller = scroll_tree
+            .main_scroll_node(root, previous, MAIN_SCROLLER_MIN_AREA_FRACTION)
+            .unwrap_or(root);
+        let Some(info) = scroll_tree.scroll_node_info(scroller) else {
+            return;
+        };
+
+        // Small layout differences should not wake up the embedder.
+        let quantize = |value: f32| (value * 64.).round() / 64.;
+        let quantize_size = |size: LayoutSize| {
+            Size2D::<f32, CSSPixel>::new(quantize(size.width), quantize(size.height))
+        };
+        let viewport_size = quantize_size(info.clip_rect.size());
+        let scroll_state = ScrollState {
+            offset: info.offset.cast_unit().map(quantize),
+            content_size: quantize_size(info.content_rect.size()).max(viewport_size),
+            viewport_size,
+        };
+
+        self.reported_scroller = Some((root_pipeline_id, scroller));
+        if self.last_scroll_state.replace(scroll_state) != Some(scroll_state) {
+            self.webview.notify_scroll_state_changed(scroll_state);
+        }
     }
 
     /// Send [`PinchZoom`] update to the script's root pipeline.

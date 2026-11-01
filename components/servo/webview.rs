@@ -15,9 +15,9 @@ use embedder_traits::{
     ContextMenuAction, ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlRequest, Image,
     InputEvent, InputEventAndId, InputEventId, JSValue, JavaScriptEvaluationError, LoadStatus,
     MediaSessionActionType, NewWebViewDetails, ScreenGeometry, ScreenshotCaptureError, Scroll,
-    Theme, TraversalId, UrlRequest, ViewportDetails, WebViewPoint, WebViewRect,
+    ScrollState, Theme, TraversalId, UrlRequest, ViewportDetails, WebViewPoint, WebViewRect,
 };
-use euclid::{Scale, Size2D};
+use euclid::{Point2D, Scale, Size2D};
 use image::RgbaImage;
 use log::debug;
 use paint_api::WebViewTrait;
@@ -124,6 +124,11 @@ pub(crate) struct WebViewInner {
     /// which could cause re-entrant `RefCell` borrows. See
     /// [`WebView::note_accessibility_viewport_changed()`].
     accessibility_viewport_changed: Cell<bool>,
+    /// The [`ScrollState`] of the main scroller of this [`WebView`], as last reported by the
+    /// paint layer via [`WebViewTrait::notify_scroll_state_changed()`].
+    scroll_state: Option<ScrollState>,
+    /// Set when [`Self::scroll_state`] changes. See [`Self::accessibility_viewport_changed`].
+    scroll_state_changed: Cell<bool>,
 
     rendering_context: Rc<dyn RenderingContext>,
     user_content_manager: Option<Rc<UserContentManager>>,
@@ -179,6 +184,8 @@ impl WebView {
             grafted_accesskit_tree_id: None,
             grafted_accesskit_tree_epoch: None,
             accessibility_viewport_changed: Cell::new(false),
+            scroll_state: None,
+            scroll_state_changed: Cell::new(false),
             hidpi_scale_factor: builder.hidpi_scale_factor,
             load_status: LoadStatus::Started,
             status_text: None,
@@ -412,6 +419,31 @@ impl WebView {
         self.inner().cursor
     }
 
+    /// The [`ScrollState`] of the main scroller of the page in this [`WebView`]: its scroll
+    /// offset, the size of its content and the size of its visible area, in CSS pixels. This
+    /// is `None` until the first page has been laid out.
+    ///
+    /// The main scroller is the viewport, unless the viewport cannot be scrolled by the user
+    /// and the page scrolls a container covering most of it instead. Changes are reported via
+    /// [`WebViewDelegate::notify_scroll_state_changed`].
+    pub fn scroll_state(&self) -> Option<ScrollState> {
+        self.inner().scroll_state
+    }
+
+    fn set_scroll_state(&self, new_value: ScrollState) {
+        let mut inner = self.inner_mut();
+        if inner.scroll_state == Some(new_value) {
+            return;
+        }
+        inner.scroll_state = Some(new_value);
+        inner.scroll_state_changed.set(true);
+    }
+
+    /// Take (and reset) the flag set when [`Self::scroll_state`] changes.
+    pub(crate) fn take_scroll_state_changed(&self) -> bool {
+        self.inner().scroll_state_changed.take()
+    }
+
     pub(crate) fn set_cursor(self, new_value: Cursor) {
         if self.inner().cursor == new_value {
             return;
@@ -614,6 +646,21 @@ impl WebView {
         self.servo()
             .paint()
             .notify_scroll_event(self.id(), scroll, point);
+    }
+
+    /// Scroll the main scroller of the page in this [`WebView`], the one described by
+    /// [`WebView::scroll_state`], to the given absolute `offset` in CSS pixels. This is what
+    /// toolkit scrollbars should call when the user moves them.
+    ///
+    /// The offset is clamped to the scrollable extent, and axes that the user cannot scroll
+    /// (for instance because of `overflow: hidden`) are left alone. Only the last call made
+    /// before the next spin of the event loop takes effect. The page receives `scroll`
+    /// events as for any user scroll, and the new state is reported via
+    /// [`WebViewDelegate::notify_scroll_state_changed`].
+    pub fn scroll_to(&self, offset: Point2D<f32, CSSPixel>) {
+        self.servo()
+            .paint()
+            .scroll_to(self.id(), offset.to_vector().cast_unit());
     }
 
     /// Notify this [`WebView`] about an [`InputEvent`] such as a mouse click, touch
@@ -1095,6 +1142,12 @@ impl WebViewTrait for ServoRendererWebView {
     fn notify_viewport_updated(&self) {
         if let Some(webview) = WebView::from_weak_handle(&self.weak_handle) {
             webview.note_accessibility_viewport_changed();
+        }
+    }
+
+    fn notify_scroll_state_changed(&self, scroll_state: ScrollState) {
+        if let Some(webview) = WebView::from_weak_handle(&self.weak_handle) {
+            webview.set_scroll_state(scroll_state);
         }
     }
 }

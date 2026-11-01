@@ -50,7 +50,7 @@ use webgl::webgl_thread::WebGLContextBusyMap;
 #[cfg(feature = "webgpu")]
 use webgpu::canvas_context::WebGpuExternalImageMap;
 use webrender::{CaptureBits, MemoryReport};
-use webrender_api::units::{DevicePixel, DevicePoint};
+use webrender_api::units::{DevicePixel, DevicePoint, LayoutVector2D};
 use webrender_api::{FontInstanceKey, FontKey, ImageKey};
 #[cfg(feature = "webxr")]
 use webxr::WebXrRegistry;
@@ -861,6 +861,14 @@ impl Paint {
         }
         self.painter_mut(webview_id.into())
             .notify_scroll_event(webview_id, scroll, point);
+    }
+
+    pub fn scroll_to(&self, webview_id: WebViewId, offset: LayoutVector2D) {
+        if self.shutdown_state() != ShutdownState::NotShuttingDown {
+            return;
+        }
+        self.painter_mut(webview_id.into())
+            .scroll_to(webview_id, offset);
     }
 
     pub fn adjust_pinch_zoom(

@@ -391,6 +391,7 @@ impl ServoInner {
 
         self.paint.borrow_mut().perform_updates();
         self.resend_accessibility_root_nodes_for_viewport_changes();
+        self.send_scroll_state_changes();
         self.send_new_frame_ready_messages();
         self.handle_delegate_errors();
         self.clean_up_destroyed_webview_handles();
@@ -419,6 +420,27 @@ impl ServoInner {
         for webview in webviews {
             if webview.take_accessibility_viewport_changed() {
                 webview.send_accessibility_root_node();
+            }
+        }
+    }
+
+    /// Notify the [`WebViewDelegate`] of every [`WebView`] whose
+    /// [`ScrollState`](crate::ScrollState) changed. See
+    /// [`Self::resend_accessibility_root_nodes_for_viewport_changes()`] for why this runs here.
+    fn send_scroll_state_changes(&self) {
+        let webviews: Vec<WebView> = self
+            .webviews
+            .borrow()
+            .values()
+            .filter_map(WebView::from_weak_handle)
+            .collect();
+        for webview in webviews {
+            if webview.take_scroll_state_changed() &&
+                let Some(scroll_state) = webview.scroll_state()
+            {
+                webview
+                    .delegate()
+                    .notify_scroll_state_changed(webview, scroll_state);
             }
         }
     }

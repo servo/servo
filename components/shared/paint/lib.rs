@@ -30,7 +30,7 @@ use std::sync::{Arc, Mutex};
 
 use bitflags::bitflags;
 use display_list::PaintDisplayListInfo;
-use embedder_traits::ScreenGeometry;
+use embedder_traits::{ScreenGeometry, ScrollState};
 use euclid::default::Size2D as UntypedSize2D;
 use profile_traits::mem::{OpaqueSender, ReportsChan};
 use serde::{Deserialize, Serialize};
@@ -783,6 +783,10 @@ pub trait WebViewTrait {
     /// or pinch zoom, or HiDPI scale — so it can refresh geometry, such as the accessibility root
     /// node, that the embedder derives from the viewport rather than from a pipeline update.
     fn notify_viewport_updated(&self);
+    /// Notify the embedding layer that the [`ScrollState`] of this `WebView`'s main scroller
+    /// changed. This must not call into the embedder directly, because it is called while
+    /// `Paint` is borrowed.
+    fn notify_scroll_state_changed(&self, scroll_state: ScrollState);
 }
 
 /// What entity is reporting that a `Pipeline` has exited. Only when all have

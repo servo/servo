@@ -182,6 +182,33 @@ pub enum Scroll {
     End,
 }
 
+/// The scroll position and extent of the main scroller of a `WebView`'s page, which is
+/// what toolkit scrollbars attached to the `WebView` should reflect.
+///
+/// The main scroller is usually the viewport. If the viewport cannot be scrolled by the
+/// user, but the page scrolls a container covering most of the viewport instead (as
+/// document viewers such as PDF.js do), it is that container.
+///
+/// All values are in CSS pixels, so they match `scrollLeft` / `scrollTop`,
+/// `scrollWidth` / `scrollHeight` and `clientWidth` / `clientHeight` of the scroller.
+/// They describe the layout viewport and do not take pinch zoom into account.
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub struct ScrollState {
+    /// How far the scroller is scrolled from the top left of its content.
+    pub offset: Vector2D<f32, CSSPixel>,
+    /// The size of the scroller's content. This is never smaller than `viewport_size`.
+    pub content_size: Size2D<f32, CSSPixel>,
+    /// The size of the visible part of the scroller.
+    pub viewport_size: Size2D<f32, CSSPixel>,
+}
+
+impl ScrollState {
+    /// The largest valid offset in each axis.
+    pub fn max_offset(&self) -> Vector2D<f32, CSSPixel> {
+        (self.content_size - self.viewport_size).to_vector()
+    }
+}
+
 /// Tracks whether Servo isn't shutting down, is in the process of shutting down,
 /// or has finished shutting down.
 #[derive(Clone, Copy, Debug, PartialEq)]
