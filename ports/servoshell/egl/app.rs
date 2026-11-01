@@ -439,15 +439,26 @@ impl App {
         self.spin_event_loop();
     }
 
-    /// Let Servo know that the window has been resized.
+    /// Let Servo know that the platform window has been resized.
     pub fn resize(&self, viewport_rect: Rect<i32, DevicePixel>) {
-        if let Some(webview) = self.active_or_newest_webview() {
+        self.resize_window(&self.window(), viewport_rect);
+    }
+
+    /// Let Servo know that `window` has been resized.
+    pub(crate) fn resize_window(
+        &self,
+        window: &ServoShellWindow,
+        viewport_rect: Rect<i32, DevicePixel>,
+    ) {
+        if let Some(webview) = window.active_or_newest_webview() {
             info!("Setting viewport to {viewport_rect:?}");
             let size = viewport_rect.size;
             webview.resize(PhysicalSize::new(size.width as u32, size.height as u32));
         }
-        let window = self.window().platform_window();
-        let embedded_platform_window = window.as_headed_window().expect("No headed window");
+        let platform_window = window.platform_window();
+        let embedded_platform_window = platform_window
+            .as_headed_window()
+            .expect("No headed window");
         *embedded_platform_window.viewport_rect.borrow_mut() = viewport_rect;
 
         self.spin_event_loop();

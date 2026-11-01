@@ -42,6 +42,12 @@ impl From<u64> for ServoShellWindowId {
     }
 }
 
+impl From<u32> for ServoShellWindowId {
+    fn from(value: u32) -> Self {
+        Self(u64::from(value))
+    }
+}
+
 impl ServoShellWindowId {
     #[cfg_attr(not(any(target_os = "android", target_env = "ohos")), expect(unused))]
     pub(crate) fn next() -> ServoShellWindowId {
