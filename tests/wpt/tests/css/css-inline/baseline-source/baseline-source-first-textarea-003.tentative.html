@@ -45,7 +45,7 @@ textarea {
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
-<body onload="checkLayout('.target > *')">
+<body onload="document.fonts.ready.then(() => checkLayout('.target > *'))">
 <div class="target">
   <span data-offset-x="30"></span>
   <textarea data-offset-x="10" class="inner"></textarea>
