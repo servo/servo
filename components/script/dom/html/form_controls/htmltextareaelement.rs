@@ -23,6 +23,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
@@ -44,7 +45,7 @@ use crate::dom::node::{
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::text_input::EmbedderClipboardProvider;
-use crate::dom::types::FocusEvent;
+use crate::dom::types::{CompositionEvent, FocusEvent};
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 
@@ -249,6 +250,10 @@ impl TextControlElement for HTMLTextAreaElement {
         true
     }
 
+    fn has_composing_text(&self) -> bool {
+        self.text_input.borrow().has_composing_text()
+    }
+
     fn has_selectable_text(&self) -> bool {
         !self.text_input.borrow().get_content().is_empty()
     }
@@ -338,6 +343,10 @@ impl TextControlElement for HTMLTextAreaElement {
                 self.queue_input_event(text, input_type);
                 self.value_dirty.set(true);
                 self.handle_text_content_changed(cx);
+                self.maybe_update_shared_selection();
+            },
+            KeyReaction::DispatchCompositionEnd(text) => {
+                self.queue_compositionend_event(text);
                 self.maybe_update_shared_selection();
             },
             KeyReaction::RedrawSelection => {
@@ -768,6 +777,41 @@ impl VirtualMethods for HTMLTextAreaElement {
 
         if let Some(super_type) = self.super_type() {
             super_type.handle_event(cx, event);
+        }
+    }
+
+    // copied and modified from htmlinputelement.rs
+    fn handle_before_focus_event(&self, cx: &mut JSContext, event: &FocusEvent) {
+        let event_type = event.upcast::<Event>().type_();
+        if *event_type == *"blur" {
+            let compositionend_data = {
+                // We want this mutable borrow to drop before we fire the event.
+                let mut text_input = self.text_input.borrow_mut();
+                text_input.end_composition()
+            };
+            if let Some(data) = compositionend_data {
+                // If we successfully ended a composition, fire compositionend
+                let target = self.upcast::<EventTarget>();
+                let global = target.global();
+                let window = global.as_window();
+                let event = CompositionEvent::new(
+                    cx,
+                    window,
+                    atom!("compositionend"),
+                    true,
+                    false,
+                    Some(window),
+                    0,
+                    data.into(),
+                );
+                let event = event.upcast::<Event>();
+                event.set_composed(true);
+                event.fire(cx, target);
+            }
+        }
+
+        if let Some(super_type) = self.super_type() {
+            super_type.handle_before_focus_event(cx, event);
         }
     }
 

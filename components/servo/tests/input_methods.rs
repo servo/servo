@@ -9,8 +9,8 @@ use std::rc::Rc;
 
 use embedder_traits::InputMethodType;
 use servo::{
-    CompositionEvent, CompositionState, EmbedderControl, ImeEvent, InputEvent, JSValue, Key,
-    KeyState, KeyboardEvent, WebView, WebViewBuilder,
+    EmbedderControl, ImeEvent, InputEvent, JSValue, Key, KeyState, KeyboardEvent, WebView,
+    WebViewBuilder,
 };
 use url::Url;
 
@@ -21,7 +21,7 @@ use crate::common::{
 
 #[derive(Debug, Clone, PartialEq)]
 enum InputMethodEvent {
-    CompositionStart,
+    CompositionStart(String),
     CompositionUpdate(String),
     CompositionEnd(String),
     Input(String, Option<String>),
@@ -72,6 +72,15 @@ impl InputMethodTest {
         .expect("JS evaluation should not fail");
     }
 
+    fn blur(&self, id: &str) {
+        evaluate_javascript(
+            &self.servo_test,
+            self.webview.clone(),
+            format!("document.getElementById('{id}').blur();"),
+        )
+        .expect("JS evaluation should not fail");
+    }
+
     fn install_event_listeners(&self, id: &str) {
         for event in &["beforeinput", "input"] {
             evaluate_javascript(
@@ -103,6 +112,35 @@ impl InputMethodTest {
             panic!("Should get a string from JS");
         };
         content
+    }
+
+    fn get_text_control_selection(&self, id: &str) -> (usize, usize) {
+        let start = evaluate_javascript(
+            &self.servo_test,
+            self.webview.clone(),
+            format!("document.getElementById('{id}').selectionStart"),
+        );
+        let Ok(JSValue::Number(start)) = start else {
+            panic!("Should get a string from JS");
+        };
+        let end = evaluate_javascript(
+            &self.servo_test,
+            self.webview.clone(),
+            format!("document.getElementById('{id}').selectionEnd"),
+        );
+        let Ok(JSValue::Number(end)) = end else {
+            panic!("Should get a string from JS");
+        };
+        (start as usize, end as usize)
+    }
+
+    fn set_text_control_selection(&self, id: &str, start: usize, end: usize) {
+        evaluate_javascript(
+            &self.servo_test,
+            self.webview.clone(),
+            format!("document.getElementById('{id}').setSelectionRange({start}, {end})"),
+        )
+        .expect("JS evaluation should not fail");
     }
 
     fn drain_received_events(&self) -> Vec<InputMethodEvent> {
@@ -143,15 +181,15 @@ impl InputMethodTest {
                             InputMethodEvent::Input(input_type, data)
                         }
                     },
-                    "compositionstart" => InputMethodEvent::CompositionStart,
-                    "compositionupdate" | "compositionend" => {
+                    "compositionstart" | "compositionupdate" | "compositionend" => {
                         let Some(JSValue::String(data)) = object.remove("data") else {
-                            panic!("data should be null or a string");
+                            panic!("data should be a string");
                         };
-                        if name == "compositionupdate" {
-                            InputMethodEvent::CompositionUpdate(data)
-                        } else {
-                            InputMethodEvent::CompositionEnd(data)
+                        match name.as_str() {
+                            "compositionstart" => InputMethodEvent::CompositionStart(data),
+                            "compositionupdate" => InputMethodEvent::CompositionUpdate(data),
+                            "compositionend" => InputMethodEvent::CompositionEnd(data),
+                            _ => unreachable!(),
                         }
                     },
                     _ => panic!("Shouldn't receive any other event"),
@@ -170,39 +208,38 @@ fn test_simple_composition() {
     );
     test.install_event_listeners("my-input");
     test.focus("my-input");
-    test.send_input_event(InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
-        state: CompositionState::Start,
-        data: String::new(),
-    })));
-    test.send_input_event(InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
-        state: CompositionState::Update,
-        data: "abc".to_owned(),
-    })));
+    test.send_input_event(InputEvent::Ime(ImeEvent::Update(
+        "abc".to_owned(),
+        Some((3, 3)),
+    )));
     assert_eq!(test.get_text_control_value("my-input"), "abc");
-    test.send_input_event(InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
-        state: CompositionState::Update,
-        data: "r".to_owned(),
-    })));
+    test.send_input_event(InputEvent::Ime(ImeEvent::Update(
+        "r".to_owned(),
+        Some((1, 1)),
+    )));
     assert_eq!(test.get_text_control_value("my-input"), "r");
-    test.send_input_event(InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
-        state: CompositionState::End,
-        data: "r".to_owned(),
-    })));
-    assert_eq!(test.get_text_control_value("my-input"), "r");
+    test.send_input_event(InputEvent::Ime(ImeEvent::Commit("final".to_owned())));
+    assert_eq!(test.get_text_control_value("my-input"), "final");
     assert_eq!(
         test.drain_received_events().as_slice(),
         &[
-            InputMethodEvent::CompositionStart,
-            InputMethodEvent::CompositionUpdate("abc".to_owned()),
+            InputMethodEvent::CompositionStart(String::new()),
             InputMethodEvent::BeforeInput(
                 "insertCompositionText".to_owned(),
                 Some("abc".to_owned())
             ),
+            InputMethodEvent::CompositionUpdate("abc".to_owned()),
             InputMethodEvent::Input("insertCompositionText".to_owned(), Some("abc".to_owned())),
-            InputMethodEvent::CompositionUpdate("r".to_owned()),
             InputMethodEvent::BeforeInput("insertCompositionText".to_owned(), Some("r".to_owned())),
+            InputMethodEvent::CompositionUpdate("r".to_owned()),
             InputMethodEvent::Input("insertCompositionText".to_owned(), Some("r".to_owned())),
-            InputMethodEvent::CompositionEnd("r".to_owned()),
+            InputMethodEvent::BeforeInput(
+                "insertCompositionText".to_owned(),
+                Some("final".to_owned())
+            ),
+            InputMethodEvent::CompositionUpdate("final".to_owned()),
+            InputMethodEvent::Input("insertCompositionText".to_owned(), Some("final".to_owned())),
+            InputMethodEvent::CompositionEnd("final".to_owned()),
         ]
     );
 }
@@ -229,29 +266,57 @@ fn test_attempting_to_cancel_beforeinput_composition() {
         Key::Character("a".to_owned()),
     )));
     assert!(test.get_text_control_value("my-input").is_empty());
-    test.send_input_event(InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
-        state: CompositionState::Start,
-        data: String::new(),
-    })));
-    test.send_input_event(InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
-        state: CompositionState::Update,
-        data: "abc".to_owned(),
-    })));
-    test.send_input_event(InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
-        state: CompositionState::End,
-        data: "abc".to_owned(),
-    })));
-    assert_eq!(test.get_text_control_value("my-input"), "abc");
+    test.send_input_event(InputEvent::Ime(ImeEvent::Update(
+        "abc".to_owned(),
+        Some((3, 3)),
+    )));
+    test.send_input_event(InputEvent::Ime(ImeEvent::Commit("abcd".to_owned())));
+    assert_eq!(test.get_text_control_value("my-input"), "abcd");
     assert_eq!(
         test.drain_received_events().as_slice(),
         &[
             InputMethodEvent::BeforeInput("insertText".to_owned(), Some("a".to_owned())),
-            InputMethodEvent::CompositionStart,
-            InputMethodEvent::CompositionUpdate("abc".to_owned()),
+            InputMethodEvent::CompositionStart(String::new()),
             InputMethodEvent::BeforeInput(
                 "insertCompositionText".to_owned(),
                 Some("abc".to_owned())
             ),
+            InputMethodEvent::CompositionUpdate("abc".to_owned()),
+            InputMethodEvent::Input("insertCompositionText".to_owned(), Some("abc".to_owned())),
+            InputMethodEvent::BeforeInput(
+                "insertCompositionText".to_owned(),
+                Some("abcd".to_owned())
+            ),
+            InputMethodEvent::CompositionUpdate("abcd".to_owned()),
+            InputMethodEvent::Input("insertCompositionText".to_owned(), Some("abcd".to_owned())),
+            InputMethodEvent::CompositionEnd("abcd".to_owned()),
+        ]
+    );
+}
+
+#[test]
+fn test_blurring_mid_composition() {
+    let test = InputMethodTest::new(
+        "<!DOCTYPE html> \
+        <input id=\"my-input\" />",
+    );
+    test.install_event_listeners("my-input");
+    test.focus("my-input");
+    test.send_input_event(InputEvent::Ime(ImeEvent::Update(
+        "abc".to_owned(),
+        Some((3, 3)),
+    )));
+    test.blur("my-input");
+    assert_eq!(test.get_text_control_value("my-input"), "abc");
+    assert_eq!(
+        test.drain_received_events().as_slice(),
+        &[
+            InputMethodEvent::CompositionStart(String::new()),
+            InputMethodEvent::BeforeInput(
+                "insertCompositionText".to_owned(),
+                Some("abc".to_owned())
+            ),
+            InputMethodEvent::CompositionUpdate("abc".to_owned()),
             InputMethodEvent::Input("insertCompositionText".to_owned(), Some("abc".to_owned())),
             InputMethodEvent::CompositionEnd("abc".to_owned()),
         ]
@@ -274,4 +339,171 @@ fn test_ime_multiline_for_textarea() {
     };
     assert_eq!(ime.input_method_type(), InputMethodType::Text);
     assert!(ime.multiline());
+}
+
+#[test]
+fn test_setting_composition_cursor() {
+    let test = InputMethodTest::new(
+        "<!DOCTYPE html> \
+        <input value=\"abc\" id=\"my-input\" />",
+    );
+    test.install_event_listeners("my-input");
+    test.focus("my-input");
+    test.set_text_control_selection("my-input", 3, 3);
+    test.send_input_event(InputEvent::Ime(ImeEvent::Update(
+        "d".to_owned(),
+        Some((0, 0)),
+    )));
+    assert_eq!(test.get_text_control_value("my-input"), "abcd");
+    assert_eq!(test.get_text_control_selection("my-input"), (3, 3));
+    test.send_input_event(InputEvent::Ime(ImeEvent::Update(
+        "test".to_owned(),
+        Some((0, 2)),
+    )));
+    assert_eq!(test.get_text_control_value("my-input"), "abctest");
+    assert_eq!(test.get_text_control_selection("my-input"), (3, 5));
+    assert_eq!(
+        test.drain_received_events().as_slice(),
+        &[
+            InputMethodEvent::CompositionStart(String::new()),
+            InputMethodEvent::BeforeInput("insertCompositionText".to_owned(), Some("d".to_owned())),
+            InputMethodEvent::CompositionUpdate("d".to_owned()),
+            InputMethodEvent::Input("insertCompositionText".to_owned(), Some("d".to_owned())),
+            InputMethodEvent::BeforeInput(
+                "insertCompositionText".to_owned(),
+                Some("test".to_owned())
+            ),
+            InputMethodEvent::CompositionUpdate("test".to_owned()),
+            InputMethodEvent::Input("insertCompositionText".to_owned(), Some("test".to_owned())),
+        ]
+    );
+}
+
+#[test]
+fn test_delete_surrounding() {
+    let test = InputMethodTest::new(
+        "<!DOCTYPE html> \
+        <input value=\"abcefg\" id=\"my-input\" />",
+    );
+    test.install_event_listeners("my-input");
+    test.focus("my-input");
+    test.set_text_control_selection("my-input", 3, 3);
+    test.send_input_event(InputEvent::Ime(ImeEvent::DeleteSurrounding {
+        before: 2,
+        after: 0,
+    }));
+    assert_eq!(test.get_text_control_value("my-input"), "aefg");
+    test.send_input_event(InputEvent::Ime(ImeEvent::DeleteSurrounding {
+        before: 1,
+        after: 1,
+    }));
+    assert_eq!(test.get_text_control_value("my-input"), "fg");
+    test.send_input_event(InputEvent::Ime(ImeEvent::DeleteSurrounding {
+        before: 0,
+        after: 0,
+    }));
+    assert_eq!(test.get_text_control_value("my-input"), "fg");
+    test.send_input_event(InputEvent::Ime(ImeEvent::DeleteSurrounding {
+        before: 0,
+        after: 2,
+    }));
+    assert!(test.get_text_control_value("my-input").is_empty());
+    assert_eq!(
+        test.drain_received_events().as_slice(),
+        &[
+            InputMethodEvent::Input("deleteSurrounding".to_owned(), None),
+            InputMethodEvent::Input("deleteSurrounding".to_owned(), None),
+            InputMethodEvent::Input("deleteSurrounding".to_owned(), None),
+            InputMethodEvent::Input("deleteSurrounding".to_owned(), None),
+        ]
+    );
+}
+
+#[test]
+fn test_composition_as_selection_replacement() {
+    let test = InputMethodTest::new(
+        "<!DOCTYPE html> \
+        <input value=\"abcefg\" id=\"my-input\" />",
+    );
+    test.install_event_listeners("my-input");
+    test.focus("my-input");
+    test.set_text_control_selection("my-input", 0, 3);
+    test.send_input_event(InputEvent::Ime(ImeEvent::Update(
+        "test".to_owned(),
+        Some((4, 4)),
+    )));
+    assert_eq!(test.get_text_control_value("my-input"), "testefg");
+    test.send_input_event(InputEvent::Ime(ImeEvent::Commit("final".to_owned())));
+    assert_eq!(test.get_text_control_value("my-input"), "finalefg");
+    assert_eq!(
+        test.drain_received_events().as_slice(),
+        &[
+            InputMethodEvent::CompositionStart("abc".to_owned()),
+            InputMethodEvent::BeforeInput(
+                "insertCompositionText".to_owned(),
+                Some("test".to_owned())
+            ),
+            InputMethodEvent::CompositionUpdate("test".to_owned()),
+            InputMethodEvent::Input("insertCompositionText".to_owned(), Some("test".to_owned())),
+            InputMethodEvent::BeforeInput(
+                "insertCompositionText".to_owned(),
+                Some("final".to_owned())
+            ),
+            InputMethodEvent::CompositionUpdate("final".to_owned()),
+            InputMethodEvent::Input("insertCompositionText".to_owned(), Some("final".to_owned())),
+            InputMethodEvent::CompositionEnd("final".to_owned()),
+        ]
+    );
+}
+
+#[test]
+fn test_hide_during_compositionupdate() {
+    let test = InputMethodTest::new(
+        "<!DOCTYPE html> \
+        <input value=\"abc\" id=\"my-input\" /> \
+        <script> \
+            document.getElementById('my-input').addEventListener('compositionupdate', (event) => { \
+                document.getElementById('my-input').style.display = 'none'; \
+            }); \
+        </script>",
+    );
+    test.install_event_listeners("my-input");
+    test.focus("my-input");
+    test.set_text_control_selection("my-input", 3, 3);
+    test.send_input_event(InputEvent::Ime(ImeEvent::Update(
+        "test".to_owned(),
+        Some((4, 4)),
+    )));
+    assert_eq!(test.get_text_control_value("my-input"), "abc");
+    assert_eq!(
+        test.drain_received_events().as_slice(),
+        &[
+            InputMethodEvent::CompositionStart(String::new()),
+            InputMethodEvent::BeforeInput(
+                "insertCompositionText".to_owned(),
+                Some("test".to_owned())
+            ),
+            InputMethodEvent::CompositionUpdate("test".to_owned()),
+            InputMethodEvent::CompositionEnd(String::new()),
+        ]
+    );
+}
+
+#[test]
+fn test_committing_without_previous_composition() {
+    let test = InputMethodTest::new(
+        "<!DOCTYPE html> \
+        <input id=\"my-input\" />",
+    );
+    test.install_event_listeners("my-input");
+    test.focus("my-input");
+    test.send_input_event(InputEvent::Ime(ImeEvent::Commit("test".to_owned())));
+    assert_eq!(test.get_text_control_value("my-input"), "test");
+    assert_eq!(
+        test.drain_received_events().as_slice(),
+        &[
+            InputMethodEvent::BeforeInput("insertText".to_owned(), Some("test".to_owned())),
+            InputMethodEvent::Input("insertText".to_owned(), Some("test".to_owned())),
+        ]
+    );
 }
