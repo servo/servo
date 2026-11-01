@@ -264,13 +264,15 @@ impl HTMLDialogElement {
         subject.remove_attribute(cx, &ns!(), &local_name!("open"));
         subject.set_open_state(cx.no_gc(), false);
 
+        // Step 6. If is modal of subject is true, then request an element to be removed from the top layer given subject.
+        if subject.state().contains(ElementState::MODAL) {
+            subject
+                .owner_document()
+                .request_an_element_to_be_removed_from_the_top_layer(subject, cx.no_gc());
+        }
+
         // Step 7. Let wasModal be the value of subject's is modal flag.
         let was_modal = subject.state().contains(ElementState::MODAL);
-
-        // Step 6. If is modal of subject is true, then request an element to be removed from the top layer given subject.
-        if was_modal {
-            subject.request_to_be_removed_from_the_top_layer(cx.no_gc());
-        }
 
         // Step 8. Set is modal of subject to false.
         self.upcast::<Element>().set_modal_state(cx.no_gc(), false);
