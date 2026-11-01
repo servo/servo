@@ -25,7 +25,7 @@ use cssparser::SourceLocation;
 use dom_struct::dom_struct;
 use embedder_traits::user_contents::UserScript;
 use embedder_traits::{
-    AlertResponse, ConfirmResponse, EmbedderMsg, PromptResponse, ScriptToEmbedderChan,
+    AlertResponse, ConfirmResponse, EmbedderMsg, LoadStatus, PromptResponse, ScriptToEmbedderChan,
     SimpleDialogRequest, Theme, UntrustedNodeAddress, ViewportDetails, WebDriverLoadStatus,
 };
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
@@ -245,6 +245,7 @@ const INITIAL_REFLOW_DELAY: Duration = Duration::from_millis(200);
 ///    to show the user that the page is loading.
 ///  - Script triggers a layout query or scroll event in which case, we want to layout
 ///    but not display the contents.
+///  - The embedder or script aborted the document load.
 ///
 /// For more information see: <https://github.com/servo/servo/pull/6028>.
 #[derive(Clone, Copy, MallocSizeOf)]
@@ -253,15 +254,21 @@ enum LayoutBlocker {
     WaitingForParse,
     /// The body is being parsed the `<body>` starting at the `Instant` specified.
     Parsing(Instant),
-    /// The body finished parsing and the `load` event has been fired or parsing took so
-    /// long, that we are going to do layout anyway. Note that subsequent changes to the body
-    /// can trigger parsing again, but the `Window` stays in this state.
-    FiredLoadEventOrParsingTimerExpired,
+    /// The blocker is no longer blocked because one or more of the following things
+    /// are true:
+    ///
+    /// - The body finished parsing and the `load` event has been fired.
+    /// - Parsing took so long, that we are going to do layout anyway.
+    /// - The load was aborted.
+    ///
+    /// Note that subsequent changes to the body can trigger parsing again, but the `Window`
+    /// stays in this state.
+    NotBlocked,
 }
 
 impl LayoutBlocker {
     fn layout_blocked(&self) -> bool {
-        !matches!(self, Self::FiredLoadEventOrParsingTimerExpired)
+        !matches!(self, Self::NotBlocked)
     }
 }
 
@@ -899,21 +906,33 @@ impl Window {
     /// <https://html.spec.whatwg.org/multipage/#nav-stop>
     fn stop_loading(&self, cx: &mut JSContext) {
         // 1. Let document be navigable's active document.
-        let doc = self.Document();
+        let document = self.Document();
+        let was_loading = document.ReadyState() != DocumentReadyState::Complete;
 
-        // 2. If document's unload counter is 0,
-        // and navigable's ongoing navigation is a navigation ID,
-        // then set the ongoing navigation for navigable to null.
+        // 2. If document's unload counter is 0, and navigable's ongoing navigation is a navigation
+        // ID, then set the ongoing navigation for navigable to null.
         //
-        // Note: since the concept of `navigable` is nascent in Servo,
-        // for now we do two things:
-        // - increment the `ongoing_navigation`(preventing planned form navigations).
-        // - Send a `AbortLoadUrl` message(in case the navigation
-        // already started at the constellation).
+        // Note: since the concept of `navigable` is nascent in Servo, for now we only increment the
+        // `ongoing_navigation`(preventing planned form navigations).
+        //
+        // TODO: This should also send a `AbortLoadUrl` message (in case the navigation already
+        // started at the constellation).
         self.set_ongoing_navigation();
 
         // 3. Abort a document and its descendants given document.
-        doc.abort_a_document_and_its_descendants(cx, AbortReason::StopLoading);
+        document.abort_a_document_and_its_descendants(cx, AbortReason::StopLoading);
+
+        // This is not in the specification, but when a load is aborted in a frame, parent
+        // frames need to be notified that this frame is no longer blocking the load.
+        // See <https://github.com/whatwg/html/issues/10252>.
+        document.notify_constellation_that_load_finished(true /* aborted */);
+
+        if self.is_top_level() && was_loading {
+            self.send_to_embedder(EmbedderMsg::NotifyLoadStatusChanged(
+                self.webview_id(),
+                LoadStatus::Stopped,
+            ));
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#destroy-a-top-level-traversable>
@@ -2969,15 +2988,11 @@ impl Window {
     /// Inform the [`Window`] that layout is allowed either because `load` has happened
     /// or because parsing the `<body>` took so long that we cannot wait any longer.
     pub(crate) fn allow_layout_if_necessary(&self, cx: &mut JSContext) {
-        if matches!(
-            self.layout_blocker.get(),
-            LayoutBlocker::FiredLoadEventOrParsingTimerExpired
-        ) {
+        if matches!(self.layout_blocker.get(), LayoutBlocker::NotBlocked) {
             return;
         }
 
-        self.layout_blocker
-            .set(LayoutBlocker::FiredLoadEventOrParsingTimerExpired);
+        self.layout_blocker.set(LayoutBlocker::NotBlocked);
 
         // We do this immediately instead of scheduling a future task, because this can
         // happen if parsing is taking a very long time, which means that the

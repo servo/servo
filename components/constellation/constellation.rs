@@ -1773,9 +1773,8 @@ where
             ScriptToConstellationMessage::AbortLoadUrl => {
                 self.handle_abort_load_url_msg(webview_id, source_pipeline_id);
             },
-            // A page loaded has completed all parsing, script, and reflow messages have been sent.
-            ScriptToConstellationMessage::LoadComplete => {
-                self.handle_load_complete_msg(webview_id, source_pipeline_id)
+            ScriptToConstellationMessage::LoadFinished { aborted } => {
+                self.handle_load_finished_message(webview_id, source_pipeline_id, aborted)
             },
             // Handle navigating to a fragment
             ScriptToConstellationMessage::NavigatedToFragment(new_url, replacement_enabled) => {
@@ -3470,40 +3469,39 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_subframe_loaded(&mut self, pipeline_id: PipelineId) {
+    fn handle_subframe_load_finished(&mut self, pipeline_id: PipelineId, aborted: bool) {
         let browsing_context_id = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => pipeline.browsing_context_id,
-            None => return warn!("{}: Subframe loaded after closure", pipeline_id),
+            None => return warn!("Subframe ({pipeline_id:?}) load finished after closure"),
         };
         let parent_pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
             Some(browsing_context) => browsing_context.parent_pipeline_id,
             None => {
                 return warn!(
-                    "{}: Subframe loaded in closed {}",
-                    pipeline_id, browsing_context_id,
+                    "Subframe ({pipeline_id:?}) load finished in closed {browsing_context_id:?}",
                 );
             },
         };
         let Some(parent_pipeline_id) = parent_pipeline_id else {
-            return warn!("{}: Subframe has no parent", pipeline_id);
+            return warn!("Subframe ({pipeline_id:?}) has no parent");
         };
-        // https://html.spec.whatwg.org/multipage/#the-iframe-element:completely-loaded
-        // When a Document in an iframe is marked as completely loaded,
-        // the user agent must run the iframe load event steps.
-        let msg = ScriptThreadMessage::DispatchIFrameLoadEvent {
+
+        let msg = ScriptThreadMessage::IFrameLoadFinished {
             target: browsing_context_id,
             parent: parent_pipeline_id,
             child: pipeline_id,
+            aborted,
         };
+
         let result = match self.pipelines.get(&parent_pipeline_id) {
             Some(parent) => parent.event_loop.send(msg),
             None => {
                 return warn!(
-                    "{}: Parent pipeline browsing context loaded after closure",
-                    parent_pipeline_id
+                    "Parent pipeline ({parent_pipeline_id:?}) browsing context loaded after closure",
                 );
             },
         };
+
         if let Err(e) = result {
             self.handle_send_error(parent_pipeline_id, e);
         }
@@ -4380,14 +4378,18 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_load_complete_msg(&mut self, webview_id: WebViewId, pipeline_id: PipelineId) {
-        if let Some(pipeline) = self.pipelines.get_mut(&pipeline_id) {
-            debug!("{}: Marking as loaded", pipeline_id);
+    fn handle_load_finished_message(
+        &mut self,
+        webview_id: WebViewId,
+        pipeline_id: PipelineId,
+        aborted: bool,
+    ) {
+        debug!("Load finished in {pipeline_id:?} aborted={aborted}");
+
+        if !aborted && let Some(pipeline) = self.pipelines.get_mut(&pipeline_id) {
             pipeline.completely_loaded = true;
         }
 
-        // Notify the embedder that the TopLevelBrowsingContext current document
-        // has finished loading.
         // We need to make sure the pipeline that has finished loading is the current
         // pipeline and that no pending pipeline will replace the current one.
         let pipeline_is_top_level_pipeline = self
@@ -4395,7 +4397,7 @@ where
             .get(&BrowsingContextId::from(webview_id))
             .is_some_and(|ctx| ctx.pipeline_id == pipeline_id);
         if !pipeline_is_top_level_pipeline {
-            self.handle_subframe_loaded(pipeline_id);
+            self.handle_subframe_load_finished(pipeline_id, aborted);
         }
     }
 
