@@ -79,7 +79,7 @@ class MacOS(Base):
             util.download_file("GStreamer libraries", GSTREAMER_URL, libs_pkg)
             util.download_file("GStreamer development support", GSTREAMER_DEVEL_URL, devel_pkg)
 
-            print("Installing GStreamer packages...")
+            print("Installing GStreamer packages (may request password)...")
             subprocess.check_call(
                 [
                     "sudo",
