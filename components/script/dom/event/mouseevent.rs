@@ -480,7 +480,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
     ) -> Fallible<DomRoot<MouseEvent>> {
         let bubbles = EventBubbles::from(init.parent.parent.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.parent.parent.cancelable);
-        let scroll_offset = window.scroll_offset();
+        let scroll_offset = window.scroll_offset(cx);
         let page_point = Point2D::new(
             scroll_offset.x as i32 + init.clientX,
             scroll_offset.y as i32 + init.clientY,
@@ -530,7 +530,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-mouseevent-pagex>
-    fn PageX(&self) -> i32 {
+    fn PageX(&self, cx: &mut JSContext) -> i32 {
         // The pageX attribute must follow these steps:
         // > 1. If the event’s dispatch flag is set, return the horizontal coordinate of the
         // > position where the event occurred relative to the origin of the initial containing
@@ -542,11 +542,11 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
         // > 2. Let offset be the value of the scrollX attribute of the event’s associated
         // > Window object, if there is one, or zero otherwise.
         // > 3. Return the sum of offset and the value of the event’s clientX attribute.
-        self.global().as_window().ScrollX() + self.ClientX()
+        self.global().as_window().ScrollX(cx) + self.ClientX()
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-mouseevent-pagey>
-    fn PageY(&self) -> i32 {
+    fn PageY(&self, cx: &mut JSContext) -> i32 {
         // The pageY attribute must follow these steps:
         // > 1. If the event’s dispatch flag is set, return the vertical coordinate of the
         // > position where the event occurred relative to the origin of the initial
@@ -558,7 +558,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
         // > 2. Let offset be the value of the scrollY attribute of the event’s associated
         // > Window object, if there is one, or zero otherwise.
         // > 3. Return the sum of offset and the value of the event’s clientY attribute.
-        self.global().as_window().ScrollY() + self.ClientY()
+        self.global().as_window().ScrollY(cx) + self.ClientY()
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-mouseevent-x>
@@ -572,7 +572,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-mouseevent-offsetx>
-    fn OffsetX(&self) -> i32 {
+    fn OffsetX(&self, cx: &mut JSContext) -> i32 {
         // > The offsetX attribute must follow these steps:
         // > 1. If the event’s dispatch flag is set, return the x-coordinate of the position
         // >    where the event occurred relative to the origin of the padding edge of the
@@ -590,11 +590,11 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
         }
 
         // > 2. Return the value of the event’s pageX attribute.
-        self.PageX()
+        self.PageX(cx)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-mouseevent-offsety>
-    fn OffsetY(&self) -> i32 {
+    fn OffsetY(&self, cx: &mut JSContext) -> i32 {
         // > The offsetY attribute must follow these steps:
         // > 1. If the event’s dispatch flag is set, return the y-coordinate of the
         // >    position where the event occurred relative to the origin of the padding edge of
@@ -612,7 +612,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
         }
 
         // 2. Return the value of the event’s pageY attribute.
-        self.PageY()
+        self.PageY(cx)
     }
 
     /// <https://w3c.github.io/pointerevents/#dom-mouseevent-ctrlkey>
@@ -653,6 +653,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
     /// <https://w3c.github.io/pointerevents/#dom-mouseevent-initmouseevent>
     fn InitMouseEvent(
         &self,
+        cx: &mut JSContext,
         type_arg: DOMString,
         can_bubble_arg: bool,
         cancelable_arg: bool,
@@ -686,7 +687,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
             .set(Point2D::new(client_x_arg, client_y_arg));
 
         let global = self.global();
-        let scroll_offset = global.as_window().scroll_offset();
+        let scroll_offset = global.as_window().scroll_offset(cx);
         self.page_point.set(Point2D::new(
             scroll_offset.x as i32 + client_x_arg,
             scroll_offset.y as i32 + client_y_arg,

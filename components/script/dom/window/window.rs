@@ -2102,23 +2102,23 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-scrollx>
-    fn ScrollX(&self) -> i32 {
-        self.scroll_offset().x as i32
+    fn ScrollX(&self, cx: &mut JSContext) -> i32 {
+        self.scroll_offset(cx).x as i32
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-pagexoffset>
-    fn PageXOffset(&self) -> i32 {
-        self.ScrollX()
+    fn PageXOffset(&self, cx: &mut JSContext) -> i32 {
+        self.ScrollX(cx)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-scrolly>
-    fn ScrollY(&self) -> i32 {
-        self.scroll_offset().y as i32
+    fn ScrollY(&self, cx: &mut JSContext) -> i32 {
+        self.scroll_offset(cx).y as i32
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-pageyoffset>
-    fn PageYOffset(&self) -> i32 {
-        self.ScrollY()
+    fn PageYOffset(&self, cx: &mut JSContext) -> i32 {
+        self.ScrollY(cx)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-scroll>
@@ -2175,10 +2175,10 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         let y = if y.is_finite() { y } else { 0.0 };
 
         // Step 3: Add the value of scrollX to the left dictionary member.
-        options.left.replace(x + self.ScrollX() as f64);
+        options.left.replace(x + self.ScrollX(cx) as f64);
 
         // Step 4. Add the value of scrollY to the top dictionary member.
-        options.top.replace(y + self.ScrollY() as f64);
+        options.top.replace(y + self.ScrollY(cx) as f64);
 
         // Step 5: Act as if the scroll() method was invoked with options as the only argument.
         self.Scroll(cx, &options)
@@ -2481,8 +2481,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 }
 
 impl Window {
-    pub(crate) fn scroll_offset(&self) -> Vector2D<f32, LayoutPixel> {
-        self.scroll_offset_query_with_external_scroll_id(self.pipeline_id().root_scroll_id())
+    pub(crate) fn scroll_offset(&self, cx: &mut JSContext) -> Vector2D<f32, LayoutPixel> {
+        self.scroll_offset_query_with_external_scroll_id(cx, self.pipeline_id().root_scroll_id())
     }
 
     // https://heycam.github.io/webidl/#named-properties-object
@@ -2599,13 +2599,13 @@ impl Window {
         // the x-coordinate x of the viewport scrolling area with the left of the viewport
         // and aligning the y-coordinate y of the viewport scrolling area with the top of
         // the viewport.
-        let scrolling_area = self.scrolling_area_query(None).to_f32();
+        let scrolling_area = self.scrolling_area_query(cx, None).to_f32();
         let x = xfinite.clamp(0.0, 0.0f32.max(scrolling_area.width() - viewport.width));
         let y = yfinite.clamp(0.0, 0.0f32.max(scrolling_area.height() - viewport.height));
 
         // Step 10: If position is the same as the viewport’s current scroll position, and
         // the viewport does not have an ongoing smooth scroll, abort these steps.
-        let scroll_offset = self.scroll_offset();
+        let scroll_offset = self.scroll_offset(cx);
         if x == scroll_offset.x && y == scroll_offset.y {
             return;
         }
@@ -3185,26 +3185,35 @@ impl Window {
 
     /// Find the scroll area of the given node, if it is not None. If the node
     /// is None, find the scroll area of the viewport.
-    pub(crate) fn scrolling_area_query(&self, node: Option<&Node>) -> Rect<i32, CSSPixel> {
-        self.layout_reflow_deprecated(QueryMsg::ScrollingAreaOrOffsetQuery);
+    pub(crate) fn scrolling_area_query(
+        &self,
+        cx: &mut JSContext,
+        node: Option<&Node>,
+    ) -> Rect<i32, CSSPixel> {
+        self.layout_reflow(cx, QueryMsg::ScrollingAreaOrOffsetQuery);
         self.layout
             .borrow()
             .query_scrolling_area(node.map(Node::to_trusted_node_address))
     }
 
-    pub(crate) fn scroll_offset_query(&self, node: &Node) -> Vector2D<f32, LayoutPixel> {
+    pub(crate) fn scroll_offset_query(
+        &self,
+        cx: &mut JSContext,
+        node: &Node,
+    ) -> Vector2D<f32, LayoutPixel> {
         let external_scroll_id = ExternalScrollId(
             combine_id_with_fragment_type(node.to_opaque().id(), FragmentType::FragmentBody),
             self.pipeline_id().into(),
         );
-        self.scroll_offset_query_with_external_scroll_id(external_scroll_id)
+        self.scroll_offset_query_with_external_scroll_id(cx, external_scroll_id)
     }
 
     fn scroll_offset_query_with_external_scroll_id(
         &self,
+        cx: &mut JSContext,
         external_scroll_id: ExternalScrollId,
     ) -> Vector2D<f32, LayoutPixel> {
-        self.layout_reflow_deprecated(QueryMsg::ScrollingAreaOrOffsetQuery);
+        self.layout_reflow(cx, QueryMsg::ScrollingAreaOrOffsetQuery);
         self.scroll_offset_query_with_external_scroll_id_no_reflow(external_scroll_id)
     }
 
@@ -3406,10 +3415,12 @@ impl Window {
 
     pub(crate) fn hit_test_from_input_event(
         &self,
+        cx: &mut JSContext,
         flags: HitTestFlags,
         input_event: &ConstellationInputEvent,
     ) -> Option<HitTestResult> {
         self.hit_test_from_point_in_viewport(
+            cx,
             flags,
             input_event.hit_test_result.as_ref()?.point_in_viewport,
         )
@@ -3418,6 +3429,7 @@ impl Window {
     #[expect(unsafe_code)]
     pub(crate) fn hit_test_from_point_in_viewport(
         &self,
+        cx: &mut JSContext,
         flags: HitTestFlags,
         point_in_frame: Point2D<f32, CSSPixel>,
     ) -> Option<HitTestResult> {
@@ -3425,7 +3437,7 @@ impl Window {
         let item = result.items.into_iter().next()?;
 
         let point_relative_to_initial_containing_block =
-            point_in_frame + self.scroll_offset().cast_unit();
+            point_in_frame + self.scroll_offset(cx).cast_unit();
 
         // SAFETY: This is safe because `Window::query_elements_from_point` has ensured that
         // layout has run and any OpaqueNodes that no longer refer to real nodes are gone.
