@@ -1,8 +1,10 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="timeout" content="long">
 <title>rtpHeaderEncryptionPolicy</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/webrtc/RTCPeerConnection-helper.js"></script>
 <script src="/webrtc/third_party/sdp/sdp.js"></script>
 <script>
 const session = `v=0
@@ -34,12 +36,14 @@ promise_test(async t => {
   assert_equals(config.rtpHeaderEncryptionPolicy, 'negotiate');
 }, 'rtpHeaderEncryptionPolicy defaults to "negotiate"');
 
-promise_test(async t => {
-  const pc = new RTCPeerConnection({rtpHeaderEncryptionPolicy: 'require'});
-  t.add_cleanup(() => pc.close());
-  const config = pc.getConfiguration();
-  assert_equals(config.rtpHeaderEncryptionPolicy, 'require');
-}, 'rtpHeaderEncryptionPolicy is returned by getConfiguration');
+for (const policy of ['disable', 'negotiate', 'require']) {
+  promise_test(async t => {
+    const pc = new RTCPeerConnection({rtpHeaderEncryptionPolicy: policy});
+    t.add_cleanup(() => pc.close());
+    const config = pc.getConfiguration();
+    assert_equals(config.rtpHeaderEncryptionPolicy, policy);
+  }, `rtpHeaderEncryptionPolicy "${policy}" is returned by getConfiguration`);
+}
 
 promise_test(async t => {
   const pc = new RTCPeerConnection({rtpHeaderEncryptionPolicy: 'require'});
@@ -58,4 +62,207 @@ a=mid:0
 `});
   await pc.setLocalDescription();
 }, 'rtpHeaderEncryptionPolicy "require" does not require datachannels to have a cryptex line');;
+
+// Returns, for each RTP-based m= section, whether a=cryptex applies to it,
+// either at session or at media level.
+function cryptexPerMediaSection(sdp) {
+  const session = SDPUtils.getDescription(sdp);
+  const sessionCryptex = SDPUtils.matchPrefix(session, 'a=cryptex').length > 0;
+  return SDPUtils.getMediaSections(sdp)
+    .filter(section => SDPUtils.getKind(section) !== 'application')
+    .map(section => sessionCryptex ||
+         SDPUtils.matchPrefix(section, 'a=cryptex').length > 0);
+}
+
+function removeCryptex(sdp) {
+  return SDPUtils.splitLines(sdp)
+    .filter(line => line !== 'a=cryptex')
+    .join('\r\n') + '\r\n';
+}
+
+function createPc(t, rtpHeaderEncryptionPolicy) {
+  const pc = new RTCPeerConnection({rtpHeaderEncryptionPolicy});
+  t.add_cleanup(() => pc.close());
+  return pc;
+}
+
+function addTransceivers(pc) {
+  pc.addTransceiver('audio');
+  pc.addTransceiver('video');
+  pc.createDataChannel('dc');
+}
+
+promise_test(async t => {
+  const pc = createPc(t, 'disable');
+  addTransceivers(pc);
+  const offer = await pc.createOffer();
+  assert_not_equals(cryptexPerMediaSection(offer.sdp).length, 0);
+  assert_false(offer.sdp.includes('a=cryptex'));
+}, 'rtpHeaderEncryptionPolicy "disable" does not include a=cryptex in the offer');
+
+for (const policy of ['negotiate', 'require']) {
+  promise_test(async t => {
+    const pc = createPc(t, policy);
+    addTransceivers(pc);
+    const offer = await pc.createOffer();
+    const cryptex = cryptexPerMediaSection(offer.sdp);
+    assert_equals(cryptex.length, 2);
+    assert_true(cryptex.every(c => c), 'a=cryptex applies to every RTP m= section');
+    const application = SDPUtils.getMediaSections(offer.sdp)
+      .find(section => SDPUtils.getKind(section) === 'application');
+    assert_equals(SDPUtils.matchPrefix(application, 'a=cryptex').length, 0,
+                  'no a=cryptex on the datachannel m= section');
+  }, `rtpHeaderEncryptionPolicy "${policy}" includes a=cryptex in the offer for all RTP m= sections`);
+}
+
+for (const [policy, expectCryptex] of [['disable', false], ['negotiate', true], ['require', true]]) {
+  promise_test(async t => {
+    const pc1 = createPc(t, 'negotiate');
+    const pc2 = createPc(t, policy);
+    addTransceivers(pc1);
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription();
+    const cryptex = cryptexPerMediaSection(pc2.localDescription.sdp);
+    assert_equals(cryptex.length, 2);
+    assert_true(cryptex.every(c => c === expectCryptex));
+  }, `rtpHeaderEncryptionPolicy "${policy}" ${expectCryptex ? 'includes' : 'does not include'} a=cryptex in the answer to an offer with a=cryptex`);
+}
+
+promise_test(async t => {
+  const pc1 = createPc(t, 'require');
+  const pc2 = createPc(t, 'disable');
+  addTransceivers(pc1);
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  await promise_rejects_dom(t, 'InvalidAccessError',
+                            pc1.setRemoteDescription(pc2.localDescription));
+}, 'rtpHeaderEncryptionPolicy "require" rejects an answer from a "disable" endpoint');
+
+promise_test(async t => {
+  const pc1 = createPc(t, 'require');
+  const pc2 = createPc(t, 'negotiate');
+  addTransceivers(pc1);
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  await promise_rejects_dom(t, 'InvalidAccessError',
+    pc1.setRemoteDescription({type: 'answer', sdp: removeCryptex(pc2.localDescription.sdp)}));
+}, 'rtpHeaderEncryptionPolicy "require" rejects an answer without a=cryptex');
+
+promise_test(async t => {
+  const pc1 = createPc(t, 'negotiate');
+  const pc2 = createPc(t, 'negotiate');
+  addTransceivers(pc1);
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription({type: 'answer', sdp: removeCryptex(pc2.localDescription.sdp)});
+}, 'rtpHeaderEncryptionPolicy "negotiate" accepts an answer without a=cryptex');
+
+promise_test(async t => {
+  const pc1 = createPc(t, 'disable');
+  const pc2 = createPc(t, 'negotiate');
+  const stream = await getNoiseStream({audio: true, video: true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  stream.getTracks().forEach(track => pc1.addTrack(track, stream));
+  exchangeIceCandidates(pc1, pc2);
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  const sections = SDPUtils.splitSections(pc2.localDescription.sdp);
+  sections[0] += 'a=cryptex\r\n';
+  await pc1.setRemoteDescription({type: 'answer', sdp: sections.join('')});
+  await listenToConnected(pc1);
+
+  for (const kind of ['audio', 'video']) {
+    while (true) {
+      const report = await pc2.getStats();
+      const inbound = [...report.values()].find(
+        stats => stats.type === 'inbound-rtp' && stats.kind === kind);
+      if (inbound && inbound.packetsReceived > 0) {
+        break;
+      }
+      await new Promise(r => t.step_timeout(r, 100));
+    }
+  }
+}, 'rtpHeaderEncryptionPolicy "disable" ignores a=cryptex in the answer');
+
+promise_test(async t => {
+  const pc1 = createPc(t, 'negotiate');
+  const pc2 = createPc(t, 'require');
+  addTransceivers(pc1);
+  await pc1.setLocalDescription();
+  // Move a=cryptex from session level to every media section.
+  const sections = SDPUtils.splitSections(removeCryptex(pc1.localDescription.sdp));
+  const sdp = sections.map((section, i) =>
+    i === 0 || SDPUtils.getKind(section) === 'application' ?
+      section : section + 'a=cryptex\r\n').join('');
+  await pc2.setRemoteDescription({type: 'offer', sdp});
+  await pc2.setLocalDescription();
+  const cryptex = cryptexPerMediaSection(pc2.localDescription.sdp);
+  assert_equals(cryptex.length, 2);
+  assert_true(cryptex.every(c => c));
+}, 'rtpHeaderEncryptionPolicy "require" accepts an offer with media-level a=cryptex');
+
+for (const [policy1, policy2] of [['negotiate', 'negotiate'], ['require', 'require'],
+                                  ['disable', 'negotiate'], ['negotiate', 'disable']]) {
+  promise_test(async t => {
+    const pc1 = createPc(t, policy1);
+    const pc2 = createPc(t, policy2);
+    const stream = await getNoiseStream({audio: true, video: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    stream.getTracks().forEach(track => pc1.addTrack(track, stream));
+    exchangeIceCandidates(pc1, pc2);
+    await exchangeOfferAnswer(pc1, pc2);
+    await listenToConnected(pc1);
+
+    for (const kind of ['audio', 'video']) {
+      while (true) {
+        const report = await pc2.getStats();
+        const inbound = [...report.values()].find(
+          stats => stats.type === 'inbound-rtp' && stats.kind === kind);
+        if (inbound && inbound.packetsReceived > 0) {
+          break;
+        }
+        await new Promise(r => t.step_timeout(r, 100));
+      }
+    }
+  }, `media flows between "${policy1}" and "${policy2}" rtpHeaderEncryptionPolicy endpoints`);
+}
+
+promise_test(async t => {
+  const pc1 = createPc(t, 'negotiate');
+  const pc2 = createPc(t, 'require');
+  const stream = await getNoiseStream({audio: true, video: true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  stream.getTracks().forEach(track => pc1.addTrack(track, stream));
+  exchangeIceCandidates(pc1, pc2);
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  // pc1 believes pc2 can not receive cryptex and sends header extensions in
+  // the clear which pc2 must drop.
+  await pc1.setRemoteDescription({type: 'answer', sdp: removeCryptex(pc2.localDescription.sdp)});
+  await listenToConnected(pc1);
+
+  for (const kind of ['audio', 'video']) {
+    while (true) {
+      const report = await pc1.getStats();
+      const outbound = [...report.values()].find(
+        stats => stats.type === 'outbound-rtp' && stats.kind === kind);
+      if (outbound && outbound.packetsSent > 50) {
+        break;
+      }
+      await new Promise(r => t.step_timeout(r, 100));
+    }
+  }
+  const report = await pc2.getStats();
+  for (const stats of report.values()) {
+    if (stats.type === 'inbound-rtp') {
+      assert_equals(stats.packetsReceived, 0, `${stats.kind} packetsReceived`);
+    }
+  }
+}, 'rtpHeaderEncryptionPolicy "require" drops RTP packets not encrypted with cryptex');
 </script>

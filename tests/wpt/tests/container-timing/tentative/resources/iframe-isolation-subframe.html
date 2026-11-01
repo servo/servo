@@ -13,7 +13,7 @@
       identifier: entries.length > 0 ? entries[0].identifier : null
     }, '*');
   });
-  observer.observe({entryTypes: ['container']});
+  observer.observe({type: 'container'});
 
   const div = document.createElement('div');
   div.setAttribute('containertiming', 'child_ct');

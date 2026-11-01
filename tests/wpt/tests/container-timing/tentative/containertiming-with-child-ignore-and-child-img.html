@@ -11,32 +11,18 @@ body {
 <script src="/resources/testharnessreport.js"></script>
 <script src="/container-timing/resources/container-timing-helpers.js"></script>
 <script>
-  async_test(function (t) {
+  promise_test(async t => {
     assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
-    const observer = new PerformanceObserver(
-      function(entryList) {
-        assert_unreached("No entry is expected with nothing to paint");
-      }
-    );
-    observer.observe({entryTypes: ['container']});
-
-    // Add a div that is the container timing root
-    const div1 = document.createElement('div');
-    div1.setAttribute('containertiming', 'div1_ct');
-    document.body.appendChild(div1);
+    const div1 = addContainerRoot(document.body, 'div1_ct');
 
     // Intermediate ignore should block paint events
-    const div2 = document.createElement('div');
-    div2.setAttribute('containertimingignore', '');
-    div1.appendChild(div2)
+    const div2 = addElement(div1, 'div', {containertimingignore: ''});
+    const img = addSquare100Image(div2, {id: 'img_id'});
+    await img.decode();
+    const entries = await getContainerEntries(t, 0);
 
-    // Add image of width equal to 100 and height equal to 100.
-    const img = document.createElement('img');
-    img.src = '/container-timing/resources/square100.png';
-    img.setAttribute('id', 'img_id');
-    div2.appendChild(img);
-
-    waitAfterTest(t, document.body, () => { t.done();});
+    assert_equals(entries.length, 0,
+        'No entry is expected for an image under containertimingignore');
   }, 'Paint of the image child of container timing with ignore in the middle is not reported.');
 </script>
 

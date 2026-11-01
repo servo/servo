@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<link rel="match" href="text-positioning-list-combining-marks-indexing-ref.html">
+<title>SVG text: positioning lists stay indexed by addressable characters across a combining mark</title>
+<link rel="help" href="https://w3c.github.io/svgwg/master/text.html#TextLayoutAlgorithm">
+<link rel="help" href="https://crbug.com/41007184">
+<meta name="assert" content="The x list is indexed by addressable characters, so the value for the combining mark (the second entry) is dropped rather than shifted onto the following character: 'a' goes to x=10 and 'b' to x=110, not x=60.">
+
+<body style="margin:20px">
+
+<svg width="300" height="60" xmlns="http://www.w3.org/2000/svg">
+  <text x="10 60 110" y="40" font-family="Arial" font-size="40">a&#x0301;b</text>
+</svg>
+
+</body>
+</html>

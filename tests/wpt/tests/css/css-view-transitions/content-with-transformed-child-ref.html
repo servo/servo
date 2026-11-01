@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>View transitions: old image includes ink overflow of a transformed descendant (ref)</title>
+<style>
+.target {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+
+.child {
+  position: absolute;
+  top: 25px;
+  left: 0;
+  width: 50px;
+  height: 50px;
+  background: blue;
+  transform: translateX(150px);
+}
+</style>
+
+<div class="target">
+  <div class="child"></div>
+</div>

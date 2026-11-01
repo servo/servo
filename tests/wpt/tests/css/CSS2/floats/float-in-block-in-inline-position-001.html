@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: a float inside a block level box on a line intrudes at the block's collapsed position</title>
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#floats">
+<link rel="help" href="https://www.w3.org/TR/CSS22/box.html#collapsing-margins">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#inline-formatting">
+<meta name="assert" content="A float inside a block level box nested in inline content is positioned against that block's border box, which its margin-before has pushed down. Line boxes after the block must avoid the float at that position, not at the position the float would have if the margin were ignored.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+body { margin: 0; }
+.container { overflow: hidden; font: 20px/20px Ahem; }
+/* The block's margin-before pushes its border box, and the float inside it, down by 100px. The float is
+   only 30px tall, so a line below the block overlaps it only when the float's position accounts for that
+   margin. .container establishes a block formatting context, so the margin stays inside it. */
+.block { margin-top: 100px; }
+.withBorder { border: solid 4px transparent; }
+.float { float: left; width: 30px; height: 30px; background-color: green; }
+</style>
+
+<!-- Two shapes for the same thing. In "nested" the block is an inline box's only child. In "sibling" it is
+     next to inline content, so an implementation that wraps the inline content in an anonymous block gets a
+     plain block child instead. The float has to land in the same place either way. -->
+<div class="container" id="nested-selfCollapsing"><span><div class="block"><div class="float"></div></div></span><span class="probe">X</span></div>
+<div class="container" id="nested-withBorder"><span><div class="block withBorder"><div class="float"></div></div></span><span class="probe">X</span></div>
+<div class="container" id="sibling-selfCollapsing"><div class="block"><div class="float"></div></div><span class="probe">X</span></div>
+<div class="container" id="sibling-withBorder"><div class="block withBorder"><div class="float"></div></div><span class="probe">X</span></div>
+
+<script>
+// selfCollapsing: the block has no border or padding and holds only the float, so it collapses to zero
+//   height at y=100 and the float spans 100 to 130. The line after it starts at y=100, overlaps the float
+//   and is pushed clear of its 30px width.
+// withBorder: the 4px border stops the block collapsing, so its border box spans 100 to 108 and the float
+//   spans 104 to 134. The line after it starts at y=108, still overlapping the float, and is pushed clear
+//   by the border plus the float, 34.
+const expected = {
+    selfCollapsing: { left: 30, top: 100 },
+    withBorder: { left: 34, top: 108 },
+};
+
+// Measured against the container: offsetLeft/offsetTop are relative to the offsetParent, which would carry the size of every container above this one.
+const positionIn = id => {
+    const container = document.getElementById(id);
+    const box = container.getBoundingClientRect();
+    const probe = container.querySelector(".probe").getBoundingClientRect();
+    return { left: probe.left - box.left, top: probe.top - box.top };
+};
+
+for (const shape of ["nested", "sibling"]) {
+    for (const kind of ["selfCollapsing", "withBorder"]) {
+        test(() => {
+            const position = positionIn(`${shape}-${kind}`);
+            assert_equals(position.top, expected[kind].top, "the line's block-axis position");
+            assert_equals(position.left, expected[kind].left, "the line is pushed clear of the float");
+        }, `A line after a ${kind === "withBorder" ? "bordered" : "self collapsing"} block containing a float `
+           + `avoids it at the block's position (${shape})`);
+    }
+}
+
+for (const kind of ["selfCollapsing", "withBorder"]) {
+    test(() => {
+        assert_object_equals(positionIn(`nested-${kind}`), positionIn(`sibling-${kind}`));
+    }, `The float lands in the same place whether the ${kind === "withBorder" ? "bordered" : "self collapsing"} `
+       + `block is nested in an inline box or a sibling of inline content`);
+}
+</script>

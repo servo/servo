@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Sizing: min-width wins over max-width for a replaced element's preferred width</title>
+<link rel="author" title="Alan Baradlay" href="mailto:zalan@apple.com">
+<link rel="help" href="https://www.w3.org/TR/CSS21/visudet.html#min-max-widths">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#min-size-properties">
+<meta name="assert" content="When a replaced element's min-width is larger than its max-width, min-width wins. The element's max-content contribution must therefore reflect min-width, so a shrink-to-fit (inline-block) container sizes to the min-width (200px) rather than the smaller max-width (100px).">
+<style>
+  #container {
+    display: inline-block;
+    outline: 2px solid blue;
+  }
+  #replaced {
+    min-width: 200px;
+    max-width: 100px;
+    background: green;
+  }
+</style>
+<p>Test passes if the red outline tightly hugs the green box, and all the checks below are PASS.</p>
+<div id="container" data-expected-width="200">
+  <img id="replaced" width="50" height="30" data-expected-width="200" data-expected-height="30">
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+  checkLayout("#container");
+</script>

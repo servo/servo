@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes: track-reverse OOF static positions with grid-column</title>
+<link rel="author" title="Hoch Hochkeppel" href="mailto:mhochk@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#abspos">
+<link rel="match" href="column-grid-lanes-oof-track-reverse-002-ref.html">
+<meta name="assert" content="Track reversal aligns OOF items to the end of their grid area, including areas with one auto edge.">
+<style>
+  html, body {
+    font: 16px/1 monospace;
+    background: white;
+  }
+  .grid-lanes {
+    display: grid-lanes;
+    grid-lanes-direction: column track-reverse;
+    grid-auto-flow: row-reverse;
+    grid-template-columns: 80px 80px;
+    gap: 10px;
+    width: 200px;
+    outline: 1px solid black;
+    position: relative;
+  }
+  .item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    background: lightblue;
+  }
+  .oof {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: red;
+  }
+</style>
+<div class="grid-lanes">
+  <div class="item">1</div>
+  <div class="item">2</div>
+  <div class="item">3</div>
+  <div class="item">4</div>
+  <div class="oof" style="grid-column: 2; top: 0;"></div>
+  <div class="oof" style="grid-column: 2 / 3; top: 35px;"></div>
+  <div class="oof" style="grid-column: auto / 2; top: 70px;"></div>
+</div>

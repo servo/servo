@@ -1,0 +1,36 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  const destination = get_host_info().HTTP_NOTSAMESITE_ORIGIN + "/common/blank.html";
+  const reported = new Promise(resolve => window.addEventListener("message", e => resolve(e.data), { once: true }));
+
+  const iframe = document.createElement("iframe");
+  iframe.src = "resources/navigate-cross-site-preventDefault-helper.html?destination=" + encodeURIComponent(destination);
+  document.body.appendChild(iframe);
+
+  const report = await reported;
+  assert_true(report.cancelable, "the navigate event is cancelable");
+  assert_false(report.canIntercept, "a cross-site navigation cannot be intercepted");
+  assert_equals(report.destination, destination);
+  const originalURL = iframe.contentWindow.location.href;
+
+  // The canceled navigation would have had to fetch the destination to commit. Wait for our own fetch of it,
+  // then leave a turn for an already-arrived response to commit.
+  await fetch(destination, { mode: "no-cors" });
+  await new Promise(resolve => t.step_timeout(resolve, 500));
+
+  let currentURL;
+  try {
+    currentURL = iframe.contentWindow.location.href;
+  } catch (e) {
+    assert_unreached("the subframe navigated to the cross-site destination");
+  }
+  assert_equals(currentURL, originalURL, "the subframe is still on its original URL");
+  assert_equals(iframe.contentWindow.marker, "alive", "the subframe document was not replaced");
+}, "preventDefault() cancels a cross-site navigation.navigate()");
+</script>
+</body>

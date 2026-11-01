@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Tables: border-spacing computed values under SVG zoom</title>
+<link rel="help" href="https://www.w3.org/TR/CSS22/tables.html#separated-borders">
+<link rel="help" href="https://www.w3.org/TR/css-tables-3/#separated-borders">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<svg style="border-spacing: 10px 20px;">
+  <rect id="target" style="display: table;" width="200" height="100" x="10" y="10" rx="20" ry="20" fill="blue" />
+</svg>
+
+<script>
+  const target = document.getElementById("target");
+
+  test_computed_value("border-spacing", "1px", "1px", "single value with SVG zoom: 2");
+  test_computed_value("border-spacing", "1px 2px", "1px 2px", "two values with SVG zoom: 2");
+  test_computed_value("border-spacing", "inherit", "10px 20px", "inherit with SVG zoom: 2");
+  test_computed_value("border-spacing", "5px 10px", "5px 10px", "explicit values with SVG zoom: 2");
+  test_computed_value("border-spacing", "0", "0px", "zero value with SVG zoom: 2");
+
+  const svg = target.closest('svg');
+  svg.style.zoom = "0.5";
+
+  test_computed_value("border-spacing", "1px", "1px", "single value with SVG zoom: 0.5");
+  test_computed_value("border-spacing", "1px 2px", "1px 2px", "two values with SVG zoom: 0.5");
+  test_computed_value("border-spacing", "inherit", "10px 20px", "inherit with SVG zoom: 0.5");
+</script>
+</body>
+</html>

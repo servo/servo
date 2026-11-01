@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>link-parameters: an feImage passes its parameters to an SVG image placed in a primitive subregion</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://drafts.csswg.org/css-link-params/#propdef-link-parameters">
+<link rel="help" href="https://drafts.csswg.org/filter-effects/#feImageElement">
+<link rel="match" href="link-parameters-feimage-subregion-ref.html">
+<meta name="assert" content="An feImage passes its link-parameters to an SVG image it fits to a primitive subregion that extends beyond the filter region.">
+<style>
+  body { margin: 0; }
+</style>
+<svg width="100" height="100" style="display: block">
+  <filter id="filter" filterUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+    <feImage x="-50" width="200" height="100" preserveAspectRatio="xMinYMid meet" style="link-parameters: param(--x, 50)" href="resources/geometry.svg"/>
+  </filter>
+  <rect width="100" height="100" filter="url(#filter)"/>
+</svg>

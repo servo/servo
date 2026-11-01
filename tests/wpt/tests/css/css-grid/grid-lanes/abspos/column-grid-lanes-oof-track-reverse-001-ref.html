@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+  html, body {
+    font: 16px/1 monospace;
+    background: white;
+  }
+  .container {
+    width: 200px;
+    height: 140px;
+    outline: 1px solid black;
+    position: relative;
+  }
+  .item {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 40px;
+    left: 0;
+    background: lightblue;
+  }
+  .oof {
+    position: absolute;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    background: red;
+  }
+</style>
+<div class="container">
+  <div class="item" style="top: 0;">1</div>
+  <div class="item" style="top: 50px;">2</div>
+  <div class="item" style="top: 100px;">3</div>
+  <div class="oof" style="top: 0;"></div>
+  <div class="oof" style="top: 50px;"></div>
+  <div class="oof" style="bottom: 0;"></div>
+</div>

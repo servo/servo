@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>unicode-bidi: plaintext takes the base direction of the paragraph after a block level box from that paragraph</title>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#unicode-bidi">
+<link rel="match" href="block-plaintext-paragraph-after-block-level-box-ref.html">
+<meta name="assert" content="With unicode-bidi: plaintext, a block level box in the inline content separates unicode paragraphs, so the text after the box takes its base direction from its own first strong character rather than from the text before the box.">
+<style>
+.plaintext { unicode-bidi: plaintext; font: 20px/24px serif; width: 10em; }
+.block { height: 20px; background-color: silver; }
+</style>
+
+<!-- The first strong character is Latin before the box (&#x5d0; is the first Hebrew letter) and Hebrew after it. -->
+<div class="plaintext">a &#x5d0;<span><div class="block"></div></span>&#x5d0; a</div>

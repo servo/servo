@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/576169244">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  #a { view-transition-name: a; }
+  #b { view-transition-name: b; }
+  #c { view-transition-name: c; }
+  #d { view-transition-name: d; }
+  ::view-transition {
+    position: static;
+    display: block;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: auto;
+  }
+  ::view-transition-group(*) {
+    position: static;
+    display: block;
+    width: 100vw;
+    height: 100vh;
+    transform: none;
+    animation: none;
+    pointer-events: auto;
+    content-visibility: hidden;
+  }
+  html.hide-vt::view-transition {
+    display: none;
+  }
+</style>
+<div id="a">a</div>
+<div id="b">b</div>
+<div id="c">c</div>
+<div id="d">d</div>
+<input id="inp" list="dl">
+<datalist id="dl">
+  <option id="opt" value="x" disabled></option>
+</datalist>
+<script>
+promise_test(async t => {
+  const transition = document.startViewTransition(() => {
+    c.style.viewTransitionName = "e";
+  });
+  await transition.ready;
+  const pos = document.caretPositionFromPoint(10, 10);
+  if (pos && pos.offsetNode) {
+    inp.focus();
+    pos.offsetNode.id = "dl";
+    opt.disabled = false;
+  }
+  document.documentElement.classList.add("hide-vt");
+  getComputedStyle(document.documentElement).color;
+}, "Clearing view-transition pseudo-elements with nested style update should not crash");
+</script>

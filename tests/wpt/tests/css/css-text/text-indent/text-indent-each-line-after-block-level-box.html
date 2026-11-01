@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>text-indent: each-line indents the line after a block level box</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-indent-property">
+<link rel="match" href="text-indent-each-line-after-block-level-box-ref.html">
+<meta name="assert" content="With the each-line modifier, a block level box in the inline content ends the line before it, so the line that follows the box is indented as well.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.container { width: 80px; font: 10px Ahem; background-color: lightgray; text-indent: 4em each-line; }
+.block { height: 10px; background-color: blue; }
+</style>
+
+<!-- The block level box as a child of the container, and nested in an inline box. -->
+<div class="container">xxxx<div class="block"></div>xxxx</div>
+<div class="container">xxxx<span><div class="block"></div></span>xxxx</div>

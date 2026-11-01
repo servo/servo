@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:annevk@annevk.nl">
+<link rel=help href="https://html.spec.whatwg.org/multipage/rendering.html#the-select-element-2">
+<link rel=help href="https://drafts.csswg.org/cssom-view/#dom-element-getclientrects">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+select {
+  appearance: base-select;
+}
+
+/* Let the boxes abut so that their edges can be compared. */
+select, optgroup {
+  padding: 0;
+}
+option, optgroup {
+  margin: 0;
+}
+optgroup {
+  border: 0;
+}
+</style>
+
+<div id=spacer></div>
+<div id=container></div>
+
+<script>
+function createListBox(t, attributes) {
+  const container = document.getElementById('container');
+  container.innerHTML = `<select ${attributes}>
+    <option>One</option>
+    <optgroup label=Group>
+      <option>Two</option>
+      <option>Three</option>
+    </optgroup>
+    <option>Four</option>
+  </select>`;
+  t.add_cleanup(() => container.replaceChildren());
+  const select = container.firstElementChild;
+  assert_equals(getComputedStyle(select).appearance, 'base-select',
+    'appearance:base-select must be supported in order to run this test.');
+  return select;
+}
+
+function itemsOf(select) {
+  const [one, group, two, three, four] = select.querySelectorAll('option, optgroup');
+  return { one, group, two, three, four };
+}
+
+function boxesOf(select) {
+  return Object.fromEntries(Object.entries(itemsOf(select)).map(([name, item]) => [name, item.getBoundingClientRect()]));
+}
+
+function assertBoxesEqual(actual, expected, description) {
+  for (const name of Object.keys(expected)) {
+    for (const edge of ['left', 'top', 'width', 'height'])
+      assert_approx_equals(actual[name][edge], expected[name][edge], 0.5, `${description}: ${name} ${edge}`);
+  }
+}
+
+function rendered() {
+  return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+}
+
+for (const attributes of ['size=10', 'multiple size=10']) {
+  test(t => {
+    const select = createListBox(t, attributes);
+    for (const [name, item] of Object.entries(itemsOf(select))) {
+      const box = item.getBoundingClientRect();
+      const rects = item.getClientRects();
+      assert_equals(rects.length, 1, `${name} has one box`);
+      for (const edge of ['left', 'top', 'width', 'height'])
+        assert_approx_equals(rects[0][edge], box[edge], 0.01, `${name} getClientRects() ${edge}`);
+      assert_greater_than(box.width, 0, `${name} width`);
+      assert_greater_than(box.height, 0, `${name} height`);
+    }
+  }, `<select ${attributes}>: options and optgroups have a box`);
+
+  test(t => {
+    const select = createListBox(t, attributes);
+    const boxes = boxesOf(select);
+    const selectBox = select.getBoundingClientRect();
+    const contentLeft = selectBox.left + select.clientLeft;
+    for (const name of ['one', 'group', 'four']) {
+      assert_approx_equals(boxes[name].left, contentLeft, 1, `${name} left`);
+      assert_approx_equals(boxes[name].width, select.clientWidth, 1, `${name} width`);
+    }
+    for (const name of ['two', 'three']) {
+      assert_approx_equals(boxes[name].left, boxes.group.left, 0.5, `${name} left`);
+      assert_approx_equals(boxes[name].width, boxes.group.width, 0.5, `${name} width`);
+    }
+    assert_approx_equals(boxes.one.top, selectBox.top + select.clientTop, 1, 'one top');
+    assert_approx_equals(boxes.group.top, boxes.one.bottom, 0.5, 'group top');
+    assert_greater_than(boxes.two.top, boxes.group.top, 'the label of group is above two');
+    assert_approx_equals(boxes.three.top, boxes.two.bottom, 0.5, 'three top');
+    assert_approx_equals(boxes.group.bottom, boxes.three.bottom, 0.5, 'group bottom');
+    assert_approx_equals(boxes.four.top, boxes.group.bottom, 0.5, 'four top');
+  }, `<select ${attributes}>: option and optgroup boxes are laid out in order in the list box`);
+
+  test(t => {
+    const select = createListBox(t, attributes);
+    const items = itemsOf(select);
+    const boxes = boxesOf(select);
+    for (const name of ['one', 'two', 'three', 'four']) {
+      const box = boxes[name];
+      assert_equals(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2),
+        items[name], name);
+    }
+    const group = boxes.group;
+    assert_equals(document.elementFromPoint(group.left + group.width / 2, (group.top + boxes.two.top) / 2),
+      items.group, 'label of group');
+  }, `<select ${attributes}>: hit testing in the box of an option or optgroup finds it`);
+}
+
+promise_test(async t => {
+  const select = createListBox(t, 'size=10');
+  // Layout is out of date as the list box was just inserted.
+  const boxes = boxesOf(select);
+  assert_greater_than(boxes.one.width, 0, 'one has a box');
+  await rendered();
+  assertBoxesEqual(boxes, boxesOf(select), 'after rendering');
+}, 'Option and optgroup boxes are up to date right after the list box is inserted');
+
+promise_test(async t => {
+  const select = createListBox(t, 'size=10');
+  await rendered();
+  const before = boxesOf(select);
+  itemsOf(select).one.style.minBlockSize = '60px';
+  const boxes = boxesOf(select);
+  await rendered();
+  const after = boxesOf(select);
+  assertBoxesEqual(boxes, after, 'after rendering');
+  const growth = after.one.height - before.one.height;
+  assert_greater_than(growth, 10, 'one grew');
+  for (const name of ['group', 'two', 'three', 'four'])
+    assert_approx_equals(after[name].top, before[name].top + growth, 0.5, `${name} moved down`);
+}, 'Option and optgroup boxes are up to date right after an earlier option grows');
+
+promise_test(async t => {
+  const select = createListBox(t, 'size=10');
+  const spacer = document.getElementById('spacer');
+  t.add_cleanup(() => { spacer.style.height = ''; });
+  await rendered();
+  const before = boxesOf(select);
+  spacer.style.height = '30px';
+  const boxes = boxesOf(select);
+  await rendered();
+  assertBoxesEqual(boxes, boxesOf(select), 'after rendering');
+  for (const name of Object.keys(before))
+    assert_approx_equals(boxes[name].top, before[name].top + 30, 0.5, `${name} moved down`);
+}, 'Option and optgroup boxes are up to date right after the list box moves');
+
+promise_test(async t => {
+  const select = createListBox(t, 'size=2');
+  await rendered();
+  const before = boxesOf(select);
+  select.scrollTop = 30;
+  assert_greater_than(select.scrollTop, 0, 'the list box scrolled');
+  const boxes = boxesOf(select);
+  for (const name of Object.keys(before)) {
+    assert_approx_equals(boxes[name].top, before[name].top - select.scrollTop, 0.5, `${name} top`);
+    assert_approx_equals(boxes[name].left, before[name].left, 0.5, `${name} left`);
+  }
+  await rendered();
+  assertBoxesEqual(boxes, boxesOf(select), 'after rendering');
+}, 'Option and optgroup boxes move when the list box scrolls');
+
+promise_test(async t => {
+  const select = createListBox(t, 'size=10');
+  select.style.appearance = 'auto';
+  await rendered();
+  select.style.appearance = '';
+  const boxes = boxesOf(select);
+  assert_greater_than(boxes.one.width, 0, 'one has a box');
+  await rendered();
+  assertBoxesEqual(boxes, boxesOf(select), 'after rendering');
+}, 'Option and optgroup boxes are up to date right after the list box starts using base appearance');
+
+promise_test(async t => {
+  const select = createListBox(t, 'size=10');
+  await rendered();
+  select.style.appearance = 'auto';
+  const boxes = boxesOf(select);
+  await rendered();
+  assertBoxesEqual(boxes, boxesOf(select), 'after rendering');
+}, 'Option and optgroup boxes are up to date right after the list box stops using base appearance');
+</script>

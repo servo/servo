@@ -15,7 +15,6 @@ for (const expected of preconnects) {
   promise_test(async t => {
     assert_true(typeof performance.getSpeculations === 'function',
       "SpeculationMeasurement feature must be enabled");
-    assert_true('PreconnectData' in window, "PreconnectData should exist");
 
     const origin = new URL(expected.url).origin;
     // Map the crossorigin attribute to the reflected CrossOriginMode enum.

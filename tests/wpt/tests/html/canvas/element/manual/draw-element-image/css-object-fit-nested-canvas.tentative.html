@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <title>drawElementImage respects CSS object-fit on nested canvases</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <link rel="match" href="css-object-fit-nested-canvas-ref.html">
+  <meta name="fuzzy" content="maxDifference=0-80;totalPixels=0-480">
+  <script src="/common/reftest-wait.js"></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    canvas {
+      width: 400px;
+      height: 300px;
+    }
+    #nested {
+      background-color: green;
+      object-fit: contain;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="400" height="300" content=drawable>
+    <canvas id="nested" width="200" height="200" drawable>
+    </canvas>
+  </canvas>
+
+  <script>
+    onload = async () => {
+      await waitForCanvasPaint(canvas);
+
+      // Nested is a 200x200 canvas in a 400x300 box with object-fit contain.
+      // It should resize to 300x300, and be drawn with 50px gutters on either
+      // side. A 40x40 square in the middle will become a 60x60 square in the
+      // middle.
+      const nested_ctx = nested.getContext('2d');
+      nested_ctx.fillStyle = "blue";
+      nested_ctx.fillRect(0, 0, 200, 200);
+      nested_ctx.fillStyle = "yellow";
+      nested_ctx.fillRect(80, 80, 40, 40);
+
+      const canvas_ctx = canvas.getContext('2d');
+      canvas_ctx.fillStyle = "red";
+      canvas_ctx.fillRect(0, 0, 400, 300);
+      canvas_ctx.drawElementImage(nested, 0, 0);
+      takeScreenshot();
+    };
+  </script>
+</body>
+</html>

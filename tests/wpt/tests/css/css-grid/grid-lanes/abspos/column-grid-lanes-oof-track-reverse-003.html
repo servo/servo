@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes: track-reverse OOF static positions without in-flow items</title>
+<link rel="author" title="Hoch Hochkeppel" href="mailto:mhochk@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#abspos">
+<link rel="match" href="column-grid-lanes-oof-track-reverse-003-ref.html">
+<meta name="assert" content="Track reversal places OOF items at inline-end even without in-flow items in a column grid-lanes container.">
+<style>
+  html, body {
+    font: 16px/1 monospace;
+    background: white;
+  }
+  .grid-lanes {
+    display: grid-lanes;
+    grid-lanes-direction: column track-reverse;
+    grid-auto-flow: row-reverse;
+    grid-template-columns: 80px;
+    gap: 10px;
+    width: 200px;
+    height: 200px;
+    outline: 1px solid black;
+    position: relative;
+  }
+  .oof {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background: red;
+  }
+</style>
+<div class="grid-lanes">
+  <div class="oof" style="top: 0;">1</div>
+  <div class="oof" style="top: 90px;">2</div>
+  <div class="oof" style="bottom: 0;">3</div>
+</div>

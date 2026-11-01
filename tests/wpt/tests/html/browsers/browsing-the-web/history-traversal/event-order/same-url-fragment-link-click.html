@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Popstate fires for same-fragment navigation</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#navigate-fragid">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#update-document-for-history-step-application">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<a id="link" href="#foo">foo</a>
+
+<script>
+promise_test(async t => {
+  // Navigating before the load event finishes counts as a replacement.
+  await new Promise(resolve => window.addEventListener("load", resolve));
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+
+  let popstates = 0;
+  const hashchanges = [];
+  window.addEventListener("popstate", () => popstates++);
+  window.addEventListener("hashchange", e => hashchanges.push(new URL(e.newURL).hash));
+
+  link.click();
+  assert_equals(location.hash, "#foo");
+  assert_equals(popstates, 1, "popstate fires synchronously for a fragment change");
+
+  const historyLength = history.length;
+  link.click();
+  assert_equals(popstates, 2, "popstate fires for a same-URL link click");
+  assert_equals(history.length, historyLength, "same-URL same-hash navigation replaces");
+
+  // Change the hash and wait for it so we know we got all hashchanges
+  const done = new Promise(resolve => window.addEventListener("hashchange", e => {
+    if (e.newURL.endsWith("#bar")) {
+      resolve();
+    }
+  }));
+  location.hash = "#bar";
+  await done;
+  assert_array_equals(hashchanges, ["#foo", "#bar"],
+                      "hashchange only fires when the fragment changes");
+}, "Same-fragment navigations fire popstate but not hashchange");
+</script>

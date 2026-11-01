@@ -1,0 +1,98 @@
+<!DOCTYPE HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const mimeTypes = ['image/png', 'image/jpeg', 'image/webp'];
+const encodeMethods = [
+  {
+    name: 'toDataURL',
+    encode: async (toneMappingMode, mimeType) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 16;
+      canvas.height = 16;
+      const ctx = canvas.getContext('2d', {
+        colorSpace: 'srgb-linear',
+        colorType: 'float16',
+        toneMapping: {mode: toneMappingMode},
+      });
+      ctx.fillStyle = 'color(srgb-linear 16 16 16)';
+      ctx.fillRect(0, 0, 16, 16);
+      return canvas.toDataURL(mimeType);
+    },
+  },
+  {
+    name: 'toBlob',
+    encode: async (toneMappingMode, mimeType) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 16;
+      canvas.height = 16;
+      const ctx = canvas.getContext('2d', {
+        colorSpace: 'srgb-linear',
+        colorType: 'float16',
+        toneMapping: {mode: toneMappingMode},
+      });
+      ctx.fillStyle = 'color(srgb-linear 16 16 16)';
+      ctx.fillRect(0, 0, 16, 16);
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, mimeType));
+      return URL.createObjectURL(blob);
+    },
+  },
+  {
+    name: 'convertToBlob',
+    encode: async (toneMappingMode, mimeType) => {
+      const canvas = new OffscreenCanvas(16, 16);
+      const ctx = canvas.getContext('2d', {
+        colorSpace: 'srgb-linear',
+        colorType: 'float16',
+        toneMapping: {mode: toneMappingMode},
+      });
+      ctx.fillStyle = 'color(srgb-linear 16 16 16)';
+      ctx.fillRect(0, 0, 16, 16);
+      const blob = await canvas.convertToBlob({type: mimeType});
+      return URL.createObjectURL(blob);
+    },
+  },
+];
+
+const toneMappingCases = [
+  {mode: 'standard', expected: 1.0, epsilon: 0.05},
+  {mode: 'extended', expected: 16.0, epsilon: 1.0},
+];
+
+for (const mimeType of mimeTypes) {
+  for (const method of encodeMethods) {
+    for (const toneMappingCase of toneMappingCases) {
+      promise_test(async () => {
+        const featureCtx = new OffscreenCanvas(1, 1).getContext('2d');
+        assert_implements(
+            featureCtx.getContextAttributes().toneMapping,
+            'CanvasRenderingContext2DSettings.toneMapping not supported');
+
+        const url = await method.encode(toneMappingCase.mode, mimeType);
+        const image = new Image();
+        image.src = url;
+        await new Promise((resolve, reject) => {
+          image.onload = resolve;
+          image.onerror = reject;
+        });
+
+        const dstCanvas = new OffscreenCanvas(16, 16);
+        const dstCtx = dstCanvas.getContext('2d', {
+          colorSpace: 'srgb-linear',
+          colorType: 'float16',
+        });
+        dstCtx.drawImage(image, 0, 0);
+
+        const data = dstCtx.getImageData(
+            8, 8, 1, 1,
+            {colorSpace: 'srgb-linear', pixelFormat: 'rgba-float16'});
+        for (let c = 0; c < 3; ++c) {
+          assert_approx_equals(
+              data.data[c], toneMappingCase.expected, toneMappingCase.epsilon,
+              `channel=${c}`);
+        }
+      }, `${method.name} ${mimeType} toneMapping=${toneMappingCase.mode}`);
+    }
+  }
+}
+</script>

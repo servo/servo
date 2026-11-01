@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>CSS Reference</title>
+<style>
+div {
+  font: 20px/20px monospace;
+}
+
+.float {
+  float: left;
+  width: 20px;
+  height: 100px;
+  background-color: green;
+}
+
+.spacer {
+  width: 100px;
+  height: 100px;
+}
+</style>
+<p>Test passes if each "filler" below is immediately under a green bar, with no gap between them.</p>
+<div><span class="float"></span><div class="spacer"></div>filler</div>
+<div><span class="float"></span><div class="spacer"></div>filler</div>

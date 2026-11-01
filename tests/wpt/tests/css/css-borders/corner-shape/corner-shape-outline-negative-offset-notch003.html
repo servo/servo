@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<head>
+<title>CSS Borders and Box Decorations 4: negative 'outline-offset' past a notch corner's radius</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shaping">
+<link rel="match" href="corner-shape-outline-negative-offset-notch003-ref.html">
+<meta name="fuzzy" content="maxDifference=0-20; totalPixels=0-200">
+<meta name="assert" content="Test that an inset outline forms a cross shape when sufficiently inset with notch corners.">
+<style>
+    .target {
+        margin: 50px;
+        width: 200px;
+        height: 200px;
+        background: green;
+        border-radius: 40px;
+        corner-shape: notch;
+        outline: 20px solid black;
+        outline-offset: -70px;
+    }
+</style>
+</head>
+<div class=target></div>

@@ -90,6 +90,47 @@ test(t => {
 test(t => {
   assert_kept({ elements: [{ name: "div", attributes: ["is"] }], attributes: [] });
 }, "The is= attribute is kept when allowed by local attributes.");
+
+
+function assert_removed_parseHTML(sanitizer, element) {
+  constructor_called = connectedCallback_called = false;
+
+  // To have meaningful test results with parseHTML, we need to always allow
+  // "html" and "body". But since those might also be in the config, we need
+  // to be a bit careful in when to allow them.
+  if (sanitizer && sanitizer.elements && sanitizer.elements[0].name != "html")
+    sanitizer.elements.push("html");
+  if (sanitizer && sanitizer.elements && sanitizer.elements[0].name != "body")
+    sanitizer.elements.push("body");
+
+  const doc = Document.parseHTML(`<${element} is="foo-bar">hello</${element}>`, { sanitizer } );
+  assert_equals(doc.body.innerText, `hello`);
+  assert_equals(doc.getElementsByTagName(element).length, 1);
+  const parsed_element = doc.getElementsByTagName(element)[0];
+  assert_false(parsed_element.hasAttribute("is"));
+  assert_true(parsed_element.matches(":defined"));
+
+  assert_false(constructor_called);
+  assert_false(connectedCallback_called);
+}
+
+for (element of ["html", "body", "div"]) {
+  test(t => {
+    assert_removed_parseHTML("default", element);
+}, `parseHTML removes ${element} is= attribute with the default sanitizer config.`);
+
+  test(t => {
+    assert_removed_parseHTML({ removeAttributes: ["is"] }, element);
+  }, `parseHTML removes ${element} is= attribute with global removeAttributes`);
+
+  test(t => {
+    assert_removed_parseHTML({ elements: [{ name: element, removeAttributes: ["is"] }], removeAttributes: [] }, element);
+  }, `parseHTML removes ${element} is= attribute with local removeAttributes`);
+
+  test(t => {
+    assert_removed_parseHTML({ elements: [{ name: element, attributes: [] }], attributes: [] }, element);
+  }, `parseHTML removes ${element} is= attribute with local allow attributes`);
+}
 </script>
 </body>
 </html>

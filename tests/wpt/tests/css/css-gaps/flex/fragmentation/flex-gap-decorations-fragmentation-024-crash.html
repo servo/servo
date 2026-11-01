@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<title>Crash test: row-rule decorations in a fragmented row-flex container with an item whose overflow continues into the next fragmentainer</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://issues.chromium.org/issues/574825053">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+  .multi-column {
+    column-count: 2;
+    column-gap: 20px;
+    width: 400px;
+    border: 2px solid black;
+  }
+
+  #flexbox {
+    display: flex;
+    flex-wrap: wrap;
+    row-gap: 10px;
+    row-rule: 4px solid gold;
+    border: 2px solid blue;
+  }
+
+  #flexbox > div {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .overflowing-item {
+    height: 0;
+    border: 2px solid red;
+  }
+
+  .overflow {
+    height: 100px;
+    background: pink;
+  }
+
+  .second-line-item {
+    height: 20px;
+    border: 2px solid green;
+    background: lightgreen;
+  }
+</style>
+<div class="multi-column">
+  <div id="flexbox">
+    <div class="overflowing-item">
+      <div class="overflow"></div>
+    </div>
+    <div class="second-line-item"></div>
+  </div>
+</div>

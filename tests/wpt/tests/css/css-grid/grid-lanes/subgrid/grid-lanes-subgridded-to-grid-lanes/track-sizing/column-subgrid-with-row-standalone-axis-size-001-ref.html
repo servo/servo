@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+  #root {
+    background: lightgrey;
+    display: grid-lanes;
+    grid-template-columns: 100px 200px 300px;
+    width: 600px;
+  }
+
+  #outer, #middle, #inner {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  #outer {
+    background: lightblue;
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+  }
+
+  #middle {
+    background: pink;
+    display: grid;
+    grid-column: 2 / 3;
+    grid-template-columns: subgrid;
+  }
+
+  #inner {
+    background: yellow;
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    grid-template-rows: auto;
+  }
+
+  #leaf {
+    background: green;
+    grid-column: 1;
+    grid-row: 1;
+    height: 40px;
+  }
+</style>
+<div id="root">
+  <div id="outer">
+    <div id="middle">
+      <div id="inner">
+        <div id="leaf"></div>
+      </div>
+    </div>
+  </div>
+</div>

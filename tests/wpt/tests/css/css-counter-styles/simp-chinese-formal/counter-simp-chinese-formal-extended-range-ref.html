@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Counter Styles: simp-chinese-formal over the extended range, reference</title>
+<style>
+  div { font-size: 12px; line-height: 13px; }
+</style>
+<!-- Required range, for contrast with the rows below -->
+<div>&#x96f6;</div>
+<div>&#x58f9;</div>
+<div>&#x7396;</div>
+<div>&#x58f9;&#x62fe;</div>
+<div>&#x58f9;&#x62fe;&#x58f9;</div>
+<div>&#x58f9;&#x62fe;&#x7396;</div>
+<div>&#x8d30;&#x62fe;</div>
+<div>&#x58f9;&#x4f70;</div>
+<div>&#x58f9;&#x4f70;&#x96f6;&#x58f9;</div>
+<div>&#x58f9;&#x4f70;&#x58f9;&#x62fe;</div>
+<div>&#x58f9;&#x4edf;</div>
+<div>&#x58f9;&#x4edf;&#x96f6;&#x58f9;</div>
+<div>&#x58f9;&#x4edf;&#x96f6;&#x58f9;&#x62fe;</div>
+<div>&#x58f9;&#x4edf;&#x58f9;&#x4f70;</div>
+<div>&#x7396;&#x4edf;&#x7396;&#x4f70;&#x7396;&#x62fe;&#x7396;</div>
+
+<!-- Second group marker, and the digit markers inside that group -->
+<div>&#x58f9;&#x4e07;</div>
+<div>&#x58f9;&#x4e07;&#x96f6;&#x58f9;</div>
+<div>&#x58f9;&#x4e07;&#x96f6;&#x58f9;&#x62fe;</div>
+<div>&#x58f9;&#x4e07;&#x96f6;&#x58f9;&#x4f70;</div>
+<div>&#x58f9;&#x4e07;&#x58f9;&#x4edf;</div>
+<div>&#x58f9;&#x4e07;&#x8d30;&#x4edf;&#x53c1;&#x4f70;&#x8086;&#x62fe;&#x4f0d;</div>
+<div>&#x7396;&#x4e07;&#x7396;&#x4edf;&#x7396;&#x4f70;&#x7396;&#x62fe;&#x7396;</div>
+
+<!-- Third group marker, and zeros collapsing across groups -->
+<div>&#x58f9;&#x4f70;&#x4e07;</div>
+<div>&#x58f9;&#x4ebf;</div>
+<div>&#x58f9;&#x4ebf;&#x96f6;&#x58f9;</div>
+<div>&#x58f9;&#x4ebf;&#x96f6;&#x58f9;&#x62fe;&#x4e07;</div>
+<div>&#x58f9;&#x4ebf;&#x58f9;&#x4edf;&#x4e07;</div>
+<div>&#x58f9;&#x4ebf;&#x8d30;&#x4edf;&#x53c1;&#x4f70;&#x8086;&#x62fe;&#x4f0d;&#x4e07;&#x9646;&#x4edf;&#x67d2;&#x4f70;&#x634c;&#x62fe;&#x7396;</div>
+<div>&#x7396;&#x4ebf;&#x7396;&#x4edf;&#x7396;&#x4f70;&#x7396;&#x62fe;&#x7396;&#x4e07;&#x7396;&#x4edf;&#x7396;&#x4f70;&#x7396;&#x62fe;&#x7396;</div>
+
+<!-- The top of the range a counter value can reach -->
+<div>&#x58f9;&#x62fe;&#x4ebf;</div>
+<div>&#x8d30;&#x62fe;&#x58f9;&#x4ebf;&#x8086;&#x4edf;&#x67d2;&#x4f70;&#x8086;&#x62fe;&#x634c;&#x4e07;&#x53c1;&#x4edf;&#x9646;&#x4f70;&#x8086;&#x62fe;&#x9646;</div>
+<div>&#x8d30;&#x62fe;&#x58f9;&#x4ebf;&#x8086;&#x4edf;&#x67d2;&#x4f70;&#x8086;&#x62fe;&#x634c;&#x4e07;&#x53c1;&#x4edf;&#x9646;&#x4f70;&#x8086;&#x62fe;&#x67d2;</div>
+
+<!-- Negative values take the negative sign of the style -->
+<div>&#x8d1f;&#x58f9;</div>
+<div>&#x8d1f;&#x7396;&#x4edf;&#x7396;&#x4f70;&#x7396;&#x62fe;&#x7396;</div>
+<div>&#x8d1f;&#x58f9;&#x4e07;</div>
+<div>&#x8d1f;&#x58f9;&#x4e07;&#x8d30;&#x4edf;&#x53c1;&#x4f70;&#x8086;&#x62fe;&#x4f0d;</div>
+<div>&#x8d1f;&#x8d30;&#x62fe;&#x58f9;&#x4ebf;&#x8086;&#x4edf;&#x67d2;&#x4f70;&#x8086;&#x62fe;&#x634c;&#x4e07;&#x53c1;&#x4edf;&#x9646;&#x4f70;&#x8086;&#x62fe;&#x67d2;</div>
+<div>&#x8d1f;&#x8d30;&#x62fe;&#x58f9;&#x4ebf;&#x8086;&#x4edf;&#x67d2;&#x4f70;&#x8086;&#x62fe;&#x634c;&#x4e07;&#x53c1;&#x4edf;&#x9646;&#x4f70;&#x8086;&#x62fe;&#x634c;</div>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Test: Float with negative margin-left next to float (reference)</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+.container {
+    width: 100px;
+    height: 40px;
+    font: 20px/1 Ahem;
+    position: relative;
+}
+
+.right {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 60px;
+    height: 20px;
+    background: blue;
+}
+
+.left {
+    position: absolute;
+    top: 0;
+    left: -20px;
+    width: 50px;
+    height: 20px;
+    background: green;
+}
+</style>
+</head>
+<body>
+<div class="container"><div class="right"></div><div class="left"></div></div>
+</body>
+</html>

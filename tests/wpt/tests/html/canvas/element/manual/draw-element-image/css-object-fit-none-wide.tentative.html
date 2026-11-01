@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Canvas.drawElementImage: content draws correct with object-fit: fill in a wide box</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:schenney@chromium.org">
+<link rel="match" href="css-object-fit-none-wide-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+  #child {
+    width: 200px;
+    height: 200px;
+    background: white;
+    box-sizing: border-box;
+    border: 10px solid green;
+  }
+  #canvas {
+    aspect-ratio: 4/3;
+    object-fit: none;
+    background-color: gray;
+    height: 300px;
+  }
+</style>
+
+<canvas id=canvas width="400" height="400" content=drawable>
+  <div drawable id=child></div>
+</canvas>
+
+<script>
+onload = async () => {
+  await waitForCanvasPaint(canvas);
+  canvas.getContext("2d").drawElementImage(child, 50, 50);
+  takeScreenshot();
+};
+</script>
+</html>

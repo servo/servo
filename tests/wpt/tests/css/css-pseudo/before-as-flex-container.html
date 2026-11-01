@@ -14,9 +14,10 @@
   }
 
   div::before {
-    content: "A B"; /* Two "words" to become flex items */
+    content: "A B"; /* Contiguous text becomes a single anonymous flex item */
     display: flex;
-    justify-content: space-between; /* Pushes "A" and "B" to the edges */
+    justify-content: flex-end;
+    align-items: flex-end; /* Moves the item to the bottom-right corner */
     width: 200px;
     height: 100px;
     background: green; /* This should cover the red background */

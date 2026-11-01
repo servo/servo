@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+
+<script>
+  setup(() => assertSpeculationRulesIsSupported());
+
+  promise_test(async t => {
+    let agent = await spawnWindow(t);
+    // Use slow-body-conditional-status.py which returns 503 headers immediately
+    // for prefetch but delays the body by 2s. This means the 503 response status
+    // is set on the cached resource before notifyFinished has cleaned it up.
+    let nextUrl = agent.getExecutorURL({ executor: "slow-body-conditional-status.py" });
+
+    // Start the prefetch but don't wait for it to complete.
+    await agent.forceSinglePrefetch(nextUrl, {}, false);
+
+    // Wait long enough for the 503 response headers to arrive (but not the body).
+    await new Promise(resolve => t.step_timeout(resolve, 500));
+
+    // Navigate while the prefetch has received 503 headers but body is still loading.
+    // The memory cache has the resource with a 503 status but notifyFinished hasn't
+    // cleaned it up yet. The fix should prevent reusing this failed prefetch.
+    await agent.navigate(nextUrl);
+
+    const result = await agent.execute_script(() => {
+      return document.body.textContent;
+    });
+
+    assert_equals(result, "200", "Should get a 200 response, not the prefetch's 503");
+  }, "Navigation should not reuse a prefetch with 503 response headers while body is still loading.");
+</script>

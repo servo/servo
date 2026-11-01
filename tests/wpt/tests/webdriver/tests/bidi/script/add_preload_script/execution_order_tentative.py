@@ -6,6 +6,8 @@ from webdriver.bidi.modules.script import ContextTarget
 CONTEXT_CREATED_EVENT = "browsingContext.contextCreated"
 CONTEXT_LOAD_EVENT = "browsingContext.load"
 
+INLINE_SCRIPT_DOCUMENT = "<script>window.baz = window.foo</script>"
+
 pytestmark = pytest.mark.asyncio
 
 
@@ -15,7 +17,7 @@ pytestmark = pytest.mark.asyncio
     "current_context_without_url",
     "opener_context_with_url",
     "opener_context_without_url",
-    "data_url"
+    "inline_script"
 ])
 @pytest.mark.parametrize("create_type", ["popup", "iframe"])
 async def test_preload_script_properties_available_immediately(
@@ -25,7 +27,7 @@ async def test_preload_script_properties_available_immediately(
 
     await subscribe_events([CONTEXT_CREATED_EVENT, CONTEXT_LOAD_EVENT])
     on_created = wait_for_event(CONTEXT_CREATED_EVENT)
-    if access_type == "data_url":
+    if access_type == "inline_script":
         on_loaded = wait_for_event(CONTEXT_LOAD_EVENT)
 
     url = inline('<div>in window open</div>')
@@ -40,8 +42,14 @@ async def test_preload_script_properties_available_immediately(
             script = "window.baz = window.open('about:blank').foo"
         elif access_type == "opener_context_without_url":
             script = "window.baz = window.open().foo"
-        elif access_type == "data_url":
-            script = "window.open('data:text/html,<script>window.baz = window.foo</script>')"
+        elif access_type == "inline_script":
+            # Browsers may block script-initiated top-level navigations to
+            # data: URLs (e.g. Chrome). The specification allows this: Fetch
+            # lets user agents intervene on any navigation request, see
+            # https://fetch.spec.whatwg.org/#potentially-override-response-for-a-request
+            # This test does not check that behavior, so use an HTTP(S)
+            # document with the same inline script instead.
+            script = f"window.open('{inline(INLINE_SCRIPT_DOCUMENT)}')"
     elif create_type == "iframe":
         script = "const iframe = document.createElement('iframe');"
         if access_type == "current_context_with_url":
@@ -55,8 +63,8 @@ async def test_preload_script_properties_available_immediately(
                 window.baz = iframe.contentWindow.foo"""
         elif access_type == "opener_context_without_url":
             script += "document.body.appendChild(iframe); window.baz = iframe.contentWindow.foo"
-        elif access_type == "data_url":
-            script += """iframe.src='data:text/html,<script>window.baz = window.foo</script>';
+        elif access_type == "inline_script":
+            script += f"""iframe.src='data:text/html,{INLINE_SCRIPT_DOCUMENT}';
                 document.body.appendChild(iframe)"""
 
     asyncio.create_task(
@@ -69,7 +77,7 @@ async def test_preload_script_properties_available_immediately(
 
     new_context_info = await wait_for_future_safe(on_created)
     try:
-        if access_type == "data_url":
+        if access_type == "inline_script":
             # ensure the inline script was executed
             await wait_for_future_safe(on_loaded)
 
@@ -85,7 +93,7 @@ async def test_preload_script_properties_available_immediately(
                 target=ContextTarget(new_tab["context"]),
                 await_promise=False,
             )
-        if access_type == "data_url":
+        if access_type == "inline_script":
             result = await bidi_session.script.evaluate(
                 expression="window.baz",
                 target=ContextTarget(new_context_info["context"]),

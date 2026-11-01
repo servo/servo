@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+
+<title>Intersection Observer: implicit root observer in a same-origin iframe reports intersecting when the iframe has a nonzero layout offset</title>
+<link rel="author" title="Andy Estes" href="mailto:aestes@apple.com">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+<script src="./resources/offset-iframe.js"></script>
+
+<style>
+  #spacer {
+    height: 400px;
+  }
+  #iframe {
+    display: block;
+    width: 200px;
+    height: 200px;
+  }
+</style>
+
+<div id="spacer"></div>
+<iframe id="iframe"></iframe>
+
+<script>
+  runOffsetIframeTest("resources/offset-iframe-subframe.html");
+</script>

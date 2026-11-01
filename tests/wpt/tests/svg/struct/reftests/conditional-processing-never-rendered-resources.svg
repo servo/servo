@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>Conditional processing attributes on clipPath, mask, filter, gradients, pattern, and marker are ignored</title>
+  <h:link rel="help" href="https://svgwg.org/svg2-draft/struct.html#ConditionalProcessingOverview"/>
+  <h:link rel="match" href="reference/green-100x100.svg"/>
+  <defs>
+    <!-- clipPath: ignores failing conditionals on self, honors them on children -->
+    <clipPath id="c1" clipPathUnits="userSpaceOnUse" systemLanguage="x-nonexistent">
+      <rect x="0" y="0" width="25" height="16"/>
+      <rect x="25" y="0" width="25" height="16" systemLanguage="x-nonexistent"/>
+    </clipPath>
+    <clipPath id="c2" clipPathUnits="userSpaceOnUse" requiredExtensions="">
+      <rect x="50" y="0" width="25" height="16"/>
+      <rect x="75" y="0" width="25" height="16" requiredExtensions=""/>
+    </clipPath>
+
+    <!-- mask: ignores failing conditionals on self, honors them on children -->
+    <mask id="m1" maskUnits="userSpaceOnUse" x="0" y="16" width="50" height="16" systemLanguage="x-nonexistent">
+      <rect x="0" y="16" width="25" height="16" fill="white"/>
+      <rect x="25" y="16" width="25" height="16" fill="white" systemLanguage="x-nonexistent"/>
+    </mask>
+    <mask id="m2" maskUnits="userSpaceOnUse" x="50" y="16" width="50" height="16" requiredExtensions="">
+      <rect x="50" y="16" width="25" height="16" fill="white"/>
+      <rect x="75" y="16" width="25" height="16" fill="white" requiredExtensions=""/>
+    </mask>
+
+    <!-- filter: ignores failing conditionals on self -->
+    <filter id="f1" x="0" y="0" width="1" height="1" systemLanguage="x-nonexistent">
+      <feFlood flood-color="green"/>
+    </filter>
+    <filter id="f2" x="0" y="0" width="1" height="1" requiredExtensions="">
+      <feFlood flood-color="green"/>
+    </filter>
+
+    <!-- gradients: ignore failing conditionals on self -->
+    <linearGradient id="g1" systemLanguage="x-nonexistent">
+      <stop stop-color="green"/>
+    </linearGradient>
+    <radialGradient id="g2" requiredExtensions="">
+      <stop stop-color="green"/>
+    </radialGradient>
+
+    <!-- pattern: ignores failing conditionals on self (and template), honors them on children -->
+    <pattern id="p1" width="1" height="1" systemLanguage="x-nonexistent">
+      <rect width="50" height="16" fill="green"/>
+      <rect width="50" height="16" fill="red" systemLanguage="x-nonexistent"/>
+    </pattern>
+    <pattern id="p2_base" requiredExtensions="">
+      <rect width="50" height="16" fill="green"/>
+      <rect width="50" height="16" fill="red" requiredExtensions=""/>
+    </pattern>
+    <pattern id="p2" href="#p2_base" width="1" height="1" requiredExtensions=""/>
+
+    <!-- marker: ignores failing conditionals on self, honors them on children -->
+    <marker id="mk1" markerUnits="userSpaceOnUse" markerWidth="50" markerHeight="20" systemLanguage="x-nonexistent">
+      <rect width="50" height="20" fill="green"/>
+      <rect width="50" height="20" fill="red" systemLanguage="x-nonexistent"/>
+    </marker>
+    <marker id="mk2" markerUnits="userSpaceOnUse" markerWidth="50" markerHeight="20" requiredExtensions="">
+      <rect width="50" height="20" fill="green"/>
+      <rect width="50" height="20" fill="red" requiredExtensions=""/>
+    </marker>
+  </defs>
+
+  <!-- Row 1 (y=0..16): clipPath -->
+  <rect x="0" y="0" width="25" height="16" fill="red"/>
+  <rect x="25" y="0" width="25" height="16" fill="green"/>
+  <g clip-path="url(#c1)">
+    <rect x="0" y="0" width="25" height="16" fill="green"/>
+    <rect x="25" y="0" width="25" height="16" fill="red"/>
+  </g>
+  <rect x="50" y="0" width="25" height="16" fill="red"/>
+  <rect x="75" y="0" width="25" height="16" fill="green"/>
+  <g clip-path="url(#c2)">
+    <rect x="50" y="0" width="25" height="16" fill="green"/>
+    <rect x="75" y="0" width="25" height="16" fill="red"/>
+  </g>
+
+  <!-- Row 2 (y=16..32): mask -->
+  <rect x="0" y="16" width="25" height="16" fill="red"/>
+  <rect x="25" y="16" width="25" height="16" fill="green"/>
+  <g mask="url(#m1)">
+    <rect x="0" y="16" width="25" height="16" fill="green"/>
+    <rect x="25" y="16" width="25" height="16" fill="red"/>
+  </g>
+  <rect x="50" y="16" width="25" height="16" fill="red"/>
+  <rect x="75" y="16" width="25" height="16" fill="green"/>
+  <g mask="url(#m2)">
+    <rect x="50" y="16" width="25" height="16" fill="green"/>
+    <rect x="75" y="16" width="25" height="16" fill="red"/>
+  </g>
+
+  <!-- Row 3 (y=32..48): filter -->
+  <rect x="0" y="32" width="50" height="16" fill="red"/>
+  <rect x="0" y="32" width="50" height="16" fill="red" filter="url(#f1)"/>
+  <rect x="50" y="32" width="50" height="16" fill="red"/>
+  <rect x="50" y="32" width="50" height="16" fill="red" filter="url(#f2)"/>
+
+  <!-- Row 4 (y=48..64): gradients -->
+  <rect x="0" y="48" width="50" height="16" fill="url(#g1) red"/>
+  <rect x="50" y="48" width="50" height="16" fill="url(#g2) red"/>
+
+  <!-- Row 5 (y=64..80): pattern -->
+  <rect x="0" y="64" width="50" height="16" fill="url(#p1) red"/>
+  <rect x="50" y="64" width="50" height="16" fill="url(#p2) red"/>
+
+  <!-- Row 6 (y=80..100): marker -->
+  <rect x="0" y="80" width="50" height="20" fill="red"/>
+  <path d="M0,80h1" fill="none" marker-start="url(#mk1)"/>
+  <rect x="50" y="80" width="50" height="20" fill="red"/>
+  <path d="M50,80h1" fill="none" marker-start="url(#mk2)"/>
+</svg>

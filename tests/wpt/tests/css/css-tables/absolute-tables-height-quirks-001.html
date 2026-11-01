@@ -1,0 +1,28 @@
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='/resources/check-layout-th.js'></script>
+<link rel="help" href="https://www.w3.org/TR/css-tables-3/#used-width-of-table">
+<meta name="assert" content="Absolutely positioned table with height: 100% should not stretch to the viewport in quirks mode.">
+<style>
+.table {
+    position: absolute;
+    background: orange;
+    border-spacing: 0;
+}
+td {
+    padding: 0;
+}
+</style>
+
+<output id="log"></output>
+
+<!-- height: 100% with auto-height containing block should not stretch to viewport -->
+<div style="position: relative; width: 100px;">
+    <table class="table" style="width: 100%; height: 100%;" data-expected-width=100 data-expected-height=40>
+        <tr><td><div style="height: 40px;"></div></td></tr>
+    </table>
+</div>
+
+<script>
+    checkLayout(".table");
+</script>

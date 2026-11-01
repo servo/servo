@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml" class="reftest-wait"
      width="200" height="200">
   <title>SVG use: mutating 'href' on the referenced 'image' element updates the instance</title>
-  <h:link rel="help" href="https://svgwg.org/svg2-draft/struct.html#UseElement"/>
+  <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/struct.html#UseElement"/>
   <h:link rel="match" href="reference/use-image-href-mutating-ref.svg"/>
 
   <!-- The 'image' is inside 'defs', so it is never rendered directly: the use-element shadow tree

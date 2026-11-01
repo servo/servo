@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG coordinate systems: transform attribute on the outermost svg element, computed value</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/struct.html#SVGElement">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#TransformProperty">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-1/#transform-property">
+<meta name="assert" content="The transform attribute of an outermost svg element is a presentation attribute for the transform property.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<svg id="outer" width="200" height="200"></svg>
+<script>
+const outer = document.getElementById("outer");
+
+function computedTransform(element, attribute) {
+  element.setAttribute("transform", attribute);
+  const value = getComputedStyle(element).transform;
+  element.removeAttribute("transform");
+  return value;
+}
+
+function assert_transform(element, attribute, expected) {
+  const actual = new DOMMatrixReadOnly(computedTransform(element, attribute));
+  const reference = new DOMMatrixReadOnly(expected);
+  for (const component of ["a", "b", "c", "d", "e", "f"])
+    assert_approx_equals(actual[component], reference[component], 1e-5, `matrix component '${component}'`);
+}
+
+const tests = [
+  ["translate(10, 20)", "matrix(1, 0, 0, 1, 10, 20)"],
+  ["translate(10)", "matrix(1, 0, 0, 1, 10, 0)"],
+  ["scale(2, 3)", "matrix(2, 0, 0, 3, 0, 0)"],
+  ["scale(2)", "matrix(2, 0, 0, 2, 0, 0)"],
+  ["rotate(45)", "rotate(45deg)"],
+  ["rotate(45, 10, 20)", "translate(10px, 20px) rotate(45deg) translate(-10px, -20px)"],
+  ["skewX(30)", "skewX(30deg)"],
+  ["skewY(30)", "skewY(30deg)"],
+  ["matrix(1, 2, 3, 4, 5, 6)", "matrix(1, 2, 3, 4, 5, 6)"],
+  ["translate(10, 20) rotate(90)", "translate(10px, 20px) rotate(90deg)"],
+];
+
+for (const [attribute, expected] of tests) {
+  test(() => {
+    assert_transform(outer, attribute, expected);
+  }, `transform="${attribute}" on an outermost svg element computes to ${expected}`);
+}
+
+test(() => {
+  assert_equals(computedTransform(outer, ""), "none");
+}, "An empty transform attribute on an outermost svg element computes to none");
+
+test(() => {
+  assert_equals(getComputedStyle(outer).transform, "none");
+}, "A missing transform attribute on an outermost svg element computes to none");
+
+test(() => {
+  outer.setAttribute("transform", "translate(10, 20)");
+  outer.style.transform = "translate(30px, 40px)";
+  const value = new DOMMatrixReadOnly(getComputedStyle(outer).transform);
+  outer.style.transform = "";
+  outer.removeAttribute("transform");
+  assert_equals(value.e, 30);
+  assert_equals(value.f, 40);
+}, "The transform property overrides the transform attribute on an outermost svg element");
+</script>
+</body>

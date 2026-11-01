@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+
+<script>
+  setup(() => assertSpeculationRulesIsSupported());
+
+  promise_test(async t => {
+    let agent = await spawnWindow(t);
+    // Use slow-executor with a 3s delay. Navigate after 2.5s so the navigation
+    // joins the in-flight prefetch and reuses its successful 200 response.
+    let nextUrl = agent.getExecutorURL({
+      executor: "slow-executor.py",
+      delay: 3,
+      page: 2
+    });
+
+    // Start the prefetch but don't wait for it to complete.
+    await agent.forceSinglePrefetch(nextUrl, {}, false);
+
+    // Wait long enough for the prefetch request to reach the server, but
+    // navigate before the 200 response arrives (server delays 3s).
+    await new Promise(resolve => t.step_timeout(resolve, 2500));
+
+    // Navigate while the prefetch is still in-flight.
+    await agent.navigate(nextUrl);
+
+    // Verify the navigation reused the prefetch response — the request headers
+    // on the navigated page should show Sec-Purpose: prefetch, confirming the
+    // response came from the prefetch request, not a separate navigation request.
+    assert_prefetched(await agent.getRequestHeaders(),
+      "Navigation should have reused the in-flight prefetch response.");
+  }, "Navigation should reuse a successful in-flight prefetch response.");
+</script>

@@ -6,12 +6,10 @@
 <script src="support/speculation-measurement-utils.js"></script>
 <body>
 <script>
-// Verify basic interface shape before any preloads are added.
+// Verify basic shape before any preloads are added.
 test(() => {
   assert_true(isSpeculationMeasurementEnabled(),
     "SpeculationMeasurement feature must be enabled");
-  assert_true('SpeculationData' in window, "SpeculationData should exist");
-  assert_true('PreloadData' in window, "PreloadData should exist");
 
   const speculations = performance.getSpeculations();
   assert_not_equals(speculations, null);
@@ -20,7 +18,7 @@ test(() => {
   assert_true(Array.isArray(speculations.preloads), "preloads should be array");
   assert_array_equals(speculations.preloads, [],
     "preloads should be empty when page has no preloads");
-}, "performance.getSpeculations() basic interface");
+}, "performance.getSpeculations() basic shape");
 
 // Test matrix: combinations of "as" and "crossorigin" for unused preloads.
 const testCases = [

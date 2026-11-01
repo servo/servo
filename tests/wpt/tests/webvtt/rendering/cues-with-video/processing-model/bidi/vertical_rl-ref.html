@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<title>Reference for WebVTT rendering, bidi ruby</title>
- <meta charset="UTF-8">
+<title>Reference for WebVTT rendering, vertical growing right to left</title>
+<meta charset="UTF-8">
 <style>
 html { overflow:hidden }
 body { margin:0 }
@@ -13,19 +13,23 @@ body { margin:0 }
 }
 .cue {
     position: absolute;
+    left: 0;
+    top: 0;
     bottom: 0;
-    right: 0;
     text-align: center;
-    unicode-bidi: -webkit-plaintext;
+    text-wrap: balance;
     unicode-bidi: plaintext;
-    direction: ltr;
     writing-mode: vertical-rl;
-    -webkit-writing-mode: vertical-rl;
     font-family: sans-serif;
+    line-height: 3;
 }
 .cue > span {
     background: rgba(0,0,0,1);
     color: white;
 }
+rt {
+    background: rgba(0,0,0,1);
+    line-height: 1;
+}
 </style>
-<div class="video"><span class="cue"><span><ruby></ruby>に<ruby> 見<rt>み</rt></ruby>えるのは...<br>二行目</span></span></div>
+<div class="video"><span class="cue"><span><ruby>右<rt>みぎ</rt></ruby>に<ruby> 見<rt>み</rt></ruby>えるのは...<br>二行目</span></span></div>

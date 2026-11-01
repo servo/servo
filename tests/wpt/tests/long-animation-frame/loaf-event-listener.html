@@ -40,5 +40,44 @@ test_self_event_listener((t, busy_wait) => {
     });
     xhr.send();
 }, "XMLHttpRequest.onload");
+
+promise_test(async t => {
+    const [entry, script] = await expect_long_frame_with_script((t, busy_wait) => {
+        const img = document.createElement("img");
+        img.id = "priority-id";
+        img.src = "/images/green.png";
+        img.addEventListener("load", () => {
+            busy_wait();
+        });
+        document.body.appendChild(img);
+        t.add_cleanup(() => img.remove());
+    }, s => s.invokerType === "event-listener" && s.invoker.startsWith("IMG"), t);
+
+    assert_true(!!entry, "Entry detected");
+    assert_equals(script.invoker, "IMG#priority-id.onload",
+        "Event target with both id and src should use #id rather than [src]");
+}, "Event listener invoker uses #id over [src] when both are present");
+
+promise_test(async t => {
+    const entry = await expect_long_frame((t, busy_wait) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", "/common/dummy.xml");
+        xhr.addEventListener("load", () => {
+            busy_wait(very_long_frame_duration / 2);
+        });
+        xhr.addEventListener("load", () => {
+            busy_wait(very_long_frame_duration / 2);
+        });
+        xhr.send();
+    }, t);
+
+    assert_not_equals(entry, "timeout");
+    const listeners = entry.scripts.filter(
+        s => s.invokerType === "event-listener" && s.invoker === "XMLHttpRequest.onload");
+    assert_equals(listeners.length, 2,
+        "Multiple listeners on a non-document-task event should each produce a script entry");
+    assert_greater_than(entry.blockingDuration, 0,
+        "Event firing pseudo-task should contribute to blockingDuration");
+}, "Event firing pseudo-task records all listeners and blockingDuration");
 </script>
 </body>

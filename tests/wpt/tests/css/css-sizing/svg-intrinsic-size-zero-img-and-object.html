@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<title>Zero natural width or height of SVG in img and object</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6286">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#natural-dimensions">
+<meta name="assert" content="An SVG's natural dimensions do not depend on whether it is shown by an img or an object.
+  A width or height of 0 is a natural dimension of 0. A degenerate ratio from a zero width or height falls back to
+  the viewBox's ratio, and a zero natural height is then derived from the natural width and that ratio.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+img, object {
+  display: block;
+}
+</style>
+<div id="container"></div>
+<script>
+const tests = [
+  { file: "svg-width-100-height-0-viewBox-1-1.svg", expected: [100, 100] },
+  { file: "svg-width-100-height-0.svg", expected: [100, 0] },
+  { file: "svg-width-0-height-100-viewBox-1-1.svg", expected: [0, 100] },
+  { file: "svg-width-0-height-100.svg", expected: [0, 100] },
+  { file: "svg-width-0-height-0-viewBox-1-1.svg", expected: [0, 0] },
+  { file: "svg-width-100-height-0-viewBox-2-1.svg", style: "aspect-ratio: 1 / 1", expected: [100, 100] },
+  { file: "svg-width-100-height-0.svg", style: "aspect-ratio: 1 / 1", expected: [100, 100] },
+];
+
+function load(element) {
+  return new Promise(resolve => {
+    element.addEventListener("load", resolve, { once: true });
+    element.addEventListener("error", resolve, { once: true });
+  });
+}
+
+for (const { file, style, expected } of tests) {
+  const url = "support/" + file;
+  for (const tagName of ["img", "object"]) {
+    promise_test(async () => {
+      const element = document.createElement(tagName);
+      if (style)
+        element.setAttribute("style", style);
+      if (tagName == "img")
+        element.src = url;
+      else
+        element.data = url;
+      const loaded = load(element);
+      container.append(element);
+      await loaded;
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      const { width, height } = element.getBoundingClientRect();
+      assert_array_equals([width, height], expected);
+    }, `<${tagName}> of ${file}${style ? ` with ${style}` : ""}`);
+  }
+}
+</script>

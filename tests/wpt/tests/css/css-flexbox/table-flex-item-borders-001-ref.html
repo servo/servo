@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reftest Reference</title>
+<style>
+.container {
+    width: 300px;
+    margin-bottom: 10px;
+}
+.box {
+    width: 50px;
+    height: 20px;
+    background-color: green;
+    border: 10px solid green;
+}
+#narrow-borders {
+    margin-left: 230px;
+}
+#wide-borders {
+    margin-left: 210px;
+    border-width: 20px;
+}
+</style>
+<p>Test passes if there are two green rectangles with their right edges aligned.</p>
+<div class="container"><div class="box" id="narrow-borders"></div></div>
+<div class="container"><div class="box" id="wide-borders"></div></div>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Flex painting order with z-index after dynamic display change</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#painting">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<math id="target">
+  <mi style="z-index: 1; width: 100px; height: 100px; background: green"></mi>
+  <mi style="margin-left: -100px; width: 100px; height: 100px; background: red"></mi>
+</math>
+<script>
+waitForAtLeastOneFrame().then(() => {
+  target.style.display = "flex";
+  takeScreenshot();
+});
+</script>
+</html>

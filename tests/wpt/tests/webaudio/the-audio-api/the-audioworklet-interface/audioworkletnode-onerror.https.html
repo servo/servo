@@ -51,14 +51,28 @@ promise_test(async () => {
 promise_test(async () => {
   const processErrorWorkletNode =
       new AudioWorkletNode(context, 'process-error');
-  const error = await new Promise((resolve) => {
-    processErrorWorkletNode.onprocessorerror = (e) => resolve(e);
+  let listenerError = null;
+  let error = null;
+  await new Promise((resolve) => {
+    processErrorWorkletNode.onprocessorerror = (e) => {
+      error = e;
+    };
+    processErrorWorkletNode.addEventListener('processorerror', (e) => {
+      listenerError = e;
+      resolve();
+    });
+    // Fail fast instead of timing out if "error" is dispatched instead.
+    processErrorWorkletNode.addEventListener('error', resolve);
     // Need to start render to cause an exception in process().
     context.startRendering();
   });
   assert_true(error instanceof ErrorEvent,
       'onprocessorerror argument should be an ErrorEvent when the ' +
       'process method of the AudioWorkletProcessor has an error.');
+  assert_equals(error.type, 'processorerror',
+      'onprocessorerror argument should have type "processorerror".');
+  assert_equals(listenerError, error,
+      'addEventListener("processorerror") should receive the same event.');
   assert_greater_than(error.lineno, 0, 'Error line number should be set');
   assert_greater_than(error.colno, 0, 'Error column number should be set');
   assert_true(error.filename.endsWith(ERROR_PROCESSOR_FILENAME),

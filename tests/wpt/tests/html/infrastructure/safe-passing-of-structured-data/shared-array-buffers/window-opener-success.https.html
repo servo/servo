@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Structured cloning of SharedArrayBuffers: a popup with an opener is in the same agent cluster</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/document-sequences.html#creating-a-new-auxiliary-browsing-context">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#structuredserialize">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script> <!-- Use token() to allow running tests in parallel -->
+
+<div id="log"></div>
+
+<script>
+"use strict";
+
+// A window opened without noopener is an auxiliary browsing context in this
+// page's browsing context group, so it is in the same agent cluster and a
+// SharedArrayBuffer sent to it deserializes. This is the control for
+// window-noopener-failure.https.html: both use a BroadcastChannel, and noopener
+// is the only difference between them.
+async_test(t => {
+  const channelName = token();
+  const channel = new BroadcastChannel(channelName);
+  const popup = window.open(`resources/broadcastchannel-popup.html?channel=${channelName}`);
+  t.add_cleanup(() => {
+    channel.close();
+    popup.close();
+  });
+
+  channel.onmessage = t.step_func(({ data }) => {
+    switch (data) {
+      case "ready":
+        channel.postMessage(new SharedArrayBuffer(8));
+        break;
+      case "message":
+        t.done();
+        break;
+      case "messageerror":
+        assert_unreached("The popup must be able to deserialize the SharedArrayBuffer");
+        break;
+    }
+  });
+}, "SharedArrayBuffer and a same-origin popup with an opener");
+</script>

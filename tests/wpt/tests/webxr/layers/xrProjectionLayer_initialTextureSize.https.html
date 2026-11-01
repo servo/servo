@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+
+<script>
+
+  function testProjectionLayerInitialSize(xrSession, deviceController, t, { gl }) {
+    return new Promise((resolve) => {
+      t.step(() => {
+        const binding = new XRWebGLBinding(xrSession, gl);
+        // disable the depth swapchain so the test does not depend on WEBGL_depth_texture being available on non-WebGL2 contexts.
+        const fullScale = binding.createProjectionLayer({ scaleFactor: 1.0, depthFormat: 0 });
+
+        assert_greater_than(fullScale.textureWidth, 0, "textureWidth must be non-zero immediately after createProjectionLayer()");
+        assert_greater_than(fullScale.textureHeight, 0, "textureHeight must be non-zero immediately after createProjectionLayer()");
+
+        // disable the depth swapchain so the test does not depend on WEBGL_depth_texture being available on non-WebGL2 contexts.
+        const halfScale = binding.createProjectionLayer({ scaleFactor: 0.5, depthFormat: 0 });
+
+        assert_greater_than(halfScale.textureWidth, 0, "textureWidth must be non-zero immediately after createProjectionLayer() with scaleFactor 0.5");
+        assert_greater_than(halfScale.textureHeight, 0, "textureHeight must be non-zero immediately after createProjectionLayer() with scaleFactor 0.5");
+        assert_less_than(halfScale.textureWidth, fullScale.textureWidth, "scaleFactor 0.5 should produce a narrower texture than scaleFactor 1.0");
+        assert_less_than(halfScale.textureHeight, fullScale.textureHeight, "scaleFactor 0.5 should produce a shorter texture than scaleFactor 1.0");
+      });
+      resolve();
+    });
+  }
+
+  xr_session_promise_test("XRProjectionLayer reports a non-zero texture size before the first XR animation frame, scaled by scaleFactor",
+    testProjectionLayerInitialSize, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', { requiredFeatures: ['layers'] });
+
+</script>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>feImage renders a referenced SVG image at the size it is drawn</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://drafts.csswg.org/filter-effects/#feImageElement">
+<link rel="match" href="reference/green-100x100.html">
+<meta name="assert" content="An feImage referencing a 2x2 SVG image drawn at 100x100 renders the SVG at that size, so its edge stays sharp instead of being scaled up from 2x2 pixels.">
+<svg width="100" height="100">
+  <filter id="filter" filterUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+    <feImage href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='2' height='2'><rect x='1' width='1' height='2' fill='green'/></svg>"/>
+  </filter>
+  <rect width="50" height="100" fill="green"/>
+  <rect x="50" width="50" height="100" fill="red"/>
+  <rect width="100" height="100" filter="url(#filter)"/>
+</svg>

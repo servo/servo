@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes: track-reverse OOF static positions with auto width</title>
+<link rel="author" title="Hoch Hochkeppel" href="mailto:mhochk@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#abspos">
+<link rel="match" href="row-grid-lanes-oof-track-reverse-001-ref.html">
+<meta name="assert" content="Track reversal places OOF items at block-end in a row grid-lanes container with auto inline size.">
+<style>
+  html, body {
+    font: 16px/1 monospace;
+    background: white;
+  }
+  .grid-lanes {
+    display: grid-lanes;
+    grid-lanes-direction: row track-reverse;
+    grid-auto-flow: column-reverse;
+    grid-template-rows: 80px;
+    gap: 10px;
+    height: 200px;
+    outline: 1px solid black;
+    position: relative;
+  }
+  .item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    background: lightblue;
+  }
+  .oof {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: red;
+  }
+</style>
+<div class="grid-lanes">
+  <div class="item">1</div>
+  <div class="item">2</div>
+  <div class="item">3</div>
+  <div class="oof" style="left: 0;"></div>
+  <div class="oof" style="left: 50px;"></div>
+  <div class="oof" style="right: 0;"></div>
+</div>

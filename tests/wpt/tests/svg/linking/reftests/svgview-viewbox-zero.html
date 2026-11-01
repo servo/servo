@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG fragment identifier: a view with a zero-size viewBox disables rendering</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/linking.html#SVGFragmentIdentifiersDefinitions">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#ViewBoxAttribute">
+<link rel="match" href="../../struct/reftests/reference/green-100x100.html">
+<meta name="assert" content="A view with a zero-size viewBox disables rendering, whether selected by svgView() or a view element.">
+<style>
+  img { display: block; width: 100px; height: 20px; background: green; }
+  img.must-paint { background: red; }
+</style>
+<img src="support/red-viewbox-25x25.svg#svgView(viewBox(0,0,0,0))">
+<img src="support/red-viewbox-25x25.svg#svgView(viewBox(0,0,0,25))">
+<img src="support/red-viewbox-25x25.svg#svgView(viewBox(0,0,25,0))">
+<img src="support/red-viewbox-25x25.svg#empty">
+<!-- A valid view, which must paint, so the test fails if the images do not load. -->
+<img class="must-paint" src="support/green-viewbox-25x25.svg#svgView(viewBox(0,0,25,25);preserveAspectRatio(none))">

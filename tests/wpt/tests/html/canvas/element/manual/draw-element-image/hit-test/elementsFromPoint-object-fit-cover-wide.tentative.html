@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<title>Elements should appear in elementsFromPoint with object-fit: cover in a wide box</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+  #left {
+    width: 10px;
+    height: 300px;
+    background-color: red;
+  }
+  #top {
+    width: 280px;
+    height: 10px;
+    background-color: green;
+  }
+  #right {
+    width: 10px;
+    height: 300px;
+    background-color: yellow;
+  }
+  #bottom {
+    width: 280px;
+    height: 10px;
+    background-color: blue;
+  }
+  canvas {
+    aspect-ratio: 4/3;
+    object-fit: cover;
+    background-color: white;
+    height: 300px;
+  }
+  body {
+    margin: 0px;
+  }
+</style>
+
+<canvas id="canvas" width=300 height=300 content=drawable>
+  <div drawable id="left"></div>
+  <div drawable id="top"></div>
+  <div drawable id="right"></div>
+  <div drawable id="bottom"></div>
+</canvas>
+
+<script>
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    const ctx = canvas.getContext('2d');
+    const left_elmt = document.getElementById("left");
+    const top_elmt = document.getElementById("top");
+    const right_elmt = document.getElementById("right");
+    const bottom_elmt = document.getElementById("bottom");
+    // The canvas bitmap is scaled to 400x400 in CSS pixels with 50px cropped at the top and
+    // 50px cropped at the bottom. The drawn elements are at the CSS size when drawn so should
+    // hit test at that size. But their dx,dy are in canvas bitmap pixels, which are then scaled
+    // up along with the canvas bitmap, so CSS pizels are 1.333x the given locations.
+    // And everything is -50px horizontally offset.
+    ctx.drawElementImage(left_elmt, 0, 0);
+    ctx.drawElementImage(top_elmt, 10, 0);
+    ctx.drawElementImage(right_elmt, 290, 0);
+    ctx.drawElementImage(bottom_elmt, 10, 290);
+
+    assert_array_equals(document.elementsFromPoint(150, 5),
+                        [canvas, document.body, document.documentElement],
+                        '(150, 5) Should have returned a sequence with `[canvas, body, html]`');
+
+    assert_array_equals(document.elementsFromPoint(5, 5),
+                        [left_elmt, canvas, document.body, document.documentElement],
+                        '(5, 5) Should have returned a sequence with `[left, canvas, body, html]`');
+    assert_array_equals(document.elementsFromPoint(5, 245),
+                        [left_elmt, canvas, document.body, document.documentElement],
+                        '(5, 245) Should have returned a sequence with `[left, canvas, body, html]`');
+    assert_array_equals(document.elementsFromPoint(5, 255),
+                        [canvas, document.body, document.documentElement],
+                        '(5, 255) Should have returned a sequence with `[left, canvas, body, html]`');
+
+    assert_array_equals(document.elementsFromPoint(395, 5),
+                        [right_elmt, canvas, document.body, document.documentElement],
+                        '(395, 5) Should have returned a sequence with `[right, canvas, body, html]`');
+    assert_array_equals(document.elementsFromPoint(395, 245),
+                        [right_elmt, canvas, document.body, document.documentElement],
+                        '(395, 245) Should have returned a sequence with `[right, canvas, body, html]`');
+    assert_array_equals(document.elementsFromPoint(395, 255),
+                        [canvas, document.body, document.documentElement],
+                        '(285, 345) Should have returned a sequence with `[canvas, body, html]`');
+
+    assert_array_equals(document.elementsFromPoint(150, 295),
+                        [canvas, document.body, document.documentElement],
+                        '(150, 295) Should have returned a sequence with `[canvas, body, html]`');
+
+  }, 'Canvas descendants\' transforms are correct when object-fit: cover is active.');
+
+</script>
+</html>

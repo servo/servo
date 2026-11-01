@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG coordinate systems: transform attribute on the outermost svg element and the individual transform properties</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/struct.html#SVGElement">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#TransformProperty">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-1/#transform-property">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#individual-transforms">
+<link rel="match" href="outer-svg-transform-attribute-individual-transform-properties-001-ref.html">
+<meta name="assert" content="The transform attribute of an outermost svg element composes with the translate, rotate and scale properties, exactly like the CSS transform property.">
+<style>
+.container { display: flex; width: 600px; height: 200px; background-color: gold; }
+</style>
+<div class="container">
+  <svg width="200" height="200" viewBox="0 0 20 20" transform="scale(0.5) translate(-100, -50)" style="translate: 10px 15px">
+    <rect x="2" y="2" width="16" height="16" fill="green"/>
+  </svg>
+  <svg width="200" height="200" viewBox="0 0 20 20" transform="translate(-50, 0)" style="scale: 0.5">
+    <rect x="2" y="2" width="16" height="16" fill="green"/>
+  </svg>
+  <svg width="200" height="200" viewBox="0 0 20 20" transform="translate(20, 30)" style="rotate: 90deg">
+    <rect x="2" y="4" width="16" height="8" fill="green"/>
+  </svg>
+</div>

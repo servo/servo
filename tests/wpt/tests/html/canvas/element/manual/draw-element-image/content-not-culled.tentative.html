@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Canvas.drawElementImage: drawable content is not culled</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="match" href="content-not-culled-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+canvas {
+  display: block;
+  background: red;
+}
+.container {
+  width: 100px;
+  height: 10000px;
+}
+.box {
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+</style>
+
+<!-- Draws the top 100px of a 10000px tall container. -->
+<canvas id="canvas1" width="100" height="100" content="drawable">
+  <div id="child1" class="container" drawable>
+    <div class="box"></div>
+  </div>
+</canvas>
+
+<!-- Draws the bottom 100px of a 10000px tall container. -->
+<canvas id="canvas2" width="100" height="100" content="drawable">
+  <div id="child2" class="container" drawable style="display: flex; flex-direction: column; justify-content: flex-end;">
+    <div class="box"></div>
+  </div>
+</canvas>
+
+<!-- Draws a 10000px tall container entirely into the canvas. -->
+<canvas id="canvas3" width="100" height="100" content="drawable">
+  <div id="child3" class="container" drawable style="background: green;"></div>
+</canvas>
+
+<script>
+onload = async () => {
+  await Promise.all([
+    waitForCanvasPaint(canvas1),
+    waitForCanvasPaint(canvas2),
+    waitForCanvasPaint(canvas3),
+  ]);
+
+  canvas1.getContext("2d").drawElementImage(child1, 0, 0);
+  canvas2.getContext("2d").drawElementImage(child2, 0, -(10000 - 100));
+  canvas3.getContext("2d").drawElementImage(child3, 0, 0, 100, 100);
+
+  takeScreenshot();
+};
+</script>
+</html>

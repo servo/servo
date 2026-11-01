@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Opener is site-keyed, openee requests origin-keying, openee is same-origin to the opener and opened with noopener</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/document-sequences.html#creating-a-new-top-level-browsing-context">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#obtain-similar-origin-window-agent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+
+<div id="log"></div>
+
+<script>
+"use strict";
+
+// The historical agent cluster key map belongs to a browsing context group, and
+// noopener puts the openee in a new group rather than making it an auxiliary
+// browsing context of this one. The openee therefore does not inherit this
+// page's site-keyed decision for the origin, and its Origin-Agent-Cluster: ?1
+// is honored. Compare opener-no-openee-yes-same.sub.https.html, where the
+// openee joins this page's group and is site-keyed as a result.
+//
+// The openee reports over a BroadcastChannel rather than being postMessage()d,
+// because window.open() returns null when noopener is used.
+
+promise_test(async () => {
+  const channelName = token();
+  const channel = new BroadcastChannel(channelName);
+  const originAgentCluster = new Promise(resolve => {
+    channel.onmessage = ({ data }) => {
+      // Acknowledge the report so the openee, which has no opener to close it,
+      // closes itself.
+      channel.postMessage("reported");
+      resolve(data.originAgentCluster);
+    };
+  });
+
+  window.open(`../resources/oac-broadcast-popup.html?channel=${channelName}`, "", "noopener");
+
+  assert_true(await originAgentCluster);
+  channel.close();
+}, "openee: originAgentCluster must equal true");
+
+promise_test(async () => {
+  assert_false(self.originAgentCluster);
+}, "opener: originAgentCluster must equal false");
+</script>

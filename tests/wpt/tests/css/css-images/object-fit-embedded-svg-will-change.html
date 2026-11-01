@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Test: 'object-fit' and 'object-position' on an SVG document in &lt;object&gt; and &lt;embed&gt; with 'will-change: transform'</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#the-object-fit">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#the-object-position">
+<link rel="match" href="object-fit-embedded-svg-will-change-ref.html">
+<meta name="assert" content="An SVG document in an object or embed element is sized, placed and clipped by object-fit and object-position the same way when the element has will-change: transform.">
+<style>
+object, embed {
+  width: 48px;
+  height: 32px;
+  border: 1px solid gray;
+  padding: 1px;
+  float: left;
+  will-change: transform;
+}
+</style>
+<object data="support/colors-16x8.svg" style="object-fit: cover; object-position: top left"></object>
+<embed src="support/colors-16x8.svg" style="object-fit: none; object-position: bottom right">
+<object data="support/colors-8x16-noSize.svg" style="object-fit: scale-down"></object>

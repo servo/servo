@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Lists: an outside marker is aligned with the first line of text</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#list-style-position-outside">
+<link rel="match" href="outside-marker-alignment-with-block-content-ref.html">
+<meta name="assert" content="An outside marker is positioned next to the first line of text in its list item, even when a block level box comes before that text.">
+<style>
+li { font: 16px/20px monospace; }
+.block { height: 100px; background-color: silver; }
+</style>
+
+<ul><li><div><span><div class="block"></div></span>text</div></li></ul>

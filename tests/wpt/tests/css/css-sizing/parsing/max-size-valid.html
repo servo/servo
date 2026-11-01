@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel="author" title="Andrew Martinez" href="https://github.com/AndrewJMart">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#sizing-properties">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  // max-size is a shorthand for max-width and max-height. test_valid_value()
+  // specifies property values on an element, which should yield as valid.
+  test_valid_value("max-size", "initial");
+  test_valid_value("max-size", "inherit");
+  test_valid_value("max-size", "revert");
+  test_valid_value("max-size", "revert-layer");
+  test_valid_value("max-size", "unset");
+  // Both dimensions take the max-width grammar, which accepts none.
+  test_valid_value("max-size", "none");
+  test_valid_value("max-size", "0", "0px");
+  test_valid_value("max-size", "10px 20px");
+  test_valid_value("max-size", "10% 20%");
+  test_valid_value("max-size", "0.5em 1em");
+  test_valid_value("max-size", "calc(10% - 0.5em)");
+  // Each dimension is parsed on its own, so the two may differ.
+  test_valid_value("max-size", "none 10px");
+  test_valid_value("max-size", "min-content max-content");
+  // Identical dimensions serialize as a single value.
+  test_valid_value("max-size", "100px 100px", "100px");
+</script>

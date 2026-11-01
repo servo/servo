@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<head>
+<title>CSS Borders and Box Decorations 4: superellipse(-2) radii are reduced by the opposite-corner scale factor</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shape-constrain-radii">
+<link rel="match" href="corner-shape-opposite-scale-superellipse-ref.html">
+<meta name="fuzzy" content="maxDifference=0-132; totalPixels=0-540">
+<meta name="assert" content="superellipse(-2) corners on one diagonal are reduced by the opposite-corner scale factor, by a different amount than scoop or notch at the same radius. The other two corners have radius 0, so the adjacent-corner factor stays 1.">
+<style>
+    body { margin: 0; }
+    .target {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        width: 240px;
+        height: 240px;
+        background: green;
+        border-top-left-radius: 220px;
+        corner-top-left-shape: superellipse(-2);
+        border-bottom-right-radius: 220px;
+        corner-bottom-right-shape: superellipse(-2);
+    }
+</style>
+</head>
+<div class=target></div>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+
+<script>
+
+  const MAX_CENTRAL_ANGLE = 1.9 * Math.PI;
+
+  function testCylinderLayerParamValidation(xrSession, deviceController, t, { gl }) {
+    return xrSession.requestReferenceSpace('local').then((refSpace) => {
+      const binding = new XRWebGLBinding(xrSession, gl);
+      const baseInit = { space: refSpace, viewPixelWidth: 1, viewPixelHeight: 1, };
+
+      // Constructor params validation
+      t.step(() => {
+        const layer = binding.createCylinderLayer({ ...baseInit, radius: -1 });
+        assert_greater_than(layer.radius, 0, "Negative radius must be clamped to a positive value");
+      });
+
+      t.step(() => {
+        const layer = binding.createCylinderLayer({ ...baseInit, radius: 0 });
+        assert_greater_than(layer.radius, 0, "radius must be a positive value");
+      });
+
+      t.step(() => {
+        const layer = binding.createCylinderLayer({ ...baseInit, aspectRatio: -1 });
+        assert_greater_than(layer.aspectRatio, 0, "Negative aspectRatio must be clamped to a positive value");
+      });
+
+      t.step(() => {
+        const layer = binding.createCylinderLayer({ ...baseInit, aspectRatio: 0 });
+        assert_greater_than(layer.aspectRatio, 0, "aspectRatio must be a positive value");
+      });
+
+      t.step(() => {
+        const layer = binding.createCylinderLayer({ ...baseInit, centralAngle: -1 });
+        assert_greater_than(layer.centralAngle, 0, "Negative centralAngle must be clamped to a positive value");
+      });
+
+      t.step(() => {
+        const layer = binding.createCylinderLayer({ ...baseInit, centralAngle: 2 * Math.PI });
+        assert_approx_equals(layer.centralAngle, MAX_CENTRAL_ANGLE, 1e-4, "centralAngle should not exceed 1.9*pi");
+      });
+
+      // Setter validation
+      const layer = binding.createCylinderLayer({ ...baseInit });
+
+      t.step(() => {
+        layer.radius = -5;
+        assert_greater_than(layer.radius, 0, "Setting negative radius must clamp to a positive value");
+      });
+
+      t.step(() => {
+        layer.radius = 0;
+        assert_greater_than(layer.radius, 0, "Setting zero radius must clamp to a positive value");
+      });
+
+      t.step(() => {
+        layer.aspectRatio = -3;
+        assert_greater_than(layer.aspectRatio, 0, "Setting negative aspectRatio must clamp to a positive value");
+      });
+
+      t.step(() => {
+        layer.aspectRatio = 0;
+        assert_greater_than(layer.aspectRatio, 0, "Setting zero aspectRatio must clamp to a positive value");
+      });
+
+      t.step(() => {
+        layer.centralAngle = -1;
+        assert_greater_than(layer.centralAngle, 0, "Setting negative centralAngle must clamp to a positive value");
+      });
+
+      t.step(() => {
+        layer.centralAngle = 10;
+        assert_approx_equals(layer.centralAngle, MAX_CENTRAL_ANGLE, 1e-4, "Setting centralAngle must not exceed 1.9*pi");
+      });
+    });
+  }
+
+  xr_session_promise_test("Ensure XRCylinderLayer init and setter parameters are validated",
+    testCylinderLayerParamValidation, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', { requiredFeatures: ['layers'] }
+);
+
+</script>

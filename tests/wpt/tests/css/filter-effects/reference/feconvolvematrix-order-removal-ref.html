@@ -1,0 +1,12 @@
+<!doctype html>
+<!-- Reference: feConvolveMatrix with no order attribute uses the 3x3 default
+     and halves the RGB channels, producing dark green. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+  <defs>
+    <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+      <feConvolveMatrix divisor="2" preserveAlpha="true"
+                        kernelMatrix="0 0 0  0 1 0  0 0 0"/>
+    </filter>
+  </defs>
+  <rect width="100" height="100" fill="rgb(0, 200, 0)" filter="url(#f)"/>
+</svg>

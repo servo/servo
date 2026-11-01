@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Reference for CSS Filters: filtered element with a transparent child that has no bounds</title>
+    <link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+    <style>
+      body { margin: 0; background: white; }
+      .persp {
+        position: absolute;
+        top: 50px;
+        left: 50px;
+        width: 400px;
+        height: 400px;
+        perspective: 300px;
+      }
+      .f {
+        position: absolute;
+        width: 400px;
+        height: 400px;
+        transform: rotateY(50deg);
+        perspective: 100px;
+        filter: drop-shadow(20px 20px black);
+      }
+      .detail {
+        will-change: transform;
+        position: absolute;
+        top: 40px;
+        left: 40px;
+        width: 200px;
+        height: 200px;
+        background: repeating-linear-gradient(90deg, green 0 4px, white 4px 8px);
+      }
+    </style>
+  </head>
+  <body>
+    <div class=persp>
+      <div class=f>
+        <div class=detail></div>
+      </div>
+    </div>
+  </body>
+</html>

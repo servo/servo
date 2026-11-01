@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+
+<script>
+  setup(() => assertSpeculationRulesIsSupported());
+
+  promise_test(async t => {
+    let agent = await spawnWindow(t);
+    // Use delayed-conditional-status.py which delays the prefetch response by 1s
+    // and returns 503, but responds immediately with 200 for normal navigations.
+    let nextUrl = agent.getExecutorURL({ executor: "delayed-conditional-status.py" });
+
+    // Start the prefetch but don't wait for it to complete.
+    await agent.forceSinglePrefetch(nextUrl, {}, false);
+
+    // Navigate immediately while the prefetch is still in-flight.
+    // The navigation should NOT reuse the in-flight prefetch's 503 response.
+    await agent.navigate(nextUrl);
+
+    const result = await agent.execute_script(() => {
+      return document.body.textContent;
+    });
+
+    assert_equals(result, "200", "Should get a 200 response, not the prefetch's 503");
+  }, "Navigation should not use an in-flight prefetch response that returns 503.");
+</script>

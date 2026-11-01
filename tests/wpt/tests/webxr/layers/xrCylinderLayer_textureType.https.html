@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+
+<script>
+
+  // 'texture-array' is only accepted on WebGL2, keep the resolved layout as 'stereo'.
+  function testTextureArrayCreation(session, deviceController, t, { gl }) {
+    return session.requestReferenceSpace('local').then((refSpace) => {
+      const binding = new XRWebGLBinding(session, gl);
+      const baseInit = { space: refSpace, viewPixelWidth: 32, viewPixelHeight: 32, layout: 'stereo' };
+      t.step(() => {
+        if (gl instanceof WebGL2RenderingContext) {
+          const layer = binding.createCylinderLayer({ ...baseInit, textureType: 'texture-array' });
+          assert_true(layer instanceof XRCylinderLayer, "createCylinderLayer with textureType 'texture-array' must succeed on WebGL2.");
+          assert_equals(layer.layout, 'stereo', "stereo + texture-array must preserve layer.layout as 'stereo'.");
+        } else {
+          assert_throws_dom('InvalidStateError', () => binding.createCylinderLayer({ ...baseInit, textureType: 'texture-array' }),
+            "createCylinderLayer with textureType 'texture-array' must throw InvalidStateError on WebGL.");
+        }
+      });
+    });
+  }
+
+  // Default 'texture' path: mono stays mono, stereo must be resolved by the UA into a concrete side-by-side packing.
+  function testTextureCreation(session, deviceController, t, { gl }) {
+    return session.requestReferenceSpace('local').then((refSpace) => {
+      const binding = new XRWebGLBinding(session, gl);
+      t.step(() => {
+        const monoLayer = binding.createCylinderLayer({ space: refSpace, viewPixelWidth: 32, viewPixelHeight: 32 });
+        assert_true(monoLayer instanceof XRCylinderLayer, "createCylinderLayer with the default textureType must succeed.");
+        assert_equals(monoLayer.layout, 'mono', "default layout must be 'mono'.");
+
+        const stereoLayer = binding.createCylinderLayer({ space: refSpace, viewPixelWidth: 32, viewPixelHeight: 32, layout: 'stereo' });
+        assert_in_array(stereoLayer.layout, ['stereo-left-right', 'stereo-top-bottom'],
+          "stereo + default texture type must be resolved by the UA to a concrete stereo packing.");
+      });
+    });
+  }
+
+  xr_session_promise_test("createCylinderLayer with textureType 'texture-array' requires WebGL2 and keeps stereo as stereo",
+    testTextureArrayCreation, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', { requiredFeatures: ['layers', 'local'] });
+
+  xr_session_promise_test("createCylinderLayer with the default textureType resolves stereo to a concrete stereo packing",
+    testTextureCreation, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', { requiredFeatures: ['layers', 'local'] });
+
+</script>

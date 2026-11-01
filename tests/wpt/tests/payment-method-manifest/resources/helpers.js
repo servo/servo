@@ -4,7 +4,7 @@
  *
  * @param {string} testId - The unique test run token.
  * @param {Object} [options] - URL configuration options.
- * @param {string} [options.host] - Custom host (default: location.host).
+ * @param {string} [options.origin] - Custom origin (default: location.origin).
  * @param {string|string[]} [options.link] - Custom Link header(s).
  * @param {number} [options.num_redirects] - Number of redirects in chain.
  * @param {string} [options.redirect_location] - Target URL for redirect.
@@ -12,9 +12,9 @@
  * @returns {string} Fully qualified PMI URL.
  */
 function createPaymentMethodIdentifierUrl(testId, options = {}) {
-  const host = options.host || location.host;
-  const url = new URL(`https://${
-      host}/payment-method-manifest/resources/payment-method-identifier.py`);
+  const origin = options.origin || location.origin;
+  const url = new URL(`${
+      origin}/payment-method-manifest/resources/payment-method-identifier.py`);
   url.searchParams.set('id', testId);
   if (options.link !== undefined) {
     const links = Array.isArray(options.link) ? options.link : [options.link];
@@ -37,7 +37,7 @@ function createPaymentMethodIdentifierUrl(testId, options = {}) {
  *
  * @param {string} testId - The unique test run token.
  * @param {Object} [options] - URL configuration options.
- * @param {string} [options.host] - Custom host (default: location.host).
+ * @param {string} [options.origin] - Custom origin (default: location.origin).
  * @param {string} [options.redirect_location] - Target URL for redirect.
  * @param {number} [options.status] - HTTP response status code.
  * @param {string} [options.body] - Custom response body.
@@ -45,9 +45,9 @@ function createPaymentMethodIdentifierUrl(testId, options = {}) {
  * @returns {string} Fully qualified manifest URL.
  */
 function createPaymentMethodManifestUrl(testId, options = {}) {
-  const host = options.host || location.host;
-  const url = new URL(`https://${
-      host}/payment-method-manifest/resources/payment-method-manifest.py`);
+  const origin = options.origin || location.origin;
+  const url = new URL(
+      `${origin}/payment-method-manifest/resources/payment-method-manifest.py`);
   url.searchParams.set('id', testId);
   if (options.redirect_location !== undefined) {
     url.searchParams.set('redirect_location', options.redirect_location);

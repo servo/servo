@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Reference for CSS Filters: drop-shadow on a rotated element</title>
+    <link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+    <style>
+      div div {
+        background: green;
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        top: 100px;
+        filter: drop-shadow(20px 20px black);
+      }
+      .a {
+        transform: translate(150px,0) rotate(90deg);
+      }
+      .b {
+        transform: translate(300px,0) rotate(180deg);
+      }
+      .c {
+        transform: translate(450px,0) rotate(270deg);
+      }
+      .d {
+        transform: translate(600px,0) rotate(360deg);
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <div class=a></div>
+      <div class=b></div>
+      <div class=c></div>
+      <div class=d></div>
+    </div>
+  </body>
+</html>

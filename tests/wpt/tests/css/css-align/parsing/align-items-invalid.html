@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>CSS Box Alignment Level 3: parsing align-items with invalid values</title>
 <link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-align-items">
-<meta name="assert" content="align-items supports only the grammar 'normal | stretch | <baseline-position> | [ <overflow-position>? <self-position> ]'.">
+<meta name="assert" content="align-items supports only the grammar '[ <overflow-position>? normal ] | stretch | <baseline-position> | [ <overflow-position>? <self-position> ]'.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -25,6 +25,8 @@ test_invalid_value("align-items", "legacy center");
 test_invalid_value("align-items", "legacy left");
 test_invalid_value("align-items", "legacy");
 test_invalid_value("align-items", "normal baseline");
+test_invalid_value("align-items", "normal safe");
+test_invalid_value("align-items", "normal unsafe");
 test_invalid_value("align-items", "right legacy");
 test_invalid_value("align-items", "safe");
 test_invalid_value("align-items", "self-end unsafe");

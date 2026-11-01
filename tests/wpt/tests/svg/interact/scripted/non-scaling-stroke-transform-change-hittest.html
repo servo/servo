@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>elementFromPoint(...) on non-scaling strokes after a transform change</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/interact.html#hit-testing">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#VectorEffects">
+<meta name="assert" content="Hit testing a non-scaling stroke uses the current stroke width after the transform of the shape or one of its ancestors changes.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg id="svg" width="400" height="400">
+  <g id="group" transform="scale(4)">
+    <rect id="groupRect" x="10" y="10" width="20" height="20" fill="none" stroke="black" stroke-width="16" vector-effect="non-scaling-stroke"/>
+  </g>
+  <rect id="rect" transform="scale(4)" x="20" y="60" width="20" height="20" fill="none" stroke="black" stroke-width="16" vector-effect="non-scaling-stroke"/>
+</svg>
+<script>
+// Points are relative to the client rect of the <svg> root. Each point lies
+// 6px outside the left edge of the rect, inside the 8px half stroke width.
+function elementAt(x, y) {
+  const svgBounds = document.getElementById("svg").getBoundingClientRect();
+  return document.elementFromPoint(svgBounds.left + x, svgBounds.top + y);
+}
+
+test(() => {
+  assert_equals(elementAt(34, 100), document.getElementById("groupRect"));
+  assert_equals(elementAt(74, 280), document.getElementById("rect"));
+}, `${document.title}, initial scale(4)`);
+
+test(() => {
+  document.getElementById("group").setAttribute("transform", "scale(2)");
+  document.getElementById("rect").setAttribute("transform", "scale(2)");
+  assert_equals(elementAt(14, 50), document.getElementById("groupRect"), "ancestor transform change");
+  assert_equals(elementAt(34, 140), document.getElementById("rect"), "own transform change");
+}, `${document.title}, after changing to scale(2)`);
+</script>

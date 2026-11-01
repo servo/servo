@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Dragging input type=range after a selection covers it</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/input.html#range-state-(type=range)">
+<link rel="help" href="https://crbug.com/40796813">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<p id="above">Text above the slider.</p>
+<input type="range" id="slider" min="0" max="100" value="50" style="width: 200px">
+<p id="below">Text below the slider.</p>
+
+<script>
+async function selectAcrossSlider() {
+  await new test_driver.Actions()
+    .pointerMove(0, 0, {origin: above})
+    .pointerDown()
+    .pointerMove(0, 0, {origin: slider})
+    .pointerMove(0, 0, {origin: below})
+    .pointerUp()
+    .send();
+  assert_not_equals(getSelection().toString(), '',
+                    'the drag should have created a selection');
+}
+
+// `startX` is an offset from the center of the slider, where the thumb sits
+// while the value is 50.
+async function dragSlider(startX) {
+  await new test_driver.Actions()
+    .pointerMove(startX, 0, {origin: slider})
+    .pointerDown()
+    .pointerMove(startX + 20, 0, {origin: slider})
+    .pointerMove(80, 0, {origin: slider})
+    .pointerUp()
+    .send();
+}
+
+promise_test(async () => {
+  slider.value = 50;
+  await selectAcrossSlider();
+  await dragSlider(0);
+  // The pointer ends 80px right of the center of a 200px wide slider, so a
+  // drag that is not interrupted lands well above 80.
+  assert_greater_than(slider.valueAsNumber, 80,
+                      'the thumb should have followed the pointer');
+}, 'Dragging the thumb of input type=range after a selection covers it');
+
+promise_test(async () => {
+  slider.value = 50;
+  await selectAcrossSlider();
+  await dragSlider(-60);
+  assert_greater_than(slider.valueAsNumber, 80,
+                      'the thumb should have followed the pointer');
+}, 'Dragging the track of input type=range after a selection covers it');
+</script>

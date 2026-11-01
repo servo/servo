@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG coordinate systems: transform attribute on the outermost svg element</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/struct.html#SVGElement">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#TransformProperty">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-1/#transform-property">
+<link rel="match" href="outer-svg-transform-attribute-003-ref.html">
+<meta name="assert" content="The transform attribute on an outermost svg element transforms the element's CSS box, exactly like the CSS transform property, and is overridden by the transform property.">
+<style>
+.container { display: flex; width: 600px; height: 200px; background-color: gold; }
+</style>
+<div class="container">
+  <svg width="200" height="200" viewBox="0 0 24 24" transform="scale(.3, .3) translate(-116, -131)" fill="none" stroke="white" stroke-width="1.5">
+    <rect x="2" y="5" width="20" height="14" rx="2"/>
+    <path d="M2 10h20"/>
+  </svg>
+  <svg width="200" height="200" viewBox="0 0 20 20" transform="scale(0.5) translate(-100, -50)">
+    <rect x="2" y="2" width="16" height="16" fill="green"/>
+  </svg>
+  <svg width="200" height="200" viewBox="0 0 20 20" transform="scale(0.5) translate(-100, -50)" style="transform: translate(10px, 15px)">
+    <rect x="2" y="2" width="16" height="16" fill="green"/>
+  </svg>
+</div>

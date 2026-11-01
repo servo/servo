@@ -1,0 +1,49 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS text-transform for modern Georgian</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-transform-mapping">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dom.html#the-innertext-idl-attribute">
+<link rel="help" href="https://www.unicode.org/versions/Unicode11.0.0/#Migration">
+<meta name="assert" content="Uppercase maps Mkhedruli to Mtavruli, lowercase maps Mtavruli to Mkhedruli, and capitalize leaves Mkhedruli unchanged.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="container"></div>
+<script>
+const container = document.querySelector('#container');
+// Unicode 11 defines 46 Mkhedruli/Mtavruli case pairs.
+// U+10FB/U+10FC have no case mappings, U+1CBB/U+1CBC are unassigned.
+const mkhedruli = String.fromCodePoint(
+    ...Array.from({length: 43}, (_, i) => 0x10D0 + i), 0x10FD, 0x10FE, 0x10FF);
+const mtavruli = String.fromCodePoint(
+    ...Array.from({length: 43}, (_, i) => 0x1C90 + i), 0x1CBD, 0x1CBE, 0x1CBF);
+// Mkhedruli stays unchanged under titlecasing. Spaces exercise that mapping
+// for every letter.
+const mkhedruliWords = [...mkhedruli].join(' ');
+
+for (const [description, input, transform, expected, language = 'ka'] of [
+  ['Uppercase maps Mkhedruli to Mtavruli', mkhedruli, 'uppercase', mtavruli],
+  ['Uppercase preserves Mtavruli capitals', mtavruli, 'uppercase', mtavruli],
+  ['Lowercase maps Mtavruli to Mkhedruli', mtavruli, 'lowercase', mkhedruli],
+  ['Capitalize leaves Mkhedruli unchanged', mkhedruliWords, 'capitalize', mkhedruliWords],
+  ['Uppercase preserves Georgian characters without case mappings',
+   '\u10FB\u10FC', 'uppercase', '\u10FB\u10FC'],
+  ['Uppercase preserves unassigned characters', '\u1CBB\u1CBC', 'uppercase', '\u1CBB\u1CBC'],
+  ['Uppercase without a language declaration', 'ა', 'uppercase', 'Ა', null],
+  ['Uppercase with an English language declaration', 'ა', 'uppercase', 'Ა', 'en'],
+]) {
+  test(t => {
+    const target = document.createElement('div');
+    target.style.textTransform = transform;
+    if (language !== null) {
+      target.lang = language;
+    }
+    target.textContent = input;
+    container.append(target);
+    t.add_cleanup(() => target.remove());
+    // Different characters can render as identical missing-glyph boxes,
+    // so compare the transformed text directly.
+    assert_equals(target.innerText, expected, 'Transformed text');
+    assert_equals(target.textContent, input, 'The DOM text is unchanged');
+  }, description);
+}
+</script>

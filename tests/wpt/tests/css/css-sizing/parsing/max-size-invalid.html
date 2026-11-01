@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="author" title="Andrew Martinez" href="https://github.com/AndrewJMart">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#sizing-properties">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  // max-size is a shorthand for max-width and max-height. test_invalid_value()
+  // specifies values outside the max-width grammar, which should be invalid.
+  // auto belongs to the min dimensions, so max-size does not accept it.
+  test_invalid_value("max-size", "auto");
+  test_invalid_value("max-size", "auto auto");
+  test_invalid_value("max-size", "complex");
+  // Negative and unitless lengths are invalid in either dimension.
+  test_invalid_value("max-size", "-10px");
+  test_invalid_value("max-size", "10px -20px");
+  test_invalid_value("max-size", "60");
+  // max-size accepts at most two values.
+  test_invalid_value("max-size", "10px 20px 30px");
+  test_invalid_value("max-size", "none none none");
+  // available and border-box come from the obsolete css-box-3 definition of
+  // max-width, and were never part of the shorthand's grammar.
+  test_invalid_value("max-size", "available");
+  test_invalid_value("max-size", "10px border-box");
+</script>

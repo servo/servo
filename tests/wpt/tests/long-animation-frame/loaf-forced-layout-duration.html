@@ -139,6 +139,36 @@ promise_test(async t => {
       "forcedStyleDuration may be >= 0 when style was forced");
 }, "forcedLayoutDuration is 0 when only style recalculation is forced (no layout)");
 
+promise_test(async t => {
+  const container = document.createElement("div");
+  for (let i = 0; i < 200; i++) {
+    const child = document.createElement("div");
+    child.textContent = "item " + i;
+    container.appendChild(child);
+  }
+  document.body.appendChild(container);
+  t.add_cleanup(() => container.remove());
+
+  const [entry, script] = await expect_long_frame_with_script((t, busy_wait) => {
+    t.step_timeout(() => {
+      const start = performance.now();
+      let i = 0;
+      while (performance.now() - start < 20) {
+        container.style.width = (100 + (i++ % 50)) + "px";
+        void container.offsetHeight;
+      }
+      busy_wait(very_long_frame_duration);
+    }, 0);
+  }, script => script.invoker === "TimerHandler:setTimeout", t);
+
+  assert_true(!!entry, "Entry detected");
+  assert_true(!!script, "Script detected");
+  assert_greater_than(script.forcedLayoutDuration, 0,
+      "forcedLayoutDuration should be > 0 after sustained forced layout work");
+  assert_greater_than(script.forcedStyleAndLayoutDuration, 0,
+      "forcedStyleAndLayoutDuration should be > 0 after sustained forced layout work");
+}, "forcedLayoutDuration and forcedStyleAndLayoutDuration are strictly positive after heavy forced layout work");
+
 </script>
 </body>
 

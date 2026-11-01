@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Shape Test: float right, border-box, with margins</title>
+  <link rel="help" href="https://drafts.csswg.org/css-shapes-1/#shapes-from-box-values">
+  <link rel="match" href="reference/shape-outside-border-box-with-margin-right-float-ref.html">
+  <meta name="assert" content="The float's inline start margin offsets the border-box shape of a right float, and its inline end margin is not part of the float area.">
+  <style>
+  .container {
+    width: 150px;
+    line-height: 0;
+  }
+
+  .shape {
+    float: right;
+    shape-outside: border-box;
+    width: 50px;
+    height: 100px;
+    margin: 0 50px 0 25px;
+    background-color: orange;
+  }
+
+  .box {
+    display: inline-block;
+    width: 25px;
+    height: 25px;
+    background-color: blue;
+  }
+  </style>
+
+  <main class="container">
+    <div class="shape"></div>
+    <div><div class="box"></div><div class="box"></div><div class="box"></div><div class="box"></div><div class="box"></div><div class="box"></div><div class="box"></div><div class="box"></div></div>
+  </main>
+</html>

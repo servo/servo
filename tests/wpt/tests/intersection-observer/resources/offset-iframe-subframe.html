@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  #target {
+    height: 100px;
+    width: 100px;
+    background-color: green;
+  }
+</style>
+
+<div id="target"></div>
+
+<script>
+  let lastEntry = null;
+  let observer = new IntersectionObserver((entries) => {
+    lastEntry = entries[entries.length - 1];
+  });
+
+  window.addEventListener("message", (event) => {
+    if (event.data === "observe") {
+      observer.observe(document.getElementById("target"));
+      window.top.postMessage("observing", "*");
+    } else {
+      window.top.postMessage({ isIntersecting: lastEntry && lastEntry.isIntersecting }, "*");
+    }
+  });
+</script>

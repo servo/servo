@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reading a resolved value under a query container inside a frame whose owner element generates no box</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#resolved-values">
+<link rel="help" href="https://drafts.csswg.org/css-contain-3/#container-queries">
+<style>
+#wrapper {
+  width: 320px;
+}
+</style>
+<body>
+<!--
+  A frame whose owner element generates no box has no render tree, so a style recalc scheduled inside it
+  stays pending: there is nothing to resolve it against. A resolved value read from a descendant of a size
+  query container asks for that style update first, and asking again once it reports back is unbounded.
+-->
+<div id="wrapper"><iframe id="frame" srcdoc="
+  <style id='containerSheet'>
+  #container {
+    container-type: size;
+    width: 100px;
+    height: 100px;
+  }
+  </style>
+  <style id='scratchSheet'>
+  #unused {
+    color: green;
+  }
+  </style>
+  <div id='container'><span id='target'>text</span></div>
+"></iframe></div>
+
+<script>
+onload = () => {
+    const frameDocument = document.getElementById("frame").contentDocument;
+
+    document.getElementById("wrapper").style.display = "none";
+    // Resolving style and layout here is what settles that the frame's owner element generates no box.
+    document.documentElement.offsetHeight;
+
+    // Schedules a full style rebuild in the subframe, which now has no render tree to resolve it against.
+    frameDocument.getElementById("scratchSheet").textContent = "#unused { color: blue }";
+
+    getComputedStyle(frameDocument.getElementById("target")).getPropertyValue("color");
+};
+</script>
+</body>

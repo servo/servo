@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<head>
+<title>CSS Borders and Box Decorations 4: notch radii are reduced by the opposite-corner scale factor &mdash; reference</title>
+<style>
+    body { margin: 0; }
+    .target {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        width: 240px;
+        height: 240px;
+        background: green;
+        clip-path: polygon(
+            0.000px 120.000px, 120.000px 120.000px, 120.000px 0.000px, 240.000px 0.000px,
+            240.000px 120.000px, 120.000px 120.000px, 120.000px 240.000px, 0.000px 240.000px);
+    }
+</style>
+</head>
+<div class=target></div>

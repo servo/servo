@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG text: a tspan with visibility: visible inside a text with visibility: hidden is painted</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/render.html#VisibilityControl">
+<link rel="match" href="text-visibility-hidden-tspan-visible-ref.html">
+<meta name="assert" content="visibility: hidden on a text element only hides the element itself. Descendant tspans that override it with visibility: visible are painted at their normal position, the remaining text is not painted.">
+<svg width="400" height="200">
+  <text x="10" y="50" font-size="30" fill="green" visibility="hidden">Hidden <tspan visibility="visible">visible</tspan> hidden</text>
+  <text x="10" y="100" font-size="30" fill="green" visibility="hidden">Hidden <tspan>still hidden <tspan visibility="visible">visible</tspan></tspan> hidden</text>
+  <g visibility="hidden">
+    <text x="10" y="150" font-size="30" fill="green">Hidden <tspan visibility="visible">visible</tspan> hidden</text>
+  </g>
+</svg>

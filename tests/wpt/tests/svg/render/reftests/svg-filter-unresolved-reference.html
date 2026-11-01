@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>SVG filter: unresolved reference should render</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="match" href="svg-filter-unresolved-reference-ref.html">
+<meta name="assert" content="An SVG element with a filter attribute referencing a non-existent ID should render without any filter applied.">
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+    <g filter="url(#does-not-exist)">
+        <rect x="0" y="0" width="100" height="100" fill="green"/>
+    </g>
+</svg>

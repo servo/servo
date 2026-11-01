@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+
+<body>
+<div id="test-container"></div>
+<script>
+  setup(() => assertSpeculationRulesIsSupported());
+
+  // Helper to clean up after each test
+  function cleanup(t, elements) {
+    t.add_cleanup(() => {
+      for (const el of elements) {
+        el.remove();
+      }
+    });
+  }
+
+  // Helper to add link to test container instead of body
+  function addTestLink(url, container = document.getElementById('test-container')) {
+    const a = document.createElement('a');
+    a.href = url;
+    container.appendChild(a);
+    return a;
+  }
+
+  // Helper to insert a document rule that only matches links with a specific class
+  function insertDocumentRuleForClass(className) {
+    const script = document.createElement('script');
+    script.type = 'speculationrules';
+    script.textContent = JSON.stringify({
+      prefetch: [{
+        source: 'document',
+        eagerness: 'immediate',
+        where: { selector_matches: `a.${className}` }
+      }]
+    });
+    document.head.appendChild(script);
+    return script;
+  }
+
+  promise_test(async t => {
+    // Add a link with display:contents - the link itself has no renderer
+    // but its children do.
+    const style = document.createElement('style');
+    style.textContent = '.display-contents-link { display: contents; }';
+    document.head.appendChild(style);
+
+    const url = getPrefetchUrl();
+    const link = addTestLink(url);
+    link.className = 'display-contents-link';
+    link.textContent = 'Click me';
+
+    const rule = insertDocumentRuleForClass('display-contents-link');
+    cleanup(t, [style, link, rule]);
+
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+
+    assert_equals(await isUrlPrefetched(url), 1);
+  }, 'test that link with display:contents and text content is prefetched');
+
+  promise_test(async t => {
+    // Add a link with display:contents containing a visible child element.
+    const style = document.createElement('style');
+    style.textContent = '.display-contents-link-2 { display: contents; }';
+    document.head.appendChild(style);
+
+    const url = getPrefetchUrl();
+    const link = addTestLink(url);
+    link.className = 'display-contents-link-2';
+    const span = document.createElement('span');
+    span.textContent = 'Visible child';
+    link.appendChild(span);
+
+    const rule = insertDocumentRuleForClass('display-contents-link-2');
+    cleanup(t, [style, link, rule]);
+
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+
+    assert_equals(await isUrlPrefetched(url), 1);
+  }, 'test that link with display:contents and visible child element is prefetched');
+
+  promise_test(async t => {
+    // A custom element that renders via shadow DOM.
+    // Note: custom elements can only be defined once, so we use a unique name per test run
+    const customElementName = 'custom-link-' + token().substring(0, 8);
+    class CustomLink extends HTMLAnchorElement {
+      constructor() {
+        super();
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.innerHTML = '<span>Shadow content</span>';
+      }
+    }
+    customElements.define(customElementName, CustomLink, { extends: 'a' });
+
+    const url = getPrefetchUrl();
+    const link = document.createElement('a', { is: customElementName });
+    link.href = url;
+    link.className = 'custom-shadow-link';
+    document.getElementById('test-container').appendChild(link);
+
+    const rule = insertDocumentRuleForClass('custom-shadow-link');
+    cleanup(t, [link, rule]);
+
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+
+    assert_equals(await isUrlPrefetched(url), 1);
+  }, 'test that customized built-in anchor element with shadow DOM is prefetched');
+
+  promise_test(async t => {
+    // An autonomous custom element wrapping an anchor.
+    // The anchor is slotted and should be prefetched.
+    const wrapperName = 'link-wrapper-' + token().substring(0, 8);
+    class LinkWrapper extends HTMLElement {
+      constructor() {
+        super();
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.innerHTML = '<div class="wrapper"><slot></slot></div>';
+      }
+    }
+    customElements.define(wrapperName, LinkWrapper);
+
+    const wrapper = document.createElement(wrapperName);
+    document.getElementById('test-container').appendChild(wrapper);
+
+    const url = getPrefetchUrl();
+    const link = document.createElement('a');
+    link.href = url;
+    link.className = 'slotted-link';
+    wrapper.appendChild(link);
+
+    const rule = insertDocumentRuleForClass('slotted-link');
+    cleanup(t, [wrapper, rule]);
+
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+
+    assert_equals(await isUrlPrefetched(url), 1);
+  }, 'test that slotted anchor inside custom element is prefetched');
+
+  promise_test(async t => {
+    // Link with display:contents but no children - should NOT be prefetched
+    // because it has no rendered descendants.
+    const style = document.createElement('style');
+    style.textContent = '.empty-display-contents { display: contents; }';
+    document.head.appendChild(style);
+
+    const url = getPrefetchUrl();
+    const link = addTestLink(url);
+    link.className = 'empty-display-contents';
+    // No text content or children
+
+    const rule = insertDocumentRuleForClass('empty-display-contents');
+    cleanup(t, [style, link, rule]);
+
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+
+    assert_equals(await isUrlPrefetched(url), 0);
+  }, 'test that empty link with display:contents is NOT prefetched');
+
+  promise_test(async t => {
+    // Link with display:contents but all children are also display:none.
+    const style = document.createElement('style');
+    style.textContent = `
+      .contents-with-hidden-children { display: contents; }
+      .contents-with-hidden-children > * { display: none; }
+    `;
+    document.head.appendChild(style);
+
+    const url = getPrefetchUrl();
+    const link = addTestLink(url);
+    link.className = 'contents-with-hidden-children';
+    const span = document.createElement('span');
+    span.textContent = 'Hidden child';
+    link.appendChild(span);
+
+    const rule = insertDocumentRuleForClass('contents-with-hidden-children');
+    cleanup(t, [style, link, rule]);
+
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+
+    assert_equals(await isUrlPrefetched(url), 0);
+  }, 'test that link with display:contents and only hidden children is NOT prefetched');
+</script>
+</body>

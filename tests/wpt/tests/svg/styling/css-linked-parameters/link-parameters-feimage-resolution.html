@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>link-parameters: an feImage passes its parameters to an SVG image drawn at a larger scale</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://drafts.csswg.org/css-link-params/#propdef-link-parameters">
+<link rel="help" href="https://drafts.csswg.org/filter-effects/#feImageElement">
+<link rel="match" href="link-parameters-geometry-ref.html">
+<meta name="assert" content="An feImage passes its link-parameters to an SVG image it draws at the filter's scale.">
+<style>
+  body { margin: 0; }
+</style>
+<svg width="100" height="100" style="display: block">
+  <g transform="scale(4)">
+    <filter id="filter" filterUnits="userSpaceOnUse" x="0" y="0" width="25" height="25">
+      <feImage style="link-parameters: param(--x, 50)" href="resources/geometry.svg"/>
+    </filter>
+    <rect width="25" height="25" filter="url(#filter)"/>
+  </g>
+</svg>

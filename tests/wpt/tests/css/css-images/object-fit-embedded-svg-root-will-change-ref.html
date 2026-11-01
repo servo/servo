@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>CSS Test: 'object-fit' and 'object-position' on an SVG document with 'will-change: transform' on its root, in &lt;object&gt; and &lt;embed&gt; (reference)</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<style>
+.box {
+  position: relative;
+  float: left;
+  width: 48px;
+  height: 32px;
+  border: 1px solid gray;
+  padding: 1px;
+}
+.content {
+  position: absolute;
+  left: 1px;
+  top: 1px;
+  width: 48px;
+  height: 32px;
+  overflow: hidden;
+}
+.content > div {
+  position: absolute;
+}
+</style>
+<div class="box"><div class="content">
+  <div style="background: blue; left: 0px; top: 0px; width: 32px; height: 16px"></div>
+  <div style="background: black; left: 32px; top: 0px; width: 32px; height: 16px"></div>
+  <div style="background: rgb(255,128,128); left: 0px; top: 16px; width: 32px; height: 16px"></div>
+  <div style="background: lime; left: 32px; top: 16px; width: 32px; height: 16px"></div>
+</div></div>
+<div class="box"><div class="content">
+  <div style="background: blue; left: 32px; top: 24px; width: 8px; height: 4px"></div>
+  <div style="background: black; left: 40px; top: 24px; width: 8px; height: 4px"></div>
+  <div style="background: rgb(255,128,128); left: 32px; top: 28px; width: 8px; height: 4px"></div>
+  <div style="background: lime; left: 40px; top: 28px; width: 8px; height: 4px"></div>
+</div></div>
+<div class="box"><div class="content">
+  <div style="background: blue; left: 0px; top: 4px; width: 24px; height: 12px"></div>
+  <div style="background: black; left: 24px; top: 4px; width: 24px; height: 12px"></div>
+  <div style="background: rgb(255,128,128); left: 0px; top: 16px; width: 24px; height: 12px"></div>
+  <div style="background: lime; left: 24px; top: 16px; width: 24px; height: 12px"></div>
+</div></div>

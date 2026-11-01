@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: adjoining margins collapse when a float or an out-of-flow box comes first</title>
+<link rel="author" title="Alan Baradlay" href="mailto:ABaradlay@apple.com">
+<link rel="help" href="https://www.w3.org/TR/CSS22/box.html#collapsing-margins">
+<link rel="match" href="margin-collapse-after-float-001-ref.html">
+<meta name="assert" content="A self collapsing block's margin collapses with the following sibling's margin. A float or an out-of-flow box before them takes no part in that.">
+<style>
+.container {
+    display: flow-root;
+    position: relative;
+    width: 100px;
+    height: 30px;
+    margin-bottom: 10px;
+    background: red;
+}
+.float {
+    float: left;
+    width: 100px;
+    height: 10px;
+    background: green;
+}
+.out-of-flow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100px;
+    height: 10px;
+    background: green;
+}
+.self-collapsing {
+    margin-top: 10px;
+}
+.bar {
+    margin-top: 10px;
+    height: 20px;
+    background: green;
+}
+</style>
+<p>Test passes if there are two filled green rectangles and no red.</p>
+<div class="container">
+    <div class="float"></div>
+    <div class="self-collapsing"></div>
+    <div class="bar"></div>
+</div>
+<div class="container">
+    <div class="out-of-flow"></div>
+    <div class="self-collapsing"></div>
+    <div class="bar"></div>
+</div>

@@ -1,0 +1,229 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Long Animation Frame Timing: conditional user timing entries are exposed to, but not resolvable by, other same-origin documents</title>
+<!-- Conditional user timing entries are exposed to same-origin documents, but
+     resolving a mark name to a timestamp is scoped to the window that took the
+     mark, so a document cannot resolve another document's mark even when they
+     share an origin. The window attribute tells the two documents' entries
+     apart. -->
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<style>
+/* Iframes outside the viewport could lose their rendering opportunity, which
+   skips their animation frame callbacks. Keep the iframe on screen. */
+#subframe {
+  border: none;
+  height: 100px;
+  left: 0;
+  position: fixed;
+  top: 0;
+  width: 100px;
+}
+</style>
+<body>
+<div id="log"></div>
+<script>
+setup(() => {
+  assert_implements(
+      "userTimingEntries" in PerformanceLongAnimationFrameTiming.prototype,
+      "conditional user timing for LoAF not implemented");
+});
+
+promise_test(async t => {
+  const iframe = document.createElement("iframe");
+  iframe.id = "subframe";
+  t.add_cleanup(() => iframe.remove());
+
+  // The message indicates the iframe is leaving user timing entries that this
+  // document is allowed to see.
+  let iframeRunning = false;
+  window.addEventListener("message", event => {
+    if (event.source === iframe.contentWindow &&
+        event.data === "iframeRunning") {
+      iframeRunning = true;
+    }
+  });
+
+  iframe.src = "resources/conditional-user-timing-iframe.html";
+  iframe.onload = () => {
+    iframe.contentWindow.postMessage("start", "*");
+  };
+  document.body.appendChild(iframe);
+
+  // If the iframe never reports in -- for instance because it was render
+  // throttled -- fail with a diagnostic instead of a bare harness timeout.
+  t.step_timeout(() => {
+    assert_true(iframeRunning, "same-origin iframe never reported running");
+  }, 30000);
+
+  const resizeTarget = document.createElement("div");
+  document.body.appendChild(resizeTarget);
+  t.add_cleanup(() => resizeTarget.remove());
+
+  // Generate long animation frames. Resizing the target schedules the resize
+  // observation that takes the measures, in a stage that runs after the iframe
+  // marks. It is only done while the iframe is looping, so the entry carrying
+  // ownMark is one whose rendering update the iframe marked in.
+  const ownMark = "own-mark";
+  let keepGeneratingLoAFs = true;
+  t.add_cleanup(() => {
+    keepGeneratingLoAFs = false;
+  });
+
+  let resizeHeight = 0;
+  const generateLoAF = () => {
+    if (iframeRunning) {
+      if (resizeHeight === 0) {
+        observer.observe(resizeTarget);
+      }
+      resizeHeight = resizeHeight % 10 + 1;
+      resizeTarget.style.height = `${resizeHeight}px`;
+      performance.markConditional(ownMark);
+    }
+    busy_wait();
+    if (keepGeneratingLoAFs) {
+      requestAnimationFrame(generateLoAF);
+    }
+  };
+  requestAnimationFrame(generateLoAF);
+
+  const sameOriginMeasure = "measure-from-same-origin-mark";
+  const absentMeasure = "measure-from-absent-mark";
+  const ownMeasure = "measure-from-own-mark";
+
+  // The three measures below differ only in their start mark: one was taken by
+  // the same-origin iframe, one does not exist anywhere, and one was taken by
+  // this document.
+  const observer = new ResizeObserver(() => {
+    performance.measureConditional(sameOriginMeasure, "iframe-mark");
+    performance.measureConditional(absentMeasure, "no-such-mark");
+    performance.measureConditional(ownMeasure, ownMark);
+  });
+  t.add_cleanup(() => observer.disconnect());
+
+  const entries = await new Promise(resolve => {
+    const loafObserver = new PerformanceObserver(list => {
+      for (const entry of list.getEntries()) {
+        const userTimingEntries = Array.from(entry.userTimingEntries);
+        if (userTimingEntries.some(e => e.name === ownMark) &&
+            userTimingEntries.some(e => e.name === sameOriginMeasure) &&
+            userTimingEntries.some(e => e.name === absentMeasure) &&
+            userTimingEntries.some(e => e.name === ownMeasure)) {
+          resolve(userTimingEntries);
+        }
+      }
+    });
+    loafObserver.observe({type: "long-animation-frame"});
+    t.add_cleanup(() => loafObserver.disconnect());
+  });
+
+  // The iframe's mark is exposed to this document.
+  const iframeMark = entries.find(entry => entry.name === "iframe-mark");
+  assert_true(
+      !!iframeMark,
+      "Same-origin conditional user timing entries must stay exposed");
+
+  // The window attribute tells whose entry each one is.
+  assert_equals(
+      iframeMark.window, iframe.contentWindow,
+      "A mark must report the window that took it");
+  assert_equals(
+      entries.find(entry => entry.name === ownMark).window, window,
+      "This document's own mark must report this window");
+
+  // Resolution is scoped to the window that took the mark, so measuring from
+  // the iframe's mark must be indistinguishable from measuring from a mark
+  // that does not exist. The iframe marks after the busy wait above in the
+  // same rendering update, so a resolved start mark would report at least the
+  // duration of busy_wait().
+  assert_approx_equals(
+      entries.find(entry => entry.name === sameOriginMeasure).startTime,
+      entries.find(entry => entry.name === absentMeasure).startTime, 1e-6,
+      "Measuring from another same-origin document's mark must be " +
+          "indistinguishable from measuring from a mark that does not exist");
+
+  // A measure still resolves a start mark taken by its own window.
+  assert_greater_than(
+      entries.find(entry => entry.name === ownMeasure).startTime, 1e-6,
+      "A conditional measure must resolve a start mark from its own window");
+}, "Conditional measures resolve start marks only within their own window");
+
+promise_test(async t => {
+  const iframe = document.createElement("iframe");
+  iframe.id = "subframe";
+  t.add_cleanup(() => iframe.remove());
+  iframe.srcdoc = `<!doctype html>
+    <script>
+    function markInIframe() {
+      performance.markConditional("shared-mark");
+    }
+    function measureInIframe() {
+      performance.measureConditional("iframe-measure", "shared-mark");
+    }
+    <\/script>`;
+  await new Promise(resolve => {
+    iframe.onload = resolve;
+    document.body.appendChild(iframe);
+  });
+
+  // This parent frame takes "parent-measure" and the iframe takes
+  // "iframe-measure". Both measures start from "shared-mark", and this parent
+  // frame and the iframe both mark with "shared-mark".
+  const gap = 10;
+  let beforeParentMeasure, afterParentMeasure;
+  let beforeIframeMeasure, afterIframeMeasure;
+  const loaf = await expect_long_frame(async (t, generateLoAF) => {
+    await new Promise(resolve => requestAnimationFrame(() => {
+      performance.markConditional("shared-mark");
+      busy_wait(gap);
+      iframe.contentWindow.markInIframe();
+      busy_wait(gap);
+      beforeParentMeasure = performance.now();
+      performance.measureConditional("parent-measure", "shared-mark");
+      afterParentMeasure = performance.now();
+      performance.markConditional("shared-mark");
+      busy_wait(gap);
+      beforeIframeMeasure = performance.now();
+      iframe.contentWindow.measureInIframe();
+      afterIframeMeasure = performance.now();
+      generateLoAF();
+      resolve();
+    }));
+  }, t);
+  assert_not_equals(loaf, "timeout");
+
+  // Both documents' marks are exposed.
+  const entries = Array.from(loaf.userTimingEntries);
+  const sharedMarks = entries.filter(entry => entry.name === "shared-mark");
+  assert_array_equals(
+      sharedMarks.map(entry => entry.window),
+      [window, iframe.contentWindow, window],
+      "Both documents' marks must be exposed, each with its own window");
+  const [parentMark, iframeMark] = sharedMarks;
+  const parentMeasure = entries.find(entry => entry.name === "parent-measure");
+  const iframeMeasure = entries.find(entry => entry.name === "iframe-measure");
+
+  // Each measure must start at the "shared-mark" from its own document, and
+  // its duration is calculated accordingly.
+  assert_approx_equals(
+      parentMeasure.startTime, parentMark.startTime, 1e-6,
+      "This document's measure must resolve its own mark, not the " +
+          "iframe's later one");
+  assert_approx_equals(
+      iframeMeasure.startTime, iframeMark.startTime, 1e-6,
+      "The iframe's measure must resolve its own mark, not this " +
+          "document's later one");
+  assert_between_inclusive(
+      parentMeasure.duration,
+      beforeParentMeasure - parentMeasure.startTime,
+      afterParentMeasure - parentMeasure.startTime,
+      "This document's measure must end when it is taken");
+  assert_between_inclusive(
+      iframeMeasure.duration,
+      beforeIframeMeasure - iframeMeasure.startTime,
+      afterIframeMeasure - iframeMeasure.startTime,
+      "The iframe's measure must end when it is taken");
+}, "Conditional marks with the same name in two documents resolve separately");
+</script>

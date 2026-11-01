@@ -31,6 +31,16 @@ test_shorthand_value('place-self', 'unsafe self-start stretch', {
   'align-self': 'unsafe self-start',
   'justify-self': 'stretch'
 });
+
+test_shorthand_value('place-self', 'safe normal', {
+  'align-self': 'safe normal',
+  'justify-self': 'safe normal'
+});
+
+test_shorthand_value('place-self', 'safe normal unsafe normal', {
+  'align-self': 'safe normal',
+  'justify-self': 'unsafe normal'
+});
 </script>
 </body>
 </html>

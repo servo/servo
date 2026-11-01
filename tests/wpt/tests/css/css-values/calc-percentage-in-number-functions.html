@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>CSS Values: percentages inside math functions that return a number</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-type-checking">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#round-func">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#sign-funcs">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#exponent-funcs">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/numeric-testcommon.js"></script>
+<div style="width: 400px">
+  <div id="target"></div>
+</div>
+<script>
+// The percentages below resolve against the 400px width of the containing
+// block, even when they are inside a math function that returns a <number>.
+
+// Stepped value functions.
+test_math_used('calc(100% / round(100% / 100px))', '100px');
+test_math_used('calc(100% / round(up, 100% / 90px))', '80px');
+test_math_used('calc(100% / round(down, 100% / 90px))', '100px');
+test_math_used('calc(100% / round(to-zero, 100% / 90px))', '100px');
+test_math_used('calc(100% * mod(100% / 160px, 1))', '200px');
+test_math_used('calc(100% * rem(100% / 160px, 1))', '200px');
+
+// Comparison functions.
+test_math_used('calc(100% / min(10, 100% / 100px))', '100px');
+test_math_used('calc(100% / max(1, 100% / 100px))', '100px');
+test_math_used('calc(100% / clamp(1, 100% / 100px, 10))', '100px');
+
+// Sign-related functions.
+test_math_used('calc(100% * sign(50% - 150px))', '400px');
+test_math_used('calc(100% / abs(100% / -100px))', '100px');
+
+// Exponential functions.
+test_math_used('calc(100% / pow(100% / 200px, 2))', '100px');
+test_math_used('calc(100% / sqrt(100% / 25px))', '100px');
+test_math_used('calc(100% / hypot(100% / 100px))', '100px');
+test_math_used('calc(100% / log(100% / 100px, 2))', '200px');
+test_math_used('calc(100% * exp(100% / 400px - 1))', '400px', {approx: 0.1});
+
+// Nested functions and other combinations.
+test_math_used('calc(100% / round(max(1, 100% / 100px)))', '100px');
+test_math_used('calc(1px * round(100% / 100px))', '4px');
+test_math_used('calc(100% / round(100% / 100px) + 10px)', '110px');
+
+// Percentages that are only combined with other percentages.
+test_math_used('calc(100% / round(100% / 30%))', '133.333px', {approx: 0.01});
+test_math_used('calc(100% * sign(10%))', '400px');
+</script>

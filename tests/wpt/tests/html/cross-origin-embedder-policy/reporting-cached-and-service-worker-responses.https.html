@@ -1,0 +1,273 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Cross-Origin-Embedder-Policy CORP violation reports for cached and service worker responses</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<body>
+<script>
+"use strict";
+
+const { ORIGIN, REMOTE_ORIGIN, HTTPS_NOTSAMESITE_ORIGIN } = get_host_info();
+
+const header = (name, value) => `|header(${name},${value})`;
+const coep = header("cross-origin-embedder-policy", "require-corp");
+const coepReportOnly = header("cross-origin-embedder-policy-report-only", "require-corp");
+
+function checkReport(report, contextURL, blockedURL, disposition, destination) {
+  assert_equals(report.type, "coep", "type");
+  assert_equals(report.url, contextURL, "url");
+  assert_equals(report.body.type, "corp", "body.type");
+  assert_equals(report.body.blockedURL, blockedURL, "body.blockedURL");
+  assert_equals(report.body.disposition, disposition, "body.disposition");
+  assert_equals(report.body.destination, destination, "body.destination");
+}
+
+// Creates a frame with the given headers whose scripts can be run with a RemoteContext.
+async function createIframeContext(t, origin, headers) {
+  const uuid = token();
+  const frameURL = `${origin}/common/dispatcher/remote-executor.html?pipe=${headers}&uuid=${uuid}`;
+  const frame = await with_iframe(frameURL);
+  t.add_cleanup(() => frame.remove());
+  return [uuid, frameURL];
+}
+
+// Has the frame identified by uuid load url, as an image if asImage is true and with a no-cors
+// fetch otherwise, and wait for count reports. Resolves with whether the load failed, the
+// reports, and whether a service worker controls the frame.
+function loadInFrameAndObserveReports(uuid, url, asImage, count) {
+  return new RemoteContext(uuid).execute_script(async (url, asImage, count) => {
+    const reports = [];
+    const observed = new Promise(resolve => {
+      new ReportingObserver(list => {
+        reports.push(...list.map(report => report.toJSON()));
+        if (reports.length >= count)
+          resolve();
+      }).observe();
+    });
+
+    let blocked = false;
+    if (asImage) {
+      blocked = await new Promise(resolve => {
+        const image = new Image();
+        image.onload = () => resolve(false);
+        image.onerror = () => resolve(true);
+        image.src = url;
+      });
+    } else {
+      try {
+        await fetch(url, { mode: "no-cors", cache: "no-store" });
+      } catch {
+        blocked = true;
+      }
+    }
+
+    await observed;
+    return { blocked, reports, controlled: !!navigator.serviceWorker.controller };
+  }, [url, asImage, count]);
+}
+
+// Has the frame identified by uuid load url as an image with CORS, which has no CORP check, and then
+// without, both with credentials so that the second load can use the first. The second load starts once
+// the first has the image's size if whileLoading is true, and once the first has finished otherwise.
+// Resolves with the reports both loads queue and whether the first load was still in progress then.
+function loadWithAndWithoutCORSInFrame(uuid, url, whileLoading) {
+  return new RemoteContext(uuid).execute_script(async (url, whileLoading) => {
+    const reports = [];
+    const observer = new ReportingObserver(list => reports.push(...list));
+    observer.observe();
+
+    const load = (image, url) => {
+      const loaded = new Promise((resolve, reject) => {
+        image.onload = resolve;
+        image.onerror = () => reject(new Error("image failed to load"));
+      });
+      image.src = url;
+      return loaded;
+    };
+
+    const corsImage = new Image();
+    corsImage.crossOrigin = "use-credentials";
+    const corsImageLoaded = load(corsImage, url);
+    if (whileLoading) {
+      while (!corsImage.naturalWidth && !corsImage.complete)
+        await new Promise(resolve => requestAnimationFrame(resolve));
+    } else
+      await corsImageLoaded;
+    const corsImageWasLoading = !corsImage.complete;
+    await load(new Image(), url);
+    await corsImageLoaded;
+
+    reports.push(...observer.takeRecords());
+    return { reports: reports.map(report => report.toJSON()), corsImageWasLoading };
+  }, [url, whileLoading]);
+}
+
+// Creates a frame with both policies, controlled by a service worker that responds to requests whose
+// URL has a respond-with-fetch query parameter with a fetch of the request.
+async function createFrameControlledByServiceWorker(t) {
+  const uuid = token();
+  const frameURL = `${ORIGIN}/common/dispatcher/remote-executor.html?pipe=${coep}${coepReportOnly}&uuid=${uuid}`;
+  const registration = await service_worker_unregister_and_register(t, "resources/respond-with-fetch-sw.js?pipe=header(Service-Worker-Allowed,/common/dispatcher/)", frameURL);
+  t.add_cleanup(() => registration.unregister());
+  await wait_for_state(t, registration.installing, "activated");
+  const frame = await with_iframe(frameURL);
+  t.add_cleanup(() => frame.remove());
+  return [uuid, frameURL];
+}
+
+// Loads a cacheable cross-origin image without CORP in this document, which has no policy.
+async function loadCacheableImage() {
+  const url = `${REMOTE_ORIGIN}/common/square.png?${token()}&pipe=header(Cache-Control,max-age=3600)`;
+  await new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = resolve;
+    image.onerror = () => reject(new Error("image without the policy failed to load"));
+    image.src = url;
+  });
+  return url;
+}
+
+promise_test(async t => {
+  const url = await loadCacheableImage();
+  const [uuid, frameURL] = await createIframeContext(t, ORIGIN, coepReportOnly);
+  const { blocked, reports } = await loadInFrameAndObserveReports(uuid, url, true, 1);
+  assert_false(blocked, "blocked");
+  assert_equals(reports.length, 1);
+  checkReport(reports[0], new URL(frameURL).href, new URL(url).href, "reporting", "image");
+}, "Cross-Origin-Embedder-Policy-Report-Only reports an image that another document loaded before");
+
+promise_test(async t => {
+  const url = await loadCacheableImage();
+  const [uuid, frameURL] = await createIframeContext(t, ORIGIN, coepReportOnly);
+  const reports = await new RemoteContext(uuid).execute_script(async url => {
+    const reports = [];
+    const observer = new ReportingObserver(list => reports.push(...list));
+    observer.observe();
+    for (let i = 0; i < 2; ++i) {
+      await new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = resolve;
+        image.onerror = () => reject(new Error("image failed to load"));
+        image.src = url;
+      });
+    }
+    reports.push(...observer.takeRecords());
+    return reports.map(report => report.toJSON());
+  }, [url]);
+  assert_equals(reports.length, 1);
+  checkReport(reports[0], new URL(frameURL).href, new URL(url).href, "reporting", "image");
+}, "Cross-Origin-Embedder-Policy-Report-Only reports an image the document uses twice once");
+
+const cacheableWithCORS = `${header("Cache-Control", "max-age=3600")}${header("Access-Control-Allow-Origin", ORIGIN)}${header("Access-Control-Allow-Credentials", "true")}`;
+
+promise_test(async t => {
+  const url = `${REMOTE_ORIGIN}/common/square.png?${token()}&pipe=${cacheableWithCORS}`;
+  const [uuid, frameURL] = await createIframeContext(t, ORIGIN, coepReportOnly);
+  const { reports } = await loadWithAndWithoutCORSInFrame(uuid, url, false);
+  assert_equals(reports.length, 1);
+  checkReport(reports[0], new URL(frameURL).href, new URL(url).href, "reporting", "image");
+}, "Cross-Origin-Embedder-Policy-Report-Only reports an image the document loaded with CORS before");
+
+promise_test(async t => {
+  const url = `${REMOTE_ORIGIN}/common/square.png?${token()}&pipe=${cacheableWithCORS}|trickle(1000:d3)`;
+  const [uuid, frameURL] = await createIframeContext(t, ORIGIN, coepReportOnly);
+  const { reports, corsImageWasLoading } = await loadWithAndWithoutCORSInFrame(uuid, url, true);
+  assert_true(corsImageWasLoading, "the load with CORS was in progress");
+  assert_equals(reports.length, 1);
+  checkReport(reports[0], new URL(frameURL).href, new URL(url).href, "reporting", "image");
+}, "Cross-Origin-Embedder-Policy-Report-Only reports an image the document is still loading with CORS once");
+
+promise_test(async t => {
+  const url = await loadCacheableImage();
+  const [uuid, frameURL] = await createIframeContext(t, ORIGIN, coepReportOnly);
+  const { blocked, reports } = await loadInFrameAndObserveReports(uuid, `${url}#fragment`, true, 1);
+  assert_false(blocked, "blocked");
+  assert_equals(reports.length, 1);
+  checkReport(reports[0], new URL(frameURL).href, new URL(url).href, "reporting", "image");
+}, "Cross-Origin-Embedder-Policy-Report-Only reports an image without the fragment of its URL");
+
+promise_test(async t => {
+  const url = await loadCacheableImage();
+  const [uuid, frameURL] = await createIframeContext(t, ORIGIN, coep);
+  const { blocked, reports } = await loadInFrameAndObserveReports(uuid, url, true, 1);
+  assert_true(blocked, "blocked");
+  assert_equals(reports.length, 1);
+  checkReport(reports[0], new URL(frameURL).href, new URL(url).href, "enforce", "image");
+}, "Cross-Origin-Embedder-Policy reports an image that another document loaded before");
+
+promise_test(async t => {
+  const url = await loadCacheableImage();
+  const [uuid, frameURL] = await createIframeContext(t, HTTPS_NOTSAMESITE_ORIGIN, `${coep}${coepReportOnly}`);
+  const { blocked, reports } = await loadInFrameAndObserveReports(uuid, url, true, 2);
+  assert_true(blocked, "blocked");
+  assert_equals(reports.length, 2);
+  checkReport(reports[0], new URL(frameURL).href, new URL(url).href, "reporting", "image");
+  checkReport(reports[1], new URL(frameURL).href, new URL(url).href, "enforce", "image");
+}, "Cross-Origin-Embedder-Policy reports an image that a document of another site loaded before");
+
+promise_test(async t => {
+  const [uuid, frameURL] = await createFrameControlledByServiceWorker(t);
+  const url = `${REMOTE_ORIGIN}/common/square.png?${token()}&respond-with-fetch`;
+  const { blocked, reports, controlled } = await loadInFrameAndObserveReports(uuid, url, false, 2);
+  assert_true(controlled, "controlled by the service worker");
+  assert_true(blocked, "blocked");
+  assert_equals(reports.length, 2);
+  checkReport(reports[0], new URL(frameURL).href, new URL(url).href, "reporting", "");
+  checkReport(reports[1], new URL(frameURL).href, new URL(url).href, "enforce", "");
+}, "Cross-Origin-Embedder-Policy reports a cross-origin response a service worker responds with");
+
+promise_test(async t => {
+  const [uuid, frameURL] = await createFrameControlledByServiceWorker(t);
+  const location = `${REMOTE_ORIGIN}/common/square.png?${token()}`;
+  const url = `${REMOTE_ORIGIN}/common/redirect.py?location=${encodeURIComponent(location)}&respond-with-fetch`;
+  const { blocked, reports, controlled } = await loadInFrameAndObserveReports(uuid, url, false, 2);
+  assert_true(controlled, "controlled by the service worker");
+  assert_true(blocked, "blocked");
+  assert_equals(reports.length, 2);
+  checkReport(reports[0], new URL(frameURL).href, new URL(url).href, "reporting", "");
+  checkReport(reports[1], new URL(frameURL).href, new URL(url).href, "enforce", "");
+}, "Cross-Origin-Embedder-Policy reports a redirected response a service worker responds with by its first URL");
+
+promise_test(async t => {
+  const [uuid, frameURL] = await createFrameControlledByServiceWorker(t);
+  const location = `${REMOTE_ORIGIN}/common/square.png`;
+  const url = `${ORIGIN}/common/blank.html?respond-with-fetch-of=${encodeURIComponent(location)}`;
+  const { blocked, reports, controlled } = await loadInFrameAndObserveReports(uuid, url, false, 2);
+  assert_true(controlled, "controlled by the service worker");
+  assert_true(blocked, "blocked");
+  assert_equals(reports.length, 2);
+  checkReport(reports[0], new URL(frameURL).href, location, "reporting", "");
+  checkReport(reports[1], new URL(frameURL).href, location, "enforce", "");
+}, "Cross-Origin-Embedder-Policy reports a response a service worker fetched from another URL by that URL");
+
+promise_test(async t => {
+  const [uuid, frameURL] = await createFrameControlledByServiceWorker(t);
+  const location = `${REMOTE_ORIGIN}/common/square.png`;
+  const fetchedURL = `${REMOTE_ORIGIN}/common/redirect.py?location=${encodeURIComponent(location)}`;
+  const url = `${ORIGIN}/common/blank.html?respond-with-fetch-of=${encodeURIComponent(fetchedURL)}`;
+  const { blocked, reports, controlled } = await loadInFrameAndObserveReports(uuid, url, false, 2);
+  assert_true(controlled, "controlled by the service worker");
+  assert_true(blocked, "blocked");
+  assert_equals(reports.length, 2);
+  checkReport(reports[0], new URL(frameURL).href, fetchedURL, "reporting", "");
+  checkReport(reports[1], new URL(frameURL).href, fetchedURL, "enforce", "");
+}, "Cross-Origin-Embedder-Policy reports a redirected response a service worker fetched from another URL by that URL");
+
+promise_test(async t => {
+  t.add_cleanup(() => caches.delete("respond-with-cache-of"));
+  const [uuid, frameURL] = await createFrameControlledByServiceWorker(t);
+  const location = `${REMOTE_ORIGIN}/common/square.png`;
+  const url = `${ORIGIN}/common/blank.html?respond-with-cache-of=${encodeURIComponent(location)}`;
+  const { blocked, reports, controlled } = await loadInFrameAndObserveReports(uuid, url, false, 2);
+  assert_true(controlled, "controlled by the service worker");
+  assert_true(blocked, "blocked");
+  assert_equals(reports.length, 2);
+  checkReport(reports[0], new URL(frameURL).href, location, "reporting", "");
+  checkReport(reports[1], new URL(frameURL).href, location, "enforce", "");
+}, "Cross-Origin-Embedder-Policy reports a Cache API response a service worker responds with by its URL");
+</script>

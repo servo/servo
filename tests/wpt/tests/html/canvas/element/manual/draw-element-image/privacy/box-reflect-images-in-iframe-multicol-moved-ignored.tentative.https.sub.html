@@ -1,0 +1,89 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage does not draw cross-origin box-reflect images in a multicol inside an iframe moved under canvas</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/html/canvas/resources/canvas-tests.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+  #iframe {
+    width: 400px;
+    height: 200px;
+    border: none;
+  }
+  </style>
+</head>
+<body>
+  <iframe drawable id="iframe" srcdoc='
+    <!DOCTYPE html>
+    <style>
+      body {
+        margin: 0;
+        display: flex;
+        width: 400px;
+        height: 200px;
+        background: blue;
+      }
+      .multicol {
+        width: 200px;
+        height: 50px;
+        column-gap: 0;
+      }
+      .reflected {
+        height: 100px;
+        background: green;
+      }
+      #sameOrigin {
+        -webkit-box-reflect: below 0 url("https://{{location[host]}}/html/canvas/element/manual/draw-element-image/resources/left-half-mask-50.svg");
+      }
+      #crossOrigin {
+        -webkit-box-reflect: below 0 url("https://{{hosts[alt][www]}}:{{ports[https][0]}}/html/canvas/element/manual/draw-element-image/resources/left-half-mask-50.svg");
+      }
+    </style>
+    <div class="multicol">
+      <div id="sameOrigin" class="reflected"></div>
+    </div>
+    <div class="multicol">
+      <div id="crossOrigin" class="reflected"></div>
+    </div>
+  '></iframe>
+  <canvas id="canvas" width="400" height="200" content=drawable></canvas>
+
+  <script>
+    window.onload = () => {
+      promise_test(async function(t) {
+        for (const el of iframe.contentDocument.querySelectorAll(".multicol")) {
+          el.style.columns = "2";
+        }
+        await waitForCanvasPaint(canvas);
+
+        // Atomically move the iframe into the canvas.
+        canvas.moveBefore(iframe, null);
+
+        await waitForCanvasPaint(canvas);
+        const context = canvas.getContext("2d");
+        context.drawElementImage(iframe, 0, 0);
+
+        // Fetch all pixel data once to avoid multiple slow readbacks.
+        const imgData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+        let pixel = _getPixelFromImageData(imgData, 150, 25);
+        assert_array_equals(pixel, [0, 128, 0, 255], "Same origin div should draw");
+        pixel = _getPixelFromImageData(imgData, 125, 175);
+        assert_array_equals(pixel, [0, 128, 0, 255], "Same origin box-reflect mask should not mask out left side of reflection");
+        pixel = _getPixelFromImageData(imgData, 175, 175);
+        assert_array_equals(pixel, [0, 0, 255, 255], "Same origin box-reflect mask should mask out right side of reflection");
+
+        pixel = _getPixelFromImageData(imgData, 350, 25);
+        assert_array_equals(pixel, [0, 128, 0, 255], "Cross origin div should draw");
+        pixel = _getPixelFromImageData(imgData, 325, 175);
+        assert_array_equals(pixel, [0, 128, 0, 255], "Cross origin box-reflect mask should not mask out left side of reflection");
+        pixel = _getPixelFromImageData(imgData, 375, 175);
+        assert_array_equals(pixel, [0, 128, 0, 255], "Cross origin box-reflect mask should not mask out right side of reflection");
+      });
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage draws same-origin feImage content inside contain:paint after ancestor cross-origin filter is removed</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/html/canvas/resources/canvas-tests.js"></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    #wrapper {
+      width: 100px;
+      height: 200px;
+      contain: paint;
+    }
+  </style>
+</head>
+<body>
+  <img src="https://{{location[host]}}/images/green-100x100.png" hidden>
+  <img src="https://{{hosts[alt][www]}}:{{ports[https][0]}}/images/red-100x100.png" hidden>
+  <svg width="0" height="0">
+    <filter id="filter-cross" x="0" y="0" width="100" height="100" filterUnits="userSpaceOnUse">
+      <feImage href="https://{{hosts[alt][www]}}:{{ports[https][0]}}/images/red-100x100.png" />
+    </filter>
+  </svg>
+
+  <div id="ancestor" style="filter: url('#filter-cross');">
+    <div id="wrapper">
+      <canvas id="canvas" width="100" height="200" content="drawable">
+        <svg width="0" height="0">
+          <filter id="filter-same" x="0" y="0" width="100" height="100" filterUnits="userSpaceOnUse">
+            <feImage href="https://{{location[host]}}/images/green-100x100.png" />
+          </filter>
+        </svg>
+        <svg id="drawable-initial" width="100" height="100" drawable>
+          <rect width="100" height="100" fill="green" filter="url(#filter-same)" />
+        </svg>
+        <svg id="drawable-redrawn" width="100" height="100" drawable>
+          <rect width="100" height="100" fill="green" filter="url(#filter-same)" />
+        </svg>
+      </canvas>
+    </div>
+  </div>
+
+  <script>
+    window.onload = () => {
+      promise_test(async function(t) {
+        await waitForCanvasPaint(canvas);
+
+        const context = canvas.getContext("2d");
+        const drawableInitial = document.getElementById("drawable-initial");
+        const drawableRedrawn = document.getElementById("drawable-redrawn");
+
+        context.drawElementImage(drawableRedrawn, 0, 100);
+
+        document.getElementById("ancestor").style.filter = "none";
+
+        await waitForCanvasPaint(canvas);
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.drawElementImage(drawableInitial, 0, 0);
+        context.drawElementImage(drawableRedrawn, 0, 100);
+
+        // Fetch all pixel data once to avoid multiple slow readbacks.
+        const imgData = context.getImageData(0, 0, canvas.width, canvas.height);
+        let pixel = _getPixelFromImageData(imgData, 50, 50);
+        assert_array_equals(pixel, [0, 255, 0, 255],
+            "Same-origin filter should draw after ancestor cross-origin filter is removed");
+
+        pixel = _getPixelFromImageData(imgData, 50, 150);
+        assert_array_equals(pixel, [0, 255, 0, 255],
+            "Same-origin filter on previously drawn element should draw after ancestor cross-origin filter is removed");
+      });
+    };
+  </script>
+</body>
+</html>

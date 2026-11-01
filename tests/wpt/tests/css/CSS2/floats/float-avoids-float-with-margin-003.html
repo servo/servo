@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Test: Left float with margin-left should avoid prior left float</title>
+<link rel="help" href="https://www.w3.org/TR/CSS21/visuren.html#floats">
+<link rel="match" href="float-avoids-float-with-margin-003-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<meta name="assert" content="A left float whose margin box is too wide to fit next to a prior left float should be placed below it.">
+<style>
+.container {
+    width: 100px;
+    height: 40px;
+    font: 20px/1 Ahem;
+}
+
+.first {
+    float: left;
+    width: 60px;
+    height: 10px;
+    background: blue;
+}
+
+.second {
+    float: left;
+    width: 20px;
+    height: 20px;
+    background: green;
+    margin-left: 30px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="first"></div>
+  <div class="second"></div>
+</div>
+</body>
+</html>

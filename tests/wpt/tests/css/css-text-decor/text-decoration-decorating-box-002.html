@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>A propagated underline is not repeated by a vertical-align'd child that is itself a decorating box</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#decorating-box">
+<link rel="match" href="reference/text-decoration-decorating-box-002-ref.html">
+<style>
+div {
+    font-family: Monospace;
+    font-size: 100px;
+    text-decoration: underline green;
+}
+span {
+    vertical-align: top;
+    text-decoration: overline transparent;
+    font-size: 50px;
+}
+</style>
+<div>
+  x<span>x</span>
+</div>

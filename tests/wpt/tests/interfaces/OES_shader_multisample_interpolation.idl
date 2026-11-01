@@ -1,0 +1,11 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL OES_shader_multisample_interpolation Extension Specification (https://registry.khronos.org/webgl/extensions/OES_shader_multisample_interpolation/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface OES_shader_multisample_interpolation {
+    const GLenum MIN_FRAGMENT_INTERPOLATION_OFFSET_OES  = 0x8E5B;
+    const GLenum MAX_FRAGMENT_INTERPOLATION_OFFSET_OES  = 0x8E5C;
+    const GLenum FRAGMENT_INTERPOLATION_OFFSET_BITS_OES = 0x8E5D;
+};

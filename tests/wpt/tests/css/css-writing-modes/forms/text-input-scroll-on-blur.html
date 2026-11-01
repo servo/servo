@@ -1,0 +1,64 @@
+<!doctype html>
+<link rel="author" title="WebKit Contributors">
+<link rel="help" href="https://html.spec.whatwg.org/#the-input-element">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#block-flow">
+<title>Test that text inputs scroll back to the beginning on blur for all writing-mode and direction combinations</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+    input {
+        font-family: monospace;
+        font-size: 13px;
+        inline-size: 100px;
+    }
+</style>
+
+<input id="testInput">
+
+<script>
+const longValue = "veryveryveryveryveryveryveryveryverylongvalue";
+
+for (const writingMode of ["horizontal-tb", "vertical-lr", "vertical-rl", "sideways-lr", "sideways-rl"]) {
+    for (const direction of ["ltr", "rtl"]) {
+        promise_test(async t => {
+            const input = document.getElementById("testInput");
+            const isHorizontal = writingMode === "horizontal-tb";
+
+            input.style.writingMode = writingMode;
+            input.style.direction = direction;
+            input.value = longValue;
+            t.add_cleanup(() => {
+                input.removeAttribute("style");
+                input.value = "";
+                input.blur();
+            });
+
+            const scrollProp = isHorizontal ? "scrollLeft" : "scrollTop";
+            const orthogonalScrollProp = isHorizontal ? "scrollTop" : "scrollLeft";
+
+            input.focus();
+            input.setSelectionRange(input.value.length, input.value.length);
+            await new Promise(resolve => requestAnimationFrame(() => t.step_timeout(resolve, 0)));
+
+            assert_not_equals(
+                input[scrollProp], 0,
+                `${scrollProp} should be non-zero after scrolling to end`
+            );
+
+            input.blur();
+            await new Promise(resolve => requestAnimationFrame(() => t.step_timeout(resolve, 0)));
+
+            assert_equals(
+                input[scrollProp], 0,
+                `${scrollProp} should be 0 after blur (scrolled back to beginning)`
+            );
+
+            assert_equals(
+                input[orthogonalScrollProp], 0,
+                `${orthogonalScrollProp} should be 0 after blur (orthogonal scroll position unchanged)`
+            );
+        }, `input in writing-mode: ${writingMode}; direction: ${direction} scrolls back to beginning on blur`);
+    }
+}
+</script>

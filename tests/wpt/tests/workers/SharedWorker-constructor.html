@@ -12,7 +12,11 @@ test(() => {
 }, "Test toString exception propagated correctly.");
 
 test(() => {
-  assert_throws_js(RangeError,
+  // ECMA-262 doesn't define what is thrown on stack overflow
+  // See: https://github.com/tc39/ecma262/issues/4063, so use whatever the engine throws.
+  let StackOverflow;
+  try { (function f() { 1 + f() })() } catch (e) { StackOverflow = e.constructor }
+  assert_throws_js(StackOverflow,
                    function() {
                      var foo = {toString:function(){new Worker(foo)}}
                      new SharedWorker(foo, name); },

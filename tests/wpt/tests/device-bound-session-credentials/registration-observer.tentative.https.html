@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>DBSC Registration Observer</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="helper.js" type="module"></script>
+<script type="module">
+  import {
+    addCookieAndSessionCleanup,
+    configureServer,
+    expireCookie,
+    setupShardedServerState,
+    waitForCookie
+  } from "./helper.js";
+
+  promise_test(async (test) => {
+    assert_true(window.isSecureContext, "DBSC APIs require a secure context.");
+    addCookieAndSessionCleanup(test);
+
+    await setupShardedServerState();
+    await configureServer({});
+
+    let cumulativeArrivalArray = [];
+    let callbackObservers = [];
+    const observer = new DeviceBoundSessionRegistrationObserver((sessions, callbackObserver) => {
+      cumulativeArrivalArray.push(...sessions);
+      callbackObservers.push(callbackObserver);
+    });
+    test.add_cleanup(() => observer.disconnect());
+    observer.observe();
+
+    await fetch("login.py");
+
+    await test.step_wait(() => cumulativeArrivalArray.length === 1, "Awaiting observer callbacks");
+
+    assert_equals(cumulativeArrivalArray.length, 1, "Should receive exactly one session.");
+    assert_equals(cumulativeArrivalArray[0].sessionId, "0", "Session ID should match.");
+    assert_equals(callbackObservers[0], observer, "The callback gets the observer as its second argument.");
+    assert_equals(cumulativeArrivalArray[0].refreshURL,
+                  new URL("/device-bound-session-credentials/refresh_session.py", location).href,
+                  "refreshURL should be the absolute refresh URL.");
+    const creationTime = cumulativeArrivalArray[0].creationTime;
+    assert_true(Number.isFinite(creationTime) && creationTime > 0, "creationTime should be a positive number.");
+
+  }, "DeviceBoundSessionRegistrationObserver fires upon session registration in secure context");
+
+
+  promise_test(async (test) => {
+    addCookieAndSessionCleanup(test);
+    await setupShardedServerState();
+    await configureServer({});
+
+    // Registers two sessions, and waits until a first observer has seen both,
+    // so that both exist before the observer under test calls observe().
+    let existingIds = [];
+    const firstObserver = new DeviceBoundSessionRegistrationObserver((sessions) => {
+      existingIds.push(...sessions.map(s => s.sessionId));
+    });
+    test.add_cleanup(() => firstObserver.disconnect());
+    firstObserver.observe();
+    await fetch("login.py");
+    await fetch("login.py");
+    await test.step_wait(() => existingIds.length === 2, "Awaiting the two sessions");
+    firstObserver.disconnect();
+
+    let calls = [];
+    const observer = new DeviceBoundSessionRegistrationObserver((sessions) => {
+      calls.push(sessions.map(s => s.sessionId));
+    });
+    test.add_cleanup(() => observer.disconnect());
+    observer.observe();
+
+    await test.step_wait(() => calls.length === 1, "Awaiting the existing sessions");
+    assert_array_equals(calls[0].sort(), ["0", "1"], "The first callback holds both existing sessions.");
+
+    await fetch("login.py");
+    await test.step_wait(() => calls.length === 2, "Awaiting the new registration");
+
+    // After the snapshot, each callback holds only the newly registered
+    // sessions.
+    assert_array_equals(calls[1], ["2"], "The second callback holds only the new session.");
+
+  }, "DeviceBoundSessionRegistrationObserver returns existing sessions on attachment and then fires on new registrations");
+
+
+  promise_test(async (test) => {
+    addCookieAndSessionCleanup(test);
+    await setupShardedServerState();
+
+    await configureServer({});
+
+    let calls = [];
+
+    const observer = new DeviceBoundSessionRegistrationObserver((sessions) => {
+      calls.push(sessions.map(s => s.sessionId));
+    });
+    test.add_cleanup(() => observer.disconnect());
+
+    observer.observe();
+    observer.observe();
+    observer.observe();
+
+    const response1 = await fetch("login.py");
+    assert_true(response1.ok, "First fetch should succeed");
+
+    await test.step_wait(() => calls.length >= 1, "Observer must fire upon new session creation despite multiple observe() calls.", 4000);
+    assert_equals(calls.length, 1, "One subscription, so one callback.");
+    assert_array_equals(calls[0], ["0"], "The callback holds the new session.");
+
+    observer.observe();
+
+    const response2 = await fetch("login.py");
+    assert_true(response2.ok, "Second fetch should succeed");
+
+    await test.step_wait(() => calls.some(ids => ids.includes("1")), "Second session should be picked up after extra observe() calls.", 4000);
+    // An extra observe() neither subscribes again nor resends the existing
+    // session.
+    assert_equals(calls.length, 2, "Exactly one more callback.");
+    assert_array_equals(calls[1], ["1"], "It holds only the second session.");
+
+  }, "DeviceBoundSessionRegistrationObserver handles multiple concurrent observe() invocations gracefully");
+
+
+  promise_test(async (test) => {
+    addCookieAndSessionCleanup(test);
+    await setupShardedServerState();
+    const expectedCookieAndValue = "auth_cookie=abcdef0123";
+    const expectedCookieAttributes = `Domain=${location.hostname};Path=/device-bound-session-credentials`;
+    const expectedCookieAndAttributes = `${expectedCookieAndValue};${expectedCookieAttributes}`;
+
+    // With no scope origin and no include_site, the session is scoped to the
+    // www origin that registers it, which is same-site but not this origin.
+    await configureServer({
+      "includeSite": false,
+      "cookieDetails": [
+        {
+          "nameAndValue": expectedCookieAndValue,
+          "attributes": expectedCookieAttributes
+        }
+      ]
+    });
+
+    let observedSessions = [];
+    const observer = new DeviceBoundSessionRegistrationObserver((sessions) => {
+      observedSessions.push(...sessions);
+    });
+    test.add_cleanup(() => observer.disconnect());
+    observer.observe();
+
+    const wwwUrl = (path) => {
+      const url = new URL(`/device-bound-session-credentials/${path}`, location);
+      url.hostname = `www.${location.hostname}`;
+      return url.toString();
+    };
+
+    const loginResponse = await fetch(wwwUrl("login.py"), {credentials: "include"});
+    assert_equals(loginResponse.status, 200);
+    await waitForCookie(expectedCookieAndValue, /*expectCookie=*/true);
+
+    // Registration can still be running when the cookie arrives. A refresh on
+    // www proves that the session exists there.
+    await test.step_wait(async () => {
+      expireCookie(expectedCookieAndAttributes);
+      const response = await fetch(wwwUrl("verify_authenticated.py"), {credentials: "include"});
+      return response.status === 200;
+    }, "Awaiting the session on www", /*timeout=*/10000, /*interval=*/100);
+
+    // Session "1", registered on this origin with the same settings, is
+    // visible here. Sessions reach this document in the order they were
+    // created, so a delivered "0" would arrive before "1".
+    await fetch("login.py");
+    await test.step_wait(() => observedSessions.length >= 1, "Awaiting the session on this origin");
+    assert_array_equals(observedSessions.map(s => s.sessionId), ["1"], "A session scoped to another origin of the same site must not be observed.");
+  }, "DeviceBoundSessionRegistrationObserver does not see a session scoped to another origin of the same site");
+
+  promise_test(async (test) => {
+    addCookieAndSessionCleanup(test);
+    await setupShardedServerState();
+    await configureServer({});
+
+    let calls = [];
+    const observer = new DeviceBoundSessionRegistrationObserver((sessions) => {
+      calls.push(sessions.map(s => s.sessionId));
+    });
+    test.add_cleanup(() => observer.disconnect());
+    observer.observe();
+    await fetch("login.py");
+    await test.step_wait(() => calls.length === 1, "Awaiting the first session");
+    assert_array_equals(calls[0], ["0"], "The first callback holds the first session.");
+
+    observer.disconnect();
+
+    // A document's observers are told in the order they subscribed, on one
+    // pipe. So once this later observer has session "1", the first observer
+    // would already have it if it were still subscribed.
+    let laterIds = [];
+    const laterObserver = new DeviceBoundSessionRegistrationObserver((sessions) => {
+      laterIds.push(...sessions.map(s => s.sessionId));
+    });
+    test.add_cleanup(() => laterObserver.disconnect());
+    laterObserver.observe();
+    await fetch("login.py");
+    await test.step_wait(() => laterIds.includes("1"), "Awaiting the second session in a second observer");
+    assert_equals(calls.length, 1, "A disconnected observer must not be called.");
+
+    // A new observe() starts over: one callback with both existing sessions.
+    observer.observe();
+    await test.step_wait(() => calls.length === 2, "Awaiting the existing sessions after observe()");
+    assert_array_equals(calls[1].sort(), ["0", "1"], "The callback holds both existing sessions.");
+  }, "DeviceBoundSessionRegistrationObserver stops after disconnect() and gets the existing sessions again after a new observe()");
+</script>

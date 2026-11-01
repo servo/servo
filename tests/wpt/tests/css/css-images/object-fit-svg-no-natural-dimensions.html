@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Test: 'object-fit: none' and 'scale-down' on an img element with a SVG image that has no natural dimensions</title>
+    <link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+    <link rel="help" href="https://drafts.csswg.org/css-images-3/#the-object-fit">
+    <link rel="help" href="https://drafts.csswg.org/css-images-3/#default-sizing">
+    <link rel="match" href="object-fit-svg-no-natural-dimensions-ref.html">
+    <meta name="assert" content="With no natural dimensions, the default sizing algorithm makes the content box the concrete object size, so the SVG's green 40x20 rectangle exactly covers its red background.">
+    <style>
+      img {
+        display: block;
+        width: 40px;
+        height: 20px;
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <img style="object-fit: none" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='100%25' height='100%25' fill='red'/%3E%3Crect width='40' height='20' fill='green'/%3E%3C/svg%3E">
+    <img style="object-fit: scale-down" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='100%25' height='100%25' fill='red'/%3E%3Crect width='40' height='20' fill='green'/%3E%3C/svg%3E">
+  </body>
+</html>

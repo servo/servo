@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<meta charset=utf-8 />
+<title>Event Timing eventCount validate iterators.</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-actions.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=resources/event-timing-test-utils.js></script>
+<script>
+  test( () => {
+    keysIterator = performance.eventCounts.keys();
+    valuesIterator = performance.eventCounts.values();
+    entriesIterator = performance.eventCounts.entries();
+    nEntries = 0;
+    performance.eventCounts.forEach( (value, key) => {
+      nEntries++;
+      keyFromIterator = keysIterator.next().value;
+      valueFromIterator = valuesIterator.next().value;
+      entryFromIterator = entriesIterator.next().value;
+      assert_equals(keyFromIterator, key, ".keys() should match .forEach()");
+      assert_equals(valueFromIterator, value, ".values() should match .forEach()");
+      assert_equals(entryFromIterator[0], key, ".entries() should match .forEach()");
+      assert_equals(entryFromIterator[1], value, ".entries() should match .forEach()");
+      assert_equals(performance.eventCounts.get(key), value, "iterators should match .get()");
+    })
+    assert_equals(nEntries, performance.eventCounts.size, "Number of entries in .forEach() should match .size");
+    assert_true(keysIterator.next().done, "Number of entries in .keys() should match .size");
+    assert_true(valuesIterator.next().done, "Number of entries in .values() should match .size");
+    assert_true(entriesIterator.next().done, "Number of entries in .entries() should match .size");
+  }, "EventCounts iterators constent with .get() and .size")
+</script>
+</html>

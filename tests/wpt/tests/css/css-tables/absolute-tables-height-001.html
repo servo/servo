@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='/resources/check-layout-th.js'></script>
+<link rel="help" href="https://www.w3.org/TR/css-tables-3/#used-width-of-table">
+<meta name="assert" content="Absolutely positioned tables should resolve percentage and fixed heights against their containing block.">
+<style>
+.containingBlock {
+    position: relative;
+    width: 100px;
+    height: 50px;
+    outline: 1px solid lightblue;
+}
+.table {
+    position: absolute;
+    background: orange;
+    border-spacing: 0;
+}
+td {
+    padding: 0;
+}
+</style>
+
+<output id="log"></output>
+
+<!-- height: 100% should resolve against the containing block -->
+<div class="containingBlock">
+    <table class="table" style="width: 100%; height: 100%;" data-expected-width=100 data-expected-height=50>
+        <tr><td></td></tr>
+    </table>
+</div>
+
+<!-- height: 50% should resolve against the containing block -->
+<div class="containingBlock">
+    <table class="table" style="width: 100%; height: 50%;" data-expected-width=100 data-expected-height=25>
+        <tr><td></td></tr>
+    </table>
+</div>
+
+<!-- height: fixed should be honored -->
+<div class="containingBlock">
+    <table class="table" style="width: 100%; height: 30px;" data-expected-width=100 data-expected-height=30>
+        <tr><td></td></tr>
+    </table>
+</div>
+
+<!-- height: 100% with auto-height containing block (height comes from sibling) -->
+<div style="position: relative; width: 100px;">
+    <table class="table" style="width: 100%; height: 100%;" data-expected-width=100 data-expected-height=40>
+        <tr><td></td></tr>
+    </table>
+    <div style="height: 40px;"></div>
+</div>
+
+<!-- bottom: 0 should position the table at the bottom -->
+<div class="containingBlock">
+    <table class="table" style="width: 100%; height: 50%; bottom: 0;" data-expected-width=100 data-expected-height=25 data-offset-y=25>
+        <tr><td></td></tr>
+    </table>
+</div>
+
+<!-- height: stretch should fill the containing block -->
+<div class="containingBlock">
+    <table class="table" style="width: 100%; height: stretch;" data-expected-width=100 data-expected-height=50>
+        <tr><td></td></tr>
+    </table>
+</div>
+
+<!-- height: fit-content should use content height -->
+<div class="containingBlock">
+    <table class="table" style="width: 100%; height: fit-content;" data-expected-width=100 data-expected-height=0>
+        <tr><td></td></tr>
+    </table>
+</div>
+
+<!-- height: min-content should use content height -->
+<div class="containingBlock">
+    <table class="table" style="width: 100%; height: min-content;" data-expected-width=100 data-expected-height=0>
+        <tr><td></td></tr>
+    </table>
+</div>
+
+<!-- height: max-content should use content height -->
+<div class="containingBlock">
+    <table class="table" style="width: 100%; height: max-content;" data-expected-width=100 data-expected-height=0>
+        <tr><td></td></tr>
+    </table>
+</div>
+
+<!-- min-height should be honored -->
+<div class="containingBlock">
+    <table class="table" style="width: 100%; min-height: 30px;" data-expected-width=100 data-expected-height=30>
+        <tr><td></td></tr>
+    </table>
+</div>
+
+<!-- max-height should clamp -->
+<div class="containingBlock">
+    <table class="table" style="width: 100%; height: 100%; max-height: 20px;" data-expected-width=100 data-expected-height=20>
+        <tr><td></td></tr>
+    </table>
+</div>
+
+<script>
+    checkLayout(".table");
+</script>

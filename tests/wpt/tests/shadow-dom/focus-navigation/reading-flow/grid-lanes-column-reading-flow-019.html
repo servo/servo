@@ -1,0 +1,63 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Grid Lanes: tentative across-track reading flow in column tracks in vertical-rl with RTL</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-layout">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5675#issuecomment-4848519759">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/shadow-dom.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+
+<style>
+.test-case {
+  margin-top: 20px;
+}
+.lanes {
+  display: grid-lanes;
+  writing-mode: vertical-rl;
+  direction: rtl;
+  fit-tolerance: 0;
+  gap: 0;
+  place-content: start;
+  justify-items: start;
+}
+.columns {
+  grid-template-columns: repeat(2, 60px);
+  grid-lanes-direction: column;
+  reading-flow: grid-rows;
+  height: 120px;
+  width: 260px;
+}
+.columns > div {
+  height: 100%;
+}
+</style>
+
+<!--
+At the moment we are counting an item as
+part of a reading row if 2/3 of the item's stacking-axis length is within
+the borders of the initial reading row bounds.
+-->
+<div class="test-case"
+     data-expect="a,b,c,d,e,f,h,g,i">
+  <div class="lanes columns">
+    <div id="d" tabindex="0" style="grid-column: 2; width: 100px; background-color: lightcoral">D</div>
+    <div id="a" tabindex="0" style="grid-column: 1; width: 20px; background-color: lightskyblue">A</div>
+    <div id="b" tabindex="0" style="grid-column: 1; width: 20px; background-color: lightgreen">B</div>
+    <div id="c" tabindex="0" style="grid-column: 1; width: 20px; background-color: khaki">C</div>
+    <div id="f" tabindex="0" style="grid-column: 2; width: 120px; background-color: plum">F</div>
+    <div id="e" tabindex="0" style="grid-column: 1; width: 180px; background-color: orange">E</div>
+    <div id="g" tabindex="0" style="grid-column: 2; width: 20px; background-color: paleturquoise">G</div>
+    <div id="i" tabindex="0" style="grid-column: 2; width: 20px; background-color: lightpink">I</div>
+    <div id="h" tabindex="0" style="grid-column: 1; width: 20px; background-color: silver">H</div>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>-webkit-box painting order with z-index on display:contents descendant after dynamic display change</title>
+<link rel="help" href="https://compat.spec.whatwg.org/#valdef-flex--webkit-box">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="display: -webkit-box">
+  <div id="target" style="display: contents">
+    <div style="display: contents">
+      <div style="z-index: 1; width: 100px; height: 100px; background: red"></div>
+    </div>
+    <div style="margin-top: -100px; width: 100px; height: 100px; background: green"></div>
+  </div>
+</div>
+<script>
+waitForAtLeastOneFrame().then(() => {
+  target.style.display = "block";
+  takeScreenshot();
+});
+</script>
+</html>

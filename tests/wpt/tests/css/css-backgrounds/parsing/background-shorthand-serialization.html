@@ -11,26 +11,53 @@
 <body>
 <script>
   const element = document.createElement('div');
+  // Computed values are only available for an element in the document.
+  document.body.append(element);
+
+  const longhands = ['background-image', 'background-position', 'background-size',
+      'background-repeat', 'background-attachment', 'background-origin',
+      'background-clip', 'background-color'];
+
+  function computed_longhands() {
+    const style = getComputedStyle(element);
+    return longhands.map((longhand) => `${longhand}: ${style.getPropertyValue(longhand)}`);
+  }
+
+  // Feeding the serialized shorthand back into itself must serialize and
+  // compute the same way, or the serialization is not idempotent.
+  function assert_round_trip() {
+    const value = element.style.background;
+    const computed = computed_longhands();
+
+    element.style = '';
+    element.style.background = value;
+    assert_equals(element.style.background, value, 'serialization should round-trip');
+    assert_array_equals(computed_longhands(), computed, 'computed values should round-trip');
+  }
 
   test((t) => {
     element.style = 'background: yellow;';
     assert_equals(element.style.background , 'yellow');
+    assert_round_trip();
   }, "single value");
 
   test((t) => {
     element.style = 'background: no-repeat url(/favicon.ico);';
     assert_equals(element.style.background , 'url("/favicon.ico") no-repeat');
+    assert_round_trip();
   }, "multiple values");
 
   test((t) => {
     element.style = 'background: url(/favicon.ico) no-repeat, url(/favicon.ico) no-repeat;';
     assert_equals(element.style.background , 'url("/favicon.ico") no-repeat, url("/favicon.ico") no-repeat');
+    assert_round_trip();
   }, "multiple backgrounds");
 
   test((t) => {
     element.style = 'background: url("/favicon.ico") 0% 0% / 10rem;';
     // background-size should always serialize to two values per https://github.com/w3c/csswg-drafts/issues/7802
     assert_equals(element.style.background , 'url("/favicon.ico") 0% 0% / 10rem auto');
+    assert_round_trip();
   }, "background-size with non-initial background-position");
 
   test((t) => {
@@ -38,23 +65,85 @@
         url(/favicon.ico) center / 100% 100% no-repeat,
         url(/favicon.ico) white;`;
     assert_equals(element.style.background , 'url("/favicon.ico") left top no-repeat, url("/favicon.ico") center center / 100% 100% no-repeat, url("/favicon.ico") white');
+    assert_round_trip();
   }, "multiple backgrounds with varying values");
 
   test((t) => {
     element.style = `background: padding-box border-box;`;
+    // background-origin and background-clip initial values should be omited.
     assert_equals(element.style.background , 'none');
+    assert_round_trip();
   }, "all initial values");
 
+  test((t) => {
+    element.style = `background: 0% 0%;`;
+    assert_equals(element.style.background , 'none');
+    assert_round_trip();
+  }, "initial background-position");
+
+  test((t) => {
+    element.style = `background: 0% 0% / auto;`;
+    assert_equals(element.style.background , 'none');
+    assert_round_trip();
+  }, "initial background-size");
+
+  test((t) => {
+    element.style = `background: repeat;`;
+    assert_equals(element.style.background , 'none');
+    assert_round_trip();
+  }, "initial background-repeat");
+
+  test((t) => {
+    element.style = `background: scroll;`;
+    assert_equals(element.style.background , 'none');
+    assert_round_trip();
+  }, "initial background-attachment");
+
+  test((t) => {
+    element.style = `background: transparent;`;
+    assert_equals(element.style.background , 'none');
+    assert_round_trip();
+  }, "initial background-color");
+
+  test((t) => {
+    element.style = `background: repeat red;`;
+    // The component is dropped, not the layer it sits in.
+    assert_equals(element.style.background , 'red');
+    assert_round_trip();
+  }, "initial component beside a non-initial one");
+
+  test((t) => {
+    element.style = `background: scroll url(/favicon.ico);`;
+    assert_equals(element.style.background , 'url("/favicon.ico")');
+    assert_round_trip();
+  }, "initial attachment beside an image");
+
+  test((t) => {
+    element.style = `background: url(/favicon.ico), none, url(/favicon.ico);`;
+    // It pins the rule that a layer left with nothing to serialize still emits
+    // the initial background-image, so it keeps its place in the list instead of
+    // collapsing and shifting the layers after it.
+    assert_equals(element.style.background , 'url("/favicon.ico"), none, url("/favicon.ico")');
+    assert_round_trip();
+  }, "an all-initial layer between two others");
+
+  test((t) => {
+    element.style = 'background: initial; background-color: black;';
+    // A shorthand with initial and non-initial values can not be serialized.
+    assert_equals(element.style.background , '');
+  }, "initial keyword not surviving an override");
 
   test((t) => {
     element.style = `background: border-area border-box;`;
     assert_equals(element.style.background , 'border-area');
+    assert_round_trip();
   }, "border-area border-box");
 
 
   test((t) => {
     element.style = `background: border-area padding-box;`;
     assert_equals(element.style.background , 'padding-box border-area');
+    assert_round_trip();
   }, "border-area padding-box");
 
   test((t) => {
@@ -71,4 +160,49 @@
     element.style = `background: border-area text;`;
     assert_equals(element.style.backgroundOrigin , 'border-box');
   }, "border-area text sets background-origin to border-box");
+
+  test((t) => {
+    element.style = 'background: none; background-size: contain;';
+    // A <bg-size> can only follow a <bg-position>, so one is synthesized. It
+    // must not be preceded by the space that would separate it from an earlier
+    // component when every earlier component was omitted too.
+    assert_equals(element.style.background , '0% 0% / contain');
+    assert_round_trip();
+  }, "background-size with every earlier component omitted");
+
+  test((t) => {
+    element.style = 'background: none; background-position-x: right 10px;';
+    // An offset from an edge does not combine with a bare <length-percentage>
+    // on the other axis, so the bare one is anchored to its own default edge.
+    assert_equals(element.style.background , 'right 10px top 0%');
+    assert_round_trip();
+  }, "horizontal offset from an edge with the initial vertical offset");
+
+  test((t) => {
+    element.style = 'background: none; background-position-y: bottom 20px;';
+    assert_equals(element.style.background , 'left 0% bottom 20px');
+    assert_round_trip();
+  }, "vertical offset from an edge with the initial horizontal offset");
+
+  test((t) => {
+    // A serialization that cannot be reparsed loses the declaration, which is
+    // only visible on the way back in.
+    for (const declarations of [
+        'background: none; background-size: contain',
+        'background: url(/favicon.ico); background-size: contain',
+        'background: none; background-position-x: right 10px',
+        'background: none; background-position-y: bottom 20px',
+        'background: none; background-position: left 10px center',
+        'background: none; background-position: left -20px top 60px']) {
+      element.style = declarations;
+      const value = element.style.background;
+      assert_not_equals(value, '', declarations);
+      const computed = computed_longhands();
+
+      element.style = '';
+      element.style.background = value;
+      assert_equals(element.style.background, value, declarations);
+      assert_array_equals(computed_longhands(), computed, declarations);
+    }
+  }, "the serialized shorthand parses back to itself");
 </script>

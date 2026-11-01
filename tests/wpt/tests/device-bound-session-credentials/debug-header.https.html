@@ -33,6 +33,40 @@
     assert_equals(headers.get("secure-session-skipped"), "server_error;session_identifier=\"0\"");
   }, "A session that fails to reach the refresh endpoint sets debug header");
 
+  promise_test(async t => {
+    await setupShardedServerState();
+    const expectedCookieAndValue = "auth_cookie=abcdef0123";
+    const expectedCookieAndAttributes = `${expectedCookieAndValue};Domain=${location.hostname};Path=/device-bound-session-credentials`;
+    addCookieAndSessionCleanup(t);
+
+    // Prompt starting a session, and wait until registration completes.
+    const loginResponse = await fetch('login.py');
+    assert_equals(loginResponse.status, 200);
+    await waitForCookie(expectedCookieAndValue, /*expectCookie=*/true);
+
+    // Configure server to rate limit refreshes.
+    await configureServer({ refreshEndpointUnavailable: true, refreshEndpointUnavailableStatus: 429 });
+
+    // Expire the cookie. The server will attempt a refresh, but get a 429.
+    expireCookie(expectedCookieAndAttributes);
+    assert_false(documentHasCookie(expectedCookieAndValue));
+
+    const response = await fetch('reflect_headers.py');
+    assert_equals(response.status, 200);
+    assert_false(documentHasCookie(expectedCookieAndValue));
+    const headers = new Headers(await response.json());
+    assert_equals(headers.get("secure-session-skipped"), "server_error;session_identifier=\"0\"");
+
+    // The session must survive the 429: once the endpoint recovers, the next
+    // request refreshes and restores the cookie.
+    await configureServer({ refreshEndpointUnavailable: false });
+    const recoveredResponse = await fetch('reflect_headers.py');
+    assert_equals(recoveredResponse.status, 200);
+    assert_true(documentHasCookie(expectedCookieAndValue));
+    const recoveredHeaders = new Headers(await recoveredResponse.json());
+    assert_equals(recoveredHeaders.get("secure-session-skipped"), null);
+  }, "A 429 from the refresh endpoint sets debug header and keeps the session");
+
   // Create a session, then make the refresh endpoint unreachable and a
   // refresh required.
   async function setupRedirectTest(t) {

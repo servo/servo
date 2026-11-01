@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<title>Elements should appear in elementsFromPoint with object-fit: contain in a tall box</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+  #left {
+    width: 10px;
+    height: 300px;
+    background-color: red;
+  }
+  #top {
+    width: 280px;
+    height: 10px;
+    background-color: green;
+  }
+  #right {
+    width: 10px;
+    height: 300px;
+    background-color: yellow;
+  }
+  #bottom {
+    width: 280px;
+    height: 10px;
+    background-color: blue;
+  }
+  canvas {
+    aspect-ratio: 3/4;
+    object-fit: contain;
+    background-color: white;
+    width: 300px;
+  }
+  body {
+    margin: 0px;
+  }
+</style>
+
+<canvas id="canvas" width=300 height=300 content=drawable>
+  <div drawable id="left"></div>
+  <div drawable id="top"></div>
+  <div drawable id="right"></div>
+  <div drawable id="bottom"></div>
+</canvas>
+
+<script>
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    const ctx = canvas.getContext('2d');
+    const left_elmt = document.getElementById("left");
+    const top_elmt = document.getElementById("top");
+    const right_elmt = document.getElementById("right");
+    const bottom_elmt = document.getElementById("bottom");
+    ctx.drawElementImage(left_elmt, 0, 0);
+    ctx.drawElementImage(top_elmt, 10, 0);
+    ctx.drawElementImage(right_elmt, 290, 0);
+    ctx.drawElementImage(bottom_elmt, 10, 290);
+    // The canvas bitmap is not scaled. There is 50px of letter-boxing top and bottom so everything
+    // is 50px vertically offset.
+    assert_array_equals(document.elementsFromPoint(5, 55),
+                        [left_elmt, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[left_elmt, canvas, body, html]`');
+    assert_array_equals(document.elementsFromPoint(15, 55),
+                        [top_elmt, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[top_elmt, canvas, body, html]`');
+    assert_array_equals(document.elementsFromPoint(295, 345),
+                        [right_elmt, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[right_elmt, canvas, body, html]`');
+    assert_array_equals(document.elementsFromPoint(285, 345),
+                        [bottom_elmt, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[bottom_elmt, canvas, body, html]`');
+  }, 'Canvas descendants\' transforms are correct when object-fit: contain is active.');
+
+</script>
+</html>

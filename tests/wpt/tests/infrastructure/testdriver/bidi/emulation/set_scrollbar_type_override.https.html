@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<title>TestDriver bidi.emulation.set_scrollbar_type_override method</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+<script>
+    function getScrollbarWidth() {
+        const outer = document.createElement("div");
+        outer.style.visibility = "hidden";
+        outer.style.overflow = "scroll";
+        document.body.appendChild(outer);
+
+        const width = outer.offsetWidth - outer.clientWidth;
+        outer.remove();
+
+        return width;
+    }
+
+    promise_test(async () => {
+        const initialScrollbarWidth = getScrollbarWidth();
+
+        // Emulate overlay scrollbars.
+        await test_driver.bidi.emulation.set_scrollbar_type_override({
+            scrollbarType: "overlay"
+        });
+        assert_equals(getScrollbarWidth(), 0);
+
+        // Clear the scrollbar type override with null.
+        await test_driver.bidi.emulation.set_scrollbar_type_override({
+            scrollbarType: null
+        });
+        assert_equals(getScrollbarWidth(), initialScrollbarWidth);
+
+        // Emulate overlay scrollbars again.
+        await test_driver.bidi.emulation.set_scrollbar_type_override({
+            scrollbarType: "overlay"
+        });
+        assert_equals(getScrollbarWidth(), 0);
+
+        // Clear the scrollbar type override by omitting scrollbarType.
+        await test_driver.bidi.emulation.set_scrollbar_type_override({});
+        assert_equals(getScrollbarWidth(), initialScrollbarWidth);
+    }, "emulate scrollbar type and clear override");
+</script>
+</body>

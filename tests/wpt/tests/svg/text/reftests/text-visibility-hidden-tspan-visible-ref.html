@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG text: a tspan with visibility: visible inside a text with visibility: hidden is painted (reference)</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<svg width="400" height="200">
+  <text x="10" y="50" font-size="30" fill="transparent">Hidden <tspan fill="green">visible</tspan> hidden</text>
+  <text x="10" y="100" font-size="30" fill="transparent">Hidden <tspan>still hidden <tspan fill="green">visible</tspan></tspan> hidden</text>
+  <text x="10" y="150" font-size="30" fill="transparent">Hidden <tspan fill="green">visible</tspan> hidden</text>
+</svg>

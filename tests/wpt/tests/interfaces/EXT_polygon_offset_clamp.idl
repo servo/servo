@@ -1,0 +1,11 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL EXT_polygon_offset_clamp Extension Specification (https://registry.khronos.org/webgl/extensions/EXT_polygon_offset_clamp/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface EXT_polygon_offset_clamp {
+    const GLenum POLYGON_OFFSET_CLAMP_EXT = 0x8E1B;
+
+    undefined polygonOffsetClampEXT(GLfloat factor, GLfloat units, GLfloat clamp);
+};

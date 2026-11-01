@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<body>
+  <script>
+    'use strict';
+
+    // With ?embed=<url>, this page also holds an iframe for <url>, so a test
+    // can put a frame under one from another site.
+    const embed = new URLSearchParams(location.search).get("embed");
+    if (embed) {
+      const inner = document.createElement("iframe");
+      inner.src = embed;
+      document.body.appendChild(inner);
+    }
+
+    // On "observe", starts an observer and replies "observing", or
+    // "threw:<name>" if the constructor throws. On "report", replies with the
+    // ids of every session the observer delivered, joined by commas.
+    const observedIds = [];
+    window.addEventListener("message", (event) => {
+      if (event.data === "observe") {
+        try {
+          const observer = new DeviceBoundSessionRegistrationObserver((sessions) => {
+            observedIds.push(...sessions.map(s => s.sessionId));
+          });
+          observer.observe();
+          event.source.postMessage("observing", "*");
+        } catch (e) {
+          event.source.postMessage(`threw:${e.name}`, "*");
+        }
+      } else if (event.data === "report") {
+        event.source.postMessage(observedIds.join(","), "*");
+      }
+    });
+  </script>
+</body>

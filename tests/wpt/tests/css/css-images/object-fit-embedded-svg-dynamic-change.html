@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Test: changing 'object-fit' and 'object-position' on an SVG document in &lt;object&gt; after it loads</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#the-object-fit">
+<link rel="match" href="object-fit-embedded-svg-dynamic-change-ref.html">
+<meta name="assert" content="An SVG document in an object element is sized and placed by object-fit and object-position like an image, and changing them after the document loads updates its size and position.">
+<style>
+object {
+  width: 48px;
+  height: 32px;
+  border: 1px solid gray;
+  padding: 1px;
+  float: left;
+}
+</style>
+<object id="a" data="support/colors-16x8.svg"></object>
+<object id="b" data="support/colors-16x8.svg"></object>
+<object id="c" data="support/colors-8x16-noSize.svg" style="object-fit: cover"></object>
+<script>
+let loaded = 0;
+function onLoaded() {
+  if (++loaded < 3)
+    return;
+  document.body.offsetHeight;
+  a.style.objectFit = "contain";
+  a.style.objectPosition = "top right";
+  b.style.objectFit = "none";
+  b.style.objectPosition = "bottom left";
+  c.style.objectFit = "contain";
+  requestAnimationFrame(() => requestAnimationFrame(() => document.documentElement.classList.remove("reftest-wait")));
+}
+for (const element of [a, b, c])
+  element.addEventListener("load", onLoaded);
+</script>
+</html>

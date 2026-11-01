@@ -17,16 +17,23 @@ const await_with_timeout = async (delay, message, promise, cleanup = ()=>{}) => 
   return result;
 };
 
-// Receives an image LargestContentfulPaint |entry| and checks |entry|'s attribute values.
-// The |timeLowerBound| parameter is a lower bound on the loadTime value of the entry.
-// The |options| parameter may contain some string values specifying the following:
-// * 'renderTimeIs0': the renderTime should be 0 (image does not pass Timing-Allow-Origin checks).
-//     When not present, the renderTime should not be 0 (image passes the checks).
-// * 'sizeLowerBound': the |expectedSize| is only a lower bound on the size attribute value.
+// Receives a LargestContentfulPaint |entry| and checks |entry|'s attribute values.
+//
+// The |expectedSize| and |timeLowerBound| parameters may be functions returning
+// the (previously computed or recorded) values.
+//
+// The |options| parameter may contain some string values specifying the
+// following:
+// * 'skip': the size and timing checks are skipped.
+// * 'sizeRange': the |expectedSize| is a lower bound on the size attribute
+//     value, or a [lowerBound, upperBound] pair.
 //     When not present, |expectedSize| must be exactly equal to the size attribute value.
 // * 'approximateSize': the |expectedSize| is only approximate to the size attribute value.
-//     This option is mutually exclusive to 'sizeLowerBound'.
-function checkImage(entry, expectedUrl, expectedID, expectedSize, timeLowerBound, options = []) {
+//     This option is mutually exclusive to 'sizeRange'.
+// * 'skipLoadTime': the Text entry; the loadTime must be 0.
+// * 'animated': the entry describes an animated image; renderTime must be
+//     positive and smaller than the delay applied to the second frame.
+function checkEntry(entry, expectedUrl, expectedID, expectedSize, timeLowerBound, options = []) {
   assert_equals(entry.name, '', "Entry name should be the empty string");
   assert_equals(entry.entryType, 'largest-contentful-paint',
     "Entry type should be largest-contentful-paint");
@@ -40,26 +47,40 @@ function checkImage(entry, expectedUrl, expectedID, expectedSize, timeLowerBound
   if (options.includes('skip')) {
     return;
   }
+
+  if (typeof expectedSize === 'function') {
+    expectedSize = expectedSize();
+  }
+  if (typeof timeLowerBound === 'function') {
+    timeLowerBound = timeLowerBound();
+  }
+
   assert_greater_than_equal(performance.now(), entry.renderTime,
     'renderTime should occur before the entry is dispatched to the observer.');
   assert_approx_equals(entry.startTime, entry.renderTime, 0.001,
     'startTime should be equal to renderTime to the precision of 1 millisecond.');
-  if (options.includes('sizeLowerBound')) {
-    assert_greater_than(entry.size, expectedSize);
+
+  if (options.includes('sizeRange')) {
+    const [sizeLowerBound, sizeUpperBound] = Array.isArray(expectedSize) ?
+        expectedSize : [expectedSize, Infinity];
+    assert_greater_than(entry.size, sizeLowerBound);
+    assert_less_than_equal(entry.size, sizeUpperBound);
   } else if (options.includes('approximateSize')) {
     assert_approx_equals(entry.size, expectedSize, 1);
-  } else{
+  } else {
     assert_equals(entry.size, expectedSize);
   }
 
-  assert_greater_than_equal(entry.paintTime, timeLowerBound, 'paintTime should represent the time when the UA started painting');
-
   // PaintTimingMixin
-  if ("presentationTime" in entry && entry.presentationTime !== null) {
-    assert_greater_than(entry.presentationTime, entry.paintTime);
-    assert_equals(entry.presentationTime, entry.renderTime);
-  } else {
-    assert_equals(entry.renderTime, entry.paintTime);
+  if ('paintTime' in entry && entry.paintTime !== null) {
+    assert_greater_than_equal(entry.paintTime, timeLowerBound,
+        'paintTime should represent the time when the UA started painting');
+    if ('presentationTime' in entry && entry.presentationTime !== null) {
+      assert_greater_than(entry.presentationTime, entry.paintTime);
+      assert_equals(entry.presentationTime, entry.renderTime);
+    } else {
+      assert_equals(entry.renderTime, entry.paintTime);
+    }
   }
 
   if (options.includes('animated')) {
@@ -67,11 +88,24 @@ function checkImage(entry, expectedUrl, expectedID, expectedSize, timeLowerBound
       'renderTime should be smaller than the delay applied to the second frame');
     assert_greater_than(entry.renderTime, 0,
       'renderTime should be larger than 0');
-  }
-  else {
+  } else if (options.includes('skipLoadTime')) {
+    assert_equals(entry.loadTime, 0, 'Entry loadTime should be 0');
+  } else {
     assert_between_inclusive(entry.loadTime, timeLowerBound, entry.renderTime,
       'loadTime should occur between the lower bound and the renderTime');
   }
+}
+
+// Checks a LargestContentfulPaint |entry| of a text.
+function checkTextEntry(entry, expectedID, expectedSize,
+                        timeLowerBound, options = []) {
+  checkEntry(entry, '', expectedID, expectedSize, timeLowerBound,
+             options.concat(['skipLoadTime', 'sizeRange']));
+}
+
+// Checks a LargestContentfulPaint |entry| of an image element.
+function checkImage(entry, expectedUrl, expectedID, expectedSize, timeLowerBound, options = []) {
+  checkEntry(entry, expectedUrl, expectedID, expectedSize, timeLowerBound, options);
 }
 
 const load_and_observe = url => {

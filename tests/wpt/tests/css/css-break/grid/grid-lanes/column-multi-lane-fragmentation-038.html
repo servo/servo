@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Multi-lane column grid-lanes fill-reverse fragmentation where expanding items push a spanner and the items after it</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; columns: 2; column-gap: 0; column-fill: auto; background: red;">
+  <div style="display: grid-lanes; grid-lanes-direction: column fill-reverse; grid-template-columns: repeat(2, 25px); width: 50px;">
+    <!-- Fill-reverse stacks items from the block end, so these come last physically. -->
+    <div style="height: 30px; background: green;"></div>
+    <div style="height: 30px; background: green;"></div>
+    <div style="grid-column: span 2; height: 40px; background: green;"></div>
+    <div style="line-height: 0; background: green;">
+      <div style="display: inline-block; width: 25px; height: 80px;"></div>
+      <div style="display: inline-block; width: 25px; height: 30px;"></div>
+    </div>
+    <div style="line-height: 0; background: green;">
+      <div style="display: inline-block; width: 25px; height: 80px;"></div>
+      <div style="display: inline-block; width: 25px; height: 30px;"></div>
+    </div>
+  </div>
+</div>

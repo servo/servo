@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>DBSC Registration Observer: cross-subdomain registration</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="helper.js" type="module"></script>
+<script type="module">
+  import {
+    addCookieAndSessionCleanup,
+    configureServer,
+    setupShardedServerState,
+    waitForCookie
+  } from "./helper.js";
+
+  promise_test(async (test) => {
+    addCookieAndSessionCleanup(test);
+    await setupShardedServerState();
+    const expectedCookieAndValue = "auth_cookie=abcdef0123";
+    const expectedCookieAttributes = `Domain=${location.hostname};Path=/device-bound-session-credentials`;
+
+    // www registers a session for the site root with include_site, which the
+    // .well-known/device-bound-sessions file allows for www.
+    await configureServer({
+      "scopeOrigin": location.origin,
+      "includeSite": true,
+      "cookieDetails": [
+        {
+          "nameAndValue": expectedCookieAndValue,
+          "attributes": expectedCookieAttributes
+        }
+      ]
+    });
+
+    let observedSessions = [];
+    const observer = new DeviceBoundSessionRegistrationObserver((sessions) => {
+      observedSessions.push(...sessions);
+    });
+    test.add_cleanup(() => observer.disconnect());
+    observer.observe();
+
+    const loginUrl = new URL("/device-bound-session-credentials/login.py", location);
+    loginUrl.hostname = `www.${location.hostname}`;
+    const loginResponse = await fetch(loginUrl.toString(), {credentials: "include"});
+    assert_equals(loginResponse.status, 200);
+    await waitForCookie(expectedCookieAndValue, /*expectCookie=*/true);
+
+    await test.step_wait(() => observedSessions.length === 1, "Awaiting the session registered on www", /*timeout=*/10000);
+    assert_equals(observedSessions[0].sessionId, "0", "Session ID should match.");
+  }, "A site-scoped session registered on a subdomain is observed by the site root");
+</script>

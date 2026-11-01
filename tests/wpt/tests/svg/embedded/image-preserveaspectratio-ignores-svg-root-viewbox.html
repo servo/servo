@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>An image element ignores the referenced SVG root's preserveAspectRatio when fitting its viewBox</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/embedded.html#ImageElement">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#PreserveAspectRatioAttribute">
+<link rel="match" href="image-preserveaspectratio-ignores-svg-root-viewbox-ref.html">
+<meta name="assert" content="The referenced SVG is 100x100 with a 200x100 viewBox. Its natural aspect ratio comes from its width and height, so the image element's default xMidYMid meet fits it into the 200x100 positioning rectangle as a centered 100x100 square. The root's preserveAspectRatio is treated as none, so the 2:1 viewBox is stretched to fill that square rather than letterboxed inside it.">
+<style>
+  body { margin: 0; }
+</style>
+<!-- Red is painted where the image must be, so a letterboxed or misplaced image leaves red showing. -->
+<svg width="220" height="120">
+  <rect x="60" y="10" width="100" height="100" fill="red"/>
+  <image x="10" y="10" width="200" height="100" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 200 100'><rect width='200' height='100' fill='rgb(0,128,0)'/></svg>"/>
+</svg>

@@ -1,0 +1,10 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL WEBGL_stencil_texturing Extension Specification (https://registry.khronos.org/webgl/extensions/WEBGL_stencil_texturing/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface WEBGL_stencil_texturing {
+    const GLenum DEPTH_STENCIL_TEXTURE_MODE_WEBGL = 0x90EA;
+    const GLenum STENCIL_INDEX_WEBGL              = 0x1901;
+};

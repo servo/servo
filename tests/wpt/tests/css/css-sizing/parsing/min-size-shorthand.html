@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<link rel="author" title="Andrew Martinez" href="https://github.com/AndrewJMart">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#sizing-properties">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+<script>
+    // min-size is a shorthand for min-width and min-height. If the second
+    // value is omitted, it is copied from the first.
+    test_shorthand_value("min-size", "100px", {
+        "min-width": "100px",
+        "min-height": "100px"
+    });
+    test_shorthand_value("min-size", "100px 100px", {
+        "min-width": "100px",
+        "min-height": "100px"
+    });
+    test_shorthand_value("min-size", "100px 200px", {
+        "min-width": "100px",
+        "min-height": "200px"
+    });
+    test_shorthand_value("min-size", "auto", {
+        "min-width": "auto",
+        "min-height": "auto"
+    });
+    test_shorthand_value("min-size", "min-content max-content", {
+        "min-width": "min-content",
+        "min-height": "max-content"
+    });
+</script>

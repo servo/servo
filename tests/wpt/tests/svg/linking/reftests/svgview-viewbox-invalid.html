@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG fragment identifier: an svgView() with an invalid viewBox is ignored</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/linking.html#SVGFragmentIdentifiersDefinitions">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#ViewBoxAttribute">
+<link rel="match" href="../../struct/reftests/reference/green-100x100.html">
+<meta name="assert" content="An svgView() viewBox with missing numbers or a negative size is ignored.">
+<style>
+  div { display: flex; flex-wrap: wrap; width: 100px; }
+  img { display: block; width: 50px; height: 50px; background: red; }
+</style>
+<div>
+  <img src="support/green-viewbox-25x25.svg#svgView(viewBox(0,0,25))">
+  <img src="support/green-viewbox-25x25.svg#svgView(viewBox(0,0))">
+  <img src="support/green-viewbox-25x25.svg#svgView(viewBox(0,0,-25,25))">
+  <img src="support/green-viewbox-25x25.svg#svgView(viewBox(0,0,25,-25))">
+</div>

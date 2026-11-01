@@ -6,9 +6,8 @@ importScripts("../../resources/loading-resource-lib.js")
 
 const label = "initiator_url_settimeout_worker";
 const resource = "/images/blue.png?"+label;
-const hostInfo = get_host_info();
-const expectedInitiatorUrl = hostInfo["ORIGIN"] +
-  "/resource-timing/tentative/initiator-url/set-timeout.any.worker.js";
+const expectedInitiatorUrl = getUrl(
+    '/resource-timing/tentative/initiator-url/set-timeout.any.worker.js');
 setTimeout(function(){fetch_in_function(resource)}, 10);
 initiator_url_test(resource, expectedInitiatorUrl, resource +
   " initiatorUrl from setTimeout() in worker thread", resource + " timeout");

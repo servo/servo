@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Canvas.drawElementImage: content draws correct with object-fit: contain in a wide box - ref</title>
+<style>
+  #child {
+    position: relative;
+    top: 100px;
+    left: 50px;
+    width: 200px;
+    height: 200px;
+    background: white;
+    box-sizing: border-box;
+    border: 10px solid green;
+  }
+  #canvas {
+    background-color: gray;
+    width: 300px;
+    height: 400px;
+  }
+</style>
+<div id=canvas>
+  <div id=child></div>
+</div>
+</html>

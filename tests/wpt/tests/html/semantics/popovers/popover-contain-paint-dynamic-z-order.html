@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Changing a positioned child of a contain: paint popover keeps z-index order</title>
+<link rel="author" title="Timothy Nikkel" href="mailto:tnikkel@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/popover.html">
+<link rel="help" href="https://drafts.csswg.org/css2/#elaborate-stacking-contexts">
+<link rel="match" href="popover-contain-paint-dynamic-z-order-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+  #popover {
+    position: absolute;
+    inset: 0 auto auto 0;
+    margin: 0;
+    border: none;
+    padding: 0;
+    overflow: visible;
+    width: 200px;
+    height: 200px;
+    background: transparent;
+    contain: paint;
+  }
+  #popover > div {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100px;
+    height: 100px;
+    background-color: red;
+  }
+  #over {
+    z-index: 1;
+  }
+</style>
+<div id="popover" popover="manual">
+  <div></div>
+  <div id="over"></div>
+</div>
+<script>
+  document.getElementById("popover").showPopover();
+  document.documentElement.addEventListener("TestRendered", () => {
+    document.getElementById("over").style.backgroundColor = "green";
+    takeScreenshot();
+  });
+</script>
+</html>

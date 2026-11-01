@@ -4,6 +4,7 @@
 <body>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="resources/largest-contentful-paint-helpers.js"></script>
 <style>
 #title {
   display: flex;
@@ -25,21 +26,11 @@
       t.step_func(function(entryList) {
         assert_equals(entryList.getEntries().length, 1);
         const entry = entryList.getEntries()[0];
-        assert_equals(entry.entryType, 'largest-contentful-paint');
-        assert_greater_than_equal(entry.renderTime, beforeRender);
-        assert_greater_than_equal(performance.now(), entry.renderTime);
-        assert_approx_equals(entry.startTime, entry.renderTime, 0.001,
-        'startTime should be equal to renderTime to the precision of 1 millisecond.');
-        assert_equals(entry.duration, 0);
         // TODO: find a good way to bound text size.
-        assert_greater_than_equal(entry.size, 500);
-        assert_equals(entry.url, '');
-        assert_equals(entry.loadTime, 0);
         if (!observedFlex) {
           observedFlex = true;
-          assert_equals(entry.id, 'title');
+          checkTextEntry(entry, 'title', 500, beforeRender);
           const title = document.getElementById('title');
-          assert_equals(entry.element, title);
           // Remove 'display: flex' and add 'display: grid' text.
           title.parentNode.removeChild(title);
           const title2 = document.createElement('h1');
@@ -50,9 +41,8 @@
           beforeRender = performance.now();
         } else if (!observedGrid) {
           observedGrid = true;
-          assert_equals(entry.id, 'title2');
+          checkTextEntry(entry, 'title2', 500, beforeRender);
           const title2 = document.getElementById('title2');
-          assert_equals(entry.element, title2);
           // Remove 'display: grid' and add 'display: block' text.
           title2.parentNode.removeChild(title2);
           const title3 = document.createElement('h1');
@@ -62,9 +52,7 @@
           document.body.appendChild(title3);
           beforeRender = performance.now();
         } else {
-          assert_equals(entry.id, 'title3');
-          const title3 = document.getElementById('title3');
-          assert_equals(entry.element, title3);
+          checkTextEntry(entry, 'title3', 500, beforeRender);
           t.done();
         }
       })

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en" class="reftest-wait">
+<meta charset="utf-8">
+<title>Ignoring an SVG root's preserveAspectRatio for an image element does not affect an img showing the same SVG</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/embedded.html#ImageElement">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#PreserveAspectRatioAttribute">
+<link rel="match" href="image-preserveaspectratio-does-not-affect-img-ref.html">
+<meta name="assert" content="An image element with preserveAspectRatio none stretches a viewBox-only SVG over its 200x100 positioning rectangle, treating the SVG root's preserveAspectRatio as none. An img showing the same SVG at 200x100 still uses the root's default xMidYMid meet, and shows it as a centered 100x100 square.">
+<style>
+  body { margin: 0; }
+</style>
+<!-- Red is painted where the images must be, so an image drawn anywhere else, or sized like the other one, leaves red showing. -->
+<div style="position: absolute; left: 10px; top: 10px; width: 200px; height: 100px; background-color: red"></div>
+<div style="position: absolute; left: 60px; top: 130px; width: 100px; height: 100px; background-color: red"></div>
+<svg width="220" height="120" style="position: absolute; left: 0; top: 0">
+  <image x="10" y="10" width="200" height="100" preserveAspectRatio="none" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='rgb(0,128,0)'/></svg>"/>
+</svg>
+<img style="position: absolute; left: 10px; top: 130px; width: 200px; height: 100px" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='rgb(0,128,0)'/></svg>">
+<script>
+  window.addEventListener("load", () => {
+    requestAnimationFrame(() => requestAnimationFrame(() => document.documentElement.classList.remove("reftest-wait")));
+  });
+</script>

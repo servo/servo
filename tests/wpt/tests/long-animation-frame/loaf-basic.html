@@ -52,6 +52,29 @@ promise_test(async t => {
     assert_not_equals(entry, "timeout");
     assert_greater_than_equal(entry.renderStart - entry.startTime, segment_duration);
     assert_greater_than_equal(entry.styleAndLayoutStart - entry.renderStart, segment_duration);
+    assert_equals(entry.scripts, entry.scripts, "entry.scripts should return the [SameObject] FrozenArray");
 }, 'ResizeObservers should create a long-frame and affect layoutStartTime');
+
+promise_test(async t => {
+    const entry = await expect_long_frame(async (t, busy_wait) => {
+        requestAnimationFrame(function short_raf() {
+            busy_wait(1);
+        });
+        await new Promise(resolve => requestAnimationFrame(function long_raf() {
+            busy_wait(very_long_frame_duration);
+            resolve();
+        }));
+    }, t);
+
+    assert_not_equals(entry, "timeout");
+    assert_false(entry.scripts.some(s => s.sourceFunctionName === "short_raf"),
+        "short_raf (< 5ms) should not be included in entry.scripts");
+    assert_true(entry.scripts.some(s => s.sourceFunctionName === "long_raf"),
+        "long_raf should be included in entry.scripts");
+    for (const script of entry.scripts) {
+        assert_greater_than_equal(script.duration, 5,
+            "Scripts shorter than 5ms should not be included in entry.scripts");
+    }
+}, 'Scripts with duration < 5ms are not included in entry.scripts');
 </script>
 </body>

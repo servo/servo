@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: ::first-letter updates when ::before is dynamically added</title>
+  <link rel="author" title="Apple" href="https://www.apple.com">
+  <link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-letter-styling">
+  <link rel="match" href="first-letter-before-dynamic-ref.html">
+  <meta name="assert" content="When ::before is dynamically added, its content should become the new first letter.">
+  <style>
+  .fl::first-letter {
+      color: green;
+  }
+  .bef::before {
+      content: "A";
+  }
+  </style>
+</head>
+<body>
+  <p>Test passes if you see <strong>A123</strong> with <strong>A</strong> in green.</p>
+  <div class="fl"><span id="s1">123</span></div>
+  <script>
+  document.body.offsetTop;
+  s1.className = "bef";
+  </script>
+</body>
+</html>

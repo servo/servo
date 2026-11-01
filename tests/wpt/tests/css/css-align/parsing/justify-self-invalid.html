@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>CSS Box Alignment Level 3: parsing justify-self with invalid values</title>
 <link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-justify-self">
-<meta name="assert" content="justify-self supports only the grammar 'auto | normal | stretch | <baseline-position> | <overflow-position>? [ <self-position> | left | right ]'.">
+<meta name="assert" content="justify-self supports only the grammar 'auto | [ <overflow-position>? normal ] | stretch | <baseline-position> | <overflow-position>? [ <self-position> | left | right ]'.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -23,6 +23,8 @@ test_invalid_value("justify-self", "legacy center");
 test_invalid_value("justify-self", "legacy left");
 test_invalid_value("justify-self", "legacy");
 test_invalid_value("justify-self", "normal baseline");
+test_invalid_value("justify-self", "normal safe");
+test_invalid_value("justify-self", "normal unsafe");
 test_invalid_value("justify-self", "right legacy");
 test_invalid_value("justify-self", "safe");
 test_invalid_value("justify-self", "self-end unsafe");

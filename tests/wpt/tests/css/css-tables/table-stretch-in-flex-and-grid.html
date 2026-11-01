@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#algo-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#grid-item-sizing">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.flex {
+    display: flex;
+    width: 100px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 200px;
+}
+
+table {
+    border-spacing: 0;
+}
+
+td {
+    padding: 0;
+}
+</style>
+
+<!-- Flex: padding only -->
+<div class="flex" id="test1">
+    <table style="padding: 20px"><tr><td>A</td></tr></table>
+    <table style="padding: 20px; border: 1px solid black"><tr><td>B</td></tr></table>
+</div>
+
+<!-- Flex: border only -->
+<div class="flex" id="test2">
+    <table style="border: 20px solid black"><tr><td>A</td></tr></table>
+    <table style="border: 21px solid black"><tr><td>B</td></tr></table>
+</div>
+
+<!-- Flex: border and padding -->
+<div class="flex" id="test3">
+    <table style="padding: 15px; border: 10px solid black"><tr><td>A</td></tr></table>
+    <table style="padding: 15px; border: 11px solid black"><tr><td>B</td></tr></table>
+</div>
+
+<!-- Grid: padding only -->
+<div class="grid" id="test4">
+    <table style="padding: 20px"><tr><td>A</td></tr></table>
+    <table style="padding: 20px; border: 1px solid black"><tr><td>B</td></tr></table>
+</div>
+
+<!-- Flex: vertical writing mode -->
+<div class="flex" style="writing-mode: vertical-rl; height: 100px; width: auto" id="test5">
+    <table style="padding: 20px"><tr><td>A</td></tr></table>
+    <table style="padding: 20px; border: 1px solid black"><tr><td>B</td></tr></table>
+</div>
+
+<!-- Flex: collapsing borders -->
+<div class="flex" id="test6">
+    <table style="border-collapse: collapse; border: 20px solid black"><tr><td>A</td></tr></table>
+    <table style="border-collapse: collapse; border: 21px solid black"><tr><td>B</td></tr></table>
+</div>
+
+<script>
+function tablesIn(id) {
+    return document.getElementById(id).querySelectorAll("table");
+}
+
+test(function() {
+    var tables = tablesIn("test1");
+    assert_equals(tables[0].offsetHeight, tables[1].offsetHeight,
+        "Table with padding should stretch to same height as sibling with padding+border");
+}, "Flex: table with padding stretches correctly");
+
+test(function() {
+    var tables = tablesIn("test2");
+    assert_equals(tables[0].offsetHeight, tables[1].offsetHeight,
+        "Table with border should stretch to same height as sibling with larger border");
+}, "Flex: table with border stretches correctly");
+
+test(function() {
+    var tables = tablesIn("test3");
+    assert_equals(tables[0].offsetHeight, tables[1].offsetHeight,
+        "Table with border+padding should stretch to same height as sibling with larger border");
+}, "Flex: table with border and padding stretches correctly");
+
+test(function() {
+    var tables = tablesIn("test4");
+    assert_equals(tables[0].offsetHeight, tables[1].offsetHeight,
+        "Table with padding in grid should stretch to same height as sibling with padding+border");
+}, "Grid: table with padding stretches correctly");
+
+test(function() {
+    var tables = tablesIn("test5");
+    assert_equals(tables[0].offsetWidth, tables[1].offsetWidth,
+        "Table with padding in vertical flex should stretch to same width as sibling");
+}, "Flex vertical: table with padding stretches correctly");
+
+test(function() {
+    var tables = tablesIn("test6");
+    assert_equals(tables[0].offsetHeight, tables[1].offsetHeight,
+        "Table with collapsing borders should stretch to same height as sibling with larger border");
+}, "Flex: table with collapsing borders stretches correctly");
+</script>

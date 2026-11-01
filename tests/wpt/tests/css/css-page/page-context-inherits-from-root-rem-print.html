@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#page-properties">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14675">
+<link rel="match" href="page-context-inherits-from-root-001-print-ref.html">
+<style>
+  :root {
+    font-size: 10px;
+    print-color-adjust: exact;
+  }
+  @page {
+    size: 400px 200px;
+    margin: 2rem 4rem;
+  }
+  body {
+    margin: 0;
+  }
+  div {
+    height: 100vh;
+    background: green;
+  }
+</style>
+<div></div>
+<div></div>

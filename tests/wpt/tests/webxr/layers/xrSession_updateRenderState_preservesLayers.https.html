@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+
+<script>
+
+  function testLayersPersistAcrossUpdates(xrSession, deviceController, t, { gl }) {
+    return new Promise((resolve, reject) => {
+      const binding = new XRWebGLBinding(xrSession, gl);
+      // disable the depth swapchain so the test does not depend on WEBGL_depth_texture on non-WebGL2 contexts.
+      const projectionLayer = binding.createProjectionLayer({
+        scaleFactor: 1.0,
+        depthFormat: 0,
+      });
+
+      xrSession.updateRenderState({ layers: [projectionLayer] });
+
+      xrSession.requestAnimationFrame(() => {
+        t.step(() => {
+          assert_equals(xrSession.renderState.layers.length, 1, "layers should be installed after the first frame");
+          assert_equals(xrSession.renderState.layers[0], projectionLayer, "installed layer should match the one passed to updateRenderState");
+        });
+
+        // Second update that does NOT mention layers. Verify the render state clone does not drop the projection layer.
+        xrSession.updateRenderState({ depthNear: 0.5 });
+
+        xrSession.requestAnimationFrame(() => {
+          t.step(() => {
+            assert_equals(xrSession.renderState.depthNear, 0.5, "depthNear should reflect the second updateRenderState call");
+            assert_equals(xrSession.renderState.layers.length, 1, "layers must not be cleared by an unrelated updateRenderState call");
+            assert_equals(xrSession.renderState.layers[0], projectionLayer, "the original projection layer must still be active");
+          });
+          resolve();
+        });
+      });
+    });
+  }
+
+  xr_session_promise_test("Layers installed via updateRenderState are preserved across subsequent partial updates",
+    testLayersPersistAcrossUpdates, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', { requiredFeatures: ['layers'] });
+
+</script>

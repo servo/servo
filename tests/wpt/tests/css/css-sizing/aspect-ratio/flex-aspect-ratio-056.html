@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#intrinsic-sizes">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=325275">
+<link rel="match" href="flex-aspect-ratio-056-ref.html">
+<meta name="assert" content="
+    A column flex item with aspect-ratio and auto height shrinks along with its container when the width of the
+    container's containing block gets smaller after the initial layout.">
+
+<style>
+#container {
+  width: 400px;
+}
+.grid {
+  display: grid;
+}
+.flex {
+  display: flex;
+  flex-direction: column;
+}
+.item {
+  aspect-ratio: 1 / 1;
+  background: green;
+}
+</style>
+<p>Test passes if there is a filled green square that is 100px wide and 100px tall.</p>
+<div id="container">
+  <div class="grid">
+    <div class="flex">
+      <div class="item"></div>
+    </div>
+  </div>
+</div>
+<script>
+document.body.offsetHeight;
+document.getElementById("container").style.width = "100px";
+</script>

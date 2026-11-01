@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox: a checkbox with aspect-ratio and an unresolvable calc() height sizes like an unresolvable percentage height</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#algo-main-item">
+<link rel="match" href="checkbox-aspect-ratio-calc-height-in-flex-ref.html">
+<meta name="assert" content="A calc() height whose percentage can't resolve behaves as auto just like a percentage height, so the flex base size comes from the same cross size and aspect ratio. The checkbox is hidden because its native appearance paints the same at any box width; the green square after it shows the width it got.">
+<style>
+.container {
+    display: flex;
+}
+input {
+    margin: 0;
+    flex-basis: content;
+    aspect-ratio: 2;
+    height: calc(50% + 1px);
+    visibility: hidden;
+}
+.marker {
+    width: 20px;
+    height: 20px;
+    background-color: green;
+}
+</style>
+<p>Test passes if the green square is in the same place as in the reference.</p>
+<div class="container"><input type="checkbox"><div class="marker"></div></div>

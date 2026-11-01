@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Test: 'object-fit: none' on an img element with a SVG image that has only a natural width</title>
+    <link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+    <link rel="help" href="https://drafts.csswg.org/css-images-3/#the-object-fit">
+    <link rel="help" href="https://drafts.csswg.org/css-images-3/#default-sizing">
+    <link rel="match" href="object-fit-none-svg-width-only-ref.html">
+    <meta name="assert" content="The default sizing algorithm keeps the natural width and takes the height from the content box, so the concrete object is 40x50 and 'object-position: right top' places it at the right edge.">
+    <style>
+      img {
+        display: block;
+        width: 100px;
+        height: 50px;
+        object-fit: none;
+        object-position: right top;
+      }
+    </style>
+  </head>
+  <body>
+    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40'%3E%3Crect width='100%25' height='100%25' fill='green'/%3E%3C/svg%3E">
+  </body>
+</html>

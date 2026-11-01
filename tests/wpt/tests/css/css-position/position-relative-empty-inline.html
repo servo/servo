@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#relpos-insets">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; background: red;">
+<div style="position: relative; left: -100px; top: -100px; width: 100px; height: 100px; font-size: 0;">
+  <span style="position: relative; left: 100px; top: 100px; padding: 0 0 100px 100px; background: green;"></span><span style="display: inline-block; position: relative;"></span>
+</div>

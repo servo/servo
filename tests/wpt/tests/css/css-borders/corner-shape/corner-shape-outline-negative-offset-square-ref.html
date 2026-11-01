@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<head>
+<style>
+    .box {
+        margin: 50px;
+        width: 200px;
+        height: 200px;
+        background: green;
+    }
+    .outline {
+        height: 100%;
+        background: black;
+        clip-path: path(evenodd, "\
+            M 10 10 L 190 10 L 190 190 L 10 190 Z \
+            M 30 30 L 170 30 L 170 170 L 30 170 Z");
+    }
+</style>
+</head>
+<div class=box><div class=outline></div></div>

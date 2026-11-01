@@ -128,6 +128,7 @@
   fuzzy_test_computed_color(`rgb(from rgb(20% 40% 60% / 80%) r g none / alpha)`, `color(srgb 0.2 0.4 none / 0.8)`);
   fuzzy_test_computed_color(`rgb(from rgb(20% 40% 60% / 80%) r g b / none)`, `color(srgb 0.2 0.4 0.6 / none)`);
   fuzzy_test_computed_color(`rgb(from rgb(none none none) r g b)`, `color(srgb none none none)`);
+  fuzzy_test_computed_color(`rgb(from rgb(none none none / none) r g b)`, `color(srgb none none none / none)`);
   fuzzy_test_computed_color(`rgb(from rgb(none none none / none) r g b / alpha)`, `color(srgb none none none / none)`);
   fuzzy_test_computed_color(`rgb(from rgb(20% none 60%) r g b)`, `color(srgb 0.2 none 0.6)`);
   fuzzy_test_computed_color(`rgb(from rgb(20% 40% 60% / none) r g b / alpha)`, `color(srgb 0.2 0.4 0.6 / none)`);
@@ -231,6 +232,7 @@
   fuzzy_test_computed_color(`hsl(from hsl(120deg 20% 50% / .5) h s l / none)`, `hsl(120 20% 50% / none)`);
   fuzzy_test_computed_color(`hsl(from hsl(120deg 20% 50% / .5) none s l / alpha)`, `hsl(none 20% 50% / 0.5)`);
   fuzzy_test_computed_color(`hsl(from hsl(none none none) h s l)`, `hsl(none none none)`);
+  fuzzy_test_computed_color(`hsl(from hsl(none none none / none) h s l)`, `hsl(none none none / none)`);
   fuzzy_test_computed_color(`hsl(from hsl(none none none / none) h s l / alpha)`, `hsl(none none none / none)`);
   fuzzy_test_computed_color(`hsl(from hsl(120deg none 50% / .5) h s l)`, `hsl(120 none 50% / 0.5)`);
   fuzzy_test_computed_color(`hsl(from hsl(120deg 20% 50% / none) h s l / alpha)`, `hsl(120 20% 50% / none)`);
@@ -318,6 +320,7 @@
   fuzzy_test_computed_color(`hwb(from hwb(120deg 20% 50% / .5) h w b / none)`, `hwb(120 20% 50% / none)`);
   fuzzy_test_computed_color(`hwb(from hwb(120deg 20% 50% / .5) none w b / alpha)`, `hwb(none 20% 50% / 0.5)`);
   fuzzy_test_computed_color(`hwb(from hwb(none none none) h w b)`, `hwb(none none none)`);
+  fuzzy_test_computed_color(`hwb(from hwb(none none none / none) h w b)`, `hwb(none none none / none)`);
   fuzzy_test_computed_color(`hwb(from hwb(none none none / none) h w b / alpha)`, `hwb(none none none / none)`);
   fuzzy_test_computed_color(`hwb(from hwb(120deg none 50% / .5) h w b)`, `hwb(120 none 50% / 0.5)`);
   fuzzy_test_computed_color(`hwb(from hwb(120deg 20% 50% / none) h w b / alpha)`, `hwb(120 20% 50% / none)`);
@@ -395,6 +398,7 @@
   fuzzy_test_computed_color(`lab(from lab(25 20 50 / 40%) l a b / none)`, `lab(25 20 50 / none)`);
   // FIXME: Clarify with spec editors if 'none' should pass through to the constants.
   fuzzy_test_computed_color(`lab(from lab(none none none) l a b)`, `lab(none none none)`);
+  fuzzy_test_computed_color(`lab(from lab(none none none / none) l a b)`, `lab(none none none / none)`);
   fuzzy_test_computed_color(`lab(from lab(none none none / none) l a b / alpha)`, `lab(none none none / none)`);
   fuzzy_test_computed_color(`lab(from lab(25 none 50) l a b)`, `lab(25 none 50)`);
   fuzzy_test_computed_color(`lab(from lab(25 20 50 / none) l a b / alpha)`, `lab(25 20 50 / none)`);
@@ -471,6 +475,7 @@
   fuzzy_test_computed_color(`oklab(from oklab(0.25 0.2 0.5 / 40%) l a b / none)`, `oklab(0.25 0.2 0.5 / none)`);
   // FIXME: Clarify with spec editors if 'none' should pass through to the constants.
   fuzzy_test_computed_color(`oklab(from oklab(none none none) l a b)`, `oklab(none none none)`);
+  fuzzy_test_computed_color(`oklab(from oklab(none none none / none) l a b)`, `oklab(none none none / none)`);
   fuzzy_test_computed_color(`oklab(from oklab(none none none / none) l a b / alpha)`, `oklab(none none none / none)`);
   fuzzy_test_computed_color(`oklab(from oklab(0.25 none 0.5) l a b)`, `oklab(0.25 none 0.5)`);
   fuzzy_test_computed_color(`oklab(from oklab(0.25 0.2 0.5 / none) l a b / alpha)`, `oklab(0.25 0.2 0.5 / none)`);
@@ -556,6 +561,7 @@
   fuzzy_test_computed_color(`lch(from lch(0.7 45 30 / 40%) l c none / alpha)`,                           `lch(0.7 45 none / 0.4)`);
   fuzzy_test_computed_color(`lch(from lch(0.7 45 30 / 40%) l c h / none)`,                               `lch(0.7 45 30 / none)`);
   fuzzy_test_computed_color(`lch(from lch(none none none) l c h)`,                                       `lch(none none none)`);
+  fuzzy_test_computed_color(`lch(from lch(none none none / none) l c h)`,                                `lch(none none none / none)`);
   fuzzy_test_computed_color(`lch(from lch(none none none / none) l c h / alpha)`,                        `lch(none none none / none)`);
   fuzzy_test_computed_color(`lch(from lch(0.7 none 30) l c h)`,                                          `lch(0.7 none 30)`);
   fuzzy_test_computed_color(`lch(from lch(0.7 45 30 / none) l c h / alpha)`,                             `lch(0.7 45 30 / none)`);
@@ -651,6 +657,7 @@
   fuzzy_test_computed_color(`oklch(from oklch(0.7 0.45 30 / 40%) l c none / alpha)`,                           `oklch(0.7 0.45 none / 0.4)`);
   fuzzy_test_computed_color(`oklch(from oklch(0.7 0.45 30 / 40%) l c h / none)`,                               `oklch(0.7 0.45 30 / none)`);
   fuzzy_test_computed_color(`oklch(from oklch(none none none) l c h)`,                                         `oklch(none none none)`);
+  fuzzy_test_computed_color(`oklch(from oklch(none none none / none) l c h)`,                                  `oklch(none none none / none)`);
   fuzzy_test_computed_color(`oklch(from oklch(none none none / none) l c h / alpha)`,                          `oklch(none none none / none)`);
   fuzzy_test_computed_color(`oklch(from oklch(0.7 none 30) l c h)`,                                            `oklch(0.7 none 30)`);
   fuzzy_test_computed_color(`oklch(from oklch(0.7 0.45 30 / none) l c h / alpha)`,                             `oklch(0.7 0.45 30 / none)`);
@@ -749,6 +756,7 @@
       fuzzy_test_computed_color(`color(from color(${colorSpace} 0.7 0.5 0.3 / 40%) ${colorSpace} r g none / alpha)`,             `color(${colorSpace} 0.7 0.5 none / 0.4)`);
       fuzzy_test_computed_color(`color(from color(${colorSpace} 0.7 0.5 0.3 / 40%) ${colorSpace} r g b / none)`,                 `color(${colorSpace} 0.7 0.5 0.3 / none)`);
       fuzzy_test_computed_color(`color(from color(${colorSpace} none none none) ${colorSpace} r g b)`,                           `color(${colorSpace} none none none)`);
+      fuzzy_test_computed_color(`color(from color(${colorSpace} none none none / none) ${colorSpace} r g b)`,                    `color(${colorSpace} none none none / none)`);
       fuzzy_test_computed_color(`color(from color(${colorSpace} none none none / none) ${colorSpace} r g b / alpha)`,            `color(${colorSpace} none none none / none)`);
       fuzzy_test_computed_color(`color(from color(${colorSpace} 0.7 none 0.3) ${colorSpace} r g b)`,                             `color(${colorSpace} 0.7 none 0.3)`);
       fuzzy_test_computed_color(`color(from color(${colorSpace} 0.7 0.5 0.3 / none) ${colorSpace} r g b / alpha)`,               `color(${colorSpace} 0.7 0.5 0.3 / none)`);
@@ -820,6 +828,7 @@
       fuzzy_test_computed_color(`color(from color(${colorSpace} 7 -20.5 100 / 40%) ${colorSpace} x y none / alpha)`,             `color(${resultColorSpace} 7 -20.5 none / 0.4)`);
       fuzzy_test_computed_color(`color(from color(${colorSpace} 7 -20.5 100 / 40%) ${colorSpace} x y z / none)`,                 `color(${resultColorSpace} 7 -20.5 100 / none)`);
       fuzzy_test_computed_color(`color(from color(${colorSpace} none none none) ${colorSpace} x y z)`,                           `color(${resultColorSpace} none none none)`);
+      fuzzy_test_computed_color(`color(from color(${colorSpace} none none none / none) ${colorSpace} x y z)`,                    `color(${resultColorSpace} none none none / none)`);
       fuzzy_test_computed_color(`color(from color(${colorSpace} none none none / none) ${colorSpace} x y z / alpha)`,            `color(${resultColorSpace} none none none / none)`);
       fuzzy_test_computed_color(`color(from color(${colorSpace} 7 none 100) ${colorSpace} x y z)`,                               `color(${resultColorSpace} 7 none 100)`);
       fuzzy_test_computed_color(`color(from color(${colorSpace} 7 -20.5 100 / none) ${colorSpace} x y z / alpha)`,               `color(${resultColorSpace} 7 -20.5 100 / none)`);

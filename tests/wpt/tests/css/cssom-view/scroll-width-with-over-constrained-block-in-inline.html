@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: a block level box on a line contributes its border box to the scrollable overflow, not its margin box</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#anonymous-block-level">
+<meta name="assert" content="A block level box nested in an inline box sits on a line. The scrollable overflow it contributes is its border box plus its used end margin, the same as it would contribute as a block sibling. Where the box is over-constrained its used end margin is negative and contributes nothing, so the specified end margin must not extend the scrollable overflow.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.host { width: 100px; height: 50px; overflow: hidden; }
+.child { width: 150px; height: 20px; margin-right: 20px; }
+</style>
+
+<!-- The block is nested in an inline box, so its container lays out inline content and the block sits on a
+     line. Its containing block has visible overflow, so the over-constrained end margin is resolved to
+     100 - 150 = -50 and extends nothing: the scrollable overflow ends at the border box, 150. -->
+<div class="host" id="overConstrained">
+    <div>text<span><div class="child"></div></span></div>
+</div>
+
+<!-- Control. The block is a direct child of the scroll container rather than nested in an inline box, which
+     is what lets it keep its specified end margin: the over-constrained margin exception applies to an in-flow
+     child of a block container whose overflow is not visible. The margin is used, so it does extend the
+     scrollable overflow, to 150 + 20. -->
+<div class="host" id="marginIsUsed">text<div class="child"></div></div>
+
+<script>
+test(() => {
+    assert_equals(document.getElementById("overConstrained").scrollWidth, 150,
+        "the block's border box, not its 170px margin box");
+}, "An over-constrained block level box on a line does not add its specified end margin to scrollWidth");
+
+test(() => {
+    assert_equals(document.getElementById("marginIsUsed").scrollWidth, 170,
+        "border box 150 plus the used end margin 20");
+}, "A block level box on a line still adds an end margin that is actually used");
+</script>

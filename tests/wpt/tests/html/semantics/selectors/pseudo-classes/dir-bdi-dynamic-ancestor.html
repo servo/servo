@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>:dir() of a bdi element is unaffected by a dynamic dir change on an ancestor</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#the-bdi-element">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dom.html#the-directionality">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="container"></div>
+<script>
+function createTree(t, ancestorDir) {
+  const container = document.getElementById("container");
+  container.innerHTML = `<div id="ancestor"><p><bdi id="bdi">abc<span id="inner">def</span></bdi></p></div>`;
+  t.add_cleanup(() => { container.innerHTML = ""; });
+  const ancestor = document.getElementById("ancestor");
+  if (ancestorDir)
+    ancestor.dir = ancestorDir;
+  return { ancestor, bdi: document.getElementById("bdi"), inner: document.getElementById("inner") };
+}
+
+function assertLTR(bdi, inner) {
+  assert_true(bdi.matches(":dir(ltr)"), "bdi matches :dir(ltr)");
+  assert_false(bdi.matches(":dir(rtl)"), "bdi does not match :dir(rtl)");
+  assert_true(inner.matches(":dir(ltr)"), "bdi descendant matches :dir(ltr)");
+  assert_false(inner.matches(":dir(rtl)"), "bdi descendant does not match :dir(rtl)");
+}
+
+test(t => {
+  const { ancestor, bdi, inner } = createTree(t);
+  assertLTR(bdi, inner);
+  ancestor.dir = "rtl";
+  assertLTR(bdi, inner);
+}, "Setting dir=rtl on an ancestor does not change the directionality of a bdi with LTR content");
+
+test(t => {
+  const { ancestor, bdi, inner } = createTree(t, "ltr");
+  ancestor.dir = "rtl";
+  assertLTR(bdi, inner);
+}, "Changing an ancestor from dir=ltr to dir=rtl does not change the directionality of a bdi with LTR content");
+
+test(t => {
+  const { ancestor, bdi, inner } = createTree(t, "rtl");
+  ancestor.removeAttribute("dir");
+  ancestor.dir = "rtl";
+  assertLTR(bdi, inner);
+}, "Removing and re-adding dir=rtl on an ancestor does not change the directionality of a bdi with LTR content");
+
+test(t => {
+  const { ancestor, bdi, inner } = createTree(t, "auto");
+  ancestor.dir = "rtl";
+  assertLTR(bdi, inner);
+}, "Changing an ancestor from dir=auto to dir=rtl does not change the directionality of a bdi with LTR content");
+</script>

@@ -3040,6 +3040,8 @@ partial interface HTMLImageElement {
 partial interface HTMLInputElement {
   [CEReactions, Reflect] attribute DOMString align;
   [CEReactions, Reflect] attribute DOMString useMap;
+  [CEReactions, Reflect] attribute unsigned long hspace;
+  [CEReactions, Reflect] attribute unsigned long vspace;
 };
 
 partial interface HTMLLegendElement {

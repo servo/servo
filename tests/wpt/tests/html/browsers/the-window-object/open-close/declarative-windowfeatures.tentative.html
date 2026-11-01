@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://github.com/mfreed7/split-tabs">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/PrefixedPostMessage.js"></script>
+
+<body>
+<script>
+const barPropURL = 'resources/is-popup-barprop.html';
+
+test(() => {
+  for (const tag of ['a', 'area', 'form']) {
+    const el = document.createElement(tag);
+    assert_true('windowFeatures' in el, `${tag} should have windowFeatures property`);
+    assert_equals(el.windowFeatures, '');
+
+    el.setAttribute('windowfeatures', 'split, splitposition=left');
+    assert_equals(el.windowFeatures, 'split, splitposition=left');
+
+    el.windowFeatures = 'popup, width=400';
+    assert_equals(el.getAttribute('windowfeatures'), 'popup, width=400');
+  }
+}, 'windowFeatures IDL attribute reflects the windowfeatures content attribute on a, area, and form');
+
+function waitForBarPropMessage(t) {
+  const prefixedMessage = new PrefixedMessageTest();
+  // Avoid slashes from pathname so form GET serialization does not percent-encode
+  // the prefix.
+  prefixedMessage.prefix = `${Math.random()}-${Date.now()}`;
+  const promise = new Promise(resolve => {
+    prefixedMessage.onMessage(t.step_func((data, e) => {
+      e.source.close();
+      resolve(data);
+    }));
+  });
+  return {url: prefixedMessage.url(barPropURL), prefixedMessage, promise};
+}
+
+function testAnchorBarProp(features, expectedVisible, description) {
+  promise_test(async t => {
+    const {url, promise} = waitForBarPropMessage(t);
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'opener';
+    a.windowFeatures = features;
+    document.body.appendChild(a);
+    t.add_cleanup(() => a.remove());
+    a.click();
+    const data = await promise;
+    assert_equals(data.locationbar, expectedVisible, 'window.locationbar.visible');
+    assert_equals(data.menubar, expectedVisible, 'window.menubar.visible');
+    assert_equals(data.personalbar, expectedVisible, 'window.personalbar.visible');
+    assert_equals(data.scrollbars, expectedVisible, 'window.scrollbars.visible');
+    assert_equals(data.statusbar, expectedVisible, 'window.statusbar.visible');
+    assert_equals(data.toolbar, expectedVisible, 'window.toolbar.visible');
+  }, description);
+}
+
+testAnchorBarProp('split', true, '<a windowfeatures="split"> sets BarProp visibility to true');
+testAnchorBarProp('popup', false, '<a windowfeatures="popup"> sets BarProp visibility to false');
+testAnchorBarProp('split, popup', false, '<a windowfeatures="split, popup"> sets BarProp visibility to false (popup fallback)');
+testAnchorBarProp('width=400, height=300', true, '<a windowfeatures="width=400, height=300"> does not trigger the legacy popup heuristic');
+testAnchorBarProp('toolbar=0, menubar=0', true, '<a windowfeatures="toolbar=0, menubar=0"> ignores disallowed legacy features');
+
+promise_test(async t => {
+  const {url, promise} = waitForBarPropMessage(t);
+  const a = document.createElement('a');
+  a.href = url;
+  a.rel = 'opener';
+  a.windowFeatures = 'split';
+  document.body.appendChild(a);
+  t.add_cleanup(() => a.remove());
+  a.click();
+  const data = await promise;
+  assert_equals(data.locationbar, true, 'window.locationbar.visible');
+}, '<a windowfeatures="split"> without target implies target="_blank"');
+
+promise_test(async t => {
+  const {url, promise} = waitForBarPropMessage(t);
+  const a = document.createElement('a');
+  a.href = url;
+  a.rel = 'opener';
+  a.windowFeatures = 'popup';
+  document.body.appendChild(a);
+  t.add_cleanup(() => a.remove());
+  a.click();
+  const data = await promise;
+  assert_equals(data.locationbar, false, 'window.locationbar.visible');
+}, '<a windowfeatures="popup"> without target implies target="_blank"');
+
+promise_test(async t => {
+  const {url, promise} = waitForBarPropMessage(t);
+  const area = document.createElement('area');
+  area.href = url;
+  area.rel = 'opener';
+  area.windowFeatures = 'split';
+  document.body.appendChild(area);
+  t.add_cleanup(() => area.remove());
+  area.click();
+  const data = await promise;
+  assert_equals(data.locationbar, true, 'window.locationbar.visible');
+}, '<area windowfeatures="split"> without target implies target="_blank"');
+
+promise_test(async t => {
+  const {prefixedMessage, promise} = waitForBarPropMessage(t);
+  const form = document.createElement('form');
+  form.action = barPropURL;
+  form.rel = 'opener';
+  form.windowFeatures = 'split';
+  const input = document.createElement('input');
+  input.type = 'hidden';
+  input.name = prefixedMessage.param;
+  input.value = prefixedMessage.prefix;
+  form.appendChild(input);
+  document.body.appendChild(form);
+  t.add_cleanup(() => form.remove());
+  form.submit();
+  const data = await promise;
+  assert_equals(data.locationbar, true, 'window.locationbar.visible');
+}, '<form windowfeatures="split"> without target implies target="_blank"');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  iframe.name = 'existing-frame';
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+
+  const a = document.createElement('a');
+  a.href = '/common/blank.html';
+  a.target = 'existing-frame';
+  a.windowFeatures = 'split';
+  document.body.appendChild(a);
+  t.add_cleanup(() => a.remove());
+
+  const loaded = new Promise(resolve => {
+    iframe.onload = resolve;
+  });
+  a.click();
+  await loaded;
+  assert_true(iframe.contentWindow.location.pathname.endsWith('/common/blank.html'));
+}, '<a windowfeatures="split"> targeting an existing named frame navigates that frame');
+</script>
+</body>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+
+<script>
+
+  function testEquirectLayerParamValidation(xrSession, deviceController, t, { gl }) {
+    return xrSession.requestReferenceSpace('local').then((refSpace) => {
+      const binding = new XRWebGLBinding(xrSession, gl);
+      const baseInit = { space: refSpace, viewPixelWidth: 1, viewPixelHeight: 1, };
+
+      // Constructor params validation
+      t.step(() => {
+        const layer = binding.createEquirectLayer({ ...baseInit, radius: -1 });
+        assert_greater_than_equal(layer.radius, 0, "radius must be a non-negative value");
+      });
+
+      t.step(() => {
+        const layer = binding.createEquirectLayer({ ...baseInit, centralHorizontalAngle: -1 });
+        assert_greater_than_equal(layer.centralHorizontalAngle, 0, "centralHorizontalAngle must be a non-negative value");
+      });
+
+      t.step(() => {
+        const layer = binding.createEquirectLayer({ ...baseInit, centralHorizontalAngle: 3 * Math.PI });
+        assert_approx_equals(layer.centralHorizontalAngle, 2 * Math.PI, 1e-4, "centralHorizontalAngle must not exceed 2*pi");
+      });
+
+      t.step(() => {
+        const layer = binding.createEquirectLayer({ ...baseInit, upperVerticalAngle: 2 });
+        assert_approx_equals(layer.upperVerticalAngle, Math.PI / 2, 1e-4, "upperVerticalAngle must clamp to pi/2");
+      });
+
+      t.step(() => {
+        const layer = binding.createEquirectLayer({ ...baseInit, upperVerticalAngle: -2 });
+        assert_approx_equals(layer.upperVerticalAngle, -Math.PI / 2, 1e-4, "upperVerticalAngle must clamp to -pi/2");
+      });
+
+      t.step(() => {
+        const layer = binding.createEquirectLayer({ ...baseInit, lowerVerticalAngle: 2 });
+        assert_approx_equals(layer.lowerVerticalAngle, Math.PI / 2, 1e-4, "lowerVerticalAngle must clamp to pi/2");
+      });
+
+      t.step(() => {
+        const layer = binding.createEquirectLayer({ ...baseInit, lowerVerticalAngle: -2 });
+        assert_approx_equals(layer.lowerVerticalAngle, -Math.PI / 2, 1e-4, "lowerVerticalAngle must clamp to -pi/2");
+      });
+
+      // Setter validation
+      const layer = binding.createEquirectLayer({ ...baseInit });
+
+      t.step(() => {
+        layer.radius = -5;
+        assert_greater_than_equal(layer.radius, 0, "Setting negative radius must clamp to a non-negative value");
+      });
+
+      t.step(() => {
+        layer.centralHorizontalAngle = -1;
+        assert_greater_than_equal(layer.centralHorizontalAngle, 0, "Setting negative centralHorizontalAngle must clamp to a non-negative value");
+      });
+
+      t.step(() => {
+        layer.centralHorizontalAngle = 3 * Math.PI;
+        assert_approx_equals(layer.centralHorizontalAngle, 2 * Math.PI, 1e-4, "Setting centralHorizontalAngle must not exceed 2*pi");
+      });
+
+      t.step(() => {
+        layer.upperVerticalAngle = 2;
+        assert_approx_equals(layer.upperVerticalAngle, Math.PI / 2, 1e-4, "Setting upperVerticalAngle must clamp to pi/2");
+      });
+
+      t.step(() => {
+        layer.upperVerticalAngle = -2;
+        assert_approx_equals(layer.upperVerticalAngle, -Math.PI / 2, 1e-4, "Setting upperVerticalAngle must clamp to -pi/2");
+      });
+
+      t.step(() => {
+        layer.lowerVerticalAngle = 2;
+        assert_approx_equals(layer.lowerVerticalAngle, Math.PI / 2, 1e-4, "Setting lowerVerticalAngle must clamp to pi/2");
+      });
+
+      t.step(() => {
+        layer.lowerVerticalAngle = -2;
+        assert_approx_equals(layer.lowerVerticalAngle, -Math.PI / 2, 1e-4, "Setting lowerVerticalAngle must clamp to -pi/2");
+      });
+    });
+  }
+
+  xr_session_promise_test("Ensure XREquirectLayer init and setter parameters are validated",
+    testEquirectLayerParamValidation, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', { requiredFeatures: ['layers'] }
+);
+
+</script>

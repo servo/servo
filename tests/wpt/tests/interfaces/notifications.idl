@@ -26,7 +26,6 @@ interface Notification : EventTarget {
   readonly attribute USVString image;
   readonly attribute USVString icon;
   readonly attribute USVString badge;
-  [SameObject] readonly attribute FrozenArray<unsigned long> vibrate;
   readonly attribute EpochTimeStamp timestamp;
   readonly attribute boolean renotify;
   readonly attribute boolean? silent;
@@ -46,7 +45,6 @@ dictionary NotificationOptions {
   USVString image;
   USVString icon;
   USVString badge;
-  VibratePattern vibrate;
   EpochTimeStamp timestamp;
   boolean renotify = false;
   boolean? silent = null;

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>elementFromPoint(...) on shapes inside transformed and grouped elements</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/interact.html#hit-testing">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg id="svg" width="400" height="400">
+  <g opacity="0.5"><rect id="rect1" x="50" y="50" width="40" height="40"/></g>
+  <g opacity="0.5" transform="translate(150,0)"><rect id="rect2" x="50" y="50" width="40" height="40"/></g>
+  <g transform="scale(2)"><rect id="rect3" x="150" y="25" width="20" height="20"/></g>
+  <g opacity="0.5" transform="translate(0,200)"><g opacity="0.5"><rect id="rect4" x="50" y="50" width="40" height="40"/></g></g>
+  <g opacity="0.5" transform="translate(150,200)"><rect id="rect5" transform="translate(10,10)" x="50" y="50" width="40" height="40"/></g>
+</svg>
+<script>
+// Points are relative to the client rect of the <svg> root.
+const tests = [
+  { x: 55, y: 55, expectedElemId: "rect1" },
+  { x: 88, y: 88, expectedElemId: "rect1" },
+  { x: 45, y: 55, expectedElemId: "svg" },
+  { x: 95, y: 88, expectedElemId: "svg" },
+
+  { x: 205, y: 55, expectedElemId: "rect2" },
+  { x: 238, y: 88, expectedElemId: "rect2" },
+  { x: 195, y: 55, expectedElemId: "svg" },
+  { x: 245, y: 88, expectedElemId: "svg" },
+  { x: 270, y: 120, expectedElemId: "svg" },
+
+  { x: 305, y: 55, expectedElemId: "rect3" },
+  { x: 338, y: 88, expectedElemId: "rect3" },
+  { x: 295, y: 55, expectedElemId: "svg" },
+  { x: 345, y: 88, expectedElemId: "svg" },
+
+  { x: 55, y: 255, expectedElemId: "rect4" },
+  { x: 88, y: 288, expectedElemId: "rect4" },
+  { x: 45, y: 255, expectedElemId: "svg" },
+  { x: 95, y: 288, expectedElemId: "svg" },
+
+  { x: 215, y: 265, expectedElemId: "rect5" },
+  { x: 248, y: 298, expectedElemId: "rect5" },
+  { x: 205, y: 265, expectedElemId: "svg" },
+  { x: 255, y: 298, expectedElemId: "svg" },
+];
+
+setup(() => {
+  const svg = document.getElementById("svg");
+  const svgBounds = svg.getBoundingClientRect();
+  window.svgOrigin = {
+    x: svgBounds.left << 0,
+    y: svgBounds.top << 0,
+  };
+});
+
+tests.forEach(testcase => {
+  test(() => {
+    const element = document.elementFromPoint(svgOrigin.x + testcase.x, svgOrigin.y + testcase.y);
+    assert_equals(element.id, testcase.expectedElemId);
+  }, `${testcase.expectedElemId} at (${testcase.x}, ${testcase.y})`);
+});
+</script>

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Sanitizer API: Navigation and Evasion Security Test</title>
+
+<meta name="variant" content="?target=html">
+<meta name="variant" content="?target=svg">
+<meta name="variant" content="?target=mathml">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
+
+<body>
+  <script>
+    window.executed = false;
+
+    const PAYLOAD_TYPES = [
+      { name: "STANDARD", value: "javascript:top.executed=true" },
+      { name: "CASE_MIXED", value: "JaVaScRiPt:top.executed=true" },
+
+      { name: "TAB_ENTITY", value: "java&#9;script:top.executed=true" },
+      { name: "NEWLINE_ENTITY", value: "java&#10;script:top.executed=true" },
+      { name: "COLON_ENTITY", value: "javascript&#58;top.executed=true" },
+
+      { name: "LEADING_WHITESPACE", value: "  javascript:top.executed=true" },
+      { name: "TAB_RAW", value: "java\tscript:top.executed=true" },
+      { name: "NEWLINE_RAW", value: "java\nscript:top.executed=true" }
+    ];
+
+    const ALL_NAVIGATION_TARGETS = [
+      // HTML
+      {
+        type: "html",
+        name: "HTML <a> with href",
+        html: (url) => `<a href="${url}">Click HTML</a>`,
+        selector: "a"
+      },
+      // SVG
+      {
+        type: "svg",
+        name: "SVG <a> with href only",
+        html: (url) => `<svg><a href="${url}">Click SVG</a></svg>`,
+        selector: "a"
+      },
+      {
+        type: "svg",
+        name: "SVG <a> with xlink:href only",
+        html: (url) => `<svg><a xlink:href="${url}">Click SVG Xlink</a></svg>`,
+        selector: "a"
+      },
+      {
+        type: "svg",
+        name: "SVG <a> with both href (javascript:) and xlink:href (safe)",
+        html: (url) => `<svg><a href="${url}" xlink:href="javascript:void(0)">Click SVG Both 1</a></svg>`,
+        selector: "a"
+      },
+      // MathML
+      {
+        type: "mathml",
+        name: "MathML <a> with href only",
+        html: (url) => `<math><a href="${url}">Click MathML</a></math>`,
+        selector: "a"
+      },
+      {
+        type: "mathml",
+        name: "MathML <a> with xlink:href only",
+        html: (url) => `<math><a xlink:href="${url}">Click MathML Xlink</a></math>`,
+        selector: "a",
+        safeOnly: true
+      },
+      {
+        type: "mathml",
+        name: "MathML <mrow> with href only",
+        html: (url) => `<math><mrow href="${url}"><mtext>Click MathML Mrow</mtext></mrow></math>`,
+        selector: "mrow",
+        safeOnly: true
+      },
+      {
+        type: "mathml",
+        name: "MathML <mrow> with xlink:href only",
+        html: (url) => `<math><mrow xlink:href="${url}"><mtext>Click MathML Mrow Xlink</mtext></mrow></math>`,
+        selector: "mrow",
+        safeOnly: true
+      },
+      {
+        type: "mathml",
+        name: "MathML <a> with both href (javascript:) and xlink:href (safe)",
+        html: (url) => `<math><a href="${url}" xlink:href="javascript:void(0)">Click MathML Both 1</a></math>`,
+        selector: "a"
+      },
+      {
+        type: "mathml",
+        name: "MathML <mtext> integration point HTML <a> with href",
+        html: (url) => `<math><mtext><a href="${url}">Click Text Integration</a></mtext></math>`,
+        selector: "a"
+      },
+      {
+        type: "mathml",
+        name: "MathML <mtext> integration point SVG <a> with xlink:href",
+        html: (url) => `<math><mtext><svg><a xlink:href="${url}">Click Integration SVG Xlink</a></svg></mtext></math>`,
+        selector: "a"
+      }
+    ];
+
+    const params = new URLSearchParams(location.search);
+    const targetGroup = params.get("target") || "html";
+    const NAVIGATION_TARGETS = ALL_NAVIGATION_TARGETS.filter(t => t.type === targetGroup);
+
+    function executeHTMLMethod(method, rawHTML) {
+      let container;
+      switch (method) {
+        case "setHTML": {
+          container = document.createElement("div");
+          document.body.appendChild(container);
+          container.setHTML(rawHTML);
+          break;
+        }
+        case "setHTMLUnsafe": {
+          container = document.createElement("div");
+          document.body.appendChild(container);
+          container.setHTMLUnsafe(rawHTML);
+          break;
+        }
+        case "ShadowRoot.setHTML": {
+          const host = document.createElement("div");
+          document.body.appendChild(host);
+          container = host.attachShadow({ mode: "open" });
+          container.setHTML(rawHTML);
+          break;
+        }
+        case "ShadowRoot.setHTMLUnsafe": {
+          const host = document.createElement("div");
+          document.body.appendChild(host);
+          container = host.attachShadow({ mode: "open" });
+          container.setHTMLUnsafe(rawHTML);
+          break;
+        }
+        case "parseHTML": {
+          container = document.createElement("div");
+          document.body.appendChild(container);
+          const parsedDoc = Document.parseHTML("<body>" + rawHTML);
+          while (parsedDoc.body.firstChild) {
+            container.appendChild(parsedDoc.body.firstChild);
+          }
+          break;
+        }
+        case "parseHTMLUnsafe": {
+          container = document.createElement("div");
+          document.body.appendChild(container);
+          const parsedDoc = Document.parseHTMLUnsafe("<body>" + rawHTML);
+          while (parsedDoc.body.firstChild) {
+            container.appendChild(parsedDoc.body.firstChild);
+          }
+          break;
+        }
+        default:
+          throw new Error(`Unsupported method: ${method}`);
+      }
+      return container;
+    }
+
+    const SAFE_METHODS = ["setHTML", "ShadowRoot.setHTML", "parseHTML"];
+    const UNSAFE_METHODS = ["setHTMLUnsafe", "ShadowRoot.setHTMLUnsafe", "parseHTMLUnsafe"];
+
+    function resetExecutionState() {
+      window.executed = false;
+    }
+
+    function triggerClick(targetElement) {
+      targetElement.dispatchEvent(new MouseEvent("click", {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+      }));
+    }
+
+    // SAFE GROUP
+    for (const tc of NAVIGATION_TARGETS) {
+      // Test all evasion payloads on active links; test STANDARD payload on legacy/non-navigating elements.
+      const payloadsToTest = tc.safeOnly ? [PAYLOAD_TYPES[0]] : PAYLOAD_TYPES;
+      for (const payload of payloadsToTest) {
+        for (const method of SAFE_METHODS) {
+          promise_test(async (t) => {
+            t.add_cleanup(resetExecutionState);
+            t.add_cleanup(() => (container.host || container).remove());
+
+            const container = executeHTMLMethod(method, tc.html(payload.value));
+
+            const targetLink = container.querySelector(tc.selector);
+            assert_not_equals(targetLink, null, "Target link element must exist in sanitized DOM tree.");
+
+            triggerClick(targetLink);
+
+            await waitForAtLeastOneFrame();
+
+            assert_false(
+              window.executed,
+              `Security Vulnerability: [${method}] failed to block ${payload.name} on ${tc.name}`
+            );
+          }, `[SAFE] [${method}] ${tc.name} (${payload.name})`);
+        }
+      }
+    }
+
+    // UNSAFE GROUP
+    for (const tc of NAVIGATION_TARGETS) {
+      // Skip legacy xlink:href on all MathML elements that are not supported in browsers.
+      if (tc.safeOnly) {
+        continue;
+      }
+      const standardPayload = PAYLOAD_TYPES.find(p => p.name === "STANDARD");
+
+      for (const method of UNSAFE_METHODS) {
+        promise_test(async (t) => {
+          t.add_cleanup(resetExecutionState);
+          t.add_cleanup(() => (container.host || container).remove());
+
+          const container = executeHTMLMethod(method, tc.html(standardPayload.value));
+
+          const targetLink = container.querySelector(tc.selector);
+          assert_not_equals(targetLink, null, "Target link element must exist in unsafe DOM tree.");
+
+          triggerClick(targetLink);
+
+          await waitForAtLeastOneFrame();
+
+          assert_true(
+            window.executed,
+            `Positive Control Failure: [${method}] should have executed standard javascript: URL on ${tc.name}`
+          );
+        }, `[UNSAFE] [${method}] ${tc.name}`);
+      }
+    }
+  </script>
+</body>

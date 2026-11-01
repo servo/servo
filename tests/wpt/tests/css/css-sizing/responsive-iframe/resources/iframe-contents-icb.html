@@ -17,12 +17,21 @@
 <script>
 window.addEventListener('message', e => {
   const target = document.getElementById('target');
-  if (e.data.name === 'height100p') {
-    target.style.height = '100%';
-    window.requestResize();
-    window.parent.postMessage({
-      name: 'height100pDone',
-    }, '*');
+  switch (e.data.name) {
+    case 'height100vw':
+      target.style.height = '100vw';
+      window.requestResize();
+      window.parent.postMessage({
+        name: 'height100vwDone',
+      }, '*');
+      break;
+    case 'height100p':
+      target.style.height = '100%';
+      window.requestResize();
+      window.parent.postMessage({
+        name: 'height100pDone',
+      }, '*');
+      break;
   }
 });
 </script>

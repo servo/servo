@@ -1,0 +1,53 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Document-Isolation-Policy: a replacement document with a policy keeps the session history entry</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/nav-history-apis.html#dom-navigationhistoryentry-key">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="./resources/common.js"></script>
+<body>
+<script>
+"use strict";
+
+// Same-origin documents with and without a policy are in different agent clusters, so replacing one with
+// the other can move the navigable to another process. The replacement still takes over the session history
+// entry, including its navigation API key.
+
+// Replaces the document of location with a same-origin document with a policy, and returns what that reports.
+function replaceWithDocumentWithPolicy(location) {
+  const replacement = token();
+  location.replace(executorURL(dip_require_corp, replacement));
+  return runInContext(replacement, `return {
+    crossOriginIsolated,
+    navigationType: navigation.activation?.navigationType,
+    key: navigation.currentEntry.key,
+    entries: navigation.entries().length,
+  };`);
+}
+
+function checkReplacement(replacement, key) {
+  assert_true(replacement.crossOriginIsolated, "crossOriginIsolated");
+  assert_equals(replacement.navigationType, "replace", "navigation.activation.navigationType");
+  assert_equals(replacement.key, key, "navigation.currentEntry.key");
+  assert_equals(replacement.entries, 1, "navigation.entries().length");
+}
+
+promise_test(async t => {
+  const uuid = token();
+  const frame = await createFrame(t, executorURL("", uuid));
+  const key = await runInContext(uuid, "return navigation.currentEntry.key;");
+  checkReplacement(await replaceWithDocumentWithPolicy(frame.contentWindow.location), key);
+}, "A frame's document replaced by a same-origin one with a policy keeps the session history entry");
+
+promise_test(async t => {
+  const uuid = token();
+  const popup = window.open(executorURL("", uuid));
+  t.add_cleanup(() => popup.close());
+  const key = await runInContext(uuid, "return navigation.currentEntry.key;");
+  checkReplacement(await replaceWithDocumentWithPolicy(popup.location), key);
+}, "A popup's document replaced by a same-origin one with a policy keeps the session history entry");
+</script>

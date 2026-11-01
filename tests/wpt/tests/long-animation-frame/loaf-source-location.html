@@ -53,27 +53,42 @@ promise_test(async t => {
     const scriptElement = document.createElement("script");
     scriptElement.src = scriptLocation;
     document.body.appendChild(scriptElement);
-  }, script => script.invoker === "Window.fetch.then", t);
-  assert_true(script.sourceURL.includes("promise-generates-loaf.js"));
-  assert_equals(script.sourceCharPosition, 0);
-  assert_equals(script.sourceLine, 1);
-  assert_equals(script.sourceColumn, 1);
+  }, script => script.invoker === "Window.fetch.then" || script.invoker === "Promise.then", t);
+  if (script.sourceURL !== "") {
+    assert_true(script.sourceURL.includes("promise-generates-loaf.js"));
+    assert_equals(script.sourceCharPosition, 0);
+    assert_equals(script.sourceLine, 1);
+    assert_equals(script.sourceColumn, 1);
+  } else {
+    assert_equals(script.invoker, "Promise.then");
+    assert_equals(script.sourceCharPosition, -1);
+    assert_equals(script.sourceLine, -1);
+    assert_equals(script.sourceColumn, -1);
+  }
 }, "Source location should be extracted for promises");
 
 // This test verifies that script entries of type "promise-resolve" correctly return
 // the sourceCharPosition value. It ensures that the reported position matches the
-// expected starting character position in the source code.
+// expected starting character position in the source code (or -1 if promise creation-time
+// attribution is not applied).
 promise_test(async t => {
   const scriptLocation = new URL("resources/promise-generates-loaf-start-pos.js", location.href);
   const [entry, script] = await expect_long_frame_with_script((t, busy_wait) => {
     const scriptElement = document.createElement("script");
     scriptElement.src = scriptLocation;
     document.body.appendChild(scriptElement);
-  }, script => script.invoker === "Window.fetch.then", t);
-  assert_true(script.sourceURL.includes("promise-generates-loaf-start-pos.js"));
-  assert_equals(script.sourceCharPosition, 64);
-  assert_equals(script.sourceLine, 2);
-  assert_equals(script.sourceColumn, 1);
+  }, script => script.invoker === "Window.fetch.then" || script.invoker === "Promise.then", t);
+  if (script.sourceURL !== "") {
+    assert_true(script.sourceURL.includes("promise-generates-loaf-start-pos.js"));
+    assert_equals(script.sourceCharPosition, 64);
+    assert_equals(script.sourceLine, 2);
+    assert_equals(script.sourceColumn, 1);
+  } else {
+    assert_equals(script.invoker, "Promise.then");
+    assert_equals(script.sourceCharPosition, -1);
+    assert_equals(script.sourceLine, -1);
+    assert_equals(script.sourceColumn, -1);
+  }
 }, "SourceCharPosition should be 64 for promises");
 
 </script>

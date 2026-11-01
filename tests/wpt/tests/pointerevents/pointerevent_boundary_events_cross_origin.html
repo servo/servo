@@ -43,7 +43,7 @@ const CHILD_PAGE = '/pointerevents/resources/pointerevent_boundary_events_cross_
 
 let receivedMessages = [];
 window.addEventListener('message', e => {
-  if (e.data && e.data.source === 'boundary-event-test' && e.data.type !== 'child-ready') {
+  if (e.data && e.data.source === 'boundary-event-test' && e.data.type !== 'child-ready' && e.data.type !== 'child-pointerdown') {
     receivedMessages.push({
       frameId: e.data.frameId,
       type: e.data.type,
@@ -281,5 +281,55 @@ promise_test(async t => {
     { frameId: 'deep', type: 'pointerleave', relatedTargetIsNull: true }
   ]), 'receivedMessages should match expected deep child events');
 }, 'Nested iframes: relatedTarget in outer document is outermost iframe, inner document is null');
+
+promise_test(async t => {
+  receivedMessages = [];
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  t.add_cleanup(() => container.remove());
+
+  const parentTarget = document.createElement('div');
+  parentTarget.id = 'parent-target';
+  parentTarget.className = 'target';
+  container.appendChild(parentTarget);
+
+  const iframe = document.createElement('iframe');
+  iframe.id = 'iframe';
+  container.appendChild(iframe);
+
+  const childSrc = `${REMOTE_ORIGIN}${CHILD_PAGE}?frame_id=child&target_id=child-target&report_pointerdown=true`;
+  await loadChildFrame(iframe, childSrc, 'child');
+
+  let parentEvents = [];
+  ['pointerover', 'pointerenter'].forEach(type => {
+    parentTarget.addEventListener(type, e => {
+      parentEvents.push({ type: e.type, relatedTargetIsNull: e.relatedTarget === null });
+    });
+  });
+
+  const onMessage = e => {
+    if (e.data && e.data.source === 'boundary-event-test' && e.data.type === 'child-pointerdown') {
+      iframe.remove();
+    }
+  };
+  window.addEventListener('message', onMessage);
+  t.add_cleanup(() => window.removeEventListener('message', onMessage));
+
+  await new test_driver.Actions()
+    .addPointer('touchPointer', 'touch')
+    .pointerMove(0, 0, {origin: iframe})
+    .pointerDown()
+    .pause(200)
+    .pointerMove(0, 0, {origin: parentTarget})
+    .pointerUp()
+    .send();
+
+  await tapDoneButton();
+
+  assert_equals(
+    parentEvents.map(e => `${e.type} (null: ${e.relatedTargetIsNull})`).join(),
+    "pointerover (null: true),pointerenter (null: true)"
+  );
+}, 'Iframe to parent with iframe removed: relatedTarget in outer document is null');
 </script>
 </body>

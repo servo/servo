@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<title>Reference for Sideways Inline Layout: Float Wrapping</title>
+<meta charset=utf-8>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+body > div {
+  /* styling */
+  border: solid black;
+  font: 10px/1 Ahem;
+  float: left;
+  color: silver;
+  width: 5em;
+  height: 8em;
+  margin: 2px 4px 6px 8px;
+  padding: 2px 4px 6px 8px;
+}
+.wrapper {
+  width: 8em;
+  height: 5em;
+  text-align: right;
+}
+.lr .wrapper {
+  transform: rotate(-90deg) translate(-1.5em, -1.5em);
+}
+.rl .wrapper {
+  transform: rotate(90deg) translate(1.5em, 1.5em);
+}
+.float {
+  border: solid orange 8px;
+  float: right;
+}
+.lr .float {
+  margin: 8px 2px 4px 6px;
+}
+.rl .float {
+  margin: 4px 6px 8px 2px;
+}
+</style>
+
+<div class="lr">
+  <div class="wrapper">
+    <div class="float"></div>
+    x xx xxx <u>xxxx</u> xxx xx x
+  </div>
+</div>
+
+<div class="rl">
+  <div class="wrapper">
+    <div class="float"></div>
+    x xx xxx <u>xxxx</u> xxx xx x
+  </div>
+</div>
+
+<div class="lr">
+  <div class="wrapper">
+    <div class="float"></div>
+    x xx xxx <u>xxxx</u> xxx xx x
+  </div>
+</div>
+
+<div class="rl">
+  <div class="wrapper">
+    <div class="float"></div>
+    x xx xxx <u>xxxx</u> xxx xx x
+  </div>
+</div>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>DBSC Registration Observer in documents that may not use it</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="helper.js" type="module"></script>
+<script type="module">
+  import {
+    addCookieAndSessionCleanup,
+    configureServer,
+    setupShardedServerState
+  } from "./helper.js";
+
+  // Sends `message` to the window `target` and resolves with its reply.
+  function ask(target, message) {
+    return new Promise(resolve => {
+      window.addEventListener("message", function listener(event) {
+        if (event.source !== target) {
+          return;
+        }
+        window.removeEventListener("message", listener);
+        resolve(event.data);
+      });
+      target.postMessage(message, "*");
+    });
+  }
+
+  // Registers one session on this origin and waits until this document sees
+  // it, so the frames below have a session they could leak.
+  async function registerSession(test) {
+    addCookieAndSessionCleanup(test);
+    await setupShardedServerState();
+    await configureServer({});
+    let seen = [];
+    const observer = new DeviceBoundSessionRegistrationObserver((sessions) => {
+      seen.push(...sessions);
+    });
+    test.add_cleanup(() => observer.disconnect());
+    observer.observe();
+    await fetch("login.py");
+    await test.step_wait(() => seen.length === 1, "Awaiting the session");
+  }
+
+  // Starts an observer in a new iframe from `origin` and resolves with the ids
+  // it delivered after one second. With `innerOrigin`, that iframe only holds
+  // a second iframe, from `innerOrigin`, and the observer runs there. No event
+  // tells script that a callback will never come, hence the fixed wait. A
+  // killed renderer never replies.
+  async function observeInFrame(test, origin, credentialless, innerOrigin) {
+    const path = "/device-bound-session-credentials/observer_frame.html";
+    const frame = document.createElement("iframe");
+    frame.credentialless = credentialless;
+    frame.src = innerOrigin ?
+        `${origin}${path}?embed=${encodeURIComponent(innerOrigin + path)}` :
+        `${origin}${path}`;
+    const loaded = new Promise(resolve => frame.onload = resolve);
+    document.body.appendChild(frame);
+    test.add_cleanup(() => frame.remove());
+    // The load event also waits for the inner iframe.
+    await loaded;
+    const target =
+        innerOrigin ? frame.contentWindow.frames[0] : frame.contentWindow;
+    assert_equals(await ask(target, "observe"), "observing");
+    await new Promise(resolve => test.step_timeout(resolve, 1000));
+    return ask(target, "report");
+  }
+
+  promise_test(async (test) => {
+    await registerSession(test);
+    assert_equals(
+        await observeInFrame(test, location.origin, /*credentialless=*/true),
+        "", "A credentialless iframe must not see the session.");
+  }, "A credentialless iframe observes nothing and keeps running");
+
+  promise_test(async (test) => {
+    await registerSession(test);
+    assert_equals(
+        await observeInFrame(test, get_host_info().HTTPS_NOTSAMESITE_ORIGIN,
+                             /*credentialless=*/false, location.origin),
+        "", "An iframe from this origin under a cross-site iframe must not " +
+            "see the session.");
+  }, "An iframe from this origin under a cross-site iframe observes nothing " +
+     "and keeps running");
+</script>

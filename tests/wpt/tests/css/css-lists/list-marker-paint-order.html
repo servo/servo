@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Lists: an outside list marker paints behind the list item's content</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css2/zindex.html#painting-order">
+<link rel="match" href="list-marker-paint-order-ref.html">
+<meta name="assert" content="The marker box paints before the list item's content, so content pulled over the marker by a negative margin covers the marker instead of the marker covering the content.">
+<style>
+  body { margin: 0 }
+  ul { margin: 0; padding-inline-start: 100px }
+  li { list-style-position: outside; list-style-type: disc; color: black; font: 20px/1 monospace }
+  span { display: inline-block; margin-left: -150px; width: 300px; height: 60px; background: green }
+</style>
+</head>
+<body>
+  <ul><li><div><span></span></div></li></ul>
+</body>
+</html>

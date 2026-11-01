@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Reference for CSS Filters: drop-shadow on an element scaled by a perspective</title>
+    <link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+    <style>
+      /* perspective() with translateZ() maps the layer plane projectively while it still scales it
+         uniformly, so the composited layers below keep their axis aligned edges and the result is
+         comparable to the unaccelerated rendering pixel by pixel. */
+      .scene {
+        position: absolute;
+        top: 40px;
+        left: 40px;
+        width: 300px;
+        height: 200px;
+        transform-origin: 0 0;
+        transform: scale(2);
+      }
+      .scene div {
+        will-change: transform;
+      }
+      div div {
+        background: green;
+        position: absolute;
+        width: 50px;
+        height: 50px;
+        top: 20px;
+        filter: drop-shadow(10px 10px black);
+      }
+      .a { transform: translate(20px, 0); }
+      .b { transform: translate(120px, 0); }
+    </style>
+  </head>
+  <body>
+    <div class=scene>
+      <div class=a></div>
+      <div class=b></div>
+    </div>
+  </body>
+</html>

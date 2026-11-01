@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Test: flow-root with margin between two floats (reference)</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+.container {
+    width: 100px;
+    height: 40px;
+    font: 20px/1 Ahem;
+    position: relative;
+}
+
+.left {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 20px;
+    height: 20px;
+    background: blue;
+}
+
+.right {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    background: blue;
+}
+
+.bfc {
+    position: absolute;
+    top: 0;
+    left: 40px;
+    width: 30px;
+    height: 20px;
+    background: green;
+}
+</style>
+</head>
+<body>
+<div class="container"><div class="left"></div><div class="right"></div><div class="bfc"></div></div>
+</body>
+</html>

@@ -1,0 +1,9 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL EXT_depth_clamp Extension Specification (https://registry.khronos.org/webgl/extensions/EXT_depth_clamp/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface EXT_depth_clamp {
+    const GLenum DEPTH_CLAMP_EXT = 0x864F;
+};

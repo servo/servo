@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: floated ::first-letter rebuild after text insertion</title>
+  <link rel="match" href="first-letter-float-insert-text-before-ref.html">
+  <link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-letter-pseudo">
+  <meta name="assert" content="Inserting a text node before a floated ::first-letter element should rebuild the first letter from the new first text.">
+  <style>
+  div::first-letter {
+      float: left;
+      color: green;
+  }
+  div {
+      font-size: 50px;
+  }
+  </style>
+</head>
+<body>
+  <p>Test passes if "ABC" appears below with "A" in green and floated left.</p>
+  <div id="test">BC</div>
+  <script>
+  document.body.offsetHeight;
+  test.insertBefore(document.createTextNode("A"), test.firstChild);
+  </script>
+</body>
+</html>

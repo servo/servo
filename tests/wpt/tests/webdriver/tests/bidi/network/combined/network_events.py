@@ -2,6 +2,8 @@ import asyncio
 
 import pytest
 
+from webdriver.bidi.modules.script import ContextTarget
+
 from .. import (
     assert_before_request_sent_event,
     assert_response_event,
@@ -379,6 +381,198 @@ async def test_subscribe_to_one_context(
     assert len(network_events[BEFORE_REQUEST_SENT_EVENT]) == 1
     assert len(network_events[RESPONSE_STARTED_EVENT]) == 1
     assert len(network_events[RESPONSE_COMPLETED_EVENT]) == 1
+
+
+async def test_subscribe_to_one_user_context(
+    bidi_session,
+    top_context,
+    create_user_context,
+    wait_for_event,
+    wait_for_future_safe,
+    url,
+    fetch,
+    setup_network_test,
+):
+    # Create an isolated user context and navigate the default context.
+    user_context = await create_user_context()
+    other_context = await bidi_session.browsing_context.create(
+        type_hint="tab", user_context=user_context
+    )
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=url(PAGE_EMPTY_HTML),
+        wait="complete",
+    )
+
+    # Subscribe to network events only in the isolated user context.
+    network_events = await setup_network_test(
+        events=[
+            BEFORE_REQUEST_SENT_EVENT,
+            RESPONSE_STARTED_EVENT,
+            RESPONSE_COMPLETED_EVENT,
+        ],
+        context=other_context["context"],
+        user_contexts=[user_context],
+    )
+
+    # Perform a fetch request in the unsubscribed default user context first.
+    text_url = url(PAGE_EMPTY_TEXT)
+    await fetch(text_url, context=top_context)
+
+    assert len(network_events[BEFORE_REQUEST_SENT_EVENT]) == 0
+    assert len(network_events[RESPONSE_STARTED_EVENT]) == 0
+    assert len(network_events[RESPONSE_COMPLETED_EVENT]) == 0
+
+    # Perform a fetch request in the subscribed user context and wait for the
+    # response completed event.
+    on_response_completed = wait_for_event(RESPONSE_COMPLETED_EVENT)
+    await fetch(text_url, context=other_context)
+    await wait_for_future_safe(on_response_completed)
+
+    assert len(network_events[BEFORE_REQUEST_SENT_EVENT]) == 1
+    assert len(network_events[RESPONSE_STARTED_EVENT]) == 1
+    assert len(network_events[RESPONSE_COMPLETED_EVENT]) == 1
+
+    # Check the received events have the correct context and userContext.
+    expected_request = {"method": "GET", "url": text_url}
+    expected_response = {"url": text_url}
+    assert_before_request_sent_event(
+        network_events[BEFORE_REQUEST_SENT_EVENT][0],
+        expected_event={
+            "request": expected_request,
+            "context": other_context["context"],
+            "userContext": user_context,
+        },
+    )
+    assert_response_event(
+        network_events[RESPONSE_STARTED_EVENT][0],
+        expected_event={
+            "response": expected_response,
+            "context": other_context["context"],
+            "userContext": user_context,
+        },
+    )
+    assert_response_event(
+        network_events[RESPONSE_COMPLETED_EVENT][0],
+        expected_event={
+            "response": expected_response,
+            "context": other_context["context"],
+            "userContext": user_context,
+        },
+    )
+
+
+async def test_dedicated_worker_subscribe_to_user_context(
+    bidi_session,
+    top_context,
+    create_user_context,
+    wait_for_bidi_events,
+    url,
+    setup_network_test,
+):
+    # Create an isolated user context and navigate the default context.
+    user_context = await create_user_context()
+    other_context = await bidi_session.browsing_context.create(
+        type_hint="tab", user_context=user_context
+    )
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=url(PAGE_EMPTY_HTML),
+        wait="complete",
+    )
+
+    # Subscribe to network events only in the isolated user context.
+    network_events = await setup_network_test(
+        events=[
+            BEFORE_REQUEST_SENT_EVENT,
+            RESPONSE_STARTED_EVENT,
+            RESPONSE_COMPLETED_EVENT,
+        ],
+        context=other_context["context"],
+        user_contexts=[user_context],
+    )
+
+    text_url = url(PAGE_EMPTY_TEXT)
+    worker_script = f"""
+        new Promise(resolve => {{
+            const blob = new Blob(
+                ["fetch('{text_url}').then(() => self.postMessage('done'));"],
+                {{type: 'application/javascript'}}
+            );
+            const worker = new Worker(URL.createObjectURL(blob));
+            worker.onmessage = resolve;
+        }})
+    """
+
+    # Spawn a dedicated worker in the unsubscribed default user context first
+    # and wait for its fetch request to finish.
+    await bidi_session.script.evaluate(
+        expression=worker_script,
+        target=ContextTarget(top_context["context"]),
+        await_promise=True,
+    )
+
+    assert len(network_events[BEFORE_REQUEST_SENT_EVENT]) == 0
+    assert len(network_events[RESPONSE_STARTED_EVENT]) == 0
+    assert len(network_events[RESPONSE_COMPLETED_EVENT]) == 0
+
+    # Spawn a dedicated worker in the subscribed user context that fetches a
+    # resource and wait for both the blob worker script load and the worker's
+    # fetch request to complete.
+    await bidi_session.script.evaluate(
+        expression=worker_script,
+        target=ContextTarget(other_context["context"]),
+        await_promise=True,
+    )
+    await wait_for_bidi_events(
+        network_events[RESPONSE_COMPLETED_EVENT], 2, timeout=2
+    )
+
+    # Filter for the worker's fetch request events.
+    fetch_before_events = [
+        e
+        for e in network_events[BEFORE_REQUEST_SENT_EVENT]
+        if e["request"]["url"] == text_url
+    ]
+    fetch_started_events = [
+        e
+        for e in network_events[RESPONSE_STARTED_EVENT]
+        if e["request"]["url"] == text_url
+    ]
+    fetch_completed_events = [
+        e
+        for e in network_events[RESPONSE_COMPLETED_EVENT]
+        if e["request"]["url"] == text_url
+    ]
+
+    assert len(fetch_before_events) == 1
+    assert len(fetch_started_events) == 1
+    assert len(fetch_completed_events) == 1
+
+    # Check the worker's network events include the subscribed userContext.
+    expected_request = {"method": "GET", "url": text_url}
+    expected_response = {"url": text_url}
+    assert_before_request_sent_event(
+        fetch_before_events[0],
+        expected_event={
+            "request": expected_request,
+            "userContext": user_context,
+        },
+    )
+    assert_response_event(
+        fetch_started_events[0],
+        expected_event={
+            "response": expected_response,
+            "userContext": user_context,
+        },
+    )
+    assert_response_event(
+        fetch_completed_events[0],
+        expected_event={
+            "response": expected_response,
+            "userContext": user_context,
+        },
+    )
 
 
 async def test_event_order_with_redirect(

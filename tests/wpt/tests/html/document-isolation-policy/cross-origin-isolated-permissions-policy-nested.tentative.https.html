@@ -1,0 +1,46 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Document-Isolation-Policy: the "cross-origin-isolated" permissions policy feature for the frames of a document with a policy</title>
+<link rel="help" href="https://html.spec.whatwg.org/#concept-settings-object-cross-origin-isolated-capability">
+<link rel="help" href="https://github.com/WICG/document-isolation-policy/issues/12">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="./resources/common.js"></script>
+<body>
+<script>
+"use strict";
+
+// This document is cross-origin isolated through COOP and COEP. A frame with a policy in it is cross-origin isolated
+// whether or not it is allowed to use the "cross-origin-isolated" feature, but a frame without a policy in that frame
+// is only cross-origin isolated if the feature is delegated to it, which includes the frame with the policy.
+
+const coep = "|header(Cross-Origin-Embedder-Policy,require-corp)|header(Cross-Origin-Resource-Policy,cross-origin)";
+const origin = get_host_info().HTTPS_REMOTE_ORIGIN;
+
+[
+  {
+    allow: undefined,
+    expected: { frame: true, child: false },
+    description: `A cross-origin frame with isolate-and-require-corp without allow="cross-origin-isolated" is cross-origin isolated, but its child without a policy isn't`,
+  },
+  {
+    allow: "cross-origin-isolated",
+    expected: { frame: true, child: true },
+    description: `A cross-origin frame with isolate-and-require-corp and allow="cross-origin-isolated" is cross-origin isolated, and so is its child without a policy`,
+  },
+].forEach(({ allow, expected, description }) => {
+  promise_test(async t => {
+    assert_true(crossOriginIsolated, "this document is cross-origin isolated");
+    const frameUUID = token();
+    const childUUID = token();
+    await createFrame(t, executorURL(coep + dip_require_corp, frameUUID, origin), allow);
+    await runInContext(frameUUID, `${appendFrameScript(executorURL(coep, childUUID, origin))} return true;`);
+    assert_equals(await runInContext(frameUUID, "return crossOriginIsolated;"), expected.frame, "the frame with a policy");
+    assert_equals(await runInContext(childUUID, "return crossOriginIsolated;"), expected.child, "its child without a policy");
+  }, description);
+});
+</script>

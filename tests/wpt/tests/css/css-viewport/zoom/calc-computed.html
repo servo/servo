@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Zoom doesn't effect px values in computed style</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://drafts.csswg.org/css-viewport/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+const target = document.getElementById("target");
+test_computed_value("text-indent", "calc(10% + 10px)", "calc(10% + 10px)", "calc value no zoom");
+target.style.zoom = "2";
+test_computed_value("text-indent", "calc(10% + 10px)", "calc(10% + 10px)", "calc value with zoom: 2");
+</script>
+</body>
+</html>

@@ -78,6 +78,7 @@ async def test_iframe(
     some_web_screen_orientation,
     another_bidi_screen_orientation,
     another_web_screen_orientation,
+    default_screen_orientation,
     inline,
     domain,
     iframe
@@ -102,7 +103,7 @@ async def test_iframe(
     contexts = await bidi_session.browsing_context.get_tree(root=new_tab["context"])
     iframe = contexts[0]["children"][0]
 
-    # Assert locale is emulated in the iframe context.
+    # Assert screen orientation is emulated in the iframe context.
     assert (
         await get_screen_orientation(iframe, top_context=new_tab)
         == some_web_screen_orientation
@@ -118,4 +119,14 @@ async def test_iframe(
     assert (
         await get_screen_orientation(iframe, top_context=new_tab)
         == another_web_screen_orientation
+    )
+
+    # Reset the override and assert it is removed from the iframe as well.
+    await bidi_session.emulation.set_screen_orientation_override(
+        contexts=[new_tab["context"]], screen_orientation=None
+    )
+
+    assert (
+        await get_screen_orientation(iframe, top_context=new_tab)
+        == default_screen_orientation
     )

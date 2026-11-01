@@ -44,8 +44,9 @@ promise_test(async t => {
   const url = uniqueURL(crossSiteHelper, "iframe-replaced");
   const report = reportOf(url);
   iframe.contentWindow.postMessage({ action: "navigate-replace", url }, "*");
-  await report;
+  const { data } = await report;
   assert_equals(history.length, historyLength);
+  assert_equals(data.navigationType, "replace");
 }, "navigate() with history: 'replace' from a same-origin iframe to another site");
 
 promise_test(async t => {
@@ -54,8 +55,9 @@ promise_test(async t => {
   const url = uniqueURL(sameOriginHelper, "iframe-replaced");
   const report = reportOf(url);
   iframe.contentWindow.postMessage({ action: "navigate-replace", url }, "*");
-  await report;
+  const { data } = await report;
   assert_equals(history.length, historyLength);
+  assert_equals(data.navigationType, "replace");
 }, "navigate() with history: 'replace' from a cross-site iframe to this site");
 
 promise_test(async t => {
@@ -67,6 +69,8 @@ promise_test(async t => {
   const url = uniqueURL(sameOriginHelper, "popup-replaced");
   const report = reportOf(url);
   popup.postMessage({ action: "navigate-replace", url }, "*");
-  assert_equals((await report).data.historyLength, historyLength);
+  const { data } = await report;
+  assert_equals(data.historyLength, historyLength);
+  assert_equals(data.navigationType, "replace");
 }, "navigate() with history: 'replace' from a cross-site popup to this site");
 </script>

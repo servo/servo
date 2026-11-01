@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>
+  Tests that grid-lanes items get pushed down due to a previous item in the same
+  lane expanding as a result of fragmentation.
+</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; columns: 2; column-gap: 0; column-fill: auto; background: red;">
+  <div style="display: grid-lanes; grid-template-columns: repeat(2, 25px);">
+    <div style="line-height: 0; background: green;">
+      <div style="display: inline-block; width: 25px; height: 80px;"></div>
+      <div style="display: inline-block; width: 25px; height: 30px;"></div>
+    </div>
+    <div style="background: green; grid-column: 1; height: 50px;"></div>
+    <div style="background: green; grid-column: 1; height: 20px;"></div>
+
+    <div style="line-height: 0; background: green;">
+      <div style="display: inline-block; width: 25px; height: 30px;"></div>
+      <div style="display: inline-block; width: 25px; height: 80px;"></div>
+    </div>
+    <div style="background: green; grid-column: 2; height: 10px;"></div>
+    <div style="background: green; grid-column: 2; height: 10px;"></div>
+  </div>
+</div>

@@ -14,10 +14,9 @@
 <script>
 "use strict";
 
-// A document with a policy is in a cross-origin isolated agent cluster, which exposes the SharedArrayBuffer
-// constructor. But it is only cross-origin isolated, and can only serialize SharedArrayBuffer objects, if it is
-// allowed to use the "cross-origin-isolated" feature, whose default allowlist is 'self'. Whether a document
-// with a policy should be exempt from this is https://github.com/WICG/document-isolation-policy/issues/12.
+// A document with a policy is in a cross-origin isolated agent cluster, and is cross-origin isolated whether or not
+// it is allowed to use the "cross-origin-isolated" feature, whose default allowlist is 'self'. See
+// https://github.com/WICG/document-isolation-policy/issues/12.
 
 const getIsolation = `
   let clone;
@@ -34,14 +33,14 @@ const getIsolation = `
   {
     origin: get_host_info().HTTPS_REMOTE_ORIGIN,
     allow: undefined,
-    expected: { crossOriginIsolated: false, SharedArrayBuffer: "function", clone: "DataCloneError" },
-    description: `A cross-origin frame with isolate-and-require-corp without allow="cross-origin-isolated" is not cross-origin isolated and cannot serialize a SharedArrayBuffer`,
+    expected: { crossOriginIsolated: true, SharedArrayBuffer: "function", clone: "cloned" },
+    description: `A cross-origin frame with isolate-and-require-corp without allow="cross-origin-isolated" is cross-origin isolated and can serialize a SharedArrayBuffer`,
   },
   {
     origin: get_host_info().HTTPS_ORIGIN,
     allow: "cross-origin-isolated 'none'",
-    expected: { crossOriginIsolated: false, SharedArrayBuffer: "function", clone: "DataCloneError" },
-    description: `A same-origin frame with isolate-and-require-corp and allow="cross-origin-isolated 'none'" is not cross-origin isolated and cannot serialize a SharedArrayBuffer`,
+    expected: { crossOriginIsolated: true, SharedArrayBuffer: "function", clone: "cloned" },
+    description: `A same-origin frame with isolate-and-require-corp and allow="cross-origin-isolated 'none'" is cross-origin isolated and can serialize a SharedArrayBuffer`,
   },
   {
     origin: get_host_info().HTTPS_REMOTE_ORIGIN,

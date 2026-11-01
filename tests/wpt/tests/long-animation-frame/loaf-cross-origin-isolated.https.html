@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: cross-origin isolated coarsening</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<body>
+<h1>Long Animation Frame: cross-origin isolated coarsening</h1>
+<div id="log"></div>
+<script>
+promise_test(async t => {
+  assert_true(self.crossOriginIsolated, "Document must be cross-origin isolated");
+
+  const [entry, script] = await expect_long_frame_with_script((t, busy_wait) => {
+    requestAnimationFrame(function coi_raf_callback() {
+      document.body.style.backgroundColor = "rgb(10, 20, 30)";
+      busy_wait();
+    });
+  }, s => s.invoker === "FrameRequestCallback" && s.sourceFunctionName === "coi_raf_callback", t);
+
+  assert_true(!!entry, "Entry detected in cross-origin isolated context");
+  assert_greater_than(entry.startTime, 0);
+  assert_greater_than_equal(entry.duration, very_long_frame_duration - 5);
+  assert_greater_than(entry.renderStart, 0);
+  assert_greater_than_equal(entry.styleAndLayoutStart, entry.renderStart);
+  assert_greater_than_equal(script.startTime, entry.startTime);
+  assert_equals(script.executionStart, script.startTime);
+  assert_greater_than_equal(entry.duration, script.duration);
+}, "Long animation frames report timestamps and durations in a cross-origin isolated context");
+</script>
+</body>

@@ -662,58 +662,61 @@ function runGenericSensorTests(sensorData, readingData) {
     return;
   }
 
-  // TODO(https://github.com/web-platform-tests/wpt/issues/42724): Re-enable
-  // when there is a cross-platform way to set an orientation angle.
-  // sensor_test(
-  //     async (t, readings, expectedReadings, expectedRemappedReadings) => {
-  //       assert_implements_optional(screen.orientation.angle == 270,
-  //         'Remapped values expect a specific screen rotation.');
-  //       await test_driver.bidi.permissions.set_permission({descriptor: {name:
-  //       permissionName}, state: 'granted'});
+  sensor_test(
+      async (t, readings, expectedReadings, expectedRemappedReadings) => {
+        await test_driver.bidi.emulation.set_screen_orientation_override({
+          screenOrientation: {natural: 'portrait', type: 'landscape-secondary'}
+        });
+        t.add_cleanup(
+            () => test_driver.bidi.emulation.set_screen_orientation_override(
+                {}));
+        assert_equals(screen.orientation.angle, 270,
+            'Remapped values expect a specific screen rotation.');
+        await test_driver.bidi.permissions.set_permission(
+            {descriptor: {name: permissionName}, state: 'granted'});
 
-  //       await test_driver.create_virtual_sensor(testDriverName);
+        await test_driver.create_virtual_sensor(testDriverName);
 
-  //       const sensor1 = new sensorType({frequency: 60});
-  //       const sensor2 =
-  //           new sensorType({frequency: 60, referenceFrame: 'screen'});
-  //       t.add_cleanup(async () => {
-  //         sensor1.stop();
-  //         sensor2.stop();
-  //         await test_driver.remove_virtual_sensor(testDriverName);
-  //       });
-  //       const sensorWatcher1 =
-  //           new EventWatcher(t, sensor1, ['activate', 'reading', 'error']);
-  //       const sensorWatcher2 =
-  //           new EventWatcher(t, sensor1, ['activate', 'reading', 'error']);
+        const sensor1 = new sensorType({frequency: 60});
+        const sensor2 =
+            new sensorType({frequency: 60, referenceFrame: 'screen'});
+        t.add_cleanup(async () => {
+          sensor1.stop();
+          sensor2.stop();
+          await test_driver.remove_virtual_sensor(testDriverName);
+        });
+        const sensorWatcher1 =
+            new EventWatcher(t, sensor1, ['activate', 'reading', 'error']);
+        const sensorWatcher2 =
+            new EventWatcher(t, sensor2, ['activate', 'reading', 'error']);
 
-  //       sensor1.start();
-  //       sensor2.start();
+        sensor1.start();
+        sensor2.start();
 
-  //       await Promise.all([
-  //         sensorWatcher1.wait_for('activate'),
-  //         sensorWatcher2.wait_for('activate')
-  //       ]);
+        await Promise.all([
+          sensorWatcher1.wait_for('activate'),
+          sensorWatcher2.wait_for('activate')
+        ]);
 
-  //       await Promise.all([
-  //         test_driver.update_virtual_sensor(testDriverName,
-  //         readings.next().value), sensorWatcher1.wait_for('reading'),
-  //         sensorWatcher2.wait_for('reading')
-  //       ]);
+        await Promise.all([
+          test_driver.update_virtual_sensor(testDriverName, readings.next().value),
+          sensorWatcher1.wait_for('reading'),
+          sensorWatcher2.wait_for('reading')
+        ]);
 
-  //       const expected = expectedReadings.next().value;
-  //       const expectedRemapped = expectedRemappedReadings.next().value;
-  //       assert_sensor_reading_equals(sensor1, expected);
-  //       assert_sensor_reading_equals(sensor2, expectedRemapped);
+        const expected = expectedReadings.next().value;
+        const expectedRemapped = expectedRemappedReadings.next().value;
+        assert_sensor_reading_equals(sensor1, expected);
+        assert_sensor_reading_equals(sensor2, expectedRemapped);
 
-  //       sensor1.stop();
-  //       assert_sensor_reading_is_null(sensor1);
-  //       assert_sensor_reading_equals(sensor2, expectedRemapped);
+        sensor1.stop();
+        assert_sensor_reading_is_null(sensor1);
+        assert_sensor_reading_equals(sensor2, expectedRemapped);
 
-  //       sensor2.stop();
-  //       assert_sensor_reading_is_null(sensor2);
-  //     },
-  //     `${sensorName}: sensor reading is correct when options.referenceFrame\
-  // is 'screen'.`);
+        sensor2.stop();
+        assert_sensor_reading_is_null(sensor2);
+      },
+      `${sensorName}: sensor reading is correct when options.referenceFrame is 'screen'.`);
 }
 
 function runGenericSensorInsecureContext(sensorName) {

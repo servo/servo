@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>An SVG image with a width and height smaller than a pixel loads</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#update-the-image-data">
+<meta name="assert" content="An SVG image with a width and height smaller than a pixel, or of 0, is still a valid image and fires load.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function loadImage(attributes)
+{
+    return new Promise(resolve => {
+        let image = new Image;
+        image.onload = () => resolve("load");
+        image.onerror = () => resolve("error");
+        image.src = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' ${attributes}/>`;
+    });
+}
+
+promise_test(async () => {
+    assert_equals(await loadImage("width='0.4' height='0.4'"), "load");
+}, "An SVG image smaller than a pixel loads");
+
+promise_test(async () => {
+    assert_equals(await loadImage("width='0' height='0'"), "load");
+}, "An SVG image with a width and height of 0 loads");
+</script>

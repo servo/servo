@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>A popup that broadcasts its originAgentCluster value</title>
+
+<!-- This page requests origin-keying with an Origin-Agent-Cluster: ?1 header,
+     set by its .headers file. It reports over a BroadcastChannel because a
+     popup opened with noopener has no opener to postMessage back to. -->
+
+<script>
+"use strict";
+const channel = new BroadcastChannel(new URLSearchParams(location.search).get("channel"));
+
+// A popup opened with noopener cannot be closed by its opener, so it closes
+// itself once the opener has acknowledged the report.
+channel.onmessage = () => window.close();
+
+channel.postMessage({ originAgentCluster: self.originAgentCluster });
+</script>

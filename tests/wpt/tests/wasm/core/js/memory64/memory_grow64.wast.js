@@ -158,5 +158,23 @@ assert_return(() => call($4, "grow", [1n]), "memory_grow64.wast:94", 5n);
 
 // memory_grow64.wast:95
 assert_return(() => call($4, "check-memory-zero", [327_680n, 393_215n]), "memory_grow64.wast:95", 0);
+
+// memory_grow64.wast:98
+let $$5 = module("\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x8a\x80\x80\x80\x00\x02\x60\x01\x7e\x01\x7e\x60\x00\x01\x7e\x03\x83\x80\x80\x80\x00\x02\x00\x01\x05\x83\x80\x80\x80\x00\x01\x04\x01\x07\x8f\x80\x80\x80\x00\x02\x04\x67\x72\x6f\x77\x00\x00\x04\x73\x69\x7a\x65\x00\x01\x0a\x95\x80\x80\x80\x00\x02\x86\x80\x80\x80\x00\x00\x20\x00\x40\x00\x0b\x84\x80\x80\x80\x00\x00\x3f\x00\x0b", "memory_grow64.wast:98");
+
+// memory_grow64.wast:98
+let $5 = instance($$5);
+
+// memory_grow64.wast:103
+assert_return(() => call($5, "grow", [281_474_976_710_656n]), "memory_grow64.wast:103", -1n);
+
+// memory_grow64.wast:104
+assert_return(() => call($5, "size", []), "memory_grow64.wast:104", 1n);
+
+// memory_grow64.wast:105
+assert_return(() => call($5, "grow", [281_474_976_710_655n]), "memory_grow64.wast:105", [-1n, 1n]);
+
+// memory_grow64.wast:108
+assert_return(() => call($5, "size", []), "memory_grow64.wast:108", [1n, 281_474_976_710_656n]);
 reinitializeRegistry();
 })();

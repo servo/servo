@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/shapedetection-helpers.js"></script>
+<script>
+
+detection_test('TextDetectionTest', async (t, detectionTest) => {
+  const detector = await TextDetector.create();
+  assert_true(detector instanceof TextDetector);
+
+  const canvas = document.createElement('canvas');
+  const results = await detector.detect(canvas);
+  assert_equals(results.length, 2);
+  assert_equals(results[0].rawValue, 'cats');
+  assert_equals(results[1].rawValue, 'dogs');
+}, 'TextDetector.create() resolves with a working TextDetector instance when ready');
+
+detection_test('TextDetectionTest', async (t, detectionTest) => {
+  detectionTest.MockTextDetection().setIsReady(false);
+  await promise_rejects_dom(t, 'NotSupportedError', TextDetector.create());
+}, 'TextDetector.create() rejects with NotSupportedError when backend initialization fails');
+
+</script>

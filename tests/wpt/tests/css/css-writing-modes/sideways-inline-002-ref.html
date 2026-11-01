@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<title>Reference for Sideways Inline Layout: Text Decoration</title>
+<meta charset=utf-8>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+body > div {
+  border: solid black;
+  font: 30px/1 Ahem;
+  color: silver;
+  float: left;
+  margin: 8px;
+  width: 5em;
+  height: 6em;
+}
+.wrapper {
+  width: 6em;
+  height: 5em;
+}
+
+img {
+  height: 30px;
+  image-rendering: crisp-edges;
+  display: block;
+}
+span.inline {
+  border: solid orange;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+span.img {
+  border: solid blue;
+  display: inline-block;
+}
+sup, sub {
+  color: blue;
+}
+
+/* reference hacking */
+.lr .wrapper {
+  transform: rotate(-90deg) translate(-0.5em, -0.5em);
+}
+.rl .wrapper {
+  transform: rotate(90deg) translate(0.5em, 0.5em);
+}
+.lr span {
+  margin: 8px 2px 4px 6px;
+  border-width: 4px 1px 2px 3px;
+  padding: 4px 1px 2px 3px;
+}
+.lr img {
+  transform: rotate(90deg);
+}
+.rl span {
+  margin: 4px 6px 8px 2px;
+  border-width: 2px 3px 4px 1px;
+  padding: 2px 3px 4px 1px;
+}
+.rl img {
+  transform: rotate(-90deg);
+}
+</style>
+
+<div class=lr>
+  <div class=wrapper>
+    <span class=inline>X</span>XX<span class=inline>XX
+    X</span>É<span class=img><img src="4color.png"></span>É
+    p<sup>x</sup>É<sub>x</sub>p
+  </div>
+</div>
+
+<div class=rl>
+  <div class=wrapper>
+    <span class=inline>X</span>XX<span class=inline>XX
+    X</span>É<span class=img><img src="4color.png"></span>É
+    p<sup>x</sup>É<sub>x</sub>p
+  </div>
+</div>

@@ -92,8 +92,14 @@ const tests = [
   {sizes: '(min-width: 0px) cover 10px 1000px 5px, 1px', h: square, ref: 'ref1'},
   {sizes: '(min-width: 0px) contain 1000px, cover 10px 1000px', h: square, ref: 'ref2'},
 
+  // Without 'h' descriptors, the dimension attribute aspect ratio is used:
+  // max(10px, 1000px * 1) = 1000px.
+  {sizes: 'cover 10px 1000px', width: '1', height: '1', h: ['', ''], ref: 'ref2'},
+  {sizes: '(min-width: 0px) cover 10px 1000px, 1px', width: '1', height: '1', h: ['', ''], ref: 'ref2'},
   // With no aspect ratio at all, the width is used.
   {sizes: 'cover 10px 1000px', h: ['', ''], ref: 'ref1'},
+  // 'h' descriptors take precedence over the dimension attribute aspect ratio.
+  {sizes: 'cover 10px 10px', width: '1', height: '1', h: [' 50h', ' 51h'], ref: 'ref1'},
   // An explicit fit in sizes is not affected by the computed 'object-fit'.
   {sizes: 'contain 10px 1000px', style: 'object-fit: cover', h: square, ref: 'ref1'},
   {sizes: 'cover 10px 1000px', style: 'object-fit: contain', h: square, ref: 'ref2'},
@@ -176,6 +182,38 @@ onload = () => {
     test_img(obj, i);
     test_picture(obj, i);
     test_link_preload(obj, i);
+  }
+
+  // A source without width/height attributes uses the img's dimension
+  // attribute aspect ratio.
+  {
+    const picture = document.createElement('picture');
+    const source = document.createElement('source');
+    const img = document.createElement('img');
+    source.sizes = 'cover 10px 1000px';
+    source.srcset = srcsetFor('picture-img-dims', ['', '']);
+    img.width = 1;
+    img.height = 1;
+    picture.appendChild(source);
+    picture.appendChild(img);
+    document.body.appendChild(picture);
+    check(picture, img, 'ref2');
+  }
+
+  // A source with a width or height attribute does not use the img's.
+  {
+    const picture = document.createElement('picture');
+    const source = document.createElement('source');
+    const img = document.createElement('img');
+    source.sizes = 'cover 10px 1000px';
+    source.srcset = srcsetFor('picture-source-width-only', ['', '']);
+    source.setAttribute('width', '1');
+    img.width = 1;
+    img.height = 1;
+    picture.appendChild(source);
+    picture.appendChild(img);
+    document.body.appendChild(picture);
+    check(picture, img, 'ref1');
   }
   done();
 }

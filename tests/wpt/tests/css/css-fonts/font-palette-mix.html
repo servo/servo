@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>palette-mix() applies the mixed palette to the font</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#funcdef-palette-mix">
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="match" href="font-palette-mix-ref.html">
+<style>
+@font-face {
+    font-family: "COLR-test-font";
+    src: url("resources/COLR-palettes-test-font.ttf") format("truetype");
+}
+div { font: 48px "COLR-test-font"; }
+
+@font-palette-values --A {
+    font-family: "COLR-test-font";
+    override-colors: 3 rgb(200 0 0);
+}
+@font-palette-values --B {
+    font-family: "COLR-test-font";
+    override-colors: 3 rgb(0 0 200);
+}
+@font-palette-values --P2 {
+    font-family: "COLR-test-font";
+    base-palette: 2;
+}
+@font-palette-values --P4 {
+    font-family: "COLR-test-font";
+    base-palette: 4;
+}
+</style>
+</head>
+<body>
+<div style="font-palette: palette-mix(in srgb, --A, --B);">A</div>
+<div style="font-palette: palette-mix(in srgb, --A 25%, --B 75%);">A</div>
+<div style="font-palette: palette-mix(in srgb, palette-mix(in srgb, --A 25%, --B 75%), --A);">A</div>
+<div style="font-palette: palette-mix(in srgb, dark, dark);">A</div>
+<div style="font-palette: palette-mix(in srgb, --P2 20%, --P4 80%);">A</div>
+<div style="font-palette: palette-mix(in srgb, --A 80%, --Missing 20%);">A</div>
+<div style="font-palette: palette-mix(in srgb, --A 20%, normal 80%);">A</div>
+<div style="font-palette: palette-mix(in srgb, --A 20%, light 80%);">A</div>
+<div style="font-palette: palette-mix(in srgb, --A 20%, dark 80%);">A</div>
+</body>
+</html>

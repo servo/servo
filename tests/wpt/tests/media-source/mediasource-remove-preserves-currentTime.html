@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<!-- Copyright © 2023 Igalia S.L. -->
+<!-- Copyright © 2023 Metrological -->
+<html>
+    <head>
+        <meta name="charset" content="UTF-8">
+        <title>Test currentTime doesn't regress after erasing the current playback position.</title>
+        <meta name="timeout" content="long">
+        <link rel="author" title="Alicia Boya García" href="mailto:aboya@igalia.com">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+
+function waitForCurrentTimeToReach(test, mediaElement, targetTime, callback)
+{
+    let lastTime = mediaElement.currentTime;
+    const timeUpdateHandler = test.step_func(function _timeUpdateHandler() {
+        let newTime = mediaElement.currentTime;
+        assert_greater_than_equal(newTime, lastTime);
+        lastTime = newTime;
+        if (newTime >= targetTime) {
+            mediaElement.removeEventListener('timeupdate', timeUpdateHandler);
+            callback();
+        }
+    });
+    mediaElement.addEventListener('timeupdate', timeUpdateHandler);
+}
+
+function testCurrentTimeDoesNotRegress(test, mediaElement, initialTime, callback)
+{
+    let numChecksLeft = 10; // 0.5 seconds
+    let lastTime = initialTime;
+    const intervalId = setInterval(test.step_func(function() {
+        let newTime = mediaElement.currentTime;
+        assert_greater_than_equal(newTime, lastTime);
+        lastTime = newTime;
+        if (numChecksLeft-- <= 0) {
+            clearInterval(intervalId);
+            callback();
+        }
+    }, 50));
+}
+
+mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+{
+    test.expectEvent(sourceBuffer, 'updateend', 'sourceBuffer');
+    sourceBuffer.appendBuffer(mediaData)
+
+    test.waitForExpectedEvents(function() {
+        assert_equals(mediaElement.currentTime, 0);
+        test.expectEvent(mediaElement, 'playing', 'Playing triggered');
+        mediaElement.play();
+        waitForCurrentTimeToReach(test, mediaElement, 0.1, test.step_func(whenPlaybackIsMoving));
+    })
+
+    function whenPlaybackIsMoving()
+    {
+        testCurrentTimeDoesNotRegress(test, mediaElement, mediaElement.currentTime, () => test.done())
+        sourceBuffer.remove(0, 10);
+    }
+},  "Test removing coded frames during playback doesn't regress currentTime");
+
+        </script>
+    </body>
+</html>

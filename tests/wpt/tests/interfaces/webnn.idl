@@ -106,7 +106,9 @@ enum MLOperandDataType {
   "int64",
   "uint64",
   "int8",
-  "uint8"
+  "uint8",
+  "bfloat16",
+  "float8e4m3"
 };
 
 dictionary MLOperandDescriptor {

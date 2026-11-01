@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Fonts Test: a decomposed cluster with synthesized small caps is drawn with the glyph for its canonically equivalent character</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#cluster-matching">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-variant-caps-prop">
+<link rel="match" href="cluster-matching-canonical-equivalence-002-ref.html">
+<meta name="assert" content="When small caps are synthesized for a decomposed cluster, the capitalized cluster is drawn with the glyph for its canonically equivalent precomposed character.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+div {
+  font: 50px/1 Ahem;
+  font-variant-caps: small-caps;
+}
+</style>
+<p>Test passes if there are two rows of five black squares, and no letters.</p>
+<!-- Each letter is a base character followed by a combining mark. Ahem has no small caps glyphs and none of the combining marks, but has every precomposed letter. -->
+<div>a&#x300;a&#x302;c&#x327;e&#x301;e&#x300;</div>
+<div>e&#x302;e&#x308;i&#x302;o&#x302;u&#x300;</div>

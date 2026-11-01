@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Absolutely positioned descendant placed against auto-fill columns</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#abspos-items">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#auto-repeat">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="An absolutely positioned descendant whose containing block is the grid container resolves negative grid lines against the explicit grid including its auto-fill columns.">
+<style>
+.grid {
+  position: relative;
+  display: grid;
+  width: 100px;
+  height: 100px;
+  grid-template-columns: repeat(auto-fill, 25px);
+  background: red;
+}
+.abspos {
+  position: absolute;
+  inset: 0;
+  grid-column: 1 / -1;
+  background: green;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class="grid">
+  <div>
+    <div class="abspos"></div>
+  </div>
+</div>

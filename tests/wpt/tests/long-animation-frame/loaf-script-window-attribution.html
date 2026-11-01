@@ -56,5 +56,128 @@ promise_test(async t => {
   assert_false(in_iframe, "IFrame should not receive the LoAF entry");
 }, 'A long busy wait in a requestAnimationFrame should not be observable by same-origin iframes');
 
+promise_test(async t => {
+  const host_cb = () => busy_wait(very_long_frame_duration);
+  const iframe = document.createElement("iframe");
+  iframe.src = "/resource-timing/resources/green.html";
+  document.body.append(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await new Promise(resolve => iframe.addEventListener("load", resolve, {once: true}));
+
+  const entryPromise = Promise.race([
+    new Promise(resolve => {
+      const observer = new iframe.contentWindow.PerformanceObserver(list => {
+        for (const entry of list.getEntries()) {
+          const script = entry.scripts.find(s => s.invoker === "IdleRequestCallback");
+          if (script) {
+            observer.disconnect();
+            resolve(script);
+          }
+        }
+      });
+      t.add_cleanup(() => observer.disconnect());
+      observer.observe({entryTypes: ["long-animation-frame"]});
+    }),
+    new Promise(resolve => t.step_timeout(() => resolve("timeout"), waiting_for_long_frame_timeout)),
+  ]);
+
+  iframe.contentWindow.requestIdleCallback(host_cb);
+
+  const script = await entryPromise;
+  assert_not_equals(script, "timeout", "Timed out waiting for IdleRequestCallback entry");
+  assert_equals(script.windowAttribution, "ancestor");
+  assert_equals(script.window, window);
+}, 'Scripts from an ancestor window should be ancestor-attributed');
+
+promise_test(async t => {
+  const iframe1 = document.createElement("iframe");
+  const iframe2 = document.createElement("iframe");
+  iframe1.src = "/resource-timing/resources/green.html";
+  iframe2.src = "/resource-timing/resources/green.html";
+  document.body.append(iframe1, iframe2);
+  t.add_cleanup(() => {
+    iframe1.remove();
+    iframe2.remove();
+  });
+  await Promise.all([
+    new Promise(resolve => iframe1.addEventListener("load", resolve, {once: true})),
+    new Promise(resolve => iframe2.addEventListener("load", resolve, {once: true})),
+  ]);
+
+  const sibling_cb = new iframe2.contentWindow.Function(`
+    const deadline = performance.now() + ${very_long_frame_duration};
+    while (performance.now() < deadline) {}
+  `);
+
+  const entryPromise = Promise.race([
+    new Promise(resolve => {
+      const observer = new iframe1.contentWindow.PerformanceObserver(list => {
+        for (const entry of list.getEntries()) {
+          const script = entry.scripts.find(s => s.invoker === "IdleRequestCallback");
+          if (script) {
+            observer.disconnect();
+            resolve(script);
+          }
+        }
+      });
+      t.add_cleanup(() => observer.disconnect());
+      observer.observe({entryTypes: ["long-animation-frame"]});
+    }),
+    new Promise(resolve => t.step_timeout(() => resolve("timeout"), waiting_for_long_frame_timeout)),
+  ]);
+
+  iframe1.contentWindow.requestIdleCallback(sibling_cb);
+
+  const script = await entryPromise;
+  assert_not_equals(script, "timeout", "Timed out waiting for IdleRequestCallback entry");
+  assert_equals(script.windowAttribution, "same-page");
+  assert_equals(script.window, iframe2.contentWindow);
+}, 'Scripts from a sibling iframe should be same-page-attributed');
+
+promise_test(async t => {
+  const iframe = document.createElement("iframe");
+  iframe.src = "/resource-timing/resources/green.html";
+  document.body.append(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await new Promise(resolve => iframe.addEventListener("load", resolve, {once: true}));
+
+  const [entry, script] = await expect_long_frame_with_script(() => {
+    const child_fn = new iframe.contentWindow.Function(`
+      parent.generate_loaf_now();
+      window.frameElement.remove();
+    `);
+    requestAnimationFrame(child_fn);
+  }, s => s.invokerType === "user-callback", t);
+
+  assert_true(!!entry, "Entry detected");
+  assert_equals(script.windowAttribution, "other");
+  assert_equals(script.window, null);
+}, 'Scripts from a detached iframe should have other attribution and null window');
+
+promise_test(async t => {
+  const [middleExecutor, middleIframe] = await prepare_exec_iframe(t, REMOTE_ORIGIN);
+  const innerUuid = token();
+  const innerUrl = new URL("/common/dispatcher/remote-executor.html", ORIGIN);
+  innerUrl.searchParams.set("uuid", innerUuid);
+  await middleExecutor.execute_script(async (url) => {
+    const inner = document.createElement("iframe");
+    inner.src = url;
+    document.body.appendChild(inner);
+    await new Promise(resolve => inner.addEventListener("load", resolve, {once: true}));
+  }, [innerUrl.href]);
+  const innerExecutor = new RemoteContext(innerUuid);
+
+  const [entry, script] = await expect_long_frame_with_script(() =>
+    innerExecutor.execute_script(async () => {
+      await new Promise(resolve => window.requestAnimationFrame(resolve));
+      top.generate_loaf_now();
+    }),
+    s => s.windowAttribution === "descendant", t);
+
+  assert_true(!!entry, "Entry detected");
+  assert_equals(script.windowAttribution, "descendant");
+  assert_not_equals(script.window, null);
+}, 'Scripts in a same-origin grandchild nested inside a cross-origin iframe are attributed to the top-level same-origin root');
+
 </script>
 </body>

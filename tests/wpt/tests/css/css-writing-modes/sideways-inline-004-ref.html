@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Reference for Sideways Inline Layout: Bidi</title>
+<meta charset=utf-8>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+  body > div {
+    float: left;
+  }
+  p {
+    height: max-content;
+    border: solid silver 1px;
+    text-align: right;
+  }
+  span {
+    border-inline-start: solid;
+  }
+  .s2 { border-width: 1px;  margin-inline-start: 1px; }
+  .s1 { border-width: 5px;  margin-inline-start: 5px; }
+  .s3 { border-width: 10px; margin-inline-start: 10px; }
+  em {
+    border: 3px orange solid;
+    border-inline-end-width: 7px;
+    margin: 2px;
+    font-style: normal;
+  }
+
+  .lr { writing-mode: sideways-lr; }
+  .rl { writing-mode: sideways-rl; }
+</style>
+
+<div class="lr">
+  <p dir=ltr>789—<em><span class=s2>456</span>—<span class=s1>123</span></em><br>الفبا—<span class=s3>ABC</span>
+</div>
+
+<div class="rl">
+  <p dir=ltr>789—<em><span class=s2>456</span>—<span class=s1>123</span></em><br>الفبا—<span class=s3>ABC</span>
+</div>

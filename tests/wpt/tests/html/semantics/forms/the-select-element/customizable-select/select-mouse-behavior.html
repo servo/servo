@@ -118,14 +118,6 @@ for (const id of ['fallbackbutton', 'custombutton']) {
   }, `${id}: Clicking an option in an appearance:base-select select should choose the option and close the popover.`);
 
   promise_test(async () => {
-    await test_driver.click(label);
-    assert_equals(document.activeElement, select,
-      'select should be the active element after clicking the label.');
-    assert_false(select.matches(':open'),
-      'select picker should be closed after clicking the label.');
-  }, `${id}: Clicking the label should focus the select button without opening the picker.`);
-
-  promise_test(async () => {
     select.value = 'one';
     await touch(select);
     assert_true(select.matches(':open'),

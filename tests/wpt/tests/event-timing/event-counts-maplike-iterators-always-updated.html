@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<meta charset=utf-8 />
+<title>Event Timing eventCount iterators always updated.</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-actions.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=resources/event-timing-test-utils.js></script>
+<div>Outside target!</div>
+<div id='target'>Click me</div>
+<script>
+  promise_test(async t => {
+    let entriesIterator1 = performance.eventCounts.entries()
+    const nClicksStart = performance.eventCounts.get('click')
+
+    await clickAndBlockMain('target');
+    await afterNextPaint();
+    let entriesIterator2 = performance.eventCounts.entries()
+    let entriesIterator3 = performance.eventCounts.entries()
+    let clickFound = false
+    entriesIterator1.forEach( pair => {
+      let [key1, value1] = [...pair]
+      let [key2,value2] = [...entriesIterator2.next().value]
+      assert_equals(key1, key2, "Iterators created at different moments must match")
+      assert_equals(value1, value2, "Iterators created at different moments must match")
+      if (key1 == 'click') {
+        assert_equals(value1, nClicksStart + 1)
+        clickFound = true
+      }
+    })
+    assert_true(clickFound, 'click entry should exist')
+
+    await clickAndBlockMain('target')
+    await afterNextPaint()
+    clickFound = false
+    entriesIterator3.forEach( pair => {
+      let [key, value] = [...pair]
+      if (key == 'click') {
+        assert_equals(value, nClicksStart + 2, "Iterators must be always up-to-date")
+        clickFound = true
+      }
+    })
+    assert_true(clickFound, 'click entry should exist')
+  })
+
+</script>
+</html>

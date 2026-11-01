@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: flex column rule is centered in the gap between
+    two items when content distribution increases the size of the gap.
+</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#gaps">
+<link rel="match" href="flex-gap-decorations-070-ref.html">
+<style>
+    body {
+        margin: 0px;
+    }
+    .flex-container {
+        display: flex;
+        column-gap: 10px;
+        width: 200px;
+        height: 100px;
+        column-rule-color: blue;
+        column-rule-style: solid;
+        column-rule-width: 10px;
+    }
+    .space-between {
+        justify-content: space-between;
+    }
+    .space-around {
+        justify-content: space-around;
+    }
+    .space-evenly {
+        justify-content: space-evenly;
+    }
+    .flex-item {
+        background: gray;
+        opacity: 0.5;
+        width: 50px;
+    }
+</style>
+<div class="flex-container space-between">
+    <div class="flex-item"></div>
+    <div class="flex-item"></div>
+</div>
+<div class="flex-container space-around">
+    <div class="flex-item"></div>
+    <div class="flex-item"></div>
+</div>
+<div class="flex-container space-evenly">
+    <div class="flex-item"></div>
+    <div class="flex-item"></div>
+</div>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG coordinate systems: transform attribute on the outermost svg element, stacking context</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/struct.html#SVGElement">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#TransformProperty">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-1/#transform-property">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-1/#transform-rendering">
+<link rel="match" href="outer-svg-transform-attribute-stacking-context-001-ref.html">
+<meta name="assert" content="An identity transform attribute on an outermost svg element establishes a stacking context, exactly like the CSS transform property, so the green svg paints above the red box.">
+<style>
+.container { position: relative; width: 100px; height: 100px; }
+.box { position: absolute; z-index: 0; left: 0; top: 0; width: 100px; height: 100px; background-color: red; }
+svg { display: block; }
+</style>
+<div class="container">
+  <div class="box"></div>
+  <svg width="100" height="100" transform="translate(0)">
+    <rect width="100" height="100" fill="green"/>
+  </svg>
+</div>

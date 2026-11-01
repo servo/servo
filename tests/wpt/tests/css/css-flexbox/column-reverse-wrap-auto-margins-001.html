@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#auto-margins">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#algo-stretch">
+<meta name="assert" content="In a column-reverse wrap container, a main-axis auto margin still positions an item after the item is stretched to its line's cross size.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.flex {
+  display: flex;
+  flex-flow: column-reverse wrap;
+  width: 100px;
+  height: 200px;
+  position: relative;
+}
+/* A percentage height makes every flex layout lay the item out again at its fit-content width before stretching it. */
+.flex > div {
+  height: 25%;
+}
+.content {
+  width: 20px;
+  height: 10px;
+}
+</style>
+<div class="flex">
+  <div style="margin-top: auto" data-offset-y="150" data-expected-width="100"><div class="content"></div></div>
+</div>
+<div class="flex">
+  <div style="margin-bottom: auto" data-offset-y="0" data-expected-width="100"><div class="content"></div></div>
+</div>
+<div class="flex" style="align-content: flex-start">
+  <div style="margin-bottom: auto" data-offset-y="50" data-expected-width="60"><div class="content"></div></div>
+  <div style="width: 60px" data-offset-y="0"></div>
+</div>
+<script>
+checkLayout(".flex");
+</script>

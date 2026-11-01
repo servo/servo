@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/576736463">
+
+<style>
+  .multicol {
+    columns: 4;
+    column-fill: auto;
+    height: 40px;
+    width: 200px;
+    overflow: auto;
+    scroll-marker-group: after;
+  }
+  .multicol::scroll-marker-group {
+    display: flex;
+    height: 10px;
+  }
+  .multicol::column::scroll-marker {
+    content: open-quote;
+    width: 5px;
+    height: 5px;
+  }
+  .spacer {
+    height: 200px;
+  }
+</style>
+<div id="host">
+  <div id="c1" class="multicol">
+    <div class="spacer"></div>
+    <svg><rect id="g" width="10" height="10"/></svg>
+  </div>
+  <div id="c2" class="multicol"><div class="spacer"></div></div>
+  <span id="n">n</span>
+</div>
+<div id="parking" style="display:none"></div>
+<details id="details" style="display:none">
+  <span id="details_child">x</span>
+</details>
+<script>
+  const sr = host.attachShadow({mode: "open", slotAssignment: "manual"});
+  sr.innerHTML = `
+    <div id="lock"><slot id="s1"></slot></div>
+    <slot id="s2"></slot>
+    <slot id="s3"></slot>
+  `;
+  const lock = sr.getElementById("lock");
+  const s1 = sr.getElementById("s1");
+  const s2 = sr.getElementById("s2");
+  const s3 = sr.getElementById("s3");
+
+  s1.assign(c1);
+  s2.assign(c2);
+  s3.assign(n);
+  document.body.offsetTop;
+
+  lock.style.contentVisibility = "hidden";
+  parking.appendChild(n);
+  document.body.offsetTop;
+
+  g.setAttribute("systemLanguage", "en");
+  details.appendChild(n);
+  document.body.offsetTop;
+</script>

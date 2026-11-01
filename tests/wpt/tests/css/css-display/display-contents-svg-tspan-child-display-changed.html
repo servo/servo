@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Display: changing display on a display:contents tspan in SVG text</title>
+<link rel="help" href="https://drafts.csswg.org/css-display/#unbox-svg">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg><text id="text"><tspan id="tspan" style="display:contents;color:green">Text</tspan></text></svg>
+<script>
+test(() => {
+  const text = document.getElementById("text");
+  const tspan = document.getElementById("tspan");
+  text.getNumberOfChars();
+  tspan.style.display = "inline";
+  text.getNumberOfChars();
+  tspan.style.display = "contents";
+  assert_greater_than_equal(text.getNumberOfChars(), 0);
+}, "Toggling display between inline and contents on a tspan in SVG text should not crash");
+</script>

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>A fieldset whose legend overhangs its border edge takes only its own height on a line</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#the-fieldset-and-legend-elements">
+<link rel="match" href="fieldset-with-overhanging-legend-on-a-line-ref.html">
+<meta name="assert" content="A legend that reaches past its fieldset's border edge grows the fieldset's border, and the fieldset takes that space once, not twice, when it is a block level box on a line.">
+<style>
+  body { margin: 0; font: 16px/1 monospace; }
+  legend { height: 10px; margin: 30px; width: 90px; border: 1px solid blue; }
+  fieldset { height: 20px; width: 100px; }
+</style>
+
+<!-- The fieldset is nested in an inline box, so it is a block level box on a line. -->
+<div><span><fieldset><legend></legend></fieldset></span>x</div>

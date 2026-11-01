@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>CSS Selectors Invalidation: focus pseudo-classes in the subject when an ancestor or sibling changes</title>
+<link rel="author" title="Daniil Sakhapov" href="mailto:sakhapov@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/selectors/#useraction-pseudos">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .t-focus :focus { color: rgb(0, 128, 0); }
+  .t-focus-within :focus-within { color: rgb(0, 0, 255); }
+  .t-is :is(:focus, .other) { color: rgb(255, 0, 0); }
+  .t-not :not(:focus) { color: rgb(128, 0, 128); }
+  .t-sibling ~ :focus { color: rgb(0, 128, 128); }
+</style>
+<div id="focus-container">
+  <div></div>
+  <div><div id="focus-unfocused" tabindex="0"></div></div>
+  <div id="focus-target" tabindex="0"></div>
+</div>
+<div id="focus-within-container">
+  <div id="focus-within-other"></div>
+  <div id="focus-within-target">
+    <div><div id="focus-within-focusable" tabindex="0"></div></div>
+  </div>
+</div>
+<div id="is-container">
+  <div id="is-plain"></div>
+  <div id="is-other" class="other"></div>
+  <div id="is-target" tabindex="0"></div>
+</div>
+<div id="not-container">
+  <div id="not-unfocused"></div>
+  <div id="not-focused" tabindex="0"></div>
+</div>
+<div>
+  <div id="sibling-before" tabindex="0"></div>
+  <div id="sibling-anchor"></div>
+  <div id="sibling-other"></div>
+  <div id="sibling-target" tabindex="0"></div>
+</div>
+<script>
+  const black = "rgb(0, 0, 0)";
+
+  test(() => {
+    const target = document.getElementById("focus-target");
+    const unfocused = document.getElementById("focus-unfocused");
+    target.focus();
+    assert_equals(getComputedStyle(target).color, black, "no rule matches before the class change");
+
+    document.getElementById("focus-container").classList.add("t-focus");
+    assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)", "focused descendant is restyled");
+    assert_equals(getComputedStyle(unfocused).color, black, "unfocused descendant is unchanged");
+
+    // Moving focus afterwards is handled by the :focus pseudo-class itself.
+    unfocused.focus();
+    assert_equals(getComputedStyle(target).color, black, "previously focused descendant is restyled");
+    assert_equals(getComputedStyle(unfocused).color, "rgb(0, 128, 0)", "newly focused descendant is restyled");
+
+    document.getElementById("focus-container").classList.remove("t-focus");
+    assert_equals(getComputedStyle(unfocused).color, black, "focused descendant is restyled on class removal");
+  }, "Descendant :focus when an ancestor class changes");
+
+  test(() => {
+    const target = document.getElementById("focus-within-target");
+    const other = document.getElementById("focus-within-other");
+    document.getElementById("focus-within-focusable").focus();
+    assert_equals(getComputedStyle(target).color, black, "no rule matches before the class change");
+
+    document.getElementById("focus-within-container").classList.add("t-focus-within");
+    assert_equals(getComputedStyle(target).color, "rgb(0, 0, 255)", "descendant with focus within is restyled");
+    assert_equals(getComputedStyle(other).color, black, "descendant without focus within is unchanged");
+  }, "Descendant :focus-within when an ancestor class changes");
+
+  test(() => {
+    const target = document.getElementById("is-target");
+    const other = document.getElementById("is-other");
+    const plain = document.getElementById("is-plain");
+    target.focus();
+
+    document.getElementById("is-container").classList.add("t-is");
+    assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)", "focused descendant is restyled");
+    assert_equals(getComputedStyle(other).color, "rgb(255, 0, 0)", ".other descendant is restyled");
+    assert_equals(getComputedStyle(plain).color, black, "other descendants are unchanged");
+  }, "Descendant :is(:focus, .other) when an ancestor class changes");
+
+  test(() => {
+    const focused = document.getElementById("not-focused");
+    const unfocused = document.getElementById("not-unfocused");
+    focused.focus();
+
+    document.getElementById("not-container").classList.add("t-not");
+    assert_equals(getComputedStyle(unfocused).color, "rgb(128, 0, 128)", "unfocused descendant is restyled");
+    assert_equals(getComputedStyle(focused).color, black, "focused descendant does not match :not(:focus)");
+  }, "Descendant :not(:focus) when an ancestor class changes");
+
+  test(() => {
+    const target = document.getElementById("sibling-target");
+    const before = document.getElementById("sibling-before");
+    const other = document.getElementById("sibling-other");
+    target.focus();
+
+    document.getElementById("sibling-anchor").classList.add("t-sibling");
+    assert_equals(getComputedStyle(target).color, "rgb(0, 128, 128)", "focused following sibling is restyled");
+    assert_equals(getComputedStyle(other).color, black, "unfocused following sibling is unchanged");
+    assert_equals(getComputedStyle(before).color, black, "preceding sibling is unchanged");
+  }, "Sibling :focus when a preceding sibling class changes");
+</script>

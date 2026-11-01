@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#intrinsic-sizes">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#valdef-repeat-auto-fit">
+<link rel="match" href="grid-auto-fit-intrinsic-collapsed-001-ref.html">
+<meta name="assert" content="The min-content and max-content sizes of a grid container are the sum of its track sizes and gutters, where collapsed tracks contribute neither.">
+<style>
+.grid {
+    display: grid;
+    margin-bottom: 10px;
+    background: lightgray;
+    column-gap: 10px;
+    max-width: 400px;
+}
+.item {
+    height: 50px;
+    background: green;
+}
+</style>
+<!-- max-width allows 6 repetitions of 50px. Tracks 2, 4, 5 and 6 are empty, so the width is 50 + 10 + 50.
+     Any track outside of the repetitions is as large as the repeated ones, so the layout does not depend
+     on the repetitions being recomputed for the resulting width. -->
+<div class="grid" style="width: max-content; grid-template-columns: repeat(auto-fit, 50px); grid-auto-columns: 50px">
+    <div class="item" style="grid-column: 1"></div>
+    <div class="item" style="grid-column: 3"></div>
+</div>
+<!-- Tracks 3 to 6 are empty. The items contribute nothing, so the min-content width uses the 30px
+     minimums: 30 + 10 + 30. -->
+<div class="grid" style="width: min-content; grid-template-columns: repeat(auto-fit, minmax(30px, 50px)); grid-auto-columns: 30px">
+    <div class="item" style="grid-column: 1"></div>
+    <div class="item" style="grid-column: 2"></div>
+</div>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Counter Styles: korean-hangul-formal over the extended range</title>
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles/#extended-range-optional">
+<link rel="author" title="Ian Gower" href="https://github.com/igower">
+<link rel="match" href="counter-korean-hangul-formal-extended-range-ref.html">
+<meta name="assert" content="korean-hangul-formal numbers every value a counter can hold, using the group markers, the digit markers, and the drop-ones and drop-zeros rules of the extended range algorithm.">
+<style>
+  div { font-size: 12px; line-height: 13px; }
+  div::before { content: counter(n, korean-hangul-formal); }
+</style>
+<!-- Required range, for contrast with the rows below -->
+<div style="counter-reset: n 0;"></div>
+<div style="counter-reset: n 1;"></div>
+<div style="counter-reset: n 9;"></div>
+<div style="counter-reset: n 10;"></div>
+<div style="counter-reset: n 11;"></div>
+<div style="counter-reset: n 19;"></div>
+<div style="counter-reset: n 20;"></div>
+<div style="counter-reset: n 100;"></div>
+<div style="counter-reset: n 101;"></div>
+<div style="counter-reset: n 110;"></div>
+<div style="counter-reset: n 1000;"></div>
+<div style="counter-reset: n 1001;"></div>
+<div style="counter-reset: n 1010;"></div>
+<div style="counter-reset: n 1100;"></div>
+<div style="counter-reset: n 9999;"></div>
+
+<!-- Second group marker, and the digit markers inside that group -->
+<div style="counter-reset: n 10000;"></div>
+<div style="counter-reset: n 10001;"></div>
+<div style="counter-reset: n 10010;"></div>
+<div style="counter-reset: n 10100;"></div>
+<div style="counter-reset: n 11000;"></div>
+<div style="counter-reset: n 12345;"></div>
+<div style="counter-reset: n 99999;"></div>
+
+<!-- Third group marker, and zeros collapsing across groups -->
+<div style="counter-reset: n 1000000;"></div>
+<div style="counter-reset: n 100000000;"></div>
+<div style="counter-reset: n 100000001;"></div>
+<div style="counter-reset: n 100100000;"></div>
+<div style="counter-reset: n 110000000;"></div>
+<div style="counter-reset: n 123456789;"></div>
+<div style="counter-reset: n 999999999;"></div>
+
+<!-- The top of the range a counter value can reach -->
+<div style="counter-reset: n 1000000000;"></div>
+<div style="counter-reset: n 2147483646;"></div>
+<div style="counter-reset: n 2147483647;"></div>
+
+<!-- Negative values take the negative sign of the style -->
+<div style="counter-reset: n -1;"></div>
+<div style="counter-reset: n -9999;"></div>
+<div style="counter-reset: n -10000;"></div>
+<div style="counter-reset: n -12345;"></div>
+<div style="counter-reset: n -2147483647;"></div>
+<div style="counter-reset: n -2147483648;"></div>

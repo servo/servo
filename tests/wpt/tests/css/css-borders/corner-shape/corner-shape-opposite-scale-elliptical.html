@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<head>
+<title>CSS Borders and Box Decorations 4: elliptical scoop radii are reduced by the opposite-corner scale factor</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shape-constrain-radii">
+<link rel="match" href="corner-shape-opposite-scale-elliptical-ref.html">
+<meta name="fuzzy" content="maxDifference=0-125; totalPixels=0-800"/>
+<meta name="assert" content="Scoop corners with unequal horizontal and vertical radii, on a non-square box, are reduced by the opposite-corner scale factor. The other two corners have radius 0, so the adjacent-corner factor stays 1.">
+<style>
+    body { margin: 0; }
+    .target {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        width: 300px;
+        height: 200px;
+        background: green;
+        border-top-left-radius: 280px 180px;
+        corner-top-left-shape: scoop;
+        border-bottom-right-radius: 280px 180px;
+        corner-bottom-right-shape: scoop;
+    }
+</style>
+</head>
+<div class=target></div>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<title>Testing scroll-behavior: smooth and user scrolls on the root of the main frame</title>
+<meta name="timeout" content="long" />
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#concept-smooth-scroll">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="support/scroll-behavior.js"></script>
+<style>
+    body {
+        margin: 0;
+    }
+
+    .autoBehavior {
+        scroll-behavior: auto;
+    }
+
+    .smoothBehavior {
+        scroll-behavior: smooth;
+    }
+</style>
+<div id="log">
+</div>
+<div id="pageContent" style="position: absolute; left: 0; top: 0;">
+    <div id="elementToReveal"
+        style="position: absolute; display: inline-block; width: 10px; height: 15px; background: black;"></div>
+</div>
+<script>
+const scrollingElement = document.scrollingElement;
+const styledElement = document.documentElement;
+let elementToRevealTop;
+
+const pageLoaded = new Promise(resolve => {
+    window.addEventListener("load", resolve, { once: true });
+});
+
+promise_test(async () => {
+    await pageLoaded;
+    pageContent.style.width = (10 + window.innerWidth) * 5 + "px";
+    pageContent.style.height = (20 + window.innerHeight) * 6 + "px";
+    elementToRevealTop = (20 + window.innerHeight) * 4;
+    elementToReveal.style.top = elementToRevealTop + "px";
+}, "Page loaded");
+
+// Sends |key| to the scrolling element and starts a programmatic smooth
+// scroll towards elementToReveal from the keydown listener, that is right
+// before the default action of the key (the user scroll) is performed.
+// This guarantees that the user scroll happens while the smooth scroll is
+// still in progress, whatever the latency of the test driver.
+async function interruptSmoothScrollWithKey(key) {
+    const smoothScrollStarted = new Promise(resolve => {
+        window.addEventListener("keydown", () => {
+            scrollNode(scrollingElement, "scroll", "smooth", 0, elementToRevealTop);
+            resolve({
+                scrollTopAfterStart: scrollingElement.scrollTop,
+                scrollEnd: waitForScrollEnd(scrollingElement),
+            });
+        }, { once: true });
+    });
+    await window.test_driver.send_keys(scrollingElement, key);
+    const { scrollTopAfterStart, scrollEnd } = await smoothScrollStarted;
+    assert_less_than(scrollTopAfterStart, elementToRevealTop, "Smooth scroll shouldn't reach the destination immediately.");
+    await scrollEnd;
+}
+
+promise_test(async () => {
+    resetScroll(scrollingElement);
+    setScrollBehavior(styledElement, "smoothBehavior");
+    assert_equals(scrollingElement.scrollLeft, 0);
+    assert_equals(scrollingElement.scrollTop, 0);
+
+    // The RIGHT key should stop the smooth scrolling and trigger another scrolling.
+    await interruptSmoothScrollWithKey('\ue014');
+
+    assert_less_than(scrollingElement.scrollTop, elementToRevealTop, "The vertical smooth scroll should be interrupted.");
+    assert_greater_than(scrollingElement.scrollLeft, 0, "RIGHT key should trigger a horizontal scroll.");
+}, "Aborting a smooth scroll with a keyboard event that causes another scroll");
+
+promise_test(async () => {
+    resetScroll(scrollingElement);
+    setScrollBehavior(styledElement, "smoothBehavior");
+    assert_equals(scrollingElement.scrollLeft, 0);
+    assert_equals(scrollingElement.scrollTop, 0);
+
+    // The LEFT key should stop the smooth scrolling and not trigger other scrolling.
+    await interruptSmoothScrollWithKey('\ue012');
+
+    assert_less_than(scrollingElement.scrollTop, elementToRevealTop, "The vertical smooth scroll should be interrupted.");
+    assert_equals(scrollingElement.scrollLeft, 0, "LEFT key doesn't trigger horizontal scroll because the scroll position is already at the scroll limit.");
+}, "Aborting a smooth scroll with a keyboard event that does not cause another scroll");
+</script>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#computing-the-table-height">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+table {
+    width: 200px;
+    border-spacing: 0;
+    font: 20px/1 Ahem;
+}
+td { padding: 0; }
+</style>
+
+<!-- Test: proportional distribution should weight by row content, not by spacing -->
+<table id="t1" style="height: 200px; border-spacing: 0 20px;">
+    <tr id="r1"><td style="height: 10px"></td></tr>
+    <tr id="r2"><td style="height: 100px"></td></tr>
+</table>
+
+<script>
+test(function() {
+    var t = document.getElementById('t1');
+    assert_equals(t.offsetHeight, 200, 'Table should honor height: 200px');
+}, 'Table reaches specified height with fixed-height rows');
+
+test(function() {
+    var r1 = document.getElementById('r1');
+    var r2 = document.getElementById('r2');
+    // The small row should get much less extra than the large row
+    assert_less_than(r1.offsetHeight, 30, 'Small row should stay small');
+    assert_greater_than(r2.offsetHeight, 100, 'Large row should grow');
+}, 'Extra height distributed proportionally to row content heights, not inflated by spacing');
+</script>

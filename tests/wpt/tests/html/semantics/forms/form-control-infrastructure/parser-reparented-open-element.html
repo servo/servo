@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Form association when an open ancestor is moved or detached during parsing</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/parsing.html#create-an-element-for-the-token">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#reset-the-form-owner">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<form id="form1">
+  <div id="reparented">
+    <script>
+      document.body.appendChild(document.getElementById("reparented"));
+    </script>
+    <input id="input1" name="input1">
+    <img id="img1" name="img1">
+  </div>
+</form>
+
+<form id="form2">
+  <div id="detached">
+    <script>
+      window.detachedDiv = document.getElementById("detached");
+      window.detachedDiv.remove();
+    </script>
+    <input id="input2" name="input2">
+    <img id="img2" name="img2">
+  </div>
+</form>
+
+<script>
+"use strict";
+
+test(() => {
+  const form = document.getElementById("form1");
+  const input = document.getElementById("input1");
+  const img = document.getElementById("img1");
+
+  assert_false(form.contains(input), "input should no longer be a descendant of form");
+  assert_false(form.contains(img), "img should no longer be a descendant of form");
+
+  assert_equals(input.form, form, "input.form should point to form");
+  assert_array_equals(Array.from(form.elements), [input], "form.elements should include input");
+  assert_equals(form.elements.namedItem("input1"), input, "form.elements.namedItem should find input");
+  assert_equals(form.img1, img, "form named getter should find img");
+
+  form.remove();
+  assert_equals(input.form, null, "removing form should reset input.form to null");
+  assert_array_equals(Array.from(form.elements), [], "form.elements should be empty after form removal");
+  assert_equals(form.img1, undefined, "form named getter should no longer find img after form removal");
+}, "Elements parsed into an open container reparented elsewhere in the same document stay associated with the open form");
+
+test(() => {
+  const form = document.getElementById("form2");
+  const input = window.detachedDiv.querySelector("#input2");
+
+  assert_equals(input.form, null, "detached input should not be associated with connected form");
+  assert_array_equals(Array.from(form.elements), [], "form.elements should not include detached input");
+  assert_equals(form.img2, undefined, "form named getter should not find detached img");
+}, "Elements parsed into an open container detached from the document are not associated with the open form");
+</script>

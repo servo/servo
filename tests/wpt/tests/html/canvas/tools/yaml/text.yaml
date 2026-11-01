@@ -2809,6 +2809,10 @@
     const en_width = tm_en.width;
 
     @assert tr_width > en_width;
+
+    document.documentElement.lang = 'en';
+    ctx.lang = 'inherit';
+    @assert ctx.measureText(text).width === tr_width;
   variants:
   - &load-font-variant-definitio-and-set-lang
     HtmlCanvas:
@@ -2819,8 +2823,8 @@
     OffscreenCanvas:
       append_variants_to_name: false
       canvas_types: ['OffscreenCanvas']
+      html_lang: 'tr'
       load_font: |-
-        document.documentElement.setAttribute('lang','tr');
         var f = new FontFace("{{ fonts[0] }}", "url('/fonts/{{ fonts[0] }}.ttf')");
         f.load();
         {% set root = 'self' if canvas_type == 'Worker' else 'document' %}

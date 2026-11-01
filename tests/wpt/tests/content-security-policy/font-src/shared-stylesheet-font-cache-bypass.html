@@ -20,6 +20,9 @@
 'use strict';
 
 promise_test(async t => {
+  if (document.readyState !== 'complete') {
+    await new EventWatcher(t, window, 'load').wait_for('load');
+  }
   await document.fonts.load('16px "csp-bypass-shared-font"');
   assert_true(document.fonts.check('16px "csp-bypass-shared-font"'),
               'Parent (no CSP) must load the font.');

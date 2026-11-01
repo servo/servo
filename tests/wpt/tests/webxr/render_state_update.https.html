@@ -69,9 +69,14 @@ let testMinMaxClippingPlanes = function(session, fakeDeviceController, t, sessio
             assert_equals(session.renderState.depthNear, near);
             assert_equals(session.renderState.depthFar, far);
             // Clamp negative values
+            let previousNear = near;
+            let previousFar = far;
             near = -20.3;
             far = -1.5;
             session.updateRenderState({ depthNear: near, depthFar: far });
+            // The update is queued for the next frame, so the active render state does not change yet.
+            assert_equals(session.renderState.depthNear, previousNear);
+            assert_equals(session.renderState.depthFar, previousFar);
             session.requestAnimationFrame((time, xrFrame) => {
               t.step(() => {
                 assert_equals(session.renderState.depthNear, 0.0);
@@ -81,6 +86,34 @@ let testMinMaxClippingPlanes = function(session, fakeDeviceController, t, sessio
             });
           });
         });
+      });
+    });
+  });
+};
+
+// The pending render state is applied after the frame callbacks run.
+let testAppliedAfterFrameCallbacks = function(session, fakeDeviceController, t, sessionObjects) {
+  return new Promise((resolve, reject) => {
+    let gl = sessionObjects.gl;
+    const DEPTH_NEAR = 0.3;
+    gl.makeXRCompatible().then(() => {
+      session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
+      session.requestAnimationFrame((time, xrFrame) => {
+        t.step(() => {
+          session.updateRenderState({ depthNear: DEPTH_NEAR });
+          // The update is queued for the next frame, so it is not applied yet.
+          assert_not_equals(session.renderState.depthNear, DEPTH_NEAR);
+        });
+        // Runs after the frame has ended.
+        t.step_timeout(() => {
+          assert_equals(session.renderState.depthNear, DEPTH_NEAR);
+          session.requestAnimationFrame((time, xrFrame) => {
+            t.step(() => {
+              assert_equals(session.renderState.depthNear, DEPTH_NEAR);
+              resolve();
+            });
+          });
+        }, 0);
       });
     });
   });
@@ -100,5 +133,8 @@ xr_session_promise_test(testName, testNoParams, fakeDeviceInitParams, 'immersive
 
 testName = "updateRenderState clamps appropriately near/far clipping planes";
 xr_session_promise_test(testName, testMinMaxClippingPlanes, fakeDeviceInitParams, 'immersive-vr');
+
+testName = "updateRenderState is applied after the frame callbacks";
+xr_session_promise_test(testName, testAppliedAfterFrameCallbacks, fakeDeviceInitParams, 'immersive-vr');
 
 </script>

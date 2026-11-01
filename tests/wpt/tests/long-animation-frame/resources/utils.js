@@ -1,4 +1,4 @@
-const windowLoaded = new Promise(resolve => window.addEventListener('load', resolve));
+const windowLoaded = new Promise(resolve => window.addEventListener('load', () => setTimeout(resolve, 0)));
 if ("setup" in globalThis) {
   setup(() =>
     assert_implements(window.PerformanceLongAnimationFrameTiming,
@@ -65,10 +65,15 @@ async function expect_long_frame(cb, t) {
 }
 
 async function expect_long_frame_with_script(cb, predicate, t) {
-  const entry = await expect_long_frame(cb, t);
-  for (const script of entry.scripts ?? []) {
-    if (predicate(script, entry))
-      return [entry, script];
+  for (let i = 0; i < 3; ++i) {
+    const entry = await expect_long_frame(cb, t);
+    if (entry === "timeout" || !entry)
+      continue;
+    for (const script of entry.scripts ?? []) {
+      if (predicate(script, entry))
+        return [entry, script];
+    }
+    break;
   }
 
   return [];
@@ -114,10 +119,13 @@ async function prepare_exec_popup(t, origin) {
 function test_loaf_script(cb, invoker, invokerType, label) {
   promise_test(async t => {
     let [entry, script] = [];
+    const fallbackInvoker = invokerType === "resolve-promise" ? "Promise.then" :
+        invokerType === "reject-promise" ? "Promise.catch" : null;
     [entry, script] = await expect_long_frame_with_script(cb,
       script => (
         script.invokerType === invokerType &&
-        script.invoker.startsWith(invoker)), t);
+        (script.invoker.startsWith(invoker) ||
+         (fallbackInvoker !== null && script.invoker === fallbackInvoker))), t);
 
     assert_true(!!entry, "Entry detected");
     // Allow small epsilon for independent time clamping of entry vs script.

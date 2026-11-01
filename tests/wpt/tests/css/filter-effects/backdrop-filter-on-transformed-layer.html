@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Filters: backdrop-filter on a transformed element</title>
+    <link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+    <link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+    <link rel="help" href="https://drafts.csswg.org/css-transforms-2/#transform-property">
+    <link rel="match" href="backdrop-filter-on-transformed-layer-ref.html">
+    <meta name="assert" content="The backdrop filter is applied in the transformed element’s own coordinate system, so the filtered area turns with the element.">
+    <style>
+      body {
+        margin: 0;
+      }
+      .scene {
+        position: absolute;
+        width: 400px;
+        height: 400px;
+        background: linear-gradient(to right, green 0 200px, blue 200px 400px);
+      }
+      .backdrop {
+        position: absolute;
+        left: 50px;
+        top: 50px;
+        width: 100px;
+        height: 100px;
+        transform: scale(2);
+        transform-origin: 0 0;
+        backdrop-filter: blur(5px);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="scene">
+      <div class="backdrop"></div>
+    </div>
+  </body>
+</html>

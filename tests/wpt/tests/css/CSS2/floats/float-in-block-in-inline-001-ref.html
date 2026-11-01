@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Test: A float in a block level box on a line is placed at the top of that box (reference)</title>
+<style>
+.outer {
+    width: 20px;
+}
+
+.float {
+    float: left;
+    width: 20px;
+    height: 100px;
+    background: green;
+}
+</style>
+</head>
+<body>
+<p>PASS if the green box is at the top of the line, not 100px below it.</p>
+<span><div class="outer">
+    <div style="position: relative;">
+        <div><div class="float"></div></div>
+        <div style="position: absolute;">x</div>
+    </div>
+</div></span>
+</body>
+</html>

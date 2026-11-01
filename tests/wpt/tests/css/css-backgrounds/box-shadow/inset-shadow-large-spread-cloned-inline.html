@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders Test: inset box-shadow with a spread larger than the box on a cloned inline fragment</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#shadow-shape">
+<link rel="help" href="https://drafts.csswg.org/css-break-3/#break-decoration">
+<link rel="match" href="inset-shadow-large-spread-cloned-inline-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+.container {
+    width: 200px;
+    font: 20px/3 Ahem;
+    color: transparent;
+}
+
+.highlighted {
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    border: 10px solid transparent;
+    box-shadow: inset 0 0 0 400px blue;
+}
+</style>
+<div class="container">xx<span class="highlighted">xxxx xxxx</span></div>

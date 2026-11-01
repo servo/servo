@@ -2,7 +2,7 @@
 //
 // Per SVG 2 §8.5, an SVGTransform's observable state is (type, angle,
 // matrix.{a,b,c,d,e,f}); `angle` is 0 by spec for matrix/translate/scale.
-// https://svgwg.org/svg2-draft/coords.html#InterfaceSVGTransform
+// https://w3c.github.io/svgwg/svg2-draft/coords.html#InterfaceSVGTransform
 //
 // Default epsilon absorbs tan(45°) round-trip and 32-to-64-bit float
 // conversions while still catching real divergence.

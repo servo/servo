@@ -30,6 +30,16 @@ test_shorthand_value('place-items', 'stretch right legacy', {
   'align-items': 'stretch',
   'justify-items': 'legacy right'
 });
+
+test_shorthand_value('place-items', 'safe normal', {
+  'align-items': 'safe normal',
+  'justify-items': 'safe normal'
+});
+
+test_shorthand_value('place-items', 'safe normal unsafe normal', {
+  'align-items': 'safe normal',
+  'justify-items': 'unsafe normal'
+});
 </script>
 </body>
 </html>

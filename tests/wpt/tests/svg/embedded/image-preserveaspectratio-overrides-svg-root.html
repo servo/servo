@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>The image element's preserveAspectRatio, not the referenced SVG root's, positions the image</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/embedded.html#ImageElement">
+<link rel="match" href="image-preserveaspectratio-overrides-svg-root-ref.html">
+<meta name="assert" content="The referenced SVG's root has preserveAspectRatio xMinYMin meet, and the image element has the default, xMidYMid meet. The element's value fits the square SVG into the 200x100 positioning rectangle as a centered 100x100 square, which is the SVG viewport, so the root's own value has nothing left to do.">
+<style>
+  body { margin: 0; }
+</style>
+
+<!-- Red is painted where the image must be, so an image drawn anywhere else, or not cropped, leaves red showing. -->
+<svg width="220" height="120">
+  <rect x="60" y="10" width="100" height="100" fill="red"/>
+  <image x="10" y="10" width="200" height="100" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100' preserveAspectRatio='xMinYMin meet'><rect width='100' height='100' fill='rgb(0,128,0)'/></svg>"/>
+</svg>

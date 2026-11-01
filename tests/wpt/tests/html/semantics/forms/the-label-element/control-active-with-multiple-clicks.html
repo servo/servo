@@ -133,6 +133,12 @@ async function testWith(control, label, isFirstClick) {
   assertIsActive(false, label, "Label", "label is no longer mousedowned" + clickNumSuffix);
 }
 
+// Prevent select elements from opening their picker popup on click so that the
+// open popup does not capture the second click on the label.
+for (const select of document.querySelectorAll("select")) {
+  select.addEventListener("click", e => e.preventDefault());
+}
+
 // If testharness.js or test_driver.js is not available then the test is
 // degraded into a manual test.
 if (typeof assert_equals !== "undefined" &&

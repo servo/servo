@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>CSS Flexbox: intrinsic min-block-size is not clamped by a smaller max-block-size on a column flex item</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#valdef-width-min-content">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#min-size-auto">
+<link rel="match" href="flex-item-min-block-size-intrinsic-max-block-size-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<meta name="assert" content="In the block axis min-content, max-content and fit-content are the automatic size (the content height), not the automatic minimum size, so they are not clamped by max-block-size and min-block-size wins over it.">
+<style>
+.container {
+  display: flex;
+  flex-direction: column;
+  width: 100px;
+}
+.item {
+  max-block-size: 10px;
+  background: green;
+  color: green;
+  font: 20px/1 Ahem;
+}
+</style>
+<p>Test passes if there is a filled green rectangle.</p>
+<div class="container">
+  <div class="item" style="min-block-size: min-content">X</div>
+</div>
+<div class="container">
+  <div class="item" style="min-block-size: max-content">X</div>
+</div>
+<div class="container">
+  <div class="item" style="min-block-size: fit-content">X</div>
+</div>

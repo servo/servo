@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: a block in inline box's margin before is not also its container's after a relayout</title>
+<link rel="help" href="https://www.w3.org/TR/CSS22/box.html#collapsing-margins">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#anonymous-block-level">
+<meta name="assert" content="A block level box inside an inline box has a line before it, so its margin before is the spacing after that line and nothing else. It is not the container's margin before, and must not become one when the container is laid out again because content inside the block changed.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body { margin: 0; }
+.container { font: 16px/18px monospace; }
+.block { margin-top: 16px; }
+</style>
+
+<!-- The block is nested in an inline box, so the container lays out inline content. A line precedes the
+     block, which is what keeps the block's margin before inside the container. -->
+<div id="beforeTarget">before</div>
+<div class="container" id="target">line before<span><div class="block"><span id="text">block</span></div></span></div>
+
+<div id="beforeReference">before</div>
+<div class="container" id="reference">line before<span><div class="block"><span>block</span></div></span></div>
+
+<script>
+const topGap = (beforeId, containerId) => {
+    const before = document.getElementById(beforeId).getBoundingClientRect();
+    const container = document.getElementById(containerId).getBoundingClientRect();
+    return Math.round(container.top - before.bottom);
+};
+
+test(() => {
+    // A line comes before the block, so the block's margin before is spacing between the two and nothing
+    // else. The container's before edge stays flush against the preceding box.
+    assert_equals(topGap("beforeReference", "reference"), 0, "sanity check: laid out once");
+}, "A block in inline box's margin before does not extend past its container");
+
+test(() => {
+    // Change the text inside the block. The block itself is unchanged, so the container is laid out again
+    // with only its block level child needing layout, which is the incremental path under test.
+    document.getElementById("text").firstChild.data = "blockk";
+    document.body.offsetTop;
+
+    assert_equals(topGap("beforeTarget", "target"), 0,
+        "the block's margin before is still only the spacing after the preceding line");
+}, "Laying out only the block level child does not turn its margin before into the container's");
+</script>

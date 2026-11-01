@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Sanitizer API: Comprehensive MathML elements and attributes sanitization</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/html5lib-testcase-support.js"></script>
+
+<script id="all" type="html5lib-testcases">
+#data
+<math><a href="https://example.com" hreflang="en" type="text/html">MathML Link</a></math>
+#document
+| <math math>
+|   <math a>
+|     href="https://example.com"
+|     hreflang="en"
+|     type="text/html"
+|     "MathML Link"
+
+#data
+<math><mo fence="true" form="prefix" largeop="true" lspace="1em" maxsize="100%" minsize="10%" movablelimits="true" rspace="1em" separator="true" stretchy="true" symmetric="true">+</mo></math>
+#document
+| <math math>
+|   <math mo>
+|     fence="true"
+|     form="prefix"
+|     largeop="true"
+|     lspace="1em"
+|     maxsize="100%"
+|     minsize="10%"
+|     movablelimits="true"
+|     rspace="1em"
+|     separator="true"
+|     stretchy="true"
+|     symmetric="true"
+|     "+"
+
+#data
+<math><mover accent="true"><mi>x</mi><mo>-</mo></mover></math>
+#document
+| <math math>
+|   <math mover>
+|     accent="true"
+|     <math mi>
+|       "x"
+|     <math mo>
+|       "-"
+
+#data
+<math><mpadded depth="1px" height="2px" lspace="3px" voffset="4px" width="5px"><mi>x</mi></mpadded></math>
+#document
+| <math math>
+|   <math mpadded>
+|     depth="1px"
+|     height="2px"
+|     lspace="3px"
+|     voffset="4px"
+|     width="5px"
+|     <math mi>
+|       "x"
+
+#data
+<math><mspace depth="1px" height="2px" width="3px"></mspace></math>
+#document
+| <math math>
+|   <math mspace>
+|     depth="1px"
+|     height="2px"
+|     width="3px"
+
+#data
+<math><mtable><mtr><mtd columnspan="2" rowspan="2"><mi>x</mi></mtd></mtr></mtable></math>
+#document
+| <math math>
+|   <math mtable>
+|     <math mtr>
+|       <math mtd>
+|         columnspan="2"
+|         rowspan="2"
+|         <math mi>
+|           "x"
+
+#data
+<math><munder accentunder="true"><mi>x</mi><mo>→</mo></munder></math>
+#document
+| <math math>
+|   <math munder>
+|     accentunder="true"
+|     <math mi>
+|       "x"
+|     <math mo>
+|       "→"
+
+#data
+<math><munderover accent="true" accentunder="true"><mi>x</mi><mo>‾</mo><mo>‾</mo></munderover></math>
+#document
+| <math math>
+|   <math munderover>
+|     accent="true"
+|     accentunder="true"
+|     <math mi>
+|       "x"
+|     <math mo>
+|       "‾"
+|     <math mo>
+|       "‾"
+
+#data
+<math><merror><mfrac><mmultiscripts><mn>1</mn><mprescripts/><mroot><mrow><ms>s</ms></mrow><mphantom><msqrt><mstyle><msub><msubsup><msup><mtext>t</mtext></msup></msub></mstyle></msqrt></mphantom></mroot></mmultiscripts></mfrac></merror></math>
+#document
+| <math math>
+|   <math merror>
+|     <math mfrac>
+|       <math mmultiscripts>
+|         <math mn>
+|           "1"
+|         <math mprescripts>
+|         <math mroot>
+|           <math mrow>
+|             <math ms>
+|               "s"
+|           <math mphantom>
+|             <math msqrt>
+|               <math mstyle>
+|                 <math msub>
+|                   <math msubsup>
+|                     <math msup>
+|                       <math mtext>
+|                         "t"
+</script>
+
+<script id="safe" type="html5lib-testcases">
+#data
+<math><a xlink:href="https://example.com">xlink Link</a></math>
+#document
+| <math math>
+|   <math a>
+|     "xlink Link"
+
+#data
+<math><a href="https://example.com" download="file" ping="https://track.com" target="_blank">Restricted</a></math>
+#document
+| <math math>
+|   <math a>
+|     href="https://example.com"
+|     "Restricted"
+
+#data
+<math><mrow hreflang="en" type="text/html" href="https://example.com" fence="true" accent="true" depth="1px" columnspan="2"></mrow></math>
+#document
+| <math math>
+|   <math mrow>
+
+#data
+<math><mi fence="true" depth="1px" columnspan="2"></mi></math>
+#document
+| <math math>
+|   <math mi>
+
+#data
+<math><mtext><a href="javascript:alert(1)">Integration Point</a></mtext></math>
+#document
+| <math math>
+|   <math mtext>
+|     <a>
+|       "Integration Point"
+</script>
+
+<script id="unsafe" type="html5lib-testcases">
+#data
+<math><a xlink:href="https://example.com">xlink Link</a></math>
+#document
+| <math math>
+|   <math a>
+|     xlink href="https://example.com"
+|     "xlink Link"
+
+#data
+<math><a href="https://example.com" download="file" ping="https://track.com" target="_blank">Restricted</a></math>
+#document
+| <math math>
+|   <math a>
+|     download="file"
+|     href="https://example.com"
+|     ping="https://track.com"
+|     target="_blank"
+|     "Restricted"
+
+#data
+<math><mrow hreflang="en" type="text/html" href="https://example.com" fence="true" accent="true" depth="1px" columnspan="2"></mrow></math>
+#document
+| <math math>
+|   <math mrow>
+|     accent="true"
+|     columnspan="2"
+|     depth="1px"
+|     fence="true"
+|     href="https://example.com"
+|     hreflang="en"
+|     type="text/html"
+
+#data
+<math><mi fence="true" depth="1px" columnspan="2"></mi></math>
+#document
+| <math math>
+|   <math mi>
+|     columnspan="2"
+|     depth="1px"
+|     fence="true"
+
+#data
+<math><mtext><a href="javascript:alert(1)">Integration Point</a></mtext></math>
+#document
+| <math math>
+|   <math mtext>
+|     <a>
+|       href="javascript:alert(1)"
+|       "Integration Point"
+</script>
+
+<script>
+function test_safe(testcase, index, category) {
+  test(_ => {
+    const div = document.createElement("div");
+    div.setHTML(testcase.data);
+    assert_testcase(div, testcase);
+  }, `Element.setHTML [${category}] #${index}, "${testcase.data}"`);
+
+  test(_ => {
+    const div = document.createElement("div");
+    const shadowRoot = div.attachShadow({ mode: "open" });
+    shadowRoot.setHTML(testcase.data);
+    assert_testcase(shadowRoot, testcase);
+  }, `ShadowRoot.setHTML [${category}] #${index}, "${testcase.data}"`);
+
+  test(_ => {
+    assert_testcase(
+      Document.parseHTML("<body>" + testcase.data).body, testcase);
+  }, `Document.parseHTML [${category}] #${index}, "${testcase.data}"`);
+}
+
+function test_unsafe(testcase, index, category) {
+  test(_ => {
+    const div = document.createElement("div");
+    div.setHTMLUnsafe(testcase.data);
+    assert_testcase(div, testcase);
+  }, `Element.setHTMLUnsafe [${category}] #${index}, "${testcase.data}"`);
+
+  test(_ => {
+    const div = document.createElement("div");
+    const shadowRoot = div.attachShadow({ mode: "open" });
+    shadowRoot.setHTMLUnsafe(testcase.data);
+    assert_testcase(shadowRoot, testcase);
+  }, `ShadowRoot.setHTMLUnsafe [${category}] #${index}, "${testcase.data}"`);
+
+  test(_ => {
+    assert_testcase(
+      Document.parseHTMLUnsafe("<body>" + testcase.data).body, testcase);
+  }, `Document.parseHTMLUnsafe [${category}] #${index}, "${testcase.data}"`);
+}
+
+const allCases = parse_html5lib_testcases(document.getElementById("all").textContent);
+const safeCases = parse_html5lib_testcases(document.getElementById("safe").textContent);
+const unsafeCases = parse_html5lib_testcases(document.getElementById("unsafe").textContent);
+
+allCases.forEach((tc, idx) => {
+  test_safe(tc, idx, "all");
+  test_unsafe(tc, idx, "all");
+});
+
+safeCases.forEach((tc, idx) => {
+  test_safe(tc, idx, "safe");
+});
+
+unsafeCases.forEach((tc, idx) => {
+  test_unsafe(tc, idx, "unsafe");
+});
+</script>

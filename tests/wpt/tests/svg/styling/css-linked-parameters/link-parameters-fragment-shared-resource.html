@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>link-parameters: an img and a background-image sharing one resource get their own fragment parameters</title>
+<link rel="help" href="https://drafts.csswg.org/css-link-params/#url-frag">
+<link rel="match" href="link-parameters-fragment-shared-resource-ref.html">
+<style>
+  body { margin: 0; }
+  div, img { display: block; width: 100px; height: 100px; }
+  #a { background-image: url("resources/solid.svg#:~:param(--bg,green)"); background-size: 100px 100px; }
+</style>
+<div id="a"></div>
+<img src="resources/solid.svg#:~:param(--bg,blue)">

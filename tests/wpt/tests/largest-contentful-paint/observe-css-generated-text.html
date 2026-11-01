@@ -2,6 +2,7 @@
 <meta charset=utf-8>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="resources/largest-contentful-paint-helpers.js"></script>
 <style>
   #css-generated-text::before {
     content: 'This is some text generated via css';
@@ -21,25 +22,6 @@
 <body>
   <script>
     setup({"hide_test_state": true});
-    const checkText = (entry, expectedSize, expectedID, beforeRender) => {
-      assert_equals(entry.entryType, 'largest-contentful-paint',
-        'Entry should be of type largest-contentful-paint');
-      assert_greater_than_equal(entry.renderTime, beforeRender,
-        'Render time should be greater than time just before rendering');
-      assert_greater_than_equal(performance.now(), entry.renderTime,
-        'renderTime should be less than current time');
-      assert_approx_equals(entry.startTime, entry.renderTime, 0.001,
-        'startTime should be equal to renderTime to the precision of 1 millisecond.');
-      assert_equals(entry.duration, 0, 'duration should be 0');
-      assert_greater_than_equal(entry.size, expectedSize,
-        'Size should match expected size');
-      assert_equals(entry.loadTime, 0, 'loadTime should be zero');
-      assert_equals(entry.id, expectedID, 'ID should match expected ID');
-      assert_equals(entry.url, '', 'URL should be empty');
-      assert_equals(entry.element, document.getElementById(expectedID),
-        'Entry element is expected element');
-    }
-
     const runTest = (element, testName) => {
       const elementId = element.id;
       // The element should be atleast 12px in width
@@ -60,7 +42,7 @@
         }).then(entryList => {
           assert_equals(entryList.getEntries().length, 1);
           const entry = entryList.getEntries()[0];
-          checkText(entry, elemSizeLowerBound, elementId, beforeRender);
+          checkTextEntry(entry, elementId, elemSizeLowerBound, beforeRender);
         });
       }, testName);
     }

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Test: a grid container's cached baseline must not go stale across a resize reflow</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#baseline-export">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#grid-baselines">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2084787">
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<meta name="assert" content="An inline-block whose content is a baseline-less display:grid must keep a reasonable position after a resize reflow invalidates the grid's intrinsic sizes.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe id="frame" style="border:0; width:400px; height:100px;"></iframe>
+
+<script>
+// HTML for inner doc: an inline-block containing a display:grid with a single
+// item, whose intrinsic inline-size depends on its block-size via the
+// aspect-ratio. A resize reflow of the iframe that changes the block
+// size therefore will invalidate the grid's intrinsic sizes and any
+// cached baseline it might have. And then a DOM mutation to the inline-block
+// makes its line box re-read the cached baseline, before the grid reflows.
+const IFRAME_HTML = `<!doctype html><meta charset=utf-8><style>
+  body { margin: 0; }
+  .inlineblock { display: inline-block; background: blue; }
+  .grid { display: grid; }
+  .item { height: 40px; aspect-ratio: 2; }
+</style>
+<div id=wrap>
+  <div class=inlineblock>
+    <div class=grid>
+      <div class=item></div>
+    </div>
+  </div>
+</div>`;
+
+promise_test(async () => {
+  const frame = document.getElementById('frame');
+  frame.srcdoc = IFRAME_HTML;
+  await new Promise(r => { frame.onload = r; });
+
+  // The inline-block is baseline-aligned in its line box using the grid's
+  // baseline. With a correct baseline, it's flush with the top of its
+  // container, which puts it at offset 0.
+  const doc = frame.contentDocument;
+  const inlineblock = doc.querySelector('.inlineblock');
+  assert_equals(inlineblock.offsetTop, 0,
+                "Initially, inlineblock should be positioned at the top of " +
+                "its container.");
+
+  // Adjust the height of the iframe. This invalidates the grid's intrinsic
+  // sizes and cached baselines, because there's a grid item whose intrinsic
+  // width and height are interdependent, via the 'aspect-ratio' property.
+  frame.style.height = "150px";
+  assert_equals(inlineblock.offsetTop, 0,
+                "After iframe is resized, inlineblock should still be at " +
+                "the top of its container.");
+
+  // Insert an empty inline-level element as a child of #wrap (alongside the
+  // inline-block that contains the grid).
+  const wrap = doc.getElementById('wrap');
+  wrap.appendChild(doc.createElement('span'));
+
+  assert_equals(inlineblock.offsetTop, 0,
+                "After a sibling is inserted, inlineblock should still be " +
+                "at the top of its container.");
+}, "An inline-block wrapping a grid should not have its baseline-aligned position thrown off by irrelevant/trivial mutations");
+</script>

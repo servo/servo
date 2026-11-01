@@ -172,6 +172,9 @@ _TEST_DEFINITION_PARAMS = {
 
     # Parameters adding HTML tags in the generated HTML files:
 
+    # If specified, adds an `<html>` tag with this 'lang' attribute, e.g.:
+    #   html_lang: 'tr'
+    'html_lang': None,
     # Additional HTML attributes to pass to the '<canvas>' tag. e.g.:
     #   canvas: 'style="font-size: 144px"'
     'canvas': None,

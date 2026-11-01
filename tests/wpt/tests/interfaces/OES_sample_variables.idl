@@ -1,0 +1,8 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL OES_sample_variables Extension Specification (https://registry.khronos.org/webgl/extensions/OES_sample_variables/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface OES_sample_variables {
+};

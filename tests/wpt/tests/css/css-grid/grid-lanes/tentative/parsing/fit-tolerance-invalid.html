@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Grid Lanes: fit-tolerance parsing</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<meta name="assert" content="fit-tolerance supports only the grammar 'normal | <length-percentage>'.">
+<meta name="assert" content="fit-tolerance rejects negative <length-percentage>.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("fit-tolerance", "auto");
+
+test_invalid_value("fit-tolerance", "10");
+test_invalid_value("fit-tolerance", "10px 20px");
+test_invalid_value("fit-tolerance", "1fr");
+test_invalid_value("fit-tolerance", "-1px");
+test_invalid_value("fit-tolerance", "-10%");
+test_invalid_value("fit-tolerance", "normal 10px");
+test_invalid_value("fit-tolerance", "infinite 10px");
+test_invalid_value("fit-tolerance", "10px normal");
+test_invalid_value("fit-tolerance", "10px infinite");
+test_invalid_value("fit-tolerance", "normal infinite");
+test_invalid_value("fit-tolerance", "infinite normal");
+</script>
+</body>
+</html>

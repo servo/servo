@@ -1,0 +1,132 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Scoped transition overlays are hit-testable outside the scope's overflow clip, but not outside ancestor clips</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/#scoped-view-transition-layout">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #ancestor {
+    position: absolute;
+    left: 20px;
+    top: 20px;
+    width: 150px;
+    height: 80px;
+  }
+  #scope {
+    position: relative;
+    width: 120px;
+    height: 80px;
+    /* Keep real DOM content hit-testable so we can test overflow clipping. */
+    view-transition-name: none;
+  }
+  /* Immediately to the right of #scope, alongside its lower half and directly
+     below the overlay. Extends partly beyond #ancestor's right edge. */
+  #content {
+    position: absolute;
+    left: 120px;
+    top: 40px;
+    width: 40px;
+    height: 40px;
+  }
+  /* Immediately to the right of #scope, alongside its upper half.
+     Like #content, extends partly beyond #ancestor's right edge. */
+  #scope::view-transition {
+    left: 120px;
+    width: 40px;
+    height: 40px;
+    animation: hold 1s paused;
+  }
+  @keyframes hold { from { opacity: 1; } to { opacity: 1; } }
+</style>
+<body>
+<div id="ancestor">
+  <div id="scope">
+    <div id="content"></div>
+  </div>
+</div>
+<script>
+  const ancestor = document.querySelector('#ancestor');
+  const scope = document.querySelector('#scope');
+  const content = document.querySelector('#content');
+
+  for (const overflow of ['visible', 'hidden']) {
+    for (const ancestorOverflow of ['visible', 'hidden']) {
+      // Exercise transformed-layer hit testing without changing the geometry.
+      for (const transform of ['none', 'translateX(0)']) {
+        promise_test(async t => {
+          ancestor.style.overflow = ancestorOverflow;
+          scope.style.overflow = overflow;
+          scope.style.transform = transform;
+
+          const transition = scope.startViewTransition();
+          t.add_cleanup(async () => {
+            transition.skipTransition();
+            await transition.finished;
+            ancestor.style.removeProperty('overflow');
+            scope.style.removeProperty('overflow');
+            scope.style.removeProperty('transform');
+          });
+          await transition.ready;
+          await new Promise(requestAnimationFrame);
+          await new Promise(requestAnimationFrame);
+          const rect = scope.getBoundingClientRect();
+
+          // Hit-test inside the overlay and ancestor, but outside the scope.
+          // elementFromPoint() returns the pseudo's originating element, #scope.
+          assert_equals(document.elementFromPoint(rect.left + 125, rect.top + 10),
+                        scope, 'Overlay outside scope but inside ancestor is hit-testable');
+
+          // Hit-test the part of the overlay outside the ancestor.
+          // It is hit only if the ancestor does not clip it.
+          const overlayHitOutsideAncestor =
+              document.elementFromPoint(rect.left + 155, rect.top + 10);
+          if (ancestorOverflow === 'visible') {
+            assert_equals(
+                overlayHitOutsideAncestor,
+                scope, 'Visible ancestor overflow allows hits on the overlay');
+          } else {
+            assert_not_equals(
+                overlayHitOutsideAncestor,
+                scope, 'Hidden ancestor overflow clips hits on the overlay');
+          }
+
+          // Hit-test #content below the overlay, inside the ancestor
+          // but outside the scope. Only the scope's overflow clip blocks it.
+          const contentHitDuringTransition =
+              document.elementFromPoint(rect.left + 125, rect.top + 60);
+          if (overflow === 'visible') {
+            assert_equals(
+                contentHitDuringTransition,
+                content, 'Visible scope overflow allows hits on real DOM content');
+          } else {
+            assert_not_equals(
+                contentHitDuringTransition,
+                content, 'Hidden scope overflow clips hits on real DOM content');
+          }
+
+          transition.skipTransition();
+          await transition.finished;
+
+          // Hit-test the former overlay area inside the ancestor but outside
+          // #scope's ordinary box. With the overlay gone, it must not hit #scope.
+          assert_not_equals(document.elementFromPoint(rect.left + 125, rect.top + 10),
+                            scope, 'No overlay hit target remains after cleanup');
+
+          // Hit-test #content inside the ancestor but outside the scope again.
+          // The scope's overflow clip still applies after the transition ends.
+          const contentHitAfterTransition =
+              document.elementFromPoint(rect.left + 125, rect.top + 60);
+          if (overflow === 'visible') {
+            assert_equals(
+                contentHitAfterTransition,
+                content, 'Visible scope overflow still allows content hits after cleanup');
+          } else {
+            assert_not_equals(
+                contentHitAfterTransition,
+                content, 'Hidden scope overflow still clips content hits after cleanup');
+          }
+        }, `overflow: ${overflow}; ancestor overflow: ${ancestorOverflow}; transform: ${transform}`);
+      }
+    }
+  }
+</script>

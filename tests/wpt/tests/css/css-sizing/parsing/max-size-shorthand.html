@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<link rel="author" title="Andrew Martinez" href="https://github.com/AndrewJMart">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#sizing-properties">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+<script>
+    // max-size is a shorthand for max-width and max-height. If the second
+    // value is omitted, it is copied from the first.
+    test_shorthand_value("max-size", "100px", {
+        "max-width": "100px",
+        "max-height": "100px"
+    });
+    test_shorthand_value("max-size", "100px 100px", {
+        "max-width": "100px",
+        "max-height": "100px"
+    });
+    test_shorthand_value("max-size", "100px 200px", {
+        "max-width": "100px",
+        "max-height": "200px"
+    });
+    test_shorthand_value("max-size", "none", {
+        "max-width": "none",
+        "max-height": "none"
+    });
+    test_shorthand_value("max-size", "min-content max-content", {
+        "max-width": "min-content",
+        "max-height": "max-content"
+    });
+</script>

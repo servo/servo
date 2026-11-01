@@ -63,5 +63,18 @@ test_self_user_callback((t, busy_wait) => {
     });
 }, "IdleRequestCallback",
     "requestIdleCallback with timeout");
+
+promise_test(async t => {
+    const [entry, script] = await expect_long_frame_with_script(() => {
+        setTimeout("window.generate_loaf_now()", 0);
+    }, s => s.invoker === "TimerHandler:setTimeout" && s.invokerType === "user-callback", t);
+
+    assert_true(!!entry, "Entry detected");
+    assert_equals(script.sourceURL, "");
+    assert_equals(script.sourceFunctionName, "");
+    assert_equals(script.sourceCharPosition, -1);
+    assert_equals(script.sourceLine, -1);
+    assert_equals(script.sourceColumn, -1);
+}, "LoAF string TimerHandler:setTimeout has empty source location");
 </script>
 </body>

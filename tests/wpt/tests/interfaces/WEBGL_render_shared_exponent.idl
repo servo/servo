@@ -1,0 +1,8 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL WEBGL_render_shared_exponent Extension Specification (https://registry.khronos.org/webgl/extensions/WEBGL_render_shared_exponent/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface WEBGL_render_shared_exponent {
+};

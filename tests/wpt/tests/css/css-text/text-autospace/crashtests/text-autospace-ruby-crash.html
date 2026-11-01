@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<style>
+body {
+  text-autospace: normal;
+}
+div {
+  color : transparent;
+}
+.dump {
+  color: black;
+}
+</style>
+</head>
+<body>
+<div class="dump">This test passes if it doesn't crash.</div>
+<div dir="rtl">&#x5e2;<ruby><rb>&#x304e;</rb></ruby>&#x5e2; aaaaaaaaaaaaaaaaaaaa</div>
+<div dir="rtl">&#x5e2;&#x5e2;<ruby><rb>&#x304e;</rb></ruby>&#x5e2; aaaaaaaaaaaaaaaaaaaa</div>
+<div dir="rtl">&#x5e2;<ruby><rb>&#x304e;</rb></ruby>&#x5e2;&#x5e2; aaaaaaaaaaaaaaaaaaaa</div>
+<div dir="rtl">&#x5e2;&#x5e2;<ruby><rb>&#x304e;</rb></ruby>&#x5e2;&#x5e2; aaaaaaaaaaaaaaaaaaaa</div>
+<div><ruby><rb>&#x304e;</rb></ruby>a<ruby><rb>&#x304e;</rb></ruby> aaaaaaaaaaaaaaaaaaaa</div>
+</body>
+</html>

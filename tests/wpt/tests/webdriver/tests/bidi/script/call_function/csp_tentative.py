@@ -14,7 +14,7 @@ pytestmark = pytest.mark.asyncio
     ids=CSP_EXPRESSIONS.keys(),
 )
 async def test_default_src_unsafe_inline(
-    bidi_session, top_context, setup_csp_tentative_test, expression
+    bidi_session, configuration, top_context, setup_csp_tentative_test, expression
 ):
     function_declaration = f"() => ({expression})"
     result = await asyncio.wait_for(
@@ -25,7 +25,7 @@ async def test_default_src_unsafe_inline(
                 await_promise=True,
             )
         ),
-        timeout=2.0,
+        timeout=2.0 * configuration["timeout_multiplier"],
     )
 
     assert result == {"type": "number", "value": 3}

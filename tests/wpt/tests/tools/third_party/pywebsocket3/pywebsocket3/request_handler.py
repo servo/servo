@@ -29,9 +29,8 @@
 """Request Handler and Request/Connection classes for standalone server.
 """
 
-import os
+import http.server
 
-from six.moves import CGIHTTPServer
 from six.moves import http_client
 
 from pywebsocket3 import (
@@ -148,8 +147,8 @@ class _StandaloneRequest(object):
         return self._use_tls
 
 
-class WebSocketRequestHandler(CGIHTTPServer.CGIHTTPRequestHandler):
-    """CGIHTTPRequestHandler specialized for WebSocket."""
+class WebSocketRequestHandler(http.server.SimpleHTTPRequestHandler):
+    """SimpleHTTPRequestHandler specialized for WebSocket."""
 
     # Use httplib.HTTPMessage instead of mimetools.Message.
     MessageClass = http_client.HTTPMessage
@@ -168,7 +167,7 @@ class WebSocketRequestHandler(CGIHTTPServer.CGIHTTPRequestHandler):
         # Call superclass's setup to prepare rfile, wfile, etc. See setup
         # definition on the root class SocketServer.StreamRequestHandler to
         # understand what this does.
-        CGIHTTPServer.CGIHTTPRequestHandler.setup(self)
+        http.server.SimpleHTTPRequestHandler.setup(self)
 
         self.rfile = memorizingfile.MemorizingFile(
             self.rfile, max_memorized_lines=_MAX_MEMORIZED_LINES)
@@ -185,8 +184,8 @@ class WebSocketRequestHandler(CGIHTTPServer.CGIHTTPRequestHandler):
             self.is_executable = self._options.is_executable_method
 
         # This actually calls BaseRequestHandler.__init__.
-        CGIHTTPServer.CGIHTTPRequestHandler.__init__(self, request,
-                                                     client_address, server)
+        http.server.SimpleHTTPRequestHandler.__init__(self, request,
+                                                      client_address, server)
 
     def parse_request(self):
         """Override BaseHTTPServer.BaseHTTPRequestHandler.parse_request.
@@ -206,7 +205,7 @@ class WebSocketRequestHandler(CGIHTTPServer.CGIHTTPRequestHandler):
         # handling (self.path, self.command, self.requestline, etc. See also
         # how _StandaloneRequest's members are implemented using these
         # attributes).
-        if not CGIHTTPServer.CGIHTTPRequestHandler.parse_request(self):
+        if not http.server.SimpleHTTPRequestHandler.parse_request(self):
             return False
 
         if self._options.use_basic_auth:
@@ -294,29 +293,6 @@ class WebSocketRequestHandler(CGIHTTPServer.CGIHTTPRequestHandler):
         # For example, HTTP status code is logged by this method.
         self._logger.warning('%s - %s', self.address_string(),
                              args[0] % args[1:])
-
-    def is_cgi(self):
-        """Test whether self.path corresponds to a CGI script.
-
-        Add extra check that self.path doesn't contains ..
-        Also check if the file is a executable file or not.
-        If the file is not executable, it is handled as static file or dir
-        rather than a CGI script.
-        """
-
-        if CGIHTTPServer.CGIHTTPRequestHandler.is_cgi(self):
-            if '..' in self.path:
-                return False
-            # strip query parameter from request path
-            resource_name = self.path.split('?', 2)[0]
-            # convert resource_name into real path name in filesystem.
-            scriptfile = self.translate_path(resource_name)
-            if not os.path.isfile(scriptfile):
-                return False
-            if not self.is_executable(scriptfile):
-                return False
-            return True
-        return False
 
 
 # vi:sts=4 sw=4 et

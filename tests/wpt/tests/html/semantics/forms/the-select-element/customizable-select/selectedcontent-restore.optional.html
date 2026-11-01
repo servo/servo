@@ -17,15 +17,26 @@ const iframe2 = document.getElementById('iframe2');
 const iframe1load = new Promise(resolve => iframe1.onload = resolve);
 const iframe2load = new Promise(resolve => iframe2.onload = resolve);
 
+// Submit the form from a click handler, so that the submission happens during
+// the user action and creates a session history entry to go back from.
+async function submitFromClick(iframe) {
+  const button = document.createElement('button');
+  button.textContent = 'Submit';
+  button.onclick = () => iframe.contentDocument.querySelector('form').submit();
+  document.body.append(button);
+  const loaded = new Promise(resolve => iframe.onload = resolve);
+  await test_driver.click(button);
+  button.remove();
+  await loaded;
+}
+
 promise_test(async () => {
   await iframe1load;
-  await test_driver.bless();
 
   iframe1.contentDocument.querySelector('select').value = 'two';
   assert_equals(iframe1.contentDocument.querySelector('select').value, 'two',
     'Assigning two to select.value should work.');
-  iframe1.contentDocument.querySelector('form').submit();
-  await new Promise(resolve => iframe1.onload = resolve);
+  await submitFromClick(iframe1);
 
   await test_driver.bless();
   iframe1.contentWindow.history.back();
@@ -44,13 +55,11 @@ promise_test(async () => {
 
 promise_test(async () => {
   await iframe2load;
-  await test_driver.bless();
 
   iframe2.contentDocument.querySelector('select').value = 'two';
   iframe2.contentWindow.createInput();
   iframe2.contentDocument.querySelector('input').value = 'value';
-  iframe2.contentDocument.querySelector('form').submit();
-  await new Promise(resolve => iframe2.onload = resolve);
+  await submitFromClick(iframe2);
 
   await test_driver.bless();
   iframe2.contentWindow.history.back();

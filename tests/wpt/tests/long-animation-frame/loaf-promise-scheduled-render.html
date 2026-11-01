@@ -11,6 +11,9 @@ function infinite_render() {
 
 function generate_loaf_and_wait_for_entry() {
     return new Promise(resolve => {
+        const start_time = performance.now();
+        while (performance.now() < start_time + 50) {
+        }
         const reference_time = performance.now();
         new PerformanceObserver((entries, observer) => {
             const entry = entries.getEntries().find(e =>
@@ -21,7 +24,7 @@ function generate_loaf_and_wait_for_entry() {
                 resolve(entry);
             }
         }).observe({type: "long-animation-frame"});
-        while (performance.now() < reference_time + 100) {
+        while (performance.now() < start_time + 100) {
         }
     });
 }

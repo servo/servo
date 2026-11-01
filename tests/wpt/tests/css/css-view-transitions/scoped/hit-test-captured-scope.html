@@ -1,0 +1,80 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>A captured scope's transition overlay remains hit-testable</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/#scoped-view-transition-layout">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #behind, #scope {
+    position: absolute;
+    left: 20px;
+    top: 20px;
+    width: 120px;
+    height: 100px;
+  }
+  #scope { view-transition-name: target; }
+  #content { height: 100%; }
+  #scope::view-transition {
+    width: 40px;
+    height: 40px;
+  }
+  #scope::view-transition-group(*) {
+    /* Prevent the full-size snapshot group from intercepting hits outside
+       the 40x40 root overlay, while keeping its paused animation alive. */
+    visibility: hidden;
+    animation-play-state: paused;
+  }
+</style>
+<body>
+<div id="behind"></div>
+<div id="scope">
+  <div id="content"></div>
+</div>
+<script>
+  const scope = document.querySelector('#scope');
+  const content = document.querySelector('#content');
+  const behind = document.querySelector('#behind');
+
+  for (const [transform, transformStyle] of [
+    ['none', 'flat'],
+    ['translate(10px, 5px)', 'flat'],
+    ['none', 'preserve-3d'],
+    ['translate(10px, 5px)', 'preserve-3d'],
+  ]) {
+    promise_test(async t => {
+      scope.style.transform = transform;
+      scope.style.transformStyle = transformStyle;
+      const rect = scope.getBoundingClientRect();
+      // Inside #content's ordinary DOM box, before the transition suppresses it.
+      assert_equals(document.elementFromPoint(rect.left + 80, rect.top + 80),
+                    content, 'Live content is hit-testable before capture');
+
+      const transition = scope.startViewTransition();
+      t.add_cleanup(async () => {
+        transition.skipTransition();
+        await transition.finished;
+        scope.style.removeProperty('transform');
+        scope.style.removeProperty('transform-style');
+      });
+      await transition.ready;
+      await new Promise(requestAnimationFrame);
+      await new Promise(requestAnimationFrame);
+
+      // Probe inside the 40x40 ::view-transition pseudo-element's box.
+      // elementFromPoint() returns its originating DOM element, #scope.
+      assert_equals(document.elementFromPoint(rect.left + 20, rect.top + 20),
+                    scope, 'The captured scope still exposes its overlay');
+      // Inside #content's DOM box but outside the overlay. Suppression of the
+      // captured scope and its content lets the hit reach #behind.
+      assert_equals(document.elementFromPoint(rect.left + 80, rect.top + 80),
+                    behind, 'Captured live content remains excluded from hit testing');
+
+      transition.skipTransition();
+      await transition.finished;
+      // Probe 80px right and down from the scope's top-left corner again.
+      // After the transition ends, this hits #content instead of #behind.
+      assert_equals(document.elementFromPoint(rect.left + 80, rect.top + 80),
+                    content, 'Live content is hit-testable again after cleanup');
+    }, `Hit testing a captured scope with transform: ${transform}, transform-style: ${transformStyle}`);
+  }
+</script>

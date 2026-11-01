@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/filter-effects-1/#FilterProperty">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=277228">
+<link rel="match" href="filtered-inline-applies-to-block-ref.html">
+<meta name="assert" content="A filter on an inline element applies to a block-level descendant whose own children are inline, even when the inline parent has no inline children of its own.">
+<style>
+a { filter: blur(2px); }
+.box {
+    display: inline-block;
+    width: 100px;
+    height: 100px;
+    background: green;
+}
+</style>
+<p>There should be a blurred green square.</p>
+<a href="https://www.w3.org/">
+  <div>
+    <span class="box"></span>
+  </div>
+</a>

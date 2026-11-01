@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+body {
+    margin: 0;
+    font: 20px/1 Ahem;
+}
+.cb {
+    position: relative;
+    width: 400px;
+    height: 100px;
+    margin-bottom: 10px;
+}
+.abspos {
+    position: absolute;
+    left: 130px;
+    top: 0;
+    width: 50px;
+    height: 50px;
+    background: green;
+}
+</style>
+<p>Test passes if there are two green squares, side by side with their parent's right edge.</p>
+
+<div class="cb">
+    <div style="width: 200px; height: 100px">
+        <div class="abspos"></div>
+    </div>
+</div>
+
+<div class="cb">
+    <div style="width: 200px; height: 100px">
+        <div class="abspos"></div>
+    </div>
+</div>

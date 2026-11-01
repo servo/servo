@@ -61,6 +61,21 @@ async def get_physical_element_dimensions(bidi_session, context, element):
     return (floor(element_dimensions["width"] * dpr), floor(element_dimensions["height"] * dpr))
 
 
+async def get_visual_viewport_dimensions(bidi_session, context):
+    """Get the CSS dimensions of the context's visual viewport.
+
+    :param bidi_session: BiDiSession
+    :param context: Browsing context info
+    :returns: Dict containing visual viewport width and height.
+    """
+    result = await bidi_session.script.evaluate(
+        expression="({width: window.visualViewport.width, height: window.visualViewport.height})",
+        target=ContextTarget(context["context"]),
+        await_promise=False,
+    )
+    return remote_mapping_to_dict(result["value"])
+
+
 async def get_physical_viewport_dimensions(bidi_session, context):
     """Get the physical dimensions of the context's viewport.
 

@@ -415,6 +415,7 @@
     fuzzy_test_computed_color(`color-mix(in oklch, oklch(none 20 30deg) 0%, oklch(none 60 70deg) 0%)`, `oklch(none 40 50 / 0)`);
     // Percentages adding up to zero result in a transparent midpoint. https://drafts.csswg.org/css-color-5/#ex-mix-zero-sum
     fuzzy_test_computed_color(`color-mix(in oklch, teal 0%, olive 0%)`, `oklch(0.561894 0.109643 152.2691 / 0)`);
+    fuzzy_test_computed_color(`color-mix(in oklch, teal calc(-10%), olive 0%)`, `oklch(0.561894 0.109643 152.2691 / 0)`);
 
     // lab()
     fuzzy_test_computed_color(`color-mix(in lab, lab(10 20 30), lab(50 60 70))`, `lab(30 40 50)`);
@@ -619,6 +620,11 @@
     fuzzy_test_computed_color(`color-mix(in oklch, hwb(0 50.0 50.0), blue)`, `oklch(0.525 0.1566 264.052)`, 0.001);
     fuzzy_test_computed_color(`color-mix(in oklch, lch(100% 0 0), blue)`, `oklch(0.726 0.1566 264.052)`, 0.001);
     fuzzy_test_computed_color(`color-mix(in oklch, oklch(100% 0 0), blue)`, `oklch(0.726 0.15661 312.026)`, 0.001);
+
+    // Nested color-mix() with missing or powerless hues.
+    // https://github.com/w3c/csswg-drafts/issues/14046
+    fuzzy_test_computed_color(`color-mix(in hsl, color-mix(in hsl longer hue, hsl(none 50% 50%), hsl(none 50% 50%)), hsl(180deg 50% 50%))`, `color(srgb 0.25 0.75 0.75)`);
+    fuzzy_test_computed_color(`color-mix(in lch, color-mix(in lch longer hue, hsl(50deg 0% 50%), hsl(50deg 0% 50%)), lch(50% 100% 180deg))`, `lch(51.69448237 75 180)`, 0.001);
 
     // Carry forward analogous sets with all missing components.
     fuzzy_test_computed_color(`color-mix(in oklch, oklab(0.1 none none), oklch(0.3 0.2 90deg))`, `oklch(0.2 0.2 90)`);

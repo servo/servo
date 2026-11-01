@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-document-elementsfrompoint">
+<style>
+  body { margin: 0; }
+  div { font: 20px/30px monospace; height: 40px; }
+</style>
+
+<div id="single">
+  <span id="single-outer"><span id="single-relative"
+    style="position: relative">Text</span></span>
+</div>
+<div id="nested">
+  <span id="nested-outer"><span id="nested-middle"><span id="nested-relative"
+    style="position: relative">Text</span></span></span>
+</div>
+<div id="sibling">
+  <span id="sibling-outer"><span id="sibling-relative"
+    style="position: relative">Text</span>after</span>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function idsAtCenterOfRect(rect) {
+  const elements = document.elementsFromPoint(rect.left + rect.width / 2,
+                                              rect.top + rect.height / 2);
+  return elements.map(element => element.id || element.nodeName);
+}
+
+function idsAtCenterOf(id) {
+  return idsAtCenterOfRect(document.getElementById(id).getBoundingClientRect());
+}
+
+test(() => {
+  assert_array_equals(
+      idsAtCenterOf("single-relative"),
+      ["single-relative", "single-outer", "single", "BODY", "HTML"]);
+}, "elementsFromPoint includes an inline whose only child is " +
+   "position: relative");
+
+test(() => {
+  assert_array_equals(
+      idsAtCenterOf("nested-relative"),
+      ["nested-relative", "nested-middle", "nested-outer", "nested", "BODY",
+       "HTML"]);
+}, "elementsFromPoint includes nested inline ancestors of a " +
+   "position: relative inline");
+
+test(() => {
+  assert_array_equals(
+      idsAtCenterOf("sibling-relative"),
+      ["sibling-relative", "sibling-outer", "sibling", "BODY", "HTML"]);
+}, "elementsFromPoint includes an inline whose position: relative child " +
+   "is followed by text");
+
+test(() => {
+  const range = new Range();
+  range.selectNodeContents(document.getElementById("sibling-outer").lastChild);
+  assert_array_equals(idsAtCenterOfRect(range.getBoundingClientRect()),
+                      ["sibling-outer", "sibling", "BODY", "HTML"]);
+}, "elementsFromPoint includes an inline at its own text that follows a " +
+   "position: relative child");
+</script>

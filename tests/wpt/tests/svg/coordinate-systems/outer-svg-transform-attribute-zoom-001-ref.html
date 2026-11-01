@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG coordinate systems: transform attribute on the outermost svg element and zoom (reference)</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<style>
+.container { display: flex; zoom: 2; width: 300px; height: 100px; background-color: gold; }
+</style>
+<div class="container">
+  <svg width="100" height="100" viewBox="0 0 20 20" style="transform: scale(0.5) translate(-50px, -25px)">
+    <rect x="2" y="2" width="16" height="16" fill="green"/>
+  </svg>
+  <svg width="100" height="100" viewBox="0 0 20 20" style="transform: translate(0px, 10px) rotate(90deg) translate(0px, -10px)">
+    <rect x="2" y="2" width="16" height="6" fill="green"/>
+  </svg>
+  <svg width="100" height="100" viewBox="0 0 20 20" style="transform: matrix(1, 0, 0, 1, 5, 7.5)">
+    <rect x="2" y="2" width="16" height="16" fill="green"/>
+  </svg>
+</div>

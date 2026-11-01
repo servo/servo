@@ -25,10 +25,14 @@ test_valid_value("place-items", "unsafe center unsafe center", "unsafe center");
 test_valid_value("place-items", "safe self-end");
 test_valid_value("place-items", "flow-start");
 test_valid_value("place-items", "flow-start flow-end");
+test_valid_value("place-items", "safe normal safe normal", "safe normal");
+test_valid_value("place-items", "unsafe normal unsafe normal", "unsafe normal");
 
 test_valid_value("place-items", "stretch baseline");
 test_valid_value("place-items", "last baseline center");
 test_valid_value("place-items", "safe self-end normal");
+test_valid_value("place-items", "safe normal unsafe normal");
+test_valid_value("place-items", "normal safe normal");
 
 test_valid_value("place-items", "normal right");
 test_valid_value("place-items", "baseline unsafe left");

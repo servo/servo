@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: grid item with a min-block-size when the container shrinks</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#algo-single-span-items">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#algo-grid-sizing">
+<meta name="assert" content="The auto row of an auto-height grid grows to fit a grid item with a non-auto min-block-size whose text wraps after the grid's containing block shrinks.">
+<style>
+#container {
+  width: 1000px;
+}
+#grid {
+  display: grid;
+  border: 2px dashed skyblue;
+}
+#item {
+  min-block-size: 0;
+  border: 2px dashed pink;
+}
+</style>
+<div id="container">
+  <div id="grid">
+    <div id="item">I am content and I am getting chopped off if I wrap to the new line, try resizing the window to make that happen</div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(() => {
+  const heightBeforeShrinking = grid.getBoundingClientRect().height;
+  container.style.width = "250px";
+  assert_greater_than(grid.getBoundingClientRect().height, heightBeforeShrinking);
+}, "Grid height grows when its containing block shrinks and the text of a grid item with min-block-size: 0 wraps");
+</script>

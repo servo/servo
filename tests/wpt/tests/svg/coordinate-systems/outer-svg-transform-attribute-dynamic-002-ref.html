@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG coordinate systems: transform attribute on the outermost svg element, dynamic changes with compositing (reference)</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<style>
+.container { display: flex; width: 600px; height: 200px; background-color: gold; }
+.composited { will-change: transform; }
+</style>
+<div class="container">
+  <svg class="composited" width="200" height="200" viewBox="0 0 20 20" style="transform: scale(0.5) translate(-100px, -50px)">
+    <rect x="2" y="2" width="16" height="16" fill="green"/>
+  </svg>
+  <svg class="composited" width="200" height="200" viewBox="0 0 20 20" style="transform: translate(10px, 15px)">
+    <rect x="2" y="2" width="16" height="16" fill="green"/>
+  </svg>
+  <svg width="200" height="200" style="position: relative; z-index: 1; transform: translate(20px, 30px)">
+    <rect width="100" height="100" fill="blue"/>
+    <foreignObject width="100" height="100">
+      <div class="composited" style="margin-left: 50px; width: 50px; height: 50px; background-color: green"></div>
+    </foreignObject>
+  </svg>
+</div>

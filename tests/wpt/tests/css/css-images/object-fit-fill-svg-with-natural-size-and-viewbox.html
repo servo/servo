@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>object-fit fill lays out an SVG with a natural size in the whole box, which fits its viewBox inside</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#the-object-fit">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#PreserveAspectRatioAttribute">
+<link rel="match" href="object-fit-fill-svg-with-natural-size-and-viewbox-ref.html">
+<meta name="assert" content="The SVG is 100x100 with a square viewBox, shown in a 200x100 img with the default object-fit fill. The concrete object size is the 200x100 box, so the SVG is laid out at that size, and its own default preserveAspectRatio, xMidYMid meet, fits the square viewBox in the middle: blue from x=50 to 100 and green from 100 to 150.">
+<style>
+  body { margin: 0; }
+</style>
+<!-- Red is painted where the image must be, so an image drawn anywhere else, or stretched, leaves red showing. -->
+<div style="position: absolute; left: 50px; top: 0; width: 100px; height: 100px; background-color: red"></div>
+<img style="position: absolute; left: 0; top: 0" width="200" height="100" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='rgb(0,128,0)'/><rect width='50' height='100' fill='rgb(0,0,255)'/></svg>">

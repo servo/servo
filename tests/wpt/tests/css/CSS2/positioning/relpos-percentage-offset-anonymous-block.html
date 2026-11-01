@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/CSS21/visuren.html#relative-positioning">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.container {
+    width: 400px;
+    height: 500px;
+}
+</style>
+
+<!-- Percentage top with sibling block causing anonymous wrapper -->
+<div class="container" id="test1">
+    <span style="position: relative; top: -5%"><img style="width: 100px; height: 40px"></span>
+    <div></div>
+</div>
+
+<!-- Percentage top without sibling (no anonymous wrapper) -->
+<div class="container" id="test2">
+    <span style="position: relative; top: -5%"><img style="width: 100px; height: 40px"></span>
+</div>
+
+<!-- Percentage left with sibling block -->
+<div class="container" id="test3">
+    <span style="position: relative; left: 10%"><img style="width: 100px; height: 40px"></span>
+    <div></div>
+</div>
+
+<!-- Fixed top with sibling block (should always work) -->
+<div class="container" id="test4">
+    <span style="position: relative; top: -25px"><img style="width: 100px; height: 40px"></span>
+    <div></div>
+</div>
+
+<script>
+function imgOffset(id) {
+    var container = document.getElementById(id);
+    var img = container.querySelector("img");
+    return {
+        top: img.getBoundingClientRect().top - container.getBoundingClientRect().top,
+        left: img.getBoundingClientRect().left - container.getBoundingClientRect().left
+    };
+}
+
+test(function() {
+    assert_equals(imgOffset("test1").top, -25,
+        "top: -5% of 500px should offset by -25px");
+}, "Percentage top on relative inline works with sibling block");
+
+test(function() {
+    assert_equals(imgOffset("test2").top, -25,
+        "top: -5% of 500px should offset by -25px");
+}, "Percentage top on relative inline works without sibling block");
+
+test(function() {
+    assert_equals(imgOffset("test1").top, imgOffset("test2").top,
+        "Offset should be the same with or without sibling block");
+}, "Sibling block does not affect percentage top resolution");
+
+test(function() {
+    assert_equals(imgOffset("test3").left, 40,
+        "left: 10% of 400px should offset by 40px");
+}, "Percentage left on relative inline works with sibling block");
+
+test(function() {
+    assert_equals(imgOffset("test4").top, -25,
+        "top: -25px should offset by -25px");
+}, "Fixed top on relative inline works with sibling block");
+</script>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG coordinate systems: transform attribute on the outermost svg element, dynamic changes (reference)</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<style>
+.container { display: flex; width: 400px; height: 200px; background-color: gold; }
+</style>
+<div class="container">
+  <svg width="200" height="200" viewBox="0 0 20 20" style="transform: scale(0.5) translate(-100px, -50px)">
+    <rect x="2" y="2" width="16" height="16" fill="green"/>
+  </svg>
+  <svg width="200" height="200" viewBox="0 0 20 20" style="transform: translate(20px, 30px)">
+    <rect x="2" y="2" width="16" height="16" fill="green"/>
+  </svg>
+</div>

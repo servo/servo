@@ -1,0 +1,191 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>An option inserted with its selectedness set to true is selected, also inside a wrapper element</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/form-elements.html#concept-select-option-list">
+<link rel=help href="https://html.spec.whatwg.org/multipage/form-elements.html#concept-option-selectedness">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+
+<select id=parsedDropDownBox>
+  <option selected>One</option>
+  <div><span><option selected>Two</option></span></div>
+  <option>Three</option>
+</select>
+
+<select id=parsedListBox size=4>
+  <option selected>One</option>
+  <div><span><option selected>Two</option></span></div>
+  <option>Three</option>
+</select>
+
+<select id=parsedMultiple multiple>
+  <option selected>One</option>
+  <div><span><option selected>Two</option></span></div>
+  <option>Three</option>
+</select>
+
+<script>
+function selectedOptionTexts(select) {
+  return Array.from(select.selectedOptions, option => option.textContent);
+}
+
+function parseSelect(attributes, html) {
+  const container = document.createElement("div");
+  container.innerHTML = `<select${attributes}>${html}</select>`;
+  return container.firstChild;
+}
+
+function createSelect(t, attributes, html) {
+  const select = parseSelect(attributes, html);
+  document.body.append(select);
+  t.add_cleanup(() => select.remove());
+  return select;
+}
+
+function createWrapper(html) {
+  const wrapper = document.createElement("div");
+  wrapper.innerHTML = html;
+  return wrapper;
+}
+
+function createSelectedOption(text) {
+  const option = document.createElement("option");
+  option.textContent = text;
+  option.selected = true;
+  return option;
+}
+
+test(() => {
+  assert_array_equals(selectedOptionTexts(parsedDropDownBox), ["Two"]);
+}, "drop-down box: parsing a selected option in wrappers after a selected option");
+
+test(() => {
+  assert_array_equals(selectedOptionTexts(parsedListBox), ["Two"]);
+}, "list box: parsing a selected option in wrappers after a selected option");
+
+test(() => {
+  assert_array_equals(selectedOptionTexts(parsedMultiple), ["One", "Two"]);
+}, "multiple: parsing a selected option in wrappers after a selected option");
+
+for (const [box, attributes] of [["drop-down box", ""], ["list box", " size=4"]]) {
+  test(t => {
+    const select = createSelect(t, attributes, "<option>One</option><option selected>Three</option>");
+    select.prepend(createWrapper("<option selected>Two</option>"));
+    assert_array_equals(selectedOptionTexts(select), ["Two"]);
+  }, `${box}: inserting a wrapper with a selected option`);
+
+  test(t => {
+    const select = createSelect(t, attributes, "<option>One</option><option selected>Three</option>");
+    select.prepend(createWrapper("<span><option selected>Two</option></span>"));
+    assert_array_equals(selectedOptionTexts(select), ["Two"]);
+  }, `${box}: inserting nested wrappers with a selected option`);
+
+  test(() => {
+    const select = parseSelect(attributes, "<option>One</option><option selected>Three</option>");
+    select.prepend(createWrapper("<option selected>Two</option>"));
+    assert_array_equals(selectedOptionTexts(select), ["Two"]);
+  }, `${box}: inserting a wrapper with a selected option into a select that is not connected`);
+
+  test(t => {
+    const select = createSelect(t, attributes, "<div></div><option selected>Three</option>");
+    select.firstChild.append(createSelectedOption("Two"));
+    assert_array_equals(selectedOptionTexts(select), ["Two"]);
+  }, `${box}: inserting a selected option into a wrapper`);
+
+  test(t => {
+    const select = createSelect(t, attributes, "<div></div><option selected>Three</option>");
+    select.firstChild.innerHTML = "<option selected>Two</option>";
+    assert_array_equals(selectedOptionTexts(select), ["Two"]);
+  }, `${box}: setting innerHTML of a wrapper to a selected option`);
+
+  test(t => {
+    const select = createSelect(t, attributes, "<optgroup></optgroup><option selected>Three</option>");
+    select.firstChild.append(createSelectedOption("Two"));
+    assert_array_equals(selectedOptionTexts(select), ["Two"]);
+  }, `${box}: inserting a selected option into an optgroup`);
+
+  test(t => {
+    const select = createSelect(t, attributes, "");
+    select.innerHTML = "<option selected>One</option><div><option selected>Two</option></div><option>Three</option>";
+    assert_array_equals(selectedOptionTexts(select), ["Two"]);
+  }, `${box}: setting innerHTML to a selected option followed by a wrapper with a selected option`);
+
+  test(t => {
+    const select = createSelect(t, attributes, "<option selected>Three</option>");
+    select.prepend(createSelectedOption("One"), createWrapper("<option selected>Two</option>"));
+    assert_array_equals(selectedOptionTexts(select), ["Two"]);
+  }, `${box}: inserting a selected option followed by a wrapper with a selected option`);
+
+  test(t => {
+    const select = createSelect(t, attributes, "<option selected>Three</option>");
+    select.prepend(createWrapper("<option selected>One</option>"), createSelectedOption("Two"));
+    assert_array_equals(selectedOptionTexts(select), ["Two"]);
+  }, `${box}: inserting a wrapper with a selected option followed by a selected option`);
+
+  test(t => {
+    const select = createSelect(t, attributes, "<option>One</option><option selected>Three</option>");
+    const wrapper = document.body.appendChild(createWrapper("<option selected>Two</option>"));
+    t.add_cleanup(() => wrapper.remove());
+    select.moveBefore(wrapper, select.firstChild);
+    assert_array_equals(selectedOptionTexts(select), ["Two"]);
+  }, `${box}: moving a wrapper with a selected option into the select`);
+
+  test(t => {
+    const select = createSelect(t, attributes, "<option selected>One</option><div><option selected>Two</option></div><option>Three</option>");
+    assert_array_equals(selectedOptionTexts(select), ["Two"]);
+    const clone = select.cloneNode(true);
+    assert_array_equals(selectedOptionTexts(clone), ["Two"], "The clone selects the last option with a selected attribute");
+    document.body.append(clone);
+    t.add_cleanup(() => clone.remove());
+    clone.options[0].selected = true;
+    clone.append(document.createElement("div"));
+    assert_array_equals(selectedOptionTexts(clone), ["One"], "A later change does not select an option because of the cloning");
+  }, `${box}: cloning a select with selected options in a wrapper`);
+
+  test(t => {
+    const container = document.createElement("div");
+    container.innerHTML = `<div><select${attributes}><option selected>One</option><option>Two</option></select></div><div></div>`;
+    document.body.append(container);
+    t.add_cleanup(() => container.remove());
+    const [wrapper, newParent] = container.children;
+    const select = wrapper.firstChild;
+    newParent.moveBefore(wrapper, null);
+    select.options[1].selected = true;
+    select.append(document.createElement("div"));
+    assert_array_equals(selectedOptionTexts(select), ["Two"]);
+  }, `${box}: moving an ancestor of the select does not select an option later`);
+
+  test(t => {
+    const container = document.createElement("div");
+    document.body.append(container);
+    t.add_cleanup(() => container.remove());
+    container.innerHTML = `<select${attributes}><option>One</option><option selected>Two</option></select>`;
+    const select = container.firstChild;
+    select.options[0].selected = true;
+    select.append(document.createElement("div"));
+    assert_array_equals(selectedOptionTexts(select), ["One"]);
+  }, `${box}: inserting a select with innerHTML does not select an option later`);
+}
+
+test(t => {
+  const select = createSelect(t, " multiple", "<option>One</option><option selected>Three</option>");
+  select.prepend(createWrapper("<option selected>Two</option>"));
+  assert_array_equals(selectedOptionTexts(select), ["Two", "Three"]);
+}, "multiple: inserting a wrapper with a selected option");
+
+test(t => {
+  const select = createSelect(t, "", "<button><selectedcontent></selectedcontent></button><option>One</option><option selected>Three</option>");
+  const selectedContent = select.querySelector("selectedcontent");
+  assert_equals(selectedContent.textContent, "Three");
+  select.insertBefore(createWrapper("<option selected>Two</option>"), select.querySelector("option"));
+  assert_array_equals(selectedOptionTexts(select), ["Two"]);
+  assert_equals(selectedContent.textContent, "Two");
+}, "drop-down box: inserting a wrapper with a selected option updates selectedcontent");
+
+test(t => {
+  const select = createSelect(t, "", "<button><selectedcontent></selectedcontent></button><option>One</option><option selected>Two</option>");
+  select.querySelector("selectedcontent").append(createSelectedOption("Three"));
+  assert_array_equals(selectedOptionTexts(select), ["Two"]);
+}, "drop-down box: inserting a selected option into selectedcontent does not select it");
+</script>

@@ -68,5 +68,23 @@ assert_trap(() => call($1, "set-t64", [5n, hostref(2)]), "table_grow64.wast:33")
 
 // table_grow64.wast:34
 assert_trap(() => call($1, "get-t64", [5n]), "table_grow64.wast:34");
+
+// table_grow64.wast:37
+let $$2 = module("\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x8a\x80\x80\x80\x00\x02\x60\x01\x7e\x01\x7e\x60\x00\x01\x7e\x03\x83\x80\x80\x80\x00\x02\x00\x01\x04\x84\x80\x80\x80\x00\x01\x70\x04\x01\x07\x8f\x80\x80\x80\x00\x02\x04\x67\x72\x6f\x77\x00\x00\x04\x73\x69\x7a\x65\x00\x01\x0a\x99\x80\x80\x80\x00\x02\x89\x80\x80\x80\x00\x00\xd0\x70\x20\x00\xfc\x0f\x00\x0b\x85\x80\x80\x80\x00\x00\xfc\x10\x00\x0b", "table_grow64.wast:37");
+
+// table_grow64.wast:37
+let $2 = instance($$2);
+
+// table_grow64.wast:44
+assert_return(() => call($2, "grow", [-1n]), "table_grow64.wast:44", -1n);
+
+// table_grow64.wast:45
+assert_return(() => call($2, "size", []), "table_grow64.wast:45", 1n);
+
+// table_grow64.wast:46
+assert_return(() => call($2, "grow", [-2n]), "table_grow64.wast:46", [-1n, 1n]);
+
+// table_grow64.wast:49
+assert_return(() => call($2, "size", []), "table_grow64.wast:49", [1n, -1n]);
 reinitializeRegistry();
 })();

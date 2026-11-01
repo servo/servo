@@ -1,5 +1,5 @@
-// META: title=RemoteContextHelper navigation using BFCache
-// META: script=./test-helper.js
+// META: title=Ensure that empty attributes are reported as empty strings and missing attributes are reported as null.
+// META: script=./resources/test-helper.js
 // META: script=/common/dispatcher/dispatcher.js
 // META: script=/common/get-host-info.sub.js
 // META: script=/common/utils.js

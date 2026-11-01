@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test Reference: floated ::first-letter rebuild after text insertion</title>
+  <style>
+  div::first-letter {
+      float: left;
+      color: green;
+  }
+  div {
+      font-size: 50px;
+  }
+  </style>
+</head>
+<body>
+  <p>Test passes if "ABC" appears below with "A" in green and floated left.</p>
+  <div>ABC</div>
+</body>
+</html>

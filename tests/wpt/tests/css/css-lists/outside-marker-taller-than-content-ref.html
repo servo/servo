@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>A list item takes the height of the line its outside marker sits on</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+  body { margin: 0; font: 10px/1 Ahem }
+  ul { margin: 0; padding-inline-start: 60px; list-style-type: none }
+  li { background: silver }
+  /* The same marker image as ordinary inline content, so the line it sits on sizes the item just as the
+     marker's line does in the test. */
+  li::before {
+    content: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="green"/></svg>');
+    margin-inline-start: -47px;
+    margin-inline-end: 7px;
+  }
+</style>
+</head>
+<body>
+  <ul><li></li></ul>
+  <ul><li></li></ul>
+  <ul><li></li></ul>
+</body>
+</html>

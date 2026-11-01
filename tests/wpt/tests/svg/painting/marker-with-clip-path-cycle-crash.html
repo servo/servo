@@ -1,0 +1,12 @@
+<!doctype html>
+<title>Marker with clip-path reference cycle</title>
+<svg>
+  <clipPath id='clip'>
+    <path d='M0,0h50v50h-50z' marker-start='url(#marker)'/>
+  </clipPath>
+  <marker id='marker' clip-path='url(#clip)'></marker>
+  <path d='M0,0h100v100h-100z' fill='green' marker-start='url(#marker)'/>
+</svg>
+<script>
+  document.body.offsetTop;
+</script>

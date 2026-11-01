@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Filters: backdrop-filter over an earlier element with a backdrop-filter</title>
+    <link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+    <link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+    <link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropRoot">
+    <link rel="match" href="backdrop-filter-over-earlier-backdrop-filter-ref.html">
+    <meta name="assert" content="The backdrop of an element includes the backdrop-filter of earlier elements.">
+    <style>
+      body {
+        margin: 0;
+      }
+      .scene {
+        position: absolute;
+        width: 400px;
+        height: 400px;
+        background: linear-gradient(to right, red 0 200px, blue 200px 400px);
+      }
+      .overlay {
+        position: absolute;
+        inset: 0;
+        backdrop-filter: invert(1);
+      }
+      .card {
+        position: absolute;
+        left: 100px;
+        top: 50px;
+        width: 200px;
+        height: 200px;
+        backdrop-filter: invert(1);
+      }
+      .top {
+        position: absolute;
+        left: 200px;
+        top: 150px;
+        width: 150px;
+        height: 200px;
+        backdrop-filter: invert(1);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="scene">
+      <div class="overlay"></div>
+    </div>
+    <div class="card"></div>
+    <div class="top"></div>
+  </body>
+</html>

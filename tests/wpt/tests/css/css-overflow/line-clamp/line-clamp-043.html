@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp hides a positioned inline-block that ends up after the clamp point</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp-containers">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="An inline-block with its own stacking context that ends up after the clamp point once line-clamp changes is an invisible box.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+.clamp {
+  line-clamp: 3;
+  width: 100px;
+  font: 50px/1 Ahem;
+  color: transparent;
+  background-color: green;
+}
+.box {
+  display: inline-block;
+  position: relative;
+  width: 100px;
+  height: 50px;
+  background-color: red;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="clamp" id="clamp">X<br>X<br><span class="box"></span></div>
+<script>
+document.body.offsetHeight;
+document.getElementById("clamp").style.lineClamp = "2";
+</script>

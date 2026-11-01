@@ -1,5 +1,5 @@
-// META: title=RemoteContextHelper navigation using BFCache
-// META: script=./test-helper.js
+// META: title=Ensure that cross-origin subtree's reasons are not exposed to notRestoredReasons.
+// META: script=./resources/test-helper.js
 // META: script=/common/dispatcher/dispatcher.js
 // META: script=/common/get-host-info.sub.js
 // META: script=/common/utils.js
@@ -41,19 +41,18 @@ promise_test(async t => {
 
   // Check the BFCache result and the reported reasons.
   await assertBFCacheEligibility(rc1, /*shouldRestoreFromBFCache=*/ false);
-  await assertNotRestoredReasonsEquals(
-      rc1,
-      /*url=*/ rc1_url,
-      /*src=*/ null,
-      /*id=*/ null,
-      /*name=*/ null,
-      /*reasons=*/[{'reason': "masked"}],
-      /*children=*/[{
-        'url': null,
-        'src': rc1_child_url,
-        'id': 'test-id',
-        'name': null,
-        'reasons': null,
-        'children': null
-      }]);
+  await assertNotRestoredReasonsEquals(rc1,
+                                       /*url=*/ rc1_url,
+                                       /*src=*/ null,
+                                       /*id=*/ null,
+                                       /*name=*/ null,
+                                       /*reasons=*/[{'reason': 'masked'}],
+                                       /*children=*/[{
+                                         'url': null,
+                                         'src': rc1_child_url,
+                                         'id': 'test-id',
+                                         'name': null,
+                                         'reasons': null,
+                                         'children': null
+                                       }]);
 });

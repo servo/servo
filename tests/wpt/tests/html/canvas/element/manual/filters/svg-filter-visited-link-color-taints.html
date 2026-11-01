@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG filter primitives with :visited flood-color or lighting-color taint the canvas</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#tainted-filter-primitives">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .visited-flood {
+    flood-color: rgb(0, 255, 0);
+  }
+  a:visited .visited-flood {
+    flood-color: rgb(255, 0, 0);
+  }
+  .visited-lighting {
+    lighting-color: rgb(0, 255, 0);
+  }
+  a:visited .visited-lighting {
+    lighting-color: rgb(255, 0, 0);
+  }
+  .same-visited-flood,
+  a:visited .same-visited-flood {
+    flood-color: rgb(0, 255, 0);
+  }
+  .same-visited-lighting,
+  a:visited .same-visited-lighting {
+    lighting-color: rgb(0, 255, 0);
+  }
+</style>
+<svg width="0" height="0">
+  <!-- Non-link filters (untainted control) -->
+  <filter id="feFlood-untainted" color-interpolation-filters="sRGB"
+          filterUnits="userSpaceOnUse" x="0" y="0" width="50" height="50">
+    <feFlood class="visited-flood"/>
+  </filter>
+  <filter id="feDropShadow-untainted" color-interpolation-filters="sRGB"
+          filterUnits="userSpaceOnUse" x="0" y="0" width="100" height="50">
+    <feDropShadow class="visited-flood" dx="50" dy="0" stdDeviation="0"/>
+    <feOffset dx="-50" dy="0"/>
+  </filter>
+  <filter id="feDiffuseLighting-untainted" color-interpolation-filters="sRGB"
+          filterUnits="userSpaceOnUse" x="0" y="0" width="50" height="50">
+    <feDiffuseLighting class="visited-lighting">
+      <feDistantLight elevation="90"/>
+    </feDiffuseLighting>
+  </filter>
+  <filter id="feSpecularLighting-untainted" color-interpolation-filters="sRGB"
+          filterUnits="userSpaceOnUse" x="0" y="0" width="50" height="50">
+    <feSpecularLighting class="visited-lighting">
+      <feDistantLight elevation="90"/>
+    </feSpecularLighting>
+  </filter>
+
+  <!-- Visited-link filters with differing :visited color (must taint) -->
+  <a href="">
+    <filter id="feFlood-visited" color-interpolation-filters="sRGB"
+            filterUnits="userSpaceOnUse" x="0" y="0" width="50" height="50">
+      <feFlood class="visited-flood"/>
+    </filter>
+    <filter id="feDropShadow-visited" color-interpolation-filters="sRGB"
+            filterUnits="userSpaceOnUse" x="0" y="0" width="100" height="50">
+      <feDropShadow class="visited-flood" dx="50" dy="0" stdDeviation="0"/>
+      <feOffset dx="-50" dy="0"/>
+    </filter>
+    <filter id="feDiffuseLighting-visited" color-interpolation-filters="sRGB"
+            filterUnits="userSpaceOnUse" x="0" y="0" width="50" height="50">
+      <feDiffuseLighting class="visited-lighting">
+        <feDistantLight elevation="90"/>
+      </feDiffuseLighting>
+    </filter>
+    <filter id="feSpecularLighting-visited" color-interpolation-filters="sRGB"
+            filterUnits="userSpaceOnUse" x="0" y="0" width="50" height="50">
+      <feSpecularLighting class="visited-lighting">
+        <feDistantLight elevation="90"/>
+      </feSpecularLighting>
+    </filter>
+
+    <!-- Visited-link filters where :visited color matches unvisited (untainted) -->
+    <filter id="feFlood-same-visited" color-interpolation-filters="sRGB"
+            filterUnits="userSpaceOnUse" x="0" y="0" width="50" height="50">
+      <feFlood class="same-visited-flood"/>
+    </filter>
+    <filter id="feDiffuseLighting-same-visited" color-interpolation-filters="sRGB"
+            filterUnits="userSpaceOnUse" x="0" y="0" width="50" height="50">
+      <feDiffuseLighting class="same-visited-lighting">
+        <feDistantLight elevation="90"/>
+      </feDiffuseLighting>
+    </filter>
+  </a>
+
+  <!-- Unvisited-link filters with :visited rules (must also taint) -->
+  <a href="unvisited">
+    <filter id="feFlood-unvisited" color-interpolation-filters="sRGB"
+            filterUnits="userSpaceOnUse" x="0" y="0" width="50" height="50">
+      <feFlood class="visited-flood"/>
+    </filter>
+    <filter id="feDropShadow-unvisited" color-interpolation-filters="sRGB"
+            filterUnits="userSpaceOnUse" x="0" y="0" width="100" height="50">
+      <feDropShadow class="visited-flood" dx="50" dy="0" stdDeviation="0"/>
+      <feOffset dx="-50" dy="0"/>
+    </filter>
+    <filter id="feDiffuseLighting-unvisited" color-interpolation-filters="sRGB"
+            filterUnits="userSpaceOnUse" x="0" y="0" width="50" height="50">
+      <feDiffuseLighting class="visited-lighting">
+        <feDistantLight elevation="90"/>
+      </feDiffuseLighting>
+    </filter>
+    <filter id="feSpecularLighting-unvisited" color-interpolation-filters="sRGB"
+            filterUnits="userSpaceOnUse" x="0" y="0" width="50" height="50">
+      <feSpecularLighting class="visited-lighting">
+        <feDistantLight elevation="90"/>
+      </feSpecularLighting>
+    </filter>
+  </a>
+
+  <!-- Dynamic filters: initially non-links (untainted), then turned into links -->
+  <a id="dynamic-flood-visited-link">
+    <filter id="feFlood-dynamic-visited" color-interpolation-filters="sRGB"
+            filterUnits="userSpaceOnUse" x="0" y="0" width="50" height="50">
+      <feFlood class="visited-flood"/>
+    </filter>
+  </a>
+  <a id="dynamic-flood-unvisited-link">
+    <filter id="feFlood-dynamic-unvisited" color-interpolation-filters="sRGB"
+            filterUnits="userSpaceOnUse" x="0" y="0" width="50" height="50">
+      <feFlood class="visited-flood"/>
+    </filter>
+  </a>
+  <a id="dynamic-lighting-visited-link">
+    <filter id="feDiffuseLighting-dynamic-visited" color-interpolation-filters="sRGB"
+            filterUnits="userSpaceOnUse" x="0" y="0" width="50" height="50">
+      <feDiffuseLighting class="visited-lighting">
+        <feDistantLight elevation="90"/>
+      </feDiffuseLighting>
+    </filter>
+  </a>
+  <a id="dynamic-lighting-unvisited-link">
+    <filter id="feDiffuseLighting-dynamic-unvisited" color-interpolation-filters="sRGB"
+            filterUnits="userSpaceOnUse" x="0" y="0" width="50" height="50">
+      <feDiffuseLighting class="visited-lighting">
+        <feDistantLight elevation="90"/>
+      </feDiffuseLighting>
+    </filter>
+  </a>
+  <a id="sync-link">
+    <filter id="flood-sync" color-interpolation-filters="sRGB"
+            filterUnits="userSpaceOnUse" x="0" y="0" width="50" height="50">
+      <feFlood class="visited-flood"/>
+    </filter>
+  </a>
+</svg>
+<svg style="display: none">
+  <a id="dispnone-link">
+    <filter id="flood-dispnone" color-interpolation-filters="sRGB"
+            filterUnits="userSpaceOnUse" x="0" y="0" width="50" height="50">
+      <feFlood id="feflood-dispnone" class="visited-flood"/>
+    </filter>
+  </a>
+</svg>
+<script>
+function drawFilteredRect(filterId) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 50;
+  canvas.height = 50;
+  const ctx = canvas.getContext("2d");
+  ctx.filter = `url(#${filterId})`;
+  ctx.fillRect(0, 0, 50, 50);
+  return { canvas, ctx };
+}
+
+const primitives = [
+  "feFlood",
+  "feDropShadow",
+  "feDiffuseLighting",
+  "feSpecularLighting",
+];
+
+for (const name of primitives) {
+  test(() => {
+    const { ctx } = drawFilteredRect(`${name}-untainted`);
+    assert_array_equals(
+        ctx.getImageData(25, 25, 1, 1).data, [0, 255, 0, 255],
+        `Untainted ${name} filter should draw green without tainting`);
+
+    const visited = drawFilteredRect(`${name}-visited`);
+    assert_throws_dom(
+        "SecurityError", () => visited.ctx.getImageData(25, 25, 1, 1),
+        `Visited ${name} filter with :visited color must taint canvas`);
+
+    const unvisited = drawFilteredRect(`${name}-unvisited`);
+    assert_throws_dom(
+        "SecurityError", () => unvisited.ctx.getImageData(25, 25, 1, 1),
+        `Unvisited ${name} filter with :visited rule must taint canvas`);
+  }, `${name} with :visited color taints 2D canvas`);
+}
+
+test(() => {
+  const flood = drawFilteredRect("feFlood-same-visited");
+  assert_array_equals(
+      flood.ctx.getImageData(25, 25, 1, 1).data, [0, 255, 0, 255],
+      "feFlood inside link with identical :visited flood-color should not taint");
+
+  const lighting = drawFilteredRect("feDiffuseLighting-same-visited");
+  assert_array_equals(
+      lighting.ctx.getImageData(25, 25, 1, 1).data, [0, 255, 0, 255],
+      "feDiffuseLighting inside link with identical :visited lighting-color should not taint");
+}, "Filters inside a link whose :visited color matches unvisited do not taint");
+
+const dynamicCases = [
+  {
+    name: "feFlood",
+    filterId: "feFlood-dynamic-visited",
+    linkId: "dynamic-flood-visited-link",
+    href: "",
+    desc: "a visited link",
+  },
+  {
+    name: "feFlood",
+    filterId: "feFlood-dynamic-unvisited",
+    linkId: "dynamic-flood-unvisited-link",
+    href: "unvisited",
+    desc: "an unvisited link",
+  },
+  {
+    name: "feDiffuseLighting",
+    filterId: "feDiffuseLighting-dynamic-visited",
+    linkId: "dynamic-lighting-visited-link",
+    href: "",
+    desc: "a visited link",
+  },
+  {
+    name: "feDiffuseLighting",
+    filterId: "feDiffuseLighting-dynamic-unvisited",
+    linkId: "dynamic-lighting-unvisited-link",
+    href: "unvisited",
+    desc: "an unvisited link",
+  },
+];
+
+for (const { name, filterId, linkId, href, desc } of dynamicCases) {
+  test(() => {
+    const { ctx } = drawFilteredRect(filterId);
+    assert_array_equals(
+        ctx.getImageData(25, 25, 1, 1).data, [0, 255, 0, 255],
+        `Initially non-link ${name} filter should not taint`);
+
+    document.getElementById(linkId).setAttribute("href", href);
+    document.body.offsetTop;
+
+    ctx.fillRect(0, 0, 50, 50);
+    assert_throws_dom(
+        "SecurityError", () => ctx.getImageData(25, 25, 1, 1),
+        `${name} filter must taint canvas after ancestor <a> becomes ${desc}`);
+  }, `Dynamically turning an ancestor <a> into ${desc} causes ${name} to taint 2D canvas`);
+}
+
+test(() => {
+  const { ctx } = drawFilteredRect("flood-sync");
+  assert_array_equals(ctx.getImageData(25, 25, 1, 1).data, [0, 255, 0, 255]);
+
+  // Update the link and draw immediately without querying layout or computed
+  // style in between.
+  document.getElementById("sync-link").setAttribute("href", "");
+  ctx.fillRect(0, 0, 50, 50);
+  assert_throws_dom(
+      "SecurityError", () => ctx.getImageData(25, 25, 1, 1),
+      "Drawing with a url() filter immediately after adding href must taint canvas");
+}, "Dynamically turning an ancestor <a> into a visited link taints immediate canvas draw");
+
+test(() => {
+  const fe = document.getElementById("feflood-dispnone");
+  getComputedStyle(fe).floodColor;
+
+  const { ctx } = drawFilteredRect("flood-dispnone");
+
+  // Depending on whether a filter inside a display:none <svg> is applied,
+  // either the filter has no effect (leaving fillRect black rather than
+  // flooding green) or, if applied, turning its ancestor <a> into a visited
+  // link must taint the canvas.
+  const initialPixel = ctx.getImageData(25, 25, 1, 1).data;
+  if (initialPixel[1] === 0) {
+    assert_array_equals(initialPixel, [0, 0, 0, 255]);
+    document.getElementById("dispnone-link").setAttribute("href", "");
+    getComputedStyle(fe).floodColor;
+    ctx.fillRect(0, 0, 50, 50);
+    assert_array_equals(ctx.getImageData(25, 25, 1, 1).data, [0, 0, 0, 255]);
+    return;
+  }
+
+  document.getElementById("dispnone-link").setAttribute("href", "");
+  getComputedStyle(fe).floodColor;
+  document.body.offsetTop;
+
+  ctx.fillRect(0, 0, 50, 50);
+  assert_throws_dom(
+      "SecurityError", () => ctx.getImageData(25, 25, 1, 1),
+      "feFlood inside a display:none <svg> must taint canvas after ancestor <a> becomes a visited link");
+}, "feFlood inside a display:none <svg> after getComputedStyle does not leak :visited color to canvas");
+</script>

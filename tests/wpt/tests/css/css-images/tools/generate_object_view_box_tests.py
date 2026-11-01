@@ -7,6 +7,8 @@ def generate_file(source, destination, tag, name, image_source):
     with open(os.path.join(HERE, source)) as file:
         lines = file.read()
 
+    if tag == 'img':
+        lines = lines.replace('</__TAG__>', '')
     replaced_lines = lines.replace('__TAG__',
                                    tag).replace('__NAME__', name).replace(
                                        '__IMAGE_SOURCE__', image_source)

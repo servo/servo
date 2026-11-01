@@ -170,6 +170,36 @@ promise_test(async t => {
       "styleAndLayoutStart should be > 0 when rendering occurred");
 }, "layoutDuration captures layout during ResizeObserver callbacks");
 
+promise_test(async t => {
+  const host = document.createElement("div");
+  host.style.display = "flex";
+  host.style.flexWrap = "wrap";
+  host.style.width = "400px";
+  for (let i = 0; i < 2500; i++) {
+    const cell = document.createElement("div");
+    cell.style.flex = "1 1 auto";
+    cell.style.padding = "2px";
+    cell.textContent = `box-${i}`;
+    host.appendChild(cell);
+  }
+  document.body.appendChild(host);
+  t.add_cleanup(() => host.remove());
+
+  const entry = await expect_long_frame(async (t, busy_wait) => {
+    await new Promise(resolve => {
+      requestAnimationFrame(() => {
+        host.style.width = "250px";
+        busy_wait(very_long_frame_duration);
+        resolve();
+      });
+    });
+  }, t);
+
+  assert_not_equals(entry, "timeout", "Entry should be detected");
+  assert_greater_than(entry.layoutDuration, 0,
+      "Heavy render-phase layout should produce layoutDuration > 0");
+}, "Heavy render-phase layout produces strictly positive layoutDuration");
+
 
 </script>
 </body>

@@ -116,6 +116,35 @@ promise_test(async t => {
 promise_test(async t => {
   const reader = new FileReader();
   const events = [];
+
+  for (const type of ['abort', 'loadstart', 'load', 'loadend']) {
+    reader.addEventListener(type, () => events.push(type));
+  }
+
+  reader.addEventListener('error', t.unreached_func('Unexpected error event'));
+  reader.addEventListener('abort', t.step_func(() => {
+    reader.readAsText(new Blob(['second']));
+  }),
+                          {once: true});
+
+  const secondLoadend = new Promise(resolve => {
+    reader.addEventListener('loadend', t.step_func(() => {
+      if (reader.result === 'second') {
+        resolve();
+      }
+    }));
+  });
+
+  reader.readAsText(new Blob(['first']));
+  reader.abort();
+  await secondLoadend;
+
+  assert_array_equals(events, ['abort', 'loadstart', 'load', 'loadend']);
+}, 'A new read in an abort handler before loadstart suppresses the old read');
+
+promise_test(async t => {
+  const reader = new FileReader();
+  const events = [];
   let load_count = 0;
 
   for (const type of ['load', 'loadend']) {

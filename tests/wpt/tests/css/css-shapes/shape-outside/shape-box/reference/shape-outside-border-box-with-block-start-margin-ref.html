@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Shape Test: float left, border-box, with a block start margin reference</title>
+  <style>
+  .container {
+    width: 150px;
+    line-height: 0;
+  }
+
+  .shape {
+    float: left;
+    /* Omit shape-outside: border-box; and let the lines the shape does not cover push the float down instead. */
+    width: 100px;
+    height: 50px;
+    background-color: orange;
+  }
+
+  .box {
+    display: inline-block;
+    width: 25px;
+    height: 25px;
+    background-color: blue;
+  }
+  </style>
+
+  <main class="container">
+    <div><div class="box"></div><div class="box"></div><div class="box"></div><div class="box"></div><div class="box"></div><div class="box"></div><div class="box"></div><div class="box"></div><div class="box"></div><div class="box"></div><div class="box"></div><div class="box"></div></div>
+    <div class="shape"></div>
+    <div><div class="box"></div><div class="box"></div><div class="box"></div><div class="box"></div></div>
+  </main>
+</html>

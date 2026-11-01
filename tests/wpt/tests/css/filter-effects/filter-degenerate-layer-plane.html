@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Filters: filtered element turned edge-on</title>
+    <link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+    <link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+    <link rel="help" href="https://drafts.csswg.org/css-transforms-2/#perspective-property">
+    <link rel="match" href="filter-degenerate-layer-plane-ref.html">
+    <meta name="assert" content="A filtered element turned edge-on covers zero area, so neither it nor its descendants paint anything, and elements painted after it are unaffected.">
+    <!-- The filtered element is drawn from an intermediate image, so its edges can differ from the reference by about a pixel. -->
+    <meta name="fuzzy" content="maxDifference=0-2;totalPixels=0-400">
+    <style>
+      body { margin: 0; background: white; }
+      .edge {
+        position: absolute;
+        top: 50px;
+        left: 50px;
+        width: 200px;
+        height: 200px;
+        background: green;
+        transform: rotateY(90deg);
+        filter: drop-shadow(20px 20px 0 rgba(0, 0, 0, 0.6));
+        will-change: transform;
+      }
+      .edge > div {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        width: 100px;
+        height: 100px;
+        background: orange;
+        will-change: transform;
+      }
+      .after {
+        position: absolute;
+        top: 100px;
+        left: 100px;
+        width: 150px;
+        height: 150px;
+        background: blue;
+        will-change: transform;
+      }
+    </style>
+  </head>
+  <body>
+    <div class=edge><div></div></div>
+    <div class=after></div>
+  </body>
+</html>

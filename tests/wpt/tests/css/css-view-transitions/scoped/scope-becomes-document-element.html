@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>View Transitions: scope becomes the document element</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<iframe id="before-capture"
+        srcdoc="<!DOCTYPE html><div id='scope'></div>"></iframe>
+<iframe id="during-callback"
+        srcdoc="<!DOCTYPE html><div id='scope'></div>"></iframe>
+<script>
+const loaded = new Promise(resolve => window.addEventListener("load", resolve));
+for (const during_callback of [false, true]) {
+  promise_test(async t => {
+    await loaded;
+    const frame = document.getElementById(
+        during_callback ? "during-callback" : "before-capture");
+    const doc = frame.contentDocument;
+    const scope = doc.getElementById("scope");
+    const replace_root = () => doc.replaceChild(scope, doc.documentElement);
+    let callback_ran = false;
+    const transition = scope.startViewTransition(() => {
+      callback_ran = true;
+      if (during_callback) {
+        replace_root();
+      }
+    });
+    t.add_cleanup(() => transition.skipTransition());
+    const rejected = promise_rejects_dom(t, "InvalidStateError",
+                                        frame.contentWindow.DOMException,
+                                        transition.ready);
+    if (!during_callback) {
+      replace_root();
+    }
+
+    await rejected;
+    await transition.updateCallbackDone;
+    await transition.finished;
+    assert_true(callback_ran, "The update callback still runs");
+    assert_equals(doc.documentElement, scope);
+  }, `A scope becoming the document element ${
+      during_callback ? "during the update callback" : "before capture"
+    } skips the transition`);
+}
+</script>

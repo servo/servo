@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: the baseline of an inline-block whose last line box holds a block level box</title>
+<link rel="help" href="https://www.w3.org/TR/CSS22/visudet.html#line-height">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#inline-formatting">
+<meta name="assert" content="The baseline of an inline-block is the baseline of its last line box. When that line box holds a block level box, the exported baseline must include the offset of that line within the inline-block, not just the block's own baseline.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+body { margin: 0; }
+#container { font: 20px/20px Ahem; }
+#inlineBlock { display: inline-block; }
+</style>
+<div id="container"><div id="inlineBlock"><br><span><div id="block">x</div></span></div><span id="after">after</span></div>
+
+<script>
+const rect = id => document.getElementById(id).getBoundingClientRect();
+const topOf = id => rect(id).top - rect("container").top;
+
+test(() => {
+    assert_equals(document.getElementById("inlineBlock").offsetHeight, 40,
+        "two 20px line boxes: the line break and the block level box");
+}, "The inline-block is as tall as its two line boxes");
+
+test(() => {
+    assert_equals(topOf("block"), 20, "the block level box is on the second line box");
+}, "The block level box sits on the inline-block's last line box");
+
+test(() => {
+    // Ahem's ascent is 0.8em, so a 20px line puts the baseline 16px down. The inline-block's baseline is the
+    // second line's, at 20 + 16 = 36, and #after's own baseline sits 16px into its box.
+    assert_equals(topOf("after"), 20,
+        "the text after the inline-block is aligned to the inline-block's last line box baseline");
+}, "An inline-block whose last line box holds a block level box exports that line's baseline");
+</script>
