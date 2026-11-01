@@ -246,8 +246,12 @@ impl Param {
         self.kind = rate;
     }
 
-    pub(crate) fn update_range(&mut self, range: (f32, f32)) {
+    pub(crate) fn set_range(&mut self, range: (f32, f32)) {
         self.val_range = range;
+    }
+
+    pub(crate) fn set_range_minimum(&mut self, value: f32) {
+        self.val_range.0 = value;
     }
 
     pub(crate) fn insert_event(&mut self, event: AutomationEvent) {

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::any::Any;
 use std::f32::consts::PI;
 
 use malloc_size_of_derive::MallocSizeOf;
@@ -120,5 +121,9 @@ impl AudioNodeEngine for StereoPannerNode {
             ParamType::Pan => &mut self.pan,
             _ => panic!("Unknown param {:?} for PannerNode", id),
         }
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
