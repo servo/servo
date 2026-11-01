@@ -23,7 +23,7 @@
 </style>
 <script>
   setup({ explicit_done: true });
-  window.addEventListener("load", runTests);
+  window.addEventListener("load", () => document.fonts.ready.then(runTests));
 
   function spaceBetween(element, i, j) {
       return element.children[j].getBoundingClientRect().left -

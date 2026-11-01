@@ -26,7 +26,7 @@
   }
   </style>
 
-  <body onload="checkLayout('#textarea')">
+  <body onload="document.fonts.ready.then(() => checkLayout('#textarea'))">
     <!-- Expected scroll width 132px =
            width:100px + padding-left:19px + padding-right:13px.
          Expected scroll height 128px =

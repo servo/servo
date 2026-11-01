@@ -52,7 +52,7 @@
   }
   </style>
 
-  <body onload="checkLayout('.flexbox')">
+  <body onload="document.fonts.ready.then(() => checkLayout('.flexbox'))">
     <p>Test1: "width: 100%"</p>
     <div class="flexbox">
       <div class="spacer"></div>
