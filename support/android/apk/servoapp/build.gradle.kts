@@ -3,6 +3,7 @@ import java.util.regex.Pattern
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -126,4 +127,5 @@ dependencies {
     implementation(libs.androidx.material3.compose)
     implementation(libs.androidx.material3.compose.adaptive)
     implementation(libs.androidx.preference)
+    implementation(libs.kotlinx.serialization.json)
 }
