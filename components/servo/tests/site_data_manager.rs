@@ -766,3 +766,248 @@ fn test_get_cookie_async() {
     assert_eq!(cookies[0].name(), "foo");
     assert_eq!(cookies[0].value(), "bar");
 }
+
+#[test]
+fn test_all_cookies() {
+    let servo_test = ServoTest::new();
+
+    let handler =
+        move |_: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            *response.body_mut() = make_body(b"<!DOCTYPE html><p>hi</p>".to_vec());
+        };
+    let (server, url) = make_server(handler);
+    let page_url = url.url().into_url();
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let _webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(page_url.clone())
+        .build();
+    servo_test.spin(move || !delegate.load_status_changed.get());
+
+    let site_data_manager = servo_test.servo().site_data_manager();
+    site_data_manager.set_cookie_for_url(
+        page_url.clone(),
+        Cookie::build(("foo1", "bar1")).path("/").build(),
+        None,
+    );
+    site_data_manager.set_cookie_for_url(
+        page_url.clone(),
+        Cookie::build(("foo2", "bar2")).path("/admin").build(),
+        None,
+    );
+
+    // The jar is scoped by domain, so cookies without an explicit domain are
+    // stored for the request host.
+    let cookies = site_data_manager.all_cookies();
+    assert_eq!(cookies.len(), 2);
+    let mut names: Vec<&str> = cookies.iter().map(Cookie::name).collect();
+    names.sort_unstable();
+    assert_eq!(names, vec!["foo1", "foo2"]);
+
+    // The async variant must deliver the same list via the event loop.
+    let result: Rc<RefCell<Option<Vec<Cookie<'static>>>>> = Rc::new(RefCell::new(None));
+    let result_clone = result.clone();
+    site_data_manager.all_cookies_async(move |cookies| {
+        *result_clone.borrow_mut() = Some(cookies);
+    });
+    let result_clone = result.clone();
+    servo_test.spin(move || result_clone.borrow().is_none());
+    let cookies = result.borrow_mut().take().unwrap();
+    assert_eq!(cookies.len(), 2);
+
+    let _ = server.close();
+}
+
+#[test]
+fn test_delete_cookie() {
+    let servo_test = ServoTest::new();
+
+    let handler =
+        move |_: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            *response.body_mut() = make_body(b"<!DOCTYPE html><p>hi</p>".to_vec());
+        };
+    let (server, url) = make_server(handler);
+    let page_url = url.url().into_url();
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let _webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(page_url.clone())
+        .build();
+    servo_test.spin(move || !delegate.load_status_changed.get());
+
+    let site_data_manager = servo_test.servo().site_data_manager();
+    let stored = page_url.host_str().unwrap().to_owned();
+    site_data_manager.set_cookie_for_url(
+        page_url.clone(),
+        Cookie::build(("foo", "bar"))
+            .path("/")
+            .domain(stored.clone())
+            .build(),
+        None,
+    );
+    site_data_manager.set_cookie_for_url(
+        page_url.clone(),
+        Cookie::build(("other", "value"))
+            .path("/")
+            .domain(stored.clone())
+            .build(),
+        None,
+    );
+    assert_eq!(site_data_manager.all_cookies().len(), 2);
+
+    // A name and domain match with a different path must delete nothing.
+    site_data_manager.delete_cookie(
+        Cookie::build(("foo", "any"))
+            .path("/admin")
+            .domain(stored.clone())
+            .build(),
+        None,
+    );
+    assert_eq!(site_data_manager.all_cookies().len(), 2);
+
+    // An exact name, domain and path match deletes the cookie. The asynchronous
+    // form should fire its callback when the event loop is spun.
+    let deleted = Rc::new(Cell::new(false));
+    let deleted_clone = deleted.clone();
+    site_data_manager.delete_cookie(
+        Cookie::build(("foo", "any"))
+            .path("/")
+            .domain(stored)
+            .build(),
+        Some(Box::new(move || deleted_clone.set(true))),
+    );
+    assert!(!deleted.get(), "callback must not fire before the event loop is spun");
+    let deleted_clone = deleted.clone();
+    servo_test.spin(move || !deleted_clone.get());
+
+    let cookies = site_data_manager.all_cookies();
+    assert_eq!(cookies.len(), 1);
+    assert_eq!(cookies[0].name(), "other");
+
+    let _ = server.close();
+}
+
+#[test]
+fn test_delete_cookies_for_url() {
+    let servo_test = ServoTest::new();
+
+    // Map two distinct host names onto the loopback address so that cookies
+    // set against each of them land in different domain buckets.
+    let ip = "127.0.0.1".parse().unwrap();
+    let mut host_table: HashMap<String, std::net::IpAddr> = HashMap::new();
+    host_table.insert("testsite1.example".to_owned(), ip);
+    host_table.insert("testsite2.example".to_owned(), ip);
+    replace_host_table(host_table);
+
+    let handler =
+        move |_: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            *response.body_mut() = make_body(b"<!DOCTYPE html><p>hi</p>".to_vec());
+        };
+    let (server1, url1) = make_server(handler);
+    let (server2, url2) = make_server(
+        |_: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            *response.body_mut() = make_body(b"<!DOCTYPE html><p>hi</p>".to_vec());
+        },
+    );
+    let page_url1 =
+        ServoUrl::parse(&format!("http://testsite1.example:{}", url1.url().port().unwrap()))
+            .unwrap();
+    let page_url2 =
+        ServoUrl::parse(&format!("http://testsite2.example:{}", url2.url().port().unwrap()))
+            .unwrap();
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let _webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(page_url1.clone().into_url())
+        .build();
+    servo_test.spin(move || !delegate.load_status_changed.get());
+
+    let site_data_manager = servo_test.servo().site_data_manager();
+    site_data_manager.set_cookie_for_url(
+        page_url1.clone().into_url(),
+        Cookie::build(("foo1", "bar"))
+            .path("/")
+            .domain("testsite1.example")
+            .build(),
+        None,
+    );
+    site_data_manager.set_cookie_for_url(
+        page_url2.clone().into_url(),
+        Cookie::build(("foo2", "bar"))
+            .path("/")
+            .domain("testsite2.example")
+            .build(),
+        None,
+    );
+    assert_eq!(site_data_manager.all_cookies().len(), 2);
+
+    // Deleting the cookies for the first URL must leave the cookie stored for
+    // the other domain untouched, in the synchronous form.
+    site_data_manager.delete_cookies_for_url(page_url1.clone().into_url(), None);
+    let cookies = site_data_manager.all_cookies();
+    assert_eq!(cookies.len(), 1);
+    assert_eq!(cookies[0].name(), "foo2");
+
+    // The asynchronous form must fire its callback when the event loop is spun.
+    site_data_manager.set_cookie_for_url(
+        page_url1.clone().into_url(),
+        Cookie::build(("foo1", "bar"))
+            .path("/")
+            .domain("testsite1.example")
+            .build(),
+        None,
+    );
+    let deleted = Rc::new(Cell::new(false));
+    let deleted_clone = deleted.clone();
+    site_data_manager.delete_cookies_for_url(
+        page_url1.clone().into_url(),
+        Some(Box::new(move || deleted_clone.set(true))),
+    );
+    assert!(!deleted.get(), "callback must not fire before the event loop is spun");
+    let deleted_clone = deleted.clone();
+    servo_test.spin(move || !deleted_clone.get());
+    assert!(deleted.get());
+    let cookies = site_data_manager.all_cookies();
+    assert_eq!(cookies.len(), 1);
+    assert_eq!(cookies[0].name(), "foo2");
+
+    // Deleting by attributes must not touch a cookie stored for a different
+    // domain, even when the name and path match.
+    site_data_manager.set_cookie_for_url(
+        page_url1.clone().into_url(),
+        Cookie::build(("foo1", "bar"))
+            .path("/")
+            .domain("testsite1.example")
+            .build(),
+        None,
+    );
+    site_data_manager.delete_cookie(
+        Cookie::build(("foo1", "any"))
+            .path("/")
+            .domain("testsite2.example")
+            .build(),
+        None,
+    );
+    assert_eq!(site_data_manager.all_cookies().len(), 2);
+
+    // The attributes' domain is matched case-insensitively and ignoring a
+    // leading dot, and a missing path defaults to "/".
+    site_data_manager.delete_cookie(
+        Cookie::build(("foo1", "any"))
+            .domain(".TestSite1.example")
+            .build(),
+        None,
+    );
+    let cookies = site_data_manager.all_cookies();
+    assert_eq!(cookies.len(), 1);
+    assert_eq!(cookies[0].name(), "foo2");
+
+    let _ = server1.close();
+    let _ = server2.close();
+}
