@@ -344,7 +344,7 @@ impl Activatable for HTMLAnchorElement {
         self.as_element().has_attribute(&local_name!("href"))
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#the-a-element:activation-behaviour>
+    /// <https://html.spec.whatwg.org/multipage/#links-created-by-a-and-area-elements:activation-behaviour>
     fn activation_behavior(
         &self,
         cx: &mut js::context::JSContext,

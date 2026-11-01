@@ -261,6 +261,7 @@ impl InProgressLoad {
         .redirect_mode(RedirectMode::Manual)
         .crash(self.load_data.crash.clone())
         .client(request_client)
+        .user_activation(self.load_data.has_transient_activation)
         .url_list(self.url_list.clone());
 
         request_builder.reload_navigation = self.load_data.reload_navigation;
@@ -381,6 +382,10 @@ pub(crate) fn navigate(
         // Step 7. If entry's document state's reload pending is true, then set request's reload-navigation flag.
         load_data.reload_navigation = true;
     }
+
+    // Step 2. Let sourceSnapshotParams be the result of snapshotting source snapshot params given sourceDocument.
+    // TODO: Implement the full params, but for now we change the load data to appear what it should have been
+    load_data.has_transient_activation = window.has_transient_activation();
 
     // Step 3. Let initiatorOriginSnapshot be sourceDocument's origin.
     let initiator_origin_snapshot = &load_data.load_origin;

@@ -493,6 +493,9 @@ pub struct RequestBuilder {
     /// <https://fetch.spec.whatwg.org/#concept-request-policy-container>
     pub policy_container: RequestPolicyContainer,
 
+    /// <https://fetch.spec.whatwg.org/#request-user-activation>
+    pub user_activation: bool,
+
     /// <https://fetch.spec.whatwg.org/#concept-request-referrer>
     pub referrer: Referrer,
 
@@ -550,6 +553,7 @@ impl RequestBuilder {
             keep_alive: false,
             credentials_mode: CredentialsMode::CredentialsSameOrigin,
             use_url_credentials: false,
+            user_activation: false,
             origin: Origin::Client,
             client: None,
             policy_container: RequestPolicyContainer::default(),
@@ -629,6 +633,12 @@ impl RequestBuilder {
     /// <https://fetch.spec.whatwg.org/#request-keepalive-flag>
     pub fn keep_alive(mut self, keep_alive: bool) -> RequestBuilder {
         self.keep_alive = keep_alive;
+        self
+    }
+
+    /// <https://fetch.spec.whatwg.org/#request-user-activation>
+    pub fn user_activation(mut self, user_activation: bool) -> RequestBuilder {
+        self.user_activation = user_activation;
         self
     }
 
@@ -772,6 +782,7 @@ impl RequestBuilder {
         request.response_tainting = self.response_tainting;
         request.crash = self.crash;
         request.client = self.client;
+        request.user_activation = self.user_activation;
         request.policy_container = self.policy_container;
         request.is_internal_request = self.is_internal_request;
         request
@@ -858,6 +869,8 @@ pub struct Request {
     pub parser_metadata: ParserMetadata,
     /// <https://fetch.spec.whatwg.org/#concept-request-policy-container>
     pub policy_container: RequestPolicyContainer,
+    /// <https://fetch.spec.whatwg.org/#request-user-activation>
+    pub user_activation: bool,
     /// Servo internal: if crash details are present, trigger a crash error page with these details.
     pub crash: Option<String>,
     /// Servo internal: whether this request originates from Servo internal implementation
@@ -899,6 +912,7 @@ impl Request {
             use_cors_preflight: false,
             credentials_mode: CredentialsMode::CredentialsSameOrigin,
             use_url_credentials: false,
+            user_activation: false,
             cache_mode: CacheMode::Default,
             redirect_mode: RedirectMode::Follow,
             integrity_metadata: String::new(),

@@ -32,7 +32,7 @@
         if (userActivated) {
           test_driver.bless('enable user activation', () => {
             navigate(win, url);
-          });
+          }, win);
         } else {
           navigate(win, url);
         }
