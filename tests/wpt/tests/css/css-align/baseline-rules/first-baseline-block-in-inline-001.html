@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Box Alignment: first baseline of a box whose first line box holds a block-level box</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#baseline-export">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#flex-baselines">
+<link rel="help" href="https://www.w3.org/TR/CSS22/tables.html#height-layout">
+<meta name="assert" content="The first baseline of a block container comes from the first line box in it. When that line box holds a block-level box, the exported baseline must include the offset of that block-level box within the container, so padding above it is accounted for.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+body { margin: 0; }
+.target { position: relative; font: 20px/1 Ahem; }
+.flex { display: flex; align-items: baseline; }
+.table { display: table; }
+.row { display: table-row; }
+.cell { display: table-cell; vertical-align: baseline; }
+.padded { padding-top: 50px; }
+</style>
+
+<!-- The second flex item has no text of its own: its first line box is the <div> nested in the <span>,
+     which sits below the item's 50px padding. Its first baseline is therefore 50px lower than the first
+     item's, so the first item is pushed down by 50px to align the two. -->
+<div class="target flex">
+  <div id="flex-plain">X</div>
+  <div id="flex-padded" class="padded"><span><div>X</div></span></div>
+</div>
+
+<!-- Same, with the block-level box as a sibling of inline content rather than nested in an inline box.
+     It is still the first thing on the first line, so the exported baseline must account for it. -->
+<div class="target flex">
+  <div id="flex-plain-2">X</div>
+  <div id="flex-mixed" class="padded"><div>X</div>tail</div>
+</div>
+
+<!-- Baseline-aligned table cells: the second cell's baseline is 50px lower than the first cell's, so the
+     first cell's content is pushed down by 50px to align them. -->
+<div class="target table">
+  <div class="row">
+    <div class="cell"><span id="cell-plain">X</span></div>
+    <div class="cell padded"><span><div><span id="cell-padded">X</span></div></span></div>
+  </div>
+</div>
+
+<script>
+const offsetTop = id => document.getElementById(id).offsetTop;
+
+test(() => {
+    assert_equals(offsetTop('flex-padded'), 0, "the item whose block-level box is offset by padding stays at the top");
+    assert_equals(offsetTop('flex-plain') - offsetTop('flex-padded'), 50,
+        "the other item is pushed down by the padding above the block-level box, to align the baselines");
+}, "Flex item first baseline includes the offset of a block-level box nested in an inline box");
+
+test(() => {
+    assert_equals(offsetTop('flex-plain-2') - offsetTop('flex-mixed'), 50,
+        "the other item is pushed down by the padding above the block-level box, to align the baselines");
+}, "Flex item first baseline includes the offset of a block-level box that is a sibling of inline content");
+
+test(() => {
+    assert_equals(offsetTop('cell-padded'), offsetTop('cell-plain'),
+        "both cells' content ends up at the same offset: the padded cell starts below its padding, and the "
+        + "other cell is pushed down by the same amount to align the baselines");
+    assert_greater_than_equal(offsetTop('cell-plain'), 49,
+        "the cell without padding is pushed down by (about) the 50px padding of the other cell");
+}, "Table cell baseline includes the offset of a block-level box nested in an inline box");
+</script>

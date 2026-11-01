@@ -6,12 +6,10 @@
 <script src="support/speculation-measurement-utils.js"></script>
 <body>
 <script>
-// Verify the preconnect interface shape before any preconnects are added.
+// Verify the preconnects shape before any preconnects are added.
 test(() => {
   assert_true(isSpeculationMeasurementEnabled(),
     "SpeculationMeasurement feature must be enabled");
-  assert_true('SpeculationData' in window, "SpeculationData should exist");
-  assert_true('PreconnectData' in window, "PreconnectData should exist");
 
   const speculations = performance.getSpeculations();
   assert_true('preconnects' in speculations, "should have preconnects");
@@ -19,7 +17,7 @@ test(() => {
     "preconnects should be an array");
   assert_array_equals(speculations.preconnects, [],
     "preconnects should be empty when page has no preconnects");
-}, "performance.getSpeculations() preconnect interface");
+}, "performance.getSpeculations() preconnect shape");
 
 // Each crossorigin attribute value is reflected via the crossorigin enum.
 const crossOriginCases = [null, 'anonymous', 'use-credentials'];

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Variables: animated custom properties substituted into :visited link colors</title>
+<link rel="help" href="https://drafts.csswg.org/css-variables/#animation-tainted">
+<link rel="help" href="https://drafts.csswg.org/selectors/#link">
+<link rel="match" href="variable-animation-visited-link-ref.html">
+<meta name="assert" content="A var() referencing an animated custom property is substituted into the colors of a visited link.">
+<style>
+  @property --c {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: red;
+  }
+  @property --v {
+    syntax: '<number>';
+    inherits: true;
+    initial-value: 0;
+  }
+  @keyframes animate-c {
+    from, to { --c: green; }
+  }
+  @keyframes animate-u {
+    from, to { --u: green; }
+  }
+  @keyframes animate-v {
+    from, to { --v: 100; }
+  }
+  body {
+    color: red;
+  }
+  a {
+    display: block;
+    width: 100px;
+    height: 20px;
+    /* Paints the visited color of visited links. */
+    background-color: currentcolor;
+  }
+  /* The base values differ from the animated values. */
+  .base {
+    --c: red;
+    --u: red;
+    --v: 0;
+  }
+  #registered {
+    color: var(--c);
+    animation: animate-c 1000s steps(1, jump-end);
+  }
+  #unregistered {
+    color: var(--u);
+    animation: animate-u 1000s steps(1, jump-end);
+  }
+  #web-animation {
+    color: var(--c);
+  }
+  #ancestor {
+    animation: animate-c 1000s steps(1, jump-end);
+  }
+  #ancestor > a {
+    color: var(--c);
+  }
+  /* steps(1, jump-both) holds the transition at the midpoint of
+     rgb(0, 255, 0) and rgb(0, 1, 0), which is green (rgb(0, 128, 0)).
+     The midpoint differs from both the before-change value and the new
+     base value. */
+  #transition {
+    --c: rgb(0, 255, 0);
+    transition: --c 100000s steps(1, jump-both);
+  }
+  #transition > a {
+    color: var(--c);
+  }
+  #color-mix {
+    color: color-mix(in srgb, green calc(var(--v) * 1%), red);
+    animation: animate-v 1000s steps(1, jump-end);
+  }
+  #background {
+    animation: animate-c 1000s steps(1, jump-end);
+  }
+  #background:link {
+    background-color: red;
+  }
+  #background:visited {
+    background-color: var(--c);
+  }
+</style>
+<a href="" class="base" id="registered"></a>
+<a href="" class="base" id="unregistered"></a>
+<a href="" class="base" id="web-animation"></a>
+<div class="base" id="ancestor"><a href=""></a></div>
+<div id="transition"><a href=""></a></div>
+<a href="" class="base" id="color-mix"></a>
+<a href="" class="base" id="background"></a>
+<script>
+  document.getElementById('web-animation').animate(
+      {'--c': ['green', 'green']},
+      {duration: 1000000, easing: 'steps(1, jump-end)'});
+  const transition = document.getElementById('transition');
+  getComputedStyle(transition).getPropertyValue('--c');
+  transition.style.setProperty('--c', 'rgb(0, 1, 0)');
+  Promise.all(document.getAnimations().map(a => a.ready)).then(() => {
+    requestAnimationFrame(() => {
+      document.documentElement.classList.remove('reftest-wait');
+    });
+  });
+</script>
+</html>

@@ -1,0 +1,142 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Long Animation Frame Timing: conditional measure cannot resolve a cross-origin mark</title>
+<!-- This test covers indirect exposure. A conditional measure can name a
+     cross-origin mark as its start mark, which would report the time at which
+     the iframe marked. Naming a cross-origin mark must therefore be
+     indistinguishable from naming a mark that does not exist. -->
+<!-- The iframe is cross-origin but same-site. Browsers generally isolate by
+     site, so a cross-site iframe would likely run in a separate process, where
+     no exposure is possible and this test would be vacuous. Same-site keeps
+     both documents in one process and one event loop, which is what exercises
+     the origin filtering under test. -->
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/utils.js"></script>
+<style>
+/* Cross-origin iframes outside the viewport could lose their rendering
+   opportunity, which skips their animation frame callbacks. Keep the iframe on
+   screen. */
+#subframe {
+  border: none;
+  height: 100px;
+  left: 0;
+  position: fixed;
+  top: 0;
+  width: 100px;
+}
+</style>
+<body>
+<div id="log"></div>
+<script>
+setup(() => {
+  assert_implements(
+      "userTimingEntries" in PerformanceLongAnimationFrameTiming.prototype,
+      "conditional user timing for LoAF not implemented");
+});
+
+const {HTTP_ORIGIN_WITH_DIFFERENT_PORT} = get_host_info();
+
+promise_test(async t => {
+  const iframe = document.createElement("iframe");
+  iframe.id = "subframe";
+  t.add_cleanup(() => iframe.remove());
+
+  // The message indicates the iframe is leaving user timing entries that must
+  // not be exposed to this document.
+  let iframeRunning = false;
+  window.addEventListener("message", event => {
+    if (event.source === iframe.contentWindow &&
+        event.data === "iframeRunning") {
+      iframeRunning = true;
+    }
+  });
+
+  iframe.onload = () => {
+    iframe.contentWindow.postMessage("start", "*");
+  };
+
+  iframe.src = new URL(
+      "/long-animation-frame/resources/conditional-user-timing-iframe.html",
+      HTTP_ORIGIN_WITH_DIFFERENT_PORT);
+  document.body.appendChild(iframe);
+
+  // If the iframe never reports in -- for instance because it was render
+  // throttled or placed in its own process -- fail with a diagnostic instead of
+  // a bare harness timeout.
+  t.step_timeout(() => {
+    assert_true(iframeRunning, "iframe never reported running");
+  }, 30000);
+
+  const resizeTarget = document.createElement("div");
+  document.body.appendChild(resizeTarget);
+  t.add_cleanup(() => resizeTarget.remove());
+
+  // Generate long animation frames and take measures that name the iframe's
+  // mark. Resizing the target schedules the resize observation that takes the
+  // measures, in a stage that runs after the iframe marks. It is only done
+  // while the iframe is looping, so the measures are taken in a rendering
+  // update the iframe marked in.
+  let keepGeneratingLoAFs = true;
+  t.add_cleanup(() => {
+    keepGeneratingLoAFs = false;
+  });
+
+  let resizeHeight = 0;
+  const generateLoAF = () => {
+    if (iframeRunning) {
+      if (resizeHeight === 0) {
+        observer.observe(resizeTarget);
+      }
+      resizeHeight = resizeHeight % 10 + 1;
+      resizeTarget.style.height = `${resizeHeight}px`;
+    }
+    busy_wait();
+    if (keepGeneratingLoAFs) {
+      requestAnimationFrame(generateLoAF);
+    }
+  };
+  requestAnimationFrame(generateLoAF);
+
+  const crossOriginMeasure = "measure-from-cross-origin-mark";
+  const absentMeasure = "measure-from-absent-mark";
+
+  // The two measures differ only in their start mark: one belongs to the
+  // cross-origin iframe, the other does not exist anywhere.
+  const observer = new ResizeObserver(() => {
+    performance.measureConditional(crossOriginMeasure, "iframe-mark");
+    performance.measureConditional(absentMeasure, "no-such-mark");
+  });
+  t.add_cleanup(() => observer.disconnect());
+
+  // Read the two measures back: any difference between them would reveal that
+  // the iframe's mark exists and when it was taken.
+  const [crossOriginEntry, absentEntry] = await new Promise(resolve => {
+    const loafObserver = new PerformanceObserver(list => {
+      for (const entry of list.getEntries()) {
+        const measures = Array.from(entry.userTimingEntries);
+        const crossOrigin =
+            measures.find(measure => measure.name === crossOriginMeasure);
+        const absent = measures.find(measure => measure.name === absentMeasure);
+        if (crossOrigin && absent) {
+          resolve([crossOrigin, absent]);
+        }
+      }
+    });
+    loafObserver.observe({type: "long-animation-frame"});
+    t.add_cleanup(() => loafObserver.disconnect());
+  });
+
+  // Whatever an unresolvable start mark produces, a cross-origin one must
+  // produce exactly the same thing. Otherwise the start time of the iframe's
+  // mark is readable from this document. The iframe marks after the busy wait
+  // above in the same rendering update, so a resolved start mark would report
+  // at least the duration of busy_wait().
+  assert_approx_equals(
+      crossOriginEntry.startTime, absentEntry.startTime, 1e-6,
+      "Measuring from a cross-origin mark must be indistinguishable from " +
+          "measuring from a mark that does not exist");
+}, "Conditional measures cannot resolve a cross-origin start mark");
+</script>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG view element: an invalid viewBox falls back to the root viewBox</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/linking.html#LinksIntoSVG">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#ViewBoxAttribute">
+<link rel="match" href="../../struct/reftests/reference/green-100x100.html">
+<meta name="assert" content="An invalid viewBox on a view element is treated as if it had not been specified, so the root viewBox applies, with the view's own preserveAspectRatio.">
+<style>
+  img { display: block; width: 100px; height: 25px; background: red; }
+</style>
+<img src="support/view-invalid-viewbox.svg#negative-width">
+<img src="support/view-invalid-viewbox.svg#negative-height">
+<img src="support/view-invalid-viewbox.svg#three-numbers">
+<img src="support/view-invalid-viewbox.svg#no-viewbox">

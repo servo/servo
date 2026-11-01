@@ -110,8 +110,17 @@ let testFunction =
   session.requestAnimationFrame((time, xrFrame) => {
     // Framebuffer status must be complete inside of a XR frame callback.
     assert_equals(gl.checkFramebufferStatus(gl.FRAMEBUFFER), gl.FRAMEBUFFER_COMPLETE);
-    // Finished.
-    resolve();
+
+    session.end().then(() => {
+      // Framebuffer status must be unsupported after the session ends.
+      assert_equals(gl.checkFramebufferStatus(gl.FRAMEBUFFER), gl.FRAMEBUFFER_UNSUPPORTED);
+
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      assert_equals(gl.getError(), gl.INVALID_FRAMEBUFFER_OPERATION);
+
+      // Finished.
+      resolve();
+    });
   });
 });
 

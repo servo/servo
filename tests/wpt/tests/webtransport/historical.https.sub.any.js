@@ -28,3 +28,10 @@ promise_test(async t => {
   const wt = await get_wt();
   assert_false('outgoingHighWaterMark' in wt.datagrams);
 }, 'WebTransportDatagramDuplexStream#outgoingHighWaterMark is removed');
+
+test(() => {
+  // https://github.com/w3c/webtransport/commit/0ac824a9361a6146498349b5609c6f368de5d112
+  const e = new WebTransportError({streamErrorCode: 7, message: 'boom'});
+  assert_equals(e.message, '[object Object]');
+  assert_equals(e.streamErrorCode, null);
+}, 'WebTransportError(init) constructor is removed');

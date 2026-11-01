@@ -37,7 +37,7 @@ div {
             assert_equals(entry.element, document.getElementById('target'));
           } else {
             const url = window.location.origin + '/images/black-rectangle.png';
-            checkImage(entry, url, 'target', 0, beforeLoad, ['sizeLowerBound']);
+            checkImage(entry, url, 'target', 0, beforeLoad, ['sizeRange']);
           }
 
           // Now change the div content to proceed to the second part of the test.

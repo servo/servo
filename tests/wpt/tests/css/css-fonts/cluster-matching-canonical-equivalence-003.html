@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Fonts Test: with synthesized small caps, a decomposed cluster renders like its canonically equivalent character when the capital has no precomposed form</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#cluster-matching">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-variant-caps-prop">
+<link rel="match" href="cluster-matching-canonical-equivalence-003-ref.html">
+<meta name="assert" content="With synthesized small caps, a decomposed cluster whose capital has no precomposed character renders the same as its canonically equivalent precomposed character.">
+<style>
+@font-face {
+  font-family: NoCombiningMarks;
+  src: url(support/fonts/no-combining-marks.ttf);
+}
+div {
+  font: 50px/1.5 NoCombiningMarks;
+  font-variant-caps: small-caps;
+}
+</style>
+<p>Test passes if the text below matches the reference.</p>
+<!-- The font has U+01F0 and U+1E96 to U+1E99, but none of their combining marks and no small caps glyphs. None of the capitals of these letters is a single character. -->
+<div>j&#x30C; h&#x331; t&#x308; w&#x30A; y&#x30A;</div>

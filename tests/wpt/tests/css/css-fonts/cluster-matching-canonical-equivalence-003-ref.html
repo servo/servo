@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Fonts Reference: precomposed characters with synthesized small caps</title>
+<style>
+@font-face {
+  font-family: NoCombiningMarks;
+  src: url(support/fonts/no-combining-marks.ttf);
+}
+div {
+  font: 50px/1.5 NoCombiningMarks;
+  font-variant-caps: small-caps;
+}
+</style>
+<p>Test passes if the text below matches the reference.</p>
+<div>&#x1F0; &#x1E96; &#x1E97; &#x1E98; &#x1E99;</div>

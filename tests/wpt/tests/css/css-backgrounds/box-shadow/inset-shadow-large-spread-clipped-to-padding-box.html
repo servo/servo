@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders Test: inset box-shadow with a spread larger than the box is clipped to the padding box</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#shadow-shape">
+<link rel="match" href="inset-shadow-large-spread-clipped-to-padding-box-ref.html">
+<style>
+div {
+    width: 200px;
+    height: 100px;
+    border: 40px solid transparent;
+    box-shadow: inset 0 0 0 400px blue;
+}
+</style>
+<div></div>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>CSS Test: Ancestors with rounded clips should correctly clip a filtered element</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#funcdef-filter-blur">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#valdef-overflow-clip">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=312584">
+<link rel="match" href="blur-clip-border-radius-ref.html">
+<meta name="fuzzy" content="maxDifference=0-4; totalPixels=0-30">
+<style>
+  .clip {
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    overflow: clip;
+    border-radius: 50%;
+    border: 1px solid black;
+    box-sizing: border-box;
+  }
+
+  .outer {
+    top: 20px;
+    left: 20px;
+  }
+
+  .inner {
+    top: 150px;
+    left: 150px;
+  }
+
+  .filtered {
+    width: 100%;
+    height: 100%;
+    background-color: red;
+    filter: blur(10px);
+  }
+
+  .mask {
+    position: absolute;
+    top: 170px;
+    left: 170px;
+    width: 150px;
+    height: 150px;
+    border-top-left-radius: 150px;
+    border-bottom-right-radius: 150px;
+    background-color: gray;
+    border: 1px solid gray;
+  }
+
+  p {
+    margin-top: 350px;
+  }
+</style>
+<p>You should see no red above</p>
+<div class="outer clip">
+    <div class="inner clip">
+        <div class="filtered"></div>
+    </div>
+</div>
+<div class="mask"></div>

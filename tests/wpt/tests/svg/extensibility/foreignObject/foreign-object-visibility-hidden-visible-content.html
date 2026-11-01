@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG foreignObject: content with visibility: visible inside a foreignObject with visibility: hidden is painted</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/render.html#VisibilityControl">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/embedded.html#ForeignObjectElement">
+<link rel="help" href="https://drafts.csswg.org/css-display/#visibility">
+<link rel="match" href="foreign-object-visibility-hidden-visible-content-ref.html">
+<meta name="assert" content="visibility: hidden on a foreignObject only hides the element itself. Its CSS content that overrides it with visibility: visible is painted, including backgrounds and outlines; content that inherits visibility: hidden is not.">
+<svg width="400" height="200">
+  <foreignObject x="20" y="20" width="100" height="100" visibility="hidden">
+    <div style="width: 50px; height: 50px; background-color: red"></div>
+    <div style="visibility: visible; width: 50px; height: 50px; background-color: green"></div>
+  </foreignObject>
+  <foreignObject x="150" y="20" width="100" height="150" visibility="hidden" transform="translate(10, 10)">
+    <div style="width: 50px; height: 50px; margin: 10px; background-color: red; outline: 10px solid red"></div>
+    <div style="visibility: visible; width: 50px; height: 50px; margin: 10px; background-color: green; outline: 10px solid green"></div>
+  </foreignObject>
+  <g visibility="hidden">
+    <foreignObject x="280" y="20" width="100" height="100">
+      <div style="visibility: visible; width: 50px; height: 50px; background-color: green"></div>
+    </foreignObject>
+  </g>
+</svg>

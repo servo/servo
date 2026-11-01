@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>Sideways Inline Layout: Bidi</title>
+<meta charset=utf-8>
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-4/#block-flow">
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#text-direction">
+
+<link rel="match" href="sideways-inline-004-ref.html">
+<style>
+  body > div {
+    float: left;
+  }
+  p {
+    height: max-content;
+    border: solid silver 1px;
+  }
+  span {
+    border-inline-end: solid;
+  }
+  .s2 { border-width: 1px;  margin-inline-end: 1px; }
+  .s1 { border-width: 5px;  margin-inline-end: 5px; }
+  .s3 { border-width: 10px; margin-inline-end: 10px; }
+  em {
+    border: 3px orange solid;
+    border-inline-start-width: 7px;
+    margin: 2px;
+    font-style: normal;
+  }
+
+  .lr { writing-mode: sideways-lr; }
+  .rl { writing-mode: sideways-rl; }
+</style>
+
+<div class="lr">
+  <p dir=rtl><em><span class=s1>123</span>—<span class=s2>456</span></em>—<span class=s3>789<br>ABC</span>—الفبا
+</div>
+
+<div class="rl">
+  <p dir=rtl><em><span class=s1>123</span>—<span class=s2>456</span></em>—<span class=s3>789<br>ABC</span>—الفبا
+</div>

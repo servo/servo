@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-display/#valdef-display-contents">
+<link rel="match" href="slot-display-contents-display-toggle-ref.html">
+<body>
+<my-el>
+  <div style="display:contents">
+    <div id="a" style="height:20px;background:green">A</div>
+    <div style="height:20px;background:blue">B</div>
+  </div>
+</my-el>
+<script>
+customElements.define('my-el', class extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' }).innerHTML = '<slot></slot>';
+  }
+});
+document.body.offsetHeight;
+document.getElementById('a').style.display = 'none';
+document.body.offsetHeight;
+document.getElementById('a').style.display = '';
+document.body.offsetHeight;
+</script>
+</body>
+</html>

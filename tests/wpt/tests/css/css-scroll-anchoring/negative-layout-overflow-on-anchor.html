@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/#scroll-adjustment">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+body {
+  height: 2000px;
+}
+.outthere {
+  position: relative;
+  top: -900px;
+  left: -120px;
+  height: 1000px;
+  width: 100px;
+  background-color: orange;
+}
+body.changed .outthere {
+  top: -1200px;
+}
+#changer {
+  height: 100px;
+}
+body.changed #changer {
+  height: 200px;
+}
+#anchor {
+  position: relative;
+  height: 100px;
+  background-color: green;
+}
+
+</style>
+<div id="changer"></div>
+<div id="anchor">
+  <div class="outthere"></div>
+</div>
+<script>
+
+test(() => {
+  document.scrollingElement.scrollTop = 120;
+  document.body.classList.add('changed');
+  assert_equals(document.scrollingElement.scrollTop, 220);
+}, "Anchoring adjustment works correctly when the anchor itself has changing negative overflow");
+
+</script>

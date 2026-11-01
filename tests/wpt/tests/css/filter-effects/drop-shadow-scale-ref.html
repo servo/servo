@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Reference for CSS Filters: drop-shadow on a scaled element</title>
+    <link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+    <style>
+      body { margin: 0; background: white; }
+      div {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        overflow: hidden;
+        transform: scale(10);
+        transform-origin: bottom left;
+        will-change: transform;
+      }
+      .shadow {
+        left: 320px;
+        top: 300px;
+        background: blue;
+        filter: blur(4px);
+      }
+      .box {
+        left: 20px;
+        top: 200px;
+        background: linear-gradient(green, green);
+      }
+    </style>
+  </head>
+  <body>
+    <div class=shadow></div>
+    <div class=box></div>
+  </body>
+</html>

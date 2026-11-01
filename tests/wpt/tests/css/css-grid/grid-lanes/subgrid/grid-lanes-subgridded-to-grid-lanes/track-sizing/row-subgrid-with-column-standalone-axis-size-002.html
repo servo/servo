@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes Test: Sizing a regular grid's standalone auto columns through an orthogonal grid-lanes subgrid</title>
+<link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#algo-track-sizing">
+<link rel="match" href="row-subgrid-with-column-standalone-axis-size-001-ref.html">
+<style>
+  #root {
+    background: lightgrey;
+    display: grid-lanes;
+    grid-template-rows: 100px 200px 300px;
+    height: 600px;
+    width: max-content;
+  }
+
+  #outer, #middle, #inner {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  #outer {
+    background: lightblue;
+    display: grid-lanes;
+    grid-row: 1 / -1;
+    grid-template-rows: subgrid;
+  }
+
+  #middle {
+    background: pink;
+    display: grid-lanes;
+    grid-row: 2 / 3;
+    grid-template-columns: subgrid;
+    writing-mode: vertical-lr;
+  }
+
+  #inner {
+    background: yellow;
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: auto;
+    grid-template-rows: subgrid;
+    writing-mode: horizontal-tb;
+  }
+
+  #leaf {
+    background: green;
+    grid-column: 1;
+    grid-row: 1;
+    width: 40px;
+  }
+</style>
+<div id="root">
+  <div id="outer">
+    <div id="middle">
+      <div id="inner">
+        <div id="leaf"></div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>
+  Tests that later grid-lanes items are pushed down when an earlier item containing a float expands due to fragmentation.
+</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; columns: 2; column-gap: 0; column-fill: auto; background: red;">
+  <div style="display: grid-lanes; grid-template-columns: 50px;">
+    <div style="background: green;">
+      <div style="float: left;">
+        <div style="contain: size; width: 50px; height: 80px;"></div>
+        <div style="contain: size; width: 50px; height: 30px;"></div>
+      </div>
+    </div>
+    <div style="background: green; height: 50px;"></div>
+    <div style="background: green; height: 20px;"></div>
+  </div>
+</div>

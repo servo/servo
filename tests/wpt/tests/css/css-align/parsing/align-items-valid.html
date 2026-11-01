@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>CSS Box Alignment Level 3: parsing align-items with valid values</title>
 <link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-align-items">
-<meta name="assert" content="align-items supports the full grammar 'normal | stretch | <baseline-position> | [ <overflow-position>? <self-position> ]'.">
+<meta name="assert" content="align-items supports the full grammar '[ <overflow-position>? normal ] | stretch | <baseline-position> | [ <overflow-position>? <self-position> ]'.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -12,6 +12,8 @@
 <body>
 <script>
 test_valid_value("align-items", "normal");
+test_valid_value("align-items", "unsafe normal");
+test_valid_value("align-items", "safe normal");
 test_valid_value("align-items", "stretch");
 
 // <baseline-position> = [ first | last ]? baseline

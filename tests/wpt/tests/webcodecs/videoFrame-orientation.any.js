@@ -94,3 +94,53 @@ test(_ => {
   orig_frame.close();
   validateOrientedFrame(frame);
 }, 'Test orientation of wrapped VideoFrame');
+
+test(_ => {
+  let frame = make4x2VideoFrame(undefined, undefined);
+  assert_equals(frame.rotation, 0, 'rotation');
+  assert_equals(frame.flip, false, 'flip');
+  frame.close();
+}, 'A VideoFrame is not rotated and not flipped by default');
+
+test(_ => {
+  // The rotation of the init is applied to the image before the flip of the base frame.
+  let baseFrame = make4x2VideoFrame(90, true);
+  let frame = new VideoFrame(baseFrame, {rotation: 90});
+  assert_equals(frame.rotation, 0, 'rotation');
+  assert_equals(frame.flip, true, 'flip');
+  frame.close();
+  baseFrame.close();
+}, 'A rotation of the init is applied before the flip of the base frame');
+
+test(_ => {
+  let baseFrame = make4x2VideoFrame(90, true);
+  let clone = baseFrame.clone();
+  assert_equals(clone.rotation, 90, 'clone rotation');
+  assert_equals(clone.flip, true, 'clone flip');
+  let frame = new VideoFrame(clone, {rotation: 90, flip: true});
+  assert_equals(frame.rotation, 0, 'derived rotation');
+  assert_equals(frame.flip, false, 'derived flip');
+  assert_equals(clone.rotation, 90, 'clone rotation after deriving');
+  assert_equals(clone.flip, true, 'clone flip after deriving');
+  assert_equals(baseFrame.rotation, 90, 'base rotation after deriving');
+  assert_equals(baseFrame.flip, true, 'base flip after deriving');
+  frame.close();
+  clone.close();
+  baseFrame.close();
+}, 'Cloning an oriented VideoFrame keeps its orientation, and deriving from the clone does not change it');
+
+test(_ => {
+  let frame = make4x2VideoFrame(90, true);
+  frame.close();
+  assert_equals(frame.rotation, 0, 'rotation');
+  assert_equals(frame.flip, false, 'flip');
+}, 'A closed VideoFrame has no rotation and no flip');
+
+promise_test(async t => {
+  let data = new Uint8Array(4 * 2 * 4).map((_, i) => i * 7);
+  let frame = new VideoFrame(data, {format: 'RGBA', codedWidth: 4, codedHeight: 2, timestamp: 0, rotation: 90, flip: true});
+  t.add_cleanup(() => frame.close());
+  let copy = new Uint8Array(frame.allocationSize());
+  await frame.copyTo(copy);
+  assert_array_equals(copy, data);
+}, 'copyTo() of an oriented VideoFrame is not affected by its rotation and flip');

@@ -928,7 +928,7 @@ class TestRunnerManager(threading.Thread):
             elif self.restart_on_new_group and test_group is not self.state.test_group:
                 self.logger.info("Restarting browser for new test group")
                 restart = True
-            elif test_group.test_type != self.state.test_group.test_type:
+            elif not restart and test_group.test_type != self.state.test_group.test_type:
                 if self.browser.browser.restart_on_test_type_change(test_group.test_type, self.state.test_group.test_type):
                     self.logger.info(f"Restarting browser for new test type:{test_group.test_type}")
                     restart = True

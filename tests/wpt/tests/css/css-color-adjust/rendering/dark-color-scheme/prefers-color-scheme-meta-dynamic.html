@@ -1,0 +1,65 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Color Adjustment Test: dynamic changes to meta color-scheme affect prefers-color-scheme</title>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://drafts.csswg.org/css-color-adjust-1/#page-color-scheme">
+<link rel="help" href="https://drafts.csswg.org/mediaqueries-5/#prefers-color-scheme">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/13377">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  const darkQuery = matchMedia("(prefers-color-scheme: dark)");
+  const lightQuery = matchMedia("(prefers-color-scheme: light)");
+  const initiallyDark = darkQuery.matches;
+
+  async function assertColorSchemeIs(dark, desc) {
+    // Guarantees that https://drafts.csswg.org/cssom-view/#evaluate-media-queries-and-report-changes runs.
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    assert_equals(darkQuery.matches, dark, `prefers-color-scheme: dark ${desc}`);
+    assert_equals(lightQuery.matches, !dark, `prefers-color-scheme: light ${desc}`);
+  }
+
+  promise_test(async t => {
+    assert_not_equals(darkQuery.matches, lightQuery.matches, "Exactly one of light or dark should match");
+    const meta = document.createElement("meta");
+    meta.name = "color-scheme";
+    t.add_cleanup(() => meta.remove());
+
+    meta.content = "dark";
+    document.head.appendChild(meta);
+    await assertColorSchemeIs(true, "after inserting meta with dark");
+
+    meta.content = "light";
+    await assertColorSchemeIs(false, "after changing meta content to light");
+
+    meta.content = "light dark";
+    await assertColorSchemeIs(initiallyDark, "after changing meta content to light dark");
+
+    meta.content = "dark";
+    await assertColorSchemeIs(true, "after changing meta content back to dark");
+
+    meta.content = "dark light";
+    await assertColorSchemeIs(initiallyDark, "after changing meta content to dark light");
+
+    meta.content = "only light";
+    await assertColorSchemeIs(false, "after changing meta content to only light");
+
+    meta.content = "dark";
+    meta.remove();
+    await assertColorSchemeIs(initiallyDark, "after removing the meta");
+  }, "Dynamic changes to meta color-scheme affect matchMedia('(prefers-color-scheme)')");
+
+  promise_test(async t => {
+    const meta = document.createElement("meta");
+    meta.name = "color-scheme";
+    meta.content = initiallyDark ? "light" : "dark";
+    t.add_cleanup(() => meta.remove());
+
+    const changed = new Promise(resolve => darkQuery.addEventListener("change", resolve, { once: true }));
+    document.head.appendChild(meta);
+    const event = await changed;
+    assert_equals(event.matches, !initiallyDark, "change event matches");
+    assert_equals(darkQuery.matches, !initiallyDark, "matches after the change event");
+  }, "Inserting a meta color-scheme that changes prefers-color-scheme fires a change event");
+</script>

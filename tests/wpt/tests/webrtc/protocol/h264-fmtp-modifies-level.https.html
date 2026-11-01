@@ -1,0 +1,108 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCPeerConnection H.264 max-fs/max-mbps modify the profile-level-id limits</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script>
+// Frame size (macroblocks) and macroblock rate limits per level,
+// H.264 Annex A Table A-1.
+const levels = {
+  "14": {mbs: 11880, fs: 396},
+  "1f": {mbs: 108000, fs: 3600},
+};
+
+function mungeFmtp(sdp, levelHex, extra) {
+  return {
+    type: sdp.type,
+    sdp: sdp.sdp.replace(
+        /(a=fmtp:\d+ [^\r\n]*profile-level-id=....)(..)([^\r\n]*)/g,
+        `$1${levelHex}$3${extra}`),
+  };
+}
+
+async function measureEncodedFps(t, video, durationMs) {
+  let first, last, count = 0, done = false;
+  const onFrame = (now, metadata) => {
+    if (done) {
+      return;
+    }
+    if (count++ == 0) {
+      first = metadata.rtpTimestamp;
+    }
+    last = metadata.rtpTimestamp;
+    video.requestVideoFrameCallback(onFrame);
+  };
+  video.requestVideoFrameCallback(onFrame);
+  await new Promise(resolve => t.step_timeout(resolve, durationMs));
+  done = true;
+  assert_greater_than(count, 2, 'presented frames');
+  assert_implements(first !== undefined,
+                    'VideoFrameCallbackMetadata.rtpTimestamp not supported');
+  return (count - 2) * 90000 / ((last - first) >>> 0);
+}
+
+async function sendH264(t, levelHex, extra) {
+  assert_implements('requestVideoFrameCallback' in HTMLVideoElement.prototype,
+                    'HTMLVideoElement.requestVideoFrameCallback not supported');
+  assert_implements('getCapabilities' in RTCRtpSender,
+                    'RTCRtpSender.getCapabilities not supported');
+  assert_implements(
+      RTCRtpSender.getCapabilities('video').codecs.find(
+          c => c.mimeType === 'video/H264'),
+      'H264 not supported');
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  const stream = await getNoiseStream({video: {width: 1280, height: 720}});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  const transceiver = pc1.addTransceiver(stream.getVideoTracks()[0],
+                                         {streams: [stream]});
+  preferCodec(transceiver, 'video/H264');
+
+  exchangeIceCandidates(pc1, pc2);
+  const trackEvent = new Promise(r => pc2.ontrack = r);
+  const offer = await pc1.createOffer();
+  await pc1.setLocalDescription(offer);
+  await pc2.setRemoteDescription(offer);
+  const answer = await pc2.createAnswer();
+  await pc2.setLocalDescription(answer);
+  await pc1.setRemoteDescription(mungeFmtp(answer, levelHex, extra));
+
+  const v = document.createElement('video');
+  v.autoplay = true;
+  v.srcObject = new MediaStream([(await trackEvent).track]);
+  await new Promise(r => v.addEventListener('loadedmetadata', r));
+
+  const stats = await transceiver.sender.getStats();
+  const codecs = [...stats.values()].filter(s => s.type === 'codec');
+  assert_true(codecs.some(c => c.mimeType === 'video/H264'),
+              'H264 is in use');
+  const fps = await measureEncodedFps(t, v, 2000);
+  return {fs: v.videoWidth * v.videoHeight / 256, fps};
+}
+
+function assertFits(r, limits) {
+  assert_less_than_equal(r.fs, limits.fs, 'frame size in macroblocks');
+  assert_less_than_equal(r.fs * r.fps, limits.mbs, 'macroblocks/second');
+}
+
+promise_test(async t => {
+  const r = await sendH264(t, "14", "");
+  assertFits(r, levels["14"]);
+}, 'Level 2.0 alone limits the sent video to level 2.0');
+
+promise_test(async t => {
+  const r = await sendH264(t, "14", ";max-fs=3600;max-mbps=108000");
+  assertFits(r, levels["1f"]);
+  assert_greater_than(r.fs, levels["14"].fs,
+                      'max-fs raises the limit above level 2.0');
+}, 'Level 2.0 with max-fs/max-mbps raised allows level 3.1 sized video');
+
+promise_test(async t => {
+  const r = await sendH264(t, "1f", ";max-fs=396;max-mbps=11880");
+  assertFits(r, levels["14"]);
+}, 'Level 3.1 with max-fs/max-mbps lowered limits video to level 2.0 sizes');
+</script>

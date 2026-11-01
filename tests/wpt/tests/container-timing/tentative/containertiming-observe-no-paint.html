@@ -11,20 +11,12 @@ body {
 <script src="/resources/testharnessreport.js"></script>
 <script src="/container-timing/resources/container-timing-helpers.js"></script>
 <script>
-  async_test(function (t) {
+  promise_test(async t => {
     assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
-    const observer = new PerformanceObserver(
-      function(entryList) {
-        assert_unreached("No entry is expected with nothing to paint");
-      }
-    );
-    observer.observe({entryTypes: ['container']});
+    addContainerRoot(document.body, 'div_ct');
+    const entries = await getContainerEntries(t, 0);
 
-    const div = document.createElement('div');
-    div.setAttribute('containertiming', 'div_ct');
-    document.body.appendChild(div);
-
-    waitAfterTest(t, document.body, () => { t.done(); });
+    assert_equals(entries.length, 0, 'No entry is expected with nothing to paint');
   }, 'Container timing did not report paints when there was nothing to paint.');
 </script>
 

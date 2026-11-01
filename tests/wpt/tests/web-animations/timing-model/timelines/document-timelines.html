@@ -47,4 +47,36 @@ async_test(t => {
   });
 }, 'Child frames do not report negative initial times');
 
+promise_test(async t => {
+  const iframe = document.createElement("iframe");
+  iframe.srcdoc = "<html style=\"display:none\"><meta charset=utf-8></html>";
+  iframe.width = 10;
+  iframe.height = 10;
+  const loaded = new Promise(resolve => iframe.addEventListener("load", resolve));
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await loaded;
+
+  assert_equals(typeof iframe.contentDocument.timeline.currentTime, "number",
+    "The current time of an initially hidden iframe is a number");
+  assert_greater_than_equal(iframe.contentDocument.timeline.currentTime, 0,
+    "The current time of an initially hidden iframe is positive or zero");
+
+  iframe.style.display = "block";
+  getComputedStyle(iframe).display;
+  await new Promise(resolve => requestAnimationFrame(resolve));
+
+  assert_greater_than(iframe.contentDocument.timeline.currentTime, 0,
+    "The current time is positive after showing the iframe");
+  const previousTime = iframe.contentDocument.timeline.currentTime;
+
+  iframe.style.display = "none";
+  getComputedStyle(iframe).display;
+  await new Promise(resolve => requestAnimationFrame(resolve));
+
+  assert_greater_than_equal(iframe.contentDocument.timeline.currentTime,
+                            previousTime,
+    "The current time does not go backwards after hiding the iframe again");
+}, "Document timeline current time remains valid for a hidden iframe");
+
 </script>

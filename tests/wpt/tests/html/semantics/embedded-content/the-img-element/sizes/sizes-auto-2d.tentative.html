@@ -61,7 +61,9 @@ const tests = [
   {loading: 'lazy', sizes: 'auto', width: '1', height: '1', style: 'object-fit: none', h: ['', ''], ref: 'ref1'},
   {loading: 'lazy', sizes: 'auto', width: '1', height: '1', style: 'object-fit: contain', h: ['', ''], ref: 'ref1'},
   {loading: 'lazy', sizes: 'auto', width: '1', height: '1', style: 'object-fit: scale-down', h: ['', ''], ref: 'ref1'},
-  // Without 'h' descriptors, the width (10px) is used.
+  // With object-fit: cover and aspect ratio 1, max(10px, 100px * 1) = 100px.
+  {loading: 'lazy', sizes: 'auto', width: '1', height: '1', style: 'object-fit: cover', h: ['', ''], ref: 'ref2'},
+  // Without width/height attributes or 'h' descriptors, the width (10px) is used.
   {loading: 'lazy', sizes: 'auto', style: 'object-fit: cover', h: ['', ''], ref: 'ref1'},
   {loading: 'lazy', sizes: 'auto', width: '1', style: 'object-fit: cover', h: ['', ''], ref: 'ref1'},
   {loading: 'lazy', sizes: 'auto', height: '1', style: 'object-fit: cover', h: ['', ''], ref: 'ref1'},
@@ -71,6 +73,9 @@ const tests = [
   // ... and min(10px, 100px * 50) = min(10px, 100px * 25.5) = 10px.
   {loading: 'lazy', sizes: 'auto', style: 'object-fit: contain', h: [' 1h', ' 2h'], ref: 'ref1'},
   {loading: 'lazy', sizes: 'auto', style: 'object-fit: scale-down', h: [' 1h', ' 2h'], ref: 'ref1'},
+  // 'h' descriptors take precedence over the dimension attribute aspect ratio:
+  // aspect ratios are 50/500 = 0.1 and 51/510 = 0.1, so max(10px, 100px * 0.1) = 10px.
+  {loading: 'lazy', sizes: 'auto', width: '10', height: '1', style: 'object-fit: cover', h: [' 500h', ' 510h'], ref: 'ref1'},
   // Non-lazy img falls back to 1px and does not use CSS object-fit.
   {sizes: 'auto, 1px', width: '1', height: '1', style: 'object-fit: cover', h: [' 1h', ' 2h'], ref: 'ref1'},
 ];
@@ -98,6 +103,63 @@ onload = () => {
     test_img(obj, i);
   }
 
+  // A <source> without width/height attributes uses the <img>'s dimension
+  // attribute aspect ratio when sizes=auto.
+  {
+    const picture = document.createElement('picture');
+    const source = document.createElement('source');
+    const img = document.createElement('img');
+    source.srcset = srcsetFor('picture-img-dims', ['', '']);
+    img.loading = 'lazy';
+    img.sizes = 'auto';
+    img.width = 1;
+    img.height = 1;
+    img.style = 'object-fit: cover';
+    picture.appendChild(source);
+    picture.appendChild(img);
+    document.body.appendChild(picture);
+    check(picture, img, 'ref2');
+  }
+
+  // A <source> with width and height attributes uses its own dimension
+  // attribute aspect ratio.
+  {
+    const picture = document.createElement('picture');
+    const source = document.createElement('source');
+    const img = document.createElement('img');
+    source.srcset = srcsetFor('picture-source-dims', ['', '']);
+    source.setAttribute('width', '1');
+    source.setAttribute('height', '1');
+    img.loading = 'lazy';
+    img.sizes = 'auto';
+    img.width = 1;
+    img.height = 100;
+    img.style = 'object-fit: cover';
+    picture.appendChild(source);
+    picture.appendChild(img);
+    document.body.appendChild(picture);
+    check(picture, img, 'ref2');
+  }
+
+  // A <source> with only a width attribute has no dimension attribute aspect
+  // ratio and does not fall back to the <img>'s.
+  {
+    const picture = document.createElement('picture');
+    const source = document.createElement('source');
+    const img = document.createElement('img');
+    source.srcset = srcsetFor('picture-source-width-only', ['', '']);
+    source.setAttribute('width', '1');
+    img.loading = 'lazy';
+    img.sizes = 'auto';
+    img.width = 1;
+    img.height = 1;
+    img.style = 'object-fit: cover';
+    picture.appendChild(source);
+    picture.appendChild(img);
+    document.body.appendChild(picture);
+    check(picture, img, 'ref1');
+  }
+
   // Dynamic change to computed 'object-fit' on an auto-sized img triggers
   // source re-selection.
   async_promise_test(async (t) => {
@@ -117,6 +179,56 @@ onload = () => {
     await reloaded;
     assert_equals(baseUrl(img.currentSrc), ref2);
   }, 'Changing computed object-fit on an auto-sized img updates currentSrc');
+
+  // Dynamic change to width/height attributes on an auto-sized img triggers
+  // source re-selection.
+  async_promise_test(async (t) => {
+    const ref1 = document.getElementById('ref1').currentSrc.split('?')[0];
+    const ref2 = document.getElementById('ref2').currentSrc.split('?')[0];
+    const img = document.createElement('img');
+    img.loading = 'lazy';
+    img.sizes = 'auto';
+    img.width = 1;
+    img.height = 100;
+    img.style = 'object-fit: cover';
+    img.srcset = srcsetFor('dynamic-img-dims', ['', '']);
+    document.body.appendChild(img);
+    await waitForLoad(img);
+    assert_equals(baseUrl(img.currentSrc), ref1);
+
+    // Changing a dimension attribute without changing the selected candidate
+    // URL should not trigger a reload or other side effects.
+    let unexpectedEvent = false;
+    img.onload = img.onerror = () => { unexpectedEvent = true; };
+    img.height = 50;
+    await new Promise(resolve => t.step_timeout(resolve, 50));
+    assert_false(unexpectedEvent);
+    assert_equals(baseUrl(img.currentSrc), ref1);
+
+    const reloaded = waitForLoad(img);
+    img.height = 1;
+    await reloaded;
+    assert_equals(baseUrl(img.currentSrc), ref2);
+  }, 'Changing dimension attributes on an auto-sized img updates currentSrc');
+
+  // Changing a dimension attribute when the selected candidate URL does not
+  // change must not switch an unresolvable no-alt image to fallback layout.
+  async_promise_test(async (t) => {
+    const iframe = document.createElement('iframe');
+    t.add_cleanup(() => iframe.remove());
+    iframe.srcdoc =
+        '<!doctype html><base href="about:blank">' +
+        '<img srcset="small.png 50w, large.png 200w" sizes="50px" width="100">';
+    const loaded = new Promise(resolve => { iframe.onload = resolve; });
+    document.body.appendChild(iframe);
+    await loaded;
+
+    const img = iframe.contentDocument.querySelector('img');
+    assert_equals(img.offsetWidth, 100);
+
+    img.width = 200;
+    assert_equals(img.offsetWidth, 200);
+  }, 'Changing dimension attributes when selected source URL is unchanged preserves layout disposition');
 
   done();
 }

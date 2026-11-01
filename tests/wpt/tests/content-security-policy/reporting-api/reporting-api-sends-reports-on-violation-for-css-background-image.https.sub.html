@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSP violation of an image fetched by CSS has no source location</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .blocked {
+    width: 100px;
+    height: 100px;
+    background-image: url(/content-security-policy/support/fail.png);
+  }
+</style>
+<body>
+<div id="target"></div>
+<script>
+  promise_test(async t => {
+    const expectedBlockedURL = new URL(
+        "/content-security-policy/support/fail.png", location.href).href;
+
+    // Wait for the load event so that the document is fully parsed.
+    await new Promise(resolve => window.addEventListener("load", resolve));
+
+    const report_promise = new Promise((resolve, reject) => {
+      new ReportingObserver(t.step_func((reports, observer) => {
+        observer.disconnect();
+        assert_equals(reports.length, 1, "reports.length");
+        assert_equals(reports[0].body.blockedURL, expectedBlockedURL, "report.body.blockedURL");
+        assert_equals(reports[0].body.effectiveDirective, "img-src", "report.body.effectiveDirective");
+        assert_equals(reports[0].body.sourceFile, null, "report.body.sourceFile");
+        assert_equals(reports[0].body.lineNumber, null, "report.body.lineNumber");
+        assert_equals(reports[0].body.columnNumber, null, "report.body.columnNumber");
+        resolve();
+      }), {types: ["csp-violation"]}).observe();
+      t.step_timeout(() => reject(new Error("No report received")), 3000);
+    });
+
+    const event_promise = new EventWatcher(t, document, "securitypolicyviolation")
+        .wait_for("securitypolicyviolation").then(e => {
+      assert_equals(e.blockedURI, expectedBlockedURL, "event.blockedURI");
+      assert_equals(e.effectiveDirective, "img-src", "event.effectiveDirective");
+      assert_equals(e.sourceFile, "", "event.sourceFile");
+      assert_equals(e.lineNumber, 0, "event.lineNumber");
+      assert_equals(e.columnNumber, 0, "event.columnNumber");
+    });
+
+    document.getElementById("target").className = "blocked";
+    return Promise.all([report_promise, event_promise]);
+  }, "A blocked image fetched by CSS is reported without a source location.");
+</script>
+</body>

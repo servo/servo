@@ -361,3 +361,85 @@ async def test_channel_with_window_open_subscribe_to_user_context(
         },
         message_event_data,
     )
+
+
+async def test_channel_multiple_messages_before_navigation(
+    bidi_session,
+    subscribe_events,
+    wait_for_bidi_events,
+    wait_for_event,
+    wait_for_future_safe,
+    new_tab,
+    inline,
+    add_preload_script,
+):
+    await subscribe_events(["script.message", "browsingContext.load"])
+
+    # Track all received script.message events in the events array.
+    events = []
+
+    async def on_event(method, data):
+        events.append(data)
+
+    remove_listener = bidi_session.add_event_listener("script.message", on_event)
+
+    # Register a preload script that sends two back-to-back channel messages
+    # in the same click task right as navigation starts.
+    await add_preload_script(
+        function_declaration="""(channel) => {
+            window.addEventListener('click', () => {
+                channel('first_message');
+                channel('second_message');
+            });
+        }""",
+        arguments=[{"type": "channel", "value": {"channel": "channel_name"}}],
+        contexts=[new_tab["context"]],
+    )
+
+    # Navigate to a page with a link that triggers a cross-document navigation.
+    target_url = inline("<div>target</div>")
+    initial_url = inline(f"<a id='link' href='{target_url}'>link</a>")
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"],
+        url=initial_url,
+        wait="complete",
+    )
+
+    on_load = wait_for_event("browsingContext.load")
+
+    # Click the link to send both channel messages and start navigating away.
+    await bidi_session.script.evaluate(
+        raw_result=True,
+        expression="document.getElementById('link').click()",
+        await_promise=False,
+        target=ContextTarget(new_tab["context"]),
+    )
+
+    await wait_for_future_safe(on_load)
+    await wait_for_bidi_events(events, 2, timeout=0.5)
+
+    recursive_compare(
+        {
+            "channel": "channel_name",
+            "data": {"type": "string", "value": "first_message"},
+            "source": {
+                "realm": any_string,
+                "context": new_tab["context"],
+            },
+        },
+        events[0],
+    )
+
+    recursive_compare(
+        {
+            "channel": "channel_name",
+            "data": {"type": "string", "value": "second_message"},
+            "source": {
+                "realm": any_string,
+                "context": new_tab["context"],
+            },
+        },
+        events[1],
+    )
+
+    remove_listener()

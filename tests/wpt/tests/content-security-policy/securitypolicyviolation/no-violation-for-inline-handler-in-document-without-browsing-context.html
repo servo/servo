@@ -1,0 +1,76 @@
+<!doctype html>
+<meta http-equiv="Content-Security-Policy" content="script-src 'nonce-abc'">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#event-handler-content-attributes">
+<link rel="help" href="https://w3c.github.io/webappsec-csp/#should-block-inline">
+<script nonce="abc" src="/resources/testharness.js"></script>
+<script nonce="abc" src="/resources/testharnessreport.js"></script>
+<body>
+<script nonce="abc">
+  // A document created without a browsing context has an empty CSP list, so
+  // setting an inline event handler attribute in that document must not
+  // report a CSP violation on this document.
+
+  // Triggers an 'eval' CSP violation, and returns the blocked URIs of the
+  // securitypolicyviolation events dispatched until the 'eval' one. The test
+  // checks that the result is ["eval"], i.e. no violation was reported before
+  // it. Waiting for the 'eval' event even on failure keeps the events from
+  // leaking into the next test.
+  async function get_blocked_uris_until_eval(watcher) {
+    assert_throws_js(EvalError, () => eval("0"));
+    const blocked_uris = [];
+    do {
+      const e = await watcher.wait_for("securitypolicyviolation");
+      blocked_uris.push(e.blockedURI);
+    } while (blocked_uris.at(-1) !== "eval");
+    return blocked_uris;
+  }
+
+  promise_test(async t => {
+    const watcher = new EventWatcher(t, document, ["securitypolicyviolation"]);
+
+    new DOMParser().parseFromString(
+        '<div onclick="void(0)"></div><img src="#" onerror="void(0)">',
+        "text/html");
+
+    assert_array_equals(await get_blocked_uris_until_eval(watcher), ["eval"]);
+  }, "DOMParser.parseFromString()");
+
+  promise_test(async t => {
+    const watcher = new EventWatcher(t, document, ["securitypolicyviolation"]);
+
+    new DOMParser().parseFromString(
+        '<body onload="void(0)"></body>', "text/html");
+
+    assert_array_equals(await get_blocked_uris_until_eval(watcher), ["eval"]);
+  }, "DOMParser.parseFromString() with body onload");
+
+  promise_test(async t => {
+    const watcher = new EventWatcher(t, document, ["securitypolicyviolation"]);
+
+    const template = document.createElement("template");
+    template.innerHTML = '<div onclick="void(0)"></div>';
+
+    assert_array_equals(await get_blocked_uris_until_eval(watcher), ["eval"]);
+  }, "template.innerHTML");
+
+  promise_test(async t => {
+    const watcher = new EventWatcher(t, document, ["securitypolicyviolation"]);
+
+    const template = document.createElement("template");
+    const div = template.content.appendChild(document.createElement("div"));
+    div.setAttribute("onclick", "void(0);");
+
+    assert_array_equals(await get_blocked_uris_until_eval(watcher), ["eval"]);
+  }, "setAttribute() in template contents");
+
+  promise_test(async t => {
+    const watcher = new EventWatcher(t, document, ["securitypolicyviolation"]);
+
+    const doc = document.implementation.createHTMLDocument("");
+    const div = doc.body.appendChild(doc.createElement("div"));
+    div.setAttribute("onclick", "void(0);");
+
+    assert_array_equals(await get_blocked_uris_until_eval(watcher), ["eval"]);
+  }, "setAttribute() in a document created by createHTMLDocument()");
+</script>
+</body>

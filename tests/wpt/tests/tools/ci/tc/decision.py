@@ -283,6 +283,7 @@ def create_tc_task(event: Event,
         "provisionerId": task["provisionerId"],
         "schedulerId": task["schedulerId"],
         "workerType": task["workerType"],
+        "priority": task.get("priority", "lowest"),
         "scopes": task.get("scopes", []),
         "metadata": {
             "name": task["name"],

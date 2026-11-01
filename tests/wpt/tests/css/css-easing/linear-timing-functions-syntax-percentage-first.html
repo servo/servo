@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Easing: animation-timing-function linear(...) with the percentage before the number</title>
+<link rel="help" href="https://drafts.csswg.org/css-easing-2/#the-linear-easing-function">
+<meta name="assert" content="linear() stops accept the number and the percentage(s) in either order">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_valid_value("animation-timing-function", "linear(0% 0, 100% 1)", "linear(0 0%, 1 100%)");
+test_valid_value("animation-timing-function", "linear(0 0%, 100% 1)", "linear(0 0%, 1 100%)");
+test_valid_value("animation-timing-function", "linear(0% 0, 1 100%)", "linear(0 0%, 1 100%)");
+
+test_invalid_value("animation-timing-function", "linear(0% 0 50%, 1)");
+test_invalid_value("animation-timing-function", "linear(0% 50% 100% 0, 1)");
+test_invalid_value("animation-timing-function", "linear(0%, 100%)");
+
+test_computed_value("animation-timing-function", "linear(0% 0, 100% 1)", "linear(0 0%, 1 100%)");
+test_computed_value("animation-timing-function", "linear(0, 25% 0.5, 1)", "linear(0 0%, 0.5 25%, 1 100%)");
+test_computed_value("animation-timing-function", "linear(0% 50% 0, 50% 100% 1)", "linear(0 0%, 0 50%, 1 50%, 1 100%)");
+test_computed_value("animation-timing-function", "linear(0 0% 50%, 50% 100% 1)", "linear(0 0%, 0 50%, 1 50%, 1 100%)");
+test_computed_value("animation-timing-function", "linear(0% 0% 0, 1)", "linear(0 0%, 0 0%, 1 100%)");
+</script>
+</body>
+</html>

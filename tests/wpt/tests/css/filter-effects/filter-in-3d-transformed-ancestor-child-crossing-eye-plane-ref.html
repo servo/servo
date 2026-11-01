@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Reference for CSS Filters: filtered element under a perspective with a child crossing the eye plane</title>
+    <link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+    <style>
+      body { margin: 0; background: white; }
+      .stage {
+        position: absolute;
+        top: 100px;
+        left: 100px;
+        perspective: 600px;
+      }
+      .rot {
+        transform: rotateY(50deg);
+        will-change: transform;
+      }
+      .filtered, .shadow {
+        width: 200px;
+        height: 200px;
+        will-change: transform;
+        perspective: 100px;
+      }
+      .filtered {
+        position: relative;
+        background: green;
+      }
+      .shadow {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: black;
+        opacity: 0.6;
+      }
+      .inner {
+        position: absolute;
+        top: 40px;
+        left: 80px;
+        width: 80px;
+        height: 80px;
+        background: orange;
+        will-change: transform;
+        transform: translate3d(0, 0, 70px) rotateY(80deg);
+      }
+      .shadow > .inner {
+        background: black;
+      }
+      /* Close to the horizon of the rotated plane the filter surface would grow without bound, so that part is
+         given up. Past the horizon the child is drawn wrapped around, which is a separate problem. */
+      .horizon {
+        position: absolute;
+        top: 0;
+        left: 640px;
+        right: 0;
+        height: 600px;
+        background: white;
+        will-change: transform;
+      }
+    </style>
+  </head>
+  <body>
+    <div class=stage>
+      <div class=rot>
+        <div class=shadow><div class=inner></div></div>
+        <div class=filtered><div class=inner></div></div>
+      </div>
+    </div>
+    <div class=horizon></div>
+  </body>
+</html>

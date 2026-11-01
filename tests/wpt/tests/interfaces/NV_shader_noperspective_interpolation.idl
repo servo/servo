@@ -1,0 +1,8 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL NV_shader_noperspective_interpolation Extension Specification (https://registry.khronos.org/webgl/extensions/NV_shader_noperspective_interpolation/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface NV_shader_noperspective_interpolation {
+};

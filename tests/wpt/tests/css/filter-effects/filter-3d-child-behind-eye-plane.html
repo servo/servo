@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Filters: filtered element with a child behind the eye plane</title>
+    <link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+    <link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+    <link rel="help" href="https://drafts.csswg.org/css-transforms-2/#perspective-property">
+    <link rel="help" href="https://drafts.csswg.org/css-transforms-2/#3d-rendering-contexts">
+    <link rel="match" href="filter-3d-child-behind-eye-plane-ref.html">
+    <meta name="assert" content="A child of a filtered element that lies entirely behind the eye plane is not drawn, while a sibling in front of the eye plane is filtered as usual.">
+    <!-- The test projects the shapes through a perspective while the reference draws them directly, so edges can differ by about a pixel. -->
+    <meta name="fuzzy" content="maxDifference=0-160;totalPixels=0-8000">
+    <style>
+      body { margin: 0; background: white; }
+      .group {
+        position: absolute;
+        top: 150px;
+        left: 150px;
+        width: 100px;
+        height: 100px;
+        perspective: 100px;
+        filter: drop-shadow(30px 30px 0 rgba(0, 0, 0, 0.6));
+        will-change: transform;
+      }
+      .group > div {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        transform-style: preserve-3d;
+        will-change: transform;
+      }
+      .behind { background: green; transform: translateZ(200px); }
+      .front { background: blue; transform: translateZ(-100px); }
+    </style>
+  </head>
+  <body>
+    <div class=group>
+      <div class=behind></div>
+      <div class=front></div>
+    </div>
+  </body>
+</html>

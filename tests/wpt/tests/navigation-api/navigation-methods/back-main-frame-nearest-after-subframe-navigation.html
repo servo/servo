@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Navigation API: main-frame navigation.back() lands on the nearest joint entry when a subframe navigated after it</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+promise_test(async t => {
+  await new Promise(r => window.onload = () => t.step_timeout(r, 0));
+
+  const iframe = document.getElementById("i");
+  const navI = iframe.contentWindow.navigation;
+
+  await navigation.navigate("#m1").finished;
+  await navI.navigate("#b1").finished;
+  await navigation.navigate("#m2").finished;
+  assert_equals(location.hash, "#m2", "main navigated to #m2");
+  assert_equals(iframe.contentWindow.location.hash, "#b1", "subframe navigated to #b1");
+
+  await navigation.back().finished;
+  await new Promise(r => t.step_timeout(r, 0));
+
+  assert_equals(location.hash, "#m1", "main stepped back to #m1");
+  assert_equals(iframe.contentWindow.location.hash, "#b1", "subframe stays at #b1 (nearest step)");
+}, "navigation.back() in the main frame lands on the nearest joint entry when a subframe navigated after it");
+</script>

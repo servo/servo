@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="color-scheme" content="only dark">
+<title>CSS Color Adjustment Test: meta color-scheme="only dark" makes prefers-color-scheme match dark when printing</title>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://drafts.csswg.org/css-color-adjust-1/#page-color-scheme">
+<link rel="help" href="https://drafts.csswg.org/mediaqueries-5/#prefers-color-scheme">
+<link rel="mismatch" href="prefers-color-scheme-meta-dark-print-notref.html">
+<style>
+  :root { color-scheme: light; }
+  div { width: 100px; height: 100px; background-color: blue; print-color-adjust: exact; }
+  @media (prefers-color-scheme: dark) {
+    div { background-color: purple; }
+  }
+</style>
+<div></div>

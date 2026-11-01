@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Backgrounds: background-repeat: no-repeat paints the image only once</title>
+  <link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+  <link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#the-background-repeat">
+  <link rel="match" href="background-image-no-repeat-does-not-wrap-ref.html">
+  <meta name="assert" content="A no-repeat background image is painted once, so its bottom edge must not appear along its top.">
+  <style>
+    body { margin: 0; background: white; }
+    .clip {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 200px;
+        height: 100px;
+        overflow: hidden;
+        background: #008000;
+    }
+    .box {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 200px;
+        height: 300px;
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAcAAAAHCAIAAABLMMCEAAAAF0lEQVR42mNkaGDABEwMDHQUZfyPTRQAZaUBjP4eM8IAAAAASUVORK5CYII=);
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
+        background-position: 0 0;
+        will-change: transform;
+    }
+  </style>
+</head>
+<body>
+  <div class="clip"><div class="box"></div></div>
+</body>
+</html>

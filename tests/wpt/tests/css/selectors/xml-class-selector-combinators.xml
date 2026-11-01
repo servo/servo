@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Class selectors with combinators in an XML namespace</title>
+  <link rel="help" href="https://dom.spec.whatwg.org/#dom-element-classname" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+    *|box { color: rgb(255, 0, 0); }
+    .outer *|box { color: rgb(0, 128, 0); }
+    .parent > *|box { color: rgb(0, 128, 0); }
+    .sibling + *|box { color: rgb(0, 128, 0); }
+    .dynamic *|box { color: rgb(0, 128, 0); }
+  </style>
+</head>
+<body>
+  <x:root xmlns:x="http://foo">
+    <x:wrap class="outer"><x:box id="descendant"/></x:wrap>
+    <x:wrap class="parent"><x:box id="child"/></x:wrap>
+    <x:item class="sibling"/><x:box id="next-sibling"/>
+    <x:wrap id="wrap"><x:box id="dynamic"/></x:wrap>
+  </x:root>
+  <script><![CDATA[
+    function colorOf(id) {
+      return getComputedStyle(document.getElementById(id)).color;
+    }
+
+    test(() => {
+      assert_equals(colorOf("descendant"), "rgb(0, 128, 0)");
+    }, "Class selector matches an ancestor in an XML namespace");
+
+    test(() => {
+      assert_equals(colorOf("child"), "rgb(0, 128, 0)");
+    }, "Class selector matches a parent in an XML namespace");
+
+    test(() => {
+      assert_equals(colorOf("next-sibling"), "rgb(0, 128, 0)");
+    }, "Class selector matches a previous sibling in an XML namespace");
+
+    test(() => {
+      assert_equals(colorOf("dynamic"), "rgb(255, 0, 0)");
+      document.getElementById("wrap").setAttribute("class", "dynamic");
+      assert_equals(colorOf("dynamic"), "rgb(0, 128, 0)");
+      document.getElementById("wrap").removeAttribute("class");
+      assert_equals(colorOf("dynamic"), "rgb(255, 0, 0)");
+    }, "Changing class on an ancestor in an XML namespace updates style");
+  ]]></script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#gaps">
+<style>
+    body {
+        margin: 0px;
+    }
+    .item {
+        position: absolute;
+        background: gray;
+        opacity: 0.5;
+        width: 50px;
+        height: 100px;
+    }
+    .col-gap {
+        position: absolute;
+        left: 95px;
+        width: 0px;
+        height: 100px;
+        border-left: solid 10px blue;
+    }
+</style>
+<div class="col-gap" style="top: 0px;"> </div>
+<div class="item" style="top: 0px; left: 0px;"></div>
+<div class="item" style="top: 0px; left: 150px;"></div>
+
+<div class="col-gap" style="top: 100px;"> </div>
+<div class="item" style="top: 100px; left: 22.5px;"></div>
+<div class="item" style="top: 100px; left: 127.5px;"></div>
+
+<div class="col-gap" style="top: 200px;"> </div>
+<div class="item" style="top: 200px; left: 30px;"></div>
+<div class="item" style="top: 200px; left: 120px;"></div>

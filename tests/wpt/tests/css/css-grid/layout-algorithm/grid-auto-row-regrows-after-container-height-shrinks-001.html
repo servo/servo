@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-content">
+<meta name="assert" content="When a grid's height shrinks so that an 'auto' row whose item has 'min-height: 0' must shrink, and the grid's height then grows back, the row must grow back to the item's content block size rather than keep the stale block size the item was stretched to.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+#grid {
+    display: grid;
+    grid-template-rows: auto 100px;
+    align-content: start;
+    width: 200px;
+    height: 300px;
+}
+#item {
+    min-height: 0;
+}
+#content {
+    height: 150px;
+}
+</style>
+
+<div id="grid">
+    <div id="item"><div id="content"></div></div>
+    <div></div>
+</div>
+
+<script>
+test(() => {
+    const grid = document.getElementById("grid");
+    const item = document.getElementById("item");
+
+    assert_equals(item.offsetHeight, 150, "row is sized to the item's content block size");
+
+    grid.style.height = "150px";
+    assert_equals(item.offsetHeight, 50, "row shrinks to the space left over by the fixed row");
+
+    grid.style.height = "300px";
+    assert_equals(item.offsetHeight, 150, "row grows back to the item's content block size");
+}, "An 'auto' row grows back to its item's content block size after the grid's height shrinks and grows again");
+</script>

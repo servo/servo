@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Removing image element during drag and drop of PNG image</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="../resources/test-helper.js"></script>
+  <script src="support/drag-source-removal.js"></script>
+  <style>
+    div {
+      height: 100px;
+      width: 100px;
+      padding: 20px;
+      background-color: silver;
+    }
+  </style>
+  <script>
+    function sourceDragStart(event) {
+      event.dataTransfer.effectAllowed = 'copy';
+      event.currentTarget.remove();
+    }
+  </script>
+</head>
+<body>
+  <p>
+    <img ondragstart="sourceDragStart(event)" src="../resources/circle.png" alt="PNG circle">
+  </p>
+  <div ondragover="return false" ondrop="addDroppedImage(event)"></div>
+  <script>
+    testImageSourceRemoval(
+      document.querySelector('img'), document.querySelector('div'));
+  </script>
+</body>
+</html>

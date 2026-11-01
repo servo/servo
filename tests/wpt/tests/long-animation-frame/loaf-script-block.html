@@ -11,7 +11,13 @@
 </script>
 <script src="resources/busy.js?from-parser"></script>
 <script>
-  delete window.generate_loaf_now;
+  window.generate_loaf_now();
+</script>
+<script defer src="resources/busy.js?defer"></script>
+<script>
+  window.addEventListener("DOMContentLoaded", () => {
+    delete window.generate_loaf_now;
+  }, {once: true});
 </script>
 <body>
 <h1>Long Animation Frame: script blocks</h1>
@@ -28,6 +34,26 @@ promise_test(async t => {
     }).observe({type: "long-animation-frame", buffered: true});
   })
 }, "Parser-inserted classic script should generate a long script");
+
+promise_test(async t => {
+  const script = await new Promise(resolve => {
+    new PerformanceObserver((list, observer) => {
+      for (const loaf of list.getEntries()) {
+        const match = loaf.scripts.find(s =>
+          s.invoker === new URL("resources/busy.js?defer", location.href).href);
+        if (match) {
+          observer.disconnect();
+          resolve(match);
+          return;
+        }
+      }
+    }).observe({type: "long-animation-frame", buffered: true});
+  });
+  assert_equals(script.invokerType, "classic-script");
+  assert_greater_than_equal(script.executionStart, script.startTime,
+      "Deferred classic script executed in a later task should have executionStart >= startTime");
+  assert_equals(script.sourceCharPosition, 0);
+}, "Deferred classic script should generate a long script with executionStart >= startTime");
 
 test_self_script_block(t => {
     const script = document.createElement("script");
@@ -77,6 +103,47 @@ test_self_script_block(t => {
     const script = document.createElement("script");
     script.src = blob_url;
     document.body.appendChild(script);
-}, blob_url, "classic-script");
+}, `blob:${location.origin}/`, "classic-script");
+
+promise_test(async t => {
+    const script = await new Promise(resolve => {
+      new PerformanceObserver((list, observer) => {
+        for (const loaf of list.getEntries()) {
+          const match = loaf.scripts.find(s =>
+            s.invokerType === "classic-script" && s.invoker === location.href);
+          if (match) {
+            observer.disconnect();
+            resolve(match);
+            return;
+          }
+        }
+      }).observe({type: "long-animation-frame", buffered: true});
+    });
+
+    assert_greater_than_equal(script.executionStart, script.startTime,
+        "Inline classic script compiled and run in the same task has executionStart >= startTime");
+    assert_equals(script.sourceCharPosition, 0);
+    assert_equals(script.sourceLine, 1);
+    assert_equals(script.sourceColumn, 1);
+}, "Inline classic script has executionStart >= startTime and initial source location");
+
+promise_test(async t => {
+    const uid = token();
+    const moduleUrl = new URL(`resources/busy.js?module-exec-start=${uid}`, location.href).href;
+    const [entry, script] = await expect_long_frame_with_script(() => {
+        const s = document.createElement("script");
+        s.type = "module";
+        s.src = moduleUrl;
+        document.body.appendChild(s);
+        t.add_cleanup(() => s.remove());
+    }, s => s.invokerType === "module-script" && s.invoker === moduleUrl, t);
+
+    assert_true(!!entry, "Entry detected");
+    assert_equals(script.executionStart, script.startTime,
+        "Module script executionStart should equal startTime");
+    assert_equals(script.sourceCharPosition, 0);
+    assert_equals(script.sourceLine, 1);
+    assert_equals(script.sourceColumn, 1);
+}, "Module script has executionStart == startTime and initial source location");
 </script>
 </body>

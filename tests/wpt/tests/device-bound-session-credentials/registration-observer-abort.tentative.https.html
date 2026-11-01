@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>DBSC Registration Observer: AbortSignal</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="helper.js" type="module"></script>
+<script type="module">
+  import {
+    addCookieAndSessionCleanup,
+    configureServer,
+    setupShardedServerState,
+    waitForCookie
+  } from "./helper.js";
+
+  const kCookieAndValue = "auth_cookie=abcdef0123";
+
+  // Registers a session and waits until its cookie is set, so the observer
+  // would have been told about it by then.
+  async function registerSession() {
+    const loginResponse = await fetch("login.py");
+    assert_equals(loginResponse.status, 200);
+    await waitForCookie(kCookieAndValue, /*expectCookie=*/true);
+  }
+
+  // Waits until a new observer without a signal sees a session. This shows
+  // that this document can see it. A document's observers get their sessions
+  // on one pipe, earlier subscribers first, so a check right after this that
+  // an earlier observer saw nothing needs no fixed wait.
+  async function waitForSessionInNewObserver(test) {
+    let calls = 0;
+    const observer = new DeviceBoundSessionRegistrationObserver(() => {
+      calls++;
+    });
+    test.add_cleanup(() => observer.disconnect());
+    observer.observe();
+    await test.step_wait(() => calls >= 1, "Awaiting the session in a new observer");
+  }
+
+  promise_test(async (test) => {
+    addCookieAndSessionCleanup(test);
+    await setupShardedServerState();
+    await configureServer({});
+
+    const controller = new AbortController();
+    let observedSessions = [];
+    const observer = new DeviceBoundSessionRegistrationObserver((sessions) => {
+      observedSessions.push(...sessions);
+    }, { signal: controller.signal });
+    test.add_cleanup(() => observer.disconnect());
+
+    observer.observe();
+    controller.abort();
+    // observe() after the abort does not restart the observer.
+    observer.observe();
+
+    await registerSession();
+    await waitForSessionInNewObserver(test);
+
+    assert_equals(observedSessions.length, 0, "Observer must immediately stop receiving updates when the AbortSignal is aborted.");
+  }, "DeviceBoundSessionRegistrationObserver cleanly halts execution upon AbortSignal cancellation");
+
+  promise_test(async (test) => {
+    addCookieAndSessionCleanup(test);
+    await setupShardedServerState();
+    await configureServer({});
+
+    let observedSessions = [];
+    const observer = new DeviceBoundSessionRegistrationObserver((sessions) => {
+      observedSessions.push(...sessions);
+    }, { signal: AbortSignal.abort() });
+    test.add_cleanup(() => observer.disconnect());
+    observer.observe();
+
+    await registerSession();
+    await waitForSessionInNewObserver(test);
+
+    assert_equals(observedSessions.length, 0, "An observer built with an aborted signal must never be called.");
+  }, "DeviceBoundSessionRegistrationObserver with an already aborted signal never calls back");
+
+  promise_test(async (test) => {
+    addCookieAndSessionCleanup(test);
+    await setupShardedServerState();
+    await configureServer({});
+
+    const controller = new AbortController();
+    let observedSessions = [];
+    const observer = new DeviceBoundSessionRegistrationObserver((sessions) => {
+      observedSessions.push(...sessions);
+    }, { signal: controller.signal });
+    test.add_cleanup(() => observer.disconnect());
+    observer.observe();
+
+    await registerSession();
+    await test.step_wait(() => observedSessions.length === 1, "Awaiting the first session");
+
+    controller.abort();
+
+    // A second observer, without a signal, shows that the second session
+    // exists before the check below. The new server state gives that session
+    // the first one's id, so it replaces the first session and reaches this
+    // observer as a second call.
+    // The aborted observer subscribed earlier, so it would have been told
+    // first.
+    let laterCalls = 0;
+    const laterObserver = new DeviceBoundSessionRegistrationObserver(() => {
+      laterCalls++;
+    });
+    test.add_cleanup(() => laterObserver.disconnect());
+    laterObserver.observe();
+    await test.step_wait(() => laterCalls === 1, "Awaiting the first session in the second observer");
+
+    await setupShardedServerState();
+    await configureServer({});
+    await registerSession();
+    await test.step_wait(() => laterCalls === 2, "Awaiting the second session");
+
+    assert_equals(observedSessions.length, 1, "No session may arrive after the abort.");
+  }, "DeviceBoundSessionRegistrationObserver stops calling back once aborted after observe()");
+</script>

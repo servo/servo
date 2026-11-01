@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox: a shrinking table flex item with a non-auto min-width is as wide as its min-content width</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#algo-main-item">
+<link rel="match" href="table-flex-item-min-width-001-ref.html">
+<meta name="assert" content="A table can't be narrower than its min-content width, which already includes its borders and padding, so a table flex item with min-width: 0 or a small fixed min-width that has to shrink ends up exactly that wide.">
+<style>
+.container {
+    display: flex;
+    width: 50px;
+    margin-bottom: 10px;
+}
+table {
+    border-spacing: 0;
+    background-color: green;
+}
+td {
+    padding: 0;
+}
+.cell-content {
+    width: 100px;
+    height: 20px;
+}
+.borders {
+    border: 10px solid green;
+}
+.padding {
+    padding: 10px;
+}
+</style>
+<p>Test passes if there are three green rectangles of the same width.</p>
+<div class="container"><table class="borders" style="min-width: 0"><tr><td><div class="cell-content"></div></td></tr></table></div>
+<div class="container"><table class="padding" style="min-width: 0"><tr><td><div class="cell-content"></div></td></tr></table></div>
+<div class="container"><table class="borders" style="min-width: 30px"><tr><td><div class="cell-content"></div></td></tr></table></div>

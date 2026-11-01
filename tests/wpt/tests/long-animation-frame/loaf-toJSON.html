@@ -1,30 +1,31 @@
 <!doctype html>
 <html>
 <head>
+<meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 </head>
 <body>
 <script>
   promise_test(async t => {
-    window.onload = () => {
+    assert_implements(window.PerformanceLongAnimationFrameTiming, 'Lon are not supported.');
+    const entry = await new Promise(resolve => {
+      new PerformanceObserver(
+        t.step_func(entryList => {
+          const entries = entryList.getEntries();
+          assert_greater_than_equal(entries.length, 1);
+          resolve(entries[0]);
+        })).observe({entryTypes: ["long-animation-frame"]});
+      t.step_timeout(() => {
         // Trigger a long task.
         const begin = window.performance.now();
         while (window.performance.now() < begin + 60);
-    };
-
-    assert_implements(window.PerformanceLongAnimationFrameTiming, 'Lon are not supported.');
-    const entry = await new Promise(resolve => new PerformanceObserver(
-      t.step_func(entryList => {
-        const entries = entryList.getEntries();
-        assert_greater_than_equal(entries.length, 1);
-        resolve(entries[0]);
-      })).observe({entryTypes: ["long-animation-frame"]}));
+      }, 0);
+    });
 
     assert_equals(typeof(entry.toJSON), 'function');
     const entryJSON = entry.toJSON();
     assert_equals(typeof(entryJSON), 'object');
-    // Check attributes inheritted from PerformanceEntry.
     const performanceEntryKeys = [
         'name',
         'entryType',
@@ -32,14 +33,56 @@
         'duration',
         'renderStart',
         'styleAndLayoutStart',
-        'blockingTime',
+        'blockingDuration',
         'firstUIEventTimestamp',
         'styleDuration',
-        'layoutDuration'
+        'layoutDuration',
+        'paintTime',
+        'presentationTime'
     ];
     for (const key of performanceEntryKeys) {
+        assert_not_equals(entryJSON[key], undefined,
+            `entry.toJSON().${key} should be defined`);
         assert_equals(entryJSON[key], entry[key],
             `entry.toJSON().${key} should match entry.${key}`);
+    }
+    assert_true(Array.isArray(entryJSON.scripts), 'entry.toJSON().scripts should be an Array');
+    assert_equals(entryJSON.scripts.length, entry.scripts.length);
+    const scriptEntryKeys = [
+        'name',
+        'entryType',
+        'startTime',
+        'duration',
+        'invokerType',
+        'invoker',
+        'executionStart',
+        'sourceURL',
+        'sourceFunctionName',
+        'sourceCharPosition',
+        'sourceLine',
+        'sourceColumn',
+        'pauseDuration',
+        'forcedStyleAndLayoutDuration',
+        'forcedStyleDuration',
+        'forcedLayoutDuration',
+        'windowAttribution'
+    ];
+    const serializedEntry = JSON.parse(JSON.stringify(entry));
+    for (let i = 0; i < entry.scripts.length; ++i) {
+        const scriptJSON = entry.scripts[i].toJSON();
+        const serializedScript = serializedEntry.scripts[i];
+        for (const key of scriptEntryKeys) {
+            assert_not_equals(scriptJSON[key], undefined,
+                `entry.scripts[${i}].toJSON().${key} should be defined`);
+            assert_equals(scriptJSON[key], entry.scripts[i][key],
+                `entry.scripts[${i}].toJSON().${key} should match entry.scripts[${i}].${key}`);
+            assert_equals(serializedScript[key], entry.scripts[i][key],
+                `JSON.parse(JSON.stringify(entry)).scripts[${i}].${key} should match entry.scripts[${i}].${key}`);
+        }
+        assert_equals(scriptJSON.window, undefined,
+            'Window is not a JSON type and should not be included in script.toJSON()');
+        assert_equals(serializedScript.window, undefined,
+            'Window is not a JSON type and should not be included in JSON.stringify(entry)');
     }
 
   }, 'Test toJSON() in PerformanceLongAnimationFrameTiming');

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: an empty orthogonal block level box on a line does not stretch the line</title>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#orthogonal-flows">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#inline-formatting">
+<meta name="assert" content="A block level box in inline content contributes its position along its containing block's block axis. When the box's own writing mode is orthogonal to its containing block's, the containing block's axis is what counts, so an empty box must not give the line a height taken from a position measured along the other axis.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+body { margin: 0; }
+.container { width: 400px; font: 20px/20px Ahem; }
+.orthogonal { writing-mode: vertical-rl; }
+</style>
+
+<!-- The direction is rtl so that the orthogonal box's inline-axis position is far from zero; with ltr it
+     would be 0 and a mix-up along the two axes would not show.
+     nested:  the block level box is an inline box's only child, so it sits on a line in any configuration.
+     sibling: it is next to inline content, so an implementation that wraps the inline content in an
+              anonymous block gets a plain block child instead. Neither may stretch the line. -->
+<div class="container" dir="rtl" id="nested"><span><div class="orthogonal"></div></span>123</div>
+<div class="container" dir="rtl" id="sibling"><div class="orthogonal"></div>123</div>
+
+<script>
+const LINE_HEIGHT = 20;
+
+for (const id of ["nested", "sibling"]) {
+    test(() => {
+        const container = document.getElementById(id);
+        assert_equals(container.querySelector(".orthogonal").getBoundingClientRect().height, 0,
+            "the empty orthogonal box has no height of its own");
+        assert_equals(container.offsetHeight, LINE_HEIGHT,
+            "the container is one line tall: the empty box adds nothing to it");
+    }, `An empty orthogonal block level box on a line does not stretch its containing block (${id})`);
+
+    test(() => {
+        const container = document.getElementById(id);
+        const range = document.createRange();
+        range.selectNodeContents(container.lastChild);
+        assert_equals(range.getBoundingClientRect().top - container.getBoundingClientRect().top, 0,
+            "the text is on the first line, not pushed down by the empty box");
+    }, `Text after an empty orthogonal block level box stays on the first line (${id})`);
+}
+
+test(() => {
+    assert_equals(document.getElementById("nested").offsetHeight,
+                  document.getElementById("sibling").offsetHeight);
+}, "The empty orthogonal box behaves the same whether it is nested in an inline box or a sibling of inline content");
+</script>

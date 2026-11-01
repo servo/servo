@@ -138,5 +138,115 @@ promise_test(async () => {
       'The finite context should close after the second chunk completes');
 }, 'suspend at a chunk boundary is applied by the next startRendering call');
 
+promise_test(async t => {
+  const context = new OfflineAudioContext({
+    numberOfChannels: 1,
+    sampleRate: 44100,
+    renderSizeHint: QUANTUM_SIZE,
+    length: 3 * QUANTUM_SIZE,
+  });
+  // Play an index ramp so every rendered chunk identifies exactly which
+  // sample frames it contains.
+  const rampBuffer = new AudioBuffer({
+    numberOfChannels: 1,
+    sampleRate: context.sampleRate,
+    length: 3 * QUANTUM_SIZE,
+  });
+  const rampData = rampBuffer.getChannelData(0);
+  for (let i = 0; i < rampData.length; ++i) {
+    rampData[i] = i;
+  }
+  const source = new AudioBufferSourceNode(context, {buffer: rampBuffer});
+  source.connect(context.destination);
+  source.start(0);
+
+  // Resolving a chunk promise with an AudioBuffer synchronously invokes a
+  // 'then' getter on its prototype chain, re-entering startRendering() while
+  // the resolved chunk is still being finalized.
+  const observedStates = [];
+  let secondPromise;
+  let thirdPromise;
+  t.add_cleanup(() => {
+    delete AudioBuffer.prototype.then;
+  });
+  Object.defineProperty(AudioBuffer.prototype, 'then', {
+    configurable: true,
+    get() {
+      observedStates.push(context.state);
+      if (observedStates.length === 1) {
+        secondPromise = context.startRendering(QUANTUM_SIZE);
+        thirdPromise = context.startRendering(QUANTUM_SIZE);
+      }
+      return undefined;
+    },
+  });
+
+  const firstBuffer = await context.startRendering(QUANTUM_SIZE);
+  const [secondBuffer, thirdBuffer] =
+      await Promise.all([secondPromise, thirdPromise]);
+
+  assert_equals(observedStates.length, 3,
+      'Each chunk promise resolution should invoke the then getter once');
+  assert_equals(observedStates[0], 'running',
+      'The context should still be running while an intermediate chunk ' +
+      'promise is being resolved');
+  assert_equals(observedStates[1], 'running',
+      'The context should still be running while an intermediate chunk ' +
+      'promise is being resolved');
+  assert_equals(observedStates[2], 'running',
+      'The context should still be running while the final chunk promise ' +
+      'is being resolved; the close is queued afterwards');
+  assert_equals(context.state, 'closed',
+      'The context should close after rendering its finite length');
+  [firstBuffer, secondBuffer, thirdBuffer].forEach((buffer, index) => {
+    assert_equals(buffer.length, QUANTUM_SIZE,
+        `Chunk ${index} should contain one render quantum`);
+    assert_array_equals(buffer.getChannelData(0),
+        Float32Array.from(
+            {length: QUANTUM_SIZE}, (_, i) => index * QUANTUM_SIZE + i),
+        `Chunk ${index} should contain sample frames ` +
+        `${index * QUANTUM_SIZE}..${(index + 1) * QUANTUM_SIZE - 1} ` +
+        'exactly once');
+  });
+}, 'startRendering called synchronously from AudioBuffer.prototype.then');
+
+promise_test(async t => {
+  const context = new OfflineAudioContext({
+    numberOfChannels: 1,
+    sampleRate: 44100,
+    renderSizeHint: QUANTUM_SIZE,
+    length: null,
+  });
+
+  let triggered = false;
+  let secondPromise;
+  let closePromise;
+  t.add_cleanup(() => {
+    delete AudioBuffer.prototype.then;
+  });
+  Object.defineProperty(AudioBuffer.prototype, 'then', {
+    configurable: true,
+    get() {
+      if (!triggered) {
+        triggered = true;
+        secondPromise = context.startRendering(QUANTUM_SIZE);
+        closePromise = context.close();
+      }
+      return undefined;
+    },
+  });
+
+  const firstBuffer = await context.startRendering(QUANTUM_SIZE);
+  assert_equals(firstBuffer.length, QUANTUM_SIZE,
+      'The first chunk should contain one render quantum');
+  await promise_rejects_dom(t, 'AbortError', secondPromise,
+      'A chunk queued before a synchronous close should reject with ' +
+      'AbortError');
+  await closePromise;
+  assert_equals(context.state, 'closed',
+      'The context should be closed after close resolves');
+}, 'startRendering and close called synchronously from ' +
+   'AudioBuffer.prototype.then');
+
 </script>
 </html>

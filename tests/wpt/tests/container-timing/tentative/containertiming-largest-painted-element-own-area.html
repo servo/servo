@@ -11,56 +11,41 @@ body {
 <script src="/resources/testharnessreport.js"></script>
 <script src="/container-timing/resources/container-timing-helpers.js"></script>
 <script>
-  let beforeRender;
-  async_test(function (t) {
+  promise_test(async t => {
     assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
+    const div = addContainerRoot(document.body, 'div_ct');
 
-    const div = document.createElement('div');
-    div.setAttribute('containertiming', 'div_ct');
-    document.body.appendChild(div);
-
-    function addImage(id, left, top, width, height) {
-      const img = document.createElement('img');
-      img.src = '/container-timing/resources/square100.png';
-      img.setAttribute('id', id);
-      img.style.position = 'absolute';
-      img.style.left = left + 'px';
-      img.style.top = top + 'px';
-      img.style.width = width + 'px';
-      img.style.height = height + 'px';
-      div.appendChild(img);
+    function addPositionedImage(id, left, top, width, height) {
+      addSquare100Image(div, {
+        id,
+        style: `position: absolute; left: ${left}px; top: ${top}px; ` +
+               `width: ${width}px; height: ${height}px;`
+      });
     }
 
-    let entries = 0;
-    const observer = new PerformanceObserver(t.step_func(function(entryList) {
-      for (const entry of entryList.getEntries()) {
-        ++entries;
-        if (entries == 1) {
-          checkContainerEntry(entry, 'div_ct', 'first_id', beforeRender);
-          checkContainerSize(entry, 10000);
+    addPositionedImage('first_id', 0, 0, 100, 100);
+    const beforeRender = performance.now();
 
-          // Two more images, in a later frame and sharing the already loaded
-          // resource, so that they paint together:
-          //  - 100x120 covering all of the first image, so it contributes only
-          //    a 100x20 strip: 2000 of new area, but 12000 of its own.
-          //  - 60x60 of entirely new area: 3600 either way.
-          // Selecting by the newly contributed area would report the smaller
-          // one; selecting by the element's own area reports the larger one.
-          addImage('overlapping_id', 0, 0, 100, 120);
-          addImage('fresh_id', 200, 200, 60, 60);
-          return;
-        }
+    const entries = await getContainerEntries(t);
+    assert_equals(entries.length, 1);
+    checkContainerEntry(entries[0], 'div_ct', 'first_id', beforeRender);
+    checkContainerSize(entries[0], 10000);
 
-        checkContainerEntry(entry, 'div_ct', 'overlapping_id', beforeRender);
-        checkContainerSize(entry, 15600);
-        checkContainerIntersectionRect(entry, [0, 260, 0, 260]);
-        t.done();
-      }
-    }));
-    observer.observe({entryTypes: ['container']});
+    // Two more images, in a later frame and sharing the already loaded
+    // resource, so that they paint together:
+    //  - 100x120 covering all of the first image, so it contributes only
+    //    a 100x20 strip: 2000 of new area, but 12000 of its own.
+    //  - 60x60 of entirely new area: 3600 either way.
+    // Selecting by the newly contributed area would report the smaller
+    // one; selecting by the element's own area reports the larger one.
+    addPositionedImage('overlapping_id', 0, 0, 100, 120);
+    addPositionedImage('fresh_id', 200, 200, 60, 60);
+    const allEntries = await getContainerEntries(t, 2);
 
-    addImage('first_id', 0, 0, 100, 100);
-    beforeRender = performance.now();
+    assert_equals(allEntries.length, 2);
+    checkContainerEntry(allEntries[1], 'div_ct', 'overlapping_id', beforeRender);
+    checkContainerSize(allEntries[1], 15600);
+    checkContainerIntersectionRect(allEntries[1], [0, 260, 0, 260]);
   }, 'lastPaintedElement is the element with the largest area of its own, not the largest newly painted area.');
 </script>
 

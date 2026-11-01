@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: a block whose content is a table is not self-collapsing</title>
+<link rel="help" href="https://www.w3.org/TR/CSS22/box.html#collapsing-margins">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#inline-formatting">
+<meta name="assert" content="A table is never a self-collapsing box. A block whose in-flow content is a table therefore has content too, so it is not self-collapsing either, and the margins of its previous and next siblings must not collapse through it. This holds whether the table is a direct child of that block or nested in an inline box.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body { margin: 0; }
+.before, .after { height: 10px; }
+.before { margin-bottom: 20px; }
+.after { margin-top: 20px; }
+table { border-spacing: 0; }
+</style>
+
+<!-- The empty table is zero-sized, so the container has no height of its own. It is still not
+     self-collapsing, because a table is never self-collapsing content. The 20px margins on either
+     side must therefore stay separate rather than collapsing through the container into one. -->
+<div id="nested">
+  <div class="before"></div>
+  <div class="container"><span><table><tr><td></td></tr></table></span></div>
+  <div class="after"></div>
+</div>
+
+<div id="direct">
+  <div class="before"></div>
+  <div class="container"><table><tr><td></td></tr></table></div>
+  <div class="after"></div>
+</div>
+
+<div id="control">
+  <div class="before"></div>
+  <div class="container"></div>
+  <div class="after"></div>
+</div>
+
+<script>
+const gapIn = id => {
+    const scope = document.getElementById(id);
+    const before = scope.querySelector(".before").getBoundingClientRect();
+    const after = scope.querySelector(".after").getBoundingClientRect();
+    return after.top - before.bottom;
+};
+
+// The two 20px margins stay separate, and between them sits the container itself. An empty table is
+// not necessarily zero-height, so measure the container rather than assuming it takes no space.
+const expectedGap = id =>
+    20 + 20 + document.getElementById(id).querySelector(".container").getBoundingClientRect().height;
+
+test(() => {
+    // Nothing separates the two margins, so they collapse into one 20px margin.
+    assert_equals(gapIn("control"), 20, "sanity check: an empty container is self-collapsing");
+}, "Margins collapse through an empty self-collapsing container");
+
+test(() => {
+    assert_equals(gapIn("nested"), expectedGap("nested"));
+}, "Margins do not collapse through a block whose table is nested in an inline box");
+
+test(() => {
+    assert_equals(gapIn("direct"), expectedGap("direct"));
+}, "Margins do not collapse through a block whose table is a direct child");
+</script>

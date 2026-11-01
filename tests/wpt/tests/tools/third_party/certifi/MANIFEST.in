@@ -1,1 +1,6 @@
-include MANIFEST.in README.rst LICENSE certifi/cacert.pem
+include MANIFEST.in README.rst LICENSE certifi/cacert.pem certifi/py.typed
+recursive-include certifi/tests *
+
+exclude .github/
+recursive-exclude .github
+global-exclude *.py[cod] __pycache__ .DS_Store

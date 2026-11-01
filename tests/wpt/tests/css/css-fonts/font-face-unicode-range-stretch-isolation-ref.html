@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS Fonts reference: font-stretch isolation</title>
+<link rel="author" title="WebKit" href="https://webkit.org">
+<style>
+/* Only the normal-stretch face covering 'a'. No face for 'b',
+   so 'b' correctly falls through to the sans-serif fallback. */
+@font-face {
+    font-family: IsolationTestFamily;
+    src: url(/fonts/Ahem.ttf) format("truetype");
+    font-stretch: normal;
+    unicode-range: U+61;
+}
+p {
+    font-family: IsolationTestFamily, sans-serif;
+    font-stretch: normal;
+    font-synthesis: none;
+    font-size: 100px;
+    line-height: 1;
+    margin: 0;
+}
+</style>
+<html class="reftest-wait">
+<body>
+<p>ab</p>
+<script>
+document.fonts.ready.then(() => document.documentElement.classList.remove("reftest-wait"));
+</script>
+</body>
+</html>

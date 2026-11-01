@@ -1,0 +1,108 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Document-Isolation-Policy CORP violation reports of a dedicated worker's loads</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script src="./resources/common.js"></script>
+<body>
+<script>
+"use strict";
+
+const { ORIGIN, REMOTE_ORIGIN } = get_host_info();
+
+const header = (name, value) => `|header(${name},${value})`;
+const dip = header("document-isolation-policy", "isolate-and-require-corp") +
+  header("document-isolation-policy-report-only", "isolate-and-require-corp");
+
+function checkReport(report, contextURL, blockedURL, disposition) {
+  assert_equals(report.type, "dip", "type");
+  assert_equals(report.url, contextURL, "url");
+  assert_equals(report.body.type, "corp", "body.type");
+  assert_equals(report.body.blockedURL, blockedURL, "body.blockedURL");
+  assert_equals(report.body.disposition, disposition, "body.disposition");
+  assert_equals(report.body.destination, "", "body.destination");
+}
+
+// Has the context identified by uuid start a dedicated worker, which inherits its policy. Resolves
+// with the worker's uuid and URL.
+async function createWorker(uuid) {
+  const workerUUID = token();
+  const workerURL = `${ORIGIN}/common/dispatcher/remote-executor-worker.js?pipe=&uuid=${workerUUID}`;
+  await new RemoteContext(uuid).execute_script(url => { (self.workers ??= []).push(new Worker(url)); }, [workerURL]);
+  return [workerUUID, new URL(workerURL).href];
+}
+
+// Has the context identified by uuid keep the reports it observes, for takeReports().
+function observeReports(uuid) {
+  return new RemoteContext(uuid).execute_script(() => {
+    self.observedReports = [];
+    self.reportingObserver = new ReportingObserver(list => self.observedReports.push(...list));
+    self.reportingObserver.observe();
+  });
+}
+
+function takeReports(uuid) {
+  return new RemoteContext(uuid).execute_script(() => {
+    self.observedReports.push(...self.reportingObserver.takeRecords());
+    return self.observedReports.map(report => report.toJSON());
+  });
+}
+
+// Has the worker identified by uuid fetch url and wait for two reports. Resolves with whether the
+// fetch failed and the reports.
+function fetchAndObserveReports(uuid, url) {
+  return new RemoteContext(uuid).execute_script(async url => {
+    const reports = [];
+    const observed = new Promise(resolve => {
+      new ReportingObserver(list => {
+        reports.push(...list.map(report => report.toJSON()));
+        if (reports.length >= 2)
+          resolve();
+      }).observe();
+    });
+
+    let blocked = false;
+    try {
+      await fetch(url, { mode: "no-cors", cache: "no-store" });
+    } catch {
+      blocked = true;
+    }
+
+    await observed;
+    return { blocked, reports };
+  }, [url]);
+}
+
+async function checkWorkerReports(workerUUID, workerURL) {
+  const url = `${REMOTE_ORIGIN}/common/square.png?${token()}`;
+  const { blocked, reports } = await fetchAndObserveReports(workerUUID, url);
+  assert_true(blocked, "blocked");
+  assert_equals(reports.length, 2);
+  checkReport(reports[0], workerURL, new URL(url).href, "reporting");
+  checkReport(reports[1], workerURL, new URL(url).href, "enforce");
+}
+
+promise_test(async t => {
+  const [frameUUID] = await createIframeContext(t, ORIGIN, dip);
+  await observeReports(frameUUID);
+  const [workerUUID, workerURL] = await createWorker(frameUUID);
+  await checkWorkerReports(workerUUID, workerURL);
+  assert_array_equals(await takeReports(frameUUID), [], "reports of the owner");
+}, "A dedicated worker's loads report to the worker rather than to its owner");
+
+promise_test(async t => {
+  const [frameUUID] = await createIframeContext(t, ORIGIN, dip);
+  await observeReports(frameUUID);
+  const [workerUUID] = await createWorker(frameUUID);
+  await observeReports(workerUUID);
+  const [nestedWorkerUUID, nestedWorkerURL] = await createWorker(workerUUID);
+  await checkWorkerReports(nestedWorkerUUID, nestedWorkerURL);
+  assert_array_equals(await takeReports(workerUUID), [], "reports of the owner");
+  assert_array_equals(await takeReports(frameUUID), [], "reports of the owner's owner");
+}, "A nested dedicated worker's loads report to that worker rather than to its owner");
+</script>

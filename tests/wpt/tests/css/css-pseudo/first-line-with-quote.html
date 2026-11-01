@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>CSS Pseudo-Elements Test: ::first-line applies to the quote marks inserted by open-quote and close-quote</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-line-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-content-3/#quotes">
+<link rel="match" href="first-line-with-quote-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<meta name="assert" content="The quote marks inserted by open-quote and close-quote are contents of the first formatted line, so they take the ::first-line color.">
+<style>
+.container {
+    font: 20px/1 Ahem;
+    quotes: "X" "X";
+}
+.container::first-line {
+    color: green;
+}
+.quotation::before {
+    content: open-quote;
+}
+.quotation::after {
+    content: close-quote;
+}
+</style>
+<p>Test passes if the rectangle below is entirely green.</p>
+<div class="container"><span class="quotation">XX</span></div>

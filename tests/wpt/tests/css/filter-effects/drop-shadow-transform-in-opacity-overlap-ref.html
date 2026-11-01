@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Reference for CSS Filters: drop-shadow on a rotated element inside a transparent group</title>
+    <link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+    <style>
+      body { margin: 0; background: white; }
+      .group {
+        position: absolute;
+        top: 300px;
+        left: 400px;
+        opacity: 0.5;
+      }
+      .under {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 320px;
+        height: 260px;
+        background: #4477cc;
+      }
+      .shadow {
+        position: absolute;
+        top: 50px;
+        left: 50px;
+        width: 150px;
+        height: 120px;
+        background: #2e8b2e;
+        transform: rotate(15deg);
+        filter: drop-shadow(18px 18px 0 rgba(0, 0, 0, 0.55));
+      }
+    </style>
+  </head>
+  <body>
+    <div class=group>
+      <div class=under></div>
+      <div class=shadow></div>
+    </div>
+  </body>
+</html>

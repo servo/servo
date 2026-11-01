@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>CSS Box Alignment Level 3: parsing justify-items with valid values</title>
 <link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-justify-items">
-<meta name="assert" content="justify-items supports the full grammar 'normal | stretch | <baseline-position> | <overflow-position>? [ <self-position> | left | right ] | legacy | legacy && [ left | right | center ]'.">
+<meta name="assert" content="justify-items supports the full grammar '[ <overflow-position>? normal ] | stretch | <baseline-position> | <overflow-position>? [ <self-position> | left | right ] | legacy | legacy && [ left | right | center ]'.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -12,6 +12,8 @@
 <body>
 <script>
 test_valid_value("justify-items", "normal");
+test_valid_value("justify-items", "unsafe normal");
+test_valid_value("justify-items", "safe normal");
 test_valid_value("justify-items", "stretch");
 
 // <baseline-position> = [ first | last ]? baseline

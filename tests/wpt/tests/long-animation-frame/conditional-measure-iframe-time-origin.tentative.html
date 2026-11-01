@@ -1,0 +1,113 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Long Animation Frame Timing: conditional measure iframe time origin</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<style>
+/* Keep the iframe visible so its animation frame callback is not throttled. */
+iframe {
+  border: none;
+  height: 100px;
+  left: 0;
+  position: fixed;
+  top: 0;
+  width: 100px;
+}
+</style>
+<body>
+<div id="log"></div>
+<script>
+setup(() => {
+  assert_implements(
+      "userTimingEntries" in PerformanceLongAnimationFrameTiming.prototype,
+      "conditional user timing for LoAF not implemented");
+});
+
+// Creates a same-origin iframe whose time origin is clearly later than this
+// document's. The iframe defines one function per way of taking a measure
+// without a usable start mark.
+async function create_iframe(t) {
+  // Separate the two time origins enough that a zero start time cannot pass.
+  await new Promise(resolve => t.step_timeout(resolve, 100));
+
+  const iframe = document.createElement("iframe");
+  t.add_cleanup(() => iframe.remove());
+  iframe.srcdoc = `<!doctype html>
+    <script>
+    function measureWithoutStartMark() {
+      performance.measureConditional("iframe-measure");
+    }
+    function measureWithUnresolvedStartMark() {
+      performance.markConditional("end-mark");
+      performance.measureConditional(
+          "iframe-measure", "missing-mark", "end-mark");
+    }
+    <\/script>`;
+  const loaded = new Promise(resolve => {
+    iframe.onload = resolve;
+  });
+  document.body.appendChild(iframe);
+  await loaded;
+  return iframe;
+}
+
+// The iframe takes the measure; this document observes it in a long animation
+// frame entry.
+function test_iframe_measure(measure_function_name, description) {
+  promise_test(async t => {
+    await windowLoaded;
+    const iframe = await create_iframe(t);
+    const iframe_window = iframe.contentWindow;
+
+    // The iframe's time origin, expressed on this document's timeline.
+    const iframe_time_origin =
+        iframe_window.performance.timeOrigin - performance.timeOrigin;
+    assert_greater_than(iframe_time_origin, 50,
+        "The iframe must have a later time origin than this document");
+
+    let before_measure, after_measure;
+    const loaf = await expect_long_frame(async (t, busy_wait) => {
+      await new Promise(resolve => {
+        iframe_window.requestAnimationFrame(() => {
+          before_measure = iframe_window.performance.now();
+          iframe_window[measure_function_name]();
+          after_measure = iframe_window.performance.now();
+          busy_wait();
+          resolve();
+        });
+      });
+    }, t);
+    assert_not_equals(loaf, "timeout");
+
+    const measures = Array.from(loaf.userTimingEntries)
+        .filter(entry => entry.name === "iframe-measure");
+    assert_equals(measures.length, 1, "The iframe's measure must be reported");
+    const measure = measures[0];
+    assert_equals(measure.window, iframe_window,
+        "The measure must belong to the iframe");
+
+    const epsilon = 4;
+
+    // Without a resolved start mark, startTime is the iframe's time origin.
+    assert_approx_equals(measure.startTime, iframe_time_origin, epsilon,
+        "The measure must start at the iframe's time origin");
+
+    // The measure runs from the iframe's time origin to when it was taken, so
+    // its duration equals the iframe's performance.now() at the moment the
+    // measure was taken, which is between |before_measure| and
+    // |after_measure|.
+    assert_between_inclusive(measure.duration,
+        before_measure - epsilon, after_measure + epsilon,
+        "The duration must span from the iframe's time origin to the measure");
+  }, `Iframe conditional measure with ${description} uses its own time ` +
+      "origin when observed by the parent");
+}
+
+test_iframe_measure("measureWithoutStartMark",
+    "no start mark passed to measureConditional()");
+test_iframe_measure("measureWithUnresolvedStartMark",
+    "an unresolved start mark");
+</script>
+</body>

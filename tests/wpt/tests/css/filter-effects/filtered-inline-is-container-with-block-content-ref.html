@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Filter: a filtered inline is the containing block for an out-of-flow child on any line</title>
+<style>
+.container { width: 300px; font: 16px/20px monospace; }
+.block { height: 100px; background-color: silver; }
+/* An in-flow positioned inline is the containing block for the same reason, so it places the box the same way. */
+.inline-container { position: relative; }
+.absolute { position: absolute; top: 50px; left: 10px; width: 50px; height: 20px; background-color: green; }
+</style>
+
+<div class="container"><span><div class="block"></div></span><span class="inline-container">a<div class="absolute"></div></span></div>

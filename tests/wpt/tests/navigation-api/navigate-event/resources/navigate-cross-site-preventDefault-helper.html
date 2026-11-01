@@ -1,0 +1,15 @@
+<!doctype html>
+<script>
+window.marker = "alive";
+
+navigation.onnavigate = e => {
+  e.preventDefault();
+  parent.postMessage({ cancelable: e.cancelable, canIntercept: e.canIntercept, destination: e.destination.url }, "*");
+};
+
+window.onload = () => {
+  const result = navigation.navigate(new URLSearchParams(location.search).get("destination"));
+  result.committed.catch(() => {});
+  result.finished.catch(() => {});
+};
+</script>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>drawElementImage ignores cross-origin filters on transformed text in SVG patterns</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/html/canvas/resources/canvas-tests.js"></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+</head>
+<body>
+  <canvas id="canvas" width="100" height="100" content="drawable">
+    <svg width="0" height="0">
+      <defs>
+        <filter id="filter-same" filterUnits="userSpaceOnUse" x="0" y="0" width="100" height="50">
+          <feImage href="https://{{location[host]}}/images/green-100x100.png"/>
+        </filter>
+        <filter id="filter-cross" filterUnits="userSpaceOnUse" x="0" y="0" width="100" height="50">
+          <feImage href="https://{{hosts[alt][www]}}:{{ports[https][0]}}/images/red-100x100.png"/>
+        </filter>
+        <pattern id="pattern-same" patternUnits="userSpaceOnUse" width="100" height="50">
+          <g filter="url(#filter-same)">
+            <text y="20" transform="translate(1 0)">x</text>
+          </g>
+        </pattern>
+        <pattern id="pattern-cross" patternUnits="userSpaceOnUse" width="100" height="50">
+          <g filter="url(#filter-cross)">
+            <text y="20" transform="translate(1 0)">x</text>
+          </g>
+        </pattern>
+      </defs>
+    </svg>
+    <svg id="child" drawable width="100" height="100">
+      <rect x="0" y="0" width="100" height="50" fill="url(#pattern-same)"/>
+      <rect x="0" y="50" width="100" height="50" fill="url(#pattern-cross)"/>
+    </svg>
+  </canvas>
+
+  <script>
+    window.onload = () => {
+      promise_test(async function(t) {
+        await waitForCanvasPaint(canvas);
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "blue";
+        ctx.fillRect(0, 0, 100, 100);
+        ctx.drawElementImage(child, 0, 0);
+
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        let pixel = _getPixelFromImageData(imgData, 50, 25);
+        assert_array_equals(pixel, [0, 255, 0, 255], "Same origin pattern should draw");
+
+        pixel = _getPixelFromImageData(imgData, 50, 75);
+        assert_array_equals(pixel, [0, 0, 255, 255], "Cross origin pattern should not draw");
+      });
+    };
+  </script>
+</body>
+</html>

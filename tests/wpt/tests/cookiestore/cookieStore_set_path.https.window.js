@@ -1,16 +1,17 @@
 // META: title=Cookie Store API: set()'s path option
 // META: script=/resources/testdriver.js
 // META: script=/resources/testdriver-vendor.js
+// META: script=resources/cookie-test-helpers.js
 
 promise_test(async testCase => {
   const currentUrl = new URL(self.location.href);
   const currentPath = currentUrl.pathname;
   const currentDirectory = currentPath.substr(0, currentPath.lastIndexOf('/'));
 
-  await cookieStore.set({ name: 'cookie-name', value: 'cookie-value', path: '' });
   testCase.add_cleanup(async () => {
-    await cookieStore.delete({ name: 'cookie-name', path: currentDirectory });
+    await setCookieStringHttp(`cookie-name=deleted; Path=${currentDirectory}; Max-Age=0`);
   });
+  await cookieStore.set({ name: 'cookie-name', value: 'cookie-value', path: '' });
 
   const internalCookie = await test_driver.get_named_cookie('cookie-name');
   assert_equals(internalCookie.path, currentDirectory);

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+
+<script>
+
+  function testMaxRenderLayers(xrSession, deviceController, t, { gl, glLayer }) {
+    return new Promise((resolve, reject) => {
+      const layersFeatureEnabled = xrSession.enabledFeatures.includes('layers');
+
+      t.step(() => {
+        if (layersFeatureEnabled) {
+          // Create an array of layers with 1 layer more than xrSession.maxRenderLayers
+          let excessLayers = [];
+          for (let i = 0; i < xrSession.maxRenderLayers + 1; i++) {
+            excessLayers.push(new XRWebGLLayer(xrSession, gl));
+          }
+          const updateRenderStateMultilayer = () => xrSession.updateRenderState({ layers: excessLayers });
+          try {
+            updateRenderStateMultilayer();
+            assert_unreached("updateRenderState should fail when created with more layers than maxRenderLayers.")
+          } catch (err) {
+            assert_equals(err.name, "NotSupportedError", "Should get InvalidStateError when updating render state with more layers than maxRenderLayers.");
+          }
+        } else {
+          assert_throws_dom('NotSupportedError', updateRenderStateMultilayer, "XRSession should be able to updateRenderState with multiple layers only if the layers feature is enabled.");
+        }
+      resolve();
+      });
+    });
+  }
+
+  xr_session_promise_test("Ensure XRSession throws appropriate errors when updating render state with more layers than maxRenderLayers without layers feature enabled",
+    testMaxRenderLayers, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', { requiredFeatures: ['layers'] });
+
+  xr_session_promise_test("Ensure XRSession throws appropriate errors when updating render state with more layers than maxRenderLayers with layers feature enabled",
+    testMaxRenderLayers, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', { requiredFeatures: ['layers'] });
+
+</script>

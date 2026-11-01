@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: ::first-letter updates when ::before is added to the block itself</title>
+  <link rel="author" title="Apple" href="https://www.apple.com">
+  <link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-letter-styling">
+  <link rel="match" href="first-letter-before-dynamic-on-block-ref.html">
+  <meta name="assert" content="When ::before is dynamically added to the ::first-letter block itself, its content should become the new first letter.">
+  <style>
+  .fl::first-letter {
+      color: green;
+  }
+  .bef::before {
+      content: "X";
+  }
+  </style>
+</head>
+<body>
+  <p>Test passes if you see <strong>XABC</strong> with only <strong>X</strong> in green.</p>
+  <div id="d1" class="fl">ABC</div>
+  <script>
+  document.body.offsetTop;
+  d1.className = "fl bef";
+  </script>
+</body>
+</html>

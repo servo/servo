@@ -256,3 +256,67 @@ promise_test(async t => {
     'Removing an unselected option should not update selectedcontent.');
 }, 'Removing an unselected option from a list box without a selected option does not update selectedcontent.');
 </script>
+
+<select id=select9a>
+  <button>
+    <selectedcontent id=selectedcontent9></selectedcontent>
+  </button>
+  <option>one</option>
+</select>
+<select id=select9b>
+  <button></button>
+  <option>two</option>
+  <option>three</option>
+</select>
+
+<script>
+// Moving a selectedcontent element queues an update of its select's
+// selectedcontent elements, as removing the selected option does.
+promise_test(async t => {
+  const selectB = document.getElementById('select9b');
+  const selectedcontent = document.getElementById('selectedcontent9');
+  const takeRecords = observeRecords(t, selectedcontent);
+
+  selectB.querySelector('button').moveBefore(selectedcontent, null);
+  selectB.options[0].remove();
+  await new Promise(queueMicrotask);
+
+  assert_equals(selectedcontent.textContent, 'three',
+    'selectedcontent should match the selected option of its new select.');
+  assert_equals(takeRecords().length, 1,
+    'Moving selectedcontent and removing the selected option should update it once.');
+}, 'Moving a selectedcontent element and removing the selected option queues a single update.');
+</script>
+
+<select id=select10a>
+  <button>
+    <selectedcontent id=selectedcontent10a></selectedcontent>
+  </button>
+  <option>one</option>
+</select>
+<select id=select10b>
+  <button>
+    <selectedcontent id=selectedcontent10b></selectedcontent>
+  </button>
+  <option>two</option>
+</select>
+
+<script>
+promise_test(async t => {
+  const selectB = document.getElementById('select10b');
+  const movedSelectedcontent = document.getElementById('selectedcontent10a');
+  const existingSelectedcontent = document.getElementById('selectedcontent10b');
+  const takeMovedRecords = observeRecords(t, movedSelectedcontent);
+  const takeExistingRecords = observeRecords(t, existingSelectedcontent);
+
+  selectB.querySelector('button').moveBefore(movedSelectedcontent, null);
+  await new Promise(queueMicrotask);
+
+  assert_equals(movedSelectedcontent.textContent, 'two',
+    'The moved selectedcontent should match the selected option of its new select.');
+  assert_equals(takeMovedRecords().length, 1,
+    'The moved selectedcontent should be updated once.');
+  assert_equals(takeExistingRecords().length, 1,
+    'The selectedcontent that was already in the select should be updated once.');
+}, 'Moving a selectedcontent element into a select updates all of its selectedcontent elements.');
+</script>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Test: Left float with negative margins on both sides next to right float</title>
+<link rel="help" href="https://www.w3.org/TR/CSS21/visuren.html#floats">
+<link rel="match" href="float-avoids-float-with-margin-011-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<meta name="assert" content="A left float with negative margins on both sides has a smaller margin box and should fit next to a right float when margin box width allows it.">
+<style>
+.container {
+    width: 100px;
+    height: 40px;
+    font: 20px/1 Ahem;
+}
+
+.right {
+    float: right;
+    width: 70px;
+    height: 20px;
+    background: blue;
+}
+
+.left {
+    float: left;
+    width: 50px;
+    height: 20px;
+    background: green;
+    margin-left: -10px;
+    margin-right: -15px;
+}
+</style>
+</head>
+<body>
+<div class="container"><div class="right"></div><div class="left"></div></div>
+</body>
+</html>

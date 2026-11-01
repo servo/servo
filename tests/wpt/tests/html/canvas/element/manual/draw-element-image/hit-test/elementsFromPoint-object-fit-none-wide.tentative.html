@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<title>Elements should appear in elementsFromPoint with object-fit: none in a wide box</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+  #left {
+    width: 10px;
+    height: 400px;
+    background-color: red;
+  }
+  #top {
+    width: 380px;
+    height: 10px;
+    background-color: green;
+  }
+  #right {
+    width: 10px;
+    height: 400px;
+    background-color: yellow;
+  }
+  #bottom {
+    width: 380px;
+    height: 10px;
+    background-color: blue;
+  }
+  canvas {
+    aspect-ratio: 4/3;
+    object-fit: cover;
+    background-color: white;
+    height: 300px;
+  }
+  body {
+    margin: 0px;
+  }
+</style>
+
+<canvas id="canvas" width=400 height=400 content=drawable>
+  <div drawable id="left"></div>
+  <div drawable id="top"></div>
+  <div drawable id="right"></div>
+  <div drawable id="bottom"></div>
+</canvas>
+
+<script>
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    const ctx = canvas.getContext('2d');
+    const left_elmt = document.getElementById("left");
+    const top_elmt = document.getElementById("top");
+    const right_elmt = document.getElementById("right");
+    const bottom_elmt = document.getElementById("bottom");
+    // The canvas bitmap is 400x400 in CSS pixels with 50px cropped at the top and
+    // 50px cropped at the bottom. The drawn elements are at the CSS size when drawn so should
+    // hit test at that size.
+    ctx.drawElementImage(left_elmt, 0, 0);
+    ctx.drawElementImage(top_elmt, 10, 0);
+    ctx.drawElementImage(right_elmt, 390, 0);
+    ctx.drawElementImage(bottom_elmt, 10, 390);
+
+    assert_array_equals(document.elementsFromPoint(15, 5),
+                        [canvas, document.body, document.documentElement],
+                        '(15, 5) Should have returned a sequence with `[canvas, body, html]`');
+    assert_array_equals(document.elementsFromPoint(385, 5),
+                        [canvas, document.body, document.documentElement],
+                        '(385, 5) Should have returned a sequence with `[canvas, body, html]`');
+
+    assert_array_equals(document.elementsFromPoint(5, 5),
+                        [left_elmt, canvas, document.body, document.documentElement],
+                        '(5, 5) Should have returned a sequence with `[left, canvas, body, html]`');
+    assert_array_equals(document.elementsFromPoint(5, 295),
+                        [left_elmt, canvas, document.body, document.documentElement],
+                        '(5, 295) Should have returned a sequence with `[left, canvas, body, html]`');
+
+    assert_array_equals(document.elementsFromPoint(395, 5),
+                        [right_elmt, canvas, document.body, document.documentElement],
+                        '(395, 5) Should have returned a sequence with `[right, canvas, body, html]`');
+    assert_array_equals(document.elementsFromPoint(395, 295),
+                        [right_elmt, canvas, document.body, document.documentElement],
+                        '(395, 295) Should have returned a sequence with `[right, canvas, body, html]`');
+
+    assert_array_equals(document.elementsFromPoint(15, 295),
+                        [canvas, document.body, document.documentElement],
+                        '(15, 295) Should have returned a sequence with `[canvas, body, html]`');
+    assert_array_equals(document.elementsFromPoint(385, 295),
+                        [canvas, document.body, document.documentElement],
+                        '(385, 295) Should have returned a sequence with `[canvas, body, html]`');
+  }, 'Canvas descendants\' transforms are correct when object-fit: none is active.');
+
+</script>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: trailing white space collapses at the end of a line that is followed by a block level box</title>
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#white-space-phase-2">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#anonymous-block-level">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#inline-formatting">
+<meta name="assert" content="A block level box in inline content ends the line before it, so white space at the end of that line is at a line edge and collapses away. Content following the block level box cannot extend that line and so cannot keep the white space alive.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+body { margin: 0; }
+.container { font: 20px/20px Ahem; }
+</style>
+
+<div class="container" contenteditable id="nested">1 <span><div class="block">2</div></span>2</div>
+<div class="container" contenteditable id="sibling">1 <div class="block">2</div>2</div>
+<div class="container" contenteditable id="midline">1 2</div>
+
+<script>
+// The width of the leading text node, in characters. "1 " is one character plus a trailing space: the space
+// is at the end of the line the block level box closes, so it collapses and the run is 1 character wide.
+// In the control the space sits between two characters on the same line, so the run is 3 characters wide.
+const expected = { nested: 1, sibling: 1, midline: 3 };
+
+const range = document.createRange();
+const widthOf = node => {
+    range.selectNodeContents(node);
+    return range.getBoundingClientRect().width;
+};
+
+const characterWidth = widthOf(document.getElementById("midline").firstChild) / expected.midline;
+
+for (const id of ["nested", "sibling", "midline"]) {
+    test(() => {
+        assert_greater_than(characterWidth, 0, "the character width could be measured");
+        const characters = widthOf(document.getElementById(id).firstChild) / characterWidth;
+        assert_equals(characters, expected[id], "width of the leading text run, in characters");
+    }, id === "midline"
+        ? "White space between two characters on the same line is preserved"
+        : `Trailing white space before a block level box collapses (${id})`);
+}
+
+test(() => {
+    assert_equals(widthOf(document.getElementById("nested").firstChild),
+                  widthOf(document.getElementById("sibling").firstChild));
+}, "The trailing white space collapses the same whether the block level box is nested in an inline box or a "
+   + "sibling of inline content");
+</script>

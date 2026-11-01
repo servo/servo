@@ -25,6 +25,14 @@ promise_test(async t => {
   assert_greater_than(script.pauseDuration, pause_duration);
 }, "Synchronous XHR should be counted as pauseDuration");
 
+promise_test(async t => {
+  const [entry, script] = await expect_long_frame_with_script((t, busy_wait) =>
+    t.step_timeout(() => busy_wait(very_long_frame_duration), 0),
+    script => script.invoker === "TimerHandler:setTimeout", t);
+  assert_equals(script.pauseDuration, 0,
+      "pauseDuration should be 0 when no synchronous pause occurs");
+}, "pauseDuration is 0 when no synchronous pause occurs");
+
 // TODO: Test for alert/confirm, requires WPT infra changes.
 </script>
 </body>

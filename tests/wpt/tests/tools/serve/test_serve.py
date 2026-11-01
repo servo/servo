@@ -3,9 +3,12 @@
 import builtins
 import io
 import logging
+import multiprocessing
+import multiprocessing.managers
 import os
 import pickle
 import platform
+import socket
 from unittest.mock import MagicMock, patch
 from typing import Generator, Tuple
 
@@ -26,6 +29,59 @@ from .serve import (
 
 
 logger = logging.getLogger()
+
+
+def test_stash_port_race(monkeypatch):
+    builder = ConfigBuilder(logger, browser_host="localhost", check_subdomains=False)
+    builder.inject_script = None
+    monkeypatch.setattr(serve, "build_config", lambda *args, **kwargs: builder)
+    monkeypatch.delenv("WPT_STASH_CONFIG", raising=False)
+
+    def start(*args, **kwargs):
+        address, authkey = serve.stash.load_env_config()
+        assert address[1] != 0
+        manager = serve.stash.StashManager(address, authkey)
+        manager.connect()
+        data = manager.get_dict()
+        data["test"] = "connected"
+        assert data.pop("test") == "connected"
+        return {}
+
+    monkeypatch.setattr(serve, "start", start)
+    with socket.socket() as competitor:
+        competitor.bind(("127.0.0.1", 0))
+        competitor.listen()
+        # Simulate another listener claiming the port after `get_port()` returns.
+        monkeypatch.setattr(serve, "get_port", lambda host: competitor.getsockname()[1])
+        assert serve.run(exit_after_start=True) == 0
+
+
+@pytest.mark.skipif("fork" not in multiprocessing.get_all_start_methods(),
+                    reason="Requires a fork-based default context")
+def test_stash_does_not_inherit_parent_sockets(monkeypatch):
+    builder = ConfigBuilder(logger, browser_host="localhost", check_subdomains=False)
+    builder.inject_script = None
+    monkeypatch.setattr(serve, "build_config", lambda *args, **kwargs: builder)
+    monkeypatch.delenv("WPT_STASH_CONFIG", raising=False)
+    # Reproduce the default on Linux before Python 3.14, regardless of the
+    # platform's current default. `run()` explicitly requests spawn instead.
+    monkeypatch.setattr(multiprocessing.managers, "get_context",
+                        lambda: multiprocessing.get_context("fork"))
+
+    with socket.socket() as listener:
+        listener.bind(("127.0.0.1", 0))
+        listener.listen()
+        address = listener.getsockname()
+
+        def start(*args, **kwargs):
+            listener.close()
+            with socket.socket() as replacement:
+                replacement.bind(address)
+            return {}
+
+        monkeypatch.setattr(serve, "start", start)
+        assert serve.run(mp_context=multiprocessing.get_context("spawn"), exit_after_start=True) == 0
+
 
 @pytest.mark.skipif(platform.uname()[0] == "Windows",
                     reason="Expected contents are platform-dependent")

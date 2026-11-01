@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-viewport/#zoom-property">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#layout-algorithm">
+<meta name="assert" content="A zoomed flex item's margins are zoomed along both the main and the cross axis.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.flex {
+  display: flex;
+  position: relative;
+  width: 200px;
+  align-items: flex-start;
+  align-content: flex-start;
+}
+.zoomed {
+  zoom: 2;
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+.item {
+  width: 10px;
+  height: 10px;
+  flex: none;
+}
+</style>
+<!-- Cross axis of a row: the line is as tall as the item's margin box. -->
+<div class="flex" data-expected-height="60">
+  <div class="zoomed" style="margin-top: 10px"></div>
+</div>
+<!-- Main axis of a row. -->
+<div class="flex">
+  <div class="zoomed" style="margin-left: 10px"></div>
+  <div class="item" data-offset-x="60"></div>
+</div>
+<!-- Main axis of a column. -->
+<div class="flex" style="flex-direction: column">
+  <div class="zoomed" style="margin-top: 10px"></div>
+  <div class="item" data-offset-y="60"></div>
+</div>
+<!-- Cross axis of a column: the first line is as wide as the item's margin box. -->
+<div class="flex" style="flex-flow: column wrap; height: 50px">
+  <div class="zoomed" style="margin-left: 10px"></div>
+  <div class="item" style="height: 50px" data-offset-x="60"></div>
+</div>
+<script>
+checkLayout(".flex");
+</script>

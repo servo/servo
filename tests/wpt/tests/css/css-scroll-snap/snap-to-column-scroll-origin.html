@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<title>Scroll snapping to ::column snap areas of a multicol scroll snap container with a non-zero scroll origin</title>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-align">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#column-pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+/* Multicol scroll snap containers with three columns that are as large as
+   the scroller, so each column snap position is one column apart.
+   - LTR: columns overflow to the right, the scroll origin is 0.
+   - RTL: columns overflow to the left, the scroll origin is (400, 0).
+   - vertical-rl, direction: rtl: columns progress bottom to top and overflow
+     above, the scroll origin is (0, 400).
+   - sideways-lr, direction: ltr: text runs bottom to top, so columns also
+     progress bottom to top and overflow above, the scroll origin is (0, 400).
+   In every case column 1 is visible at the initial scroll position. */
+.scroller {
+  display: inline-block;
+  margin: 0 8px 8px 0;
+  scrollbar-width: none;
+  columns: 200px;
+  column-gap: 0;
+  column-fill: auto;
+  outline: 3px solid #333;
+  background: red;
+}
+.scroller::column {
+  scroll-snap-align: start;
+}
+.scroller p {
+  margin: 0;
+  background: blue;
+  color: white;
+}
+
+.horizontal {
+  width: 200px;
+  height: 100px;
+  overflow: auto hidden;
+  scroll-snap-type: x mandatory;
+}
+.horizontal p {
+  height: 100px;
+}
+
+.vertical {
+  width: 100px;
+  height: 200px;
+  overflow: hidden auto;
+  scroll-snap-type: y mandatory;
+}
+.vertical p {
+  block-size: 100px;
+}
+</style>
+
+<div class="scroller horizontal" id="ltr" style="direction: ltr">
+  <p>1</p><p>2</p><p>3</p>
+</div>
+<div class="scroller horizontal" id="rtl" style="direction: rtl">
+  <p>1</p><p>2</p><p>3</p>
+</div>
+<div class="scroller vertical" id="vertical-rl"
+     style="writing-mode: vertical-rl; direction: rtl">
+  <p>1</p><p>2</p><p>3</p>
+</div>
+<div class="scroller vertical" id="sideways-lr"
+     style="writing-mode: sideways-lr; direction: ltr">
+  <p>1</p><p>2</p><p>3</p>
+</div>
+
+<script>
+// `sign` is the direction in which scrollLeft / scrollTop moves from column 1
+// to column 2: +1 for LTR, -1 when the scroll origin is non-zero (the scroll
+// offset is 0 at column 1 and negative towards the other columns).
+async function testSnapsToColumns(scroller, axis, sign) {
+  const offset = () => axis == "x" ? scroller.scrollLeft : scroller.scrollTop;
+  const scrollTo = value => scroller.scrollTo(
+      axis == "x" ? { left: value, behavior: "instant" }
+                  : { top: value, behavior: "instant" });
+
+  await waitForAnimationFrames(2);
+  assert_equals(offset(), 0, "initially snapped to column 1");
+
+  // Closer to column 2 (200) than to columns 1 (0) and 3 (400).
+  scrollTo(sign * 150);
+  await waitForAnimationFrames(2);
+  assert_equals(offset(), sign * 200, "should snap to column 2");
+
+  // Closer to column 1.
+  scrollTo(sign * 50);
+  await waitForAnimationFrames(2);
+  assert_equals(offset(), 0, "should snap to column 1");
+}
+
+promise_test(async () => {
+  await testSnapsToColumns(document.getElementById("ltr"), "x", 1);
+}, "Snaps to ::column snap areas of an LTR multicol scroll snap container");
+
+promise_test(async () => {
+  await testSnapsToColumns(document.getElementById("rtl"), "x", -1);
+}, "Snaps to ::column snap areas of an RTL multicol scroll snap container");
+
+promise_test(async () => {
+  await testSnapsToColumns(document.getElementById("vertical-rl"), "y", -1);
+}, "Snaps to ::column snap areas of a vertical-rl, direction: rtl multicol " +
+   "scroll snap container");
+
+promise_test(async () => {
+  await testSnapsToColumns(document.getElementById("sideways-lr"), "y", -1);
+}, "Snaps to ::column snap areas of a sideways-lr, direction: ltr multicol " +
+   "scroll snap container");
+</script>

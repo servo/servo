@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Test HTMLMediaElement readyState and events when seeking to an unbuffered position of a MediaSource.</title>
+        <link rel="help" href="https://w3c.github.io/media-source/#mediasource-seeking">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+          function appendInitAndFirstSegment(test, mediaElement, sourceBuffer, segmentInfo, mediaData, readyEvent, callback)
+          {
+              var initSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.init);
+              var firstSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.media[0]);
+
+              test.expectEvent(sourceBuffer, 'updateend', 'Initialization segment appended');
+              test.expectEvent(mediaElement, 'loadedmetadata', 'Reached HAVE_METADATA');
+              sourceBuffer.appendBuffer(initSegment);
+
+              test.waitForExpectedEvents(function()
+              {
+                  test.expectEvent(sourceBuffer, 'updateend', 'First media segment appended');
+                  test.expectEvent(mediaElement, readyEvent, 'mediaElement ' + readyEvent);
+                  sourceBuffer.appendBuffer(firstSegment);
+              });
+
+              test.waitForExpectedEvents(callback);
+          }
+
+          // The seek algorithm waits until media data for the new playback position is available
+          // before firing 'seeked', so readyState is at least HAVE_CURRENT_DATA at that point.
+          function assertDataAvailableOnSeeked(test, mediaElement)
+          {
+              mediaElement.addEventListener('seeked', test.step_func(function()
+              {
+                  assert_greater_than_equal(mediaElement.readyState, mediaElement.HAVE_CURRENT_DATA, "readyState is at least HAVE_CURRENT_DATA when 'seeked' fires");
+              }));
+          }
+
+          mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+          {
+              var segmentIndex = 4;
+              var seekSegmentInfo = segmentInfo.media[segmentIndex];
+
+              assertDataAvailableOnSeeked(test, mediaElement);
+              mediaElement.muted = true;
+              mediaElement.play().catch(test.unreached_func('play() must not be rejected'));
+
+              appendInitAndFirstSegment(test, mediaElement, sourceBuffer, segmentInfo, mediaData, 'playing', function()
+              {
+                  assert_greater_than(mediaElement.readyState, mediaElement.HAVE_CURRENT_DATA, 'readyState is greater than HAVE_CURRENT_DATA before seeking');
+
+                  test.expectEvent(mediaElement, 'seeking', 'mediaElement seeking');
+                  test.expectEvent(mediaElement, 'waiting', 'mediaElement waiting for data at the new position');
+                  mediaElement.currentTime = Math.max(seekSegmentInfo.timev, seekSegmentInfo.timea);
+                  assert_true(mediaElement.seeking, 'mediaElement is seeking');
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_true(mediaElement.seeking, 'mediaElement is still seeking');
+                  assert_equals(mediaElement.readyState, mediaElement.HAVE_METADATA, 'readyState is HAVE_METADATA while there is no data at the new position');
+
+                  test.expectEvent(mediaElement, 'seeked', 'mediaElement finished seek');
+                  MediaSourceUtil.appendUntilEventFires(test, mediaElement, 'seeked', sourceBuffer, mediaData, segmentInfo, segmentIndex);
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_false(mediaElement.seeking, 'mediaElement is no longer seeking');
+                  assert_greater_than_equal(mediaElement.readyState, mediaElement.HAVE_CURRENT_DATA, 'readyState is at least HAVE_CURRENT_DATA after the seek');
+                  test.done();
+              });
+          }, 'Test seeking to an unbuffered position while playing sets readyState to HAVE_METADATA and fires waiting.');
+
+          mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+          {
+              var segmentIndex = 4;
+              var seekSegmentInfo = segmentInfo.media[segmentIndex];
+              var playPromiseResolved = false;
+              var unexpectedPlaying = test.unreached_func("'playing' must not fire before data is available at the new position");
+
+              assertDataAvailableOnSeeked(test, mediaElement);
+              mediaElement.muted = true;
+              appendInitAndFirstSegment(test, mediaElement, sourceBuffer, segmentInfo, mediaData, 'canplay', function()
+              {
+                  assert_true(mediaElement.paused, 'mediaElement is paused');
+                  assert_greater_than(mediaElement.readyState, mediaElement.HAVE_CURRENT_DATA, 'readyState is greater than HAVE_CURRENT_DATA before seeking');
+
+                  test.expectEvent(mediaElement, 'seeking', 'mediaElement seeking');
+                  mediaElement.currentTime = Math.max(seekSegmentInfo.timev, seekSegmentInfo.timea);
+                  assert_true(mediaElement.seeking, 'mediaElement is seeking');
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  test.step_wait(() => mediaElement.readyState == mediaElement.HAVE_METADATA, 'readyState drops to HAVE_METADATA while there is no data at the new position').then(test.step_func(function()
+                  {
+                      assert_true(mediaElement.seeking, 'mediaElement is still seeking');
+
+                      mediaElement.addEventListener('playing', unexpectedPlaying);
+                      test.expectEvent(mediaElement, 'waiting', 'mediaElement waiting after play()');
+                      mediaElement.play().then(() => { playPromiseResolved = true; }, test.unreached_func('play() must not be rejected'));
+
+                      test.waitForExpectedEvents(function()
+                      {
+                          assert_true(mediaElement.seeking, 'mediaElement is still seeking');
+                          assert_false(playPromiseResolved, 'play() promise is pending while there is no data at the new position');
+                          mediaElement.removeEventListener('playing', unexpectedPlaying);
+
+                          test.expectEvent(mediaElement, 'seeked', 'mediaElement finished seek');
+                          MediaSourceUtil.appendUntilEventFires(test, mediaElement, 'seeked', sourceBuffer, mediaData, segmentInfo, segmentIndex);
+                      });
+
+                      test.waitForExpectedEvents(function()
+                      {
+                          test.step_wait(() => playPromiseResolved, 'play() promise resolves once data is available').then(test.step_func_done());
+                      });
+                  }));
+              });
+          }, 'Test calling play() while seeking to an unbuffered position fires waiting and keeps the play() promise pending.');
+
+          mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+          {
+              var segmentIndex = 4;
+              var seekSegmentInfo = segmentInfo.media[segmentIndex];
+              var playPromiseResolved = false;
+
+              assertDataAvailableOnSeeked(test, mediaElement);
+              mediaElement.muted = true;
+              mediaElement.play().catch(test.unreached_func('play() must not be rejected'));
+
+              appendInitAndFirstSegment(test, mediaElement, sourceBuffer, segmentInfo, mediaData, 'playing', function()
+              {
+                  test.expectEvent(mediaElement, 'pause', 'mediaElement paused');
+                  mediaElement.pause();
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  // Seek straight after pausing, without waiting for the pause to settle.
+                  test.expectEvent(mediaElement, 'seeking', 'mediaElement seeking');
+                  mediaElement.currentTime = Math.max(seekSegmentInfo.timev, seekSegmentInfo.timea);
+                  assert_true(mediaElement.seeking, 'mediaElement is seeking');
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  test.step_wait(() => mediaElement.readyState == mediaElement.HAVE_METADATA, 'readyState drops to HAVE_METADATA while there is no data at the new position').then(test.step_func(function()
+                  {
+                      assert_true(mediaElement.seeking, 'mediaElement is still seeking');
+
+                      test.expectEvent(mediaElement, 'waiting', 'mediaElement waiting after play()');
+                      mediaElement.play().then(() => { playPromiseResolved = true; }, test.unreached_func('play() must not be rejected'));
+
+                      test.waitForExpectedEvents(function()
+                      {
+                          assert_true(mediaElement.seeking, 'mediaElement is still seeking');
+
+                          test.expectEvent(mediaElement, 'seeked', 'mediaElement finished seek');
+                          MediaSourceUtil.appendUntilEventFires(test, mediaElement, 'seeked', sourceBuffer, mediaData, segmentInfo, segmentIndex);
+                      });
+
+                      test.waitForExpectedEvents(function()
+                      {
+                          test.step_wait(() => playPromiseResolved, 'play() promise resolves once data is available').then(test.step_func_done());
+                      });
+                  }));
+              });
+          }, 'Test seeking to an unbuffered position right after pause() does not complete the seek before data is available.');
+        </script>
+    </body>
+</html>

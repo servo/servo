@@ -1,5 +1,5 @@
 // META: title=Aborting a parser should block bfcache
-// META: script=./test-helper.js
+// META: script=./resources/test-helper.js
 // META: timeout=long
 
 

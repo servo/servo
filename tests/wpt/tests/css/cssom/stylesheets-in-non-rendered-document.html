@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>styleSheets is populated for a document that never renders</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-documentorshadowroot-stylesheets">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<!--
+  A document created by DOMParser or createHTMLDocument has no browsing context, so it never generates
+  boxes and cannot do a full style update. Its styleSheets collection is still observable and is defined
+  in terms of the style sheets in the document, not in terms of anything being rendered.
+-->
+<script>
+test(() => {
+    const doc = new DOMParser().parseFromString("<style>#a { color: rgb(1, 2, 3) }</style>", "text/html");
+
+    assert_equals(doc.styleSheets.length, 1, "one sheet");
+    assert_equals(doc.styleSheets[0].cssRules.length, 1, "one rule");
+    assert_equals(doc.styleSheets[0].cssRules[0].style.color, "rgb(1, 2, 3)", "the rule is readable");
+}, "A DOMParser document exposes the style sheets it was parsed with");
+
+test(() => {
+    const doc = document.implementation.createHTMLDocument("");
+    assert_equals(doc.styleSheets.length, 0, "no sheets before inserting one");
+
+    const style = doc.createElement("style");
+    style.textContent = "#a { color: rgb(4, 5, 6) }";
+    doc.head.appendChild(style);
+
+    assert_equals(doc.styleSheets.length, 1, "the inserted sheet is collected");
+    assert_equals(doc.styleSheets[0].cssRules[0].style.color, "rgb(4, 5, 6)", "the rule is readable");
+}, "A createHTMLDocument document collects a style sheet inserted after parsing");
+
+test(() => {
+    const doc = document.implementation.createHTMLDocument("");
+    const style = doc.createElement("style");
+    style.textContent = "#a { color: rgb(7, 8, 9) }";
+    doc.head.appendChild(style);
+    assert_equals(doc.styleSheets.length, 1, "collected once");
+
+    style.remove();
+    assert_equals(doc.styleSheets.length, 0, "removing the element removes the sheet");
+}, "Removing a style element from a non-rendered document updates styleSheets");
+</script>
+</body>

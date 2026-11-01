@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<head>
+<title>CSS Borders and Box Decorations 4: an outline inset past the point where it encloses anything</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shaping">
+<link rel="match" href="corner-shape-outline-negative-offset-notch002-ref.html">
+<meta name="fuzzy" content="maxDifference=0-20; totalPixels=0-200">
+<meta name="assert" content="Test that no outline is painted once its offset is far enough in.">
+<style>
+    .target {
+        margin: 50px;
+        width: 200px;
+        height: 200px;
+        background: green;
+        border-radius: 60px;
+        corner-shape: notch;
+        outline: 10px solid black;
+        outline-offset: -60px;
+    }
+</style>
+</head>
+<div class=target></div>

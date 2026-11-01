@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>data: URL reference for marker</title>
+  <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/painting.html#VertexMarkerProperties"/>
+  <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/linking.html#URLReference"/>
+  <h:link rel="match" href="../../pservers/reftests/reference/green-100x100.svg"/>
+
+  <path d="M25,25h50v50h-50" fill="none" stroke="red" stroke-width="5"
+        marker-start="url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxtYXJrZXIgaWQ9ImdyZWVuTWFya2VyT3JpZW50MCIgb3JpZW50PSIwIiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iMTAiIHJlZlg9IjUiIHJlZlk9IjUiPjxyZWN0IHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCIgZmlsbD0iZ3JlZW4iLz48L21hcmtlcj48L3N2Zz4=#greenMarkerOrient0)"
+        marker-mid="url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxtYXJrZXIgaWQ9ImdyZWVuTWFya2VyT3JpZW50MCIgb3JpZW50PSIwIiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iMTAiIHJlZlg9IjUiIHJlZlk9IjUiPjxyZWN0IHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCIgZmlsbD0iZ3JlZW4iLz48L21hcmtlcj48L3N2Zz4=#greenMarkerOrient0)"
+        marker-end="url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxtYXJrZXIgaWQ9ImdyZWVuTWFya2VyT3JpZW50MCIgb3JpZW50PSIwIiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iMTAiIHJlZlg9IjUiIHJlZlk9IjUiPjxyZWN0IHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCIgZmlsbD0iZ3JlZW4iLz48L21hcmtlcj48L3N2Zz4=#greenMarkerOrient0)"/>
+</svg>

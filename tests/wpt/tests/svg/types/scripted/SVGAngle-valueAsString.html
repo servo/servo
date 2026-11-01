@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVGAngle.valueAsString CSS number serialization</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/types.html#__svg__SVGAngle__valueAsString">
+<link rel="help" href="https://drafts.csswg.org/cssom/#serialize-a-css-component-value">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const SVG_NS = "http://www.w3.org/2000/svg";
+const MAX_FLOAT = Math.fround(3.4028234663852886e+38);
+
+function createDetachedAngle() {
+  return document.createElementNS(SVG_NS, "svg").createSVGAngle();
+}
+
+function assertRoundTrips(angle, expectedUnitType, expectedValue, description) {
+  assert_equals(angle.unitType, expectedUnitType, `${description}: unitType`);
+  assert_equals(angle.valueInSpecifiedUnits, expectedValue, `${description}: valueInSpecifiedUnits`);
+  assert_true(Number.isFinite(angle.value), `${description}: value is finite`);
+
+  const roundTrip = createDetachedAngle();
+  roundTrip.valueAsString = angle.valueAsString;
+  assert_equals(roundTrip.unitType, expectedUnitType, `${description}: round-trip unitType`);
+  assert_approx_equals(roundTrip.valueInSpecifiedUnits, expectedValue,
+                       Math.abs(expectedValue) * 1e-5,
+                       `${description}: round-trip valueInSpecifiedUnits (${angle.valueAsString})`);
+  assert_equals(roundTrip.valueAsString, angle.valueAsString,
+                `${description}: re-serialization is stable`);
+}
+
+test(() => {
+  const units = [
+    [SVGAngle.SVG_ANGLETYPE_UNSPECIFIED, "0"],
+    [SVGAngle.SVG_ANGLETYPE_DEG, "0deg"],
+    [SVGAngle.SVG_ANGLETYPE_RAD, "0rad"],
+    [SVGAngle.SVG_ANGLETYPE_GRAD, "0grad"],
+  ];
+
+  for (const [unitType, expected] of units) {
+    const angle = createDetachedAngle();
+    angle.newValueSpecifiedUnits(unitType, -0);
+    assert_equals(angle.valueAsString, expected, `newValueSpecifiedUnits(${unitType}, -0)`);
+
+    angle.valueInSpecifiedUnits = -0;
+    assert_equals(angle.valueAsString, expected, `valueInSpecifiedUnits = -0 (${unitType})`);
+
+    angle.value = -0;
+    assert_equals(angle.valueAsString, expected, `value = -0 (${unitType})`);
+  }
+}, "SVGAngle.valueAsString normalizes -0 to 0");
+
+test(() => {
+  const angle = createDetachedAngle();
+
+  for (const [targetUnit, label] of [
+    [SVGAngle.SVG_ANGLETYPE_DEG, "deg"],
+    [SVGAngle.SVG_ANGLETYPE_GRAD, "grad"],
+    [SVGAngle.SVG_ANGLETYPE_UNSPECIFIED, "unspecified"],
+  ]) {
+    angle.newValueSpecifiedUnits(SVGAngle.SVG_ANGLETYPE_RAD, 1e38);
+    assert_equals(angle.value, MAX_FLOAT, "value getter clamps positive overflow");
+    angle.convertToSpecifiedUnits(targetUnit);
+    assertRoundTrips(angle, targetUnit, MAX_FLOAT, `1e38rad -> ${label}`);
+
+    angle.newValueSpecifiedUnits(SVGAngle.SVG_ANGLETYPE_RAD, -1e38);
+    assert_equals(angle.value, -MAX_FLOAT, "value getter clamps negative overflow");
+    angle.convertToSpecifiedUnits(targetUnit);
+    assertRoundTrips(angle, targetUnit, -MAX_FLOAT, `-1e38rad -> ${label}`);
+  }
+
+  angle.newValueSpecifiedUnits(SVGAngle.SVG_ANGLETYPE_GRAD, 0);
+  angle.value = 3.4e38;
+  assertRoundTrips(angle, SVGAngle.SVG_ANGLETYPE_GRAD, MAX_FLOAT, "value setter deg -> grad");
+}, "SVGAngle clamps overflowing unit conversions and round-trips valueAsString");
+
+test(() => {
+  const marker = document.createElementNS(SVG_NS, "marker");
+  marker.setAttribute("orient", "1e38rad");
+  marker.orientAngle.baseVal.convertToSpecifiedUnits(SVGAngle.SVG_ANGLETYPE_DEG);
+  assertRoundTrips(marker.orientAngle.baseVal, SVGAngle.SVG_ANGLETYPE_DEG, MAX_FLOAT,
+                   "marker orient 1e38rad -> deg");
+  assert_equals(marker.getAttribute("orient"), marker.orientAngle.baseVal.valueAsString);
+
+  marker.setAttribute("orient", "1e38turn");
+  assert_equals(marker.orientAngle.baseVal.value, MAX_FLOAT);
+  marker.orientAngle.baseVal.convertToSpecifiedUnits(SVGAngle.SVG_ANGLETYPE_RAD);
+  assertRoundTrips(marker.orientAngle.baseVal, SVGAngle.SVG_ANGLETYPE_RAD, MAX_FLOAT,
+                   "marker orient 1e38turn -> rad");
+  assert_equals(marker.getAttribute("orient"), marker.orientAngle.baseVal.valueAsString);
+}, "Reflected marker orient attribute clamps overflowing unit conversions and round-trips");
+
+test(() => {
+  const svg = document.createElementNS(SVG_NS, "svg");
+  const angle = svg.createSVGAngle();
+  const length = svg.createSVGLength();
+
+  for (const value of [1e6, 1.5e6, -1e6, 1e-7, 1e-10]) {
+    angle.newValueSpecifiedUnits(SVGAngle.SVG_ANGLETYPE_DEG, value);
+    assert_false(/\.0*0e/i.test(angle.valueAsString),
+                 `No trailing zeros before exponent for ${value}deg (got ${angle.valueAsString})`);
+
+    angle.newValueSpecifiedUnits(SVGAngle.SVG_ANGLETYPE_UNSPECIFIED, value);
+    length.newValueSpecifiedUnits(SVGLength.SVG_LENGTHTYPE_NUMBER, value);
+    assert_false(/\.0*0e/i.test(angle.valueAsString),
+                 `No trailing zeros before exponent for ${value} (got ${angle.valueAsString})`);
+    assert_equals(angle.valueAsString, length.valueAsString,
+                  `Unitless SVGAngle and SVGLength serialize ${value} identically`);
+  }
+}, "SVGAngle.valueAsString formats large and small numbers consistently with CSS numbers");
+</script>

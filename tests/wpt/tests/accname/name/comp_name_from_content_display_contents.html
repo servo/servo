@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+<head>
+  <title>Name Comp: Name From Content of a display: contents element</title>
+  <meta charset="utf-8">
+  <link rel="help" href="https://w3c.github.io/accname/#computation-steps">
+  <link rel="help" href="https://drafts.csswg.org/css-display-3/#valdef-display-contents">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+
+<p>Each element below is named from its contents, and its contents are the single character "x". Text in a
+following sibling belongs to that sibling and must not be part of the name.</p>
+
+<!-- Each case carries its own following sibling, so no case depends on what the next case happens to be. -->
+
+<div
+  role="button"
+  style="display: contents;"
+  data-expectedlabel="x"
+  data-testname="name from content of a display: contents element, followed by an inline sibling"
+  class="ex"
+>x</div><span>should not be in the name</span>
+
+<div
+  role="button"
+  style="display: contents;"
+  data-expectedlabel="x"
+  data-testname="name from content of a display: contents element, followed by a block sibling"
+  class="ex"
+>x</div>
+<div>should not be in the name</div>
+
+<div
+  role="button"
+  style="display: contents;"
+  data-expectedlabel="x"
+  data-testname="name from content of a display: contents element, followed by a text sibling"
+  class="ex"
+>x</div>should not be in the name
+
+<div
+  role="link"
+  tabindex="0"
+  style="display: contents;"
+  data-expectedlabel="x"
+  data-testname="name from content of a display: contents element with the link role, followed by a sibling"
+  class="ex"
+>x</div><span>should not be in the name</span>
+
+<script>
+AriaUtils.verifyLabelsBySelector(".ex");
+</script>
+</body>
+</html>

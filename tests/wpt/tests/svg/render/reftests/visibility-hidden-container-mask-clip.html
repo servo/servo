@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG rendering: mask and clip-path of a hidden element apply to descendants with visibility: visible</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/render.html#VisibilityControl">
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-clip-path">
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-mask">
+<link rel="match" href="visibility-hidden-container-mask-clip-ref.html">
+<meta name="assert" content="Descendants of a g or text element with visibility: hidden that override it with visibility: visible are painted, and are still masked / clipped by the mask / clip-path of the hidden element.">
+<svg width="400" height="300">
+  <defs>
+    <mask id="maskG" maskUnits="userSpaceOnUse" x="0" y="0" width="400" height="300">
+      <rect x="10" y="10" width="50" height="100" fill="white"/>
+    </mask>
+    <clipPath id="clipG">
+      <rect x="150" y="10" width="50" height="50"/>
+      <rect x="200" y="60" width="50" height="50"/>
+    </clipPath>
+    <mask id="maskText" maskUnits="userSpaceOnUse" x="0" y="0" width="400" height="300">
+      <rect x="10" y="150" width="60" height="100" fill="white"/>
+    </mask>
+    <clipPath id="clipText">
+      <rect x="200" y="150" width="40" height="30"/>
+      <rect x="240" y="180" width="40" height="40"/>
+    </clipPath>
+  </defs>
+  <g visibility="hidden" mask="url(#maskG)">
+    <rect x="10" y="10" width="100" height="100" fill="green" visibility="visible"/>
+  </g>
+  <g visibility="hidden" clip-path="url(#clipG)">
+    <rect x="150" y="10" width="100" height="100" fill="green" visibility="visible"/>
+  </g>
+  <text x="10" y="200" font-size="40" fill="green" visibility="hidden" mask="url(#maskText)"><tspan visibility="visible">XXXX</tspan></text>
+  <text x="200" y="200" font-size="40" fill="green" visibility="hidden" clip-path="url(#clipText)"><tspan visibility="visible">XXXX</tspan></text>
+</svg>

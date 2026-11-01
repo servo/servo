@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Reference for CSS Filters: drop-shadow on a rotated element under a perspective</title>
+    <link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+    <style>
+      body {
+        perspective: 1000px;
+        position: absolute;
+        top: 100px;
+        left: 100px;
+        height: 300px;
+        width: 300px;
+        transform-style: preserve-3d;
+      }
+      .scene {
+        will-change: transform;
+        transform-style: preserve-3d;
+        position: absolute;
+        width: 800px;
+        height: 500px;
+        transform: rotateY(30deg);
+      }
+      div div {
+        background: green;
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        top: 100px;
+        filter: drop-shadow(20px 20px black);
+      }
+      .a { transform: translate(150px, 0) rotate(90deg); }
+      .b { transform: translate(300px, 0) rotate(180deg); }
+      .c { transform: translate(450px, 0) rotate(270deg); }
+    </style>
+  </head>
+  <body>
+    <div class=scene>
+      <div class=a></div>
+      <div class=b></div>
+      <div class=c></div>
+    </div>
+  </body>
+</html>

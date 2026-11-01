@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>A fieldset whose legend overhangs its border edge takes only its own height on a line</title>
+<style>
+  body { margin: 0; font: 16px/1 monospace; }
+  legend { height: 10px; margin: 30px; width: 90px; border: 1px solid blue; }
+  fieldset { height: 20px; width: 100px; }
+</style>
+
+<!-- The same fieldset as a block child, where its height is counted once. -->
+<div><fieldset><legend></legend></fieldset>x</div>

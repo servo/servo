@@ -9,7 +9,7 @@ def main(request, response):
     test_session_manager.set_has_called_refresh(True)
 
     if test_session_manager.get_refresh_endpoint_unavailable():
-        return (500, response.headers, "")
+        return (test_session_manager.get_refresh_endpoint_unavailable_status(), response.headers, "")
 
     session_id_header = request.headers.get("Sec-Secure-Session-Id")
     if session_id_header == None:

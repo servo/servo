@@ -19,16 +19,37 @@ async_test(t => {
     // On load, the IFRAME is resized to the content size.
     assert_equals(target.offsetHeight, 300 + 2);
 
-    // Change the `height` of the IFRAME content to `100%`.
-    target.contentWindow.postMessage({ name: 'height100p' }, '*');
+    // Resize the non-responsive axis (`width`) and set the content `height` to
+    // `100vw`.
+    target.style.width = '400px';
+    assert_equals(target.offsetWidth, 400 + 2);
+    target.contentWindow.postMessage({ name: 'height100vw' }, '*');
   }));
   window.addEventListener('message', t.step_func(async (e) => {
-    if (e.data.name === 'height100pDone') {
-      // The `height: 100%` for the `requestResize()` should compute
-      // using the original ICB size.
-      await waitForAtLeastOneFrame();
-      assert_equals(target.offsetHeight, 150 + 2);
-      t.done();
+    switch (e.data.name) {
+      case 'height100vwDone':
+        // `100vw` for `requestResize()` should use the updated width (`400px`)
+        // because `frame-sizing` only locks the `height` axis.
+        await waitForAtLeastOneFrame();
+        t.step(() => {
+          assert_equals(target.offsetHeight, 400 + 2);
+
+          // Change the `height` of the IFRAME content to `100%`.
+          target.contentWindow.postMessage({ name: 'height100p' }, '*');
+        });
+        break;
+      case 'height100pDone':
+        // The `height: 100%` for the `requestResize()` should compute
+        // using the original ICB size.
+        await waitForAtLeastOneFrame();
+        t.step(() => {
+          assert_equals(target.offsetHeight, 150 + 2);
+        });
+        t.done();
+        break;
+      default:
+        assert_unreached(`Unexpected message: ${e.data.name}`);
+        break;
     }
   }));
 }, "IFRAME content should use the initial ICB to measure the natural size");

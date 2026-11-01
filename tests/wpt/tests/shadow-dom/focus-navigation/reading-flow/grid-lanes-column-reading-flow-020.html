@@ -1,0 +1,59 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Grid Lanes: reading-flow across column tracks where row gaps affect the reading row</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-layout">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#column-row-gap">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5675#issuecomment-4848519759">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/shadow-dom.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+
+<style>
+.test-case {
+  margin-top: 20px;
+}
+.columns {
+  display: grid-lanes;
+  fit-tolerance: 0;
+  gap: 40px;
+  place-content: start;
+  justify-items: start;
+  grid-template-columns: repeat(3, 60px);
+  grid-lanes-direction: column;
+  reading-flow: grid-rows;
+  width: 260px;
+  height: 160px;
+}
+.columns > div {
+  width: 100%;
+}
+</style>
+
+<!--
+Using the tentative 2/3-overlap rule, a seeds [0,100]. The 40px row
+gaps put d at [60,100] (fully inside) and e at [60,160] (40% inside).
+Ignoring row gaps, or extending the row through a's following gutter,
+would give e 80% overlap and incorrectly put it before f.
+Reading rows: [a, b, d, c], [f, e].
+-->
+<div class="test-case"
+     data-expect="a,b,d,c,f,e">
+  <div class="columns">
+    <div id="a" tabindex="0" style="grid-column: 1; height: 100px; background-color: lightcoral">A</div>
+    <div id="b" tabindex="0" style="grid-column: 2; height: 20px; background-color: lightskyblue">B</div>
+    <div id="c" tabindex="0" style="grid-column: 3; height: 20px; background-color: lightgreen">C</div>
+    <div id="d" tabindex="0" style="grid-column: 2; height: 40px; background-color: khaki">D</div>
+    <div id="e" tabindex="0" style="grid-column: 3; height: 100px; background-color: plum">E</div>
+    <div id="f" tabindex="0" style="grid-column: 1; height: 20px; background-color: orange">F</div>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

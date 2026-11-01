@@ -45,6 +45,13 @@
     } else {
       targetEl.addEventListener('pointerdown', e => {
         e.target.releasePointerCapture(e.pointerId);
+        if (params.get('report_pointerdown') === 'true') {
+          window.top.postMessage({
+            source: 'boundary-event-test',
+            frameId: frameId,
+            type: 'child-pointerdown'
+          }, '*');
+        }
       });
       ['pointerover', 'pointerenter', 'pointerout', 'pointerleave'].forEach(type => {
         targetEl.addEventListener(type, e => {

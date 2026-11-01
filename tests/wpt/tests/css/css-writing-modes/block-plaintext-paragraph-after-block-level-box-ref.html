@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>unicode-bidi: plaintext takes the base direction of the paragraph after a block level box from that paragraph</title>
+<style>
+.container { font: 20px/24px serif; width: 10em; }
+.block { height: 20px; background-color: silver; }
+</style>
+
+<!-- Each paragraph with the base direction plaintext resolves for it. -->
+<div class="container"><div dir="ltr">a &#x5d0;</div><div class="block"></div><div dir="rtl">&#x5d0; a</div></div>

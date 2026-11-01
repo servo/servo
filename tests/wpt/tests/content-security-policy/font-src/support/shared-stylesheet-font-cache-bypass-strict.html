@@ -11,7 +11,7 @@ document.addEventListener('securitypolicyviolation', e => {
   if (e.violatedDirective === 'font-src') violationCount++;
 });
 
-(async () => {
+window.addEventListener('load', async () => {
   // Load twice to exercise the "already emulated" shortcut in
   // ResourceFetcher::EmulateLoadStartedForInspector. Each load must surface
   // the block, but only the first attempt should fire a violation report.
@@ -28,5 +28,5 @@ document.addEventListener('securitypolicyviolation', e => {
   }
   const fontCheck = document.fonts.check('16px "csp-bypass-shared-font"');
   parent.postMessage({fontStatus, fontCheck, violationCount}, '*');
-})();
+});
 </script>

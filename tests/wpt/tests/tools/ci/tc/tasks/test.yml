@@ -106,6 +106,11 @@ components:
       branch:
         - epochs/weekly
 
+  trigger-three-hourly:
+    trigger:
+      branch:
+        - epochs/three_hourly
+
   trigger-pr:
     trigger:
       pull-request:
@@ -189,7 +194,7 @@ tasks:
                 browser: firefox
                 channel: nightly
               use:
-                - trigger-master
+                - trigger-three-hourly
                 - trigger-push
             - vars:
                 browser: firefox
@@ -214,7 +219,7 @@ tasks:
                 browser: chrome
                 channel: canary
               use:
-                - trigger-master
+                - trigger-three-hourly
                 - trigger-push
             - vars:
                 browser: chrome
@@ -315,7 +320,7 @@ tasks:
                 browser: firefox
                 channel: nightly
               use:
-                - trigger-master
+                - trigger-three-hourly
                 - trigger-push
             - vars:
                 browser: firefox
@@ -340,7 +345,7 @@ tasks:
                 browser: chrome
                 channel: canary
               use:
-                - trigger-master
+                - trigger-three-hourly
                 - trigger-push
             - vars:
                 browser: chrome
@@ -468,6 +473,7 @@ tasks:
         download-firefox-${vars.channel}:
           use:
             - wpt-base
+          priority: very-high
           command: "./wpt install --download-only --destination /home/test/artifacts/ --channel=${vars.channel}  --rename=firefox-${vars.channel} firefox browser"
 
   - lint:
@@ -642,5 +648,6 @@ tasks:
       use:
         - wpt-base
         - trigger-pr
+      priority: highest
       command: "./wpt tc-sink-task --github-checks-text-file=/home/test/artifacts/checkrun.md"
       requires: all-resolved

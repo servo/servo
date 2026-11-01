@@ -15,6 +15,9 @@ function loaf_blocking_duration_test(run, label) {
   const OVERHEAD_EPSILON = 5;
   const BLOCKING_THRESHOLD = 50;
   promise_test(async t => {
+    assert_implements_optional(
+      PerformanceObserver.supportedEntryTypes.includes("longtask"),
+      "Long Tasks API is not supported.");
     let found = false;
     for (let i = 0; i < 10 && !found; ++i) {
       const longtask_promise = new Promise(resolve => new PerformanceObserver(
@@ -61,5 +64,62 @@ loaf_blocking_duration_test((t, busy_wait) => t.step_timeout(() => {
   busy_wait();
   requestAnimationFrame(generate_loaf_now);
 }), "Rendering");
+
+promise_test(async t => {
+  const task_duration = 30;
+  const render_duration = 100;
+  const entry = await expect_long_frame((t, busy_wait) => {
+    t.step_timeout(() => {
+      const element = document.createElement("div");
+      document.body.appendChild(element);
+      t.add_cleanup(() => element.remove());
+      busy_wait(task_duration);
+      requestAnimationFrame(() => {
+        busy_wait(render_duration);
+      });
+    }, 0);
+  }, t);
+
+  assert_not_equals(entry, "timeout");
+  assert_greater_than(entry.renderStart, entry.startTime);
+  const actual_render_duration = (entry.startTime + entry.duration) - entry.renderStart;
+  // The longest task (~30ms) has actual_render_duration (~100ms) added to it
+  // before subtracting the 50ms threshold.
+  const expected_min_blocking = task_duration + actual_render_duration - 50 - 15;
+  assert_greater_than_equal(entry.blockingDuration, expected_min_blocking,
+      "blockingDuration adds renderDuration to the longest task even when the task is < 50ms");
+}, "LoAF blockingDuration adds render duration to the longest task without relying on longtask");
+
+promise_test(async t => {
+  const task1_duration = 80;
+  const task2_duration = 100;
+  const render_duration = 60;
+  const [entry] = await expect_long_frame_with_script((t, busy_wait) => {
+    t.step_timeout(function task1() {
+      const channel = new MessageChannel();
+      channel.port1.onmessage = function task2() {
+        busy_wait(task2_duration);
+      };
+      channel.port2.postMessage("go");
+      requestAnimationFrame(function render_cb() {
+        busy_wait(render_duration);
+      });
+      busy_wait(task1_duration);
+    }, 0);
+  }, s => s.sourceFunctionName === "render_cb", t);
+
+  assert_true(!!entry, "Entry detected");
+  const has_task1 = entry.scripts.some(s => s.sourceFunctionName === "task1");
+  const has_task2 = entry.scripts.some(s => s.sourceFunctionName === "task2");
+  if (has_task1 && has_task2) {
+    // Both tasks ran in the same frame before render:
+    // blockingDuration ≈ (task1 - 50) + (task2 + render - 50)
+    const expected_blocking = (task1_duration - 50) + (task2_duration + render_duration - 50);
+    assert_greater_than_equal(entry.blockingDuration, expected_blocking - 25,
+        "Multi-task frame sums blocking durations across tasks and adds render to the longest task");
+  } else {
+    assert_greater_than_equal(entry.blockingDuration, render_duration - 50 - 10);
+  }
+}, "LoAF blockingDuration across multiple tasks in a single frame");
 </script>
 </body>

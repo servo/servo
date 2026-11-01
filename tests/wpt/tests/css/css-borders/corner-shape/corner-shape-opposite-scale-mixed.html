@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<head>
+<title>CSS Borders and Box Decorations 4: a concave corner opposite a convex one is reduced by the opposite-corner scale factor</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shape-constrain-radii">
+<link rel="match" href="corner-shape-opposite-scale-mixed-ref.html">
+<meta name="fuzzy" content="maxDifference=0-136; totalPixels=0-782">
+<meta name="assert" content="A scoop corner opposite a squircle corner is reduced by the opposite-corner scale factor: only one of the pair has to be concave, and the hulls compared differ in kind. The other two corners have radius 0, so the adjacent-corner factor stays 1.">
+<style>
+    body { margin: 0; }
+    .target {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        width: 240px;
+        height: 240px;
+        background: green;
+        border-top-left-radius: 220px;
+        corner-top-left-shape: scoop;
+        border-bottom-right-radius: 220px;
+        corner-bottom-right-shape: squircle;
+    }
+</style>
+</head>
+<div class=target></div>

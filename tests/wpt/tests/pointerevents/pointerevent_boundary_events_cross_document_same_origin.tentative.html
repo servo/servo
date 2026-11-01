@@ -203,6 +203,53 @@ promise_test(async t => {
   document.body.appendChild(container);
   t.add_cleanup(() => container.remove());
 
+  const parentTarget = document.createElement('div');
+  parentTarget.id = 'parent-target';
+  parentTarget.className = 'target';
+  container.appendChild(parentTarget);
+
+  const iframe = document.createElement('iframe');
+  iframe.id = 'iframe';
+  container.appendChild(iframe);
+
+  await loadIframe(iframe);
+  const childDoc = iframe.contentDocument;
+  const childTarget = childDoc.getElementById('child-target');
+
+  let parentEvents = [];
+  childTarget.addEventListener('pointerdown', e => {
+    e.target.releasePointerCapture(e.pointerId);
+    iframe.remove();
+  });
+
+  parentTarget.addEventListener('pointerover', e => {
+    parentEvents.push({ type: e.type, relatedTargetIsNull: e.relatedTarget === null });
+  });
+  parentTarget.addEventListener('pointerenter', e => {
+    parentEvents.push({ type: e.type, relatedTargetIsNull: e.relatedTarget === null });
+  });
+
+  await new test_driver.Actions()
+    .addPointer('touchPointer', 'touch')
+    .pointerMove(0, 0, {origin: iframe})
+    .pointerDown()
+    .pointerMove(0, 0, {origin: parentTarget})
+    .pointerUp()
+    .send();
+
+  await tapDoneButton();
+
+  assert_equals(
+    parentEvents.map(e => `${e.type} (null: ${e.relatedTargetIsNull})`).join(),
+    "pointerover (null: true),pointerenter (null: true)"
+  );
+}, 'Same-origin iframe to parent with iframe removed: relatedTarget is null');
+
+promise_test(async t => {
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  t.add_cleanup(() => container.remove());
+
   const sib1 = document.createElement('iframe');
   container.appendChild(sib1);
 

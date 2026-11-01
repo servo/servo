@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Reference for CSS Filters: filtered element with a backdrop-filter turned edge-on</title>
+    <link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+    <style>
+      body { margin: 0; background: white; }
+      .behind {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 300px;
+        height: 300px;
+        background: linear-gradient(to right, red, yellow);
+      }
+      .edge {
+        position: absolute;
+        top: 50px;
+        left: 50px;
+        width: 200px;
+        height: 200px;
+        transform: rotateY(90deg);
+        backdrop-filter: invert(1);
+        filter: drop-shadow(20px 20px 0 rgba(0, 0, 0, 0.6));
+      }
+      .edge > div {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        width: 100px;
+        height: 100px;
+        background: orange;
+      }
+      .after {
+        position: absolute;
+        top: 150px;
+        left: 150px;
+        width: 120px;
+        height: 120px;
+        background: blue;
+      }
+    </style>
+  </head>
+  <body>
+    <div class=behind></div>
+    <div class=edge><div></div></div>
+    <div class=after></div>
+  </body>
+</html>

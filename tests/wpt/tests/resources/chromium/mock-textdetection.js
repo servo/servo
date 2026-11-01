@@ -5,6 +5,7 @@ self.TextDetectionTest = (() => {
   // https://cs.chromium.org/chromium/src/services/shape_detection/public/mojom/textdetection.mojom
   class MockTextDetection {
     constructor() {
+      this.isReady_ = true;
       this.receiver_ = new TextDetectionReceiver(this);
       this.interceptor_ =
           new MojoInterfaceInterceptor(TextDetection.$interfaceName);
@@ -40,6 +41,16 @@ self.TextDetectionTest = (() => {
           },
         ],
       });
+    }
+
+    ensureReady() {
+      return Promise.resolve({
+        isReady: this.isReady_,
+      });
+    }
+
+    setIsReady(isReady) {
+      this.isReady_ = isReady;
     }
 
     getFrameData() {

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/#suppression-triggers">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body {
+  height: 2000px;
+}
+.changer {
+  height: 500px;
+  background-color: orange;
+}
+
+.anchor {
+  background-color: green;
+}
+
+body.changed .changer {
+  height: 300px;
+}
+
+.anchor-sizer {
+  width: 10px;
+  height: 200px;
+  background-color: silver;
+  overflow-anchor: none;
+}
+
+body.changed .anchor-sizer {
+  height: 100px;
+}
+</style>
+
+<div class="changer"></div>
+<div class="anchor">
+  <div class="anchor-sizer"></div>
+</div>
+
+<script>
+
+test(() => {
+  document.scrollingElement.scrollTop = 510;
+  document.body.classList.add('changed');
+  assert_equals(document.scrollingElement.scrollTop, 310);
+}, "The anchor is preserved even if its used height changes");
+
+</script>

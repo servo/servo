@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>drawElementImage does not use SVG filters outside the canvas subtree</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/html/canvas/resources/canvas-tests.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    a:link feFlood {
+      flood-color: rgb(0, 255, 0);
+    }
+    a:visited feFlood {
+      flood-color: rgb(255, 0, 0);
+    }
+    .box {
+      width: 100px;
+      height: 50px;
+      background: green;
+    }
+    #div-internal {
+      filter: url('#filter-internal');
+    }
+    #div-external, #div-moved-in {
+      filter: url('#filter-external');
+    }
+    #backdrop-wrapper {
+      width: 100px;
+      height: 100px;
+      background: blue;
+    }
+    .backdrop-child {
+      width: 100px;
+      height: 50px;
+      background: transparent;
+    }
+    #backdrop-internal {
+      backdrop-filter: url('#filter-internal');
+    }
+    #backdrop-external {
+      backdrop-filter: url('#filter-external');
+    }
+  </style>
+</head>
+<body>
+  <a href="">
+    <svg width="0" height="0">
+      <defs>
+        <filter id="filter-external" x="0" y="0" width="1" height="1" filterUnits="objectBoundingBox">
+          <feFlood/>
+        </filter>
+      </defs>
+    </svg>
+  </a>
+
+  <div drawable id="div-moved-in" class="box"></div>
+  <svg drawable id="svg-moved-in" width="100" height="50">
+    <rect x="0" y="0" width="100" height="50" fill="green" filter="url(#filter-external)"/>
+  </svg>
+
+  <canvas id="canvas" width="100" height="400" content="drawable">
+    <a id="link-internal" href="">
+      <svg width="0" height="0">
+        <defs>
+          <filter id="filter-internal" x="0" y="0" width="1" height="1" filterUnits="objectBoundingBox">
+            <feFlood/>
+          </filter>
+        </defs>
+      </svg>
+    </a>
+
+    <div drawable id="div-internal" class="box"></div>
+    <div drawable id="div-external" class="box"></div>
+
+    <div drawable id="backdrop-wrapper">
+      <div id="backdrop-internal" class="backdrop-child"></div>
+      <div id="backdrop-external" class="backdrop-child"></div>
+    </div>
+
+    <svg drawable id="svg-child" width="100" height="100">
+      <rect x="0" y="0" width="100" height="50" fill="green" filter="url(#filter-internal)"/>
+      <rect x="0" y="50" width="100" height="50" fill="green" filter="url(#filter-external)"/>
+    </svg>
+  </canvas>
+
+  <script>
+    window.onload = () => {
+      promise_test(async function(t) {
+        await waitForCanvasPaint(canvas);
+        const ctx = canvas.getContext("2d");
+        ctx.drawElementImage(document.getElementById("div-internal"), 0, 0);
+        ctx.drawElementImage(document.getElementById("div-external"), 0, 50);
+        ctx.drawElementImage(document.getElementById("backdrop-wrapper"), 0, 100);
+        ctx.drawElementImage(document.getElementById("svg-child"), 0, 200);
+
+        // Fetch all pixel data once to avoid multiple slow readbacks.
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        let pixel = _getPixelFromImageData(imgData, 50, 25);
+        assert_array_equals(pixel, [0, 255, 0, 255], "Internal filter on HTML element should draw unvisited color");
+
+        pixel = _getPixelFromImageData(imgData, 50, 75);
+        assert_array_equals(pixel, [0, 128, 0, 255], "External filter on HTML element should be ignored");
+
+        pixel = _getPixelFromImageData(imgData, 50, 125);
+        assert_array_equals(pixel, [0, 255, 0, 255], "Internal backdrop-filter on HTML element should draw unvisited color");
+
+        pixel = _getPixelFromImageData(imgData, 50, 175);
+        assert_array_equals(pixel, [0, 0, 255, 255], "External backdrop-filter on HTML element should be ignored");
+
+        pixel = _getPixelFromImageData(imgData, 50, 225);
+        assert_array_equals(pixel, [0, 255, 0, 255], "Internal filter on SVG element should draw unvisited color");
+
+        pixel = _getPixelFromImageData(imgData, 50, 275);
+        assert_array_equals(pixel, [0, 128, 0, 255], "External filter on SVG element should be ignored");
+
+        // Atomically move elements referencing #filter-external into the canvas
+        // subtree and move #filter-internal out of the canvas subtree.
+        canvas.moveBefore(document.getElementById("div-moved-in"), null);
+        canvas.moveBefore(document.getElementById("svg-moved-in"), null);
+        document.body.moveBefore(document.getElementById("link-internal"), canvas);
+        await waitForCanvasPaint(canvas);
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawElementImage(document.getElementById("div-internal"), 0, 0);
+        ctx.drawElementImage(document.getElementById("backdrop-wrapper"), 0, 100);
+        ctx.drawElementImage(document.getElementById("svg-child"), 0, 200);
+        ctx.drawElementImage(document.getElementById("div-moved-in"), 0, 300);
+        ctx.drawElementImage(document.getElementById("svg-moved-in"), 0, 350);
+
+        const imgDataAfterMove = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        pixel = _getPixelFromImageData(imgDataAfterMove, 50, 25);
+        assert_array_equals(pixel, [0, 128, 0, 255], "Filter moved outside canvas subtree on HTML element should be ignored");
+
+        pixel = _getPixelFromImageData(imgDataAfterMove, 50, 125);
+        assert_array_equals(pixel, [0, 0, 255, 255], "Backdrop-filter moved outside canvas subtree on HTML element should be ignored");
+
+        pixel = _getPixelFromImageData(imgDataAfterMove, 50, 225);
+        assert_array_equals(pixel, [0, 128, 0, 255], "Filter moved outside canvas subtree on SVG element should be ignored");
+
+        pixel = _getPixelFromImageData(imgDataAfterMove, 50, 325);
+        assert_array_equals(pixel, [0, 128, 0, 255], "External filter on HTML element moved into canvas subtree should be ignored");
+
+        pixel = _getPixelFromImageData(imgDataAfterMove, 50, 375);
+        assert_array_equals(pixel, [0, 128, 0, 255], "External filter on SVG element moved into canvas subtree should be ignored");
+      });
+    };
+  </script>
+</body>
+</html>

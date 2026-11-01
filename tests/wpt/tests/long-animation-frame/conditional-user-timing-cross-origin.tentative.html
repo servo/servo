@@ -1,0 +1,119 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Long Animation Frame Timing: conditional user timing entries are not exposed cross-origin</title>
+<!-- Conditional user timing entries are reported inside long animation frame
+     entries. This test covers direct exposure: when a cross-origin iframe
+     marks during the same rendering update as this document, the iframe's
+     entries must not appear among the entries this document can read. -->
+<!-- The iframe is cross-origin but same-site. Browsers generally isolate by
+     site, so a cross-site iframe would likely run in a separate process, where
+     no exposure is possible and this test would be vacuous. Same-site keeps
+     both documents in one process and one event loop, which is what exercises
+     the origin filtering under test. -->
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/utils.js"></script>
+<style>
+/* Cross-origin iframes outside the viewport could lose their rendering
+   opportunity, which skips their animation frame callbacks. Keep the iframe on
+   screen. */
+#subframe {
+  border: none;
+  height: 100px;
+  left: 0;
+  position: fixed;
+  top: 0;
+  width: 100px;
+}
+</style>
+<body>
+<div id="log"></div>
+<script>
+setup(() => {
+  assert_implements(
+      "userTimingEntries" in PerformanceLongAnimationFrameTiming.prototype,
+      "conditional user timing for LoAF not implemented");
+});
+
+const {HTTP_ORIGIN_WITH_DIFFERENT_PORT} = get_host_info();
+
+promise_test(async t => {
+  const ownMark = "own-mark";
+  const iframe = document.createElement("iframe");
+  iframe.id = "subframe";
+  t.add_cleanup(() => iframe.remove());
+
+  // The message indicates the iframe is leaving user timing entries that must
+  // not be exposed to this document.
+  let iframeRunning = false;
+  window.addEventListener("message", event => {
+    if (event.source === iframe.contentWindow &&
+        event.data === "iframeRunning") {
+      iframeRunning = true;
+    }
+  });
+
+  let keepGeneratingLoAFs = true;
+  t.add_cleanup(() => {
+    keepGeneratingLoAFs = false;
+  });
+
+  // Generate long animation frames and read back the user timing entries this
+  // document is given. ownMark is only added while the iframe is looping, so
+  // the entry carrying ownMark is one whose rendering update the iframe marked
+  // in.
+  const generateLoAF = () => {
+    if (iframeRunning) {
+      performance.markConditional(ownMark);
+    }
+    busy_wait();
+    if (keepGeneratingLoAFs) {
+      requestAnimationFrame(generateLoAF);
+    }
+  };
+  requestAnimationFrame(generateLoAF);
+
+  iframe.onload = () => {
+    iframe.contentWindow.postMessage("start", "*");
+  };
+
+  iframe.src = new URL(
+      "/long-animation-frame/resources/conditional-user-timing-iframe.html",
+      HTTP_ORIGIN_WITH_DIFFERENT_PORT);
+  document.body.appendChild(iframe);
+
+  // If the iframe never reports in -- for instance because it was render
+  // throttled or placed in its own process -- fail with a diagnostic instead of
+  // a bare harness timeout.
+  t.step_timeout(() => {
+    assert_true(iframeRunning, "iframe never reported running");
+  }, 30000);
+
+  const entries = await new Promise(resolve => {
+    const observer = new PerformanceObserver(list => {
+      for (const entry of list.getEntries()) {
+        const userTimingEntries = Array.from(entry.userTimingEntries);
+        if (userTimingEntries.some(e => e.name === ownMark)) {
+          resolve(userTimingEntries);
+        }
+      }
+    });
+    observer.observe({type: "long-animation-frame"});
+    t.add_cleanup(() => observer.disconnect());
+  });
+
+  const names = entries.map(entry => entry.name);
+  assert_false(
+      names.includes("iframe-mark") || names.includes("iframe-measure"),
+      "Cross-origin conditional user timing entries must not be exposed");
+
+  // The iframe's entries are filtered out by origin, so all the entries
+  // reported are from the main window.
+  for (const entry of entries) {
+    assert_equals(entry.window, window,
+                  `${entry.name} must report this window`);
+  }
+}, "Conditional user timing entries are filtered by origin");
+</script>

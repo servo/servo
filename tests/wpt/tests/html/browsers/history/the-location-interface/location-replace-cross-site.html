@@ -68,8 +68,9 @@ promise_test(async t => {
   const url = uniqueURL(sameOriginHelper, "iframe-replaced");
   const report = reportOf(url);
   iframe.contentWindow.location.replace(url);
-  await report;
+  const { data } = await report;
   assert_equals(history.length, historyLength);
+  assert_equals(data.navigationType, "replace");
 }, "location.replace() of a cross-site iframe to a same-origin URL");
 
 promise_test(async t => {
@@ -78,8 +79,9 @@ promise_test(async t => {
   const url = uniqueURL(crossSiteHelper, "iframe-replaced");
   const report = reportOf(url);
   iframe.contentWindow.location.replace(url);
-  await report;
+  const { data } = await report;
   assert_equals(history.length, historyLength);
+  assert_equals(data.navigationType, "replace");
 }, "location.replace() of a same-origin iframe to a cross-site URL");
 
 promise_test(async t => {

@@ -1,7 +1,7 @@
 Certifi: Python SSL Certificates
 ================================
 
-`Certifi`_ is a carefully curated collection of Root Certificates for
+Certifi provides Mozilla's carefully curated collection of Root Certificates for
 validating the trustworthiness of SSL certificates while verifying the identity
 of TLS hosts. It has been extracted from the `Requests`_ project.
 
@@ -21,26 +21,21 @@ built-in function::
     >>> import certifi
 
     >>> certifi.where()
-    '/usr/local/lib/python2.7/site-packages/certifi/cacert.pem'
+    '/usr/local/lib/python3.7/site-packages/certifi/cacert.pem'
+
+Or from the command line::
+
+    $ python -m certifi
+    /usr/local/lib/python3.7/site-packages/certifi/cacert.pem
 
 Enjoy!
 
-1024-bit Root Certificates
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. _`Requests`: https://requests.readthedocs.io/en/latest/
 
-Browsers and certificate authorities have concluded that 1024-bit keys are
-unacceptably weak for certificates, particularly root certificates. For this
-reason, Mozilla has removed any weak (i.e. 1024-bit key) certificate from its
-bundle, replacing it with an equivalent strong (i.e. 2048-bit or greater key)
-certificate from the same CA. Because Mozilla removed these certificates from
-its bundle, ``certifi`` removed them as well.
+Addition/Removal of Certificates
+--------------------------------
 
-In previous versions, ``certifi`` provided the ``certifi.old_where()`` function
-to intentionally re-add the 1024-bit roots back into your bundle. This was not
-recommended in production and therefore was removed. To assist in migrating old
-code, the function ``certifi.old_where()`` continues to exist as an alias of
-``certifi.where()``. Please update your code to use ``certifi.where()``
-instead. ``certifi.old_where()`` will be removed in 2018.
-
-.. _`Certifi`: http://certifi.io/en/latest/
-.. _`Requests`: http://docs.python-requests.org/en/latest/
+Certifi does not support any addition/removal or other modification of the
+CA trust store content. This project is intended to provide a reliable and
+highly portable root of trust to python deployments. Look to upstream projects
+for methods to use alternate trust.

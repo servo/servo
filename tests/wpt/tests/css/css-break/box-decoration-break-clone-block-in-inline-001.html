@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: an inline box with cloned decoration does not generate a line for an empty fragment between two block level boxes</title>
+<link rel="help" href="https://drafts.csswg.org/css-break/#break-decoration">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14104">
+<meta name="assert" content="A block level box inside an inline box splits that inline box into fragments. A fragment with no content is not a box fragment for box-decoration-break: clone to wrap with border, padding and margin, so it neither takes up a line nor paints any decoration.">
+<!-- Based on the test case by Oriol Brufau in https://github.com/w3c/csswg-drafts/issues/14104
+     with the text between the two block level boxes replaced by an empty inline box. -->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+body {
+  margin: 0;
+}
+#container {
+  font: 20px/20px Ahem;
+}
+#wrapper {
+  border: 20px solid magenta;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.block {
+  width: 50px;
+  height: 50px;
+  background-color: cyan;
+}
+</style>
+
+<div id="container"><span id="wrapper">a<div class="block" id="first-block"></div><span id="empty"></span><div class="block" id="second-block"></div>c</span></div>
+
+<script>
+const rect = id => document.getElementById(id).getBoundingClientRect();
+
+// A 20px line for "a", the two 50px tall blocks, then a 20px line for "c". The empty inline
+// box between the blocks has no content, so it does not add a line of its own.
+// Note that every length here is a multiple of 4px so that device pixel snapping of the
+// border width cannot make these numbers fractional.
+const EXPECTED_HEIGHT = 20 + 50 + 50 + 20;
+
+test(() => {
+    assert_equals(rect("container").height, EXPECTED_HEIGHT);
+}, "An empty inline box between two block level boxes does not add a line");
+
+test(() => {
+    assert_equals(rect("second-block").top, rect("first-block").bottom);
+}, "Two block level boxes with only an empty inline box in-between are adjacent");
+
+test(() => {
+    assert_equals(rect("empty").width, 0, "width");
+    assert_equals(rect("empty").height, 0, "height");
+}, "The empty inline box between the two block level boxes has no size");
+
+test(() => {
+    // The cloned border wraps the fragment with "a" on the first line and the fragment with "c" on the last one.
+    assert_equals(rect("wrapper").top, rect("container").top - 20, "top");
+    assert_equals(rect("wrapper").bottom, rect("container").bottom + 20, "bottom");
+}, "Cloned decoration still wraps the inline box fragments that do have content");
+
+test(() => {
+    // The fragments around the block level boxes are not wrapped with the cloned decoration.
+    assert_equals(rect("first-block").left, rect("container").left, "first block");
+    assert_equals(rect("second-block").left, rect("container").left, "second block");
+}, "Cloned decoration does not wrap the inline box fragments around the block level boxes");
+</script>

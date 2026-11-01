@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+<meta charset=utf-8>
+<title>CSS Reference: generic font families should resolve correctly with lang attribute</title>
+<link rel="author" title="Vitor Roriz" href="https://github.com/vitorroriz">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+body { font-size: 48px; line-height: 1.2; }
+.serif { font-family: serif; }
+.sans-serif { font-family: sans-serif; }
+.monospace { font-family: monospace; }
+.cursive { font-family: cursive; }
+.fantasy { font-family: fantasy; }
+.system-ui { font-family: system-ui; }
+.ui-serif { font-family: ui-serif; }
+.ui-sans-serif { font-family: ui-sans-serif; }
+.ui-monospace { font-family: ui-monospace; }
+.ui-rounded { font-family: ui-rounded; }
+</style>
+</head>
+<body>
+<p>Test that generic font families with lang="en-US" resolve correctly:</p>
+<div class="serif">serif</div>
+<div class="sans-serif">sans-serif</div>
+<div class="monospace">monospace</div>
+<div class="cursive">cursive</div>
+<div class="fantasy">fantasy</div>
+<div class="system-ui">system-ui</div>
+<div class="ui-serif">ui-serif</div>
+<div class="ui-sans-serif">ui-sans-serif</div>
+<div class="ui-monospace">ui-monospace</div>
+<div class="ui-rounded">ui-rounded</div>
+</body>
+</html>

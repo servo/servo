@@ -449,12 +449,12 @@ test_random_computed_value_has_fixed('rx', 'random(10%, 30%)', '10%', '30%');
 test_random_computed_value_has_fixed('ry', 'random(10%, 30%)', '10%', '30%');
 test_random_computed_value_has_fixed('x', 'random(10%, 30%)', '10%', '30%');
 test_random_computed_value_has_fixed('y', 'random(10%, 30%)', '10%', '30%');
-test_random_computed_value_has_fixed('border-image-slice', 'random(10%, 30%)', '10%', '30%');
 
 // Test resolvable percentage values
 test_random_computed_value('background-color', 'rgb(225, 215, 0, random(30%, 10%))', 'rgba(225, 215, 0, 0.3)');
 test_random_computed_value('font-size', 'random(30%, 10%)', '9px');
 test_random_computed_value('font-size', 'random(10px * 10% / 1%, 0%)', '100px');
+test_random_computed_value_in_range('border-image-slice', 'random(10%, 30%)', '10%', '30%');
 test_random_computed_value_in_range('--percent', 'random(10%, 30%)', '10%', '30%');
 
 // Test out of range math functions for fixed value
@@ -1080,11 +1080,12 @@ test(() => {
     holder.appendChild(el);
     let computed = getComputedStyle(el).getPropertyValue('--transform-function');
 
-    test_random_equals(computed, "translate(30%)");
+    const re = /translate\(random\(fixed 0.\d+, 30%, 10%\)\)/;
+    assert_true(re.test(computed));
   } finally {
     document.body.removeChild(holder);
   }
-}, `Custom property with random() inside transform() should not have 'fixed'`);
+}, `Custom property with random() inside transform() should have 'fixed'`);
 
 test(() => {
   const holder = document.createElement('div');
@@ -1096,7 +1097,7 @@ test(() => {
     holder.appendChild(el);
     let computed = getComputedStyle(el).getPropertyValue('background-image');
 
-    const re = /radial-gradient\(at 30% random\(fixed 0.\d+, 33%, 1%\), rgb\(192, 192, 192\) 30%, rgb\(255, 215, 0\) 70%\)/;
+    const re = /radial-gradient\(at 30% random\(fixed 0.\d+, 33%, 1%\), rgb\(192, 192, 192\) random\(fixed 0.\d+, 30%, 10%, 1%\), rgb\(255, 215, 0\) random\(fixed 0.\d+, 70%, 10%, 1%\)\)/;
     assert_true(re.test(computed));
   } finally {
     document.body.removeChild(holder);

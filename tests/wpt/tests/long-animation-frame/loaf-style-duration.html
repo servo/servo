@@ -267,6 +267,44 @@ promise_test(async t => {
       "styleDuration should capture style work from multiple ResizeObservers");
 }, "styleDuration captures style recalculations from multiple ResizeObservers");
 
+promise_test(async t => {
+  const host = document.createElement("div");
+  const style = document.createElement("style");
+  let rules = "";
+  for (let i = 0; i < 200; i++) {
+    rules += `.active-style .item-${i % 20} span { color: rgb(${i % 255}, 10, 20); padding-left: ${(i % 5) + 1}px; }\n`;
+  }
+  style.textContent = rules;
+  document.head.appendChild(style);
+  for (let i = 0; i < 2500; i++) {
+    const div = document.createElement("div");
+    div.className = `item-${i % 20}`;
+    const span = document.createElement("span");
+    span.textContent = "x";
+    div.appendChild(span);
+    host.appendChild(div);
+  }
+  document.body.appendChild(host);
+  t.add_cleanup(() => {
+    host.remove();
+    style.remove();
+  });
+
+  const entry = await expect_long_frame(async (t, busy_wait) => {
+    await new Promise(resolve => {
+      requestAnimationFrame(() => {
+        host.className = "active-style";
+        busy_wait(very_long_frame_duration);
+        resolve();
+      });
+    });
+  }, t);
+
+  assert_not_equals(entry, "timeout", "Entry should be detected");
+  assert_greater_than(entry.styleDuration, 0,
+      "Heavy render-phase style recalculation should produce styleDuration > 0");
+}, "Heavy render-phase style recalculation produces strictly positive styleDuration");
+
 </script>
 </body>
 

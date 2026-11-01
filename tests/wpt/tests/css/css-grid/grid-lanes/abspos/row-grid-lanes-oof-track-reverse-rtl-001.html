@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes: track-reverse OOF static positions in RTL rows</title>
+<link rel="author" title="Hoch Hochkeppel" href="mailto:mhochk@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#abspos">
+<link rel="match" href="row-grid-lanes-oof-track-reverse-rtl-001-ref.html">
+<meta name="assert" content="In RTL rows, track reversal aligns OOF items to the bottom of their grid area while their default stacking-axis position remains at the right.">
+<style>
+  html, body {
+    font: 16px/1 monospace;
+    background: white;
+  }
+  .grid-lanes {
+    display: grid-lanes;
+    grid-lanes-direction: row track-reverse;
+    grid-auto-flow: column-reverse;
+    grid-template-rows: 80px 80px;
+    direction: rtl;
+    gap: 10px;
+    width: 200px;
+    height: 200px;
+    outline: 1px solid black;
+    position: relative;
+  }
+  .item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    background: lightblue;
+  }
+  .oof {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: red;
+  }
+</style>
+<div class="grid-lanes">
+  <div class="item">1</div>
+  <div class="item">2</div>
+  <div class="item">3</div>
+  <div class="item">4</div>
+  <div class="oof"></div>
+  <div class="oof" style="grid-row: 2; right: 35px;"></div>
+  <div class="oof" style="grid-row: 2 / 3; right: 70px;"></div>
+  <div class="oof" style="grid-row: auto / 2; right: 105px;"></div>
+</div>

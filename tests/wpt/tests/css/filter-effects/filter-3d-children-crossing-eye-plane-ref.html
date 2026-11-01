@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Reference for CSS Filters: filtered element with children reaching up to the eye plane</title>
+    <link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+    <style>
+      body { margin: 0; background: white; }
+      .group {
+        position: absolute;
+        top: 150px;
+        left: 150px;
+        width: 100px;
+        height: 100px;
+        perspective: 100px;
+        filter: drop-shadow(30px 30px 0 rgba(0, 0, 0, 0.6));
+      }
+      .group > div {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        transform-style: preserve-3d;
+      }
+      .r { background: green; transform: translate3d(50px, 0, 50px) rotateY(90deg); }
+      .l { background: orange; transform: translate3d(-50px, 0, 50px) rotateY(90deg); }
+      .t { background: blue; transform: translate3d(0, -50px, 50px) rotateX(90deg); }
+      .b { background: red; transform: translate3d(0, 50px, 50px) rotateX(90deg); }
+    </style>
+  </head>
+  <body>
+    <div class=group>
+      <div class=r></div>
+      <div class=l></div>
+      <div class=t></div>
+      <div class=b></div>
+    </div>
+  </body>
+</html>

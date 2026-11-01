@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/#suppression-triggers">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.scroller {
+  width: 300px;
+  height: 300px;
+  overflow-y: scroll;
+  border: 1px solid black;
+}
+
+.changer {
+  height: 50px;
+  background-color: cyan;
+}
+
+body.changed .changer {
+  height: 60px;
+}
+
+#adjuster {
+  position: relative;
+  transform: translateY(150px);
+}
+
+body.changed #adjuster {
+  transform: translateY(170px);
+}
+
+#anchor {
+    background-color: green;
+    width: 100px;
+    height: 100px;
+}
+
+.filler {
+  height: 2000px;
+}
+</style>
+<div class="scroller">
+  <div id="adjuster">
+    <div class="changer"></div>
+    <div id="anchor"></div>
+    <div class="filler"></div>
+  </div>
+</div>
+<script>
+test(() => {
+  const scroller = document.querySelector('.scroller');
+  scroller.scrollTop = 140;
+
+  const newScrollTop = 250;
+
+  scroller.scrollTop = newScrollTop;
+  document.body.classList.add('changed');
+
+  assert_equals(scroller.scrollTop, newScrollTop);
+}, "Changing `transform` on an element in the path from the anchor to the scroller should suppress anchoring adjustment");
+
+</script>

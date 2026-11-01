@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Seeking over repeat iterations resolves repeat(n) conditions</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg id="svg">
+  <rect width="100" height="100">
+    <animate id="source" attributeName="x" from="0" to="10" dur="1s" repeatCount="indefinite"/>
+    <animate id="dependent" attributeName="y" from="0" to="10" begin="source.repeat(3)" dur="10s"/>
+  </rect>
+</svg>
+<script>
+  async_test(t => {
+    const svg = document.getElementById("svg");
+    const source = document.getElementById("source");
+    const dependent = document.getElementById("dependent");
+
+    let repeatEventCount = 0;
+    source.addEventListener("repeatEvent", () => repeatEventCount++);
+    dependent.addEventListener("beginEvent", t.step_func_done(() => {
+      assert_equals(repeatEventCount, 1, "skipped iterations are coalesced into one repeatEvent");
+    }));
+
+    svg.setCurrentTime(3.5);
+  }, "repeat(3) begins after seeking into the third repeat iteration");
+</script>

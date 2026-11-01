@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:annevk@annevk.nl">
+<link rel=help href="https://html.spec.whatwg.org/multipage/rendering.html#the-select-element-2">
+<link rel=help href="https://drafts.csswg.org/cssom-view/#dom-element-getclientrects">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+select, ::picker(select) {
+  appearance: base-select;
+}
+
+/* Let the boxes abut so that their edges can be compared. */
+option, optgroup {
+  margin: 0;
+}
+optgroup {
+  border: 0;
+  padding: 0;
+}
+</style>
+
+<div id=spacer></div>
+<select>
+  <option>One</option>
+  <optgroup label=Group>
+    <option>Two</option>
+    <option>Three</option>
+  </optgroup>
+  <option>Four</option>
+</select>
+
+<script>
+const select = document.querySelector('select');
+const [one, group, two, three, four] = select.querySelectorAll('option, optgroup');
+const items = { one, group, two, three, four };
+
+function boxes() {
+  return Object.fromEntries(Object.entries(items).map(([name, item]) => [name, item.getBoundingClientRect()]));
+}
+
+function assertBoxesEqual(actual, expected, description) {
+  for (const name of Object.keys(expected)) {
+    for (const edge of ['left', 'top', 'width', 'height'])
+      assert_approx_equals(actual[name][edge], expected[name][edge], 0.5, `${description}: ${name} ${edge}`);
+  }
+}
+
+function assertNoBoxes() {
+  for (const [name, item] of Object.entries(items)) {
+    assert_equals(item.getClientRects().length, 0, `${name} has no box`);
+    const box = item.getBoundingClientRect();
+    for (const edge of ['x', 'y', 'width', 'height'])
+      assert_equals(box[edge], 0, `${name} ${edge}`);
+  }
+}
+
+function rendered() {
+  return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+}
+
+promise_test(async () => {
+  assert_equals(getComputedStyle(select).appearance, 'base-select',
+    'appearance:base-select must be supported in order to run this test.');
+  assertNoBoxes();
+}, 'Options and optgroups have no box while the picker is closed');
+
+promise_test(async () => {
+  let boxesRightAfterOpening;
+  await test_driver.bless('open the picker', () => {
+    select.showPicker();
+    // Layout is out of date as the picker was just shown.
+    boxesRightAfterOpening = boxes();
+  });
+  assert_true(select.matches(':open'), 'the picker is open');
+  assert_greater_than(boxesRightAfterOpening.one.width, 0, 'one has a box');
+  await rendered();
+  assertBoxesEqual(boxesRightAfterOpening, boxes(), 'after rendering');
+}, 'Option and optgroup boxes are up to date right after the picker opens');
+
+promise_test(async () => {
+  assert_true(select.matches(':open'), 'the picker is open');
+  for (const [name, item] of Object.entries(items)) {
+    const box = item.getBoundingClientRect();
+    const rects = item.getClientRects();
+    assert_equals(rects.length, 1, `${name} has one box`);
+    for (const edge of ['left', 'top', 'width', 'height'])
+      assert_approx_equals(rects[0][edge], box[edge], 0.01, `${name} getClientRects() ${edge}`);
+    assert_greater_than(box.width, 0, `${name} width`);
+    assert_greater_than(box.height, 0, `${name} height`);
+  }
+}, 'Options and optgroups have a box while the picker is open');
+
+promise_test(async () => {
+  const current = boxes();
+  const selectBox = select.getBoundingClientRect();
+  assert_greater_than_equal(current.one.top, selectBox.bottom, 'the picker is below the select');
+  assert_greater_than_equal(current.one.left, selectBox.left, 'the picker starts at the select');
+  for (const name of ['group', 'four']) {
+    assert_approx_equals(current[name].left, current.one.left, 0.5, `${name} left`);
+    assert_approx_equals(current[name].width, current.one.width, 0.5, `${name} width`);
+  }
+  for (const name of ['two', 'three']) {
+    assert_approx_equals(current[name].left, current.group.left, 0.5, `${name} left`);
+    assert_approx_equals(current[name].width, current.group.width, 0.5, `${name} width`);
+  }
+  assert_approx_equals(current.group.top, current.one.bottom, 0.5, 'group top');
+  assert_greater_than(current.two.top, current.group.top, 'the label of group is above two');
+  assert_approx_equals(current.three.top, current.two.bottom, 0.5, 'three top');
+  assert_approx_equals(current.group.bottom, current.three.bottom, 0.5, 'group bottom');
+  assert_approx_equals(current.four.top, current.group.bottom, 0.5, 'four top');
+}, 'Option and optgroup boxes are laid out in order in the picker');
+
+promise_test(async () => {
+  const current = boxes();
+  for (const name of ['one', 'two', 'three', 'four']) {
+    const box = current[name];
+    assert_equals(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2),
+      items[name], name);
+  }
+  const groupBox = current.group;
+  assert_equals(document.elementFromPoint(groupBox.left + groupBox.width / 2, (groupBox.top + current.two.top) / 2),
+    group, 'label of group');
+}, 'Hit testing in the box of an option or optgroup in the picker finds it');
+
+promise_test(async t => {
+  t.add_cleanup(() => { one.style.minBlockSize = ''; });
+  await rendered();
+  const before = boxes();
+  one.style.minBlockSize = '60px';
+  const current = boxes();
+  await rendered();
+  const after = boxes();
+  assertBoxesEqual(current, after, 'after rendering');
+  const growth = after.one.height - before.one.height;
+  assert_greater_than(growth, 10, 'one grew');
+  for (const name of ['group', 'two', 'three', 'four'])
+    assert_approx_equals(after[name].top, before[name].top + growth, 0.5, `${name} moved down`);
+}, 'Option and optgroup boxes are up to date right after an earlier option in the picker grows');
+
+promise_test(async t => {
+  const spacer = document.getElementById('spacer');
+  t.add_cleanup(() => { spacer.style.height = ''; });
+  await rendered();
+  const before = boxes();
+  spacer.style.height = '30px';
+  const current = boxes();
+  await rendered();
+  assertBoxesEqual(current, boxes(), 'after rendering');
+  for (const name of Object.keys(before))
+    assert_approx_equals(current[name].top, before[name].top + 30, 0.5, `${name} moved down`);
+}, 'Option and optgroup boxes are up to date right after the select moves while the picker is open');
+
+promise_test(async () => {
+  await rendered();
+  await test_driver.click(select);
+  assert_false(select.matches(':open'), 'the picker is closed');
+  assertNoBoxes();
+}, 'Options and optgroups have no box after the picker closes');
+</script>

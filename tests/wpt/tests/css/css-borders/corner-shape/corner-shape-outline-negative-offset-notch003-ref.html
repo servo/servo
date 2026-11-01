@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<head>
+<style>
+    .box {
+        margin: 50px;
+        width: 200px;
+        height: 200px;
+        background: green;
+        clip-path: path("\
+            M 40 0 L 160 0 L 160 40 L 200 40 L 200 160 L 160 160 \
+            L 160 200 L 40 200 L 40 160 L 0 160 L 0 40 L 40 40 Z");
+    }
+    .outline {
+        height: 100%;
+        background: black;
+        clip-path: path("\
+            M 90 50 L 110 50 L 110 90 L 150 90 L 150 110 L 110 110 \
+            L 110 150 L 90 150 L 90 110 L 50 110 L 50 90 L 90 90 Z");
+    }
+</style>
+</head>
+<div class=box><div class=outline></div></div>

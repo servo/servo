@@ -5,6 +5,7 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="../resources/test-helper.js"></script>
+<script src="support/drag-source-removal.js"></script>
 <head>
   <title>Removing canvas element during drag and drop</title>
   <style>
@@ -22,13 +23,6 @@
         'canvas').toDataURL('image/png'));
       event.target.remove();
     }
-
-    function addImage(event) {
-      var c = document.createElement('img');
-      c.setAttribute('src', event.dataTransfer.getData('text/uri-list').replace(
-        /\r\n$/, ''));
-      document.querySelector('div').appendChild(c);
-    }
   </script>
 </head>
 <body>
@@ -37,7 +31,7 @@
       ondragstart="sourceDragStart(event)">Canvas</canvas>
   </p>
   <div ondragenter="event.preventDefault()" ondragover="event.preventDefault()"
-    ondrop="addImage(event)"></div>
+    ondrop="addDroppedImage(event)"></div>
   <script>
     var canvas = document.querySelector('canvas'),
       c = canvas.getContext('2d');
@@ -51,19 +45,8 @@
       c.closePath();
       c.fill();
     }
-    async function test() {
-      const canvas = document.querySelector('canvas');
-      const div = document.querySelector('div');
-
-      function onDropCallBack(event) {
-        const img = document.querySelector('img');
-        assert_equals(img.src, canvas.toDataURL('image/png'));
-        return true;
-      }
-      dragDropTestWithLayoutShift(canvas, div, onDropCallBack,
-        'Dragging and dropping an element that gets removed on dragStart should be possible');
-    }
-    test();
+    testImageSourceRemoval(
+        canvas, document.querySelector('div'), canvas.toDataURL('image/png'));
   </script>
 </body>
 </html>

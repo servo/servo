@@ -1,0 +1,38 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+<meta charset=utf-8>
+<title>CSS Test: lang attribute should not cause generic families to resolve to unusable system font names</title>
+<link rel="author" title="Vitor Roriz" href="https://github.com/vitorroriz">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-4/#generic-font-families"/>
+<link rel="match" href="generic-family-lang-attr-cascade-ref.html"/>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<meta name="assert" content="When lang='en-US' is set, generic font families should resolve to usable fonts, not fall through to fallback font in the cascade"/>
+<style>
+body { font-size: 48px; line-height: 1.2; }
+.serif { font-family: serif, ahem; }
+.sans-serif { font-family: sans-serif, ahem; }
+.monospace { font-family: monospace, ahem; }
+.cursive { font-family: cursive, ahem; }
+.fantasy { font-family: fantasy, ahem; }
+.system-ui { font-family: system-ui, ahem; }
+.ui-serif { font-family: ui-serif, ahem; }
+.ui-sans-serif { font-family: ui-sans-serif, ahem; }
+.ui-monospace { font-family: ui-monospace, ahem; }
+.ui-rounded { font-family: ui-rounded, ahem; }
+</style>
+</head>
+<body>
+<p>Test that generic font families with lang="en-US" resolve correctly:</p>
+<div class="serif" lang="en-US">serif</div>
+<div class="sans-serif" lang="en-US">sans-serif</div>
+<div class="monospace" lang="en-US">monospace</div>
+<div class="cursive" lang="en-US">cursive</div>
+<div class="fantasy" lang="en-US">fantasy</div>
+<div class="system-ui" lang="en-US">system-ui</div>
+<div class="ui-serif" lang="en-US">ui-serif</div>
+<div class="ui-sans-serif" lang="en-US">ui-sans-serif</div>
+<div class="ui-monospace" lang="en-US">ui-monospace</div>
+<div class="ui-rounded" lang="en-US">ui-rounded</div>
+</body>
+</html>

@@ -79,5 +79,36 @@ promise_test(async t => {
   const [event, [entry]] = await Promise.all([eventPromise, entryPromise]);
   assert_equals(entry.firstUIEventTimestamp, firstUIEventTimestamp);
 }, "firstUIEventTimestamp doesn't have to come from a long script");
+
+promise_test(async t => {
+  const input = document.createElement("input");
+  document.body.appendChild(input);
+  t.add_cleanup(() => input.remove());
+  input.focus();
+  let event_ts = 0;
+  const [entry] = await expect_long_frame_with_script(async (t, busy_wait) => {
+    const keyPromise = new Promise(resolve => input.addEventListener("keydown", event => {
+      event_ts = event.timeStamp;
+      busy_wait();
+      resolve();
+    }, {once: true}));
+    await test_driver.send_keys(input, "a");
+    await keyPromise;
+  }, s => s.invoker === "INPUT.onkeydown", t);
+  assert_equals(entry.firstUIEventTimestamp, event_ts);
+}, "LoAF should expose firstUIEventTimestamp for keydown events");
+
+promise_test(async t => {
+  const [entry] = await expect_long_frame_with_script((t, busy_wait) => {
+    const channel = new MessageChannel();
+    channel.port1.onmessage = () => {
+      busy_wait();
+    };
+    channel.port2.postMessage("go");
+  }, s => s.invoker === "MessagePort.onmessage", t);
+  assert_true(!!entry, "Entry detected");
+  assert_equals(entry.firstUIEventTimestamp, 0,
+      "Non-UIEvent should leave firstUIEventTimestamp at 0");
+}, "Non-UIEvent events do not set firstUIEventTimestamp");
 </script>
 </body>

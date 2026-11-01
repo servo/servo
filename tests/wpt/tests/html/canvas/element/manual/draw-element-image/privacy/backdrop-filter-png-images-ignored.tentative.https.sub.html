@@ -23,16 +23,15 @@
   </style>
 </head>
 <body>
-  <svg width="0" height="0">
-    <filter id="filter-same">
-      <feimage href="https://{{location[host]}}/images/green-100x100.png" />
-    </filter>
-    <filter id="filter-cross">
-      <feimage href="https://{{hosts[alt][www]}}:{{ports[https][0]}}/images/red-100x100.png" />
-    </filter>
-  </svg>
-
   <canvas id=canvas width="10" height="20" content=drawable>
+    <svg width="0" height="0">
+      <filter id="filter-same">
+        <feimage href="https://{{location[host]}}/images/green-100x100.png" />
+      </filter>
+      <filter id="filter-cross">
+        <feimage href="https://{{hosts[alt][www]}}:{{ports[https][0]}}/images/red-100x100.png" />
+      </filter>
+    </svg>
     <div drawable id="wrapper">
       <div id="child-same" class="child"></div>
       <div id="child-cross" class="child"></div>

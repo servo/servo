@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Removing span element during drag and drop of selection</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="../resources/test-helper.js"></script>
+  <script src="support/drag-source-removal.js"></script>
+  <style>
+    div {
+      min-height: 100px;
+      width: 100px;
+      padding: 20px;
+      color: white;
+      background-color: navy;
+    }
+  </style>
+  <script>
+    function sourceDragStart(event) {
+      event.currentTarget.remove();
+    }
+
+    function targetDrop(event) {
+      const text = event.dataTransfer.getData('text/plain');
+      event.currentTarget.appendChild(
+        document.createTextNode(text === 'Drag me' ? 'PASS' : 'FAIL'));
+    }
+  </script>
+</head>
+<body onload="window.getSelection().selectAllChildren(document.querySelector('span'))">
+  <p><span ondragstart="sourceDragStart(event)">Drag me</span></p>
+  <div ondragover="return false" ondrop="targetDrop(event)"></div>
+  <script>
+    const target = document.querySelector('div');
+    testDragSourceRemoval(document.querySelector('span'), target, {
+      dataType: 'text/plain',
+      expectedData: 'Drag me',
+      verifyDrop: () => {
+        assert_equals(
+          target.textContent, 'PASS', 'The drop handler receives the selection');
+      },
+    });
+  </script>
+</body>
+</html>

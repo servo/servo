@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text: text-align justify does not justify the line before a block level box inside an inline box</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-align-property">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#forced-line-break">
+<link rel="match" href="reference/text-align-justify-block-in-inline-ref.html">
+<meta name="assert" content="A block level box inside an inline box starts a block, which is a forced line break. The line right before it is the last line before a forced line break and is therefore start aligned instead of justified.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+.container {
+  font: 20px/1 Ahem;
+  width: 200px;
+  text-align: justify;
+}
+</style>
+<div class="container"><span>XX XX XX XX XX XX XX XX<div>XXX</div>XX XX</span></div>

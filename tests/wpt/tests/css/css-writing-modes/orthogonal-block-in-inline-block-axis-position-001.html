@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="assert" content="This ensures that a block level box on a line whose writing mode is orthogonal to its container's starts after the line it follows, on the container's block axis.">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#orthogonal-flows" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#container {
+    writing-mode: sideways-lr;
+    font-size: 40px;
+    line-height: 20px;
+    background-color: silver;
+}
+#target {
+    writing-mode: horizontal-tb;
+    background-color: green;
+}
+</style>
+
+<div id="container">first<span><div id="target">second</div></span>third</div>
+
+<script>
+test(() => {
+    var container = document.getElementById("container");
+    var target = document.getElementById("target");
+    // The container is sideways-lr, so its block axis runs from its left edge rightwards. The line before the box
+    // takes the line height, which is 20px whatever the font's own metrics are.
+    var blockAxisOffset = target.getBoundingClientRect().left - container.getBoundingClientRect().left;
+    assert_equals(blockAxisOffset, 20, "the line before the box takes 20px of the container's block axis");
+}, "A block level box on a line in an orthogonal writing mode starts after the line it follows on its container's block axis");
+</script>

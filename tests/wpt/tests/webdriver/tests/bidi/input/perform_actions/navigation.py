@@ -26,7 +26,7 @@ PAGE_CONTENT = """
 """
 
 
-async def test_key(bidi_session, inline, top_context):
+async def test_key(bidi_session, configuration, inline, top_context):
     await bidi_session.browsing_context.navigate(
         context=top_context["context"],
         url=inline(f"""
@@ -44,7 +44,8 @@ async def test_key(bidi_session, inline, top_context):
         actions.add_key()
         .key_down("1")
         .key_up("1")
-        .pause(1000)
+        # Give the triggered navigation time to load the new page.
+        .pause(1000 * configuration["timeout_multiplier"])
         .key_down("2")
         .key_up("2")
     )
@@ -62,7 +63,7 @@ async def test_key(bidi_session, inline, top_context):
     assert events[0] == ["2"]
 
 
-async def test_pointer(bidi_session, inline, top_context, get_element):
+async def test_pointer(bidi_session, configuration, inline, top_context, get_element):
     await bidi_session.browsing_context.navigate(
         context=top_context["context"],
         url=inline(
@@ -77,7 +78,8 @@ async def test_pointer(bidi_session, inline, top_context, get_element):
         .pointer_move(x=0, y=0, origin=get_element_origin(input))
         .pointer_down(button=0)
         .pointer_up(button=0)
-        .pause(1000)
+        # Give the triggered navigation time to load the new page.
+        .pause(1000 * configuration["timeout_multiplier"])
         .pointer_move(x=300, y=200)
     )
 

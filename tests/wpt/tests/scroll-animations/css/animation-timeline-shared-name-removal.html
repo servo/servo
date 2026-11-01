@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<title>Removing one animation's reference to a named timeline does not affect other animations referencing the same name</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#timeline-scoping">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
+
+<main id=main></main>
+<script>
+  async function inflate(t, template) {
+    t.add_cleanup(() => main.replaceChildren());
+    return runAndWaitForFrameUpdate(() => {
+      main.append(template.content.cloneNode(true));
+    });
+  }
+
+  async function scrollTop(e, value) {
+    e.scrollTop = value;
+    await waitForNextFrame();
+  }
+</script>
+<style>
+  @keyframes anim {
+    from { width: 0px; }
+    to { width: 200px; }
+  }
+
+  .scroller {
+    overflow-y: hidden;
+    width: 200px;
+    height: 200px;
+  }
+  .scroller > .content {
+    margin: 400px 0px;
+    width: 100px;
+    height: 100px;
+    background-color: green;
+  }
+  .target {
+    background-color: coral;
+    /* Outside the keyframe range, so an animation that is not in effect is
+       distinguishable from one at 0%. */
+    width: 300px;
+    animation: anim auto linear;
+    animation-timeline: --t1;
+  }
+  /* Not needed to reproduce the bug; keeps the test independent of the
+     default visibility of timeline names. */
+  .scope {
+    timeline-scope: --t1;
+  }
+</style>
+
+<template id=shared_name>
+  <div class=scope>
+    <div class=target id=a>A</div>
+    <div class=target id=b>B</div>
+    <div class=scroller>
+      <div class=content></div>
+    </div>
+  </div>
+</template>
+<script>
+  promise_test(async (t) => {
+    await inflate(t, shared_name);
+    let scroller = main.querySelector('.scroller');
+    let a = main.querySelector('#a');
+    let b = main.querySelector('#b');
+
+    // No timeline named --t1 exists yet: both animations are inactive.
+    assert_equals(getComputedStyle(a).width, '300px', 'a before any change');
+    assert_equals(getComputedStyle(b).width, '300px', 'b before any change');
+
+    // Stop a from referencing --t1.
+    a.style.animationTimeline = 'none';
+    await waitForCSSScrollTimelineStyle();
+    assert_equals(getComputedStyle(a).width, '300px', 'a after dropping --t1');
+    assert_equals(getComputedStyle(b).width, '300px', 'b after a drops --t1');
+
+    // Create the timeline. b must attach to it.
+    scroller.style.scrollTimelineName = '--t1';
+    await waitForCSSScrollTimelineStyle();
+    await scrollTop(scroller, 350); // 50%
+    assert_equals(getComputedStyle(b).width, '100px',
+                  'b attached to the new timeline'); // 0px => 200px, 50%
+    assert_equals(getComputedStyle(a).width, '300px',
+                  'a still has no timeline');
+  }, 'Changing one animation\'s animation-timeline away from a shared name ' +
+     'does not stop the other animation from attaching to that name later');
+</script>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta name="assert" content="This ensures that a block level box on a line whose writing mode is orthogonal to the line's contributes its block size to the container's inline size, the same as it does as a block sibling.">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#orthogonal-flows" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.container {
+    writing-mode: sideways-lr;
+    width: 300px;
+    background-color: silver;
+}
+.orthogonal {
+    writing-mode: horizontal-tb;
+    width: 200px;
+    height: 20px;
+    background-color: green;
+}
+</style>
+
+<div class="container" id="nested"><span><div class="orthogonal"></div></span></div>
+<div class="container" id="sibling"><div class="orthogonal"></div></div>
+
+<script>
+function inlineSizeOf(id) {
+    // The containers are sideways-lr, so their inline size is their height.
+    return document.getElementById(id).clientHeight;
+}
+
+test(() => {
+    assert_equals(inlineSizeOf("nested"), inlineSizeOf("sibling"));
+    assert_equals(inlineSizeOf("nested"), 20, "the box's 20px block size, not its 200px inline size");
+}, "A block level box on a line contributes its block size to an orthogonal container's inline size");
+</script>

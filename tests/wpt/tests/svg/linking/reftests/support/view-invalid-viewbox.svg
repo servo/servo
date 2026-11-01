@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 25 25">
+  <view id="negative-width" viewBox="0 0 -25 25" preserveAspectRatio="none"/>
+  <view id="negative-height" viewBox="0 0 25 -25" preserveAspectRatio="none"/>
+  <view id="three-numbers" viewBox="0 0 25" preserveAspectRatio="none"/>
+  <view id="no-viewbox" preserveAspectRatio="none"/>
+  <rect width="25" height="25" fill="green"/>
+</svg>

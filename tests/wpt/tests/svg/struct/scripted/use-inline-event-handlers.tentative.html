@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Inline event handlers of elements cloned by an SVG use element don't run</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/struct.html#UseElement">
+<link rel="help" href="https://github.com/w3c/svgwg/issues/876">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  window.loads = { "svg-image": [], "html-img": [] };
+  function record(kind, element) {
+    loads[kind].push(element.getRootNode() instanceof ShadowRoot);
+  }
+</script>
+<svg>
+  <g id="g">
+    <image width="10" height="10" href="/images/green.png" onload="record('svg-image', this)"/>
+    <foreignObject width="100" height="100">
+      <img src="/images/green.png" onload="record('html-img', this)">
+    </foreignObject>
+  </g>
+  <use href="#g"/>
+</svg>
+<script>
+  const loaded = new Promise(resolve => window.addEventListener("load", resolve));
+  for (const kind of Object.keys(loads)) {
+    promise_test(async function() {
+      await loaded;
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      await new Promise(resolve => step_timeout(resolve, 0));
+      if (kind == "html-img" && loads[kind].length != 1) {
+        // <html:img> may be removed from the cloned subtree. We allow
+        // triggering the load on the clone as long as it's not in the closed
+        // shadow tree.
+        assert_array_equals(loads[kind], [false, false], "Load shouldn't expose shadow tree");
+      } else {
+        assert_array_equals(loads[kind], [false], "Only the original element's onload handler should run");
+      }
+    }, `Inline onload handler of ${kind} in a use element shadow tree doesn't run`);
+  }
+</script>

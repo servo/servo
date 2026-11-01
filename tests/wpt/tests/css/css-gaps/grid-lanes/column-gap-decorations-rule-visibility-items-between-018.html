@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: between column rule stays continuous where crossing gutters of adjacent grid lanes overlap</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#visibility">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#break">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-model">
+<link rel="match" href="column-gap-decorations-rule-visibility-items-between-018-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(2, 60px);
+    gap: 20px;
+    width: max-content;
+    background: #cdd5e0;
+    column-rule: 4px solid blue;
+    column-rule-break: none;
+    column-rule-inset: 0;
+    column-rule-visibility-items: between;
+  }
+  .lanes > div { background: #5b8def; }
+  .a { grid-column: 1; height: 60px; }
+  .b { grid-column: 1; height: 60px; }
+  .c { grid-column: 2; height: 70px; }
+  .d { grid-column: 2; height: 50px; }
+</style>
+<div class="lanes">
+  <div class="a"></div>
+  <div class="b"></div>
+  <div class="c"></div>
+  <div class="d"></div>
+</div>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS Fonts: font-stretch isolation prevents cross-stretch unicode-range glyph sharing</title>
+<link rel="author" title="WebKit" href="https://webkit.org">
+<link rel="match" href="font-face-unicode-range-stretch-isolation-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-style-matching">
+<meta name="assert" content="A @font-face with font-stretch: 200% covering 'b' via unicode-range must not supply glyphs when the request is font-stretch: normal; 'b' should fall through to the sans-serif fallback.">
+<style>
+@font-face {
+    font-family: IsolationTestFamily;
+    src: url(/fonts/Ahem.ttf) format("truetype");
+    font-stretch: normal;
+    unicode-range: U+61;
+}
+@font-face {
+    font-family: IsolationTestFamily;
+    src: url(/fonts/Ahem.ttf) format("truetype");
+    font-stretch: 200%;
+    unicode-range: U+62;
+}
+p {
+    font-family: IsolationTestFamily, sans-serif;
+    font-stretch: normal;
+    font-synthesis: none;
+    font-size: 100px;
+    line-height: 1;
+    margin: 0;
+}
+</style>
+<html class="reftest-wait">
+<body>
+<p>ab</p>
+<script>
+document.fonts.ready.then(() => document.documentElement.classList.remove("reftest-wait"));
+</script>
+</body>
+</html>

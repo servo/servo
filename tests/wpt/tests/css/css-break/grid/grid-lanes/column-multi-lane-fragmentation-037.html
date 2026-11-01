@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>Multi-lane column grid-lanes fragmentation where a spanner with block margins after a row gap is not pushed when nothing expands</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; columns: 2; column-gap: 0; column-fill: auto; background: red;">
+  <div style="display: grid-lanes; grid-template-columns: repeat(2, 25px); row-gap: 10px; width: 50px; background: green;">
+    <div style="height: 30px;"></div>
+    <div style="height: 50px;"></div>
+    <div style="grid-column: span 2; height: 120px; margin-top: 20px;"></div>
+  </div>
+</div>

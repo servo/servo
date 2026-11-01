@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>SVG coordinate systems: transform attribute on the outermost svg element, dynamic changes</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/struct.html#SVGElement">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#TransformProperty">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-1/#transform-property">
+<link rel="match" href="outer-svg-transform-attribute-dynamic-001-ref.html">
+<meta name="assert" content="Adding or changing the transform attribute of an outermost svg element updates the rendering.">
+<style>
+.container { display: flex; width: 400px; height: 200px; background-color: gold; }
+</style>
+<div class="container">
+  <svg id="added" width="200" height="200" viewBox="0 0 20 20">
+    <rect x="2" y="2" width="16" height="16" fill="green"/>
+  </svg>
+  <svg id="changed" width="200" height="200" viewBox="0 0 20 20" transform="rotate(45)">
+    <rect x="2" y="2" width="16" height="16" fill="green"/>
+  </svg>
+</div>
+<script>
+window.addEventListener("load", () => {
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.getElementById("added").setAttribute("transform", "scale(0.5) translate(-100, -50)");
+    document.getElementById("changed").setAttribute("transform", "translate(20, 30)");
+    document.documentElement.classList.remove("reftest-wait");
+  }));
+});
+</script>
+</html>

@@ -1,0 +1,79 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSOM - Values set through the CSSOM are trimmed of leading and trailing whitespace</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstyleproperties-cssfloat">
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-setproperty">
+<link rel="help" href="https://drafts.csswg.org/css-variables/#serializing-custom-props">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="target"></div>
+<script>
+    const target = document.getElementById('target');
+
+    function setUp() {
+        target.style.cssText = '';
+        return target.style;
+    }
+
+    test(function() {
+        const style = setUp();
+        style.color = '    #202FF2   ';
+
+        assert_equals(style.color, 'rgb(32, 47, 242)');
+        assert_equals(style.cssText, 'color: rgb(32, 47, 242);');
+    }, 'Longhand set to a color through an IDL attribute is trimmed');
+
+    test(function() {
+        const style = setUp();
+        style.color = '    var(--a)   ';
+
+        assert_equals(style.color, 'var(--a)');
+        assert_equals(style.cssText, 'color: var(--a);');
+    }, 'Longhand set to a variable reference through an IDL attribute is trimmed');
+
+    test(function() {
+        const style = setUp();
+        style.setProperty('color', '    var(--a)   ');
+
+        assert_equals(style.getPropertyValue('color'), 'var(--a)');
+        assert_equals(style.cssText, 'color: var(--a);');
+    }, 'Longhand set to a variable reference through setProperty() is trimmed');
+
+    test(function() {
+        const style = setUp();
+        style.font = '    var(--a)   ';
+
+        assert_equals(style.font, 'var(--a)');
+        assert_equals(style.cssText, 'font: var(--a);');
+    }, 'Shorthand set to a variable reference through an IDL attribute is trimmed');
+
+    test(function() {
+        const style = setUp();
+        style.setProperty('font', '    var(--a)   ');
+
+        assert_equals(style.getPropertyValue('font'), 'var(--a)');
+        assert_equals(style.cssText, 'font: var(--a);');
+    }, 'Shorthand set to a variable reference through setProperty() is trimmed');
+
+    test(function() {
+        const style = setUp();
+        style.setProperty('--a', '    var(--b)   ');
+
+        assert_equals(style.getPropertyValue('--a'), 'var(--b)');
+        assert_equals(style.cssText, '--a: var(--b);');
+    }, 'Custom property set to a variable reference through setProperty() is trimmed');
+
+    test(function() {
+        const style = setUp();
+        style.color = '\t\n  var(--a) \n\t ';
+
+        assert_equals(style.color, 'var(--a)');
+    }, 'Whitespace other than spaces is trimmed too');
+
+    test(function() {
+        const style = setUp();
+        style.color = '   var(--a,   fallback   )   ';
+
+        assert_equals(style.color, 'var(--a,   fallback   )');
+    }, 'Whitespace inside a variable reference is preserved');
+</script>

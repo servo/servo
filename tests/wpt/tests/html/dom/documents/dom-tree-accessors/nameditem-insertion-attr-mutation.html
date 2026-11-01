@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/576203565">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="container"></div>
+<script>
+test(() => {
+  const container = document.getElementById('container');
+
+  // Create a sandboxed iframe without allow-scripts so its script context
+  // is not initialized until AddNamedItem accesses its WindowProxy.
+  const sandbox = document.createElement('iframe');
+  sandbox.sandbox = 'allow-same-origin';
+  container.appendChild(sandbox);
+
+  const innerDoc = sandbox.contentDocument;
+  const img = innerDoc.createElement('img');
+  img.setAttribute('name', 'target_item');
+  for (let i = 0; i < 7; i++) {
+    img.setAttribute('data-a' + i, 'v');
+  }
+
+  // Create a child frame named "chrome" inside the sandboxed document.
+  // When AddNamedItem initializes the sandboxed frame's context and installs
+  // chrome.loadTimes, the setter on window.chrome.loadTimes will run and
+  // mutate img's attributes, reallocating its attribute buffer during UpdateName.
+  const child = innerDoc.createElement('iframe');
+  child.name = 'chrome';
+  innerDoc.body.appendChild(child);
+
+  Object.defineProperty(child.contentWindow, 'loadTimes', {
+    configurable: true,
+    set() {
+      for (let i = 7; i < 20; i++) {
+        img.setAttribute('data-a' + i, 'v');
+      }
+    }
+  });
+
+  innerDoc.body.appendChild(img);
+  assert_equals(innerDoc.target_item, img);
+
+  img.remove();
+  assert_equals(innerDoc.target_item, undefined);
+}, 'Mutating attributes during UpdateName in InsertedInto/RemovedFrom should not crash');
+</script>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-font-loading/#font-face-set-ready">
+<meta name="assert" content="An unused @font-face whose local() source fails and is followed by url() must not keep document.fonts loading.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@font-face {
+    font-family: TestFont;
+    src: local("nonexistentfont-6c1c3b7e-9a7d-4d2e-8f1a-3b2f0e5d4c21"), url("/fonts/Ahem.ttf");
+    unicode-range: U+0400-04FF;
+}
+</style>
+<div id="target" style="font-family: TestFont">hello</div>
+<script>
+promise_test(async () => {
+    target.offsetWidth;
+    await document.fonts.ready;
+    assert_equals(document.fonts.status, "loaded");
+});
+</script>

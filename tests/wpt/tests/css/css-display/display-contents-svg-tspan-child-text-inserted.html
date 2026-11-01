@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Display: inserting text into a display:contents tspan in SVG text</title>
+<link rel="help" href="https://drafts.csswg.org/css-display/#unbox-svg">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg><text id="text"><tspan id="tspan" style="display:contents;color:green">Text</tspan></text></svg>
+<script>
+test(() => {
+  const text = document.getElementById("text");
+  text.getNumberOfChars();
+  document.getElementById("tspan").appendChild(document.createTextNode("More"));
+  assert_greater_than_equal(text.getNumberOfChars(), 0);
+}, "Inserting text into a display:contents tspan in SVG text should not crash");
+</script>

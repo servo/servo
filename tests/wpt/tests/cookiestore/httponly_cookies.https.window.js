@@ -5,6 +5,9 @@
 promise_test(async t => {
   let eventPromise = observeNextCookieChangeEvent();
   await setCookieStringHttp('HTTPONLY-cookie=value; path=/; httponly');
+  t.add_cleanup(async () => {
+    await setCookieStringHttp(`HTTPONLY-cookie=DELETED; path=/; httponly; Max-Age=0`);
+  });
   assert_equals(
       await getCookieString(),
       undefined,
@@ -29,9 +32,6 @@ promise_test(async t => {
   eventPromise = observeNextCookieChangeEvent();
   await setCookieStringHttp(
       'HTTPONLY-cookie=DELETED; path=/; max-age=0; httponly');
-  t.add_cleanup(async () => {
-    await setCookieStringHttp(`HTTPONLY-cookie=DELETED; path=/; httponly; Max-Age=0`);
-  });
   assert_equals(
       await getCookieString(),
       undefined,

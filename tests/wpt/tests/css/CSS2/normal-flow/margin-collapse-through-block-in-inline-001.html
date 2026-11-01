@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: margin of a self collapsing block level box inside an inline box is applied once</title>
+<link rel="help" href="https://www.w3.org/TR/CSS22/box.html#collapsing-margins">
+<link rel="match" href="margin-collapse-through-block-in-inline-001-ref.html">
+<meta name="assert" content="The margin a self collapsing block level box inside an inline box collapses through positions the block level box after it once, also when the root cannot collapse that margin through its before edge.">
+<style>
+.container {
+    border: 1px solid black;
+    width: 100px;
+}
+.self-collapsing {
+    margin-top: 100px;
+}
+.bar {
+    height: 20px;
+    background: green;
+}
+</style>
+<p>Test passes if the green bar is 100px below the black box's top border.</p>
+<div class="container">
+    <span><div class="self-collapsing"></div></span>
+    <div class="bar"></div>
+</div>

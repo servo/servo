@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-slot-assign">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="host">
+  <span id="child">child</span>
+</div>
+<details id="details" open>
+  <summary>Summary</summary>
+  <span id="details_child">details child</span>
+</details>
+
+<script>
+test(() => {
+  const sr = host.attachShadow({mode: "open", slotAssignment: "manual"});
+  const slot = document.createElement("slot");
+  sr.appendChild(slot);
+
+  slot.assign(child);
+  assert_array_equals(slot.assignedNodes(), [child]);
+
+  let slotchangeCount = 0;
+  slot.addEventListener("slotchange", () => {
+    slotchangeCount++;
+  });
+
+  // Moving `child` into `<details>` (which uses UA manual slot assignment,
+  // at least in Chromium) must not clear `child`'s manual assignment to `slot`.
+  details.appendChild(child);
+  document.body.offsetTop;
+  assert_array_equals(slot.assignedNodes(), []);
+
+  // Moving `child` back into `host` must restore its assignment to `slot`
+  // without calling `slot.assign(child)` again.
+  host.appendChild(child);
+  document.body.offsetTop;
+  assert_array_equals(slot.assignedNodes(), [child]);
+
+  // Assigning `details_child` to `slot` while it is still a child of
+  // `<details>` must remember the manual assignment for when `details_child`
+  // later becomes a child of `host`.
+  slot.assign(child, details_child);
+  document.body.offsetTop;
+  assert_array_equals(slot.assignedNodes(), [child]);
+
+  host.appendChild(details_child);
+  document.body.offsetTop;
+  assert_array_equals(slot.assignedNodes(), [child, details_child]);
+}, "UA slot assignment on <details> (manual slotting in Chromium) does not clobber author slot.assign()");
+</script>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+
+<script>
+
+  function testTextureArrayCreation(session, deviceController, t, { gl }) {
+    const binding = new XRWebGLBinding(session, gl);
+    t.step(() => {
+      if (gl instanceof WebGL2RenderingContext) {
+        const layer = binding.createProjectionLayer({ textureType: 'texture-array' });
+        assert_true(layer instanceof XRProjectionLayer, "createProjectionLayer with textureType 'texture-array' must succeed on WebGL2.");
+      } else {
+        assert_throws_dom('InvalidStateError', () => binding.createProjectionLayer({ textureType: 'texture-array' }),
+          "createProjectionLayer with textureType 'texture-array' must throw InvalidStateError on WebGL.");
+      }
+    });
+    return Promise.resolve();
+  }
+
+  function testTextureCreation(session, deviceController, t, { gl }) {
+    const binding = new XRWebGLBinding(session, gl);
+    t.step(() => {
+      // depthFormat: 0 disables the depth swapchain so the test does not depend on the WEBGL_depth_texture extension for non WebGL2 contexts.
+      const layer = binding.createProjectionLayer({ depthFormat: 0 });
+      assert_true(layer instanceof XRProjectionLayer, "createProjectionLayer with the default textureType must succeed.");
+    });
+    return Promise.resolve();
+  }
+
+  xr_session_promise_test("createProjectionLayer with textureType 'texture-array' requires WebGL2",
+    testTextureArrayCreation, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', { requiredFeatures: ['layers'] });
+
+  xr_session_promise_test("createProjectionLayer succeeds with the default textureType",
+    testTextureCreation, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', { requiredFeatures: ['layers'] });
+
+</script>

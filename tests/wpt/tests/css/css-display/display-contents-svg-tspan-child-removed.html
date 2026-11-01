@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Display: removing a display:contents tspan from SVG text</title>
+<link rel="help" href="https://drafts.csswg.org/css-display/#unbox-svg">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg><text id="text"><tspan id="tspan" style="display:contents;color:green">Text</tspan></text></svg>
+<script>
+test(() => {
+  const text = document.getElementById("text");
+  text.getNumberOfChars();
+  document.getElementById("tspan").remove();
+  assert_equals(text.getNumberOfChars(), 0);
+}, "Removing a display:contents tspan from SVG text should not crash");
+</script>

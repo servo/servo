@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Test: A float in a block level box on a line is placed at the top of that box</title>
+<link rel="help" href="https://www.w3.org/TR/CSS21/visuren.html#float-position">
+<link rel="match" href="float-in-block-in-inline-001-ref.html">
+<meta name="assert" content="A left float is placed at the top of the content box of its containing block. Making the float's containing block relatively positioned, and a following sibling absolutely positioned, does not move the float.">
+<style>
+.outer {
+    width: 20px;
+}
+
+.float {
+    float: left;
+    width: 20px;
+    height: 100px;
+    background: green;
+}
+</style>
+</head>
+<body onload="runTest()">
+<p>PASS if the green box is at the top of the line, not 100px below it.</p>
+<span><div class="outer">
+    <div id="panel">
+        <div><div class="float"></div></div>
+        <div id="sibling">x</div>
+    </div>
+</div></span>
+<script>
+function runTest()
+{
+    document.body.offsetTop;
+    document.getElementById("panel").style.position = "relative";
+    document.getElementById("sibling").style.position = "absolute";
+}
+</script>
+</body>
+</html>

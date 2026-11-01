@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<body>
+<script>
+addEventListener("message", event => {
+  if (event.data !== "start") {
+    return;
+  }
+
+  // Once scheduled, this leaves conditional user timing entries in every long
+  // animation frame. These run in the rAF callback step, which the spec
+  // requires to visit a container document before the document it contains, so
+  // these marks are always taken after the parent's callback for the same
+  // rendering update:
+  // https://html.spec.whatwg.org/multipage/webappapis.html#update-the-rendering
+  function markAndMeasure() {
+    performance.markConditional("iframe-mark");
+    performance.measureConditional("iframe-measure", "iframe-mark");
+    parent.postMessage("iframeRunning", "*");
+    requestAnimationFrame(markAndMeasure);
+  }
+  requestAnimationFrame(markAndMeasure);
+});
+</script>

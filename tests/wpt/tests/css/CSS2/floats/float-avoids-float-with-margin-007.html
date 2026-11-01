@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Test: Left float with border, padding and margin-left should avoid right float</title>
+<link rel="help" href="https://www.w3.org/TR/CSS21/visuren.html#floats">
+<link rel="match" href="float-avoids-float-with-margin-007-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<meta name="assert" content="A left float whose margin box (including border and padding) is too wide to fit next to a right float should be placed below it.">
+<style>
+.container {
+    width: 100px;
+    height: 40px;
+    font: 20px/1 Ahem;
+}
+
+.right {
+    float: right;
+    width: 50px;
+    height: 10px;
+    background: blue;
+}
+
+.left {
+    float: left;
+    width: 10px;
+    height: 10px;
+    padding: 5px;
+    border: 5px solid green;
+    margin-left: 25px;
+}
+</style>
+</head>
+<body>
+<div class="container"><div class="right"></div><div class="left"></div></div>
+</body>
+</html>

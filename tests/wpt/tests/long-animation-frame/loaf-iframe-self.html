@@ -16,13 +16,23 @@ const host_info = get_host_info();
 for (const origin of ["ORIGIN", "REMOTE_ORIGIN", "HTTP_NOTSAMESITE_ORIGIN"]) {
     promise_test(async t => {
         const [executor] = await prepare_exec_iframe(t, host_info[origin]);
-        const entry = await executor.execute_script(async (duration) => {
+        await new Promise(resolve => window.requestAnimationFrame(resolve));
+        await new Promise(resolve => t.step_timeout(resolve, 0));
+        await executor.execute_script(async (duration) => {
             const entryPromise = new Promise(resolve => new PerformanceObserver(list => {
-                resolve(list.getEntries(0));
+                resolve();
             }).observe({entryTypes: ["long-animation-frame"]}));
-            const deadline = performance.now() + duration;
-            while (performance.now() < deadline) {}
-            return entryPromise;
+            while (true) {
+                await new Promise(resolve => window.requestAnimationFrame(resolve));
+                const timeout = new Promise(resolve => setTimeout(() => resolve("timeout"), duration * 2));
+                setTimeout(() => {
+                    const deadline = performance.now() + duration;
+                    while (performance.now() < deadline) {}
+                }, 0);
+                const res = await Promise.race([entryPromise, timeout]);
+                if (res !== "timeout")
+                    break;
+            }
         }, [very_long_frame_duration]);
     }, `frames receive own long animation frames (${origin})`);
 }

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Reference for CSS Filters: backdrop-filter on a transformed element</title>
+    <link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+    <style>
+      body {
+        margin: 0;
+      }
+      .scene {
+        position: absolute;
+        width: 400px;
+        height: 400px;
+        background: linear-gradient(to right, green 0 200px, blue 200px 400px);
+      }
+      .backdrop {
+        position: absolute;
+        left: 50px;
+        top: 50px;
+        width: 200px;
+        height: 200px;
+        backdrop-filter: blur(10px);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="scene">
+      <div class="backdrop"></div>
+    </div>
+  </body>
+</html>

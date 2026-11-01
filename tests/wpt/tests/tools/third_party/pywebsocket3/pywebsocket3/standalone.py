@@ -165,7 +165,7 @@ import traceback
 import six
 from six.moves import configparser
 
-from pywebsocket3 import common, server_util, util
+from pywebsocket3 import common, server_util
 from pywebsocket3.websocket_server import WebSocketServer
 
 
@@ -428,20 +428,8 @@ def _main(args=None):
     options.cgi_directories = []
     options.is_executable_method = None
     if options.cgi_paths:
-        options.cgi_directories = options.cgi_paths.split(',')
-        if sys.platform in ('cygwin', 'win32'):
-            cygwin_path = None
-            # For Win32 Python, it is expected that CYGWIN_PATH
-            # is set to a directory of cygwin binaries.
-            # For example, websocket_server.py in Chromium sets CYGWIN_PATH to
-            # full path of third_party/cygwin/bin.
-            if 'CYGWIN_PATH' in os.environ:
-                cygwin_path = os.environ['CYGWIN_PATH']
-
-            def __check_script(scriptpath):
-                return util.get_script_interp(scriptpath, cygwin_path)
-
-            options.is_executable_method = __check_script
+        logging.critical('CGI is not supported')
+        sys.exit(1)
 
     if options.use_tls:
         logging.debug('Using ssl module')

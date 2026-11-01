@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>Sideways Inline Layout: Float Wrapping</title>
+<meta charset=utf-8>
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-4/#block-flow">
+
+<link rel="match" href="sideways-inline-003-ref.html">
+
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+body > div {
+  /* styling */
+  border: solid black;
+  font: 10px/1 Ahem;
+  float: left;
+  color: silver;
+  width: 5em;
+
+  /* test */
+  padding: 2px 4px 6px 8px;
+  margin: 2px 4px 6px 8px;
+  height: 8em;
+  text-align: right;
+}
+.lr {
+  writing-mode: sideways-lr;
+}
+.rl {
+  writing-mode: sideways-rl;
+}
+.float {
+  border: solid orange 8px;
+  margin: 2px 4px 6px 8px;
+  float: right;
+}
+</style>
+
+<div class="lr">
+  x xx <div class="float"></div> xxx <u>xxxx</u> xxx xx x
+</div>
+
+<div class="rl">
+  x xx <div class="float"></div> xxx <u>xxxx</u> xxx xx x
+</div>
+
+<div class="lr">
+  <div class="float"></div>
+  <div>x xx xxx <u>xxxx</u> xxx xx x</div>
+</div>
+
+<div class="rl">
+  <div class="float"></div>
+  <di>x xx xxx <u>xxxx</u> xxx xx x</div>
+</div>

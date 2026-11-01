@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Shape Test: float left, content-box, with margins</title>
+  <link rel="help" href="https://drafts.csswg.org/css-shapes-1/#shapes-from-box-values">
+  <link rel="match" href="reference/shape-outside-content-box-with-margin-ref.html">
+  <meta name="assert" content="The float's inline start margin offsets the content-box shape, and its inline end padding, border and margin are not part of the float area.">
+  <style>
+  .container {
+    width: 150px;
+    line-height: 0;
+  }
+
+  .shape {
+    float: left;
+    shape-outside: content-box;
+    box-sizing: content-box;
+    width: 25px;
+    height: 100px;
+    padding: 0 25px;
+    border-style: solid;
+    border-color: lightgreen;
+    border-width: 0 25px;
+    margin: 0 25px;
+    background-color: orange;
+  }
+
+  .box {
+    display: inline-block;
+    width: 25px;
+    height: 25px;
+    background-color: blue;
+  }
+  </style>
+
+  <main class="container">
+    <div class="shape"></div>
+    <div><div class="box"></div><div class="box"></div><div class="box"></div><div class="box"></div><div class="box"></div><div class="box"></div><div class="box"></div><div class="box"></div></div>
+  </main>
+</html>

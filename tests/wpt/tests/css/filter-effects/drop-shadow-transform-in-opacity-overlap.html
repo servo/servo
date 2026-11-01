@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Filters: drop-shadow on a rotated element inside a transparent group</title>
+    <link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+    <link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#funcdef-filter-drop-shadow">
+    <link rel="help" href="https://drafts.csswg.org/css-transforms-2/#transform-property">
+    <link rel="match" href="drop-shadow-transform-in-opacity-overlap-ref.html">
+    <meta name="assert" content="A rotated element with a drop shadow inside a group with opacity blends with the rest of the group before the group opacity is applied.">
+    <!-- The filtered element is drawn from an intermediate image, so its edges can differ from the reference by about a pixel. -->
+    <meta name="fuzzy" content="maxDifference=0-64;totalPixels=0-84000">
+    <style>
+      body { margin: 0; background: white; }
+      .group {
+        position: absolute;
+        top: 300px;
+        left: 400px;
+        opacity: 0.5;
+        will-change: transform;
+      }
+      .under {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 320px;
+        height: 260px;
+        background: #4477cc;
+        will-change: transform;
+      }
+      .shadow {
+        position: absolute;
+        top: 50px;
+        left: 50px;
+        width: 150px;
+        height: 120px;
+        background: #2e8b2e;
+        transform: rotate(15deg);
+        filter: drop-shadow(18px 18px 0 rgba(0, 0, 0, 0.55));
+        will-change: transform;
+      }
+    </style>
+  </head>
+  <body>
+    <div class=group>
+      <div class=under></div>
+      <div class=shadow></div>
+    </div>
+  </body>
+</html>

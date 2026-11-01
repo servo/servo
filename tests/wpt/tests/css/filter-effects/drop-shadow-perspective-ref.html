@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Reference for CSS Filters: drop-shadow on an element under a perspective</title>
+    <link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+    <style>
+      div div {
+        background: green;
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        top: 100px;
+        filter: drop-shadow(20px 20px 5px black);
+      }
+      .a {
+        transform: translate(150px,0) perspective(200px) translateZ(100px);
+      }
+      .b {
+        transform: translate(400px,0) perspective(200px) translateZ(-200px);
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <div class=a></div>
+      <div class=b></div>
+    </div>
+  </body>
+</html>

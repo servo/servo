@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: nested inline boxes around a block level box are not stretched by their nesting depth</title>
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#inline-formatting">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#anonymous-block-level">
+<meta name="assert" content="When a block level box is nested in inline boxes, every one of those inline boxes wraps exactly the same content, so they all report the same bounding box. In particular an inner inline box can never be taller than the one containing it.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+body { margin: 0; }
+#container { font: 20px/20px Ahem; }
+#block { height: 40px; margin-top: 16px; }
+</style>
+
+<div id="container"><span id="outer"><span id="middle"><i id="inner">before<div id="block"></div>after</i></span></span></div>
+
+<script>
+const rect = id => document.getElementById(id).getBoundingClientRect();
+
+// 20px line of text, then the block's 16px margin and 40px height, then a 20px line of text.
+const EXPECTED_HEIGHT = 20 + 16 + 40 + 20;
+
+test(() => {
+    assert_equals(rect("inner").height, EXPECTED_HEIGHT,
+        "the inline box bounds the text before the block, the block, and the text after it");
+}, "An inline box around a block level box bounds exactly its content");
+
+test(() => {
+    assert_equals(rect("inner").height, rect("middle").height, "inner vs middle");
+    assert_equals(rect("middle").height, rect("outer").height, "middle vs outer");
+}, "Inline boxes at every nesting level around a block level box report the same height");
+
+test(() => {
+    assert_equals(rect("inner").top, rect("outer").top, "tops match");
+    assert_equals(rect("inner").bottom, rect("outer").bottom, "bottoms match");
+}, "Nesting depth does not offset an inline box around a block level box");
+
+test(() => {
+    // The block sits below the first line of text plus its own margin, and one line follows it.
+    const block = rect("block");
+    assert_equals(block.top - rect("inner").top, 36, "the block starts below the first line and its margin");
+    assert_equals(rect("inner").bottom, block.bottom + 20, "one line of text follows the block");
+}, "A block level box nested in inline boxes is positioned by its margin");
+</script>

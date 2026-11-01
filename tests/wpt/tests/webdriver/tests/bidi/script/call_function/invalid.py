@@ -89,6 +89,37 @@ async def test_params_this_invalid_type(bidi_session, top_context, this):
         )
 
 
+@pytest.mark.parametrize(
+    "value",
+    [
+        {"type": "foo"},
+        {"type": "array", "value": [{"type": "foo"}]},
+        {"type": "set", "value": [{"type": "foo"}]},
+        {"type": "object", "value": [["foo", {"type": "foo"}]]},
+        {"type": "object", "value": [[{"type": "foo"}, {"type": "null"}]]},
+        {"type": "map", "value": [["foo", {"type": "foo"}]]},
+        {"type": "map", "value": [[{"type": "foo"}, {"type": "null"}]]},
+    ],
+    ids=[
+        "unknown type",
+        "array item",
+        "set item",
+        "object value",
+        "object key",
+        "map value",
+        "map key",
+    ],
+)
+async def test_params_this_type_invalid_value(bidi_session, top_context, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.script.call_function(
+            function_declaration="function() { return this; }",
+            this=value,
+            await_promise=False,
+            target=ContextTarget(top_context["context"]),
+        )
+
+
 @pytest.mark.parametrize("arguments", [False, "SOME_STRING", 42, {}])
 async def test_params_arguments_invalid_type(bidi_session, top_context, arguments):
     with pytest.raises(error.InvalidArgumentException):
@@ -106,6 +137,39 @@ async def test_params_arguments_entry_invalid_type(bidi_session, top_context, ar
         await bidi_session.script.call_function(
             function_declaration="(arg) => arg",
             arguments=[argument],
+            await_promise=False,
+            target=ContextTarget(top_context["context"]),
+        )
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        {"type": "foo"},
+        {"type": "array", "value": [{"type": "foo"}]},
+        {"type": "set", "value": [{"type": "foo"}]},
+        {"type": "object", "value": [["foo", {"type": "foo"}]]},
+        {"type": "object", "value": [[{"type": "foo"}, {"type": "null"}]]},
+        {"type": "map", "value": [["foo", {"type": "foo"}]]},
+        {"type": "map", "value": [[{"type": "foo"}, {"type": "null"}]]},
+    ],
+    ids=[
+        "unknown type",
+        "array item",
+        "set item",
+        "object value",
+        "object key",
+        "map value",
+        "map key",
+    ],
+)
+async def test_params_arguments_entry_type_invalid_value(
+    bidi_session, top_context, value
+):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.script.call_function(
+            function_declaration="(arg) => arg",
+            arguments=[value],
             await_promise=False,
             target=ContextTarget(top_context["context"]),
         )

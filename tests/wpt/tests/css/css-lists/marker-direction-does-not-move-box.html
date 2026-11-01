@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Lists: direction on ::marker does not move the marker box</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#marker-side">
+<link rel="match" href="marker-direction-does-not-move-box-ref.html">
+<meta name="assert" content="marker-side: match-self, the initial value, positions an outside marker box using the directionality of the list item, so direction on ::marker must not move the marker to the other side of the list item's content.">
+<meta name="fuzzy" content="maxDifference=0-160; totalPixels=0-80">
+<style>
+ol {
+  margin: 0;
+  padding-inline-start: 40px;
+}
+li {
+  list-style-type: "X";
+}
+li::marker {
+  direction: rtl;
+}
+</style>
+<!-- A single left-to-right character cannot be reordered, so this direction can only be observed
+     if it wrongly moves the marker box out of the list item's inline start. -->
+<ol>
+  <li>text</li>
+</ol>

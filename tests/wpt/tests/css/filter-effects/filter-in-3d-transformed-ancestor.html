@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Filters: filter on an element rotated under a perspective</title>
+    <link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+    <link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+    <link rel="help" href="https://drafts.csswg.org/css-transforms-2/#perspective-property">
+    <link rel="match" href="filter-in-3d-transformed-ancestor-ref.html">
+    <meta name="assert" content="A filter on an element rotated under a perspective is applied in the element’s own plane, and the filtered result is mapped through the perspective.">
+    <!-- The test projects the shapes through a perspective while the reference draws them directly, so edges can differ by about a pixel. -->
+    <meta name="fuzzy" content="maxDifference=0-160;totalPixels=0-8000">
+    <style>
+      body { margin: 0; background: white; }
+      .stage {
+        position: absolute;
+        top: 100px;
+        left: 100px;
+        perspective: 600px;
+      }
+      .rot {
+        transform: rotateY(50deg);
+        will-change: transform;
+      }
+      .filtered {
+        width: 200px;
+        height: 200px;
+        background: green;
+        filter: drop-shadow(20px 20px 0 rgba(0, 0, 0, 0.6));
+        will-change: transform;
+      }
+      .inner {
+        position: absolute;
+        top: 40px;
+        left: 40px;
+        width: 80px;
+        height: 80px;
+        background: orange;
+        will-change: transform;
+      }
+    </style>
+  </head>
+  <body>
+    <div class=stage>
+      <div class=rot>
+        <div class=filtered><div class=inner></div></div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -26,7 +26,7 @@ promise_test(async t => {
 }, "Empty navigations when no speculation rules");
 
 promise_test(async t => {
-  // Verify the SpeculationData interface shape includes navigations.
+  // Verify the SpeculationData shape includes navigations.
   const data = performance.getSpeculations();
   assert_true('preloads' in data, "should have preloads");
   assert_true('navigations' in data, "should have navigations");
@@ -89,12 +89,6 @@ promise_test(async t => {
   const nav = await waitForSpeculationMatching(t, prefetchUrl);
   assert_equals(nav.tags, null, "tags should be null when not specified");
 }, "Navigation without tags has null tags");
-
-promise_test(async t => {
-  // Verify SpeculationNavigationData interface exists.
-  assert_true('SpeculationNavigationData' in window,
-    "SpeculationNavigationData should exist as a global interface");
-}, "SpeculationNavigationData interface exists");
 
 promise_test(async t => {
   // A moderate-eagerness prefetch rule alone (no user interaction, no

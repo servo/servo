@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCConfiguration targetLatency</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script>
+test(() => {
+    let pc = new RTCPeerConnection({ });
+    assert_equals(pc.getConfiguration().targetLatency, "lowest");
+    pc.close();
+
+    pc = new RTCPeerConnection({ targetLatency: "lowest" });
+    assert_equals(pc.getConfiguration().targetLatency, "lowest");
+    pc.close();
+
+    pc = new RTCPeerConnection({ targetLatency: "none" });
+    assert_equals(pc.getConfiguration().targetLatency, "none");
+    pc.close();
+}, "Valid targetLatency");
+
+test(() => {
+    assert_throws_js(TypeError, () => new RTCPeerConnection({ targetLatency: "whatever" }));
+}, "Invalid targetLatency");
+
+test(() => {
+    let pc = new RTCPeerConnection({ targetLatency: "lowest" });
+    pc.setConfiguration({ });
+    pc.setConfiguration({ targetLatency: "lowest" });
+    assert_throws_js(TypeError, () => pc.setConfiguration({ targetLatency: "none" }));
+    pc.close();
+
+    pc = new RTCPeerConnection({ targetLatency: "none" });
+    pc.setConfiguration({ targetLatency: "none" });
+    assert_throws_js(TypeError, () => pc.setConfiguration({ }));
+    assert_throws_js(TypeError, () => pc.setConfiguration({ targetLatency: "lowest" }));
+    pc.close();
+}, "Changing targetLatency");
+</script>

@@ -200,6 +200,30 @@ function dragDropTestNoDropEvent(dragElement, dropElement, testDescription,
   }, testDescription));
 }
 
+// Sends a drag gesture within one document, with a little pause to allow layout
+// changes after dragstart before targeting the drop element. Moves within the
+// target before releasing the pointer so its dragover handler can accept the
+// drop. Returns {Promise<void>} Resolves when the input sequence finishes, not
+// when a drop is confirmed. Callers must observe and verify the drop
+// separately.
+// TODO(crbug.com/456164624): Merge behavior into `dragDropTest` once the linked
+// bug is resolved.
+function dragAndDropWithLayoutShift(dragElement, dropElement) {
+  const actions =
+      movePointerToCenter(dragElement, null, new test_driver.Actions())
+          .pointerDown()
+          .pointerMove(20, 20, {origin: dragElement})
+          // Give the layout shift from dragstart a full tick before targeting
+          // the drop element.
+          .pause(50, 'pointer');
+  return movePointerToCenter(dropElement, null, actions)
+      // Entering the target may only dispatch dragenter. Move within it so
+      // dragover can accept the drop before releasing the pointer.
+      .pointerMove(1, 1, {origin: dropElement})
+      .pointerUp()
+      .send();
+}
+
 // Similar to `dragDropTest`, but with a middle step in the drag to allow user
 // agents to account for layout shifts on drag start before calculating the
 // drop position.
@@ -216,17 +240,7 @@ function dragDropTestWithLayoutShift(dragElement, dropElement, onDropCallBack,
                    }
                  }));
                  try {
-                   var actions =
-                       movePointerToCenter(dragElement, null,
-                                           new test_driver.Actions())
-                           .pointerDown()
-                           .pointerMove(20, 20, {origin: dragElement})
-                           // Give the layout shift from dragstart a full tick
-                           // before targeting the drop element.
-                           .pause(50, 'pointer');
-                   await movePointerToCenter(dropElement, null, actions)
-                       .pointerUp()
-                       .send();
+                   await dragAndDropWithLayoutShift(dragElement, dropElement);
                  } catch (e) {
                    reject(e);
                  }

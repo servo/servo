@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG coordinate systems: transform attribute on the outermost svg element and scrollable overflow</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/struct.html#SVGElement">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#TransformProperty">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable-overflow-region">
+<meta name="assert" content="The transform attribute of an outermost svg element contributes to the scrollable overflow region of its ancestors, exactly like the CSS transform property.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="scroller" style="overflow: auto; width: 300px; height: 300px">
+  <svg id="svg" style="display: block" width="200" height="200"><rect width="200" height="200" fill="green"/></svg>
+</div>
+<script>
+const scroller = document.getElementById("scroller");
+const svg = document.getElementById("svg");
+
+test(() => {
+  assert_equals(scroller.scrollWidth, 300, "without a transform attribute");
+
+  svg.setAttribute("transform", "translate(400, 0)");
+  assert_equals(scroller.scrollWidth, 600, "with a transform attribute");
+
+  svg.removeAttribute("transform");
+  assert_equals(scroller.scrollWidth, 300, "after removing the transform attribute");
+}, "The transform attribute of an outermost svg element contributes to scrollable overflow");
+</script>
+</body>

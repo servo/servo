@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Outline with huge outline-offset must paint fully</title>
+<link rel="author" title="Helmut Januschka" href="mailto:helmut@januschka.com">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#outline-outline-offset">
+<link rel="match" href="outline-huge-offset-not-clipped-ref.html">
+<meta name="assert" content="An outline with a large outline-offset paints as a complete ring and is not clipped to the element's paint tile/layer bounds.">
+<style>
+  body { margin: 0; }
+  #box { position: absolute; left: 275px; top: 225px;
+         width: 50px; height: 50px; background: green;
+         outline: 5px solid red; outline-offset: 150px;
+         will-change: transform; }
+</style>
+</head>
+<body>
+<div id="box"></div>
+</body>
+</html>

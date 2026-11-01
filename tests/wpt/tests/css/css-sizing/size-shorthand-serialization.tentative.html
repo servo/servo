@@ -2,7 +2,7 @@
 <link rel="author" title="Andrew Martinez" href="https://github.com/AndrewJMart">
 <link rel="help" href="https://drafts.csswg.org/css-sizing-4/#sizing-properties">
 <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/820">
-<meta name="assert" content="The size shorthand expands to width and height, but width and height never serialize back into size, so markup copied from a size declaration stays compatible with UAs that do not support the shorthand yet.">
+<meta name="assert" content="The size, min-size and max-size shorthands expand to their dimension longhands, but those longhands never serialize back into the shorthands, so markup copied from a size declaration stays compatible with UAs that do not support the shorthands yet.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <body>
@@ -37,5 +37,67 @@ test(() => {
   element.style.cssText = 'size: 100px 200px';
   assert_equals(element.style.getPropertyValue('size'), '100px 200px');
 }, 'The size shorthand value is still available via getPropertyValue');
+
+test(() => {
+  const element = document.createElement('div');
+  element.style.cssText = 'min-width: 100px; min-height: 200px';
+  assert_equals(element.style.cssText, 'min-width: 100px; min-height: 200px;');
+}, 'min-width and min-height longhands do not collapse into the min-size shorthand when serializing');
+
+test(() => {
+  const element = document.createElement('div');
+  element.style.cssText = 'min-width: 50px; min-height: 50px';
+  assert_equals(element.style.cssText, 'min-width: 50px; min-height: 50px;');
+}, 'Equal min-width and min-height longhands do not collapse into the min-size shorthand when serializing');
+
+test(() => {
+  const element = document.createElement('div');
+  element.style.cssText = 'min-size: 100px 200px';
+  assert_equals(element.style.getPropertyValue('min-width'), '100px');
+  assert_equals(element.style.getPropertyValue('min-height'), '200px');
+}, 'The min-size shorthand expands to the min-width and min-height longhands');
+
+test(() => {
+  const element = document.createElement('div');
+  element.style.cssText = 'min-size: 100px 200px';
+  assert_equals(element.style.cssText, 'min-width: 100px; min-height: 200px;');
+}, 'Content authored with min-size serializes back as the min-width and min-height longhands, not as min-size');
+
+test(() => {
+  const element = document.createElement('div');
+  element.style.cssText = 'min-size: 100px 200px';
+  assert_equals(element.style.getPropertyValue('min-size'), '100px 200px');
+}, 'The min-size shorthand value is still available via getPropertyValue');
+
+test(() => {
+  const element = document.createElement('div');
+  element.style.cssText = 'max-width: 100px; max-height: 200px';
+  assert_equals(element.style.cssText, 'max-width: 100px; max-height: 200px;');
+}, 'max-width and max-height longhands do not collapse into the max-size shorthand when serializing');
+
+test(() => {
+  const element = document.createElement('div');
+  element.style.cssText = 'max-width: 50px; max-height: 50px';
+  assert_equals(element.style.cssText, 'max-width: 50px; max-height: 50px;');
+}, 'Equal max-width and max-height longhands do not collapse into the max-size shorthand when serializing');
+
+test(() => {
+  const element = document.createElement('div');
+  element.style.cssText = 'max-size: 100px 200px';
+  assert_equals(element.style.getPropertyValue('max-width'), '100px');
+  assert_equals(element.style.getPropertyValue('max-height'), '200px');
+}, 'The max-size shorthand expands to the max-width and max-height longhands');
+
+test(() => {
+  const element = document.createElement('div');
+  element.style.cssText = 'max-size: 100px 200px';
+  assert_equals(element.style.cssText, 'max-width: 100px; max-height: 200px;');
+}, 'Content authored with max-size serializes back as the max-width and max-height longhands, not as max-size');
+
+test(() => {
+  const element = document.createElement('div');
+  element.style.cssText = 'max-size: 100px 200px';
+  assert_equals(element.style.getPropertyValue('max-size'), '100px 200px');
+}, 'The max-size shorthand value is still available via getPropertyValue');
 </script>
 </body>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>palette-mix() applies the mixed palette to the font (reference)</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<style>
+@font-face {
+    font-family: "COLR-test-font";
+    src: url("resources/COLR-palettes-test-font.ttf") format("truetype");
+}
+div { font: 48px "COLR-test-font"; }
+
+@font-palette-values --Mix1 {
+    font-family: "COLR-test-font";
+    override-colors: 3 rgb(100 0 100);
+}
+@font-palette-values --Mix2 {
+    font-family: "COLR-test-font";
+    override-colors: 3 rgb(50 0 150);
+}
+@font-palette-values --Mix3 {
+    font-family: "COLR-test-font";
+    override-colors: 3 rgb(125 0 75);
+}
+@font-palette-values --Mix5 {
+    font-family: "COLR-test-font";
+    override-colors: 0 rgb(0 51 204), 1 rgb(255 51 204), 2 rgb(0 204 255), 3 rgb(255 204 255), 4 rgb(0 51 51), 5 rgb(255 51 51), 6 rgb(0 204 0), 7 rgb(255 204 0);
+}
+@font-palette-values --Mix6 {
+    font-family: "COLR-test-font";
+    override-colors: 3 rgb(211 51 0);
+}
+@font-palette-values --Mix7 {
+    font-family: "COLR-test-font";
+    override-colors: 0 rgb(0 0 0), 1 rgb(255 0 0), 2 rgb(0 255 0), 3 rgb(244 204 0), 4 rgb(0 0 255), 5 rgb(255 0 255), 6 rgb(0 255 255), 7 rgb(255 255 255);
+}
+@font-palette-values --Mix8 {
+    font-family: "COLR-test-font";
+    override-colors: 0 rgb(0 204 0), 1 rgb(255 204 0), 2 rgb(0 51 204), 3 rgb(244 0 204), 4 rgb(0 204 255), 5 rgb(255 204 255), 6 rgb(0 51 51), 7 rgb(255 51 51);
+}
+@font-palette-values --Mix9 {
+    font-family: "COLR-test-font";
+    override-colors: 0 rgb(204 204 0), 1 rgb(51 0 204), 2 rgb(204 51 204), 3 rgb(40 204 204), 4 rgb(204 204 255), 5 rgb(51 0 51), 6 rgb(204 51 51), 7 rgb(51 255 51);
+}
+</style>
+</head>
+<body>
+<div style="font-palette: --Mix1;">A</div>
+<div style="font-palette: --Mix2;">A</div>
+<div style="font-palette: --Mix3;">A</div>
+<div style="font-palette: dark;">A</div>
+<div style="font-palette: --Mix5;">A</div>
+<div style="font-palette: --Mix6;">A</div>
+<div style="font-palette: --Mix7;">A</div>
+<div style="font-palette: --Mix8;">A</div>
+<div style="font-palette: --Mix9;">A</div>
+</body>
+</html>

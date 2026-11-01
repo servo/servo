@@ -1,0 +1,59 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Long Animation Frame Timing: conditional user timing entries report a null window once their window is detached</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<body>
+<div id="log"></div>
+<script>
+setup(() => {
+  assert_implements(
+      "userTimingEntries" in PerformanceLongAnimationFrameTiming.prototype,
+      "conditional user timing for LoAF not implemented");
+});
+
+promise_test(async t => {
+  const iframe = document.createElement("iframe");
+  t.add_cleanup(() => iframe.remove());
+  iframe.srcdoc = `<!doctype html>
+    <script>
+    function markAndMeasureInIframe() {
+      performance.markConditional("iframe-mark");
+      performance.measureConditional("iframe-measure", "iframe-mark");
+    }
+    <\/script>`;
+  await new Promise(resolve => {
+    iframe.onload = resolve;
+    document.body.appendChild(iframe);
+  });
+
+  const loaf = await expect_long_frame(async (t, generateLoAF) => {
+    await new Promise(resolve => requestAnimationFrame(() => {
+      iframe.contentWindow.markAndMeasureInIframe();
+      generateLoAF();
+      resolve();
+    }));
+  }, t);
+  assert_not_equals(loaf, "timeout");
+
+  const entries = Array.from(loaf.userTimingEntries);
+  const iframeMark = entries.find(entry => entry.name === "iframe-mark");
+  const iframeMeasure = entries.find(entry => entry.name === "iframe-measure");
+  assert_equals(iframeMark.window, iframe.contentWindow,
+      "The iframe's mark must report the iframe's window while attached");
+  assert_equals(iframeMeasure.window, iframe.contentWindow,
+      "The iframe's measure must report the iframe's window while attached");
+
+  // Keep a reference to the iframe's window so that it can't be garbage
+  // collected.
+  const iframeWindow = iframe.contentWindow;
+  iframe.remove();
+  assert_equals(iframeMark.window, null,
+      "The iframe's mark must report a null window once detached");
+  assert_equals(iframeMeasure.window, null,
+      "The iframe's measure must report a null window once detached");
+  assert_not_equals(iframeWindow, null);
+}, "Conditional user timing entries report a null window once their window is detached");
+</script>

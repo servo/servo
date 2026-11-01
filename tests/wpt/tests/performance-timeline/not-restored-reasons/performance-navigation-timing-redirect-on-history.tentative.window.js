@@ -1,5 +1,5 @@
-// META: title=RemoteContextHelper navigation using BFCache
-// META: script=./test-helper.js
+// META: title=Ensure that notRestoredReasons reset after the server redirect.
+// META: script=./resources/test-helper.js
 // META: script=/common/dispatcher/dispatcher.js
 // META: script=/common/get-host-info.sub.js
 // META: script=/common/utils.js
@@ -20,15 +20,14 @@ promise_test(async t => {
   await useBFCacheBlockingFeature(rc1);
 
   // Create a remote context with the redirected URL.
-  let rc1_redirected =
-      await rcHelper.createContext(/*extraConfig=*/ {
-        origin: 'HTTP_ORIGIN',
-        scripts: [],
-        headers: [],
-      });
+  let rc1_redirected = await rcHelper.createContext(/*extraConfig=*/ {
+    origin: 'HTTP_ORIGIN',
+    scripts: [],
+    headers: [],
+  });
 
-  const redirectUrl =
-      `${ORIGIN}/common/redirect.py?location=${encodeURIComponent(rc1_redirected.url)}`;
+  const redirectUrl = `${ORIGIN}/common/redirect.py?location=${
+      encodeURIComponent(rc1_redirected.url)}`;
   // Replace the history state.
   await rc1.executeScript((url) => {
     window.history.replaceState(null, '', url);
@@ -43,10 +42,9 @@ promise_test(async t => {
   const navigation_entry = await rc1_redirected.executeScript(() => {
     return performance.getEntriesByType('navigation')[0];
   });
-  assert_equals(
-      navigation_entry.redirectCount, 1, 'Expected redirectCount is 1.');
+  assert_equals(navigation_entry.redirectCount, 1,
+                'Expected redirectCount is 1.');
   // Becauase of the redirect, notRestoredReasons is reset.
-  assert_equals(
-      navigation_entry.notRestoredReasons, null,
-      'Expected notRestoredReasons is null.');
+  assert_equals(navigation_entry.notRestoredReasons, null,
+                'Expected notRestoredReasons is null.');
 });

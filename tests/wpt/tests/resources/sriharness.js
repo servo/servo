@@ -124,6 +124,13 @@ const SRIPreloadTest = (preload_sri_success, subresource_sri_success, name,
   const invalid_subresource_succeeded = test.step_func(() =>
     { assert_unreached("Invalid subresource load succeeded.") });
   const subresource_pass = test.step_func(() => {
+    if (numberOfResourceTimingEntries(resource_url) < number_of_requests) {
+      test.step_timeout(() => {
+        verifyNumberOfResourceTimingEntries(resource_url, number_of_requests);
+        test.done();
+      }, 300);
+      return;
+    }
     verifyNumberOfResourceTimingEntries(resource_url, number_of_requests);
     test.done();
   });

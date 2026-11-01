@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>text-indent: each-line indents the line after a block level box</title>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.container { width: 80px; font: 10px Ahem; background-color: lightgray; }
+.block { height: 10px; background-color: blue; }
+.indent { padding-left: 4em; }
+</style>
+
+<div class="container"><span class="indent">xxxx</span><div class="block"></div><span class="indent">xxxx</span></div>
+<div class="container"><span class="indent">xxxx</span><div class="block"></div><span class="indent">xxxx</span></div>

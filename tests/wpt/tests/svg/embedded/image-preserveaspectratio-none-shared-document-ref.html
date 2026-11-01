@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Reference: preserveAspectRatio none on one image element does not affect another showing the same SVG</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<style>
+  body { margin: 0; }
+</style>
+
+<svg width="220" height="240">
+  <rect x="10" y="10" width="100" height="100" fill="rgb(0,0,255)"/>
+  <rect x="110" y="10" width="100" height="100" fill="rgb(0,128,0)"/>
+  <rect x="60" y="130" width="50" height="100" fill="rgb(0,0,255)"/>
+  <rect x="110" y="130" width="50" height="100" fill="rgb(0,128,0)"/>
+</svg>

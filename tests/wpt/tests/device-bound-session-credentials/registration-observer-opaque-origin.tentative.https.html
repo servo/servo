@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>DBSC Registration Observer: opaque origins</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  // Runs in the frame: reports the name of the exception the constructor
+  // throws, or "no exception".
+  const kFrameScript = `<script>
+    let result = "no exception";
+    try {
+      new DeviceBoundSessionRegistrationObserver(() => {});
+    } catch (e) {
+      result = e.name;
+    }
+    parent.postMessage(result, "*");
+  <\/script>`;
+
+  function constructorResultInFrame(test, setUpFrame) {
+    return new Promise(resolve => {
+      const frame = document.createElement("iframe");
+      const listener = (event) => {
+        if (event.source !== frame.contentWindow) {
+          return;
+        }
+        window.removeEventListener("message", listener);
+        resolve(event.data);
+      };
+      window.addEventListener("message", listener);
+      test.add_cleanup(() => {
+        window.removeEventListener("message", listener);
+        frame.remove();
+      });
+      setUpFrame(frame);
+      document.body.appendChild(frame);
+    });
+  }
+
+  promise_test(async (test) => {
+    const result = await constructorResultInFrame(test, (frame) => {
+      frame.sandbox = "allow-scripts";
+      frame.srcdoc = kFrameScript;
+    });
+    assert_equals(result, "SecurityError");
+  }, "The constructor throws a SecurityError in a sandboxed iframe");
+
+  promise_test(async (test) => {
+    const result = await constructorResultInFrame(test, (frame) => {
+      frame.src = "data:text/html," + encodeURIComponent(kFrameScript);
+    });
+    assert_not_equals(result, "no exception");
+  }, "The constructor does not work in a data: document");
+</script>
+</body>

@@ -6,13 +6,13 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="../resources/helpers.js"></script>
 
-<form id="spa_form" toolautosubmit toolname="spa_tool" tooldescription="SPA tool" action="about:blank" target="spa_iframe">
+<form id="spa_form" toolautosubmit toolname="spa_tool" tooldescription="SPA tool" action="/common/blank.html" target="spa_iframe">
   <input type="text" name="query">
   <button type="submit">Submit</button>
 </form>
 <iframe name="spa_iframe" style="display:none"></iframe>
 
-<form id="no_respond_form" toolautosubmit toolname="no_respond_tool" tooldescription="No respondWith tool" action="about:blank" target="no_respond_iframe">
+<form id="no_respond_form" toolautosubmit toolname="no_respond_tool" tooldescription="No respondWith tool" action="/common/blank.html" target="no_respond_iframe">
   <input type="text" name="query">
   <button type="submit">Submit</button>
 </form>
@@ -24,17 +24,17 @@
 </form>
 <iframe name="no_prevent_default_iframe" style="display:none"></iframe>
 
-<form id="manual_form" action="about:blank" target="manual_iframe">
+<form id="manual_form" action="/common/blank.html" target="manual_iframe">
   <input type="text" name="query">
 </form>
 <iframe name="manual_iframe" style="display:none"></iframe>
 
-<form id="late_respond_form" toolautosubmit toolname="late_respond_tool" tooldescription="Late respondWith tool" action="about:blank" target="late_respond_iframe">
+<form id="late_respond_form" toolautosubmit toolname="late_respond_tool" tooldescription="Late respondWith tool" action="/common/blank.html" target="late_respond_iframe">
   <input type="text" name="query">
 </form>
 <iframe name="late_respond_iframe" style="display:none"></iframe>
 
-<form id="navigate_form" toolautosubmit toolname="navigate_tool" tooldescription="Navigate tool" action="about:blank" target="navigate_iframe">
+<form id="navigate_form" toolautosubmit toolname="navigate_tool" tooldescription="Navigate tool" action="/common/blank.html" target="navigate_iframe">
   <input type="text" name="query">
   <button type="submit">Submit</button>
 </form>

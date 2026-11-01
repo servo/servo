@@ -17,10 +17,19 @@
 promise_test(async t => {
     const {minimize, restore} = window_state_context(t);
     await minimize();
-    expect_no_long_frame(busy_wait, t);
+    await expect_no_long_frame(busy_wait, t);
     await restore();
-    expect_long_frame(busy_wait, t);
+    await expect_long_frame(busy_wait, t);
 }, 'Invisible windows do not report long animation frames');
+
+promise_test(async t => {
+    const {minimize, restore} = window_state_context(t);
+    await expect_no_long_frame(async () => {
+        busy_wait(very_long_frame_duration);
+        await minimize();
+    }, t);
+    await restore();
+}, 'Long animation frames aborted when window becomes hidden are not reported');
 
 </script>
 </body>

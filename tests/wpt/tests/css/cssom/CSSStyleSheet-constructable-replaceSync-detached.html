@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>CSSStyleSheet.replaceSync() on detached constructed stylesheets replaces all rules</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstylesheet-replacesync">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function selectors(sheet) {
+  return Array.from(sheet.cssRules, rule => rule.selectorText);
+}
+
+test(() => {
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(".a {} .b {}");
+  assert_equals(sheet.cssRules.length, 2);
+  sheet.replaceSync(".c {} .d {} .e {}");
+  assert_array_equals(selectors(sheet), [".c", ".d", ".e"]);
+}, "replaceSync() with new text replaces the previous rules");
+
+test(() => {
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(".l {} .m {}");
+  assert_array_equals(selectors(sheet), [".l", ".m"]);
+  sheet.replaceSync(".n {}");
+  assert_array_equals(selectors(sheet), [".n"]);
+}, "replaceSync() with new text replaces the previous rules after they were accessed");
+
+test(() => {
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(".f {}");
+  sheet.replaceSync(".g {}");
+  sheet.replaceSync(".f {}");
+  assert_array_equals(selectors(sheet), [".f"]);
+}, "replaceSync() back to earlier text yields only that text's rules");
+
+test(() => {
+  const first = new CSSStyleSheet();
+  const second = new CSSStyleSheet();
+  first.replaceSync(".h {}");
+  second.replaceSync(".h {}");
+  second.replaceSync(".i {}");
+  assert_array_equals(selectors(first), [".h"]);
+  assert_array_equals(selectors(second), [".i"]);
+  const third = new CSSStyleSheet();
+  third.replaceSync(".h {}");
+  assert_array_equals(selectors(third), [".h"]);
+}, "replaceSync() on one sheet does not affect other sheets created from the same text");
+
+test(() => {
+  const first = new CSSStyleSheet();
+  const second = new CSSStyleSheet();
+  first.replaceSync(".j {}");
+  second.replaceSync(".j {}");
+  second.cssRules[0].selectorText = ".k";
+  assert_array_equals(selectors(first), [".j"]);
+  assert_array_equals(selectors(second), [".k"]);
+}, "Mutating rules of one sheet does not affect other sheets created from the same text");
+</script>

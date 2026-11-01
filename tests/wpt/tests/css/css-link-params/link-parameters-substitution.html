@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Linked Parameters: substitutions in param() values</title>
+<link rel="help" href="https://drafts.csswg.org/css-link-params/#propdef-link-parameters">
+<link rel="help" href="https://drafts.csswg.org/css-variables/#using-variables">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="container">
+  <div id="target"></div>
+</div>
+
+<script>
+function computedLinkParameters(target) {
+  return getComputedStyle(target).getPropertyValue('link-parameters');
+}
+
+setup(() => {
+  assert_true('link-parameters' in getComputedStyle(document.getElementById('target')),
+    "link-parameters doesn't seem to be supported in the computed style");
+});
+
+test(t => {
+  const target = document.getElementById('target');
+  t.add_cleanup(() => target.removeAttribute('style'));
+  target.style.setProperty('--brand', 'red');
+  target.style.setProperty('link-parameters', 'param(--color, var(--brand))');
+  assert_equals(computedLinkParameters(target), 'param(--color, red)');
+}, 'var() in a param() value is substituted');
+
+test(t => {
+  const target = document.getElementById('target');
+  t.add_cleanup(() => target.removeAttribute('style'));
+  target.style.setProperty('link-parameters', 'param(--color, var(--unset, blue))');
+  assert_equals(computedLinkParameters(target), 'param(--color, blue)');
+}, 'var() in a param() value uses its fallback when the referenced property is not set');
+
+test(t => {
+  const container = document.getElementById('container');
+  const target = document.getElementById('target');
+  t.add_cleanup(() => {
+    container.removeAttribute('style');
+    target.removeAttribute('style');
+  });
+  container.style.setProperty('--brand', 'green');
+  target.style.setProperty('link-parameters', 'param(--color, var(--brand))');
+  assert_equals(computedLinkParameters(target), 'param(--color, green)');
+}, 'var() in a param() value is substituted from an inherited custom property');
+
+test(t => {
+  const target = document.getElementById('target');
+  t.add_cleanup(() => target.removeAttribute('style'));
+  target.style.setProperty('link-parameters', 'param(--color, var(--unset))');
+  assert_equals(computedLinkParameters(target), 'none');
+}, 'an unresolvable var() in a param() value makes the declaration invalid at computed-value time');
+
+test(t => {
+  const target = document.getElementById('target');
+  t.add_cleanup(() => target.removeAttribute('style'));
+  target.style.setProperty('--brand', 'red');
+  target.style.setProperty('link-parameters', 'param(--a, var(--brand)), param(--b, blue)');
+  assert_equals(computedLinkParameters(target), 'param(--a, red), param(--b, blue)');
+}, 'var() is substituted in one of several param() values');
+</script>

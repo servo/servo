@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<!-- Conceptually this is a crashtest, but we need testharness.js so that testdriver works as expected, see https://github.com/web-platform-tests/wpt/issues/31739 -->
+<title>Selection: Gesture long-press with selectstart style mutation</title>
+<link rel="help" href="https://crbug.com/570656468">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+  .target {
+    font-size: 40px;
+    display: block;
+    margin: 20px;
+  }
+  #unselectable {
+    user-select: none;
+  }
+</style>
+
+<span id="selectable" class="target">Selectable target</span>
+<span id="unselectable" class="target">Unselectable target</span>
+
+<script>
+async function longPress(element) {
+  await new test_driver.Actions()
+    .addPointer("touchPointer", "touch")
+    .pointerMove(0, 0, {origin: element, sourceName: "touchPointer"})
+    .pointerDown({sourceName: "touchPointer"})
+    .pause(1000, "pointer", {sourceName: "touchPointer"})
+    .pointerUp({sourceName: "touchPointer"})
+    .send();
+}
+
+promise_test(async () => {
+  const selectable = document.getElementById('selectable');
+  selectable.addEventListener('selectstart', (e) => {
+    selectable.style.fontSize = '45px';
+    e.preventDefault();
+  });
+  await longPress(selectable);
+
+  const unselectable = document.getElementById('unselectable');
+  unselectable.style.color = 'blue';
+  await longPress(unselectable);
+}, "Gesture long-press on selectable and unselectable elements should not crash");
+</script>

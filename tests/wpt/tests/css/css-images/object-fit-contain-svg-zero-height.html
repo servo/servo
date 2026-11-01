@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>'object-fit: contain' on an SVG with a height of 0 uses its viewBox's aspect ratio</title>
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#the-object-fit">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6286">
+<link rel="match" href="object-fit-contain-svg-zero-height-ref.html">
+<style>
+img, object {
+  float: left;
+  width: 100px;
+  height: 100px;
+  margin-right: 10px;
+  object-fit: contain;
+}
+</style>
+<img src="support/svg-width-100-height-0-viewBox-2-1-green.svg">
+<object data="support/svg-width-100-height-0-viewBox-2-1-green.svg"></object>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Structured cloning of SharedArrayBuffers: a noopener popup is in another agent cluster</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/document-sequences.html#creating-a-new-top-level-browsing-context">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#structuredserialize">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script> <!-- Use token() to allow running tests in parallel -->
+
+<div id="log"></div>
+
+<script>
+"use strict";
+
+// Opening a window with noopener creates a new top-level browsing context in a
+// new browsing context group, rather than an auxiliary browsing context in this
+// page's group. The popup is therefore in a different agent cluster, so a
+// SharedArrayBuffer sent to it cannot be deserialized and the popup gets a
+// messageerror event instead of a message event.
+//
+// window.open() returns null for a noopener window, so a BroadcastChannel is
+// used rather than postMessage(); window-opener-success.https.html is the same
+// test without noopener, where the SharedArrayBuffer does arrive.
+async_test(t => {
+  const channelName = token();
+  const channel = new BroadcastChannel(channelName);
+  t.add_cleanup(() => channel.close());
+
+  channel.onmessage = t.step_func(({ data }) => {
+    switch (data) {
+      case "ready":
+        channel.postMessage(new SharedArrayBuffer(8));
+        break;
+      case "messageerror":
+        // Acknowledge the report so the popup, which has no opener to close it,
+        // closes itself.
+        channel.postMessage("reported");
+        t.done();
+        break;
+      case "message":
+        assert_unreached("The noopener popup must not be able to deserialize the SharedArrayBuffer");
+        break;
+    }
+  });
+
+  window.open(`resources/broadcastchannel-popup.html?channel=${channelName}`, "", "noopener");
+}, "SharedArrayBuffer and a same-origin noopener popup");
+</script>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Test: changing 'object-fit' and 'object-position' on an SVG document with 'will-change: transform' on its root, in &lt;object&gt; and &lt;embed&gt;</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#the-object-fit">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#the-object-position">
+<link rel="match" href="object-fit-embedded-svg-root-will-change-dynamic-change-ref.html">
+<meta name="assert" content="Changing object-fit and object-position after an SVG document whose root element has will-change: transform loads updates its size and position, including when only object-position changes.">
+<style>
+object, embed {
+  width: 48px;
+  height: 32px;
+  border: 1px solid gray;
+  padding: 1px;
+  float: left;
+}
+</style>
+<object id="a" data="support/colors-16x8-will-change.svg"></object>
+<embed id="b" src="support/colors-16x8-will-change.svg" style="object-fit: none; object-position: bottom right">
+<object id="c" data="support/colors-16x8-will-change.svg" style="object-fit: contain"></object>
+<script>
+let loaded = 0;
+function onLoaded() {
+  if (++loaded < 3)
+    return;
+  document.body.offsetHeight;
+  a.style.objectFit = "cover";
+  a.style.objectPosition = "top left";
+  b.style.objectPosition = "top left";
+  c.style.objectPosition = "bottom";
+  requestAnimationFrame(() => requestAnimationFrame(() => document.documentElement.classList.remove("reftest-wait")));
+}
+for (const element of [a, b, c])
+  element.addEventListener("load", onLoaded);
+</script>
+</html>

@@ -5,7 +5,7 @@
 <script>
 'use strict';
 
-(async () => {
+window.addEventListener('load', async () => {
   try {
     await document.fonts.load('16px "csp-bypass-shared-font"');
   } catch (_) {}
@@ -17,5 +17,5 @@
   }
   const fontCheck = document.fonts.check('16px "csp-bypass-shared-font"');
   parent.postMessage({fontStatus, fontCheck}, '*');
-})();
+});
 </script>

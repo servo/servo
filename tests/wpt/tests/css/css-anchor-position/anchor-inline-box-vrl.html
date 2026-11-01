@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-pos">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#block-flow">
+<title>Tests that an inline box anchor is resolved at its own position in vertical-rl</title>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.container {
+  writing-mode: vertical-rl;
+  width: 200px;
+  height: 100px;
+  position: relative;
+  font: 20px/1 Ahem;
+}
+
+/* Occupies the first 50px of the container's block axis, which runs right to left, so the anchor
+   that follows it starts 50px in from the container's right edge. */
+.filler {
+  width: 50px;
+}
+
+.anchor {
+  anchor-name: --anchor;
+}
+
+/* left: anchor(right) puts the target's left edge on the anchor's right edge. The anchor is one Ahem
+   glyph, so it spans 50px to 70px from the container's right edge, i.e. 130px to 150px from its left
+   edge, and the target's left edge belongs at 150px. */
+.target {
+  position: absolute;
+  position-anchor: --anchor;
+  left: anchor(right);
+  top: anchor(top);
+  width: 10px;
+  height: 10px;
+  background: green;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<body onload="checkLayout('.target')">
+
+<!-- A line break puts the anchor on the second line, 20px along the block axis, with no block level box
+     involved at all. -->
+<div class="container">
+  X<br><span class="anchor">A</span>
+  <div class="target" data-offset-x="180" data-offset-y="0"></div>
+</div>
+
+<!-- Two line breaks, so the offset the anchor's position has to carry is larger. -->
+<div class="container">
+  X<br>X<br><span class="anchor">A</span>
+  <div class="target" data-offset-x="160" data-offset-y="0"></div>
+</div>
+
+<!-- The anchor is preceded by a block level box, so an implementation that generates anonymous blocks
+     puts the anchor in one of its own. -->
+<div class="container">
+  <div class="filler"></div><span class="anchor">A</span>
+  <div class="target" data-offset-x="150" data-offset-y="0"></div>
+</div>
+
+<!-- The block level box is nested in an inline box, so the anchor stays alongside it rather than in a
+     block of its own. -->
+<div class="container">
+  <span><div class="filler"></div></span><span class="anchor">A</span>
+  <div class="target" data-offset-x="150" data-offset-y="0"></div>
+</div>
+
+<!-- The anchor is the container's only content, so it spans the first 20px of the block axis, which runs
+     right to left: 180px to 200px from the container's left edge. -->
+<div class="container">
+  <span class="anchor">A</span>
+  <div class="target" data-offset-x="200" data-offset-y="0"></div>
+</div>
+
+</body>

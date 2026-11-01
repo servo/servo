@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/576322434">
+<style>
+  @keyframes toggle {
+    from { display: none; }
+    to { display: none; }
+  }
+  #target {
+    display: none;
+    position: fixed;
+    position-area: block-end;
+    animation: toggle 1000s;
+  }
+</style>
+<p>Pass if no crash</p>
+<div id="target"></div>
+<script>
+  target.animate([{ display: 'block' }, { display: 'block' }], 1000000);
+  target.offsetTop;
+</script>

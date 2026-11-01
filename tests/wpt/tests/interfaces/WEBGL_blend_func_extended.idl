@@ -1,0 +1,13 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL WEBGL_blend_func_extended Extension Specification (https://registry.khronos.org/webgl/extensions/WEBGL_blend_func_extended/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface WEBGL_blend_func_extended {
+    const GLenum SRC1_COLOR_WEBGL                   = 0x88F9;
+    const GLenum SRC1_ALPHA_WEBGL                   = 0x8589;
+    const GLenum ONE_MINUS_SRC1_COLOR_WEBGL         = 0x88FA;
+    const GLenum ONE_MINUS_SRC1_ALPHA_WEBGL         = 0x88FB;
+    const GLenum MAX_DUAL_SOURCE_DRAW_BUFFERS_WEBGL = 0x88FC;
+};

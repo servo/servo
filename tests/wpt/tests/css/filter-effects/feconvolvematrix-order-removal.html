@@ -1,0 +1,27 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>Filter Effects: removing an invalid order attribute reverts feConvolveMatrix to the 3x3 default</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#element-attrdef-feconvolvematrix-order">
+<link rel="match" href="reference/feconvolvematrix-order-removal-ref.html">
+<script src="/common/rendering-utils.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<!-- The filter starts with an invalid order="0", which disables it. Removing
+     the order attribute must revert feConvolveMatrix to its valid 3x3 default
+     (per spec, order is optional and defaults to 3), re-enabling the filter.
+     The filter halves the RGB channels, so a working filter renders the green
+     square dark green, matching the reference. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+  <defs>
+    <filter id="f" filterUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+      <feConvolveMatrix id="convolve" order="0" divisor="2" preserveAlpha="true"
+                        kernelMatrix="0 0 0  0 1 0  0 0 0"/>
+    </filter>
+  </defs>
+  <rect width="100" height="100" fill="rgb(0, 200, 0)" filter="url(#f)"/>
+</svg>
+<script>
+  waitForAtLeastOneFrame().then(() => {
+    document.getElementById("convolve").removeAttribute("order");
+    takeScreenshot();
+  });
+</script>

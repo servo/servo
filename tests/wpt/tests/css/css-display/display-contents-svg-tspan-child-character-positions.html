@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Display: character positions across a display:contents tspan in SVG text</title>
+<link rel="help" href="https://drafts.csswg.org/css-display/#unbox-svg">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg><text id="text" x="0" y="20">A<tspan style="display:contents;color:green">B</tspan>C</text></svg>
+<script>
+test(() => {
+  const text = document.getElementById("text");
+  const count = text.getNumberOfChars();
+  for (let i = 0; i < count; ++i)
+    assert_greater_than_equal(text.getStartPositionOfChar(i).x, 0, "character " + i);
+}, "Querying character positions across a display:contents tspan in SVG text should terminate");
+</script>

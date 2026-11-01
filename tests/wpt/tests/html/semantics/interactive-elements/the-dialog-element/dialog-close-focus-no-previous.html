@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:helmut@januschka.com">
+<link rel=help href="https://html.spec.whatwg.org/multipage/interactive-elements.html#the-dialog-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<dialog id=dialog>
+  <input id=input>
+</dialog>
+
+<script>
+test(() => {
+  if (document.activeElement && document.activeElement !== document.body)
+    document.activeElement.blur();
+  dialog.showModal();
+  input.focus();
+  dialog.close();
+  assert_equals(document.activeElement, document.body,
+    'Focus should return to the body when there is no previously focused element.');
+}, 'Closing a dialog with no previously focused element should not leave focus inside it.');
+</script>

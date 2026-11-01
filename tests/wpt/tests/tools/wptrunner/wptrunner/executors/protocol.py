@@ -668,6 +668,12 @@ class BidiEmulationProtocolPart(ProtocolPart):
         pass
 
     @abstractmethod
+    async def set_scrollbar_type_override(self,
+            scrollbar_type: Optional[Literal["classic", "overlay"]],
+            contexts: List[str]) -> None:
+        pass
+
+    @abstractmethod
     async def set_touch_override(self,
             max_touch_points: Optional[int],
             contexts: List[str]) -> None:

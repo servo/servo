@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG rendering: mask and clip-path of a hidden element apply to descendants with visibility: visible (reference)</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<svg width="400" height="300">
+  <defs>
+    <mask id="maskText" maskUnits="userSpaceOnUse" x="0" y="0" width="400" height="300">
+      <rect x="10" y="150" width="60" height="100" fill="white"/>
+    </mask>
+    <clipPath id="clipText">
+      <rect x="200" y="150" width="40" height="30"/>
+      <rect x="240" y="180" width="40" height="40"/>
+    </clipPath>
+  </defs>
+  <rect x="10" y="10" width="50" height="100" fill="green"/>
+  <rect x="150" y="10" width="50" height="50" fill="green"/>
+  <rect x="200" y="60" width="50" height="50" fill="green"/>
+  <text x="10" y="200" font-size="40" fill="green" mask="url(#maskText)">XXXX</text>
+  <text x="200" y="200" font-size="40" fill="green" clip-path="url(#clipText)">XXXX</text>
+</svg>

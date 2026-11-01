@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/565410880">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<style>
+.base, .base::picker(select) {
+  appearance: base-select;
+}
+</style>
+
+<button id=outside>outside</button>
+
+<label id=label-for-auto for=select-for-auto>label by id (auto)</label>
+<select id=select-for-auto>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<label id=label-ancestor-auto>
+  <span>label by ancestor (auto)</span>
+  <select id=select-ancestor-auto>
+    <option>one</option>
+    <option>two</option>
+  </select>
+</label>
+
+<label id=label-for-auto-multiple-size1 for=select-for-auto-multiple-size1>label by id (auto multiple size=1)</label>
+<select id=select-for-auto-multiple-size1 multiple size=1>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<label id=label-ancestor-auto-multiple-size1>
+  <span>label by ancestor (auto multiple size=1)</span>
+  <select id=select-ancestor-auto-multiple-size1 multiple size=1>
+    <option>one</option>
+    <option>two</option>
+  </select>
+</label>
+
+<label id=label-for-base for=select-for-base>label by id (base)</label>
+<select id=select-for-base class=base>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<label id=label-ancestor-base>
+  <span>label by ancestor (base)</span>
+  <select id=select-ancestor-base class=base>
+    <option>one</option>
+    <option>two</option>
+  </select>
+</label>
+
+<label id=label-for-base-multiple-size1 for=select-for-base-multiple-size1>label by id (base multiple size=1)</label>
+<select id=select-for-base-multiple-size1 multiple size=1 class=base>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<label id=label-ancestor-base-multiple-size1>
+  <span>label by ancestor (base multiple size=1)</span>
+  <select id=select-ancestor-base-multiple-size1 multiple size=1 class=base>
+    <option>one</option>
+    <option>two</option>
+  </select>
+</label>
+
+<label id=label-for-base-button for=select-for-base-button>label by id (base with custom button)</label>
+<select id=select-for-base-button class=base>
+  <button>custom button</button>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<script>
+const outside = document.getElementById('outside');
+
+const testCases = [
+  {
+    name: 'appearance:auto with label[for]',
+    clickTarget: document.getElementById('label-for-auto'),
+    label: document.getElementById('label-for-auto'),
+    select: document.getElementById('select-for-auto'),
+  },
+  {
+    name: 'appearance:auto with ancestor label',
+    clickTarget: document.querySelector('#label-ancestor-auto span'),
+    label: document.getElementById('label-ancestor-auto'),
+    select: document.getElementById('select-ancestor-auto'),
+  },
+  {
+    name: 'appearance:auto multiple size=1 with label[for]',
+    clickTarget: document.getElementById('label-for-auto-multiple-size1'),
+    label: document.getElementById('label-for-auto-multiple-size1'),
+    select: document.getElementById('select-for-auto-multiple-size1'),
+  },
+  {
+    name: 'appearance:auto multiple size=1 with ancestor label',
+    clickTarget: document.querySelector('#label-ancestor-auto-multiple-size1 span'),
+    label: document.getElementById('label-ancestor-auto-multiple-size1'),
+    select: document.getElementById('select-ancestor-auto-multiple-size1'),
+  },
+  {
+    name: 'appearance:base-select with label[for]',
+    clickTarget: document.getElementById('label-for-base'),
+    label: document.getElementById('label-for-base'),
+    select: document.getElementById('select-for-base'),
+  },
+  {
+    name: 'appearance:base-select with ancestor label',
+    clickTarget: document.querySelector('#label-ancestor-base span'),
+    label: document.getElementById('label-ancestor-base'),
+    select: document.getElementById('select-ancestor-base'),
+  },
+  {
+    name: 'appearance:base-select multiple size=1 with label[for]',
+    clickTarget: document.getElementById('label-for-base-multiple-size1'),
+    label: document.getElementById('label-for-base-multiple-size1'),
+    select: document.getElementById('select-for-base-multiple-size1'),
+  },
+  {
+    name: 'appearance:base-select multiple size=1 with ancestor label',
+    clickTarget: document.querySelector('#label-ancestor-base-multiple-size1 span'),
+    label: document.getElementById('label-ancestor-base-multiple-size1'),
+    select: document.getElementById('select-ancestor-base-multiple-size1'),
+  },
+  {
+    name: 'appearance:base-select with custom button and label[for]',
+    clickTarget: document.getElementById('label-for-base-button'),
+    label: document.getElementById('label-for-base-button'),
+    select: document.getElementById('select-for-base-button'),
+  },
+];
+
+for (const {name, clickTarget, label, select} of testCases) {
+  promise_test(async t => {
+    t.add_cleanup(async () => {
+      select.blur();
+      await test_driver.click(outside);
+    });
+
+    assert_false(select.matches(':open'),
+      'select should be closed at the start of the test.');
+
+    label.click();
+    assert_false(select.matches(':open'),
+      'Untrusted label.click() should not open the select picker.');
+
+    await test_driver.click(clickTarget);
+    assert_true(select.matches(':open'),
+      'Clicking the label should open the select picker.');
+  }, `Clicking label opens select picker: ${name}`);
+}
+</script>

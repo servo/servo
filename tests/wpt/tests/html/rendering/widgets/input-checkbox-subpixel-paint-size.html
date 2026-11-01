@@ -1,0 +1,25 @@
+<!doctype html>
+<title>Checkbox and radio paint size is independent of sub-pixel position</title>
+<link rel=help href="https://crbug.com/41288048">
+<link rel=match href="input-checkbox-subpixel-paint-size-ref.html">
+<!-- Controls with the same fractional layout size must paint the same size
+     no matter where they sit on the pixel grid. The reference places the same
+     controls at the whole-pixel positions the offsets round to. -->
+<style>
+input {
+    position: absolute;
+    margin: 0;
+    width: 13.4px;
+    height: 9.6px;
+}
+</style>
+
+<input type="checkbox" style="left: 0px; top: 10.2px">
+<input type="checkbox" style="left: 20px; top: 10.4px">
+<input type="checkbox" style="left: 40px; top: 10.6px">
+<input type="checkbox" style="left: 60px; top: 10.8px">
+
+<input type="radio" style="left: 0px; top: 30.2px">
+<input type="radio" style="left: 20px; top: 30.4px">
+<input type="radio" style="left: 40px; top: 30.6px">
+<input type="radio" style="left: 60px; top: 30.8px">

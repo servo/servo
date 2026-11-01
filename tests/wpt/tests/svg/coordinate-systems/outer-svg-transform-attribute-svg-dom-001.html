@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>SVG coordinate systems: transform attribute on the outermost svg element, set through the SVG DOM</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/struct.html#SVGElement">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#TransformProperty">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-1/#transform-property">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#InterfaceSVGTransformList">
+<link rel="match" href="outer-svg-transform-attribute-svg-dom-001-ref.html">
+<meta name="assert" content="A transform list set through the SVG DOM, without a transform attribute, transforms the CSS box once the svg element becomes an outermost svg element.">
+<style>
+.container { width: 200px; height: 200px; background-color: gold; }
+svg { display: block; }
+</style>
+<div class="container"></div>
+<svg width="200" height="200">
+  <svg id="moved" width="200" height="200" viewBox="0 0 20 20">
+    <rect x="2" y="2" width="16" height="16" fill="green"/>
+  </svg>
+</svg>
+<script>
+window.addEventListener("load", () => {
+  const svg = document.getElementById("moved");
+  const transform = svg.createSVGTransform();
+  transform.setScale(0.5, 0.5);
+  svg.transform.baseVal.appendItem(transform);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.querySelector(".container").appendChild(svg);
+    document.documentElement.classList.remove("reftest-wait");
+  }));
+});
+</script>
+</html>

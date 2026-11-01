@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<style>
+  .clip {
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    overflow: clip;
+    border-radius: 50%;
+    border: 1px solid black;
+    box-sizing: border-box;
+  }
+
+  .outer {
+    top: 20px;
+    left: 20px;
+  }
+
+  .mask {
+    position: absolute;
+    top: 170px;
+    left: 170px;
+    width: 150px;
+    height: 150px;
+    border-top-left-radius: 150px;
+    border-bottom-right-radius: 150px;
+    background-color: gray;
+    border: 1px solid gray;
+  }
+
+  p {
+    margin-top: 350px;
+  }
+</style>
+<p>You should see no red above</p>
+<div class="outer clip"></div>
+<div class="mask"></div>

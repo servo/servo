@@ -1,0 +1,75 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Grid Lanes: reading-flow across row tracks with track-reverse</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-layout">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5675#issuecomment-4848519759">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/shadow-dom.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+
+<style>
+.test-case {
+  margin-top: 20px;
+}
+.lanes {
+  display: grid-lanes;
+  fit-tolerance: 0;
+  gap: 0px;
+  place-content: start;
+  align-items: start;
+}
+.rows {
+  grid-template-rows: repeat(4, 40px);
+  grid-lanes-direction: row track-reverse;
+  reading-flow: grid-columns;
+  height: 160px;
+  width: 260px;
+}
+.rows > div {
+  height: 100%;
+}
+</style>
+
+<!--
+At the moment we are counting an item as
+part of a reading column if 2/3 of the item's stacking-axis length is within
+the borders of the initial reading column bounds.
+First reading column: d, e, g, c, b, f, a
+Second reading column: h, j, i, l, k, m
+Third reading column: p, q, n, s, o, r, t
+-->
+<div class="test-case"
+     data-expect="d,e,g,c,b,f,a,h,j,i,l,k,m,p,q,n,s,o,r,t">
+  <div class="lanes rows">
+    <div id="a" tabindex="0" style="width: 90px; background-color: lightcoral">A</div>
+    <div id="b" tabindex="0" style="width: 30px; background-color: lightskyblue">B</div>
+    <div id="c" tabindex="0" style="width: 80px; background-color: lightgreen">C</div>
+    <div id="d" tabindex="0" style="width: 20px; background-color: khaki">D</div>
+    <div id="e" tabindex="0" style="width: 20px; background-color: plum">E</div>
+    <div id="f" tabindex="0" style="width: 40px; background-color: orange">F</div>
+    <div id="g" tabindex="0" style="width: 20px; background-color: paleturquoise">G</div>
+    <div id="h" tabindex="0" style="width: 90px; background-color: lightpink">H</div>
+    <div id="i" tabindex="0" style="width: 40px; background-color: silver">I</div>
+    <div id="j" tabindex="0" style="width: 90px; background-color: peachpuff">J</div>
+    <div id="k" tabindex="0" style="width: 30px; background-color: wheat">K</div>
+    <div id="l" tabindex="0" style="width: 20px; background-color: lavender">L</div>
+    <div id="m" tabindex="0" style="width: 20px; background-color: powderblue">M</div>
+    <div id="n" tabindex="0" style="width: 70px; background-color: palegoldenrod">N</div>
+    <div id="o" tabindex="0" style="width: 50px; background-color: thistle">O</div>
+    <div id="p" tabindex="0" style="width: 100px; background-color: aquamarine">P</div>
+    <div id="q" tabindex="0" style="width: 90px; background-color: lightsteelblue">Q</div>
+    <div id="r" tabindex="0" style="width: 30px; background-color: yellowgreen">R</div>
+    <div id="s" tabindex="0" style="width: 30px; background-color: sandybrown">S</div>
+    <div id="t" tabindex="0" style="width: 20px; background-color: lightcyan">T</div>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Reference for CSS Filters: backdrop-filter over an earlier element with a backdrop-filter</title>
+    <link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+    <style>
+      body {
+        margin: 0;
+      }
+      div {
+        position: absolute;
+      }
+      .scene {
+        width: 400px;
+        height: 400px;
+        background: linear-gradient(to right, cyan 0 200px, yellow 200px 400px);
+      }
+      .card {
+        left: 100px;
+        top: 50px;
+        width: 200px;
+        height: 200px;
+        background: linear-gradient(to right, red 0 100px, blue 100px 200px);
+      }
+      .top {
+        left: 200px;
+        top: 150px;
+        width: 150px;
+        height: 200px;
+        background: blue;
+      }
+      .top-over-card {
+        left: 200px;
+        top: 150px;
+        width: 100px;
+        height: 100px;
+        background: yellow;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="scene"></div>
+    <div class="card"></div>
+    <div class="top"></div>
+    <div class="top-over-card"></div>
+  </body>
+</html>

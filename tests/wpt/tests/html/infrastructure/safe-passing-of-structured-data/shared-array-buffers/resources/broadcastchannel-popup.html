@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>A popup that reports whether a SharedArrayBuffer sent over a BroadcastChannel reaches it</title>
+
+<script>
+"use strict";
+const channel = new BroadcastChannel(new URLSearchParams(location.search).get("channel"));
+
+channel.onmessage = e => {
+  // A popup opened with noopener cannot be closed by its opener, so it closes
+  // itself once the opener has acknowledged the report.
+  if (e.data === "reported") {
+    window.close();
+    return;
+  }
+  if (!(e.data instanceof SharedArrayBuffer)) {
+    // Only the opener's SharedArrayBuffer is of interest.
+    return;
+  }
+  channel.postMessage("message");
+};
+channel.onmessageerror = () => channel.postMessage("messageerror");
+
+channel.postMessage("ready");
+</script>

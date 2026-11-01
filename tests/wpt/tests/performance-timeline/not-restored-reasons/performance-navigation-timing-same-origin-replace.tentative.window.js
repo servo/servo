@@ -1,5 +1,5 @@
-// META: title=RemoteContextHelper navigation using BFCache
-// META: script=./test-helper.js
+// META: title=Ensure that notRestoredReasons are accessible after history replace.
+// META: script=./resources/test-helper.js
 // META: script=/common/dispatcher/dispatcher.js
 // META: script=/common/get-host-info.sub.js
 // META: script=/common/utils.js
@@ -38,5 +38,5 @@ promise_test(async t => {
       /*id=*/ null,
       /*name=*/ null,
       /*reasons=*/[{'reason': BFCACHE_BLOCKING_REASON}],
-      /*children=*/ []);
+      /*children=*/[]);
 });

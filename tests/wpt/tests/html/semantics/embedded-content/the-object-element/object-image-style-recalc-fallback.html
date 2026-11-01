@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/iframe-embed-object.html#the-object-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<object id="obj" data="/common/blank.html"><span id="fallback">Fallback</span></object>
+
+<script>
+async_test(t => {
+  const obj = document.getElementById("obj");
+  const fallback = document.getElementById("fallback");
+  obj.addEventListener("load", t.step_func(() => {
+    let pagehideFired = false;
+    obj.contentWindow.addEventListener("pagehide", () => {
+      pagehideFired = true;
+    });
+
+    obj.style.display = "none";
+    obj.offsetTop;
+    assert_false(pagehideFired, "pagehide should not fire when display becomes none");
+
+    obj.addEventListener("error", t.step_func_done(() => {
+      assert_true(pagehideFired, "pagehide should have fired when switching to fallback");
+      assert_greater_than(fallback.offsetWidth, 0, "fallback content should be rendered");
+    }), { once: true });
+
+    obj.data = "data:image/png,invalid";
+    obj.type = "image/png";
+    obj.style.display = "inline";
+    getComputedStyle(obj).display;
+    assert_false(pagehideFired, "pagehide should not fire synchronously before the queued DOM manipulation task runs");
+  }), { once: true });
+}, "Redetermining what <object> represents when data and rendering change must be queued on the DOM manipulation task source");
+</script>

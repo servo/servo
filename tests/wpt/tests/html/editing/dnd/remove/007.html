@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Removing div element during drag and drop with text/plain data</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="../resources/test-helper.js"></script>
+  <script src="support/drag-source-removal.js"></script>
+  <style>
+    div {
+      width: 40px;
+      height: 40px;
+      margin-top: 20px;
+      padding: 40px;
+      color: white;
+      background-color: gray;
+    }
+
+    #drop-target {
+      background-color: navy;
+    }
+  </style>
+  <script>
+    function sourceDragStart(event) {
+      event.dataTransfer.effectAllowed = 'copy';
+      event.dataTransfer.setData('text/plain', 'PASS');
+      event.currentTarget.remove();
+    }
+
+    function targetDrop(event) {
+      const text = event.dataTransfer.getData('text/plain');
+      event.currentTarget.appendChild(document.createTextNode(text));
+    }
+  </script>
+</head>
+<body>
+  <div draggable="true" ondragstart="sourceDragStart(event)"></div>
+  <div id="drop-target" ondragover="return false" ondrop="targetDrop(event)"></div>
+  <script>
+    const target = document.getElementById('drop-target');
+    testDragSourceRemoval(document.querySelector('div[draggable]'), target, {
+      dataType: 'text/plain',
+      expectedData: 'PASS',
+      verifyDrop: () => {
+        assert_equals(
+          target.textContent, 'PASS', 'The drop handler inserts the text');
+      },
+    });
+  </script>
+</body>
+</html>

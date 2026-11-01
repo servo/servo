@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>
+  Tests that a column item that expands due to fragmentation pushes down later
+  items in its lane, even if its content overflows past its block end into the
+  next fragmentainer.
+</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; columns: 2; column-gap: 0; column-fill: auto; background: red;">
+  <div style="display: grid-lanes; grid-template-columns: 50px;">
+    <div style="max-height: 190px; line-height: 0; background: green;">
+      <div style="display: inline-block; width: 50px; height: 60px;"></div>
+      <div style="display: inline-block; width: 50px; height: 60px;"></div>
+      <div style="display: inline-block; width: 50px; height: 60px;"></div>
+    </div>
+    <div style="height: 10px; background: green;"></div>
+  </div>
+</div>

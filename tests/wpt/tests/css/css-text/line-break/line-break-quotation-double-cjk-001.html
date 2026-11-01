@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text: Break opportunity allowed after U+201D Right Double Quotation Mark when surrounded by East Asian characters (UAX #14 LB19/LB19a)</title>
+<link rel="help" href="https://www.unicode.org/reports/tr14/#LB19">
+<link rel="help" href="https://www.unicode.org/reports/tr14/#LB19a">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=315560">
+<link rel="match" href="reference/line-break-quotation-double-cjk-001-ref.html">
+<style>
+@font-face {
+  font-family: "mplus-1p-regular";
+  src: url("/fonts/mplus-1p-regular.woff") format("woff");
+}
+#test {
+  font: 20px/1 "mplus-1p-regular";
+  max-inline-size: 2em;
+}
+</style>
+<div id="test">中”中</div>

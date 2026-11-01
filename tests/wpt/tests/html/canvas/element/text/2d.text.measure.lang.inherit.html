@@ -43,6 +43,10 @@ promise_test(async t => {
 
   _assert(tr_width > en_width, "tr_width > en_width");
 
+  document.documentElement.lang = 'en';
+  ctx.lang = 'inherit';
+  _assertSame(ctx.measureText(text).width, tr_width, "ctx.measureText(text).width", "tr_width");
+
 }, "Testing the lang attribute");
 </script>
 

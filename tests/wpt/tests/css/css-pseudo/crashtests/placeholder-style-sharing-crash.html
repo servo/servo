@@ -1,0 +1,24 @@
+<!doctype html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2085217">
+<style>
+  :has(*) { --x: 1 }
+</style>
+<div id="c"><textarea placeholder="a"></textarea><textarea placeholder="a"></textarea></div>
+<script>
+  // Style both textareas so the second ::placeholder shares style with the
+  // first. Revalidating that shared style runs :has(*) against the placeholder
+  // itself and sets RelativeSelectorSearchDirectionAncestor on it.
+  document.body.offsetTop;
+  // Drop the style data of the subtree; the selector flags stay.
+  c.style.display = "none";
+  document.body.offsetTop;
+  const t = c.lastElementChild;
+  // DIR state change on the unstyled placeholder takes a snapshot (the
+  // relative-selector flag makes it eligible), setting ELEMENT_HAS_SNAPSHOT.
+  t.dir = "rtl";
+  // Removing the attribute unbinds the ::placeholder div from the UA shadow
+  // root. It has no style data, so ELEMENT_HAS_SNAPSHOT is not cleared.
+  t.removeAttribute("placeholder");
+  // Processes pending snapshots, including the detached pseudo-element.
+  getComputedStyle(document.body).getPropertyValue("color");
+</script>

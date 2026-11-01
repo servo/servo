@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>CSS Containment Test: content-visibility:hidden still renders ::backdrop in top layer</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="/css/reference/green.html">
+<style>
+  body { background: red; }
+  dialog {
+    border: none;
+    outline: none;
+    padding: 0;
+  }
+  dialog::backdrop { background: green; }
+</style>
+<dialog id="dialog">FAIL</dialog>
+<script>
+  dialog.showModal();
+  dialog.style.contentVisibility = "hidden";
+</script>

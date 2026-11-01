@@ -1,0 +1,18 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL EXT_clip_control Extension Specification (https://registry.khronos.org/webgl/extensions/EXT_clip_control/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface EXT_clip_control {
+    const GLenum LOWER_LEFT_EXT = 0x8CA1;
+    const GLenum UPPER_LEFT_EXT = 0x8CA2;
+
+    const GLenum NEGATIVE_ONE_TO_ONE_EXT = 0x935E;
+    const GLenum ZERO_TO_ONE_EXT         = 0x935F;
+
+    const GLenum CLIP_ORIGIN_EXT     = 0x935C;
+    const GLenum CLIP_DEPTH_MODE_EXT = 0x935D;
+
+    undefined clipControlEXT(GLenum origin, GLenum depth);
+};

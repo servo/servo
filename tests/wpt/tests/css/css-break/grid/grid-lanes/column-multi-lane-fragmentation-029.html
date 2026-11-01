@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<title>
+  Tests that grid-lanes items in multiple lanes get pushed down due to a previous
+  item expanding as a result of fragmentation.
+</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<style>
+  .grid-lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(2, 10px);
+  }
+  .grid-lanes > div {
+    background: green;
+    width: 10px;
+  }
+</style>
+<div style="width: 100px; height: 100px; columns: 5; column-gap: 0; column-fill: auto; background: red;">
+  <div class="grid-lanes">
+    <div style="grid-column: 1;">
+      <div style="contain: size; width: 10px; height: 60px;"></div>
+      <div style="contain: size; width: 25px; height: 50px;"></div>
+    </div>
+    <div style="grid-column: 1; order: -1;">
+      <div style="contain: size; width: 10px; height: 80px;"></div>
+      <div style="contain: size; width: 10px; height: 30px;"></div>
+    </div>
+    <div style="grid-column: 1;">
+      <div style="contain: size; width: 10px; height: 20px;"></div>
+      <div style="contain: size; width: 10px; height: 100px; background: white;"></div>
+    </div>
+    <div style="grid-column: 2;">
+      <div style="contain: size; width: 25px; height: 50px;"></div>
+      <div style="contain: size; width: 10px; height: 60px;"></div>
+    </div>
+    <div style="grid-column: 1; order: -1;">
+      <div style="contain: size; width: 10px; height: 30px;"></div>
+      <div style="contain: size; width: 10px; height: 100px;"></div>
+    </div>
+    <div style="grid-column: 2;">
+      <div style="contain: size; width: 10px; height: 20px;"></div>
+      <div style="contain: size; width: 10px; height: 100px;"></div>
+    </div>
+    <div style="grid-column: 2;">
+      <div style="contain: size; width: 10px; height: 40px;"></div>
+      <div style="contain: size; width: 10px; height: 20px;"></div>
+    </div>
+    <div style="grid-column: 2;">
+      <div style="contain: size; width: 10px; height: 20px;"></div>
+      <div style="contain: size; width: 10px; height: 100px;"></div>
+    </div>
+  </div>
+</div>

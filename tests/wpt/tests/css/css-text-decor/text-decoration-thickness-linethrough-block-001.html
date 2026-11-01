@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>text-decoration: line-through thickness applies over a descendant block</title>
+    <link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#line-decoration">
+    <link rel="match" href="text-decoration-thickness-linethrough-block-001-ref.html">
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+    <meta name="assert" content="A line-through set on a block is painted at that block's text-decoration-thickness over text in a descendant block (the decoration propagated across the block boundary), not the descendant's own thickness.">
+    <style>
+        div { font: 20px/1 Ahem; }
+        /* The line-through is set on the outer block; the inner block must paint it at this 10px thickness. */
+        #outer { text-decoration: green line-through; text-decoration-thickness: 10px; }
+    </style>
+</head>
+<body>
+    <div id="outer"><div>X</div></div>
+</body>
+</html>

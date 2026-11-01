@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<title>shape-margin with corner-shape</title>
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#shape-margin-property">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shape">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body {
+  margin: 0;
+}
+.container {
+  width: 210px;
+  line-height: 0;
+}
+
+.shape {
+  float: left;
+  shape-outside: border-box;
+  shape-margin: 10px;
+  border-radius: 48%;
+  box-sizing: content-box;
+  height: 40px;
+  width: 40px;
+  padding: 20px;
+  border: 20px solid lightgreen;
+  margin: 20px;
+  background-color: orange;
+}
+
+.box {
+  display: inline-block;
+  width: 60px;
+  background-color: blue;
+}
+
+.longbox {
+  display: inline-block;
+  width: 210px;
+  height: 20px;
+  background-color: blue;
+}
+</style>
+
+<main class="container">
+  <div class="shape"></div>
+  <div class="longbox" style="height: 10px;"></div>
+  <div class="box" style="height: 24px;"></div>
+  <div class="box" style="height: 46px;"></div>
+  <div class="box" style="height: 46px;"></div>
+  <div class="box" style="height: 24px;"></div>
+  <div class="longbox"></div>
+</main>
+
+<script>
+function shape_outside_corner_shape_test(corner_shape, expected) {
+  test(() => {
+    const shape = document.querySelector(".shape");
+    shape.style.setProperty("corner-shape", corner_shape);
+    const actual = Array.from(document.querySelectorAll(".container .box")).map(b => b.getBoundingClientRect().x);
+    assert_array_approx_equals(actual, expected, 2);
+  }, `corner-shape: ${corner_shape} with shape-margin`);
+}
+
+shape_outside_corner_shape_test("notch", [92, 150, 150, 92]);
+shape_outside_corner_shape_test("bevel", [111, 150, 150, 111]);
+shape_outside_corner_shape_test("round", [134, 150, 150, 134]);
+shape_outside_corner_shape_test("square", [150, 150, 150, 150]);
+shape_outside_corner_shape_test("scoop", [95, 150, 150, 95]);
+shape_outside_corner_shape_test("superellipse(1.5)", [141, 150, 150, 141]);
+shape_outside_corner_shape_test("superellipse(-.8)", [96, 150, 150, 96]);
+</script>

@@ -1,5 +1,5 @@
-// META: title=RemoteContextHelper navigation using BFCache
-// META: script=./test-helper.js
+// META: title=Ensure that notRestoredReasons are only updated after non BFCache navigation.
+// META: script=./resources/test-helper.js
 // META: script=/common/dispatcher/dispatcher.js
 // META: script=/common/get-host-info.sub.js
 // META: script=/common/utils.js
@@ -30,7 +30,7 @@ promise_test(async t => {
       /*id=*/ null,
       /*name=*/ null,
       /*reasons=*/[{'reason': BFCACHE_BLOCKING_REASON}],
-      /*children=*/ []);
+      /*children=*/[]);
 
   // This time no blocking feature is used, so the page is restored
   // from BFCache. Ensure that the previous reasons stay there.
@@ -42,5 +42,5 @@ promise_test(async t => {
       /*id=*/ null,
       /*name=*/ null,
       /*reasons=*/[{'reason': BFCACHE_BLOCKING_REASON}],
-      /*children=*/ []);
+      /*children=*/[]);
 });

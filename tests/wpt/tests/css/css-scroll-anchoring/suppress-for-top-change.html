@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/#suppression-triggers">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#anchor {
+    position: absolute;
+    background-color: green;
+    top: 100px;
+    width: 120px;
+    height: 120px;
+}
+
+.filler {
+  height: 2000px;
+}
+
+body.done .filler {
+  display: none;
+}
+</style>
+<div id="anchor"></div>
+<div class="filler"></div>
+<script>
+const anchor = document.getElementById('anchor');
+
+test(() => {
+  document.scrollingElement.scrollTop = 120;
+
+  anchor.style.top = "160px";
+
+  const expectedTop = 120;
+  assert_equals(document.scrollingElement.scrollTop, expectedTop);
+
+  document.body.classList.add('done');
+}, "Changing `top` on a positioned anchor should not trigger anchoring");
+
+</script>

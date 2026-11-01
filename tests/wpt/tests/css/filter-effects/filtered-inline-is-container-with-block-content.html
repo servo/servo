@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Filter: a filtered inline is the containing block for an out-of-flow child on any line</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#def-cb">
+<link rel="match" href="filtered-inline-is-container-with-block-content-ref.html">
+<meta name="assert" content="An absolutely positioned box in a filtered inline is placed relative to the padding box of that inline, including when a block level box before the inline puts it on a later line.">
+<style>
+.container { width: 300px; font: 16px/20px monospace; }
+.block { height: 100px; background-color: silver; }
+.inline-container { filter: blur(0px); }
+.absolute { position: absolute; top: 50px; left: 10px; width: 50px; height: 20px; background-color: green; }
+</style>
+
+<div class="container"><span><div class="block"></div></span><span class="inline-container">a<div class="absolute"></div></span></div>

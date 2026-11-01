@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Counter Styles Test: a disclosure marker takes the same line height whichever way it points</title>
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles-3/#disclosure-open">
+<link rel="match" href="disclosure-line-height-ref.html">
+<meta name="assert" content="A list item with disclosure-open is as tall as one with disclosure-closed, so that toggling a disclosure does not move the content after it.">
+<style>
+  ul { margin: 0; padding: 0; list-style-position: inside; }
+  /* The glyph itself is not what is being tested, only the room the line gives it. */
+  li { color: transparent; }
+  div { width: 100px; height: 100px; background: green; }
+</style>
+<ul>
+  <li style="list-style-type: disclosure-open">disclosure
+</ul>
+<div></div>

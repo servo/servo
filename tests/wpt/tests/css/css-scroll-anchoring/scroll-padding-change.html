@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/">
+<style>
+:root { scroll-padding-top: 100px; }
+:root.no-padding { scroll-padding-top: 0px; }
+
+body { height: 4000px; margin: 0; }
+
+.spacer { height: 200px; }
+.anchor { height: 200px; background-color: green; }
+</style>
+<div class="spacer"></div>
+<div class="anchor"></div>
+<script>
+
+test(() => {
+  document.scrollingElement.scrollTop = 250;
+  assert_equals(document.scrollingElement.scrollTop, 250);
+
+  document.documentElement.classList.add("no-padding");
+  assert_equals(document.scrollingElement.scrollTop, 250);
+
+  document.documentElement.classList.remove("no-padding");
+  assert_equals(document.scrollingElement.scrollTop, 250);
+
+}, "Changing scroll-padding on the scroller should not trigger a scroll anchoring adjustment");
+
+</script>

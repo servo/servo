@@ -10,51 +10,48 @@
 </head>
 
 <body>
-  <svg width="0" height="0">
-    <defs>
-      <filter id="filter-same" filterUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
-        <feImage href="https://{{location[host]}}/images/green-100x100.png"/>
-        <feComponentTransfer>
-          <feFuncR type="linear" slope="0" intercept="1"/>
-          <feFuncG type="linear" slope="0" intercept="1"/>
-          <feFuncB type="linear" slope="0" intercept="1"/>
-        </feComponentTransfer>
-      </filter>
-      <filter id="filter-cross" filterUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
-        <feImage href="https://{{hosts[alt][www]}}:{{ports[https][0]}}/images/red-100x100.png"/>
-        <feComponentTransfer>
-          <feFuncR type="linear" slope="0" intercept="1"/>
-          <feFuncG type="linear" slope="0" intercept="1"/>
-          <feFuncB type="linear" slope="0" intercept="1"/>
-        </feComponentTransfer>
-      </filter>
-      <mask id="mask-cross" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
-        <g filter="url(#filter-cross)">
-          <rect width="100" height="100" fill="black" filter="url(#filter-cross)"/>
-        </g>
-      </mask>
-      <mask id="mask-cross-outer" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
-        <g filter="url(#filter-cross)">
-          <rect width="100" height="100" fill="black" filter="url(#filter-same)"/>
-        </g>
-      </mask>
-      <mask id="mask-cross-opacity" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
-        <g filter="url(#filter-cross)">
-          <rect width="100" height="100" fill="black" opacity="0.5"/>
-        </g>
-      </mask>
-    </defs>
-  </svg>
-
   <canvas id="canvas" width="100" height="400" content=drawable>
-    <svg drawable id="child" width="100" height="400">
+    <svg width="0" height="0">
       <defs>
+        <filter id="filter-same" filterUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+          <feImage href="https://{{location[host]}}/images/green-100x100.png"/>
+          <feComponentTransfer>
+            <feFuncR type="linear" slope="0" intercept="1"/>
+            <feFuncG type="linear" slope="0" intercept="1"/>
+            <feFuncB type="linear" slope="0" intercept="1"/>
+          </feComponentTransfer>
+        </filter>
+        <filter id="filter-cross" filterUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+          <feImage href="https://{{hosts[alt][www]}}:{{ports[https][0]}}/images/red-100x100.png"/>
+          <feComponentTransfer>
+            <feFuncR type="linear" slope="0" intercept="1"/>
+            <feFuncG type="linear" slope="0" intercept="1"/>
+            <feFuncB type="linear" slope="0" intercept="1"/>
+          </feComponentTransfer>
+        </filter>
         <mask id="mask-same" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
           <g filter="url(#filter-same)">
             <rect width="100" height="100" fill="black" filter="url(#filter-same)"/>
           </g>
         </mask>
+        <mask id="mask-cross" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+          <g filter="url(#filter-cross)">
+            <rect width="100" height="100" fill="black" filter="url(#filter-cross)"/>
+          </g>
+        </mask>
+        <mask id="mask-cross-outer" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+          <g filter="url(#filter-cross)">
+            <rect width="100" height="100" fill="black" filter="url(#filter-same)"/>
+          </g>
+        </mask>
+        <mask id="mask-cross-opacity" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+          <g filter="url(#filter-cross)">
+            <rect width="100" height="100" fill="black" opacity="0.5"/>
+          </g>
+        </mask>
       </defs>
+    </svg>
+    <svg drawable id="child" width="100" height="400">
       <svg x="0" y="0" width="100" height="100">
         <rect width="100" height="100" fill="rgb(20, 120, 220)" mask="url(#mask-same)"/>
       </svg>
@@ -86,13 +83,13 @@
         assert_array_equals(pixel, [20, 120, 220, 255], "Nested same origin filter images in internal mask should be drawn");
 
         pixel = _getPixelFromImageData(imgData, 50, 150);
-        assert_array_equals(pixel, [0, 0, 255, 255], "Nested cross origin filter images in external mask should not be drawn");
+        assert_array_equals(pixel, [0, 0, 255, 255], "Nested cross origin filter images in internal mask should not be drawn");
 
         pixel = _getPixelFromImageData(imgData, 50, 250);
-        assert_array_equals(pixel, [0, 0, 255, 255], "Cross origin filter image on ancestor of filtered element in external mask should not be drawn");
+        assert_array_equals(pixel, [0, 0, 255, 255], "Cross origin filter image on ancestor of filtered element in internal mask should not be drawn");
 
         pixel = _getPixelFromImageData(imgData, 50, 350);
-        assert_array_equals(pixel, [0, 0, 255, 255], "Cross origin filter image on ancestor of non-filtered element with opacity in external mask should not be drawn");
+        assert_array_equals(pixel, [0, 0, 255, 255], "Cross origin filter image on ancestor of non-filtered element with opacity in internal mask should not be drawn");
       });
     }
   </script>

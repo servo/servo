@@ -6,9 +6,8 @@ importScripts("../../resources/loading-resource-lib.js")
 
 const label = "initiator_url_promise_worker";
 const resource = "/images/blue.png?"+label;
-const hostInfo = get_host_info();
-const expectedInitiatorUrl = hostInfo["ORIGIN"] +
-  "/resource-timing/tentative/initiator-url/promise.any.worker.js";
+const expectedInitiatorUrl =
+    getUrl('/resource-timing/tentative/initiator-url/promise.any.worker.js');
 Promise.resolve().then(function() {fetch_in_function(resource)});
 initiator_url_test(resource, expectedInitiatorUrl, resource +
   " initiatorUrl from promise in worker thread", resource + " timeout");

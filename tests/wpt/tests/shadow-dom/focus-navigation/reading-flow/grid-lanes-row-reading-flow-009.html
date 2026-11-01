@@ -1,0 +1,63 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Grid Lanes: tentative across-track dense backfill in row tracks with mixed alignment</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-layout">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5675#issuecomment-4848519759">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/shadow-dom.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+
+<style>
+.test-case {
+  margin-top: 20px;
+}
+.rows {
+  display: grid-lanes;
+  grid-lanes-pack: dense;
+  fit-tolerance: 0;
+  gap: 0;
+  place-content: start;
+  align-items: start;
+  grid-template-rows: repeat(3, 60px);
+  grid-lanes-direction: row;
+  reading-flow: grid-columns;
+  height: 180px;
+  width: 220px;
+}
+.rows > div {
+  height: 100%;
+}
+</style>
+
+<!--
+At the moment we are counting an item as
+part of a reading column if 2/3 of the item's stacking-axis length is within
+the borders of the initial reading column bounds.
+E's 'justify-self: end' keeps it in a later reading column than D.
+First reading column: a, d, c
+Second reading column: b, e
+Third reading column: s
+-->
+<div class="test-case"
+     data-expect="a,d,c,b,e,s">
+  <div class="rows">
+    <div id="a" tabindex="0" style="grid-row: 1; width: 20px; background-color: lightcoral">A</div>
+    <div id="b" tabindex="0" style="grid-row: 1; width: 180px; background-color: lightskyblue">B</div>
+    <div id="c" tabindex="0" style="grid-row: 3; width: 100px; background-color: lightgreen">C</div>
+    <div id="s" tabindex="0" style="grid-row: 1 / span 2; width: 20px; background-color: khaki">S</div>
+    <div id="d" tabindex="0"
+        style="grid-row: 2; width: 20px; justify-self: start; background-color: plum">D</div>
+    <div id="e" tabindex="0"
+        style="grid-row: 2; width: 20px; justify-self: end; background-color: rgb(118, 193, 125)">E</div>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

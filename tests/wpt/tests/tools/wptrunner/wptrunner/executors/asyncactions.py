@@ -270,6 +270,31 @@ class BidiEmulationSetScreenOrientationOverrideAction:
             screen_orientation, contexts)
 
 
+class BidiEmulationSetScrollbarTypeOverrideAction:
+    name = "bidi.emulation.set_scrollbar_type_override"
+
+    def __init__(self, logger, protocol):
+        do_delayed_imports()
+        self.logger = logger
+        self.protocol = protocol
+
+    async def __call__(self, payload):
+        scrollbar_type = payload['scrollbarType'] \
+            if 'scrollbarType' in payload \
+            else None
+
+        if "contexts" not in payload:
+            raise ValueError("Missing required parameter: contexts")
+        contexts = []
+        for context in payload["contexts"]:
+            contexts.append(get_browsing_context_id(context))
+        if len(contexts) == 0:
+            raise ValueError("At least one context must be provided")
+
+        return await self.protocol.bidi_emulation.set_scrollbar_type_override(
+            scrollbar_type, contexts)
+
+
 class BidiEmulationSetTouchOverrideAction:
     name = "bidi.emulation.set_touch_override"
 
@@ -428,6 +453,7 @@ async_actions = [
     BidiEmulationSetLocaleOverrideAction,
     BidiEmulationSetMediaFeaturesOverrideAction,
     BidiEmulationSetScreenOrientationOverrideAction,
+    BidiEmulationSetScrollbarTypeOverrideAction,
     BidiEmulationSetTouchOverrideAction,
     BidiEmulationSetViewportMetaOverrideAction,
     BidiUserAgentClientHintsSetClientHintsOverrideAction,

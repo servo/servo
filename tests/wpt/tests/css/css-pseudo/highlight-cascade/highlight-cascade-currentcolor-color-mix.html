@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: highlight cascade: inheritance of a color-mix() containing currentcolor</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#highlight-cascade">
+<meta name="assert" content="This test verifies that a highlight pseudo-element color that references currentcolor is inherited down the highlight chain unresolved, so that each element resolves currentcolor against its own color.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #mix { color: red; }
+  #mix span { color: blue; }
+  #mix::selection { color: color-mix(in oklab, teal 50%, currentcolor); }
+
+  #none { color: red; }
+  #none span { color: blue; }
+  #none::selection { background-color: yellow; }
+
+  #reference { color: color-mix(in oklab, teal 50%, blue); }
+</style>
+<div id="mix">text <span id="mixChild">text</span></div>
+<div id="none">text <span id="noneChild">text</span></div>
+<div id="reference"></div>
+<script>
+const color = (element, pseudo) => getComputedStyle(element, pseudo).color;
+
+test(() => {
+    assert_equals(color(document.getElementById("mixChild"), "::selection"),
+        color(document.getElementById("reference")));
+}, "currentcolor in a color-mix() resolves against the inheriting element's own color");
+
+test(() => {
+    assert_equals(color(document.getElementById("noneChild"), "::selection"), "rgb(0, 0, 255)");
+}, "The inherited color at the start of the chain is currentcolor, so it resolves per element");
+</script>

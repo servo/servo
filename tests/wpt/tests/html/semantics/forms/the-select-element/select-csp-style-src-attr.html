@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta http-equiv="content-security-policy" content="style-src 'self'">
+<link rel=author href="mailto:fantasai.bugs@inkedblade.net">
+<link rel=help href="https://html.spec.whatwg.org/multipage/form-elements.html#the-select-element">
+<link rel=help href="https://w3c.github.io/webappsec-csp/#directive-style-src-attr">
+<title>Creating a select element must not trigger a CSP style-src violation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(t => {
+  document.addEventListener("securitypolicyviolation", t.step_func(e => {
+    assert_unreached(`${e.effectiveDirective} violation: ${e.blockedURI}`);
+  }), true);
+  document.documentElement.appendChild(document.createElement("select"));
+  document.documentElement.offsetHeight;
+  t.step_timeout(() => t.done(), 100);
+}, "No securitypolicyviolation is fired when creating a select element");
+</script>

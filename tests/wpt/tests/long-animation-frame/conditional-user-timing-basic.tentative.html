@@ -17,6 +17,15 @@ setup(() =>
 
 const segment_duration = very_long_frame_duration / 2;
 
+// Every entry in these tests is taken by this document, so each one must
+// report this window.
+function assert_entries_from_this_window(entries) {
+  for (const entry of entries) {
+    assert_equals(entry.window, window,
+      `${entry.name} must report the window that took it`);
+  }
+}
+
 promise_test(async t => {
   const loaf_entry = await expect_long_frame(async (t, busy_wait) => {
     performance.markConditional("mark0");
@@ -57,6 +66,8 @@ promise_test(async t => {
   for(let i = 0; i < all_entries.length - 1; i++) {
     assert_true(all_entries[i].startTime <= all_entries[i + 1].startTime);
   }
+
+  assert_entries_from_this_window(all_entries);
 
 }, 'conditional user timing from a long busy wait');
 
@@ -102,6 +113,8 @@ promise_test(async t => {
   for(let i = 0; i < all_entries.length - 1; i++) {
     assert_true(all_entries[i].startTime <= all_entries[i + 1].startTime);
   }
+
+  assert_entries_from_this_window(all_entries);
 
 }, 'conditional user timing from a requestAnimationFrame');
 
@@ -160,6 +173,8 @@ promise_test(async t => {
   for(let i = 0; i < all_entries.length - 1; i++) {
     assert_true(all_entries[i].startTime <= all_entries[i + 1].startTime);
   }
+
+  assert_entries_from_this_window(all_entries);
 
 }, 'conditional user timing from a task and a requestAnimationFrame');
 
@@ -230,6 +245,8 @@ promise_test(async t => {
   for(let i = 0; i < all_entries.length - 1; i++) {
     assert_true(all_entries[i].startTime <= all_entries[i + 1].startTime);
   }
+
+  assert_entries_from_this_window(all_entries);
 
 }, 'conditional user timing from a task, a requestAnimationFrame, and layout change');
 </script>

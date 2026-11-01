@@ -7,7 +7,13 @@
 <script nonce="abc" src="/resources/testharness.js"></script>
 <script nonce="abc" src="/resources/testharnessreport.js"></script>
 <script nonce="abc">
-  window.typeChangedRuns = { "svg-script": 0, "html-script": 0 };
+  window.typeChangedRuns = {
+    "svg-script": 0,
+    "html-script": 0,
+    "shadow-script": 0,
+    "root-html-script": 0,
+    "root-shadow-script": 0,
+  };
   window.strictDynamicRuns = 0;
 </script>
 <svg>
@@ -16,7 +22,22 @@
     <foreignObject width="100" height="100">
       <script id="html-script" type="text/x-not-js">typeChangedRuns["html-script"]++</script>
     </foreignObject>
+    <foreignObject width="100" height="100">
+      <div id="shadow-host">
+        <template shadowrootmode="open" shadowrootclonable>
+          <script id="shadow-script" type="text/x-not-js">typeChangedRuns["shadow-script"]++</script>
+        </template>
+      </div>
+    </foreignObject>
   </g>
+  <foreignObject id="fo" width="100" height="100">
+    <script id="root-html-script" type="text/x-not-js">typeChangedRuns["root-html-script"]++</script>
+    <div id="root-shadow-host">
+      <template shadowrootmode="open" shadowrootclonable>
+        <script id="root-shadow-script" type="text/x-not-js">typeChangedRuns["root-shadow-script"]++</script>
+      </template>
+    </div>
+  </foreignObject>
 </svg>
 <script nonce="abc">
   document.write('<svg><use href="#written-svg"/><g id="written-svg"><script href="support/use-script-strict-dynamic.js">');
@@ -33,10 +54,12 @@
 
   for (const kind of Object.keys(typeChangedRuns)) {
     promise_test(async function(t) {
-      const script = document.getElementById(kind);
+      const script = document.getElementById(kind) ||
+        document.getElementById("shadow-host").shadowRoot.getElementById(kind) ||
+        document.getElementById("root-shadow-host").shadowRoot.getElementById(kind);
       script.setAttribute("type", "text/javascript");
       const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
-      use.setAttribute("href", "#g");
+      use.setAttribute("href", kind.startsWith("root-") ? "#fo" : "#g");
       document.querySelector("svg").appendChild(use);
       t.add_cleanup(() => use.remove());
       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));

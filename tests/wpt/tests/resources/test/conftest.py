@@ -174,11 +174,11 @@ class HTMLFile(pytest.File):
                     try:
                         expected = json.loads(element.text)
                     except ValueError:
-                        print("Failed parsing JSON in %s" % filename)
+                        print("Failed parsing JSON in %s" % self.path)
                         raise
 
         if not name:
-            raise ValueError('No name found in %s add a <title> element' % filename)
+            raise ValueError('No name found in %s add a <title> element' % self.path)
         elif self.test_type == 'functional':
             if not expected:
                 raise ValueError('Functional tests must specify expected report data')

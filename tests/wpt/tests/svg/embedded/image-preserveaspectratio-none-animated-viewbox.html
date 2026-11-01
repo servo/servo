@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en" class="reftest-wait">
+<meta charset="utf-8">
+<title>preserveAspectRatio none on an image element follows an animated viewBox in the referenced SVG</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/embedded.html#ImageElement">
+<link rel="match" href="image-preserveaspectratio-none-animated-viewbox-ref.html">
+<meta name="assert" content="The referenced SVG's root preserveAspectRatio is treated as none without fixing its viewBox, so when its viewBox animates to its green right half, that half stretches over the whole image.">
+<style>
+  body { margin: 0; }
+</style>
+<svg width="220" height="120">
+  <rect x="10" y="10" width="200" height="100" fill="red"/>
+  <image x="10" y="10" width="200" height="100" preserveAspectRatio="none" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><set attributeName='viewBox' to='50 0 50 100' begin='0.2s' fill='freeze'/><rect width='50' height='100' fill='red'/><rect x='50' width='50' height='100' fill='rgb(0,128,0)'/></svg>"/>
+</svg>
+<script>
+  // Wait for the viewBox to have changed, 0.2s into the referenced SVG's timeline.
+  function finishAfter(start, now) {
+      if (now - start < 500) {
+          requestAnimationFrame(next => finishAfter(start, next));
+          return;
+      }
+      document.documentElement.classList.remove("reftest-wait");
+  }
+  window.onload = () => requestAnimationFrame(now => finishAfter(now, now));
+</script>

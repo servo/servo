@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Counter Styles: korean-hangul-formal over the extended range, reference</title>
+<style>
+  div { font-size: 12px; line-height: 13px; }
+</style>
+<!-- Required range, for contrast with the rows below -->
+<div>&#xc601;</div>
+<div>&#xc77c;</div>
+<div>&#xad6c;</div>
+<div>&#xc77c;&#xc2ed;</div>
+<div>&#xc77c;&#xc2ed;&#xc77c;</div>
+<div>&#xc77c;&#xc2ed;&#xad6c;</div>
+<div>&#xc774;&#xc2ed;</div>
+<div>&#xc77c;&#xbc31;</div>
+<div>&#xc77c;&#xbc31;&#xc77c;</div>
+<div>&#xc77c;&#xbc31;&#xc77c;&#xc2ed;</div>
+<div>&#xc77c;&#xcc9c;</div>
+<div>&#xc77c;&#xcc9c;&#xc77c;</div>
+<div>&#xc77c;&#xcc9c;&#xc77c;&#xc2ed;</div>
+<div>&#xc77c;&#xcc9c;&#xc77c;&#xbc31;</div>
+<div>&#xad6c;&#xcc9c;&#xad6c;&#xbc31;&#xad6c;&#xc2ed;&#xad6c;</div>
+
+<!-- Second group marker, and the digit markers inside that group -->
+<div>&#xc77c;&#xb9cc;</div>
+<div>&#xc77c;&#xb9cc; &#xc77c;</div>
+<div>&#xc77c;&#xb9cc; &#xc77c;&#xc2ed;</div>
+<div>&#xc77c;&#xb9cc; &#xc77c;&#xbc31;</div>
+<div>&#xc77c;&#xb9cc; &#xc77c;&#xcc9c;</div>
+<div>&#xc77c;&#xb9cc; &#xc774;&#xcc9c;&#xc0bc;&#xbc31;&#xc0ac;&#xc2ed;&#xc624;</div>
+<div>&#xad6c;&#xb9cc; &#xad6c;&#xcc9c;&#xad6c;&#xbc31;&#xad6c;&#xc2ed;&#xad6c;</div>
+
+<!-- Third group marker, and zeros collapsing across groups -->
+<div>&#xc77c;&#xbc31;&#xb9cc;</div>
+<div>&#xc77c;&#xc5b5;</div>
+<div>&#xc77c;&#xc5b5; &#xc77c;</div>
+<div>&#xc77c;&#xc5b5; &#xc77c;&#xc2ed;&#xb9cc;</div>
+<div>&#xc77c;&#xc5b5; &#xc77c;&#xcc9c;&#xb9cc;</div>
+<div>&#xc77c;&#xc5b5; &#xc774;&#xcc9c;&#xc0bc;&#xbc31;&#xc0ac;&#xc2ed;&#xc624;&#xb9cc; &#xc721;&#xcc9c;&#xce60;&#xbc31;&#xd314;&#xc2ed;&#xad6c;</div>
+<div>&#xad6c;&#xc5b5; &#xad6c;&#xcc9c;&#xad6c;&#xbc31;&#xad6c;&#xc2ed;&#xad6c;&#xb9cc; &#xad6c;&#xcc9c;&#xad6c;&#xbc31;&#xad6c;&#xc2ed;&#xad6c;</div>
+
+<!-- The top of the range a counter value can reach -->
+<div>&#xc77c;&#xc2ed;&#xc5b5;</div>
+<div>&#xc774;&#xc2ed;&#xc77c;&#xc5b5; &#xc0ac;&#xcc9c;&#xce60;&#xbc31;&#xc0ac;&#xc2ed;&#xd314;&#xb9cc; &#xc0bc;&#xcc9c;&#xc721;&#xbc31;&#xc0ac;&#xc2ed;&#xc721;</div>
+<div>&#xc774;&#xc2ed;&#xc77c;&#xc5b5; &#xc0ac;&#xcc9c;&#xce60;&#xbc31;&#xc0ac;&#xc2ed;&#xd314;&#xb9cc; &#xc0bc;&#xcc9c;&#xc721;&#xbc31;&#xc0ac;&#xc2ed;&#xce60;</div>
+
+<!-- Negative values take the negative sign of the style -->
+<div>&#xb9c8;&#xc774;&#xb108;&#xc2a4; &#xc77c;</div>
+<div>&#xb9c8;&#xc774;&#xb108;&#xc2a4; &#xad6c;&#xcc9c;&#xad6c;&#xbc31;&#xad6c;&#xc2ed;&#xad6c;</div>
+<div>&#xb9c8;&#xc774;&#xb108;&#xc2a4; &#xc77c;&#xb9cc;</div>
+<div>&#xb9c8;&#xc774;&#xb108;&#xc2a4; &#xc77c;&#xb9cc; &#xc774;&#xcc9c;&#xc0bc;&#xbc31;&#xc0ac;&#xc2ed;&#xc624;</div>
+<div>&#xb9c8;&#xc774;&#xb108;&#xc2a4; &#xc774;&#xc2ed;&#xc77c;&#xc5b5; &#xc0ac;&#xcc9c;&#xce60;&#xbc31;&#xc0ac;&#xc2ed;&#xd314;&#xb9cc; &#xc0bc;&#xcc9c;&#xc721;&#xbc31;&#xc0ac;&#xc2ed;&#xce60;</div>
+<div>&#xb9c8;&#xc774;&#xb108;&#xc2a4; &#xc774;&#xc2ed;&#xc77c;&#xc5b5; &#xc0ac;&#xcc9c;&#xce60;&#xbc31;&#xc0ac;&#xc2ed;&#xd314;&#xb9cc; &#xc0bc;&#xcc9c;&#xc721;&#xbc31;&#xc0ac;&#xc2ed;&#xd314;</div>

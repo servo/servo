@@ -255,7 +255,10 @@ SET TIMEOUT: intersection-observer/resources/*
 SET TIMEOUT: intersection-observer/target-in-different-window.html
 SET TIMEOUT: intersection-observer/v2/animated-opacity.html
 SET TIMEOUT: js-self-profiling/resources/profiling-script.js
+SET TIMEOUT: long-animation-frame/loaf-iframe-self.html
+SET TIMEOUT: long-animation-frame/loaf-user-callback.html
 SET TIMEOUT: long-animation-frame/resources/loaf-congested-moment-worker.js
+SET TIMEOUT: long-animation-frame/resources/utils.js
 SET TIMEOUT: measure-memory/*
 SET TIMEOUT: media-source/mediasource-util.js
 SET TIMEOUT: media-source/URL-createObjectURL-revoke.html

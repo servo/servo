@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: a self collapsing block level box on a line keeps its margin when the root cannot collapse it away</title>
+<link rel="help" href="https://www.w3.org/TR/CSS22/box.html#collapsing-margins">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#anonymous-block-level">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#inline-formatting">
+<meta name="assert" content="A margin before a self collapsing block level box nested in inline content may only be dropped from the containing block while it can still collapse out through that block's before edge. A border or padding on the containing block stops that, so the margin stays inside and pushes the content after the block down by it.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+body { margin: 0; }
+.container { font: 20px/20px Ahem; }
+/* The border stops .bordered's margin-before collapsing with its children's, so the 200px margin below has
+   to stay inside it. .plain has no border, so the same margin collapses out through its before edge and
+   moves the container itself down instead - that is the case the margin may legitimately be dropped in, and
+   it is here to pin down both halves of the condition. */
+.bordered { border: 1px solid green; }
+.selfCollapsing { margin-top: 200px; }
+</style>
+
+<!-- The block is empty, so it collapses to zero height and only its margin is observable.
+     Two shapes for the same thing. In "nested" the block is an inline box's only child. In "sibling" it is
+     next to inline content, so an implementation that wraps the inline content in an anonymous block gets a
+     plain block child instead. The margin has to behave the same either way. -->
+<div class="container bordered" id="bordered-nested"><span><div class="selfCollapsing"></div></span><span class="probe">X</span></div>
+<div class="container bordered" id="bordered-sibling"><div class="selfCollapsing"></div><span class="probe">X</span></div>
+<div class="container" id="plain-nested"><span><div class="selfCollapsing"></div></span><span class="probe">X</span></div>
+<div class="container" id="plain-sibling"><div class="selfCollapsing"></div><span class="probe">X</span></div>
+
+<script>
+// bordered: the 1px border stops the collapse, so the margin sits inside the container. The probe starts
+//   below the border and the margin, at 1 + 200, and the container encloses border + margin + line + border.
+// plain: no border, so the margin collapses out through the container's before edge and moves the container
+//   down. Inside it, the probe is at the very top and the container is just the one line tall.
+const expected = {
+    bordered: { probeTop: 201, containerHeight: 222 },
+    plain: { probeTop: 0, containerHeight: 20 },
+};
+
+// Measured against the container: offsetTop is relative to the offsetParent, which would carry the size of every container above this one.
+const measure = id => {
+    const container = document.getElementById(id);
+    const probe = container.querySelector(".probe");
+    return {
+        probeTop: probe.getBoundingClientRect().top - container.getBoundingClientRect().top,
+        containerHeight: container.offsetHeight,
+    };
+};
+
+for (const root of ["bordered", "plain"]) {
+    for (const shape of ["nested", "sibling"]) {
+        test(() => {
+            const measured = measure(`${root}-${shape}`);
+            assert_equals(measured.probeTop, expected[root].probeTop,
+                "where the content after the self collapsing block starts");
+            assert_equals(measured.containerHeight, expected[root].containerHeight,
+                "the containing block's height");
+        }, `A self collapsing block's margin ${root === "bordered" ? "stays inside a containing block with a border"
+                                                                  : "collapses out of a containing block without one"} (${shape})`);
+    }
+}
+
+for (const root of ["bordered", "plain"]) {
+    test(() => {
+        assert_object_equals(measure(`${root}-nested`), measure(`${root}-sibling`));
+    }, `The margin behaves the same whether the self collapsing block is nested in an inline box or a sibling `
+       + `of inline content (${root} containing block)`);
+}
+</script>

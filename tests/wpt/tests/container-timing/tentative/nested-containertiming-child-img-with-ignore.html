@@ -11,44 +11,25 @@ body {
 <script src="/resources/testharnessreport.js"></script>
 <script src="/container-timing/resources/container-timing-helpers.js"></script>
 <script>
-  let beforeRender;
-  async_test(function (t) {
+  promise_test(async t => {
     assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
-    const observer = new PerformanceObserver(
-      t.step_func_done(function(entryList) {
-        assert_equals(entryList.getEntries().length, 1, 'one entry expected for the image, for the inner containertiming');
-        const entry = entryList.getEntries()[0];
-        checkContainerEntry(entry, 'div2_ct', 'img_id', beforeRender)
-        checkContainerIntersectionRect(entry, [0, 100, 0, 100])
-        checkContainerSize(entry, 10000);
-      })
-    );
-    observer.observe({entryTypes: ['container']});
-
-    // Add a div that is the container timing root
-    const div1 = document.createElement('div');
-    div1.setAttribute('containertiming', 'div1_ct');
-    document.body.appendChild(div1);
+    const div1 = addContainerRoot(document.body, 'div1_ct');
 
     // Intermediate div with containertimingignore blocking propagation to
     // the parent containertiming root
-    const div2 = document.createElement('div');
-    div2.setAttribute('containertimingignore', '');
-    div1.appendChild(div2);
+    const div2 = addElement(div1, 'div', {containertimingignore: ''});
+    const div3 = addContainerRoot(div2, 'div2_ct');
+    addSquare100Image(div3, {id: 'img_id'});
 
-    // Add another div, child of the first, that is also a container root
-    const div3 = document.createElement('div');
-    div3.setAttribute('containertiming', 'div2_ct');
-    div2.appendChild(div3);
+    const beforeRender = performance.now();
 
-    // Add image of width equal to 100 and height equal to 100.
-    img = document.createElement('img');
-    img.src = '/container-timing/resources/square100.png';
-    img.setAttribute('id', 'img_id');
-    div3.appendChild(img);
-
-    beforeRender = performance.now();
-  }, 'A parent containertiming root with transparent nesting policy does not get paints from children containertiming roots if an intermediate ignore is set.');
+    const entries = await getContainerEntries(t);
+    assert_equals(entries.length, 1, 'one entry expected for the image, for the inner containertiming');
+    const entry = entries[0];
+    checkContainerEntry(entry, 'div2_ct', 'img_id', beforeRender)
+    checkContainerIntersectionRect(entry, [0, 100, 0, 100])
+    checkContainerSize(entry, 10000);
+  }, 'A parent containertiming root does not get paints from a nested containertiming root if an intermediate containertimingignore is set.');
 </script>
 
 </body>

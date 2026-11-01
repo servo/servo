@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>CSS Test: The margin of a block-level box inside an inline box that collapses through with clearance is covered by that clearance, so it does not move the content after it</title>
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#flow-control">
+<link rel="help" href="https://www.w3.org/TR/CSS22/box.html#collapsing-margins">
+<link rel="match" href="clearance-covers-the-margin-of-a-collapsed-through-block-in-inline-ref.html">
+<style>
+div {
+  font: 20px/20px monospace;
+}
+
+.float {
+  float: left;
+  width: 20px;
+  height: 100px;
+  background-color: green;
+}
+
+.cleared {
+  clear: both;
+  width: 100px;
+  height: 0;
+  margin-top: 50px;
+}
+</style>
+<p>Test passes if each "filler" below is immediately under a green bar, with no gap between them.</p>
+<div><span class="float"></span><span><div class="cleared"></div></span>filler</div>
+<div><span class="float"></span><div class="cleared"></div>filler</div>

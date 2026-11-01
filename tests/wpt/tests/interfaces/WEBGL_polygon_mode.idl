@@ -1,0 +1,16 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL WEBGL_polygon_mode Extension Specification (https://registry.khronos.org/webgl/extensions/WEBGL_polygon_mode/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface WEBGL_polygon_mode {
+    const GLenum POLYGON_MODE_WEBGL = 0x0B40;
+
+    const GLenum POLYGON_OFFSET_LINE_WEBGL = 0x2A02;
+
+    const GLenum LINE_WEBGL = 0x1B01;
+    const GLenum FILL_WEBGL = 0x1B02;
+
+    undefined polygonModeWEBGL(GLenum face, GLenum mode);
+};

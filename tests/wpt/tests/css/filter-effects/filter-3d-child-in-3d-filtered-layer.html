@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Filters: filtered element under a perspective that establishes a perspective of its own</title>
+    <link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+    <link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+    <link rel="help" href="https://drafts.csswg.org/css-transforms-2/#perspective-property">
+    <link rel="help" href="https://drafts.csswg.org/css-transforms-2/#3d-rendering-contexts">
+    <link rel="match" href="filter-3d-child-in-3d-filtered-layer-ref.html">
+    <meta name="assert" content="A filtered element rotated under a perspective that establishes a perspective of its own filters its rotated child correctly, with both projections composed.">
+    <!-- The test projects the shapes through a perspective while the reference draws them directly, so edges can differ by about a pixel. -->
+    <meta name="fuzzy" content="maxDifference=0-160;totalPixels=0-8000">
+    <style>
+      body { margin: 0; background: white; }
+      .stage {
+        position: absolute;
+        top: 100px;
+        left: 100px;
+        perspective: 700px;
+      }
+      .filtered {
+        width: 200px;
+        height: 200px;
+        background: green;
+        transform: rotateY(35deg);
+        perspective: 150px;
+        filter: drop-shadow(20px 20px 0 rgba(0, 0, 0, 0.6));
+        will-change: transform;
+      }
+      .face {
+        position: absolute;
+        top: 50px;
+        left: 0;
+        width: 200px;
+        height: 100px;
+        background: red;
+        transform-style: preserve-3d;
+        transform: translate3d(0, 0, 60px) rotateX(90deg);
+        will-change: transform;
+      }
+    </style>
+  </head>
+  <body>
+    <div class=stage>
+      <div class=filtered><div class=face></div></div>
+    </div>
+  </body>
+</html>

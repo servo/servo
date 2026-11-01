@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: ::first-letter from multi-character ::before content</title>
+  <link rel="author" title="Apple" href="https://www.apple.com">
+  <link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-letter-styling">
+  <link rel="match" href="first-letter-before-dynamic-multi-ref.html">
+  <meta name="assert" content="Only the first letter of dynamically added ::before content should be styled by ::first-letter.">
+  <style>
+  .fl::first-letter {
+      color: green;
+  }
+  .bef::before {
+      content: "Hello";
+  }
+  </style>
+</head>
+<body>
+  <p>Test passes if you see <strong>HelloWorld</strong> with only <strong>H</strong> in green.</p>
+  <div class="fl"><span id="s1">World</span></div>
+  <script>
+  document.body.offsetTop;
+  s1.className = "bef";
+  </script>
+</body>
+</html>

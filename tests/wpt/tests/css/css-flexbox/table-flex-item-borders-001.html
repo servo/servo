@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox: a bordered table flex item is as wide as its content plus its borders</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#algo-main-item">
+<link rel="match" href="table-flex-item-borders-001-ref.html">
+<meta name="assert" content="A table flex item with borders is as wide as its content plus its borders, on its first layout and after its borders change.">
+<style>
+.container {
+    display: flex;
+    justify-content: flex-end;
+    width: 300px;
+    margin-bottom: 10px;
+}
+table {
+    border-spacing: 0;
+    border: 10px solid green;
+}
+td {
+    padding: 0;
+}
+.cell-content {
+    width: 50px;
+    height: 20px;
+    background-color: green;
+}
+.wide-borders {
+    border-width: 20px;
+}
+</style>
+<p>Test passes if there are two green rectangles with their right edges aligned.</p>
+<div class="container"><table><tr><td><div class="cell-content"></div></td></tr></table></div>
+<div class="container"><table id="border-change"><tr><td><div class="cell-content"></div></td></tr></table></div>
+<script>
+document.body.offsetHeight;
+document.getElementById("border-change").classList.add("wide-borders");
+</script>

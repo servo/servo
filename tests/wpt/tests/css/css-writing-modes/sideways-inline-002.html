@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>Sideways Inline Layout: Inline Boxes</title>
+<meta charset=utf-8>
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-4/#block-flow">
+
+<link rel="match" href="sideways-inline-002-ref.html">
+
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+body > div {
+  border: solid black;
+  font: 30px/1 Ahem;
+  color: silver;
+  float: left;
+  margin: 8px;
+  height: 6em;
+  width: 5em;
+}
+.lr {
+  writing-mode: sideways-lr;
+}
+.rl {
+  writing-mode: sideways-rl;
+}
+img {
+  height: 30px;
+  border: solid blue;
+  image-rendering: crisp-edges;
+}
+span {
+  border: solid orange;
+}
+img, span {
+  margin: 2px 4px 6px 8px;
+  border-width: 1px 2px 3px 4px;
+  padding: 1px 2px 3px 4px;
+}
+sup, sub {
+  color: blue;
+}
+</style>
+
+<div class=lr>
+  <span>X</span>XX<span>XX
+  X</span>É<img src="4color.png">É
+  p<sup>x</sup>É<sub>x</sub>p
+</div>
+
+<div class=rl>
+  <span>X</span>XX<span>XX
+  X</span>É<img src="4color.png">É
+  p<sup>x</sup>É<sub>x</sub>p
+</div>

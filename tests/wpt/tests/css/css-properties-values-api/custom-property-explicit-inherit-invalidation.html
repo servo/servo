@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>Explicit inheritance of a non-inherited custom property is re-applied when the parent changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#inherit">
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#inherit-notation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+@property --non-inherited-length { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --non-inherited-color  { syntax: "<color>";  inherits: false; initial-value: black; }
+#outer { --non-inherited-length: 5px; --non-inherited-color: rgb(0, 0, 255); }
+#keyword { --non-inherited-length: inherit; }
+#fn { --non-inherited-color: inherit(--non-inherited-color); }
+</style>
+
+<div id="outer"><div id="keyword"></div><div id="fn"></div></div>
+
+<script>
+// A style resolution has to complete before the mutation, otherwise the stale value cannot be
+// observed: it only survives when a previously computed style is reused.
+test(() => {
+  const outer = document.getElementById("outer");
+  const style = getComputedStyle(document.getElementById("keyword"));
+  assert_equals(style.getPropertyValue("--non-inherited-length"), "5px", "before");
+  outer.style.setProperty("--non-inherited-length", "40px");
+  assert_equals(style.getPropertyValue("--non-inherited-length"), "40px", "after");
+}, "inherit keyword on a non-inherited custom property tracks the parent");
+
+test(() => {
+  const outer = document.getElementById("outer");
+  const style = getComputedStyle(document.getElementById("fn"));
+  assert_equals(style.getPropertyValue("--non-inherited-color"), "rgb(0, 0, 255)", "before");
+  outer.style.setProperty("--non-inherited-color", "rgb(0, 128, 0)");
+  assert_equals(style.getPropertyValue("--non-inherited-color"), "rgb(0, 128, 0)", "after");
+}, "inherit() on a non-inherited custom property tracks the parent");
+</script>

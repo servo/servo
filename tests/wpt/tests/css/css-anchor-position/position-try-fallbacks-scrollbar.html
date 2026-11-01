@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: a scrollbar added by one position option doesn't affect the next</title>
+<meta name="description" content="The base position overflows its box and gets a vertical scrollbar. The fallback has room for all of its content, so it shouldn't have a scrollbar, and its auto inline-size should fit exactly.">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position/#fallback-apply">
+<link rel="help" href="https://issues.chromium.org/issues/382679385">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #container {
+    position: relative;
+    width: 100px;
+    height: 100px;
+  }
+  #anchor {
+    anchor-name: --a;
+    position: absolute;
+    top: 0;
+    left: 100px;
+    width: 0;
+    height: 0;
+  }
+  #anchored {
+    position: absolute;
+    position-anchor: --a;
+    /* No room above the anchor, so this overflows and gets a scrollbar. */
+    position-area: top span-left;
+    position-try-fallbacks: bottom span-left;
+    overflow: auto;
+    min-block-size: 20px;
+    max-block-size: stretch;
+  }
+  #content {
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<div id="container">
+  <div id="anchor"></div>
+  <div id="anchored">
+    <div id="content"></div>
+  </div>
+</div>
+<script>
+  test(() => {
+    assert_equals(anchored.offsetLeft, 0, "offsetLeft");
+    assert_equals(anchored.offsetTop, 0, "offsetTop");
+    assert_equals(anchored.offsetWidth, 100, "offsetWidth");
+    assert_equals(anchored.offsetHeight, 100, "offsetHeight");
+  }, "The fallback is used, and is sized without a scrollbar");
+</script>

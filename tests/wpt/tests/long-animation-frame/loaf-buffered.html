@@ -24,5 +24,25 @@ promise_test(async t => {
     });
     assert_equals(result, "entry-found");
 }, 'PerformanceObserver with buffered flag can see previous long-animation-frame entries.');
+
+promise_test(async t => {
+    const MAX_BUFFER_SIZE = 200;
+    while (performance.getEntriesByType("long-animation-frame").length < MAX_BUFFER_SIZE) {
+        await new Promise(resolve => t.step_timeout(() => {
+            busy_wait(55);
+            resolve();
+        }, 0));
+    }
+    assert_equals(performance.getEntriesByType("long-animation-frame").length, MAX_BUFFER_SIZE);
+
+    for (let i = 0; i < 5; ++i) {
+        await new Promise(resolve => t.step_timeout(() => {
+            busy_wait(55);
+            resolve();
+        }, 0));
+    }
+    assert_equals(performance.getEntriesByType("long-animation-frame").length, MAX_BUFFER_SIZE,
+        "Buffer size for long-animation-frame entries should be capped at 200");
+}, 'Performance timeline buffer for long-animation-frame is capped at 200 entries.');
 </script>
 </body>

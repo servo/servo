@@ -1,5 +1,5 @@
-// META: title=RemoteContextHelper navigation using BFCache
-// META: script=./test-helper.js
+// META: title=Ensure that notRestoredReasons reset after a reload
+// META: script=./resources/test-helper.js
 // META: script=/common/dispatcher/dispatcher.js
 // META: script=/common/get-host-info.sub.js
 // META: script=/common/utils.js
@@ -10,7 +10,7 @@
 'use strict';
 const {ORIGIN, REMOTE_ORIGIN} = get_host_info();
 
-// Ensure that notRestoredReasons reset after the server redirect.
+// Ensure that notRestoredReasons reset after a reload.
 promise_test(async t => {
   const rcHelper = new RemoteContextHelper();
   // Open a window with noopener so that BFCache will work.
@@ -25,13 +25,13 @@ promise_test(async t => {
   // Check the BFCache result and the reported reasons.
   await assertBFCacheEligibility(rc1, /*shouldRestoreFromBFCache=*/ false);
   await assertNotRestoredReasonsEquals(
-        rc1,
-        /*url=*/ rc1_url,
-        /*src=*/ null,
-        /*id=*/ null,
-        /*name=*/ null,
-        /*reasons=*/[{'reason': BFCACHE_BLOCKING_REASON}],
-        /*children=*/ []);
+      rc1,
+      /*url=*/ rc1_url,
+      /*src=*/ null,
+      /*id=*/ null,
+      /*name=*/ null,
+      /*reasons=*/[{'reason': BFCACHE_BLOCKING_REASON}],
+      /*children=*/[]);
 
   // Reload.
   await rc1.navigate(() => {
@@ -43,7 +43,6 @@ promise_test(async t => {
     return performance.getEntriesByType('navigation')[0];
   });
 
-  assert_equals(
-      navigation_entry.notRestoredReasons, null,
-      'Expected notRestoredReasons is null.');
+  assert_equals(navigation_entry.notRestoredReasons, null,
+                'Expected notRestoredReasons is null.');
 });

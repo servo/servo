@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reftest Reference</title>
+<style>
+.container {
+    display: flex;
+}
+input {
+    margin: 0;
+    flex-basis: content;
+    aspect-ratio: 2;
+    height: 50%;
+    visibility: hidden;
+}
+.marker {
+    width: 20px;
+    height: 20px;
+    background-color: green;
+}
+</style>
+<p>Test passes if the green square is in the same place as in the reference.</p>
+<div class="container"><input type="checkbox"><div class="marker"></div></div>
