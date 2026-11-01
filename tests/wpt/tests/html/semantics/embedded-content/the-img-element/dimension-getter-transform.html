@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Image width and height getters ignore CSS transforms</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-img-width">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<img id="scale" src="/images/green-100x50.png" style="width: 200px; height: 100px; border: 22px solid; scale: 0.7">
+<img id="transform" src="/images/green-100x50.png" style="width: 200px; height: 100px; transform: scale(0.5)">
+<script>
+for (const id of ["scale", "transform"]) {
+  async_test(t => {
+    const img = document.getElementById(id);
+    const check = t.step_func_done(() => {
+      assert_equals(img.width, 200, "width");
+      assert_equals(img.height, 100, "height");
+    });
+    if (img.complete) check(); else img.onload = check;
+  }, `width/height ignore ${id}`);
+}
+</script>
