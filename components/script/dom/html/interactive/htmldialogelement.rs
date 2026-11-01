@@ -163,6 +163,7 @@ impl HTMLDialogElement {
         self.upcast::<Element>().set_modal_state(cx.no_gc(), true);
 
         // Step 14. Set subject's node document to be blocked by the modal dialog subject.
+        //
         // This is computed based on the top layer.
 
         // Step 15. If subject's node document's top layer does not already contain subject, then add an element to the top layer given subject.
