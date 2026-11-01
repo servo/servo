@@ -3288,9 +3288,10 @@ impl Window {
     #[expect(unsafe_code)]
     pub(crate) fn offset_parent_query(
         &self,
+        cx: &mut JSContext,
         node: &Node,
     ) -> (Option<DomRoot<Element>>, Rect<Au, CSSPixel>) {
-        self.layout_reflow_deprecated(QueryMsg::OffsetParentQuery);
+        self.layout_reflow(cx, QueryMsg::OffsetParentQuery);
         let response = self
             .layout
             .borrow()
