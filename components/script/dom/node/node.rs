@@ -1212,7 +1212,7 @@ impl Node {
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth>
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollheight>
-    pub(crate) fn scroll_area(&self) -> Rect<i32, CSSPixel> {
+    pub(crate) fn scroll_area(&self, cx: &mut JSContext) -> Rect<i32, CSSPixel> {
         // "1. Let document be the element’s node document.""
         let document = self.owner_doc();
 
@@ -1238,7 +1238,7 @@ impl Node {
         // element is not potentially scrollable, return max(viewport scrolling area
         // width, viewport width)."
         if (is_root && !in_quirks_mode) || (is_body_element && in_quirks_mode) {
-            let viewport_scrolling_area = window.scrolling_area_query(None);
+            let viewport_scrolling_area = window.scrolling_area_query(cx, None);
             return Rect::new(
                 viewport_scrolling_area.origin,
                 viewport_scrolling_area.size.max(viewport),
@@ -1248,7 +1248,7 @@ impl Node {
         // "6. If the element does not have any associated box return zero and terminate
         // these steps."
         // "7. Return the width of the element’s scrolling area."
-        window.scrolling_area_query(Some(self))
+        window.scrolling_area_query(cx, Some(self))
     }
 
     pub(crate) fn effective_overflow(&self) -> Option<AxesOverflow> {
