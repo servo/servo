@@ -32,7 +32,7 @@ Sources:
     test.add_cleanup(() => win.close());
 
     if (userActivated) {
-      test_driver.bless('enable user activation', () => anchor.click());
+      test_driver.bless('enable user activation', () => anchor.click(), win);
     } else {
       anchor.click();
     }
