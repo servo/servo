@@ -629,58 +629,58 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetparent>
-    fn GetOffsetParent(&self) -> Option<DomRoot<Element>> {
+    fn GetOffsetParent(&self, cx: &mut JSContext) -> Option<DomRoot<Element>> {
         if self.is::<HTMLBodyElement>() || self.element.is_root() {
             return None;
         }
 
         let node = self.upcast::<Node>();
         let window = self.owner_window();
-        let (element, _) = window.offset_parent_query(node);
+        let (element, _) = window.offset_parent_query(cx, node);
 
         element
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsettop>
-    fn OffsetTop(&self) -> i32 {
+    fn OffsetTop(&self, cx: &mut JSContext) -> i32 {
         if self.is_body_element() {
             return 0;
         }
 
         let node = self.upcast::<Node>();
         let window = self.owner_window();
-        let (_, rect) = window.offset_parent_query(node);
+        let (_, rect) = window.offset_parent_query(cx, node);
 
         rect.origin.y.to_nearest_px()
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetleft>
-    fn OffsetLeft(&self) -> i32 {
+    fn OffsetLeft(&self, cx: &mut JSContext) -> i32 {
         if self.is_body_element() {
             return 0;
         }
 
         let node = self.upcast::<Node>();
         let window = self.owner_window();
-        let (_, rect) = window.offset_parent_query(node);
+        let (_, rect) = window.offset_parent_query(cx, node);
 
         rect.origin.x.to_nearest_px()
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetwidth>
-    fn OffsetWidth(&self) -> i32 {
+    fn OffsetWidth(&self, cx: &mut JSContext) -> i32 {
         let node = self.upcast::<Node>();
         let window = self.owner_window();
-        let (_, rect) = window.offset_parent_query(node);
+        let (_, rect) = window.offset_parent_query(cx, node);
 
         rect.size.width.to_nearest_px()
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetheight>
-    fn OffsetHeight(&self) -> i32 {
+    fn OffsetHeight(&self, cx: &mut JSContext) -> i32 {
         let node = self.upcast::<Node>();
         let window = self.owner_window();
-        let (_, rect) = window.offset_parent_query(node);
+        let (_, rect) = window.offset_parent_query(cx, node);
 
         rect.size.height.to_nearest_px()
     }
