@@ -97,16 +97,16 @@ impl ScrollingBox {
         matches!(self.target, ScrollingBoxSource::Viewport(..))
     }
 
-    pub(crate) fn scroll_position(&self) -> LayoutVector2D {
+    pub(crate) fn scroll_position(&self, cx: &mut JSContext) -> LayoutVector2D {
         match &self.target {
             ScrollingBoxSource::Element(element) => element
                 .owner_window()
-                .scroll_offset_query(element.upcast::<Node>()),
-            ScrollingBoxSource::Viewport(document) => document.window().scroll_offset(),
+                .scroll_offset_query(cx, element.upcast::<Node>()),
+            ScrollingBoxSource::Viewport(document) => document.window().scroll_offset(cx),
         }
     }
 
-    pub(crate) fn content_size(&self) -> LayoutSize {
+    pub(crate) fn content_size(&self, cx: &mut JSContext) -> LayoutSize {
         if let Some(content_size) = self.cached_content_size.get() {
             return content_size;
         }
@@ -120,7 +120,7 @@ impl ScrollingBox {
 
         let content_size = document
             .window()
-            .scrolling_area_query(node_to_query)
+            .scrolling_area_query(cx, node_to_query)
             .size
             .to_f32()
             .cast_unit();
@@ -194,8 +194,8 @@ impl ScrollingBox {
             return false;
         }
         match axis {
-            ScrollingBoxAxis::X => self.content_size().width > self.size(cx).width,
-            ScrollingBoxAxis::Y => self.content_size().height > self.size(cx).height,
+            ScrollingBoxAxis::X => self.content_size(cx).width > self.size(cx).width,
+            ScrollingBoxAxis::Y => self.content_size(cx).height > self.size(cx).height,
         }
     }
 
@@ -238,7 +238,7 @@ impl ScrollingBox {
         };
 
         let size = self.size(cx);
-        let current_scroll_position = self.scroll_position();
+        let current_scroll_position = self.scroll_position(cx);
         Vector2D::new(
             Self::calculate_scroll_position_one_axis(
                 inline,

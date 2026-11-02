@@ -1616,6 +1616,7 @@ pub(crate) fn handle_get_title(
 
 /// <https://w3c.github.io/webdriver/#dfn-calculate-the-absolute-position>
 fn calculate_absolute_position(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: &PipelineId,
     rect: &DOMRect,
@@ -1634,8 +1635,8 @@ fn calculate_absolute_position(
     };
 
     // Step 3 - 5
-    let x = win.ScrollX() as f64 + rect.X();
-    let y = win.ScrollY() as f64 + rect.Y();
+    let x = win.ScrollX(cx) as f64 + rect.X();
+    let y = win.ScrollY(cx) as f64 + rect.Y();
 
     Ok((x, y))
 }
@@ -1655,7 +1656,7 @@ pub(crate) fn handle_get_rect(
                 // We pass the rect instead of element so we don't have to
                 // call `GetBoundingClientRect` twice.
                 let rect = element.GetBoundingClientRect(cx);
-                let (x, y) = calculate_absolute_position(documents, &pipeline, &rect)?;
+                let (x, y) = calculate_absolute_position(cx, documents, &pipeline, &rect)?;
 
                 // Step 6-7
                 Ok(Rect::new(
