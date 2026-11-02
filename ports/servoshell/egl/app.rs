@@ -29,6 +29,8 @@ use crate::window::{
 pub(crate) struct EmbeddedPlatformWindow {
     host: Rc<dyn HostTrait>,
     rendering_context: Rc<WindowRenderingContext>,
+    /// If the underlying surface was unbound, we can't paint.
+    painting_paused: Cell<bool>,
     refresh_driver: Rc<VsyncRefreshDriver>,
     viewport_rect: RefCell<Rect<i32, DevicePixel>>,
     /// The HiDPI scaling factor to use for the display of [`WebView`]s.
@@ -160,7 +162,9 @@ impl PlatformWindow for EmbeddedPlatformWindow {
     }
 
     fn request_repaint(&self, window: &ServoShellWindow) {
-        window.repaint_webviews();
+        if !self.painting_paused.get() {
+            window.repaint_webviews();
+        }
     }
 
     fn request_resize(&self, _: &WebView, _: DeviceIntSize) -> Option<DeviceIntSize> {
@@ -320,17 +324,25 @@ impl App {
         })
     }
 
+    /// Add a platform window backing the window `window_id`.
+    ///
+    /// `window_id` may be an existing window, in which case the platform window will be
+    /// re-attached to the existing window and painting resumed.
     pub(crate) fn add_platform_window(
         &self,
         display_handle: DisplayHandle,
         window_handle: WindowHandle,
         viewport_rect: Rect<i32, DevicePixel>,
         hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
-        window_id: Option<ServoShellWindowId>,
+        window_id: ServoShellWindowId,
     ) {
+        // The surface of an existing window might have been destroyed and created again.
+        if let Some(window) = self.state.window(window_id) {
+            self.resume_painting_in_window(&window, window_handle, viewport_rect);
+            return;
+        }
         let viewport_size = viewport_rect.size;
-        let id = window_id.unwrap_or_else(ServoShellWindowId::next);
-        let refresh_driver = Rc::new(VsyncRefreshDriver::new(id));
+        let refresh_driver = Rc::new(VsyncRefreshDriver::new(window_id));
         let rendering_context = Rc::new(
             WindowRenderingContext::new_with_refresh_driver(
                 display_handle,
@@ -341,9 +353,10 @@ impl App {
             .expect("Could not create RenderingContext"),
         );
         let platform_window = Rc::new(EmbeddedPlatformWindow {
-            id,
+            id: window_id,
             host: self.host.clone(),
             rendering_context,
+            painting_paused: Cell::new(false),
             refresh_driver,
             viewport_rect: RefCell::new(viewport_rect),
             hidpi_scale_factor,
@@ -676,14 +689,26 @@ impl App {
     }
 
     pub fn pause_painting(&self) {
-        let platform_window = self.window().platform_window();
+        let window = self.window();
+        self.pause_painting_in_window(&window);
+        self.spin_event_loop();
+    }
+
+    pub fn pause_painting_in_window(&self, window: &ServoShellWindow) {
+        let platform_window = window.platform_window();
         let embedded_platform_window = platform_window
             .as_headed_window()
             .expect("No headed window");
+        if embedded_platform_window.painting_paused.replace(true) {
+            return;
+        }
         if let Err(error) = embedded_platform_window.rendering_context.take_window() {
             warn!("Unbinding native surface from context failed ({error:?})");
         }
-        self.spin_event_loop();
+        // We need to explicitly make the context current again, to avoid the old surface still being current.
+        if let Err(error) = embedded_platform_window.rendering_context.make_current() {
+            warn!("Making the context current without a surface failed ({error:?})");
+        }
     }
 
     pub fn resume_painting(
@@ -692,19 +717,30 @@ impl App {
         viewport_rect: Rect<i32, DevicePixel>,
     ) {
         let window_handle = unsafe { WindowHandle::borrow_raw(window_handle) };
+        let platform_window = self.window();
+        self.resume_painting_in_window(&platform_window, window_handle, viewport_rect);
+    }
+
+    pub fn resume_painting_in_window(
+        &self,
+        window: &ServoShellWindow,
+        window_handle: WindowHandle,
+        viewport_rect: Rect<i32, DevicePixel>,
+    ) {
         let size = viewport_rect.size.to_u32();
-        let platform_window = self.window().platform_window();
+        let platform_window = window.platform_window();
         let embedded_platform_window = platform_window
             .as_headed_window()
             .expect("No headed window");
-        if let Err(error) = embedded_platform_window
+        match embedded_platform_window
             .rendering_context
             .set_window(window_handle, PhysicalSize::new(size.width, size.height))
         {
-            warn!("Binding native surface to context failed ({error:?})");
+            Ok(()) => embedded_platform_window.painting_paused.set(false),
+            Err(error) => warn!("Binding native surface to context failed ({error:?})"),
         }
-        embedded_platform_window.request_repaint(&self.window());
-        self.spin_event_loop();
+        self.resize_window(window, viewport_rect);
+        embedded_platform_window.request_repaint(window);
     }
 }
 

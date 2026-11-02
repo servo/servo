@@ -355,7 +355,6 @@ impl RunningAppState {
         }
     }
 
-    #[cfg_attr(target_os = "android", expect(dead_code))]
     pub(crate) fn window(&self, id: ServoShellWindowId) -> Option<Rc<ServoShellWindow>> {
         self.windows
             .borrow()
