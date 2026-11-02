@@ -45,11 +45,16 @@ use malloc_size_of::MallocSizeOfOps;
 use metrics::{InteractiveFlag, InteractiveWindow, ProgressiveWebMetrics};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookieStringForUrl, SetCookiesForUrl};
-use net_traits::image_cache::ImageCache;
+use net_traits::blob_url_store::UrlWithBlobClaim;
+use net_traits::image_cache::{
+    ImageCache, ImageCacheResponseCallback, ImageCacheResult, ImageLoadListener,
+    ImageOrMetadataAvailable, ImageResponse, PendingImageId, RasterizationResult,
+};
 use net_traits::policy_container::PolicyContainer;
 use net_traits::pub_domains::{Site, is_pub_domain};
 use net_traits::request::{
-    InsecureRequestsPolicy, PreloadId, PreloadKey, PreloadedResources, RequestBuilder,
+    Destination, InsecureRequestsPolicy, PreloadId, PreloadKey, PreloadedResources, Referrer,
+    RequestBuilder,
 };
 use net_traits::{ReferrerPolicy, ResourceFetchTiming};
 use paint_api::display_list::PaintTimingInfo;
@@ -91,6 +96,7 @@ use style::stylist::Stylist;
 use stylo_atoms::Atom;
 use time::Duration as TimeDuration;
 use url::{Host, Position};
+use webrender_api::units::DeviceIntSize;
 
 use crate::css::stylesheet_loader::StylesheetContextId;
 use crate::css::stylesheet_set::StylesheetSetRef;
@@ -172,6 +178,7 @@ use crate::dom::focusevent::FocusEvent;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::history::History;
+use crate::dom::html::document_metadata::htmllinkelement::FaviconFetchContext;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlareaelement::HTMLAreaElement;
 use crate::dom::html::htmlbaseelement::HTMLBaseElement;
@@ -228,7 +235,9 @@ use crate::dom::{FlatTreeParent, RootedPromise, WeakRangeVec};
 use crate::event_loop::document_loader::{DocumentLoader, LoadType};
 use crate::event_loop::script_thread::{ScriptThread, SharedRwLocks};
 use crate::event_loop::timers::{OneshotTimerCallback, OneshotTimers};
-use crate::fetch::fetch::DeferredFetchRecordInvokeState;
+use crate::fetch::fetch::{
+    DeferredFetchRecordInvokeState, create_a_potential_cors_request_with_claim,
+};
 use crate::fetch::network_listener::FetchResponseListener;
 use crate::mime::{APPLICATION, CHARSET};
 use crate::navigation::navigate;
@@ -733,6 +742,10 @@ pub(crate) struct Document {
     /// The cached favicon for that document.
     #[no_trace]
     favicon: RefCell<Option<Image>>,
+    /// Whether an explicit `<link rel="icon">` was found in this document.
+    has_icon_link: Cell<bool>,
+    /// Whether this document has already attempted to fetch the fallback `/favicon.ico`.
+    has_attempted_favicon_fallback: Cell<bool>,
 
     /// All websockets created that are associated with this document.
     websockets: DOMTracker<WebSocket>,
@@ -1595,6 +1608,7 @@ impl Document {
                 self.webview_id(),
                 LoadStatus::Complete,
             ));
+            self.maybe_fetch_fallback_favicon();
         }
     }
 
@@ -4365,6 +4379,8 @@ impl Document {
             active_sandboxing_flag_set: Cell::new(creation_sandboxing_flag_set),
             creation_sandboxing_flag_set: Cell::new(creation_sandboxing_flag_set),
             favicon: RefCell::new(None),
+            has_icon_link: Cell::new(false),
+            has_attempted_favicon_fallback: Cell::new(false),
             websockets: DOMTracker::new(),
             active_media_elements: Default::default(),
             details_name_groups: Default::default(),
@@ -5503,6 +5519,164 @@ impl Document {
 
     pub(crate) fn favicon(&self) -> Option<Image> {
         self.favicon.borrow().clone()
+    }
+
+    pub(crate) fn set_has_icon_link(&self, value: bool) {
+        self.has_icon_link.set(value);
+    }
+
+    pub(crate) fn process_favicon_image(&self, image: net_traits::image_cache::Image) {
+        let window = self.window();
+
+        let send_rasterized_favicon_to_embedder = |raster_image: &pixels::RasterImage| {
+            // Let's not worry about animated favicons...
+            let frame = raster_image.first_frame();
+
+            let format = match raster_image.format {
+                pixels::PixelFormat::K8 => embedder_traits::PixelFormat::K8,
+                pixels::PixelFormat::KA8 => embedder_traits::PixelFormat::KA8,
+                pixels::PixelFormat::RGB8 => embedder_traits::PixelFormat::RGB8,
+                pixels::PixelFormat::RGBA8 => embedder_traits::PixelFormat::RGBA8,
+                pixels::PixelFormat::BGRA8 => embedder_traits::PixelFormat::BGRA8,
+            };
+
+            let embedder_image = embedder_traits::Image::new(
+                frame.width,
+                frame.height,
+                std::sync::Arc::new(
+                    servo_base::generic_channel::GenericSharedMemory::from_arc_vec(
+                        raster_image.bytes.clone(),
+                    ),
+                ),
+                raster_image.frames[0].byte_range.clone(),
+                format,
+            );
+            self.set_favicon(embedder_image);
+        };
+
+        match image {
+            net_traits::image_cache::Image::Raster(raster_image) => {
+                send_rasterized_favicon_to_embedder(&raster_image)
+            },
+            net_traits::image_cache::Image::Vector(vector_image) => {
+                // This size is completely arbitrary.
+                let size = DeviceIntSize::new(250, 250);
+
+                let image_cache = window.image_cache();
+                match image_cache.rasterize_vector_image(vector_image.id, size, None) {
+                    RasterizationResult::Image(raster_image) => {
+                        send_rasterized_favicon_to_embedder(&raster_image);
+                    },
+                    RasterizationResult::PendingRasterization => {
+                        let image_cache_sender =
+                            self.register_favicon_image_cache_callback(vector_image.id);
+                        image_cache.add_rasterization_complete_listener(
+                            window.pipeline_id(),
+                            vector_image.id,
+                            size,
+                            image_cache_sender,
+                        );
+                    },
+                    RasterizationResult::InvalidSvgParameters => {},
+                }
+            },
+        }
+    }
+
+    fn register_favicon_image_cache_callback(
+        &self,
+        id: PendingImageId,
+    ) -> ImageCacheResponseCallback {
+        let trusted_doc = Trusted::new(self);
+        let window = self.window();
+        window.register_image_cache_listener(id, move |response, _| {
+            let trusted_doc = trusted_doc.clone();
+            let document = trusted_doc.root();
+            let window = document.window();
+
+            let ImageResponse::Loaded(image, _) = response.response else {
+                return;
+            };
+
+            window
+                .as_global_scope()
+                .task_manager()
+                .networking_task_source()
+                .queue(task!(process_favicon_response: move || {
+                    let document = trusted_doc.root();
+                    document.process_favicon_image(image);
+                }));
+        })
+    }
+
+    /// Fetches `/favicon.ico` from the document's origin as a fallback when no
+    /// `<link rel="icon">` was found in the page.
+    /// Per <https://html.spec.whatwg.org/multipage/links.html#rel-icon>
+    pub(crate) fn maybe_fetch_fallback_favicon(&self) {
+        if !self.window().is_top_level() {
+            return;
+        }
+        if self.has_icon_link.get() {
+            return;
+        }
+        if self.favicon.borrow().is_some() {
+            return;
+        }
+        if self.has_attempted_favicon_fallback.get() {
+            return;
+        }
+        self.has_attempted_favicon_fallback.set(true);
+
+        let base_url = self.base_url();
+        if !matches!(base_url.scheme(), "http" | "https") {
+            return;
+        }
+
+        let Ok(favicon_url) = base_url.join("/favicon.ico") else {
+            return;
+        };
+
+        let window = self.window();
+        let image_cache = window.image_cache();
+        let cache_result = image_cache.get_cached_image_status(
+            favicon_url.clone(),
+            window.origin().immutable(),
+            None,
+        );
+
+        match cache_result {
+            ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable {
+                image, ..
+            }) => {
+                self.process_favicon_image(image);
+            },
+            ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(_, id)) |
+            ImageCacheResult::Pending(id) => {
+                let sender = self.register_favicon_image_cache_callback(id);
+                image_cache.add_listener(ImageLoadListener::new(sender, window.pipeline_id(), id));
+            },
+            ImageCacheResult::ReadyForRequest(id) => {
+                let request = create_a_potential_cors_request_with_claim(
+                    Some(self.webview_id()),
+                    UrlWithBlobClaim::from_url_without_having_claimed_blob(favicon_url.clone()),
+                    Destination::Image,
+                    None,
+                    None,
+                    Referrer::NoReferrer,
+                )
+                .policy_container((*self.policy_container()).clone())
+                .origin(window.origin().immutable().to_owned())
+                .pipeline_id(Some(window.pipeline_id()))
+                .synchronous(true);
+
+                let sender = self.register_favicon_image_cache_callback(id);
+                image_cache.add_listener(ImageLoadListener::new(sender, window.pipeline_id(), id));
+
+                let fetch_context = FaviconFetchContext::new(image_cache, id, favicon_url);
+                self.fetch_background(request, fetch_context);
+            },
+            ImageCacheResult::FailedToLoadOrDecode => {},
+        };
     }
 
     pub(crate) fn fullscreen_element(&self) -> Option<DomRoot<Element>> {

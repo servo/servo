@@ -841,6 +841,11 @@ fn load_pending_favicons(
     window: &ServoShellWindow,
     texture_cache: &mut HashMap<WebViewId, (egui::TextureHandle, egui::load::SizedTexture)>,
 ) {
+    // Clear any stale favicons from navigations that started since the last repaint.
+    for id in window.take_pending_favicon_clears() {
+        texture_cache.remove(&id);
+    }
+
     for id in window.take_pending_favicon_loads() {
         let Some(webview) = window.webview_by_id(id) else {
             continue;

@@ -70,6 +70,9 @@ pub(crate) struct ServoShellWindow {
     /// List of webviews that have favicon textures which are not yet uploaded
     /// to the GPU by egui.
     pending_favicon_loads: RefCell<Vec<WebViewId>>,
+    /// List of webviews whose favicon textures should be cleared because a new
+    /// navigation has started and the previous favicon is now stale.
+    pending_favicon_clears: RefCell<Vec<WebViewId>>,
     /// Pending [`UserInterfaceCommand`] that have yet to be processed by the main loop.
     pending_commands: RefCell<Vec<UserInterfaceCommand>>,
 }
@@ -88,6 +91,7 @@ impl ServoShellWindow {
             needs_update: Default::default(),
             needs_repaint: Default::default(),
             pending_favicon_loads: Default::default(),
+            pending_favicon_clears: Default::default(),
             pending_commands: Default::default(),
         }
     }
@@ -263,6 +267,17 @@ impl ServoShellWindow {
     pub(crate) fn notify_favicon_changed(&self, webview: WebView) {
         self.pending_favicon_loads.borrow_mut().push(webview.id());
         self.set_needs_repaint();
+    }
+
+    pub(crate) fn clear_favicon(&self, webview_id: WebViewId) {
+        self.pending_favicon_clears.borrow_mut().push(webview_id);
+        self.set_needs_repaint();
+    }
+
+    /// Return a list of all webviews whose favicon textures should be cleared.
+    #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
+    pub(crate) fn take_pending_favicon_clears(&self) -> Vec<WebViewId> {
+        std::mem::take(&mut *self.pending_favicon_clears.borrow_mut())
     }
 
     #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
