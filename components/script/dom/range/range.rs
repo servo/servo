@@ -1630,7 +1630,7 @@ impl Document {
             let start_offset = range.start_offset();
             if &*start_container == node &&
                 start_offset > offset &&
-                start_offset <= offset + removed_code_units
+                start_offset <= offset.saturating_add(removed_code_units)
             {
                 range.set_start_without_reporting(node, offset);
             }
@@ -1641,14 +1641,15 @@ impl Document {
             let end_offset = range.end_offset();
             if &*end_container == node &&
                 end_offset > offset &&
-                end_offset <= offset + removed_code_units
+                end_offset <= offset.saturating_add(removed_code_units)
             {
                 range.set_end_without_reporting(node, offset);
             }
             // Step 10: For each live range whose start node is node and start offset is
             // greater than offset + count: increase its start offset by data’s length and
             // decrease it by count.
-            if &*start_container == node && start_offset > offset + removed_code_units {
+            if &*start_container == node && start_offset > offset.saturating_add(removed_code_units)
+            {
                 range.set_start_without_reporting(
                     node,
                     start_offset + added_code_units() - removed_code_units,
@@ -1657,7 +1658,7 @@ impl Document {
             // Step 11: For each live range whose end node is node and end offset is
             // greater than offset + count: increase its end offset by data’s length and
             // decrease it by count.
-            if &*end_container == node && end_offset > offset + removed_code_units {
+            if &*end_container == node && end_offset > offset.saturating_add(removed_code_units) {
                 range.set_end_without_reporting(
                     node,
                     end_offset + added_code_units() - removed_code_units,
