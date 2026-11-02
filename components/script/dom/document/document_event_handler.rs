@@ -523,7 +523,7 @@ impl DocumentEventHandler {
             if let Some(hit_test_result) =
                 self.most_recent_mousemove_point.get().and_then(|point| {
                     self.window
-                        .hit_test_from_point_in_viewport(HitTestFlags::empty(), point)
+                        .hit_test_from_point_in_viewport(cx, HitTestFlags::empty(), point)
                 })
             {
                 let mouse_out_event = MouseEvent::new_for_platform_motion_event(
@@ -671,9 +671,9 @@ impl DocumentEventHandler {
         // with the actual element under the pointer. Boundary events for hover
         // transitions are suppressed while pointer capture is active: per spec,
         // pointer events are retargeted to the capture element.
-        let Some(hit_test_result) = self
-            .window
-            .hit_test_from_input_event(hit_test_flags, input_event)
+        let Some(hit_test_result) =
+            self.window
+                .hit_test_from_input_event(cx, hit_test_flags, input_event)
         else {
             return;
         };
@@ -906,15 +906,16 @@ impl DocumentEventHandler {
         }
     }
 
-    pub(crate) fn handle_refresh_cursor(&self) {
+    pub(crate) fn handle_refresh_cursor(&self, cx: &mut JSContext) {
         let Some(most_recent_mousemove_point) = self.most_recent_mousemove_point.get() else {
             return;
         };
 
-        let Some(hit_test_result) = self
-            .window
-            .hit_test_from_point_in_viewport(HitTestFlags::empty(), most_recent_mousemove_point)
-        else {
+        let Some(hit_test_result) = self.window.hit_test_from_point_in_viewport(
+            cx,
+            HitTestFlags::empty(),
+            most_recent_mousemove_point,
+        ) else {
             return;
         };
 
@@ -994,7 +995,9 @@ impl DocumentEventHandler {
             HitTestFlags::empty()
         };
         // Ignore all incoming events without a hit test.
-        let Some(hit_test_result) = self.window.hit_test_from_input_event(flags, input_event)
+        let Some(hit_test_result) = self
+            .window
+            .hit_test_from_input_event(cx, flags, input_event)
         else {
             return;
         };
@@ -1400,7 +1403,9 @@ impl DocumentEventHandler {
     ) -> InputEventResult {
         let flags = HitTestFlags::empty();
         // Ignore all incoming events without a hit test.
-        let Some(hit_test_result) = self.window.hit_test_from_input_event(flags, input_event)
+        let Some(hit_test_result) = self
+            .window
+            .hit_test_from_input_event(cx, flags, input_event)
         else {
             self.update_active_touch_points_when_early_return(event);
             return Default::default();
@@ -1423,9 +1428,9 @@ impl DocumentEventHandler {
         let client_x = Finite::wrap(hit_test_result.point_in_frame.x as f64);
         let client_y = Finite::wrap(hit_test_result.point_in_frame.y as f64);
         let page_x =
-            Finite::wrap(hit_test_result.point_in_frame.x as f64 + window.PageXOffset() as f64);
+            Finite::wrap(hit_test_result.point_in_frame.x as f64 + window.PageXOffset(cx) as f64);
         let page_y =
-            Finite::wrap(hit_test_result.point_in_frame.y as f64 + window.PageYOffset() as f64);
+            Finite::wrap(hit_test_result.point_in_frame.y as f64 + window.PageYOffset(cx) as f64);
 
         // This is used to construct pointerevent and touchdown event.
         let pointer_touch = Touch::new(
@@ -1887,7 +1892,9 @@ impl DocumentEventHandler {
     ) -> InputEventResult {
         // Ignore all incoming events without a hit test.
         let flags = HitTestFlags::empty();
-        let Some(hit_test_result) = self.window.hit_test_from_input_event(flags, input_event)
+        let Some(hit_test_result) = self
+            .window
+            .hit_test_from_input_event(cx, flags, input_event)
         else {
             return Default::default();
         };
@@ -2333,14 +2340,14 @@ impl DocumentEventHandler {
             const LINE_HEIGHT: f32 = 76.0;
             const LINE_WIDTH: f32 = 76.0;
 
-            let current_scroll_offset = scrolling_box.scroll_position();
+            let current_scroll_offset = scrolling_box.scroll_position(cx);
             (
                 current_scroll_offset,
                 match scroll {
                     KeyboardScroll::Home => Vector2D::new(0.0, -current_scroll_offset.y),
                     KeyboardScroll::End => Vector2D::new(
                         0.0,
-                        -current_scroll_offset.y + scrolling_box.content_size().height -
+                        -current_scroll_offset.y + scrolling_box.content_size(cx).height -
                             scrolling_box.size(cx).height,
                     ),
                     KeyboardScroll::PageDown => {

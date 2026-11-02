@@ -132,9 +132,9 @@ impl Element {
                 // This is checking whether there is an input event scrollable overflow value in
                 // a given axis and also overflow in that same axis.
                 (matches!(axes_overflow.x, Overflow::Auto | Overflow::Scroll) &&
-                    self.ScrollWidth() > self.ClientWidth(cx)) ||
+                    self.ScrollWidth(cx) > self.ClientWidth(cx)) ||
                     (matches!(axes_overflow.y, Overflow::Auto | Overflow::Scroll) &&
-                        self.ScrollHeight() > self.ClientHeight(cx))
+                        self.ScrollHeight(cx) > self.ClientHeight(cx))
             })
         {
             return FocusableAreaKind::Sequential;

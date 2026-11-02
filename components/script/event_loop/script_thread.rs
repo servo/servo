@@ -1967,7 +1967,7 @@ impl ScriptThread {
                 }
             },
             ScriptThreadMessage::RefreshCursor(pipeline_id) => {
-                self.handle_refresh_cursor(pipeline_id);
+                self.handle_refresh_cursor(cx, pipeline_id);
             },
             ScriptThreadMessage::PreferencesUpdated(updates) => {
                 let mut current_preferences = prefs::get().clone();
@@ -4644,11 +4644,11 @@ impl ScriptThread {
         ));
     }
 
-    fn handle_refresh_cursor(&self, pipeline_id: PipelineId) {
+    fn handle_refresh_cursor(&self, cx: &mut JSContext, pipeline_id: PipelineId) {
         let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
             return;
         };
-        document.event_handler().handle_refresh_cursor();
+        document.event_handler().handle_refresh_cursor(cx);
     }
 
     pub(crate) fn is_servo_privileged(url: ServoUrl) -> bool {

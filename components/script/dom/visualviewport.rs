@@ -156,7 +156,7 @@ impl VisualViewportMethods<crate::DomTypeHolder> for VisualViewport {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-visualviewport-pageleft>
-    fn PageLeft(&self) -> Finite<f64> {
+    fn PageLeft(&self, cx: &mut JSContext) -> Finite<f64> {
         // > 1. If the visual viewport’s associated document is not fully active, return 0.
         if !self.window.Document().is_fully_active() {
             return Finite::wrap(0.);
@@ -164,12 +164,12 @@ impl VisualViewportMethods<crate::DomTypeHolder> for VisualViewport {
 
         // > 2. Otherwise, return the offset of the left edge of the visual viewport from the left edge of the
         // >    initial containing block of the layout viewport’s document.
-        let page_left = self.viewport_rect.get().min_x() + self.window.scroll_offset().x;
+        let page_left = self.viewport_rect.get().min_x() + self.window.scroll_offset(cx).x;
         Finite::wrap(page_left as f64)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-visualviewport-pagetop>
-    fn PageTop(&self) -> Finite<f64> {
+    fn PageTop(&self, cx: &mut JSContext) -> Finite<f64> {
         // > 1. If the visual viewport’s associated document is not fully active, return 0.
         if !self.window.Document().is_fully_active() {
             return Finite::wrap(0.);
@@ -177,7 +177,7 @@ impl VisualViewportMethods<crate::DomTypeHolder> for VisualViewport {
 
         // > 2. Otherwise, return the offset of the top edge of the visual viewport from the top edge of the
         // >    initial containing block of the layout viewport’s document.
-        let page_top = self.viewport_rect.get().min_y() + self.window.scroll_offset().y;
+        let page_top = self.viewport_rect.get().min_y() + self.window.scroll_offset(cx).y;
         Finite::wrap(page_top as f64)
     }
 
