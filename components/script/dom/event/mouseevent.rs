@@ -378,9 +378,9 @@ impl MouseEvent {
             PI / 2.0, // altitude_angle (perpendicular to surface)
             0.0,      // azimuth_angle
             DOMString::from_static("mouse"),
-            true,   // is_primary (mouse is always primary)
-            vec![], // coalesced_events
-            vec![], // predicted_events
+            true, // is_primary (mouse is always primary)
+            &[],  // coalesced_events
+            &[],  // predicted_events
         );
 
         pointer_event.upcast::<Event>().set_composed(composed);
@@ -437,9 +437,9 @@ impl MouseEvent {
             PI / 2.0,                // altitude_angle (perpendicular to surface)
             0.0,                     // azimuth_angle
             DOMString::from_static("mouse"),
-            true,   // is_primary (mouse is always primary)
-            vec![], // coalesced_events
-            vec![], // predicted_events
+            true, // is_primary (mouse is always primary)
+            &[],  // coalesced_events
+            &[],  // predicted_events
         );
 
         // https://w3c.github.io/pointerevents/#dfn-attributes-and-default-actions

@@ -662,8 +662,8 @@ impl Node {
             0.0,                                // azimuth_angle
             DOMString::new(),                   // pointer_type
             false,                              // is_primary
-            vec![],                             // coalesced_events
-            vec![],                             // predicted_events
+            &[],                                // coalesced_events
+            &[],                                // predicted_events
         );
 
         // Step 4. Set event's composed flag.

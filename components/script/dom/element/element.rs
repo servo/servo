@@ -3827,13 +3827,14 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-gethtml>
     fn GetHTML(&self, cx: &mut JSContext, options: &GetHTMLOptions) -> DOMString {
+        let shadow_roots = options.shadowRoots.iter().map(Dom::as_rooted).collect();
         // > Element's getHTML(options) method steps are to return the result of HTML fragment serialization
         // > algorithm with this, options["serializableShadowRoots"], and options["shadowRoots"].
         self.upcast::<Node>().html_serialize(
             cx,
             TraversalScope::ChildrenOnly(None),
             options.serializableShadowRoots,
-            options.shadowRoots.clone(),
+            shadow_roots,
         )
     }
 
@@ -4765,14 +4766,13 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 3. If options is a KeyframeAnimationOptions object, let timeline be the timeline member of
         // options or, if timeline member of options is missing, the default document timeline of the node document
         // of the element on which this method was called.
-        let timeline =
-            if let UnrestrictedDoubleOrKeyframeAnimationOptions::KeyframeAnimationOptions(options) =
-                &options
-            {
-                options.timeline.clone().flatten()
-            } else {
-                None
-            };
+        let timeline = match &options {
+            UnrestrictedDoubleOrKeyframeAnimationOptions::KeyframeAnimationOptions(opts) => opts
+                .timeline
+                .as_ref()
+                .and_then(|inner| inner.as_ref().map(Dom::as_rooted)),
+            _ => None,
+        };
         let timeline = timeline.unwrap_or_else(|| {
             let document = self.owner_document();
             DomRoot::upcast(document.Timeline())
@@ -4790,7 +4790,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
                 UnrestrictedDoubleOrKeyframeEffectOptions::UnrestrictedDouble(value)
             },
             UnrestrictedDoubleOrKeyframeAnimationOptions::KeyframeAnimationOptions(options) => {
-                UnrestrictedDoubleOrKeyframeEffectOptions::KeyframeEffectOptions(options.parent)
+                UnrestrictedDoubleOrKeyframeEffectOptions::KeyframeEffectOptions(
+                    options.into_inner().parent,
+                )
             },
         };
         let effect =

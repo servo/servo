@@ -15,6 +15,7 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUDeviceMethods, GPUTextureFormat, GPUTextureUsageConstants,
 };
 use script_bindings::reflector::{Reflector, reflect_weak_referenceable_dom_object};
+use script_bindings::trace::RootedTraceableBox;
 use script_webgpu::gpuconvert::convert_texture_descriptor;
 use servo_base::{Epoch, generic_channel};
 use webgpu_traits::{
@@ -396,8 +397,11 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
     }
 
     /// <https://www.w3.org/TR/webgpu/#dom-gpucanvascontext-getconfiguration>
-    fn GetConfiguration(&self) -> Option<GPUCanvasConfiguration> {
-        self.configuration.borrow().clone()
+    fn GetConfiguration(&self) -> Option<RootedTraceableBox<GPUCanvasConfiguration>> {
+        self.configuration
+            .borrow()
+            .clone()
+            .map(RootedTraceableBox::new)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-getcurrenttexture>
