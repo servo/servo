@@ -253,6 +253,11 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.was_last_change_by_set_content
     }
 
+    pub(crate) fn clone_content_from(&mut self, other: &Self) {
+        self.set_content(other.get_content());
+        self.was_last_change_by_set_content = other.was_last_change_by_set_content;
+    }
+
     /// If there is an uncollapsed selection, delete it, otherwise do nothing. Returns
     /// true if any text was deleted.
     pub(crate) fn delete_selection(&mut self) -> bool {
