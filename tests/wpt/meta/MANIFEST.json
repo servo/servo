@@ -10887,6 +10887,13 @@
         null,
         {}
        ]
+      ],
+      "replaceChild-host-including-ancestor-crash.html": [
+       "57ecf4c2ba4a276603b8135d15b632e23eeace8e",
+       [
+        null,
+        {}
+       ]
       ]
      },
      "insertBefore-iframe-crash.html": [
