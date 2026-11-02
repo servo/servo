@@ -49,7 +49,7 @@ struct AllocSite {
 
 impl AllocSite {
     fn contains(&self, ptr: *mut u8) -> bool {
-        ptr >= self.ptr && ptr < unsafe { self.ptr.add(self.size) }
+        ptr >= self.ptr && ptr < self.ptr.wrapping_add(self.size)
     }
 }
 
