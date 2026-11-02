@@ -14,23 +14,20 @@ use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use net_traits::image_cache::{
     Image, ImageCache, ImageCacheResponseCallback, ImageCacheResult, ImageLoadListener,
-    ImageOrMetadataAvailable, ImageResponse, PendingImageId, RasterizationResult,
+    ImageOrMetadataAvailable, ImageResponse, PendingImageId,
 };
 use net_traits::request::{Destination, Initiator, ParserMetadata, RequestBuilder, RequestId};
 use net_traits::{
     FetchMetadata, FetchResponseMsg, NetworkError, ReferrerPolicy, ResourceFetchTiming,
 };
-use pixels::PixelFormat;
 use script_bindings::cell::DomRefCell;
 use script_bindings::root::Dom;
 use servo_arc::Arc;
-use servo_base::generic_channel::GenericSharedMemory;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use style::media_queries::MediaList as StyleMediaList;
 use style::stylesheets::Stylesheet;
 use stylo_atoms::Atom;
-use webrender_api::units::DeviceIntSize;
 
 use crate::css::stylesheet_loader::{
     ElementStylesheetLoader, StylesheetContextSource, StylesheetOwner,
@@ -473,6 +470,10 @@ impl VirtualMethods for HTMLLinkElement {
         let element = self.upcast::<Element>();
         let href = element.get_attribute_string_value(&local_name!("href"));
 
+        if context.tree_connected && self.relations.get().contains(LinkRelations::ICON) {
+            self.owner_document().set_has_icon_link(true);
+        }
+
         if context.tree_connected &&
             (href.as_ref().is_some_and(|x| !x.is_empty()) ||
                 element.has_attribute(&local_name!("imagesrcset")))
@@ -772,6 +773,8 @@ impl HTMLLinkElement {
     }
 
     fn handle_favicon_url(&self, href: &str) {
+        self.owner_document().set_has_icon_link(true);
+
         // If el's href attribute's value is the empty string, then return.
         if href.is_empty() {
             return;
@@ -825,11 +828,11 @@ impl HTMLLinkElement {
                 ));
 
                 let document = self.upcast::<Node>().owner_doc();
-                let fetch_context = FaviconFetchContext {
-                    url: self.owner_document().base_url(),
-                    image_cache: window.image_cache(),
+                let fetch_context = FaviconFetchContext::new(
+                    window.image_cache(),
                     id,
-                };
+                    self.owner_document().base_url(),
+                );
                 document.fetch_background(request, fetch_context);
             },
             ImageCacheResult::FailedToLoadOrDecode => {},
@@ -874,61 +877,7 @@ impl HTMLLinkElement {
 
     /// Rasterizes a loaded favicon file if necessary and notifies the embedder about it.
     fn process_favicon_response(&self, image: Image) {
-        // TODO: Include the size attribute here
-        let window = self.owner_window();
-        let document = self.owner_document();
-
-        let send_rasterized_favicon_to_embedder = |raster_image: &pixels::RasterImage| {
-            // Let's not worry about animated favicons...
-            let frame = raster_image.first_frame();
-
-            let format = match raster_image.format {
-                PixelFormat::K8 => embedder_traits::PixelFormat::K8,
-                PixelFormat::KA8 => embedder_traits::PixelFormat::KA8,
-                PixelFormat::RGB8 => embedder_traits::PixelFormat::RGB8,
-                PixelFormat::RGBA8 => embedder_traits::PixelFormat::RGBA8,
-                PixelFormat::BGRA8 => embedder_traits::PixelFormat::BGRA8,
-            };
-
-            let embedder_image = embedder_traits::Image::new(
-                frame.width,
-                frame.height,
-                std::sync::Arc::new(GenericSharedMemory::from_arc_vec(
-                    raster_image.bytes.clone(),
-                )),
-                raster_image.frames[0].byte_range.clone(),
-                format,
-            );
-            document.set_favicon(embedder_image);
-        };
-
-        match image {
-            Image::Raster(raster_image) => send_rasterized_favicon_to_embedder(&raster_image),
-            Image::Vector(vector_image) => {
-                // This size is completely arbitrary.
-                let size = DeviceIntSize::new(250, 250);
-
-                let image_cache = window.image_cache();
-                match image_cache.rasterize_vector_image(vector_image.id, size, None) {
-                    RasterizationResult::Image(raster_image) => {
-                        send_rasterized_favicon_to_embedder(&raster_image);
-                    },
-                    RasterizationResult::PendingRasterization => {
-                        // The rasterization callback will end up calling "process_favicon_response" again,
-                        // but this time with a raster image.
-                        let image_cache_sender =
-                            self.register_image_cache_callback(vector_image.id);
-                        image_cache.add_rasterization_complete_listener(
-                            window.pipeline_id(),
-                            vector_image.id,
-                            size,
-                            image_cache_sender,
-                        );
-                    },
-                    RasterizationResult::InvalidSvgParameters => {},
-                }
-            },
-        }
+        self.owner_document().process_favicon_image(image);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#link-type-preload:fetch-and-process-the-linked-resource-2>
@@ -1307,12 +1256,28 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
     }
 }
 
-struct FaviconFetchContext {
-    image_cache: std::sync::Arc<dyn ImageCache>,
-    id: PendingImageId,
+pub(crate) struct FaviconFetchContext {
+    pub(crate) image_cache: std::sync::Arc<dyn ImageCache>,
+    pub(crate) id: PendingImageId,
 
     /// The base url of the document that the `<link>` element belongs to.
-    url: ServoUrl,
+    pub(crate) url: ServoUrl,
+    pub(crate) aborted: bool,
+}
+
+impl FaviconFetchContext {
+    pub(crate) fn new(
+        image_cache: std::sync::Arc<dyn ImageCache>,
+        id: PendingImageId,
+        url: ServoUrl,
+    ) -> Self {
+        Self {
+            image_cache,
+            id,
+            url,
+            aborted: false,
+        }
+    }
 }
 
 impl FetchResponseListener for FaviconFetchContext {
@@ -1325,6 +1290,23 @@ impl FetchResponseListener for FaviconFetchContext {
         request_id: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
+        let is_ok = match &metadata {
+            Ok(metadata) => metadata.metadata().status.is_success(),
+            Err(_) => false,
+        };
+
+        if !is_ok {
+            self.aborted = true;
+            self.image_cache.notify_pending_response(
+                self.id,
+                FetchResponseMsg::ProcessResponse(
+                    request_id,
+                    Err(NetworkError::HttpError("Not an OK response".into())),
+                ),
+            );
+            return;
+        }
+
         self.image_cache.notify_pending_response(
             self.id,
             FetchResponseMsg::ProcessResponse(request_id, metadata),
@@ -1338,6 +1320,9 @@ impl FetchResponseListener for FaviconFetchContext {
         request_id: RequestId,
         chunk: Bytes,
     ) {
+        if self.aborted {
+            return;
+        }
         self.image_cache.notify_pending_response(
             self.id,
             FetchResponseMsg::ProcessResponseChunk(request_id, chunk),
@@ -1352,6 +1337,9 @@ impl FetchResponseListener for FaviconFetchContext {
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
+        if self.aborted {
+            return;
+        }
         self.image_cache.notify_pending_response(
             self.id,
             FetchResponseMsg::ProcessResponseEOF(request_id, response.clone(), timing.clone()),
@@ -1370,6 +1358,9 @@ impl FetchResponseListener for FaviconFetchContext {
     }
 
     fn process_content_length(&mut self, request_id: RequestId, size: usize) {
+        if self.aborted {
+            return;
+        }
         self.image_cache.notify_pending_response(
             self.id,
             FetchResponseMsg::ProcessContentLength(request_id, size),

@@ -844,7 +844,12 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn notify_load_status_changed(&self, webview: WebView, status: LoadStatus) {
-        self.window_for_webview(&webview).set_needs_update();
+        let window = self.window_for_webview(&webview);
+        window.set_needs_update();
+
+        if status == LoadStatus::Started {
+            window.clear_favicon(webview.id());
+        }
 
         if status == LoadStatus::Complete {
             if let Some(sender) = self
