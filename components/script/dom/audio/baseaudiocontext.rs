@@ -254,10 +254,58 @@ impl BaseAudioContext {
         self.state.set(state);
     }
 
-    pub(crate) fn close_from_document_unload(&self) {
-        if self.state.get() != AudioContextState::Closed {
-            self.state.set(AudioContextState::Closed);
-            let _ = self.audio_context_impl.lock().unwrap().close();
+    /// <https://webaudio.github.io/web-audio-api/#unloading-a-document>
+    pub(crate) fn close_from_document_unload(&self, cx: &mut JSContext) {
+        if self.state.get() == AudioContextState::Closed {
+            return;
+        }
+
+        // Step 3. Queue a control message to invoke close() on the AudioContext
+        //         or OfflineAudioContext.
+        self.state.set(AudioContextState::Closed);
+        let _ = self.audio_context_impl.lock().unwrap().close();
+
+        // Step 1. Reject all the promises of [[pending promises]] with InvalidStateError,
+        //         for each AudioContext and OfflineAudioContext whose relevant global object
+        //         is the same as the document's associated Window.
+        //
+        // Reject any pending resume() promises.
+        let pending_resume_promises: Vec<RootedPromise> =
+            std::mem::take(&mut *self.pending_resume_promises.borrow_mut())
+                .into_iter()
+                .map(|p| p.root(cx))
+                .collect();
+        for promise in &pending_resume_promises {
+            promise.reject_error(
+                cx,
+                Error::InvalidState(Some(
+                    "AudioContext closed because its document was unloaded.".into(),
+                )),
+            );
+        }
+
+        // Step 2. Stop all decoding threads.
+        //
+        // Reject any pending decodeAudioData() promises and clear the decode resolvers.
+        let keys: Vec<String> = self
+            .decode_resolvers
+            .safe_borrow_mut(cx.no_gc())
+            .keys()
+            .cloned()
+            .collect();
+        for key in keys {
+            rooted!(&in(cx) let resolver = self
+                .decode_resolvers
+                .safe_borrow_mut(cx.no_gc())
+                .remove(&key)
+                .expect("resolver should exist"));
+            let promise = resolver.promise.root(cx);
+            promise.reject_error(
+                cx,
+                Error::InvalidState(Some(
+                    "AudioContext closed because its document was unloaded.".into(),
+                )),
+            );
         }
     }
 
