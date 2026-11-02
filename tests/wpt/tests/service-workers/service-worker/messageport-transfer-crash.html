@@ -1,13 +1,15 @@
 <!doctype html>
-<link rel="help" href="https://github.com/servo/servo/pull/">
+<link rel="help" href="https://github.com/servo/servo/pull/49526">
+<html class="test-wait"><body>
 <script>
-
-var w = new SharedWorker("/x"); 
-try { 
-	window.postMessage("x", {targetOrigin: "*", transfer: [w.port]}); 
-} 
-catch (e) { 
-	console.log(e.name); 
-} 
+var w = new SharedWorker("/x");
+try {
+window.postMessage("x", {targetOrigin: "*", transfer: [w.port]});
+}
+catch (e) {
+}
 w.port.close();
+document.documentElement.removeAttribute("class");
 </script>
+</body>
+</html>

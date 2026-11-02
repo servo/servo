@@ -872,19 +872,15 @@ impl GlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-close>
     pub(crate) fn close_message_port(&self, port_id: &MessagePortId) {
         if let MessagePortState::Managed(_id, message_ports) =
-            &mut *self.message_port_state.borrow_mut()
+            &mut *self.message_port_state.borrow_mut() &&
+            let Some(managed_port) = message_ports.get_mut(port_id)
         {
-            match message_ports.get_mut(port_id) {
-                None => {}, // Transfered message ports could be closed on the original GlobalScope
-                Some(managed_port) => {
-                    if let Some(port_impl) = managed_port.port_impl.as_mut() {
-                        port_impl.close();
-                        managed_port.explicitly_closed = true;
-                    } else {
-                        panic!("managed-port has no port-impl.");
-                    }
-                },
-            };
+            if let Some(port_impl) = managed_port.port_impl.as_mut() {
+                port_impl.close();
+                managed_port.explicitly_closed = true;
+            } else {
+                panic!("managed-port has no port-impl.");
+            }
         } else {
             warn!("close_message_port called on a global not managing any ports.")
         }
