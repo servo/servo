@@ -31,7 +31,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
-<body onload="checkLayout('#target > div')">
+<body onload="document.fonts.ready.then(() => checkLayout('#target > div'))">
 <div id="target">
   <div data-offset-y="32">line1<br>line2</div>
   <div data-offset-y="40">line1<br>line2</div>

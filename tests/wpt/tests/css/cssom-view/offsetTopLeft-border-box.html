@@ -36,7 +36,7 @@
 </div>
 <script>
 setup({explicit_done: true});
-onload = () => {
+onload = () => document.fonts.ready.then(() => {
   // Clone the above tests for the following 'display' types:
   let display = ['inline-block', 'grid', 'inline-grid', 'flex', 'inline-flex', 'flow-root' ];
   let tests = document.querySelector('#tests');
@@ -57,5 +57,5 @@ onload = () => {
     i++;
   });
   done();
-};
+});
 </script>
