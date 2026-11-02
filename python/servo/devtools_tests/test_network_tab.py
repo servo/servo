@@ -9,19 +9,20 @@
 
 from .utils import Devtools
 from .utils import collect_network_events
+from .utils import collect_network_response
 from .utils import get_request_headers
+
+
+def evaluate_js(devtools, code):
+    console_actor = devtools.targets[0]["consoleActor"]
+    response = devtools.client.send_receive({"to": console_actor, "type": "evaluateJSAsync", "text": code})
+    assert "error" not in response, response
 
 
 class TestNetworkTab:
     def test_option_method_showed(self, run_servoshell, web_server_urls):
         run_servoshell(url=f"{web_server_urls[0]}/cors_preflight/test.html")
         with Devtools.connect() as devtools:
-
-            def evaluate_js(devtools, code):
-                console_actor = devtools.targets[0]["consoleActor"]
-                response = devtools.client.send_receive({"to": console_actor, "type": "evaluateJSAsync", "text": code})
-                assert "error" not in response, response
-
             preflight, seen = collect_network_events(
                 devtools=devtools,
                 predicate=lambda event: event.get("method") == "OPTIONS" and web_server_urls[1] in event.get("url", ""),
@@ -43,3 +44,18 @@ class TestNetworkTab:
 
             # Optionally check the actual PUT request also shows up
             assert any(event.get("method") == "PUT" for event in seen)
+
+    def test_fetch_response_fields(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/network/test.html")
+        with Devtools.connect() as devtools:
+            response = collect_network_response(
+                devtools=devtools,
+                url_predicate=lambda url: url.endswith("/network/data.json"),
+                trigger=lambda: evaluate_js(devtools, f'fetch("{web_server_urls[0]}/network/data.json");'),
+            )
+
+            assert response["status"] == "200 OK"
+            assert response["mimeType"] == "application/json"
+            # data.json is 32 bytes and is served uncompressed with a Content-Length header
+            assert response["transferredSize"] == 32
+            assert response["contentSize"] == 32
