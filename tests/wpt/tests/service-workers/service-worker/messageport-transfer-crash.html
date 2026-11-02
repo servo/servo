@@ -1,0 +1,13 @@
+<!doctype html>
+<link rel="help" href="https://github.com/servo/servo/pull/">
+<script>
+
+var w = new SharedWorker("/x"); 
+try { 
+	window.postMessage("x", {targetOrigin: "*", transfer: [w.port]}); 
+} 
+catch (e) { 
+	console.log(e.name); 
+} 
+w.port.close();
+</script>

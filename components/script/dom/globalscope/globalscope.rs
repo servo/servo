@@ -875,7 +875,7 @@ impl GlobalScope {
             &mut *self.message_port_state.borrow_mut()
         {
             match message_ports.get_mut(port_id) {
-                None => panic!("close_message_port called on an unknown port."),
+                None => {}, // Transfered message ports could be closed on the original GlobalScope
                 Some(managed_port) => {
                     if let Some(port_impl) = managed_port.port_impl.as_mut() {
                         port_impl.close();
