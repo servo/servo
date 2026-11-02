@@ -608,6 +608,21 @@ impl HeadedWindow {
                 // component has keyboard focus.
             },
             ref event => {
+                if let WindowEvent::Focused(focused) = event {
+                    state.set_window_has_focus(window.clone(), *focused);
+
+                    if !focused {
+                        // If the window lost focus, update the gui so that if focus is in web
+                        // contents the webview panel can surrender focus to avoid a crash in
+                        // accesskit when on_window_event() is called below.
+                        //
+                        // If the window gained focus, we still need to wait a tick before
+                        // requesting focus on the webview panel, so skip it here.
+                        let mut gui = self.gui.borrow_mut();
+                        gui.update(&state, &window, self);
+                    }
+                }
+
                 let response = self
                     .gui
                     .borrow_mut()
@@ -615,10 +630,6 @@ impl HeadedWindow {
 
                 if response.repaint && *event != WindowEvent::RedrawRequested {
                     self.winit_window.request_redraw();
-                }
-
-                if let WindowEvent::Focused(focused) = event {
-                    state.set_window_has_focus(window.clone(), *focused);
                 }
 
                 // All CursorMoved events, even when forwarded to the WebView, are also

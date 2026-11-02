@@ -63,14 +63,14 @@ impl Widget for WebViewPanel {
             });
         }
 
-        if !self.active {
+        if !self.active || !self.webview.focused() {
+            ui.memory_mut(|mem| mem.surrender_focus(self.id));
             return ui.response();
         }
 
+        let response = ui.interact(self.available_rect, self.id, Sense::FOCUSABLE);
         if self.contains_focus {
-            ui.memory_mut(|mem| mem.request_focus(self.id));
-        } else {
-            ui.memory_mut(|mem| mem.interested_in_focus(self.id, ui.layer_id()));
+            response.request_focus();
         }
 
         // Once the webview is focused, it doesn't allow focus to be moved with the keyboard to
@@ -85,6 +85,6 @@ impl Widget for WebViewPanel {
         };
         ui.memory_mut(|mem| mem.set_focus_lock_filter(self.id, event_filter));
 
-        ui.interact(self.available_rect, self.id, Sense::FOCUSABLE)
+        response
     }
 }
