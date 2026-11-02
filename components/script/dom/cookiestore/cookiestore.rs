@@ -688,7 +688,12 @@ impl CookieStore {
         let name_starts_with_host = starts_with_ignore_ascii_case(&name, "__host-");
 
         // 7. Let encodedName be the result of UTF-8 encoding name.
+        //
+        // Note: name is already UTF-8 encoded
+
         // 8. Let encodedValue be the result of UTF-8 encoding value.
+        //
+        // Note: value is already UTF-8 encoded
 
         // 9. If the byte sequence length of encodedName plus the byte sequence length of encodedValue is greater than the maximum name/value pair size, then return failure.
         if name.len() + value.len() > 4096 {
@@ -769,6 +774,8 @@ impl CookieStore {
         }
 
         // 18. Let encodedPath be the result of UTF-8 encoding path.
+        //
+        // Note: path is already UTF-8 encoded
 
         // 19. If the byte sequence length of encodedPath is greater than the maximum attribute value size, then return failure.
         if path.len() > 1024 {
@@ -794,6 +801,8 @@ impl CookieStore {
         // 24. Perform the steps defined in Cookies § Storage Model for when the user agent
         // "receives a cookie" with url as request-uri, encodedName as cookie-name, encodedValue as
         // cookie-value, and attributes as cookie-attribute-list.
+        //
+        // Note: This is done by the caller sending `CoreResourceMsg::SetCookieForUrlAsync`.
 
         // 25. Return success.
         Some(cookie.build())
