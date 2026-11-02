@@ -1807,8 +1807,8 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
         };
 
         if old_owner != new_owner {
-            if let Some(ref o) = old_owner {
-                o.remove_control(cx, self);
+            if let Some(ref old_owner) = old_owner {
+                old_owner.remove_control(cx, self);
             }
             if let Some(ref new_owner) = new_owner {
                 new_owner.add_control(cx, self);
