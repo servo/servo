@@ -747,6 +747,10 @@ pub(crate) struct Document {
     /// The cached favicon for that document.
     #[no_trace]
     favicon: RefCell<Option<Image>>,
+    /// Whether an explicit `<link rel="icon">` was found in this document.
+    has_icon_link: Cell<bool>,
+    /// Whether this document has already attempted to fetch the fallback `/favicon.ico`.
+    has_attempted_favicon_fallback: Cell<bool>,
 
     /// All websockets created that are associated with this document.
     websockets: DOMTracker<WebSocket>,
@@ -1609,6 +1613,7 @@ impl Document {
                 self.webview_id(),
                 LoadStatus::Complete,
             ));
+            self.maybe_fetch_fallback_favicon();
         }
     }
 
@@ -2546,6 +2551,9 @@ impl Document {
 
     /// Step 9 of <https://html.spec.whatwg.org/multipage/#the-end>
     fn queue_document_completion(&self, cx: &mut JSContext) {
+        #[cfg(not(feature = "webxr"))]
+        let _ = cx;
+
         // The initial about:blank document passes through
         // https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context
         // instead of the steps used by other documents.
@@ -4387,6 +4395,8 @@ impl Document {
             active_sandboxing_flag_set: Cell::new(creation_sandboxing_flag_set),
             creation_sandboxing_flag_set: Cell::new(creation_sandboxing_flag_set),
             favicon: RefCell::new(None),
+            has_icon_link: Cell::new(false),
+            has_attempted_favicon_fallback: Cell::new(false),
             websockets: DOMTracker::new(),
             active_media_elements: Default::default(),
             details_name_groups: Default::default(),
@@ -5712,6 +5722,22 @@ impl Document {
 
     pub(crate) fn favicon(&self) -> Option<Image> {
         self.favicon.borrow().clone()
+    }
+
+    pub(crate) fn has_icon_link(&self) -> bool {
+        self.has_icon_link.get()
+    }
+
+    pub(crate) fn set_has_icon_link(&self, value: bool) {
+        self.has_icon_link.set(value);
+    }
+
+    pub(crate) fn has_attempted_favicon_fallback(&self) -> bool {
+        self.has_attempted_favicon_fallback.get()
+    }
+
+    pub(crate) fn set_has_attempted_favicon_fallback(&self, value: bool) {
+        self.has_attempted_favicon_fallback.set(value);
     }
 
     pub(crate) fn fullscreen_element(&self) -> Option<DomRoot<Element>> {

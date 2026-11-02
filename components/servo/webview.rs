@@ -336,6 +336,9 @@ impl WebView {
             return;
         }
         self.inner_mut().load_status = new_value;
+        if new_value == LoadStatus::Started {
+            self.clone().set_favicon(None);
+        }
         self.delegate().notify_load_status_changed(self, new_value);
     }
 
@@ -393,8 +396,8 @@ impl WebView {
         Ref::filter_map(self.inner(), |inner| inner.favicon.as_ref()).ok()
     }
 
-    pub(crate) fn set_favicon(self, new_value: Image) {
-        self.inner_mut().favicon = Some(new_value);
+    pub(crate) fn set_favicon(self, new_value: Option<Image>) {
+        self.inner_mut().favicon = new_value;
         self.delegate().notify_favicon_changed(self);
     }
 

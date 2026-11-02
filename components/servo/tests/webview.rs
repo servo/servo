@@ -890,6 +890,9 @@ fn test_webview_load_with_headers() {
     let handler =
         move |req: HyperRequest<Incoming>,
               response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            if req.uri().path() == "/favicon.ico" {
+                return;
+            }
             if request_count_clone.fetch_add(1, std::sync::atomic::Ordering::SeqCst) == 2 {
                 let headers = req.headers();
                 assert_eq!(

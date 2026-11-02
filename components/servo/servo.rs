@@ -645,7 +645,7 @@ impl ServoInner {
             },
             EmbedderMsg::NewFavicon(webview_id, image) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.set_favicon(image);
+                    webview.set_favicon(Some(image));
                 }
             },
             EmbedderMsg::NotifyLoadStatusChanged(webview_id, load_status) => {
