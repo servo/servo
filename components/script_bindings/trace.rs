@@ -361,6 +361,10 @@ impl<T: JSTraceable + 'static> RootedTraceableBox<T> {
     pub fn into_box(self) -> Box<T> {
         self.0.into_box()
     }
+
+    pub fn into_inner(self) -> T {
+        *self.into_box()
+    }
 }
 
 impl<T> RootedTraceableBox<Heap<T>>
