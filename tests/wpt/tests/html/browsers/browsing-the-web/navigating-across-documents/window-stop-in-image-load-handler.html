@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>window.stop() in an image load handler suppresses the document load event</title>
+<link rel="author" title="Euclid Ye" href="mailto:yezhizhenjiakang@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/nav-history-apis.html#dom-window-stop">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+"use strict";
+
+async_test(t => {
+  const messages = [];
+  const iframe = document.createElement("iframe");
+  iframe.src = "resources/window-stop-in-image-load-handler-iframe.html";
+
+  window.addEventListener("message", t.step_func(event => {
+    if (event.source !== iframe.contentWindow) {
+      return;
+    }
+    if (event.data === "image-error") {
+      t.unreached_func("The image should load")();
+      return;
+    }
+    messages.push(event.data);
+    if (event.data === "stopped") {
+      t.step_timeout(() => {
+        assert_array_equals(messages, ["image-load", "stopped"]);
+        assert_equals(iframe.contentDocument.readyState, "complete");
+        t.done();
+      }, 250);
+    }
+  }));
+
+  document.body.append(iframe);
+  t.add_cleanup(() => iframe.remove());
+}, "window.stop() in an image load handler suppresses the document load event");
+</script>
