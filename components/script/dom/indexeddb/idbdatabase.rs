@@ -265,7 +265,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         // stores named in scope.
         let durability = options.durability;
         let scope = DOMStringList::new(cx, &self.global(), scope);
-        let transaction = IDBTransaction::new(cx, &self.global(), self, mode, durability, &scope);
+        let transaction = IDBTransaction::new(cx, &self.global(), self, mode, durability, &scope)?;
 
         // Step 8. Set transaction’s cleanup event loop to the current event loop.
         transaction.set_cleanup_event_loop();

@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/whatwg/html/issues/">
+<script>
+const open = indexedDB.open("a", 1);
+open.onupgradeneeded = () => open.result.createObjectStore("s");
+open.onsuccess = () => {
+  const db = open.result;
+  indexedDB.deleteDatabase("a");
+  setTimeout(() => db.transaction("s"), 300);
+};
+</script>

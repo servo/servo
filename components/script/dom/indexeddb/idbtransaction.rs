@@ -141,10 +141,10 @@ impl IDBTransaction {
         mode: IDBTransactionMode,
         durability: IDBTransactionDurability,
         scope: &DOMStringList,
-    ) -> DomRoot<IDBTransaction> {
+    ) -> Fallible<DomRoot<IDBTransaction>> {
         let serial_number =
-            IDBTransaction::create_transaction(global, connection.get_name(), mode, scope);
-        IDBTransaction::new_with_serial(
+            IDBTransaction::create_transaction(global, connection.get_name(), mode, scope)?;
+        Ok(IDBTransaction::new_with_serial(
             cx,
             global,
             connection,
@@ -152,7 +152,7 @@ impl IDBTransaction {
             durability,
             scope,
             serial_number,
-        )
+        ))
     }
 
     pub(crate) fn new_with_serial(
@@ -182,7 +182,7 @@ impl IDBTransaction {
         db_name: DOMString,
         mode: IDBTransactionMode,
         scope: &DOMStringList,
-    ) -> u64 {
+    ) -> Fallible<u64> {
         let backend_mode = match mode {
             IDBTransactionMode::Readonly => IndexedDBTxnMode::Readonly,
             IDBTransactionMode::Readwrite => IndexedDBTxnMode::Readwrite,
@@ -205,7 +205,10 @@ impl IDBTransaction {
             }))
             .expect("Failed to send IndexedDBThreadMsg::Sync");
 
-        receiver.recv().unwrap().expect("CreateTransaction failed")
+        receiver
+            .recv()
+            .unwrap()
+            .map_err(|error| Error::InvalidAccess(Some(error.to_string())))
     }
 
     /// <https://w3c.github.io/IndexedDB/#transaction-lifecycle>

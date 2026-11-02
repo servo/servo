@@ -1381,6 +1381,17 @@
      ]
     }
    },
+   "IndexedDB": {
+    "crashtests": {
+     "transaction-after-delete.html": [
+      "d28dab0c648400375e2c358b9b513cc1ce51baba",
+      [
+       null,
+       {}
+      ]
+     ]
+    }
+   },
    "accessibility": {
     "crashtests": {
      "activedescendant-crash.html": [
