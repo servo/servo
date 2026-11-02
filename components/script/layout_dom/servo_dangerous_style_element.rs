@@ -825,6 +825,7 @@ impl<'dom> ::selectors::Element for ServoDangerousStyleElement<'dom> {
             NonTSPseudoClass::MozMeterOptimum |
             NonTSPseudoClass::MozMeterSubOptimum |
             NonTSPseudoClass::MozMeterSubSubOptimum |
+            NonTSPseudoClass::MozTopmostModal |
             NonTSPseudoClass::Open |
             NonTSPseudoClass::Optional |
             NonTSPseudoClass::OutOfRange |

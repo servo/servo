@@ -1358,10 +1358,16 @@ impl VirtualMethods for HTMLElement {
             },
             // <https://html.spec.whatwg.org/multipage/#the-inert-attribute>
             (&local_name!("inert"), mutation) => {
+                // https://html.spec.whatwg.org/multipage/#blocked-by-a-modal-dialog
+                // > While document is so blocked, every node that is connected to document, with the
+                // > exception of the subject element and its flat tree descendants, must become inert.
+                let is_blocked_document = element.is_document_element() &&
+                    element.owner_document().is_blocked_by_a_modal_dialog();
+
                 element.set_state(
                     cx.no_gc(),
                     ElementState::INERT,
-                    !matches!(mutation, AttributeMutation::Removed),
+                    is_blocked_document || !matches!(mutation, AttributeMutation::Removed),
                 );
             },
             (&local_name!("form"), mutation) if self.is_form_associated_custom_element() => {
