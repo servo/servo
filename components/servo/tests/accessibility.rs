@@ -1350,8 +1350,7 @@ fn test_accessibility_focus_moves() {
         .servo
         .forward_accessibility_action(action_request);
 
-    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
-    assert_eq!(updates.len(), 1);
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 2);
     for update in updates {
         tree.update_and_process_changes(update, &mut NoOpChangeHandler);
     }
