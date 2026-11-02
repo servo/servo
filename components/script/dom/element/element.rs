@@ -5396,6 +5396,8 @@ impl Element {
 
     pub(crate) fn set_modal_state(&self, no_gc: &NoGC, value: bool) {
         self.set_state(no_gc, ElementState::MODAL, value);
+        self.owner_document_unrooted(no_gc)
+            .update_topmost_modal(no_gc);
     }
 
     pub(crate) fn set_target_state(&self, no_gc: &NoGC, value: bool) {
