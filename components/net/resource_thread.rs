@@ -482,6 +482,15 @@ impl ResourceChannelManager {
                     .delete_cookie_with_name(&request, name);
                 return true;
             },
+            CoreResourceMsg::DeleteCookieByAttrs(cookie, sender) => {
+                http_state
+                    .cookie_jar
+                    .write()
+                    .delete_cookie_by_attrs(&cookie);
+                if let Some(sender) = sender {
+                    let _ = sender.send(());
+                }
+            },
             CoreResourceMsg::DeleteCookieAsync(cookie_store_id, url, name) => {
                 http_state
                     .cookie_jar
@@ -606,6 +615,34 @@ impl ResourceChannelManager {
                         operation_id,
                     ));
             },
+            CoreResourceMsg::EmbedderDeleteCookie(operation_id, cookie) => {
+                http_state
+                    .cookie_jar
+                    .write()
+                    .delete_cookie_by_attrs(&cookie);
+                http_state
+                    .embedder_proxy
+                    .send(NetToEmbedderMsg::EmbedderCookieOperationResponse(
+                        operation_id,
+                    ));
+            },
+            CoreResourceMsg::EmbedderDeleteCookiesForUrl(operation_id, url) => {
+                http_state.cookie_jar.write().clear_storage(Some(&url));
+                http_state
+                    .embedder_proxy
+                    .send(NetToEmbedderMsg::EmbedderCookieOperationResponse(
+                        operation_id,
+                    ));
+            },
+            CoreResourceMsg::EmbedderGetAllCookies(operation_id) => {
+                let cookies = http_state.cookie_jar.write().all_cookies();
+                http_state.embedder_proxy.send(
+                    NetToEmbedderMsg::EmbedderCookieOperationResponseWithCookies(
+                        operation_id,
+                        cookies,
+                    ),
+                );
+            },
             CoreResourceMsg::NewCookieListener(cookie_store_id, callback, _url) => {
                 // TODO: Use the URL for setting up the actual monitoring
                 self.cookie_listeners.insert(cookie_store_id, callback);
@@ -622,6 +659,16 @@ impl ResourceChannelManager {
                 let mut cookie_jar = http_state.cookie_jar.write();
                 cookie_jar.remove_all_expired_cookies();
                 sender.send_or_ignore(cookie_jar.cookie_site_descriptors());
+            },
+            CoreResourceMsg::GetAllCookies(sender) => {
+                let cookies = http_state
+                    .cookie_jar
+                    .write()
+                    .all_cookies()
+                    .into_iter()
+                    .map(Serde)
+                    .collect();
+                sender.send_or_ignore(cookies);
             },
             CoreResourceMsg::GetHistoryState(history_state_id, consumer) => {
                 let history_states = http_state.history_states.read();

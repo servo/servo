@@ -297,6 +297,31 @@ impl CookieStorage {
             .map(SiteDescriptor::new)
             .collect()
     }
+
+    /// Return every cookie in the jar, regardless of its domain or path,
+    /// removing expired cookies as a side effect.
+    pub fn all_cookies(&mut self) -> Vec<Cookie<'static>> {
+        self.remove_all_expired_cookies();
+        self.cookies_map
+            .values()
+            .flat_map(|cookies| cookies.iter())
+            .map(|cookie| cookie.cookie.clone())
+            .collect()
+    }
+
+    /// Delete all cookies whose name, domain and path match the given cookie,
+    /// as required by embedder cookie-management APIs (for example the WebView2
+    /// and WebKit cookie stores).
+    ///
+    /// Unlike the other deletion methods in this file, which mark cookies as expired,
+    /// this removes the entries from the jar directly, since the matching is not driven
+    /// by a request URL.
+    pub fn delete_cookie_by_attrs(&mut self, cookie: &Cookie<'_>) {
+        for cookies in self.cookies_map.values_mut() {
+            cookies.retain(|stored| !stored_matches_attrs(stored, cookie));
+        }
+        self.cookies_map.retain(|_, cookies| !cookies.is_empty());
+    }
 }
 
 fn reg_host(url: &str) -> String {
@@ -314,6 +339,30 @@ fn reg_host(url: &str) -> String {
 
 fn is_cookie_expired(cookie: &ServoCookie) -> bool {
     matches!(cookie.expiry_time, Some(date_time) if date_time <= SystemTime::now())
+}
+
+/// Check whether a stored cookie's name, domain and path all match the given
+/// cookie, the way embedder cookie-management APIs (WebView2, WebKit) match
+/// cookies for deletion. Domains are compared case-insensitively and ignoring
+/// a leading dot, and a missing path is treated as "/". Cookies whose given
+/// attributes have no domain match nothing, since stored cookies always
+/// record the domain they were inserted for.
+fn stored_matches_attrs(stored: &ServoCookie, attrs: &Cookie<'_>) -> bool {
+    if stored.cookie.name() != attrs.name() {
+        return false;
+    }
+    let stored_domain = stored.cookie.domain().unwrap_or("").trim_start_matches('.');
+    let attrs_domain = attrs.domain().unwrap_or("").trim_start_matches('.');
+    if !stored_domain.eq_ignore_ascii_case(attrs_domain) {
+        return false;
+    }
+    let stored_path = normalize_path(stored.cookie.path());
+    let attrs_path = normalize_path(attrs.path());
+    stored_path == attrs_path
+}
+
+fn normalize_path(path: Option<&str>) -> &str {
+    path.unwrap_or("/")
 }
 
 fn evict_one_cookie(is_secure_cookie: bool, cookies: &mut Vec<ServoCookie>) -> bool {
