@@ -384,7 +384,7 @@ pub(super) enum ServoAction {
     ImeDeleteBackward(usize),
     ImeSendEnter,
     ImeDismiss,
-    Vsync,
+    Vsync(ServoShellWindowId),
     Resize {
         window_id: ServoShellWindowId,
         width: i32,
@@ -422,7 +422,7 @@ impl std::fmt::Debug for ServoAction {
             },
             Self::ImeSendEnter => write!(f, "ImeSendEnter"),
             Self::ImeDismiss => write!(f, "ImeDismiss"),
-            Self::Vsync => write!(f, "Vsync"),
+            Self::Vsync(window_id) => f.debug_tuple("Vsync").field(window_id).finish(),
             Self::Resize {
                 window_id,
                 width,
@@ -457,7 +457,7 @@ impl ServoAction {
     // todo: consider making this take `self`, so we don't need to needlessly clone.
     fn do_action(&self, servo: &Rc<App>) {
         use ServoAction::*;
-        if !(matches!(self, ServoAction::Vsync) || matches!(self, ServoAction::WakeUp)) {
+        if !(matches!(self, ServoAction::Vsync(_)) || matches!(self, ServoAction::WakeUp)) {
             trace!("ACTION {:?}", self);
         }
         match self {
@@ -495,8 +495,8 @@ impl ServoAction {
             ImeDismiss => {
                 servo.ime_dismissed();
             },
-            Vsync => {
-                servo.notify_vsync();
+            Vsync(window_id) => {
+                servo.notify_vsync(*window_id);
             },
             Resize {
                 window_id,
@@ -598,11 +598,19 @@ unsafe fn get_xcomponent_window_id(
 ///
 /// Calling this multiple times in the same vsync period will result in
 /// one callback execution.
-pub(crate) fn request_vsync_callback(native_vsync: &ohos_vsync::NativeVsync) {
+pub(crate) fn request_vsync_callback(
+    native_vsync: &ohos_vsync::NativeVsync,
+    window_id: ServoShellWindowId,
+) {
+    // Currently ohos window IDs are capped at u32::MAX anyway, since `napi-rs` doesn't support
+    // u64 in the function signature, so casting to `usize` won't cause any additional problems.
+    let raw_window_id = window_id.raw().try_into().expect("window_id too large");
+    // Pass the window ID via the `data` pointer parameter. This avoids a potential leak, if a
+    // window is destroyed while the callback was requested but not invoked yet, then data
+    // would be lost.
+    let data = std::ptr::without_provenance_mut(raw_window_id);
     // SAFETY: We don't pass any data, and `on_vsync_cb` is a function with static lifetime.
-    if let Err(e) =
-        unsafe { native_vsync.request_raw_callback(Some(on_vsync_cb), std::ptr::null_mut()) }
-    {
+    if let Err(e) = unsafe { native_vsync.request_raw_callback(Some(on_vsync_cb), data) } {
         warn!("Failed to request vsync callback: {e:?}");
     }
 }
@@ -610,11 +618,13 @@ pub(crate) fn request_vsync_callback(native_vsync: &ohos_vsync::NativeVsync) {
 /// Vsync callback. Runs on the OHOS framework's vsync helper thread
 unsafe extern "C" fn on_vsync_cb(
     timestamp: ::core::ffi::c_longlong,
-    _data: *mut ::core::ffi::c_void,
+    data: *mut ::core::ffi::c_void,
 ) {
     trace!("Vsync callback at time {timestamp}");
+    // See `request_vsync_callback()`. Cast `data` back to the Window ID.
+    let window_id = ServoShellWindowId::from(data.addr() as u64);
     // Let's not panic here, that's been a source of confusion.
-    if let Err(e) = call(ServoAction::Vsync) {
+    if let Err(e) = call(ServoAction::Vsync(window_id)) {
         error!("Failed to send Vsync event: {e:?} - Main thread died?");
     }
 }
