@@ -622,8 +622,7 @@ impl Element {
     }
 
     pub(crate) fn has_overflow(&self, cx: &mut JSContext) -> bool {
-        self.ScrollHeight(cx) > self.ClientHeight(cx) ||
-            self.ScrollWidth(cx) > self.ClientWidth(cx)
+        self.ScrollHeight(cx) > self.ClientHeight(cx) || self.ScrollWidth(cx) > self.ClientWidth(cx)
     }
 
     /// Whether or not this element has a scrolling box according to
