@@ -2322,7 +2322,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         promise.set_promise_is_handled(cx);
 
         // Return transform["readable"].
-        Ok(transform.readable.clone())
+        Ok(transform.readable.as_rooted())
     }
 }
 
