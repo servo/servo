@@ -8180,6 +8180,7 @@ impl{self.generic} Default for {self.makeClassName(d)}{self.genericSuffix} {{
         conversion = string.Template(templateBody).substitute(replacements)
 
         memberIsOptional = member.optional and not member.defaultValue
+        memberIsNullable = member.type.nullable()
 
         assert info.declType is not None
         declType = CGTemplatedType("Option", info.declType) if memberIsOptional else info.declType
@@ -8188,7 +8189,12 @@ impl{self.generic} Default for {self.makeClassName(d)}{self.genericSuffix} {{
 
         memberTypeConversion = ""
         if modifier is not None:
-            memberTypeConversion = f".map(|val| val{modifier})" if memberIsOptional else modifier
+            if memberIsOptional and memberIsNullable:
+                memberTypeConversion = f".map(|val| val.map(|val| val{modifier}))"
+            elif memberIsOptional or memberIsNullable:
+                memberTypeConversion = f".map(|val| val{modifier})"
+            else:
+                memberTypeConversion = modifier
 
         assert (member.defaultValue is None) == (default is None)
         if not member.optional:
@@ -8272,6 +8278,9 @@ def getTracingConversion(type: IDLType, resolvedType: str) -> tuple[str, str | N
         tracedType, conversionCode = getTracingConversion(innerContainerType(type), resolvedType)
         if conversionCode is not None:
             return (tracedType, f".into_iter().map(|val| val{conversionCode}).collect()")
+
+    elif type.isGeckoInterface():
+        return (resolvedType.replace("DomRoot", "Dom"), ".as_traced()")
 
     return (resolvedType, None)
 
@@ -8685,7 +8694,7 @@ def type_needs_tracing(t: IDLObject, isMember: Optional[str] = None) -> bool:
         return False
 
     if t.isInterface():
-        return False
+        return isMember == "Dictionary"
 
     if t.isEnum():
         return False
