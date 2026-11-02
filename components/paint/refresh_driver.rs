@@ -61,7 +61,18 @@ impl BaseRefreshDriver {
         }
     }
 
-    pub(crate) fn notify_will_paint(&self, painter: &mut Painter) {
+    /// Notify the observers that a frame is about to be painted. Returns whether they were
+    /// notified, which they are not while waiting for the next frame to start. When they
+    /// are not notified, it is the caller's responsibility to ensure that a paint happens
+    /// once the next frame starts, so that the observers are notified then.
+    pub(crate) fn notify_will_paint(&self, painter: &mut Painter) -> bool {
+        // If we are still waiting for the frame to timeout this paint was caused for some
+        // non-animation related reason and we should wait until the frame start to notify the
+        // observers.
+        if self.wait_to_paint() {
+            return false;
+        }
+
         // Limit the borrow of `self.observers` to the minimum here.
         let still_has_observers = {
             let mut observers = self.observers.borrow_mut();
@@ -72,6 +83,7 @@ impl BaseRefreshDriver {
         if still_has_observers {
             self.observe_next_frame();
         }
+        true
     }
 
     fn observe_next_frame(&self) {
