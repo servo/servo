@@ -348,6 +348,7 @@ impl HTMLInputElement {
         matches!(*self.input_type(), InputType::Email(_))
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#states-of-the-type-attribute>
     fn does_required_apply(&self) -> bool {
         matches!(
             *self.input_type(),
