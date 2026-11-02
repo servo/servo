@@ -362,7 +362,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_doFrame<'local>(
     _: JClass<'local>,
 ) {
     env.with_env(|env| -> jni::errors::Result<_> {
-        call(env, |s| s.notify_vsync());
+        call(env, |s| s.notify_vsync_legacy());
         Ok(())
     })
     .resolve::<ThrowRuntimeExAndDefault>()
