@@ -1384,7 +1384,7 @@
    "IndexedDB": {
     "crashtests": {
      "transaction-after-delete.html": [
-      "d28dab0c648400375e2c358b9b513cc1ce51baba",
+      "948ba943049e0977fd6fc2f0bf7f1df5fa72b6ec",
       [
        null,
        {}
