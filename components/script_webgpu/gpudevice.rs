@@ -37,6 +37,7 @@ use script_bindings::reflector::{
     DomGlobalGeneric, reflect_weak_referenceable_dom_object_with_wrap,
 };
 use script_bindings::routed_promise::RoutedPromiseListener;
+use script_bindings::trace::RootedTraceableBox;
 use script_bindings::traits::{DomEventTrait, DomExceptionTrait};
 use script_bindings::{DomTypes, cformat, task};
 use stylo_atoms::atom;
@@ -250,18 +251,16 @@ where
         self.global_from_reflector().queue_webgpu_task_source(task!(
             fire_uncaptured_error: move |cx| {
                 let this = this.root();
-                let error = GPUError::from_error(cx, &*this.global_from_reflector(), error);
 
-                let event = GPUUncapturedErrorEvent::new(
-                    cx,
-                    &*this.global_from_reflector(),
-                    atom!("uncapturederror"),
-                    &GPUUncapturedErrorEventInit::<D> {
-                        error,
-                        parent: EventInit::empty(),
-                    },
-                );
+                let global = &*this.global_from_reflector();
+                let error = GPUError::<D>::from_error(cx, global, error);
 
+                let dictionary = RootedTraceableBox::new(GPUUncapturedErrorEventInit::<D> {
+                    parent: EventInit::empty(),
+                    error: error.as_traced(),
+                });
+
+                let event = GPUUncapturedErrorEvent::new(cx, global, atom!("uncapturederror"), &dictionary);
                 event.upcast::<D::Event>().fire(cx, this.upcast());
             }
         ));
