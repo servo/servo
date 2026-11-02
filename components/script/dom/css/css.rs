@@ -3,10 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use cssparser::{Parser, serialize_identifier};
-use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::CSSBinding::PropertyDefinition;
-use script_bindings::reflector::Reflector;
 use style::stylesheets::supports_rule::{Declaration, parse_condition_or_declaration};
 use style::stylesheets::{CssRuleType, UrlExtraData};
 use style::stylist::RegisterCustomPropertyResult;
@@ -21,11 +19,8 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
 use crate::dom::worklet::Worklet;
 
-#[dom_struct]
 #[expect(clippy::upper_case_acronyms)]
-pub(crate) struct CSS {
-    reflector_: Reflector,
-}
+pub(crate) struct CSS {}
 
 impl CSSMethods<crate::DomTypeHolder> for CSS {
     /// <https://drafts.csswg.org/cssom/#the-css.escape()-method>
