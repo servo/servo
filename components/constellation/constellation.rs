@@ -285,9 +285,10 @@ struct WorkerAnimationFrameProvider {
     tick_pending: bool,
 }
 
-/// Information about service workers that are pending an update.
+/// Information about service workers that are pending a state update script task,
+/// on which we have to wait at step 21 of <https://w3c.github.io/ServiceWorker/#installation-algorithm>.
 struct ServiceWorkerPendingUpdate {
-    pipelines: HashSet<PipelineId>,
+    pipelines: HashMap<PipelineId, usize>,
     origin: ImmutableOrigin,
 }
 
@@ -353,7 +354,8 @@ pub struct Constellation<STF, SWF> {
     /// which broadcast messages to multiple pipelines.
     sw_manager_sender: GenericSender<ServiceWorkerManagerMsg>,
 
-    /// Service workers waiting for their state update tasks to complete,
+    /// Service workers waiting for their state update tasks to complete at step 21 of
+    /// <https://w3c.github.io/ServiceWorker/#installation-algorithm>.
     service_workers_pending_update: HashMap<ServiceWorkerId, ServiceWorkerPendingUpdate>,
 
     /// A factory for creating layouts. This allows customizing the kind
@@ -1288,11 +1290,14 @@ where
                 // Step 4: For each settingsObject of settingsObjects, queue a task on settingsObject’s responsible event loop
 
                 // Note: we need to track queued tasks per worker because of the "Wait for all the tasks queued"
-                // happening at Step 21.
-                let mut pending_update = ServiceWorkerPendingUpdate {
-                    origin: origin.clone(),
-                    pipelines: Default::default(),
-                };
+                // happening at Step 21 of <https://w3c.github.io/ServiceWorker/#installation-algorithm>.
+                let pending_update = self
+                    .service_workers_pending_update
+                    .entry(worker_id)
+                    .or_insert_with(|| ServiceWorkerPendingUpdate {
+                        origin: origin.clone(),
+                        pipelines: Default::default(),
+                    });
                 self.pipelines
                     .values()
                     .filter(|pipeline| pipeline.url.origin() == origin)
@@ -1311,22 +1316,20 @@ where
                                 pipeline.id
                             );
                         } else {
-                            pending_update.pipelines.insert(pipeline.id);
+                            let entry = pending_update.pipelines.entry(pipeline.id).or_insert(0);
+                            *entry = entry.checked_add(1).unwrap_or(*entry);
                         }
                     });
-                if !pending_update.pipelines.is_empty() {
-                    self.service_workers_pending_update
-                        .insert(worker_id, pending_update);
-                } else {
+                if pending_update.pipelines.is_empty() {
                     if let Some(manager) = self.sw_managers.get(&origin) {
                         if manager
                             .send(ServiceWorkerMsg::FinishInstall(worker_id))
                             .is_err()
                         {
                             error!("Failed to send FinishInstall for worker {}", worker_id);
-                        } else {
-                            warn!("Unable to send FinishInstall for worker {}", worker_id);
                         }
+                    } else {
+                        warn!("Unable to send FinishInstall for worker {}", worker_id);
                     }
                 }
             },
@@ -2563,7 +2566,12 @@ where
             let Some(pending) = self.service_workers_pending_update.get_mut(&worker_id) else {
                 return;
             };
-            pending.pipelines.remove(&pipeline_id);
+            if let Some(count) = pending.pipelines.get_mut(&pipeline_id) {
+                *count = count.saturating_sub(1);
+                if *count == 0 {
+                    pending.pipelines.remove(&pipeline_id);
+                }
+            }
             (pending.pipelines.is_empty(), pending.origin.clone())
         };
 
@@ -3036,9 +3044,7 @@ where
         // message the sw manager if no pipelines are left.
         self.service_workers_pending_update
             .retain(|worker_id, pending| {
-                if !pending.pipelines.remove(pipeline_id) {
-                    return true;
-                }
+                pending.pipelines.remove(pipeline_id);
                 if pending.pipelines.is_empty() {
                     // message sw manager
                     if let Some(manager) = self.sw_managers.get(&pending.origin) {
