@@ -561,6 +561,15 @@ impl VirtualMethods for HTMLOptionElement {
                     self.ask_for_a_reset(cx);
                 }
                 self.update_select_validity(cx);
+
+                // https://html.spec.whatwg.org/multipage/#selector-default
+                // > The :default pseudo-class must match any element falling into one of the following categories:
+                // > - option elements that have a selected attribute
+                self.upcast::<Element>().set_state(
+                    cx.no_gc(),
+                    ElementState::DEFAULT,
+                    matches!(mutation, AttributeMutation::Set(_)),
+                );
             },
             local_name!("label") => {
                 // The label of the selected option is displayed inside the select element, so we need to repaint
