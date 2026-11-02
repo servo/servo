@@ -154,6 +154,8 @@ use crate::dom::html::htmllegendelement::HTMLLegendElement;
 use crate::dom::html::htmllinkelement::HTMLLinkElement;
 use crate::dom::html::htmlmarqueeelement::HTMLMarqueeElement;
 use crate::dom::html::htmlobjectelement::HTMLObjectElement;
+use crate::dom::html::htmloptgroupelement::HTMLOptGroupElement;
+use crate::dom::html::htmloptionelement::HTMLOptionElement;
 use crate::dom::html::htmloutputelement::HTMLOutputElement;
 use crate::dom::html::htmlscriptelement::HTMLScriptElement;
 use crate::dom::html::htmlselectelement::HTMLSelectElement;
@@ -2087,36 +2089,149 @@ impl Element {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#concept-element-disabled>
     pub(crate) fn is_actually_disabled(&self) -> bool {
-        let node = self.upcast::<Node>();
-        match node.type_id() {
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLButtonElement,
-            )) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLInputElement,
-            )) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLSelectElement,
-            )) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLTextAreaElement,
-            )) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLOptionElement,
-            )) => self.disabled_state(),
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLElement)) => {
-                self.downcast::<HTMLElement>()
-                    .unwrap()
-                    .is_form_associated_custom_element() &&
-                    self.disabled_state()
-            },
-            // TODO:
-            // an optgroup element that has a disabled attribute
-            // a menuitem element that has a disabled attribute
-            // a fieldset element that is a disabled fieldset
-            _ => false,
+        // This corresponds to the disabled state, so we can return that instead of recomputing if
+        // an element is actually disabled on every call.
+        self.state.get().contains(ElementState::DISABLED)
+    }
+
+    pub(crate) fn invalidate_disabled_state(&self, cx: &mut JSContext) {
+        if !self.enabled_state_applies() {
+            return;
         }
+
+        let actually_disabled = self.compute_is_actually_disabled(cx);
+        if actually_disabled == self.is_actually_disabled() {
+            return;
+        }
+
+        // https://html.spec.whatwg.org/multipage/#selector-disabled
+        // > The :disabled pseudo-class must match any element that is actually disabled.
+        self.set_state(cx.no_gc(), ElementState::DISABLED, actually_disabled);
+
+        // https://html.spec.whatwg.org/multipage/#selector-enabled
+        // > The :enabled pseudo-class must match any button, input, select, textarea, optgroup,
+        // > option, fieldset element, or form-associated custom element that is not actually
+        // > disabled.
+        self.set_state(cx.no_gc(), ElementState::ENABLED, !actually_disabled);
+
+        // https://html.spec.whatwg.org/multipage/#enabling-and-disabling-form-controls:-the-disabled-attribute
+        // > If an element is disabled, it is barred from constraint validation.
+        if let Some(validatable) = self.as_maybe_validatable() {
+            validatable
+                .validity_state(cx)
+                .perform_validation_and_update(cx, ValidationFlags::all());
+        } else if let Some(internals) = self.get_element_internals() {
+            internals.validity_state(cx).update_pseudo_classes(cx);
+        }
+
+        // https://html.spec.whatwg.org/multipage/#custom-element-reactions
+        // > When the disabled state of a form-associated custom element is changed, its
+        // > formDisabledCallback is called, given the new state as an argument.
+        //
+        // The linked spec refers to the form element disabled concept, but for form associated
+        // custom elements this is the same as being actually disabled.
+        if self
+            .downcast::<HTMLElement>()
+            .is_some_and(HTMLElement::is_form_associated_custom_element)
+        {
+            ScriptThread::enqueue_callback_reaction(
+                cx,
+                self,
+                CallbackReaction::FormDisabled(actually_disabled),
+                None,
+            );
+        }
+
+        if let Some(input) = self.downcast::<HTMLInputElement>() {
+            input.disabled_state_changed(cx);
+        } else if let Some(textarea) = self.downcast::<HTMLTextAreaElement>() {
+            textarea.disabled_state_changed(cx.no_gc());
+        }
+
+        if actually_disabled && (self.is::<HTMLInputElement>() || self.is::<HTMLSelectElement>()) {
+            self.owner_document()
+                .embedder_controls()
+                .hide_embedder_control(self);
+        }
+    }
+
+    pub(crate) fn invalidate_descendants_disabled_state(&self, cx: &mut JSContext) {
+        for descendant in self
+            .upcast::<Node>()
+            .traverse_preorder(ShadowIncluding::No)
+            .skip(1)
+            .filter_map(DomRoot::downcast::<Element>)
+        {
+            descendant.invalidate_disabled_state(cx);
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-element-disabled>
+    fn compute_is_actually_disabled(&self, cx: &mut JSContext) -> bool {
+        // > An element is said to be actually disabled if it is one of the following:
+        // > - a button element that is disabled
+        // > - an input element that is disabled
+        // > - a select element that is disabled
+        // > - a textarea element that is disabled
+        // > - a form-associated custom element that is disabled
+        if let Some(html_element) = self.downcast::<HTMLElement>() &&
+            html_element.is_disableable_form_control()
+        {
+            return html_element.is_form_element_disabled(cx.no_gc());
+        }
+
+        // > - an optgroup element that has a disabled attribute or whose nearest ancestor select is disabled
+        if let Some(opt_group) = self.downcast::<HTMLOptGroupElement>() {
+            return self.has_attribute(&local_name!("disabled")) ||
+                opt_group
+                    .nearest_ancestor_select()
+                    .is_some_and(|select_element| {
+                        select_element
+                            .upcast::<HTMLElement>()
+                            .is_form_element_disabled(cx.no_gc())
+                    });
+        }
+
+        // > - an option element that is disabled or whose nearest ancestor select is disabled
+        if let Some(option) = self.downcast::<HTMLOptionElement>() {
+            return option.is_option_disabled(cx.no_gc()) ||
+                option
+                    .nearest_ancestor_select()
+                    .is_some_and(|select_element| {
+                        select_element
+                            .upcast::<HTMLElement>()
+                            .is_form_element_disabled(cx.no_gc())
+                    });
+        }
+
+        // > - a fieldset element that is a disabled fieldset
+        if let Some(fieldset) = self.downcast::<HTMLFieldSetElement>() {
+            return fieldset.is_fieldset_disabled(cx.no_gc());
+        }
+
+        false
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#selector-enabled>
+    fn enabled_state_applies(&self) -> bool {
+        // > ... any button, input, select, textarea, optgroup, option, fieldset element, or
+        // > form-associated custom element
+        matches!(
+            self.upcast::<Node>().type_id(),
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLButtonElement |
+                    HTMLElementTypeId::HTMLInputElement |
+                    HTMLElementTypeId::HTMLSelectElement |
+                    HTMLElementTypeId::HTMLTextAreaElement |
+                    HTMLElementTypeId::HTMLOptGroupElement |
+                    HTMLElementTypeId::HTMLOptionElement |
+                    HTMLElementTypeId::HTMLFieldSetElement,
+            ))
+        ) || self
+            .downcast::<HTMLElement>()
+            .is_some_and(HTMLElement::is_form_associated_custom_element)
     }
 
     pub(crate) fn push_new_attribute(
@@ -5394,7 +5509,7 @@ impl Element {
     }
 
     pub(crate) fn init_state_for_internals(&self, no_gc: &NoGC) {
-        self.set_enabled_state(no_gc, true);
+        self.set_state(no_gc, ElementState::ENABLED, true);
         self.set_state(no_gc, ElementState::VALID, true);
         self.set_state(no_gc, ElementState::INVALID, false);
     }
@@ -5476,22 +5591,6 @@ impl Element {
         self.set_state(no_gc, ElementState::HOVER, value);
     }
 
-    pub(crate) fn enabled_state(&self) -> bool {
-        self.state.get().contains(ElementState::ENABLED)
-    }
-
-    pub(crate) fn set_enabled_state(&self, no_gc: &NoGC, value: bool) {
-        self.set_state(no_gc, ElementState::ENABLED, value)
-    }
-
-    pub(crate) fn disabled_state(&self) -> bool {
-        self.state.get().contains(ElementState::DISABLED)
-    }
-
-    pub(crate) fn set_disabled_state(&self, no_gc: &NoGC, value: bool) {
-        self.set_state(no_gc, ElementState::DISABLED, value)
-    }
-
     pub(crate) fn read_write_state(&self) -> bool {
         self.state.get().contains(ElementState::READWRITE)
     }
@@ -5558,7 +5657,10 @@ impl Element {
             let Some(ancestor_element) = ancestor.downcast::<HTMLFieldSetElement>() else {
                 continue;
             };
-            if !ancestor_element.upcast::<Element>().disabled_state() {
+            if !ancestor_element
+                .upcast::<Element>()
+                .has_attribute(&local_name!("disabled"))
+            {
                 continue;
             }
             if !ancestor.is_parent_of(node) &&
@@ -5574,21 +5676,6 @@ impl Element {
         }
 
         false
-    }
-
-    pub(crate) fn check_ancestors_disabled_state_for_form_control(&self, no_gc: &NoGC) {
-        if self.disabled_state() {
-            return;
-        }
-        let disabled = self.is_disabled_by_ancestor_fieldset(no_gc);
-        self.set_disabled_state(no_gc, disabled);
-        self.set_enabled_state(no_gc, !disabled);
-    }
-
-    pub(crate) fn check_disabled_attribute(&self, no_gc: &NoGC) {
-        let has_disabled_attrib = self.has_attribute(&local_name!("disabled"));
-        self.set_disabled_state(no_gc, has_disabled_attrib);
-        self.set_enabled_state(no_gc, !has_disabled_attrib);
     }
 
     pub(crate) fn update_read_write_state_from_readonly_attribute(&self, no_gc: &NoGC) {

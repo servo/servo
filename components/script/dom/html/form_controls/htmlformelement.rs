@@ -1282,7 +1282,10 @@ impl HTMLFormElement {
         let mut data_set = Vec::new();
         for child in self.controls.borrow().iter() {
             // Step 5.1: The field element is disabled.
-            if child.disabled_state() {
+            if child
+                .downcast::<HTMLElement>()
+                .is_some_and(|html_element| html_element.is_form_element_disabled(cx.no_gc()))
+            {
                 continue;
             }
             let child = child.upcast::<Node>();
@@ -1909,12 +1912,6 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
         if !same_subtree || (self.is_listed() && has_form_attr) {
             self.reset_form_owner(cx);
         }
-
-        // Unbinding from a tree might enable a form control, if a fieldset ancestor is the only
-        // reason it was disabled. The fact that it's enabled doesn't do much while it's
-        // disconnected, but it is an observable fact to keep track of.
-        self.to_html_element()
-            .maybe_update_form_control_disabled(cx);
     }
 
     fn get_form_attribute<InputFn, OwnerFn>(

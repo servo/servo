@@ -295,7 +295,7 @@ impl SpecificShadowTree<HTMLInputElement, FileInputType> for FileInputShadowTree
         self.selector_button
             .downcast::<HTMLButtonElement>()
             .expect("The selector button should be a button")
-            .SetDisabled(cx, input_element.upcast::<Element>().disabled_state());
+            .SetDisabled(cx, input_element.is_form_element_disabled());
 
         self.value_container
             .upcast::<Node>()

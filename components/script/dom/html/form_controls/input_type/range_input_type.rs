@@ -66,7 +66,7 @@ impl RangeInputType {
         if !event.IsPrimary() ||
             event.upcast::<MouseEvent>().button() != MouseButton::Primary ||
             self.dragging_pointer_id.get().is_some() ||
-            input.upcast::<Element>().disabled_state()
+            input.is_form_element_disabled()
         {
             return ValueChangeEvents::empty();
         }

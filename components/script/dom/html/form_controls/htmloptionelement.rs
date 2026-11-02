@@ -9,7 +9,7 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
-use script_bindings::dom::{MutNullableDom, UnrootedDom};
+use script_bindings::dom::MutNullableDom;
 use script_bindings::root::Dom;
 use style::str::{split_html_space_chars, str_join};
 use stylo_dom::ElementState;
@@ -30,7 +30,6 @@ use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlformelement::HTMLFormElement;
-use crate::dom::html::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::html::htmlscriptelement::HTMLScriptElement;
 use crate::dom::html::htmlselectelement::HTMLSelectElement;
 use crate::dom::iterators::ShadowIncluding;
@@ -358,22 +357,39 @@ impl HTMLOptionElement {
         select.update_shadow_tree(cx);
     }
 
-    /// Update the disabled state of this [`HTMLOptionElement`] based on its
-    /// disabled attribute and whether or not its owning [`HTMLOptGroupElement`]
-    /// is disabled.
-    pub(crate) fn update_disabled_state(&self, no_gc: &NoGC) {
-        let element = self.upcast::<Element>();
-        let disabled = element.has_attribute(&local_name!("disabled")) ||
-            self.is_disabled_by_parent_optgroup(no_gc);
-        element.set_disabled_state(no_gc, disabled);
-        element.set_enabled_state(no_gc, !disabled);
-    }
+    /// <https://html.spec.whatwg.org/multipage/#concept-option-disabled>
+    pub(crate) fn is_option_disabled(&self, no_gc: &NoGC) -> bool {
+        // Step 1. If option's disabled attribute is present, then return true.
+        if self
+            .upcast::<Element>()
+            .has_attribute(&local_name!("disabled"))
+        {
+            return true;
+        }
 
-    fn is_disabled_by_parent_optgroup(&self, no_gc: &NoGC) -> bool {
-        self.upcast::<Node>()
-            .get_parent_node_unrooted(no_gc)
-            .and_then(UnrootedDom::downcast::<HTMLOptGroupElement>)
-            .is_some_and(|optgroup| optgroup.upcast::<Element>().disabled_state())
+        // Step 2. For each ancestor of option's ancestors in reverse tree order:
+        for ancestor in self.upcast::<Node>().ancestors_unrooted(no_gc) {
+            let Some(ancestor) = ancestor.downcast::<Element>() else {
+                continue;
+            };
+            match *ancestor.local_name() {
+                // Step 2.1. If ancestor is a select, hr, datalist, or option element, then return
+                // false.
+                local_name!("select") |
+                local_name!("hr") |
+                local_name!("datalist") |
+                local_name!("option") => return false,
+                // Step 2.2. If ancestor is an optgroup element, then return true if ancestor's
+                // disabled attribute is present; otherwise false.
+                local_name!("optgroup") => {
+                    return ancestor.has_attribute(&local_name!("disabled"));
+                },
+                _ => {},
+            }
+        }
+
+        // Step 3. Return false.
+        false
     }
 }
 
@@ -534,7 +550,6 @@ impl VirtualMethods for HTMLOptionElement {
             .attribute_mutated(cx, attr, mutation);
         match *attr.local_name() {
             local_name!("disabled") => {
-                self.update_disabled_state(cx.no_gc());
                 self.update_select_validity(cx);
             },
             local_name!("selected") => {
@@ -587,8 +602,6 @@ impl VirtualMethods for HTMLOptionElement {
             super_type.bind_to_tree(cx, context);
         }
 
-        self.update_disabled_state(cx.no_gc());
-
         // TODO: When several selected option elements are added at once, the specification doesn't
         // say which one should win. Firefox chooses the last one and we should do the same here.
         // This should ensure that all selected `<option>` elements outside of the inserted subtree
@@ -618,8 +631,6 @@ impl VirtualMethods for HTMLOptionElement {
                 }),
             );
         }
-
-        self.update_disabled_state(cx.no_gc());
     }
 
     fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
@@ -646,8 +657,6 @@ impl VirtualMethods for HTMLOptionElement {
         if let Some(super_type) = self.super_type() {
             super_type.moving_steps(cx, context);
         }
-
-        self.update_disabled_state(cx.no_gc());
 
         // TODO: When several selected option elements are added at once, the specification doesn't
         // say which one should win. Firefox chooses the last one and we should do the same here.

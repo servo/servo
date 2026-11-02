@@ -1112,26 +1112,13 @@ pub(crate) fn upgrade_element(
             // and we don't need two reactions.
         }
 
-        // Either enabled_state or disabled_state needs to be set,
-        // and the possibility of a disabled fieldset ancestor needs
-        // to be accounted for. (In the spec, being disabled is
-        // a fact that's true or false about a node at a given time,
-        // not a flag that belongs to the node and is updated,
-        // so it doesn't describe this check as an action.)
-        element.check_disabled_attribute(cx.no_gc());
-        element.check_ancestors_disabled_state_for_form_control(cx.no_gc());
         element.update_read_write_state_from_readonly_attribute(cx.no_gc());
 
         // Step 9.2: If element is disabled, then enqueue a custom element callback reaction
         // with element.
-        if element.disabled_state() {
-            custom_element_reaction_stack.enqueue_callback_reaction(
-                cx,
-                element,
-                CallbackReaction::FormDisabled(true),
-                Some(definition),
-            )
-        }
+        //
+        // The element couldn't have been disabled before, so if it is now, this will enqueue the reaction.
+        element.invalidate_disabled_state(cx);
     }
 
     // Step 10
