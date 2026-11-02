@@ -3279,7 +3279,7 @@ impl ScriptThread {
             document.animation_manager().clear();
 
             document.clean_up_media_elements(cx.no_gc());
-            document.clean_up_audio_contexts();
+            document.clean_up_audio_contexts(cx);
 
             if !document.window_detached() {
                 // We discard the browsing context after requesting layout shut down,

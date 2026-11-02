@@ -895,7 +895,7 @@ impl Document {
         }
 
         self.clean_up_media_elements(cx.no_gc());
-        self.clean_up_audio_contexts();
+        self.clean_up_audio_contexts(cx);
 
         // Step 3. For each WebTransport object transport whose relevant global object is window, run the context cleanup steps given transport.
         // TODO
@@ -967,7 +967,8 @@ impl Document {
             .remove(&Dom::from_ref(context));
     }
 
-    pub(crate) fn clean_up_audio_contexts(&self) {
+    /// <https://webaudio.github.io/web-audio-api/#unloading-a-document>
+    pub(crate) fn clean_up_audio_contexts(&self, cx: &mut JSContext) {
         let audio_contexts: Vec<DomRoot<BaseAudioContext>> = self
             .audio_contexts
             .borrow()
@@ -976,7 +977,7 @@ impl Document {
             .collect();
         self.audio_contexts.borrow_mut().clear();
         for context in audio_contexts {
-            context.close_from_document_unload();
+            context.close_from_document_unload(cx);
         }
     }
 
