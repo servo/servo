@@ -623,7 +623,11 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
         };
 
         let text_shaping_needs_recollect = || {
-            if !old.direction_equals(new) || !old.unicode_bidi_equals(new) {
+            if !old.writing_mode_equals(new) ||
+                !old.direction_equals(new) ||
+                !old.unicode_bidi_equals(new) ||
+                !old.text_orientation_equals(new)
+            {
                 return true;
             }
 
