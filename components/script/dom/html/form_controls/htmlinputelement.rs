@@ -1860,6 +1860,33 @@ impl HTMLInputElement {
         );
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#selector-default>
+    pub(crate) fn update_default_state(&self, is_default_button: bool, no_gc: &NoGC) {
+        // > The :default pseudo-class must match any element falling into one of the following categories:
+        // > - Submit buttons that are default buttons of their form owner.
+        // > - input elements to which the checked attribute applies and that have a checked attribute
+        let is_default = self.is_submit_button() && is_default_button;
+        let checked_attribute = matches!(
+            *self.input_type(),
+            InputType::Checkbox(_) | InputType::Radio(_)
+        ) && self
+            .upcast::<Element>()
+            .has_attribute(&local_name!("checked"));
+        self.upcast::<Element>().set_state(
+            no_gc,
+            ElementState::DEFAULT,
+            is_default || checked_attribute,
+        );
+    }
+
+    /// This updates the default state via the form owner in order to determine if this is the default button.
+    fn update_default_state_indirectly(&self, no_gc: &NoGC) {
+        match self.form_owner() {
+            Some(form) => form.invalidate_default_button(no_gc),
+            None => self.update_default_state(false, no_gc),
+        }
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#selector-indeterminate>
     pub(crate) fn update_indeterminate_state(&self, no_gc: &NoGC) {
         // > The :indeterminate pseudo-class must match any element falling into one of the following categories:
@@ -2011,14 +2038,12 @@ impl HTMLInputElement {
         if self.upcast::<Element>().click_in_progress() {
             return;
         }
-        let submit_button = node
-            .traverse_preorder(ShadowIncluding::No)
-            .filter_map(DomRoot::downcast::<HTMLInputElement>)
-            .filter(|input| matches!(*input.input_type(), InputType::Submit(_)))
-            .find(|r| r.form_owner() == owner);
-        match submit_button {
+        match form.default_button() {
             Some(ref button) => {
-                if button.is_instance_activatable() {
+                if button
+                    .as_maybe_activatable()
+                    .is_some_and(|button| button.is_instance_activatable())
+                {
                     // spec does not actually say to set the not trusted flag,
                     // but we can get here from synthetic keydown events
                     button
@@ -2228,16 +2253,19 @@ impl VirtualMethods for HTMLInputElement {
                     element.set_read_write_state(cx.no_gc(), read_write);
                 }
             },
-            local_name!("checked") if !self.checked_changed.get() => {
-                let checked_state = match mutation {
-                    AttributeMutation::Set(None) => true,
-                    AttributeMutation::Set(Some(_)) => {
-                        // Input was already checked before.
-                        return;
-                    },
-                    AttributeMutation::Removed => false,
-                };
-                self.update_checkedness(cx, checked_state, false);
+            local_name!("checked") => {
+                if !self.checked_changed.get() {
+                    let checked_state = match mutation {
+                        AttributeMutation::Set(None) => true,
+                        AttributeMutation::Set(Some(_)) => {
+                            // Input was already checked before.
+                            return;
+                        },
+                        AttributeMutation::Removed => false,
+                    };
+                    self.update_checkedness(cx, checked_state, false);
+                }
+                self.update_default_state_indirectly(cx.no_gc());
             },
             local_name!("size") => {
                 let size = mutation.new_value(attr).map(|value| value.as_uint());
@@ -2351,6 +2379,7 @@ impl VirtualMethods for HTMLInputElement {
 
                 self.update_checked_state(cx.no_gc());
                 self.update_indeterminate_state(cx.no_gc());
+                self.update_default_state_indirectly(cx.no_gc());
                 if element.focus_state() {
                     element.set_focusring_state(cx.no_gc(), self.is_textual_or_password());
                 }
