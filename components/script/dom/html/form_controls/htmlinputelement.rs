@@ -931,8 +931,7 @@ impl HTMLInputElement {
     }
 
     fn may_have_embedder_control(&self) -> bool {
-        let el = self.upcast::<Element>();
-        matches!(*self.input_type(), InputType::Color(_)) && !el.disabled_state()
+        matches!(*self.input_type(), InputType::Color(_)) && !self.is_form_element_disabled()
     }
 
     /// Return a string that represents the contents of the element in its displayed shadow DOM.
@@ -2103,7 +2102,7 @@ impl HTMLInputElement {
     pub(crate) fn is_mutable(&self) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-input-element:concept-fe-mutable
         // https://html.spec.whatwg.org/multipage/#the-readonly-attribute:concept-fe-mutable
-        !(self.upcast::<Element>().disabled_state() || self.ReadOnly())
+        !(self.is_form_element_disabled() || self.ReadOnly())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-input-element:concept-form-reset-control>:
@@ -2433,6 +2432,28 @@ impl HTMLInputElement {
             );
         }
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-fe-disabled>
+    /// <https://html.spec.whatwg.org/multipage/#concept-element-disabled>
+    pub(crate) fn is_form_element_disabled(&self) -> bool {
+        // For input elements, the form element disabled concept is aligned with the disabled state.
+        self.upcast::<Element>()
+            .state()
+            .contains(ElementState::DISABLED)
+    }
+
+    pub(crate) fn disabled_state_changed(&self, cx: &mut JSContext) {
+        if self.input_type().is_textual() {
+            let read_write = !(self.ReadOnly() || self.is_form_element_disabled());
+            self.upcast::<Element>()
+                .set_read_write_state(cx.no_gc(), read_write);
+        }
+
+        if matches!(*self.input_type(), InputType::File(_)) && self.upcast::<Node>().is_connected()
+        {
+            self.input_type().as_specific().update_shadow_tree(cx, self);
+        }
+    }
 }
 
 impl VirtualMethods for HTMLInputElement {
@@ -2453,13 +2474,6 @@ impl VirtualMethods for HTMLInputElement {
             .attribute_mutated(cx, attr, mutation);
 
         match *attr.local_name() {
-            local_name!("disabled") => {
-                let element = self.upcast::<Element>();
-                if self.input_type().is_textual() {
-                    let read_write = !(self.ReadOnly() || element.disabled_state());
-                    element.set_read_write_state(cx.no_gc(), read_write);
-                }
-            },
             local_name!("checked") => {
                 if !self.checked_changed.get() {
                     let checked_state = match mutation {
@@ -2505,7 +2519,7 @@ impl VirtualMethods for HTMLInputElement {
                             .set(self.input_type().is_textual_or_password());
 
                         if self.input_type().is_textual() {
-                            let read_write = !(self.ReadOnly() || element.disabled_state());
+                            let read_write = !(self.ReadOnly() || self.is_form_element_disabled());
                             element.set_read_write_state(cx.no_gc(), read_write);
                         } else {
                             element.set_read_write_state(cx.no_gc(), false);
@@ -2578,7 +2592,7 @@ impl VirtualMethods for HTMLInputElement {
                             .set(self.input_type().is_textual_or_password());
 
                         let element = self.upcast::<Element>();
-                        let read_write = !(self.ReadOnly() || element.disabled_state());
+                        let read_write = !(self.ReadOnly() || self.is_form_element_disabled());
                         element.set_read_write_state(cx.no_gc(), read_write);
                     },
                 }
@@ -2657,7 +2671,7 @@ impl VirtualMethods for HTMLInputElement {
                             el.set_read_write_state(cx.no_gc(), false);
                         },
                         AttributeMutation::Removed => {
-                            el.set_read_write_state(cx.no_gc(), !el.disabled_state());
+                            el.set_read_write_state(cx.no_gc(), !self.is_form_element_disabled());
                         },
                     }
                 }
@@ -2857,7 +2871,7 @@ impl Validatable for HTMLInputElement {
         match *self.input_type() {
             InputType::Hidden(_) | InputType::Button(_) | InputType::Reset(_) => false,
             _ => {
-                !(self.upcast::<Element>().disabled_state() ||
+                !(self.is_form_element_disabled() ||
                     self.ReadOnly() ||
                     is_barred_by_datalist_ancestor(no_gc, self.upcast()))
             },

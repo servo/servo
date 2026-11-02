@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Pseudo-classes depending on disabledness are updated when a fieldset disables a form control</title>
+<link rel="author" title="Glenn Skrzypczak" href="mailto:glenn.skrzypczak@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#selector-read-write">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#selector-valid">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<fieldset id="fieldset">
+  <legend id="legend"></legend>
+</fieldset>
+<script>
+const groups = [
+  {
+    name: ":read-write and :read-only",
+    pseudoClasses: [":read-write", ":read-only"],
+    controls: ["input", "textarea"],
+    controlsRequired: false,
+    enabled: [":read-write"],
+    disabled: [":read-only"],
+  },
+  {
+    name: ":valid and :invalid of invalid controls",
+    pseudoClasses: [":valid", ":invalid"],
+    controls: ["input", "textarea", "select"],
+    controlsRequired: true,
+    enabled: [":invalid"],
+    disabled: [],
+  },
+  {
+    name: ":valid and :invalid of valid controls",
+    pseudoClasses: [":valid", ":invalid"],
+    controls: ["input", "textarea", "select"],
+    controlsRequired: false,
+    enabled: [":valid"],
+    disabled: [],
+  },
+];
+
+for (const group of groups) {
+  function createControls(t, parent) {
+    const controls = group.controls.map(localName => {
+      const control = document.createElement(localName);
+      control.required = group.controlsRequired;
+      parent.append(control);
+      return control;
+    });
+    t.add_cleanup(() => {
+      fieldset.disabled = false;
+      controls.forEach(control => control.remove());
+    });
+    return controls;
+  }
+
+  function check(controls, matchingPseudoClasses, description) {
+    for (const control of controls) {
+      for (const pseudoClass of group.pseudoClasses) {
+        const message = control.localName + " " + description;
+        if (matchingPseudoClasses.includes(pseudoClass)) {
+          assert_true(control.matches(pseudoClass), message + " should match " + pseudoClass);
+        } else {
+          assert_false(control.matches(pseudoClass), message + " should not match " + pseudoClass);
+        }
+      }
+    }
+  }
+
+  test(t => {
+    const controls = createControls(t, fieldset);
+    const legendControls = createControls(t, legend);
+
+    check(controls, group.enabled, "in enabled fieldset");
+    fieldset.disabled = true;
+    check(controls, group.disabled, "in disabled fieldset");
+    check(legendControls, group.enabled, "in the first legend of a disabled fieldset");
+    fieldset.disabled = false;
+    check(controls, group.enabled, "in re-enabled fieldset");
+  }, "Toggling the disabled attribute of an ancestor fieldset updates " + group.name);
+
+  test(t => {
+    fieldset.disabled = true;
+    const controls = createControls(t, fieldset);
+
+    check(controls, group.disabled, "inserted into disabled fieldset");
+    document.body.append(...controls);
+    check(controls, group.enabled, "moved out of disabled fieldset");
+  }, "Inserting into and removing from a disabled fieldset updates " + group.name);
+
+  test(t => {
+    fieldset.disabled = true;
+    const legendControls = createControls(t, legend);
+    const newLegend = document.createElement("legend");
+    t.add_cleanup(() => newLegend.remove());
+
+    check(legendControls, group.enabled, "in the first legend of a disabled fieldset");
+    fieldset.prepend(newLegend);
+    check(legendControls, group.disabled, "in a legend that is no longer the first legend of a disabled fieldset");
+    newLegend.remove();
+    check(legendControls, group.enabled, "in a legend that became the first legend of a disabled fieldset again");
+  }, "Changing the first legend of a disabled fieldset updates " + group.name);
+}
+</script>
