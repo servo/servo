@@ -27,8 +27,8 @@ enum XRSessionMode {
 };
 
 dictionary XRSessionInit {
-  sequence<any> requiredFeatures;
-  sequence<any> optionalFeatures;
+  sequence<DOMString> requiredFeatures;
+  sequence<DOMString> optionalFeatures;
 };
 
 partial interface XRSystem {

@@ -18,12 +18,11 @@ use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::{
     XRSessionInit, XRSessionMode, XRSystemMethods,
 };
-use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{AsHandleValue, Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::gamepad::Gamepad;
 use crate::dom::promise::{Promise, RootedPromise};
@@ -166,7 +165,8 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
                         "The dom.webxr.unsafe-assume-user-intent preference assumes user intent to enter WebXR."
                     );
                 } else {
-                    promise.reject_error(realm, Error::Security(None));
+                    promise
+                        .reject_error(realm, Error::Security(Some("Feature not supported".into())));
                     return promise;
                 }
             }
@@ -179,37 +179,20 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
             self.set_pending();
         }
 
-        let mut required_features = vec![];
-        let mut optional_features = vec![];
-
-        if let Some(ref r) = init.requiredFeatures {
-            for feature in r {
-                if let Ok(ConversionResult::Success(s)) =
-                    String::from_jsval(realm, feature.as_handle_value(), ())
-                {
-                    required_features.push(s)
-                } else {
-                    warn!("Unable to convert required feature to string");
-                    if mode != XRSessionMode::Inline {
-                        self.pending_immersive_session.set(false);
-                    }
-                    promise.reject_error(realm, Error::NotSupported(None));
-                    return promise;
-                }
-            }
-        }
-
-        if let Some(ref o) = init.optionalFeatures {
-            for feature in o {
-                if let Ok(ConversionResult::Success(s)) =
-                    String::from_jsval(realm, feature.as_handle_value(), ())
-                {
-                    optional_features.push(s)
-                } else {
-                    warn!("Unable to convert optional feature to string");
-                }
-            }
-        }
+        let mut required_features: Vec<_> = init
+            .requiredFeatures
+            .as_ref()
+            .unwrap_or(&vec![])
+            .iter()
+            .map(|domstring| domstring.clone().into())
+            .collect();
+        let optional_features: Vec<_> = init
+            .optionalFeatures
+            .as_ref()
+            .unwrap_or(&vec![])
+            .iter()
+            .map(|domstring| domstring.clone().into())
+            .collect();
 
         if !required_features.contains(&"viewer".to_string()) {
             required_features.push("viewer".to_string());

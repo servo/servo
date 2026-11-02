@@ -61,7 +61,7 @@
 ./components/script/dom/webxr/xrmediabinding.rs 5
 ./components/script/dom/webxr/xrrigidtransform.rs 1
 ./components/script/dom/webxr/xrsession.rs 9
-./components/script/dom/webxr/xrsystem.rs 4
+./components/script/dom/webxr/xrsystem.rs 2
 ./components/script/dom/webxr/xrwebglbinding.rs 10
 ./components/script/dom/webxr/xrwebgllayer.rs 4
 ./components/script/dom/window/window.rs 5
