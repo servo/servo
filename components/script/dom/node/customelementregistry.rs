@@ -268,8 +268,7 @@ impl CustomElementRegistry {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
     /// Step 14.13: Add form associated callbacks to LifecycleCallbacks
-    #[expect(unsafe_code)]
-    unsafe fn add_form_associated_callbacks(
+    fn add_form_associated_callbacks(
         &self,
         cx: &mut JSContext,
         prototype: HandleObject,
@@ -565,15 +564,13 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         // Steps 14.13: Add the `formAssociated` callbacks.
         if form_associated {
             let mut realm = AutoRealm::new_from_handle(cx, proto_object.handle());
-            unsafe {
-                if let Err(error) = self.add_form_associated_callbacks(
-                    &mut realm,
-                    proto_object.handle(),
-                    &mut callbacks,
-                ) {
-                    self.element_definition_is_running.set(false);
-                    return Err(error);
-                }
+            if let Err(error) = self.add_form_associated_callbacks(
+                &mut realm,
+                proto_object.handle(),
+                &mut callbacks,
+            ) {
+                self.element_definition_is_running.set(false);
+                return Err(error);
             }
         }
 
