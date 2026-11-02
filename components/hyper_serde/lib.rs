@@ -247,6 +247,16 @@ where
     }
 }
 
+impl<T: Default> Default for Serde<T>
+where
+    for<'de> De<T>: Deserialize<'de>,
+    for<'a> Ser<'a, T>: Serialize,
+{
+    fn default() -> Self {
+        Serde(T::default())
+    }
+}
+
 impl<T: PartialEq> PartialEq<T> for Serde<T>
 where
     for<'de> De<T>: Deserialize<'de>,

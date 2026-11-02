@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use bytes::Bytes;
 use headers::{ContentType, HeaderMapExt};
@@ -46,7 +47,7 @@ impl ReportingEndpoint {
     /// <https://w3c.github.io/reporting/#process-header>
     pub(crate) fn parse_reporting_endpoints_header(
         response_url: &ServoUrl,
-        headers: &Option<Serde<HeaderMap>>,
+        headers: &Option<Arc<Serde<HeaderMap>>>,
     ) -> Option<Vec<ReportingEndpoint>> {
         let headers = headers.as_ref()?;
         let reporting_headers = headers.get_all("reporting-endpoints");

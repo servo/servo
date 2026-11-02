@@ -4,6 +4,7 @@
 
 use std::cell::Cell;
 use std::str::FromStr;
+use std::sync::Arc;
 
 use bytes::Bytes;
 use dom_struct::dom_struct;
@@ -496,10 +497,10 @@ impl Response {
     pub(crate) fn set_headers(
         &self,
         cx: &mut js::context::JSContext,
-        option_hyper_headers: Option<Serde<HyperHeaders>>,
+        option_hyper_headers: Option<Arc<Serde<HyperHeaders>>>,
     ) {
         self.Headers(cx).set_headers(match option_hyper_headers {
-            Some(hyper_headers) => hyper_headers.into_inner(),
+            Some(hyper_headers) => hyper_headers.0.clone(),
             None => HyperHeaders::new(),
         });
     }

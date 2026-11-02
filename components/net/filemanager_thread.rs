@@ -309,7 +309,7 @@ impl FileManager {
                 };
 
                 set_blob_response_headers(
-                    &mut response.headers,
+                    &mut Arc::make_mut(&mut response.headers).0,
                     len,
                     buf.type_string.parse().unwrap_or(mime::TEXT_PLAIN),
                     content_range,
@@ -361,7 +361,7 @@ impl FileManager {
                     None
                 };
                 set_blob_response_headers(
-                    &mut response.headers,
+                    &mut Arc::make_mut(&mut response.headers).0,
                     metadata.size,
                     mime_guess::from_path(metadata.path)
                         .first()
