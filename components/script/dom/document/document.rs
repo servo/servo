@@ -4979,7 +4979,9 @@ impl Document {
         }
 
         // Step 3. Append el to doc's top layer.
-        self.top_layer.safe_borrow_mut(no_gc).push(Dom::from_ref(element));
+        self.top_layer
+            .safe_borrow_mut(no_gc)
+            .push(Dom::from_ref(element));
 
         // TODO: Step 4. At the UA !important cascade origin, add a rule targeting el
         // containing an overlay: auto declaration.
@@ -4988,7 +4990,11 @@ impl Document {
     }
 
     /// <https://drafts.csswg.org/css-position-4/#request-an-element-to-be-removed-from-the-top-layer>
-    pub(crate) fn request_an_element_to_be_removed_from_the_top_layer(&self, element: &Element, no_gc: &NoGC) {
+    pub(crate) fn request_an_element_to_be_removed_from_the_top_layer(
+        &self,
+        element: &Element,
+        no_gc: &NoGC,
+    ) {
         // Step 1. Let doc be el's node document.
 
         // Step 2. If el is not contained doc's top layer, or el is already contained in doc's
@@ -5008,7 +5014,11 @@ impl Document {
     }
 
     /// <https://drafts.csswg.org/css-position-4/#remove-an-element-from-the-top-layer-immediately>
-    pub(crate) fn remove_an_element_from_the_top_layer_immediately(&self, element: &Element, no_gc: &NoGC) {
+    pub(crate) fn remove_an_element_from_the_top_layer_immediately(
+        &self,
+        element: &Element,
+        no_gc: &NoGC,
+    ) {
         // Step 1. Let doc be el's node document.
 
         // Step 2. Remove el from doc's top layer and pending top layer removals.
