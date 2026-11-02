@@ -416,8 +416,8 @@ impl<'i> DeclarationParser<'i> for NodeStyleParser {
         };
         Ok(NodeStyle {
             name: name.to_string(),
-            value: value,
-            priority: priority,
+            value,
+            priority,
         })
     }
 }
