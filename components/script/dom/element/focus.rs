@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use js::context::NoGC;
+use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::ElementBinding::ElementMethods;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
@@ -26,7 +26,7 @@ impl Element {
     /// different types of focusable areas ahead of time so that the logic is useful for answering
     /// both "Is this element a focusable area?" and "Is this element click (or sequentially)
     /// focusable."
-    pub(crate) fn focusable_area_kind(&self, no_gc: &NoGC) -> FocusableAreaKind {
+    pub(crate) fn focusable_area_kind(&self, cx: &mut JSContext) -> FocusableAreaKind {
         // Do not allow unrendered, disconnected, disabled or inert nodes to be focusable areas ever.
         let node: &Node = self.upcast();
         if !node.is_connected() ||
@@ -132,9 +132,9 @@ impl Element {
                 // This is checking whether there is an input event scrollable overflow value in
                 // a given axis and also overflow in that same axis.
                 (matches!(axes_overflow.x, Overflow::Auto | Overflow::Scroll) &&
-                    self.ScrollWidth() > self.ClientWidth(no_gc)) ||
+                    self.ScrollWidth() > self.ClientWidth(cx)) ||
                     (matches!(axes_overflow.y, Overflow::Auto | Overflow::Scroll) &&
-                        self.ScrollHeight() > self.ClientHeight(no_gc))
+                        self.ScrollHeight() > self.ClientHeight(cx))
             })
         {
             return FocusableAreaKind::Sequential;
@@ -151,13 +151,13 @@ impl Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#sequentially-focusable>.
-    pub(crate) fn is_sequentially_focusable(&self, no_gc: &NoGC) -> bool {
-        self.focusable_area_kind(no_gc)
+    pub(crate) fn is_sequentially_focusable(&self, cx: &mut JSContext) -> bool {
+        self.focusable_area_kind(cx)
             .contains(FocusableAreaKind::Sequential)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#focusable-area>
-    pub(crate) fn is_focusable_area(&self, no_gc: &NoGC) -> bool {
-        !self.focusable_area_kind(no_gc).is_empty()
+    pub(crate) fn is_focusable_area(&self, cx: &mut JSContext) -> bool {
+        !self.focusable_area_kind(cx).is_empty()
     }
 }

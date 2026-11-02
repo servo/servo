@@ -1206,8 +1206,8 @@ impl Node {
             .box_areas_query(cx, self, BoxAreaType::Border)
     }
 
-    pub(crate) fn client_rect(&self) -> Rect<i32, CSSPixel> {
-        self.owner_window().client_rect_query(self)
+    pub(crate) fn client_rect(&self, cx: &mut JSContext) -> Rect<i32, CSSPixel> {
+        self.owner_window().client_rect_query(cx, self)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth>

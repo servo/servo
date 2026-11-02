@@ -67,14 +67,19 @@ impl SpecificInputType for ImageInputType {
 }
 
 impl ImageInputType {
-    pub(crate) fn set_selected_coordinate(&self, input: &HTMLInputElement, event: &Event) {
+    pub(crate) fn set_selected_coordinate(
+        &self,
+        cx: &mut JSContext,
+        input: &HTMLInputElement,
+        event: &Event,
+    ) {
         if !event.IsTrusted() {
             return;
         }
         let Some(mouse_event) = event.downcast::<MouseEvent>() else {
             return;
         };
-        let rect = input.upcast::<Node>().client_rect();
+        let rect = input.upcast::<Node>().client_rect(cx);
         self.selected_coordinate.set(Point2D::new(
             mouse_event.ClientX() - rect.origin.x,
             mouse_event.ClientY() - rect.origin.y,
@@ -127,7 +132,7 @@ impl SpecificInputActivationType for ImageInputActivation {
             // Step 3: If the user activated the control while explicitly selecting a coordinate,
             // then set the element's selected coordinate to that coordinate.
             if let InputType::Image(ref image_input_type) = *input.input_type() {
-                image_input_type.set_selected_coordinate(input, event);
+                image_input_type.set_selected_coordinate(cx, input, event);
             }
 
             // Step 4: Submit the element's form owner from the element with userInvolvement

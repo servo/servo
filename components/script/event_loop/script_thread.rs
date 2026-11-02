@@ -2949,7 +2949,7 @@ impl ScriptThread {
                 iframe_element: iframe_element.as_traced(),
                 kind: iframe_element
                     .upcast::<Element>()
-                    .focusable_area_kind(cx.no_gc()),
+                    .focusable_area_kind(cx),
             })
             .unwrap_or(FocusableArea::Viewport)
         );

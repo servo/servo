@@ -621,9 +621,8 @@ impl Element {
             .is_some_and(|overflow| overflow.establishes_scroll_container())
     }
 
-    pub(crate) fn has_overflow(&self, no_gc: &NoGC) -> bool {
-        self.ScrollHeight() > self.ClientHeight(no_gc) ||
-            self.ScrollWidth() > self.ClientWidth(no_gc)
+    pub(crate) fn has_overflow(&self, cx: &mut JSContext) -> bool {
+        self.ScrollHeight() > self.ClientHeight(cx) || self.ScrollWidth() > self.ClientWidth(cx)
     }
 
     /// Whether or not this element has a scrolling box according to
@@ -633,8 +632,8 @@ impl Element {
     ///  1. The element has a layout box.
     ///  2. The style specifies that overflow should be scrollable (`auto`, `hidden` or `scroll`).
     ///  3. The fragment actually has content that overflows the box.
-    fn has_scrolling_box(&self, no_gc: &NoGC) -> bool {
-        self.has_css_layout_box() && self.establishes_scroll_container() && self.has_overflow(no_gc)
+    fn has_scrolling_box(&self, cx: &mut JSContext) -> bool {
+        self.has_css_layout_box() && self.establishes_scroll_container() && self.has_overflow(cx)
     }
 
     pub(crate) fn shadow_root(&self) -> Option<DomRoot<ShadowRoot>> {
@@ -2775,7 +2774,7 @@ impl Element {
         // TODO: This needs to match the spec a bit more closely with regard to the
         // box and overflow checks.
         // TODO: Implement the promise and smooth scroll behavior.
-        if !self.has_scrolling_box(cx.no_gc()) {
+        if !self.has_scrolling_box(cx) {
             return;
         }
 
@@ -3562,7 +3561,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 10. If the element does not have any associated box, the element has no
         // associated scrolling box, or the element has no overflow, terminate these
         // steps.
-        if !self.has_scrolling_box(cx.no_gc()) {
+        if !self.has_scrolling_box(cx) {
             return;
         }
 
@@ -3675,7 +3674,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 10. If the element does not have any associated box, the element has no
         // associated scrolling box, or the element has no overflow, terminate these
         // steps.
-        if !self.has_scrolling_box(cx.no_gc()) {
+        if !self.has_scrolling_box(cx) {
             return;
         }
 
@@ -3748,23 +3747,23 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-clienttop>
-    fn ClientTop(&self, no_gc: &NoGC) -> i32 {
-        self.client_rect(no_gc).origin.y
+    fn ClientTop(&self, cx: &mut JSContext) -> i32 {
+        self.client_rect(cx).origin.y
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-clientleft>
-    fn ClientLeft(&self, no_gc: &NoGC) -> i32 {
-        self.client_rect(no_gc).origin.x
+    fn ClientLeft(&self, cx: &mut JSContext) -> i32 {
+        self.client_rect(cx).origin.x
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-clientwidth>
-    fn ClientWidth(&self, no_gc: &NoGC) -> i32 {
-        self.client_rect(no_gc).size.width
+    fn ClientWidth(&self, cx: &mut JSContext) -> i32 {
+        self.client_rect(cx).size.width
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-clientheight>
-    fn ClientHeight(&self, no_gc: &NoGC) -> i32 {
-        self.client_rect(no_gc).size.height
+    fn ClientHeight(&self, cx: &mut JSContext) -> i32 {
+        self.client_rect(cx).size.height
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-currentcsszoom
@@ -5127,7 +5126,7 @@ impl VirtualMethods for Element {
     }
 }
 impl Element {
-    pub(crate) fn client_rect(&self, no_gc: &NoGC) -> Rect<i32, CSSPixel> {
+    pub(crate) fn client_rect(&self, cx: &mut JSContext) -> Rect<i32, CSSPixel> {
         let doc = self.node.owner_doc();
 
         if let Some(rect) = self
@@ -5135,12 +5134,12 @@ impl Element {
             .as_ref()
             .and_then(|data| data.client_rect.as_ref())
             .and_then(|rect| rect.get().ok()) &&
-            doc.restyle_reason(no_gc).is_empty()
+            doc.restyle_reason(cx.no_gc()).is_empty()
         {
             return rect;
         }
 
-        let mut rect = self.upcast::<Node>().client_rect();
+        let mut rect = self.upcast::<Node>().client_rect(cx);
         let in_quirks_mode = doc.quirks_mode() == QuirksMode::Quirks;
 
         if (in_quirks_mode && doc.GetBody().as_deref() == self.downcast::<HTMLElement>()) ||
@@ -5149,8 +5148,10 @@ impl Element {
             rect.size = doc.window().viewport_details().size.round().to_i32();
         }
 
-        self.ensure_rare_data(no_gc).client_rect =
-            Some(self.owner_window_unrooted(no_gc).cache_layout_value(rect));
+        self.ensure_rare_data(cx.no_gc()).client_rect = Some(
+            self.owner_window_unrooted(cx.no_gc())
+                .cache_layout_value(rect),
+        );
         rect
     }
 
