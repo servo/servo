@@ -162,6 +162,8 @@ impl ValidityState {
             // > The :in-range pseudo-class must match all elements that are candidates for constraint
             // > validation, have range limitations, and that are neither suffering from an underflow
             // > nor suffering from an overflow.
+            //
+            // We check if element is a candidate for constraint validation above.
             let has_range = self
                 .element
                 .as_maybe_validatable()
@@ -178,6 +180,8 @@ impl ValidityState {
             // > The :out-of-range pseudo-class must match all elements that are candidates for constraint
             // > validation, have range limitations, and that are either suffering from an underflow
             // > or suffering from an overflow.
+            //
+            // We check if element is a candidate for constraint validation above.
             self.element.set_state(
                 cx.no_gc(),
                 ElementState::OUTOFRANGE,
