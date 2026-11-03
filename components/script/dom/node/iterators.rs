@@ -7,7 +7,6 @@ use js::context::NoGC;
 use super::FlatTreeParent;
 use crate::dom::Node;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, UnrootedDom};
 use crate::dom::element::Element;
@@ -324,50 +323,91 @@ pub(crate) type UnrootedAncestorIterator<'no_gc> = UnrootedSimpleNodeIterator<
     fn(&Node, &'no_gc NoGC) -> Option<UnrootedDom<'no_gc, Node>>,
 >;
 
-pub(crate) struct TreeIterator {
-    current: Option<DomRoot<Node>>,
+/// A data structure that does efficient traversal of a tree used for both [`UnrootedTreeIterator`] and
+/// [`TreeIterator`].
+struct TreeIteratorInner {
     depth: usize,
     shadow_including: ShadowIncluding,
+}
+
+impl TreeIteratorInner {
+    fn next_skipping_children<'a>(
+        &mut self,
+        no_gc: &'a NoGC,
+        current: &Node,
+    ) -> Option<UnrootedDom<'a, Node>> {
+        for ancestor in current.inclusive_ancestors_unrooted(no_gc, self.shadow_including) {
+            if self.depth == 0 {
+                break;
+            }
+            if let Some(next_sibling) = ancestor.get_next_sibling_unrooted(no_gc) {
+                return Some(next_sibling);
+            }
+            // Shadow roots don't have sibling, so after we're done traversing one we jump to the
+            // first child of the containing shadow host.
+            if let Some(shadow_root) = ancestor.downcast::<ShadowRoot>() &&
+                let Some(child) = shadow_root
+                    .host_unrooted(no_gc)
+                    .upcast::<Node>()
+                    .get_first_child_unrooted(no_gc)
+            {
+                return Some(child);
+            }
+
+            self.depth -= 1;
+        }
+        debug_assert_eq!(self.depth, 0);
+        None
+    }
+
+    /// <https://dom.spec.whatwg.org/#concept-tree-order>
+    /// <https://dom.spec.whatwg.org/#concept-shadow-including-tree-order>
+    fn next<'a>(&mut self, no_gc: &'a NoGC, current: &Node) -> Option<UnrootedDom<'a, Node>> {
+        // Handle a potential shadow root on the element
+        if self.shadow_including == ShadowIncluding::Yes &&
+            let Some(element) = current.downcast::<Element>() &&
+            let Some(shadow_root) = element.shadow_root_unrooted(no_gc)
+        {
+            self.depth += 1;
+            return Some(UnrootedDom::upcast(shadow_root));
+        }
+        if let Some(first_child) = current.get_first_child_unrooted(no_gc) {
+            self.depth += 1;
+            return Some(first_child);
+        }
+        self.next_skipping_children(no_gc, current)
+    }
+}
+
+pub(crate) struct TreeIterator {
+    current: Option<DomRoot<Node>>,
+    inner: TreeIteratorInner,
 }
 
 impl TreeIterator {
     pub(crate) fn new(root: &Node, shadow_including: ShadowIncluding) -> TreeIterator {
         TreeIterator {
             current: Some(DomRoot::from_ref(root)),
-            depth: 0,
-            shadow_including,
+            inner: TreeIteratorInner {
+                depth: 0,
+                shadow_including,
+            },
         }
     }
 
+    #[expect(unsafe_code)]
     pub(crate) fn next_skipping_children(&mut self) -> Option<DomRoot<Node>> {
+        // SAFETY: This code *only* walks the DOM tree by reading pointers. It never runs garbage
+        // collection or allocates new garbage collected objects. Normally, we would want to ensure
+        // this via the type system, but since this code is so performance sensitive, we rely on
+        // carefully implementing this here. This `NoGC` should stay local to this method and never
+        // be stored in a longer-lived data structure.
+        let no_gc = unsafe { NoGC::new() };
         let current = self.current.take()?;
-
-        self.next_skipping_children_impl(current)
-    }
-
-    fn next_skipping_children_impl(&mut self, current: DomRoot<Node>) -> Option<DomRoot<Node>> {
-        let iter = current.inclusive_ancestors(self.shadow_including);
-
-        for ancestor in iter {
-            if self.depth == 0 {
-                break;
-            }
-            if let Some(next_sibling) = ancestor.GetNextSibling() {
-                self.current = Some(next_sibling);
-                return Some(current);
-            }
-            if let Some(shadow_root) = ancestor.downcast::<ShadowRoot>() {
-                // Shadow roots don't have sibling, so after we're done traversing
-                // one we jump to the first child of the host
-                if let Some(child) = shadow_root.Host().upcast::<Node>().GetFirstChild() {
-                    self.current = Some(child);
-                    return Some(current);
-                }
-            }
-            self.depth -= 1;
-        }
-        debug_assert_eq!(self.depth, 0);
-        self.current = None;
+        self.current = self
+            .inner
+            .next_skipping_children(&no_gc, &current)
+            .map(|node| node.as_rooted());
         Some(current)
     }
 
@@ -379,28 +419,20 @@ impl TreeIterator {
 impl Iterator for TreeIterator {
     type Item = DomRoot<Node>;
 
-    /// <https://dom.spec.whatwg.org/#concept-tree-order>
-    /// <https://dom.spec.whatwg.org/#concept-shadow-including-tree-order>
+    #[expect(unsafe_code)]
     fn next(&mut self) -> Option<DomRoot<Node>> {
+        // SAFETY: This code *only* walks the DOM tree by reading pointers. It never runs garbage
+        // collection or allocates new garbage collected objects. Normally, we would want to ensure
+        // this via the type system, but since this code is so performance sensitive, we rely on
+        // carefully implementing this here. This `NoGC` should stay local to this method and never
+        // be stored in a longer-lived data structure.
+        let no_gc = unsafe { NoGC::new() };
         let current = self.current.take()?;
-
-        // Handle a potential shadow root on the element
-        if let Some(element) = current.downcast::<Element>() &&
-            let Some(shadow_root) = element.shadow_root() &&
-            self.shadow_including == ShadowIncluding::Yes
-        {
-            self.current = Some(DomRoot::from_ref(shadow_root.upcast::<Node>()));
-            self.depth += 1;
-            return Some(current);
-        }
-
-        if let Some(first_child) = current.GetFirstChild() {
-            self.current = Some(first_child);
-            self.depth += 1;
-            return Some(current);
-        };
-
-        self.next_skipping_children_impl(current)
+        self.current = self
+            .inner
+            .next(&no_gc, &current)
+            .map(|node| node.as_rooted());
+        Some(current)
     }
 }
 
@@ -413,57 +445,26 @@ impl Iterator for TreeIterator {
 /// while this iterator is alive.
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
 pub(crate) struct UnrootedTreeIterator<'b> {
+    inner: TreeIteratorInner,
     current: Option<UnrootedDom<'b, Node>>,
-    depth: usize,
-    shadow_including: ShadowIncluding,
-    /// This is unused and only used for lifetime guarantee of NoGC
     no_gc: &'b NoGC,
 }
 
 impl<'b> UnrootedTreeIterator<'b> {
     pub(crate) fn new(root: &Node, shadow_including: ShadowIncluding, no_gc: &'b NoGC) -> Self {
         Self {
+            inner: TreeIteratorInner {
+                depth: 0,
+                shadow_including,
+            },
             current: Some(UnrootedDom::from_ref(root, no_gc)),
-            depth: 0,
-            shadow_including,
             no_gc,
         }
     }
 
     pub(crate) fn next_skipping_children(&mut self) -> Option<UnrootedDom<'b, Node>> {
         let current = self.current.take()?;
-
-        let iter = current.inclusive_ancestors_unrooted(self.no_gc, self.shadow_including);
-
-        for ancestor in iter {
-            if self.depth == 0 {
-                break;
-            }
-
-            let next_sibling_option = ancestor.get_next_sibling_unrooted(self.no_gc);
-
-            if let Some(next_sibling) = next_sibling_option {
-                self.current = Some(next_sibling);
-                return Some(current);
-            }
-
-            if let Some(shadow_root) = ancestor.downcast::<ShadowRoot>() {
-                // Shadow roots don't have sibling, so after we're done traversing
-                // one we jump to the first child of the host
-                let child_option = shadow_root
-                    .host_unrooted(self.no_gc)
-                    .upcast::<Node>()
-                    .get_first_child_unrooted(self.no_gc);
-
-                if let Some(child) = child_option {
-                    self.current = Some(child);
-                    return Some(current);
-                }
-            }
-            self.depth -= 1;
-        }
-        debug_assert_eq!(self.depth, 0);
-        self.current = None;
+        self.current = self.inner.next_skipping_children(self.no_gc, &current);
         Some(current)
     }
 
@@ -474,32 +475,10 @@ impl<'b> UnrootedTreeIterator<'b> {
 
 impl<'b> Iterator for UnrootedTreeIterator<'b> {
     type Item = UnrootedDom<'b, Node>;
-
-    /// <https://dom.spec.whatwg.org/#concept-tree-order>
-    /// <https://dom.spec.whatwg.org/#concept-shadow-including-tree-order>
     fn next(&mut self) -> Option<Self::Item> {
         let current = self.current.take()?;
-
-        // Handle a potential shadow root on the element
-        if let Some(element) = current.downcast::<Element>() &&
-            let Some(shadow_root) = element.shadow_root_unrooted(self.no_gc) &&
-            self.shadow_including == ShadowIncluding::Yes
-        {
-            self.current = Some(UnrootedDom::upcast(shadow_root));
-            self.depth += 1;
-            return Some(current);
-        }
-
-        let first_child_option = current.get_first_child_unrooted(self.no_gc);
-        if let Some(first_child) = first_child_option {
-            self.current = Some(first_child);
-            self.depth += 1;
-            return Some(current);
-        };
-
-        // Restore `self.current` emptied by `.take()`
-        self.current = Some(current);
-        self.next_skipping_children()
+        self.current = self.inner.next(self.no_gc, &current);
+        Some(current)
     }
 }
 
