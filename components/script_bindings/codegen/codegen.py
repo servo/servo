@@ -3087,6 +3087,8 @@ def DomTypes(descriptors: list[Descriptor],
                 "crate::reflector::MutDomObject",
                 "crate::reflector::DomObject",
                 "crate::reflector::DomGlobalGeneric<Self>",
+                "crate::reflector::PrototypeInitializer",
+                "crate::reflector::HasPrototype",
                 "malloc_size_of::MallocSizeOf",
             ]
 
@@ -3440,7 +3442,6 @@ class CGWrapMethod(CGAbstractMethod):
             proxy_handler = f"Some(RegisterBindings::proxy_handlers::{self.descriptor.interface.identifier.name}.load(std::sync::atomic::Ordering::Acquire))"
         else:
             proxy_handler = "None"
-        prototype_id = f"PrototypeList::ID::{self.descriptor.name}"
         proto_object_fn = "GetProtoObject::<D>"
         if self.descriptor.proxy:
             c = "None"
@@ -3452,7 +3453,6 @@ class CGWrapMethod(CGAbstractMethod):
                     is_maybe_cross_origin_object: {cross_origin},
                     is_proxy: {is_proxy},
                     proxy_handler: {proxy_handler},
-                    prototype_id: {prototype_id},
                     class: {c},
                     proto_object_fn: {proto_object_fn},
                     has_legacy_unforgeable_members: {python_bool_to_rust(self.descriptor.hasLegacyUnforgeableMembers)},
@@ -3488,7 +3488,6 @@ class CGWrapGlobalMethod(CGAbstractMethod):
         members = [f"{function}::<D>(cx, obj.handle(), unsafe {{ {array.variableName()}.get() }}, obj.handle());"
                    for (function, array) in pairs if array.length() > 0]
         membersStr = "\n".join(members)
-        name = self.descriptor.name
 
         return CGGeneric(f"""
     let raw = unsafe {{ Root::new(MaybeUnreflectedDom::from_box(object)) }};
@@ -3507,7 +3506,6 @@ class CGWrapGlobalMethod(CGAbstractMethod):
     assert!(!obj.is_null());
 
     let root = unsafe {{ raw.reflect_with(obj.get()) }};
-    root.reflector().set_proto_id(PrototypeList::ID::{name} as u16);
 
     let mut cx = AutoRealm::new_from_handle(cx, obj.handle());
     let cx = &mut cx;

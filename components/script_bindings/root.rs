@@ -18,7 +18,7 @@ use crate::assert::assert_in_script;
 use crate::conversions::DerivedFrom;
 use crate::dom::UnrootedDom;
 use crate::inheritance::Castable;
-use crate::reflector::{DomObject, MutDomObject};
+use crate::reflector::{DomObject, HasPrototype, MutDomObject, PrototypeInitializer};
 use crate::trace::trace_reflector;
 
 /// A rooted value.
@@ -250,17 +250,21 @@ pub struct MaybeUnreflectedDom<T> {
 
 impl<T> MaybeUnreflectedDom<T>
 where
-    T: DomObject,
+    T: DomObject + PrototypeInitializer + HasPrototype,
 {
     /// Create a new MaybeUnreflectedDom value from the given boxed DOM object.
-    pub fn from_box(value: Box<T>) -> Self {
+    pub fn from_box(mut value: Box<T>) -> Self {
+        value.set_proto_id(T::PROTOTYPE_ID);
         Self {
             ptr: Box::leak(value).into(),
         }
     }
 
     /// Create a new MaybeUnreflectedDom value from the given RCed DOM object.
-    pub fn from_rc(value: Rc<T>) -> Self {
+    pub fn from_rc(mut value: Rc<T>) -> Self {
+        Rc::get_mut(&mut value)
+            .expect("Could not set reflector")
+            .set_proto_id(T::PROTOTYPE_ID);
         Self {
             ptr: ptr::NonNull::new(Rc::into_raw(value) as *mut T).unwrap(),
         }
