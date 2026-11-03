@@ -82,7 +82,7 @@ class Base:
         if not skip_nextest:
             installed_something |= self.install_cargo_nextest(force, yes)
         if not skip_lints:
-            installed_something |= self.install_taplo(force)
+            installed_something |= self.install_taplo(force, yes)
             installed_something |= self.install_cargo_deny(force, yes)
             installed_something |= self.install_crown(force)
         # Optional and non-default, since most people won't be compiling for OpenHarmony
@@ -116,25 +116,23 @@ class Base:
             raise EnvironmentError("Installation of cargo-binstall failed.")
         return True
 
-    def _cargo_binstall(self, package: str, yes: bool, version: Optional[str] = None) -> bool:
-        print(f" * Installing {package}...")
+    def _cargo_binstall(
+        self, package: str, yes: bool, version: Optional[str] = None, name: Optional[str] = None
+    ) -> bool:
+        display_name = name or package
+        print(f" * Installing {display_name}...")
         args = ["cargo", "binstall"]
         if yes:
             args.append("--no-confirm")
         args.append(f"{package}@{version}" if version else package)
         if subprocess.call(args) != 0:
-            raise EnvironmentError(f"Installation of {package} failed.")
+            raise EnvironmentError(f"Installation of {display_name} failed.")
         return True
 
-    def install_taplo(self, force: bool) -> bool:
+    def install_taplo(self, force: bool, yes: bool) -> bool:
         if not force and shutil.which("taplo") is not None:
             return False
-
-        print(" * Installing taplo...")
-        if subprocess.call(["cargo", "install", "taplo-cli", "--locked"]) != 0:
-            raise EnvironmentError("Installation of taplo failed.")
-
-        return True
+        return self._cargo_binstall("taplo-cli", yes, name="taplo")
 
     def install_cargo_ohos(self, force: bool, yes: bool) -> bool:
         (is_installed_and_compatible, _reason) = OpenHarmonyTarget.is_cargo_ohos_compatible()
