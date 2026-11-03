@@ -384,13 +384,15 @@ impl<'dom> LayoutDom<'dom, Node> {
 
 pub(crate) struct NodeTypeIdWrapper(pub(crate) NodeTypeId);
 
-impl From<NodeTypeIdWrapper> for LayoutNodeType {
+impl NodeTypeIdWrapper {
+    /// Returns `None` for node types that layout doesn't traverse
+    /// (e.g. `Document`, `DocumentFragment`, comments, etc.).
     #[inline(always)]
-    fn from(node_type: NodeTypeIdWrapper) -> LayoutNodeType {
-        match node_type.0 {
-            NodeTypeId::Element(e) => LayoutNodeType::Element(ElementTypeIdWrapper(e).into()),
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => LayoutNodeType::Text,
-            x => unreachable!("Layout should not traverse nodes of type {:?}", x),
+    pub(crate) fn to_layout_node_type(&self) -> Option<LayoutNodeType> {
+        match self.0 {
+            NodeTypeId::Element(e) => Some(LayoutNodeType::Element(ElementTypeIdWrapper(e).into())),
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => Some(LayoutNodeType::Text),
+            _ => None,
         }
     }
 }
