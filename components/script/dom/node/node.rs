@@ -945,10 +945,11 @@ impl Node {
                 // For content changes in text nodes, we should accurately use
                 // [`NodeDamage::ContentOrHeritage`] to mark the parent node, thereby
                 // reducing the scope of incremental box tree construction.
-                self.parent_node
-                    .get()
-                    .unwrap()
-                    .dirty(no_gc, NodeDamage::ContentOrHeritage);
+                // A connected text node has no parent only in the middle of a move (see
+                // `move_fn`), where both the old and new parents are dirtied anyway.
+                if let Some(parent) = self.parent_node.get() {
+                    parent.dirty(no_gc, NodeDamage::ContentOrHeritage);
+                }
 
                 if damage == NodeDamage::Other {
                     self.add_pending_accessibility_damage(no_gc, AccessibilityDamage::Node);
