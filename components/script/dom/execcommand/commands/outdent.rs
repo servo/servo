@@ -28,7 +28,7 @@ use crate::dom::node::Node;
 use crate::dom::selection::Selection;
 
 /// <https://w3c.github.io/editing/docs/execCommand/#outdent>
-pub(crate) fn outdent(cx: &mut JSContext, context_object: &Document, node: &DomRoot<Node>) {
+pub(crate) fn outdent(cx: &mut JSContext, context_object: &Document, node: &Node) {
     // Step 1. If node is not editable, abort these steps.
     if !node.is_editable() {
         return;
@@ -270,9 +270,18 @@ pub(crate) fn execute_outdent_command(
     //         and either node has no editable descendants, or is an ol or ul,
     //         or is an li whose parent is an ol or ul.
     for node in new_range.contained_nodes(cx.no_gc()) {
+        // This type is only used to tell the compiler how to handle the type of `node_list.last()`.
+        // It is not allowed to add a `& DomRoot<Node>` annotation, as test-tidy disallows that.
+        // However, if we omit the type, the compiler doesn't know what it is, since we also
+        // aren't allowed to add a type annotation to `node_list` itself, as that is handled
+        // by the `rooted_vec` macro. Lastly, we also can't make it `&Node`, since then the compiler
+        // thinks that the contents of the `RootedVec` is `Node`, whereas it is should be
+        // `RootedVec<DomRoot<Node>>`. The type alias here doesn't upset test-tidy,
+        // while also providing the necessary information to the compiler to work.
+        type DomRootNode = DomRoot<Node>;
         if !node_list
             .last()
-            .is_some_and(|last: &DomRoot<Node>| last.is_ancestor_of(&node)) &&
+            .is_some_and(|last: &DomRootNode| last.is_ancestor_of(&node)) &&
             node.is_editable() &&
             (!node
                 .traverse_preorder(ShadowIncluding::No)
@@ -293,6 +302,8 @@ pub(crate) fn execute_outdent_command(
     while let Some(first_node) = node_list_iter.next() {
         // Step 6.1. While the first member of node list is an ol or ul or is not the child of an
         //           ol or ul, outdent it and remove it from node list.
+        // Note: This loop is combined with the outer one here so as to not require modifying the
+        //       node list.
         if (first_node.is::<HTMLOListElement>() || first_node.is::<HTMLUListElement>()) ||
                 !first_node.GetParentElement().is_some_and(|parent| {
                     parent.is::<HTMLOListElement>() || parent.is::<HTMLUListElement>()
@@ -303,7 +314,8 @@ pub(crate) fn execute_outdent_command(
         }
 
         // Step 6.2. If node list is empty, break from these substeps.
-        // The fact that we are here means that node list is not empty, as we still have a first_node.
+        // The fact that we are here means that node list is not empty, as we still have a
+        // first_node.
 
         // Step 6.3. Let sublist be a list of nodes, initially empty.
         rooted_vec!(let mut sublist);
