@@ -170,7 +170,7 @@ pub(crate) struct DocumentFocusHandler {
     has_focus: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#sequential-focus-navigation-starting-point>
     sequential_focus_navigation_starting_point: MutNullableDom<Node>,
-    last_non_script_focus_triggered_by_keyboard: Cell<bool>,
+    last_user_interaction_was_keyboard: Cell<bool>,
 }
 
 impl DocumentFocusHandler {
@@ -181,7 +181,7 @@ impl DocumentFocusHandler {
             focus_sequence: Cell::new(FocusSequenceNumber::default()),
             has_focus: Cell::new(has_focus),
             sequential_focus_navigation_starting_point: Default::default(),
-            last_non_script_focus_triggered_by_keyboard: Cell::new(true),
+            last_user_interaction_was_keyboard: Cell::new(true),
         }
     }
 
@@ -191,6 +191,14 @@ impl DocumentFocusHandler {
 
     pub(crate) fn set_has_focus(&self, has_focus: bool) {
         self.has_focus.set(has_focus);
+    }
+
+    pub(crate) fn set_last_user_interaction_was_keyboard(
+        &self,
+        last_user_interaction_was_keyboard: bool,
+    ) {
+        self.last_user_interaction_was_keyboard
+            .set(last_user_interaction_was_keyboard);
     }
 
     /// Return the element that currently has focus. If `None` is returned the viewport itself has focus.
@@ -251,8 +259,12 @@ impl DocumentFocusHandler {
         }
         if let Some(newly_focused_element) = new_focusable_area.element() {
             recursively_set_focus_status(no_gc, newly_focused_element, true);
-            if self.last_non_script_focus_triggered_by_keyboard.get() ||
-                Self::focused_element_supports_keyboard_input(newly_focused_element)
+
+            // We should never show a focus ring on an iframe, since focus is handled separately
+            // inside of that iframe
+            if !newly_focused_element.is::<HTMLIFrameElement>() &&
+                (self.last_user_interaction_was_keyboard.get() ||
+                    Self::focused_element_supports_keyboard_input(newly_focused_element))
             {
                 newly_focused_element.set_focusring_state(no_gc, true);
             }
@@ -408,14 +420,14 @@ impl DocumentFocusHandler {
         // > and a script causes focus to move elsewhere,
         // > don’t indicate focus on the newly focused element.
         //
-        // We use `last_non_script_focus_triggered_by_keyboard` to track whether the last non-script
+        // We use `last_user_interaction_was_keyboard` to track whether the last non-script
         // trigger was a keyboard trigger.
         match focus_trigger {
             FocusTrigger::Keyboard => {
-                self.last_non_script_focus_triggered_by_keyboard.set(true);
+                self.last_user_interaction_was_keyboard.set(true);
             },
             FocusTrigger::Click => {
-                self.last_non_script_focus_triggered_by_keyboard.set(false);
+                self.last_user_interaction_was_keyboard.set(false);
             },
             FocusTrigger::Script => {
                 // Explicitly not updating anything
