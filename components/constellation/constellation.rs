@@ -4882,7 +4882,6 @@ where
                 let old_history_state_id = pipeline.history_state_id;
                 let old_url = replace(&mut pipeline.url, url.clone());
                 pipeline.history_state_id = Some(history_state_id);
-                pipeline.history_states.insert(history_state_id);
                 (pipeline.webview_id, old_history_state_id, old_url)
             },
             None => {

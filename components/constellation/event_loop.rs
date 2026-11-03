@@ -6,7 +6,6 @@
 //! view of a script thread. When an `EventLoop` is dropped, an `ExitScriptThread`
 //! message is sent to the script thread, asking it to shut down.
 
-use std::hash::Hash;
 use std::marker::PhantomData;
 use std::rc::Rc;
 
@@ -36,20 +35,6 @@ pub struct EventLoop {
     /// BackgroundHangMonitor is shared among all [`EventLoop`]s so this will be `None`.
     background_hang_monitor_sender: Option<GenericSender<BackgroundHangMonitorControlMsg>>,
     dont_send_or_sync: PhantomData<Rc<()>>,
-}
-
-impl PartialEq for EventLoop {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-    }
-}
-
-impl Eq for EventLoop {}
-
-impl Hash for EventLoop {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.id.hash(state);
-    }
 }
 
 impl Drop for EventLoop {
