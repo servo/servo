@@ -25,6 +25,11 @@ pub(crate) trait Validatable {
     /// <https://html.spec.whatwg.org/multipage/#candidate-for-constraint-validation>
     fn is_instance_validatable(&self, no_gc: &NoGC) -> bool;
 
+    /// <https://html.spec.whatwg.org/multipage/#have-range-limitations>
+    fn has_range_limitations(&self) -> bool {
+        false
+    }
+
     // Check if element satisfies its constraints, excluding custom errors
     fn perform_validation(
         &self,
