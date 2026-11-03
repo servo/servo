@@ -30,7 +30,9 @@ pub use rope::{Rope, RopeChars, RopeIndex, RopeMovement, RopeSlice};
 use serde::{Deserialize, Serialize};
 use webrender_api::Epoch as WebRenderEpoch;
 
-pub fn read_json_from_file<T>(data: &mut T, config_dir: &Path, filename: &str)
+pub struct ReadJSONFromFileError;
+
+pub fn read_json_from_file<T>(config_dir: &Path, filename: &str) -> Result<T, ReadJSONFromFileError>
 where
     T: for<'de> Deserialize<'de>,
 {
@@ -40,15 +42,18 @@ where
     let file = match File::open(&path) {
         Err(why) => {
             warn!("couldn't open {}: {}", display, why);
-            return;
+            return Err(ReadJSONFromFileError);
         },
         Ok(file) => file,
     };
     let buf_reader = BufReader::new(file);
 
     match serde_json::from_reader(buf_reader) {
-        Ok(decoded_buffer) => *data = decoded_buffer,
-        Err(why) => warn!("Could not deserialize file {}", why),
+        Ok(decoded_buffer) => Ok(decoded_buffer),
+        Err(why) => {
+            warn!("Could not deserialize file {}", why);
+            Err(ReadJSONFromFileError)
+        },
     }
 }
 

@@ -66,7 +66,7 @@ impl WebStorageThreadFactory for GenericSender<WebStorageThreadMsg> {
     }
 }
 
-#[derive(Deserialize, MallocSizeOf, Serialize)]
+#[derive(Default, Deserialize, MallocSizeOf, Serialize)]
 pub struct StorageOrigins {
     // TODO: Consider grouping by eTLD+1
     // TODO: Consider ImmutableOrigin instead of String for tracking origins
@@ -221,10 +221,11 @@ impl WebStorageManager {
         port: GenericReceiver<WebStorageThreadMsg>,
         config_dir: Option<PathBuf>,
     ) -> WebStorageManager {
-        let mut local_storage_origins = StorageOrigins::new();
-        if let Some(ref config_dir) = config_dir {
-            read_json_from_file(&mut local_storage_origins, config_dir, "localstorage.json");
-        }
+        let local_storage_origins = config_dir
+            .as_ref()
+            .and_then(|config_dir| read_json_from_file(config_dir, "localstorage.json").ok())
+            .unwrap_or_default();
+
         WebStorageManager {
             port,
             session_storage_origins: StorageOrigins::new(),
