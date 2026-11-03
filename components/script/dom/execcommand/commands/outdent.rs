@@ -28,7 +28,7 @@ use crate::dom::node::Node;
 use crate::dom::selection::Selection;
 
 /// <https://w3c.github.io/editing/docs/execCommand/#outdent>
-pub(crate) fn outdent(cx: &mut JSContext, context_object: &Document, node: &Node) {
+pub(crate) fn outdent(cx: &mut JSContext, context_object: &Document, node: &DomRoot<Node>) {
     // Step 1. If node is not editable, abort these steps.
     if !node.is_editable() {
         return;
@@ -204,7 +204,8 @@ pub(crate) fn outdent(cx: &mut JSContext, context_object: &Document, node: &Node
 
         // Step 12.4. If target is an inline node that is not a br, and its nextSibling is a br,
         //            remove target's nextSibling from its parent.
-        if target.is_inline_node() && !target.is::<HTMLBRElement>() &&
+        if target.is_inline_node() &&
+            !target.is::<HTMLBRElement>() &&
             let Some(next_br_sibling) = target.GetNextSibling() &&
             next_br_sibling.is::<HTMLBRElement>()
         {
@@ -298,16 +299,17 @@ pub(crate) fn execute_outdent_command(
     }
 
     // Step 6. While node list is not empty:
-    let mut node_list_iter = node_list.iter();
+    let mut node_list_iter = node_list.iter().peekable();
     while let Some(first_node) = node_list_iter.next() {
         // Step 6.1. While the first member of node list is an ol or ul or is not the child of an
         //           ol or ul, outdent it and remove it from node list.
         // Note: This loop is combined with the outer one here so as to not require modifying the
         //       node list.
         if (first_node.is::<HTMLOListElement>() || first_node.is::<HTMLUListElement>()) ||
-                !first_node.GetParentElement().is_some_and(|parent| {
-                    parent.is::<HTMLOListElement>() || parent.is::<HTMLUListElement>()
-                }) {
+            !first_node.GetParentElement().is_some_and(|parent| {
+                parent.is::<HTMLOListElement>() || parent.is::<HTMLUListElement>()
+            })
+        {
             outdent(cx, document, first_node);
             // We just walk the iterator instead of continuously removing things from node list.
             continue;
@@ -326,15 +328,15 @@ pub(crate) fn execute_outdent_command(
         // Step 6.5. While the first member of node list is the nextSibling of the last member of
         //           sublist, and the first member of node list is not an ol or ul, remove the
         //           first member of node list and append it to sublist.
-        while let Some(node) = node_list_iter.next() &&
+        while let Some(node) = node_list_iter.next_if(|node| {
             sublist
                 .last()
                 .expect("Must always have last element here.")
                 .GetNextSibling()
-                .is_some_and(|next_sibling| next_sibling == *node) &&
+                .is_some_and(|next_sibling| next_sibling == **node) &&
                 !node.is::<HTMLOListElement>() &&
                 !node.is::<HTMLUListElement>()
-        {
+        }) {
             sublist.push(node.as_traced());
         }
 
