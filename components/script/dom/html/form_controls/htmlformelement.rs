@@ -2034,10 +2034,14 @@ impl VirtualMethods for HTMLFormElement {
 }
 
 pub(crate) trait FormControlElementHelpers {
-    fn as_maybe_form_control<'a>(&'a self) -> Option<FormControls>;
+    fn as_maybe_form_control(&self) -> Option<FormControls>;
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
+#[expect(
+    clippy::enum_variant_names,
+    reason = "Element Names start all with HTML"
+)]
 pub(crate) enum FormControls {
     HTMLButtonElement(Dom<HTMLButtonElement>),
     HTMLFieldSetElement(Dom<HTMLFieldSetElement>),
