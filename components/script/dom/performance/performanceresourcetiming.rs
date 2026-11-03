@@ -74,7 +74,6 @@ pub(crate) struct PerformanceResourceTiming {
 }
 
 // TODO(#21269): next_hop
-// TODO(#21264): worker_start
 // TODO(#21260): domain_lookup_end
 impl PerformanceResourceTiming {
     pub(crate) fn new_inherited(
@@ -96,7 +95,7 @@ impl PerformanceResourceTiming {
             ),
             initiator_type,
             next_hop: None,
-            worker_start: None,
+            worker_start: resource_timing.final_service_worker_start_time,
             redirect_start: resource_timing.redirect_start,
             redirect_end: resource_timing.redirect_end,
             fetch_start: resource_timing.fetch_start,
@@ -240,5 +239,12 @@ impl PerformanceResourceTimingMethods<crate::DomTypeHolder> for PerformanceResou
     /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-responseend>
     fn ResponseEnd(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
         self.to_dom_high_res_time_stamp(cx, self.response_end)
+    }
+
+    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-workerstart>
+    /// > The workerStart getter steps are to convert fetch timestamp for this’s timing
+    /// > info’s final service worker start time and the relevant global object for this.
+    fn WorkerStart(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
+        self.to_dom_high_res_time_stamp(cx, self.worker_start)
     }
 }
