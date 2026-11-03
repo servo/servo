@@ -1772,10 +1772,10 @@ impl Node {
 
         // Step 1. If item is not an li or it is not editable or its parent is not editable, abort these steps.
         if !self.is::<HTMLLIElement>() ||
-            !self.is_editable() ||
+            !self.is_editable(cx) ||
             !self
                 .GetParentElement()
-                .is_some_and(|parent| parent.upcast::<Node>().is_editable())
+                .is_some_and(|parent| parent.upcast::<Node>().is_editable(cx))
         {
             return;
         }
