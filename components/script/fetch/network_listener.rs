@@ -9,8 +9,8 @@ use content_security_policy::Violation;
 use js::context::JSContext;
 use net_traits::request::RequestId;
 use net_traits::{
-    BoxedFetchCallback, FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming,
-    ResourceTimingType,
+    BoxedFetchCallback, FetchMetadata, FetchResponseMsg, Metadata, NetworkError,
+    ResourceFetchTiming, ResourceTimingType,
 };
 use servo_url::ServoUrl;
 
@@ -84,6 +84,24 @@ pub(crate) fn submit_timing_data(
     global
         .performance(cx)
         .queue_entry(performance_entry.upcast::<PerformanceEntry>());
+}
+
+/// Check status from the optional response metadata, treating a
+/// missing status as a resource load error.
+pub(crate) fn check_response_status(metadata: Option<&Metadata>) -> Result<(), NetworkError> {
+    let Some(status) = metadata.map(|metadata| &metadata.status) else {
+        return Err(NetworkError::ResourceLoadError(
+            "No http status code received".to_owned(),
+        ));
+    };
+    if status.is_success() {
+        Ok(())
+    } else {
+        Err(NetworkError::ResourceLoadError(format!(
+            "HTTP error code {}",
+            status.code()
+        )))
+    }
 }
 
 pub(crate) trait FetchResponseListener: Send + 'static {
