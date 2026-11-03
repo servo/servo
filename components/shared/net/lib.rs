@@ -756,6 +756,8 @@ pub enum MessageData {
 
 #[derive(Debug, Deserialize, Serialize, MallocSizeOf)]
 pub enum WebSocketDomAction {
+    /// Abort connection establishment, even if the network has already connected.
+    Abort,
     SendMessage(MessageData),
     Close(Option<u16>, Option<String>),
 }
