@@ -293,18 +293,17 @@ pub(crate) fn execute_outdent_command(
     while let Some(first_node) = node_list_iter.next() {
         // Step 6.1. While the first member of node list is an ol or ul or is not the child of an
         //           ol or ul, outdent it and remove it from node list.
-        while (first_node.is::<HTMLOListElement>() || first_node.is::<HTMLUListElement>()) ||
+        if (first_node.is::<HTMLOListElement>() || first_node.is::<HTMLUListElement>()) ||
                 !first_node.GetParentElement().is_some_and(|parent| {
                     parent.is::<HTMLOListElement>() || parent.is::<HTMLUListElement>()
                 }) {
-            // We just walk the iterator instead of continuously removing things from node list.
             outdent(cx, document, first_node);
+            // We just walk the iterator instead of continuously removing things from node list.
+            continue;
         }
 
-        let Some(first_node) = node_list_iter.next() else {
-            // Step 6.2. If node list is empty, break from these substeps.
-            break;
-        };
+        // Step 6.2. If node list is empty, break from these substeps.
+        // The fact that we are here means that node list is not empty, as we still have a first_node.
 
         // Step 6.3. Let sublist be a list of nodes, initially empty.
         rooted_vec!(let mut sublist);
