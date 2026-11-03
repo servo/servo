@@ -2557,8 +2557,16 @@ impl Document {
                 }
 
                 // Step 9.1. Update the current document readiness to "complete".
+                // This must happen even if the load was stopped.
                 document.update_the_current_document_readiness(cx, DocumentReadyState::Complete);
 
+                // The document may have been stopped after this task was queued.
+                //
+                // The HTML specification doesn't say which events should be fired when
+                // aborting a Document. Blink and WebKit don't fire the load event in this
+                // situation; see <https://github.com/whatwg/html/issues/5535>.
+                //
+                // This check is intentionally after step 9.1 to move readystate to "complete".
                 if document.loader().aborted() {
                     return;
                 }
