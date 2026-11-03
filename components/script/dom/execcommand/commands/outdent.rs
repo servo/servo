@@ -9,6 +9,7 @@ use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::inheritance::Castable;
+use script_bindings::str::DOMString;
 
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::root::{DomRoot, DomSlice};
@@ -28,7 +29,7 @@ use crate::dom::node::Node;
 use crate::dom::selection::Selection;
 
 /// <https://w3c.github.io/editing/docs/execCommand/#outdent>
-pub(crate) fn outdent(cx: &mut JSContext, context_object: &Document, node: &DomRoot<Node>) {
+pub(crate) fn outdent(cx: &mut JSContext, context_object: &Document, node: &Node) {
     // Step 1. If node is not editable, abort these steps.
     if !node.is_editable() {
         return;
@@ -55,13 +56,13 @@ pub(crate) fn outdent(cx: &mut JSContext, context_object: &Document, node: &DomR
         if let Some(node_as_html_element) = node_as_element.downcast::<HTMLElement>() {
             let _ = node_as_html_element
                 .Style(cx)
-                .RemoveProperty(cx, "margin".into());
+                .RemoveProperty(cx, DOMString::from_static("margin"));
             let _ = node_as_html_element
                 .Style(cx)
-                .RemoveProperty(cx, "padding".into());
+                .RemoveProperty(cx, DOMString::from_static("padding"));
             let _ = node_as_html_element
                 .Style(cx)
-                .RemoveProperty(cx, "border".into());
+                .RemoveProperty(cx, DOMString::from_static("border"));
         }
 
         // Step 3.3. Set the tag name of node to "div".
@@ -199,7 +200,7 @@ pub(crate) fn outdent(cx: &mut JSContext, context_object: &Document, node: &DomR
         let target = current_ancestor_ref
             .expect("Must always have an ancestor here.")
             .children()
-            .find(|child| child == node || Some(child) == ancestor_list.last())
+            .find(|child| **child == *node || Some(child) == ancestor_list.last())
             .expect("Must be able to find a target here.");
 
         // Step 12.4. If target is an inline node that is not a br, and its nextSibling is a br,
