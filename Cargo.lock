@@ -9939,6 +9939,7 @@ dependencies = [
  "egui_glow",
  "env_filter",
  "euclid",
+ "flate2",
  "gilrs",
  "glow",
  "headers",
