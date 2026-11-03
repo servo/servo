@@ -151,7 +151,7 @@ pub(crate) fn outdent(cx: &mut JSContext, context_object: &Document, node: &Node
         // Step 8.4. Otherwise:
         else {
             // Step 8.4.1. Record the values of node's children, and let values be the result.
-            let values = record_the_values(cx,node.children().collect());
+            let values = record_the_values(cx, node.children().collect());
 
             // Step 8.4.2. Remove node, preserving its descendants.
             node.remove_preserving_its_descendants(cx);
@@ -301,7 +301,7 @@ pub(crate) fn execute_outdent_command(
         if !node_list
             .last()
             .is_some_and(|last: &DomRootNode| last.is_ancestor_of(&node)) &&
-             is_editable_node &&
+            is_editable_node &&
             node_has_editable_parent
         {
             node_list.push(node);
