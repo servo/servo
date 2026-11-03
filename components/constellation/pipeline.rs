@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashSet;
 use std::rc::Rc;
 
 use embedder_traits::{AnimationState, FocusSequenceNumber};
@@ -67,9 +66,6 @@ pub struct Pipeline {
 
     /// The active history state for this pipeline.
     pub history_state_id: Option<HistoryStateId>,
-
-    /// The history states owned by this pipeline.
-    pub history_states: HashSet<HistoryStateId>,
 
     /// Has this pipeline received a notification that it is completely loaded?
     pub completely_loaded: bool,
@@ -140,7 +136,6 @@ impl Pipeline {
             last_callbacks_active_sent_to_paint: false,
             load_data,
             history_state_id: None,
-            history_states: HashSet::new(),
             completely_loaded: false,
             title: String::new(),
             focus_sequence: FocusSequenceNumber::default(),
