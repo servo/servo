@@ -49,7 +49,10 @@ impl ResourceProtocolHandler {
         let (open_path, compressed) = if file_path.is_file() {
             (file_path.clone(), false)
         } else {
-            (file_path.with_added_extension("gz"), true)
+            (
+                crate::resources::resource_protocol_dir_path().join(format!("{path}.gz")),
+                true,
+            )
         };
 
         if !open_path.is_file() {
