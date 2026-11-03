@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-node-replace">
+<link rel="help" href="https://github.com/servo/servo/issues/49533">
+<div id="outer"><div id="inner"></div></div>
+<script>
+  const shadow = inner.attachShadow({ mode: "open" });
+  const p = shadow.appendChild(document.createElement("p"));
+  try { shadow.replaceChild(outer, p); } catch (e) {}
+  try { shadow.moveBefore(outer, p); } catch (e) {}
+</script>

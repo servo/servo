@@ -1753,6 +1753,7 @@ fn insert_an_element_at_the_adjusted_insertion_location(
         &node_to_insert,
         adjusted_insertion_location_parent,
         adjusted_insertion_location_child,
+        &[],
     )
     .is_err()
     {
