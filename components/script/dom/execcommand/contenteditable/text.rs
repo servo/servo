@@ -112,8 +112,7 @@ impl Text {
         // Step 9. Let reference be node.
         // Step 10. While reference is a descendant of ancestor:
         // Step 10.1. Let reference be the node after it in tree order, or null if there is no such node.
-        let following_nodes =
-            node.following_nodes(&resolved_ancestor, ShadowIncluding::No);
+        let following_nodes = node.following_nodes(&resolved_ancestor, ShadowIncluding::No);
         for reference in following_nodes {
             // Step 10.2. If reference is a block node or a br, return true.
             if reference.is_block_node(cx) || reference.is::<HTMLBRElement>() {

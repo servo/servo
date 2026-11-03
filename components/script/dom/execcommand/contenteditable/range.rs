@@ -81,10 +81,9 @@ impl Range {
             .ancestor_for_effectively_contained()
             .traverse_preorder(ShadowIncluding::No);
 
-        children
-            .find(|child| {
-                child.is_formattable(cx) && self.is_effectively_contained_node(cx.no_gc(), child)
-            })
+        children.find(|child| {
+            child.is_formattable(cx) && self.is_effectively_contained_node(cx.no_gc(), child)
+        })
     }
 
     pub(crate) fn for_each_effectively_contained_child<Callback: FnMut(&mut JSContext, &Node)>(

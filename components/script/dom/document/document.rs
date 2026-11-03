@@ -5035,7 +5035,7 @@ impl Document {
     }
 
     /// <https://drafts.csswg.org/css-position-4/#process-top-layer-removals>
-    pub(crate) fn process_top_layer_removals(&self, cx: &mut JSContext,) {
+    pub(crate) fn process_top_layer_removals(&self, cx: &mut JSContext) {
         // Step 1. For each element el in doc’s pending top layer removals: if el's computed value
         // of overlay is none, or el is not rendered, remove from the top layer immediately el.
         // TODO: Check `overlay` once it is supported.

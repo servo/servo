@@ -341,7 +341,8 @@ impl Selection {
         let (previously_flagged_nodes, flat_tree_selection) = {
             let no_gc = cx.no_gc();
 
-            let previously_flagged_nodes = self.iter_nodes_with_overlaps_document_selection_flag(no_gc)
+            let previously_flagged_nodes = self
+                .iter_nodes_with_overlaps_document_selection_flag(no_gc)
                 .map(|node| node.as_rooted())
                 .collect::<FxHashSet<_>>();
 
@@ -1702,7 +1703,9 @@ impl FlatTreeSelection {
         let start_position = position_in_flat_tree_for_selection(no_gc, &self.start);
         let end_position = position_in_flat_tree_for_selection(no_gc, &self.end);
         VisibleSelectionTraversal {
-            following: start_position.node().following_flat_tree_nodes_unrooted(no_gc),
+            following: start_position
+                .node()
+                .following_flat_tree_nodes_unrooted(no_gc),
             start: start_position,
             end: end_position,
             finished: false,
@@ -1816,17 +1819,17 @@ impl VisibleSelectionFlagUpdate {
         update.finish(no_gc, document);
     }
 
-    fn set(
-        &mut self,
-        cx: &mut JSContext,
-        node: &Node,
-        flat_tree_selection: &FlatTreeSelection,
-    ) {
+    fn set(&mut self, cx: &mut JSContext, node: &Node, flat_tree_selection: &FlatTreeSelection) {
         if !node.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) {
             node.set_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION, true);
-            debug_assert!(!self.previously_flagged_nodes.contains(&DomRoot::from_ref(node)));
+            debug_assert!(
+                !self
+                    .previously_flagged_nodes
+                    .contains(&DomRoot::from_ref(node))
+            );
         } else {
-            self.previously_flagged_nodes.remove(&DomRoot::from_ref(node));
+            self.previously_flagged_nodes
+                .remove(&DomRoot::from_ref(node));
         }
 
         // TODO: We should ensure that the style is up-to-date before reading the
@@ -1837,7 +1840,11 @@ impl VisibleSelectionFlagUpdate {
         let inhibited = user_select == UsedUserSelect::None;
         node.set_flag(NodeFlags::SELECTION_INHIBITED, inhibited);
 
-        self.set_node_selection(cx.no_gc(), node, (!inhibited).then_some(flat_tree_selection));
+        self.set_node_selection(
+            cx.no_gc(),
+            node,
+            (!inhibited).then_some(flat_tree_selection),
+        );
     }
 
     fn clear(&mut self, no_gc: &NoGC, node: &Node) {
@@ -1865,7 +1872,12 @@ impl VisibleSelectionFlagUpdate {
         }
     }
 
-    fn set_node_selection(&mut self, no_gc: &NoGC, node: &Node, flat_tree_selection: Option<&FlatTreeSelection>) {
+    fn set_node_selection(
+        &mut self,
+        no_gc: &NoGC,
+        node: &Node,
+        flat_tree_selection: Option<&FlatTreeSelection>,
+    ) {
         if let Some(character_data) = node.downcast::<CharacterData>() {
             let range = flat_tree_selection.map(|flat_tree_selection| {
                 flat_tree_selection.range_for_character_data(character_data)

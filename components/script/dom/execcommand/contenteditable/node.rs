@@ -641,7 +641,9 @@ where
         node_list
             .last()
             .and_then(|last| last.GetNextSibling())
-            .filter(|next_of_last| next_of_last.is_editable(cx) && sibling_criteria(cx, next_of_last))
+            .filter(|next_of_last| {
+                next_of_last.is_editable(cx) && sibling_criteria(cx, next_of_last)
+            })
     });
     // Step 8. Otherwise, run new parent instructions, and let new parent be the result.
     // Step 9. If new parent is null, abort these steps and return null.
@@ -725,7 +727,10 @@ where
         // call createElement("br") on the ownerDocument of new parent
         // and insert the result as the first child of new parent.
         if !new_parent.is_inline_node(cx) &&
-            new_parent.children().find(|child| child.is_visible(cx)).is_some_and(|child| child.is_inline_node(cx)) &&
+            new_parent
+                .children()
+                .find(|child| child.is_visible(cx))
+                .is_some_and(|child| child.is_inline_node(cx)) &&
             node_list
                 .iter()
                 .rev()
@@ -1178,28 +1183,30 @@ impl Node {
             // specified command value is equivalent to new value and whose effective command value
             // is loosely equivalent to new value and false otherwise,
             // and with new parent instructions returning null.
-{
-    wrap_node_list(cx, vec![DomRoot::from_ref(self)], |cx, sibling| {
-        sibling
-            .downcast::<Element>()
-            .is_some_and(|sibling_element| {
-                sibling_element.is_simple_modifiable_element() &&
-                    command.are_equivalent_values(
-                        sibling_element
-                            .specified_command_value(cx, command)
-                            .as_ref(),
-                        Some(new_value),
-                    ) &&
-                    command.are_loosely_equivalent_values(
-                        sibling.effective_command_value(cx, command).as_ref(),
-                        Some(new_value),
-                    )
-            })
-    }, |_| {
-        None
-    });
-}
-
+            {
+                wrap_node_list(
+                    cx,
+                    vec![DomRoot::from_ref(self)],
+                    |cx, sibling| {
+                        sibling
+                            .downcast::<Element>()
+                            .is_some_and(|sibling_element| {
+                                sibling_element.is_simple_modifiable_element() &&
+                                    command.are_equivalent_values(
+                                        sibling_element
+                                            .specified_command_value(cx, command)
+                                            .as_ref(),
+                                        Some(new_value),
+                                    ) &&
+                                    command.are_loosely_equivalent_values(
+                                        sibling.effective_command_value(cx, command).as_ref(),
+                                        Some(new_value),
+                                    )
+                            })
+                    },
+                    |_| None,
+                );
+            }
         }
         // Step 5. If node is invisible, abort this algorithm.
         if self.is_invisible(cx) {
@@ -1607,7 +1614,7 @@ impl Node {
             .children()
             // .map(|child| child.as_rooted())
             // ;
-        // let last_visible_child = last_child
+            // let last_visible_child = last_child
             .nth(offset - 1)
             .is_some_and(|child| {
                 child.is_visible(cx) && (child.is_block_node(cx) || child.is::<HTMLBRElement>())

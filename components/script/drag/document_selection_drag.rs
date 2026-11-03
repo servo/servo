@@ -73,7 +73,9 @@ impl DocumentSelectionDragHandler {
         };
 
         let adjust_for_user_select =
-            |cx: &mut JSContext, anchor: Option<&RootedSelectionBoundary>, focus: RootedSelectionBoundary| {
+            |cx: &mut JSContext,
+             anchor: Option<&RootedSelectionBoundary>,
+             focus: RootedSelectionBoundary| {
                 adjust_focus_for_user_select(
                     cx,
                     anchor,
@@ -89,10 +91,7 @@ impl DocumentSelectionDragHandler {
                 selection.composed_anchor_position().as_ref(),
                 boundary.clone(),
             );
-            selection.collapse_or_extend_to_dom_position(
-                cx,
-                selection_boundary,
-            );
+            selection.collapse_or_extend_to_dom_position(cx, selection_boundary);
             return true;
         };
 
@@ -144,7 +143,8 @@ pub(crate) fn adjust_anchor_for_user_select<'a>(
     mut anchor_candidate: RootedSelectionBoundary,
 ) -> Option<(RootedSelectionBoundary, Option<DomRoot<Node>>)> {
     let mut cache = Default::default();
-    let anchor_candidate_used_user_select = anchor_candidate.container.used_user_select(cx, &mut cache);
+    let anchor_candidate_used_user_select =
+        anchor_candidate.container.used_user_select(cx, &mut cache);
     if anchor_candidate_used_user_select == UsedUserSelect::None {
         return None;
     }
@@ -344,8 +344,8 @@ impl Node {
                     .parent_in_flat_tree(cx.no_gc())
                     .into_parent()
                     .map(|parent| parent.as_rooted());
-                let parent_used_value = parent_used
-                    .map(|parent| parent.used_user_select(cx, cache));
+                let parent_used_value =
+                    parent_used.map(|parent| parent.used_user_select(cx, cache));
                 // > The used value of `auto` is determined as follows:
                 // > * On the `::before` and `::after` pseudo-elements, the used value is `none`
                 // > * If the element is an editable element, the used value is `contain`

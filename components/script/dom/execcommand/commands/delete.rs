@@ -249,7 +249,7 @@ pub(crate) fn execute_delete_command(
     // Step 12. If start node has a child with index start offset − 1, and that child is a table:
     if start_offset > 0 &&
         start_node
-        .children_unrooted(cx.no_gc())
+            .children_unrooted(cx.no_gc())
             .nth((start_offset - 1) as usize)
             .is_some_and(|child| child.is::<HTMLTableElement>())
     {

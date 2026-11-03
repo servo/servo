@@ -637,9 +637,7 @@ impl Element {
     ///  2. The style specifies that overflow should be scrollable (`auto`, `hidden` or `scroll`).
     ///  3. The fragment actually has content that overflows the box.
     fn has_scrolling_box(&self, cx: &mut JSContext) -> bool {
-        self.has_css_layout_box(cx) &&
-            self.establishes_scroll_container() &&
-            self.has_overflow(cx)
+        self.has_css_layout_box(cx) && self.establishes_scroll_container() && self.has_overflow(cx)
     }
 
     pub(crate) fn shadow_root(&self) -> Option<DomRoot<ShadowRoot>> {
