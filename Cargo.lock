@@ -8503,7 +8503,6 @@ dependencies = [
  "servo-webgpu-traits",
  "servo-webxr-api",
  "stylo",
- "stylo_traits",
  "tracing",
 ]
 
