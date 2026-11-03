@@ -1,0 +1,9 @@
+<!doctype html>
+<link rel="help" href="https://github.com/servo/servo/pull/49541">
+<script>
+var text = document.createTextNode("fuzz");
+var range = document.createRange();
+range.selectNodeContents(text);
+text.appendData("A".repeat(4096));
+text.replaceData(9, 4294967295, ".cls");
+</script>
