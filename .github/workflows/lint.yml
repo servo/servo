@@ -67,6 +67,10 @@ jobs:
         with:
           # Keep this in sync with the bootstrap version!
           tool: cargo-deny@0.20.2
+        # Install ALSA development headers (needed for alsa-sys crate for WebMIDI)
+      - name: Install libasound2-dev
+        shell: bash
+        run: sudo apt install libasound2-dev
       - name: Change Mirror Priorities
         if: ${{ runner.environment != 'self-hosted' }}
         uses: ./.github/actions/apt-mirrors

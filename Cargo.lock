@@ -10048,7 +10048,7 @@ dependencies = [
 
 [[package]]
 name = "servo-webmidi"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "arrayvec",
  "log",
@@ -10061,7 +10061,7 @@ dependencies = [
 
 [[package]]
 name = "servo-webmidi-traits"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "malloc_size_of_derive",
  "midir",
