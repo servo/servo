@@ -1943,7 +1943,7 @@ pub(crate) fn handle_element_clear(
                 }
 
                 let paint_tree = get_element_pointer_interactable_paint_tree(cx, &element);
-                if !is_element_in_view(&element, &paint_tree) {
+                if !is_element_in_view(cx, &element, &paint_tree) {
                     return Err(ErrorStatus::ElementNotInteractable);
                 }
 
@@ -2019,7 +2019,7 @@ pub(crate) fn handle_element_click(
                 // return error with error code element not interactable.
                 let paint_tree = get_element_pointer_interactable_paint_tree(cx, &container);
 
-                if !is_element_in_view(&container, &paint_tree) {
+                if !is_element_in_view(cx, &container, &paint_tree) {
                     return Err(ErrorStatus::ElementNotInteractable);
                 }
 
@@ -2096,7 +2096,11 @@ pub(crate) fn handle_element_click(
 }
 
 /// <https://w3c.github.io/webdriver/#dfn-in-view>
-fn is_element_in_view(element: &Element, paint_tree: &[DomRoot<Element>]) -> bool {
+fn is_element_in_view(
+    cx: &mut JSContext,
+    element: &Element,
+    paint_tree: &[DomRoot<Element>],
+) -> bool {
     // An element is in view if it is a member of its own pointer-interactable paint tree,
     // given the pretense that its pointer events are not disabled.
     if !paint_tree.iter().any(|e| &**e == element) {
@@ -2107,7 +2111,7 @@ fn is_element_in_view(element: &Element, paint_tree: &[DomRoot<Element>]) -> boo
     // An element is said to have pointer events disabled
     // if the resolved value of its "pointer-events" style property is "none".
     element
-        .style()
+        .style(cx)
         .is_none_or(|style| style.get_inherited_ui().pointer_events != PointerEvents::None)
 }
 
@@ -2219,7 +2223,7 @@ pub(crate) fn handle_remove_load_status_sender(
 fn scroll_into_view(cx: &mut JSContext, element: &Element) {
     // Check if element is already in view
     let paint_tree = get_element_pointer_interactable_paint_tree(cx, element);
-    if is_element_in_view(element, &paint_tree) {
+    if is_element_in_view(cx, element, &paint_tree) {
         return;
     }
 
