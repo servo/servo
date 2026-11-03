@@ -30,9 +30,9 @@ impl Element {
         // Do not allow unrendered, disconnected, disabled or inert nodes to be focusable areas ever.
         let node: &Node = self.upcast();
         if !node.is_connected() ||
-            !self.has_css_layout_box() ||
+            !self.has_css_layout_box(cx) ||
             self.is_actually_disabled() ||
-            node.is_inert()
+            node.is_inert(cx)
         {
             return Default::default();
         }
@@ -40,7 +40,7 @@ impl Element {
         // <https://www.w3.org/TR/css-display-4/#visibility>
         // Invisible elements are removed from navigation.
         if self
-            .style()
+            .style(cx)
             .is_some_and(|style| style.get_inherited_box().visibility != Visibility::Visible)
         {
             return Default::default();
