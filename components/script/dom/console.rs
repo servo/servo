@@ -929,22 +929,22 @@ fn stringify_debugger_value(value: &DebuggerValue) -> String {
 }
 
 #[derive(Default)]
-struct ConsoleTable {
+pub struct ConsoleTable {
     /// Column names in first-seen order (or the order given by `properties`).
-    columns: Vec<String>,
-    rows: Vec<TableRow>,
+    pub columns: Vec<String>,
+    pub rows: Vec<TableRow>,
 }
 
-struct TableRow {
-    index: String,
+pub struct TableRow {
+    pub index: String,
     /// (column name, cell text)
-    cells: Vec<(String, String)>,
+    pub cells: Vec<(String, String)>,
     /// Set when the row itself is a primitive -> goes in the "Values" column.
-    value: Option<String>,
+    pub value: Option<String>,
 }
 
 impl ConsoleTable {
-    fn render(&self) -> String {
+    pub fn render(&self) -> String {
         let has_values = self.rows.iter().any(|row| row.value.is_some());
 
         let mut headers = vec!["(index)".to_string()];
@@ -1427,27 +1427,4 @@ fn get_js_stack(cx: &mut JSContext) -> Vec<StackFrame> {
     });
 
     frames
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// Equivalent to `console.table(["A".repeat(70000)])`.
-    ///
-    /// <https://github.com/servo/servo/issues/49522>.
-    #[test]
-    fn console_table_large_width() {
-        let table = ConsoleTable {
-            columns: Vec::new(),
-            rows: vec![TableRow {
-                index: "0".to_string(),
-                cells: vec![],
-                value: Some("A".repeat(70000)),
-            }],
-        };
-
-        // should not panic here
-        let _rendered = table.render();
-    }
 }
