@@ -18,7 +18,6 @@ use js::context::JSContext;
 use js::offthread::compile_to_stencil_offthread;
 use js::rust::HandleObject;
 use net_traits::blob_url_store::UrlWithBlobClaim;
-use net_traits::http_status::HttpStatus;
 use net_traits::request::{
     CorsSettings, Destination, ParserMetadata, Referrer, RequestBuilder, RequestId,
 };
@@ -349,26 +348,7 @@ impl FetchResponseListener for ClassicContext {
             metadata.into()
         });
 
-        let status = self
-            .metadata
-            .as_ref()
-            .map(|m| m.status.clone())
-            .unwrap_or_else(HttpStatus::new_error);
-
-        self.status = {
-            if status.is_error() {
-                Err(NetworkError::ResourceLoadError(
-                    "No http status code received".to_owned(),
-                ))
-            } else if status.is_success() {
-                Ok(())
-            } else {
-                Err(NetworkError::ResourceLoadError(format!(
-                    "HTTP error code {}",
-                    status.code()
-                )))
-            }
-        };
+        self.status = network_listener::check_response_status(self.metadata.as_ref());
     }
 
     fn process_response_chunk(

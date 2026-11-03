@@ -37,7 +37,6 @@ use js::rust::wrappers2::{
 use js::rust::{Handle, HandleValue, ToString, transform_str_to_source_text};
 use mime::Mime;
 use net_traits::blob_url_store::UrlWithBlobClaim;
-use net_traits::http_status::HttpStatus;
 use net_traits::mime_classifier::MimeClassifier;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
@@ -429,26 +428,7 @@ impl FetchResponseListener for ModuleContext {
     ) {
         self.metadata = metadata.ok().map(Into::into);
 
-        let status = self
-            .metadata
-            .as_ref()
-            .map(|m| m.status.clone())
-            .unwrap_or_else(HttpStatus::new_error);
-
-        self.status = {
-            if status.is_error() {
-                Err(NetworkError::ResourceLoadError(
-                    "No http status code received".to_owned(),
-                ))
-            } else if status.is_success() {
-                Ok(())
-            } else {
-                Err(NetworkError::ResourceLoadError(format!(
-                    "HTTP error code {}",
-                    status.code()
-                )))
-            }
-        };
+        self.status = network_listener::check_response_status(self.metadata.as_ref());
     }
 
     fn process_response_chunk(
