@@ -3074,8 +3074,8 @@ impl Document {
             self.salvageable.set(false);
         } else if self.ready_state.get() != DocumentReadyState::Complete {
             // See <https://github.com/whatwg/html/issues/5535>.
-            // All browsers set the document readiness to "complete" when aborting, even though it
-            // is isn't specified. In addition, WPT tests depend on this happening.
+            // All browsers set the document readiness to "complete" when aborting, even though
+            // it isn't specified. In addition, WPT tests depend on this happening.
             let document = Trusted::new(self);
             self.owner_global()
                 .task_manager()
