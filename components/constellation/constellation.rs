@@ -600,16 +600,6 @@ pub struct InitialConstellationState {
     pub wake_lock_provider: Box<dyn WakeLockDelegate>,
 }
 
-/// When we are exiting a pipeline, we can either force exiting or not. A normal exit
-/// waits for `Paint` to update its state before exiting, and delegates layout exit to
-/// script. A forced exit does not notify `Paint`, and exits layout without involving
-/// script.
-#[derive(Clone, Copy, Debug)]
-enum ExitPipelineMode {
-    Normal,
-    Force,
-}
-
 /// The number of warnings to include in each crash report.
 const WARNINGS_BUFFER_SIZE: usize = 32;
 
@@ -2696,7 +2686,7 @@ where
                 "{}: Removing top-level browsing context",
                 browsing_context_id
             );
-            self.close_browsing_context(webview_id, browsing_context_id, ExitPipelineMode::Normal);
+            self.close_browsing_context(webview_id, browsing_context_id);
         }
 
         // Close any pending changes and pipelines
@@ -2710,17 +2700,9 @@ where
                 "{}: Removing pending browsing context",
                 pending.browsing_context_id
             );
-            self.close_browsing_context(
-                pending.webview_id,
-                pending.browsing_context_id,
-                ExitPipelineMode::Normal,
-            );
+            self.close_browsing_context(pending.webview_id, pending.browsing_context_id);
             debug!("{}: Removing pending pipeline", pending.new_pipeline_id);
-            self.close_pipeline(
-                pending.new_pipeline_id,
-                DiscardBrowsingContext::Yes,
-                ExitPipelineMode::Normal,
-            );
+            self.close_pipeline(pending.new_pipeline_id, DiscardBrowsingContext::Yes);
         }
 
         // In case there are browsing contexts which weren't attached, we close them.
@@ -2737,18 +2719,14 @@ where
                 "{}: Removing detached browsing context",
                 browsing_context_id
             );
-            self.close_browsing_context(webview_id, browsing_context_id, ExitPipelineMode::Normal);
+            self.close_browsing_context(webview_id, browsing_context_id);
         }
 
         // In case there are pipelines which weren't attached to the pipeline tree, we close them.
         let pipeline_ids: Vec<PipelineId> = self.pipelines.keys().cloned().collect();
         for pipeline_id in pipeline_ids {
             debug!("{}: Removing detached pipeline", pipeline_id);
-            self.close_pipeline(
-                pipeline_id,
-                DiscardBrowsingContext::Yes,
-                ExitPipelineMode::Normal,
-            );
+            self.close_pipeline(pipeline_id, DiscardBrowsingContext::Yes);
         }
     }
 
@@ -3053,11 +3031,7 @@ where
         }
 
         for pipeline_id in crashed_pipelines {
-            self.close_pipeline(
-                pipeline_id,
-                DiscardBrowsingContext::No,
-                ExitPipelineMode::Force,
-            );
+            self.close_pipeline(pipeline_id, DiscardBrowsingContext::No);
             // The pipeline is now unreachable, so we should consider it gone. We should
             // not try to send any subsequent messages to this pipeline. all() here ensures
             // that `Paint` cleans up the pipeline display immediately without waiting for
@@ -3100,7 +3074,6 @@ where
             webview_id,
             browsing_context_id,
             DiscardBrowsingContext::No,
-            ExitPipelineMode::Force,
         );
 
         if old_load_data.crash.is_some() {
@@ -3421,7 +3394,7 @@ where
         // descendants given document.
 
         // Step 3. Remove browsingContext.
-        self.close_browsing_context(webview_id, browsing_context_id, ExitPipelineMode::Normal);
+        self.close_browsing_context(webview_id, browsing_context_id);
 
         // Step 4. Remove traversable from the user interface (e.g., close or
         // hide its tab in a tabbed browser).
@@ -3618,11 +3591,7 @@ where
             viewport_details: load_info.viewport_details,
         });
         for change in superseded_pending_changes {
-            self.close_pipeline(
-                change.new_pipeline_id,
-                DiscardBrowsingContext::No,
-                ExitPipelineMode::Normal,
-            );
+            self.close_pipeline(change.new_pipeline_id, DiscardBrowsingContext::No);
         }
     }
 
@@ -4363,11 +4332,7 @@ where
             return;
         }
 
-        self.close_pipeline(
-            new_pipeline_id,
-            DiscardBrowsingContext::No,
-            ExitPipelineMode::Normal,
-        );
+        self.close_pipeline(new_pipeline_id, DiscardBrowsingContext::No);
 
         if let Some(webview) = self.webviews.get_mut(&webview_id) {
             webview.send_screenshot_readiness_requests_to_pipelines(
@@ -5231,7 +5196,7 @@ where
             .all_descendant_browsing_contexts_iter(browsing_context_id)
             .flat_map(|browsing_context| browsing_context.pipelines.iter().cloned())
             .collect();
-        self.close_browsing_context(webview_id, browsing_context_id, ExitPipelineMode::Normal);
+        self.close_browsing_context(webview_id, browsing_context_id);
         result
     }
 
@@ -5590,11 +5555,7 @@ where
 
                 if let Some(pipelines_to_close) = pipelines_to_close {
                     for pipeline_id in pipelines_to_close {
-                        self.close_pipeline(
-                            pipeline_id,
-                            DiscardBrowsingContext::No,
-                            ExitPipelineMode::Normal,
-                        );
+                        self.close_pipeline(pipeline_id, DiscardBrowsingContext::No);
                     }
                 }
             },
@@ -5700,11 +5661,7 @@ where
             };
 
             dead_pipelines.push((evicted_id, NeedsToReload::Yes(evicted_id, load_data)));
-            self.close_pipeline(
-                evicted_id,
-                DiscardBrowsingContext::No,
-                ExitPipelineMode::Normal,
-            );
+            self.close_pipeline(evicted_id, DiscardBrowsingContext::No);
         }
 
         if let Some(webview) = self.webviews.get_mut(&webview_id) {
@@ -5952,7 +5909,6 @@ where
         &mut self,
         webview_id: WebViewId,
         browsing_context_id: BrowsingContextId,
-        exit_mode: ExitPipelineMode,
     ) -> Option<BrowsingContext> {
         debug!("{}: Closing", browsing_context_id);
 
@@ -5960,7 +5916,6 @@ where
             webview_id,
             browsing_context_id,
             DiscardBrowsingContext::Yes,
-            exit_mode,
         );
 
         let Some(webview) = self.webviews.get_mut(&webview_id) else {
@@ -6007,7 +5962,6 @@ where
         webview_id: WebViewId,
         browsing_context_id: BrowsingContextId,
         dbc: DiscardBrowsingContext,
-        exit_mode: ExitPipelineMode,
     ) {
         debug!("{}: Closing browsing context children", browsing_context_id);
 
@@ -6034,7 +5988,7 @@ where
         }
 
         for pipeline_id in pipelines_to_close {
-            self.close_pipeline(pipeline_id, dbc, exit_mode);
+            self.close_pipeline(pipeline_id, dbc);
         }
 
         debug!("{}: Closed browsing context children", browsing_context_id);
@@ -6067,11 +6021,7 @@ where
                 return warn!("{pipeline_id}: Discarding after closure of {webview_id}",);
             },
         };
-        self.close_pipeline(
-            pipeline_id,
-            DiscardBrowsingContext::No,
-            ExitPipelineMode::Normal,
-        );
+        self.close_pipeline(pipeline_id, DiscardBrowsingContext::No);
     }
 
     /// Send a message to script requesting the document associated with this pipeline runs the 'unload' algorithm.
@@ -6087,12 +6037,7 @@ where
 
     // Close all pipelines at and beneath a given browsing context
     #[servo_tracing::instrument(skip_all)]
-    fn close_pipeline(
-        &mut self,
-        pipeline_id: PipelineId,
-        dbc: DiscardBrowsingContext,
-        exit_mode: ExitPipelineMode,
-    ) {
+    fn close_pipeline(&mut self, pipeline_id: PipelineId, dbc: DiscardBrowsingContext) {
         debug!("{}: Closing", pipeline_id);
 
         // Sever connection to browsing context
@@ -6124,7 +6069,7 @@ where
 
         // Remove any child browsing contexts
         for child_browsing_context in &browsing_contexts_to_close {
-            self.close_browsing_context(webview_id, *child_browsing_context, exit_mode);
+            self.close_browsing_context(webview_id, *child_browsing_context);
         }
 
         // Note, we don't remove the pipeline now, we wait for the message to come back from
