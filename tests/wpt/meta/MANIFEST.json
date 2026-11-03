@@ -1823,13 +1823,6 @@
     }
    },
    "contenteditable": {
-    "range-larger-than-u32-crash.html": [
-     "f54af4f7fc90263e5b16657f9a8dd174c5e81456",
-     [
-      null,
-      {}
-     ]
-    ],
     "select-text-change-crash.html": [
      "190057b4ff1fc2a72c4ecf609829453e20b42b06",
      [
@@ -15479,6 +15472,13 @@
       ]
      ]
     },
+    "range-larger-than-u32-crash.html": [
+     "f54af4f7fc90263e5b16657f9a8dd174c5e81456",
+     [
+      null,
+      {}
+     ]
+    ],
     "selection-select-all-move-input-crash.html": [
      "6f692dc5e7d69a30a407f107268c9e012efcd9e3",
      [
