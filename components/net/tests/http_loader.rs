@@ -219,10 +219,6 @@ fn test_check_default_headers_loaded_in_every_request() {
         HeaderName::from_static("sec-fetch-site"),
         HeaderValue::from_static("same-origin"),
     );
-    headers.insert(
-        HeaderName::from_static("sec-fetch-user"),
-        HeaderValue::from_static("?1"),
-    );
 
     *expected_headers.lock() = Some(headers.clone());
 
@@ -381,10 +377,6 @@ fn test_request_and_response_data_with_network_messages() {
     headers.insert(
         HeaderName::from_static("sec-fetch-site"),
         HeaderValue::from_static("cross-site"),
-    );
-    headers.insert(
-        HeaderName::from_static("sec-fetch-user"),
-        HeaderValue::from_static("?1"),
     );
 
     let httprequest = DevtoolsHttpRequest {

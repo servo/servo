@@ -185,11 +185,11 @@ def main(config_file):
             key=get_filename
         )
         for filename, some_subtests in subtests_by_filename:
-            with open(filename, 'w') as handle:
+            with open(os.path.join(HERE, filename), 'w') as handle:
                 handle.write(templates[template_name].render(
                     subtests=list(some_subtests),
                     provenance=provenance
                 ) + '\n')
 
 if __name__ == '__main__':
-    main('fetch-metadata.conf.yml')
+    main(os.path.join(HERE, 'fetch-metadata.conf.yml'))

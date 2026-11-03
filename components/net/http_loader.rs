@@ -3010,8 +3010,7 @@ fn set_the_sec_fetch_user_header(r: &mut Request) {
     debug_assert!(r.current_url().is_potentially_trustworthy());
 
     // Step 2. If r is not a navigation request, or if r’s user-activation is false, return.
-    // TODO user activation
-    if !r.is_navigation_request() {
+    if !r.is_navigation_request() || !r.user_activation {
         return;
     }
 
