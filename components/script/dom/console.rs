@@ -974,7 +974,7 @@ impl ConsoleTable {
             })
             .collect();
 
-        let widths: Vec<usize> = (0..headers.len())
+        let column_widths: Vec<usize> = (0..headers.len())
             .map(|i| {
                 std::iter::once(&headers[i])
                     .chain(grid.iter().map(|row| &row[i]))
@@ -985,14 +985,17 @@ impl ConsoleTable {
             .collect();
 
         let border = |left: &str, mid: &str, right: &str| {
-            let segments: Vec<String> = widths.iter().map(|w| "─".repeat(w + 2)).collect();
+            let segments: Vec<String> = column_widths.iter().map(|w| "─".repeat(w + 2)).collect();
             format!("{left}{}{right}", segments.join(mid))
         };
         let line = |cells: &[String]| {
             let padded: Vec<String> = cells
                 .iter()
-                .zip(&widths)
-                .map(|(cell, &w)| format!(" {cell:<w$} "))
+                .zip(&column_widths)
+                .map(|(cell, &column_width)| {
+                    let pad_width = column_width.saturating_sub(cell.chars().count());
+                    format!(" {cell}{} ", " ".repeat(pad_width))
+                })
                 .collect();
             format!("│{}│", padded.join("│"))
         };
@@ -1424,4 +1427,27 @@ fn get_js_stack(cx: &mut JSContext) -> Vec<StackFrame> {
     });
 
     frames
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Equivalent to `console.table(["A".repeat(70000)])`.
+    ///
+    /// <https://github.com/servo/servo/issues/49522>.
+    #[test]
+    fn console_table_large_width() {
+        let table = ConsoleTable {
+            columns: Vec::new(),
+            rows: vec![TableRow {
+                index: "0".to_string(),
+                cells: vec![],
+                value: Some("A".repeat(70000)),
+            }],
+        };
+
+        // should not panic here
+        let _rendered = table.render();
+    }
 }
