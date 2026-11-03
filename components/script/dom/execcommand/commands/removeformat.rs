@@ -7,6 +7,7 @@ use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::RangeBinding::RangeMethods;
 use script_bindings::inheritance::Castable;
 
+use crate::dom::Node;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::TextBinding::TextMethods;
 use crate::dom::bindings::root::DomRoot;
@@ -96,7 +97,7 @@ pub(crate) fn execute_removeformat_command(
     // to the result, and its start offset to zero.
     let start_node = active_range.start_container();
     let start_offset = active_range.start_offset();
-    if start_node.is_editable() &&
+    if start_node.is_editable(cx) &&
         start_offset != 0 &&
         start_offset != start_node.len() &&
         let Some(start_text) = start_node.downcast::<Text>()
@@ -112,7 +113,7 @@ pub(crate) fn execute_removeformat_command(
     // equal to the active range's end offset.
     let end_node = active_range.end_container();
     let end_offset = active_range.end_offset();
-    if end_node.is_editable() &&
+    if end_node.is_editable(cx) &&
         end_offset != 0 &&
         end_offset != end_node.len() &&
         let Some(end_text) = end_node.downcast::<Text>() &&
@@ -122,8 +123,8 @@ pub(crate) fn execute_removeformat_command(
     };
     // Step 5. Let node list consist of all editable nodes effectively contained in the active range.
     let mut node_list = vec![];
-    active_range.for_each_effectively_contained_child(cx, |_cx, node| {
-        if node.is_editable() {
+    active_range.for_each_effectively_contained_child(cx, |cx, node: &Node| {
+        if node.is_editable(cx) {
             node_list.push(DomRoot::from_ref(node));
         }
     });
