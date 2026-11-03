@@ -2545,7 +2545,7 @@ impl DocumentEventHandler {
             return false;
         };
 
-        if command.disabled() || command.hidden() {
+        if command.disabled(cx) || command.hidden() {
             return false;
         }
 

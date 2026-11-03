@@ -5035,7 +5035,7 @@ impl Document {
     }
 
     /// <https://drafts.csswg.org/css-position-4/#process-top-layer-removals>
-    pub(crate) fn process_top_layer_removals(&self, no_gc: &NoGC) {
+    pub(crate) fn process_top_layer_removals(&self, cx: &mut JSContext,) {
         // Step 1. For each element el in doc’s pending top layer removals: if el's computed value
         // of overlay is none, or el is not rendered, remove from the top layer immediately el.
         // TODO: Check `overlay` once it is supported.
@@ -5046,8 +5046,8 @@ impl Document {
             .map(|element| DomRoot::from_ref(&**element))
             .collect();
         for element in pending_removals {
-            if !element.has_css_layout_box() {
-                self.remove_an_element_from_the_top_layer_immediately(&element, no_gc)
+            if !element.has_css_layout_box(cx) {
+                self.remove_an_element_from_the_top_layer_immediately(&element, cx.no_gc());
             }
         }
     }
@@ -7196,7 +7196,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-document-scrollingelement>
-    fn GetScrollingElement(&self) -> Option<DomRoot<Element>> {
+    fn GetScrollingElement(&self, cx: &mut JSContext) -> Option<DomRoot<Element>> {
         // Step 1. If the Document is in quirks mode, follow these steps:
         if self.quirks_mode() == QuirksMode::Quirks {
             // Step 1.1. If the body element exists,
@@ -7205,7 +7205,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 // and it is not potentially scrollable, return the body element and abort these steps.
                 // For this purpose, a value of overflow:clip on the body element’s parent element
                 // must be treated as overflow:hidden.
-                if !e.is_potentially_scrollable_body_for_scrolling_element() {
+                if !e.is_potentially_scrollable_body_for_scrolling_element(cx) {
                     return Some(DomRoot::from_ref(e));
                 }
             }
