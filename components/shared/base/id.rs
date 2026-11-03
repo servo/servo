@@ -488,9 +488,19 @@ pub struct ScrollTreeNodeId {
 #[derive(MallocSizeOf)]
 pub struct AtomicOptionScrollTreeNodeId(AtomicUsize);
 
+impl Default for AtomicOptionScrollTreeNodeId {
+    fn default() -> Self {
+        Self::new(None)
+    }
+}
+
 impl AtomicOptionScrollTreeNodeId {
     pub fn new(option_id: Option<ScrollTreeNodeId>) -> Self {
         Self(AtomicUsize::new(Self::from_option(option_id)))
+    }
+
+    pub fn clear(&self) {
+        self.set(None)
     }
 
     pub fn set(&self, option_id: Option<ScrollTreeNodeId>) {

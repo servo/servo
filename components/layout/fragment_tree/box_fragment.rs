@@ -181,7 +181,7 @@ impl BoxFragment {
             background_mode: BackgroundMode::Normal,
             rare_data,
             block_level_layout_info: None,
-            spatial_tree_node: AtomicOptionScrollTreeNodeId::new(None),
+            spatial_tree_node: Default::default(),
         }
     }
 

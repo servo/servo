@@ -14,7 +14,7 @@ use layout_api::BoxAreaType;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
 use servo_base::cross_process_instant::CrossProcessInstant;
-use servo_base::id::PipelineId;
+use servo_base::id::{PipelineId, ScrollTreeNodeId};
 use servo_base::print_tree::PrintTree;
 use servo_base::text::Utf32CodeUnits;
 use servo_url::ServoUrl;
@@ -428,6 +428,13 @@ impl Fragment {
     pub(crate) fn is_box_fragment(&self, box_fragment: &BoxFragment) -> bool {
         self.retrieve_box_fragment()
             .is_some_and(|this_box_fragment| std::ptr::eq(&**this_box_fragment, box_fragment))
+    }
+
+    pub(crate) fn spatial_tree_node(&self) -> Option<ScrollTreeNodeId> {
+        if let Fragment::Positioning(positioning_fragment) = self {
+            return positioning_fragment.spatial_tree_node.get();
+        };
+        self.retrieve_box_fragment()?.spatial_tree_node()
     }
 }
 

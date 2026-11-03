@@ -8,6 +8,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use app_units::Au;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
+use servo_base::id::AtomicOptionScrollTreeNodeId;
 use servo_base::print_tree::PrintTree;
 use style::properties::ComputedValues;
 
@@ -39,6 +40,12 @@ pub(crate) struct PositioningFragment {
 
     /// Whether or not this [`PositioningFragment`] is a line box.
     is_line_box: bool,
+
+    /// The containing spatial tree node of this [`PositioningFragment`]. This is assigned
+    /// during `StackingContextTree` construction, so isn't available before that time.
+    /// This is used to for determining final viewport size and position of this node and
+    /// will also be used in the future for hit testing.
+    pub spatial_tree_node: AtomicOptionScrollTreeNodeId,
 }
 
 impl PositioningFragment {
@@ -80,6 +87,7 @@ impl PositioningFragment {
             scrollable_overflow_is_up_to_date: AtomicBool::new(false),
             cumulative_parent_content_rect: Default::default(),
             is_line_box,
+            spatial_tree_node: Default::default(),
         })
     }
 
