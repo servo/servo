@@ -142,7 +142,7 @@ impl HTMLElement {
         let element = self.as_element();
 
         // Step 1.
-        let element_not_rendered = !node.is_connected() || !element.has_css_layout_box();
+        let element_not_rendered = !node.is_connected() || !element.has_css_layout_box(cx);
         if element_not_rendered {
             return node.GetTextContent().unwrap();
         }
@@ -613,14 +613,16 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
 
     /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-scrollparent>
     #[expect(unsafe_code)]
-    fn ScrollParent(&self) -> Option<DomRoot<Element>> {
+    fn ScrollParent(&self, cx: &mut JSContext) -> Option<DomRoot<Element>> {
         self.owner_window()
             .scroll_container_query(
                 Some(self.upcast()),
                 ScrollContainerQueryFlags::ForScrollParent,
             )
             .and_then(|response| match response {
-                ScrollContainerResponse::Viewport(_) => self.owner_document().GetScrollingElement(),
+                ScrollContainerResponse::Viewport(_) => {
+                    self.owner_document().GetScrollingElement(cx)
+                },
                 ScrollContainerResponse::Element(parent_node_address, _) => {
                     let node = unsafe { from_untrusted_node_address(parent_node_address) };
                     DomRoot::downcast(node)
