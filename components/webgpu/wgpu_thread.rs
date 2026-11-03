@@ -259,6 +259,14 @@ impl WGPU {
                             );
 
                             self.maybe_dispatch_wgpu_error(device_id, error);
+                        } else {
+                            // Script already reported the error; register an invalid id so that
+                            // later uses of it are validation errors instead of panics.
+                            global.create_bind_group_layout_error(
+                                device_id,
+                                Some(bind_group_layout_id),
+                                None,
+                            );
                         }
                     },
                     WebGPURequest::CreateBuffer {
@@ -463,16 +471,12 @@ impl WGPU {
                         device_id,
                         descriptor,
                     } => {
-                        let global = &self.global;
-                        if let Some(desc) = descriptor {
-                            let (_, error) = global.texture_create_view(
-                                texture_id,
-                                &desc,
-                                Some(texture_view_id),
-                            );
-
-                            self.maybe_dispatch_wgpu_error(device_id, error);
-                        }
+                        let (_, error) = self.global.texture_create_view(
+                            texture_id,
+                            &descriptor,
+                            Some(texture_view_id),
+                        );
+                        self.maybe_dispatch_wgpu_error(device_id, error);
                     },
                     WebGPURequest::DestroyBuffer(buffer) => {
                         let global = &self.global;
