@@ -383,9 +383,13 @@ impl WebGL2RenderingContext {
             }
             return Ok(&[(constants::RGBA, constants::UNSIGNED_BYTE)]);
         };
-        let format = fb
-            .attachment_effective_format(fb.read_buffer())
-            .ok_or(InvalidOperation)?;
+        if fb.attachment(fb.read_buffer()).is_none() {
+            return Err(InvalidOperation);
+        }
+        // An opaque framebuffer's color image is an RGBA8 texture allocated outside of script.
+        let Some(format) = fb.attachment_effective_format(fb.read_buffer()) else {
+            return Ok(&[(constants::RGBA, constants::UNSIGNED_BYTE)]);
+        };
         Ok(match format.component_type().ok_or(InvalidOperation)? {
             TexComponentType::UnsignedNormalized if format == TexFormat::RGB10A2 => &[
                 (constants::RGBA, constants::UNSIGNED_BYTE),

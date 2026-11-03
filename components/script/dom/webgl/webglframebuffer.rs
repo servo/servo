@@ -778,7 +778,7 @@ impl WebGLFramebuffer {
 
     /// Returns the effective internal format of the image bound to `attachment`: the sized
     /// format it was created with, or the sized format corresponding to its unsized format
-    /// and type; `None` if no image is bound.
+    /// and type; `None` if no image is bound or script does not track its format.
     pub(crate) fn attachment_effective_format(&self, attachment: u32) -> Option<TexFormat> {
         match self.attachment_binding(attachment)?.borrow().as_ref()? {
             WebGLFramebufferAttachment::Renderbuffer(rb) => {
