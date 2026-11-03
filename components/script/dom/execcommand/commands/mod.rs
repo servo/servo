@@ -19,6 +19,7 @@ pub(crate) mod insertlinebreak;
 pub(crate) mod insertparagraph;
 pub(crate) mod inserttext;
 pub(crate) mod italic;
+pub(crate) mod outdent;
 pub(crate) mod removeformat;
 pub(crate) mod strikethrough;
 pub(crate) mod stylewithcss;
