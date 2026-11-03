@@ -29,6 +29,8 @@ pub struct ResourceFetchTiming {
     pub connect_start: Option<CrossProcessInstant>,
     pub connect_end: Option<CrossProcessInstant>,
     pub start_time: Option<CrossProcessInstant>,
+    /// <https://fetch.spec.whatwg.org/#fetch-timing-info-final-service-worker-start-time>
+    pub final_service_worker_start_time: Option<CrossProcessInstant>,
     pub preloaded: bool,
 }
 
@@ -68,6 +70,7 @@ pub enum ResourceAttribute {
     SecureConnectionStart,
     ResponseEnd,
     StartTime(ResourceTimeValue),
+    FinalServiceWorkerStartTime,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
@@ -95,6 +98,7 @@ impl ResourceFetchTiming {
             connect_end: None,
             response_end: None,
             start_time: None,
+            final_service_worker_start_time: None,
             preloaded: false,
         }
     }
@@ -138,6 +142,9 @@ impl ResourceFetchTiming {
                 ResourceTimeValue::RedirectStart
                     if self.redirect_start.is_none() || !self.timing_check_passed => {},
                 _ => self.start_time = self.get_time_value(val),
+            },
+            ResourceAttribute::FinalServiceWorkerStartTime => {
+                self.final_service_worker_start_time = now
             },
         }
     }
