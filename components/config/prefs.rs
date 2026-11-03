@@ -40,17 +40,15 @@ pub fn add_observer(observer: Box<dyn PreferencesObserver>) {
 /// Update the values of the global preferences for the current process. This also notifies the
 /// observers previously added using [`add_observer`].
 pub fn set(preferences: Preferences) {
-    // Get list of changes, returning early if the preferences haven't changed.
-    let changed = preferences.diff(&PREFERENCES.read().unwrap());
-    if changed.is_empty() {
-        return;
-    }
-
     // Map between Stylo preference names and Servo preference names.
     stylo_static_prefs::set_pref!("layout.threads", preferences.layout_threads as i32);
     stylo_static_prefs::set_pref!(
         "layout.css.backdrop-filter.enabled",
         preferences.layout_css_backdrop_filter_enabled
+    );
+    stylo_static_prefs::set_pref!(
+        "layout.css.background-clip.text.enabled",
+        preferences.layout_css_background_clip_text_enabled
     );
     stylo_static_prefs::set_pref!(
         "layout.css.columns.enabled",
@@ -72,6 +70,12 @@ pub fn set(preferences: Preferences) {
         "layout.css.writing-mode.enabled",
         preferences.layout_css_writing_mode_enabled
     );
+
+    // Get list of changes, returning early if the preferences haven't changed.
+    let changed = preferences.diff(&PREFERENCES.read().unwrap());
+    if changed.is_empty() {
+        return;
+    }
 
     *PREFERENCES.write().unwrap() = preferences;
 
@@ -314,6 +318,7 @@ pub struct Preferences {
     pub largest_contentful_paint_enabled: bool,
     pub layout_animations_test_enabled: bool,
     pub layout_css_backdrop_filter_enabled: bool,
+    pub layout_css_background_clip_text_enabled: bool,
     // feature: CSS Multicol | #22397 | Web/CSS/Guides/Multicol_layout
     pub layout_css_columns_enabled: bool,
     pub layout_css_container_queries_enabled: bool,
@@ -573,6 +578,7 @@ impl Preferences {
             largest_contentful_paint_enabled: false,
             layout_animations_test_enabled: false,
             layout_css_backdrop_filter_enabled: false,
+            layout_css_background_clip_text_enabled: true,
             layout_css_columns_enabled: false,
             layout_css_container_queries_enabled: false,
             layout_css_ellipse_corners_enabled: false,
