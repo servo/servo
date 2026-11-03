@@ -118,7 +118,6 @@ impl WebViewDelegateImpl {
         self.fullscreen.set(false);
         self.crashes.set(0);
         *self.input_event_result.borrow_mut() = None;
-        self.scroll_states.borrow_mut().clear();
     }
 }
 
