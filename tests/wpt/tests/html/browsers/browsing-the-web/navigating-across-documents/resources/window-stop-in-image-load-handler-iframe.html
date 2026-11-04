@@ -1,0 +1,21 @@
+<!doctype html>
+<script>
+"use strict";
+
+// These two should not fire.
+addEventListener("load", () => parent.postMessage("load", "*"));
+addEventListener("pageshow", () => parent.postMessage("pageshow", "*"));
+
+addEventListener("DOMContentLoaded", () => {
+  const img = document.createElement("img");
+  img.onload = () => {
+    parent.postMessage("image-load", "*");
+    window.stop();
+    parent.postMessage("stopped", "*");
+  };
+  img.onerror = () => parent.postMessage("image-error", "*");
+  img.src = "/images/green.png";
+  document.body.append(img);
+});
+</script>
+<body></body>

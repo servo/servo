@@ -560530,6 +560530,10 @@
          "62ddec49f1be2a4bb36618e1c1888e0af0bbe904",
          []
         ],
+        "window-stop-in-image-load-handler-iframe.html": [
+         "cba7007bd6b2a507998eec9be4036606e38029e9",
+         []
+        ],
         "xhtml-and-non-utf-8.xhtml": [
          "3aacf33f1ceabb0ee7953736a5e8cb7c00a66ef7",
          []
@@ -1283935,6 +1283939,13 @@
           ],
           "timeout": "long"
          }
+        ]
+       ],
+       "window-stop-in-image-load-handler.html": [
+        "5a5d086918c5588206e1f9326580618aabcd9b56",
+        [
+         null,
+         {}
         ]
        ]
       },
