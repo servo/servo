@@ -28,6 +28,7 @@ use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::html::form_controls::htmlselectelement::HTMLSelectElement;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlformelement::{
     FormControl, FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement, ResetFrom,
@@ -39,7 +40,7 @@ use crate::dom::nodelist::NodeList;
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 
-#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq, Debug)]
 enum ButtonType {
     Submit,
     Reset,
@@ -261,6 +262,7 @@ impl HTMLButtonElement {
     }
 
     fn set_type(&self, cx: &mut JSContext, value: DOMString) {
+        println!("{:?}", value);
         let value = if value.eq_ignore_ascii_case("reset") {
             ButtonType::Reset
         } else if value.eq_ignore_ascii_case("button") {
@@ -269,14 +271,18 @@ impl HTMLButtonElement {
             ButtonType::Submit
         } else {
             let element = self.upcast::<Element>();
-            if element.has_attribute(&local_name!("command")) ||
-                element.has_attribute(&local_name!("commandfor"))
+            if !element.has_attribute(&local_name!("command")) &&
+                !element.has_attribute(&local_name!("commandfor")) &&
+                self.upcast::<Node>()
+                    .get_parent_node_unrooted(cx.no_gc())
+                    .is_none_or(|node| !node.is::<HTMLSelectElement>())
             {
-                ButtonType::Button
-            } else {
                 ButtonType::Submit
+            } else {
+                ButtonType::Button
             }
         };
+        println!("{:?}", value);
         self.button_type.set(value);
         self.validity_state(cx)
             .perform_validation_and_update(cx, ValidationFlags::all());
@@ -373,7 +379,12 @@ impl VirtualMethods for HTMLButtonElement {
                 self.validity_state(cx)
                     .perform_validation_and_update(cx, ValidationFlags::all());
             },
-            local_name!("type") => self.set_type(cx, attr.to_dom_string()),
+            local_name!("type") => {
+                match mutation {
+                    AttributeMutation::Set(_) => self.set_type(cx, attr.to_dom_string()),
+                    AttributeMutation::Removed => self.set_type(cx, DOMString::new()),
+                };
+            },
             local_name!("command") => self.set_type(
                 cx,
                 self.upcast::<Element>()
