@@ -290,13 +290,11 @@ impl WebGL2RenderingContext {
         ];
         let vao = self.current_vao(cx);
         for prog_attrib in program.active_attribs().iter() {
-            let attrib = handle_potential_webgl_error!(
-                self.base,
-                // TODO(#34300): remove unwrap
-                vao.get_vertex_attrib(prog_attrib.location.unwrap_or(u32::MAX))
-                    .ok_or(InvalidOperation),
-                return
-            );
+            // TODO(#34300): remove unwrap
+            let Some(attrib) = vao.get_vertex_attrib(prog_attrib.location.unwrap_or(u32::MAX))
+            else {
+                return self.base.webgl_error(InvalidOperation);
+            };
 
             // TODO(#34300): remove unwrap
             let current_vertex_attrib = self.base.current_vertex_attribs()[prog_attrib
@@ -528,7 +526,9 @@ impl WebGL2RenderingContext {
         dst: &mut ArrayBufferView,
         dst_elem_offset: u32,
     ) {
-        handle_potential_webgl_error!(self.base, self.base.validate_read_framebuffer(), return);
+        if let Err(error) = self.base.validate_read_framebuffer() {
+            return self.base.webgl_error(error);
+        }
 
         if self.bound_pixel_pack_buffer.get().is_some() {
             return self.base.webgl_error(InvalidOperation);
@@ -586,13 +586,9 @@ impl WebGL2RenderingContext {
                 margin_top * row_stride
         };
         let src_rect = {
-            let (fb_width, fb_height) = handle_potential_webgl_error!(
-                self.base,
-                self.base
-                    .get_current_framebuffer_size()
-                    .ok_or(InvalidOperation),
-                return
-            );
+            let Some((fb_width, fb_height)) = self.base.get_current_framebuffer_size() else {
+                return self.base.webgl_error(InvalidOperation);
+            };
             let src_origin = Point2D::new(x, y);
             let src_size = Size2D::new(width as u32, height as u32);
             let fb_size = Size2D::new(fb_width as u32, fb_height as u32);
@@ -601,15 +597,9 @@ impl WebGL2RenderingContext {
                 None => return,
             }
         };
-        let src_row_bytes = handle_potential_webgl_error!(
-            self.base,
-            src_rect
-                .size
-                .width
-                .checked_mul(bytes_per_pixel as u32)
-                .ok_or(InvalidOperation),
-            return
-        );
+        let Some(src_row_bytes) = src_rect.size.width.checked_mul(bytes_per_pixel as u32) else {
+            return self.base.webgl_error(InvalidOperation);
+        };
 
         let (sender, receiver) = generic_channel::channel().unwrap();
         self.base.send_command(WebGLCommand::ReadPixels(
@@ -832,11 +822,10 @@ impl WebGL2RenderingContext {
             return self.base.webgl_error(InvalidEnum);
         }
 
-        let array_size = handle_potential_webgl_error!(
-            self.base,
-            self.clearbuffer_array_size(buffer, draw_buffer),
-            return
-        );
+        let array_size = match self.clearbuffer_array_size(buffer, draw_buffer) {
+            Ok(array_size) => array_size,
+            Err(error) => return self.base.webgl_error(error),
+        };
         let src_offset = src_offset as usize;
 
         if array.len() < src_offset + array_size {
@@ -945,10 +934,9 @@ impl WebGL2RenderingContext {
             Err(_) => return, // NB: The validator sets the correct error for us.
         };
 
-        handle_potential_webgl_error!(
-            self.base,
-            texture.storage(target, levels, internal_format, width, height, depth)
-        );
+        if let Err(error) = texture.storage(target, levels, internal_format, width, height, depth) {
+            self.base.webgl_error(error);
+        }
     }
 
     #[expect(clippy::too_many_arguments)]
@@ -967,18 +955,17 @@ impl WebGL2RenderingContext {
         unpacking_alignment: u32,
         data: TexPixels,
     ) {
-        handle_potential_webgl_error!(
-            self.base,
-            texture.initialize(
-                target,
-                width,
-                height,
-                depth,
-                internal_format,
-                level,
-                Some(data_type)
-            )
-        );
+        if let Err(error) = texture.initialize(
+            target,
+            width,
+            height,
+            depth,
+            internal_format,
+            level,
+            Some(data_type),
+        ) {
+            self.base.webgl_error(error);
+        }
 
         let internal_format = self
             .base
@@ -1074,11 +1061,13 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         parameter: u32,
         mut retval: MutableHandleValue,
     ) {
-        let buffer = handle_potential_webgl_error!(
-            self.base,
-            self.bound_buffer(cx, target),
-            return retval.set(NullValue())
-        );
+        let buffer = match self.bound_buffer(cx, target) {
+            Ok(buffer) => buffer,
+            Err(error) => {
+                self.base.webgl_error(error);
+                return retval.set(NullValue());
+            },
+        };
         self.base.get_buffer_param(buffer, parameter, retval)
     }
 
@@ -1369,30 +1358,29 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
         if let Some(fb) = fb_slot.get() {
             // A selected framebuffer is bound to the target
-            handle_potential_webgl_error!(
-                self.base,
-                fb.validate_transparent(),
-                return rval.set(NullValue())
-            );
-            handle_potential_webgl_error!(
-                self.base,
-                self.get_specific_fb_attachment_param(
-                    cx,
-                    &fb,
-                    target,
-                    attachment,
-                    pname,
-                    rval.reborrow()
-                ),
-                rval.set(NullValue())
-            )
+            if let Err(error) = fb.validate_transparent() {
+                self.base.webgl_error(error);
+                return rval.set(NullValue());
+            }
+            if let Err(error) = self.get_specific_fb_attachment_param(
+                cx,
+                &fb,
+                target,
+                attachment,
+                pname,
+                rval.reborrow(),
+            ) {
+                self.base.webgl_error(error);
+                rval.set(NullValue());
+            }
         } else {
             // The default framebuffer is bound to the target
-            handle_potential_webgl_error!(
-                self.base,
-                self.get_default_fb_attachment_param(attachment, pname, rval.reborrow()),
-                rval.set(NullValue())
-            )
+            if let Err(error) =
+                self.get_default_fb_attachment_param(attachment, pname, rval.reborrow())
+            {
+                self.base.webgl_error(error);
+                rval.set(NullValue());
+            }
         }
     }
 
@@ -1475,11 +1463,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6>
     fn BindFramebuffer(&self, target: u32, framebuffer: Option<&WebGLFramebuffer>) {
-        handle_potential_webgl_error!(
-            self.base,
-            self.base.validate_new_framebuffer_binding(framebuffer),
-            return
-        );
+        if let Err(error) = self.base.validate_new_framebuffer_binding(framebuffer) {
+            return self.base.webgl_error(error);
+        }
 
         let (bind_read, bind_draw) = match target {
             constants::FRAMEBUFFER => (true, true),
@@ -1526,18 +1512,28 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         data: Option<ArrayBufferViewOrArrayBuffer>,
         usage: u32,
     ) {
-        let usage = handle_potential_webgl_error!(self.base, self.buffer_usage(usage), return);
-        let bound_buffer =
-            handle_potential_webgl_error!(self.base, self.bound_buffer(cx, target), return);
+        let usage = match self.buffer_usage(usage) {
+            Ok(usage) => usage,
+            Err(error) => return self.base.webgl_error(error),
+        };
+        let bound_buffer = match self.bound_buffer(cx, target) {
+            Ok(bound_buffer) => bound_buffer,
+            Err(error) => return self.base.webgl_error(error),
+        };
         self.base
             .buffer_data(cx.no_gc(), target, data, usage, bound_buffer)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
     fn BufferData(&self, cx: &mut JSContext, target: u32, size: i64, usage: u32) {
-        let usage = handle_potential_webgl_error!(self.base, self.buffer_usage(usage), return);
-        let bound_buffer =
-            handle_potential_webgl_error!(self.base, self.bound_buffer(cx, target), return);
+        let usage = match self.buffer_usage(usage) {
+            Ok(usage) => usage,
+            Err(error) => return self.base.webgl_error(error),
+        };
+        let bound_buffer = match self.bound_buffer(cx, target) {
+            Ok(bound_buffer) => bound_buffer,
+            Err(error) => return self.base.webgl_error(error),
+        };
         self.base.buffer_data_(target, size, usage, bound_buffer)
     }
 
@@ -1551,11 +1547,17 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         elem_offset: u32,
         length: u32,
     ) {
-        let usage = handle_potential_webgl_error!(self.base, self.buffer_usage(usage), return);
-        let bound_buffer =
-            handle_potential_webgl_error!(self.base, self.bound_buffer(cx, target), return);
-        let bound_buffer =
-            handle_potential_webgl_error!(self.base, bound_buffer.ok_or(InvalidOperation), return);
+        let usage = match self.buffer_usage(usage) {
+            Ok(usage) => usage,
+            Err(error) => return self.base.webgl_error(error),
+        };
+        let bound_buffer = match self.bound_buffer(cx, target) {
+            Ok(bound_buffer) => bound_buffer,
+            Err(error) => return self.base.webgl_error(error),
+        };
+        let Some(bound_buffer) = bound_buffer else {
+            return self.base.webgl_error(InvalidOperation);
+        };
 
         let elem_size = data.get_array_type().byte_size().unwrap();
         let elem_count = data.len() / elem_size;
@@ -1583,7 +1585,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         let data_end = byte_offset + copy_bytes;
         let data = data.as_slice_safe(cx.no_gc()).unwrap_or(&[]);
         let data = &data[byte_offset..data_end];
-        handle_potential_webgl_error!(self.base, bound_buffer.buffer_data(target, data, usage));
+        if let Err(error) = bound_buffer.buffer_data(target, data, usage) {
+            self.base.webgl_error(error);
+        }
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
@@ -1594,8 +1598,10 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         offset: i64,
         data: ArrayBufferViewOrArrayBuffer,
     ) {
-        let bound_buffer =
-            handle_potential_webgl_error!(self.base, self.bound_buffer(cx, target), return);
+        let bound_buffer = match self.bound_buffer(cx, target) {
+            Ok(bound_buffer) => bound_buffer,
+            Err(error) => return self.base.webgl_error(error),
+        };
         self.base
             .buffer_sub_data(cx.no_gc(), target, offset, data, bound_buffer)
     }
@@ -1610,10 +1616,13 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         src_elem_offset: u32,
         length: u32,
     ) {
-        let bound_buffer =
-            handle_potential_webgl_error!(self.base, self.bound_buffer(cx, target), return);
-        let bound_buffer =
-            handle_potential_webgl_error!(self.base, bound_buffer.ok_or(InvalidOperation), return);
+        let bound_buffer = match self.bound_buffer(cx, target) {
+            Ok(bound_buffer) => bound_buffer,
+            Err(error) => return self.base.webgl_error(error),
+        };
+        let Some(bound_buffer) = bound_buffer else {
+            return self.base.webgl_error(InvalidOperation);
+        };
 
         let src_elem_size = src_data.get_array_type().byte_size().unwrap();
         let src_elem_count = src_data.len() / src_elem_size;
@@ -1668,15 +1677,21 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             return self.base.webgl_error(InvalidValue);
         }
 
-        let read_buffer =
-            handle_potential_webgl_error!(self.base, self.bound_buffer(cx, read_target), return);
-        let read_buffer =
-            handle_potential_webgl_error!(self.base, read_buffer.ok_or(InvalidOperation), return);
+        let read_buffer = match self.bound_buffer(cx, read_target) {
+            Ok(read_buffer) => read_buffer,
+            Err(error) => return self.base.webgl_error(error),
+        };
+        let Some(read_buffer) = read_buffer else {
+            return self.base.webgl_error(InvalidOperation);
+        };
 
-        let write_buffer =
-            handle_potential_webgl_error!(self.base, self.bound_buffer(cx, write_target), return);
-        let write_buffer =
-            handle_potential_webgl_error!(self.base, write_buffer.ok_or(InvalidOperation), return);
+        let write_buffer = match self.bound_buffer(cx, write_target) {
+            Ok(write_buffer) => write_buffer,
+            Err(error) => return self.base.webgl_error(error),
+        };
+        let Some(write_buffer) = write_buffer else {
+            return self.base.webgl_error(InvalidOperation);
+        };
 
         let read_until = read_offset + size;
         let write_until = write_offset + size;
@@ -1721,10 +1736,13 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         dst_elem_offset: u32,
         length: u32,
     ) {
-        let bound_buffer =
-            handle_potential_webgl_error!(self.base, self.bound_buffer(cx, target), return);
-        let bound_buffer =
-            handle_potential_webgl_error!(self.base, bound_buffer.ok_or(InvalidOperation), return);
+        let bound_buffer = match self.bound_buffer(cx, target) {
+            Ok(bound_buffer) => bound_buffer,
+            Err(error) => return self.base.webgl_error(error),
+        };
+        let Some(bound_buffer) = bound_buffer else {
+            return self.base.webgl_error(InvalidOperation);
+        };
 
         let dst_elem_size = dst_buffer.get_array_type().byte_size().unwrap();
         let dst_elem_count = dst_buffer.len() / dst_elem_size;
@@ -1981,7 +1999,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             Some(buffer) => buffer,
             None => return,
         };
-        handle_potential_webgl_error!(self.base, self.base.validate_ownership(buffer), return);
+        if let Err(error) = self.base.validate_ownership(buffer) {
+            return self.base.webgl_error(error);
+        }
         if buffer.is_marked_for_deletion() {
             return;
         }
@@ -2085,8 +2105,17 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.7>
     fn GetFragDataLocation(&self, program: &WebGLProgram, name: DOMString) -> i32 {
-        handle_potential_webgl_error!(self.base, self.base.validate_ownership(program), return -1);
-        handle_potential_webgl_error!(self.base, program.get_frag_data_location(name), -1)
+        if let Err(error) = self.base.validate_ownership(program) {
+            self.base.webgl_error(error);
+            return -1;
+        }
+        match program.get_frag_data_location(name) {
+            Ok(location) => location,
+            Err(error) => {
+                self.base.webgl_error(error);
+                -1
+            },
+        }
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
@@ -2102,11 +2131,10 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         param_id: u32,
         mut retval: MutableHandleValue,
     ) {
-        handle_potential_webgl_error!(
-            self.base,
-            self.base.validate_ownership(program),
-            return retval.set(NullValue())
-        );
+        if let Err(error) = self.base.validate_ownership(program) {
+            self.base.webgl_error(error);
+            return retval.set(NullValue());
+        }
         if program.is_deleted() {
             self.base.webgl_error(InvalidOperation);
             return retval.set(NullValue());
@@ -2324,8 +2352,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         pixel_type: u32,
         mut pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>,
     ) {
-        let pixels =
-            handle_potential_webgl_error!(self.base, pixels.as_mut().ok_or(InvalidValue), return);
+        let Some(pixels) = pixels.as_mut() else {
+            return self.base.webgl_error(InvalidValue);
+        };
 
         self.read_pixels_into(no_gc, x, y, width, height, format, pixel_type, pixels, 0)
     }
@@ -2342,7 +2371,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         pixel_type: u32,
         dst_byte_offset: i64,
     ) {
-        handle_potential_webgl_error!(self.base, self.base.validate_read_framebuffer(), return);
+        if let Err(error) = self.base.validate_read_framebuffer() {
+            return self.base.webgl_error(error);
+        }
 
         let dst = match self.bound_pixel_pack_buffer.get() {
             Some(buffer) => buffer,
@@ -2390,13 +2421,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         }
 
         {
-            let (fb_width, fb_height) = handle_potential_webgl_error!(
-                self.base,
-                self.base
-                    .get_current_framebuffer_size()
-                    .ok_or(InvalidOperation),
-                return
-            );
+            let Some((fb_width, fb_height)) = self.base.get_current_framebuffer_size() else {
+                return self.base.webgl_error(InvalidOperation);
+            };
             let src_origin = Point2D::new(x, y);
             let src_size = Size2D::new(width as u32, height as u32);
             let fb_size = Size2D::new(fb_width as u32, fb_height as u32);
@@ -3006,11 +3033,10 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         location: &WebGLUniformLocation,
         mut retval: MutableHandleValue,
     ) {
-        handle_potential_webgl_error!(
-            self.base,
-            self.base.uniform_check_program(program, location),
-            return retval.set(NullValue())
-        );
+        if let Err(error) = self.base.uniform_check_program(program, location) {
+            self.base.webgl_error(error);
+            return retval.set(NullValue());
+        }
 
         let triple = (&*self.base, program.id(), location.id());
 
@@ -3222,7 +3248,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             offset,
             VertexAttribPointerKind::Integer,
         );
-        handle_potential_webgl_error!(self.base, res);
+        if let Err(error) = res {
+            self.base.webgl_error(error);
+        }
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4>
@@ -3857,16 +3885,24 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         };
 
         let (src_color, src_depth, src_stencil) = match src_fb {
-            Some(fb) => {
-                handle_potential_webgl_error!(self.base, fb.get_attachment_formats(), return)
+            Some(fb) => match fb.get_attachment_formats() {
+                Ok(formats) => formats,
+                Err(error) => return self.base.webgl_error(error),
             },
-            None => handle_potential_webgl_error!(self.base, get_default_formats(), return),
+            None => match get_default_formats() {
+                Ok(formats) => formats,
+                Err(error) => return self.base.webgl_error(error),
+            },
         };
         let (dst_color, dst_depth, dst_stencil) = match dst_fb {
-            Some(fb) => {
-                handle_potential_webgl_error!(self.base, fb.get_attachment_formats(), return)
+            Some(fb) => match fb.get_attachment_formats() {
+                Ok(formats) => formats,
+                Err(error) => return self.base.webgl_error(error),
             },
-            None => handle_potential_webgl_error!(self.base, get_default_formats(), return),
+            None => match get_default_formats() {
+                Ok(formats) => formats,
+                Err(error) => return self.base.webgl_error(error),
+            },
         };
 
         if bits.intersects(BlitFrameBufferFlags::COLOR) && src_color != dst_color {
@@ -3906,8 +3942,10 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         renderbuffertarget: u32,
         rb: Option<&WebGLRenderbuffer>,
     ) {
-        if let Some(rb) = rb {
-            handle_potential_webgl_error!(self.base, self.base.validate_ownership(rb), return);
+        if let Some(rb) = rb &&
+            let Err(error) = self.base.validate_ownership(rb)
+        {
+            return self.base.webgl_error(error);
         }
 
         let fb_slot = match target {
@@ -3923,7 +3961,11 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         }
 
         match fb_slot.get() {
-            Some(fb) => handle_potential_webgl_error!(self.base, fb.renderbuffer(attachment, rb)),
+            Some(fb) => {
+                if let Err(error) = fb.renderbuffer(attachment, rb) {
+                    self.base.webgl_error(error);
+                }
+            },
             None => self.base.webgl_error(InvalidOperation),
         };
     }
@@ -3937,8 +3979,10 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         texture: Option<&WebGLTexture>,
         level: i32,
     ) {
-        if let Some(texture) = texture {
-            handle_potential_webgl_error!(self.base, self.base.validate_ownership(texture), return);
+        if let Some(texture) = texture &&
+            let Err(error) = self.base.validate_ownership(texture)
+        {
+            return self.base.webgl_error(error);
         }
 
         let fb_slot = match target {
@@ -3949,10 +3993,11 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             _ => return self.base.webgl_error(InvalidEnum),
         };
         match fb_slot.get() {
-            Some(fb) => handle_potential_webgl_error!(
-                self.base,
-                fb.texture2d(attachment, textarget, texture, level)
-            ),
+            Some(fb) => {
+                if let Err(error) = fb.texture2d(attachment, textarget, texture, level) {
+                    self.base.webgl_error(error);
+                }
+            },
             None => self.base.webgl_error(InvalidOperation),
         }
     }
