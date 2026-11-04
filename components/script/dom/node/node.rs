@@ -1252,8 +1252,8 @@ impl Node {
         window.scrolling_area_query(cx, Some(self))
     }
 
-    pub(crate) fn effective_overflow(&self) -> Option<AxesOverflow> {
-        self.owner_window().query_effective_overflow(self)
+    pub(crate) fn effective_overflow(&self, cx: &mut JSContext) -> Option<AxesOverflow> {
+        self.owner_window().query_effective_overflow(cx, self)
     }
 
     pub(crate) fn effective_overflow_without_reflow(&self) -> Option<AxesOverflow> {
