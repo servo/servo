@@ -8,6 +8,8 @@ use std::iter::Peekable;
 use std::rc::{Rc, Weak};
 use std::str::Chars;
 
+use html5ever::data::{C1_REPLACEMENTS, NAMED_ENTITIES};
+
 use crate::collectors::collect_webvtt_timestamp;
 
 /// <https://w3c.github.io/webvtt/#webvtt-internal-node-object>
@@ -464,11 +466,19 @@ fn webvtt_cue_text_tokenizer(position: &mut Peekable<Chars<'_>>) -> CueTokenizer
                 // > Attempt to consume an HTML character reference, with no additional allowed character.
                 // > If nothing is returned, append a U+0026 AMPERSAND character (&) to result.
                 // > Otherwise, append the data of the character tokens that were returned to result.
-                // TODO: The character reference case
-                result.push('\u{0026}');
+                if let Some([first, second]) = consume_html_char_ref(position) {
+                    result.push(first);
+                    if second != '\0' {
+                        result.push(second)
+                    }
+                } else {
+                    result.push('\u{0026}');
+                }
                 // > Then, in any case, set tokenizer state to the WebVTT data state,
                 // > and jump to the step labeled next.
                 tokenizer_state = TokenizerState::WebVTTData;
+                // consume_html_char_ref has already managed position, so skip to next loop
+                continue;
             },
             // https://w3c.github.io/webvtt/#webvtt-tag-state
             TokenizerState::WebVTTTag => {
@@ -692,11 +702,19 @@ fn webvtt_cue_text_tokenizer(position: &mut Peekable<Chars<'_>>) -> CueTokenizer
                 // > with the additional allowed character being U+003E GREATER-THAN SIGN (>).
                 // > If nothing is returned, append a U+0026 AMPERSAND character (&) to buffer.
                 // > Otherwise, append the data of the character tokens that were returned to buffer.
-                // TODO: The character reference case
-                buffer.push('\u{0026}');
+                if let Some([first, second]) = consume_html_char_ref(position) {
+                    buffer.push(first);
+                    if second != '\0' {
+                        buffer.push(second)
+                    }
+                } else {
+                    buffer.push('\u{0026}');
+                }
                 // > Then, in any case, set tokenizer state to the WebVTT start tag annotation state,
                 // > and jump to the step labeled next.
                 tokenizer_state = TokenizerState::WebVTTStartTagAnnotation;
+                // consume_html_char_ref has already managed position, so skip to next loop
+                continue;
             },
             // https://w3c.github.io/webvtt/#webvtt-end-tag-state
             TokenizerState::WebVTTEndTag => {
@@ -749,6 +767,113 @@ fn webvtt_cue_text_tokenizer(position: &mut Peekable<Chars<'_>>) -> CueTokenizer
         position.next();
         // Step 8. Jump to the step labeled loop.
     }
+}
+
+/// <https://html.spec.whatwg.org/multipage/#character-references>
+fn consume_html_char_ref(position: &mut Peekable<Chars<'_>>) -> Option<[char; 2]> {
+    if position.peek() == Some(&'#') {
+        consume_numeric_char_ref(position)
+    } else {
+        consume_named_char_ref(position)
+    }
+}
+
+fn consume_numeric_char_ref(position: &mut Peekable<Chars<'_>>) -> Option<[char; 2]> {
+    let mut lookahead = position.clone();
+
+    // We've already confirmed that the next char is '#',
+    // so start counting at 1.
+    let mut consumed = 1;
+    lookahead.next();
+
+    let base = if matches!(lookahead.peek(), Some(&'x') | Some(&'X')) {
+        lookahead.next();
+        consumed += 1;
+        16
+    } else {
+        10
+    };
+
+    let mut digits = String::new();
+    while let Some(&c) = lookahead.peek() {
+        if !c.is_digit(base) {
+            break;
+        }
+
+        digits.push(c);
+        lookahead.next();
+        consumed += 1;
+    }
+
+    if digits.is_empty() {
+        return None;
+    }
+
+    if lookahead.peek() == Some(&';') {
+        consumed += 1;
+    }
+
+    let value = u32::from_str_radix(&digits, base).unwrap_or(u32::MAX);
+    // <https://html.spec.whatwg.org/multipage/#numeric-character-reference-end-state>
+    let char = match value {
+        0 | 0xD800..=0xDFFF | 0x110000.. => '\u{FFFD}',
+        0x80..=0x9F => C1_REPLACEMENTS[(value - 0x80) as usize]?,
+        value => char::from_u32(value)?,
+    };
+
+    for _ in 0..consumed {
+        position.next();
+    }
+
+    Some([char, '\0'])
+}
+
+fn consume_named_char_ref(position: &mut Peekable<Chars<'_>>) -> Option<[char; 2]> {
+    let lookahead = position.clone();
+    let mut named_char_ref = String::new();
+    let mut matched: Option<(usize, u32, u32)> = None;
+
+    for c in lookahead {
+        if !(c.is_ascii_alphanumeric() || c == ';') {
+            break;
+        }
+        named_char_ref.push(c);
+
+        match NAMED_ENTITIES.get(&named_char_ref) {
+            Some(&(first, second)) if first != 0 => {
+                // It's possible the char ref could be valid without the ';',
+                // as with &amp, so we store the first match we find
+                // but keep checking until we hit a delimiter
+                matched = Some((named_char_ref.len(), first, second));
+                if c == ';' {
+                    break;
+                }
+            },
+            // If the first value in the tuple is 0,
+            // we have not matched against a full name yet
+            Some(_) => {
+                if c == ';' {
+                    break;
+                }
+            },
+            None => break,
+        }
+    }
+
+    let (len, first, second) = matched?;
+
+    for _ in 0..len {
+        position.next();
+    }
+
+    let first_char = char::from_u32(first)?;
+    let second_char = if second == 0 {
+        '\0'
+    } else {
+        char::from_u32(second)?
+    };
+
+    Some([first_char, second_char])
 }
 
 #[cfg(any(test, feature = "test-util"))]
