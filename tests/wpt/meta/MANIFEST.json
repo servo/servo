@@ -10982,6 +10982,13 @@
         {}
        ]
       ],
+      "moveBefore-slotted-text-crash.html": [
+       "fc1ca7fcf3e5421bde70dd40f5ecd93edf602a6c",
+       [
+        null,
+        {}
+       ]
+      ],
       "moveBefore-subframe-count-crash.html": [
        "1bbe468ff2cbbe24988dac8b00a449d2d627685c",
        [

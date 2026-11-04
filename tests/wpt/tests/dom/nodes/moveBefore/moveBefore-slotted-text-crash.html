@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-parentnode-movebefore">
+<link rel="help" href="https://github.com/servo/servo/issues/49532">
+<p>Passes if no crash</p>
+<script>
+  {
+    // Move a text node slotted into a <details> element's shadow tree.
+    const details = document.createElement("details");
+    const menu = document.createElement("menu");
+    details.textContent = "x";
+    document.body.append(details, menu);
+    menu.moveBefore(details.firstChild, null);
+  }
+
+  {
+    // Move a text node slotted into an author shadow tree.
+    const host = document.createElement("div");
+    const destination = document.createElement("div");
+    host.attachShadow({ mode: "open" }).innerHTML = "<slot></slot>";
+    host.textContent = "x";
+    document.body.append(host, destination);
+    destination.moveBefore(host.firstChild, null);
+  }
+</script>
