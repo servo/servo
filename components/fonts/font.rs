@@ -182,7 +182,7 @@ pub trait PlatformFontMethods: Sized {
     fn webrender_font_instance_flags(&self) -> FontInstanceFlags;
 
     /// Get the necessary [`FontInstanceOptions`] for this font.
-    fn webrender_font_instance_options(&self) -> FontInstanceOptions {
+    fn webrender_font_instance_options(&self, _descriptor: &FontDescriptor) -> FontInstanceOptions {
         FontInstanceOptions {
             flags: self.webrender_font_instance_flags(),
             ..Default::default()
@@ -380,7 +380,7 @@ impl Font {
         let synthetic_italic = {
             let is_italic = descriptor.style != FontStyle::NORMAL;
             let allow_synthetic_italic =
-                matches!(descriptor.synthesis_style, FontSynthesisStyle::Auto);
+                !matches!(descriptor.synthesis_style, FontSynthesisStyle::None);
 
             is_italic && allow_synthetic_italic
         };
@@ -431,8 +431,11 @@ impl Font {
         self.metrics.get_or_init(|| Arc::new(self.handle.metrics()))
     }
 
-    pub(crate) fn webrender_font_instance_options(&self) -> FontInstanceOptions {
-        self.handle.webrender_font_instance_options()
+    pub(crate) fn webrender_font_instance_options(
+        &self,
+        descriptor: &FontDescriptor,
+    ) -> FontInstanceOptions {
+        self.handle.webrender_font_instance_options(descriptor)
     }
 
     pub(crate) fn webrender_font_instance_platform_options(&self) -> FontInstancePlatformOptions {

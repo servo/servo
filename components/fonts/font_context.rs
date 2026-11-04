@@ -386,7 +386,7 @@ impl FontContext {
             FontIdentifier::Local(_) => self.system_font_service_proxy.get_system_font_instance(
                 font.template.identifier().to_owned(),
                 font.descriptor.pt_size,
-                font.webrender_font_instance_options(),
+                font.webrender_font_instance_options(&font.descriptor),
                 font.webrender_font_instance_platform_options(),
                 font.variations().to_owned(),
                 painter_id,
@@ -395,7 +395,7 @@ impl FontContext {
                 .create_web_font_instance(
                     font.template.clone(),
                     font.descriptor.pt_size,
-                    font.webrender_font_instance_options(),
+                    font.webrender_font_instance_options(&font.descriptor),
                     font.webrender_font_instance_platform_options(),
                     font.variations().to_owned(),
                     painter_id,
