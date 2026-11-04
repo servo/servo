@@ -4,11 +4,14 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
+use app_units::Au;
 use dom_struct::dom_struct;
+use euclid::Point2D;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
+use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
 use script_bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElementMethods;
 use script_bindings::domstring::TracedDOMString;
 use script_bindings::error::{Error, ErrorResult};
@@ -31,9 +34,11 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::htmlbuttonelement::{CommandState, HTMLButtonElement};
 use crate::dom::iterators::ShadowIncluding;
+use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
+use crate::dom::pointerevent::PointerEvent;
 use crate::dom::toggleevent::ToggleEvent;
 
 #[dom_struct]
@@ -466,9 +471,12 @@ impl HTMLDialogElement {
         // Step 2. Assert: subject is connected.
         assert!(subject.is_connected());
 
-        // TODO Step 3. Assert: subject's node document's open dialogs list does not contain
-        // subject.
-        // TODO Step 4. Add subject to subject's node document's open dialogs list.
+        // Step 3. Assert: subject's node document's open dialogs list does not contain subject.
+        let document = subject.owner_document();
+        assert!(!document.open_dialogs_list_contains(self));
+
+        // Step 4. Add subject to subject's node document's open dialogs list.
+        document.add_to_open_dialogs_list(self, no_gc);
 
         // Step 5. Set the dialog close watcher with subject.
         self.set_the_close_watcher(no_gc);
@@ -476,7 +484,9 @@ impl HTMLDialogElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dialog-setup-steps>
     pub(crate) fn dialog_cleanup_steps(&self, no_gc: &NoGC) {
-        // TODO Step 1. Remove subject from subject's node document's open dialogs list.
+        // Step 1. Remove subject from subject's node document's open dialogs list.
+        self.owner_document()
+            .remove_from_open_dialogs_list(self, no_gc);
 
         // Step 2. If subject's close watcher is not null, then:
         // Step 2.1. Destroy subject's close watcher.
@@ -531,6 +541,124 @@ impl HTMLDialogElement {
 
         // Step 1.2. Return None.
         ComputedClosedByState::None
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#light-dismiss-open-dialogs>
+    pub(crate) fn light_dismiss_open_dialogs(
+        cx: &mut JSContext,
+        pointer_event: &PointerEvent,
+        target: &EventTarget,
+    ) {
+        // Step 1. Assert: event's isTrusted attribute is true.
+        let event = pointer_event.upcast::<Event>();
+        assert!(event.IsTrusted());
+
+        // Step 2. Let document be event's target's node document.
+        let Some(target) = target.downcast::<Node>() else {
+            return;
+        };
+        let document = target.owner_doc();
+
+        // Step 3. If document's open dialogs list is empty, then return.
+        if document.topmost_open_dialog().is_none() {
+            return;
+        }
+
+        // Step 4. Let ancestor be the result of running nearest clicked dialog given event.
+        let ancestor = Self::nearest_clicked_dialog(cx, pointer_event, target);
+
+        // Step 5. If event's type is "pointerdown", then set document's dialog pointerdown
+        // target to ancestor.
+        if event.type_() == *"pointerdown" {
+            document.set_dialog_pointerdown_target(ancestor.as_deref());
+        }
+
+        // Step 6. If event's type is "pointerup":
+        if event.type_() == *"pointerup" {
+            // Step 6.1. Let sameTarget be true if ancestor is document's dialog pointerdown target.
+            let same_target = ancestor == document.dialog_pointerdown_target();
+
+            // Step 6.2. Set document's dialog pointerdown target to null.
+            document.set_dialog_pointerdown_target(None);
+
+            // Step 6.3. If sameTarget is false, then return.
+            if !same_target {
+                return;
+            }
+
+            // Step 6.4. Let topmostDialog be the last element of document's open dialogs list.
+            let Some(topmost_dialog) = document.topmost_open_dialog() else {
+                return;
+            };
+
+            // Step 6.5. If ancestor is topmostDialog, then return.
+            if ancestor.as_ref() == Some(&topmost_dialog) {
+                return;
+            }
+
+            // Step 6.6. If topmostDialog's computed closed-by state is not Any, then return.
+            if topmost_dialog.computed_closed_by_state() != ComputedClosedByState::Any {
+                return;
+            }
+
+            // Step 6.7. Assert: topmostDialog's close watcher is not null.
+            let close_watcher = topmost_dialog
+                .close_watcher
+                .borrow()
+                .clone()
+                .expect("Open dialog must have a close watcher");
+
+            // Step 6.8. Request to close topmostDialog's close watcher with false.
+            close_watcher.request_to_close(cx, false);
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#nearest-clicked-dialog>
+    fn nearest_clicked_dialog(
+        cx: &mut JSContext,
+        pointer_event: &PointerEvent,
+        target: &Node,
+    ) -> Option<DomRoot<HTMLDialogElement>> {
+        // Step 1. Let target be event's target.
+        // Step 2. If target is a dialog element, target has an open attribute, target's is modal is
+        // true, and event's clientX and clientY are outside the bounds of target, then return null.
+        let point = pointer_event.upcast::<MouseEvent>().client_point();
+        let point = Point2D::new(Au::from_px(point.x), Au::from_px(point.y));
+        if target.is::<HTMLDialogElement>() &&
+            let Some(element) = target.downcast::<Element>() &&
+            element.has_attribute(&local_name!("open")) &&
+            element.state().contains(ElementState::MODAL) &&
+            target
+                .border_box(cx)
+                .is_some_and(|rect| !rect.contains(point))
+        {
+            return None;
+        }
+
+        // Step 3. Let currentNode be target.
+        let mut current_node = Some(DomRoot::from_ref(target));
+
+        // Step 4. While currentNode is not null:
+        while let Some(node) = current_node {
+            // Step 4.1. If currentNode is a dialog element and currentNode has an open attribute,
+            // then return currentNode.
+            if let Some(dialog) = node.downcast::<HTMLDialogElement>() &&
+                dialog
+                    .upcast::<Element>()
+                    .has_attribute(&local_name!("open"))
+            {
+                return Some(DomRoot::from_ref(dialog));
+            }
+
+            // Step 4.2. Set currentNode to currentNode's parent in the flat tree.
+            current_node = node
+                .parent_in_flat_tree(cx.no_gc())
+                .into_parent()
+                .map(|parent| parent.as_rooted());
+        }
+
+        // Step 5. Return null.
+        None
     }
 }
 
