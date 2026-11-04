@@ -162,7 +162,7 @@ pub enum WebGPURequest {
         texture_id: TextureId,
         texture_view_id: TextureViewId,
         device_id: DeviceId,
-        descriptor: Option<TextureViewDescriptor<'static>>,
+        descriptor: TextureViewDescriptor<'static>,
     },
     DestroyBuffer(BufferId),
     DestroyDevice(DeviceId),

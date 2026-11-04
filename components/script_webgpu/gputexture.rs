@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::string::String;
-
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use log::warn;
@@ -226,35 +224,27 @@ where
         cx: &mut JSContext,
         descriptor: &GPUTextureViewDescriptor,
     ) -> Fallible<DomRoot<GPUTextureView<D>>> {
-        let desc = if !matches!(descriptor.mipLevelCount, Some(0)) &&
-            !matches!(descriptor.arrayLayerCount, Some(0))
-        {
-            Some(TextureViewDescriptor {
-                label: (&descriptor.parent).convert(),
-                format: descriptor
-                    .format
-                    .map(|f| self.device.validate_texture_format_required_features(&f))
-                    .transpose()?,
-                dimension: descriptor.dimension.map(|dimension| dimension.convert()),
-                usage: Some(TextureUsages::from_bits_retain(descriptor.usage)),
-                range: ImageSubresourceRange {
-                    aspect: match descriptor.aspect {
-                        GPUTextureAspect::All => TextureAspect::All,
-                        GPUTextureAspect::Stencil_only => TextureAspect::StencilOnly,
-                        GPUTextureAspect::Depth_only => TextureAspect::DepthOnly,
-                    },
-                    base_mip_level: descriptor.baseMipLevel,
-                    mip_level_count: descriptor.mipLevelCount,
-                    base_array_layer: descriptor.baseArrayLayer,
-                    array_layer_count: descriptor.arrayLayerCount,
+        // Invalid descriptors (e.g. a zero mip level or array layer count) are validated by wgpu,
+        // which then still registers the view id as invalid so that later uses don't panic.
+        let desc = TextureViewDescriptor {
+            label: (&descriptor.parent).convert(),
+            format: descriptor
+                .format
+                .map(|f| self.device.validate_texture_format_required_features(&f))
+                .transpose()?,
+            dimension: descriptor.dimension.map(|dimension| dimension.convert()),
+            usage: Some(TextureUsages::from_bits_retain(descriptor.usage)),
+            range: ImageSubresourceRange {
+                aspect: match descriptor.aspect {
+                    GPUTextureAspect::All => TextureAspect::All,
+                    GPUTextureAspect::Stencil_only => TextureAspect::StencilOnly,
+                    GPUTextureAspect::Depth_only => TextureAspect::DepthOnly,
                 },
-            })
-        } else {
-            self.device
-                .dispatch_error(webgpu_traits::Error::Validation(String::from(
-                    "arrayLayerCount and mipLevelCount cannot be 0",
-                )));
-            None
+                base_mip_level: descriptor.baseMipLevel,
+                mip_level_count: descriptor.mipLevelCount,
+                base_array_layer: descriptor.baseArrayLayer,
+                array_layer_count: descriptor.arrayLayerCount,
+            },
         };
 
         let texture_view_id = self
