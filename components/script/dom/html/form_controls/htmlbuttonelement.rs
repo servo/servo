@@ -438,7 +438,7 @@ impl Validatable for HTMLButtonElement {
         // https://html.spec.whatwg.org/multipage/#the-button-element%3Abarred-from-constraint-validation
         // https://html.spec.whatwg.org/multipage/#enabling-and-disabling-form-controls%3A-the-disabled-attribute%3Abarred-from-constraint-validation
         // https://html.spec.whatwg.org/multipage/#the-datalist-element%3Abarred-from-constraint-validation
-        self.button_type.get() == ButtonType::Submit &&
+        self.is_submit_button() &&
             !self.upcast::<Element>().disabled_state() &&
             !is_barred_by_datalist_ancestor(no_gc, self.upcast())
     }
@@ -498,8 +498,7 @@ impl Activatable for HTMLButtonElement {
                 return;
             }
             // Step 3.3 If element's type attribute is in the Auto state, then return.
-            if button_type == ButtonType::Auto
-            {
+            if button_type == ButtonType::Auto {
                 return;
             }
         }
