@@ -771,12 +771,14 @@ impl ReplacedContents {
     /// Set whether or not this [`ReplacedContents`] is selected. Returns `true` if anything
     /// changed.
     pub(crate) fn set_selection(&self, selected: bool) -> bool {
-        // Only build a display list if the value changed and if this isn't an `<iframe>`
-        // or `<audio>` element as they do not paint a selection tint.
+        // Only build a display list if the value changed and if this isn't an `<iframe>`,
+        // `<audio>`, or `<canvas>` element as they do not paint a selection tint.
         self.selected.swap(selected, Ordering::Relaxed) != selected &&
             !matches!(
                 self.kind,
-                ReplacedContentKind::Audio | ReplacedContentKind::IFrame(..)
+                ReplacedContentKind::Audio |
+                    ReplacedContentKind::IFrame(..) |
+                    ReplacedContentKind::Canvas(..)
             )
     }
 }
