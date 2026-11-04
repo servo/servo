@@ -51,7 +51,7 @@ use webrender_api::{
     ClipChainId, ClipMode, ColorF, CommonItemProperties, ComplexClipRegion, GlyphInstance,
     MixBlendMode, NinePatchBorder, NinePatchBorderSource, NormalBorder, PrimitiveFlags,
     PropertyBinding, PropertyBindingKey, RasterSpace, SpatialId, StackingContextFlags,
-    TransformStyle, units,
+    SyntheticItalics, TransformStyle, units,
 };
 use wr::units::LayoutVector2D;
 
@@ -1202,17 +1202,20 @@ impl Fragment {
         let synthetic_skew = {
             let font = parent_style.get_font();
             let font_style = font.slow_clone_font_style();
+            let style_angle = if font_style == FontStyle::ITALIC {
+                FontStyle::DEFAULT_OBLIQUE_DEGREES as f32
+            } else {
+                font_style.oblique_degrees() as f32
+            };
             let angle = match (font_style, font.slow_clone_font_synthesis_style()) {
                 (FontStyle::NORMAL, _) | (_, FontSynthesisStyle::None) => 0.0,
                 (FontStyle::ITALIC, FontSynthesisStyle::ObliqueOnly) => 0.0,
-                (FontStyle::ITALIC, FontSynthesisStyle::Auto) => {
-                    FontStyle::DEFAULT_OBLIQUE_DEGREES as f32
-                },
+                (FontStyle::ITALIC, FontSynthesisStyle::Auto) => style_angle as f32,
                 (style, _) => style.oblique_degrees(),
             };
             // Reuse WebRender's clamp and quantisation so the padding matches the applied shear
             // (`oblique 90deg` must not become an infinite `tan`).
-            webrender_api::SyntheticItalics::from_degrees(angle).to_skew()
+            SyntheticItalics::from_degrees(angle).to_skew()
         };
         let synthetic_overhang = Au::from_f32_px(
             (synthetic_skew.abs() * (font_metrics.ascent + font_metrics.descent).to_f32_px())
