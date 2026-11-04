@@ -9,7 +9,10 @@ typedef (CanvasRenderingContext2D
   or WebGLRenderingContext
   or WebGL2RenderingContext
   // skip-unless CARGO_FEATURE_WEBGL end
-  or GPUCanvasContext) RenderingContext;
+  // skip-unless CARGO_FEATURE_WEBGPU begin
+  or GPUCanvasContext
+  // skip-unless CARGO_FEATURE_WEBGPU end
+) RenderingContext;
 
 [Exposed=Window]
 interface HTMLCanvasElement : HTMLElement {
