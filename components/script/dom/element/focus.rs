@@ -127,7 +127,7 @@ impl Element {
         // Note that these kind of focusable areas are only focusable via the keyboard.
         if self
             .upcast::<Node>()
-            .effective_overflow()
+            .effective_overflow(cx)
             .is_some_and(|axes_overflow| {
                 // This is checking whether there is an input event scrollable overflow value in
                 // a given axis and also overflow in that same axis.

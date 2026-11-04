@@ -3399,8 +3399,12 @@ impl Window {
         self.layout().hit_test(flags, point)
     }
 
-    pub(crate) fn query_effective_overflow(&self, node: &Node) -> Option<AxesOverflow> {
-        self.layout_reflow_deprecated(QueryMsg::EffectiveOverflow);
+    pub(crate) fn query_effective_overflow(
+        &self,
+        cx: &mut JSContext,
+        node: &Node,
+    ) -> Option<AxesOverflow> {
+        self.layout_reflow(cx, QueryMsg::EffectiveOverflow);
         self.query_effective_overflow_without_reflow(node)
     }
 
