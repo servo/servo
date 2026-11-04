@@ -20,7 +20,11 @@ use read_fonts::{FontRef, ReadError, TableProvider};
 use servo_arc::Arc;
 use skrifa::attribute::Weight;
 use style::Zero;
-use webrender_api::{FontInstanceFlags, FontInstancePlatformOptions, FontVariation};
+use style::computed_values::font_style::T as FontStyle;
+use webrender_api::{
+    FontInstanceFlags, FontInstanceOptions, FontInstancePlatformOptions, FontVariation,
+    SyntheticItalics,
+};
 
 use super::library_handle::FreeTypeLibraryHandle;
 use crate::FontData;
@@ -60,6 +64,7 @@ pub struct PlatformFont {
     actual_face_size: Au,
     variations: Vec<FontVariation>,
     synthetic_bold: bool,
+    synthetic_italic: bool,
 
     /// A member that allows using `skrifa` to read values from this font.
     table_provider_data: FreeTypeFaceTableProviderData,
@@ -71,6 +76,7 @@ impl PlatformFontMethods for PlatformFont {
         font_data: &FontData,
         requested_size: Option<Au>,
         synthetic_bold: bool,
+        synthetic_italic: bool,
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
         let data = FontBackingStore::Web(font_data.clone());
@@ -92,6 +98,7 @@ impl PlatformFontMethods for PlatformFont {
             table_provider_data,
             variations: vec![],
             synthetic_bold,
+            synthetic_italic,
         })
     }
 
@@ -99,6 +106,7 @@ impl PlatformFontMethods for PlatformFont {
         font_identifier: LocalFontIdentifier,
         requested_size: Option<Au>,
         synthetic_bold: bool,
+        synthetic_italic: bool,
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
 
@@ -133,6 +141,7 @@ impl PlatformFontMethods for PlatformFont {
             table_provider_data,
             variations: vec![],
             synthetic_bold,
+            synthetic_italic,
         })
     }
 
@@ -395,6 +404,20 @@ impl PlatformFontMethods for PlatformFont {
         }
 
         flags
+    }
+
+    fn webrender_font_instance_options(&self) -> FontInstanceOptions {
+        let options = FontInstanceOptions {
+            flags: self.webrender_font_instance_flags(),
+            synthetic_italics: if self.synthetic_italic {
+                SyntheticItalics::from_degrees(FontStyle::DEFAULT_OBLIQUE_DEGREES as f32)
+            } else {
+                SyntheticItalics::disabled()
+            },
+            ..Default::default()
+        };
+
+        options
     }
 
     fn webrender_font_instance_platform_options(&self) -> FontInstancePlatformOptions {

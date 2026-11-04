@@ -14,7 +14,7 @@ use servo_base::id::PainterId;
 use style::values::computed::font::SingleFontFamily;
 use webrender_api::units::Au;
 use webrender_api::{
-    FontInstanceFlags, FontInstanceKey, FontInstancePlatformOptions, FontKey, FontVariation,
+    FontInstanceKey, FontInstanceOptions, FontInstancePlatformOptions, FontKey, FontVariation,
 };
 
 use crate::{FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef};
@@ -31,7 +31,7 @@ pub enum SystemFontServiceMessage {
         PainterId,
         FontIdentifier,
         Au,
-        FontInstanceFlags,
+        #[ignore_malloc_size_of = "TODO"] FontInstanceOptions,
         FontInstancePlatformOptions,
         Vec<FontVariation>,
         GenericSender<FontInstanceKey>,
@@ -89,7 +89,7 @@ impl SystemFontServiceProxy {
         &self,
         identifier: FontIdentifier,
         size: Au,
-        flags: FontInstanceFlags,
+        font_instance_options: FontInstanceOptions,
         options: FontInstancePlatformOptions,
         variations: Vec<FontVariation>,
         painter_id: PainterId,
@@ -101,7 +101,7 @@ impl SystemFontServiceProxy {
                 painter_id,
                 identifier,
                 size,
-                flags,
+                font_instance_options,
                 options,
                 variations,
                 response_chan,

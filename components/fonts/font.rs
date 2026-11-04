@@ -42,12 +42,13 @@ use style::values::computed::font::{
     FamilyName, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
 };
 use style::values::computed::{
-    FontFeatureSettings, FontStyle, FontSynthesis, FontVariantEastAsian, FontVariantLigatures,
-    FontVariantNumeric, FontWeight, FontWidth,
+    FontFeatureSettings, FontStyle, FontSynthesis, FontSynthesisStyle, FontVariantEastAsian,
+    FontVariantLigatures, FontVariantNumeric, FontWeight, FontWidth,
 };
 use unicode_script::Script;
 use webrender_api::{
-    FontInstanceFlags, FontInstanceKey, FontInstancePlatformOptions, FontVariation,
+    FontInstanceFlags, FontInstanceKey, FontInstanceOptions, FontInstancePlatformOptions,
+    FontVariation,
 };
 
 use crate::font_feature_values::ResolvedFontVariantAlternates;
@@ -116,20 +117,25 @@ pub trait PlatformFontMethods: Sized {
         pt_size: Option<Au>,
         data: &Option<FontData>,
         synthetic_bold: bool,
+        synthetic_italic: bool,
     ) -> Result<PlatformFont, &'static str> {
         let template = template.borrow();
         let font_identifier = template.identifier.clone();
 
         match font_identifier {
-            FontIdentifier::Local(font_identifier) => {
-                Self::new_from_local_font_identifier(font_identifier, pt_size, synthetic_bold)
-            },
+            FontIdentifier::Local(font_identifier) => Self::new_from_local_font_identifier(
+                font_identifier,
+                pt_size,
+                synthetic_bold,
+                synthetic_italic,
+            ),
             FontIdentifier::Web(_) | FontIdentifier::ArrayBuffer(_) => Self::new_from_data(
                 font_identifier,
                 data.as_ref()
                     .expect("Should never create a web font without data."),
                 pt_size,
                 synthetic_bold,
+                synthetic_italic,
             ),
         }
     }
@@ -138,6 +144,7 @@ pub trait PlatformFontMethods: Sized {
         font_identifier: LocalFontIdentifier,
         pt_size: Option<Au>,
         synthetic_bold: bool,
+        synthetic_italic: bool,
     ) -> Result<PlatformFont, &'static str>;
 
     fn new_from_data(
@@ -145,6 +152,7 @@ pub trait PlatformFontMethods: Sized {
         data: &FontData,
         pt_size: Option<Au>,
         synthetic_bold: bool,
+        synthetic_italic: bool,
     ) -> Result<PlatformFont, &'static str>;
 
     /// Create a platform font with the given variations from a existing font.
@@ -172,6 +180,14 @@ pub trait PlatformFontMethods: Sized {
 
     /// Get the necessary [`FontInstanceFlags`] for this font.
     fn webrender_font_instance_flags(&self) -> FontInstanceFlags;
+
+    /// Get the necessary [`FontInstanceOptions`] for this font.
+    fn webrender_font_instance_options(&self) -> FontInstanceOptions {
+        FontInstanceOptions {
+            flags: self.webrender_font_instance_flags(),
+            ..Default::default()
+        }
+    }
 
     /// Get the necessary [`FontInstancePlatformOptions`] for this font.
     fn webrender_font_instance_platform_options(&self) -> FontInstancePlatformOptions {
@@ -361,11 +377,20 @@ impl Font {
             is_bold && allows_synthetic_bold
         };
 
+        let synthetic_italic = {
+            let is_italic = descriptor.style != FontStyle::NORMAL;
+            let allow_synthetic_italic =
+                matches!(descriptor.synthesis_style, FontSynthesisStyle::Auto);
+
+            is_italic && allow_synthetic_italic
+        };
+
         let handle = PlatformFont::new_from_template(
             template.clone(),
             Some(descriptor.pt_size),
             &data,
             synthetic_bold,
+            synthetic_italic,
         )?;
         let variation_axes = VariationAxes::from_platform_font(&handle);
 
@@ -406,8 +431,8 @@ impl Font {
         self.metrics.get_or_init(|| Arc::new(self.handle.metrics()))
     }
 
-    pub(crate) fn webrender_font_instance_flags(&self) -> FontInstanceFlags {
-        self.handle.webrender_font_instance_flags()
+    pub(crate) fn webrender_font_instance_options(&self) -> FontInstanceOptions {
+        self.handle.webrender_font_instance_options()
     }
 
     pub(crate) fn webrender_font_instance_platform_options(&self) -> FontInstancePlatformOptions {

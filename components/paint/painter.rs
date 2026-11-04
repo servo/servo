@@ -49,11 +49,11 @@ use webrender_api::units::{
 };
 use webrender_api::{
     self, BuiltDisplayList, BuiltDisplayListDescriptor, ColorF, DirtyRect, DisplayListPayload,
-    DocumentId, DynamicProperties, Epoch as WebRenderEpoch, ExternalScrollId, FontInstanceFlags,
-    FontInstanceKey, FontInstanceOptions, FontInstancePlatformOptions, FontKey, FontVariation,
-    ImageData, ImageKey, NativeFontHandle, PipelineId as WebRenderPipelineId, PropertyBinding,
-    PropertyBindingKey, PropertyValue, ReferenceFrameKind, RenderReasons, SampledScrollOffset,
-    SpaceAndClipInfo, SpatialId, TransformStyle,
+    DocumentId, DynamicProperties, Epoch as WebRenderEpoch, ExternalScrollId, FontInstanceKey,
+    FontInstanceOptions, FontInstancePlatformOptions, FontKey, FontVariation, ImageData, ImageKey,
+    NativeFontHandle, PipelineId as WebRenderPipelineId, PropertyBinding, PropertyBindingKey,
+    PropertyValue, ReferenceFrameKind, RenderReasons, SampledScrollOffset, SpaceAndClipInfo,
+    SpatialId, TransformStyle,
 };
 use wr_malloc_size_of::MallocSizeOfOps;
 
@@ -1247,7 +1247,7 @@ impl Painter {
         instance_key: FontInstanceKey,
         font_key: FontKey,
         size: f32,
-        flags: FontInstanceFlags,
+        font_instance_options: FontInstanceOptions,
         platform_options: FontInstancePlatformOptions,
         variations: Vec<FontVariation>,
     ) {
@@ -1258,11 +1258,6 @@ impl Painter {
         };
 
         let mut transaction = Transaction::new();
-
-        let font_instance_options = FontInstanceOptions {
-            flags,
-            ..Default::default()
-        };
         transaction.add_font_instance(
             instance_key,
             font_key,
