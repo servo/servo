@@ -750,14 +750,14 @@ impl FetchResponseListener for ResourceFetchListener {
         request_id: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
-        self.image_cache.notify_pending_response(
-            self.pending_image_id,
-            FetchResponseMsg::ProcessResponse(request_id, metadata.clone()),
+        self.status = network_listener::check_response_status(
+            metadata.as_ref().ok().map(FetchMetadata::metadata),
         );
 
-        let metadata = metadata.ok().map(Into::into);
-
-        self.status = network_listener::check_response_status(metadata.as_ref());
+        self.image_cache.notify_pending_response(
+            self.pending_image_id,
+            FetchResponseMsg::ProcessResponse(request_id, metadata),
+        );
     }
 
     fn process_response_chunk(
