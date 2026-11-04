@@ -20,7 +20,7 @@ use net_traits::image_cache::{
 };
 use net_traits::request::{CorsSettings, Destination, Initiator, RequestId};
 use net_traits::{
-    FetchMetadata, FetchResponseMsg, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming,
+    FetchMetadata, FetchResponseMsg, NetworkError, ReferrerPolicy, ResourceFetchTiming,
 };
 use num_traits::ToPrimitive;
 use pixels::{CorsStatus, ImageMetadata, Snapshot};
@@ -200,16 +200,10 @@ impl FetchResponseListener for ImageContext {
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
         debug!("got {:?} for {:?}", metadata.as_ref().map(|_| ()), self.url);
-        self.image_cache.notify_pending_response(
-            self.id,
-            FetchResponseMsg::ProcessResponse(request_id, metadata.clone()),
-        );
-
-        let metadata: Option<Metadata> = metadata.ok().map(Into::into);
 
         // Step 14.5 of https://html.spec.whatwg.org/multipage/#img-environment-changes
-        if let Some(metadata) = metadata.as_ref() &&
-            let Some(ref content_type) = metadata.content_type
+        if let Ok(fetch_metadata) = metadata.as_ref() &&
+            let Some(ref content_type) = fetch_metadata.metadata().content_type
         {
             let mime: Mime = content_type.clone().into_inner().into();
             if mime.type_() == mime::MULTIPART && mime.subtype().as_str() == "x-mixed-replace" {
@@ -218,13 +212,18 @@ impl FetchResponseListener for ImageContext {
         }
 
         // The HTTP status code is ignored here. Only NetworkError is treated as real error.
-        self.status = if metadata.is_some() {
+        self.status = if metadata.is_ok() {
             Ok(())
         } else {
             Err(NetworkError::ResourceLoadError(
                 "No http status code received".to_owned(),
             ))
         };
+
+        self.image_cache.notify_pending_response(
+            self.id,
+            FetchResponseMsg::ProcessResponse(request_id, metadata),
+        );
     }
 
     fn process_response_chunk(
