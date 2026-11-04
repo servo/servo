@@ -25,7 +25,7 @@ use servo_base::id::PainterId;
 use servo_config::pref;
 use style::values::computed::font::{GenericFontFamily, SingleFontFamily};
 use webrender_api::{
-    FontInstanceFlags, FontInstanceKey, FontInstancePlatformOptions, FontKey, FontVariation,
+    FontInstanceKey, FontInstanceOptions, FontInstancePlatformOptions, FontKey, FontVariation,
 };
 
 use crate::font_store::FontStore;
@@ -50,7 +50,8 @@ struct FontInstancesMapKey {
     pt_size: Au,
     variations: Vec<FontVariation>,
     painter_id: PainterId,
-    flags: FontInstanceFlags,
+    #[ignore_malloc_size_of = "TODO"]
+    font_instance_options: FontInstanceOptions,
     options: FontInstancePlatformOptions,
 }
 
@@ -135,13 +136,18 @@ impl SystemFontService {
                     painter_id,
                     identifier,
                     pt_size,
-                    flags,
+                    font_instance_options,
                     options,
                     variations,
                     result,
                 ) => {
                     let _ = result.send(self.get_font_instance(
-                        painter_id, identifier, pt_size, flags, options, variations,
+                        painter_id,
+                        identifier,
+                        pt_size,
+                        font_instance_options,
+                        options,
+                        variations,
                     ));
                 },
                 SystemFontServiceMessage::GetFontKey(painter_id, result_sender) => {
@@ -265,7 +271,7 @@ impl SystemFontService {
         painter_id: PainterId,
         identifier: FontIdentifier,
         pt_size: Au,
-        flags: FontInstanceFlags,
+        font_instance_options: FontInstanceOptions,
         options: FontInstancePlatformOptions,
         variations: Vec<FontVariation>,
     ) -> FontInstanceKey {
@@ -295,8 +301,8 @@ impl SystemFontService {
             pt_size,
             variations: variations.clone(),
             painter_id,
-            flags,
             options,
+            font_instance_options,
         };
         *self.font_instances.entry(entry_key).or_insert_with(|| {
             let font_instance_key = self
@@ -309,7 +315,7 @@ impl SystemFontService {
                 font_instance_key,
                 font_key,
                 pt_size.to_f32_px(),
-                flags,
+                font_instance_options,
                 options,
                 variations,
             );

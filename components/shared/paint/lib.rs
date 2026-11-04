@@ -20,7 +20,7 @@ use smallvec::SmallVec;
 use strum::IntoStaticStr;
 use style_traits::CSSPixel;
 use surfman::{Adapter, Connection};
-use webrender_api::{DocumentId, FontInstancePlatformOptions, FontVariation};
+use webrender_api::{DocumentId, FontInstanceOptions, FontInstancePlatformOptions, FontVariation};
 
 pub mod display_list;
 pub mod rendering_context;
@@ -41,9 +41,8 @@ pub use webrender_api::ExternalImageSource;
 use webrender_api::units::{DevicePixel, LayoutVector2D, TexelRect};
 use webrender_api::{
     BuiltDisplayList, BuiltDisplayListDescriptor, ExternalImage, ExternalImageData,
-    ExternalImageHandler, ExternalImageId, ExternalScrollId, FontInstanceFlags, FontInstanceKey,
-    FontKey, ImageData, ImageDescriptor, ImageKey, NativeFontHandle,
-    PipelineId as WebRenderPipelineId,
+    ExternalImageHandler, ExternalImageId, ExternalScrollId, FontInstanceKey, FontKey, ImageData,
+    ImageDescriptor, ImageKey, NativeFontHandle, PipelineId as WebRenderPipelineId,
 };
 
 use crate::viewport_description::ViewportDescription;
@@ -170,7 +169,7 @@ pub enum PaintMessage {
         FontInstanceKey,
         FontKey,
         f32,
-        FontInstanceFlags,
+        FontInstanceOptions,
         FontInstancePlatformOptions,
         Vec<FontVariation>,
     ),
@@ -451,7 +450,7 @@ impl CrossProcessPaintApi {
         font_instance_key: FontInstanceKey,
         font_key: FontKey,
         size: f32,
-        flags: FontInstanceFlags,
+        font_instance_options: FontInstanceOptions,
         options: FontInstancePlatformOptions,
         variations: Vec<FontVariation>,
     ) {
@@ -460,7 +459,7 @@ impl CrossProcessPaintApi {
             font_instance_key,
             font_key,
             size,
-            flags,
+            font_instance_options,
             options,
             variations,
         ));
