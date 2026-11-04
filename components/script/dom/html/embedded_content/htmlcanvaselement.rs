@@ -54,8 +54,6 @@ use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use crate::dom::document::Document;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
-#[cfg(not(feature = "webgpu"))]
-use crate::dom::gpucanvascontext::GPUCanvasContext;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::imagebitmaprenderingcontext::ImageBitmapRenderingContext;
 use crate::dom::mediastream::MediaStream;
@@ -340,11 +338,6 @@ impl HTMLCanvasElement {
             RenderingContext::WebGL2(Dom::from_ref(&*context))
         });
         Some(context)
-    }
-
-    #[cfg(not(feature = "webgpu"))]
-    fn get_or_init_webgpu_context(&self) -> Option<DomRoot<GPUCanvasContext>> {
-        None
     }
 
     #[cfg(feature = "webgpu")]
