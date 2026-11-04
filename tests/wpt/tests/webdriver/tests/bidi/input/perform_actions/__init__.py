@@ -168,6 +168,7 @@ async def record_pointer_events(bidi_session, context, container, selector):
                 window.recordedEvents.push({{
                     "type": event.type,
                     "pointerType": event.pointerType,
+                    "pointerId": event.pointerId,
                     "target": event.target.id
                 }});
             }}

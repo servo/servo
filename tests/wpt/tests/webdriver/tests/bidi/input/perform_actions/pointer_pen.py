@@ -4,7 +4,7 @@ from webdriver.bidi.error import MoveTargetOutOfBoundsException, NoSuchFrameExce
 from webdriver.bidi.modules.input import Actions, get_element_origin
 from webdriver.bidi.modules.script import ContextTarget
 
-from .. import get_events
+from .. import get_events, get_object_from_context
 from . import (
     assert_pointer_events,
     get_inview_center_bidi,
@@ -222,3 +222,32 @@ async def test_pen_pointer_properties(
     assert events[4]["tiltX"] == 0
     assert events[4]["tiltY"] == 0
     assert events[4]["twist"] == 0
+
+
+async def test_pen_pointer_id(
+    bidi_session, top_context, get_element, load_static_test_page
+):
+    await load_static_test_page(page="test_actions_pointer.html")
+
+    body = await get_element("body")
+    target = await record_pointer_events(
+        bidi_session, top_context, body, "#pointerArea"
+    )
+
+    actions = Actions()
+    (
+        actions.add_pointer(pointer_type="pen")
+        .pointer_move(x=0, y=0, origin=get_element_origin(target))
+        .pointer_down(button=0)
+        .pointer_up(button=0)
+    )
+
+    await bidi_session.input.perform_actions(
+        actions=actions, context=top_context["context"]
+    )
+
+    events = await get_object_from_context(
+        bidi_session, top_context["context"], "window.recordedEvents"
+    )
+    assert len(events) == 2
+    assert all(event["pointerId"] >= 2 for event in events)

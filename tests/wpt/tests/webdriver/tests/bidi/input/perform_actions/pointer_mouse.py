@@ -7,7 +7,7 @@ from webdriver.bidi.modules.script import ContextTarget
 from tests.support.asserts import assert_move_to_coordinates
 from tests.support.helpers import filter_dict
 
-from .. import add_mouse_listeners, get_events
+from .. import add_mouse_listeners, get_events, get_object_from_context
 from . import (
     assert_pointer_events,
     get_inview_center_bidi,
@@ -522,3 +522,32 @@ async def test_move_to_inline_block_child(
     assert events[0]["type"] == "mousemove"
     assert events[0]["clientX"] == pytest.approx(center["x"], abs=1.0)
     assert events[0]["clientY"] == pytest.approx(center["y"], abs=1.0)
+
+
+async def test_pointer_id(
+    bidi_session, top_context, get_element, load_static_test_page
+):
+    await load_static_test_page(page="test_actions_pointer.html")
+
+    body = await get_element("body")
+    target = await record_pointer_events(
+        bidi_session, top_context, body, "#pointerArea"
+    )
+
+    actions = Actions()
+    (
+        actions.add_pointer()
+        .pointer_move(x=0, y=0, origin=get_element_origin(target))
+        .pointer_down(button=0)
+        .pointer_up(button=0)
+    )
+
+    await bidi_session.input.perform_actions(
+        actions=actions, context=top_context["context"]
+    )
+
+    events = await get_object_from_context(
+        bidi_session, top_context["context"], "window.recordedEvents"
+    )
+    assert len(events) == 2
+    assert all(event["pointerId"] == 0 for event in events)

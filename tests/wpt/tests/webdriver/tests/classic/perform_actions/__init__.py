@@ -61,6 +61,7 @@ def record_pointer_events(session, element):
         function onPointerEvent(event) {
             window.recordedEvents.push({
                 "pointerType": event.pointerType,
+                "pointerId": event.pointerId,
                 "target": event.target.id,
                 "type": event.type,
             });

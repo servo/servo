@@ -139,3 +139,17 @@ def test_pen_pointer_properties(session, test_actions_pointer_page, pen_chain):
     assert events[6]["tiltX"] == 0
     assert events[6]["tiltY"] == 0
     assert events[6]["twist"] == 0
+
+
+def test_pen_pointer_id(session, test_actions_pointer_page, pen_chain):
+    pointer_area = session.find.css("#pointerArea", all=False)
+    record_pointer_events(session, pointer_area)
+
+    pen_chain.pointer_move(0, 0, origin=pointer_area) \
+        .pointer_down() \
+        .pointer_up() \
+        .perform()
+
+    events = session.execute_script("return window.recordedEvents;")
+    assert len(events) == 2
+    assert all(e["pointerId"] >= 2 for e in events)

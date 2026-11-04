@@ -353,3 +353,17 @@ def test_invalid_element_origin(session, test_actions_page, mouse_chain):
     )
     with pytest.raises(InvalidArgumentException):
         actions.perform()
+
+
+def test_pointer_id(session, test_actions_pointer_page, mouse_chain):
+    pointer_area = session.find.css("#pointerArea", all=False)
+    record_pointer_events(session, pointer_area)
+
+    mouse_chain.pointer_move(0, 0, origin=pointer_area) \
+        .pointer_down() \
+        .pointer_up() \
+        .perform()
+
+    events = session.execute_script("return window.recordedEvents;")
+    assert len(events) == 2
+    assert all(e["pointerId"] == 0 for e in events)

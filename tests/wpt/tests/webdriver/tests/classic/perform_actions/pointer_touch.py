@@ -285,3 +285,19 @@ def test_touch_pointer_properties_tilt_twist(
     assert events[3]["tiltX"] == -19
     assert events[3]["tiltY"] == 62
     assert events[3]["twist"] == 345
+
+
+def test_touch_pointer_id(
+    session, new_tab_classic, test_actions_pointer_page, touch_chain
+):
+    pointer_area = session.find.css("#pointerArea", all=False)
+    record_pointer_events(session, pointer_area)
+
+    touch_chain.pointer_move(0, 0, origin=pointer_area) \
+        .pointer_down() \
+        .pointer_up() \
+        .perform()
+
+    events = session.execute_script("return window.recordedEvents;")
+    assert len(events) == 2
+    assert all(e["pointerId"] >= 2 for e in events)
