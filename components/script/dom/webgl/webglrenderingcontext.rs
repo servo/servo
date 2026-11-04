@@ -609,7 +609,9 @@ impl WebGLRenderingContext {
                     program.link_generation() == location.link_generation() => {},
             _ => return self.webgl_error(InvalidOperation),
         }
-        handle_potential_webgl_error!(self, f(location));
+        if let Err(error) = f(location) {
+            self.webgl_error(error);
+        }
     }
 
     pub(crate) fn textures(&self) -> &Textures {
@@ -617,14 +619,16 @@ impl WebGLRenderingContext {
     }
 
     fn tex_parameter(&self, target: u32, param: u32, value: TexParameterValue) {
-        let texture_slot = handle_potential_webgl_error!(
-            self,
-            self.textures
-                .active_texture_slot(target, self.webgl_version()),
-            return
-        );
-        let texture =
-            handle_potential_webgl_error!(self, texture_slot.get().ok_or(InvalidOperation), return);
+        let texture_slot = match self
+            .textures
+            .active_texture_slot(target, self.webgl_version())
+        {
+            Ok(texture_slot) => texture_slot,
+            Err(error) => return self.webgl_error(error),
+        };
+        let Some(texture) = texture_slot.get() else {
+            return self.webgl_error(InvalidOperation);
+        };
 
         if !self
             .extension_manager
@@ -633,7 +637,9 @@ impl WebGLRenderingContext {
             return self.webgl_error(InvalidEnum);
         }
 
-        handle_potential_webgl_error!(self, texture.tex_parameter(param, value), return);
+        if let Err(error) = texture.tex_parameter(param, value) {
+            return self.webgl_error(error);
+        }
 
         // Validate non filterable TEXTURE_2D data_types
         if target != constants::TEXTURE_2D {
@@ -977,18 +983,17 @@ impl WebGLRenderingContext {
         source: TexSource,
     ) {
         // TexImage2D depth is always equal to 1.
-        handle_potential_webgl_error!(
-            self,
-            texture.initialize(
-                target,
-                size.width,
-                size.height,
-                1,
-                internal_format,
-                level,
-                Some(data_type)
-            )
-        );
+        if let Err(error) = texture.initialize(
+            target,
+            size.width,
+            size.height,
+            1,
+            internal_format,
+            level,
+            Some(data_type),
+        ) {
+            self.webgl_error(error);
+        }
 
         let internal_format = self
             .extension_manager
@@ -1344,7 +1349,9 @@ impl WebGLRenderingContext {
         vao: Option<&WebGLVertexArrayObjectOES>,
     ) {
         if let Some(vao) = vao {
-            handle_potential_webgl_error!(self, self.validate_ownership(vao), return);
+            if let Err(error) = self.validate_ownership(vao) {
+                return self.webgl_error(error);
+            }
             // The default vertex array has no id and should never be passed around.
             assert!(vao.id().is_some());
             if vao.is_deleted() {
@@ -1366,7 +1373,9 @@ impl WebGLRenderingContext {
         vao: Option<&WebGLVertexArrayObject>,
     ) {
         if let Some(vao) = vao {
-            handle_potential_webgl_error!(self, self.validate_ownership(vao), return);
+            if let Err(error) = self.validate_ownership(vao) {
+                return self.webgl_error(error);
+            }
             // The default vertex array has no id and should never be passed around.
             assert!(vao.id().is_some());
             if vao.is_deleted() {
@@ -1402,7 +1411,9 @@ impl WebGLRenderingContext {
         if let Some(vao) = vao {
             // The default vertex array has no id and should never be passed around.
             assert!(vao.id().is_some());
-            handle_potential_webgl_error!(self, self.validate_ownership(vao), return);
+            if let Err(error) = self.validate_ownership(vao) {
+                return self.webgl_error(error);
+            }
             if vao.is_deleted() {
                 return self.webgl_error(InvalidOperation);
             }
@@ -1418,7 +1429,9 @@ impl WebGLRenderingContext {
         if let Some(vao) = vao {
             // The default vertex array has no id and should never be passed around.
             assert!(vao.id().is_some());
-            handle_potential_webgl_error!(self, self.validate_ownership(vao), return);
+            if let Err(error) = self.validate_ownership(vao) {
+                return self.webgl_error(error);
+            }
             if vao.is_deleted() {
                 return self.webgl_error(InvalidOperation);
             }
@@ -1467,12 +1480,17 @@ impl WebGLRenderingContext {
         usage: u32,
         bound_buffer: Option<DomRoot<WebGLBuffer>>,
     ) {
-        let data = handle_potential_webgl_error!(self, data.ok_or(InvalidValue), return);
-        let bound_buffer =
-            handle_potential_webgl_error!(self, bound_buffer.ok_or(InvalidOperation), return);
+        let Some(data) = data else {
+            return self.webgl_error(InvalidValue);
+        };
+        let Some(bound_buffer) = bound_buffer else {
+            return self.webgl_error(InvalidOperation);
+        };
 
         let data = get_buffer_source_slice(&data, no_gc);
-        handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, data, usage));
+        if let Err(error) = bound_buffer.buffer_data(target, data, usage) {
+            self.webgl_error(error);
+        }
     }
 
     pub(crate) fn buffer_data_(
@@ -1482,8 +1500,9 @@ impl WebGLRenderingContext {
         usage: u32,
         bound_buffer: Option<DomRoot<WebGLBuffer>>,
     ) {
-        let bound_buffer =
-            handle_potential_webgl_error!(self, bound_buffer.ok_or(InvalidOperation), return);
+        let Some(bound_buffer) = bound_buffer else {
+            return self.webgl_error(InvalidOperation);
+        };
 
         if size < 0 {
             return self.webgl_error(InvalidValue);
@@ -1492,7 +1511,9 @@ impl WebGLRenderingContext {
         // FIXME: Allocating a buffer based on user-requested size is
         // not great, but we don't have a fallible allocation to try.
         let data = vec![0u8; size as usize];
-        handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, &data, usage));
+        if let Err(error) = bound_buffer.buffer_data(target, &data, usage) {
+            self.webgl_error(error);
+        }
     }
 
     pub(crate) fn buffer_sub_data(
@@ -1503,8 +1524,9 @@ impl WebGLRenderingContext {
         data: ArrayBufferViewOrArrayBuffer,
         bound_buffer: Option<DomRoot<WebGLBuffer>>,
     ) {
-        let bound_buffer =
-            handle_potential_webgl_error!(self, bound_buffer.ok_or(InvalidOperation), return);
+        let Some(bound_buffer) = bound_buffer else {
+            return self.webgl_error(InvalidOperation);
+        };
 
         if offset < 0 {
             return self.webgl_error(InvalidValue);
@@ -1531,12 +1553,16 @@ impl WebGLRenderingContext {
         buffer: Option<&WebGLBuffer>,
     ) {
         if let Some(buffer) = buffer {
-            handle_potential_webgl_error!(self, self.validate_ownership(buffer), return);
+            if let Err(error) = self.validate_ownership(buffer) {
+                return self.webgl_error(error);
+            }
 
             if buffer.is_marked_for_deletion() {
                 return self.webgl_error(InvalidOperation);
             }
-            handle_potential_webgl_error!(self, buffer.set_target_maybe(target), return);
+            if let Err(error) = buffer.set_target_maybe(target) {
+                return self.webgl_error(error);
+            }
             buffer.increment_attached_counter();
         }
 
@@ -1724,12 +1750,14 @@ impl WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        let rb = handle_potential_webgl_error!(
-            self,
-            self.bound_renderbuffer.get().ok_or(InvalidOperation),
-            return
-        );
-        handle_potential_webgl_error!(self, rb.storage(samples, internal_format, width, height));
+        let Some(rb) = self.bound_renderbuffer.get() else {
+            return self.webgl_error(InvalidOperation);
+        };
+
+        if let Err(error) = rb.storage(samples, internal_format, width, height) {
+            self.webgl_error(error);
+        }
+
         if let Some(fb) = self.bound_draw_framebuffer.get() {
             fb.invalidate_renderbuffer(&rb);
         }
@@ -1782,18 +1810,17 @@ impl WebGLRenderingContext {
         let size = Size2D::new(width, height);
         let data = GenericSharedMemory::from_bytes(data);
 
-        handle_potential_webgl_error!(
-            self,
-            texture.initialize(
-                target,
-                size.width,
-                size.height,
-                1,
-                compression.format,
-                level,
-                Some(TexDataType::UnsignedByte)
-            )
-        );
+        if let Err(error) = texture.initialize(
+            target,
+            size.width,
+            size.height,
+            1,
+            compression.format,
+            level,
+            Some(TexDataType::UnsignedByte),
+        ) {
+            self.webgl_error(error);
+        }
 
         self.send_command(WebGLCommand::CompressedTexImage2D {
             target: target.as_gl_constant(),
@@ -2089,11 +2116,10 @@ impl WebGLRenderingContext {
         parameter: u32,
         mut retval: MutableHandleValue,
     ) {
-        let buffer = handle_potential_webgl_error!(
-            self,
-            buffer.ok_or(InvalidOperation),
-            return retval.set(NullValue())
-        );
+        let Some(buffer) = buffer else {
+            self.webgl_error(InvalidOperation);
+            return retval.set(NullValue());
+        };
 
         retval.set(match parameter {
             constants::BUFFER_SIZE => Int32Value(buffer.capacity() as i32),
@@ -2183,14 +2209,18 @@ impl CanvasContext for WebGLRenderingContext {
     //
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#2.2>
     fn get_image_data(&self) -> Option<Snapshot> {
-        handle_potential_webgl_error!(self, self.validate_read_framebuffer(), return None);
+        if let Err(error) = self.validate_read_framebuffer() {
+            self.webgl_error(error);
+            return None;
+        }
+
         let mut size = self.size().cast();
 
-        let (fb_width, fb_height) = handle_potential_webgl_error!(
-            self,
-            self.get_current_framebuffer_size().ok_or(InvalidOperation),
-            return None
-        );
+        let Some((fb_width, fb_height)) = self.get_current_framebuffer_size() else {
+            self.webgl_error(InvalidOperation);
+            return None;
+        };
+
         size.width = cmp::min(size.width, fb_width as u32);
         size.height = cmp::min(size.height, fb_height as u32);
 
