@@ -750,7 +750,7 @@ impl IndependentFormattingContext {
             },
             size: content_size,
         }
-        .as_physical(Some(containing_block))
+        .as_physical(containing_block)
         .translate(containing_block_origin);
 
         if is_cached &&

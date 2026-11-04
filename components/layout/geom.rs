@@ -551,13 +551,8 @@ impl<T> LogicalRect<T> {
 }
 
 impl LogicalRect<Au> {
-    pub(crate) fn as_physical(
-        &self,
-        containing_block: Option<&ContainingBlock<'_>>,
-    ) -> PhysicalRect<Au> {
-        let mode = containing_block.map_or_else(WritingMode::horizontal_tb, |containing_block| {
-            containing_block.style.writing_mode
-        });
+    pub(crate) fn as_physical(&self, containing_block: &ContainingBlock<'_>) -> PhysicalRect<Au> {
+        let mode = containing_block.style.writing_mode;
         let (x, y, width, height) = if mode.is_vertical() {
             // TODO: Bottom-to-top writing modes are not supported.
             (
@@ -568,11 +563,10 @@ impl LogicalRect<Au> {
             )
         } else {
             let y = self.start_corner.block;
-            let x = match containing_block {
-                Some(containing_block) if !mode.is_bidi_ltr() => {
-                    containing_block.size.inline - self.max_inline_position()
-                },
-                _ => self.start_corner.inline,
+            let x = if mode.is_bidi_ltr() {
+                self.start_corner.inline
+            } else {
+                containing_block.size.inline - self.max_inline_position()
             };
             (x, y, self.size.inline, self.size.block)
         };

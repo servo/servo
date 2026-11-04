@@ -383,7 +383,6 @@ impl StackingContextTree {
         fragment: &Fragment,
         point_in_viewport: PhysicalPoint<Au>,
     ) -> Option<Point2D<Au, CSSPixel>> {
-        let fragment = fragment.retrieve_box_fragment()?;
         let spatial_tree_node = fragment.spatial_tree_node()?;
         let transform = self
             .paint_info
@@ -395,6 +394,7 @@ impl StackingContextTree {
             .cast_unit();
 
         // Find the origin of the fragment relative to its reference frame in the same coordinate system.
+        let fragment = fragment.retrieve_box_fragment()?;
         let reference_frame_origin = self
             .paint_info
             .scroll_tree
@@ -1480,6 +1480,7 @@ impl BoxFragment {
                         box_fragment.clear_stacking_context_tree_traversal_data_recursively();
                     },
                     Fragment::Positioning(positioning_fragment) => {
+                        positioning_fragment.spatial_tree_node.clear();
                         clear_stacking_context_tree_traversal_data_on_fragments(
                             &positioning_fragment.children,
                         );
@@ -1489,7 +1490,7 @@ impl BoxFragment {
             }
         }
 
-        self.spatial_tree_node.set(None);
+        self.spatial_tree_node.clear();
         self.clear_stacking_context_tree_traversal_data();
         clear_stacking_context_tree_traversal_data_on_fragments(&self.children);
     }
@@ -1508,6 +1509,8 @@ impl PositioningFragment {
             .rect
             .translate(containing_block.accumulated_reference_frame_offset);
         self.set_cumulative_content_rect(&cumulative_containing_block);
+        self.spatial_tree_node
+            .set(Some(containing_block.scroll_node_id));
 
         let rect = self
             .base

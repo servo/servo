@@ -1132,7 +1132,7 @@ impl SequentialLayoutState {
                     .size
                     .to_logical(container_writing_mode),
             }
-            .as_physical(Some(containing_block)),
+            .as_physical(containing_block),
         );
     }
 }

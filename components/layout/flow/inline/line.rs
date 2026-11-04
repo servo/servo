@@ -111,7 +111,7 @@ impl FragmentAndData {
         // We do not know the actual physical position of a logically laid out inline element, until
         // we know the width of the containing inline block. This step converts the logical rectangle
         // into a physical one based on the inline formatting context width.
-        let rect = self.logical_rect.as_physical(Some(container));
+        let rect = self.logical_rect.as_physical(container);
         base.set_rect(rect);
 
         // Floats are anchored to a side of the inline formatting context, but in the box tree
@@ -569,7 +569,7 @@ impl LineItemLayout<'_, '_> {
 
         // Previously all the fragment's children were positioned relative to the linebox,
         // but they need to be made relative to this fragment.
-        let physical_content_rect = content_rect.as_physical(Some(containing_block));
+        let physical_content_rect = content_rect.as_physical(containing_block);
 
         let mut fragment = BoxFragment::new(
             inline_box.base.base_fragment_info,
@@ -758,7 +758,7 @@ impl LineItemLayout<'_, '_> {
         };
 
         if let Some(mut positioning_context) = atomic.positioning_context {
-            let physical_rect_as_if_in_root = content_rect.as_physical(Some(containing_block));
+            let physical_rect_as_if_in_root = content_rect.as_physical(containing_block);
             positioning_context.adjust_static_position_of_hoisted_fragments_with_offset(
                 &physical_rect_as_if_in_root.origin.to_vector(),
                 PositioningContextLength::zero(),
@@ -824,7 +824,7 @@ impl LineItemLayout<'_, '_> {
             start_corner: initial_start_corner,
             size: LogicalVec2::zero(),
         }
-        .as_physical(Some(containing_block));
+        .as_physical(containing_block);
 
         let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
             absolute.absolutely_positioned_box.clone(),

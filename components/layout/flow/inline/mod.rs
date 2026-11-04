@@ -1404,7 +1404,7 @@ impl InlineFormattingContextLayout<'_> {
                 block: effective_block_advance.resolve(),
             },
         }
-        .as_physical(Some(containing_block));
+        .as_physical(containing_block);
         self.fragments
             .push(Fragment::Positioning(PositioningFragment::new_anonymous(
                 self.root_nesting_level.style.clone(),

@@ -425,7 +425,7 @@ impl OutsideMarker {
                 base_fragment_info,
                 style.clone(),
                 layout.fragments,
-                content_rect.as_physical(Some(containing_block)),
+                content_rect.as_physical(containing_block),
                 PhysicalSides::zero(),
                 PhysicalSides::zero(),
                 PhysicalSides::zero(),
@@ -516,7 +516,7 @@ impl BlockFormattingContext {
                     block: content_block_size,
                 },
             }
-            .as_physical(Some(containing_block));
+            .as_physical(containing_block);
             positioning_context.adjust_static_position_of_hoisted_fragments_with_offset(
                 &align_fragment_rect.origin.to_vector(),
                 previous_positioning_context_len,
@@ -1185,7 +1185,7 @@ impl IndependentFormattingContext {
             base_fragment_info,
             self.base.style.clone(),
             layout.fragments,
-            content_rect.as_physical(Some(containing_block)),
+            content_rect.as_physical(containing_block),
             pbm.padding.to_physical(containing_block_writing_mode),
             pbm.border.to_physical(containing_block_writing_mode),
             margin.to_physical(containing_block_writing_mode),
@@ -1556,7 +1556,7 @@ impl IndependentFormattingContext {
             base_fragment_info,
             style.clone(),
             layout.fragments,
-            content_rect.as_physical(Some(containing_block)),
+            content_rect.as_physical(containing_block),
             pbm.padding.to_physical(containing_block_writing_mode),
             pbm.border.to_physical(containing_block_writing_mode),
             margin.to_physical(containing_block_writing_mode),
@@ -2160,7 +2160,7 @@ impl<'container> PlacementState<'container> {
                     },
                     size: LogicalVec2::zero(),
                 }
-                .as_physical(Some(self.containing_block));
+                .as_physical(self.containing_block);
             },
             Fragment::Float(box_fragment) => {
                 let sequential_layout_state = sequential_layout_state
