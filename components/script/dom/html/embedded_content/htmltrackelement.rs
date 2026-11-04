@@ -10,6 +10,7 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
 use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::fetch::fetch_controller::FetchController;
 use net_traits::request::RequestId;
 use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming};
@@ -46,10 +47,11 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::webvtt::vttcue::VTTCue;
 use crate::dom::{AttributeMutation, cors_setting_for_element};
 use crate::event_loop::script_thread::ScriptThread;
-use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
+use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request_with_claim};
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
 use crate::runtime::job_queue::MicrotaskRunnable;
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 #[derive(Clone, Copy, Default, JSTraceable, MallocSizeOf, PartialEq)]
 #[repr(u16)]
@@ -75,7 +77,7 @@ pub(crate) struct HTMLTrackElement {
     track: Dom<TextTrack>,
     /// <https://html.spec.whatwg.org/multipage/#track-url>
     #[no_trace]
-    track_url: DomRefCell<Option<ServoUrl>>,
+    track_url: DomRefCell<Option<UrlWithBlobClaim>>,
     /// The track_url used for the last load that was successful.
     #[no_trace]
     last_successful_load: DomRefCell<Option<ServoUrl>>,
@@ -334,7 +336,12 @@ impl VirtualMethods for HTMLTrackElement {
                     // Step 4. Set the element's track URL to trackURL if it is not failure;
                     // otherwise to the empty string.
                     *self.track_url.borrow_mut() = if !value.is_empty() {
-                        self.owner_document().encoding_parse_a_url(value).ok()
+                        self.owner_document()
+                            .encoding_parse_a_url(value)
+                            .ok()
+                            .map(|url| {
+                                ensure_blob_referenced_by_url_is_kept_alive(&self.global(), url)
+                            })
                     } else {
                         None
                     };
@@ -469,7 +476,8 @@ impl MicrotaskRunnable for TrackElementMicrotask {
                 // Not specced, but required for browser compatibility:
                 // https://github.com/whatwg/html/issues/12796
                 if element.readiness_state.get() == TextTrackReadinessState::Loaded &&
-                    *element.track_url.borrow() == *element.last_successful_load.borrow()
+                    element.track_url.borrow().as_deref() ==
+                        element.last_successful_load.borrow().as_ref()
                 {
                     element.is_running_processing_model_algorithm.set(false);
                     return;
@@ -501,7 +509,7 @@ impl MicrotaskRunnable for TrackElementMicrotask {
                     // "track", and corsAttributeState, and with the same-origin fallback flag set.
                     let global = element.global();
                     let document = element.owner_document();
-                    let request = create_a_potential_cors_request(
+                    let request = create_a_potential_cors_request_with_claim(
                         Some(document.webview_id()),
                         url.clone(),
                         Destination::Track,
@@ -519,7 +527,7 @@ impl MicrotaskRunnable for TrackElementMicrotask {
                     // Step 10.4. Fetch request.
                     let listener = HTMLTrackElementFetchListener {
                         element: Trusted::new(element),
-                        url,
+                        url: url.url(),
                         payload: vec![],
                     };
                     element.cancel_ongoing_request();
@@ -583,7 +591,7 @@ impl HTMLTrackElementFetchListener {
             .track_url
             .borrow()
             .as_ref()
-            .is_none_or(|url| url != &self.url)
+            .is_none_or(|url| **url != self.url)
     }
 }
 
