@@ -33,7 +33,7 @@ use crate::sizing::{LazySize, Size, SizeConstraint, Sizes};
 use crate::style_ext::{Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, DisplayInside};
 use crate::{
     ConstraintSpace, ContainingBlock, ContainingBlockSize, DefiniteContainingBlock,
-    PropagatedBoxTreeData,
+    HasQuirkyBlockSize, PropagatedBoxTreeData,
 };
 
 #[derive(Debug, MallocSizeOf)]
@@ -655,9 +655,14 @@ impl IndependentFormattingContext {
 
         // The inline axis can be fully resolved, computing intrinsic sizes using the
         // extrinsic block size.
+        let has_quirky_block_size = HasQuirkyBlockSize(false);
         let get_inline_content_size = || {
-            let constraint_space =
-                ConstraintSpace::new(tentative_block_size, &style, preferred_aspect_ratio);
+            let constraint_space = ConstraintSpace::new(
+                tentative_block_size,
+                has_quirky_block_size,
+                &style,
+                preferred_aspect_ratio,
+            );
             self.inline_content_sizes(layout_context, &constraint_space)
                 .sizes
         };
@@ -674,6 +679,7 @@ impl IndependentFormattingContext {
             size: ContainingBlockSize {
                 inline: inline_size,
                 block: tentative_block_size,
+                has_quirky_block_size,
             },
             style: &style,
         };
@@ -1054,14 +1060,22 @@ pub(crate) fn relative_adjustement(
     // (https://github.com/w3c/csswg-drafts/issues/9353), so we match
     // other browsers and treat them as 'auto' offsets.
     let cbis = containing_block.size.inline;
-    let cbbs = containing_block.size.block;
+    let cbbs = if containing_block.has_quirky_block_size() {
+        // The actual block size of the containing block is indefinite,
+        // but the value was overridden in order to resolve percentages
+        // for the purpose of calculating the size of the element.
+        // However, now we are resolving the position instead of the size.
+        None
+    } else {
+        containing_block.size.block.to_definite()
+    };
     let box_offsets = style
         .box_offsets(containing_block.style.writing_mode)
         .map_inline_and_block_axes(
             |value| value.map(|value| value.to_used_value(cbis)),
             |value| match cbbs {
-                SizeConstraint::Definite(cbbs) => value.map(|value| value.to_used_value(cbbs)),
-                _ => match value.non_auto().and_then(|value| value.to_length()) {
+                Some(cbbs) => value.map(|value| value.to_used_value(cbbs)),
+                None => match value.non_auto().and_then(|value| value.to_length()) {
                     Some(value) => AuOrAuto::LengthPercentage(value.into()),
                     None => AuOrAuto::Auto,
                 },

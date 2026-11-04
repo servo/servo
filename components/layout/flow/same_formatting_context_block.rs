@@ -333,6 +333,9 @@ impl SameFormattingContextBlock {
             // set to their initial values, so it's fine to use the default.
             &Default::default()
         } else {
+            // TODO: It's possible that the block size of the actual containing block
+            // was indefinite, but it was overridden in order to resolve percentages
+            // in quirks mode. However, here we should use the original block size.
             &containing_block_for_children.size.block
         };
         let collapsed_through = collapsible_margins_in_children.collapsed_through &&
