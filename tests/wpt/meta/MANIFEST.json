@@ -12194,6 +12194,15 @@
        ]
       ]
      },
+     "request": {
+      "request-clone-stream-body-crash.html": [
+       "ef30a1de2033beaa8171599970561fc77030ddec",
+       [
+        null,
+        {}
+       ]
+      ]
+     },
      "response": {
       "many-empty-chunks-crash.html": [
        "fe5e7d4c0754a0c53a474be6d28de892dc9451c8",

@@ -1,0 +1,11 @@
+<!doctype html>
+<html class="test-wait">
+<link rel="help" href="https://github.com/servo/servo/issues/49535">
+<script>
+var s = Response.redirect("x").textStream();
+var r = new Request("big", {method: "POST", body: s, duplex: "half"});
+fetch(r.clone().clone()).catch(function() { }).finally(function() {
+  document.documentElement.removeAttribute("class");
+});
+</script>
+</html>
