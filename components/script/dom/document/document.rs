@@ -3523,14 +3523,6 @@ impl Document {
             .push(Dom::from_ref(resize_observer));
     }
 
-    pub(crate) fn rooted_clone_of_resize_observers(&self) -> Vec<DomRoot<ResizeObserver>> {
-        self.resize_observers
-            .borrow()
-            .iter()
-            .map(Dom::as_rooted)
-            .collect()
-    }
-
     /// <https://drafts.csswg.org/resize-observer/#gather-active-observations-h>
     /// <https://drafts.csswg.org/resize-observer/#has-active-resize-observations>
     pub(crate) fn gather_active_resize_observations_at_depth(
@@ -3538,10 +3530,9 @@ impl Document {
         cx: &mut JSContext,
         depth: &ResizeObservationDepth,
     ) -> bool {
-        // As the interior of the loop can trigger garbage collection, we must clone the resize observers
-        // before iterating them.
+        // This does not trigger a creation of ResizeObserver, hence, we can take a simple borrow.
         let mut has_active_resize_observations = false;
-        for observer in self.rooted_clone_of_resize_observers() {
+        for observer in self.resize_observers.borrow().iter() {
             observer.gather_active_resize_observations_at_depth(
                 cx,
                 depth,
@@ -3556,10 +3547,10 @@ impl Document {
         &self,
         cx: &mut JSContext,
     ) -> ResizeObservationDepth {
-        // As the interior of the loop can trigger garbage collection we must clone the resize observers
-        // before iterating them.
+        // As the interior of the loop can trigger creation of new ResizeObservers (which mutably borrows `resize_observers`, we have to clone the fields.
         let mut shallowest = ResizeObservationDepth::max();
-        for observer in self.rooted_clone_of_resize_observers() {
+        rooted_vec!(let observers <- self.resize_observers.borrow().iter().cloned());
+        for observer in &*observers {
             observer.broadcast_active_resize_observations(cx, &mut shallowest);
         }
         shallowest
