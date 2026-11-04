@@ -40,7 +40,7 @@ use crate::dom::nodelist::NodeList;
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 
-#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq, Debug)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 enum ButtonType {
     Submit,
     Reset,
@@ -262,7 +262,6 @@ impl HTMLButtonElement {
     }
 
     fn set_type(&self, cx: &mut JSContext, value: DOMString) {
-        println!("{:?}", value);
         let value = if value.eq_ignore_ascii_case("reset") {
             ButtonType::Reset
         } else if value.eq_ignore_ascii_case("button") {
@@ -282,7 +281,6 @@ impl HTMLButtonElement {
                 ButtonType::Button
             }
         };
-        println!("{:?}", value);
         self.button_type.set(value);
         self.validity_state(cx)
             .perform_validation_and_update(cx, ValidationFlags::all());
