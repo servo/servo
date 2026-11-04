@@ -203,14 +203,15 @@ fn create_http_states(
     ignore_certificate_errors: bool,
     embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
 ) -> (Arc<HttpState>, Arc<HttpState>) {
-    let mut hsts_list = HstsList::default();
-    let mut auth_cache = AuthCache::default();
-    let mut cookie_jar = CookieStorage::new(150);
-    if let Some(config_dir) = config_dir {
-        servo_base::read_json_from_file(&mut auth_cache, config_dir, "auth_cache.json");
-        servo_base::read_json_from_file(&mut hsts_list, config_dir, "hsts_list.json");
-        servo_base::read_json_from_file(&mut cookie_jar, config_dir, "cookie_jar.json");
-    }
+    let auth_cache = config_dir
+        .and_then(|config_dir| servo_base::read_json_from_file(config_dir, "auth_cache.json").ok())
+        .unwrap_or_default();
+    let hsts_list = config_dir
+        .and_then(|config_dir| servo_base::read_json_from_file(config_dir, "hsts_list.json").ok())
+        .unwrap_or_default();
+    let cookie_jar = config_dir
+        .and_then(|config_dir| servo_base::read_json_from_file(config_dir, "cookie_jar.json").ok())
+        .unwrap_or_else(|| CookieStorage::new(150));
 
     let override_manager = CertificateErrorOverrideManager::new();
     let http_state = HttpState {
