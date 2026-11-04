@@ -1219,8 +1219,10 @@ enum GPUQueryType {
     "timestamp",
 };
 
+[Exposed=(Window, Worker), SecureContext, Pref="dom_webgpu_enabled"]
+interface GPUCanvasContext {
+    readonly attribute (HTMLCanvasElement or OffscreenCanvas) canvas;
 
-partial interface GPUCanvasContext {
     [Throws, Pref="dom_webgpu_enabled"]
     undefined configure(GPUCanvasConfiguration descriptor);
     [Pref="dom_webgpu_enabled"] undefined unconfigure();
