@@ -838,7 +838,7 @@ pub(crate) fn handle_highlight_dom_node(
 }
 
 impl Element {
-    fn determine_auto_margins(&self) -> AutoMargins {
+    fn determine_auto_margins(&self, cx: &mut JSContext) -> AutoMargins {
         let Some(style) = self.style(cx) else {
             return AutoMargins::default();
         };
