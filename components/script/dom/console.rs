@@ -97,39 +97,36 @@ impl Console {
         // by any arguments that were not consumed by a substitution specifier.
         let embedder_msg = if !messages.is_empty() && messages[0].is_string() {
             let (formatted, consumed) = apply_sprintf_substitutions(cx, &messages);
-            let remaining = &messages[consumed..];
 
             #[cfg(feature = "devtools")]
             {
-                let mut arguments: Vec<DebuggerValue> =
-                    vec![DebuggerValue::StringValue(formatted.clone())];
-                for msg in remaining {
-                    arguments.push(devtools::console_argument_from_handle_value(
-                        cx,
-                        *msg,
-                        &mut Vec::new(),
-                    ));
-                }
-                devtools_arguments = arguments;
+                let remaining_iter = messages.iter().skip(consumed - 1).map(|msg| {
+                    devtools::console_argument_from_handle_value(cx, *msg, &mut Vec::new())
+                });
+                devtools_arguments = std::iter::once(DebuggerValue::StringValue(formatted.clone()))
+                    .chain(remaining_iter)
+                    .collect();
             }
 
-            let embedder_msg = if remaining.is_empty() {
+            let embedder_msg = if messages.iter().skip(consumed - 1).next().is_some() {
                 formatted
             } else {
-                format!("{formatted} {}", stringify_handle_values(cx, remaining))
+                format!(
+                    "{formatted} {}",
+                    stringify_handle_values(cx, &messages[consumed..])
+                )
             };
 
             embedder_msg.into()
         } else {
             #[cfg(feature = "devtools")]
             {
-                let arguments: Vec<DebuggerValue> = messages
+                devtools_arguments = messages
                     .iter()
                     .map(|msg| {
                         devtools::console_argument_from_handle_value(cx, *msg, &mut Vec::new())
                     })
                     .collect();
-                devtools_arguments = arguments;
             }
 
             stringify_handle_values(cx, &messages)
