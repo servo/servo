@@ -168,7 +168,7 @@ pub struct ObjectPreview {
     pub entries: Option<Vec<(DebuggerValue, DebuggerValue)>>,
     pub own_properties: Option<Vec<PropertyDescriptor>>,
     pub own_properties_length: Option<u32>,
-    pub function: Option<FunctionPreview>,
+    pub function: Option<Box<FunctionPreview>>,
     pub array_length: Option<u32>,
     pub items: Option<Vec<DebuggerValue>>,
 }

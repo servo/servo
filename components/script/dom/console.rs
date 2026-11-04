@@ -514,13 +514,13 @@ mod devtools {
                 // It's not trivial since we can't access the debugger API here
                 let parameter_names = (0..arity).map(|i| format!("<arg{i}>")).collect();
 
-                let function = FunctionPreview {
+                let function = Box::new(FunctionPreview {
                     name,
                     display_name,
                     parameter_names,
                     is_async: None,
                     is_generator: None,
-                };
+                });
                 (
                     "Function".into(),
                     "Object".into(),
