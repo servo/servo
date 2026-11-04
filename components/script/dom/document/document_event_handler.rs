@@ -68,6 +68,7 @@ use crate::dom::gamepad::gamepad::{Gamepad, contains_user_gesture};
 #[cfg(feature = "gamepad")]
 use crate::dom::gamepad::gamepadevent::GamepadEventType;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
+use crate::dom::html::htmldialogelement::HTMLDialogElement;
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::keyboardevent::KeyboardEvent;
@@ -1121,7 +1122,7 @@ impl DocumentEventHandler {
                         .set(input_event.pressed_mouse_buttons);
 
                     let pointer_event_result =
-                        pointer_event.upcast::<Event>().fire(cx, &pointer_target);
+                        self.fire_pointer_event(cx, &pointer_event, &pointer_target);
 
                     // Process pending pointer capture after firing event, but skip if we just
                     // released a disconnected capture to avoid immediately re-capturing.
@@ -1206,7 +1207,7 @@ impl DocumentEventHandler {
                         .map(DomRoot::upcast::<EventTarget>)
                         .unwrap_or_else(|| DomRoot::from_ref(node.upcast::<EventTarget>()));
 
-                    pointer_event.upcast::<Event>().fire(cx, &pointer_target);
+                    self.fire_pointer_event(cx, &pointer_event, &pointer_target);
 
                     // Update button state after firing event, so setPointerCapture/releasePointerCapture
                     // work during the pointerup handler (pointer is still "active").
@@ -1521,7 +1522,7 @@ impl DocumentEventHandler {
             event.is_cancelable(),
             Some(hit_test_result.point_in_node),
         );
-        pointer_event.upcast::<Event>().fire(cx, &pointer_target);
+        self.fire_pointer_event(cx, &pointer_event, &pointer_target);
 
         // Process pending pointer capture after firing event, but skip if we just
         // released a disconnected capture (to avoid immediately re-capturing).
@@ -3114,6 +3115,27 @@ impl DocumentEventHandler {
             .task_manager()
             .dom_manipulation_task_source()
             .queue(task);
+    }
+
+    fn fire_pointer_event(
+        &self,
+        cx: &mut JSContext,
+        pointer_event: &PointerEvent,
+        target: &EventTarget,
+    ) -> bool {
+        let result = pointer_event.upcast::<Event>().fire(cx, target);
+        Self::light_dismiss_activities(cx, pointer_event, target);
+        result
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#run-light-dismiss-activities>
+    ///
+    /// target is passed explicitly, because it might not be set on event
+    fn light_dismiss_activities(cx: &mut JSContext, event: &PointerEvent, target: &EventTarget) {
+        // TODO: Step 1. Run light dismiss open popovers with event.
+
+        // Step 2. Run light dismiss open dialogs with event.
+        HTMLDialogElement::light_dismiss_open_dialogs(cx, event, target);
     }
 }
 

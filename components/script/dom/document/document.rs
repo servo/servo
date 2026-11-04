@@ -177,6 +177,7 @@ use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlareaelement::HTMLAreaElement;
 use crate::dom::html::htmlbaseelement::HTMLBaseElement;
 use crate::dom::html::htmlcollection::{CollectionFilter, HTMLCollection};
+use crate::dom::html::htmldialogelement::HTMLDialogElement;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlembedelement::HTMLEmbedElement;
 use crate::dom::html::htmlformelement::{FormControl, FormControlElementHelpers, HTMLFormElement};
@@ -574,6 +575,10 @@ pub(crate) struct Document {
     pending_top_layer_removals: DomRefCell<Vec<Dom<Element>>>,
     /// <https://html.spec.whatwg.org/multipage/#blocked-by-a-modal-dialog>
     topmost_modal: MutNullableDom<Element>,
+    /// <https://html.spec.whatwg.org/multipage/#open-dialogs-list>
+    open_dialogs_list: DomRefCell<Vec<Dom<HTMLDialogElement>>>,
+    /// <https://html.spec.whatwg.org/multipage/#dialog-pointerdown-target>
+    dialog_pointerdown_target: MutNullableDom<HTMLDialogElement>,
 
     /// Map from ID to set of form control elements that have that ID as
     /// their 'form' content attribute. Used to reset form controls
@@ -4328,6 +4333,8 @@ impl Document {
             top_layer: Default::default(),
             pending_top_layer_removals: Default::default(),
             topmost_modal: Default::default(),
+            open_dialogs_list: Default::default(),
+            dialog_pointerdown_target: Default::default(),
             form_id_listener_map: Default::default(),
             interactive_time: DomRefCell::new(interactive_time),
             tti_window: DomRefCell::new(InteractiveWindow::default()),
@@ -4939,6 +4946,40 @@ impl Document {
 
     pub(crate) fn set_fullscreen_element(&self, element: Option<&Element>) {
         self.fullscreen_element.set(element);
+    }
+
+    pub(crate) fn open_dialogs_list_contains(&self, dialog: &HTMLDialogElement) -> bool {
+        self.open_dialogs_list
+            .borrow()
+            .iter()
+            .any(|open_dialog| &**open_dialog == dialog)
+    }
+
+    pub(crate) fn add_to_open_dialogs_list(&self, dialog: &HTMLDialogElement, no_gc: &NoGC) {
+        self.open_dialogs_list
+            .safe_borrow_mut(no_gc)
+            .push(Dom::from_ref(dialog));
+    }
+
+    pub(crate) fn remove_from_open_dialogs_list(&self, dialog: &HTMLDialogElement, no_gc: &NoGC) {
+        self.open_dialogs_list
+            .safe_borrow_mut(no_gc)
+            .retain(|open| &**open != dialog);
+    }
+
+    pub(crate) fn topmost_open_dialog(&self) -> Option<DomRoot<HTMLDialogElement>> {
+        self.open_dialogs_list
+            .borrow()
+            .last()
+            .map(|dialog| dialog.as_rooted())
+    }
+
+    pub(crate) fn dialog_pointerdown_target(&self) -> Option<DomRoot<HTMLDialogElement>> {
+        self.dialog_pointerdown_target.get()
+    }
+
+    pub(crate) fn set_dialog_pointerdown_target(&self, dialog: Option<&HTMLDialogElement>) {
+        self.dialog_pointerdown_target.set(dialog);
     }
 
     pub(crate) fn top_layer_contains(&self, element: &Element) -> bool {
