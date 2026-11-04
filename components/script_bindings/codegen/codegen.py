@@ -4316,9 +4316,6 @@ class CGCallGenerator(CGThing):
 
         args = CGList([CGGeneric(arg) for arg in argsPre], ", ")
         for (a, name) in arguments:
-            # XXXjdm Perhaps we should pass all nontrivial types by borrowed pointer
-            if a.type.isDictionary():
-                name = f"&{name}"
             args.append(CGGeneric(name))
 
         match max([needCx(returnType, (a for (a, _) in arguments), True), Context.Cx if is_implicit_cx_attribute else Context.No]):
@@ -8731,6 +8728,10 @@ def argument_type(descriptorProvider: DescriptorProvider,
         isAutoRooted=type_needs_auto_root(ty))
     declType = info.declType
     assert declType is not None
+
+    if ty.isDictionary():
+        declType = CGWrapper(declType, pre="&")
+
     if variadic:
         if ty.isGeckoInterface():
             declType = CGWrapper(declType, pre="&[", post="]")
@@ -8738,9 +8739,6 @@ def argument_type(descriptorProvider: DescriptorProvider,
             declType = CGWrapper(declType, pre="Vec<", post=">")
     elif optional and not defaultValue:
         declType = CGWrapper(declType, pre="Option<", post=">")
-
-    if ty.isDictionary():
-        declType = CGWrapper(declType, pre="&")
 
     if type_needs_auto_root(ty):
         declType = CGTemplatedType("CustomAutoRooterGuard", declType)
@@ -9468,6 +9466,14 @@ def process_arg(expr: str, arg: IDLArgument | FakeArgument) -> str:
             expr = f"&{expr}"
     elif isinstance(arg.type, IDLPromiseType):
         expr = f"&{expr}"
+    elif arg.type.isDictionary():
+        if arg.optional and not arg.defaultValue:
+            if type_needs_tracing(arg.type):
+                expr += ".as_deref()"
+            else:
+                expr += ".as_ref()"
+        else:
+            expr = f"&{expr}"
     return expr
 
 class GlobalGenRoots():

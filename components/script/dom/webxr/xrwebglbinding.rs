@@ -114,7 +114,7 @@ impl XRWebGLBindingMethods<crate::DomTypeHolder> for XRWebGLBinding {
     fn CreateQuadLayer(
         &self,
         _: XRTextureType,
-        _: &Option<XRQuadLayerInit>,
+        _: Option<&XRQuadLayerInit>,
     ) -> Fallible<DomRoot<XRQuadLayer>> {
         // https://github.com/servo/servo/issues/27493
         Err(Error::NotSupported(None))
@@ -124,7 +124,7 @@ impl XRWebGLBindingMethods<crate::DomTypeHolder> for XRWebGLBinding {
     fn CreateCylinderLayer(
         &self,
         _: XRTextureType,
-        _: &Option<XRCylinderLayerInit>,
+        _: Option<&XRCylinderLayerInit>,
     ) -> Fallible<DomRoot<XRCylinderLayer>> {
         // https://github.com/servo/servo/issues/27493
         Err(Error::NotSupported(None))
@@ -134,14 +134,14 @@ impl XRWebGLBindingMethods<crate::DomTypeHolder> for XRWebGLBinding {
     fn CreateEquirectLayer(
         &self,
         _: XRTextureType,
-        _: &Option<XREquirectLayerInit>,
+        _: Option<&XREquirectLayerInit>,
     ) -> Fallible<DomRoot<XREquirectLayer>> {
         // https://github.com/servo/servo/issues/27493
         Err(Error::NotSupported(None))
     }
 
     /// <https://immersive-web.github.io/layers/#dom-xrwebglbinding-createcubelayer>
-    fn CreateCubeLayer(&self, _: &Option<XRCubeLayerInit>) -> Fallible<DomRoot<XRCubeLayer>> {
+    fn CreateCubeLayer(&self, _: Option<&XRCubeLayerInit>) -> Fallible<DomRoot<XRCubeLayer>> {
         // https://github.com/servo/servo/issues/27493
         Err(Error::NotSupported(None))
     }
