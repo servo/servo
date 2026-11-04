@@ -1116,6 +1116,7 @@ impl IndependentFormattingContext {
             pbm,
             block_sizes,
             depends_on_block_constraints,
+            tentative_block_size: _,
             block_stretch_size,
             justify_self,
             preferred_aspect_ratio,
@@ -1572,6 +1573,7 @@ struct ContainingBlockPaddingAndBorder<'a> {
     pbm: PaddingBorderMargin,
     block_sizes: Sizes,
     depends_on_block_constraints: bool,
+    tentative_block_size: SizeConstraint,
     block_stretch_size: Option<Au>,
     justify_self: AlignFlags,
     preferred_aspect_ratio: Option<AspectRatio>,
@@ -1623,6 +1625,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
             pbm: PaddingBorderMargin::zero(),
             block_sizes: Sizes::default(),
             depends_on_block_constraints: false,
+            tentative_block_size: SizeConstraint::default(),
             // The block stretch size may actually be definite, but it should be irrelevant
             // since the sizing properties are set to their initial value.
             block_stretch_size: None,
@@ -1657,7 +1660,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     let tentative_block_content_size = context.and_then(|context| {
         context.tentative_block_content_size(preferred_aspect_ratio, inline_stretch_size)
     });
-    let mut tentative_block_size = if let Some(block_content_size) = tentative_block_content_size {
+    let tentative_block_size = if let Some(block_content_size) = tentative_block_content_size {
         SizeConstraint::Definite(content_box_sizes.block.resolve(
             LogicalAxis::Block,
             automatic_block_size,
@@ -1673,10 +1676,11 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
             block_stretch_size,
         )
     };
+    let mut block_size_for_children = tentative_block_size;
     let mut has_quirky_block_size = HasQuirkyBlockSize(false);
     if skippable_for_block_percentage_quirk(layout_context, base, context) {
         has_quirky_block_size.0 = !tentative_block_size.is_definite();
-        tentative_block_size.replace_if_indefinite_with(containing_block.size.block);
+        block_size_for_children.replace_if_indefinite_with(containing_block.size.block);
     }
 
     // https://drafts.csswg.org/css2/#the-width-property
@@ -1702,7 +1706,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     let containing_block_for_children = ContainingBlock {
         size: ContainingBlockSize {
             inline: inline_size,
-            block: tentative_block_size,
+            block: block_size_for_children,
             has_quirky_block_size,
         },
         style,
@@ -1713,6 +1717,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         pbm,
         block_sizes: content_box_sizes.block,
         depends_on_block_constraints,
+        tentative_block_size,
         block_stretch_size,
         justify_self,
         preferred_aspect_ratio,

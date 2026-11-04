@@ -1,0 +1,49 @@
+<!-- quirks -->
+<title>Margins can collapse through in quirks mode</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/CSS22/box.html#collapsed-through">
+<link rel="help" href="https://quirks.spec.whatwg.org/#the-percentage-height-calculation-quirk">
+<link rel="match" href="../../reference/ref-filled-green-200px-square.html">
+<meta name="assert" content="
+  If the containing block has an indefinite height, the percentage height quirk
+  can iterate the containing block chain to find a definite one, in order to
+  resolve percentages.
+  However, this shouldn't prevent the height from being indefinite for the
+  purpose of determining whether margins can collapse through.
+">
+
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+  #wrapper {
+    width: 200px;
+    height: 200px;
+    overflow: hidden;
+    background: red;
+  }
+  #abspos {
+    /* Just to cover an area that would be red */
+    position: absolute;
+    width: 200px;
+    height: 100px;
+    background: green;
+  }
+  #collapse-through {
+    /* These margins should collapse through, thus only shifting #after
+       by 100px, not 100px + 100px = 200px */
+    margin: 100px 0;
+  }
+  #after {
+    /* This should be placed 100px below the top of #wrapper, not 200px */
+    font: 100px/1 Ahem;
+    color: green;
+  }
+</style>
+
+<div style="margin: 1em 0">
+  Test passes if there is a filled green square and <strong>no red</strong>.
+</div>
+<div id="wrapper">
+  <div id="abspos"></div>
+  <div id="collapse-through"></div>
+  <div id="after">XX</div>
+</div>
