@@ -890,3 +890,28 @@ async def test_params_origin_element_invalid_with_shared_reference(
             "id": "foo",
             "actions": [action]
         }])
+
+
+@pytest.mark.parametrize(
+    "pointer_type, other_pointer_type",
+    [
+        ("mouse", "pen"),
+        ("mouse", "touch"),
+        ("pen", "mouse"),
+        ("touch", "mouse"),
+    ],
+)
+async def test_pointer_type_mismatch_with_existing_source(
+    perform_actions, pointer_type, other_pointer_type
+):
+    actions = [{
+        "type": "pointer",
+        "id": "foo",
+        "parameters": {"pointerType": pointer_type},
+        "actions": [{"type": "pointerMove", "x": 0, "y": 0}],
+    }]
+    await perform_actions(actions)
+
+    actions[0]["parameters"]["pointerType"] = other_pointer_type
+    with pytest.raises(InvalidArgumentException):
+        await perform_actions(actions)

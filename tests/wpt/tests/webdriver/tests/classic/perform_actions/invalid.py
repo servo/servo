@@ -3,7 +3,7 @@ import pytest
 
 from webdriver.error import InvalidArgumentException
 
-from tests.support.classic.asserts import assert_error
+from tests.support.classic.asserts import assert_error, assert_success
 from . import perform_actions
 
 
@@ -892,3 +892,29 @@ def test_wheel_action_scroll_missing_property(session, wheel_chain, missing):
 
     with pytest.raises(InvalidArgumentException):
         actions.perform()
+
+
+@pytest.mark.parametrize(
+    "pointer_type, other_pointer_type",
+    [
+        ("mouse", "pen"),
+        ("mouse", "touch"),
+        ("pen", "mouse"),
+        ("touch", "mouse"),
+    ],
+)
+def test_pointer_type_mismatch_with_existing_source(
+    session, pointer_type, other_pointer_type
+):
+    actions = [
+        {
+            "type": "pointer",
+            "id": "foo",
+            "parameters": {"pointerType": pointer_type},
+            "actions": [{"type": "pointerMove", "x": 0, "y": 0}],
+        }
+    ]
+    assert_success(perform_actions(session, actions))
+
+    actions[0]["parameters"]["pointerType"] = other_pointer_type
+    assert_error(perform_actions(session, actions), "invalid argument")

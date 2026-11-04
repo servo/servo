@@ -26,3 +26,22 @@ async def test_release_no_actions_sends_no_events(
 
     assert len(keys["value"]) == 0
     assert len(events) == 0
+
+
+async def test_release_actions_resets_pointer_subtype(bidi_session, top_context):
+    actions = [{
+        "type": "pointer",
+        "id": "foo",
+        "parameters": {"pointerType": "mouse"},
+        "actions": [{"type": "pointerMove", "x": 0, "y": 0}],
+    }]
+    await bidi_session.input.perform_actions(
+        actions=actions, context=top_context["context"]
+    )
+
+    await bidi_session.input.release_actions(context=top_context["context"])
+
+    actions[0]["parameters"]["pointerType"] = "touch"
+    await bidi_session.input.perform_actions(
+        actions=actions, context=top_context["context"]
+    )
