@@ -500,17 +500,18 @@ impl FetchResponseListener for PosterFrameFetchContext {
         request_id: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
-        let status_is_ok = metadata
+        // A network error is already handled in `notify_pending_response`,
+        // so no need to start the abort procedure.
+        let status_is_bad = metadata
             .as_ref()
-            .ok()
-            .is_none_or(|fetch_metadata| fetch_metadata.metadata().status.in_range(200..300));
+            .is_ok_and(|fetch_metadata| !fetch_metadata.metadata().status.in_range(200..300));
 
         self.image_cache.notify_pending_response(
             self.id,
             FetchResponseMsg::ProcessResponse(request_id, metadata),
         );
 
-        if !status_is_ok {
+        if status_is_bad {
             self.cancelled = true;
             self.fetch_controller.abort();
         }
