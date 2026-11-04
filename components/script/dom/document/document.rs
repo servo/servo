@@ -3518,8 +3518,7 @@ impl Document {
         cx: &mut JSContext,
         depth: &ResizeObservationDepth,
     ) -> bool {
-        // As the interior of the loop can trigger garbage collection, we must clone the resize observers
-        // before iterating them.
+        // As the interior of the loop can trigger creation of new ResizeObservers (which mutably borrows `resize_observers`, we have to clone the fields.)
         let mut has_active_resize_observations = false;
         rooted_vec!(let observers <- self.resize_observers.borrow().iter().cloned());
         for observer in &*observers {
@@ -3537,8 +3536,7 @@ impl Document {
         &self,
         cx: &mut JSContext,
     ) -> ResizeObservationDepth {
-        // As the interior of the loop can trigger garbage collection we must clone the resize observers
-        // before iterating them.
+        // As the interior of the loop can trigger creation of new ResizeObservers (which mutably borrows `resize_observers`, we have to clone the fields.
         let mut shallowest = ResizeObservationDepth::max();
         rooted_vec!(let observers <- self.resize_observers.borrow().iter().cloned());
         for observer in &*observers {
