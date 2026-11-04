@@ -2130,11 +2130,13 @@ fn get_element_pointer_interactable_paint_tree(
     get_element_in_view_center_point(cx, element).map_or(Vec::new(), |center_point| {
         if let Some(shadow_root) = element.containing_shadow_root() {
             shadow_root.ElementsFromPoint(
+                cx,
                 Finite::wrap(center_point.x as f64),
                 Finite::wrap(center_point.y as f64),
             )
         } else {
             element.owner_document().ElementsFromPoint(
+                cx,
                 Finite::wrap(center_point.x as f64),
                 Finite::wrap(center_point.y as f64),
             )

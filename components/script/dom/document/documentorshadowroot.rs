@@ -167,6 +167,7 @@ impl DocumentOrShadowRoot {
     #[expect(unsafe_code)]
     pub(crate) fn element_from_point(
         &self,
+        cx: &mut JSContext,
         this: &Node,
         x: Finite<f64>,
         y: Finite<f64>,
@@ -188,7 +189,7 @@ impl DocumentOrShadowRoot {
         let flags = HitTestFlags::empty();
         let result = self
             .window
-            .elements_from_point_query(flags, LayoutPoint::new(x, y));
+            .elements_from_point_query(cx, flags, LayoutPoint::new(x, y));
         let Some(result) = result.items.first() else {
             return document_element;
         };
@@ -205,6 +206,7 @@ impl DocumentOrShadowRoot {
     #[expect(unsafe_code)]
     pub(crate) fn elements_from_point(
         &self,
+        cx: &mut JSContext,
         this: &Node,
         x: Finite<f64>,
         y: Finite<f64>,
@@ -232,7 +234,7 @@ impl DocumentOrShadowRoot {
         let flags = HitTestFlags::empty();
         let result = self
             .window
-            .elements_from_point_query(flags, LayoutPoint::new(x, y));
+            .elements_from_point_query(cx, flags, LayoutPoint::new(x, y));
 
         let mut elements: Vec<_> = result
             .items

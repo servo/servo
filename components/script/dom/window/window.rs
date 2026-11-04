@@ -3392,10 +3392,11 @@ impl Window {
 
     pub(crate) fn elements_from_point_query(
         &self,
+        cx: &mut JSContext,
         flags: HitTestFlags,
         point: LayoutPoint,
     ) -> layout_api::HitTestResult {
-        self.layout_reflow_deprecated(QueryMsg::ElementsFromPoint);
+        self.layout_reflow(cx, QueryMsg::ElementsFromPoint);
         self.layout().hit_test(flags, point)
     }
 
@@ -3437,7 +3438,7 @@ impl Window {
         flags: HitTestFlags,
         point_in_frame: Point2D<f32, CSSPixel>,
     ) -> Option<HitTestResult> {
-        let result = self.elements_from_point_query(flags, point_in_frame.cast_unit());
+        let result = self.elements_from_point_query(cx, flags, point_in_frame.cast_unit());
         let item = result.items.into_iter().next()?;
 
         let point_relative_to_initial_containing_block =
