@@ -194,7 +194,7 @@ impl HTMLSelectElement {
     ) -> HTMLSelectElement {
         HTMLSelectElement {
             htmlelement: HTMLElement::new_inherited_with_state(
-                ElementState::ENABLED | ElementState::VALID,
+                ElementState::ENABLED | ElementState::VALID | ElementState::OPTIONAL_,
                 local_name,
                 prefix,
                 document,
@@ -908,6 +908,18 @@ impl VirtualMethods for HTMLSelectElement {
             local_name!("required") => {
                 self.validity_state(cx)
                     .perform_validation_and_update(cx, ValidationFlags::VALUE_MISSING);
+
+                // https://html.spec.whatwg.org/multipage/#selector-required
+                // > The :required pseudo-class must match any element falling into one of the following categories:
+                // > - select elements that have a required attribute
+                let element = self.upcast::<Element>();
+                let required = matches!(mutation, AttributeMutation::Set(_));
+                element.set_state(cx.no_gc(), ElementState::REQUIRED, required);
+
+                // https://html.spec.whatwg.org/multipage/#selector-optional
+                // > The :optional pseudo-class must match any element falling into one of the following categories:
+                // > - select elements that do not have a required attribute
+                element.set_state(cx.no_gc(), ElementState::OPTIONAL_, !required);
             },
             local_name!("disabled") => {
                 self.validity_state(cx)
