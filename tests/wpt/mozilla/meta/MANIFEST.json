@@ -13887,6 +13887,20 @@
       null,
       {}
      ]
+    ],
+    "websocket-connecting.https.html": [
+     "9ddfea89c2124a3c62364e4766982720b1a3eb7e",
+     [
+      null,
+      {}
+     ]
+    ],
+    "websocket-open.https.sub.html": [
+     "301f2422c336db8d3cf593e7af86e5473118b919",
+     [
+      null,
+      {}
+     ]
     ]
    },
    "mozilla": {
