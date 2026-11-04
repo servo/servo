@@ -203,7 +203,6 @@ pub(crate) fn execute_indent_command(
         .map(|node| node.as_rooted())
         .collect::<Vec<DomRoot<Node>>>();
     for node in nodes {
-        let no_gc = cx.no_gc();
         if node.is_editable(cx) &&
             (is_allowed_child(
                 NodeOrString::Node({

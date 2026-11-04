@@ -179,7 +179,7 @@ impl Range {
                 .expect("Must always have a parent");
         }
         // Step 6. If (end node, end offset) is not a block end point, repeat the following steps:
-        if !end_node.is_block_end_point(end_offset, cx) {
+        if !end_node.is_block_end_point(cx, end_offset) {
             loop {
                 // Step 6.1. If end offset is end node's length, set it to one plus end node's index, then set end node to its parent.
                 if end_offset == end_node.len() {

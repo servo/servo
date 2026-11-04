@@ -501,7 +501,7 @@ pub(crate) fn handle_get_selectors(
         }
 
         let mut rules = Vec::new();
-        let computed = elem.style()?;
+        let computed = elem.style(cx)?;
 
         if let Some(rule_node) = computed.rules.as_ref() {
             for rn in rule_node.self_and_ancestors() {
@@ -637,7 +637,7 @@ pub(crate) fn handle_get_layout(
         height,
     };
 
-    let auto_margins = element.determine_auto_margins();
+    let auto_margins = element.determine_auto_margins(cx);
     reply.send(Some((computed_layout, auto_margins))).unwrap();
 }
 
@@ -839,7 +839,7 @@ pub(crate) fn handle_highlight_dom_node(
 
 impl Element {
     fn determine_auto_margins(&self) -> AutoMargins {
-        let Some(style) = self.style() else {
+        let Some(style) = self.style(cx) else {
             return AutoMargins::default();
         };
         let margin = style.get_margin();

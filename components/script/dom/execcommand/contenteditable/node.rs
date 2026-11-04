@@ -1621,7 +1621,7 @@ impl Node {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#block-end-point>
-    pub(crate) fn is_block_end_point(&self, offset: u32, cx: &mut JSContext) -> bool {
+    pub(crate) fn is_block_end_point(&self, cx: &mut JSContext, offset: u32) -> bool {
         // > A boundary point (node, offset) is a block end point if either node's parent is null and offset is node's length;
         if self.GetParentNode().is_none() && offset == self.len() {
             return true;
@@ -1635,7 +1635,7 @@ impl Node {
     /// <https://w3c.github.io/editing/docs/execCommand/#block-boundary-point>
     pub(crate) fn is_block_boundary_point(&self, cx: &mut JSContext, offset: u32) -> bool {
         // > A boundary point is a block boundary point if it is either a block start point or a block end point.
-        self.is_block_start_point(cx, offset as usize) || self.is_block_end_point(offset, cx)
+        self.is_block_start_point(cx, offset as usize) || self.is_block_end_point(cx, offset)
     }
 
     pub(crate) fn is_no_allowed_child_in_same_editing_host(&self, no_gc: &NoGC) -> bool {

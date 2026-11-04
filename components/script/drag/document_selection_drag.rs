@@ -4,10 +4,9 @@
 
 use std::cmp::Ordering;
 
-use js::context::{JSContext, NoGC};
+use js::context::JSContext;
 use layout_api::SegmentGranularity;
 use rustc_hash::FxHashMap;
-use script_bindings::dom::UnrootedDom;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
 use style::values::computed::UserSelect;
@@ -72,19 +71,6 @@ impl DocumentSelectionDragHandler {
         let Some(boundary) = hit_test_result.dom_position_for_selection.as_ref() else {
             return true;
         };
-
-        let adjust_for_user_select =
-            |cx: &mut JSContext,
-             anchor: Option<&RootedSelectionBoundary>,
-             focus: RootedSelectionBoundary| {
-                adjust_focus_for_user_select(
-                    cx,
-                    anchor,
-                    focus,
-                    self.user_select_contain_node_for_selection_anchor
-                        .as_deref(),
-                )
-            };
 
         let Some(segment) = &self.segment else {
             let boundary = adjust_focus_for_user_select(
