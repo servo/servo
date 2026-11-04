@@ -18,7 +18,8 @@ use style::values::computed::font::{
     FamilyName, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
 };
 use style::values::computed::{
-    FontStyle as ServoFontStyle, FontSynthesis, FontWeight, FontWidth as ServoFontWidth,
+    FontStyle as ServoFontStyle, FontSynthesis, FontSynthesisStyle, FontWeight,
+    FontWidth as ServoFontWidth,
 };
 use webrender_api::FontVariation;
 
@@ -124,6 +125,7 @@ fn font_to_fontdescriptor(font: &Font) -> FontDescriptor {
         pt_size: Au::from_px(16),
         variation_settings,
         synthesis_weight: FontSynthesis::Auto,
+        synthesis_style: FontSynthesisStyle::Auto,
         optical_sizing: FontOpticalSizing::Auto,
     }
 }
@@ -137,6 +139,7 @@ fn fallback_descriptor() -> FontDescriptor {
         pt_size: Au::from_px(16),
         variation_settings: vec![],
         synthesis_weight: FontSynthesis::Auto,
+        synthesis_style: FontSynthesisStyle::Auto,
         optical_sizing: FontOpticalSizing::Auto,
     }
 }

@@ -1543,6 +1543,7 @@ malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::font::SingleFon
 malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::align::AlignFlags);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::box_::Overflow);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::font::FontSynthesis);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::font::FontSynthesisStyle);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::font::XLang);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::TextDecorationLine);
 malloc_size_of_is_stylo_malloc_size_of!(stylo_dom::ElementState);
