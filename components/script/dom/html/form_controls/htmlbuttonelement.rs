@@ -45,6 +45,7 @@ enum ButtonType {
     Submit,
     Reset,
     Button,
+    Auto,
 }
 
 #[dom_struct]
@@ -69,7 +70,7 @@ impl HTMLButtonElement {
                 prefix,
                 document,
             ),
-            button_type: Cell::new(ButtonType::Submit),
+            button_type: Cell::new(ButtonType::Auto),
             form_owner: Default::default(),
             labels_node_list: Default::default(),
             validity_state: Default::default(),
@@ -93,9 +94,20 @@ impl HTMLButtonElement {
         )
     }
 
-    #[inline]
     pub(crate) fn is_submit_button(&self) -> bool {
-        self.button_type.get() == ButtonType::Submit
+        match self.button_type.get() {
+            ButtonType::Auto => {
+                let element = self.upcast::<Element>();
+
+                !element.has_attribute(&local_name!("command")) &&
+                    !element.has_attribute(&local_name!("commandfor")) &&
+                    self.upcast::<Node>()
+                        .GetParentNode()
+                        .is_none_or(|node| !node.is::<HTMLSelectElement>())
+            },
+            ButtonType::Submit => true,
+            _ => false,
+        }
     }
 }
 
@@ -133,9 +145,14 @@ impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-button-type>
     fn Type(&self) -> DOMString {
+        // Step 1. If this is a submit button, then return "submit".
+        if self.is_submit_button() {
+            return DOMString::from_static("submit");
+        };
+        // Steps 2-5.
         match self.button_type.get() {
-            ButtonType::Submit => DOMString::from_static("submit"),
-            ButtonType::Button => DOMString::from_static("button"),
+            ButtonType::Submit => panic!("Should have returned submit already"),
+            ButtonType::Button | ButtonType::Auto => DOMString::from_static("button"),
             ButtonType::Reset => DOMString::from_static("reset"),
         }
     }
@@ -269,17 +286,7 @@ impl HTMLButtonElement {
         } else if value.eq_ignore_ascii_case("submit") {
             ButtonType::Submit
         } else {
-            let element = self.upcast::<Element>();
-            if !element.has_attribute(&local_name!("command")) &&
-                !element.has_attribute(&local_name!("commandfor")) &&
-                self.upcast::<Node>()
-                    .get_parent_node_unrooted(cx.no_gc())
-                    .is_none_or(|node| !node.is::<HTMLSelectElement>())
-            {
-                ButtonType::Submit
-            } else {
-                ButtonType::Button
-            }
+            ButtonType::Auto
         };
         self.button_type.set(value);
         self.validity_state(cx)
