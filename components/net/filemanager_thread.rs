@@ -208,7 +208,7 @@ impl FileManager {
     pub fn fetch_file_in_chunks(
         &self,
         done_sender: &mut TokioSender<Data>,
-        mut reader: BufReader<File>,
+        mut reader: impl BufRead + Send + 'static,
         res_body: ServoArc<Mutex<ResponseBody>>,
         cancellation_listener: Arc<CancellationListener>,
         range: RelativePos,

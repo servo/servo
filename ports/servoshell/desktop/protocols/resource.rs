@@ -9,9 +9,10 @@
 
 use std::fs::File;
 use std::future::Future;
-use std::io::BufReader;
+use std::io::{BufReader, Read};
 use std::pin::Pin;
 
+use flate2::read::GzDecoder;
 use headers::{ContentType, HeaderMapExt};
 use servo::protocol_handler::{
     DoneChannel, FILE_CHUNK_SIZE, FetchContext, NetworkError, ProtocolHandler, RelativePos,
@@ -44,18 +45,32 @@ impl ResourceProtocolHandler {
         };
 
         let file_path = crate::resources::resource_protocol_dir_path().join(path);
+        // Packaged builds ship some large resources gzip-compressed (see `./mach package`).
+        let (open_path, compressed) = if file_path.is_file() {
+            (file_path.clone(), false)
+        } else {
+            (
+                crate::resources::resource_protocol_dir_path().join(format!("{path}.gz")),
+                true,
+            )
+        };
 
-        if !file_path.exists() || file_path.is_dir() {
+        if !open_path.is_file() {
             return Box::pin(std::future::ready(Response::network_error(
                 NetworkError::ResourceLoadError("Invalid path".to_owned()),
             )));
         }
 
-        let response = if let Ok(file) = File::open(file_path.clone()) {
+        let response = if let Ok(file) = File::open(open_path) {
             let mut response = Response::new(
                 request.current_url(),
                 ResourceFetchTiming::new(request.timing_type()),
             );
+            let file: Box<dyn Read + Send> = if compressed {
+                Box::new(GzDecoder::new(file))
+            } else {
+                Box::new(file)
+            };
             let reader = BufReader::with_capacity(FILE_CHUNK_SIZE, file);
 
             // Set Content-Type header.

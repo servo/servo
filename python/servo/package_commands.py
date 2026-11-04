@@ -7,6 +7,7 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+import gzip
 import random
 from typing import List
 
@@ -77,6 +78,13 @@ def copy_packaged_resources(top_dir: str, destination: str) -> None:
         path.join(destination, "named_resources"),
         dirs_exist_ok=True,
     )
+
+    # license.html is large; ship it gzip-compressed, servoshell's resource protocol decompresses it.
+    license_html = path.join(destination, "resource_protocol", "license.html")
+    # mtime=0 keeps the package reproducible, like `archive_deterministically`.
+    with open(license_html, "rb") as src, gzip.GzipFile(license_html + ".gz", "wb", 9, mtime=0) as dst:
+        shutil.copyfileobj(src, dst)
+    os.remove(license_html)
 
 
 @CommandProvider
