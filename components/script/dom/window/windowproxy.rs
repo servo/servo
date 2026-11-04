@@ -611,28 +611,10 @@ impl WindowProxy {
                 // with referrerPolicy set to referrerPolicy and exceptionsEnabled set to true.
                 // FIXME: exceptionsEnabled not used.
                 let mut load_data =
-                    target_window.load_data_for_document(url_record, target_window.pipeline_id());
+                    target_window.load_data_for_document(url_record, source_document.pipeline_id());
                 load_data.referrer = referrer;
                 load_data.referrer_policy = referrer_policy;
                 load_data.has_trustworthy_ancestor_origin = has_trustworthy_ancestor_origin;
-
-                // Handle javascript: URLs specially to report CSP violations to the source window
-                // https://html.spec.whatwg.org/multipage/#navigate-to-a-javascript:-url
-                if load_data.url.scheme() == "javascript" {
-                    let existing_global = source_document.global();
-
-                    // Check CSP and report violations to the source (existing) window
-                    if !ScriptThread::can_navigate_to_javascript_url(
-                        cx,
-                        &existing_global,
-                        target_window.as_global_scope(),
-                        &mut load_data,
-                        None,
-                    ) {
-                        // CSP blocked the navigation, don't proceed
-                        return Ok(target_document.browsing_context());
-                    }
-                }
 
                 navigate(
                     cx,
