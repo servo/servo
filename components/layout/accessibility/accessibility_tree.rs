@@ -215,9 +215,9 @@ impl AccessibilityTree {
             update.insert_damage(root_id, AccessibilityDamage::Rebuild);
             update.insert_dom_node(root_id, *root_dom_node);
             self.populate_pending_scroll_updates_from_scroll_tree(context);
-
-            update.accesskit_tree = Some(accesskit::Tree::new(root_id));
         }
+
+        update.accesskit_tree = Some(accesskit::Tree::new(root_id));
 
         self.root_node = Some(root_node);
     }
