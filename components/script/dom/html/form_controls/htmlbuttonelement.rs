@@ -483,7 +483,7 @@ impl Activatable for HTMLButtonElement {
         if let Some(owner) = self.form_owner() {
             // Step 3.1 If element is a submit button, then submit element's form owner from element
             // ..., and return.
-            if button_type == ButtonType::Submit {
+            if self.is_submit_button() {
                 owner.submit(
                     cx,
                     SubmittedFrom::NotFromForm,
@@ -498,11 +498,7 @@ impl Activatable for HTMLButtonElement {
                 return;
             }
             // Step 3.3 If element's type attribute is in the Auto state, then return.
-            if button_type == ButtonType::Button &&
-                !self
-                    .upcast::<Element>()
-                    .get_string_attribute(&local_name!("type"))
-                    .eq_ignore_ascii_case("button")
+            if button_type == ButtonType::Auto
             {
                 return;
             }
