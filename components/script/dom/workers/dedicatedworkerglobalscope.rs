@@ -30,6 +30,8 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::interfaces::HasOrigin;
 use servo_base::generic_channel::{self, GenericReceiver, GenericSender, RoutedReceiver};
 use servo_base::id::{BrowsingContextId, PipelineId, ScriptEventLoopId, WebViewId};
+#[cfg(feature = "devtools")]
+use servo_config::pref;
 use servo_constellation_traits::{
     ScriptToConstellationMessage, WorkerAnimationFrameTick, WorkerGlobalScopeInit,
     WorkerScriptLoadOrigin,
@@ -372,7 +374,7 @@ impl DedicatedWorkerGlobalScope {
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         insecure_requests_policy: InsecureRequestsPolicy,
         font_context: Arc<FontContext>,
-        #[cfg(feature = "devtools")] debugger_global: &DebuggerGlobalScope,
+        #[cfg(feature = "devtools")] debugger_global: Option<&DebuggerGlobalScope>,
         cx: &mut js::context::JSContext,
     ) -> DomRoot<DedicatedWorkerGlobalScope> {
         let scope = Box::new(DedicatedWorkerGlobalScope::new_inherited(
@@ -406,7 +408,7 @@ impl DedicatedWorkerGlobalScope {
         #[cfg(feature = "devtools")]
         scope
             .upcast::<WorkerGlobalScope>()
-            .init_debugger_global(Some(debugger_global), cx);
+            .init_debugger_global(debugger_global, cx);
 
         scope
     }
@@ -490,24 +492,29 @@ impl DedicatedWorkerGlobalScope {
                 let mut cx = unsafe { runtime.cx() };
                 let cx = &mut cx;
                 #[cfg(feature = "devtools")]
-                let debugger_global = DebuggerGlobalScope::new(
-                    pipeline_id,
-                    init.to_devtools_sender.clone(),
-                    init.from_devtools_sender
-                        .clone()
-                        .expect("Guaranteed by Worker::Constructor"),
-                    init.mem_profiler_chan.clone(),
-                    init.time_profiler_chan.clone(),
-                    init.script_to_constellation_chan.clone(),
-                    init.script_to_embedder_chan.clone(),
-                    init.resource_threads.clone(),
-                    init.storage_threads.clone(),
-                    #[cfg(feature = "webgpu")]
-                    gpu_id_hub.clone(),
-                    cx,
-                );
-                #[cfg(feature = "devtools")]
-                debugger_global.execute(cx);
+                let debugger_global = if pref!(devtools_server_enabled) {
+                    let debugger_global = DebuggerGlobalScope::new(
+                        pipeline_id,
+                        init.to_devtools_sender.clone(),
+                        init.from_devtools_sender
+                            .clone()
+                            .expect("Guaranteed by Worker::Constructor"),
+                        init.mem_profiler_chan.clone(),
+                        init.time_profiler_chan.clone(),
+                        init.script_to_constellation_chan.clone(),
+                        init.script_to_embedder_chan.clone(),
+                        init.resource_threads.clone(),
+                        init.storage_threads.clone(),
+                        #[cfg(feature = "webgpu")]
+                        gpu_id_hub.clone(),
+                        cx,
+                    );
+                    #[cfg(feature = "devtools")]
+                    debugger_global.execute(cx);
+                    Some(debugger_global)
+                } else {
+                    None
+                };
 
                 let context_for_interrupt = runtime.thread_safe_js_context();
                 let _ = context_sender.send(context_for_interrupt);
@@ -569,12 +576,12 @@ impl DedicatedWorkerGlobalScope {
                     insecure_requests_policy,
                     font_context,
                     #[cfg(feature = "devtools")]
-                    &debugger_global,
+                    debugger_global.as_deref(),
                     cx,
                 );
 
                 #[cfg(feature = "devtools")]
-                if devtools_enabled {
+                if devtools_enabled && let Some(debugger_global) = &debugger_global {
                     debugger_global.fire_add_debuggee(
                         cx,
                         dedicated_worker_global_scope.upcast(),
