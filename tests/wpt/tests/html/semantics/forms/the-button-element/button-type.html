@@ -38,4 +38,13 @@ test(() => {
 
 }, "a button's type should stay within the range of valid values");
 
+test(() => {
+
+  const select = document.createElement("select");
+  const button = document.createElement("button");
+  select.appendChild(button);
+  assert_equals(button.type, "button");
+
+}, "a button in auto state with a select element parent should return button type");
+
 </script>
