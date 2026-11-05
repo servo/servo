@@ -1858,7 +1858,7 @@ impl DocumentEventHandler {
         self.run_default_keydown_handler(cx, target, &keyboard_event, flags.into())
     }
 
-    /// <https://html.spec.whatwg.org/multipage/interaction.html#close-request-steps>
+    /// <https://html.spec.whatwg.org/multipage/#close-request-steps>
     ///
     /// `event` is the event to fire for this close request, along with its target, if any.
     pub(crate) fn close_request_steps(

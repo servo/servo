@@ -1098,7 +1098,7 @@ impl Window {
         f(document.timers())
     }
 
-    /// <https://html.spec.whatwg.org/multipage/interaction.html#process-close-watchers>
+    /// <https://html.spec.whatwg.org/multipage/#process-close-watchers>
     pub(crate) fn process_close_watchers(&self, cx: &mut JSContext) -> bool {
         // Step 1. Let processedACloseWatcher be false.
         let mut processed_a_close_watcher = false;
