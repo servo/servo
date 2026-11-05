@@ -139607,6 +139607,19 @@
        {}
       ]
      ],
+     "background-image-blob-url-revoke.html": [
+      "918c504e885dd56e309d1a2b992ec1ef32d7b617",
+      [
+       null,
+       [
+        [
+         "/css/css-backgrounds/background-image-blob-url-revoke-ref.html",
+         "=="
+        ]
+       ],
+       {}
+      ]
+     ],
      "background-image-centered-with-border-radius.html": [
       "925903b9e5bd6e570cd978f013983ac6e664989e",
       [
@@ -495611,6 +495624,10 @@
      ],
      "background-gradient-interpolation-002-notref.html": [
       "85c7162ff21b0c27913923be2c0f1b01b6ffb59f",
+      []
+     ],
+     "background-image-blob-url-revoke-ref.html": [
+      "edeca129188cac6d5f1af162104eb5bb5f5efb88",
       []
      ],
      "background-image-centered-ref.html": [
