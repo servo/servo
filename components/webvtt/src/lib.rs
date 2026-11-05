@@ -113,7 +113,10 @@ where
         // > Replace each U+000D CARRIAGE RETURN U+000A LINE FEED (CRLF) character pair
         // > by a single U+000A LINE FEED (LF) character.
         // > Replace all remaining U+000D CARRIAGE RETURN characters by U+000A LINE FEED (LF) characters.
-        // TODO
+        let input = input
+            .replace("\u{0000}", "\u{FFFD}")
+            .replace("\u{000D}\u{000A}", "\u{000A}")
+            .replace("\u{000D}", "\u{000A}");
         // Step 2. Let position be a pointer into input, initially pointing at the start of the string.
         // In an incremental WebVTT parser, when this algorithm (or further algorithms that it uses)
         // moves the position pointer, the user agent must wait until appropriate further characters
