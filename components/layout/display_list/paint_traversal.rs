@@ -628,10 +628,9 @@ impl TraversalState {
             &TextDecorationLine::NONE => propagated_text_decorations,
             line => {
                 let mut new_vector = (*propagated_text_decorations).clone();
-                let color = &style.get_inherited_text().color;
                 new_vector.push(FragmentTextDecoration {
                     line: *line,
-                    color: style.get_text_decoration_color().resolve_to_absolute(color),
+                    color: style.resolve_color(style.get_text_decoration_color()),
                     style: style.slow_clone_text_decoration_style(),
                     thickness: style.slow_clone_text_decoration_thickness(),
                 });
