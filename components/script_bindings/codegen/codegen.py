@@ -9457,7 +9457,7 @@ def camel_to_upper_snake(s: str) -> str:
 def process_arg(expr: str, arg: IDLArgument | FakeArgument) -> str:
     if arg.type.isGeckoInterface() and not arg.type.unroll().inner.isCallback():
         if arg.variadic or arg.type.isSequence():
-            expr += ".r()"
+            expr += ".as_ref_slice()"
         elif arg.type.nullable() and arg.optional and not arg.defaultValue:
             expr += ".as_ref().map(Option::as_deref)"
         elif arg.type.nullable() or arg.optional and not arg.defaultValue:

@@ -1650,9 +1650,9 @@ impl DocumentEventHandler {
             TouchEventType::Cancel => "touchcancel",
         };
 
-        let touches = TouchList::new(cx, window, self.active_touch_points.borrow().r());
+        let touches = TouchList::new(cx, window, self.active_touch_points.borrow().as_ref_slice());
         let changed_touches = TouchList::new(cx, window, from_ref(&&*changed_touch));
-        let target_touches = TouchList::new(cx, window, target_touches.r());
+        let target_touches = TouchList::new(cx, window, target_touches.as_ref_slice());
 
         let touch_event = TouchEvent::new(
             cx,

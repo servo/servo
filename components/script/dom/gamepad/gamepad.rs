@@ -133,7 +133,7 @@ impl Gamepad {
                 true,
                 0.,
                 mapping_type,
-                buttons.r(),
+                buttons.as_ref_slice(),
                 None,
                 GamepadHand::_empty,
                 axis_bounds,

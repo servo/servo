@@ -461,7 +461,7 @@ where
     T: JSTraceable + DomObject,
 {
     /// Returns the slice of `T` references.
-    fn r(&self) -> &[&T];
+    fn as_ref_slice(&self) -> &[&T];
 }
 
 impl<T> DomSlice<T> for [Dom<T>]
@@ -469,7 +469,7 @@ where
     T: JSTraceable + DomObject,
 {
     #[inline]
-    fn r(&self) -> &[&T] {
+    fn as_ref_slice(&self) -> &[&T] {
         let _ = mem::transmute::<Dom<T>, &T>;
         unsafe { &*(self as *const [Dom<T>] as *const [&T]) }
     }
