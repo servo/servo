@@ -379,10 +379,26 @@ impl Node {
 
             match operation {
                 MoveOrInsert::Move => {
-                    if (parent_is_in_a_document_tree || parent_in_shadow_tree) &&
-                        let Some(element) = node.downcast::<Element>()
-                    {
-                        element.register_current_id_and_name_attribute(cx);
+                    if let Some(element) = node.downcast::<Element>() {
+                        if parent_is_in_a_document_tree || parent_in_shadow_tree {
+                            element.register_current_id_and_name_attribute(cx);
+                        }
+
+                        // Shadow-including descendants of this node's shadow root were marked as
+                        // disconnected in the first phase of the move, so they have to be marked as
+                        // connected as it finishes. This mirrors what happens in
+                        // `ShadowRoot::bind_to_tree`, but only handling the IS_CONNECTED flag.
+                        if parent_is_connected && let Some(shadow_root) = element.shadow_root() {
+                            for node in shadow_root
+                                .upcast::<Node>()
+                                .traverse_preorder_unrooted(cx.no_gc(), ShadowIncluding::Yes)
+                            {
+                                node.set_flag(NodeFlags::IS_CONNECTED, true);
+                                // This node should never have been marked as dirty, because it
+                                // wasn't flagged as connected.
+                                debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
+                            }
+                        }
                     }
                 },
                 MoveOrInsert::Insert => vtable_for(&node).bind_to_tree(cx, &context),
@@ -497,12 +513,7 @@ impl Node {
         for node in root.traverse_preorder(ShadowIncluding::No) {
             let node_was_in_tree = node.is_in_a_document_tree() || node.is_in_a_shadow_tree();
 
-            // Moving can never change the shadow-including root of a node, so IS_CONNECTED will
-            // maintain the value that it had before the move.
-            node.set_flag(
-                (RESET_FLAGS - NodeFlags::IS_CONNECTED) | NodeFlags::IS_IN_SHADOW_TREE,
-                false,
-            );
+            node.set_flag(RESET_FLAGS | NodeFlags::IS_IN_SHADOW_TREE, false);
             document.clean_up_style_and_layout_data_for_node(&node);
 
             // Unregister the `id` and `name` attributes for this node. Note that they
@@ -529,7 +540,7 @@ impl Node {
                 {
                     // Moving can never change the shadow-including root of a node, so IS_CONNECTED
                     // will maintain the value that it had before the move.
-                    node.set_flag(RESET_FLAGS - NodeFlags::IS_CONNECTED, false);
+                    node.set_flag(RESET_FLAGS, false);
                     document.clean_up_style_and_layout_data_for_node(&node);
                 }
             }
@@ -945,8 +956,6 @@ impl Node {
                 // For content changes in text nodes, we should accurately use
                 // [`NodeDamage::ContentOrHeritage`] to mark the parent node, thereby
                 // reducing the scope of incremental box tree construction.
-                // A connected text node has no parent only in the middle of a move (see
-                // `move_fn`), where both the old and new parents are dirtied anyway.
                 if let Some(parent) = self.parent_node.get() {
                     parent.dirty(no_gc, NodeDamage::ContentOrHeritage);
                 }

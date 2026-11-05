@@ -10982,6 +10982,13 @@
         {}
        ]
       ],
+      "moveBefore-slotted-element-crash.html": [
+       "3250ab40bf7e26c2798fcee5fe356fbbee033df6",
+       [
+        null,
+        {}
+       ]
+      ],
       "moveBefore-slotted-text-crash.html": [
        "fc1ca7fcf3e5421bde70dd40f5ecd93edf602a6c",
        [
