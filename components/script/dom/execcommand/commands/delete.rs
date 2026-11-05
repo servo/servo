@@ -264,36 +264,35 @@ pub(crate) fn execute_delete_command(
 
     // Step 13. If offset is zero; and either the child of start node with index start offset
     // minus one is an hr, or the child is a br whose previousSibling is either a br or not an inline node:
-    let child = start_node
-        .children_unrooted(cx.no_gc())
-        .nth(start_offset as usize - 1)
-        .map(|node| node.as_rooted());
-    if offset == 0 &&
-        (start_offset > 0 &&
-            child.is_some_and(|child| {
-                child.is::<HTMLHRElement>() ||
-                    (child.is::<HTMLBRElement>() &&
-                        child.GetPreviousSibling().is_some_and(|previous| {
-                            previous.is::<HTMLBRElement>() || !previous.is_inline_node(cx)
-                        }))
-            }))
-    {
-        // Step 13.1. Call collapse(start node, start offset − 1) on the context object's selection.
-        let _ = selection.Collapse(cx, Some(&start_node), start_offset - 1);
-        // Step 13.2. Call extend(start node, start offset) on the context object's selection.
-        let _ = selection.Extend(cx, &start_node, start_offset);
-        // Step 13.3. Delete the selection.
-        selection.delete_the_selection(
-            cx,
-            document,
-            Default::default(),
-            Default::default(),
-            Default::default(),
-        );
-        // Step 13.4. Call collapse(node, offset) on the selection.
-        let _ = selection.Collapse(cx, Some(&node), offset);
-        // Step 13.5. Return true.
-        return true;
+    if offset == 0 && start_offset > 0 {
+        let child = start_node
+            .children_unrooted(cx.no_gc())
+            .nth(start_offset as usize - 1)
+            .map(|node| node.as_rooted());
+        if child.is_some_and(|child| {
+            child.is::<HTMLHRElement>() ||
+                (child.is::<HTMLBRElement>() &&
+                    child.GetPreviousSibling().is_some_and(|previous| {
+                        previous.is::<HTMLBRElement>() || !previous.is_inline_node(cx)
+                    }))
+        }) {
+            // Step 13.1. Call collapse(start node, start offset − 1) on the context object's selection.
+            let _ = selection.Collapse(cx, Some(&start_node), start_offset - 1);
+            // Step 13.2. Call extend(start node, start offset) on the context object's selection.
+            let _ = selection.Extend(cx, &start_node, start_offset);
+            // Step 13.3. Delete the selection.
+            selection.delete_the_selection(
+                cx,
+                document,
+                Default::default(),
+                Default::default(),
+                Default::default(),
+            );
+            // Step 13.4. Call collapse(node, offset) on the selection.
+            let _ = selection.Collapse(cx, Some(&node), offset);
+            // Step 13.5. Return true.
+            return true;
+        }
     }
 
     // Step 14. If the child of start node with index start offset is an li or dt or dd, and
