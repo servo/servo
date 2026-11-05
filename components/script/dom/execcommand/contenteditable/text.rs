@@ -113,13 +113,9 @@ impl Text {
         // Step 9. Let reference be node.
         // Step 10. While reference is a descendant of ancestor:
         // Step 10.1. Let reference be the node after it in tree order, or null if there is no such node.
-        let following_nodes: Vec<DomRoot<Node>> = {
-            let no_gc = cx.no_gc();
-            node.following_nodes_unrooted(no_gc, &resolved_ancestor, ShadowIncluding::No)
-                .map(|node| node.as_rooted())
-                .collect()
-        };
-        for reference in following_nodes {
+        for reference in
+            node.following_nodes(&resolved_ancestor, ShadowIncluding::No)
+        {
             // Step 10.2. If reference is a block node or a br, return true.
             if reference.is_block_node(cx) || reference.is::<HTMLBRElement>() {
                 return true;

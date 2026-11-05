@@ -71,21 +71,18 @@ impl Range {
 
     pub(crate) fn first_formattable_contained_node(
         &self,
-        cx: &mut JSContext,
+        cx: &mut JSContext
     ) -> Option<DomRoot<Node>> {
         if self.collapsed() {
             return None;
         }
 
-        let children = self
-            .ancestor_for_effectively_contained()
-            .traverse_preorder_unrooted(cx.no_gc(), ShadowIncluding::No)
-            .map(|node| node.as_rooted())
-            .collect::<Vec<DomRoot<Node>>>();
-
-        children.into_iter().find(|child| {
-            child.is_formattable(cx) && self.is_effectively_contained_node(cx.no_gc(), child)
-        })
+        self.ancestor_for_effectively_contained()
+            .traverse_preorder(ShadowIncluding::No)
+            .find(|child| {
+                child.is_formattable(cx) && self.is_effectively_contained_node(cx.no_gc(), child)
+            })
+            .map(|node| node)
     }
 
     pub(crate) fn for_each_effectively_contained_child<Callback: FnMut(&mut JSContext, &Node)>(

@@ -726,13 +726,11 @@ where
         // and the last member of node list is not a br,
         // call createElement("br") on the ownerDocument of new parent
         // and insert the result as the first child of new parent.
-        let children = new_parent
-            .children_unrooted(cx.no_gc())
-            .map(|child| child.as_rooted())
-            .collect::<Vec<DomRoot<Node>>>();
-        let first_visible_child = children.into_iter().find(|child| child.is_visible(cx));
         if !new_parent.is_inline_node(cx) &&
-            first_visible_child.is_some_and(|child| child.is_inline_node(cx)) &&
+            new_parent
+                .children()
+                .find(|child| child.is_visible(cx))
+                .is_some_and(|child| child.is_inline_node(cx)) &&
             node_list
                 .iter()
                 .rev()
@@ -1851,12 +1849,8 @@ impl Node {
         if !self.is_inline_node(cx) {
             return false;
         }
-        let children = self
-            .children_unrooted(cx.no_gc())
-            .map(|child| child.as_rooted())
-            .collect::<Vec<DomRoot<Node>>>();
         let mut at_least_one_collapsed_block_prop = false;
-        for child in children {
+        for child in self.children() {
             if child.is_collapsed_block_prop(cx) {
                 at_least_one_collapsed_block_prop = true;
                 continue;
