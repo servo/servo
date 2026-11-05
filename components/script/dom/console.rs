@@ -759,7 +759,7 @@ fn apply_sprintf_substitutions(cx: &mut JSContext, messages: &[HandleValue]) -> 
     let js_string = ptr::NonNull::new(messages[0].to_string()).unwrap();
     let format_string = unsafe { jsstr_to_string(cx, js_string) };
 
-    let mut result = String::new();
+    let mut result = String::with_capacity(format_string.len());
     let mut arg_index = 1usize;
     let mut chars = format_string.chars().peekable();
 
@@ -769,7 +769,7 @@ fn apply_sprintf_substitutions(cx: &mut JSContext, messages: &[HandleValue]) -> 
             continue;
         }
 
-        match chars.peek().copied() {
+        match chars.peek() {
             Some('s') => {
                 chars.next();
                 if arg_index < messages.len() {
