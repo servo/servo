@@ -118,7 +118,8 @@ impl BoxTree {
         };
 
         // We only propagate from the <body> if it generates a box. The spec only checks for
-        // `display: none`, but other browsers don't propagate for `display: contents` either.
+        // `display: none`, but Blink and WebKit don't propagate for `display: contents` either.
+        // Gecko propagates from the <body> regardless of its `display`.
         // See https://github.com/w3c/csswg-drafts/issues/12643
         let body_style = body.style(context);
         let body_display = body_style.get_display();
@@ -275,17 +276,11 @@ impl BoxTree {
         let physical_containing_block: Rect<Au, CSSPixel> =
             PhysicalSize::from_untyped(viewport).into();
 
-        let mut inline = physical_containing_block.size.width;
-        let mut block = physical_containing_block.size.height;
-        if self
-            .initial_containing_block_style
-            .writing_mode
-            .is_vertical()
-        {
-            std::mem::swap(&mut inline, &mut block);
-        }
         let initial_containing_block = DefiniteContainingBlock {
-            size: LogicalVec2 { inline, block },
+            size: LogicalVec2::from_physical_size(
+                &physical_containing_block.size,
+                self.initial_containing_block_style.writing_mode,
+            ),
             style: &self.initial_containing_block_style,
         };
 
