@@ -313525,6 +313525,19 @@
         {}
        ]
       ],
+      "line-breaking-033.html": [
+       "01b21636943cb17a26cdaf09303965732fc11e0e",
+       [
+        "css/css-text/line-breaking/line-breaking-033.html",
+        [
+         [
+          "/css/css-text/line-breaking/reference/line-breaking-033-ref.html",
+          "=="
+         ]
+        ],
+        {}
+       ]
+      ],
       "line-breaking-atomic-001.html": [
        "e071378c95fd436484a3056ecb2ba6ff35ddbaae",
        [
@@ -535429,6 +535442,10 @@
        ],
        "line-breaking-030-ref.html": [
         "628fff26e33038f9afeb39b82bbd6bbb86a471f8",
+        []
+       ],
+       "line-breaking-033-ref.html": [
+        "ed7a52a466bc63f8145e2477f9bb51404d2b1875",
         []
        ],
        "line-breaking-atomic-007-ref.html": [
