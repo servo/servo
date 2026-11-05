@@ -193,6 +193,25 @@ class TestConsoleTab:
         preview = function["preview"]
         assert preview["kind"] == "Object"
 
+    @pytest.mark.parametrize("method", ["log", "dir"])
+    @pytest.mark.parametrize(
+        "js, expected_class",
+        [
+            ("document", "Document"),
+            ("navigator", "Navigator"),
+            ("new URLSearchParams('a=1').entries()", "URLSearchParamsIterator"),
+            ("({ a: 1 })", "Object"),
+        ],
+    )
+    def test_console_object_class_name(self, run_servoshell, method, js, expected_class):
+        run_servoshell(url="data:text/html,")
+
+        result = evaluate_and_capture_console_log_output(f"console.{method}({js});")
+
+        logged_object = result["arguments"][0]
+        assert logged_object["class"] == expected_class
+        assert logged_object["preview"]["kind"] == "Object"
+
     @pytest.mark.xfail
     def test_console_log_function_arguments(self, run_servoshell):
         script_tag = (
