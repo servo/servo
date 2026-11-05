@@ -7828,20 +7828,21 @@ impl DocumentHelpers for Document {
     }
 }
 
-/// Iterator for same origin ancestor navigables, returning the active documents of the navigables.
+/// Iterator for ancestor navigables whose active document is in this script thread, returning the
+/// active documents of the navigables. Stops at the first ancestor whose document is not local.
 /// <https://html.spec.whatwg.org/multipage/#ancestor-navigables>
-// TODO: Find a way for something equivalent for cross origin document.
-pub(crate) struct SameoriginAncestorNavigablesIterator {
+// TODO: Find a way for something equivalent for documents in other script threads.
+pub(crate) struct LocalAncestorNavigablesIterator {
     document: DomRoot<Document>,
 }
 
-impl SameoriginAncestorNavigablesIterator {
+impl LocalAncestorNavigablesIterator {
     pub(crate) fn new(document: DomRoot<Document>) -> Self {
         Self { document }
     }
 }
 
-impl Iterator for SameoriginAncestorNavigablesIterator {
+impl Iterator for LocalAncestorNavigablesIterator {
     type Item = DomRoot<Document>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -7851,15 +7852,16 @@ impl Iterator for SameoriginAncestorNavigablesIterator {
     }
 }
 
-/// Iterator for same origin descendant navigables in a shadow-including tree order, returning the
-/// active documents of the navigables.
+/// Iterator for descendant navigables whose active document is in this script thread, in a
+/// shadow-including tree order, returning the active documents of the navigables.
+/// This does not descend into navigables whose document is not local.
 /// <https://html.spec.whatwg.org/multipage/#descendant-navigables>
-// TODO: Find a way for something equivalent for cross origin document.
-pub(crate) struct SameOriginDescendantNavigablesIterator {
+// TODO: Find a way for something equivalent for documents in other script threads.
+pub(crate) struct LocalDescendantNavigablesIterator {
     stack: Vec<Box<dyn Iterator<Item = DomRoot<HTMLIFrameElement>>>>,
 }
 
-impl SameOriginDescendantNavigablesIterator {
+impl LocalDescendantNavigablesIterator {
     pub(crate) fn new(document: &Document) -> Self {
         let iframes: Vec<DomRoot<HTMLIFrameElement>> = document.iframes().iter().collect();
         Self {
@@ -7877,7 +7879,7 @@ impl SameOriginDescendantNavigablesIterator {
     }
 }
 
-impl Iterator for SameOriginDescendantNavigablesIterator {
+impl Iterator for LocalDescendantNavigablesIterator {
     type Item = DomRoot<Document>;
 
     fn next(&mut self) -> Option<Self::Item> {
