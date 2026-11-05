@@ -82,7 +82,8 @@ impl Console {
         let _ = cx;
     }
 
-    fn method(
+    /// Same as Console::method but sends to devtools instead if enabled.
+    fn method_for_devtools(
         cx: &mut JSContext,
         global: &GlobalScope,
         level: ConsoleLogLevel,
@@ -90,8 +91,39 @@ impl Console {
         include_stacktrace: IncludeStackTrace,
     ) {
         #[cfg(feature = "devtools")]
-        let devtools_arguments: Vec<DebuggerValue>;
+        if global.devtools_chan().is_some() {
+            let devtools_arguments = if !messages.is_empty() && messages[0].is_string() {
+                let (formatted, consumed) = apply_sprintf_substitutions(cx, &messages);
+                let remaining_iter = messages.iter().skip(consumed).map(|msg| {
+                    devtools::console_argument_from_handle_value(cx, *msg, &mut Vec::new())
+                });
+                std::iter::once(DebuggerValue::StringValue(formatted))
+                    .chain(remaining_iter)
+                    .collect()
+            } else {
+                messages
+                    .iter()
+                    .map(|msg| {
+                        devtools::console_argument_from_handle_value(cx, *msg, &mut Vec::new())
+                    })
+                    .collect()
+            };
+            let stacktrace =
+                (include_stacktrace == IncludeStackTrace::Yes).then_some(get_js_stack(cx));
+            Console::send_to_devtools(
+                global,
+                Self::build_message(cx, level, devtools_arguments, stacktrace),
+            );
+        }
+    }
 
+    fn method(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        level: ConsoleLogLevel,
+        messages: Vec<HandleValue>,
+        include_stacktrace: IncludeStackTrace,
+    ) {
         // If the first argument is a string, apply sprintf-style substitutions per the
         // WHATWG Console spec formatter. The result is a single formatted string followed
         // by any arguments that were not consumed by a substitution specifier.
@@ -116,31 +148,12 @@ impl Console {
                     stringify_handle_values(cx, &messages[consumed..])
                 )
             };
-
             embedder_msg.into()
         } else {
-            #[cfg(feature = "devtools")]
-            {
-                devtools_arguments = messages
-                    .iter()
-                    .map(|msg| {
-                        devtools::console_argument_from_handle_value(cx, *msg, &mut Vec::new())
-                    })
-                    .collect();
-            }
-
             stringify_handle_values(cx, &messages)
         };
 
-        #[cfg(feature = "devtools")]
-        {
-            let stacktrace =
-                (include_stacktrace == IncludeStackTrace::Yes).then_some(get_js_stack(cx));
-            Console::send_to_devtools(
-                global,
-                Self::build_message(cx, level.clone(), devtools_arguments, stacktrace),
-            );
-        }
+        Console::method_for_devtools(cx, global, level, messages, include_stacktrace);
 
         let prefix = global.current_group_label().unwrap_or_default();
         let formatted_message = format!("{prefix}{embedder_msg}");
