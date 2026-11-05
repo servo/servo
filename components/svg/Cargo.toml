@@ -6,8 +6,10 @@ repository.workspace = true
 description.workspace = true
 license.workspace = true
 edition.workspace = true
-publish.workspace = true
 rust-version.workspace = true
+# We currently skip publish, since servo-svg is not used yet.
+# Switch back to workspace publish settings once servo-svg is ready and used.
+publish = false
 
 [lib]
 name = "servo_svg"
