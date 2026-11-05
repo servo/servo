@@ -106,7 +106,7 @@ impl HTMLButtonElement {
                         .is_none_or(|node| !node.is::<HTMLSelectElement>())
             },
             ButtonType::Submit => true,
-            _ => false,
+            ButtonType::Reset | ButtonType::Button => false,
         }
     }
 }
@@ -278,13 +278,17 @@ impl HTMLButtonElement {
         })
     }
 
-    fn set_type(&self, cx: &mut JSContext, value: DOMString) {
-        let value = if value.eq_ignore_ascii_case("reset") {
-            ButtonType::Reset
-        } else if value.eq_ignore_ascii_case("button") {
-            ButtonType::Button
-        } else if value.eq_ignore_ascii_case("submit") {
-            ButtonType::Submit
+    fn set_type(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        let value = if let Some(value) = value {
+            if value.eq_ignore_ascii_case("reset") {
+                ButtonType::Reset
+            } else if value.eq_ignore_ascii_case("button") {
+                ButtonType::Button
+            } else if value.eq_ignore_ascii_case("submit") {
+                ButtonType::Submit
+            } else {
+                ButtonType::Auto
+            }
         } else {
             ButtonType::Auto
         };
@@ -386,19 +390,23 @@ impl VirtualMethods for HTMLButtonElement {
             },
             local_name!("type") => {
                 match mutation {
-                    AttributeMutation::Set(_) => self.set_type(cx, attr.to_dom_string()),
-                    AttributeMutation::Removed => self.set_type(cx, DOMString::new()),
+                    AttributeMutation::Set(_) => self.set_type(cx, Some(attr.to_dom_string())),
+                    AttributeMutation::Removed => self.set_type(cx, None),
                 };
             },
             local_name!("command") => self.set_type(
                 cx,
-                self.upcast::<Element>()
-                    .get_string_attribute(&local_name!("type")),
+                Some(
+                    self.upcast::<Element>()
+                        .get_string_attribute(&local_name!("type")),
+                ),
             ),
             local_name!("commandfor") => self.set_type(
                 cx,
-                self.upcast::<Element>()
-                    .get_string_attribute(&local_name!("type")),
+                Some(
+                    self.upcast::<Element>()
+                        .get_string_attribute(&local_name!("type")),
+                ),
             ),
             local_name!("form") => {
                 self.form_attribute_mutated(cx, mutation);
