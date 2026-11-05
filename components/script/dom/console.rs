@@ -51,9 +51,9 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 
 /// The maximum object depth logged by console methods.
-const MAX_LOG_DEPTH: usize = 5;
+const MAX_LOG_DEPTH: usize = 10;
 /// The maximum elements in an object logged by console methods.
-const MAX_LOG_CHILDREN: usize = 5;
+const MAX_LOG_CHILDREN: usize = 15;
 
 /// <https://developer.mozilla.org/en-US/docs/Web/API/Console>
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -70,7 +70,7 @@ impl Console {
         let prefix = global.current_group_label().unwrap_or_default();
         let formatted_message = format!("{prefix}{message}");
 
-        Self::send_to_embedder(global, level.clone(), formatted_message);
+        Self::send_to_embedder(global, level, formatted_message);
 
         #[cfg(feature = "devtools")]
         {
