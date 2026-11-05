@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Document selection should not show canvas as selected</title>
+    <link rel="match" href="document-selection-canvas-ref.html">
+</head>
+
+<style>
+  ::selection {
+    background: rgb(0, 255, 0);
+  }
+</style>
+
+<div id="target">
+    <canvas id="canvas" width="100" height="100" style="display: block; width: 100px; height: 100px; background: blue;"></canvas>
+</div>
+
+<script>
+    document.getSelection().selectAllChildren(target);
+</script>
+</html>
+
