@@ -993,6 +993,7 @@ impl ConsoleTable {
                 .iter()
                 .zip(&column_widths)
                 .map(|(cell, &column_width)| {
+                    // Use manual padding to avoid `format!` panics when width exceeds `u16::MAX`.
                     let pad_width = column_width.saturating_sub(cell.chars().count());
                     format!(" {cell}{} ", " ".repeat(pad_width))
                 })

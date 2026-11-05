@@ -18,6 +18,6 @@ fn console_table_large_width() {
         }],
     };
 
-    // should not panic here
+    // This should not panic.
     let _rendered = table.render();
 }
