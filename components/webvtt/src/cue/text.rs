@@ -472,7 +472,7 @@ fn webvtt_cue_text_tokenizer(position: &mut Peekable<Chars<'_>>) -> CueTokenizer
                         result.push(second)
                     }
                 } else {
-                    result.push('\u{0026}');
+                    result.push('&');
                 }
                 // > Then, in any case, set tokenizer state to the WebVTT data state,
                 // > and jump to the step labeled next.
@@ -708,7 +708,7 @@ fn webvtt_cue_text_tokenizer(position: &mut Peekable<Chars<'_>>) -> CueTokenizer
                         buffer.push(second)
                     }
                 } else {
-                    buffer.push('\u{0026}');
+                    buffer.push('&');
                 }
                 // > Then, in any case, set tokenizer state to the WebVTT start tag annotation state,
                 // > and jump to the step labeled next.
@@ -778,6 +778,7 @@ fn consume_html_char_ref(position: &mut Peekable<Chars<'_>>) -> Option<[char; 2]
     }
 }
 
+/// <https://html.spec.whatwg.org/multipage/#numeric-character-reference-state>
 fn consume_numeric_char_ref(position: &mut Peekable<Chars<'_>>) -> Option<[char; 2]> {
     let mut lookahead = position.clone();
 
@@ -786,12 +787,21 @@ fn consume_numeric_char_ref(position: &mut Peekable<Chars<'_>>) -> Option<[char;
     let mut consumed = 1;
     lookahead.next();
 
-    let base = if matches!(lookahead.peek(), Some(&'x') | Some(&'X')) {
-        lookahead.next();
-        consumed += 1;
-        16
-    } else {
-        10
+    let base = match lookahead.peek() {
+        // > U+0078 LATIN SMALL LETTER X
+        // > U+0058 LATIN CAPITAL LETTER X
+        // > Switch to the hexadecimal character reference start state.
+        Some(&'x') | Some(&'X') => {
+            lookahead.next();
+            consumed += 1;
+            16
+        },
+        // > ASCII digit
+        // > Reconsume in the decimal character reference state.
+        Some(c) if c.is_ascii_digit() => 10,
+        // > This is an absence-of-digits-in-numeric-character-reference parse error.
+        // > Flush code points consumed as a character reference.
+        _ => return None,
     };
 
     let mut digits = String::new();
@@ -805,6 +815,8 @@ fn consume_numeric_char_ref(position: &mut Peekable<Chars<'_>>) -> Option<[char;
         consumed += 1;
     }
 
+    // > This is an absence-of-digits-in-numeric-character-reference parse error.
+    // > Flush code points consumed as a character reference.
     if digits.is_empty() {
         return None;
     }
@@ -816,6 +828,14 @@ fn consume_numeric_char_ref(position: &mut Peekable<Chars<'_>>) -> Option<[char;
     let value = u32::from_str_radix(&digits, base).unwrap_or(u32::MAX);
     // <https://html.spec.whatwg.org/multipage/#numeric-character-reference-end-state>
     let char = match value {
+        // > If the number is 0x00, then this is a null-character-reference parse error.
+        // > Set the character reference code to 0xFFFD.
+        // > If the number is greater than 0x10FFFF, then this is a
+        // > character-reference-outside-unicode-range parse error.
+        // > Set the character reference code to 0xFFFD.
+        // > If the number is a surrogate, then this is a
+        // > surrogate-character-reference parse error.
+        // > Set the character reference code to 0xFFFD.
         0 | 0xD800..=0xDFFF | 0x110000.. => '\u{FFFD}',
         0x80..=0x9F => C1_REPLACEMENTS[(value - 0x80) as usize]?,
         value => char::from_u32(value)?,
@@ -828,23 +848,29 @@ fn consume_numeric_char_ref(position: &mut Peekable<Chars<'_>>) -> Option<[char;
     Some([char, '\0'])
 }
 
+/// <https://html.spec.whatwg.org/multipage/#named-character-reference-state>
 fn consume_named_char_ref(position: &mut Peekable<Chars<'_>>) -> Option<[char; 2]> {
     let lookahead = position.clone();
-    let mut named_char_ref = String::new();
+    let mut named_char_buffer = String::new();
     let mut matched: Option<(usize, u32, u32)> = None;
 
+    // > Consume the maximum number of characters possible,
+    // > where the consumed characters are one of the identifiers
+    // > in the first column of the named character references table.
+    // > Append each character to the temporary buffer when it's consumed.
     for c in lookahead {
         if !(c.is_ascii_alphanumeric() || c == ';') {
             break;
         }
-        named_char_ref.push(c);
+        named_char_buffer.push(c);
 
-        match NAMED_ENTITIES.get(&named_char_ref) {
+        // <https://html.spec.whatwg.org/multipage/#named-character-references>
+        match NAMED_ENTITIES.get(&named_char_buffer) {
             Some(&(first, second)) if first != 0 => {
                 // It's possible the char ref could be valid without the ';',
                 // as with &amp, so we store the first match we find
                 // but keep checking until we hit a delimiter
-                matched = Some((named_char_ref.len(), first, second));
+                matched = Some((named_char_buffer.len(), first, second));
                 if c == ';' {
                     break;
                 }
@@ -866,6 +892,7 @@ fn consume_named_char_ref(position: &mut Peekable<Chars<'_>>) -> Option<[char; 2
         position.next();
     }
 
+    // > Flush code points consumed as a character reference.
     let first_char = char::from_u32(first)?;
     let second_char = if second == 0 {
         '\0'
