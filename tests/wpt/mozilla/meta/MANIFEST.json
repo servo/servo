@@ -226,6 +226,19 @@
   },
   "reftest": {
    "appearance": {
+    "document-selection-canvas.html": [
+     "62049b5483f422274b42b45e8a2b6a601b9d2cd7",
+     [
+      null,
+      [
+       [
+        "/_mozilla/appearance/document-selection-canvas-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
     "document-selection-image-broken.html": [
      "1dbd643cd0fcbf44542b592b9c54ed453c6abba9",
      [
@@ -233,6 +246,19 @@
       [
        [
         "/_mozilla/appearance/document-selection-image-broken-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
+    "document-selection-image-collapsed.html": [
+     "72cea576f888b4ffbc453f1bbe97bb6aaf8ff1c3",
+     [
+      null,
+      [
+       [
+        "/_mozilla/appearance/document-selection-image-collapsed-ref.html",
         "=="
        ]
       ],
@@ -8553,8 +8579,16 @@
     []
    ],
    "appearance": {
+    "document-selection-canvas-ref.html": [
+     "df93792067faedc7fe09b5dc86aa02148c4e49d9",
+     []
+    ],
     "document-selection-image-broken-ref.html": [
      "d4d29943249a0ec2b78c79f88573d505742f7a56",
+     []
+    ],
+    "document-selection-image-collapsed-ref.html": [
+     "240ead459c1b0fda3cf612753b54d486e52c72e6",
      []
     ],
     "document-selection-image-ref.html": [

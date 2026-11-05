@@ -128,6 +128,10 @@ impl SelectionRange {
         Self { start, end }
     }
 
+    pub(crate) fn is_collapsed(&self) -> bool {
+        self.start == self.end
+    }
+
     pub(crate) fn new_from_rooted(
         start: RootedSelectionBoundary,
         end: RootedSelectionBoundary,
