@@ -20,6 +20,7 @@ use style::selector_parser::PseudoElement;
 use style::values::specified::box_::DisplayOutside as StyloDisplayOutside;
 use web_atoms::{local_name, ns};
 
+use crate::BoxTree;
 use crate::cell::{ArcRefCell, WeakRefCell};
 use crate::context::LayoutContext;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
@@ -92,7 +93,17 @@ impl InnerDOMLayoutData {
 
     fn repair_style(&self, node: &ServoLayoutNode, context: &SharedStyleContext) {
         if let Some(layout_object) = &*self.self_box.borrow() {
-            layout_object.repair_style(context, node, &node.style(context));
+            let new_style = node.style(context);
+            let style = if node.as_element().is_some_and(|element| element.is_root()) {
+                BoxTree::style_with_writing_mode_source_style(
+                    new_style,
+                    &BoxTree::writing_mode_source_style(context, *node),
+                )
+            } else {
+                new_style
+            };
+
+            layout_object.repair_style(context, node, &style);
         }
 
         for pseudo_layout_data in self.pseudo_boxes.iter() {
