@@ -181,7 +181,7 @@ pub(crate) fn adjust_anchor_for_user_select(
         // `Node::len(atomic)` representing the end of that node. The latter would be used
         // when the range is backwards (if the end boundary is outside of and before `atomic`)
         // so that `atomic` would be entirely selected regardless of the range direction.
-        anchor_candidate = RootedSelectionBoundary::start_of(&atomic);
+        anchor_candidate = RootedSelectionBoundary::start_of(atomic);
     }
     Some((anchor_candidate, nearest_with_user_select_contain))
 }
@@ -264,14 +264,14 @@ pub(crate) fn adjust_focus_for_user_select(
         };
     } else if let Some(focus_ancestor_to_avoid) = furthest_node_to_avoid {
         focus_candidate = if selection_is_backward() {
-            RootedSelectionBoundary::end_of(&focus_ancestor_to_avoid)
+            RootedSelectionBoundary::end_of(focus_ancestor_to_avoid)
         } else {
-            RootedSelectionBoundary::start_of(&focus_ancestor_to_avoid)
+            RootedSelectionBoundary::start_of(focus_ancestor_to_avoid)
         };
     } else if let Some(with_user_select_all) = furthest_node_with_user_select_all {
         // anchor was snapped to the start of the `user-select: all` element,
         // so snap the focus to the end unconditionally
-        focus_candidate = RootedSelectionBoundary::end_of(&with_user_select_all);
+        focus_candidate = RootedSelectionBoundary::end_of(with_user_select_all);
     }
 
     focus_candidate
