@@ -31,7 +31,7 @@ pub enum SystemFontServiceMessage {
         PainterId,
         FontIdentifier,
         Au,
-        #[ignore_malloc_size_of = "TODO"] FontInstanceOptions,
+        FontInstanceOptions,
         FontInstancePlatformOptions,
         Vec<FontVariation>,
         GenericSender<FontInstanceKey>,
