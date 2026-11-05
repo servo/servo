@@ -2666,8 +2666,12 @@ impl Document {
     }
 
     pub(crate) fn start_the_end_loading_phase(&self) {
-        if self.is_initial_about_blank() {
-            // TODO(47417): Once "creating a new browsing context" properly exists, remove this check
+        // Do not restart "the-end" loading phases for a document whose load was aborted.
+        // Note that `document.open()` replaces the DocumentLoader, so a document that is
+        // reopened after an abort will still start the phases normally.
+        if self.is_initial_about_blank() || self.loader.borrow().aborted() {
+            // TODO(47417): Once "creating a new browsing context" properly exists, remove
+            // the `is_initial_about_blank` check from this branch.
             self.current_the_end_loading_phase
                 .set(TheEndLoadingPhase::Done);
         } else {
@@ -2819,6 +2823,15 @@ impl Document {
                 // Step 5.2. Execute the script element given by the first script in the list of
                 // scripts that will execute when the document has finished parsing.
                 element.execute(cx, result);
+
+                // Executing the script may have aborted the document (for example via
+                // `window.stop()` or `document.open()`), in which case "the-end" loading
+                // phases must not continue.
+                if self.current_the_end_loading_phase.get() !=
+                    TheEndLoadingPhase::ProcessingDeferredScripts
+                {
+                    return;
+                }
             } else {
                 break;
             }
