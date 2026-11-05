@@ -1,0 +1,46 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>SVG viewBox fitting inside explicitly and percentage-sized images</title>
+<link rel="help" href="https://www.w3.org/TR/CSS2/visudet.html#the-height-property">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#the-object-fit">
+<link rel="help" href="https://www.w3.org/TR/SVG2/coords.html#PreserveAspectRatioAttribute">
+<link rel="match" href="svg-img-percentage-size-ref.html">
+<meta name="assert" content="An SVG viewBox fits inside the image viewport after CSS dimensions resolve, including percentage heights in standards and quirks mode.">
+<style>
+  .case { position: absolute; left: 8px; width: 500px; height: 250px; line-height: 0; }
+  .case:nth-of-type(1) { top: 8px; }
+  .case:nth-of-type(2) { top: 68px; }
+  .case:nth-of-type(3) { top: 128px; }
+  .case:nth-of-type(4) { top: 263px; }
+  .case:nth-of-type(5) { top: 323px; }
+  .case:nth-of-type(6) { top: 383px; }
+  .case:nth-of-type(7) { top: 443px; }
+  img { width: 20%; height: 20%; }
+  .explicit img { width: 100px; height: 50px; }
+  .indefinite { height: auto; }
+  .absolute img { position: absolute; left: 0; top: 0; }
+  .selector img { width: 40px; height: 50px; }
+  iframe { position: absolute; left: 208px; top: 8px; width: 516px; height: 516px; border: 0; }
+</style>
+<div class="case">
+  <img src="support/viewbox-only-4x5.svg">
+</div>
+<div class="case explicit">
+  <img src="support/viewbox-only-4x5.svg">
+</div>
+<div class="case indefinite">
+  <img src="support/viewbox-only-4x5.svg">
+</div>
+<div class="case">
+  <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5' preserveAspectRatio='none'><rect width='4' height='5' fill='green'/><rect width='1' height='1' fill='blue'/></svg>">
+</div>
+<div class="case">
+  <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5' preserveAspectRatio='xMidYMid slice'><rect width='4' height='5' fill='green'/><rect width='1' height='1' fill='blue'/></svg>">
+</div>
+<div class="case absolute">
+  <img src="support/viewbox-only-4x5.svg">
+</div>
+<div class="case selector">
+  <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'><style>svg[width] rect { fill: red }</style><rect width='4' height='5' fill='green'/><rect width='1' height='1' fill='blue'/></svg>">
+</div>
+<iframe src="support/svg-img-percentage-size-quirks.html"></iframe>

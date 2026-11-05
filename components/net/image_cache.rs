@@ -85,8 +85,39 @@ const MAX_SVG_PIXMAP_DIMENSION: u32 = 5000;
 fn parse_svg_document_in_memory(
     bytes: &[u8],
     usvg_options: Arc<usvg::Options>,
-) -> Result<usvg::Tree, &'static str> {
-    usvg::Tree::from_data(bytes, &usvg_options)
+) -> Result<(usvg::Tree, Option<Arc<SVGImageSource>>), &'static str> {
+    let decompressed;
+    let bytes = if bytes.starts_with(&[0x1f, 0x8b]) {
+        decompressed = usvg::decompress_svgz(bytes).map_err(|_| "Not a valid SVG document")?;
+        &decompressed
+    } else {
+        bytes
+    };
+    let text = std::str::from_utf8(bytes).map_err(|_| "Not a valid SVG document")?;
+    let document = usvg::roxmltree::Document::parse_with_options(
+        text,
+        usvg::roxmltree::ParsingOptions {
+            allow_dtd: true,
+            ..Default::default()
+        },
+    )
+    .map_err(|_| "Not a valid SVG document")?;
+    usvg::Tree::from_xmltree(&document, &usvg_options)
+        .map(|tree| {
+            let source = document
+                .root_element()
+                .attribute("viewBox")
+                // Replacing the root dimensions must not change selector matching.
+                // Keep the existing path for stylesheets with attribute selectors.
+                .filter(|_| {
+                    !document.descendants().any(|node| {
+                        node.has_tag_name("style") &&
+                            node.text().is_some_and(|text| text.contains('['))
+                    })
+                })
+                .map(|_| Arc::new(SVGImageSource::new(&document)));
+            (tree, source)
+        })
         .inspect_err(|error| {
             warn!("Error when parsing SVG data: {error}");
         })
@@ -109,14 +140,15 @@ fn decode_bytes_sync(
     });
 
     let image = if is_svg_document {
-        parse_svg_document_in_memory(bytes, usvg_options)
-            .ok()
-            .map(|svg_tree| {
+        parse_svg_document_in_memory(bytes, usvg_options).ok().map(
+            |(svg_tree, source_with_view_box)| {
                 DecodedImage::Vector(VectorImageData {
                     svg_tree: Arc::new(svg_tree),
+                    source_with_view_box,
                     cors_status: cors,
                 })
-            })
+            },
+        )
     } else {
         load_from_memory(bytes, cors).map(DecodedImage::Raster)
     };
@@ -249,12 +281,57 @@ impl CompletedLoad {
 struct VectorImageData {
     #[conditional_malloc_size_of]
     svg_tree: Arc<usvg::Tree>,
+    /// The source is needed to resolve the root viewBox at the concrete object size.
+    #[conditional_malloc_size_of]
+    source_with_view_box: Option<Arc<SVGImageSource>>,
     cors_status: CorsStatus,
 }
 
 impl std::fmt::Debug for VectorImageData {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("VectorImageData").finish()
+    }
+}
+
+/// Source split at the root element's name, with its width and height removed.
+/// usvg resolves the viewBox while parsing and does not expose a viewport resize API.
+#[derive(MallocSizeOf)]
+struct SVGImageSource {
+    before_size: String,
+    after_size: String,
+}
+
+impl SVGImageSource {
+    fn new(document: &usvg::roxmltree::Document) -> Self {
+        let root = document.root_element();
+        let mut source = document.input_text().to_owned();
+        for attribute in root.attributes().rev() {
+            if attribute.namespace().is_none() && matches!(attribute.name(), "width" | "height") {
+                source.replace_range(attribute.range(), "");
+            }
+        }
+        let name_start = root.range().start + 1;
+        let name_end = name_start +
+            source[name_start..]
+                .find(|character: char| {
+                    character.is_ascii_whitespace() || matches!(character, '/' | '>')
+                })
+                .unwrap();
+        let after_size = source.split_off(name_end);
+        Self {
+            before_size: source,
+            after_size,
+        }
+    }
+
+    fn with_size(&self, size: tiny_skia::IntSize) -> String {
+        format!(
+            "{} width=\"{}\" height=\"{}\"{}",
+            self.before_size,
+            size.width(),
+            size.height(),
+            self.after_size,
+        )
     }
 }
 
@@ -1129,6 +1206,7 @@ impl ImageCache for ImageCacheImpl {
         }
 
         let store = self.store.clone();
+        let usvg_options = self.usvg_options.clone();
         self.thread_pool.spawn(move || {
             let transform = tiny_skia::Transform::from_scale(
                 tinyskia_requested_size.width() as f32 / natural_size.width() as f32,
@@ -1154,7 +1232,42 @@ impl ImageCache for ImageCacheImpl {
             // doesn't use internal global state that could become invalid after the panic.
             SUPPRESS_ABORT_IN_PANIC_HOOK.set(true);
             let resvg_result = std::panic::catch_unwind(AssertUnwindSafe(|| {
-                resvg::render(&vector_image.svg_tree, transform, &mut pixmap.as_mut());
+                if let Some(source) = &vector_image.source_with_view_box &&
+                    vector_image.svg_tree.size() != tinyskia_requested_size.to_size()
+                {
+                    // CSS determines the SVG viewport, while the root viewBox and
+                    // preserveAspectRatio determine how its contents fit inside it.
+                    // Scaling an already resolved tree independently in each axis
+                    // would stretch those contents instead.
+                    let options = usvg::Options {
+                        fontdb: vector_image.svg_tree.fontdb().clone(),
+                        font_resolver: usvg::FontResolver {
+                            select_font: Box::new(|font, database| {
+                                (usvg_options.font_resolver.select_font)(font, database)
+                            }),
+                            select_fallback: Box::new(|character, ids, database| {
+                                (usvg_options.font_resolver.select_fallback)(character, ids, database)
+                            }),
+                        },
+                        image_href_resolver: usvg::ImageHrefResolver {
+                            resolve_data: Box::new(|mime, data, options| {
+                                (usvg_options.image_href_resolver.resolve_data)(mime, data, options)
+                            }),
+                            resolve_string: Box::new(|href, options| {
+                                (usvg_options.image_href_resolver.resolve_string)(href, options)
+                            }),
+                        },
+                        ..usvg::Options::default()
+                    };
+                    let tree = usvg::Tree::from_str(
+                        &source.with_size(tinyskia_requested_size),
+                        &options,
+                    )
+                    .expect("Could not resolve a previously parsed SVG at its concrete object size");
+                    resvg::render(&tree, tiny_skia::Transform::identity(), &mut pixmap.as_mut());
+                } else {
+                    resvg::render(&vector_image.svg_tree, transform, &mut pixmap.as_mut());
+                }
 
                 let bytes = pixmap.take();
                 let frame = ImageFrame {
