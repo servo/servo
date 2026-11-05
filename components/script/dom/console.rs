@@ -108,7 +108,7 @@ impl Console {
                     .collect();
             }
 
-            let embedder_msg = if messages.iter().skip(consumed - 1).next().is_some() {
+            let embedder_msg = if messages.get(consumed - 1).is_some() {
                 formatted
             } else {
                 format!(
@@ -853,10 +853,7 @@ fn format_float_substitution(result: &mut String, num: Result<f64, ()>) {
 
 fn stringify_handle_values(cx: &mut JSContext, messages: &[HandleValue]) -> DOMString {
     DOMString::from(itertools::join(
-        messages
-            .iter()
-            .copied()
-            .map(|msg| stringify_handle_value(cx, msg)),
+        messages.iter().map(|msg| stringify_handle_value(cx, *msg)),
         " ",
     ))
 }
