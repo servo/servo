@@ -145,7 +145,7 @@ def download_run_results_and_then_run_update(kwargs: dict[str, Any]) -> bool:
             os.makedirs(run_path)
 
             print(f"Downloading unexpected stable results from run {run_id} of {repository}")
-            if (
+            try:
                 subprocess.check_call(
                     [
                         "gh",
@@ -160,11 +160,12 @@ def download_run_results_and_then_run_update(kwargs: dict[str, Any]) -> bool:
                         "*stable-unexpected-results-linux*",
                     ]
                 )
-                != 0
-            ):
+            except Exception as e:
                 print(f"Could not download artifact from run id {run_id}.")
                 print("Is `gh` installed and authenticated?")
+                print(f"Full error details:\n{e}")
                 return False
+
             downloaded_run_logs.append(
                 os.path.join(run_path, "stable-unexpected-results-linux", "stable-unexpected-results.log")
             )
