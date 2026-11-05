@@ -772,19 +772,3 @@ macro_rules! window_event_handlers(
         window_owned_event_handler!(gamepaddisconnected, GetOngamepaddisconnected, SetOngamepaddisconnected);
     );
 );
-
-#[cfg(feature = "webgl")]
-macro_rules! handle_potential_webgl_error {
-    ($context:expr, $call:expr, $return_on_error:expr) => {
-        match $call {
-            Ok(ret) => ret,
-            Err(error) => {
-                $context.webgl_error(error);
-                $return_on_error
-            },
-        }
-    };
-    ($context:expr, $call:expr) => {
-        handle_potential_webgl_error!($context, $call, ())
-    };
-}
