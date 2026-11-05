@@ -15,7 +15,7 @@ use dpi::PhysicalSize;
 use embedder_traits::{RefreshDriver, UrlRequest};
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::{Point2D, Size2D};
-use http::{HeaderMap, HeaderName, HeaderValue};
+use http::{HeaderMap, HeaderName, HeaderValue, StatusCode};
 use http_body_util::combinators::BoxBody;
 use hyper::body::{Bytes, Incoming};
 use hyper::{Request as HyperRequest, Response as HyperResponse};
@@ -1267,4 +1267,57 @@ fn test_about_memory_page_loads() {
             value => panic!("unexpected JSValue: {value:?}"),
         }
     });
+}
+
+#[test]
+fn test_favicon_cleared_and_restored_on_history_traversal() {
+    let servo_test = ServoTest::new();
+    static PAGE_WITHOUT_FAVICON: &'static [u8] = b"<!DOCTYPE html>\nPage without favicon";
+    static PAGE_WITH_FAVICON: &'static [u8] = b"<!DOCTYPE html>\
+        <!-- This is a 2x2 red square image -->
+        <link rel=\"icon\" href=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEklEQVQIW2P8z8AARAwMjDAGACwBA/+8RVWvAAAAAElFTkSuQmCC\">
+        Page with favicon";
+    let handler =
+        move |request: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            let body = match request.uri().path() {
+                "/with-icon" => PAGE_WITH_FAVICON,
+                "/without-icon" => PAGE_WITHOUT_FAVICON,
+                "/favicon.ico" => {
+                    *response.status_mut() = StatusCode::NOT_FOUND;
+                    return;
+                },
+                _ => unreachable!("Asked for unknown URL"),
+            };
+            *response.body_mut() = make_body(body.to_vec());
+        };
+    let (server, url) = make_server(handler);
+
+    let with_icon_url = url.join("/with-icon").unwrap().into_url();
+    let without_icon_url = url.join("/without-icon").unwrap().into_url();
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(with_icon_url.clone())
+        .build();
+    servo_test
+        .spin(|| webview.favicon().is_none() || webview.url().as_ref() != Some(&with_icon_url));
+
+    // Loading the page without a favicon should clear it.
+    webview.load(without_icon_url.clone());
+    servo_test
+        .spin(|| webview.favicon().is_some() || webview.url().as_ref() != Some(&without_icon_url));
+
+    // Traversing history to the previous page should load the icon again.
+    webview.go_back(1);
+    servo_test
+        .spin(|| webview.favicon().is_none() || webview.url().as_ref() != Some(&with_icon_url));
+
+    // Traversing history to the next page should clear the icon again.
+    webview.go_forward(1);
+    servo_test
+        .spin(|| webview.favicon().is_some() || webview.url().as_ref() != Some(&without_icon_url));
+
+    let _ = server.close();
 }

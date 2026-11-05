@@ -13,8 +13,8 @@ use html5ever::{LocalName, Prefix, local_name};
 use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use net_traits::image_cache::{
-    Image, ImageCacheResponseCallback, ImageCacheResult, ImageLoadListener,
-    ImageOrMetadataAvailable, ImageResponse, PendingImageId,
+    ImageCacheResponseCallback, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable,
+    ImageResponse, PendingImageId,
 };
 use net_traits::request::{Destination, Initiator, ParserMetadata, RequestBuilder};
 use net_traits::{NetworkError, ReferrerPolicy};
@@ -302,7 +302,7 @@ impl VirtualMethods for HTMLLinkElement {
                 }
 
                 if self.relations.get().contains(LinkRelations::ICON) {
-                    self.owner_document().set_has_icon_link(true);
+                    self.owner_document().set_ever_had_favicon_link(true);
                 }
             },
             local_name!("href") => {
@@ -468,7 +468,7 @@ impl VirtualMethods for HTMLLinkElement {
         let href = element.get_attribute_string_value(&local_name!("href"));
 
         if context.tree_connected && self.relations.get().contains(LinkRelations::ICON) {
-            self.owner_document().set_has_icon_link(true);
+            self.owner_document().set_ever_had_favicon_link(true);
         }
 
         if context.tree_connected &&
@@ -788,7 +788,7 @@ impl HTMLLinkElement {
 
         // Use the document's encoding to parse the URL, as the favicon URL is not necessarily UTF-8.
         let document = self.upcast::<Node>().owner_doc();
-        let Ok(href) = document.encoding_parse_a_url(&self.Href()) else {
+        let Ok(favicon_url) = document.encoding_parse_a_url(&self.Href()) else {
             return;
         };
 
@@ -797,7 +797,7 @@ impl HTMLLinkElement {
             .set(self.request_generation_id.get().increment());
 
         let cache_result = window.image_cache().get_cached_image_status(
-            href,
+            favicon_url.clone(),
             window.origin().immutable(),
             cors_setting_for_element(self.upcast()),
         );
@@ -806,7 +806,7 @@ impl HTMLLinkElement {
             ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable {
                 image, ..
             }) => {
-                self.process_favicon_response(image);
+                self.owner_document().process_favicon_image(image, false);
             },
             ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(_, id)) |
             ImageCacheResult::Pending(id) => {
@@ -829,12 +829,7 @@ impl HTMLLinkElement {
                     id,
                 ));
 
-                let document = self.upcast::<Node>().owner_doc();
-                let fetch_context = FaviconFetchContext::new(
-                    window.image_cache(),
-                    id,
-                    self.owner_document().base_url(),
-                );
+                let fetch_context = FaviconFetchContext::new(window.image_cache(), id, favicon_url);
                 document.fetch_background(request, fetch_context);
             },
             ImageCacheResult::FailedToLoadOrDecode => {},
@@ -872,17 +867,9 @@ impl HTMLLinkElement {
                         return;
                     };
 
-                    element.process_favicon_response(image);
+                    element.owner_document().process_favicon_image(image, false);
                 }));
         })
-    }
-
-    /// Rasterizes a loaded favicon file if necessary and notifies the embedder about it.
-    fn process_favicon_response(&self, image: Image) {
-        // TODO: Include the size attribute here
-        // The rasterization callback will end up calling "process_favicon_response" again,
-        // but this time with a raster image.
-        self.owner_document().process_favicon_image(image, false);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#link-type-preload:fetch-and-process-the-linked-resource-2>

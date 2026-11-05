@@ -31,12 +31,14 @@ use crate::fetch::network_listener::{
 };
 
 pub(crate) struct FaviconFetchContext {
+    /// A handle to the image cache for the [`Document`] of this context.
     pub(crate) image_cache: Arc<dyn ImageCache>,
+    /// The [`PendingImageId`] of the favicon we are fetching.
     pub(crate) id: PendingImageId,
-
-    /// The base or document url that the favicon belongs to.
+    /// The URL of the favicon that this context is fetching.
     pub(crate) url: ServoUrl,
-    pub(crate) aborted: bool,
+    /// Whether or not the load of this favicon was successful (received a 2xx status code).
+    pub(crate) successful: bool,
 }
 
 impl FaviconFetchContext {
@@ -45,7 +47,7 @@ impl FaviconFetchContext {
             image_cache,
             id,
             url,
-            aborted: false,
+            successful: true,
         }
     }
 }
@@ -63,7 +65,7 @@ impl FetchResponseListener for FaviconFetchContext {
         if let Ok(ref metadata) = metadata &&
             !metadata.metadata().status.is_success()
         {
-            self.aborted = true;
+            self.successful = false;
         }
 
         self.image_cache.notify_pending_response(
@@ -93,7 +95,7 @@ impl FetchResponseListener for FaviconFetchContext {
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        let response = if self.aborted {
+        let response = if !self.successful {
             Err(NetworkError::HttpError("Not an OK response".into()))
         } else {
             response
@@ -134,7 +136,7 @@ impl Document {
     pub(crate) fn process_favicon_image(&self, image: Image, is_fallback: bool) {
         // If an icon link has been added in the meantime or a favicon is already present,
         // do not apply the fallback icon.
-        if is_fallback && (self.has_icon_link() || self.favicon().is_some()) {
+        if is_fallback && (self.ever_had_favicon_link() || self.favicon().is_some()) {
             return;
         }
 
@@ -177,7 +179,7 @@ impl Document {
                         send_rasterized_favicon_to_embedder(&raster_image);
                     },
                     RasterizationResult::PendingRasterization => {
-                        // The rasterization callback will end up calling "process_favicon_response" again,
+                        // The rasterization callback will end up calling "process_favicon_image" again,
                         // but this time with a raster image.
                         let image_cache_sender = self
                             .register_favicon_image_cache_callback(vector_image.id, is_fallback);
@@ -224,22 +226,27 @@ impl Document {
     /// Fetches `/favicon.ico` from the document's URL as a fallback when no
     /// `<link rel="icon">` was found in the page.
     ///
-    /// Per <https://html.spec.whatwg.org/multipage/#rel-icon>
+    /// From <https://html.spec.whatwg.org/multipage/#rel-icon>:
+    ///
+    /// > In the absence of a link with the icon keyword, for Document objects whose URL's scheme is
+    /// > an HTTP(S) scheme, user agents may instead run these steps:
+    /// > 1. Let request be a new request whose URL is the URL record obtained by resolving the URL
+    /// >    "/favicon.ico" against the Document object's URL, client is the Document object's relevant
+    /// >    settings object, destination is "image", credentials mode is "include", and whose
+    /// >    use-URL-credentials flag is set.
+    /// > 2. Fetch request, with processResponse set to the following steps given response response:
+    /// >    - 2.1. Use response's unsafe response as an icon as if it had been declared using the icon
+    /// >      keyword.
     pub(crate) fn maybe_fetch_fallback_favicon(&self) {
         if !self.window().is_top_level() {
             return;
         }
-        if self.has_icon_link() {
+        if self.ever_had_favicon_link() {
             return;
         }
         if self.favicon().is_some() {
             return;
         }
-        if self.has_attempted_favicon_fallback() {
-            return;
-        }
-        self.set_has_attempted_favicon_fallback(true);
-
         let document_url = self.url();
         if !matches!(document_url.scheme(), "http" | "https") {
             return;
