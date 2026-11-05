@@ -17,7 +17,12 @@ use style::logical_geometry::{LogicalAxis, PhysicalSide, WritingMode};
 use style::properties::ComputedValues;
 use style::values::specified::align::AlignFlags;
 
+use crate::PropagatedBoxTreeData;
 use crate::cell::{ArcRefCell, RefOrAtomicRef};
+use crate::containing_block::{
+    ConstraintSpace, ContainingBlock, ContainingBlockSize, DefiniteContainingBlock,
+    HasQuirkyBlockSize,
+};
 use crate::context::LayoutContext;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::formatting_contexts::IndependentFormattingContext;
@@ -31,10 +36,6 @@ use crate::geom::{
 use crate::layout_box_base::{IndependentFormattingContextLayoutResult, LayoutBoxBase};
 use crate::sizing::{LazySize, Size, SizeConstraint, Sizes};
 use crate::style_ext::{Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, DisplayInside};
-use crate::{
-    ConstraintSpace, ContainingBlock, ContainingBlockSize, DefiniteContainingBlock,
-    HasQuirkyBlockSize, PropagatedBoxTreeData,
-};
 
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct AbsolutelyPositionedBox {

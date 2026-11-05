@@ -27,6 +27,10 @@ use style::values::specified::align::AlignFlags;
 use super::geom::{FlexAxis, FlexRelativeRect, FlexRelativeSides, FlexRelativeVec2};
 use super::{FlexContainer, FlexContainerConfig, FlexItemBox, FlexLevelBox};
 use crate::cell::ArcRefCell;
+use crate::containing_block::{
+    ConstraintSpace, ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize,
+    IndefiniteContainingBlock,
+};
 use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
 use crate::formatting_contexts::Baselines;
@@ -43,10 +47,6 @@ use crate::sizing::{
     LazySize, Size, SizeConstraint, Sizes,
 };
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, LayoutStyle};
-use crate::{
-    ConstraintSpace, ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize,
-    IndefiniteContainingBlock,
-};
 
 /// Layout parameters and intermediate results about a flex container,
 /// grouped to avoid passing around many parameters

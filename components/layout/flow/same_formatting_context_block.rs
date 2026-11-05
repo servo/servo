@@ -18,6 +18,7 @@ use style::logical_geometry::LogicalAxis;
 use style::properties::ComputedValues;
 use style::servo::selector_parser::PseudoElement;
 
+use crate::containing_block::{ConstraintSpace, ContainingBlock};
 use crate::context::LayoutContext;
 use crate::flow::float::{Clear, ContainingBlockPositionInfo, SequentialLayoutState};
 use crate::flow::{
@@ -30,7 +31,6 @@ use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::PositioningContext;
 use crate::sizing::InlineContentSizesResult;
 use crate::style_ext::LayoutStyle;
-use crate::{ConstraintSpace, ContainingBlock};
 
 /// A block in block flow that does not establish a new formatting context.
 #[derive(Debug, MallocSizeOf)]

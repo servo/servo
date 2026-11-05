@@ -16,10 +16,11 @@ use style::values::computed::{
     LengthPercentage, MaxSize as StyleMaxSize, Percentage, Size as StyleSize,
 };
 
+use crate::containing_block::{ConstraintSpace, HasQuirkyBlockSize, IndefiniteContainingBlock};
 use crate::context::LayoutContext;
+use crate::geom::LogicalVec2;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, LayoutStyle};
-use crate::{ConstraintSpace, HasQuirkyBlockSize, IndefiniteContainingBlock, LogicalVec2};
 
 #[derive(PartialEq)]
 pub(crate) enum IntrinsicSizingMode {

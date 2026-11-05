@@ -18,6 +18,10 @@ use super::{
     SpecificTaffyGridInfo, TaffyContainer, TaffyItemBox, TaffyItemBoxInner, TaffyStyloStyle,
 };
 use crate::cell::ArcRefCell;
+use crate::containing_block::{
+    ConstraintSpace, ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize,
+    IndefiniteContainingBlock, IndefiniteContainingBlockSize,
+};
 use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
@@ -34,10 +38,6 @@ use crate::sizing::{
     SizeConstraint,
 };
 use crate::style_ext::{Clamp, ContentBoxSizesAndPBM, LayoutStyle};
-use crate::{
-    ConstraintSpace, ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize,
-    IndefiniteContainingBlock, IndefiniteContainingBlockSize,
-};
 
 const DUMMY_NODE_ID: taffy::NodeId = taffy::NodeId::new(u64::MAX);
 

@@ -20,6 +20,7 @@ use style::computed_values::empty_cells::T as EmptyCells;
 use style::computed_values::position::T as Position;
 use style::computed_values::table_layout::T as TableLayoutMode;
 use style::computed_values::visibility::T as Visibility;
+use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::{
     AlignmentBaseline, BaselineShift, BorderStyle, LengthPercentage as ComputedLengthPercentage,
@@ -30,6 +31,10 @@ use style::values::generics::box_::BaselineShiftKeyword;
 use super::{
     ArcRefCell, CollapsedBorder, CollapsedBorderLine, SpecificTableGridInfo, Table, TableCaption,
     TableLayoutStyle, TableSlot, TableSlotCell, TableSlotCoordinates, TableTrack, TableTrackGroup,
+};
+use crate::containing_block::{
+    ConstraintSpace, ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize,
+    IndefiniteContainingBlock,
 };
 use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
@@ -52,10 +57,6 @@ use crate::style_ext::{
     BorderStyleColor, Clamp, ComputedValuesExt, LayoutStyle, PaddingBorderMargin,
 };
 use crate::table::WeakTableLevelBox;
-use crate::{
-    ConstraintSpace, ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize,
-    IndefiniteContainingBlock, WritingMode,
-};
 
 #[derive(PartialEq)]
 enum CellContentAlignment {

@@ -22,6 +22,10 @@ use style::values::specified::align::AlignFlags;
 use style::values::specified::{Display, TextAlignKeyword};
 
 use crate::cell::ArcRefCell;
+use crate::containing_block::{
+    ConstraintSpace, ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize,
+    IndefiniteContainingBlock,
+};
 use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
 use crate::flow::float::{Clear, FloatBox, FloatSide, PlacementAmongFloats, SequentialLayoutState};
@@ -42,10 +46,6 @@ use crate::sizing::{
     SizeConstraint, Sizes,
 };
 use crate::style_ext::{AspectRatio, ContentBoxSizesAndPBM, LayoutStyle, PaddingBorderMargin};
-use crate::{
-    ConstraintSpace, ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize,
-    IndefiniteContainingBlock,
-};
 
 mod construct;
 pub mod float;
