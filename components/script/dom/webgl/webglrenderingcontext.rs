@@ -2360,45 +2360,32 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 self.bound_renderbuffer.get().to_jsval(cx, retval);
                 return;
             },
-            constants::TEXTURE_BINDING_2D => {
-                let texture = self
-                    .textures
-                    .active_texture_slot(constants::TEXTURE_2D, self.webgl_version())
-                    .unwrap()
-                    .get();
-                texture.to_jsval(cx, retval);
-                return;
-            },
-            WebGL2RenderingContextConstants::TEXTURE_BINDING_2D_ARRAY => {
-                let texture = self
-                    .textures
-                    .active_texture_slot(
-                        WebGL2RenderingContextConstants::TEXTURE_2D_ARRAY,
-                        self.webgl_version(),
-                    )
-                    .unwrap()
-                    .get();
-                texture.to_jsval(cx, retval);
-                return;
-            },
-            WebGL2RenderingContextConstants::TEXTURE_BINDING_3D => {
-                let texture = self
-                    .textures
-                    .active_texture_slot(
-                        WebGL2RenderingContextConstants::TEXTURE_3D,
-                        self.webgl_version(),
-                    )
-                    .unwrap()
-                    .get();
-                texture.to_jsval(cx, retval);
-                return;
-            },
+            constants::TEXTURE_BINDING_2D |
+            WebGL2RenderingContextConstants::TEXTURE_BINDING_2D_ARRAY |
+            WebGL2RenderingContextConstants::TEXTURE_BINDING_3D |
             constants::TEXTURE_BINDING_CUBE_MAP => {
-                let texture = self
+                let target = match parameter {
+                    constants::TEXTURE_BINDING_2D => constants::TEXTURE_2D,
+                    WebGL2RenderingContextConstants::TEXTURE_BINDING_2D_ARRAY => {
+                        WebGL2RenderingContextConstants::TEXTURE_2D_ARRAY
+                    },
+                    WebGL2RenderingContextConstants::TEXTURE_BINDING_3D => {
+                        WebGL2RenderingContextConstants::TEXTURE_3D
+                    },
+                    constants::TEXTURE_BINDING_CUBE_MAP => constants::TEXTURE_CUBE_MAP,
+                    _ => unreachable!(),
+                };
+                let slot = match self
                     .textures
-                    .active_texture_slot(constants::TEXTURE_CUBE_MAP, self.webgl_version())
-                    .unwrap()
-                    .get();
+                    .active_texture_slot(target, self.webgl_version())
+                {
+                    Ok(slot) => slot,
+                    Err(err) => {
+                        self.webgl_error(err);
+                        return retval.set(NullValue());
+                    },
+                };
+                let texture = slot.get();
                 texture.to_jsval(cx, retval);
                 return;
             },
