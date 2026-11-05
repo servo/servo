@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use html5ever::local_name;
+use web_atoms::local_name;
 use layout_api::{LayoutElement, LayoutNode};
 use log::debug;
 use script::layout_dom::{ServoLayoutElement, ServoLayoutNode};
