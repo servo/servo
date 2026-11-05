@@ -15,7 +15,7 @@ const SVG_DEFAULT_FONT_SIZE: f32 = 16.0;
 /// Build a Shape from a DOM element.
 pub(crate) fn build_shape(
     element: &ServoLayoutElement,
-    tag_name: &str,
+    tag_name: LocalName,
     computed: Option<&style::properties::ComputedValues>,
     vw: f32,
     vh: f32,
