@@ -8753,7 +8753,6 @@ dependencies = [
  "data-url",
  "encoding_rs",
  "euclid",
- "html5ever",
  "icu_casemap",
  "icu_locale_core",
  "icu_properties",

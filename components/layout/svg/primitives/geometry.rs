@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use web_atoms::{LocalName, local_name};
+
 use script::layout_dom::ServoLayoutElement;
 use servo_svg::element::{Rectangle, Shape};
 use servo_svg::units::Length;
@@ -15,7 +17,7 @@ const SVG_DEFAULT_FONT_SIZE: f32 = 16.0;
 /// Build a Shape from a DOM element.
 pub(crate) fn build_shape(
     element: &ServoLayoutElement,
-    tag_name: LocalName,
+    tag_name: &LocalName,
     computed: Option<&style::properties::ComputedValues>,
     vw: f32,
     vh: f32,
@@ -23,7 +25,7 @@ pub(crate) fn build_shape(
     let fs = SVG_DEFAULT_FONT_SIZE;
 
     match tag_name {
-        "rect" => parse_rect(element, fs, computed, vw, vh),
+        &local_name!("rect") => parse_rect(element, fs, computed, vw, vh),
         // TODO: parse circle, ellipse, line, polyline, polygon and path
         _ => None,
     }
@@ -38,8 +40,8 @@ fn parse_rect(
     vw: f32,
     vh: f32,
 ) -> Option<Shape> {
-    let w = parse_length("width", element, fs).unwrap_or(0.0);
-    let h = parse_length("height", element, fs).unwrap_or(0.0);
+    let w = parse_length(&local_name!("width"), element, fs).unwrap_or(0.0);
+    let h = parse_length(&local_name!("height"), element, fs).unwrap_or(0.0);
     if w < 0.0 || h < 0.0 {
         return None;
     }
@@ -66,10 +68,10 @@ fn parse_rect(
             )
         },
         None => (
-            parse_length_resolved("x", element, fs, vw).unwrap_or(0.0),
-            parse_length_resolved("y", element, fs, vh).unwrap_or(0.0),
-            parse_radius("rx", element, fs, w),
-            parse_radius("ry", element, fs, h),
+            parse_length_resolved(&local_name!("x"), element, fs, vw).unwrap_or(0.0),
+            parse_length_resolved(&local_name!("y"), element, fs, vh).unwrap_or(0.0),
+            parse_radius(&local_name!("rx"), element, fs, w),
+            parse_radius(&local_name!("ry"), element, fs, h),
         ),
     };
     Some(Shape::Rect(Rectangle {
@@ -96,7 +98,7 @@ fn resolve_radius(lp: &LengthPercentage, reference: f32) -> Option<f32> {
 }
 
 /// Parse the `rx`/`ry` presentation attributes, resolving percentages against `reference`.
-fn parse_radius(name: &str, element: &ServoLayoutElement, fs: f32, reference: f32) -> Option<f32> {
+fn parse_radius(name: &LocalName, element: &ServoLayoutElement, fs: f32, reference: f32) -> Option<f32> {
     parse_length_resolved(name, element, fs, reference)
         .ok()
         .and_then(|v| (v >= 0.0).then_some(v))
@@ -104,7 +106,7 @@ fn parse_radius(name: &str, element: &ServoLayoutElement, fs: f32, reference: f3
 
 /// Parse the `pathLength` presentation attribute.
 fn parse_path_length(element: &ServoLayoutElement) -> Option<f32> {
-    get_attr(element, "pathLength")
+    get_attr(element, &local_name!("pathLength"))
         .and_then(|v| v.trim().parse::<f32>().ok())
         .filter(|&n| n.is_finite() && n > 0.0)
 }

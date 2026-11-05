@@ -2,22 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use html5ever::LocalName;
 use layout_api::LayoutElement;
 use script::layout_dom::ServoLayoutElement;
 use svgtypes::Length as SvgLength;
-use web_atoms::ns;
+use web_atoms::{LocalName, ns};
 
 /// Read an SVG presentation attribute as a string.
-pub(crate) fn get_attr(element: &ServoLayoutElement, attr: &str) -> Option<String> {
-    element
-        .attribute_as_str(&ns!(), &LocalName::from(attr))
-        .map(|s| s.to_string())
+pub(crate) fn get_attr<'a>(element: &'a ServoLayoutElement, attr: &LocalName) -> Option<&'a str> {
+    element.attribute_as_str(&ns!(), attr)
 }
 
 /// Parse a presentation-attribute length to pixels.
 pub(crate) fn parse_length(
-    attr: &str,
+    attr: &LocalName,
     element: &ServoLayoutElement,
     font_size: f32,
 ) -> Result<f32, String> {
@@ -47,7 +44,7 @@ fn to_px(len: SvgLength, font_size: f32) -> f32 {
 
 /// Parse a presentation-attribute length, resolving a percentage against `reference`.
 pub(crate) fn parse_length_resolved(
-    attr: &str,
+    attr: &LocalName,
     element: &ServoLayoutElement,
     font_size: f32,
     reference: f32,

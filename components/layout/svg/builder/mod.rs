@@ -136,18 +136,17 @@ fn build_tag(
     vw: f32,
     vh: f32,
 ) -> Option<SvgTag> {
-    let tag = element.local_name().as_ref();
-    match tag {
-        "svg" => Some(SvgTag::Container(Container::Svg)),
-        "g" => Some(SvgTag::Container(Container::Group)),
-        "defs" => None,
-        "use" => None,
-        "symbol" => None,
-        "switch" => None,
-        "text" => None,
-        "tspan" => None,
-        "image" => None,
-        _ => build_shape(element, tag, computed, vw, vh).map(SvgTag::Shape),
+    match element.local_name() {
+        &local_name!("svg") => Some(SvgTag::Container(Container::Svg)),
+        &local_name!("g") => Some(SvgTag::Container(Container::Group)),
+        &local_name!("defs") => None,
+        &local_name!("use") => None,
+        &local_name!("symbol") => None,
+        &local_name!("switch") => None,
+        &local_name!("text") => None,
+        &local_name!("tspan") => None,
+        &local_name!("image") => None,
+        tag => build_shape(element, tag, computed, vw, vh).map(SvgTag::Shape),
     }
 }
 
