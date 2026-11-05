@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Backgrounds: Background image using blob URL stays rendered after revokeObjectURL (reference)</title>
+<style>
+  iframe {
+    border: none;
+    width: 200px;
+    height: 200px;
+  }
+</style>
+<body>
+<iframe srcdoc="<!DOCTYPE html><style>body { margin: 0; }</style><div style='width: 100px; height: 100px; background-image: url(&quot;/images/green.png&quot;);'></div>"></iframe>
+</body>
+</html>

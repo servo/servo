@@ -9,7 +9,6 @@
 use std::sync::Arc;
 
 use bytes::Bytes;
-use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::image_cache::{ImageCache, PendingImageId};
 use net_traits::request::{Destination, InternalRequest, RequestBuilder, RequestId};
 use net_traits::{FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming};
@@ -24,6 +23,7 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::event_loop::document_loader::LoadType;
 use crate::fetch::fetch::RequestWithGlobalScope;
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 struct LayoutImageContext {
     id: PendingImageId,
@@ -116,9 +116,10 @@ pub(crate) fn fetch_image_for_layout(
     };
 
     let global = node.owner_global();
+    let url_with_claim = ensure_blob_referenced_by_url_is_kept_alive(&global, url.clone());
     let request = RequestBuilder::new(
         Some(document.webview_id()),
-        UrlWithBlobClaim::from_url_without_having_claimed_blob(url.clone()),
+        url_with_claim,
         global.get_referrer(),
     )
     .destination(Destination::Image)
