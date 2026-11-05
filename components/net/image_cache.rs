@@ -319,21 +319,10 @@ impl SVGImageSource {
                     character.is_ascii_whitespace() || matches!(character, '/' | '>')
                 })
                 .unwrap();
-        match source {
-            Cow::Borrowed(source) => {
-                let (before_size, after_size) = source.split_at(name_end);
-                Self {
-                    before_size: before_size.to_owned(),
-                    after_size: after_size.to_owned(),
-                }
-            },
-            Cow::Owned(mut source) => {
-                let after_size = source.split_off(name_end);
-                Self {
-                    before_size: source,
-                    after_size,
-                }
-            },
+        let (before_size, after_size) = source.split_at(name_end);
+        Self {
+            before_size: before_size.to_owned(),
+            after_size: after_size.to_owned(),
         }
     }
 
