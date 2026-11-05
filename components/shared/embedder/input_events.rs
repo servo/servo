@@ -419,9 +419,10 @@ impl WheelEvent {
 pub enum ImeEvent {
     /// See [CompositionEvent].
     Composition(CompositionEvent),
-    /// Text that an input method directly commits without a composition.
+    /// The input method committed text. Note that this can be sent without
+    /// an active composition.
     Commit(String),
-    /// The Input method was dismissed.
+    /// The input method was dismissed.
     Dismissed,
 }
 
