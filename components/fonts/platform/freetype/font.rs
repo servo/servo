@@ -35,7 +35,7 @@ use crate::platform::freetype::freetype_face::{
 };
 
 const SEMI_BOLD_U16: u16 = Weight::SEMI_BOLD.value() as u16;
-const SELECTION_FLAGS_ITALIC_U16: u16 = 1 as u16;
+const SELECTION_FLAGS_ITALIC_U16: u16 = 1_u16;
 const SELECTION_FLAGS_OBLIQUE_U16: u16 = (1 << 9) as u16;
 
 /// Convert FreeType-style 26.6 fixed point to an [`f64`].
@@ -414,9 +414,9 @@ impl PlatformFontMethods for PlatformFont {
         let angle = if descriptor.style == FontStyle::ITALIC {
             FontStyle::DEFAULT_OBLIQUE_DEGREES as f32
         } else {
-            descriptor.style.oblique_degrees() as f32
+            descriptor.style.oblique_degrees()
         };
-        let options = FontInstanceOptions {
+        FontInstanceOptions {
             flags: self.webrender_font_instance_flags(),
             synthetic_italics: if self.synthetic_italic {
                 SyntheticItalics::from_degrees(angle)
@@ -424,9 +424,7 @@ impl PlatformFontMethods for PlatformFont {
                 SyntheticItalics::disabled()
             },
             ..Default::default()
-        };
-
-        options
+        }
     }
 
     fn webrender_font_instance_platform_options(&self) -> FontInstancePlatformOptions {

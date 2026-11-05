@@ -50,7 +50,6 @@ struct FontInstancesMapKey {
     pt_size: Au,
     variations: Vec<FontVariation>,
     painter_id: PainterId,
-    #[ignore_malloc_size_of = "TODO"]
     font_instance_options: FontInstanceOptions,
     options: FontInstancePlatformOptions,
 }

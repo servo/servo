@@ -1605,3 +1605,9 @@ where
         }
     }
 }
+
+impl MallocSizeOf for webrender_api::FontInstanceOptions {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        0 // return 0: FontInstanceOptions has no heap allocation.
+    }
+}
