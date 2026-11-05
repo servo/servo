@@ -1205,12 +1205,12 @@ impl Fragment {
             let style_angle = if font_style == FontStyle::ITALIC {
                 FontStyle::DEFAULT_OBLIQUE_DEGREES as f32
             } else {
-                font_style.oblique_degrees() as f32
+                font_style.oblique_degrees()
             };
             let angle = match (font_style, font.slow_clone_font_synthesis_style()) {
                 (FontStyle::NORMAL, _) | (_, FontSynthesisStyle::None) => 0.0,
                 (FontStyle::ITALIC, FontSynthesisStyle::ObliqueOnly) => 0.0,
-                (FontStyle::ITALIC, FontSynthesisStyle::Auto) => style_angle as f32,
+                (FontStyle::ITALIC, FontSynthesisStyle::Auto) => style_angle,
                 (style, _) => style.oblique_degrees(),
             };
             // Reuse WebRender's clamp and quantisation so the padding matches the applied shear

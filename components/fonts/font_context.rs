@@ -72,7 +72,6 @@ pub(crate) struct FontParameters {
     pub(crate) pt_size: Au,
     pub(crate) variations: Vec<FontVariation>,
     pub(crate) platform_options: FontInstancePlatformOptions,
-    #[ignore_malloc_size_of = "TODO"]
     pub(crate) font_instance_options: FontInstanceOptions,
 }
 
