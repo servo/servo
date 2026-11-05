@@ -380,7 +380,9 @@ impl Font {
         let synthetic_italic = {
             let is_italic = descriptor.style != FontStyle::NORMAL;
             let allow_synthetic_italic =
-                !matches!(descriptor.synthesis_style, FontSynthesisStyle::None);
+                matches!(descriptor.synthesis_style, FontSynthesisStyle::Auto) ||
+                    (matches!(descriptor.synthesis_style, FontSynthesisStyle::ObliqueOnly) &&
+                        matches!(descriptor.style, FontStyle::OBLIQUE));
 
             is_italic && allow_synthetic_italic
         };
