@@ -287,7 +287,10 @@ pub fn webvtt_cue_text_parsing_rules(
                         // Step 2. Set the new object’s list of applicable classes
                         // to the list of classes in the token,
                         // excluding any classes that are the empty string.
-                        applicable_classes,
+                        applicable_classes: applicable_classes
+                            .into_iter()
+                            .filter(|class| !class.is_empty())
+                            .collect(),
                         // Step 3. Set the new object’s applicable language to the top entry on the language stack,
                         // if the stack is not empty.
                         applicable_language: language_stack
