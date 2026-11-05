@@ -18,8 +18,8 @@ use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
 use style::computed_values::font_variant_position::T as FontVariantPosition;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::values::computed::{
-    FontFeatureSettings, FontStyle, FontSynthesis, FontVariantEastAsian, FontVariantLigatures,
-    FontVariantNumeric, FontWeight, FontWidth,
+    FontFeatureSettings, FontStyle, FontSynthesis, FontSynthesisStyle, FontVariantEastAsian,
+    FontVariantLigatures, FontVariantNumeric, FontWeight, FontWidth,
 };
 use stylo_atoms::atom;
 use unicode_script::Script;
@@ -34,7 +34,7 @@ fn make_font(path: PathBuf) -> Font {
 
     let identifier = FontIdentifier::Web(ServoUrl::from_file_path(path).unwrap());
     let platform_font =
-        PlatformFont::new_from_data(identifier.clone(), &data, None, false).unwrap();
+        PlatformFont::new_from_data(identifier.clone(), &data, None, false, false).unwrap();
 
     let template = FontTemplate::new(identifier, platform_font.descriptor(), None);
     let descriptor = FontDescriptor {
@@ -45,6 +45,7 @@ fn make_font(path: PathBuf) -> Font {
         pt_size: Au::from_px(24),
         variation_settings: vec![],
         synthesis_weight: FontSynthesis::Auto,
+        synthesis_style: FontSynthesisStyle::Auto,
         optical_sizing: FontOpticalSizing::Auto,
     };
     Font::new(FontTemplateRef::new(template), descriptor, Some(data), None).unwrap()
