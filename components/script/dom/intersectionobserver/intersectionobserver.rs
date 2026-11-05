@@ -966,8 +966,7 @@ fn compute_the_intersection(
 
                     let current_offset = frame_container
                         .upcast::<Node>()
-                        .padding_box(cx)
-                        .unwrap()
+                        .padding_box(cx)?
                         .origin
                         .to_vector();
                     intersection_rect.origin += current_offset;

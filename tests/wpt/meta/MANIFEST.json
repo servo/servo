@@ -14038,6 +14038,13 @@
     ]
    },
    "intersection-observer": {
+    "hidden-iframe-target-crash.html": [
+     "29b271cf861d8e31125fc2e2d8fdc07c189d6604",
+     [
+      null,
+      {}
+     ]
+    ],
     "transformed-non-invertible-iframe-cross-origin-crash.sub.html": [
      "96446ba03c322f1bb6e6cf144181e9f8477f25e0",
      [
