@@ -527,12 +527,11 @@ impl DisplayListBuilder<'_> {
                 }
 
                 // Create the filter pipeline.
-                let current_color = &style.get_inherited_text().color;
                 filters = effects
                     .filter
                     .0
                     .iter()
-                    .map(|filter| FilterToWebRender::to_webrender(filter, current_color))
+                    .map(|filter| FilterToWebRender::to_webrender(filter, &style))
                     .collect();
                 if effects.opacity != 1.0 {
                     filters.push(wr::FilterOp::Opacity(
@@ -1187,7 +1186,6 @@ impl Fragment {
         }
 
         let parent_style = fragment.style();
-        let color = parent_style.slow_clone_color();
         // Gecko gets the text bounding box based on the ink overflow bounds. Since
         // we don't need to calculate this yet (as we do not implement `contain:
         // paint`), we just need to make sure these boundaries are big enough to
@@ -1210,7 +1208,7 @@ impl Fragment {
                 },
                 wr::Shadow {
                     offset: LayoutVector2D::new(shadow.horizontal.px(), shadow.vertical.px()),
-                    color: rgba(shadow.color.resolve_to_absolute(&color)),
+                    color: rgba(parent_style.resolve_color(&shadow.color)),
                     blur_radius: shadow.blur.px(),
                 },
                 true, /* should_inflate */
@@ -1240,7 +1238,7 @@ impl Fragment {
             glyph_bounds,
             &builder.glyph_buffer,
             fragment.font_key,
-            rgba(color),
+            rgba(*parent_style.get_color()),
             None,
         );
 
@@ -1594,10 +1592,9 @@ impl Fragment {
         )
         .to_webrender();
 
-        let color = parent_style.get_color();
         let caret_color = match parent_style.get_caret_color().0 {
-            ColorOrAuto::Color(ref caret_color) => caret_color.resolve_to_absolute(color),
-            ColorOrAuto::Auto => *color,
+            ColorOrAuto::Color(ref caret_color) => parent_style.resolve_color(caret_color),
+            ColorOrAuto::Auto => *parent_style.get_color(),
         };
         let insertion_point_common =
             builder.common_properties(state, insertion_point_rect, &parent_style);
@@ -1865,12 +1862,11 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
 
-        let current_color = style.get_color();
         let filters: Vec<_> = effects
             .backdrop_filter
             .0
             .iter()
-            .map(|filter| FilterToWebRender::to_webrender(filter, current_color))
+            .map(|filter| FilterToWebRender::to_webrender(filter, style))
             .collect();
 
         let mut common = builder.common_properties(state, self.border_rect, style);
@@ -2255,8 +2251,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
 
-        let current_color = style.get_inherited_text().get_color();
-        let style_color = BorderStyleColor::from_border(border, current_color);
+        let style_color = BorderStyleColor::from_style(style);
         let details = wr::BorderDetails::Normal(wr::NormalBorder {
             top: self.build_border_side(style_color.top),
             right: self.build_border_side(style_color.right),

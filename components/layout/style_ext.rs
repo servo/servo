@@ -18,14 +18,13 @@ use style::properties::ComputedValues;
 use style::properties::longhands::backface_visibility::computed_value::T as BackfaceVisiblity;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::longhands::column_span::computed_value::T as ColumnSpan;
-use style::properties::style_structs::Border;
 use style::servo::selector_parser::PseudoElement;
 use style::values::CSSFloat;
 use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::image::Image as ComputedImageLayer;
 use style::values::computed::{
-    BorderSideWidth, BorderStyle, Color, Inset, ItemPlacement, LengthPercentage, Margin,
-    SelfAlignment, TextWrapMode, WhiteSpaceCollapse,
+    BorderSideWidth, BorderStyle, Inset, ItemPlacement, LengthPercentage, Margin, SelfAlignment,
+    TextWrapMode, WhiteSpaceCollapse,
 };
 use style::values::generics::box_::Perspective;
 use style::values::generics::position::{GenericAspectRatio, PreferredRatio};
@@ -263,22 +262,25 @@ impl BorderStyleColor {
         Self { style, color }
     }
 
-    pub(crate) fn from_border(
-        border: &Border,
-        current_color: &AbsoluteColor,
-    ) -> PhysicalSides<Self> {
-        let resolve = |color: &Color| color.resolve_to_absolute(current_color);
+    pub(crate) fn from_style(style: &ComputedValues) -> PhysicalSides<Self> {
+        let border = style.get_border();
         PhysicalSides::<Self>::new(
-            Self::new(border.border_top_style, resolve(&border.border_top_color)),
+            Self::new(
+                border.border_top_style,
+                style.resolve_color(&border.border_top_color),
+            ),
             Self::new(
                 border.border_right_style,
-                resolve(&border.border_right_color),
+                style.resolve_color(&border.border_right_color),
             ),
             Self::new(
                 border.border_bottom_style,
-                resolve(&border.border_bottom_color),
+                style.resolve_color(&border.border_bottom_color),
             ),
-            Self::new(border.border_left_style, resolve(&border.border_left_color)),
+            Self::new(
+                border.border_left_style,
+                style.resolve_color(&border.border_left_color),
+            ),
         )
     }
 
@@ -505,9 +507,8 @@ impl ComputedValuesExt for ComputedValues {
         &self,
         containing_block_writing_mode: WritingMode,
     ) -> LogicalSides<BorderStyleColor> {
-        let current_color = self.get_color();
         LogicalSides::from_physical(
-            &BorderStyleColor::from_border(self.get_border(), current_color),
+            &BorderStyleColor::from_style(self),
             containing_block_writing_mode,
         )
     }
