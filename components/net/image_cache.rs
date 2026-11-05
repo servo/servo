@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
 use std::cell::{Cell, OnceCell};
 use std::cmp::min;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
@@ -68,6 +69,9 @@ const FALLBACK_RIPPY: &[u8] = include_bytes!("resources/rippy.png");
 /// width/height of the pixmap allocated for rasterization.
 const MAX_SVG_PIXMAP_DIMENSION: u32 = 5000;
 
+/// The gzip identification bytes used by compressed SVG (SVGZ) documents.
+const GZIP_MAGIC_BYTES: [u8; 2] = [0x1f, 0x8b];
+
 //
 // TODO(gw): Remaining work on image cache:
 //     * Make use of the prefetch support in various parts of the code.
@@ -86,16 +90,14 @@ fn parse_svg_document_in_memory(
     bytes: &[u8],
     usvg_options: Arc<usvg::Options>,
 ) -> Result<(usvg::Tree, Option<Arc<SVGImageSource>>), &'static str> {
-    let decompressed;
-    let bytes = if bytes.starts_with(&[0x1f, 0x8b]) {
-        decompressed = usvg::decompress_svgz(bytes).map_err(|_| "Not a valid SVG document")?;
-        &decompressed
+    let text = if bytes.starts_with(&GZIP_MAGIC_BYTES) {
+        let decompressed = usvg::decompress_svgz(bytes).map_err(|_| "Not a valid SVG document")?;
+        Cow::Owned(String::from_utf8(decompressed).map_err(|_| "Not a valid SVG document")?)
     } else {
-        bytes
+        Cow::Borrowed(std::str::from_utf8(bytes).map_err(|_| "Not a valid SVG document")?)
     };
-    let text = std::str::from_utf8(bytes).map_err(|_| "Not a valid SVG document")?;
     let document = usvg::roxmltree::Document::parse_with_options(
-        text,
+        &text,
         usvg::roxmltree::ParsingOptions {
             allow_dtd: true,
             ..Default::default()
@@ -304,10 +306,10 @@ struct SVGImageSource {
 impl SVGImageSource {
     fn new(document: &usvg::roxmltree::Document) -> Self {
         let root = document.root_element();
-        let mut source = document.input_text().to_owned();
+        let mut source = Cow::Borrowed(document.input_text());
         for attribute in root.attributes().rev() {
             if attribute.namespace().is_none() && matches!(attribute.name(), "width" | "height") {
-                source.replace_range(attribute.range(), "");
+                source.to_mut().replace_range(attribute.range(), "");
             }
         }
         let name_start = root.range().start + 1;
@@ -317,10 +319,21 @@ impl SVGImageSource {
                     character.is_ascii_whitespace() || matches!(character, '/' | '>')
                 })
                 .unwrap();
-        let after_size = source.split_off(name_end);
-        Self {
-            before_size: source,
-            after_size,
+        match source {
+            Cow::Borrowed(source) => {
+                let (before_size, after_size) = source.split_at(name_end);
+                Self {
+                    before_size: before_size.to_owned(),
+                    after_size: after_size.to_owned(),
+                }
+            },
+            Cow::Owned(mut source) => {
+                let after_size = source.split_off(name_end);
+                Self {
+                    before_size: source,
+                    after_size,
+                }
+            },
         }
     }
 
