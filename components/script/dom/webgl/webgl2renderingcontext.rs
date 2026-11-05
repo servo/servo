@@ -4018,11 +4018,12 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     ) {
         self.validate_uniform_block_for_draw();
         self.validate_vertex_attribs_for_draw(cx);
-        handle_potential_webgl_error!(
-            self.base,
-            self.base
-                .draw_arrays_instanced(cx, mode, first, count, primcount)
-        )
+        if let Err(error) = self
+            .base
+            .draw_arrays_instanced(cx, mode, first, count, primcount)
+        {
+            self.base.webgl_error(error);
+        }
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.9>
@@ -4037,11 +4038,12 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     ) {
         self.validate_uniform_block_for_draw();
         self.validate_vertex_attribs_for_draw(cx);
-        handle_potential_webgl_error!(
-            self.base,
-            self.base
-                .draw_elements_instanced(cx, mode, count, type_, offset, primcount)
-        )
+        if let Err(error) = self
+            .base
+            .draw_elements_instanced(cx, mode, count, type_, offset, primcount)
+        {
+            self.base.webgl_error(error);
+        }
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.9>
@@ -4061,11 +4063,12 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         }
         self.validate_uniform_block_for_draw();
         self.validate_vertex_attribs_for_draw(cx);
-        handle_potential_webgl_error!(
-            self.base,
-            self.base
-                .draw_elements_instanced(cx, mode, count, type_, offset, 1)
-        )
+        if let Err(error) = self
+            .base
+            .draw_elements_instanced(cx, mode, count, type_, offset, 1)
+        {
+            self.base.webgl_error(error);
+        }
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.9>
@@ -4081,7 +4084,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.12>
     fn DeleteQuery(&self, query: Option<&WebGLQuery>) {
         if let Some(query) = query {
-            handle_potential_webgl_error!(self.base, self.base.validate_ownership(query), return);
+            if let Err(error) = self.base.validate_ownership(query) {
+                return self.base.webgl_error(error);
+            }
 
             if let Some(query_target) = query.target() {
                 let slot = match query_target {
@@ -4118,7 +4123,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.13>
     fn DeleteSampler(&self, sampler: Option<&WebGLSampler>) {
         if let Some(sampler) = sampler {
-            handle_potential_webgl_error!(self.base, self.base.validate_ownership(sampler), return);
+            if let Err(error) = self.base.validate_ownership(sampler) {
+                return self.base.webgl_error(error);
+            }
             for slot in self.samplers.iter() {
                 if slot.get().is_some_and(|s| sampler == &*s) {
                     slot.set(None);
@@ -4138,7 +4145,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.12>
     fn BeginQuery(&self, target: u32, query: &WebGLQuery) {
-        handle_potential_webgl_error!(self.base, self.base.validate_ownership(query), return);
+        if let Err(error) = self.base.validate_ownership(query) {
+            return self.base.webgl_error(error);
+        }
 
         let active_query = match target {
             constants::ANY_SAMPLES_PASSED | constants::ANY_SAMPLES_PASSED_CONSERVATIVE => {
@@ -4216,11 +4225,10 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         pname: u32,
         mut retval: MutableHandleValue,
     ) {
-        handle_potential_webgl_error!(
-            self.base,
-            self.base.validate_ownership(query),
-            return retval.set(NullValue())
-        );
+        if let Err(error) = self.base.validate_ownership(query) {
+            self.base.webgl_error(error);
+            return retval.set(NullValue());
+        }
         match query.get_parameter(&self.base, pname) {
             Ok(value) => match pname {
                 constants::QUERY_RESULT => retval.set(UInt32Value(value)),
@@ -4269,11 +4277,10 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 }
 
                 // Return true if the passed WebGLSync is valid and false otherwise.
-                handle_potential_webgl_error!(
-                    self.base,
-                    self.base.validate_ownership(sync),
-                    return false
-                );
+                if let Err(error) = self.base.validate_ownership(sync) {
+                    self.base.webgl_error(error);
+                    return false;
+                }
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.base
                     .send_command(WebGLCommand::IsSync(sync.id(), sender));
@@ -4289,11 +4296,10 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             self.base.webgl_error(InvalidOperation);
             return constants::WAIT_FAILED;
         }
-        handle_potential_webgl_error!(
-            self.base,
-            self.base.validate_ownership(sync),
-            return constants::WAIT_FAILED
-        );
+        if let Err(error) = self.base.validate_ownership(sync) {
+            self.base.webgl_error(error);
+            return constants::WAIT_FAILED;
+        }
         if flags != 0 && flags != constants::SYNC_FLUSH_COMMANDS_BIT {
             self.base.webgl_error(InvalidValue);
             return constants::WAIT_FAILED;
@@ -4315,7 +4321,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             self.base.webgl_error(InvalidOperation);
             return;
         }
-        handle_potential_webgl_error!(self.base, self.base.validate_ownership(sync), return);
+        if let Err(error) = self.base.validate_ownership(sync) {
+            return self.base.webgl_error(error);
+        }
         if flags != 0 {
             self.base.webgl_error(InvalidValue);
             return;
@@ -4341,11 +4349,10 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             self.base.webgl_error(InvalidOperation);
             return retval.set(NullValue());
         }
-        handle_potential_webgl_error!(
-            self.base,
-            self.base.validate_ownership(sync),
-            return retval.set(NullValue())
-        );
+        if let Err(error) = self.base.validate_ownership(sync) {
+            self.base.webgl_error(error);
+            return retval.set(NullValue());
+        }
         match pname {
             constants::OBJECT_TYPE | constants::SYNC_CONDITION | constants::SYNC_FLAGS => {
                 let (sender, receiver) = webgl_channel().unwrap();
@@ -4367,7 +4374,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.14>
     fn DeleteSync(&self, sync: Option<&WebGLSync>) {
         if let Some(sync) = sync {
-            handle_potential_webgl_error!(self.base, self.base.validate_ownership(sync), return);
+            if let Err(error) = self.base.validate_ownership(sync) {
+                return self.base.webgl_error(error);
+            }
             sync.delete(Operation::Infallible);
         }
     }
@@ -4375,7 +4384,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.13>
     fn BindSampler(&self, unit: u32, sampler: Option<&WebGLSampler>) {
         if let Some(sampler) = sampler {
-            handle_potential_webgl_error!(self.base, self.base.validate_ownership(sampler), return);
+            if let Err(error) = self.base.validate_ownership(sampler) {
+                return self.base.webgl_error(error);
+            }
 
             if unit as usize >= self.samplers.len() {
                 self.base.webgl_error(InvalidValue);
@@ -4397,7 +4408,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.13>
     fn SamplerParameteri(&self, sampler: &WebGLSampler, pname: u32, param: i32) {
-        handle_potential_webgl_error!(self.base, self.base.validate_ownership(sampler), return);
+        if let Err(error) = self.base.validate_ownership(sampler) {
+            return self.base.webgl_error(error);
+        }
         let param = WebGLSamplerValue::GLenum(param as u32);
         let result = sampler.set_parameter(&self.base, pname, param);
         if let Err(error) = result {
@@ -4407,7 +4420,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.13>
     fn SamplerParameterf(&self, sampler: &WebGLSampler, pname: u32, param: f32) {
-        handle_potential_webgl_error!(self.base, self.base.validate_ownership(sampler), return);
+        if let Err(error) = self.base.validate_ownership(sampler) {
+            return self.base.webgl_error(error);
+        }
         let param = WebGLSamplerValue::Float(param);
         let result = sampler.set_parameter(&self.base, pname, param);
         if let Err(error) = result {
@@ -4423,11 +4438,10 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         pname: u32,
         mut retval: MutableHandleValue,
     ) {
-        handle_potential_webgl_error!(
-            self.base,
-            self.base.validate_ownership(sampler),
-            return retval.set(NullValue())
-        );
+        if let Err(error) = self.base.validate_ownership(sampler) {
+            self.base.webgl_error(error);
+            return retval.set(NullValue());
+        }
         match sampler.get_parameter(&self.base, pname) {
             Ok(value) => match value {
                 WebGLSamplerValue::GLenum(value) => retval.set(UInt32Value(value)),
@@ -4451,7 +4465,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.15>
     fn DeleteTransformFeedback(&self, tf: Option<&WebGLTransformFeedback>) {
         if let Some(tf) = tf {
-            handle_potential_webgl_error!(self.base, self.base.validate_ownership(tf), return);
+            if let Err(error) = self.base.validate_ownership(tf) {
+                return self.base.webgl_error(error);
+            }
             if tf.is_active() {
                 self.base.webgl_error(InvalidOperation);
                 return;
@@ -4477,11 +4493,10 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 }
 
                 // Return true if the passed WebGLTransformFeedback is valid and false otherwise.
-                handle_potential_webgl_error!(
-                    self.base,
-                    self.base.validate_ownership(tf),
-                    return false
-                );
+                if let Err(error) = self.base.validate_ownership(tf) {
+                    self.base.webgl_error(error);
+                    return false;
+                }
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.base
                     .send_command(WebGLCommand::IsTransformFeedback(tf.id(), sender));
@@ -4500,11 +4515,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         }
         match tf {
             Some(transform_feedback) => {
-                handle_potential_webgl_error!(
-                    self.base,
-                    self.base.validate_ownership(transform_feedback),
-                    return
-                );
+                if let Err(error) = self.base.validate_ownership(transform_feedback) {
+                    return self.base.webgl_error(error);
+                }
                 if !transform_feedback.is_valid() {
                     self.base.webgl_error(InvalidOperation);
                     return;
@@ -4608,7 +4621,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             self.base.webgl_error(error);
             return;
         }
-        handle_potential_webgl_error!(self.base, program.validate(), return);
+        if let Err(error) = program.validate() {
+            return self.base.webgl_error(error);
+        }
         let strs = varyings
             .iter()
             .map(|name| String::from(name.to_owned()))
@@ -4654,7 +4669,10 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             return None;
         }
 
-        handle_potential_webgl_error!(self.base, program.validate(), return None);
+        if let Err(error) = program.validate() {
+            self.base.webgl_error(error);
+            return None;
+        }
 
         if index >= program.transform_feedback_varyings_length() as u32 {
             self.base.webgl_error(InvalidValue);
@@ -4697,12 +4715,16 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         };
 
         if let Some(buffer) = buffer {
-            handle_potential_webgl_error!(self.base, self.base.validate_ownership(buffer), return);
+            if let Err(error) = self.base.validate_ownership(buffer) {
+                return self.base.webgl_error(error);
+            }
 
             if buffer.is_marked_for_deletion() {
                 return self.base.webgl_error(InvalidOperation);
             }
-            handle_potential_webgl_error!(self.base, buffer.set_target_maybe(target), return);
+            if let Err(error) = buffer.set_target_maybe(target) {
+                return self.base.webgl_error(error);
+            }
 
             // for both the generic and the indexed bindings
             buffer.increment_attached_counter();
@@ -4773,12 +4795,16 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         }
 
         if let Some(buffer) = buffer {
-            handle_potential_webgl_error!(self.base, self.base.validate_ownership(buffer), return);
+            if let Err(error) = self.base.validate_ownership(buffer) {
+                return self.base.webgl_error(error);
+            }
 
             if buffer.is_marked_for_deletion() {
                 return self.base.webgl_error(InvalidOperation);
             }
-            handle_potential_webgl_error!(self.base, buffer.set_target_maybe(target), return);
+            if let Err(error) = buffer.set_target_maybe(target) {
+                return self.base.webgl_error(error);
+            }
 
             // for both the generic and the indexed bindings
             buffer.increment_attached_counter();
@@ -4805,16 +4831,17 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.16>
     fn GetUniformIndices(&self, program: &WebGLProgram, names: Vec<DOMString>) -> Option<Vec<u32>> {
-        handle_potential_webgl_error!(
-            self.base,
-            self.base.validate_ownership(program),
-            return None
-        );
-        let indices = handle_potential_webgl_error!(
-            self.base,
-            program.get_uniform_indices(names),
-            return None
-        );
+        if let Err(error) = self.base.validate_ownership(program) {
+            self.base.webgl_error(error);
+            return None;
+        }
+        let indices = match program.get_uniform_indices(names) {
+            Ok(indices) => indices,
+            Err(error) => {
+                self.base.webgl_error(error);
+                return None;
+            },
+        };
         Some(indices)
     }
 
@@ -4827,16 +4854,17 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         pname: u32,
         mut rval: MutableHandleValue,
     ) {
-        handle_potential_webgl_error!(
-            self.base,
-            self.base.validate_ownership(program),
-            return rval.set(NullValue())
-        );
-        let values = handle_potential_webgl_error!(
-            self.base,
-            program.get_active_uniforms(indices, pname),
-            return rval.set(NullValue())
-        );
+        if let Err(error) = self.base.validate_ownership(program) {
+            self.base.webgl_error(error);
+            return rval.set(NullValue());
+        }
+        let values = match program.get_active_uniforms(indices, pname) {
+            Ok(values) => values,
+            Err(error) => {
+                self.base.webgl_error(error);
+                return rval.set(NullValue());
+            },
+        };
 
         match pname {
             constants::UNIFORM_SIZE |
@@ -4857,16 +4885,17 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.16>
     fn GetUniformBlockIndex(&self, program: &WebGLProgram, block_name: DOMString) -> u32 {
-        handle_potential_webgl_error!(
-            self.base,
-            self.base.validate_ownership(program),
-            return constants::INVALID_INDEX
-        );
-        handle_potential_webgl_error!(
-            self.base,
-            program.get_uniform_block_index(block_name),
-            constants::INVALID_INDEX
-        )
+        if let Err(error) = self.base.validate_ownership(program) {
+            self.base.webgl_error(error);
+            return constants::INVALID_INDEX;
+        }
+        match program.get_uniform_block_index(block_name) {
+            Ok(index) => index,
+            Err(error) => {
+                self.base.webgl_error(error);
+                constants::INVALID_INDEX
+            },
+        }
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.16>
@@ -4878,16 +4907,17 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         pname: u32,
         mut retval: MutableHandleValue,
     ) {
-        handle_potential_webgl_error!(
-            self.base,
-            self.base.validate_ownership(program),
-            return retval.set(NullValue())
-        );
-        let values = handle_potential_webgl_error!(
-            self.base,
-            program.get_active_uniform_block_parameter(block_index, pname),
-            return retval.set(NullValue())
-        );
+        if let Err(error) = self.base.validate_ownership(program) {
+            self.base.webgl_error(error);
+            return retval.set(NullValue());
+        }
+        let values = match program.get_active_uniform_block_parameter(block_index, pname) {
+            Ok(values) => values,
+            Err(error) => {
+                self.base.webgl_error(error);
+                return retval.set(NullValue());
+            },
+        };
         match pname {
             constants::UNIFORM_BLOCK_BINDING |
             constants::UNIFORM_BLOCK_DATA_SIZE |
@@ -4916,31 +4946,33 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         program: &WebGLProgram,
         block_index: u32,
     ) -> Option<DOMString> {
-        handle_potential_webgl_error!(
-            self.base,
-            self.base.validate_ownership(program),
-            return None
-        );
-        let name = handle_potential_webgl_error!(
-            self.base,
-            program.get_active_uniform_block_name(block_index),
-            return None
-        );
+        if let Err(error) = self.base.validate_ownership(program) {
+            self.base.webgl_error(error);
+            return None;
+        }
+        let name = match program.get_active_uniform_block_name(block_index) {
+            Ok(name) => name,
+            Err(error) => {
+                self.base.webgl_error(error);
+                return None;
+            },
+        };
         Some(DOMString::from(name))
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.16>
     fn UniformBlockBinding(&self, program: &WebGLProgram, block_index: u32, block_binding: u32) {
-        handle_potential_webgl_error!(self.base, self.base.validate_ownership(program), return);
+        if let Err(error) = self.base.validate_ownership(program) {
+            return self.base.webgl_error(error);
+        }
 
         if block_binding >= self.base.limits().max_uniform_buffer_bindings {
             return self.base.webgl_error(InvalidValue);
         }
 
-        handle_potential_webgl_error!(
-            self.base,
-            program.bind_uniform_block(block_index, block_binding)
-        )
+        if let Err(error) = program.bind_uniform_block(block_index, block_binding) {
+            self.base.webgl_error(error);
+        }
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.11>
@@ -5017,11 +5049,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             return self.base.webgl_error(InvalidEnum);
         }
 
-        handle_potential_webgl_error!(
-            self.base,
-            self.clearbuffer_array_size(buffer, draw_buffer),
-            return
-        );
+        if let Err(error) = self.clearbuffer_array_size(buffer, draw_buffer) {
+            return self.base.webgl_error(error);
+        }
 
         self.base.send_command(WebGLCommand::ClearBufferfi(
             buffer,
@@ -5080,8 +5110,10 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         level: i32,
         layer: i32,
     ) {
-        if let Some(tex) = texture {
-            handle_potential_webgl_error!(self.base, self.base.validate_ownership(tex), return);
+        if let Some(tex) = texture &&
+            let Err(error) = self.base.validate_ownership(tex)
+        {
+            return self.base.webgl_error(error);
         }
 
         let fb_slot = match target {
@@ -5093,10 +5125,11 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         };
 
         match fb_slot.get() {
-            Some(fb) => handle_potential_webgl_error!(
-                self.base,
-                fb.texture_layer(attachment, texture, level, layer)
-            ),
+            Some(fb) => {
+                if let Err(error) = fb.texture_layer(attachment, texture, level, layer) {
+                    self.base.webgl_error(error);
+                }
+            },
             None => self.base.webgl_error(InvalidOperation),
         }
     }
@@ -5115,17 +5148,22 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             return retval.set(NullValue());
         }
 
-        let internal_format = handle_potential_webgl_error!(
-            self.base,
-            renderbuffer_format(&self.base, internal_format),
-            return retval.set(NullValue())
-        );
+        let internal_format = match renderbuffer_format(&self.base, internal_format) {
+            Ok(internal_format) => internal_format,
+            Err(error) => {
+                self.base.webgl_error(error);
+                return retval.set(NullValue());
+            },
+        };
 
-        match handle_potential_webgl_error!(
-            self.base,
-            InternalFormatParameter::from_u32(pname),
-            return retval.set(NullValue())
-        ) {
+        let param = match InternalFormatParameter::from_u32(pname) {
+            Ok(param) => param,
+            Err(error) => {
+                self.base.webgl_error(error);
+                return retval.set(NullValue());
+            },
+        };
+        match param {
             InternalFormatParameter::IntVec(param) => {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.base
@@ -5166,7 +5204,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         }
 
         if let Some(fb) = self.base.get_read_framebuffer_slot().get() {
-            handle_potential_webgl_error!(self.base, fb.set_read_buffer(src))
+            if let Err(error) = fb.set_read_buffer(src) {
+                self.base.webgl_error(error);
+            }
         } else {
             match src {
                 constants::NONE | constants::BACK => {},
@@ -5181,7 +5221,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.11>
     fn DrawBuffers(&self, buffers: Vec<u32>) {
         if let Some(fb) = self.base.get_draw_framebuffer_slot().get() {
-            handle_potential_webgl_error!(self.base, fb.set_draw_buffers(buffers))
+            if let Err(error) = fb.set_draw_buffers(buffers) {
+                self.base.webgl_error(error);
+            }
         } else {
             if buffers.len() != 1 {
                 return self.base.webgl_error(InvalidOperation);
