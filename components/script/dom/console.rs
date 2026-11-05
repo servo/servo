@@ -51,9 +51,9 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 
 /// The maximum object depth logged by console methods.
-const MAX_LOG_DEPTH: usize = 10;
+const MAX_LOG_DEPTH: usize = 5;
 /// The maximum elements in an object logged by console methods.
-const MAX_LOG_CHILDREN: usize = 15;
+const MAX_LOG_CHILDREN: usize = 5;
 
 /// <https://developer.mozilla.org/en-US/docs/Web/API/Console>
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
