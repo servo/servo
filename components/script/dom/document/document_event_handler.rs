@@ -1901,13 +1901,9 @@ impl DocumentEventHandler {
 
         // Step 7. Let closedSomething be the result of processing close watchers on document's
         // relevant global object.
-        let closed_something = self.window.process_close_watchers(cx);
+        self.window.process_close_watchers(cx);
 
         // Step 8. If closedSomething is true, then return.
-        if closed_something {
-            return;
-        }
-
         // Step 9. Alternative processing: Otherwise, there was nothing watching for a close request.
         // The user agent may instead interpret this interaction as some other action, instead of
         // interpreting it as a close request.
