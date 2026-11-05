@@ -867,7 +867,7 @@ impl Document {
     }
 
     /// <https://fullscreen.spec.whatwg.org/#fully-exit-fullscreen>
-    fn fully_exit_fullscreen(&self, cx: &mut JSContext) {
+    pub(crate) fn fully_exit_fullscreen(&self, cx: &mut JSContext) {
         // Step 1. If document’s fullscreen element is null, terminate these
         // steps.
         if self.fullscreen_element().is_none() {
