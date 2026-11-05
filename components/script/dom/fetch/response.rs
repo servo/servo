@@ -99,7 +99,10 @@ impl Response {
         cx: &mut js::context::JSContext,
         global: &GlobalScope,
     ) -> DomRoot<Response> {
-        let stream = ReadableStream::new_with_external_underlying_source(
+        // Step 14. of https://fetch.spec.whatwg.org/#concept-http-network-fetch
+        // Set up stream with byte reading support with pullAlgorithm set to
+        // pullAlgorithm, cancelAlgorithm set to cancelAlgorithm.
+        let stream = ReadableStream::new_with_external_underlying_byte_source(
             cx,
             global,
             UnderlyingSourceType::FetchResponse,
