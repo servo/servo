@@ -40,7 +40,7 @@ fn dom_struct_impl(
     let item: Item = syn::parse2(output).unwrap();
 
     if let Item::Struct(s) = item {
-        let expanded_dom_object = expand_dom_object(s.clone());
+        let expanded_dom_object = expand_dom_object(s.clone(), no_has_parent);
         let s2 = quote! { #s #expanded_dom_object };
         if no_has_parent {
             return s2;
@@ -128,6 +128,14 @@ fn test_valid_dom_struct_generation() {
             ) {
                 let object = crate::DomObject::reflector(self).get_jsobject();
                 object.to_jsval(cx, rval);
+            }
+        }
+        impl script_bindings::reflector::HasPrototype for DomElement {
+            const PROTOTYPE_ID: script_bindings::codegen::PrototypeList::ID = script_bindings::codegen::PrototypeList::ID::DomElement;
+        }
+        impl script_bindings::reflector::PrototypeInitializer for DomElement {
+            fn set_proto_id(&mut self, id: script_bindings::codegen::PrototypeList::ID) {
+                self.reflector.set_proto_id(id);
             }
         }
         impl crate::DomObject for DomElement {
