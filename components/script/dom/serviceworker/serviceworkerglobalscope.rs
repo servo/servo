@@ -436,7 +436,8 @@ impl ServiceWorkerGlobalScope {
 
                 let request = RequestBuilder::new(
                     None,
-                    UrlWithBlobClaim::from_url_without_having_claimed_blob(script_url),
+                    UrlWithBlobClaim::for_url(script_url)
+                        .expect("blob URLs are rejected during registration"),
                     referrer,
                 )
                 .destination(Destination::ServiceWorker)
