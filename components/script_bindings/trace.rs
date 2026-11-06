@@ -332,12 +332,13 @@ unsafe impl<Handle: JSTraceable + Clone, Sink: JSTraceable + XmlTreeSink<Handle 
     }
 }
 
-/// Roots any JSTraceable thing
+/// Roots any JSTraceable thing, at the cost of wrapping it in a Box.
+/// Unlike the rooted! macro, the resulting RootedTraceableBox can be safely moved.
 ///
 /// If you have a valid DomObject, use DomRoot.
-/// If you have GC things like *mut JSObject or JSVal, use rooted!.
+/// If you have GC things like *mut JSObject or JSVal, or anything implementing Rootable, use rooted!.
 /// If you have an arbitrary number of DomObjects to root, use rooted_vec!.
-/// If you know what you're doing, use this.
+/// If your needs are not covered by the previous options, use RootedTraceableBox.
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
 pub struct RootedTraceableBox<T: JSTraceable + 'static>(js::gc::RootedTraceableBox<T>);
 
