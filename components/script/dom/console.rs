@@ -94,12 +94,16 @@ impl Console {
         if global.devtools_chan().is_some() {
             let devtools_arguments = if !messages.is_empty() && messages[0].is_string() {
                 let (formatted, consumed) = apply_sprintf_substitutions(cx, &messages);
-                let remaining_iter = messages.iter().skip(consumed).map(|msg| {
+                let all_messages = messages.iter().map(|msg| {
                     devtools::console_argument_from_handle_value(cx, *msg, &mut Vec::new())
                 });
-                std::iter::once(DebuggerValue::StringValue(formatted))
-                    .chain(remaining_iter)
-                    .collect()
+                if messages[consumed..].is_empty() {
+                    std::iter::once(DebuggerValue::StringValue(formatted))
+                        .chain(all_messages.skip(consumed + 1))
+                        .collect()
+                } else {
+                    all_messages.skip(consumed).collect()
+                }
             } else {
                 messages
                     .iter()
