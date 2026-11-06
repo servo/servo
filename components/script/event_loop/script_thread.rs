@@ -1277,7 +1277,9 @@ impl ScriptThread {
             }
 
             // > 23. For each doc of docs, process top layer removals given doc.
-            document.process_top_layer_removals(cx);
+            document
+                .overlay_handler()
+                .process_top_layer_removals(cx);
         }
 
         let should_generate_frame = !painters_generating_frames.is_empty();
@@ -2840,7 +2842,7 @@ impl ScriptThread {
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
             let mut realm = enter_auto_realm(cx, &*document);
-            document.exit_fullscreen(&mut realm);
+            document.overlay_handler().exit_fullscreen(&mut realm);
         }
     }
 

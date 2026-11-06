@@ -1109,6 +1109,16 @@ impl Element {
         self.upcast::<Node>()
             .set_flag(NodeFlags::HAS_RESOLVED_PRESENTATIONAL_HINTS, false);
     }
+
+    /// <https://fullscreen.spec.whatwg.org/#fullscreen-element-ready-check>
+    pub(crate) fn fullscreen_element_ready_check(&self) -> bool {
+        if !self.is_connected() {
+            return false;
+        }
+        self.owner_document()
+            .overlay_handler()
+            .get_allow_fullscreen()
+    }
 }
 
 /// <https://dom.spec.whatwg.org/#valid-shadow-host-name>
@@ -4298,7 +4308,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     /// <https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen>
     fn RequestFullscreen(&self, cx: &mut CurrentRealm) -> RootedPromise {
         let doc = self.owner_document();
-        doc.enter_fullscreen(cx, self)
+        doc.overlay_handler().enter_fullscreen(cx, self)
     }
 
     /// <https://w3c.github.io/pointerevents/#dom-element-setpointercapture>
@@ -5149,9 +5159,9 @@ impl VirtualMethods for Element {
         }
 
         let document = self.owner_document_unrooted(cx.no_gc());
-        let fullscreen = document.fullscreen_element();
+        let fullscreen = document.overlay_handler().fullscreen_element();
         if fullscreen.as_deref() == Some(self) {
-            self.owner_document().exit_fullscreen(cx);
+            self.owner_document().overlay_handler().exit_fullscreen(cx);
         }
 
         self.unregister_current_id_and_name_attribute(cx);
@@ -5511,6 +5521,7 @@ impl Element {
     pub(crate) fn set_modal_state(&self, no_gc: &NoGC, value: bool) {
         self.set_state(no_gc, ElementState::MODAL, value);
         self.owner_document_unrooted(no_gc)
+            .overlay_handler()
             .update_topmost_modal(no_gc);
     }
 

@@ -174,8 +174,10 @@ impl HTMLDialogElement {
         // Step 15. If subject's node document's top layer does not already contain subject, then add an element to the top layer given subject.
         // Note: Just checking the top layer would break when a modal is shown right after being closed, as the dialog would still be pending removal.
         let document = subject.owner_document();
-        if !document.is_in_the_top_layer(subject) {
-            document.add_an_element_to_the_top_layer(subject, cx.no_gc());
+        if !document.overlay_handler().is_in_the_top_layer(subject) {
+            document
+                .overlay_handler()
+                .add_an_element_to_the_top_layer(subject, cx.no_gc());
         }
 
         // Step 16. Set subject's previously focused element to the focused element.
@@ -274,6 +276,7 @@ impl HTMLDialogElement {
         if subject.state().contains(ElementState::MODAL) {
             subject
                 .owner_document()
+                .overlay_handler()
                 .request_an_element_to_be_removed_from_the_top_layer(subject, cx.no_gc());
         }
 
@@ -473,10 +476,12 @@ impl HTMLDialogElement {
 
         // Step 3. Assert: subject's node document's open dialogs list does not contain subject.
         let document = subject.owner_document();
-        assert!(!document.open_dialogs_list_contains(self));
+        assert!(!document.overlay_handler().open_dialogs_list_contains(self));
 
         // Step 4. Add subject to subject's node document's open dialogs list.
-        document.add_to_open_dialogs_list(self, no_gc);
+        document
+            .overlay_handler()
+            .add_to_open_dialogs_list(self, no_gc);
 
         // Step 5. Set the dialog close watcher with subject.
         self.set_the_close_watcher(no_gc);
@@ -486,6 +491,7 @@ impl HTMLDialogElement {
     pub(crate) fn dialog_cleanup_steps(&self, no_gc: &NoGC) {
         // Step 1. Remove subject from subject's node document's open dialogs list.
         self.owner_document()
+            .overlay_handler()
             .remove_from_open_dialogs_list(self, no_gc);
 
         // Step 2. If subject's close watcher is not null, then:
@@ -560,7 +566,7 @@ impl HTMLDialogElement {
         let document = target.owner_doc();
 
         // Step 3. If document's open dialogs list is empty, then return.
-        if document.topmost_open_dialog().is_none() {
+        if document.overlay_handler().topmost_open_dialog().is_none() {
             return;
         }
 
@@ -570,16 +576,20 @@ impl HTMLDialogElement {
         // Step 5. If event's type is "pointerdown", then set document's dialog pointerdown
         // target to ancestor.
         if event.type_() == *"pointerdown" {
-            document.set_dialog_pointerdown_target(ancestor.as_deref());
+            document
+                .overlay_handler()
+                .set_dialog_pointerdown_target(ancestor.as_deref());
         }
 
         // Step 6. If event's type is "pointerup":
         if event.type_() == *"pointerup" {
             // Step 6.1. Let sameTarget be true if ancestor is document's dialog pointerdown target.
-            let same_target = ancestor == document.dialog_pointerdown_target();
+            let same_target = ancestor == document.overlay_handler().dialog_pointerdown_target();
 
             // Step 6.2. Set document's dialog pointerdown target to null.
-            document.set_dialog_pointerdown_target(None);
+            document
+                .overlay_handler()
+                .set_dialog_pointerdown_target(None);
 
             // Step 6.3. If sameTarget is false, then return.
             if !same_target {
@@ -587,7 +597,7 @@ impl HTMLDialogElement {
             }
 
             // Step 6.4. Let topmostDialog be the last element of document's open dialogs list.
-            let Some(topmost_dialog) = document.topmost_open_dialog() else {
+            let Some(topmost_dialog) = document.overlay_handler().topmost_open_dialog() else {
                 return;
             };
 
@@ -880,8 +890,10 @@ impl VirtualMethods for HTMLDialogElement {
         // Step 2. If removedNode's node document's top layer contains removedNode, then remove
         // an element from the top layer immediately given removedNode.
         let document = removed_node.owner_document();
-        if document.top_layer_contains(removed_node) {
-            document.remove_an_element_from_the_top_layer_immediately(removed_node, cx.no_gc());
+        if document.overlay_handler().top_layer_contains(removed_node) {
+            document
+                .overlay_handler()
+                .remove_an_element_from_the_top_layer_immediately(removed_node, cx.no_gc());
         }
 
         // Step 3. Set is modal of removedNode to false.
