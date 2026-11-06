@@ -130,7 +130,7 @@ impl Console {
         let embedder_msg = if !messages.is_empty() && messages[0].is_string() {
             let (formatted, consumed) = apply_sprintf_substitutions(cx, &messages);
 
-            let embedder_msg = if messages.get(consumed - 1).is_some() {
+            let embedder_msg = if messages[consumed..].is_empty() {
                 formatted
             } else {
                 format!(
