@@ -105,6 +105,7 @@ hyper-util = { workspace = true, features = ["server-graceful"] }
 net = { package = "servo-net", path = ".", features = ["devtools", "test-util"] }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
 servo-default-resources = { workspace = true }
+tempfile = { workspace = true }
 
 [lints]
 workspace = true
