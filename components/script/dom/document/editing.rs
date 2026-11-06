@@ -29,7 +29,7 @@ use crate::dom::clipboardevent::ClipboardEventType;
 use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::execcommand::execcommands::DocumentExecCommandSupport;
 use crate::dom::inputevent::HitTestResult;
-use crate::dom::selection_range::SelectionRange;
+use crate::dom::selection_range::{RootedSelectionBoundary, SelectionRange};
 use crate::dom::text_control::TextControlElement;
 use crate::dom::text_input::InputEventType;
 use crate::dom::types::{
@@ -470,12 +470,13 @@ impl Document {
             return;
         };
 
-        // When the hit test cannot find a suitable DOM position for selection (e.g. the
-        // click landed on a replaced element like <canvas> or <img> that has no text DOM
-        // positions), do not start a selection or drag gesture at all.
-        let Some(boundary) = hit_test_result.dom_position_for_selection.clone() else {
-            return;
-        };
+        // When the hit test cannot find a suitable DOM position for selection, just
+        // use the first offset within the target node of the `mousedown` event. This
+        // is a reasonable place to start the selection from.
+        let boundary = hit_test_result
+            .dom_position_for_selection
+            .clone()
+            .unwrap_or_else(|| RootedSelectionBoundary::start_of(&hit_test_result.node));
         let Some((boundary, user_select_contain_node)) =
             adjust_anchor_for_user_select(cx, boundary)
         else {
