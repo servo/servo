@@ -2307,7 +2307,7 @@ impl Node {
             self.remove_self(cx);
         } else {
             rooted_vec!(let children <- self.children().map(|child| DomRoot::as_traced(&child)));
-            split_the_parent(cx, children.r());
+            split_the_parent(cx, children.as_ref_slice());
         }
     }
 

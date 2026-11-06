@@ -607,7 +607,7 @@ impl Selection {
                     .and_then(|child| child.GetParentNode())
                     .is_some_and(|parent_of_child| parent_of_child != start_block)
                 {
-                    split_the_parent(cx, children.r());
+                    split_the_parent(cx, children.as_ref_slice());
                     continue;
                 }
                 break;
