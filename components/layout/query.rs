@@ -1052,12 +1052,17 @@ fn rendered_text_collection_steps(
                         if let Some(grandparent_node) =
                             unsafe { parent_node.dangerous_dom_parent() }
                         {
-                            if !matches!(
-                                grandparent_node.type_id(),
-                                Some(LayoutNodeType::Element(
-                                    LayoutElementType::HTMLSelectElement
-                                ))
-                            ) {
+                            // The grandparent might not be an element (for example a `Document`
+                            // or a shadow root), and layout can't represent those node types,
+                            // so check for an element before asking for its type.
+                            let grandparent_is_select = grandparent_node.as_element().is_some() &&
+                                matches!(
+                                    grandparent_node.type_id(),
+                                    Some(LayoutNodeType::Element(
+                                        LayoutElementType::HTMLSelectElement
+                                    ))
+                                );
+                            if !grandparent_is_select {
                                 return items;
                             }
                         } else {
