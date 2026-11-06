@@ -155,7 +155,7 @@ use crate::dom::css::cssstyledeclaration::{
 use crate::dom::customelementregistry::CustomElementRegistry;
 use crate::dom::document::focus::FocusableArea;
 use crate::dom::document::{
-    AbortReason, AnimationFrameCallback, Document, SameOriginDescendantNavigablesIterator,
+    AbortReason, AnimationFrameCallback, Document, LocalDescendantNavigablesIterator,
 };
 use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -4087,7 +4087,7 @@ impl Window {
         top_level_document
             .window()
             .consume_last_activation_timestamp();
-        for document in SameOriginDescendantNavigablesIterator::new(&top_level_document) {
+        for document in LocalDescendantNavigablesIterator::new(&top_level_document) {
             document.window().consume_last_activation_timestamp();
         }
     }
@@ -4116,7 +4116,7 @@ impl Window {
             .set_last_history_action_activation_timestamp(
                 top_level_document.window().last_activation_timestamp.get(),
             );
-        for document in SameOriginDescendantNavigablesIterator::new(&top_level_document) {
+        for document in LocalDescendantNavigablesIterator::new(&top_level_document) {
             document
                 .window()
                 .set_last_history_action_activation_timestamp(
