@@ -273,7 +273,7 @@ impl FlexLineItem<'_> {
             fragment_info,
             style.clone(),
             self.layout_result.fragments,
-            content_rect.as_physical(flex_context.containing_block),
+            content_rect.as_physical_deprecated(flex_context.containing_block),
             flex_context
                 .sides_to_flow_relative(self.item.padding)
                 .to_physical(container_writing_mode),
@@ -1018,7 +1018,7 @@ impl FlexContainer {
             start_corner: LogicalVec2::zero(),
             size: self.config.flex_axis.vec2_to_flow_relative(container_size),
         }
-        .as_physical(containing_block);
+        .as_physical_deprecated(containing_block);
 
         let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
             absolutely_positioned_box,

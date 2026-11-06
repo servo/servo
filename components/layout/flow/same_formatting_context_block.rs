@@ -429,7 +429,7 @@ impl SameFormattingContextBlock {
             base_fragment_info,
             style.clone(),
             flow_layout.fragments,
-            content_rect.as_physical(containing_block),
+            content_rect.as_physical_deprecated(containing_block),
             pbm.padding.to_physical(containing_block_writing_mode),
             pbm.border.to_physical(containing_block_writing_mode),
             margin.to_physical(containing_block_writing_mode),

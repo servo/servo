@@ -27,7 +27,7 @@ use crate::context::LayoutContext;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::{BoxFragment, CollapsedMargin};
-use crate::geom::{LogicalRect, LogicalVec2, ToLogical};
+use crate::geom::{LogicalRect, LogicalSides, LogicalVec2};
 use crate::positioned::{PositioningContext, relative_adjustement};
 use crate::style_ext::{DisplayInside, PaddingBorderMargin};
 
@@ -1093,13 +1093,14 @@ impl SequentialLayoutState {
 
         let style = box_fragment.style().clone();
         let container_writing_mode = containing_block.style.writing_mode;
-        let logical_float_size = box_fragment
-            .content_rect()
-            .size
-            .to_logical(container_writing_mode);
-        let pbm_sums = box_fragment
-            .padding_border_margin()
-            .to_logical(container_writing_mode);
+        let logical_float_size = LogicalVec2::from_physical_size(
+            &box_fragment.content_rect().size,
+            container_writing_mode,
+        );
+        let pbm_sums = LogicalSides::from_physical(
+            &box_fragment.padding_border_margin(),
+            container_writing_mode,
+        );
         let margin_box_start_corner = self.floats.add_float(&PlacementInfo {
             size: logical_float_size + pbm_sums.sum(),
             side: FloatSide::from_style_and_container_writing_mode(&style, container_writing_mode)
@@ -1128,12 +1129,12 @@ impl SequentialLayoutState {
         box_fragment.base.set_rect(
             LogicalRect {
                 start_corner: new_position_in_containing_block,
-                size: box_fragment
-                    .content_rect()
-                    .size
-                    .to_logical(container_writing_mode),
+                size: LogicalVec2::from_physical_size(
+                    &box_fragment.content_rect().size,
+                    container_writing_mode,
+                ),
             }
-            .as_physical(containing_block),
+            .as_physical_deprecated(containing_block),
         );
     }
 }

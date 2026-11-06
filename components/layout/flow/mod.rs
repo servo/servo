@@ -37,7 +37,7 @@ use crate::fragment_tree::{
 };
 use crate::geom::{
     AuOrAuto, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect,
-    PhysicalSides, ToLogical, ToLogicalWithContainingBlock,
+    PhysicalSides,
 };
 use crate::layout_box_base::{IndependentFormattingContextLayoutResult, LayoutBoxBase};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
@@ -383,12 +383,11 @@ impl OutsideMarker {
             .fragments
             .iter()
             .map(|fragment| {
-                fragment
-                    .base()
-                    .map(|base| base.rect())
-                    .unwrap_or_default()
-                    .to_logical(&containing_block_for_children)
-                    .max_inline_position()
+                LogicalRect::from_physical_deprecated(
+                    fragment.base().map(|base| base.rect()).unwrap_or_default(),
+                    &containing_block_for_children,
+                )
+                .max_inline_position()
             })
             .max()
             .unwrap_or_default();
@@ -425,7 +424,7 @@ impl OutsideMarker {
                 base_fragment_info,
                 style.clone(),
                 layout.fragments,
-                content_rect.as_physical(containing_block),
+                content_rect.as_physical_deprecated(containing_block),
                 PhysicalSides::zero(),
                 PhysicalSides::zero(),
                 PhysicalSides::zero(),
@@ -516,7 +515,7 @@ impl BlockFormattingContext {
                     block: content_block_size,
                 },
             }
-            .as_physical(containing_block);
+            .as_physical_deprecated(containing_block);
             positioning_context.adjust_static_position_of_hoisted_fragments_with_offset(
                 &align_fragment_rect.origin.to_vector(),
                 previous_positioning_context_len,
@@ -1186,7 +1185,7 @@ impl IndependentFormattingContext {
             base_fragment_info,
             self.base.style.clone(),
             layout.fragments,
-            content_rect.as_physical(containing_block),
+            content_rect.as_physical_deprecated(containing_block),
             pbm.padding.to_physical(containing_block_writing_mode),
             pbm.border.to_physical(containing_block_writing_mode),
             margin.to_physical(containing_block_writing_mode),
@@ -1557,7 +1556,7 @@ impl IndependentFormattingContext {
             base_fragment_info,
             style.clone(),
             layout.fragments,
-            content_rect.as_physical(containing_block),
+            content_rect.as_physical_deprecated(containing_block),
             pbm.padding.to_physical(containing_block_writing_mode),
             pbm.border.to_physical(containing_block_writing_mode),
             margin.to_physical(containing_block_writing_mode),
@@ -2034,11 +2033,11 @@ impl<'container> PlacementState<'container> {
             return;
         }
 
-        let box_block_offset = box_fragment
-            .content_rect()
-            .origin
-            .to_logical(self.containing_block)
-            .block;
+        let box_block_offset = LogicalVec2::from_physical_point_deprecated(
+            &box_fragment.content_rect().origin,
+            self.containing_block,
+        )
+        .block;
         let box_fragment_baselines =
             box_fragment.baselines(self.containing_block.style.writing_mode);
         if let (None, Some(first)) = (self.inflow_baselines.first, box_fragment_baselines.first) {
@@ -2077,11 +2076,11 @@ impl<'container> PlacementState<'container> {
                 if is_outside_marker {
                     assert!(self.marker_block_size.is_none());
                     self.marker_block_size = Some(
-                        fragment
-                            .content_rect()
-                            .size
-                            .to_logical(self.containing_block.style.writing_mode)
-                            .block,
+                        LogicalVec2::from_physical_size(
+                            &fragment.content_rect().size,
+                            self.containing_block.style.writing_mode,
+                        )
+                        .block,
                     );
                     return;
                 }
@@ -2093,11 +2092,11 @@ impl<'container> PlacementState<'container> {
                     .block_level_layout_info
                     .clone()
                     .expect("A block-level fragment should have a BlockLevelLayoutInfo.");
-                let mut fragment_block_size = fragment
-                    .border_rect()
-                    .size
-                    .to_logical(self.containing_block.style.writing_mode)
-                    .block;
+                let mut fragment_block_size = LogicalVec2::from_physical_size(
+                    &fragment.border_rect().size,
+                    self.containing_block.style.writing_mode,
+                )
+                .block;
 
                 // We use `last_in_flow_margin_collapses_with_parent_end_margin` to implement
                 // this quote from https://drafts.csswg.org/css2/#collapsing-margins
@@ -2165,7 +2164,7 @@ impl<'container> PlacementState<'container> {
                     },
                     size: LogicalVec2::zero(),
                 }
-                .as_physical(self.containing_block);
+                .as_physical_deprecated(self.containing_block);
             },
             Fragment::Float(box_fragment) => {
                 let sequential_layout_state = sequential_layout_state

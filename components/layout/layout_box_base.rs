@@ -316,7 +316,7 @@ impl LayoutBoxBase {
             let mut origin = result.result.original_offset;
             if self.style.get_box().position == Position::Relative {
                 origin += relative_adjustement(&self.style, containing_block)
-                    .to_physical_vector(containing_block.style.writing_mode)
+                    .to_physical_offset(containing_block.style.writing_mode)
             }
             fragment.base.set_rect_origin(origin);
         }
@@ -337,7 +337,7 @@ impl LayoutBoxBase {
             original_offset = fragment.content_rect().origin;
             if self.style.get_box().position == Position::Relative {
                 original_offset -= relative_adjustement(&self.style, containing_block)
-                    .to_physical_vector(containing_block.style.writing_mode)
+                    .to_physical_offset(containing_block.style.writing_mode)
             }
         }
 
