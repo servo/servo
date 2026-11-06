@@ -4,7 +4,7 @@
 
 use rustc_ast::ast::LitKind;
 use rustc_hir::def::DefKind;
-use rustc_hir::def_id::{CrateNum, DefId};
+use rustc_hir::def_id::{CrateNum, DefId, LOCAL_CRATE};
 use rustc_hir::definitions::DefPathData;
 use rustc_hir::ExprKind;
 use rustc_infer::infer::TyCtxtInferExt;
@@ -97,6 +97,19 @@ pub fn value_if_expr_is_str(expr_kind: &ExprKind<'_>) -> Option<String> {
     };
 
     None
+}
+
+fn find_jstraceable<'tcx>(cx: &LateContext<'tcx>) -> Option<DefId> {
+    // mozjs_sys::trace::Traceable
+    if let Some(mozjs) = find_first_crate(&cx.tcx, Symbol::intern("mozjs_sys")) {
+        return trait_in_crate(&cx.tcx, mozjs, Symbol::intern("Traceable"));
+    }
+    // when running tests
+    trait_in_crate(&cx.tcx, LOCAL_CRATE, Symbol::intern("JSTraceable"))
+}
+
+pub(crate) fn is_jstraceable<'tcx>(cx: &LateContext<'tcx>, ty: ty::Ty<'tcx>) -> bool {
+    find_jstraceable(cx).is_some_and(|trait_id| implements_trait(cx, ty, trait_id, &[]))
 }
 
 /*
