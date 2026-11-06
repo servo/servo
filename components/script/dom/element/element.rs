@@ -45,7 +45,7 @@ use script_bindings::reflector::DomObject;
 use selectors::attr::CaseSensitivity;
 use selectors::matching::ElementSelectorFlags;
 use selectors::sink::Push;
-use servo_arc::Arc as ServoArc;
+use servo_arc::{Arc as ServoArc, ArcBorrow as ServoArcBorrow};
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;
@@ -57,7 +57,7 @@ use style::properties::{
     ComputedValues, Importance, PropertyDeclaration, PropertyDeclarationBlock,
     parse_style_attribute,
 };
-use style::rule_tree::{CascadeLevel, CascadeOrigin};
+use style::rule_tree::{CascadeLevel, CascadeOrigin, StyleSourceBorrow};
 use style::selector_parser::{RestyleDamage, SelectorParser, Snapshot};
 use style::shared_lock::Locked;
 use style::str::string_as_ascii_lowercase;
@@ -1097,6 +1097,12 @@ impl Element {
         let mut pseudo_styles = data.styles.pseudos.as_array().iter();
         pseudo_styles.any(|style| style.as_deref().is_some_and(&check_styles_fn))
     }
+
+    #[inline]
+    pub(crate) fn dirty_presentational_hints(&self) {
+        self.upcast::<Node>()
+            .set_flag(NodeFlags::HAS_RESOLVED_PRESENTATIONAL_HINTS, false);
+    }
 }
 
 /// <https://dom.spec.whatwg.org/#valid-shadow-host-name>
@@ -1239,6 +1245,29 @@ impl<'dom> LayoutDom<'dom, Element> {
     }
 
     #[inline]
+    #[expect(unsafe_code)]
+    pub(crate) fn presentational_hints(
+        self,
+    ) -> Option<&'dom ServoArc<Locked<PropertyDeclarationBlock>>> {
+        unsafe { self.unsafe_get().attrs.borrow_for_layout() }.presentational_hints()
+    }
+
+    #[inline]
+    #[expect(unsafe_code)]
+    pub(crate) fn ensure_presentational_hints(self) {
+        let node = self.upcast::<Node>();
+        if unsafe { node.get_flag(NodeFlags::HAS_RESOLVED_PRESENTATIONAL_HINTS) } {
+            return;
+        }
+        self.unsafe_get()
+            .attrs
+            .set_presentational_hints(self.compute_presentational_hints());
+        unsafe {
+            node.set_flag(NodeFlags::HAS_RESOLVED_PRESENTATIONAL_HINTS, true);
+        }
+    }
+
+    #[inline]
     fn apply_property_for_length_percentage<Callback>(
         self,
         length_percentage: LengthOrPercentageOrAuto,
@@ -1263,10 +1292,7 @@ impl<'dom> LayoutDom<'dom, Element> {
         }
     }
 
-    pub(crate) fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
-    where
-        V: Push<ApplicableDeclarationBlock>,
-    {
+    fn compute_presentational_hints(&self) -> Option<ServoArc<Locked<PropertyDeclarationBlock>>> {
         // TODO: Move HTML presentational hints handling into
         // HTMLElement::synthesize_presentational_hints_for_legacy_attributes
         let document = self.upcast::<Node>().owner_doc_for_layout();
@@ -1616,16 +1642,35 @@ impl<'dom> LayoutDom<'dom, Element> {
             }
         }
 
-        let Some(property_declaration_block) = property_declaration_block else {
-            return;
-        };
+        let property_declaration_block = property_declaration_block?;
 
         let shared_lock = &document.shared_style_locks().author;
-        hints.push(ApplicableDeclarationBlock::from_declarations(
-            ServoArc::new(shared_lock.wrap(property_declaration_block)),
-            CascadeLevel::new(CascadeOrigin::PresHints),
-            LayerOrder::root(),
-        ));
+        Some(ServoArc::new(shared_lock.wrap(property_declaration_block)))
+    }
+
+    #[expect(unsafe_code)]
+    pub(crate) fn synthesize_presentational_hints_for_legacy_attributes<'a, V>(self, hints: &mut V)
+    where
+        V: Push<ApplicableDeclarationBlock<'a>>,
+    {
+        debug_assert!(
+            self.style_data().is_none() ||
+                unsafe {
+                    self.upcast::<Node>()
+                        .get_flag(NodeFlags::HAS_RESOLVED_PRESENTATIONAL_HINTS)
+                }
+        );
+        self.ensure_presentational_hints();
+        if let Some(declarations) = self.presentational_hints() {
+            // Safety: The declarations must outlive `'a`. That's the case for the presentational hints
+            // above, which are owned by the element, and which can't change while we're matching.
+            let declarations = unsafe { ServoArcBorrow::from_ref(&*(&**declarations as *const _)) };
+            hints.push(ApplicableDeclarationBlock::from_declarations(
+                StyleSourceBorrow::from_declarations(declarations),
+                CascadeLevel::new(CascadeOrigin::PresHints),
+                LayerOrder::root(),
+            ));
+        }
     }
 
     pub(crate) fn get_span(self) -> Option<u32> {
@@ -5061,6 +5106,8 @@ impl VirtualMethods for Element {
             // if `<input>` is unbound, `<form><fieldset>` should trigger a call to `update_validity()`.
             f.unbind_form_control_from_tree(cx);
         }
+
+        self.dirty_presentational_hints();
 
         if !context.tree_is_in_a_document_tree && !context.tree_is_in_a_shadow_tree {
             return;

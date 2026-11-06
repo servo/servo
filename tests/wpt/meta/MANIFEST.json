@@ -416828,6 +416828,19 @@
          {}
         ]
        ],
+       "img-size-dynamic-while-disconnected.html": [
+        "f4cf8833cc64c0f98544bbe432a9c16110eb487a",
+        [
+         null,
+         [
+          [
+           "/css/reference/ref-filled-green-200px-square.html",
+           "=="
+          ]
+         ],
+         {}
+        ]
+       ],
        "input-image-content.html": [
         "5376e8033ffe30027fdd988f5e0ffa9c62316420",
         [
@@ -1326690,6 +1326703,13 @@
        ],
        "hidden-attr.html": [
         "f06c3dc9b4f101faa253b8b1d980510475894992",
+        [
+         null,
+         {}
+        ]
+       ],
+       "table-attribute-cellspacing-dynamic-within-display-none.html": [
+        "9147a500e63471907f973ba9b8b20ea15d029cf3",
         [
          null,
          {}
