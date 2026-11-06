@@ -40,6 +40,34 @@ test(() => {
 
 test(() => {
 
+  const button = document.createElement("button");
+  button.type = "reset";
+  button.removeAttribute("type");
+  assert_equals(button.type, "submit");
+
+}, "removing a button's type should make it return to auto state");
+
+test(() => {
+  const div = document.createElement("div");
+  div.id = "test"
+
+  const button1 = document.createElement("button");
+  button1.command = "--test";
+  assert_equals(button1.type, "button");
+
+  const button2 = document.createElement("button");
+  button2.commandfor = "test";
+  assert_equals(button2.type, "button");
+
+  const button3 = document.createElement("button");
+  button3.command = "--test";
+  button3.commandfor = "test";
+  assert_equals(button3.type, "button");
+
+}, "a button in auto state with a command or commandfor attribute should return button type");
+
+test(() => {
+
   const select = document.createElement("select");
   const button = document.createElement("button");
   select.appendChild(button);
