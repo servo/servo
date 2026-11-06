@@ -12,9 +12,11 @@
 mod common;
 
 use std::rc::Rc;
+use std::sync::Arc;
 
 use common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
-use servo::{JSValue, WebViewBuilder, run_content_process};
+use pixels::DefaultImageDecoder;
+use servo::{ContentProcessParameters, JSValue, WebViewBuilder, run_content_process};
 use servo_config::{opts, prefs};
 
 fn test_multiprocess_preference_observer() {
@@ -58,7 +60,12 @@ fn main() {
     }
 
     if let Some(token) = token {
-        return run_content_process(token);
+        return run_content_process(
+            token,
+            ContentProcessParameters {
+                image_decoder: Arc::new(DefaultImageDecoder::default()),
+            },
+        );
     }
 
     // See nextest custom test harness requirements:

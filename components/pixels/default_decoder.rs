@@ -3,9 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::io::Cursor;
-use std::sync::Arc;
 use std::time::Duration;
-use std::{cmp, fmt, vec};
+use std::{cmp, fmt};
 
 use image::codecs::{bmp, gif, ico, jpeg, png, webp};
 use image::error::ImageFormatHint;
@@ -15,9 +14,9 @@ use image::{
 };
 use log::debug;
 
+use crate::traits::{DecodedImage, ServoImageDecoder};
 use crate::{
-    CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage, Repeat,
-    rgba8_premultiply_inplace,
+    ImageFrame, ImageMetadata, PixelFormat, Repeat, detect_image_format, rgba8_premultiply_inplace,
 };
 
 enum GenericImageDecoder<'a> {
@@ -41,6 +40,27 @@ impl<'a> std::fmt::Debug for GenericImageDecoder<'a> {
             Self::Bmp(_) => f.debug_tuple("Bmp").finish(),
             Self::Ico(_) => f.debug_tuple("Ico").finish(),
         }
+    }
+}
+
+impl<'a> GenericImageDecoder<'a> {
+    fn is_animated(&self) -> bool {
+        match &self {
+            GenericImageDecoder::Apng(_) | GenericImageDecoder::Gif(_) => true,
+            GenericImageDecoder::Webp(decoder) => decoder.has_animation(),
+            GenericImageDecoder::Png(_) |
+            GenericImageDecoder::Jpeg(_) |
+            GenericImageDecoder::Bmp(_) |
+            GenericImageDecoder::Ico(_) => false,
+        }
+    }
+
+    fn decoder(self) -> impl ImageDecoder {
+        self
+    }
+
+    fn animated_decoder(self) -> impl AnimationDecoder<'a> {
+        self
     }
 }
 
@@ -184,79 +204,7 @@ impl<'a> AnimationDecoder<'a> for GenericImageDecoder<'a> {
     }
 }
 
-#[derive(Debug)]
-/// Servo Default Image decoder using image-rs for decoding.
-pub(crate) struct DefaultImageDecoder<'a> {
-    decoder: GenericImageDecoder<'a>,
-}
-
-/// Main Image decoder trait.
-pub(crate) trait ServoImageDecoder<'a>: Sized + std::fmt::Debug {
-    /// Create a decoder for a `format` from a `buffer`.
-    fn make_decoder(format: ImageFormat, buffer: &'a [u8]) -> ImageResult<Self>;
-    fn is_animated(&self) -> bool;
-    /// Return the created decoder in `impl ImageDecoder`
-    fn decoder(self) -> impl ImageDecoder;
-    /// Return the created decoder in `impl AnimationDecoder` if animated.
-    fn animated_decoder(self) -> impl AnimationDecoder<'a>;
-}
-
-impl<'a> ServoImageDecoder<'a> for DefaultImageDecoder<'a> {
-    fn make_decoder(format: ImageFormat, buffer: &'a [u8]) -> ImageResult<Self> {
-        let reader = Cursor::new(buffer);
-        let decoder = match format {
-            ImageFormat::Png => {
-                let limits = Limits::default();
-                let png_decoder = png::PngDecoder::with_limits(reader, limits)?;
-                if png_decoder.is_apng().unwrap_or_default() {
-                    let decoder = png_decoder.apng()?;
-                    GenericImageDecoder::Apng(Box::new(decoder))
-                } else {
-                    GenericImageDecoder::Png(Box::new(png_decoder))
-                }
-            },
-            ImageFormat::Gif => GenericImageDecoder::Gif(Box::new(gif::GifDecoder::new(reader)?)),
-            ImageFormat::WebP => {
-                GenericImageDecoder::Webp(Box::new(webp::WebPDecoder::new(reader)?))
-            },
-            ImageFormat::Jpeg => {
-                GenericImageDecoder::Jpeg(Box::new(jpeg::JpegDecoder::new(reader)?))
-            },
-            ImageFormat::Bmp => GenericImageDecoder::Bmp(Box::new(bmp::BmpDecoder::new(reader)?)),
-            ImageFormat::Ico => GenericImageDecoder::Ico(Box::new(ico::IcoDecoder::new(reader)?)),
-            _ => {
-                return Err(ImageError::Unsupported(
-                    ImageFormatHint::Exact(format).into(),
-                ));
-            },
-        };
-        Ok(DefaultImageDecoder { decoder })
-    }
-
-    fn is_animated(&self) -> bool {
-        match &self.decoder {
-            GenericImageDecoder::Apng(_) | GenericImageDecoder::Gif(_) => true,
-            GenericImageDecoder::Webp(decoder) => decoder.has_animation(),
-            GenericImageDecoder::Png(_) |
-            GenericImageDecoder::Jpeg(_) |
-            GenericImageDecoder::Bmp(_) |
-            GenericImageDecoder::Ico(_) => false,
-        }
-    }
-
-    fn decoder(self) -> impl ImageDecoder {
-        self.decoder
-    }
-
-    fn animated_decoder(self) -> impl AnimationDecoder<'a> {
-        self.decoder
-    }
-}
-
-pub(crate) fn decode_static_image(
-    cors_status: CorsStatus,
-    mut image_decoder: impl ImageDecoder,
-) -> Option<RasterImage> {
+pub(crate) fn decode_static_image(mut image_decoder: impl ImageDecoder) -> Option<DecodedImage> {
     let orientation = image_decoder.orientation();
 
     let Ok(mut dynamic_image) = DynamicImage::from_decoder(image_decoder) else {
@@ -281,26 +229,20 @@ pub(crate) fn decode_static_image(
         width: rgba.width(),
         height: rgba.height(),
     };
-    Some(RasterImage {
+    Some(DecodedImage {
         metadata: ImageMetadata {
             width: rgba.width(),
             height: rgba.height(),
         },
         format: PixelFormat::RGBA8,
         frames: vec![frame],
-        bytes: Arc::new(rgba.into_vec()),
-        id: None,
-        cors_status,
-        load_time: None,
+        bytes: rgba.into_vec(),
         is_opaque,
         loop_count: None,
     })
 }
 
-pub(crate) fn decode_animated_image<'a, T>(
-    cors_status: CorsStatus,
-    animated_image_decoder: T,
-) -> Option<RasterImage>
+pub(crate) fn decode_animated_image<'a, T>(animated_image_decoder: T) -> Option<DecodedImage>
 where
     T: AnimationDecoder<'a>,
 {
@@ -366,15 +308,74 @@ where
         bytes.extend_from_slice(frame.buffer());
     }
 
-    Some(RasterImage {
+    Some(DecodedImage {
         metadata: ImageMetadata { width, height },
-        cors_status,
-        load_time: None,
         frames,
-        id: None,
         format: PixelFormat::RGBA8,
-        bytes: Arc::new(bytes),
+        bytes,
         is_opaque,
         loop_count: Some(loop_count),
     })
+}
+
+#[derive(Default)]
+pub struct DefaultImageDecoder {}
+
+impl DefaultImageDecoder {
+    fn make_decoder<'a>(
+        format: ImageFormat,
+        buffer: &'a [u8],
+    ) -> ImageResult<GenericImageDecoder<'a>> {
+        let reader = Cursor::new(buffer);
+        let decoder = match format {
+            ImageFormat::Png => {
+                let limits = Limits::default();
+                let png_decoder = png::PngDecoder::with_limits(reader, limits)?;
+                if png_decoder.is_apng().unwrap_or_default() {
+                    let decoder = png_decoder.apng()?;
+                    GenericImageDecoder::Apng(Box::new(decoder))
+                } else {
+                    GenericImageDecoder::Png(Box::new(png_decoder))
+                }
+            },
+            ImageFormat::Gif => GenericImageDecoder::Gif(Box::new(gif::GifDecoder::new(reader)?)),
+            ImageFormat::WebP => {
+                GenericImageDecoder::Webp(Box::new(webp::WebPDecoder::new(reader)?))
+            },
+            ImageFormat::Jpeg => {
+                GenericImageDecoder::Jpeg(Box::new(jpeg::JpegDecoder::new(reader)?))
+            },
+            ImageFormat::Bmp => GenericImageDecoder::Bmp(Box::new(bmp::BmpDecoder::new(reader)?)),
+            ImageFormat::Ico => GenericImageDecoder::Ico(Box::new(ico::IcoDecoder::new(reader)?)),
+            _ => {
+                return Err(ImageError::Unsupported(
+                    ImageFormatHint::Exact(format).into(),
+                ));
+            },
+        };
+        Ok(decoder)
+    }
+}
+
+impl ServoImageDecoder for DefaultImageDecoder {
+    fn decode_image(&self, buffer: &[u8]) -> Option<DecodedImage> {
+        let image_fmt_result = detect_image_format(buffer);
+        match image_fmt_result {
+            Err(msg) => {
+                debug!("{}", msg);
+                None
+            },
+            Ok(format) => {
+                let Ok(image_decoder) = Self::make_decoder(format, buffer) else {
+                    return None;
+                };
+
+                if image_decoder.is_animated() {
+                    decode_animated_image(image_decoder.animated_decoder())
+                } else {
+                    decode_static_image(image_decoder.decoder())
+                }
+            },
+        }
+    }
 }

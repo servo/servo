@@ -132,6 +132,7 @@ use paint_api::{
     PaintMessage, PaintProxy, PinchZoomInfos, PipelineExitSource, SendableFrameTree,
     WebRenderExternalImageIdManager,
 };
+use pixels::ServoImageDecoder;
 use profile_traits::mem::ProfilerMsg;
 use profile_traits::{mem, time};
 use rand::rngs::SmallRng;
@@ -570,6 +571,9 @@ pub struct InitialConstellationState {
     #[cfg(feature = "bluetooth")]
     pub bluetooth_thread: GenericSender<BluetoothRequest>,
 
+    /// The [`ImageDecoder`] used for all of servo
+    pub image_decoder: Arc<dyn ServoImageDecoder>,
+
     /// A proxy to the `SystemFontService` which manages the list of system fonts.
     pub system_font_service: Arc<SystemFontServiceProxy>,
 
@@ -764,6 +768,7 @@ where
                     event_loop_join_handles: Default::default(),
                     privileged_urls: state.privileged_urls,
                     image_cache_factory: Arc::new(ImageCacheFactoryImpl::new(
+                        state.image_decoder.clone(),
                         broken_image_icon_data,
                     )),
                     user_contents_for_manager_id: Default::default(),
