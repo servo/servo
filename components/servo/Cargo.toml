@@ -150,6 +150,7 @@ net_traits = { workspace = true }
 paint = { workspace = true }
 paint_api = { workspace = true }
 parking_lot = { workspace = true }
+pixels = { workspace = true }
 profile = { workspace = true }
 profile_traits = { workspace = true }
 rustc-hash = { workspace = true }

@@ -27,7 +27,9 @@ pub fn main() {
         },
         #[cfg(feature = "multiprocess")]
         ArgumentParsingResult::ContentProcess(token) => {
-            return servo::run_content_process(token);
+            use servo::ContentProcessParameters;
+
+            return servo::run_content_process(token, ContentProcessParameters::default());
         },
         ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences) => {
             (opts, preferences, servoshell_preferences)
