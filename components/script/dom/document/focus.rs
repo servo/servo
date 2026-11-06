@@ -345,6 +345,68 @@ impl DocumentFocusHandler {
         self.focused_area().focus_chain()
     }
 
+    /// Whether this [`Document`] is known to have the focus of its top-level traversable.
+    ///
+    /// A `Document` updates its focus state right away when it runs the focusing steps, but the
+    /// other `Document`s of the top-level traversable only learn about it later from the
+    /// constellation. So the focus state of a `Document` is only known to be current when the
+    /// `Document`s of the top-level traversable are all in this thread and agree with it: its
+    /// ancestors have the navigable containers leading to it as their focused areas, and no other
+    /// `Document` has focus.
+    pub(crate) fn focus_is_known_to_be_current(&self) -> bool {
+        fn no_other_document_has_focus(
+            document: &Document,
+            documents_with_focus: &[DomRoot<Document>],
+        ) -> bool {
+            document.iframes().iter().all(|iframe| {
+                if iframe.browsing_context_id().is_none() {
+                    return true;
+                }
+                let Some(content_document) = iframe
+                    .GetContentWindow()
+                    .and_then(|window_proxy| window_proxy.document())
+                else {
+                    return false;
+                };
+                (documents_with_focus.contains(&content_document) ||
+                    !content_document.focus_handler().has_focus()) &&
+                    no_other_document_has_focus(&content_document, documents_with_focus)
+            })
+        }
+
+        if !self.has_focus() {
+            return false;
+        }
+
+        let mut document = self.window.Document();
+        let mut documents_with_focus = vec![];
+        while !document.window().is_top_level() {
+            // The navigable container is only available when its `Document` is in this script
+            // thread.
+            let window_proxy = document.window().window_proxy();
+            let Some(container) = window_proxy.frame_element() else {
+                return false;
+            };
+            let parent = container.owner_document();
+            let parent_focus_handler = parent.focus_handler();
+            if !parent_focus_handler.has_focus() ||
+                !matches!(
+                    &*parent_focus_handler.focused_area(),
+                    FocusableArea::IFrameViewport { iframe_element, .. }
+                        if iframe_element.upcast::<Element>() == container
+                )
+            {
+                return false;
+            }
+            documents_with_focus.push(document);
+            document = parent;
+        }
+
+        // The top-level `Document` isn't the content of a navigable, so it doesn't need to be in
+        // `documents_with_focus`.
+        no_other_document_has_focus(&document, &documents_with_focus)
+    }
+
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or the document if no elements requested it.
     pub(crate) fn focus(
