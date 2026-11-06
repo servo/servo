@@ -1233,12 +1233,17 @@ impl Fragment {
             );
         }
 
+        // For glyphs, we use `-webkit-text-fill-color` resolved against `color`, rather than `color` directly.
+        // See <https://compat.spec.whatwg.org/#the-webkit-text-fill-color>.
+        let glyph_fill_color =
+            parent_style.resolve_color(parent_style.get__webkit_text_fill_color());
+
         builder.webrender_display_list_builder.push_text(
             &common,
             glyph_bounds,
             &builder.glyph_buffer,
             fragment.font_key,
-            rgba(*parent_style.get_color()),
+            rgba(glyph_fill_color),
             None,
         );
 
