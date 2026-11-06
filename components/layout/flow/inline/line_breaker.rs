@@ -84,18 +84,21 @@ impl LineBreaker {
 /// Add soft wrap opportunities before punctuation that UAX #14 LB13 keeps
 /// attached to the preceding word even after a space.
 ///
-/// Chrome and Firefox allow a break there and is flexible to UA:
+/// Chrome, Firefox and WebKit allow a break there and is flexible to UA:
 /// <https://drafts.csswg.org/css-text-3/#line-break-details>
-/// This is optimized as O(n) where n is the number of char.
 fn add_break_opportunities_after_space(string: &str, linebreaks: &mut Vec<Utf8CodeUnits>) {
     let mut extra_linebreaks = Vec::new();
-    let mut previous_is_space = false;
-    for (offset, character) in string.char_indices() {
-        let line_break = LineBreak::for_char(character);
-        if previous_is_space && is_punctuation_kept_after_spaces_by_lb13(line_break) {
+    // U+0020 is the only character in the `Space` line breaking class which is one byte in
+    // UTF-8, so it can be found without a character iterator. Only the character after each
+    // space needs to be decoded and classified.
+    for (space_offset, _) in string.match_indices(' ') {
+        let offset = space_offset + 1;
+        let Some(character) = string[offset..].chars().next() else {
+            continue;
+        };
+        if is_punctuation_kept_after_spaces_by_lb13(LineBreak::for_char(character)) {
             extra_linebreaks.push(Utf8CodeUnits(offset as u32));
         }
-        previous_is_space = line_break == LineBreak::Space;
     }
 
     if extra_linebreaks.is_empty() {
