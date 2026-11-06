@@ -929,27 +929,26 @@ impl ScriptThread {
         #[cfg(feature = "webgpu")]
         let gpu_id_hub = Arc::new(IdentityHub::default());
 
-        #[cfg(feature = "devtools")]
-        let debugger_global = if pref!(devtools_server_enabled) {
-            let debugger_global = DebuggerGlobalScope::new(
-                PipelineId::new(),
-                senders.devtools_server_sender.clone(),
-                senders.devtools_client_to_script_thread_sender.clone(),
-                senders.memory_profiler_sender.clone(),
-                senders.time_profiler_sender.clone(),
-                senders.pipeline_to_constellation_sender.clone(),
-                senders.pipeline_to_embedder_sender.clone(),
-                state.resource_threads.clone(),
-                state.storage_threads.clone(),
-                #[cfg(feature = "webgpu")]
-                gpu_id_hub.clone(),
-                &mut cx,
-            );
-            debugger_global.execute(&mut cx);
-            Some(debugger_global)
+        let devtools_client_to_script_thread_sender = if pref!(devtools_server_enabled) {
+            Some(&senders.devtools_client_to_script_thread_sender)
         } else {
             None
-        };
+        }
+        .cloned();
+        let debugger_global = DebuggerGlobalScope::new_if_needed(
+            &mut cx,
+            PipelineId::new(),
+            &senders.devtools_server_sender,
+            &devtools_client_to_script_thread_sender,
+            &senders.memory_profiler_sender,
+            &senders.time_profiler_sender,
+            &senders.pipeline_to_constellation_sender,
+            &senders.pipeline_to_embedder_sender,
+            &state.resource_threads,
+            &state.storage_threads,
+            #[cfg(feature = "webgpu")]
+            &gpu_id_hub,
+        );
 
         let shared_style_locks = Default::default();
         let user_contents_for_manager_id =

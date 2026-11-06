@@ -89,7 +89,7 @@ impl DebuggerGlobalScope {
     /// - in web worker threads, it should be set to the pipeline id of the page that created the thread, because
     ///   those threads can’t generate pipeline ids, and they only contain one debuggee from one pipeline
     #[expect(unsafe_code, clippy::too_many_arguments)]
-    pub(crate) fn new(
+    fn new(
         debugger_pipeline_id: PipelineId,
         script_to_devtools_sender: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
         devtools_to_script_sender: GenericSender<DevtoolScriptControlMsg>,
@@ -139,6 +139,50 @@ impl DebuggerGlobalScope {
         });
 
         global
+    }
+
+    /// Create a new heap-allocated `DebuggerGlobalScope` if the devtools_to_script_sender is not None.
+    /// Otherwise return None.
+    ///
+    /// `debugger_pipeline_id` is the pipeline id to use when creating the debugger’s [`GlobalScope`]:
+    /// - in normal script threads, it should be set to `PipelineId::new()`, because those threads can generate
+    ///   pipeline ids, and they may contain debuggees from more than one pipeline
+    /// - in web worker threads, it should be set to the pipeline id of the page that created the thread, because
+    ///   those threads can’t generate pipeline ids, and they only contain one debuggee from one pipeline
+    #[expect(clippy::too_many_arguments)]
+    pub(crate) fn new_if_needed(
+        cx: &mut JSContext,
+        debugger_pipeline_id: PipelineId,
+        script_to_devtools_sender: &Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
+        devtools_to_script_sender: &Option<GenericSender<DevtoolScriptControlMsg>>,
+        mem_profiler_chan: &mem::ProfilerChan,
+        time_profiler_chan: &time::ProfilerChan,
+        script_to_constellation_sender: &ScriptToConstellationSender,
+        script_to_embedder_chan: &ScriptToEmbedderChan,
+        resource_threads: &ResourceThreads,
+        storage_threads: &StorageThreads,
+        #[cfg(feature = "webgpu")] gpu_id_hub: &std::sync::Arc<IdentityHub>,
+    ) -> Option<DomRoot<Self>> {
+        if let Some(devtools_to_script_sender) = devtools_to_script_sender {
+            let debugger_global = Self::new(
+                debugger_pipeline_id,
+                script_to_devtools_sender.clone(),
+                devtools_to_script_sender.clone(),
+                mem_profiler_chan.clone(),
+                time_profiler_chan.clone(),
+                script_to_constellation_sender.clone(),
+                script_to_embedder_chan.clone(),
+                resource_threads.clone(),
+                storage_threads.clone(),
+                #[cfg(feature = "webgpu")]
+                gpu_id_hub.clone(),
+                cx,
+            );
+            debugger_global.execute(cx);
+            Some(debugger_global)
+        } else {
+            None
+        }
     }
 
     pub(crate) fn origin(&self) -> MutableOrigin {

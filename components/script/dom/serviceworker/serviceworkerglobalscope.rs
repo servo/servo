@@ -361,30 +361,20 @@ impl ServiceWorkerGlobalScope {
                     pipeline_id,
                 } = worker_load_origin;
 
-                #[cfg(feature = "devtools")]
-                let debugger_global = if pref!(devtools_server_enabled) {
-                    let debugger_global = DebuggerGlobalScope::new(
-                        pipeline_id,
-                        init.to_devtools_sender.clone(),
-                        init.from_devtools_sender
-                            .clone()
-                            .expect("Guaranteed by update_serviceworker"),
-                        init.mem_profiler_chan.clone(),
-                        init.time_profiler_chan.clone(),
-                        init.script_to_constellation_chan.clone(),
-                        init.script_to_embedder_chan.clone(),
-                        init.resource_threads.clone(),
-                        init.storage_threads.clone(),
-                        #[cfg(feature = "webgpu")]
-                        Arc::new(IdentityHub::default()),
-                        cx,
-                    );
-                    #[cfg(feature = "devtools")]
-                    debugger_global.execute(cx);
-                    Some(debugger_global)
-                } else {
-                    None
-                };
+                let debugger_global = DebuggerGlobalScope::new_if_needed(
+                    cx,
+                    pipeline_id,
+                    &init.to_devtools_sender,
+                    &init.from_devtools_sender,
+                    &init.mem_profiler_chan,
+                    &init.time_profiler_chan,
+                    &init.script_to_constellation_chan,
+                    &init.script_to_embedder_chan,
+                    &init.resource_threads,
+                    &init.storage_threads,
+                    #[cfg(feature = "webgpu")]
+                    &Arc::new(IdentityHub::default()),
+                );
 
                 // Service workers are time limited
                 // https://w3c.github.io/ServiceWorker/#service-worker-lifetime

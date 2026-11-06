@@ -31,8 +31,6 @@ use script_bindings::interfaces::HasOrigin;
 use script_bindings::trace::RootedTraceableBox;
 use servo_base::generic_channel::{GenericReceiver, RoutedReceiver};
 use servo_base::id::{BrowsingContextId, ScriptEventLoopId, WebViewId};
-#[cfg(feature = "devtools")]
-use servo_config::pref;
 use servo_constellation_traits::{MessagePortImpl, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
@@ -439,29 +437,21 @@ impl SharedWorkerGlobalScope {
                 // because it will never outlive it (runtime destruction happens at the end of this function)
                 let mut cx = unsafe { runtime.cx() };
                 let cx = &mut cx;
-                #[cfg(feature = "devtools")]
-                let debugger_global = if pref!(devtools_server_enabled) {
-                    let debugger_global = DebuggerGlobalScope::new(
-                        pipeline_id,
-                        init.to_devtools_sender.clone(),
-                        init.from_devtools_sender
-                            .clone()
-                            .expect("Guaranteed by SharedWorker::Constructor"),
-                        init.mem_profiler_chan.clone(),
-                        init.time_profiler_chan.clone(),
-                        init.script_to_constellation_chan.clone(),
-                        init.script_to_embedder_chan.clone(),
-                        init.resource_threads.clone(),
-                        init.storage_threads.clone(),
-                        #[cfg(feature = "webgpu")]
-                        gpu_id_hub.clone(),
-                        cx,
-                    );
-                    debugger_global.execute(cx);
-                    Some(debugger_global)
-                } else {
-                    None
-                };
+
+                let debugger_global = DebuggerGlobalScope::new_if_needed(
+                    cx,
+                    pipeline_id,
+                    &init.to_devtools_sender,
+                    &init.from_devtools_sender,
+                    &init.mem_profiler_chan,
+                    &init.time_profiler_chan,
+                    &init.script_to_constellation_chan,
+                    &init.script_to_embedder_chan,
+                    &init.resource_threads,
+                    &init.storage_threads,
+                    #[cfg(feature = "webgpu")]
+                    &gpu_id_hub,
+                );
 
                 #[cfg(feature = "devtools")]
                 let (devtools_mpsc_port, debugger_global_for_scope, devtools_enabled) = {

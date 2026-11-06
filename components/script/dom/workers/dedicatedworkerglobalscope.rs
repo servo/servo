@@ -30,8 +30,6 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::interfaces::HasOrigin;
 use servo_base::generic_channel::{self, GenericReceiver, GenericSender, RoutedReceiver};
 use servo_base::id::{BrowsingContextId, PipelineId, ScriptEventLoopId, WebViewId};
-#[cfg(feature = "devtools")]
-use servo_config::pref;
 use servo_constellation_traits::{
     ScriptToConstellationMessage, WorkerAnimationFrameTick, WorkerGlobalScopeInit,
     WorkerScriptLoadOrigin,
@@ -491,30 +489,21 @@ impl DedicatedWorkerGlobalScope {
                 // because it will never outlive it (runtime destruction happens at the end of this function)
                 let mut cx = unsafe { runtime.cx() };
                 let cx = &mut cx;
-                #[cfg(feature = "devtools")]
-                let debugger_global = if pref!(devtools_server_enabled) {
-                    let debugger_global = DebuggerGlobalScope::new(
-                        pipeline_id,
-                        init.to_devtools_sender.clone(),
-                        init.from_devtools_sender
-                            .clone()
-                            .expect("Guaranteed by Worker::Constructor"),
-                        init.mem_profiler_chan.clone(),
-                        init.time_profiler_chan.clone(),
-                        init.script_to_constellation_chan.clone(),
-                        init.script_to_embedder_chan.clone(),
-                        init.resource_threads.clone(),
-                        init.storage_threads.clone(),
-                        #[cfg(feature = "webgpu")]
-                        gpu_id_hub.clone(),
-                        cx,
-                    );
-                    #[cfg(feature = "devtools")]
-                    debugger_global.execute(cx);
-                    Some(debugger_global)
-                } else {
-                    None
-                };
+
+                let debugger_global = DebuggerGlobalScope::new_if_needed(
+                    cx,
+                    pipeline_id,
+                    &init.to_devtools_sender,
+                    &init.from_devtools_sender,
+                    &init.mem_profiler_chan,
+                    &init.time_profiler_chan,
+                    &init.script_to_constellation_chan,
+                    &init.script_to_embedder_chan,
+                    &init.resource_threads,
+                    &init.storage_threads,
+                    #[cfg(feature = "webgpu")]
+                    &gpu_id_hub,
+                );
 
                 let context_for_interrupt = runtime.thread_safe_js_context();
                 let _ = context_sender.send(context_for_interrupt);
