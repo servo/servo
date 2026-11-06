@@ -11,54 +11,37 @@
 }
 
 .controls-container {
-  flex: 1;
-  max-height: 40px;
-  display: block;
-  position: relative;
-  width: 100%;
-  height: 100%;
-  min-height: 40px;
-  min-width: 230px;
-  color: #fff;
-  font-family: sans-serif;
-  font-size: 13px;
-  /* define size of the media controls */
-  --control-bar-height: 40px; /* height of the control bar */
-  --button-size: 30px; /* size of the control buttons */
-  --progress-bar-height: 5px; /* height of the progress bar */
-  --scrubber-width: 64px;
-}
-
-/* ── Control bar ── */
-.controlBar {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  box-sizing: border-box;
   display: flex;
+  gap: 6px;
   align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  width: 100%;
+  flex: none;
+
   height: var(--control-bar-height);
   padding: 0 9px;
-  background-color: rgba(26, 26, 26, 0.8);
+  overflow: hidden;
+
   color: #fff;
+  background-color: rgba(26, 26, 26, 0.8);
+  font-family: sans-serif;
+  font-size: 13px;
+
+  --control-bar-height: 40px;
+  --button-size: 30px;
+  --progress-bar-height: 5px;
+  --progress-bar-border-radius: calc(var(--progress-bar-height) / 2);
+  --scrubber-width: 64px;
+  --thumb-size: 13px;
 }
 
 /* ── Buttons ── */
-.controlBar > .button {
+.button {
+  flex: none; /* Prevents flexbox from shrinking these. */
   height: 100%;
-  min-width: var(--button-size);
-  min-height: var(--button-size);
+  width: var(--button-size);
   border: 0;
-  margin: 6px;
   background-color: transparent;
   background-repeat: no-repeat;
   background-position: center;
-  background-origin: content-box;
-  background-clip: content-box;
-  outline: none;
 }
 
 /* Play button: pause icon while playing, play icon when paused/ended. */
@@ -83,10 +66,6 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18' fill='%23fff'%3E%3Cpath fill='%23fff' d='M2.047,11.135l-0.011,1.537l2.281,0.022L1.22,15.851l1.083,1.086l3.235-3.094l-0.017,2.268l1.513,0.016 l0-5L2.047,11.135z M13.781,12.587l2.267,0.017l0.016-1.514l-5,0l0.008,4.988l1.537,0.011l0.022-2.281l3.158,3.097l1.086-1.083 L13.781,12.587z M16.058,5.578l-2.281-0.021l3.097-3.158l-1.083-1.086l-3.235,3.094l0.017-2.267L11.06,2.123v5l4.988-0.008 L16.058,5.578z M5.516,2.098L5.494,4.379L2.336,1.283L1.25,2.365L4.344,5.6L2.077,5.583L2.06,7.097l5,0L7.053,2.109L5.516,2.098z'/%3E%3C/svg%3E");
 }
 
-/* Hover fill*/
-.controlBar > .button:hover {
-  fill: #48a0f7;
-}
 .playPauseButton:hover {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='%2348a0f7'%3E%3Cpath d='M4.5 14h1A1.5 1.5 0 0 0 7 12.5v-9A1.5 1.5 0 0 0 5.5 2h-1A1.5 1.5 0 0 0 3 3.5v9A1.5 1.5 0 0 0 4.5 14zM10.5 14h1a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 11.5 2h-1A1.5 1.5 0 0 0 9 3.5v9a1.5 1.5 0 0 0 1.5 1.5z' /%3E%3C/svg%3E");
 }
@@ -107,9 +86,6 @@
 }
 
 /* Active fill #2d89e6. Declared after :hover so it wins the cascade. */
-.controlBar > .button:active {
-  fill: #2d89e6;
-}
 .playPauseButton:active {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='%232d89e6'%3E%3Cpath d='M4.5 14h1A1.5 1.5 0 0 0 7 12.5v-9A1.5 1.5 0 0 0 5.5 2h-1A1.5 1.5 0 0 0 3 3.5v9A1.5 1.5 0 0 0 4.5 14zM10.5 14h1a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 11.5 2h-1A1.5 1.5 0 0 0 9 3.5v9a1.5 1.5 0 0 0 1.5 1.5z' /%3E%3C/svg%3E");
 }
@@ -133,22 +109,8 @@
 .scrubberStack {
   position: relative;
   height: 100%;
-  min-width: calc(var(--scrubber-width) - 18px);
-  flex-basis: calc(var(--scrubber-width) - 18px);
-  flex-grow: 2;    /* grow twice as much */
-  flex-shrink: 0; /* no shrinking */
-  margin: 0 9px;
-}
-
-.progressBackgroundBar {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 100%;
-  height: 100%;
+  flex: 1 0 var(--scrubber-width);
   display: flex;
-  flex-direction: column;
-  justify-content: center;
   align-items: center;
 }
 
@@ -160,19 +122,17 @@
 
 .bufferBar,
 .progressBar,
-.scrubber,
-.volumeLevel {
+.scrubber {
   position: absolute;
-  left: 0;
-  bottom: 0;
+  inset: 0;
   width: 100%;
   height: 100%;
   margin: 0;
   border: none;
-  color: inherit; /* inherit color from controlBar */
+  color: inherit; /* inherit color from controls-container */
   background: none;
-  border-radius: 2.5px;
-  /* Override the UA input defaults. To fit different video size*/
+  border-radius: var(--progress-bar-border-radius);
+  /* Override the UA input defaults. To fit different video sizes. */
   min-height: 0;
   min-width: 0;
 }
@@ -187,8 +147,7 @@
   padding: 0;
   margin: 0;
   border: 0;
-  border-radius: 2.5px;
-  background: none;
+  border-radius: var(--progress-bar-border-radius);
 }
 
 .bufferBar::-moz-progress-bar {
@@ -197,6 +156,12 @@
 
 .progressBar::-moz-progress-bar {
   background-color: #00b6f0;
+}
+
+.scrubber,
+.volumeLevel {
+/* Leave space for the thumb overhanging the sides of the slider. */
+  margin-inline: calc(var(--thumb-size) / 2);
 }
 
 /* The scrubber paints nothing itself: the two <progress> elements below it
@@ -210,12 +175,12 @@
 /* ── Thumbs ── */
 .scrubber::slider-thumb,
 .volumeLevel::slider-thumb {
-  width: 13px;
-  height: 13px;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
   border: none;
   border-radius: 50%;
   background-color: currentColor; /* take from color:inherit */
-  margin-inline-start: -6.5px;
+  margin-inline-start: calc(var(--thumb-size) / -2);
 }
 
 .scrubber:hover::slider-thumb,
@@ -229,36 +194,33 @@
 }
 
 /* ── Volume slider ── */
-.volumeStack {
-  position: relative;
-  height: 100%;
-  min-width: 48px;
-  flex-grow: 0;
-  flex-shrink: 0;
-  margin-left: 4px;
-  margin-right: 6px;
+.volumeLevel {
+  width: 48px;
+  flex: none;
+  margin-block: 0;
+  /* Override the UA input defaults. To fit different video sizes. */
+  min-height: 0;
+  min-width: 0;
+  color: inherit; /* inherit color from controls-container */
 }
 
 .volumeLevel::slider-track {
   width: 100%;
-  height: 5px;
+  height: var(--progress-bar-height);
   border: none;
-  border-radius: 2.5px;
+  border-radius: var(--progress-bar-border-radius);
   background-color: rgba(0, 0, 0, 0.7);
 }
 
 .volumeLevel::slider-fill {
-  height: 5px;
+  height: var(--progress-bar-height);
   border: none;
-  border-radius: 2.5px;
+  border-radius: var(--progress-bar-border-radius);
   background-color: currentColor;
 }
 
 /* ── Time display ── */
 .positionDurationBox {
-  text-align: center;
-  padding-left: 1px;
-  padding-right: 9px;
   white-space: nowrap;
   flex-shrink: 0;
 }
