@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Input Range Elements With overflow:hidden</title>
+    <link rel="match" href="input-range-overflow-hidden-ref.html">
+    <meta name="fuzzy" content="maxDifference=0-6;totalPixels=0-20">
+</head>
+<body>
+Any overflow of the input range widget should be hidden by the widget itself, so
+the display should match the CSS reference for different values.
+<div>
+    <input type="range" style="overflow: hidden;" min="0" max="100" value="0"></input>
+</div>
+<div>
+    <input type="range" style="overflow: hidden;" min="0" max="100" value="50"></input>
+</div>
+<div>
+    <input type="range" style="overflow: hidden;" min="0" max="100" value="100"></input>
+</div>
+</body>
+</html>
