@@ -20,7 +20,6 @@ use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use accesskit::Affine;
 use dpi::PhysicalSize;
 use egui::text::{CCursor, CCursorRange};
 use egui::text_edit::TextEditState;
@@ -57,6 +56,7 @@ use winit::window::Window;
 
 use crate::desktop::event_loop::AppEvent;
 use crate::desktop::headed_window;
+use crate::desktop::webview_panel::WebViewPanel;
 use crate::running_app_state::{RunningAppState, UserInterfaceCommand};
 use crate::window::{ServoShellWindow, TopLevelWebViewCreationRequest};
 
@@ -92,6 +92,9 @@ pub struct Gui {
     /// AccessKit tree updates pending the next egui tick.
     /// This allows us to ensure that graft nodes are sent before the subtrees they graft.
     pending_accesskit_updates: Vec<accesskit::TreeUpdate>,
+
+    // Whether the `WebViewPanel` corresponding to the currently active `WebView` is focused.
+    webview_panel_focused: bool,
 }
 
 fn truncate_with_ellipsis(input: &str, max_length: usize) -> String {
@@ -262,13 +265,16 @@ impl Gui {
             can_go_forward: false,
             favicon_textures: Default::default(),
             pending_accesskit_updates: vec![],
+            webview_panel_focused: false,
         }
     }
 
-    pub(crate) fn has_keyboard_focus(&self) -> bool {
-        self.context
-            .egui_ctx
-            .memory(|memory| memory.focused().is_some())
+    pub(crate) fn webview_panel_focused(&self) -> bool {
+        self.webview_panel_focused
+    }
+
+    pub(crate) fn set_webview_panel_focused(&mut self, focused: bool) {
+        self.webview_panel_focused = focused;
     }
 
     pub(crate) fn surrender_focus(&self) {
@@ -607,38 +613,41 @@ impl Gui {
                 *toolbar_height = Length::default();
             }
 
-            let scale =
-                Scale::<_, DeviceIndependentPixel, DevicePixel>::new(ctx.pixels_per_point());
-
             headed_window.for_each_active_dialog(window, |dialog| dialog.update(ctx));
 
             // If the top parts of the GUI changed size, then update the size of the WebView and also
             // the size of its RenderingContext.
             let available_rect = ctx.available_rect_before_wrap();
 
-            // Build a graft node for each WebView.
-            let affine = {
-                // The grafted WebView tree reports bounds in device pixels relative to the
-                // WebView's own origin, so this node supplies the offset of the WebView within
-                // the window, and scales it to the same scale as the rest of the nodes in egui's
-                // AccessKit tree.
-                let scale = (1.0 / window.platform_window().hidpi_scale_factor().get()) as f64;
-                let x = available_rect.min.x as f64;
-                let y = available_rect.min.y as f64;
-                Affine::new([scale, 0.0, 0.0, scale, x, y])
-            };
+            let scale_factor =
+                Scale::<_, DeviceIndependentPixel, DevicePixel>::new(ctx.pixels_per_point());
+
+            // Some other widget may have claimed focus on this tick, so compute whether the
+            // webview panel should stay focused.
+            let webview_panel_was_focused = self.webview_panel_focused;
+            self.webview_panel_focused = false;
+
+            // Create a WebViewPanel for each webview, not just the active one, so that every
+            // webview gets an AccessKit graft node. This prevents any TreeUpdates from inactive
+            // webviews from causing a panic in AccessKit.
+            let active_webview = window.active_webview();
             for (webview_id, webview) in window.webviews() {
-                if let Some(tree_id) = webview.accesskit_tree_id() {
-                    let id = egui::Id::new(webview_id);
-                    ctx.accesskit_node_builder(id, |node| {
-                        node.set_tree_id(tree_id);
-                        // Only the transform is set: AccessKit consumers exclude graft nodes from
-                        // the presented tree, so bounds on this node would never be read.
-                        node.set_transform(affine);
-                    });
+                let webview_active = active_webview == Some(webview.clone());
+                let webview_contains_focus = webview_active && webview_panel_was_focused;
+                let panel = WebViewPanel::new(webview_id, webview.clone(), scale_factor, available_rect, webview_active, webview_contains_focus);
+                let panel_id = panel.id();
+                ctx.add(panel);
+                let panel_is_focused = ctx.memory(|mem| mem.has_focus(panel_id));
+                if panel_is_focused {
+                    self.webview_panel_focused = true;
+                } else if webview_active && !webview.focused() && webview_panel_was_focused {
+                    // If the window loses focus, we need to unfocus the webview panel to avoid a
+                    // panic in AccessKit, but we should return focus to it once the window is
+                    // focused again.
+                    self.webview_panel_focused = true;
                 }
             }
-            let size = Size2D::new(available_rect.width(), available_rect.height()) * scale;
+            let size = Size2D::new(available_rect.width(), available_rect.height()) * scale_factor;
             if let Some(webview) = window.active_webview() &&
                 size != webview.size()
             {
