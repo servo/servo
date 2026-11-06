@@ -1808,7 +1808,20 @@ impl DocumentEventHandler {
 
         let event = keyevent.upcast::<Event>();
         event.set_composed(true);
-        event.fire(cx, target);
+        // <https://html.spec.whatwg.org/multipage/#close-requests>
+        // > Some example close requests are:
+        // > - The Esc key on desktop platforms.
+        // > On platforms where pressing the Esc key is interpreted as a close request, the user agent
+        // > must interpret the key being pressed down as the close request, instead of the key being
+        // > released. Thus, in the above algorithm, the "relevant events" that are fired must be the
+        // > single keydown event.
+        if keyboard_event.event.state == KeyState::Down &&
+            keyboard_event.event.key == Key::Named(NamedKey::Escape)
+        {
+            self.close_request_steps(cx, Some((event, target)));
+        } else {
+            event.fire(cx, target);
+        }
 
         // From https://w3c.github.io/uievents/#keys-cancelable-keys:
         // > Canceling the default action of a keydown event MUST NOT affect its
@@ -1843,6 +1856,57 @@ impl DocumentEventHandler {
         }
 
         self.run_default_keydown_handler(cx, target, &keyboard_event, flags.into())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#close-request-steps>
+    ///
+    /// `event` is the event to fire for this close request, along with its target, if any.
+    pub(crate) fn close_request_steps(
+        &self,
+        cx: &mut JSContext,
+        event: Option<(&Event, &EventTarget)>,
+    ) {
+        // Step 1. If document's fullscreen element is not null:
+        let document = self.window.Document();
+        if document.fullscreen_element().is_some() {
+            // Step 1.1. Fully exit fullscreen given document's node navigable's top-level traversable's active document.
+            // TODO: node navigable's top-level traversable's active document
+            document.fully_exit_fullscreen(cx);
+
+            // Step 1.2. Return.
+            return;
+        }
+
+        // Step 2. Optionally, skip to the step labeled alternative processing.
+
+        // Step 3. Fire any relevant events, per UI Events or other relevant specifications. [UIEVENTS]
+        if let Some((event, target)) = event {
+            event.fire(cx, target);
+        }
+
+        // Step 4. Let event be null if no such events are fired, or the Event object representing one of
+        // the fired events otherwise. If multiple events are fired, which one is chosen is
+        // implementation-defined.
+        let event = event.map(|(event, _)| event);
+
+        // Step 5. If event is not null, and its canceled flag is set, then return.
+        if event.is_some_and(|event| event.flags().contains(EventFlags::Canceled)) {
+            return;
+        }
+
+        // Step 6. If document is not fully active, then return.
+        if !document.is_fully_active() {
+            return;
+        }
+
+        // Step 7. Let closedSomething be the result of processing close watchers on document's
+        // relevant global object.
+        self.window.process_close_watchers(cx);
+
+        // Step 8. If closedSomething is true, then return.
+        // Step 9. Alternative processing: Otherwise, there was nothing watching for a close request.
+        // The user agent may instead interpret this interaction as some other action, instead of
+        // interpreting it as a close request.
     }
 
     fn handle_ime_event(&self, cx: &mut JSContext, event: ImeEvent) -> InputEventResult {
