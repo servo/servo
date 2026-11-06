@@ -8,13 +8,30 @@
 <script src="automated-support.js"></script>
 <script>
 promise_test(async () => {
-  const entries = await readAll(createRoot().createReader());
-  assert_equals(entries.length, 1);
-  assert_true(entries[0].isFile);
-  assert_false(entries[0].isDirectory);
-  assert_equals(entries[0].name, 'test.txt');
-  assert_equals(entries[0].fullPath, '/test.txt');
-}, 'readEntries() enumerates the root directory');
+  const names = [];
+  const dt = new DataTransfer();
+  for (let i = 0; i < 101; i++) {
+    const name = 'f' + i + '.txt';
+    names.push(name);
+    dt.items.add(new File(['x'], name));
+  }
+
+  const root = dt.items[0].webkitGetAsEntry().filesystem.root;
+  const entries = await readAll(root.createReader());
+
+  assert_equals(entries.length, names.length,
+                'readEntries() should return every entry in the directory');
+  assert_array_equals(entries.map(entry => entry.name).sort(),
+                      names.slice().sort(),
+                      'readEntries() should return every expected entry');
+  assert_array_equals(entries.map(entry => entry.fullPath).sort(),
+                      names.map(name => '/' + name).sort(),
+                      'each entry should have the expected full path');
+  assert_true(entries.every(entry => entry.isFile),
+              'every entry should be a file');
+  assert_false(entries.some(entry => entry.isDirectory),
+               'no entry should be a directory');
+}, 'readEntries() enumerates all entries in the root directory');
 
 promise_test(async () => {
   const reader = createRoot().createReader();

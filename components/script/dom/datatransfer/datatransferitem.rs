@@ -170,40 +170,71 @@ impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
             return None;
         }
         let global = self.global();
-        // Step 3. Let item be the item in store’s drag data store item list that this represents.
-        // Step 4. If item’s kind is not `File`, then return null and abort these steps.
+
+        let filesystem = {
+            let mut store = self.data_store.borrow_mut();
+            let store = store.as_mut()?;
+
+            // Step 3. Let item be the item in store’s drag data store item list that this represents.
+            // Step 4. If item’s kind is not `File`, then return null and abort these steps.
+            if !matches!(store.get_by_id(&self.id)?, Kind::File { .. }) {
+                return None;
+            }
+
+            // <https://wicg.github.io/entries-api/#html-data>
+            //
+            // "During a drag-and-drop operation, file and directory items are associated
+            //  with entries. Each entry is a member of a root directory unique to the
+            //  drag data store."
+            match store.filesystem() {
+                Some(filesystem) => filesystem,
+                None => {
+                    let root = FileSystemDirectoryEntry::new(
+                        cx,
+                        &global,
+                        USVString::default(),
+                        USVString::from(String::from("/")),
+                    );
+
+                    let filesystem = FileSystem::new(
+                        cx,
+                        &global,
+                        USVString::from(String::from("filesystem")),
+                        &root,
+                    );
+                    root.set_filesystem(&filesystem);
+
+                    for kind in store.iter_item_list() {
+                        // Non-File items are not represented in the entries tree.
+                        let Some(file) = kind.as_file(cx, &global) else {
+                            continue;
+                        };
+                        let name = file.Name().to_string();
+                        let full_path = USVString::from(format!("/{}", name));
+                        let entry = FileSystemFileEntry::new(
+                            cx,
+                            &global,
+                            USVString::from(name),
+                            full_path,
+                            &file,
+                        );
+                        entry.set_filesystem(&filesystem);
+                        root.push_child(entry.upcast::<FileSystemEntry>());
+                    }
+
+                    store.set_filesystem(&filesystem);
+                    filesystem
+                },
+            }
+        };
+
+        // Step 5. Return a new FileSystemEntry object representing the entry.
         let file = self.item_kind()?.as_file(cx, &global)?;
-
-        // Step 5: Return a new FileSystemEntry object representing the entry.
         let name = file.Name().to_string();
+        let full_path = USVString::from(format!("/{}", name));
+        let entry = FileSystemFileEntry::new(cx, &global, USVString::from(name), full_path, &file);
+        entry.set_filesystem(&filesystem);
 
-        let file_entry = FileSystemFileEntry::new(
-            cx,
-            &global,
-            USVString::from(name.clone()),
-            USVString::from(format!("/{}", name)),
-            &file,
-        );
-
-        let root = FileSystemDirectoryEntry::new(
-            cx,
-            &global,
-            USVString::default(),
-            USVString::from(String::from("/")),
-        );
-
-        root.push_child(file_entry.upcast::<FileSystemEntry>());
-
-        let fs = FileSystem::new(
-            cx,
-            &global,
-            USVString::from(String::from("filesystem")),
-            &root,
-        );
-
-        root.set_filesystem(&fs);
-        file_entry.set_filesystem(&fs);
-
-        Some(DomRoot::upcast::<FileSystemEntry>(file_entry))
+        Some(DomRoot::upcast::<FileSystemEntry>(entry))
     }
 }
