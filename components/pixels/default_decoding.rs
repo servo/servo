@@ -237,7 +237,7 @@ impl ImageEncoderDecoderFactory for DefaultImageEncoderDecoderFactory {
 }
 
 impl<'a> ServoImageDecoder<'a> for DefaultImageDecoder<'a> {
-    fn get(self: Box<Self>) -> Box<dyn ImageDecoder + 'a> {
+    fn into_image_decoder(self: Box<Self>) -> Box<dyn ImageDecoder + 'a> {
         Box::new(self.decoder)
     }
 

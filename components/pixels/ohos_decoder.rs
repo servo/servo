@@ -46,7 +46,7 @@ impl ImageEncoderDecoderFactory for OhosImageEncoderDecoderFactory {
 }
 
 impl<'a> ServoImageDecoder<'a> for OhosImageDecoder<'a> {
-    fn get(self: Box<Self>) -> Box<dyn ImageDecoder + 'a> {
+    fn into_image_decoder(self: Box<Self>) -> Box<dyn ImageDecoder + 'a> {
         self
     }
 
@@ -73,7 +73,8 @@ impl<'a> ServoImageDecoder<'a> for OhosImageDecoder<'a> {
 }
 
 struct OhosImageDecoder<'a> {
-    /// The data needs to be alive according to documentation on `OH_ImageSourceNative_CreateFromDataWithUserBuffer`.
+    /// The data needs to be alive according to documentation
+    /// on `OH_ImageSourceNative_CreateFromDataWithUserBuffer`.
     _data: &'a [u8],
     image_source: *mut OH_ImageSourceNative,
     decoding_option: *mut OH_DecodingOptions,
@@ -84,18 +85,18 @@ impl<'a> OhosImageDecoder<'a> {
     fn new(data: &'a [u8]) -> Result<Self, ()> {
         unsafe {
             let mut image_source_native = ptr::null_mut();
-            let res = OH_ImageSourceNative_CreateFromDataWithUserBuffer(
+            let result = OH_ImageSourceNative_CreateFromDataWithUserBuffer(
                 data.as_ptr().cast_mut(),
                 data.len(),
                 &raw mut image_source_native,
             );
-            if res != OhosImageResult::SUCCESS || image_source_native.is_null() {
+            if result != OhosImageResult::SUCCESS || image_source_native.is_null() {
                 log::error!("Something wrong with CreateFromData");
                 return Err(());
             }
             let mut decoding_options = ptr::null_mut();
-            let res = OH_DecodingOptions_Create(&raw mut decoding_options);
-            if res != OhosImageResult::SUCCESS || decoding_options.is_null() {
+            let result = OH_DecodingOptions_Create(&raw mut decoding_options);
+            if result != OhosImageResult::SUCCESS || decoding_options.is_null() {
                 log::error!("Something wrong with doing decoding options");
                 OH_ImageSourceNative_Release(image_source_native);
                 return Err(());
@@ -106,8 +107,8 @@ impl<'a> OhosImageDecoder<'a> {
             );
 
             let mut image_info = ptr::null_mut();
-            let res = OH_ImageSourceInfo_Create(&raw mut image_info);
-            if res != OhosImageResult::SUCCESS || image_info.is_null() {
+            let result = OH_ImageSourceInfo_Create(&raw mut image_info);
+            if result != OhosImageResult::SUCCESS || image_info.is_null() {
                 log::error!("Could not get image info");
                 OH_DecodingOptions_Release(decoding_options);
                 OH_ImageSourceNative_Release(image_source_native);
@@ -153,14 +154,14 @@ impl<'a> Drop for OhosImageDecoder<'a> {
 impl<'a> ImageDecoder for OhosImageDecoder<'a> {
     fn dimensions(&self) -> (u32, u32) {
         unsafe {
-            let mut width = 20;
+            let mut width = 0;
             if OH_ImageSourceInfo_GetWidth(self.image_info, &raw mut width) !=
                 OhosImageResult::SUCCESS
             {
                 log::error!("Could not get width");
                 return (0, 0);
             }
-            let mut height = 20;
+            let mut height = 0;
             if OH_ImageSourceInfo_GetHeight(self.image_info, &raw mut height) !=
                 OhosImageResult::SUCCESS
             {
@@ -182,12 +183,12 @@ impl<'a> ImageDecoder for OhosImageDecoder<'a> {
     {
         unsafe {
             let mut pixmap = ptr::null_mut();
-            let res = OH_ImageSourceNative_CreatePixelmap(
+            let result = OH_ImageSourceNative_CreatePixelmap(
                 self.image_source,
                 self.decoding_option,
                 &raw mut pixmap,
             );
-            if res != OhosImageResult::SUCCESS || pixmap.is_null() {
+            if result != OhosImageResult::SUCCESS || pixmap.is_null() {
                 log::error!("Could not create pixmap");
                 return Err(ImageError::Unsupported(ImageFormatHint::Unknown.into()));
             }
@@ -205,12 +206,13 @@ impl<'a> ImageDecoder for OhosImageDecoder<'a> {
         Ok(())
     }
 
-    fn read_image_boxed(self: Box<Self>, buf: &mut [u8]) -> ImageResult<()> {
+    fn read_image_boxed(self: Box<Self>, buffer: &mut [u8]) -> ImageResult<()> {
         // the dereference here is important.
-        (*self).read_image(buf)
+        (*self).read_image(buffer)
     }
 
-    /// Returns the orientation. As not every image as an orientation, we fallback to `Orientation::NoTransform` for any error.
+    /// Returns the orientation. As not every image as an orientation,
+    /// we fallback to `Orientation::NoTransform` for any error.
     fn orientation(&mut self) -> ImageResult<image::metadata::Orientation> {
         let mut orientation_string = "Orientation".to_owned();
         let mut key_string = Image_String {
@@ -232,6 +234,10 @@ impl<'a> ImageDecoder for OhosImageDecoder<'a> {
             {
                 return ImageResult::Ok(Orientation::NoTransforms);
             }
+        }
+
+        if orientation.data.is_null() || orientation.size == 0 {
+            return ImageResult::Ok(Orientation::NoTransforms);
         }
 
         let orientation_string = String::from_utf8_lossy(unsafe {
@@ -317,7 +323,7 @@ impl Iterator for OhosAnimationIterator {
     fn next(&mut self) -> Option<Self::Item> {
         let next_frame = self.inner_vector.pop_front()?;
 
-        let mut buffer = vec![0_u8; 4 * (self.width * self.height) as usize];
+        let mut buffer = vec![0_u8; 4_usize * (self.width as usize * self.height as usize)];
         unsafe {
             if write_pixmap_to_buffer(next_frame.0, &mut buffer).is_err() {
                 log::error!("Could not write pixmap buffer");
@@ -337,9 +343,9 @@ impl Iterator for OhosAnimationIterator {
                 .unwrap_or(0),
             1,
         );
-        let result = Some(Ok(Frame::from_parts(rgba_image, 0, 0, delay)));
+        let frame = Some(Ok(Frame::from_parts(rgba_image, 0, 0, delay)));
         self.count += 1;
-        result
+        frame
     }
 }
 
@@ -406,7 +412,7 @@ impl<'a> ServoAnimation<'a> for OhosImageDecoder<'a> {
             size: 0,
         };
 
-        let slice = unsafe {
+        let image_slice = unsafe {
             if OH_ImageSourceNative_GetImageProperty(
                 self.image_source,
                 &raw mut image_string,
@@ -420,7 +426,7 @@ impl<'a> ServoAnimation<'a> for OhosImageDecoder<'a> {
 
             slice::from_raw_parts(image_string_target.data, image_string_target.size)
         };
-        let string = String::from_utf8_lossy(slice);
+        let string = String::from_utf8_lossy(image_slice);
 
         unsafe {
             libc::free(image_string_target.data as *mut libc::c_void);

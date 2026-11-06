@@ -1088,9 +1088,9 @@ impl Servo {
             opts.temporary_storage,
         );
 
-        let image_decoder_encoder_factory = builder.image_decoder_encoder_factory.unwrap_or(
-            Arc::new(pixels::DefaultImageEncoderDecoderFactory::default()),
-        );
+        let image_encoder_decoder_factory = builder
+            .image_encoder_decoder_factory
+            .unwrap_or_else(|| Arc::new(pixels::DefaultImageEncoderDecoderFactory::default()));
 
         create_constellation(
             embedder_to_constellation_receiver,
@@ -1108,7 +1108,7 @@ impl Servo {
             async_runtime,
             public_storage_threads.clone(),
             private_storage_threads.clone(),
-            image_decoder_encoder_factory,
+            image_encoder_decoder_factory,
         );
 
         net::connector::prewarm_tls();
@@ -1550,7 +1550,7 @@ pub struct ServoBuilder {
     preferences: Option<Box<Preferences>>,
     event_loop_waker: Box<dyn EventLoopWaker>,
     protocol_registry: ProtocolRegistry,
-    image_decoder_encoder_factory: Option<Arc<dyn ImageEncoderDecoderFactory>>,
+    image_encoder_decoder_factory: Option<Arc<dyn ImageEncoderDecoderFactory>>,
 }
 
 impl Default for ServoBuilder {
@@ -1560,7 +1560,7 @@ impl Default for ServoBuilder {
             preferences: Default::default(),
             event_loop_waker: Box::new(DefaultEventLoopWaker),
             protocol_registry: Default::default(),
-            image_decoder_encoder_factory: None,
+            image_encoder_decoder_factory: None,
         }
     }
 }
@@ -1594,7 +1594,7 @@ impl ServoBuilder {
         mut self,
         factory: Arc<dyn ImageEncoderDecoderFactory>,
     ) -> Self {
-        self.image_decoder_encoder_factory = Some(factory);
+        self.image_encoder_decoder_factory = Some(factory);
         self
     }
 }
