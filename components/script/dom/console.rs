@@ -130,16 +130,6 @@ impl Console {
         let embedder_msg = if !messages.is_empty() && messages[0].is_string() {
             let (formatted, consumed) = apply_sprintf_substitutions(cx, &messages);
 
-            #[cfg(feature = "devtools")]
-            {
-                let remaining_iter = messages.iter().skip(consumed - 1).map(|msg| {
-                    devtools::console_argument_from_handle_value(cx, *msg, &mut Vec::new())
-                });
-                devtools_arguments = std::iter::once(DebuggerValue::StringValue(formatted.clone()))
-                    .chain(remaining_iter)
-                    .collect();
-            }
-
             let embedder_msg = if messages.get(consumed - 1).is_some() {
                 formatted
             } else {
