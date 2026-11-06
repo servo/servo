@@ -63,7 +63,7 @@ use std::os::raw::c_void;
 use std::path::PathBuf;
 use std::ptr::NonNull;
 use std::rc::Rc;
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{LazyLock, Mutex, Once, OnceLock, mpsc};
 use std::{fs, thread};
 
@@ -393,6 +393,7 @@ pub(super) enum ServoAction {
     FocusWindow(ServoShellWindowId),
     CreatePlatformWindow(ServoShellWindowId, XComponentWrapper, WindowWrapper),
     CloseWindow(ServoShellWindowId),
+    SaveToDisk(Sender<()>),
 }
 
 impl std::fmt::Debug for ServoAction {
@@ -439,6 +440,7 @@ impl std::fmt::Debug for ServoAction {
                 .field(window_id)
                 .finish(),
             Self::CloseWindow(window) => f.debug_tuple("CloseWindow").field(window).finish(),
+            Self::SaveToDisk(..) => f.debug_tuple("SaveToDisk").finish(),
         }
     }
 }
@@ -552,6 +554,14 @@ impl ServoAction {
                     warn!("Window is already closed.");
                 }
                 servo.spin_event_loop();
+            },
+            SaveToDisk(sender) => {
+                servo
+                    .state
+                    .servo
+                    .network_manager()
+                    .store_http_cache_to_disk();
+                let _ = sender.send(());
             },
         };
     }
@@ -1078,6 +1088,14 @@ fn focus_window(window_id: u32) {
 fn close_window(window_id: u32) {
     let window_id = ServoShellWindowId::from(window_id);
     call(ServoAction::CloseWindow(window_id)).expect("Could not close window");
+}
+
+#[napi]
+fn on_background() {
+    debug!("on_background called");
+    let (sender, receiver) = channel();
+    call(ServoAction::SaveToDisk(sender)).expect("Could not save to disk");
+    let _ = receiver.recv();
 }
 
 struct OhosImeOptions {
