@@ -929,22 +929,22 @@ fn stringify_debugger_value(value: &DebuggerValue) -> String {
 }
 
 #[derive(Default)]
-struct ConsoleTable {
+pub struct ConsoleTable {
     /// Column names in first-seen order (or the order given by `properties`).
-    columns: Vec<String>,
-    rows: Vec<TableRow>,
+    pub columns: Vec<String>,
+    pub rows: Vec<TableRow>,
 }
 
-struct TableRow {
-    index: String,
+pub struct TableRow {
+    pub index: String,
     /// (column name, cell text)
-    cells: Vec<(String, String)>,
+    pub cells: Vec<(String, String)>,
     /// Set when the row itself is a primitive -> goes in the "Values" column.
-    value: Option<String>,
+    pub value: Option<String>,
 }
 
 impl ConsoleTable {
-    fn render(&self) -> String {
+    pub fn render(&self) -> String {
         let has_values = self.rows.iter().any(|row| row.value.is_some());
 
         let mut headers = vec!["(index)".to_string()];
@@ -974,7 +974,7 @@ impl ConsoleTable {
             })
             .collect();
 
-        let widths: Vec<usize> = (0..headers.len())
+        let column_widths: Vec<usize> = (0..headers.len())
             .map(|i| {
                 std::iter::once(&headers[i])
                     .chain(grid.iter().map(|row| &row[i]))
@@ -985,14 +985,18 @@ impl ConsoleTable {
             .collect();
 
         let border = |left: &str, mid: &str, right: &str| {
-            let segments: Vec<String> = widths.iter().map(|w| "─".repeat(w + 2)).collect();
+            let segments: Vec<String> = column_widths.iter().map(|w| "─".repeat(w + 2)).collect();
             format!("{left}{}{right}", segments.join(mid))
         };
         let line = |cells: &[String]| {
             let padded: Vec<String> = cells
                 .iter()
-                .zip(&widths)
-                .map(|(cell, &w)| format!(" {cell:<w$} "))
+                .zip(&column_widths)
+                .map(|(cell, &column_width)| {
+                    // Use manual padding to avoid `format!` panics when width exceeds `u16::MAX`.
+                    let pad_width = column_width.saturating_sub(cell.chars().count());
+                    format!(" {cell}{} ", " ".repeat(pad_width))
+                })
                 .collect();
             format!("│{}│", padded.join("│"))
         };
