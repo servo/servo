@@ -28,7 +28,10 @@ use data_url::mime::Mime;
 use device_monitor::GStreamerDeviceMonitor;
 use gstreamer::prelude::*;
 use log::warn;
+use malloc_size_of::MallocShallowSizeOf;
 use media_stream::GStreamerMediaStream;
+use profile_traits::mem::{Report, ReportKind, perform_memory_report};
+use profile_traits::path;
 use registry_scanner::GSTREAMER_REGISTRY_SCANNER;
 use servo_base::generic_channel::GenericCallback;
 use servo_media::{Backend, BackendDeInit, BackendInit, MediaInstanceError, SupportsMediaType};
@@ -326,6 +329,52 @@ impl Backend for GStreamerBackend {
     fn get_device_monitor(&self) -> Box<dyn MediaDeviceMonitor> {
         Box::new(GStreamerDeviceMonitor::new())
     }
+
+    fn collect_reports(&self) -> Vec<Report> {
+        // The instance bookkeeping contains trait objects (`dyn MediaInstance`),
+        // which cannot be measured with `MallocSizeOf`. Instead, measure the map
+        // and the per-context vectors shallowly, plus the heap allocation that
+        // backs every media instance that is still alive.
+        let instances = self.instances.lock().unwrap();
+        let mut reports = Vec::new();
+
+        perform_memory_report(|ops| {
+            // The hash table itself.
+            let mut size = instances.shallow_size_of(ops);
+
+            for instance_list in instances.values() {
+                // One Vec<(instance id, Weak<...>)> per client context.
+                size += instance_list.shallow_size_of(ops);
+
+                for (_, weak_instance) in instance_list.iter() {
+                    // `Weak` deliberately measures zero because it does not own its
+                    // target, so upgrade first and measure the `Arc` allocation of
+                    // every instance that is still alive.
+                    if let Some(instance) = weak_instance.upgrade() {
+                        if ops.has_malloc_enclosing_size_of() {
+                            // SAFETY: the pointer points into the live `Arc`
+                            // allocation that we upgraded above; the allocator
+                            // computes the size of the allocation containing it.
+                            let ptr = Arc::as_ptr(&instance) as *const u8;
+                            size += unsafe { ops.malloc_enclosing_size_of(ptr) };
+                        } else {
+                            // Fallback when the allocator cannot measure enclosing
+                            // allocations (e.g. the allocation-tracking feature is
+                            // disabled): an estimate of the Arc control block.
+                            size += std::mem::size_of::<WeakMediaInstance>();
+                        }
+                    }
+                }
+            }
+
+            reports.push(Report {
+                path: path!["media", "gstreamer", "instances"],
+                kind: ReportKind::ExplicitJemallocHeapSize,
+                size,
+            });
+        });
+        reports
+    }
 }
 
 impl AudioBackend for GStreamerBackend {
@@ -386,5 +435,35 @@ impl BackendDeInit for GStreamerBackend {
                 });
             let _ = rx_ack.recv();
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use profile_traits::mem::ReportKind;
+    use servo_media::BackendInit;
+
+    use super::GStreamerBackend;
+
+    #[test]
+    fn collect_reports_returns_an_instances_report() {
+        // `BackendInit::init()` initializes GStreamer and returns the backend
+        // directly (it panics internally on failure); the instances map starts
+        // out empty.
+        let backend = GStreamerBackend::init();
+        let reports = backend.collect_reports();
+        assert_eq!(reports.len(), 1);
+        assert_eq!(
+            reports[0].path,
+            vec![
+                "media".to_owned(),
+                "gstreamer".to_owned(),
+                "instances".to_owned()
+            ]
+        );
+        assert!(matches!(
+            reports[0].kind,
+            ReportKind::ExplicitJemallocHeapSize
+        ));
     }
 }

@@ -5,7 +5,7 @@
 use std::cell::{RefCell, RefMut};
 use std::{cmp, fmt, hash};
 
-use malloc_size_of::MallocSizeOf as MallocSizeOfTrait;
+use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use petgraph::Direction;
 use petgraph::algo::tarjan_scc;
@@ -545,6 +545,37 @@ impl AudioGraph {
     /// Obtain a mutable reference to a node
     pub(crate) fn node_mut(&self, ix: NodeId) -> RefMut<'_, Box<dyn AudioNodeEngine>> {
         self.graph[ix.0].node.borrow_mut()
+    }
+
+    /// Measure the memory used by the graph: petgraph's own bookkeeping
+    /// (estimated) plus the heap allocation backing each node's boxed
+    /// implementation.
+    ///
+    /// Individual node implementations are trait objects, so their *out-of-line*
+    /// data (e.g. audio buffers inside nodes) is not measured yet; that can be
+    /// added later by extending the measurement per node type.
+    pub(crate) fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        // petgraph stores node/edge weights and their metadata in flat vectors;
+        // without access to the raw vectors, estimate from the element counts.
+        let mut size = self.graph.node_count() * std::mem::size_of::<Node>() +
+            self.graph.edge_count() * std::mem::size_of::<Edge>();
+
+        for node_index in self.graph.node_indices() {
+            if let Some(node) = self.graph.node_weight(node_index) {
+                let node = node.node.borrow();
+                if ops.has_malloc_enclosing_size_of() {
+                    // SAFETY: the thin pointer addresses the allocation made
+                    // for the boxed node implementation, which is kept alive
+                    // by the borrow above.
+                    let ptr = &**node as *const dyn AudioNodeEngine as *const u8;
+                    size += unsafe { ops.malloc_size_of(ptr) };
+                } else {
+                    size += std::mem::size_of::<Box<dyn AudioNodeEngine>>();
+                }
+            }
+        }
+
+        size
     }
 
     /// Detect cycles in this graph and return the indices of their nodes.
