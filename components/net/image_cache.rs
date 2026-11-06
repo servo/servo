@@ -24,7 +24,10 @@ use net_traits::request::CorsSettings;
 use net_traits::{FetchResponseMsg, Metadata, NetworkError};
 use paint_api::{CrossProcessPaintApi, ImageUpdate, SerializableImageData};
 use parking_lot::Mutex;
-use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage, load_from_memory};
+use pixels::{
+    CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage, ServoImageDecoder,
+    load_from_memory,
+};
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
 use resvg::tiny_skia;
@@ -94,6 +97,7 @@ fn parse_svg_document_in_memory(
 }
 
 fn decode_bytes_sync(
+    image_decoder: Arc<dyn ServoImageDecoder>,
     key: LoadKey,
     bytes: &[u8],
     cors: CorsStatus,
@@ -118,7 +122,7 @@ fn decode_bytes_sync(
                 })
             })
     } else {
-        load_from_memory(bytes, cors).map(DecodedImage::Raster)
+        load_from_memory(image_decoder, bytes, cors).map(DecodedImage::Raster)
     };
 
     DecoderMsg { key, image }
@@ -809,15 +813,18 @@ pub struct ImageCacheFactoryImpl {
     broken_image_icon_data: Arc<Vec<u8>>,
     /// Thread pool for image decoding
     thread_pool: Arc<ThreadPool>,
+    /// Image Decoder
+    image_decoder: Arc<dyn ServoImageDecoder>,
 }
 
 impl ImageCacheFactoryImpl {
-    pub fn new(broken_image_icon_data: Vec<u8>) -> Self {
+    pub fn new(image_decoder: Arc<dyn ServoImageDecoder>, broken_image_icon_data: Vec<u8>) -> Self {
         debug!("Creating new ImageCacheFactoryImpl");
 
         Self {
             broken_image_icon_data: Arc::new(broken_image_icon_data),
             thread_pool: ThreadPool::global(),
+            image_decoder,
         }
     }
 }
@@ -871,6 +878,7 @@ impl ImageCacheFactory for ImageCacheFactoryImpl {
             thread_pool: self.thread_pool.clone(),
             usvg_options: Arc::new(opt),
             usvg_font_resolver: font_resolver.clone(),
+            image_decoder: self.image_decoder.clone(),
         })
     }
 }
@@ -891,6 +899,8 @@ pub struct ImageCacheImpl {
     ///
     /// This is only used inside `usvg::Options` but is here so we can measure it.
     usvg_font_resolver: Arc<dyn FontResolver>,
+    /// The `ServoImageEncoder` instance we will use to encode iamges.
+    image_decoder: Arc<dyn ServoImageDecoder>,
 }
 
 impl ImageCache for ImageCacheImpl {
@@ -1326,8 +1336,10 @@ impl ImageCache for ImageCacheImpl {
 
                         let local_store = self.store.clone();
                         let usvg_options = self.usvg_options.clone();
+                        let image_decoder = self.image_decoder.clone();
                         self.thread_pool.spawn(move || {
                             let msg = decode_bytes_sync(
+                                image_decoder,
                                 key,
                                 &bytes,
                                 cors_status,
@@ -1378,8 +1390,18 @@ impl ImageCache for ImageCacheImpl {
         store
             .broken_image_icon_image
             .get_or_init(|| {
-                let mut image = load_from_memory(&self.broken_image_icon_data, CorsStatus::Unsafe)
-                    .or_else(|| load_from_memory(FALLBACK_RIPPY, CorsStatus::Unsafe))?;
+                let mut image = load_from_memory(
+                    self.image_decoder.clone(),
+                    &self.broken_image_icon_data,
+                    CorsStatus::Unsafe,
+                )
+                .or_else(|| {
+                    load_from_memory(
+                        self.image_decoder.clone(),
+                        FALLBACK_RIPPY,
+                        CorsStatus::Unsafe,
+                    )
+                })?;
                 let image_key = store
                     .paint_api
                     .generate_image_key_blocking(store.webview_id)
@@ -1388,6 +1410,10 @@ impl ImageCache for ImageCacheImpl {
                 Some(Arc::new(image))
             })
             .clone()
+    }
+
+    fn decoder(&self) -> Arc<dyn ServoImageDecoder> {
+        self.image_decoder.clone()
     }
 }
 

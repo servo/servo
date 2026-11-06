@@ -114,7 +114,7 @@ pub use crate::gamepad_delegate::{
 pub use crate::geolocation_delegate::{GeolocationDelegate, PositionRequest, PositionWatch};
 pub use crate::network_manager::{CacheEntry, NetworkManager};
 #[cfg(feature = "multiprocess")]
-pub use crate::servo::run_content_process;
+pub use crate::servo::{ContentProcessParameters, run_content_process};
 pub use crate::servo::{Servo, ServoBuilder};
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
 pub use crate::site_data_manager::{SiteData, SiteDataManager, StorageType};

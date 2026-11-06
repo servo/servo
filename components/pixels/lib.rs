@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-mod decoding;
+mod default_decoder;
 mod snapshot;
+mod traits;
 
 use std::borrow::Cow;
 use std::fmt;
@@ -15,7 +16,7 @@ use std::time::Duration;
 use euclid::default::{Point2D, Rect, Size2D};
 use image::imageops::{self, FilterType};
 use image::{ImageBuffer, ImageFormat, Rgba};
-use log::{debug, error};
+use log::error;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use servo_base::cross_process_instant::CrossProcessInstant;
@@ -26,7 +27,8 @@ use webrender_api::{
     ImageDescriptor, ImageDescriptorFlags, ImageFormat as WebRenderImageFormat, ImageKey,
 };
 
-use crate::decoding::ServoImageDecoder;
+pub use crate::default_decoder::DefaultImageDecoder;
+pub use crate::traits::ServoImageDecoder;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum FilterQuality {
@@ -529,30 +531,28 @@ pub struct ImageMetadata {
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.
 
-pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<RasterImage> {
+pub fn load_from_memory(
+    image_decoder: Arc<dyn ServoImageDecoder>,
+    buffer: &[u8],
+    cors_status: CorsStatus,
+) -> Option<RasterImage> {
     if buffer.is_empty() {
         return None;
     }
 
-    let image_fmt_result = detect_image_format(buffer);
-    match image_fmt_result {
-        Err(msg) => {
-            debug!("{}", msg);
-            None
-        },
-        Ok(format) => {
-            let Ok(image_decoder) = decoding::DefaultImageDecoder::make_decoder(format, buffer)
-            else {
-                return None;
-            };
-
-            if image_decoder.is_animated() {
-                decoding::decode_animated_image(cors_status, image_decoder.animated_decoder())
-            } else {
-                decoding::decode_static_image(cors_status, image_decoder.decoder())
-            }
-        },
-    }
+    image_decoder
+        .decode_image(buffer)
+        .map(|decoded_image| RasterImage {
+            metadata: decoded_image.metadata,
+            format: decoded_image.format,
+            id: None,
+            cors_status,
+            load_time: None,
+            bytes: Arc::new(decoded_image.bytes),
+            frames: decoded_image.frames,
+            is_opaque: decoded_image.is_opaque,
+            loop_count: decoded_image.loop_count,
+        })
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img
