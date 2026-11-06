@@ -602,6 +602,27 @@ impl WebGLFramebuffer {
         CompleteForRendering::Complete
     }
 
+    /// Clears the uninitialized attachments of this framebuffer, which is bound for reading only.
+    /// Clearing requires a draw binding, so the `draw_framebuffer` binding is restored afterwards.
+    pub(crate) fn initialize_for_reading(&self, draw_framebuffer: Option<&WebGLFramebuffer>) {
+        if self.is_initialized.get() {
+            return;
+        }
+        let bind_draw = |request| {
+            self.upcast().send_command(WebGLCommand::BindFramebuffer(
+                constants::DRAW_FRAMEBUFFER,
+                request,
+            ))
+        };
+        bind_draw(WebGLFramebufferBindingRequest::Explicit(self.id()));
+        self.check_status_for_rendering();
+        bind_draw(
+            draw_framebuffer.map_or(WebGLFramebufferBindingRequest::Default, |fb| {
+                WebGLFramebufferBindingRequest::Explicit(fb.id())
+            }),
+        );
+    }
+
     pub(crate) fn renderbuffer(
         &self,
         attachment: u32,

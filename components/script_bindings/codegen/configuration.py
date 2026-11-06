@@ -516,6 +516,9 @@ class Descriptor(DescriptorProvider):
         # that's not a cross-origin object.  The WindowProxy is.
         return self.concrete and self.interface.hasCrossOriginMembers and not self.isGlobal()
 
+    def emitsCrossOriginPropertyTable(self) -> bool:
+        return self.concrete and self.interface.hasCrossOriginMembers
+
     def hasDescendants(self) -> bool:
         return (self.interface.getUserData("hasConcreteDescendant", False)
                 or self.interface.getUserData("hasProxyDescendant", False) or False)

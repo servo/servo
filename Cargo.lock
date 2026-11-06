@@ -1535,9 +1535,9 @@ checksum = "a6ef517f0926dd24a1582492c791b6a4818a4d94e789a334894aa15b0d12f55c"
 
 [[package]]
 name = "content-security-policy"
-version = "0.8.2"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4a6aa7e33210a2eef3b5acc97e9da7fd026c74d54776a576d1ec24d068ba04d"
+checksum = "9dd26eb56761db2c5288e97cfb8593fb411d3a7907ced6b6679512207ea8759c"
 dependencies = [
  "base64 0.22.1",
  "bitflags 2.13.1",
@@ -1639,6 +1639,12 @@ dependencies = [
  "foreign-types",
  "libc",
 ]
+
+[[package]]
+name = "core_detect"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f8f80099a98041a3d1622845c271458a2d73e688351bf3cb999266764b81d48"
 
 [[package]]
 name = "core_maths"
@@ -1759,9 +1765,9 @@ checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 
 [[package]]
 name = "crypto-bigint"
-version = "0.7.5"
+version = "0.7.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a52aa3fcda4e6302a9f48734f234d35d4721b96f8fe07d073f07ce9df4f0271"
+checksum = "9c035cb64cba03dad2fb921f3e218785e8cf9a41790da5eb3a1400f62fa2be11"
 dependencies = [
  "cpubits",
  "ctutils",
@@ -1857,9 +1863,9 @@ dependencies = [
 
 [[package]]
 name = "ctutils"
-version = "0.4.2"
+version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d5515a3834141de9eafb9717ad39eea8247b5674e6066c404e8c4b365d2a29e"
+checksum = "261af4dc7a06ea8a527a8717d8cbba3417530d6ea14e1edb3de6b67806be474f"
 dependencies = [
  "cmov",
  "subtle",
@@ -2456,12 +2462,18 @@ dependencies = [
 
 [[package]]
 name = "encoding_rs"
-version = "0.8.35"
+version = "0.8.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75030f3c4f45dafd7586dd6780965a8c7e8e285a5ecb86713e63a79c5b2766f3"
+checksum = "89253175e704ab869b04f9db224d38630e0211a53841a79181deae0889e169f5"
 dependencies = [
  "cfg-if",
+ "core_detect",
+ "multiversion",
+ "multiversion_no_op",
+ "rustversion",
+ "scopeguard",
  "serde",
+ "simdutf8",
 ]
 
 [[package]]
@@ -5000,9 +5012,9 @@ dependencies = [
 
 [[package]]
 name = "libz-sys"
-version = "1.1.29"
+version = "1.1.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "85bc9657773828b90eeb625adff10eeac83cc21bbfd8e23a03eaa8a33c9e28d9"
+checksum = "ff20308ecabd635a2dc1dd5834a86c462cca20efba1d5d3ddab1f8aea3455cb2"
 dependencies = [
  "cc",
  "libc",
@@ -5282,9 +5294,9 @@ dependencies = [
 
 [[package]]
 name = "mozjs"
-version = "0.26.3"
+version = "0.26.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b29d0a224ece337365da7f5dbc58c7b5cf9ecffddbbbe61164436f3500fd381"
+checksum = "1a28e00320a723648e8d51b9bac89a55abf6f2029287fc3126ec3c0c395bbaa6"
 dependencies = [
  "bindgen",
  "cc",
@@ -5297,9 +5309,9 @@ dependencies = [
 
 [[package]]
 name = "mozjs_collator_glue"
-version = "153.3.0"
+version = "153.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6511ad98f083002dbf5fef43161bab40ee29cdb078c1f206da44a9e8d7068e93"
+checksum = "35033c6b0805271adbed9b50047bf07efb5e999c1a8a86753af79b742b02f8dd"
 dependencies = [
  "arraystring",
  "arrayvec",
@@ -5312,9 +5324,9 @@ dependencies = [
 
 [[package]]
 name = "mozjs_icu_collator"
-version = "153.3.0"
+version = "153.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e483fdb5592a4f52c2d0e3c419935acfb98a5b578154b93999b92dedbf170e0d"
+checksum = "00b76d0de5caa407560685c101a9823a58902008b3d9e6c062c4315c66917945"
 dependencies = [
  "displaydoc",
  "icu_locale",
@@ -5333,15 +5345,15 @@ dependencies = [
 
 [[package]]
 name = "mozjs_icu_collator_data"
-version = "153.3.0"
+version = "153.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b19ab440fab2f70cf54fc4c1f27eb3e96fc040e21fa824c126714ba50e4712ef"
+checksum = "905f380c3d72b517739a618d84d2d196a55fb0d8cdf76dd96f21d074650140ce"
 
 [[package]]
 name = "mozjs_icu_collections"
-version = "153.3.0"
+version = "153.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93e3aada8c51f5b8ba967c77c94694daaba66123377664dbe9991eb866550295"
+checksum = "04e3240b3156db0f1b0acda72cd79b53eebbbd032300519b450bc9be51648c2b"
 dependencies = [
  "displaydoc",
  "icu_casemap",
@@ -5354,9 +5366,9 @@ dependencies = [
 
 [[package]]
 name = "mozjs_icu_normalizer"
-version = "153.3.0"
+version = "153.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "362f589e9c5f836baade5fe90d587ffcab715c4e6bc01d6e2f266f939529876d"
+checksum = "f4c5c74ab2d167ca63b41b7e8b6fce2ecc047e8342a90208c422c73d6bc9a099"
 dependencies = [
  "displaydoc",
  "icu_properties",
@@ -5372,15 +5384,15 @@ dependencies = [
 
 [[package]]
 name = "mozjs_icu_normalizer_data"
-version = "153.3.0"
+version = "153.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72097863db07d41f443ccf464b1fe4a740362995f071e309b6d4bc81c46e42cc"
+checksum = "366ea39d07901d23c51a0b149bf332afa8c4dc84ab7619b2d899bfe01b3e3dbc"
 
 [[package]]
 name = "mozjs_locale_glue"
-version = "153.3.0"
+version = "153.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05df95cc420fc9ad69084ddc2a5eb65fd0a199330264ae53b2c4ae53921921da"
+checksum = "e239a7291a90e08c8d93a02fe54fb904e906d434859f762b7d1634f7f0152ad1"
 dependencies = [
  "cbindgen",
  "icu_locale",
@@ -5388,9 +5400,9 @@ dependencies = [
 
 [[package]]
 name = "mozjs_normalizer_glue"
-version = "153.3.0"
+version = "153.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8afbf5a615af0b6ef6d09b17ec7dd0d6633d63433e69ff6d3d3308dc5ba7c6e4"
+checksum = "a692f74e0255a0e0223e29f847ee8fd3a5bd846dbc64c6dd2cdb7b94435bf1eb"
 dependencies = [
  "cbindgen",
  "encoding_rs",
@@ -5401,9 +5413,9 @@ dependencies = [
 
 [[package]]
 name = "mozjs_properties_glue"
-version = "153.3.0"
+version = "153.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be7f9d646c1c150a90660180008b4c16625929c233627e62217980e451d13185"
+checksum = "e7e0d6dd3ea602e1c749f3c046e68d3cd84dfab0c1a5270bccba014259478d6e"
 dependencies = [
  "cbindgen",
  "icu_casemap",
@@ -5413,9 +5425,9 @@ dependencies = [
 
 [[package]]
 name = "mozjs_sys"
-version = "153.3.0-0"
+version = "153.6.0-2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8441c2a92373a58e822e9cc213a8dd01367ec8c532c1ffa88ad9e4ab88687c13"
+checksum = "b0f69b286813322420ea4aeea951abe15fa14e27b23600300da6a2128ad6ef04"
 dependencies = [
  "bindgen",
  "cc",
@@ -5436,9 +5448,9 @@ dependencies = [
 
 [[package]]
 name = "mozjs_unicode_bidi_ffi"
-version = "153.3.0"
+version = "153.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5dc1a975a659c188c30405253ad5f8aa69d5ec8025026a596d1815ae32a80534"
+checksum = "37b4e0d187cf9d048329996116e68172b99702ec6af6ad1e3a067d4cf8a89202"
 dependencies = [
  "cbindgen",
  "icu_properties",
@@ -5447,18 +5459,18 @@ dependencies = [
 
 [[package]]
 name = "mozjs_utf16_iter"
-version = "153.3.0"
+version = "153.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61d5e140da3b74d33316f5326e5ef551d45b6d7b4c4bdd5ed1aee9435cdbcf4d"
+checksum = "c0f5cccbc6429d442b3b7be04093b49509f188e514780a34ef3704f601e731be"
 dependencies = [
  "mozjs_icu_collections",
 ]
 
 [[package]]
 name = "mozjs_utf8_iter"
-version = "153.3.0"
+version = "153.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "587d6436f6eeef749e281d49cf401343707354c916e92505cd26ae2a0da9b638"
+checksum = "fd4ba02f48ea0cd8e2279a2d66e89dc367b4448561f4c6e44e75f85ac465099f"
 dependencies = [
  "mozjs_icu_collections",
 ]
@@ -5468,6 +5480,33 @@ name = "muldiv"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "956787520e75e9bd233246045d19f42fb73242759cc57fba9611d940ae96d4b0"
+
+[[package]]
+name = "multiversion"
+version = "0.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "18f07d0ab403c0c662001890da44da2500990d86e15788489cf9a94895f19e4e"
+dependencies = [
+ "multiversion-macros",
+]
+
+[[package]]
+name = "multiversion-macros"
+version = "0.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5e521b4032cf166c0d10a5d8598abd9858696612b9e2a4576ef97c7af4626bd6"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "rustversion",
+ "syn 3.0.4",
+]
+
+[[package]]
+name = "multiversion_no_op"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "743fb55ba31b18fb1ecef6bdc9aa2743314978ac084044301a7eee33fb99a20d"
 
 [[package]]
 name = "naga"
@@ -7588,9 +7627,9 @@ dependencies = [
 
 [[package]]
 name = "rustls"
-version = "0.23.45"
+version = "0.23.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d41d731c7d2f962d1ccc364cec258de3c0e93b38c2fb3ba97ac74513048d634"
+checksum = "48e13bd8c0e9365c43cfa5c9e8f9ad49d3c8444926c9aac819e0e4dc503c8fdf"
 dependencies = [
  "aws-lc-rs",
  "log",
@@ -7651,9 +7690,9 @@ checksum = "f87165f0995f63a9fbeea62b64d10b4d9d8e78ec6d7d51fb2125fda7bb36788f"
 
 [[package]]
 name = "rustls-webpki"
-version = "0.103.15"
+version = "0.103.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3c3cf1d8b1e7d4927e2d154c3fcb02979afb9939629c62cd9048d4f07b60ac2"
+checksum = "4443b1b6d39d7c663139942cc4558262562d2c84123bb6282ef177009ca8b281"
 dependencies = [
  "aws-lc-rs",
  "ring",
@@ -10689,9 +10728,9 @@ dependencies = [
 
 [[package]]
 name = "tokio"
-version = "1.53.1"
+version = "1.54.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "202caea871b69668250d242070849eb495be178ed697a3e98aebce5bc81a0bed"
+checksum = "b52fd3255258d26fac7264ab5a76b53c13367136dc011d3d6ad4f8ed070396a3"
 dependencies = [
  "bytes",
  "libc",
@@ -11716,18 +11755,18 @@ dependencies = [
 
 [[package]]
 name = "webpki-root-certs"
-version = "1.0.9"
+version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b96554aa2acc8ccdb7e1c9a58a7a68dd5d13bccc69cd124cb09406db612a1c9b"
+checksum = "e49d0e65abc00c142e8f9428da991da9f1a250c39be97459901eb12b9b49f62a"
 dependencies = [
  "rustls-pki-types",
 ]
 
 [[package]]
 name = "webpki-roots"
-version = "1.0.9"
+version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7dcd9d09a39985f5344844e66b0c530a33843579125f23e21e9f0f220850f22a"
+checksum = "f5f280bbb2b287bc8e7de7e3852945a0ff50d1bbcb5ed42b6c7a568c546df171"
 dependencies = [
  "rustls-pki-types",
 ]
@@ -13101,27 +13140,27 @@ checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
 
 [[package]]
 name = "zstd"
-version = "0.13.3"
+version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e91ee311a569c327171651566e07972200e76fcfe2242a4fa446149a3881c08a"
+checksum = "cdb02c3132d251ab1606e9fc913a7da6c6ed08cc263df15edf082e1dc497d157"
 dependencies = [
  "zstd-safe",
 ]
 
 [[package]]
 name = "zstd-safe"
-version = "7.2.4"
+version = "7.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f49c4d5f0abb602a93fb8736af2a4f4dd9512e36f7f570d66e65ff867ed3b9d"
+checksum = "1c8ea04668f5de8d8d51051714ba560c9536519cadcdb8829bba4fe2ad159b03"
 dependencies = [
  "zstd-sys",
 ]
 
 [[package]]
 name = "zstd-sys"
-version = "2.0.16+zstd.1.5.7"
+version = "2.1.2+zstd.1.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91e19ebc2adc8f83e43039e79776e3fda8ca919132d68a1fed6a5faca2683748"
+checksum = "481ada9c543b2323cbb7bbdbb5249177fbf0188ed959ed2c15e4b22421c84ed3"
 dependencies = [
  "cc",
  "pkg-config",

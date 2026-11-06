@@ -148,7 +148,7 @@ use crate::event_loop::script_window_proxies::ScriptWindowProxies;
 use crate::event_loop::svg_font::SvgFontResolver;
 use crate::event_loop::webdriver_handlers::{self, jsval_to_webdriver};
 use crate::fetch::fetch::FetchCanceller;
-use crate::fetch::network_listener::{FetchResponseListener, submit_timing};
+use crate::fetch::network_listener::submit_timing;
 use crate::messaging::{
     CommonScriptMsg, MainThreadScriptMsg, MixedMessage, ScriptEventLoopSender,
     ScriptThreadReceivers, ScriptThreadSenders,
@@ -540,24 +540,6 @@ impl ScriptThread {
 
     pub(crate) fn shared_style_locks(&self) -> &SharedRwLocks {
         &self.shared_style_locks
-    }
-
-    pub(crate) fn page_headers_available(
-        webview_id: WebViewId,
-        pipeline_id: PipelineId,
-        metadata: Option<&Metadata>,
-        origin: MutableOrigin,
-        cx: &mut js::context::JSContext,
-    ) -> Option<DomRoot<Document>> {
-        with_script_thread(|script_thread| {
-            script_thread.handle_page_headers_available(
-                webview_id,
-                pipeline_id,
-                metadata,
-                origin,
-                cx,
-            )
-        })
     }
 
     /// Process a single event as if it were the next event
@@ -3104,7 +3086,7 @@ impl ScriptThread {
 
     /// We have received notification that the response associated with a load has completed.
     /// Kick off the document and frame tree creation process using the result.
-    fn handle_page_headers_available(
+    pub(crate) fn handle_page_headers_available(
         &self,
         webview_id: WebViewId,
         pipeline_id: PipelineId,
@@ -4010,16 +3992,46 @@ impl ScriptThread {
     /// argument until a notification is received that the fetch is complete.
     #[servo_tracing::instrument(skip_all)]
     fn pre_page_load(&self, cx: &mut js::context::JSContext, mut incomplete: InProgressLoad) {
+        let origin_from_snapshot = || -> Option<MutableOrigin> {
+            match incomplete.load_data.load_origin {
+                LoadOrigin::Script(ref snapshot) => {
+                    Some(MutableOrigin::from_snapshot(snapshot.clone()))
+                },
+                _ => None,
+            }
+        };
+
+        let preserved_origin = || -> Option<MutableOrigin> {
+            // When loading `about:blank`, `about:srcdoc` and `javascript:`
+            // URLs, the specification says that the origin should be aliased
+            // from the creator origin. This means that changes to the creator
+            // origin via things like `document.domain` are reflected in the
+            // child Document. This code attempts to look up the creator
+            // Document and alias the origin for these type of pages.
+            //
+            // TODO: This should be eliminated by not having these types of pages
+            // use the parser at at all.
+            let creator_pipeline_id = incomplete.load_data.creator_pipeline_id?;
+            Some(
+                ScriptThread::find_document(creator_pipeline_id)?
+                    .origin()
+                    .clone(),
+            )
+        };
+
         let url_str = incomplete.load_data.url.as_str();
         if url_str == "about:blank" || incomplete.load_data.js_eval_result.is_some() {
-            self.start_synchronous_page_load(cx, incomplete);
+            let source_origin = preserved_origin().or(origin_from_snapshot());
+            self.start_synchronous_page_load(cx, incomplete, source_origin);
             return;
         }
         if url_str == "about:srcdoc" {
-            self.page_load_about_srcdoc(cx, incomplete);
+            let source_origin = preserved_origin().or(origin_from_snapshot());
+            self.page_load_about_srcdoc(cx, incomplete, source_origin);
             return;
         }
 
+        let source_origin = origin_from_snapshot();
         let context = ParserContext::new(
             incomplete.webview_id,
             incomplete.pipeline_id,
@@ -4027,7 +4039,7 @@ impl ScriptThread {
             incomplete.load_data.creation_sandboxing_flag_set,
             incomplete.parent_info,
             incomplete.target_snapshot_params,
-            incomplete.load_data.load_origin.clone(),
+            source_origin,
         );
         self.incomplete_parser_contexts
             .0
@@ -4057,14 +4069,14 @@ impl ScriptThread {
         };
 
         match message {
-            FetchResponseMsg::ProcessResponse(request_id, metadata) => {
-                self.handle_fetch_metadata(cx, pipeline_id, request_id, metadata)
+            FetchResponseMsg::ProcessResponse(_request_id, metadata) => {
+                self.handle_fetch_metadata(cx, pipeline_id, metadata)
             },
-            FetchResponseMsg::ProcessResponseChunk(request_id, chunk) => {
-                self.handle_fetch_chunk(cx, pipeline_id, request_id, chunk)
+            FetchResponseMsg::ProcessResponseChunk(_request_id, chunk) => {
+                self.handle_fetch_chunk(cx, pipeline_id, chunk)
             },
-            FetchResponseMsg::ProcessResponseEOF(request_id, eof, timing) => {
-                self.handle_fetch_eof(cx, pipeline_id, request_id, eof, timing)
+            FetchResponseMsg::ProcessResponseEOF(_request_id, eof, timing) => {
+                self.handle_fetch_eof(cx, pipeline_id, eof, timing)
             },
             FetchResponseMsg::ProcessCspViolations(request_id, violations) => {
                 self.handle_csp_violations(cx, pipeline_id, request_id, violations)
@@ -4078,7 +4090,6 @@ impl ScriptThread {
         &self,
         cx: &mut js::context::JSContext,
         id: PipelineId,
-        request_id: RequestId,
         fetch_metadata: Result<FetchMetadata, NetworkError>,
     ) {
         match fetch_metadata {
@@ -4094,7 +4105,7 @@ impl ScriptThread {
             .iter_mut()
             .find(|&&mut (pipeline_id, _)| pipeline_id == id);
         if let Some(&mut (_, ref mut ctxt)) = parser {
-            ctxt.process_response(cx, request_id, fetch_metadata);
+            ctxt.process_response(self, cx, fetch_metadata);
         }
     }
 
@@ -4102,7 +4113,6 @@ impl ScriptThread {
         &self,
         cx: &mut js::context::JSContext,
         pipeline_id: PipelineId,
-        request_id: RequestId,
         chunk: Bytes,
     ) {
         let mut incomplete_parser_contexts = self.incomplete_parser_contexts.0.borrow_mut();
@@ -4110,7 +4120,7 @@ impl ScriptThread {
             .iter_mut()
             .find(|&&mut (parser_pipeline_id, _)| parser_pipeline_id == pipeline_id);
         if let Some(&mut (_, ref mut ctxt)) = parser {
-            ctxt.process_response_chunk(cx, request_id, chunk);
+            ctxt.process_response_chunk(cx, chunk);
         }
     }
 
@@ -4119,7 +4129,6 @@ impl ScriptThread {
         &self,
         cx: &mut js::context::JSContext,
         id: PipelineId,
-        request_id: RequestId,
         eof: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
@@ -4151,7 +4160,7 @@ impl ScriptThread {
                 submit_timing(cx, &iframe_ctx, &eof, &resource_timing);
             }
 
-            context.process_response_eof(cx, request_id, eof, timing);
+            context.process_response_eof(cx, eof, timing);
         }
     }
 
@@ -4241,6 +4250,7 @@ impl ScriptThread {
         &self,
         cx: &mut js::context::JSContext,
         mut incomplete: InProgressLoad,
+        source_origin: Option<MutableOrigin>,
     ) {
         let mut context = ParserContext::new(
             incomplete.webview_id,
@@ -4249,7 +4259,7 @@ impl ScriptThread {
             incomplete.load_data.creation_sandboxing_flag_set,
             incomplete.parent_info,
             incomplete.target_snapshot_params,
-            incomplete.load_data.load_origin.clone(),
+            source_origin,
         );
 
         let mut meta = Metadata::default(incomplete.load_data.url.clone());
@@ -4267,14 +4277,12 @@ impl ScriptThread {
         let about_base_url = incomplete.load_data.about_base_url.clone();
         self.incomplete_loads.borrow_mut().push(incomplete);
 
-        let dummy_request_id = RequestId::default();
-        context.process_response(cx, dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
+        context.process_response(self, cx, Ok(FetchMetadata::Unfiltered(meta)));
         context.set_policy_container(policy_container.as_ref());
         context.set_about_base_url(about_base_url);
-        context.process_response_chunk(cx, dummy_request_id, chunk.into());
+        context.process_response_chunk(cx, chunk.into());
         context.process_response_eof(
             cx,
-            dummy_request_id,
             Ok(()),
             ResourceFetchTiming::new(ResourceTimingType::None),
         );
@@ -4285,6 +4293,7 @@ impl ScriptThread {
         &self,
         cx: &mut js::context::JSContext,
         mut incomplete: InProgressLoad,
+        source_origin: Option<MutableOrigin>,
     ) {
         let url = ServoUrl::parse("about:srcdoc").unwrap();
         let mut meta = Metadata::default(url.clone());
@@ -4302,7 +4311,6 @@ impl ScriptThread {
         let parent_info = incomplete.parent_info;
         let about_base_url = incomplete.load_data.about_base_url.clone();
         let target_snapshot_params = incomplete.target_snapshot_params;
-        let load_origin = incomplete.load_data.load_origin.clone();
         self.incomplete_loads.borrow_mut().push(incomplete);
 
         let mut context = ParserContext::new(
@@ -4312,17 +4320,14 @@ impl ScriptThread {
             creation_sandboxing_flag_set,
             parent_info,
             target_snapshot_params,
-            load_origin,
+            source_origin,
         );
-        let dummy_request_id = RequestId::default();
-
-        context.process_response(cx, dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
+        context.process_response(self, cx, Ok(FetchMetadata::Unfiltered(meta)));
         context.set_policy_container(policy_container.as_ref());
         context.set_about_base_url(about_base_url);
-        context.process_response_chunk(cx, dummy_request_id, Bytes::copy_from_slice(&chunk));
+        context.process_response_chunk(cx, Bytes::copy_from_slice(&chunk));
         context.process_response_eof(
             cx,
-            dummy_request_id,
             Ok(()),
             ResourceFetchTiming::new(ResourceTimingType::None),
         );

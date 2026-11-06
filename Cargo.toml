@@ -63,7 +63,7 @@ cfg-if = "1.0.4"
 chacha20poly1305 = { version = "0.11", features = ["rand_core", "zeroize"] }
 chardetng = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
-content-security-policy = { version = "0.8.1", features = ["serde"] }
+content-security-policy = { version = "0.9", features = ["serde"] }
 cookie = { package = "cookie", version = "0.18" }
 criterion = "0.8"
 crossbeam-channel = "0.5"
@@ -140,7 +140,7 @@ inventory = "0.3.24"
 ipc-channel = "0.22"
 itertools = "0.15"
 jni = "0.22"
-js = { package = "mozjs", version = "=0.26.3", default-features = false, features = ["intl", "libz-sys"] }
+js = { package = "mozjs", version = "=0.26.14", default-features = false, features = ["intl", "libz-sys"] }
 k12 = "0.5"
 keccak = "0.2"
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
