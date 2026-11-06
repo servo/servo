@@ -43,27 +43,21 @@
 
   function generateMarkup(isAudioOnly) {
     return `
-      <div class="controlBar">
-        <button id="play-pause-button" class="button playPauseButton" paused="true"></button>
-        <div id="scrubber-stack" class="scrubberStack">
-          <div class="progressBackgroundBar">
-            <div class="progressStack">
-              <progress id="buffer-bar" class="bufferBar" value="0" max="100"></progress>
-              <progress id="progress-bar" class="progressBar" value="0" max="100"></progress>
-            </div>
-          </div>
-          <input type="range" id="scrubber" class="scrubber" value="0" min="0" max="100" step="1">
+      <button id="play-pause-button" class="button playPauseButton" paused="true"></button>
+      <div id="scrubber-stack" class="scrubberStack">
+        <div class="progressStack">
+          <progress id="buffer-bar" class="bufferBar" value="0" max="100"></progress>
+          <progress id="progress-bar" class="progressBar" value="0" max="100"></progress>
         </div>
-        <span id="position-duration-box" class="positionDurationBox hidden">
-          <span id="position-text">#1</span>
-          <span id="duration" class="duration"> / #2</span>
-        </span>
-        <button id="mute-button" class="button muteButton"></button>
-        <div class="volumeStack">
-          <input type="range" id="volume-level" class="volumeLevel" value="100" min="0" max="100" step="1">
-        </div>
-        ${isAudioOnly ? "" : '<button id="fullscreen-switch" class="button fullscreenSwitch"></button>'}
+        <input type="range" id="scrubber" class="scrubber" value="0" min="0" max="100" step="1">
       </div>
+      <span id="position-duration-box" class="positionDurationBox">
+        <span id="position-text">#1</span>
+        <span id="duration" class="duration"> / #2</span>
+      </span>
+      <button id="mute-button" class="button muteButton"></button>
+      <input type="range" id="volume-level" class="volumeLevel" value="100" min="0" max="100" step="1">
+      ${isAudioOnly ? "" : '<button id="fullscreen-switch" class="button fullscreenSwitch"></button>'}
     `;
   }
 
@@ -166,11 +160,6 @@
         "volume-level"
       ];
 
-      if (!this.isAudioOnly) {
-        // add "click-to-play"
-        elementNames.push("fullscreen-switch");
-      }
-
       // Import elements.
       this.elements = {};
       elementNames.forEach(id => {
@@ -214,7 +203,6 @@
             if (self.duration != duration) {
               self.duration = duration;
             }
-            self.classList.remove("hidden");
           }
         }
       });
@@ -250,11 +238,6 @@
         { el: this.elements.scrubber, type: "input" },
         { el: this.elements.volumeLevel, type: "input" }
       ];
-
-      if (!this.isAudioOnly) {
-        // this.controlEvents.push({ el: this.elements.clickToPlay, type: "click" });
-        this.controlEvents.push({ el: this.elements.fullscreenSwitch, type: "click" });
-      }
 
       this.controlEvents.forEach(({ el, type }) => {
         el.addEventListener(type, this);
@@ -338,16 +321,7 @@
         this.elements.playPauseButton.removeAttribute("paused");
       }
 
-      // Click-to-play overlay: shown while paused, hidden while playing.
-      if (this.elements.clickToPlay) {
-        if (paused) {
-          this.elements.clickToPlay.removeAttribute("hidden");
-        } else {
-          this.elements.clickToPlay.setAttribute("hidden", "");
-        }
-      }
-
-      // Buffered and Playing progress 
+      // Buffered and Playing progress
       const duration = this.media.duration;
       const currentTime = this.media.currentTime;
       const positionPercent = duration
@@ -356,7 +330,7 @@
       this.elements.progressBar.value = Number.isFinite(positionPercent)
         ? positionPercent
         : 0;
-      
+
       // TODO: Don't update the scrubber if the user is dragging it.
       this.elements.scrubber.value = Number.isFinite(positionPercent)
         ? positionPercent
@@ -415,9 +389,6 @@
           switch (event.currentTarget) {
             case this.elements.playPauseButton:
               this.playOrPause();
-              break;
-            case this.elements.clickToPlay:
-              this.media.play();
               break;
             case this.elements.muteButton:
               this.toggleMuted();

@@ -580,15 +580,14 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#time-marches-on>
-    #[expect(clippy::type_complexity)]
     fn current_and_other_cues<'no_gc>(
         &self,
         no_gc: &'no_gc NoGC,
         text_tracks_list: &TextTrackList,
-    ) -> Option<(
+    ) -> (
         Vec<UnrootedDom<'no_gc, TextTrackCue>>,
         Vec<UnrootedDom<'no_gc, TextTrackCue>>,
-    )> {
+    ) {
         // Step 1. Let current cues be a list of cues,
         // initialized to contain all the cues of all the hidden or
         // showing text tracks of the media element (not the disabled ones)
@@ -598,16 +597,14 @@ impl HTMLMediaElement {
         // all the cues of hidden and showing text tracks of the media element
         // that are not present in current cues.
         let current_playback_position = self.current_playback_position.get();
-        Some(
-            text_tracks_list
-                .iter(no_gc)
-                .filter(|text_track| text_track.Mode() != TextTrackMode::Disabled)
-                .flat_map(|text_track| text_track.cues(no_gc))
-                .partition(|cue| {
-                    cue.start_time() <= current_playback_position &&
-                        cue.end_time() > current_playback_position
-                }),
-        )
+        text_tracks_list
+            .iter(no_gc)
+            .filter(|text_track| text_track.Mode() != TextTrackMode::Disabled)
+            .flat_map(|text_track| text_track.cues(no_gc))
+            .partition(|cue| {
+                cue.start_time() <= current_playback_position &&
+                    cue.end_time() > current_playback_position
+            })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#time-marches-on>
@@ -615,56 +612,31 @@ impl HTMLMediaElement {
         let playback_was_moved_monotonic_increase =
             playback_was_moved == PlaybackPositionWasMoved::NormalPlayback;
 
-        // Step 6. If the time was reached through the usual monotonic increase of the current
-        // playback position during normal playback, and if the user agent has not fired a
-        // timeupdate event at the element in the past 15 to 250ms and is not still running event
-        // handlers for such an event, then the user agent must queue a media element task given the
-        // media element to fire an event named timeupdate at the element.
-        // We move this to the front of time_marches_on, because it is independent of the rest cues setup
-        // step, and it must be run. This way, it would not be skip because of the early return in below
-        // steps.
-        if playback_was_moved_monotonic_increase &&
-            Instant::now() > self.next_timeupdate_event.get()
-        {
-            self.queue_media_element_task_to_fire_event(atom!("timeupdate"));
-            self.next_timeupdate_event
-                .set(Instant::now() + Duration::from_millis(250));
-        }
+        // Step 1. Let current cues be a list of cues, initialized to contain all the cues of all
+        // the hidden or showing text tracks of the media element (not the disabled ones) whose
+        // start times are less than or equal to the current playback position and whose end times
+        // are greater than the current playback position.
+        //
+        // Step 2. Let other cues be a list of cues, initialized to contain all the cues of hidden
+        // and showing text tracks of the media element that are not present in current cues.
+        let text_tracks_list = self.TextTracks(cx);
+        let (current_cues, other_cues) = self.current_and_other_cues(cx.no_gc(), &text_tracks_list);
 
-        // Step 1. Let current cues be a list of cues,
-        // initialized to contain all the cues of all the hidden or
-        // showing text tracks of the media element (not the disabled ones)
-        // whose start times are less than or equal to the current playback position
-        // and whose end times are greater than the current playback position.
-        // Step 2. Let other cues be a list of cues, initialized to contain
-        // all the cues of hidden and showing text tracks of the media element
-        // that are not present in current cues.
-        let Some(text_tracks_list) = self.text_tracks_list.get() else {
-            return;
-        };
-        let Some((current_cues, other_cues)) =
-            self.current_and_other_cues(cx.no_gc(), &text_tracks_list)
-        else {
-            return;
-        };
-        // Step 3. Let last time be the current playback position at the time
-        // this algorithm was last run for this media element,
-        // if this is not the first time it has run.
+        // Step 3. Let last time be the current playback position at the time this algorithm was
+        // last run for this media element, if this is not the first time it has run.
         let current_playback_position = self.current_playback_position.get();
         let last_time = self.position_when_time_marches_on_ran.get();
         self.position_when_time_marches_on_ran
             .set(Some(current_playback_position));
 
-        // Step 4. If the current playback position has,
-        // since the last time this algorithm was run,
-        // only changed through its usual monotonic increase during normal playback,
-        // then let missed cues be the list of cues in other cues whose start times
-        // are greater than or equal to last time and whose end times are less
-        // than or equal to the current playback position.
+        // Step 4. If the current playback position has, since the last time this algorithm was run,
+        // only changed through its usual monotonic increase during normal playback, then let missed
+        // cues be the list of cues in other cues whose start times are greater than or equal to
+        // last time and whose end times are less than or equal to the current playback position.
         // Otherwise, let missed cues be an empty list.
-        // Step 5. Remove all the cues in missed cues that are also in
-        // the media element's list of newly introduced cues,
-        // and then empty the element's list of newly introduced cues.
+        //
+        // Step 5. Remove all the cues in missed cues that are also in the media element's list of
+        // newly introduced cues, and then empty the element's list of newly introduced cues.
         let missed_cues =
             if playback_was_moved_monotonic_increase && let Some(last_time) = last_time {
                 let newly_introduced_cues: Vec<DomRoot<TextTrackCue>> =
@@ -690,9 +662,22 @@ impl HTMLMediaElement {
                 vec![]
             };
 
+        // Step 6. If the time was reached through the usual monotonic increase of the current
+        // playback position during normal playback, and if the user agent has not fired a
+        // timeupdate event at the element in the past 15 to 250ms and is not still running event
+        // handlers for such an event, then the user agent must queue a media element task given the
+        // media element to fire an event named timeupdate at the element.
+        if playback_was_moved_monotonic_increase &&
+            Instant::now() > self.next_timeupdate_event.get()
+        {
+            self.queue_media_element_task_to_fire_event(atom!("timeupdate"));
+            self.next_timeupdate_event
+                .set(Instant::now() + Duration::from_millis(250));
+        }
+
         // Step 7. If all of the cues in current cues have their text track cue active flag set,
-        // none of the cues in other cues have their text track cue active flag set,
-        // and missed cues is empty, then return.
+        // none of the cues in other cues have their text track cue active flag set, and missed cues
+        // is empty, then return.
         if current_cues.iter().all(|cue| cue.is_active()) &&
             !other_cues.iter().any(|cue| cue.is_active()) &&
             missed_cues.is_empty()
@@ -705,11 +690,10 @@ impl HTMLMediaElement {
         let other_cues: Vec<DomRoot<TextTrackCue>> =
             other_cues.iter().map(|cue| cue.as_rooted()).collect();
 
-        // Step 8. If the time was reached through the usual monotonic increase of the
-        // current playback position during normal playback,
-        // and there are cues in other cues that have their text track cue pause-on-exit flag
-        // set and that either have their text track cue active flag set or are also in missed cues,
-        // then immediately pause the media element.
+        // Step 8. If the time was reached through the usual monotonic increase of the current
+        // playback position during normal playback, and there are cues in other cues that have
+        // their text track cue pause-on-exit flag set and that either have their text track cue
+        // active flag set or are also in missed cues, then immediately pause the media element.
         if playback_was_moved_monotonic_increase &&
             other_cues.iter().any(|cue| {
                 cue.PauseOnExit() &&
@@ -719,13 +703,11 @@ impl HTMLMediaElement {
             self.Pause(cx);
         }
 
-        // Step 9. Let events be a list of tasks, initially empty.
-        // Each task in this list will be associated with a text track,
-        // a text track cue, and a time, which are used to sort the list before the tasks are queued.
-        // Let affected tracks be a list of text tracks, initially empty.
-        // When the steps below say to prepare an event named event for
-        // a text track cue target with a time time,
-        // the user agent must run these steps:
+        // Step 9. Let events be a list of tasks, initially empty. Each task in this list will be
+        // associated with a text track, a text track cue, and a time, which are used to sort the
+        // list before the tasks are queued. Let affected tracks be a list of text tracks, initially
+        // empty. When the steps below say to prepare an event named event for a text track cue
+        // target with a time time, the user agent must run these steps:
         let mut events: Vec<(f64, (Atom, DomRoot<TextTrackCue>))> = vec![];
         let no_gc = cx.no_gc();
         let mut affected_tracks = vec![];
@@ -747,8 +729,8 @@ impl HTMLMediaElement {
                 affected_tracks.push(track.as_unrooted(no_gc));
             };
 
-        // Step 10. For each text track cue in missed cues,
-        // prepare an event named enter for the TextTrackCue object with the text track cue start time.
+        // Step 10. For each text track cue in missed cues, prepare an event named enter for the
+        // TextTrackCue object with the text track cue start time.
         for text_track_cue in &missed_cues {
             prepare_an_event(
                 text_track_cue.start_time(),
@@ -757,10 +739,9 @@ impl HTMLMediaElement {
             );
         }
 
-        // Step 11. For each text track cue in other cues that either
-        // has its text track cue active flag set
-        // or is in missed cues, prepare an event named exit for the TextTrackCue object with
-        // the later of the text track cue end time and the text track cue start time.
+        // Step 11. For each text track cue in other cues that either has its text track cue active
+        // flag set or is in missed cues, prepare an event named exit for the TextTrackCue object
+        // with the later of the text track cue end time and the text track cue start time.
         for text_track_cue in &other_cues {
             if text_track_cue.is_active() || missed_cues.iter().any(|cue| cue == text_track_cue) {
                 prepare_an_event(
@@ -771,9 +752,9 @@ impl HTMLMediaElement {
             }
         }
 
-        // Step 12. For each text track cue in current cues that does not have
-        // its text track cue active flag set,
-        // prepare an event named enter for the TextTrackCue object with the text track cue start time.
+        // Step 12. For each text track cue in current cues that does not have its text track cue
+        // active flag set, prepare an event named enter for the TextTrackCue object with the text
+        // track cue start time.
         for text_track_cue in &current_cues {
             if !text_track_cue.is_active() {
                 prepare_an_event(
@@ -800,19 +781,18 @@ impl HTMLMediaElement {
                 }));
         }
 
-        // Step 15. Sort affected tracks in the same order as the text tracks appear
-        // in the media element's list of text tracks, and remove duplicates.
+        // Step 15. Sort affected tracks in the same order as the text tracks appear in the media
+        // element's list of text tracks, and remove duplicates.
         let affected_tracks: Vec<DomRoot<TextTrack>> = text_tracks_list
             .iter(cx.no_gc())
             .filter(|text_track| affected_tracks.contains(text_track))
             .map(|text_track| text_track.as_rooted())
             .collect();
 
-        // Step 16. For each text track in affected tracks, in the list order,
-        // queue a media element task given the media element to fire
-        // an event named cuechange at the TextTrack object,
-        // and, if the text track has a corresponding track element,
-        // to then fire an event named cuechange at the track element as well.
+        // Step 16. For each text track in affected tracks, in the list order, queue a media element
+        // task given the media element to fire an event named cuechange at the TextTrack object,
+        // and, if the text track has a corresponding track element, to then fire an event named
+        // cuechange at the track element as well.
         for text_track in &affected_tracks {
             let text_track = Trusted::new(&**text_track);
 
@@ -838,12 +818,10 @@ impl HTMLMediaElement {
             text_track_cue.set_active(false);
         }
 
-        // Step 18. Run the rules for updating the text track rendering of each
-        // of the text tracks in affected tracks that are showing,
-        // providing the text track's text track language as the fallback language
-        // if it is not the empty string.
-        // For example, for text tracks based on WebVTT,
-        // the rules for updating the display of WebVTT text tracks. [WEBVTT]
+        // Step 18. Run the rules for updating the text track rendering of each of the text tracks
+        // in affected tracks that are showing, providing the text track's text track language as
+        // the fallback language if it is not the empty string. For example, for text tracks based
+        // on WebVTT, the rules for updating the display of WebVTT text tracks. [WEBVTT]
         //
         // TODO(https://github.com/whatwg/html/issues/12994): Figure out how to pass in language
         // as well as handling multiple text tracks with different updating rules
