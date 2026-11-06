@@ -227,8 +227,8 @@ impl CachedResource {
 #[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 struct CachedMetadata {
     /// Headers
-    #[conditional_malloc_size_of]
-    pub headers: Arc<ParkingLotRwLock<Serde<HeaderMap>>>,
+    #[ignore_malloc_size_of = "Arc<Parkinglot<Arc<_>>> does not work with conditional_malloc_size_of"]
+    pub headers: StdArc<ParkingLotRwLock<StdArc<Serde<HeaderMap>>>>,
     /// Final URL after redirects.
     pub final_url: ServoUrl,
     /// MIME type / subtype.
@@ -614,7 +614,7 @@ fn get_expiry_adjustment_from_request_headers(
 fn create_cached_response(
     request: &Request,
     cached_resource: &CachedResource,
-    cached_headers: &HeaderMap,
+    cached_headers: StdArc<Serde<HeaderMap>>,
     done_chan: &mut DoneChannel,
 ) -> Option<CachedResponse> {
     debug!("creating a cached response for {:?}", request.url());
@@ -623,7 +623,7 @@ fn create_cached_response(
     }
     let resource_timing = ResourceFetchTiming::new(request.timing_type());
     let mut response = Response::new(cached_resource.metadata.final_url.clone(), resource_timing);
-    response.headers = cached_headers.clone();
+    response.headers = cached_headers;
     response.body = cached_resource.body.clone();
     if let ResponseBody::Receiving(_) = *cached_resource.body.lock() {
         debug!("existing body is in progress");
@@ -742,11 +742,11 @@ fn handle_range_request(
                     if let Some(bytes) = requested {
                         let new_resource =
                             create_resource_with_bytes_from_resource(bytes, complete_resource);
-                        let cached_headers = new_resource.metadata.headers.read();
+                        let cached_headers = new_resource.metadata.headers.read().clone();
                         let cached_response = create_cached_response(
                             request,
                             &new_resource,
-                            &cached_headers,
+                            cached_headers,
                             done_chan,
                         );
                         if let Some(cached_response) = cached_response {
@@ -762,11 +762,11 @@ fn handle_range_request(
                     if let Some(bytes) = requested {
                         let new_resource =
                             create_resource_with_bytes_from_resource(bytes, complete_resource);
-                        let cached_headers = new_resource.metadata.headers.read();
+                        let cached_headers = new_resource.metadata.headers.read().clone();
                         let cached_response = create_cached_response(
                             request,
                             &new_resource,
-                            &cached_headers,
+                            cached_headers,
                             done_chan,
                         );
                         if let Some(cached_response) = cached_response {
@@ -779,7 +779,7 @@ fn handle_range_request(
         }
     } else {
         for partial_resource in partial_cached_resources {
-            let headers = partial_resource.metadata.headers.read();
+            let headers = partial_resource.metadata.headers.read().clone();
             let content_range = headers.typed_get::<ContentRange>();
 
             let Some(body_len) = content_range.as_ref().and_then(|range| range.bytes_len()) else {
@@ -811,7 +811,7 @@ fn handle_range_request(
                             let new_resource =
                                 create_resource_with_bytes_from_resource(bytes, partial_resource);
                             let cached_response =
-                                create_cached_response(request, &new_resource, &headers, done_chan);
+                                create_cached_response(request, &new_resource, headers, done_chan);
                             if let Some(cached_response) = cached_response {
                                 return Some(cached_response);
                             }
@@ -851,7 +851,7 @@ fn handle_range_request(
                             let new_resource =
                                 create_resource_with_bytes_from_resource(bytes, partial_resource);
                             let cached_response =
-                                create_cached_response(request, &new_resource, &headers, done_chan);
+                                create_cached_response(request, &new_resource, headers, done_chan);
                             if let Some(cached_response) = cached_response {
                                 return Some(cached_response);
                             }
@@ -900,9 +900,9 @@ pub(crate) fn construct_response(
         // Returning a response that can be constructed
         // TODO: select the most appropriate one, using a known mechanism from a selecting header field,
         // or using the Date header to return the most recent one.
-        let cached_headers = cached_resource.metadata.headers.read();
+        let cached_headers = cached_resource.metadata.headers.read().clone();
         let cached_response =
-            create_cached_response(request, cached_resource, &cached_headers, done_chan);
+            create_cached_response(request, cached_resource, cached_headers, done_chan);
         if let Some(cached_response) = cached_response {
             return Some(cached_response);
         }
@@ -983,8 +983,9 @@ pub fn refresh(
         // Bracket is to minimize lock duration.
         {
             let mut stored_headers = cached_resource.metadata.headers.write();
-            stored_headers.extend(response.headers);
-            constructed_response.headers = stored_headers.clone().into_inner();
+            let response_headers: HeaderMap = response.headers.0.clone();
+            StdArc::make_mut(&mut stored_headers).extend(response_headers);
+            constructed_response.headers = stored_headers.clone();
         }
         cached_resource.expires = get_response_expiry(constructed_response);
         cached_resource.stale_while_revalidate =
@@ -1201,7 +1202,7 @@ impl<'a> CachedResourcesOrGuard<'a> {
         let expiry = get_response_expiry(response);
         let stale_while_revalidate = get_stale_while_revalidate(&response.headers);
         let cacheable_metadata = CachedMetadata {
-            headers: Arc::new(ParkingLotRwLock::new(Serde(response.headers.clone()))),
+            headers: StdArc::new(ParkingLotRwLock::new(response.headers.clone())),
             final_url: metadata.final_url,
             content_type: metadata.content_type,
             charset: metadata.charset,

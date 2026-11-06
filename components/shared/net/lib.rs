@@ -6,7 +6,7 @@
 
 use std::collections::hash_map::Entry;
 use std::fmt::{self, Debug, Display};
-use std::sync::{LazyLock, OnceLock};
+use std::sync::{Arc, LazyLock, OnceLock};
 use std::thread::{self, JoinHandle};
 
 use bytes::Bytes;
@@ -167,7 +167,7 @@ impl ReferrerPolicy {
     }
 
     /// <https://w3c.github.io/webappsec-referrer-policy/#parse-referrer-policy-from-header>
-    pub fn parse_header_for_response(headers: &Option<Serde<HeaderMap>>) -> Self {
+    pub fn parse_header_for_response(headers: &Option<Arc<Serde<HeaderMap>>>) -> Self {
         // Step 4. Return policy.
         headers
             .as_ref()
@@ -317,7 +317,7 @@ pub trait FetchTaskTarget {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ExposedMetadata {
     pub final_url: ServoUrl,
-    pub headers: Serde<HeaderMap>,
+    pub headers: Arc<Serde<HeaderMap>>,
     pub status: HttpStatus,
     pub redirected: bool,
 }
@@ -326,7 +326,7 @@ impl From<Metadata> for ExposedMetadata {
     fn from(value: Metadata) -> Self {
         ExposedMetadata {
             final_url: value.final_url,
-            headers: value.headers.unwrap_or_else(|| Serde(HeaderMap::new())),
+            headers: value.headers.clone().unwrap_or_default(),
             status: value.status,
             redirected: value.redirected,
         }
@@ -1145,7 +1145,8 @@ pub struct Metadata {
     pub charset: Option<String>,
 
     /// Headers
-    pub headers: Option<Serde<HeaderMap>>,
+    #[conditional_malloc_size_of]
+    pub headers: Option<Arc<Serde<HeaderMap>>>,
 
     /// HTTP Status
     pub status: HttpStatus,
@@ -1187,13 +1188,11 @@ impl Metadata {
     /// Extract the parts of a Mime that we care about.
     pub fn set_content_type(&mut self, content_type: Option<&Mime>) {
         if self.headers.is_none() {
-            self.headers = Some(Serde(HeaderMap::new()));
+            self.headers = Some(Default::default());
         }
 
         if let Some(mime) = content_type {
-            self.headers
-                .as_mut()
-                .unwrap()
+            Arc::make_mut(self.headers.as_mut().unwrap())
                 .typed_insert(ContentType::from(mime.clone()));
             if let Some(charset) = mime.get_param(mime::CHARSET) {
                 self.charset = Some(charset.to_string());
@@ -1209,14 +1208,12 @@ impl Metadata {
         }
 
         if self.headers.is_none() {
-            self.headers = Some(Serde(HeaderMap::new()));
+            self.headers = Some(Default::default());
         }
 
         self.referrer_policy = referrer_policy;
 
-        self.headers
-            .as_mut()
-            .unwrap()
+        Arc::make_mut(self.headers.as_mut().unwrap())
             .typed_insert::<ReferrerPolicyHeader>(referrer_policy.into());
     }
 
@@ -1226,7 +1223,7 @@ impl Metadata {
         let no_sniff = self
             .headers
             .as_deref()
-            .is_some_and(determine_nosniff)
+            .is_some_and(|headermap| determine_nosniff(headermap))
             .into();
         let mime = self
             .content_type

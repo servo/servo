@@ -4349,7 +4349,7 @@ impl ScriptThread {
         let headers = metadata
             .headers
             .as_ref()
-            .map(|headers| headers.clone().into_inner())
+            .map(|headers| headers.0.clone())
             .unwrap_or_default();
 
         let response_init = Some(ResponseInit {

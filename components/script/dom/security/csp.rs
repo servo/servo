@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
+use std::sync::Arc;
 
 /// Used to determine which inline check to run
 pub use content_security_policy::InlineCheckType;
@@ -539,7 +540,9 @@ fn parse_and_potentially_append_to_csp_list(
 }
 
 /// <https://www.w3.org/TR/CSP/#parse-response-csp>
-pub(crate) fn parse_csp_list_from_metadata(headers: &Option<Serde<HeaderMap>>) -> Option<CspList> {
+pub(crate) fn parse_csp_list_from_metadata(
+    headers: &Option<Arc<Serde<HeaderMap>>>,
+) -> Option<CspList> {
     let headers = headers.as_ref()?;
     let csp_enforce_list = parse_and_potentially_append_to_csp_list(
         None,
