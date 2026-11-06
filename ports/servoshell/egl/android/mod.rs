@@ -31,6 +31,7 @@ use servo::{
 use super::app::{App, AppInitOptions};
 use super::host_trait::HostTrait;
 use crate::prefs::{ArgumentParsingResult, parse_command_line_arguments};
+use crate::window::ServoShellWindowId;
 
 thread_local! {
     pub static APP: RefCell<Option<Rc<App>>> = const { RefCell::new(None) };
@@ -238,7 +239,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_addPlatformWindow<'local>(
                 window_handle,
                 viewport_rect,
                 hidpi_scale_factor,
-                None,
+                ServoShellWindowId::next(),
             )
         });
         Ok(())
