@@ -1352,14 +1352,13 @@ fn should_upgrade_request_to_potentially_trustworthy(
 
         // Step 2.4 If tuple is contained in client's upgrade insecure navigations set,
         // then skip the remaining substeps, and continue upgrading request.
-        if let Some(tuple) = tuple {
-            if request
+        if let Some(tuple) = tuple &&
+            request
                 .client
                 .as_ref()
                 .is_some_and(|client| client.upgrade_insecure_navigations_set.contains(&tuple))
-            {
-                return true;
-            }
+        {
+            return true;
         }
 
         // Step 2.5 Return without further modifying request

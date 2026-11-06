@@ -73,6 +73,7 @@ pub struct BrowsingContext {
 impl BrowsingContext {
     /// Create a new browsing context.
     /// Note this just creates the browsing context, it doesn't add it to the constellation's set of browsing contexts.
+    #[expect(clippy::too_many_arguments)]
     pub fn new(
         id: BrowsingContextId,
         webview_id: WebViewId,
