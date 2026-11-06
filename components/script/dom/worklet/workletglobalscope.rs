@@ -270,7 +270,7 @@ pub(crate) struct WorkletGlobalScopeInit {
     pub(crate) gpu_id_hub: Arc<IdentityHub>,
     pub(crate) script_to_constellation_sender: ScriptToConstellationSender,
     /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-insecure-navigations-set>
-    pub inherited_upgrade_insecure_navigations_set: HashSet<UpgradeInsecureNavigations>,
+    pub(crate) inherited_upgrade_insecure_navigations_set: HashSet<UpgradeInsecureNavigations>,
 }
 
 /// <https://drafts.css-houdini.org/worklets/#worklet-global-scope-type>

@@ -2471,7 +2471,7 @@ impl GlobalScope {
     }
 
     /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-insecure-navigations-set>
-    pub fn upgrade_insecure_navigations_set_mut(
+    pub(crate) fn upgrade_insecure_navigations_set_mut(
         &self,
     ) -> RefMut<'_, HashSet<UpgradeInsecureNavigations>> {
         self.inherited_upgrade_insecure_navigations_set.borrow_mut()
