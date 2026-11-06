@@ -328,12 +328,9 @@ where
         let trusted_promise = promise.to_trusted();
         self.global_from_reflector()
             .queue_crypto_task_source(task!(resolve_key: move |cx| {
-                let private_key = trusted_private_key.map(|trusted_key| trusted_key.root());
-                let public_key = trusted_public_key.map(|trusted_key| trusted_key.root());
-
                 let key_pair = RootedTraceableBox::new(CryptoKeyPair::<D> {
-                    privateKey: private_key.map(|key| key.as_traced()),
-                    publicKey: public_key.map(|key| key.as_traced()),
+                    privateKey: trusted_private_key.map(|trusted_key| trusted_key.root().as_traced()),
+                    publicKey: trusted_public_key.map(|trusted_key| trusted_key.root().as_traced()),
                 });
                 let promise = trusted_promise.root(cx);
                 promise.resolve_native(cx, &key_pair);
