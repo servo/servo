@@ -829,8 +829,9 @@ impl HTMLLinkElement {
                     id,
                 ));
 
-                let fetch_context = FaviconFetchContext::new(window.image_cache(), id, favicon_url);
-                document.fetch_background(request, fetch_context);
+                let fetch_context =
+                    FaviconFetchContext::new(window.image_cache(), id, favicon_url, false);
+                document.fetch_favicon(request, fetch_context);
             },
             ImageCacheResult::FailedToLoadOrDecode => {},
         };

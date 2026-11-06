@@ -2168,6 +2168,23 @@ impl Document {
             .fetch(request_builder, listener, networking_task_source);
     }
 
+    pub(crate) fn fetch_favicon<Listener: FetchResponseListener>(
+        &self,
+        request_builder: RequestBuilder,
+        listener: Listener,
+    ) {
+        let networking_task_source = self
+            .owner_global()
+            .task_manager()
+            .networking_task_source()
+            .to_sendable();
+        self.window().as_global_scope().fetch_favicon(
+            request_builder,
+            listener,
+            networking_task_source,
+        );
+    }
+
     /// <https://fetch.spec.whatwg.org/#deferred-fetch-control-document>
     fn deferred_fetch_control_document(&self) -> DomRoot<Document> {
         match self.window().window_proxy().frame_element() {

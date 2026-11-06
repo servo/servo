@@ -1321,3 +1321,49 @@ fn test_favicon_cleared_and_restored_on_history_traversal() {
 
     let _ = server.close();
 }
+
+#[test]
+fn test_favicon_fallback_to_favicon_ico() {
+    let servo_test = ServoTest::new();
+    static PAGE_WITHOUT_FAVICON: &'static [u8] = b"<!DOCTYPE html>\nPage without favicon";
+    static RED_SQUARE_PNG: &[u8] = &[
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44,
+        0x52, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x02, 0x08, 0x06, 0x00, 0x00, 0x00, 0x72,
+        0xb6, 0x0d, 0x24, 0x00, 0x00, 0x00, 0x12, 0x49, 0x44, 0x41, 0x54, 0x08, 0x5b, 0x63, 0xfc,
+        0xcf, 0xc0, 0x00, 0x44, 0x0c, 0x0c, 0x8c, 0x30, 0x06, 0x00, 0x2c, 0x01, 0x03, 0xff, 0xbc,
+        0x45, 0x55, 0xaf, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+    ];
+    let handler =
+        move |request: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            let body = match request.uri().path() {
+                "/without-icon" => PAGE_WITHOUT_FAVICON,
+                "/favicon.ico" => {
+                    *response.status_mut() = StatusCode::OK;
+                    response.headers_mut().insert(
+                        hyper::header::CONTENT_TYPE,
+                        HeaderValue::from_static("image/png"),
+                    );
+                    RED_SQUARE_PNG
+                },
+                _ => unreachable!("Asked for unknown URL"),
+            };
+            *response.body_mut() = make_body(body.to_vec());
+        };
+    let (server, url) = make_server(handler);
+
+    let without_icon_url = url.join("/without-icon").unwrap().into_url();
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(without_icon_url.clone())
+        .build();
+
+    // The page has no <link rel="icon">, but /favicon.ico should be fetched as a fallback.
+    servo_test
+        .spin(|| webview.favicon().is_none() || webview.url().as_ref() != Some(&without_icon_url));
+    assert!(webview.favicon().is_some());
+
+    let _ = server.close();
+}

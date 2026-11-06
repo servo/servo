@@ -39,15 +39,23 @@ pub(crate) struct FaviconFetchContext {
     pub(crate) url: ServoUrl,
     /// Whether or not the load of this favicon was successful (received a 2xx status code).
     pub(crate) successful: bool,
+    /// Whether this is a fallback fetch for `/favicon.ico` rather than an explicit `<link rel="icon">`.
+    pub(crate) is_fallback: bool,
 }
 
 impl FaviconFetchContext {
-    pub(crate) fn new(image_cache: Arc<dyn ImageCache>, id: PendingImageId, url: ServoUrl) -> Self {
+    pub(crate) fn new(
+        image_cache: Arc<dyn ImageCache>,
+        id: PendingImageId,
+        url: ServoUrl,
+        is_fallback: bool,
+    ) -> Self {
         Self {
             image_cache,
             id,
             url,
             successful: true,
+            is_fallback,
         }
     }
 }
@@ -104,7 +112,9 @@ impl FetchResponseListener for FaviconFetchContext {
             self.id,
             FetchResponseMsg::ProcessResponseEOF(request_id, response.clone(), timing.clone()),
         );
-        submit_timing(cx, global, &self, &response, &timing);
+        if !self.is_fallback {
+            submit_timing(cx, global, &self, &response, &timing);
+        }
     }
 
     fn process_csp_violations(
@@ -114,7 +124,9 @@ impl FetchResponseListener for FaviconFetchContext {
         _request_id: RequestId,
         violations: Vec<Violation>,
     ) {
-        global.report_csp_violations(cx, violations, None, None);
+        if !self.is_fallback {
+            global.report_csp_violations(cx, violations, None, None);
+        }
     }
 
     fn process_content_length(&mut self, request_id: RequestId, size: usize) {
@@ -293,8 +305,8 @@ impl Document {
                 let sender = self.register_favicon_image_cache_callback(id, true);
                 image_cache.add_listener(ImageLoadListener::new(sender, window.pipeline_id(), id));
 
-                let fetch_context = FaviconFetchContext::new(image_cache, id, favicon_url);
-                self.fetch_background(request, fetch_context);
+                let fetch_context = FaviconFetchContext::new(image_cache, id, favicon_url, true);
+                self.fetch_favicon(request, fetch_context);
             },
             ImageCacheResult::FailedToLoadOrDecode => {},
         };
