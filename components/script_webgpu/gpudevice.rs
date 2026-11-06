@@ -252,15 +252,15 @@ where
             fire_uncaptured_error: move |cx| {
                 let this = this.root();
 
-                let global = &*this.global_from_reflector();
-                let error = GPUError::<D>::from_error(cx, global, error);
+                let global = this.global_from_reflector();
+                let error = GPUError::<D>::from_error(cx, &*global, error);
 
                 let dictionary = RootedTraceableBox::new(GPUUncapturedErrorEventInit::<D> {
                     parent: EventInit::empty(),
                     error: error.as_traced(),
                 });
 
-                let event = GPUUncapturedErrorEvent::new(cx, global, atom!("uncapturederror"), &dictionary);
+                let event = GPUUncapturedErrorEvent::new(cx, &*global, atom!("uncapturederror"), &dictionary);
                 event.upcast::<D::Event>().fire(cx, this.upcast());
             }
         ));

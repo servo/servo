@@ -212,10 +212,14 @@ impl PointerEvent {
         ev.azimuth_angle.set(azimuth_angle);
         *ev.pointer_type.safe_borrow_mut(cx.no_gc()) = pointer_type.traced();
         ev.is_primary.set(is_primary);
-        *ev.coalesced_events.safe_borrow_mut(cx.no_gc()) =
-            coalesced_events.iter().map(|&e| Dom::from_ref(e)).collect();
-        *ev.predicted_events.safe_borrow_mut(cx.no_gc()) =
-            predicted_events.iter().map(|&e| Dom::from_ref(e)).collect();
+        *ev.coalesced_events.safe_borrow_mut(cx.no_gc()) = coalesced_events
+            .iter()
+            .map(|&event| Dom::from_ref(event))
+            .collect();
+        *ev.predicted_events.safe_borrow_mut(cx.no_gc()) = predicted_events
+            .iter()
+            .map(|&event| Dom::from_ref(event))
+            .collect();
         ev
     }
 }
