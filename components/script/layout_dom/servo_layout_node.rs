@@ -169,7 +169,7 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
 
     fn type_id(&self) -> Option<LayoutNodeType> {
         if self.pseudo_element_chain.is_empty() {
-            NodeTypeIdWrapper(self.node.type_id_for_layout()).to_layout_node_type()
+            Some(NodeTypeIdWrapper(self.node.type_id_for_layout()).into())
         } else {
             None
         }
