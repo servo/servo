@@ -634,14 +634,15 @@ class TestDebuggerTab:
         run_servoshell(url='data:text/html,<a href="javascript:1"></a>')
         assert_sources_list(Counter([frozen_multiset([])]))
 
-    @pytest.mark.xfail(strict=False)
     def test_sources_list_with_event_handler_and_display_url(self, run_servoshell):
-        run_servoshell(url='data:text/html,<a onclick="//%23 sourceURL=http://test"></a>')
+        url = 'data:text/html,<a onclick="//%23 sourceURL=http://test"></a><script>document.querySelector("a").onclick</script>'
+        run_servoshell(url=url)
         assert_sources_list(
             Counter(
                 [
                     frozen_multiset(
                         [
+                            Source("inlineScript", url),
                             Source("eventHandler", "http://test/"),
                         ]
                     )
@@ -653,14 +654,15 @@ class TestDebuggerTab:
         run_servoshell(url='data:text/html,<a onclick="1"></a>')
         assert_sources_list(Counter([frozen_multiset([])]))
 
-    @pytest.mark.xfail(strict=False)
     def test_sources_list_with_dom_timer_and_display_url(self, run_servoshell):
-        run_servoshell(url='data:text/html,<script>setTimeout("//%23 sourceURL=http://test",0)</script>')
+        url = 'data:text/html,<script>setTimeout("//%23 sourceURL=http://test",0)</script>'
+        run_servoshell(url=url)
         assert_sources_list(
             Counter(
                 [
                     frozen_multiset(
                         [
+                            Source("inlineScript", url),
                             Source("domTimer", "http://test/"),
                         ]
                     )
@@ -668,10 +670,20 @@ class TestDebuggerTab:
             )
         )
 
-    @pytest.mark.xfail(strict=False)
     def test_sources_list_with_dom_timer_but_no_display_url(self, run_servoshell):
-        run_servoshell(url='data:text/html,<script>setTimeout("1",0)</script>')
-        assert_sources_list(Counter([frozen_multiset([])]))
+        url = 'data:text/html,<script>setTimeout("1",0)</script>'
+        run_servoshell(url=url)
+        assert_sources_list(
+            Counter(
+                [
+                    frozen_multiset(
+                        [
+                            Source("inlineScript", url),
+                        ]
+                    )
+                ]
+            )
+        )
 
     # Sources list for scripts with `displayURL` (`//# sourceURL`), despite not being required by `introductionType`
 
