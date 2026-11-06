@@ -34,6 +34,8 @@ use js::rust::wrappers2::{
 #[cfg(feature = "devtools")]
 use js::rust::{CapturedJSStack, describe_scripted_caller, for_of};
 use js::rust::{HandleObject, HandleValue, IdVector, ToNumber, ToString};
+#[cfg(feature = "devtools")]
+use script_bindings::codegen::PrototypeList::proto_id_to_name;
 use script_bindings::conversions::get_dom_class;
 use script_bindings::js::{
     GetPropertyKeys, JS_GetOwnPropertyDescriptorById, JS_GetPropertyById, JS_GetPrototype,
@@ -387,7 +389,10 @@ mod devtools {
         if !unsafe { GetBuiltinClass(cx, object.handle(), &mut object_class as *mut _) } {
             return None;
         }
-        if object_class != ESClass::Object &&
+
+        let dom_class = unsafe { get_dom_class(object.get()).ok() };
+        if dom_class.is_none() &&
+            object_class != ESClass::Object &&
             object_class != ESClass::Array &&
             object_class != ESClass::Map &&
             object_class != ESClass::Function
@@ -478,6 +483,11 @@ mod devtools {
             });
         }
 
+        let dom_class_name = dom_class.map_or("Object", |dom_class| {
+            let interface_id = dom_class.interface_chain[dom_class.depth as usize];
+            proto_id_to_name(interface_id as u16)
+        });
+
         let (class, kind, function, array_length, items) = match object_class {
             ESClass::Array => {
                 let mut len = 0u32;
@@ -529,8 +539,7 @@ mod devtools {
                     None,
                 )
             },
-            // TODO: Investigate if this class should be the object class
-            _ => ("Object".into(), "Object".into(), None, None, None),
+            _ => (dom_class_name.into(), "Object".into(), None, None, None),
         };
 
         Some((
