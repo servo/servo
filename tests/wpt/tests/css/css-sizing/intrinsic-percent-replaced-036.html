@@ -1,0 +1,16 @@
+<!-- quirks mode -->
+<meta charset="utf-8">
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="help" href="https://quirks.spec.whatwg.org/#the-percentage-height-calculation-quirk">
+<link rel="help" href="https://github.com/servo/servo/issues/49683">
+<meta name="assert" content="Checks that a replaced element, with an aspect ratio, converts a quirky percent height into an intrinsic width.">
+<link rel="match" href="../reference/ref-filled-green-200px-square.html">
+
+<p style="margin: 1em 0">Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="width: 200px; height: 200px; background: red">
+  <div style="width: max-content; background: green">
+    <canvas width="50" height="50" style="height: 100%"></canvas>
+  </div>
+</div>
