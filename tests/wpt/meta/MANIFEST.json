@@ -16194,6 +16194,20 @@
        {}
       ]
      ],
+     "negative-viewbox-crash.html": [
+      "019414b3ed5385cf41343a4041e076a1bfd0331d",
+      [
+       null,
+       {}
+      ]
+     ],
+     "negative-viewbox.html": [
+      "dd158a5223fae8d147852b48f9cd943ca454eb87",
+      [
+       null,
+       {}
+      ]
+     ],
      "svg-zero-width-img-crash.html": [
       "6df1ee1c4c26c48747d7e9a4433b251d064268cf",
       [
