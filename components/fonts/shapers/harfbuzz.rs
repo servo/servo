@@ -279,10 +279,10 @@ impl Shaper {
                 text.len() as c_int,
             );
 
-            let language = options.language;
+            let language = &options.language;
             let hb_language = hb_language_from_string(
-                language.as_str().as_ptr() as *const c_char,
-                language.as_str().len() as c_int,
+                language.to_string().as_str().as_ptr() as *const c_char,
+                language.to_string().as_str().len() as c_int,
             );
             hb_buffer_set_language(hb_buffer, hb_language);
 
