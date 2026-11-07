@@ -12,7 +12,6 @@ interface HTMLElement : Element {
   [CEReactions] attribute DOMString lang;
   [CEReactions] attribute boolean translate;
   [CEReactions] attribute DOMString dir;
-  readonly attribute DOMStringMap dataset;
 
   [Pref="dom_microdata_testing_enabled"]
   sequence<DOMString>? propertyNames();
