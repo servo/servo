@@ -86,6 +86,11 @@ fn fn_cookie_constructor() {
     assert!(ServoCookie::new_wrapped(cookie.clone(), url, CookieSource::HTTP).is_none());
     assert!(ServoCookie::new_wrapped(cookie, gov_url, CookieSource::HTTP).is_some());
 
+    // public domain test is case-insensitive
+    let sub_gov_url = &ServoUrl::parse("http://example.gov.ac/foo").unwrap();
+    let cookie = cookie::Cookie::parse(" baz = bar; Domain =  GOV.AC").unwrap();
+    assert!(ServoCookie::new_wrapped(cookie, sub_gov_url, CookieSource::HTTP).is_none());
+
     // cookie domain matching test
     let cookie = cookie::Cookie::parse(" baz = bar ; Secure; Domain = bazample.com").unwrap();
     assert!(ServoCookie::new_wrapped(cookie, url, CookieSource::HTTP).is_none());
