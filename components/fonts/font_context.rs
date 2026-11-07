@@ -52,7 +52,7 @@ use style::values::specified::font::VariantAlternates;
 use url::Url;
 use uuid::Uuid;
 use webrender_api::{
-    FontInstanceFlags, FontInstanceKey, FontInstancePlatformOptions, FontKey, FontVariation,
+    FontInstanceKey, FontInstanceOptions, FontInstancePlatformOptions, FontKey, FontVariation,
 };
 
 use crate::font::{Font, FontFamilyDescriptor, FontGroup, FontRef, FontSearchScope};
@@ -71,8 +71,8 @@ pub(crate) struct FontParameters {
     pub(crate) font_key: FontKey,
     pub(crate) pt_size: Au,
     pub(crate) variations: Vec<FontVariation>,
-    pub(crate) flags: FontInstanceFlags,
     pub(crate) platform_options: FontInstancePlatformOptions,
+    pub(crate) font_instance_options: FontInstanceOptions,
 }
 
 pub type FontGroupRef = Arc<FontGroup>;
@@ -385,7 +385,7 @@ impl FontContext {
             FontIdentifier::Local(_) => self.system_font_service_proxy.get_system_font_instance(
                 font.template.identifier().to_owned(),
                 font.descriptor.pt_size,
-                font.webrender_font_instance_flags(),
+                font.webrender_font_instance_options(&font.descriptor),
                 font.webrender_font_instance_platform_options(),
                 font.variations().to_owned(),
                 painter_id,
@@ -394,7 +394,7 @@ impl FontContext {
                 .create_web_font_instance(
                     font.template.clone(),
                     font.descriptor.pt_size,
-                    font.webrender_font_instance_flags(),
+                    font.webrender_font_instance_options(&font.descriptor),
                     font.webrender_font_instance_platform_options(),
                     font.variations().to_owned(),
                     painter_id,
@@ -406,7 +406,7 @@ impl FontContext {
         &self,
         font_template: FontTemplateRef,
         pt_size: Au,
-        flags: FontInstanceFlags,
+        font_instance_options: FontInstanceOptions,
         platform_options: FontInstancePlatformOptions,
         variations: Vec<FontVariation>,
         painter_id: PainterId,
@@ -433,8 +433,8 @@ impl FontContext {
             font_key,
             pt_size,
             variations: variations.clone(),
-            flags,
             platform_options,
+            font_instance_options,
         };
         *self
             .webrender_font_instance_keys
@@ -448,7 +448,7 @@ impl FontContext {
                     font_instance_key,
                     font_key,
                     pt_size.to_f32_px(),
-                    flags,
+                    font_instance_options,
                     platform_options,
                     variations,
                 );
@@ -567,7 +567,8 @@ impl FontContext {
         );
 
         let identifier = FontIdentifier::Web(url);
-        let Ok(handle) = PlatformFont::new_from_data(identifier.clone(), &font_data, None, false)
+        let Ok(handle) =
+            PlatformFont::new_from_data(identifier.clone(), &font_data, None, false, false)
         else {
             return false;
         };
@@ -973,7 +974,7 @@ impl FontContext {
 
         let identifier = FontIdentifier::ArrayBuffer(Uuid::new_v4());
         let handle =
-            PlatformFont::new_from_data(identifier.clone(), &font_data, None, false).ok()?;
+            PlatformFont::new_from_data(identifier.clone(), &font_data, None, false, false).ok()?;
 
         let new_template = FontTemplate::new(identifier.clone(), handle.descriptor(), None);
 

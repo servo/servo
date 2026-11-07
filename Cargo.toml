@@ -497,6 +497,16 @@ codegen-units = 1
 # stylo_static_prefs = { path = "../stylo/stylo_static_prefs" }
 # stylo_traits = { path = "../stylo/style_traits" }
 #
+[patch."https://github.com/servo/stylo"]
+selectors = { git = "https://github.com/RichardTjokroutomo/stylo.git", branch = "synthetic-italic" }
+servo_arc = { git = "https://github.com/RichardTjokroutomo/stylo.git", branch = "synthetic-italic" }
+stylo = { git = "https://github.com/RichardTjokroutomo/stylo.git", branch = "synthetic-italic" }
+stylo_atoms = { git = "https://github.com/RichardTjokroutomo/stylo.git", branch = "synthetic-italic" }
+stylo_dom = { git = "https://github.com/RichardTjokroutomo/stylo.git", branch = "synthetic-italic" }
+stylo_malloc_size_of = { git = "https://github.com/RichardTjokroutomo/stylo.git", branch = "synthetic-italic" }
+stylo_static_prefs = { git = "https://github.com/RichardTjokroutomo/stylo.git", branch = "synthetic-italic" }
+stylo_traits = { git = "https://github.com/RichardTjokroutomo/stylo.git", branch = "synthetic-italic" }
+#
 # Or for another Git dependency:
 #
 # [patch."https://github.com/servo/<repository>"]

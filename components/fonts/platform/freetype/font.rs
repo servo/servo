@@ -6,7 +6,7 @@ use std::fs::File;
 
 use app_units::Au;
 use euclid::default::{Point2D, Rect, Size2D};
-use fonts_traits::{FontIdentifier, FontTemplateDescriptor, LocalFontIdentifier};
+use fonts_traits::{FontDescriptor, FontIdentifier, FontTemplateDescriptor, LocalFontIdentifier};
 use freetype_sys::{
     FT_F26Dot6, FT_Get_Char_Index, FT_Get_Kerning, FT_GlyphSlot, FT_KERNING_DEFAULT,
     FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_Load_Glyph, FT_Size_Metrics, FT_SizeRec, FT_UInt,
@@ -20,7 +20,11 @@ use read_fonts::{FontRef, ReadError, TableProvider};
 use servo_arc::Arc;
 use skrifa::attribute::Weight;
 use style::Zero;
-use webrender_api::{FontInstanceFlags, FontInstancePlatformOptions, FontVariation};
+use style::computed_values::font_style::T as FontStyle;
+use webrender_api::{
+    FontInstanceFlags, FontInstanceOptions, FontInstancePlatformOptions, FontVariation,
+    SyntheticItalics,
+};
 
 use super::library_handle::FreeTypeLibraryHandle;
 use crate::FontData;
@@ -31,6 +35,8 @@ use crate::platform::freetype::freetype_face::{
 };
 
 const SEMI_BOLD_U16: u16 = Weight::SEMI_BOLD.value() as u16;
+const SELECTION_FLAGS_ITALIC_U16: u16 = 1_u16;
+const SELECTION_FLAGS_OBLIQUE_U16: u16 = (1 << 9) as u16;
 
 /// Convert FreeType-style 26.6 fixed point to an [`f64`].
 fn fixed_26_dot_6_to_float(fixed: FT_F26Dot6) -> f64 {
@@ -60,6 +66,7 @@ pub struct PlatformFont {
     actual_face_size: Au,
     variations: Vec<FontVariation>,
     synthetic_bold: bool,
+    synthetic_italic: bool,
 
     /// A member that allows using `skrifa` to read values from this font.
     table_provider_data: FreeTypeFaceTableProviderData,
@@ -71,6 +78,7 @@ impl PlatformFontMethods for PlatformFont {
         font_data: &FontData,
         requested_size: Option<Au>,
         synthetic_bold: bool,
+        synthetic_italic: bool,
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
         let data = FontBackingStore::Web(font_data.clone());
@@ -84,6 +92,7 @@ impl PlatformFontMethods for PlatformFont {
         let table_provider_data = FreeTypeFaceTableProviderData::Web(font_data.clone());
 
         let synthetic_bold = table_provider_data.should_apply_synthetic_bold(synthetic_bold);
+        let synthetic_italic = table_provider_data.should_apply_synthetic_italic(synthetic_italic);
 
         Ok(PlatformFont {
             face: ReentrantMutex::new(face),
@@ -92,6 +101,7 @@ impl PlatformFontMethods for PlatformFont {
             table_provider_data,
             variations: vec![],
             synthetic_bold,
+            synthetic_italic,
         })
     }
 
@@ -99,6 +109,7 @@ impl PlatformFontMethods for PlatformFont {
         font_identifier: LocalFontIdentifier,
         requested_size: Option<Au>,
         synthetic_bold: bool,
+        synthetic_italic: bool,
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
 
@@ -125,6 +136,7 @@ impl PlatformFontMethods for PlatformFont {
             FreeTypeFaceTableProviderData::Local(memory_mapped_font_data, font_identifier.index());
 
         let synthetic_bold = table_provider_data.should_apply_synthetic_bold(synthetic_bold);
+        let synthetic_italic = table_provider_data.should_apply_synthetic_italic(synthetic_italic);
 
         Ok(PlatformFont {
             face: ReentrantMutex::new(face),
@@ -133,6 +145,7 @@ impl PlatformFontMethods for PlatformFont {
             table_provider_data,
             variations: vec![],
             synthetic_bold,
+            synthetic_italic,
         })
     }
 
@@ -397,6 +410,23 @@ impl PlatformFontMethods for PlatformFont {
         flags
     }
 
+    fn webrender_font_instance_options(&self, descriptor: &FontDescriptor) -> FontInstanceOptions {
+        let angle = if descriptor.style == FontStyle::ITALIC {
+            FontStyle::DEFAULT_OBLIQUE_DEGREES as f32
+        } else {
+            descriptor.style.oblique_degrees()
+        };
+        FontInstanceOptions {
+            flags: self.webrender_font_instance_flags(),
+            synthetic_italics: if self.synthetic_italic {
+                SyntheticItalics::from_degrees(angle)
+            } else {
+                SyntheticItalics::disabled()
+            },
+            ..Default::default()
+        }
+    }
+
     fn webrender_font_instance_platform_options(&self) -> FontInstancePlatformOptions {
         FontInstancePlatformOptions {
             // TODO: We should eventually read the hinting style from the system when
@@ -446,6 +476,24 @@ impl FreeTypeFaceTableProviderData {
             .and_then(|font_ref| font_ref.fvar())
             .is_ok_and(|table| table.axis_count() > 0);
         !face_is_bold && !is_variable_font && synthetic_bold
+    }
+
+    fn should_apply_synthetic_italic(&self, synthetic_italic: bool) -> bool {
+        // Ensures that a font face is not slanted (italicized) if it's a variable font
+        // or if it's already slanted (italic or oblique).
+        let face_is_slanted = self
+            .font_ref()
+            .and_then(|font_ref| font_ref.os2())
+            .is_ok_and(|table| {
+                (table.fs_selection().bits() & SELECTION_FLAGS_ITALIC_U16 |
+                    table.fs_selection().bits() & SELECTION_FLAGS_OBLIQUE_U16) !=
+                    0
+            });
+        let is_variable_font = self
+            .font_ref()
+            .and_then(|font_ref| font_ref.fvar())
+            .is_ok_and(|table| table.axis_count() > 0);
+        !face_is_slanted && !is_variable_font && synthetic_italic
     }
 }
 
