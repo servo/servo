@@ -298,8 +298,8 @@ impl Drop for WebXRBridgeManager {
 }
 
 impl WebXRContexts<WebXRSurfman> for WebGLThread {
-    fn device(&self, context_id: WebXRContextId) -> Option<Rc<Device>> {
-        self.maybe_device_for_context(context_id.into())
+    fn device(&mut self) -> Option<Rc<Device>> {
+        self.get_or_create_xr_device()
     }
 
     fn context(&mut self, context_id: WebXRContextId) -> Option<&mut Context> {

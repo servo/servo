@@ -72,7 +72,7 @@ impl LayerManagerAPI<SurfmanGL> for SurfmanLayerManager {
             LayerInit::WebGLLayer { stencil, depth, .. } => stencil | depth,
             LayerInit::ProjectionLayer { stencil, depth, .. } => stencil | depth,
         };
-        let device = contexts.device(context_id).ok_or(Error::NoMatchingDevice)?;
+        let device = contexts.device().ok_or(Error::NoMatchingDevice)?;
         if has_depth_stencil {
             let gl = contexts
                 .bindings(context_id)
@@ -112,7 +112,7 @@ impl LayerManagerAPI<SurfmanGL> for SurfmanLayerManager {
         layer_id: LayerId,
     ) {
         self.clearer.destroy_layer(contexts, context_id, layer_id);
-        let Some(device) = contexts.device(context_id) else {
+        let Some(device) = contexts.device() else {
             return;
         };
         let Some(context) = contexts.context(context_id) else {
@@ -149,7 +149,7 @@ impl LayerManagerAPI<SurfmanGL> for SurfmanLayerManager {
         layers
             .iter()
             .map(|&(context_id, layer_id)| {
-                let device = contexts.device(context_id).ok_or(Error::NoMatchingDevice)?;
+                let device = contexts.device().ok_or(Error::NoMatchingDevice)?;
                 let context = contexts
                     .context(context_id)
                     .ok_or(Error::NoMatchingDevice)?;
@@ -217,7 +217,7 @@ impl LayerManagerAPI<SurfmanGL> for SurfmanLayerManager {
             unsafe {
                 gl.flush();
             }
-            let device = contexts.device(context_id).ok_or(Error::NoMatchingDevice)?;
+            let device = contexts.device().ok_or(Error::NoMatchingDevice)?;
             let context = contexts
                 .context(context_id)
                 .ok_or(Error::NoMatchingDevice)?;
