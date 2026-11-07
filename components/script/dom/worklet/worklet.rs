@@ -775,6 +775,7 @@ impl WorkletThread {
             origin: Origin::Origin(origin),
             is_nested_browsing_context: global.is_nested_browsing_context(),
             insecure_requests_policy: global.insecure_requests_policy(),
+            upgrade_insecure_navigations_set: global.upgrade_insecure_navigations_set().clone(),
             has_trustworthy_ancestor_origin: global.has_trustworthy_ancestor_origin(),
             network_partition_key: None,
         };

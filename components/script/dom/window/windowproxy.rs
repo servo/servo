@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::collections::HashSet;
 use std::ptr::{self, NonNull};
 use std::rc::Rc;
 
@@ -354,6 +355,7 @@ impl WindowProxy {
             document.get_referrer_policy(),
             None, // Doesn't inherit secure context
             None,
+            HashSet::new(),
             false,
             sandboxing_flag_set,
         );

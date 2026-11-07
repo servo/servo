@@ -488,6 +488,10 @@ pub(crate) fn follow_hyperlink(
         //          with referrerPolicy set to referrerPolicy, userInvolvement set to
         //          userInvolvement, and sourceElement set to subject.
         let secure = target_window.as_global_scope().is_secure_context();
+        let upgrade_insecure_navigations_set = window
+            .as_global_scope()
+            .upgrade_insecure_navigations_set()
+            .clone();
         let load_data = LoadData::new(
             LoadOrigin::Script(document.origin().snapshot()),
             url,
@@ -497,6 +501,7 @@ pub(crate) fn follow_hyperlink(
             referrer_policy,
             Some(secure),
             Some(document.insecure_requests_policy()),
+            upgrade_insecure_navigations_set,
             document.has_trustworthy_ancestor_origin(),
             document.creation_sandboxing_flag_set_considering_parent_iframe(),
         );
