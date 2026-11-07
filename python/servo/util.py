@@ -11,8 +11,10 @@ import subprocess
 import tempfile
 from os import PathLike
 import hashlib
+import http.client
 import os
 import os.path
+import random
 import shutil
 import stat
 import sys
@@ -45,6 +47,11 @@ def delete(path: str) -> None:
         os.remove(path)
 
 
+# The maximum number of attempts for a single download. Transient failures such as
+# gateway timeouts are common enough that a few retries are worthwhile.
+MAX_DOWNLOAD_ATTEMPTS = 4
+
+
 def download(description: str, url: str, writer: BufferedIOBase, start_byte: int = 0) -> None:
     if start_byte:
         print("Resuming download of {} ...".format(url))
@@ -52,59 +59,94 @@ def download(description: str, url: str, writer: BufferedIOBase, start_byte: int
         print("Downloading {} ...".format(url))
     dumb = (os.environ.get("TERM") == "dumb") or (not sys.stdout.isatty())
 
-    try:
-        req = urllib.request.Request(url)
-        if start_byte:
-            req = urllib.request.Request(url, headers={"Range": "bytes={}-".format(start_byte)})
-        resp = urllib.request.urlopen(req)
+    # The number of bytes already persisted in `writer`. Retries resume from this
+    # offset with a HTTP range request instead of starting over or writing duplicates.
+    received = start_byte
 
-        fsize = None
-        if resp.info().get("Content-Length"):
-            fsize = int(resp.info().get("Content-Length").strip()) + start_byte
+    for attempt in range(1, MAX_DOWNLOAD_ATTEMPTS + 1):
+        retryable = True
+        try:
+            headers = {"Range": "bytes={}-".format(received)} if received else {}
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req) as resp:
+                if received and resp.getcode() != 206:
+                    # The server ignored the range request and is sending the whole
+                    # file again; appending it would corrupt the partial download.
+                    print(
+                        "Server did not honor range request for {} (status {})".format(
+                            url, resp.getcode()
+                        )
+                    )
+                    sys.exit(1)
 
-        recved = start_byte
-        chunk_size = 64 * 1024
+                fsize = None
+                if resp.info().get("Content-Length"):
+                    fsize = int(resp.info().get("Content-Length").strip()) + received
 
-        previous_progress_line = None
-        previous_progress_line_time = 0.0
-        while True:
-            chunk = resp.read(chunk_size)
-            if not chunk:
-                break
-            recved += len(chunk)
-            if not dumb:
-                if fsize is not None:
-                    pct = recved * 100.0 / fsize
-                    progress_line = "\rDownloading %s: %5.1f%%" % (description, pct)
-                    now = time.time()
-                    duration = now - previous_progress_line_time
-                    if progress_line != previous_progress_line and duration > 0.1:
-                        print(progress_line, end="")
-                        previous_progress_line = progress_line
-                        previous_progress_line_time = now
+                chunk_size = 64 * 1024
 
-                sys.stdout.flush()
-            writer.write(chunk)
+                previous_progress_line = None
+                previous_progress_line_time = 0.0
+                while True:
+                    chunk = resp.read(chunk_size)
+                    if not chunk:
+                        break
+                    writer.write(chunk)
+                    received += len(chunk)
+                    if not dumb:
+                        if fsize is not None:
+                            pct = received * 100.0 / fsize
+                            progress_line = "\rDownloading %s: %5.1f%%" % (description, pct)
+                            now = time.time()
+                            duration = now - previous_progress_line_time
+                            if progress_line != previous_progress_line and duration > 0.1:
+                                print(progress_line, end="")
+                                previous_progress_line = progress_line
+                                previous_progress_line_time = now
 
-        if not dumb:
-            print()
-    except urllib.error.HTTPError as e:
-        print("Download failed ({}): {} - {}".format(e.code, e.reason, url))
-        if e.code == 403:
-            print(
-                "No Rust compiler binary available for this platform. "
-                "Please see https://github.com/servo/servo/#prerequisites"
+                        sys.stdout.flush()
+                if not dumb:
+                    print()
+                if fsize is not None and received != fsize:
+                    raise urllib.error.URLError(
+                        "incomplete download: got {} of {} bytes".format(received, fsize)
+                    )
+            return
+        except urllib.error.HTTPError as e:
+            print("Download failed ({}): {} - {}".format(e.code, e.reason, url))
+            if e.code == 403:
+                print(
+                    "No Rust compiler binary available for this platform. "
+                    "Please see https://github.com/servo/servo/#prerequisites"
+                )
+                sys.exit(1)
+            retryable = e.code >= 500 or e.code in (408, 429)
+        except urllib.error.URLError as e:
+            print("Error downloading {}: {}. The failing URL was: {}".format(description, e.reason, url))
+            retryable = True
+        except socket_error as e:
+            print("Looks like there's a connectivity issue, check your Internet connection. {}".format(e))
+            retryable = True
+        except http.client.HTTPException as e:
+            print("Download of {} failed: {}".format(url, e))
+            retryable = True
+        except KeyboardInterrupt:
+            writer.flush()
+            raise
+
+        if not retryable:
+            sys.exit(1)
+        if attempt == MAX_DOWNLOAD_ATTEMPTS:
+            print("Download of {} failed after {} attempts.".format(url, MAX_DOWNLOAD_ATTEMPTS))
+            sys.exit(1)
+
+        sleep_time = random.uniform(2, 5)
+        print(
+            "Trying again in {:.1f}s (attempt {} of {})".format(
+                sleep_time, attempt + 1, MAX_DOWNLOAD_ATTEMPTS
             )
-        sys.exit(1)
-    except urllib.error.URLError as e:
-        print("Error downloading {}: {}. The failing URL was: {}".format(description, e.reason, url))
-        sys.exit(1)
-    except socket_error as e:
-        print("Looks like there's a connectivity issue, check your Internet connection. {}".format(e))
-        sys.exit(1)
-    except KeyboardInterrupt:
-        writer.flush()
-        raise
+        )
+        time.sleep(sleep_time)
 
 
 def download_bytes(description: str, url: str) -> bytes:
