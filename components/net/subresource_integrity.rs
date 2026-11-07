@@ -6,11 +6,11 @@ use std::iter::Filter;
 use std::str::Split;
 use std::sync::LazyLock;
 
-use aws_lc_rs::digest::{self};
 use base64::Engine;
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use parking_lot::MutexGuard;
 use regex::Regex;
+use sha2::Digest;
 
 type StaticCharVec = &'static [char];
 /// A "space character" according to:
@@ -140,13 +140,25 @@ pub fn get_strongest_metadata<'a>(integrity_metadata_list: Vec<SriEntry<'a>>) ->
 }
 
 /// <https://w3c.github.io/webappsec-subresource-integrity/#apply-algorithm-to-response>
-fn apply_algorithm_to_response(
-    body: MutexGuard<ResponseBody>,
-    algorithm: &'static digest::Algorithm,
-) -> String {
+fn apply_algorithm_to_response(body: MutexGuard<ResponseBody>, algorithm: Algorithm) -> String {
     if let ResponseBody::Done(ref vec) = *body {
-        let response_digest = digest::digest(algorithm, vec);
-        base64::engine::general_purpose::STANDARD.encode(response_digest)
+        match algorithm {
+            Algorithm::Sha256 => {
+                let mut hasher = sha2::Sha256::default();
+                hasher.update(vec);
+                base64::engine::general_purpose::STANDARD.encode(hasher.finalize())
+            },
+            Algorithm::Sha384 => {
+                let mut hasher = sha2::Sha384::default();
+                hasher.update(vec);
+                base64::engine::general_purpose::STANDARD.encode(hasher.finalize())
+            },
+            Algorithm::Sha512 => {
+                let mut hasher = sha2::Sha512::default();
+                hasher.update(vec);
+                base64::engine::general_purpose::STANDARD.encode(hasher.finalize())
+            },
+        }
     } else {
         unreachable!("Tried to calculate digest of incomplete response body")
     }
@@ -180,11 +192,7 @@ pub fn is_response_integrity_valid(integrity_metadata: &str, response: &Response
         let body = response.body.lock();
         let digest = item.val;
 
-        let hashed = match item.algorithm {
-            Algorithm::Sha256 => apply_algorithm_to_response(body, &digest::SHA256),
-            Algorithm::Sha384 => apply_algorithm_to_response(body, &digest::SHA384),
-            Algorithm::Sha512 => apply_algorithm_to_response(body, &digest::SHA512),
-        };
+        let hashed = apply_algorithm_to_response(body, item.algorithm);
 
         if hashed == digest {
             return true;

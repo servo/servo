@@ -9221,6 +9221,8 @@ dependencies = [
  "servo-tracing",
  "servo-url",
  "servo_arc",
+ "sha1 0.11.0",
+ "sha2 0.11.1",
  "smallvec",
  "tempfile",
  "time",
