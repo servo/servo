@@ -24,6 +24,7 @@ use script_bindings::callback::{HasCallbackHolder, OwnerWindow, RootedCallback, 
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object_with_proto};
+use script_bindings::trace::RootedTraceableBox;
 use servo_constellation_traits::ConstellationInterest;
 use servo_url::ServoUrl;
 use style::str::HTML_SPACE_CHARACTERS;
@@ -929,7 +930,7 @@ impl EventTarget {
         &self,
         ty: DOMString,
         listener: Option<RootedCallback<EventListener>>,
-        options: AddEventListenerOptions,
+        options: &AddEventListenerOptions,
     ) {
         if let Some(signal) = options.signal.as_ref() {
             // Step 2. If listener’s signal is not null and is aborted, then return.
@@ -1150,7 +1151,8 @@ impl EventTargetMethods<crate::DomTypeHolder> for EventTarget {
         listener: Option<RootedCallback<EventListener>>,
         options: AddEventListenerOptionsOrBoolean,
     ) {
-        self.add_event_listener(ty, listener, options.convert())
+        let event_listener_options = RootedTraceableBox::new(options.convert());
+        self.add_event_listener(ty, listener, &event_listener_options)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-eventtarget-removeeventlistener>
@@ -1186,7 +1188,9 @@ impl Convert<AddEventListenerOptions> for AddEventListenerOptionsOrBoolean {
         // Step 5. Return capture, passive, once, and signal.
         match self {
             // Step 4. If options is a dictionary:
-            AddEventListenerOptionsOrBoolean::AddEventListenerOptions(options) => options,
+            AddEventListenerOptionsOrBoolean::AddEventListenerOptions(options) => {
+                options.into_inner()
+            },
             AddEventListenerOptionsOrBoolean::Boolean(capture) => AddEventListenerOptions {
                 parent: EventListenerOptions { capture },
                 // Step 2. Let once be false.
