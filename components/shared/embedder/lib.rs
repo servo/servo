@@ -431,7 +431,7 @@ impl Image {
 }
 
 /// The severity level of a message logged by page content.
-#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, MallocSizeOf)]
 #[serde(rename_all = "lowercase")]
 pub enum ConsoleLogLevel {
     Log,

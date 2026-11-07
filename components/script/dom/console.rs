@@ -72,7 +72,7 @@ impl Console {
         let prefix = global.current_group_label().unwrap_or_default();
         let formatted_message = format!("{prefix}{message}");
 
-        Self::send_to_embedder(global, level.clone(), formatted_message);
+        Self::send_to_embedder(global, level, formatted_message);
 
         #[cfg(feature = "devtools")]
         {
@@ -84,7 +84,8 @@ impl Console {
         let _ = cx;
     }
 
-    fn method(
+    /// Same as Console::method but sends to devtools instead if enabled.
+    fn method_for_devtools(
         cx: &mut JSContext,
         global: &GlobalScope,
         level: ConsoleLogLevel,
@@ -92,60 +93,67 @@ impl Console {
         include_stacktrace: IncludeStackTrace,
     ) {
         #[cfg(feature = "devtools")]
-        let devtools_arguments: Vec<DebuggerValue>;
+        if global.devtools_chan().is_some() {
+            let devtools_arguments = if !messages.is_empty() && messages[0].is_string() {
+                let (formatted, consumed) = apply_sprintf_substitutions(cx, &messages);
+                if messages[consumed..].is_empty() {
+                    std::iter::once(DebuggerValue::StringValue(formatted))
+                        .chain(messages.iter().skip(consumed).map(|msg| {
+                            devtools::console_argument_from_handle_value(cx, *msg, &mut Vec::new())
+                        }))
+                        .collect()
+                } else {
+                    messages
+                        .iter()
+                        .map(|msg| {
+                            devtools::console_argument_from_handle_value(cx, *msg, &mut Vec::new())
+                        })
+                        .collect()
+                }
+            } else {
+                messages
+                    .iter()
+                    .map(|msg| {
+                        devtools::console_argument_from_handle_value(cx, *msg, &mut Vec::new())
+                    })
+                    .collect()
+            };
+            let stacktrace =
+                (include_stacktrace == IncludeStackTrace::Yes).then_some(get_js_stack(cx));
+            Console::send_to_devtools(
+                global,
+                Self::build_message(cx, level, devtools_arguments, stacktrace),
+            );
+        }
+    }
 
+    fn method(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        level: ConsoleLogLevel,
+        messages: Vec<HandleValue>,
+        include_stacktrace: IncludeStackTrace,
+    ) {
         // If the first argument is a string, apply sprintf-style substitutions per the
         // WHATWG Console spec formatter. The result is a single formatted string followed
         // by any arguments that were not consumed by a substitution specifier.
         let embedder_msg = if !messages.is_empty() && messages[0].is_string() {
             let (formatted, consumed) = apply_sprintf_substitutions(cx, &messages);
-            let remaining = &messages[consumed..];
 
-            #[cfg(feature = "devtools")]
-            {
-                let mut arguments: Vec<DebuggerValue> =
-                    vec![DebuggerValue::StringValue(formatted.clone())];
-                for msg in remaining {
-                    arguments.push(devtools::console_argument_from_handle_value(
-                        cx,
-                        *msg,
-                        &mut Vec::new(),
-                    ));
-                }
-                devtools_arguments = arguments;
-            }
-
-            let embedder_msg = if remaining.is_empty() {
+            let embedder_msg = if messages[consumed..].is_empty() {
                 formatted
             } else {
-                format!("{formatted} {}", stringify_handle_values(cx, remaining))
+                format!(
+                    "{formatted} {}",
+                    stringify_handle_values(cx, &messages[consumed..])
+                )
             };
-
             embedder_msg.into()
         } else {
-            #[cfg(feature = "devtools")]
-            {
-                let arguments: Vec<DebuggerValue> = messages
-                    .iter()
-                    .map(|msg| {
-                        devtools::console_argument_from_handle_value(cx, *msg, &mut Vec::new())
-                    })
-                    .collect();
-                devtools_arguments = arguments;
-            }
-
             stringify_handle_values(cx, &messages)
         };
 
-        #[cfg(feature = "devtools")]
-        {
-            let stacktrace =
-                (include_stacktrace == IncludeStackTrace::Yes).then_some(get_js_stack(cx));
-            Console::send_to_devtools(
-                global,
-                Self::build_message(cx, level.clone(), devtools_arguments, stacktrace),
-            );
-        }
+        Console::method_for_devtools(cx, global, level, messages, include_stacktrace);
 
         let prefix = global.current_group_label().unwrap_or_default();
         let formatted_message = format!("{prefix}{embedder_msg}");
@@ -581,121 +589,125 @@ mod devtools {
     }
 }
 
+fn stringify_object_from_handle_value(
+    cx: &mut JSContext,
+    value: HandleValue,
+    parents: Vec<u64>,
+) -> DOMString {
+    rooted!(&in(cx) let mut obj = value.to_object());
+    let mut object_class = ESClass::Other;
+    #[expect(unsafe_code)]
+    if !unsafe { GetBuiltinClass(cx, obj.handle(), &mut object_class as *mut _) } {
+        return DOMString::from_static("/* invalid */");
+    }
+    let mut ids = IdVector::new(cx);
+    if !GetPropertyKeys(
+        cx,
+        obj.handle(),
+        jsapi::JSITER_OWNONLY | jsapi::JSITER_SYMBOLS,
+        ids.handle_mut(),
+    ) {
+        return DOMString::from_static("/* invalid */");
+    }
+    let truncate = ids.len() > MAX_LOG_CHILDREN;
+    if object_class != ESClass::Array && object_class != ESClass::Object {
+        if truncate {
+            return DOMString::from_static("…");
+        } else {
+            return handle_value_to_string(cx, value);
+        }
+    }
+
+    let mut explicit_keys = object_class == ESClass::Object;
+    let mut props = Vec::with_capacity(ids.len());
+    for id in ids.iter().take(MAX_LOG_CHILDREN) {
+        rooted!(&in(cx) let id = *id);
+        rooted!(&in(cx) let mut desc = PropertyDescriptor::default());
+
+        let mut is_none = false;
+        if !JS_GetOwnPropertyDescriptorById(
+            cx,
+            obj.handle(),
+            id.handle(),
+            desc.handle_mut(),
+            &mut is_none,
+        ) {
+            return DOMString::from_static("/* invalid */");
+        }
+
+        rooted!(&in(cx) let mut property = UndefinedValue());
+        if !JS_GetPropertyById(cx, obj.handle(), id.handle(), property.handle_mut()) {
+            return DOMString::from_static("/* invalid */");
+        }
+
+        if !explicit_keys {
+            if id.is_int() {
+                if let Ok(id_int) = usize::try_from(id.to_int()) {
+                    explicit_keys = props.len() != id_int;
+                } else {
+                    explicit_keys = false;
+                }
+            } else {
+                explicit_keys = false;
+            }
+        }
+        let value_string = stringify_inner(cx, property.handle(), parents.clone());
+        if explicit_keys {
+            let key = if id.is_string() || id.is_symbol() || id.is_int() {
+                rooted!(&in(cx) let mut key_value = UndefinedValue());
+                if !JS_IdToValue(cx, id.handle().get(), key_value.handle_mut()) {
+                    return DOMString::from_static("/* invalid */");
+                }
+                handle_value_to_string(cx, key_value.handle())
+            } else {
+                return DOMString::from_static("/* invalid */");
+            };
+            props.push(format!("{}: {}", key, value_string,));
+        } else {
+            props.push(String::from(value_string));
+        }
+    }
+    if truncate {
+        props.push("…".to_string());
+    }
+    if object_class == ESClass::Array {
+        DOMString::from(format!("[{}]", itertools::join(props, ", ")))
+    } else {
+        DOMString::from(format!("{{{}}}", itertools::join(props, ", ")))
+    }
+}
+
+fn stringify_inner(cx: &mut JSContext, value: HandleValue, mut parents: Vec<u64>) -> DOMString {
+    if parents.len() >= MAX_LOG_DEPTH {
+        return DOMString::from_static("...");
+    }
+    let value_bits = value.asBits_;
+    if parents.contains(&value_bits) {
+        return DOMString::from_static("[circular]");
+    }
+    if value.is_undefined() {
+        // This produces a better value than "(void 0)" from JS_ValueToSource.
+        return DOMString::from_static("undefined");
+    } else if !value.is_object() {
+        return handle_value_to_string(cx, value);
+    }
+    parents.push(value_bits);
+
+    if value.is_object() &&
+        let Some(repr) = maybe_stringify_dom_object(cx, value)
+    {
+        return repr;
+    }
+    stringify_object_from_handle_value(cx, value, parents)
+}
+
 #[expect(unsafe_code)]
 pub(crate) fn stringify_handle_value(cx: &mut JSContext, message: HandleValue) -> DOMString {
     if message.is_string() {
         let jsstr = std::ptr::NonNull::new(message.to_string()).unwrap();
         return unsafe { jsstr_to_string(cx, jsstr) }.into();
     }
-    fn stringify_object_from_handle_value(
-        cx: &mut JSContext,
-        value: HandleValue,
-        parents: Vec<u64>,
-    ) -> DOMString {
-        rooted!(&in(cx) let mut obj = value.to_object());
-        let mut object_class = ESClass::Other;
-        if !unsafe { GetBuiltinClass(cx, obj.handle(), &mut object_class as *mut _) } {
-            return DOMString::from_static("/* invalid */");
-        }
-        let mut ids = IdVector::new(cx);
-        if !GetPropertyKeys(
-            cx,
-            obj.handle(),
-            jsapi::JSITER_OWNONLY | jsapi::JSITER_SYMBOLS,
-            ids.handle_mut(),
-        ) {
-            return DOMString::from_static("/* invalid */");
-        }
-        let truncate = ids.len() > MAX_LOG_CHILDREN;
-        if object_class != ESClass::Array && object_class != ESClass::Object {
-            if truncate {
-                return DOMString::from_static("…");
-            } else {
-                return handle_value_to_string(cx, value);
-            }
-        }
 
-        let mut explicit_keys = object_class == ESClass::Object;
-        let mut props = Vec::with_capacity(ids.len());
-        for id in ids.iter().take(MAX_LOG_CHILDREN) {
-            rooted!(&in(cx) let id = *id);
-            rooted!(&in(cx) let mut desc = PropertyDescriptor::default());
-
-            let mut is_none = false;
-            if !JS_GetOwnPropertyDescriptorById(
-                cx,
-                obj.handle(),
-                id.handle(),
-                desc.handle_mut(),
-                &mut is_none,
-            ) {
-                return DOMString::from_static("/* invalid */");
-            }
-
-            rooted!(&in(cx) let mut property = UndefinedValue());
-            if !JS_GetPropertyById(cx, obj.handle(), id.handle(), property.handle_mut()) {
-                return DOMString::from_static("/* invalid */");
-            }
-
-            if !explicit_keys {
-                if id.is_int() {
-                    if let Ok(id_int) = usize::try_from(id.to_int()) {
-                        explicit_keys = props.len() != id_int;
-                    } else {
-                        explicit_keys = false;
-                    }
-                } else {
-                    explicit_keys = false;
-                }
-            }
-            let value_string = stringify_inner(cx, property.handle(), parents.clone());
-            if explicit_keys {
-                let key = if id.is_string() || id.is_symbol() || id.is_int() {
-                    rooted!(&in(cx) let mut key_value = UndefinedValue());
-                    if !JS_IdToValue(cx, id.handle().get(), key_value.handle_mut()) {
-                        return DOMString::from_static("/* invalid */");
-                    }
-                    handle_value_to_string(cx, key_value.handle())
-                } else {
-                    return DOMString::from_static("/* invalid */");
-                };
-                props.push(format!("{}: {}", key, value_string,));
-            } else {
-                props.push(String::from(value_string));
-            }
-        }
-        if truncate {
-            props.push("…".to_string());
-        }
-        if object_class == ESClass::Array {
-            DOMString::from(format!("[{}]", itertools::join(props, ", ")))
-        } else {
-            DOMString::from(format!("{{{}}}", itertools::join(props, ", ")))
-        }
-    }
-    fn stringify_inner(cx: &mut JSContext, value: HandleValue, mut parents: Vec<u64>) -> DOMString {
-        if parents.len() >= MAX_LOG_DEPTH {
-            return DOMString::from_static("...");
-        }
-        let value_bits = value.asBits_;
-        if parents.contains(&value_bits) {
-            return DOMString::from_static("[circular]");
-        }
-        if value.is_undefined() {
-            // This produces a better value than "(void 0)" from JS_ValueToSource.
-            return DOMString::from_static("undefined");
-        } else if !value.is_object() {
-            return handle_value_to_string(cx, value);
-        }
-        parents.push(value_bits);
-
-        if value.is_object() &&
-            let Some(repr) = maybe_stringify_dom_object(cx, value)
-        {
-            return repr;
-        }
-        stringify_object_from_handle_value(cx, value, parents)
-    }
     stringify_inner(cx, message, Vec::new())
 }
 
@@ -767,7 +779,7 @@ fn apply_sprintf_substitutions(cx: &mut JSContext, messages: &[HandleValue]) -> 
     let js_string = ptr::NonNull::new(messages[0].to_string()).unwrap();
     let format_string = unsafe { jsstr_to_string(cx, js_string) };
 
-    let mut result = String::new();
+    let mut result = String::with_capacity(format_string.len());
     let mut arg_index = 1usize;
     let mut chars = format_string.chars().peekable();
 
@@ -777,7 +789,7 @@ fn apply_sprintf_substitutions(cx: &mut JSContext, messages: &[HandleValue]) -> 
             continue;
         }
 
-        match chars.peek().copied() {
+        match chars.peek() {
             Some('s') => {
                 chars.next();
                 if arg_index < messages.len() {
@@ -865,10 +877,7 @@ fn format_float_substitution(result: &mut String, num: Result<f64, ()>) {
 
 fn stringify_handle_values(cx: &mut JSContext, messages: &[HandleValue]) -> DOMString {
     DOMString::from(itertools::join(
-        messages
-            .iter()
-            .copied()
-            .map(|msg| stringify_handle_value(cx, msg)),
+        messages.iter().map(|msg| stringify_handle_value(cx, *msg)),
         " ",
     ))
 }
