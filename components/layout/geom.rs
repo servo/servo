@@ -18,6 +18,7 @@ use style_traits::CSSPixel;
 
 use crate::containing_block::ContainingBlock;
 use crate::sizing::Size;
+use crate::style_ext::WritingModeExt;
 
 pub type PhysicalPoint<U> = euclid::Point2D<U, CSSPixel>;
 pub type PhysicalSize<U> = euclid::Size2D<U, CSSPixel>;
@@ -33,7 +34,7 @@ pub struct LogicalVec2<T> {
     pub block: T,
 }
 
-#[derive(Clone, Copy, MallocSizeOf)]
+#[derive(Clone, Copy, MallocSizeOf, PartialEq)]
 pub struct LogicalRect<T> {
     pub start_corner: LogicalVec2<T>,
     pub size: LogicalVec2<T>,
@@ -121,7 +122,7 @@ impl<T: Clone> LogicalVec2<Size<T>> {
 }
 
 impl<T: Clone> LogicalVec2<T> {
-    pub fn from_physical_size(physical_size: &PhysicalSize<T>, mode: WritingMode) -> Self {
+    pub(crate) fn from_physical_size(physical_size: &PhysicalSize<T>, mode: WritingMode) -> Self {
         // https://drafts.csswg.org/css-writing-modes/#logical-to-physical
         let (i, b) = if mode.is_horizontal() {
             (&physical_size.width, &physical_size.height)
@@ -237,33 +238,79 @@ impl fmt::Debug for LogicalRect<Au> {
 impl<T: Clone> LogicalVec2<T> {
     pub fn to_physical_size(&self, mode: WritingMode) -> PhysicalSize<T> {
         // https://drafts.csswg.org/css-writing-modes/#logical-to-physical
-        let (x, y) = if mode.is_horizontal() {
-            (&self.inline, &self.block)
+        if mode.is_horizontal() {
+            PhysicalSize::new(self.inline.clone(), self.block.clone())
         } else {
-            (&self.block, &self.inline)
-        };
-        PhysicalSize::new(x.clone(), y.clone())
+            PhysicalSize::new(self.block.clone(), self.inline.clone())
+        }
     }
 }
 
-impl<T: Copy + Neg<Output = T>> LogicalVec2<T> {
-    pub fn to_physical_vector(&self, mode: WritingMode) -> PhysicalVec<T> {
-        if mode.is_horizontal() {
-            if mode.is_bidi_ltr() {
-                PhysicalVec::new(self.inline, self.block)
-            } else {
-                PhysicalVec::new(-self.inline, self.block)
-            }
-        } else if mode.is_inline_tb() {
-            PhysicalVec::new(self.block, self.inline)
+impl LogicalVec2<Au> {
+    /// Convert from a physical point in the parent container to a [`LogicalVec2`] point.
+    ///
+    /// TODO: This will eventually need to be passed the parent container size.
+    pub(crate) fn from_physical_point_deprecated(
+        point: &PhysicalPoint<Au>,
+        containing_block: &ContainingBlock,
+    ) -> LogicalVec2<Au> {
+        let writing_mode = containing_block.style.writing_mode;
+        let (inline, block) = if writing_mode.is_horizontal() {
+            (point.x, point.y)
         } else {
-            PhysicalVec::new(-self.block, self.inline)
+            (point.y, point.x)
+        };
+
+        let inline = flip(
+            inline,
+            Au::zero(),
+            containing_block.size.inline,
+            writing_mode.is_inline_flipped(),
+        );
+
+        LogicalVec2 { inline, block }
+    }
+
+    /// Convert the vector to an offset in the parent container.
+    pub(crate) fn to_physical_offset(self, mode: WritingMode) -> PhysicalVec<Au> {
+        let inline = if mode.is_inline_flipped() {
+            -self.inline
+        } else {
+            self.inline
+        };
+        let block = if mode.is_block_flipped() {
+            -self.block
+        } else {
+            self.block
+        };
+
+        if mode.is_horizontal() {
+            PhysicalVec::new(inline, block)
+        } else {
+            debug_assert!(mode.is_vertical());
+            PhysicalVec::new(block, inline)
+        }
+    }
+
+    /// Convert the vector to an offset in the parent container, but without flipping anything
+    /// in the block axis.
+    pub(crate) fn to_physical_offset_deprecated(self, mode: WritingMode) -> PhysicalVec<Au> {
+        let inline = if mode.is_inline_flipped() {
+            -self.inline
+        } else {
+            self.inline
+        };
+        if mode.is_horizontal() {
+            PhysicalVec::new(inline, self.block)
+        } else {
+            debug_assert!(mode.is_vertical());
+            PhysicalVec::new(self.block, inline)
         }
     }
 }
 
 impl<T: Clone> LogicalSides<T> {
-    pub fn from_physical(sides: &PhysicalSides<T>, mode: WritingMode) -> Self {
+    pub(crate) fn from_physical(sides: &PhysicalSides<T>, mode: WritingMode) -> Self {
         // https://drafts.csswg.org/css-writing-modes/#logical-to-physical
         let block_flow = mode.block_flow_direction();
         let (bs, be) = match mode.block_flow_direction() {
@@ -278,7 +325,7 @@ impl<T: Clone> LogicalSides<T> {
             (_, InlineBaseDirection::LeftToRight) => (&sides.top, &sides.bottom),
             (_, InlineBaseDirection::RightToLeft) => (&sides.bottom, &sides.top),
         };
-        LogicalSides {
+        Self {
             inline_start: is.clone(),
             inline_end: ie.clone(),
             block_start: bs.clone(),
@@ -550,28 +597,145 @@ impl<T> LogicalRect<T> {
     }
 }
 
+fn flip(start: Au, size: Au, container_size: Au, flipped: bool) -> Au {
+    if flipped {
+        container_size - (start + size)
+    } else {
+        start
+    }
+}
+
 impl LogicalRect<Au> {
-    pub(crate) fn as_physical(&self, containing_block: &ContainingBlock<'_>) -> PhysicalRect<Au> {
-        let mode = containing_block.style.writing_mode;
-        let (x, y, width, height) = if mode.is_vertical() {
-            // TODO: Bottom-to-top writing modes are not supported.
-            (
-                self.start_corner.block,
-                self.start_corner.inline,
-                self.size.block,
-                self.size.inline,
+    fn from_physical_inner(
+        rect: PhysicalRect<Au>,
+        writing_mode: WritingMode,
+        container_inline_size: Au,
+        container_block_size: Option<Au>,
+    ) -> LogicalRect<Au> {
+        let inline_start;
+        let mut block_start;
+        let inline_size;
+        let block_size;
+        if writing_mode.is_vertical() {
+            inline_start = rect.origin.y;
+            block_start = rect.origin.x;
+            inline_size = rect.size.height;
+            block_size = rect.size.width;
+        } else {
+            inline_start = rect.origin.x;
+            block_start = rect.origin.y;
+            inline_size = rect.size.width;
+            block_size = rect.size.height;
+        }
+
+        let inline_start = flip(
+            inline_start,
+            inline_size,
+            container_inline_size,
+            writing_mode.is_inline_flipped(),
+        );
+        if writing_mode.is_block_flipped() &&
+            let Some(container_block_size) = container_block_size
+        {
+            block_start = flip(block_start, block_size, container_block_size, true);
+        }
+
+        Self {
+            start_corner: LogicalVec2 {
+                inline: inline_start,
+                block: block_start,
+            },
+            size: LogicalVec2 {
+                inline: inline_size,
+                block: block_size,
+            },
+        }
+    }
+
+    #[cfg_attr(not(test), expect(dead_code))]
+    pub(crate) fn from_physical(
+        rect: PhysicalRect<Au>,
+        writing_mode: WritingMode,
+        container_size: LogicalVec2<Au>,
+    ) -> Self {
+        Self::from_physical_inner(
+            rect,
+            writing_mode,
+            container_size.inline,
+            Some(container_size.block),
+        )
+    }
+
+    pub(crate) fn from_physical_deprecated(
+        rect: PhysicalRect<Au>,
+        containing_block: &ContainingBlock,
+    ) -> Self {
+        Self::from_physical_inner(
+            rect,
+            containing_block.style.writing_mode,
+            containing_block.size.inline,
+            None,
+        )
+    }
+
+    fn as_physical_inner(
+        &self,
+        writing_mode: WritingMode,
+        container_inline_size: Au,
+        container_block_size: Option<Au>,
+    ) -> PhysicalRect<Au> {
+        let inline_offset = flip(
+            self.start_corner.inline,
+            self.size.inline,
+            container_inline_size,
+            writing_mode.is_inline_flipped(),
+        );
+        let block_offset = container_block_size
+            .map(|container_block_size| {
+                flip(
+                    self.start_corner.block,
+                    self.size.block,
+                    container_block_size,
+                    writing_mode.is_block_flipped(),
+                )
+            })
+            .unwrap_or(self.start_corner.block);
+
+        if writing_mode.is_vertical() {
+            PhysicalRect::new(
+                PhysicalPoint::new(block_offset, inline_offset),
+                PhysicalSize::new(self.size.block, self.size.inline),
             )
         } else {
-            let y = self.start_corner.block;
-            let x = if mode.is_bidi_ltr() {
-                self.start_corner.inline
-            } else {
-                containing_block.size.inline - self.max_inline_position()
-            };
-            (x, y, self.size.inline, self.size.block)
-        };
+            PhysicalRect::new(
+                PhysicalPoint::new(inline_offset, block_offset),
+                PhysicalSize::new(self.size.inline, self.size.block),
+            )
+        }
+    }
 
-        PhysicalRect::new(PhysicalPoint::new(x, y), PhysicalSize::new(width, height))
+    #[cfg_attr(not(test), expect(dead_code))]
+    pub(crate) fn as_physical(
+        &self,
+        writing_mode: WritingMode,
+        container_size: LogicalVec2<Au>,
+    ) -> PhysicalRect<Au> {
+        self.as_physical_inner(
+            writing_mode,
+            container_size.inline,
+            Some(container_size.block),
+        )
+    }
+
+    pub(crate) fn as_physical_deprecated(
+        &self,
+        containing_block: &ContainingBlock<'_>,
+    ) -> PhysicalRect<Au> {
+        self.as_physical_inner(
+            containing_block.style.writing_mode,
+            containing_block.size.inline,
+            None,
+        )
     }
 }
 
@@ -607,82 +771,6 @@ impl From<LogicalRect<CSSPixelLength>> for LogicalRect<Au> {
         LogicalRect {
             start_corner: value.start_corner.into(),
             size: value.size.into(),
-        }
-    }
-}
-
-pub(crate) trait ToLogical<Unit, LogicalType> {
-    fn to_logical(&self, writing_mode: WritingMode) -> LogicalType;
-}
-
-impl<Unit: Copy> ToLogical<Unit, LogicalVec2<Unit>> for PhysicalSize<Unit> {
-    fn to_logical(&self, writing_mode: WritingMode) -> LogicalVec2<Unit> {
-        LogicalVec2::from_physical_size(self, writing_mode)
-    }
-}
-
-impl<Unit: Copy> ToLogical<Unit, LogicalSides<Unit>> for PhysicalSides<Unit> {
-    fn to_logical(&self, writing_mode: WritingMode) -> LogicalSides<Unit> {
-        LogicalSides::from_physical(self, writing_mode)
-    }
-}
-
-pub(crate) trait ToLogicalWithContainingBlock<LogicalType> {
-    fn to_logical(&self, containing_block: &ContainingBlock) -> LogicalType;
-}
-
-impl ToLogicalWithContainingBlock<LogicalVec2<Au>> for PhysicalPoint<Au> {
-    fn to_logical(&self, containing_block: &ContainingBlock) -> LogicalVec2<Au> {
-        let writing_mode = containing_block.style.writing_mode;
-        // TODO: Bottom-to-top and right-to-left vertical writing modes are not supported yet.
-        if writing_mode.is_vertical() {
-            LogicalVec2 {
-                inline: self.y,
-                block: self.x,
-            }
-        } else {
-            LogicalVec2 {
-                inline: if writing_mode.is_bidi_ltr() {
-                    self.x
-                } else {
-                    containing_block.size.inline - self.x
-                },
-                block: self.y,
-            }
-        }
-    }
-}
-
-impl ToLogicalWithContainingBlock<LogicalRect<Au>> for PhysicalRect<Au> {
-    fn to_logical(&self, containing_block: &ContainingBlock) -> LogicalRect<Au> {
-        let inline_start;
-        let block_start;
-        let inline;
-        let block;
-
-        let writing_mode = containing_block.style.writing_mode;
-        if writing_mode.is_vertical() {
-            // TODO: Bottom-to-top and right-to-left vertical writing modes are not supported yet.
-            inline = self.size.height;
-            block = self.size.width;
-            block_start = self.origin.x;
-            inline_start = self.origin.y;
-        } else {
-            inline = self.size.width;
-            block = self.size.height;
-            block_start = self.origin.y;
-            if writing_mode.is_bidi_ltr() {
-                inline_start = self.origin.x;
-            } else {
-                inline_start = containing_block.size.inline - (self.origin.x + self.size.width);
-            }
-        }
-        LogicalRect {
-            start_corner: LogicalVec2 {
-                inline: inline_start,
-                block: block_start,
-            },
-            size: LogicalVec2 { inline, block },
         }
     }
 }
@@ -768,4 +856,95 @@ impl fmt::Debug for SyncPhysicalRectAu {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.get().fmt(f)
     }
+}
+
+#[test]
+fn test_rectangle_logical_physical_conversion() {
+    let make_logical_rect =
+        |inline_origin: i32, block_origin: i32, inline_size: i32, block_size: i32| LogicalRect {
+            start_corner: LogicalVec2 {
+                inline: Au::from_px(inline_origin),
+                block: Au::from_px(block_origin),
+            },
+            size: LogicalVec2 {
+                inline: Au::from_px(inline_size),
+                block: Au::from_px(block_size),
+            },
+        };
+
+    let make_physical_rect = |x: i32, y: i32, width: i32, height: i32| {
+        PhysicalRect::new(
+            Point2D::new(Au::from_px(x), Au::from_px(y)),
+            Size2D::new(Au::from_px(width), Au::from_px(height)),
+        )
+    };
+
+    let test_rectangle = make_logical_rect(10, 20, 30, 40);
+    let container_size = LogicalVec2 {
+        inline: Au::from_px(100),
+        block: Au::from_px(200),
+    };
+
+    let assert_conversion = |expected_rect: PhysicalRect<Au>, writing_mode| {
+        let converted = test_rectangle.as_physical(writing_mode, container_size);
+        assert_eq!(converted, expected_rect);
+        let converted_back = LogicalRect::from_physical(converted, writing_mode, container_size);
+        assert_eq!(converted_back, test_rectangle);
+    };
+
+    // `writing-mode: horizontal-tb` `direction: ltr`
+    assert_conversion(
+        make_physical_rect(10, 20, 30, 40),
+        WritingMode::horizontal_tb(),
+    );
+    // `writing-mode: horizontal-tb` `direction: rtl`
+    assert_conversion(
+        make_physical_rect(60, 20, 30, 40),
+        WritingMode::RTL | WritingMode::INLINE_REVERSED,
+    );
+    // `writing-mode: vertical-lr` `direction: ltr`
+    assert_conversion(
+        make_physical_rect(20, 10, 40, 30),
+        WritingMode::WRITING_MODE_VERTICAL_LR,
+    );
+    // `writing-mode: vertical-lr` `direction: rtl`
+    assert_conversion(
+        make_physical_rect(20, 60, 40, 30),
+        WritingMode::WRITING_MODE_VERTICAL_LR | WritingMode::RTL | WritingMode::INLINE_REVERSED,
+    );
+    // `writing-mode: vertical-rl` `direction: ltr`
+    assert_conversion(
+        make_physical_rect(140, 10, 40, 30),
+        WritingMode::WRITING_MODE_VERTICAL_RL,
+    );
+    // `writing-mode: vertical-rl` `direction: rtl`
+    assert_conversion(
+        make_physical_rect(140, 60, 40, 30),
+        WritingMode::WRITING_MODE_VERTICAL_RL | WritingMode::RTL | WritingMode::INLINE_REVERSED,
+    );
+    // `writing-mode: sideways-lr` `direction: ltr`
+    assert_conversion(
+        make_physical_rect(20, 60, 40, 30),
+        WritingMode::WRITING_MODE_SIDEWAYS_LR | WritingMode::INLINE_REVERSED,
+    );
+    // `writing-mode: sideways-lr` `direction: rtl`
+    assert_conversion(
+        make_physical_rect(20, 10, 40, 30),
+        WritingMode::WRITING_MODE_SIDEWAYS_LR | WritingMode::RTL,
+    );
+    // `writing-mode: sideways-rl` `direction: ltr`
+    assert_conversion(
+        make_physical_rect(140, 10, 40, 30),
+        WritingMode::WRITING_MODE_SIDEWAYS_RL,
+    );
+    // `writing-mode: sideways-rl` `direction: rtl`
+    assert_conversion(
+        make_physical_rect(140, 60, 40, 30),
+        WritingMode::WRITING_MODE_SIDEWAYS_RL | WritingMode::RTL | WritingMode::INLINE_REVERSED,
+    );
+    // `writing-mode: sideways-rl` `direction: rtl` `text-orientation: upright`
+    assert_conversion(
+        make_physical_rect(140, 10, 40, 30),
+        WritingMode::WRITING_MODE_VERTICAL_RL | WritingMode::UPRIGHT,
+    );
 }

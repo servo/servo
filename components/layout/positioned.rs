@@ -31,7 +31,7 @@ use crate::fragment_tree::{
 };
 use crate::geom::{
     AuOrAuto, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect,
-    PhysicalSize, PhysicalVec, ToLogical, ToLogicalWithContainingBlock,
+    PhysicalSize, PhysicalVec,
 };
 use crate::layout_box_base::{IndependentFormattingContextLayoutResult, LayoutBoxBase};
 use crate::sizing::{LazySize, Size, SizeConstraint, Sizes};
@@ -218,7 +218,7 @@ impl PositioningContext {
         if base.style.get_box().position == Position::Relative {
             new_fragment.base.translate_rect(
                 relative_adjustement(&base.style, containing_block)
-                    .to_physical_vector(containing_block.style.writing_mode)
+                    .to_physical_offset(containing_block.style.writing_mode)
                     .into(),
             );
         }
@@ -470,9 +470,10 @@ impl HoistedAbsolutelyPositionedBox {
             absolute_containing_block.rect_for_item(independent_formatting_context.style());
         let containing_block_style = absolute_containing_block.style();
         let containing_block = DefiniteContainingBlock {
-            size: containing_block_rect
-                .size
-                .to_logical(containing_block_style.writing_mode),
+            size: LogicalVec2::from_physical_size(
+                &containing_block_rect.size,
+                containing_block_style.writing_mode,
+            ),
             style: &containing_block_style,
         };
 
@@ -488,7 +489,7 @@ impl HoistedAbsolutelyPositionedBox {
                 .static_position_rect()
                 .translate(-containing_block_origin);
             static_position_rect.size = static_position_rect.size.max(PhysicalSize::zero());
-            static_position_rect.to_logical(&(&containing_block).into())
+            LogicalRect::from_physical_deprecated(static_position_rect, &(&containing_block).into())
         };
 
         let (box_fragment, mut positioning_context) = independent_formatting_context
@@ -751,7 +752,7 @@ impl IndependentFormattingContext {
             },
             size: content_size,
         }
-        .as_physical(containing_block)
+        .as_physical_deprecated(containing_block)
         .translate(containing_block_origin);
 
         if is_cached &&
