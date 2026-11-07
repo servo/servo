@@ -355,6 +355,10 @@ pub(crate) mod webgpu;
 pub(crate) use self::webgpu::*;
 pub(crate) mod webcrypto;
 pub(crate) use self::webcrypto::*;
+#[cfg(feature = "webmidi")]
+pub(crate) mod webmidi;
+#[cfg(feature = "webmidi")]
+pub(crate) use self::webmidi::*;
 pub(crate) mod webrtc;
 pub(crate) use self::webrtc::*;
 pub(crate) mod webvtt;
