@@ -551733,7 +551733,7 @@
       []
      ],
      "general-guidelines.md": [
-      "1689c064a36af9696db1d1a6ec7ab653a2bd758b",
+      "36cd914874c25ae81eb57c125f0991fa5f34d1d5",
       []
      ],
      "github-intro.md": [
@@ -551749,7 +551749,7 @@
       []
      ],
      "index.md": [
-      "ac638d6b8ed82c47e0577879f41d3f184f207f64",
+      "922c6f0a0b47e5079d9f82573958ee1b55af1182",
       []
      ],
      "interacting-features.md": [
@@ -612378,6 +612378,20 @@
         "1bc2811d93f0f8aadc04434a2de6300de5a494d1",
         []
        ],
+       "__pycache__": {
+        "__init__.cpython-311-pytest-8.2.1.pyc.13004": [
+         "00be497d163487fd39fbbe6686de15419719244a",
+         []
+        ],
+        "_version.cpython-311-pytest-8.2.1.pyc.13004": [
+         "65b9e6b891470e3497c4640233e525395d1be027",
+         []
+        ],
+        "plugin.cpython-311-pytest-8.2.1.pyc.13004": [
+         "041e3e93e8fff018fde560a421112360be54be77",
+         []
+        ]
+       },
        "_version.py": [
         "76aa7a209acddf9c8cbe524b458d56ea7571aa46",
         []
@@ -621500,6 +621514,16 @@
       "7a83b26a85d205637c62ee447261e00b3e9799f9",
       []
      ],
+     "__pycache__": {
+      "conftest.cpython-311-pytest-8.2.1.pyc.19544": [
+       "4fe2fd81884db029e6b027cd1ab2b749e5341365",
+       []
+      ],
+      "conftest.cpython-311-pytest-8.2.1.pyc.22248": [
+       "4fe2fd81884db029e6b027cd1ab2b749e5341365",
+       []
+      ]
+     },
      "bidi": {
       "WEB_FEATURES.yml": [
        "69cbedf32338e5049060f0051b4915b6c0bbf554",
@@ -623020,6 +623044,20 @@
         "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
         []
        ],
+       "__pycache__": {
+        "fixtures.cpython-311-pytest-8.2.1.pyc.19544": [
+         "77aeb11be2acabe12fdbd147ed2bed202c059fb2",
+         []
+        ],
+        "fixtures.cpython-311-pytest-8.2.1.pyc.21256": [
+         "77aeb11be2acabe12fdbd147ed2bed202c059fb2",
+         []
+        ],
+        "fixtures.cpython-311-pytest-8.2.1.pyc.22248": [
+         "77aeb11be2acabe12fdbd147ed2bed202c059fb2",
+         []
+        ]
+       },
        "fixtures.py": [
         "2ac906ef8333d4c104c8320b1420975eedab9b41",
         []
@@ -623030,6 +623068,24 @@
         "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
         []
        ],
+       "__pycache__": {
+        "fixtures.cpython-311-pytest-8.2.1.pyc.19440": [
+         "8cc6b8a60daebe49b1ac7fcd296783722011ef12",
+         []
+        ],
+        "fixtures.cpython-311-pytest-8.2.1.pyc.20896": [
+         "8cc6b8a60daebe49b1ac7fcd296783722011ef12",
+         []
+        ],
+        "fixtures.cpython-311-pytest-8.2.1.pyc.22248": [
+         "8cc6b8a60daebe49b1ac7fcd296783722011ef12",
+         []
+        ],
+        "fixtures.cpython-311-pytest-8.2.1.pyc.256": [
+         "8cc6b8a60daebe49b1ac7fcd296783722011ef12",
+         []
+        ]
+       },
        "asserts.py": [
         "ba39453c90a356cd5e4cc99e1d9a36bb47221291",
         []
@@ -1374520,36 +1374576,36 @@
       {}
      ]
     ],
-    "icon-fetch.tentative.https.window.js": [
-     "b04df9d44acfd3a7f613c76e81f1af903f0125bf",
+    "icon-fetch-blob-url.https.window.js": [
+     "570835fd482c85363243476cbf2ca9635fbe4f14",
      [
-      "notifications/icon-fetch.tentative.https.window.html",
+      "notifications/icon-fetch-blob-url.https.window.html",
       {
        "script_metadata": [
         [
          "script",
-         "/resources/testdriver.js"
+         "/resources/testdriver.js\r"
         ],
         [
          "script",
-         "/resources/testdriver-vendor.js"
+         "/resources/testdriver-vendor.js\r"
         ],
         [
          "script",
-         "/service-workers/service-worker/resources/test-helpers.sub.js"
+         "/service-workers/service-worker/resources/test-helpers.sub.js\r"
         ],
         [
          "script",
-         "resources/helpers.js"
+         "resources/helpers.js\r"
         ]
        ]
       }
      ]
     ],
-    "icon-fetch-blob-url.https.window.js": [
-     "16a57855faf08dd75d3d2a3ebb34f9a216cbc803",
+    "icon-fetch.tentative.https.window.js": [
+     "b04df9d44acfd3a7f613c76e81f1af903f0125bf",
      [
-      "notifications/icon-fetch-blob-url.https.window.html",
+      "notifications/icon-fetch.tentative.https.window.html",
       {
        "script_metadata": [
         [
