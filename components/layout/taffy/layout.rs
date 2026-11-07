@@ -19,8 +19,8 @@ use super::{
 };
 use crate::cell::ArcRefCell;
 use crate::containing_block::{
-    ConstraintSpace, ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize,
-    IndefiniteContainingBlock, IndefiniteContainingBlockSize,
+    ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock,
+    IndefiniteContainingBlockSize,
 };
 use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
@@ -158,11 +158,10 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                 let style = independent_context.style();
 
                 let child_containing_block = IndefiniteContainingBlock {
-                    size: IndefiniteContainingBlockSize {
-                        inline: inputs.parent_size.width.map(Au::from_f32_px),
-                        block: inputs.parent_size.height.map(Au::from_f32_px),
-                        has_quirky_block_size: HasQuirkyBlockSize(false),
-                    },
+                    size: IndefiniteContainingBlockSize::new(
+                        inputs.parent_size.width.map(Au::from_f32_px), /* inline_size */
+                        inputs.parent_size.height.map(Au::from_f32_px), /* block_size */
+                    ),
                     style: containing_block.style,
                 };
 
@@ -196,12 +195,8 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
 
                 // Compute inline size
                 let inline_size = content_box_known_dimensions.width.unwrap_or_else(|| {
-                    let constraint_space = ConstraintSpace {
-                        block_size: tentative_block_size,
-                        has_quirky_block_size: HasQuirkyBlockSize(false),
-                        style,
-                        preferred_aspect_ratio,
-                    };
+                    let constraint_space =
+                        ConstraintSpace::new(tentative_block_size, style, preferred_aspect_ratio);
 
                     // TODO: pass min- and max- size
                     let result = independent_context
@@ -278,11 +273,10 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                 }
 
                 let content_box_size_override = ContainingBlock {
-                    size: ContainingBlockSize {
-                        inline: Au::from_f32_px(inline_size),
-                        block: tentative_block_size,
-                        has_quirky_block_size: HasQuirkyBlockSize(false),
-                    },
+                    size: ContainingBlockSize::new(
+                        Au::from_f32_px(inline_size),
+                        tentative_block_size,
+                    ),
                     style,
                 };
 
@@ -400,11 +394,10 @@ impl ComputeInlineContentSizes for TaffyContainer {
         };
 
         let containing_block = &ContainingBlock {
-            size: ContainingBlockSize {
-                inline: Au::zero(),
-                block: SizeConstraint::default(),
-                has_quirky_block_size: HasQuirkyBlockSize(false),
-            },
+            size: ContainingBlockSize::new(
+                Au::zero(),                /* inline_size */
+                SizeConstraint::default(), /* block_size */
+            ),
             style,
         };
 
@@ -483,20 +476,18 @@ impl TaffyContainer {
 
         let known_dimensions = taffy::Size {
             width: Some(
-                (content_box_size_override.size.inline + pbm.padding_border_sums.inline)
+                (content_box_size_override.inline_size() + pbm.padding_border_sums.inline)
                     .to_f32_px(),
             ),
             height: content_box_size_override
-                .size
-                .block
-                .to_definite()
+                .block_size()
                 .map(Au::to_f32_px)
                 .maybe_add(pbm.padding_border_sums.block.to_f32_px()),
         };
 
         let taffy_containing_block = taffy::Size {
-            width: Some(containing_block.size.inline.to_f32_px()),
-            height: containing_block.size.block.to_definite().map(Au::to_f32_px),
+            width: Some(containing_block.inline_size().to_f32_px()),
+            height: containing_block.block_size().map(Au::to_f32_px),
         };
 
         let layout_input = taffy::LayoutInput {

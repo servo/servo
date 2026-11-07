@@ -264,7 +264,7 @@ impl LogicalVec2<Au> {
         let inline = flip(
             inline,
             Au::zero(),
-            containing_block.size.inline,
+            containing_block.inline_size(),
             writing_mode.is_inline_flipped(),
         );
 
@@ -673,7 +673,7 @@ impl LogicalRect<Au> {
         Self::from_physical_inner(
             rect,
             containing_block.style.writing_mode,
-            containing_block.size.inline,
+            containing_block.inline_size(),
             None,
         )
     }
@@ -732,7 +732,7 @@ impl LogicalRect<Au> {
     ) -> PhysicalRect<Au> {
         self.as_physical_inner(
             containing_block.style.writing_mode,
-            containing_block.size.inline,
+            containing_block.inline_size(),
             None,
         )
     }

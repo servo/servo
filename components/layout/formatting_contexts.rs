@@ -14,8 +14,7 @@ use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 
 use crate::containing_block::{
-    ConstraintSpace, ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize,
-    IndefiniteContainingBlock,
+    ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock,
 };
 use crate::context::LayoutContext;
 use crate::dom::{LayoutBox, NodeExt, WeakLayoutBox};
@@ -468,11 +467,10 @@ impl IndependentFormattingContext {
                 let resolved_block_size =
                     lazy_block_size.resolve(|| replaced_layout.content_block_size);
                 let widget_cb = ContainingBlock {
-                    size: ContainingBlockSize {
-                        inline: containing_block_for_children.size.inline,
-                        block: SizeConstraint::Definite(resolved_block_size),
-                        has_quirky_block_size: HasQuirkyBlockSize(false),
-                    },
+                    size: ContainingBlockSize::new(
+                        containing_block_for_children.inline_size(),
+                        SizeConstraint::Definite(resolved_block_size),
+                    ),
                     style: &self.base.style,
                 };
                 if let Some(widget) = widget {
@@ -600,11 +598,10 @@ impl IndependentFormattingContext {
             layout_context,
             positioning_context,
             &ContainingBlock {
-                size: ContainingBlockSize {
-                    inline: inline_size,
-                    block: SizeConstraint::default(),
-                    has_quirky_block_size: HasQuirkyBlockSize(false),
-                },
+                size: ContainingBlockSize::new(
+                    inline_size,
+                    SizeConstraint::default(), /* block_size */
+                ),
                 style: self.style(),
             },
             containing_block,

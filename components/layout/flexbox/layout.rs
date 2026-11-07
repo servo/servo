@@ -28,8 +28,7 @@ use super::geom::{FlexAxis, FlexRelativeRect, FlexRelativeSides, FlexRelativeVec
 use super::{FlexContainer, FlexContainerConfig, FlexItemBox, FlexLevelBox};
 use crate::cell::ArcRefCell;
 use crate::containing_block::{
-    ConstraintSpace, ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize,
-    IndefiniteContainingBlock,
+    ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock,
 };
 use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
@@ -633,8 +632,8 @@ impl FlexContainer {
             // https://drafts.csswg.org/css-flexbox/#definite-sizes
             container_inner_size_constraint: self.config.flex_axis.vec2_to_flex_relative(
                 LogicalVec2 {
-                    inline: SizeConstraint::Definite(containing_block.size.inline),
-                    block: containing_block.size.block,
+                    inline: SizeConstraint::Definite(containing_block.inline_size()),
+                    block: containing_block.maybe_quirky_block_size(),
                 },
             ),
         };
@@ -642,10 +641,10 @@ impl FlexContainer {
         // “Determine the main size of the flex container”
         // https://drafts.csswg.org/css-flexbox/#algo-main-container
         let container_main_size = match self.config.flex_axis {
-            FlexAxis::Row => containing_block.size.inline,
+            FlexAxis::Row => containing_block.inline_size(),
             FlexAxis::Column => lazy_block_size.resolve(|| {
                 let mut containing_block = IndefiniteContainingBlock::from(containing_block);
-                containing_block.size.block = None;
+                containing_block.size.maybe_quirky_block_size = None;
                 self.main_content_sizes(layout_context, &containing_block, || &flex_context)
                     .sizes
                     .max_content
@@ -735,7 +734,7 @@ impl FlexContainer {
         // https://drafts.csswg.org/css-flexbox/#algo-cross-container
         let container_cross_size = match self.config.flex_axis {
             FlexAxis::Row => lazy_block_size.resolve(|| content_cross_size),
-            FlexAxis::Column => containing_block.size.inline,
+            FlexAxis::Column => containing_block.inline_size(),
         };
 
         let container_size = FlexRelativeVec2 {
@@ -1593,18 +1592,17 @@ impl InitialFlexLineLayout<'_> {
                         Size::Initial => item.item.automatic_cross_size == Size::Stretch,
                         Size::Stretch => true,
                         _ => false,
-                    }) && SizeConstraint::Definite(used_cross_size) !=
-                        layout.containing_block_size.block &&
+                    }) && Some(used_cross_size) != layout.containing_block_size.block_size() &&
                         layout.depends_on_block_constraints
                 },
-                LogicalAxis::Inline => used_cross_size != layout.containing_block_size.inline,
+                LogicalAxis::Inline => used_cross_size != layout.containing_block_size.inline_size,
             };
             if needs_new_layout {
                 #[cfg(feature = "tracing")]
                 tracing::warn!(
                     name: "Flex item stretch cache miss",
-                    cached_inline = ?layout.containing_block_size.inline,
-                    cached_block = ?layout.containing_block_size.block,
+                    cached_inline = ?layout.containing_block_size.inline_size,
+                    cached_block = ?layout.containing_block_size.block_size(),
                     required_cross_size = ?used_cross_size,
                     cross_axis = ?cross_axis,
                     depends_on_block_constraints = layout.depends_on_block_constraints,
@@ -1873,11 +1871,7 @@ impl FlexItem<'_> {
 
         let item_style = independent_formatting_context.style();
         let item_as_containing_block = ContainingBlock {
-            size: ContainingBlockSize {
-                inline: inline_size,
-                block: block_size,
-                has_quirky_block_size: HasQuirkyBlockSize(false),
-            },
+            size: ContainingBlockSize::new(inline_size, block_size),
             style: item_style,
         };
 
@@ -2372,12 +2366,8 @@ impl FlexItemBox {
             if cross_axis_is_item_block_axis {
                 // The main axis is the inline axis, so we can get the content size from the normal
                 // preferred widths calculation.
-                let constraint_space = ConstraintSpace::new(
-                    cross_size,
-                    HasQuirkyBlockSize(false),
-                    style,
-                    preferred_aspect_ratio,
-                );
+                let constraint_space =
+                    ConstraintSpace::new(cross_size, style, preferred_aspect_ratio);
                 let content_sizes = flex_item
                     .inline_content_sizes(layout_context, &constraint_space)
                     .sizes;
@@ -2774,12 +2764,7 @@ impl FlexItemBox {
         preferred_aspect_ratio: Option<AspectRatio>,
     ) -> ContentSizes {
         let style = self.independent_formatting_context.style();
-        let constraint_space = ConstraintSpace::new(
-            block_size,
-            HasQuirkyBlockSize(false),
-            style,
-            preferred_aspect_ratio,
-        );
+        let constraint_space = ConstraintSpace::new(block_size, style, preferred_aspect_ratio);
         self.independent_formatting_context
             .inline_content_sizes(flex_context.layout_context, &constraint_space)
             .sizes

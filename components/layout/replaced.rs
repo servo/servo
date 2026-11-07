@@ -768,7 +768,7 @@ impl ReplacedContents {
         lazy_block_size: &LazySize,
     ) -> IndependentFormattingContextLayoutResult {
         let writing_mode = base.style.writing_mode;
-        let inline_size = containing_block_for_children.size.inline;
+        let inline_size = containing_block_for_children.inline_size();
         let content_block_size = self.content_size(
             LogicalAxis::Block,
             preferred_aspect_ratio,
@@ -812,10 +812,11 @@ impl ComputeInlineContentSizes for ReplacedContents {
         _: &LayoutContext,
         constraint_space: &ConstraintSpace,
     ) -> InlineContentSizesResult {
+        debug_assert!(!constraint_space.has_quirky_block_size.0);
         let inline_content_size = self.content_size(
             LogicalAxis::Inline,
             constraint_space.preferred_aspect_ratio,
-            &|| constraint_space.block_size,
+            &|| constraint_space.maybe_quirky_block_size,
             &|| self.fallback_inline_size(constraint_space.style.writing_mode),
         );
         InlineContentSizesResult {

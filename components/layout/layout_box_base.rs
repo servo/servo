@@ -104,10 +104,10 @@ impl LayoutBoxBase {
     ) -> InlineContentSizesResult {
         let mut cache = self.cached_inline_content_size.borrow_mut();
         if let Some(cached_inline_content_size) = cache.as_ref() {
-            let (previous_cb_block_size, had_quirky_block_size, result) =
+            let (previous_cb_maybe_quirky_block_size, had_quirky_block_size, result) =
                 **cached_inline_content_size;
             if !result.depends_on_block_constraints ||
-                (previous_cb_block_size == constraint_space.block_size &&
+                (previous_cb_maybe_quirky_block_size == constraint_space.maybe_quirky_block_size &&
                     had_quirky_block_size == constraint_space.has_quirky_block_size)
             {
                 return result;
@@ -118,7 +118,7 @@ impl LayoutBoxBase {
         let result =
             layout_box.compute_inline_content_sizes_with_fixup(layout_context, constraint_space);
         *cache = Some(Box::new((
-            constraint_space.block_size,
+            constraint_space.maybe_quirky_block_size,
             constraint_space.has_quirky_block_size,
             result,
         )));
@@ -245,11 +245,11 @@ impl LayoutBoxBase {
         };
 
         let cache = &**cache;
-        if !cache.applicable_for_inline_size(containing_block_for_children.size.inline) {
+        if !cache.applicable_for_inline_size(containing_block_for_children.inline_size()) {
             return Err(None);
         }
         if !cache.applicable_for_block_size(
-            containing_block_for_children.size.block,
+            containing_block_for_children.maybe_quirky_block_size(),
             containing_block_for_children.size.has_quirky_block_size,
         ) {
             return Err(cache.content_block_size_under_default_constraint);
@@ -453,17 +453,20 @@ pub(crate) struct IndependentFormattingContextLayoutResultAndInputs {
 impl IndependentFormattingContextLayoutResultAndInputs {
     #[inline]
     fn applicable_for_inline_size(&self, inline_size: Au) -> bool {
-        self.containing_block_for_children_size.inline == inline_size
+        self.containing_block_for_children_size.inline_size == inline_size
     }
 
     #[inline]
     fn applicable_for_block_size(
         &self,
-        block_size: SizeConstraint,
+        maybe_quirky_block_size: SizeConstraint,
         has_quirky_block_size: HasQuirkyBlockSize,
     ) -> bool {
         !self.result.depends_on_block_constraints ||
-            (self.containing_block_for_children_size.block == block_size &&
+            (self
+                .containing_block_for_children_size
+                .maybe_quirky_block_size ==
+                maybe_quirky_block_size &&
                 self.containing_block_for_children_size
                     .has_quirky_block_size ==
                     has_quirky_block_size)

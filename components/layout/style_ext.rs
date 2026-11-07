@@ -1214,8 +1214,9 @@ impl LayoutStyle<'_> {
             depends_on_block_constraints(&max_size.block) ||
             style.depends_on_block_constraints_due_to_relative_positioning(writing_mode);
 
-        // If the containing block has a quirky block size, it means that the actual block size
-        // was indefinite, but it was overridden in order to be able to resolve percentages here.
+        // <https://quirks.spec.whatwg.org/#the-percentage-height-calculation-quirk>
+        // In quirks mode, in order to resolve percentages, if the actual containing block had an
+        // indefinite block size, we can instead resolve against some further ancestor.
         // However, the spec says to only apply the quirk if `height` is set to a `<percentage>`.
         // TODO: What to do in a vertical writing mode? Blink and WebKit still apply the quirk
         // to the block axis. Gecko doesn't. See <https://github.com/whatwg/quirks/issues/62>.
@@ -1224,13 +1225,11 @@ impl LayoutStyle<'_> {
         // TODO: Blink and WebKit consider that a `calc()` that contains a percentage fulfills
         // the percentage requirement. See <https://github.com/whatwg/quirks/issues/48>.
         let containing_block_size = LogicalVec2 {
-            inline: containing_block.size.inline,
-            block: if containing_block.has_quirky_block_size() &&
-                box_size.block.to_percentage().is_none()
-            {
-                None
+            inline: containing_block.size.inline_size,
+            block: if box_size.block.to_percentage().is_some() {
+                containing_block.maybe_quirky_block_size()
             } else {
-                containing_block.size.block
+                containing_block.block_size()
             },
         };
 
@@ -1281,7 +1280,7 @@ impl LayoutStyle<'_> {
     ) -> PaddingBorderMargin {
         self.padding_border_margin_with_writing_mode_and_containing_block_inline_size(
             containing_block.style.writing_mode,
-            containing_block.size.inline,
+            containing_block.inline_size(),
         )
     }
 
