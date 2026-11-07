@@ -55,7 +55,7 @@ use crate::dom::nodelist::NodeList;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::shadowroot::ua_shadowroot::{CreateUAShadowRootForSelf, UAShadowRoot};
 use crate::dom::text::Text;
-use crate::dom::types::{FocusEvent, HTMLDataListElement};
+use crate::dom::types::{FocusEvent, HTMLDataListElement, MouseEvent};
 use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::node::virtualmethods::VirtualMethods;
@@ -971,6 +971,14 @@ impl VirtualMethods for HTMLSelectElement {
                 .embedder_controls()
                 .hide_embedder_control(self.upcast());
         }
+
+        // https://html.spec.whatwg.org/multipage/#select-open-picker
+        if event.IsTrusted() &&
+            event.downcast::<MouseEvent>().is_some() &&
+            *event.type_() == *"mousedown"
+        {
+            self.show_menu(cx);
+        }
     }
 }
 
@@ -1041,15 +1049,10 @@ impl Activatable for HTMLSelectElement {
 
     fn activation_behavior(
         &self,
-        cx: &mut js::context::JSContext,
-        event: &Event,
+        _cx: &mut js::context::JSContext,
+        _event: &Event,
         _target: &EventTarget,
     ) {
-        if !event.IsTrusted() {
-            return;
-        }
-
-        self.show_menu(cx);
     }
 }
 
