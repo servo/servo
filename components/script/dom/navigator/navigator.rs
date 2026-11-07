@@ -15,7 +15,6 @@ use headers::HeaderMap;
 use http::header::{self, HeaderValue};
 use js::context::JSContext;
 use js::rust::MutableHandleValue;
-use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{
     CredentialsMode, Destination, RequestBuilder, RequestId, RequestMode,
     is_cors_safelisted_request_content_type,
@@ -71,6 +70,7 @@ use crate::fetch::fetch::RequestWithGlobalScope;
 use crate::fetch::network_listener::{
     FetchResponseListener, ResourceTimingListener, submit_timing,
 };
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 pub(crate) fn hardware_concurrency() -> u64 {
     static CPUS: LazyLock<u64> = LazyLock::new(|| num_cpus::get().try_into().unwrap_or(1));
@@ -599,7 +599,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         // Step 7.1. Let req be a new request, initialized as follows:
         let request = RequestBuilder::new(
             None,
-            UrlWithBlobClaim::from_url_without_having_claimed_blob(url.clone()),
+            ensure_blob_referenced_by_url_is_kept_alive(&global, url.clone()),
             global.get_referrer(),
         )
         .mode(cors_mode)
