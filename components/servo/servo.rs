@@ -643,7 +643,7 @@ impl ServoInner {
                     webview.set_cursor(cursor);
                 }
             },
-            EmbedderMsg::NewFavicon(webview_id, image) => {
+            EmbedderMsg::SetFavicon(webview_id, image) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview.set_favicon(image);
                 }

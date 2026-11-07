@@ -3074,6 +3074,20 @@ impl GlobalScope {
         );
     }
 
+    pub(crate) fn fetch_favicon<Listener: FetchResponseListener>(
+        &self,
+        request_builder: RequestBuilder,
+        context: Listener,
+        task_source: SendableTaskSource,
+    ) {
+        self.fetch_group_mut().fetch_with_options(
+            request_builder,
+            NetworkListener::new(context, task_source),
+            None, /* state */
+            false,
+        );
+    }
+
     pub(crate) fn unminify_js(&self) -> bool {
         self.unminified_js_dir.is_some()
     }

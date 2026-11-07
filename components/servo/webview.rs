@@ -393,8 +393,11 @@ impl WebView {
         Ref::filter_map(self.inner(), |inner| inner.favicon.as_ref()).ok()
     }
 
-    pub(crate) fn set_favicon(self, new_value: Image) {
-        self.inner_mut().favicon = Some(new_value);
+    pub(crate) fn set_favicon(self, new_value: Option<Image>) {
+        if new_value.is_none() && self.inner().favicon.is_none() {
+            return;
+        }
+        self.inner_mut().favicon = new_value;
         self.delegate().notify_favicon_changed(self);
     }
 

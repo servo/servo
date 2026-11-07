@@ -940,7 +940,7 @@ pub trait WebViewDelegate {
     /// status can accessed via [`WebView::load_status`].
     fn notify_load_status_changed(&self, _webview: WebView, _status: LoadStatus) {}
     /// The [`Cursor`] of the currently loaded page in this [`WebView`] has changed. The new
-    /// cursor can accessed via [`WebView::cursor`].
+    /// cursor can be accessed via [`WebView::cursor`].
     fn notify_cursor_changed(&self, _webview: WebView, _cursor: Cursor) {}
     /// The favicon of the currently loaded page in this [`WebView`] has changed. The new
     /// favicon [`Image`](embedder_traits::Image) can accessed via [`WebView::favicon`].

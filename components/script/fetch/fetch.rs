@@ -90,6 +90,9 @@ pub(crate) struct FetchRecord {
     /// If this record was created by a call to `fetch()`, this holds the [`Request`]
     /// that started this operation.
     request: Option<Dom<Request>>,
+    /// Whether canceling this fetch when aborting a document should mark
+    /// the document as unsalvageable for the back-forward cache (BFCache).
+    cancelling_invalidates_salvageability: bool,
 }
 
 /// <https://fetch.spec.whatwg.org/#concept-fetch-group>
@@ -122,6 +125,16 @@ impl FetchGroup {
         listener: NetworkListener<Listener>,
         request_object: Option<&Request>,
     ) {
+        self.fetch_with_options(request, listener, request_object, true);
+    }
+
+    pub(crate) fn fetch_with_options<Listener: FetchResponseListener>(
+        &mut self,
+        request: RequestBuilder,
+        listener: NetworkListener<Listener>,
+        request_object: Option<&Request>,
+        cancelling_invalidates_salvageability: bool,
+    ) {
         self.fetch_records.insert(
             NoTrace(request.id),
             FetchRecord {
@@ -131,6 +144,7 @@ impl FetchGroup {
                     self.core_resource_thread.clone(),
                 )),
                 request: request_object.map(Dom::from_ref),
+                cancelling_invalidates_salvageability,
             },
         );
         fetch_async(
@@ -199,7 +213,9 @@ impl FetchGroup {
             };
             if !controller.keep_alive() {
                 controller.terminate();
-                cancelled_any = true;
+                if fetch_record.cancelling_invalidates_salvageability {
+                    cancelled_any = true;
+                }
                 return false;
             }
             true

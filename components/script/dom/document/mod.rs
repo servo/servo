@@ -14,6 +14,7 @@ pub(crate) mod documenttype;
 pub(crate) mod domimplementation;
 pub(crate) mod domparser;
 pub(crate) mod editing;
+pub(crate) mod favicon;
 pub(crate) mod focus;
 mod iframe_collection;
 mod interactive_element_command;
