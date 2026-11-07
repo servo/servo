@@ -1338,6 +1338,8 @@ malloc_size_of_is_0!(memmap2::Mmap);
 malloc_size_of_is_0!(taffy::Layout);
 malloc_size_of_is_0!(taffy::Baselines);
 malloc_size_of_is_0!(taffy::DetailedGridItemsInfo);
+
+malloc_size_of_is_0!(webrender_api::FontInstanceOptions);
 impl<T> MallocSizeOf for taffy::Line<T>
 where
     T: MallocSizeOf,
@@ -1604,11 +1606,5 @@ where
         } else {
             0
         }
-    }
-}
-
-impl MallocSizeOf for webrender_api::FontInstanceOptions {
-    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
-        0 // return 0: FontInstanceOptions has no heap allocation.
     }
 }

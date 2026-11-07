@@ -1209,7 +1209,7 @@ impl Fragment {
             };
             let angle = match (font_style, font.slow_clone_font_synthesis_style()) {
                 (FontStyle::NORMAL, _) | (_, FontSynthesisStyle::None) => 0.0,
-                (FontStyle::ITALIC, FontSynthesisStyle::ObliqueOnly) => 0.0,
+                (FontStyle::ITALIC, FontSynthesisStyle::ObliqueOnly) => FontStyle::DEFAULT_OBLIQUE_DEGREES as f32,
                 (FontStyle::ITALIC, FontSynthesisStyle::Auto) => style_angle,
                 (style, _) => style.oblique_degrees(),
             };
