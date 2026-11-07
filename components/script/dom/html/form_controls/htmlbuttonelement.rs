@@ -28,6 +28,7 @@ use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::html::form_controls::htmlselectelement::HTMLSelectElement;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlformelement::{
     FormControl, FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement, ResetFrom,
@@ -44,6 +45,7 @@ enum ButtonType {
     Submit,
     Reset,
     Button,
+    Auto,
 }
 
 #[dom_struct]
@@ -68,7 +70,7 @@ impl HTMLButtonElement {
                 prefix,
                 document,
             ),
-            button_type: Cell::new(ButtonType::Submit),
+            button_type: Cell::new(ButtonType::Auto),
             form_owner: Default::default(),
             labels_node_list: Default::default(),
             validity_state: Default::default(),
@@ -92,9 +94,20 @@ impl HTMLButtonElement {
         )
     }
 
-    #[inline]
     pub(crate) fn is_submit_button(&self) -> bool {
-        self.button_type.get() == ButtonType::Submit
+        match self.button_type.get() {
+            ButtonType::Auto => {
+                let element = self.upcast::<Element>();
+
+                !element.has_attribute(&local_name!("command")) &&
+                    !element.has_attribute(&local_name!("commandfor")) &&
+                    self.upcast::<Node>()
+                        .GetParentNode()
+                        .is_none_or(|node| !node.is::<HTMLSelectElement>())
+            },
+            ButtonType::Submit => true,
+            ButtonType::Reset | ButtonType::Button => false,
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#selector-default>
@@ -143,9 +156,14 @@ impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-button-type>
     fn Type(&self) -> DOMString {
+        // Step 1. If this is a submit button, then return "submit".
+        if self.is_submit_button() {
+            return DOMString::from_static("submit");
+        };
+        // Steps 2-5.
         match self.button_type.get() {
-            ButtonType::Submit => DOMString::from_static("submit"),
-            ButtonType::Button => DOMString::from_static("button"),
+            ButtonType::Submit => panic!("Should have returned submit already"),
+            ButtonType::Button | ButtonType::Auto => DOMString::from_static("button"),
             ButtonType::Reset => DOMString::from_static("reset"),
         }
     }
@@ -271,22 +289,19 @@ impl HTMLButtonElement {
         })
     }
 
-    fn set_type(&self, cx: &mut JSContext, value: DOMString) {
-        let value = if value.eq_ignore_ascii_case("reset") {
-            ButtonType::Reset
-        } else if value.eq_ignore_ascii_case("button") {
-            ButtonType::Button
-        } else if value.eq_ignore_ascii_case("submit") {
-            ButtonType::Submit
-        } else {
-            let element = self.upcast::<Element>();
-            if element.has_attribute(&local_name!("command")) ||
-                element.has_attribute(&local_name!("commandfor"))
-            {
+    fn set_type(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        let value = if let Some(value) = value {
+            if value.eq_ignore_ascii_case("reset") {
+                ButtonType::Reset
+            } else if value.eq_ignore_ascii_case("button") {
                 ButtonType::Button
-            } else {
+            } else if value.eq_ignore_ascii_case("submit") {
                 ButtonType::Submit
+            } else {
+                ButtonType::Auto
             }
+        } else {
+            ButtonType::Auto
         };
         self.button_type.set(value);
         self.validity_state(cx)
@@ -388,16 +403,25 @@ impl VirtualMethods for HTMLButtonElement {
                 self.validity_state(cx)
                     .perform_validation_and_update(cx, ValidationFlags::all());
             },
-            local_name!("type") => self.set_type(cx, attr.to_dom_string()),
+            local_name!("type") => {
+                match mutation {
+                    AttributeMutation::Set(_) => self.set_type(cx, Some(attr.to_dom_string())),
+                    AttributeMutation::Removed => self.set_type(cx, None),
+                };
+            },
             local_name!("command") => self.set_type(
                 cx,
-                self.upcast::<Element>()
-                    .get_string_attribute(&local_name!("type")),
+                Some(
+                    self.upcast::<Element>()
+                        .get_string_attribute(&local_name!("type")),
+                ),
             ),
             local_name!("commandfor") => self.set_type(
                 cx,
-                self.upcast::<Element>()
-                    .get_string_attribute(&local_name!("type")),
+                Some(
+                    self.upcast::<Element>()
+                        .get_string_attribute(&local_name!("type")),
+                ),
             ),
             local_name!("form") => {
                 self.form_attribute_mutated(cx, mutation);
@@ -437,7 +461,7 @@ impl Validatable for HTMLButtonElement {
         // https://html.spec.whatwg.org/multipage/#the-button-element%3Abarred-from-constraint-validation
         // https://html.spec.whatwg.org/multipage/#enabling-and-disabling-form-controls%3A-the-disabled-attribute%3Abarred-from-constraint-validation
         // https://html.spec.whatwg.org/multipage/#the-datalist-element%3Abarred-from-constraint-validation
-        self.button_type.get() == ButtonType::Submit &&
+        self.is_submit_button() &&
             !self.upcast::<Element>().disabled_state() &&
             !is_barred_by_datalist_ancestor(no_gc, self.upcast())
     }
@@ -482,7 +506,7 @@ impl Activatable for HTMLButtonElement {
         if let Some(owner) = self.form_owner() {
             // Step 3.1 If element is a submit button, then submit element's form owner from element
             // ..., and return.
-            if button_type == ButtonType::Submit {
+            if self.is_submit_button() {
                 owner.submit(
                     cx,
                     SubmittedFrom::NotFromForm,
@@ -497,12 +521,7 @@ impl Activatable for HTMLButtonElement {
                 return;
             }
             // Step 3.3 If element's type attribute is in the Auto state, then return.
-            if button_type == ButtonType::Button &&
-                !self
-                    .upcast::<Element>()
-                    .get_string_attribute(&local_name!("type"))
-                    .eq_ignore_ascii_case("button")
-            {
+            if button_type == ButtonType::Auto {
                 return;
             }
         }
