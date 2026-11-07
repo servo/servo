@@ -409,7 +409,16 @@ pub struct WheelEvent {
 }
 
 impl WheelEvent {
-    pub fn new(delta: WheelDelta, point: WebViewPoint) -> Self {
+    /// Create a new [`WheelEvent`]. The modifiers passed should be the current set
+    /// of keyboard modifiers. This is used to adjust the scroll direction with the
+    /// modifiers.
+    pub fn new(mut delta: WheelDelta, point: WebViewPoint, modifiers: Modifiers) -> Self {
+        // If this is a purely vertical scroll, then the shift key should turn it into
+        // a horizontal scroll. Some platforms might do the rotation on their on so it's
+        // important not to unrotate accidentally.
+        if modifiers.contains(Modifiers::SHIFT) && delta.x == 0. && delta.z == 0. {
+            std::mem::swap(&mut delta.x, &mut delta.y);
+        }
         WheelEvent { delta, point }
     }
 }
