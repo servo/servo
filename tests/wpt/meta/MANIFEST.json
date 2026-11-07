@@ -248166,6 +248166,19 @@
        {}
       ]
      ],
+     "svg-img-percentage-size.html": [
+      "8ac8396ccbd9c774a2ebe7fcca41cb92d5081801",
+      [
+       null,
+       [
+        [
+         "/css/css-images/svg-img-percentage-size-ref.html",
+         "=="
+        ]
+       ],
+       {}
+      ]
+     ],
      "svg-script-is-ignored.html": [
       "1f18bba34cb85fe20428e5a41692c9ac41980528",
       [
@@ -521741,6 +521754,10 @@
        "5853cbb238cb2d4aba3dd49af3f2ba64d6c7a2de",
        []
       ],
+      "svg-img-percentage-size-quirks.html": [
+       "8223570227467e87fae18d6dc4e94f21e9c4ec27",
+       []
+      ],
       "svg-width-100-height-0-viewBox-2-1-green.svg": [
        "6b559efc69ef245be217d4b6f87b3f50f974e8b2",
        []
@@ -521800,10 +521817,18 @@
       "testHelper.js": [
        "e2806336e1b7d020141ca692a74ef5cf5f9834b7",
        []
+      ],
+      "viewbox-only-4x5.svg": [
+       "78dbfc2d736386c8335ef6a7cff87bee69a963b4",
+       []
       ]
      },
      "svg-images-are-ignored-ref.html": [
       "3c1864fea4176bbf2a4cabb9d9c321adeea58674",
+      []
+     ],
+     "svg-img-percentage-size-ref.html": [
+      "65407eea5923e5dba0ee0b26ea448c19a0b3d2dc",
       []
      ],
      "svg-script-is-ignored-ref.svg": [
@@ -1194332,7 +1194357,14 @@
         {}
        ]
       ]
-     }
+     },
+     "svg-img-percentage-size-layout.html": [
+      "9f00b0ad6fa1469c9220b497dff1ecfcccce3af3",
+      [
+       null,
+       {}
+      ]
+     ]
     },
     "css-inline": {
      "animation": {
