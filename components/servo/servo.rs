@@ -32,6 +32,7 @@ use layout::LayoutFactoryImpl;
 use layout_api::ScriptThreadFactory;
 use log::{Log, Metadata, Record, debug, warn};
 use media::{GlApi, NativeDisplay, WindowGLContext};
+use net::connector::NameResolver;
 use net::embedder::NetToEmbedderMsg;
 #[cfg(feature = "multiprocess")]
 use net::image_cache::ImageCacheFactoryImpl;
@@ -1079,6 +1080,7 @@ impl Servo {
                 opts.certificate_path.clone(),
                 opts.ignore_certificate_errors,
                 protocols.clone(),
+                builder.name_resolver,
             );
 
         let (private_storage_threads, public_storage_threads) = new_storage_threads(
@@ -1541,6 +1543,7 @@ pub struct ServoBuilder {
     preferences: Option<Box<Preferences>>,
     event_loop_waker: Box<dyn EventLoopWaker>,
     protocol_registry: ProtocolRegistry,
+    name_resolver: Option<NameResolver>,
 }
 
 impl Default for ServoBuilder {
@@ -1550,6 +1553,7 @@ impl Default for ServoBuilder {
             preferences: Default::default(),
             event_loop_waker: Box::new(DefaultEventLoopWaker),
             protocol_registry: Default::default(),
+            name_resolver: None,
         }
     }
 }
@@ -1576,6 +1580,11 @@ impl ServoBuilder {
 
     pub fn protocol_registry(mut self, protocol_registry: ProtocolRegistry) -> Self {
         self.protocol_registry = protocol_registry;
+        self
+    }
+
+    pub fn name_resolver(mut self, name_resolver: NameResolver) -> Self {
+        self.name_resolver = Some(name_resolver);
         self
     }
 }
