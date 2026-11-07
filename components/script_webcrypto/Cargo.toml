@@ -70,7 +70,6 @@ aes = { workspace = true, optional = true }
 aes-gcm = { workspace = true, optional = true }
 aes-kw = { workspace = true, optional = true }
 argon2 = { workspace = true, optional = true }
-aws-lc-rs = { workspace = true, optional = true }
 base64ct = { workspace = true, optional = true }
 cbc = { workspace = true, optional = true }
 chacha20poly1305 = { workspace = true, optional = true }
