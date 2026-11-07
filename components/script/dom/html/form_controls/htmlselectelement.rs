@@ -6,7 +6,7 @@ use std::default::Default;
 use std::iter;
 
 use dom_struct::dom_struct;
-use embedder_traits::{EmbedderControlRequest, SelectElementRequest};
+use embedder_traits::{EmbedderControlRequest, MouseButton, SelectElementRequest};
 use embedder_traits::{SelectElementOption, SelectElementOptionOrOptgroup};
 use html5ever::{local_name, LocalName, Prefix};
 use js::context::{JSContext, NoGC};
@@ -16,7 +16,6 @@ use script_bindings::dom::UnrootedDom;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
 
-use crate::dom::activation::Activatable;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -55,7 +54,7 @@ use crate::dom::nodelist::NodeList;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::shadowroot::ua_shadowroot::{CreateUAShadowRootForSelf, UAShadowRoot};
 use crate::dom::text::Text;
-use crate::dom::types::{FocusEvent, HTMLDataListElement};
+use crate::dom::types::{FocusEvent, HTMLDataListElement, MouseEvent};
 use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::node::virtualmethods::VirtualMethods;
@@ -971,6 +970,16 @@ impl VirtualMethods for HTMLSelectElement {
                 .embedder_controls()
                 .hide_embedder_control(self.upcast());
         }
+
+        // https://html.spec.whatwg.org/multipage/#select-open-picker
+        if event.IsTrusted() &&
+            !self.upcast::<Element>().disabled_state() &&
+            let Some(mouse_event) = event.downcast::<MouseEvent>() &&
+            mouse_event.button() == MouseButton::Primary &&
+            *event.type_() == *"mousedown"
+        {
+            self.show_menu(cx);
+        }
     }
 }
 
@@ -1027,29 +1036,6 @@ impl Validatable for HTMLSelectElement {
         }
 
         failed_flags
-    }
-}
-
-impl Activatable for HTMLSelectElement {
-    fn as_element(&self) -> &Element {
-        self.upcast()
-    }
-
-    fn is_instance_activatable(&self) -> bool {
-        !self.upcast::<Element>().disabled_state()
-    }
-
-    fn activation_behavior(
-        &self,
-        cx: &mut js::context::JSContext,
-        event: &Event,
-        _target: &EventTarget,
-    ) {
-        if !event.IsTrusted() {
-            return;
-        }
-
-        self.show_menu(cx);
     }
 }
 
