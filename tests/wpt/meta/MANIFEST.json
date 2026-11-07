@@ -1374546,6 +1374546,32 @@
       }
      ]
     ],
+    "icon-fetch-blob-url.https.window.js": [
+     "16a57855faf08dd75d3d2a3ebb34f9a216cbc803",
+     [
+      "notifications/icon-fetch-blob-url.https.window.html",
+      {
+       "script_metadata": [
+        [
+         "script",
+         "/resources/testdriver.js"
+        ],
+        [
+         "script",
+         "/resources/testdriver-vendor.js"
+        ],
+        [
+         "script",
+         "/service-workers/service-worker/resources/test-helpers.sub.js"
+        ],
+        [
+         "script",
+         "resources/helpers.js"
+        ]
+       ]
+      }
+     ]
+    ],
     "icon-url-encoding-euc-kr.https.html": [
      "f0daae820b85c4af24523199ef4cb3b5b87016f7",
      [
