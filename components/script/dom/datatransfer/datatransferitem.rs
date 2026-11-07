@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, Ref, RefCell};
-use std::rc::Rc;
+use std::cell::{Cell, Ref};
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
@@ -15,25 +14,23 @@ use crate::dom::bindings::codegen::Bindings::DataTransferItemBinding::{
     DataTransferItemMethods, FunctionStringCallback,
 };
 use crate::dom::bindings::codegen::Bindings::FileBinding::FileMethods;
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::datatransferitemlist::DataTransferItemList;
 use crate::dom::file::File;
-use crate::dom::filesystem::FileSystem;
-use crate::dom::filesystemdirectoryentry::FileSystemDirectoryEntry;
 use crate::dom::filesystementry::FileSystemEntry;
 use crate::dom::filesystemfileentry::FileSystemFileEntry;
 use crate::dom::globalscope::GlobalScope;
-use crate::drag::drag_data_store::{DragDataStore, Kind, Mode};
+use crate::drag::drag_data_store::{Kind, Mode};
 
 #[dom_struct]
 pub(crate) struct DataTransferItem {
     reflector_: Reflector,
-    #[conditional_malloc_size_of]
-    #[no_trace]
-    data_store: Rc<RefCell<Option<DragDataStore>>>,
+    /// The `DataTransferItemList` that created this item. It owns the drag data
+    /// store and the entries-api `FileSystem` shared by all of its items.
+    list: Dom<DataTransferItemList>,
     id: u16,
     pending_callbacks: DomRefCell<Vec<PendingStringCallback>>,
     next_callback: Cell<usize>,
@@ -47,10 +44,10 @@ struct PendingStringCallback {
 }
 
 impl DataTransferItem {
-    fn new_inherited(data_store: Rc<RefCell<Option<DragDataStore>>>, id: u16) -> DataTransferItem {
+    fn new_inherited(list: &DataTransferItemList, id: u16) -> DataTransferItem {
         DataTransferItem {
             reflector_: Reflector::new(),
-            data_store,
+            list: Dom::from_ref(list),
             id,
             pending_callbacks: Default::default(),
             next_callback: Cell::new(0),
@@ -60,29 +57,24 @@ impl DataTransferItem {
     pub(crate) fn new(
         cx: &mut JSContext,
         global: &GlobalScope,
-        data_store: Rc<RefCell<Option<DragDataStore>>>,
+        list: &DataTransferItemList,
         id: u16,
     ) -> DomRoot<DataTransferItem> {
         reflect_dom_object(
             cx,
-            Box::new(DataTransferItem::new_inherited(data_store, id)),
+            Box::new(DataTransferItem::new_inherited(list, id)),
             global,
         )
     }
 
     fn item_kind(&self) -> Option<Ref<'_, Kind>> {
-        Ref::filter_map(self.data_store.borrow(), |data_store| {
-            data_store
-                .as_ref()
-                .and_then(|data_store| data_store.get_by_id(&self.id))
-        })
-        .ok()
+        let data_store = self.list.data_store()?;
+        Ref::filter_map(data_store, |data_store| data_store.get_by_id(&self.id)).ok()
     }
 
     fn can_read(&self) -> bool {
-        self.data_store
-            .borrow()
-            .as_ref()
+        self.list
+            .data_store()
             .is_some_and(|data_store| data_store.mode() != Mode::Protected)
     }
 }
@@ -169,64 +161,20 @@ impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
         if !self.can_read() {
             return None;
         }
+
+        // Step 3. Let item be the item in store’s drag data store item list that this represents.
+        // Step 4. If item’s kind is not `File`, then return null and abort these steps.
+        if !self.item_kind().is_some_and(|item| item.is_file()) {
+            return None;
+        }
         let global = self.global();
 
-        let filesystem = {
-            let mut store = self.data_store.borrow_mut();
-            let store = store.as_mut()?;
-
-            // Step 3. Let item be the item in store’s drag data store item list that this represents.
-            // Step 4. If item’s kind is not `File`, then return null and abort these steps.
-            if !matches!(store.get_by_id(&self.id)?, Kind::File { .. }) {
-                return None;
-            }
-
-            // <https://wicg.github.io/entries-api/#html-data>
-            //
-            // "During a drag-and-drop operation, file and directory items are associated
-            //  with entries. Each entry is a member of a root directory unique to the
-            //  drag data store."
-            match store.filesystem() {
-                Some(filesystem) => filesystem,
-                None => {
-                    let root = FileSystemDirectoryEntry::new(
-                        cx,
-                        &global,
-                        USVString::default(),
-                        USVString::from(String::from("/")),
-                    );
-
-                    let filesystem = FileSystem::new(
-                        cx,
-                        &global,
-                        USVString::from(String::from("filesystem")),
-                        &root,
-                    );
-                    root.set_filesystem(&filesystem);
-
-                    for kind in store.iter_item_list() {
-                        // Non-File items are not represented in the entries tree.
-                        let Some(file) = kind.as_file(cx, &global) else {
-                            continue;
-                        };
-                        let name = file.Name().to_string();
-                        let full_path = USVString::from(format!("/{}", name));
-                        let entry = FileSystemFileEntry::new(
-                            cx,
-                            &global,
-                            USVString::from(name),
-                            full_path,
-                            &file,
-                        );
-                        entry.set_filesystem(&filesystem);
-                        root.push_child(entry.upcast::<FileSystemEntry>());
-                    }
-
-                    store.set_filesystem(&filesystem);
-                    filesystem
-                },
-            }
-        };
+        // <https://wicg.github.io/entries-api/#html-data>
+        //
+        // "During a drag-and-drop operation, file and directory items are associated
+        //  with entries. Each entry is a member of a root directory unique to the
+        //  drag data store."
+        let filesystem = self.list.filesystem(cx);
 
         // Step 5. Return a new FileSystemEntry object representing the entry.
         let file = self.item_kind()?.as_file(cx, &global)?;

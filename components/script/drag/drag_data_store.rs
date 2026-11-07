@@ -10,11 +10,9 @@ use pixels::RasterImage;
 use servo_constellation_traits::BlobImpl;
 
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::file::File;
-use crate::dom::filesystem::FileSystem;
 use crate::dom::globalscope::GlobalScope;
 
 /// <https://html.spec.whatwg.org/multipage/#the-drag-data-item-kind>
@@ -69,7 +67,7 @@ impl Kind {
         matches!(self, Kind::Text { type_, .. } if type_.eq(text_type))
     }
 
-    fn is_file(&self) -> bool {
+    pub(crate) fn is_file(&self) -> bool {
         matches!(self, Kind::File { .. })
     }
 }
@@ -106,10 +104,6 @@ pub(crate) struct DragDataStore {
     /// <https://html.spec.whatwg.org/multipage/#drag-data-store-allowed-effects-state>
     allowed_effects_state: String,
     pub clear_was_called: bool,
-    /// The entries-api file system for this drag data store, built lazily by
-    /// `webkitGetAsEntry()` and shared by all items.
-    /// Mutations that can add or remove File items clear it.
-    filesystem: Option<Trusted<FileSystem>>,
 }
 
 impl DragDataStore {
@@ -124,7 +118,6 @@ impl DragDataStore {
             mode: Mode::Protected,
             allowed_effects_state: String::from("uninitialized"),
             clear_was_called: false,
-            filesystem: None,
         }
     }
 
@@ -192,7 +185,6 @@ impl DragDataStore {
         self.item_list.insert(item_id, kind);
 
         self.next_item_id += 1;
-        self.filesystem = None;
         Ok(item_id)
     }
 
@@ -276,25 +268,15 @@ impl DragDataStore {
         self.item_list.get(id)
     }
 
-    pub(crate) fn remove(&mut self, index: usize) {
-        self.item_list.shift_remove_index(index);
-        self.filesystem = None;
+    pub(crate) fn remove(&mut self, index: usize) -> Option<Kind> {
+        self.item_list
+            .shift_remove_index(index)
+            .map(|(_, kind)| kind)
     }
 
     pub(crate) fn clear_list(&mut self) {
         self.item_list.clear();
         self.clear_was_called = true;
-        self.filesystem = None;
-    }
-
-    /// Returns the entries-api `FileSystem` cached for this drag data store.
-    pub(crate) fn filesystem(&self) -> Option<DomRoot<FileSystem>> {
-        self.filesystem.as_ref().map(|filesystem| filesystem.root())
-    }
-
-    /// Caches the entries-api `FileSystem` for this drag data store.
-    pub(crate) fn set_filesystem(&mut self, filesystem: &FileSystem) {
-        self.filesystem = Some(Trusted::new(filesystem));
     }
 }
 
