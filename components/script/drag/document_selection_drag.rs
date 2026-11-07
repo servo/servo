@@ -4,10 +4,9 @@
 
 use std::cmp::Ordering;
 
-use js::context::{JSContext, NoGC};
+use js::context::JSContext;
 use layout_api::SegmentGranularity;
 use rustc_hash::FxHashMap;
-use script_bindings::dom::UnrootedDom;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
 use style::values::computed::UserSelect;
@@ -73,28 +72,15 @@ impl DocumentSelectionDragHandler {
             return true;
         };
 
-        let adjust_for_user_select =
-            |no_gc: &NoGC,
-             anchor: Option<&RootedSelectionBoundary>,
-             focus: RootedSelectionBoundary| {
-                adjust_focus_for_user_select(
-                    no_gc,
-                    anchor,
-                    focus,
-                    self.user_select_contain_node_for_selection_anchor
-                        .as_deref(),
-                )
-            };
-
         let Some(segment) = &self.segment else {
-            selection.collapse_or_extend_to_dom_position(
+            let boundary = adjust_focus_for_user_select(
                 cx,
-                &adjust_for_user_select(
-                    cx.no_gc(),
-                    selection.composed_anchor_position().as_ref(),
-                    boundary.clone(),
-                ),
+                selection.composed_anchor_position().as_ref(),
+                boundary.clone(),
+                self.user_select_contain_node_for_selection_anchor
+                    .as_deref(),
             );
+            selection.collapse_or_extend_to_dom_position(cx, &boundary);
             return true;
         };
 
@@ -125,7 +111,13 @@ impl DocumentSelectionDragHandler {
             (original_start, original_end)
         };
 
-        let focus = adjust_for_user_select(cx.no_gc(), Some(&anchor), focus);
+        let focus = adjust_focus_for_user_select(
+            cx,
+            Some(&anchor),
+            focus,
+            self.user_select_contain_node_for_selection_anchor
+                .as_deref(),
+        );
         selection.set_anchor_and_focus(cx, &anchor, &focus);
         true
     }
@@ -142,15 +134,11 @@ impl DocumentSelectionDragHandler {
 ///
 /// [`user-select`]: https://drafts.csswg.org/css-ui-4/#content-selection
 pub(crate) fn adjust_anchor_for_user_select(
-    no_gc: &NoGC,
+    cx: &mut JSContext,
     mut anchor_candidate: RootedSelectionBoundary,
 ) -> Option<(RootedSelectionBoundary, Option<DomRoot<Node>>)> {
-    let mut cache = Default::default();
-    if anchor_candidate
-        .container
-        .used_user_select(no_gc, &mut cache) ==
-        UsedUserSelect::None
-    {
+    let mut cache: FxHashMap<Dom<Node>, UsedUserSelect> = Default::default();
+    if anchor_candidate.container.used_user_select(cx, &mut cache) == UsedUserSelect::None {
         return None;
     }
 
@@ -162,16 +150,19 @@ pub(crate) fn adjust_anchor_for_user_select(
     let mut furthest_with_user_select_all = None;
     let mut each_so_far_has_user_select_all = true;
 
-    for ancestor in anchor_candidate
+    let ancestors = anchor_candidate
         .container
-        .inclusive_ancestors_in_flat_tree_unrooted(no_gc)
-    {
-        match ancestor.used_user_select(no_gc, &mut cache) {
+        .inclusive_ancestors_in_flat_tree_unrooted(cx.no_gc())
+        .map(|node| node.as_rooted())
+        .collect::<Vec<DomRoot<Node>>>();
+
+    for ancestor in &ancestors {
+        match ancestor.used_user_select(cx, &mut cache) {
             UsedUserSelect::Text | UsedUserSelect::None => {
                 each_so_far_has_user_select_all = false;
             },
             UsedUserSelect::Contain => {
-                nearest_with_user_select_contain = Some(ancestor.as_rooted());
+                nearest_with_user_select_contain = Some(ancestor.clone());
                 // `each_so_far_has_user_select_all` should be set to false but will no
                 // longer be used after this break.
                 break;
@@ -190,7 +181,7 @@ pub(crate) fn adjust_anchor_for_user_select(
         // `Node::len(atomic)` representing the end of that node. The latter would be used
         // when the range is backwards (if the end boundary is outside of and before `atomic`)
         // so that `atomic` would be entirely selected regardless of the range direction.
-        anchor_candidate = RootedSelectionBoundary::start_of(&atomic);
+        anchor_candidate = RootedSelectionBoundary::start_of(atomic);
     }
     Some((anchor_candidate, nearest_with_user_select_contain))
 }
@@ -200,12 +191,12 @@ pub(crate) fn adjust_anchor_for_user_select(
 ///
 /// [`user-select`]: https://drafts.csswg.org/css-ui-4/#content-selection
 pub(crate) fn adjust_focus_for_user_select(
-    no_gc: &NoGC,
+    cx: &mut JSContext,
     anchor: Option<&RootedSelectionBoundary>,
     mut focus_candidate: RootedSelectionBoundary,
     user_select_contain_node_for_anchor: Option<&Node>,
 ) -> RootedSelectionBoundary {
-    let mut cache = Default::default();
+    let mut cache: FxHashMap<Dom<Node>, UsedUserSelect> = Default::default();
     let mut user_select_contain_node_for_anchor_is_inclusive_ancestor = false;
     let mut each_so_far_has_user_select_all = true;
     let mut furthest_node_with_user_select_all = None;
@@ -213,14 +204,17 @@ pub(crate) fn adjust_focus_for_user_select(
     // Either `user-select: contain` the selection starts outside of, or `user-select: none`
     let mut furthest_node_to_avoid = None;
 
-    for inclusive_ancestor in focus_candidate
+    let ancestors = focus_candidate
         .container
-        .inclusive_ancestors_in_flat_tree_unrooted(no_gc)
-    {
+        .inclusive_ancestors_in_flat_tree_unrooted(cx.no_gc())
+        .map(|node| node.as_rooted())
+        .collect::<Vec<DomRoot<Node>>>();
+
+    for inclusive_ancestor in &ancestors {
         if user_select_contain_node_for_anchor == Some(&**inclusive_ancestor) {
             user_select_contain_node_for_anchor_is_inclusive_ancestor = true
         }
-        match inclusive_ancestor.used_user_select(no_gc, &mut cache) {
+        match inclusive_ancestor.used_user_select(cx, &mut cache) {
             UsedUserSelect::Text => {
                 each_so_far_has_user_select_all = false;
                 each_so_far_has_user_select_none = false;
@@ -255,7 +249,7 @@ pub(crate) fn adjust_focus_for_user_select(
     }
     let selection_is_backward = || {
         anchor.is_some_and(|anchor| {
-            anchor.compare_dom_positions(no_gc, &focus_candidate) == Some(Ordering::Greater)
+            anchor.compare_dom_positions(cx.no_gc(), &focus_candidate) == Some(Ordering::Greater)
         })
     };
     if let Some(contain_for_anchor) = user_select_contain_node_for_anchor &&
@@ -270,14 +264,14 @@ pub(crate) fn adjust_focus_for_user_select(
         };
     } else if let Some(focus_ancestor_to_avoid) = furthest_node_to_avoid {
         focus_candidate = if selection_is_backward() {
-            RootedSelectionBoundary::end_of(&focus_ancestor_to_avoid)
+            RootedSelectionBoundary::end_of(focus_ancestor_to_avoid)
         } else {
-            RootedSelectionBoundary::start_of(&focus_ancestor_to_avoid)
+            RootedSelectionBoundary::start_of(focus_ancestor_to_avoid)
         };
     } else if let Some(with_user_select_all) = furthest_node_with_user_select_all {
         // anchor was snapped to the start of the `user-select: all` element,
         // so snap the focus to the end unconditionally
-        focus_candidate = RootedSelectionBoundary::end_of(&with_user_select_all);
+        focus_candidate = RootedSelectionBoundary::end_of(with_user_select_all);
     }
 
     focus_candidate
@@ -291,19 +285,19 @@ impl Node {
     ///
     /// `cache` can be initialized with `Default::default()`, and should be shared across calls
     /// for nodes that may share some (flat tree) ancestors.
-    pub(crate) fn used_user_select<'no_gc>(
+    pub(crate) fn used_user_select(
         &self,
-        no_gc: &'no_gc NoGC,
-        cache: &mut FxHashMap<UnrootedDom<'no_gc, Node>, UsedUserSelect>,
+        cx: &mut JSContext,
+        cache: &mut FxHashMap<Dom<Node>, UsedUserSelect>,
     ) -> UsedUserSelect {
-        let cache_key = UnrootedDom::from_ref(self, no_gc);
+        let cache_key = Dom::from_ref(self);
         if let Some(&used_value) = cache.get(&cache_key) {
             return used_value;
         }
         // https://html.spec.whatwg.org/multipage/#inert
         // > When a node is inert: Text selection functionality must act as if
         // > the 'user-select' CSS property were set to 'none'.
-        if self.is_inert() {
+        if self.is_inert(cx) {
             cache.insert(cache_key, UsedUserSelect::None);
             return UsedUserSelect::None;
         }
@@ -336,10 +330,11 @@ impl Node {
             UserSelect::Contain => UsedUserSelect::Contain,
             UserSelect::All => UsedUserSelect::All,
             UserSelect::Auto => {
-                let parent_used_value = self
-                    .parent_in_flat_tree(no_gc)
+                let parent = self
+                    .parent_in_flat_tree(cx.no_gc())
                     .into_parent()
-                    .map(|parent| parent.used_user_select(no_gc, cache));
+                    .map(|parent| parent.as_rooted());
+                let parent_used_value = parent.map(|parent| parent.used_user_select(cx, cache));
                 // > The used value of `auto` is determined as follows:
                 // > * On the `::before` and `::after` pseudo-elements, the used value is `none`
                 // > * If the element is an editable element, the used value is `contain`

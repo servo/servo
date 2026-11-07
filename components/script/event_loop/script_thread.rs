@@ -1269,7 +1269,7 @@ impl ScriptThread {
             }
 
             // > 23. For each doc of docs, process top layer removals given doc.
-            document.process_top_layer_removals(cx.no_gc());
+            document.process_top_layer_removals(cx);
         }
 
         let should_generate_frame = !painters_generating_frames.is_empty();

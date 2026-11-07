@@ -49,7 +49,7 @@ pub(crate) fn execute_insert_image_command(
     }
 
     // Step 5. If range's start node is a block node whose sole child is a br, and its start offset is 0, remove its start node's child from it.
-    if start_node.is_block_node() && start_node.children_count() == 1 {
+    if start_node.is_block_node(cx) && start_node.children_count() == 1 {
         let sole_child = start_node
             .children()
             .next()
