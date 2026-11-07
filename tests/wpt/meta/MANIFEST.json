@@ -1374520,6 +1374520,32 @@
       {}
      ]
     ],
+    "icon-fetch-blob-url.https.window.js": [
+     "a0c3cd19fa4c4351954df5fde2b9cc8de9cc17e0",
+     [
+      "notifications/icon-fetch-blob-url.https.window.html",
+      {
+       "script_metadata": [
+        [
+         "script",
+         "/resources/testdriver.js"
+        ],
+        [
+         "script",
+         "/resources/testdriver-vendor.js"
+        ],
+        [
+         "script",
+         "/service-workers/service-worker/resources/test-helpers.sub.js"
+        ],
+        [
+         "script",
+         "resources/helpers.js"
+        ]
+       ]
+      }
+     ]
+    ],
     "icon-fetch.tentative.https.window.js": [
      "b04df9d44acfd3a7f613c76e81f1af903f0125bf",
      [
