@@ -27,7 +27,7 @@ use log::warn;
 use parking_lot::Mutex;
 use rustls::client::danger::ServerCertVerifier;
 use rustls::client::{ClientConnection, EchStatus};
-use rustls::crypto::{CryptoProvider, aws_lc_rs};
+use rustls::crypto::CryptoProvider;
 use rustls::{CipherSuite, ClientConfig, NamedGroup, ProtocolVersion};
 use rustls_pki_types::{CertificateDer, ServerName, UnixTime};
 use servo_config::pref;
@@ -398,8 +398,15 @@ static CRYPTO_PROVIDER_CACHE: LazyLock<Arc<CryptoProvider>> = LazyLock::new(|| {
         // The embedder should have initialized the default crypto provider before
         // initializing servo, so this should never fail.
         .unwrap_or_else(|| {
-            warn!("Default crypto provider not initialized before first access in connector.");
-            Arc::new(aws_lc_rs::default_provider())
+            #[cfg(feature = "aws-lc-rs")]
+            {
+                warn!("Default crypto provider not initialized before first access in connector.");
+                Arc::new(rustls::crypto::aws_lc_rs::default_provider())
+            }
+            #[cfg(not(feature = "aws-lc-rs"))]
+            {
+                panic!("Default crypto provider not initialized before first access in connector.");
+            }
         })
 });
 

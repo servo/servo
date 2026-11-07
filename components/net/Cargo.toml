@@ -17,12 +17,13 @@ test = false
 doctest = false
 
 [features]
+aws-lc-rs = ["dep:aws-lc-rs", "rustls/aws-lc-rs"]
 devtools = ["dep:devtools_traits"]
 test-util = ["hyper-util/server-graceful", "dep:servo-default-resources", "net_traits/test-util"]
 tracing = ["dep:tracing"]
 
 [dependencies]
-aws-lc-rs = { workspace = true }
+aws-lc-rs = { workspace = true, optional = true }
 async-compression = { workspace = true, features = ["brotli", "gzip", "tokio", "zlib", "zstd"] }
 async-recursion = { workspace = true }
 async-tungstenite = { workspace = true }
@@ -67,7 +68,7 @@ rand = { workspace = true }
 regex = { workspace = true }
 resvg = { workspace = true }
 rustc-hash = { workspace = true }
-rustls = { workspace = true, features = ["aws-lc-rs"] }
+rustls = { workspace = true }
 rustls-pki-types = { workspace = true }
 rustls-platform-verifier = { workspace = true }
 rusqlite = { workspace = true }
@@ -80,6 +81,8 @@ servo-url = { workspace = true }
 servo_arc = { workspace = true }
 sea-query = { workspace = true }
 sea-query-rusqlite = { workspace = true }
+sha1 = { workspace = true }
+sha2 = { workspace = true }
 smallvec = { workspace = true }
 tempfile = { workspace = true }
 time = { workspace = true }
