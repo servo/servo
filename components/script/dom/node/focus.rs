@@ -354,7 +354,9 @@ impl Node {
     /// that match the specification. That is why the arguments to this method do not match the
     /// specification yet.
     ///
-    /// Return `true` if anything was focused or `false` otherwise.
+    /// Return `true` if anything was focused or `false` otherwise. When this node already has the
+    /// focus, return `false`, so that `focus()` doesn't scroll it into view, unless the focus may
+    /// have moved to another `Document`.
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn run_the_focusing_steps(
         &self,
@@ -362,31 +364,49 @@ impl Node {
         fallback_target: Option<FocusableArea>,
         focus_trigger: FocusTrigger,
     ) -> bool {
+        // > 5. If new focus target is the currently focused area of a top-level traversable, then
+        // >    return.
+        //
+        // This step is checked first as an optimization, to avoid a layout flush.
+        //
+        // The focus state of the document may be stale (see `DocumentFocusHandler::focus_is_known_to_be_current`),
+        // so focus this node again, which lets the constellation know. Scrolling it into view would need a layout
+        // flush too, so don't do it when the focus is known to have stayed in this document (same behavior as Gecko).
+        let document = self.owner_document();
+        let focus_handler = document.focus_handler();
+        if fallback_target.is_none() &&
+            matches!(
+                &*focus_handler.focused_area(),
+                FocusableArea::Node { node, .. } if **node == *self
+            )
+        {
+            let focus_is_known_to_be_current = focus_handler.focus_is_known_to_be_current();
+            rooted!(&in(cx) let focused_area = focus_handler.focused_area().clone());
+            focus_handler.focus(cx, &focused_area, focus_trigger);
+            return !focus_is_known_to_be_current;
+        }
+
         // > 1. If new focus target is not a focusable area, then set new focus target to the result
         // >    of getting the focusable area for new focus target, given focus trigger if it was
         // >    passed.
         // > 2. If new focus target is null, then:
         // > 2.1 If no fallback target was specified, then return.
         // > 2.2 Otherwise, set new focus target to the fallback target.
-        rooted!(&in(cx) let mut focusable_area = self
+        rooted!(&in(cx) let focusable_area = self
             .get_the_focusable_area(cx, focus_trigger)
             .or(fallback_target)
         );
-        if focusable_area.is_none() {
+        let Some(ref focusable_area) = *focusable_area else {
             return false;
-        }
+        };
 
         // > 3. If new focus target is a navigable container with non-null content navigable, then
         // >    set new focus target to the content navigable's active document.
         // > 4. If new focus target is a focusable area and its DOM anchor is inert, then return.
-        let document = self.owner_document();
-        let focusable_area = focusable_area.take().unwrap();
         if focusable_area.dom_anchor(&document).is_inert() {
             return false;
         }
 
-        // > 5. If new focus target is the currently focused area of a top-level traversable, then
-        // >    return.
         // > 6. Let old chain be the current focus chain of the top-level traversable in which new
         // >    focus target finds itself.
         // > 6.1. Let new chain be the focus chain of new focus target.
@@ -395,9 +415,7 @@ impl Node {
         //
         // TODO: Handle all of these steps by converting the focus transaction code to follow
         // the HTML focus specification.
-        document
-            .focus_handler()
-            .focus(cx, &focusable_area, focus_trigger);
+        focus_handler.focus(cx, focusable_area, focus_trigger);
         true
     }
 
