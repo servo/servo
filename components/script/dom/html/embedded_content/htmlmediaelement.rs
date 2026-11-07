@@ -40,6 +40,7 @@ use servo_url::ServoUrl;
 use stylo_atoms::Atom;
 use uuid::Uuid;
 
+use crate::dom::activation::Activatable;
 use crate::dom::audio::audiotrack::AudioTrack;
 use crate::dom::audio::audiotracklist::AudioTrackList;
 use crate::dom::bindings::cell::AtomicSafeBorrowMut;
@@ -3796,6 +3797,26 @@ impl VirtualMethods for HTMLMediaElement {
                 .register_media_controls(id, &shadow_root);
         }
     }
+}
+
+impl Activatable for HTMLMediaElement {
+    fn as_element(&self) -> &Element {
+        self.upcast()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/media.html#user-interface>
+    fn is_instance_activatable(&self) -> bool {
+        // > If the user agent exposes a user interface to the user
+        // > by displaying controls over the media element,
+        // > then the user agent should suppress any user interaction events
+        // > while the user agent is interacting with this interface.
+        // > (For example, if the user clicks on a video's playback control,
+        // > mousedown events and so forth would not simultaneously be fired
+        // > at elements on the page.)
+        self.as_element().has_attribute(&local_name!("controls"))
+    }
+
+    fn activation_behavior(&self, _: &mut JSContext, _: &Event, _: &EventTarget) {}
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
