@@ -188,11 +188,42 @@ impl WebSocket {
         self.url.origin()
     }
 
+    /// Close without the parameter validation required by the JavaScript API.
+    fn close_connection(&self, code: Option<u16>, reason: Option<String>) {
+        // Step 3. Run the first matching steps from the following list:
+        match self.ready_state.get() {
+            WebSocketRequestState::Closing | WebSocketRequestState::Closed => {}, // Do nothing
+            WebSocketRequestState::Connecting => {
+                // If the WebSocket connection is not yet established [WSP] Fail the WebSocket connection and set this’s ready state to CLOSING (2).
+                self.ready_state.set(WebSocketRequestState::Closing);
+                // Abort the network task even if connection establishment is still pending.
+                let _ = self.callback.send(WebSocketDomAction::Abort);
+
+                fail_the_websocket_connection(
+                    Trusted::new(self),
+                    &self
+                        .global()
+                        .task_manager()
+                        .websocket_task_source()
+                        .to_sendable(),
+                );
+            },
+            WebSocketRequestState::Open => {
+                // If the WebSocket closing handshake has not yet been started [WSP] Start the WebSocket closing handshake and set this’s ready state to CLOSING (2). [WSP]
+                self.ready_state.set(WebSocketRequestState::Closing);
+
+                // Kick off _Start the WebSocket Closing Handshake_
+                // https://tools.ietf.org/html/rfc6455#section-7.1.2
+                let _ = self.callback.send(WebSocketDomAction::Close(code, reason));
+            },
+        }
+    }
+
     /// <https://websockets.spec.whatwg.org/#make-disappear>
     /// Returns true if any action was taken.
     pub(crate) fn make_disappear(&self) -> bool {
         let result = self.ready_state.get() != WebSocketRequestState::Closed;
-        let _ = self.Close(Some(1001), None);
+        self.close_connection(Some(close_code::GOING_AWAY), None);
         result
     }
 }
@@ -463,32 +494,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
             return Err(Error::Syntax(Some("Reason too long".to_string())));
         }
 
-        // Step 3. Run the first matching steps from the following list:
-        match self.ready_state.get() {
-            WebSocketRequestState::Closing | WebSocketRequestState::Closed => {}, // Do nothing
-            WebSocketRequestState::Connecting => {
-                // If the WebSocket connection is not yet established [WSP] Fail the WebSocket connection and set this’s ready state to CLOSING (2).
-                self.ready_state.set(WebSocketRequestState::Closing);
-
-                fail_the_websocket_connection(
-                    Trusted::new(self),
-                    &self
-                        .global()
-                        .task_manager()
-                        .websocket_task_source()
-                        .to_sendable(),
-                );
-            },
-            WebSocketRequestState::Open => {
-                // If the WebSocket closing handshake has not yet been started [WSP] Start the WebSocket closing handshake and set this’s ready state to CLOSING (2). [WSP]
-                self.ready_state.set(WebSocketRequestState::Closing);
-
-                // Kick off _Start the WebSocket Closing Handshake_
-                // https://tools.ietf.org/html/rfc6455#section-7.1.2
-                let reason = reason.map(|reason| reason.0);
-                let _ = self.callback.send(WebSocketDomAction::Close(code, reason));
-            },
-        }
+        self.close_connection(code, reason.map(|reason| reason.0));
         Ok(()) // Return Ok
     }
 }
@@ -516,6 +522,10 @@ impl TaskOnce for ConnectionEstablishedTask {
     /// <https://html.spec.whatwg.org/multipage/#feedback-from-the-protocol:concept-websocket-established>
     fn run_once(self, cx: &mut JSContext) {
         let ws = self.address.root();
+
+        if ws.ready_state.get() != WebSocketRequestState::Connecting {
+            return;
+        }
 
         // Step 1.
         ws.ready_state.set(WebSocketRequestState::Open);
