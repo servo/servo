@@ -61,6 +61,7 @@ use script_traits::{InitialScriptState, Painter, ScriptThreadMessage};
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_base::Epoch;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use servo_base::text::{RangeAny, Utf32CodeUnits, Utf32CodeUnitsOrNodeOffset};
@@ -249,6 +250,7 @@ pub struct MediaFrame {
     pub image_key: webrender_api::ImageKey,
     pub width: i32,
     pub height: i32,
+    pub load_time: Option<CrossProcessInstant>,
 }
 
 pub struct MediaMetadata {
