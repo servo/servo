@@ -12,6 +12,7 @@ use embedder_traits::{
     WebViewPoint, WheelDelta, WheelEvent, WheelMode,
 };
 use euclid::Point2D;
+use keyboard_types::Modifiers;
 use keyboard_types::webdriver::KeyInputState;
 use log::info;
 use rustc_hash::FxHashSet;
@@ -59,7 +60,10 @@ pub(crate) type ActionsByTick = Vec<TickActions>;
 /// <https://w3c.github.io/webdriver/#dfn-input-source-state>
 pub(crate) enum InputSourceState {
     Null,
-    Key(KeyInputState),
+    Key {
+        state: KeyInputState,
+        modifiers: Modifiers,
+    },
     Pointer(PointerInputState),
     Wheel,
 }
@@ -419,12 +423,14 @@ impl Handler {
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-keydown-action>
     fn dispatch_keydown_action(&mut self, input_id: &str, action: &KeyDownAction) {
         let raw_key = action.value.chars().next().unwrap();
-        let key_input_state = match self.input_state_table_mut().get_mut(input_id).unwrap() {
-            InputSourceState::Key(key_input_state) => key_input_state,
-            _ => unreachable!(),
-        };
+        let (key_input_state, key_input_modifiers) =
+            match self.input_state_table_mut().get_mut(input_id).unwrap() {
+                InputSourceState::Key { state, modifiers } => (state, modifiers),
+                _ => unreachable!(),
+            };
 
         let keyboard_event = key_input_state.dispatch_keydown(raw_key);
+        *key_input_modifiers = keyboard_event.modifiers;
 
         // Step 12: Perform implementation-specific action dispatch steps on browsing
         // context equivalent to pressing a key on the keyboard in accordance with the
@@ -455,10 +461,11 @@ impl Handler {
         }
 
         let raw_key = action.value.chars().next().unwrap();
-        let key_input_state = match session.input_state_table.get_mut(input_id).unwrap() {
-            InputSourceState::Key(key_input_state) => key_input_state,
-            _ => unreachable!(),
-        };
+        let (key_input_state, key_input_modifiers) =
+            match session.input_state_table.get_mut(input_id).unwrap() {
+                InputSourceState::Key { state, modifiers } => (state, modifiers),
+                _ => unreachable!(),
+            };
 
         // Step 12: Perform implementation-specific action dispatch steps on browsing
         // context equivalent to releasing a key on the keyboard in accordance with the
@@ -466,6 +473,8 @@ impl Handler {
         let Some(keyboard_event) = key_input_state.dispatch_keyup(raw_key) else {
             return;
         };
+        *key_input_modifiers = keyboard_event.modifiers;
+
         self.send_blocking_input_event_to_embedder(InputEvent::Keyboard(KeyboardEvent::new(
             keyboard_event,
         )));
@@ -903,8 +912,11 @@ impl Handler {
                 mode: WheelMode::DeltaPixel,
             };
             let point = WebViewPoint::Page(Point2D::new(x as f32, y as f32));
-            let input_event =
-                InputEvent::Wheel(WheelEvent::new(delta, point, /*modifier=*/ false));
+            let input_event = InputEvent::Wheel(WheelEvent::new(
+                delta,
+                point,
+                self.current_keyboard_modifiers(),
+            ));
 
             self.send_blocking_input_event_to_embedder(input_event);
 
@@ -1088,7 +1100,10 @@ impl Handler {
             } => {
                 self.input_state_table_mut()
                     .entry(id)
-                    .or_insert(InputSourceState::Key(KeyInputState::new()));
+                    .or_insert(InputSourceState::Key {
+                        state: KeyInputState::new(),
+                        modifiers: Default::default(),
+                    });
                 // <https://w3c.github.io/webdriver/#dfn-process-a-key-action>
                 key_actions
                     .into_iter()
@@ -1190,6 +1205,16 @@ impl Handler {
 
     fn input_state_table_mut(&mut self) -> &mut HashMap<String, InputSourceState> {
         &mut self.session_mut().unwrap().input_state_table
+    }
+
+    fn current_keyboard_modifiers(&self) -> Modifiers {
+        self.session().unwrap().input_state_table.values().fold(
+            Modifiers::empty(),
+            |global_modifiers, source| match source {
+                InputSourceState::Key { modifiers, .. } => global_modifiers.union(*modifiers),
+                _ => global_modifiers,
+            },
+        )
     }
 
     fn get_pointer_input_state_mut(&mut self, input_id: &str) -> &mut PointerInputState {

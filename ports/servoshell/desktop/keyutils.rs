@@ -579,7 +579,7 @@ impl FromWinitKeyEvent for KeyState {
     }
 }
 
-fn keyboard_modifiers_from_winit_modifiers(mods: ModifiersState) -> Modifiers {
+pub(crate) fn keyboard_modifiers_from_winit_modifiers(mods: ModifiersState) -> Modifiers {
     let mut modifiers = Modifiers::empty();
     modifiers.set(Modifiers::CONTROL, mods.control_key());
     modifiers.set(Modifiers::SHIFT, mods.shift_key());

@@ -49,7 +49,7 @@ use crate::desktop::accelerated_gl_media::setup_gl_accelerated_media;
 use crate::desktop::dialog::Dialog;
 use crate::desktop::event_loop::{AppEvent, RepaintEventLoopWaker};
 use crate::desktop::gui::Gui;
-use crate::desktop::keyutils::CMD_OR_CONTROL;
+use crate::desktop::keyutils::{CMD_OR_CONTROL, keyboard_modifiers_from_winit_modifiers};
 use crate::prefs::ServoShellPreferences;
 use crate::running_app_state::{RunningAppState, UserInterfaceCommand};
 use crate::window::{
@@ -677,7 +677,7 @@ impl HeadedWindow {
                     webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(
                         delta,
                         point.into(),
-                        self.modifiers_state.get().shift_key(),
+                        keyboard_modifiers_from_winit_modifiers(self.modifiers_state.get()),
                     )));
                 },
                 WindowEvent::Touch(touch) => {
