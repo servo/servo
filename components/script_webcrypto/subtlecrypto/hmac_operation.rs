@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use aws_lc_rs::constant_time::verify_slices_are_equal;
-use aws_lc_rs::hmac;
+use hkdf::hmac::Mac;
+use hkdf::{HmacImpl, hmac};
 use js::context::JSContext;
 use rand::TryRng;
 use rand::rngs::SysRng;
@@ -25,16 +25,36 @@ use crate::traits::Equivalence;
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-sign>
 pub(crate) fn sign<D: Equivalence>(key: &CryptoKey<D>, message: &[u8]) -> Result<Vec<u8>, Error> {
-    // Step 1. Let mac be the result of performing the MAC Generation operation described in
+    // Let mac be the result of performing the MAC Generation operation described in
     // Section 4 of [FIPS-198-1] using the key represented by the [[handle]] internal slot of key,
     // the hash function identified by the hash attribute of the [[algorithm]] internal slot of key
     // and message as the input data text.
-    let hash_function = match key.algorithm() {
+    match key.algorithm() {
         KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => match algo.hash.name() {
-            CryptoAlgorithm::Sha1 => hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY,
-            CryptoAlgorithm::Sha256 => hmac::HMAC_SHA256,
-            CryptoAlgorithm::Sha384 => hmac::HMAC_SHA384,
-            CryptoAlgorithm::Sha512 => hmac::HMAC_SHA512,
+            CryptoAlgorithm::Sha1 => {
+                let mut hmac =
+                    <hmac::Hmac<sha1::Sha1> as HmacImpl>::new_from_slice(key.handle().as_bytes());
+                HmacImpl::update(&mut hmac, message);
+                Ok(HmacImpl::finalize(hmac).to_vec())
+            },
+            CryptoAlgorithm::Sha256 => {
+                let mut hmac =
+                    <hmac::Hmac<sha2::Sha256> as HmacImpl>::new_from_slice(key.handle().as_bytes());
+                HmacImpl::update(&mut hmac, message);
+                Ok(HmacImpl::finalize(hmac).to_vec())
+            },
+            CryptoAlgorithm::Sha384 => {
+                let mut hmac =
+                    <hmac::Hmac<sha2::Sha384> as HmacImpl>::new_from_slice(key.handle().as_bytes());
+                HmacImpl::update(&mut hmac, message);
+                Ok(HmacImpl::finalize(hmac).to_vec())
+            },
+            CryptoAlgorithm::Sha512 => {
+                let mut hmac =
+                    <hmac::Hmac<sha2::Sha512> as HmacImpl>::new_from_slice(key.handle().as_bytes());
+                HmacImpl::update(&mut hmac, message);
+                Ok(HmacImpl::finalize(hmac).to_vec())
+            },
             _ => {
                 return Err(Error::NotSupported(Some(
                     "Unsupported hash algorithm for HMAC".into(),
@@ -46,12 +66,7 @@ pub(crate) fn sign<D: Equivalence>(key: &CryptoKey<D>, message: &[u8]) -> Result
                 "The key algorithm is not HMAC".into(),
             )));
         },
-    };
-    let sign_key = hmac::Key::new(hash_function, key.handle().as_bytes());
-    let mac = hmac::sign(&sign_key, message);
-
-    // Step 2. Return mac.
-    Ok(mac.as_ref().to_vec())
+    }
 }
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-verify>
@@ -60,16 +75,37 @@ pub(crate) fn verify<D: Equivalence>(
     message: &[u8],
     signature: &[u8],
 ) -> Result<bool, Error> {
-    // Step 1. Let mac be the result of performing the MAC Generation operation described in
+    // Let mac be the result of performing the MAC Generation operation described in
     // Section 4 of [FIPS-198-1] using the key represented by the [[handle]] internal slot of key,
     // the hash function identified by the hash attribute of the [[algorithm]] internal slot of key
     // and message as the input data text.
-    let hash_function = match key.algorithm() {
+    // [[verify_slice]] performs the comparison in constant time.
+    match key.algorithm() {
         KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => match algo.hash.name() {
-            CryptoAlgorithm::Sha1 => hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY,
-            CryptoAlgorithm::Sha256 => hmac::HMAC_SHA256,
-            CryptoAlgorithm::Sha384 => hmac::HMAC_SHA384,
-            CryptoAlgorithm::Sha512 => hmac::HMAC_SHA512,
+            CryptoAlgorithm::Sha1 => {
+                let mut hmac =
+                    <hmac::Hmac<sha1::Sha1> as HmacImpl>::new_from_slice(key.handle().as_bytes());
+                HmacImpl::update(&mut hmac, message);
+                Ok(hmac.verify_slice(signature).is_ok())
+            },
+            CryptoAlgorithm::Sha256 => {
+                let mut hmac =
+                    <hmac::Hmac<sha2::Sha256> as HmacImpl>::new_from_slice(key.handle().as_bytes());
+                HmacImpl::update(&mut hmac, message);
+                Ok(hmac.verify_slice(signature).is_ok())
+            },
+            CryptoAlgorithm::Sha384 => {
+                let mut hmac =
+                    <hmac::Hmac<sha2::Sha384> as HmacImpl>::new_from_slice(key.handle().as_bytes());
+                HmacImpl::update(&mut hmac, message);
+                Ok(hmac.verify_slice(signature).is_ok())
+            },
+            CryptoAlgorithm::Sha512 => {
+                let mut hmac =
+                    <hmac::Hmac<sha2::Sha512> as HmacImpl>::new_from_slice(key.handle().as_bytes());
+                HmacImpl::update(&mut hmac, message);
+                Ok(hmac.verify_slice(signature).is_ok())
+            },
             _ => {
                 return Err(Error::NotSupported(Some(
                     "Unsupported hash algorithm for HMAC".into(),
@@ -81,13 +117,7 @@ pub(crate) fn verify<D: Equivalence>(
                 "The key algorithm is not HMAC".into(),
             )));
         },
-    };
-    let sign_key = hmac::Key::new(hash_function, key.handle().as_bytes());
-    let mac = hmac::sign(&sign_key, message);
-
-    // Step 2. Return true if mac is equal to signature and false otherwise. This comparison must
-    // be performed in constant-time.
-    Ok(verify_slices_are_equal(mac.as_ref(), signature).is_ok())
+    }
 }
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-generate-key>
