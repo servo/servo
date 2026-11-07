@@ -642,7 +642,7 @@ impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobal
         // Step 20.
         debug!("Registering definition {}.", name);
         self.paint_definitions
-            .borrow_mut()
+            .safe_borrow_mut(cx.no_gc())
             .insert(name.clone(), definition);
 
         // TODO: Step 21.
