@@ -534,7 +534,10 @@ impl ImageBitmap {
                 // (e.g., a vector graphic with no natural size), then queue
                 // a global task, using the bitmap task source, to reject promise
                 // with an "InvalidStateError" DOMException and abort these steps.
-                let Some(raster_image) = pixels::load_from_memory(&bytes, CorsStatus::Safe) else {
+                let image_decoder = global_scope.image_cache().decoder();
+                let Some(raster_image) =
+                    pixels::load_from_memory(image_decoder, &bytes, CorsStatus::Safe)
+                else {
                     reject_promise_on_bitmap_task_source(&p);
                     return p;
                 };
