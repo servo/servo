@@ -19,9 +19,10 @@ use stylo_dom::ElementState;
 use crate::dom::bindings::codegen::Bindings::HTMLOrSVGOrMathMLElementBinding::FocusOptions;
 use crate::dom::bindings::codegen::Bindings::MathMLElementBinding::MathMLElementMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{DomRoot, LayoutDom};
+use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::document::Document;
 use crate::dom::document::focus::FocusableArea;
+use crate::dom::domstringmap::DOMStringMap;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::node::focus::FocusTrigger;
@@ -32,6 +33,7 @@ use crate::dom::window::scrolling_box::{ScrollAxisState, ScrollRequirement};
 #[dom_struct]
 pub(crate) struct MathMLElement {
     element: Element,
+    dataset: MutNullableDom<DOMStringMap>,
 }
 
 /// <https://w3c.github.io/mathml-core/#dom-mathmlelement>
@@ -49,6 +51,7 @@ impl MathMLElement {
                 prefix,
                 document,
             ),
+            dataset: Default::default(),
         }
     }
 
@@ -236,6 +239,12 @@ impl<'dom> LayoutDom<'dom, MathMLElement> {
 
 impl MathMLElementMethods<crate::DomTypeHolder> for MathMLElement {
     global_event_handlers!();
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-dataset>
+    fn Dataset(&self, cx: &mut JSContext) -> DomRoot<DOMStringMap> {
+        self.dataset
+            .or_init(|| DOMStringMap::new(cx, self.upcast()))
+    }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce>
     fn Nonce(&self) -> DOMString {
