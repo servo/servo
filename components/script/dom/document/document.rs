@@ -6196,7 +6196,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     /// <https://dom.spec.whatwg.org/#dom-document-content_type>
     fn ContentType(&self) -> DOMString {
-        DOMString::from(self.content_type.to_string())
+        DOMString::from(format!(
+            "{}/{}",
+            self.content_type.type_, self.content_type.subtype
+        ))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-doctype>
