@@ -126,7 +126,7 @@ stdenv.mkDerivation (androidEnvironment // {
       };
       RUSTC_BOOTSTRAP = "crown";
     })
-  ] ++ (lib.optionals stdenv.isDarwin [
+  ] ++ (lib.optionals stdenv.hostPlatform.isDarwin [
     darwin.apple_sdk.frameworks.AppKit
   ]) ++ (lib.optionals buildAndroid [
     # for android builds
