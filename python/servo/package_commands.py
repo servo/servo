@@ -165,15 +165,15 @@ class PackageCommands(CommandBase):
         if is_android(self.target):
             target_triple = self.target.triple()
             if "aarch64" in target_triple:
-                arch_string = "Arm64"
+                arch_string = "arm64"
             elif "armv7" in target_triple:
-                arch_string = "Armv7"
+                arch_string = "armv7"
             elif "i686" in target_triple:
                 arch_string = "x86"
             elif "x86_64" in target_triple:
                 arch_string = "x64"
             else:
-                arch_string = "Arm"
+                arch_string = "arm"
 
             if build_type.is_dev():
                 build_type_string = "Debug"
@@ -192,13 +192,24 @@ class PackageCommands(CommandBase):
 
             copy_packaged_resources(dir_to_root, dir_to_resources)
 
-            variant = ":assemble" + arch_string + build_type_string
+            build_variant = arch_string + build_type_string
+            variant = ":assemble" + build_variant
             apk_task_name = ":servoapp" + variant
             aar_task_name = ":servoview" + variant
             argv = ["./gradlew", "--no-daemon", apk_task_name, aar_task_name]
             try:
                 with cd(path.join("support", "android", "apk")):
                     subprocess.check_call(argv, env=env)
+                    shutil.copy(
+                        path.join(
+                            "servoapp", "build", "outputs", "apk", build_variant, f"servoapp-{build_variant}.apk"
+                        ),
+                        path.join(target_dir, "servoapp.apk"),
+                    )
+                    shutil.copy(
+                        path.join("servoview", "build", "outputs", "aar", f"servoview-{build_variant}.aar"),
+                        path.join(target_dir, "servoview.aar"),
+                    )
             except subprocess.CalledProcessError as e:
                 print("Packaging Android exited with return value %d" % e.returncode)
                 return e.returncode
