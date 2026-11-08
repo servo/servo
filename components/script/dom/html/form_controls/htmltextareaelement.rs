@@ -42,7 +42,7 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
-    BindContext, ChildrenMutation, CloneChildrenFlag, Node, NodeTraits, UnbindContext,
+    BindContext, ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, NodeTraits, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::text_input::EmbedderClipboardProvider;
@@ -697,6 +697,10 @@ impl VirtualMethods for HTMLTextAreaElement {
                 // > The :optional pseudo-class must match any element falling into one of the following categories:
                 // > - textarea elements that do not have a required attribute
                 element.set_state(cx.no_gc(), ElementState::OPTIONAL_, !required);
+            },
+            local_name!("rows") => {
+                // So we can recalculate the effective height based on rows.
+                self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
             },
             _ => {},
         }

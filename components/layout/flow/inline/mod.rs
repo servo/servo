@@ -927,7 +927,7 @@ impl UnbreakableSegmentUnderConstruction {
 }
 
 bitflags! {
-    struct InlineContainerStateFlags: u8 {
+    pub(crate) struct InlineContainerStateFlags: u8 {
         const CREATE_STRUT = 0b0001;
         const IS_SINGLE_LINE_TEXT_INPUT = 0b0010;
     }
@@ -2967,7 +2967,7 @@ fn place_pending_floats(ifc: &mut InlineFormattingContextLayout, line_items: &[L
     }
 }
 
-fn line_height(
+pub(crate) fn line_height(
     parent_style: &ComputedValues,
     font_metrics: &FontMetrics,
     flags: &InlineContainerStateFlags,
