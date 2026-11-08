@@ -22,15 +22,13 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 
-    val signingKeyInfo = getSigningKeyInfo()
-
-    if (signingKeyInfo != null) {
+    System.getenv("APK_SIGNING_KEY_STORE_PATH")?.let { storeFilePath ->
         signingConfigs {
             register("release") {
-                storeFile = signingKeyInfo["storeFile"] as File
-                storePassword = signingKeyInfo["storePassword"] as String
-                keyAlias = signingKeyInfo["keyAlias"] as String
-                keyPassword = signingKeyInfo["keyPassword"] as String
+                storeFile = file(storeFilePath)
+                storePassword = System.getenv("APK_SIGNING_KEY_STORE_PASS")!!
+                keyAlias = System.getenv("APK_SIGNING_KEY_ALIAS")!!
+                keyPassword = System.getenv("APK_SIGNING_KEY_PASS")!!
             }
         }
     }
@@ -39,8 +37,7 @@ android {
         debug {}
 
         release {
-            signingConfig =
-                signingConfigs.getByName(if (signingKeyInfo != null) "release" else "debug")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs["debug"]
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
         }
