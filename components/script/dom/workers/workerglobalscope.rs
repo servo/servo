@@ -816,31 +816,30 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             // Step 3: Append the result of invoking the Get Trusted Type compliant string algorithm
             // with TrustedScriptURL, this's relevant global object, url, "WorkerGlobalScope importScripts",
             // and "script" to urlStrings.
+            let global_scope = self.upcast::<GlobalScope>();
             let url = TrustedScriptURL::get_trusted_type_compliant_string(
                 cx,
-                self.upcast::<GlobalScope>(),
+                global_scope,
                 url,
                 "WorkerGlobalScope importScripts",
             )?;
             let url = self.worker_url.borrow().join(&url.str());
-            match url {
-                Ok(url) => urls.push(url),
+            let url = match url {
+                Ok(url) => ensure_blob_referenced_by_url_is_kept_alive(global_scope, url),
                 Err(_) => return Err(Error::Syntax(None)),
             };
+            urls.push(url);
         }
 
         for url in urls {
             let global_scope = self.upcast::<GlobalScope>();
-            let request = RequestBuilder::new(
-                global_scope.webview_id(),
-                ensure_blob_referenced_by_url_is_kept_alive(global_scope, url.clone()),
-                global_scope.get_referrer(),
-            )
-            .destination(Destination::Script)
-            .credentials_mode(CredentialsMode::Include)
-            .parser_metadata(ParserMetadata::NotParserInserted)
-            .use_url_credentials(true)
-            .with_global_scope(global_scope);
+            let request =
+                RequestBuilder::new(global_scope.webview_id(), url, global_scope.get_referrer())
+                    .destination(Destination::Script)
+                    .credentials_mode(CredentialsMode::Include)
+                    .parser_metadata(ParserMetadata::NotParserInserted)
+                    .use_url_credentials(true)
+                    .with_global_scope(global_scope);
 
             // https://html.spec.whatwg.org/multipage/#fetch-a-classic-worker-imported-script
             let (url, bytes, muted_errors) = match load_whole_resource(
