@@ -29,7 +29,7 @@ pub use font_store::FontTemplates;
 pub use fonts_traits::*;
 pub(crate) use glyph::*;
 pub use glyph::{GlyphInfo, ShapedText, ShapedTextSlice, ShapedTextSlicer, TrailingWhiteSpace};
-use icu_locale_core::LanguageIdentifier;
+use icu_locale_core::subtags::Language;
 pub use platform::font_list::fallback_font_families;
 pub(crate) use shapers::*;
 pub use system_font_service::SystemFontService;
@@ -45,18 +45,24 @@ pub(crate) enum EmojiPresentationPreference {
 }
 
 #[derive(Clone, Debug)]
-pub struct FallbackFontSelectionOptions<'a> {
+pub struct FallbackFontSelectionOptions {
     pub(crate) character: char,
     pub(crate) presentation_preference: EmojiPresentationPreference,
-    pub(crate) language: &'a LanguageIdentifier,
+    pub(crate) language: Language,
 }
 
-impl<'a> FallbackFontSelectionOptions<'a> {
-    pub fn new(
-        character: char,
-        next_character: Option<char>,
-        language: &'a LanguageIdentifier,
-    ) -> Self {
+impl Default for FallbackFontSelectionOptions {
+    fn default() -> Self {
+        Self {
+            character: ' ',
+            presentation_preference: EmojiPresentationPreference::None,
+            language: Language::UNKNOWN,
+        }
+    }
+}
+
+impl FallbackFontSelectionOptions {
+    pub fn new(character: char, next_character: Option<char>, language: Language) -> Self {
         let presentation_preference = match next_character {
             Some(next_character) if emoji::is_emoji_presentation_selector(next_character) => {
                 EmojiPresentationPreference::Emoji

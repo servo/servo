@@ -16,7 +16,7 @@ use euclid::default::{Point2D, Rect};
 use euclid::num::Zero;
 use font_types::NameId;
 use fonts_traits::FontDescriptor;
-use icu_locale_core::LanguageIdentifier;
+use icu_locale_core::subtags::Language;
 use icu_properties::props::{EnumeratedProperty, GeneralCategory};
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
@@ -467,7 +467,7 @@ bitflags! {
 
 /// Various options that control text shaping.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct ShapingOptions<'a> {
+pub struct ShapingOptions {
     /// Spacing to add between each letter. Corresponds to the CSS 2.1 `letter-spacing` property.
     ///
     /// Letter spacing is not applied to all characters. Use [Self::letter_spacing_for_character] to
@@ -478,7 +478,10 @@ pub struct ShapingOptions<'a> {
     /// The Unicode script property of the characters in this run.
     pub script: Script,
     /// The preferred language, obtained from the `lang` attribute.
-    pub language: &'a LanguageIdentifier,
+    pub language: Atom,
+    /// The `font-language-override` value from style as an OpenType language tag or `None` when
+    /// `normal`.
+    pub language_override: Option<Tag>,
     /// The value of the `font-variant-ligatures` property.
     pub ligatures: FontVariantLigatures,
     /// The value of the `font-variant-numeric` property.
@@ -495,7 +498,7 @@ pub struct ShapingOptions<'a> {
     pub flags: ShapingFlags,
 }
 
-impl ShapingOptions<'_> {
+impl ShapingOptions {
     pub(crate) fn letter_spacing_for_character(&self, character: char) -> Au {
         // https://drafts.csswg.org/css-text/#letter-spacing-property
         // Letter spacing ignores invisible zero-width formatting characters (such as those from the Unicode Cf category).
@@ -514,7 +517,8 @@ struct ShapeCacheEntry {
     letter_spacing: Au,
     word_spacing: Au,
     script: Script,
-    language: LanguageIdentifier,
+    language: Atom,
+    language_override: Option<Tag>,
     font_features: Box<[(Tag, u32)]>,
     flags: ShapingFlags,
 }
@@ -531,6 +535,7 @@ impl Font {
             word_spacing: options.word_spacing,
             script: options.script,
             language: options.language.clone(),
+            language_override: options.language_override,
             flags: options.flags,
             font_features,
         };
@@ -773,8 +778,7 @@ impl Deref for FontRef {
 pub struct FallbackKey {
     script: Script,
     unicode_block: Option<UnicodeBlock>,
-    #[ignore_malloc_size_of = "LanguageIdentifier doesn't implement MallocSizeOf"]
-    language: LanguageIdentifier,
+    language: Language,
 }
 
 impl FallbackKey {
@@ -782,7 +786,7 @@ impl FallbackKey {
         Self {
             script: Script::from(options.character),
             unicode_block: options.character.block(),
-            language: options.language.clone(),
+            language: options.language,
         }
     }
 }
@@ -830,7 +834,7 @@ impl FontGroup {
         font_context: &FontContext,
         codepoint: char,
         next_codepoint: Option<char>,
-        language: &LanguageIdentifier,
+        language: Language,
     ) -> Option<FontRef> {
         // Tab characters are converted into spaces when rendering.
         // TODO: We should not render a tab character. Instead they should be converted into tab stops
@@ -924,7 +928,7 @@ impl FontGroup {
             .or_else(|| {
                 self.find_fallback_using_system_font_list(
                     font_context,
-                    FallbackFontSelectionOptions::new(' ', None, &LanguageIdentifier::UNKNOWN),
+                    FallbackFontSelectionOptions::default(),
                     &space_in_template,
                     &font_predicate,
                 )

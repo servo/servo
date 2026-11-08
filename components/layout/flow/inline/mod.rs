@@ -2180,7 +2180,7 @@ impl InlineFormattingContext {
 
         // Enable Chinese/Japanese line breaking behavior when this inline formatting context
         // has a Japanese or Chinese language set.
-        let content_locale = lang.0.parse::<LanguageIdentifier>().ok();
+        let content_locale = LanguageIdentifier::try_from_locale_bytes(lang.0.as_bytes()).ok();
         options.content_locale = content_locale.as_ref();
 
         let mut shaping_queue = ShapingQueue::new(&text_content, options);

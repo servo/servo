@@ -35,7 +35,6 @@ use servo_canvas_traits::canvas::{
 };
 use servo_constellation_traits::ScriptToConstellationMessage;
 use servo_url::{ImmutableOrigin, ServoUrl};
-use style::Zero;
 use style::color::{AbsoluteColor, ColorFlags, ColorSpace};
 use style::computed_values::font_variant_position::T as FontVariantPosition;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
@@ -47,6 +46,7 @@ use style::values::computed::{
     FontFeatureSettings, FontVariantEastAsian, FontVariantLigatures, FontVariantNumeric,
 };
 use style::values::specified::color::Color;
+use style::{Atom, Zero};
 use style_traits::values::ToCss;
 use style_traits::{CssWriter, ParsingMode};
 use unicode_script::Script;
@@ -2519,8 +2519,10 @@ impl CanvasState {
         let mut runs = Vec::new();
         // TODO: canvas also has experimental `lang` attribute (https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/lang),
         // which Servo doesn't support yet. When this attribute is supported, some changes may be needed here.
-        let x_language = self.font_style()._x_lang.clone();
-        let language = x_language.0.parse().unwrap_or(LanguageIdentifier::UNKNOWN);
+        let language = self.font_style()._x_lang.0.clone();
+        let language_for_fallback = LanguageIdentifier::try_from_locale_bytes(language.as_bytes())
+            .unwrap_or(LanguageIdentifier::UNKNOWN)
+            .language;
         let mut current_text_run = UnshapedTextRun::new(language.clone());
         let mut current_text_run_start_index = 0;
 
@@ -2535,11 +2537,13 @@ impl CanvasState {
 
         for (index, character) in text.char_indices() {
             let next_char = text[index + character.len_utf8()..].chars().next();
-
             let script = Script::from(character);
-
-            let font = font_group.find_by_codepoint(font_context, character, next_char, &language);
-
+            let font = font_group.find_by_codepoint(
+                font_context,
+                character,
+                next_char,
+                language_for_fallback,
+            );
             if !is_variation_selector(character) &&
                 !current_text_run.script_and_font_compatible(script, &font)
             {
@@ -2625,11 +2629,11 @@ struct UnshapedTextRun<'a> {
     font: Option<FontRef>,
     script: Script,
     string: &'a str,
-    language: LanguageIdentifier,
+    language: Atom,
 }
 
 impl UnshapedTextRun<'_> {
-    fn new(language: LanguageIdentifier) -> Self {
+    fn new(language: Atom) -> Self {
         Self {
             font: Default::default(),
             script: Default::default(),
@@ -2658,7 +2662,8 @@ impl UnshapedTextRun<'_> {
             letter_spacing: Au::zero(),
             word_spacing: Au::zero(),
             script: self.script,
-            language: &self.language,
+            language: self.language,
+            language_override: None,
             flags: ShapingFlags::empty(),
             ligatures: FontVariantLigatures::NORMAL,
             numeric: FontVariantNumeric::NORMAL,
