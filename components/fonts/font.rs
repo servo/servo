@@ -478,7 +478,10 @@ pub struct ShapingOptions {
     /// The Unicode script property of the characters in this run.
     pub script: Script,
     /// The preferred language, obtained from the `lang` attribute.
-    pub language: Language,
+    pub language: Atom,
+    /// The `font-language-override` value from style as an OpenType language tag or `None` when
+    /// `normal`.
+    pub language_override: Option<Tag>,
     /// The value of the `font-variant-ligatures` property.
     pub ligatures: FontVariantLigatures,
     /// The value of the `font-variant-numeric` property.
@@ -514,7 +517,8 @@ struct ShapeCacheEntry {
     letter_spacing: Au,
     word_spacing: Au,
     script: Script,
-    language: Language,
+    language: Atom,
+    language_override: Option<Tag>,
     font_features: Box<[(Tag, u32)]>,
     flags: ShapingFlags,
 }
@@ -530,7 +534,8 @@ impl Font {
             letter_spacing: options.letter_spacing,
             word_spacing: options.word_spacing,
             script: options.script,
-            language: options.language,
+            language: options.language.clone(),
+            language_override: options.language_override,
             flags: options.flags,
             font_features,
         };

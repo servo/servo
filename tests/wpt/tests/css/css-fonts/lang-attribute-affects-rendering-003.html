@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <link rel="help" href="https://html.spec.whatwg.org/#attr-lang">
-  <link rel="mismatch" href="lang-attribute-affects-rendering-ref.html">
+  <link rel="match" href="lang-attribute-affects-rendering-ref.html">
   <style>
     * { font-size: 50px }
 
@@ -18,7 +18,7 @@
   </style>
 </head>
 <body>
-  `lang="en"` should render ligatures, `lang="tr"` not.
-  <div lang="en">fi</div>
+  <!-- `lang="tr-TR-u-nu-latn"` should render like `lang="tr"`. -->
+  <div lang="tr-TR-u-nu-latn">fi</div>
 </body>
 </html>

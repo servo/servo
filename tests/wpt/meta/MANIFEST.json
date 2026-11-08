@@ -207534,6 +207534,45 @@
        {}
       ]
      ],
+     "lang-attribute-affects-rendering-001.html": [
+      "c8a44ee0d86a409d9cad065ffe9938ff03746637",
+      [
+       null,
+       [
+        [
+         "/css/css-fonts/lang-attribute-affects-rendering-ref.html",
+         "!="
+        ]
+       ],
+       {}
+      ]
+     ],
+     "lang-attribute-affects-rendering-002.html": [
+      "eed5b8141611745d700425bed6e3ad6c9569587c",
+      [
+       null,
+       [
+        [
+         "/css/css-fonts/lang-attribute-affects-rendering-ref.html",
+         "=="
+        ]
+       ],
+       {}
+      ]
+     ],
+     "lang-attribute-affects-rendering-003.html": [
+      "40d8a946037c878a1985455bb7d11f2fd4884092",
+      [
+       null,
+       [
+        [
+         "/css/css-fonts/lang-attribute-affects-rendering-ref.html",
+         "=="
+        ]
+       ],
+       {}
+      ]
+     ],
      "lang-attribute-affects-rendering-of-second-text-run.html": [
       "1e280b26498e25cf8bf78434a7df85dfd4b1c964",
       [
@@ -207541,19 +207580,6 @@
        [
         [
          "/css/css-fonts/lang-attribute-affects-rendering-of-second-text-run-ref.html",
-         "!="
-        ]
-       ],
-       {}
-      ]
-     ],
-     "lang-attribute-affects-rendering.html": [
-      "98282f7148f26591704eb6e047c3b869b1d6005f",
-      [
-       null,
-       [
-        [
-         "/css/css-fonts/lang-attribute-affects-rendering-ref.html",
          "!="
         ]
        ],
@@ -511048,7 +511074,7 @@
       []
      ],
      "lang-attribute-affects-rendering-ref.html": [
-      "d84eb87164b3d00a05f05e9ff41fd9c51cc2a0e0",
+      "64b09c768a30c6e6ee776379df90278ca667da6d",
       []
      ],
      "line-gap-override-ref.html": [
