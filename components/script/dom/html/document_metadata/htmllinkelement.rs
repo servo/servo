@@ -552,6 +552,12 @@ impl HTMLLinkElement {
             origin: document.borrow().origin().immutable().to_owned(),
             request_client: global.request_client(None),
             referrer: global.get_referrer(),
+            fetch_priority: element
+                .get_attribute_string_ref(&local_name!("fetchpriority"))
+                .unwrap_or_default()
+                .value()
+                .as_ref()
+                .into(),
         };
 
         // Step 3. If el has an href attribute, then set options's href to the value of el's href attribute.
@@ -999,7 +1005,8 @@ impl HTMLLinkElement {
         // Step 11. Let referrer policy be the current state of el's referrerpolicy attribute.
         let referrer_policy = referrer_policy_for_element(el);
 
-        // TODO Step 12. Let fetch priority be the current state of el's fetchpriority attribute.
+        // Step 12. Let fetch priority be the current state of el's fetchpriority attribute.
+        let fetch_priority = self.FetchPriority().into();
 
         // Step 13. Let options be a script fetch options whose cryptographic nonce is cryptographic nonce,
         // integrity metadata is integrity metadata, parser metadata is "not-parser-inserted",
@@ -1011,6 +1018,7 @@ impl HTMLLinkElement {
             credentials_mode,
             referrer_policy,
             render_blocking: false,
+            fetch_priority,
         };
 
         let link = DomRoot::from_ref(self);
@@ -1247,4 +1255,15 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
     fn GetSheet(&self, cx: &mut JSContext) -> Option<DomRoot<DOMStyleSheet>> {
         self.get_cssom_stylesheet(cx).map(DomRoot::upcast)
     }
+
+    // <https://html.spec.whatwg.org/multipage/#dom-link-fetchpriority>
+    make_enumerated_getter!(
+        FetchPriority,
+        "fetchpriority",
+        "high" | "low" | "auto",
+        missing => "auto",
+        invalid => "auto"
+    );
+    // https://html.spec.whatwg.org/multipage/#dom-link-fetchpriority
+    make_setter!(SetFetchPriority, "fetchpriority");
 }

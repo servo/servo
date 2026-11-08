@@ -861,6 +861,7 @@ pub(crate) fn fetch_a_module_script_graph(
         cryptographic_nonce: String::new(),
         parser_metadata: ParserMetadata::NotParserInserted,
         referrer_policy: ReferrerPolicy::EmptyString,
+        fetch_priority: Default::default(),
         render_blocking: false,
     };
 
