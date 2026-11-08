@@ -2350,6 +2350,11 @@ impl ScriptThread {
         }
     }
 
+    #[cfg(feature = "devtools")]
+    pub(crate) fn debugger_global(&self) -> Option<DomRoot<DebuggerGlobalScope>> {
+        self.debugger_global.as_ref().map(Dom::as_rooted)
+    }
+
     /// Enter a nested event loop for debugger pause.
     /// TODO: This should also be called when manual pause is triggered.
     #[cfg(feature = "devtools")]

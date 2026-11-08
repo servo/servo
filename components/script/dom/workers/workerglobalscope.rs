@@ -562,6 +562,16 @@ impl WorkerGlobalScope {
         self.worker_id
     }
 
+    /// The debugger global for this worker, if devtools created one.
+    #[cfg(feature = "devtools")]
+    pub(crate) fn debugger_global(
+        &self,
+        cx: &mut JSContext,
+    ) -> Option<DomRoot<DebuggerGlobalScope>> {
+        let debugger_global_handle = rooted_heap_handle(self, |this| &this.debugger_global);
+        root_from_handlevalue::<DebuggerGlobalScope>(cx, debugger_global_handle).ok()
+    }
+
     pub(crate) fn pipeline_id(&self) -> PipelineId {
         self.pipeline_id
     }
