@@ -20,7 +20,6 @@ subtlecrypto = [
     "dep:aes-gcm",
     "dep:aes-kw",
     "dep:argon2",
-    "dep:aws-lc-rs",
     "dep:base64ct",
     "dep:cbc",
     "dep:chacha20poly1305",
