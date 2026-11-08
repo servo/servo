@@ -716,7 +716,7 @@ impl HTMLLinkElement {
         // https://html.spec.whatwg.org/multipage/#link-type-stylesheet
         // > The default type for resources given by the stylesheet keyword is text/css.
         let type_ = element.get_string_attribute(&local_name!("type"));
-        if !type_.is_empty() && type_ != "text/css" {
+        if !type_.is_empty() && !type_.eq_ignore_ascii_case("text/css") {
             return;
         }
 
