@@ -134,6 +134,8 @@ class TestEnvironment:
         self.ws_extra = ws_extra
 
     def __enter__(self):
+        assert serve is not None
+        serve.raise_open_file_limit()
         server_log_handler = self._stack.enter_context(self.server_logging_ctx)
         self.config_ctx = self.build_config()
 

@@ -9,10 +9,10 @@ test(function(){
     var video = document.createElement('video');
     var t1 = video.addTextTrack('subtitles');
     document.body.appendChild(video);
-    var c1 = new VTTCue(0, 1, '<c></c><c.a.b></c><i></i><b></b><u></u><ruby><rt></rt></ruby><v></v><v a b></v><v Foo&amp;Bar>text</v><1:00:13.500><00:09.500>x\0');
+    var c1 = new VTTCue(0, 1, '<c></c><c.a.b></c><i></i><b></b><u></u><ruby><rt></rt></ruby><v></v><v a b></v><v Foo&amp;Bar>text</v><1:00:13.500><00:09.500>x\0<lang en-US>text</lang>');
     t1.addCue(c1);
     window.frag = c1.getCueAsHTML();
-    assert_equals(frag.childNodes.length, 12, 'childNodes.length');
+    assert_equals(frag.childNodes.length, 13, 'childNodes.length');
     assert_true(frag instanceof DocumentFragment, 'getCueAsHTML() should return DocumentFragment');
 }, document.title+', creating the cue');
 test(function(){
@@ -104,4 +104,14 @@ test(function(){
     assert_equals(frag.childNodes[11].data, 'x\0', 'data');
     assert_true(frag.childNodes[11] instanceof Text, 'instanceof');
 }, document.title+', x\\0');
+test(function(){
+    assert_equals(frag.childNodes[12].namespaceURI, 'http://www.w3.org/1999/xhtml', 'namespaceURI');
+    assert_equals(frag.childNodes[12].localName, 'span', 'localName');
+    assert_equals(frag.childNodes[12].attributes.length, 1, 'attributes');
+    assert_equals(frag.childNodes[12].getAttributeNS('', 'lang'), 'en-US', 'lang attribute');
+    assert_equals(frag.childNodes[12].getAttributeNS('', 'title'), null, 'no title attribute');
+    assert_true(frag.childNodes[12].hasChildNodes(), 'hasChildNodes()');
+    assert_equals(frag.childNodes[12].firstChild.data, 'text', 'child text');
+    assert_true(frag.childNodes[12] instanceof HTMLElement, 'instanceof');
+}, document.title+', <lang en-US>');
 </script>

@@ -106,8 +106,10 @@ promise_test(async t => {
     cookie_cross_origin,
     cookie_cross_origin);
 
+  // Document-Isolation-Policy does not apply to a ServiceWorker, so the
+  // worker's policy does not prevent credentials from being sent.
   serviceWorkerTest("cross-origin + credentialless worker",
     cross_origin, dip_credentialless,
-    undefined,
-    undefined);
+    cookie_cross_origin,
+    cookie_cross_origin);
 })

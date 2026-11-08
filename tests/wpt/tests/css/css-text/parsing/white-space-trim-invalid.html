@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text Module Test: parsing white-space-trim with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#white-space-trim">
+<meta name="assert" content="white-space-trim rejects values outside the grammar 'none | discard-before || discard-after || discard-inner'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("white-space-trim", "auto");
+test_invalid_value("white-space-trim", "discard");
+test_invalid_value("white-space-trim", "discard-foo");
+// A keyword may not be repeated.
+test_invalid_value("white-space-trim", "discard-before discard-before");
+// 'none' does not combine with the discard keywords.
+test_invalid_value("white-space-trim", "none discard-before");
+test_invalid_value("white-space-trim", "discard-before none");
+// The discard keywords are space-separated, not comma-separated.
+test_invalid_value("white-space-trim", "discard-before, discard-after");
+</script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Style sheets do not block streamed scripts</title>
+<link rel="help" href="https://html.spec.whatwg.org/#html-streaming-methods" />
+<link rel="help" href="https://html.spec.whatwg.org/#prepare-the-script-element" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="target"></div>
+<script>
+  // Fails instead of stalling the rest of the file if the promise never settles.
+  function failOnTimeout(promise, ms = 3000) {
+    return Promise.race([promise, new Promise((resolve, reject) => step_timeout(() => reject(new Error("timed out")), ms))]);
+  }
+
+  // Unlike main document parsing, no style sheet - whether streamed or already
+  // pending in the live document - blocks streamed scripts: "a style sheet
+  // that is blocking scripts" is a property of the parser's inert Document.
+
+  const SLOW_CSS = "resources/slow.css?pipe=trickle(d3)";
+
+  for (const method of ["streamHTMLUnsafe", "streamAppendHTMLUnsafe", "streamPrependHTMLUnsafe"]) {
+    promise_test(async (t) => {
+      window.events = [];
+      const target = document.getElementById("target");
+      target.replaceChildren();
+      const writer = target[method]({ runScripts: true }).getWriter();
+      const start = performance.now();
+      await writer.write(
+        `<link rel="stylesheet" href="${SLOW_CSS}&id=${Math.random()}">` +
+        "<script>window.events.push('inline');</" + "script>" +
+        "<p id='after-inline'>after</p>"
+      );
+      assert_array_equals(window.events, ["inline"], "the inline script ran without waiting for the streamed style sheet");
+      assert_not_equals(target.querySelector("#after-inline"), null, "parsing continued past the script");
+      assert_less_than(performance.now() - start, 2500, "the write promise did not wait for the style sheet");
+      const link = target.querySelector("link");
+      t.add_cleanup(() => link.remove());
+      await writer.close();
+    }, `${method}: a streamed <link rel=stylesheet> does not block a following streamed inline script`);
+
+    promise_test(async (t) => {
+      window.events = [];
+      // A style sheet only "contributes a script-blocking style sheet" when it
+      // was created by its Document's parser. Leave an iframe's document parser
+      // open after writing a slow <link rel=stylesheet> so the live document has
+      // a genuine script-blocking style sheet.
+      const iframe = document.createElement("iframe");
+      document.body.appendChild(iframe);
+      t.add_cleanup(() => iframe.remove());
+      iframe.contentDocument.open();
+      iframe.contentDocument.write(
+        `<link rel="stylesheet" href="${SLOW_CSS}&id=${Math.random()}">` +
+        `<div id="target"></div>`
+      );
+      await new Promise((resolve) => t.step_timeout(resolve, 0));
+      const target = iframe.contentDocument.getElementById("target");
+
+      const writer = target[method]({ runScripts: true }).getWriter();
+      const start = performance.now();
+      await writer.write(
+        "<script>parent.events.push('inline');</" + "script>" +
+        "<p id='after-inline'>after</p>"
+      );
+      assert_array_equals(window.events, ["inline"], "the inline script ran without waiting for the live document's pending style sheet");
+      assert_not_equals(target.querySelector("#after-inline"), null);
+      assert_less_than(performance.now() - start, 2500, "the write promise did not wait for the style sheet");
+      await writer.close();
+    }, `${method}: a pending style sheet in the live document does not block a streamed inline script`);
+
+    promise_test(async (t) => {
+      window.events = [];
+      const target = document.getElementById("target");
+      target.replaceChildren();
+      const writer = target[method]({ runScripts: true }).getWriter();
+      const start = performance.now();
+      const done = new Promise((resolve) => { window.resolve_external = resolve; });
+      await writer.write(
+        `<link rel="stylesheet" href="${SLOW_CSS}&id=${Math.random()}">` +
+        `<script src="data:text/javascript,window.events.push('external');window.resolve_external();//${Math.random()}"></` + "script>" +
+        "<p id='after-external'>after</p>"
+      );
+      const link = target.querySelector("link");
+      t.add_cleanup(() => link.remove());
+      await failOnTimeout(done);
+      assert_array_equals(window.events, ["external"]);
+      assert_less_than(performance.now() - start, 2500, "the external script ran without waiting for the style sheet");
+      await writer.close();
+      assert_not_equals(target.querySelector("#after-external"), null,
+                        "close() waited for parsing to resume after the external script");
+      assert_less_than(performance.now() - start, 2500, "parsing resumed without waiting for the style sheet");
+    }, `${method}: a streamed <link rel=stylesheet> does not block a following streamed external script`);
+  }
+</script>
+</body>

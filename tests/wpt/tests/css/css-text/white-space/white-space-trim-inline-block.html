@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>white-space-trim: discard-before/after on an inline-block (a block container)</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#white-space-trim">
+<link rel="match" href="reference/white-space-trim-inline-block-ref.html">
+<meta name="assert" content="white-space-trim applies to a non-replaced inline-block because it is a block container: discard-before/discard-after collapse the collapsible white space at its edges. It does not apply to atomic inlines that are not block containers (inline-flex) or to replaced content (even when displayed as inline-block).">
+<style>
+  .ib { display: inline-block; }
+  .iflex { display: inline-flex; }
+  .db { white-space-trim: discard-before; }
+  .da { white-space-trim: discard-after; }
+  .dba { white-space-trim: discard-before discard-after; }
+  img { background: green; }
+</style>
+</head>
+<body>
+<p>This test passes if it renders identically to the reference.</p>
+<!-- 1. discard-before on an inline-block trims the space before it -> "abc" --><div>a <span class="ib db">b</span>c</div>
+<!-- 2. discard-after on an inline-block trims the space after it -> "abc" --><div>a<span class="ib da">b</span> c</div>
+<!-- 3. discard-before and discard-after on one inline-block trim both edges -> "xyz" --><div>x <span class="ib dba">y</span> z</div>
+<!-- 4. does not apply to a non-block-container atomic (inline-flex): space kept -> "a bc" --><div>a <span class="iflex db">b</span>c</div>
+<!-- 5. does not apply to replaced content (inline-block image): space kept --><div>a <img class="db" width="8" height="8" style="display:inline-block" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==">c</div>
+</body>
+</html>

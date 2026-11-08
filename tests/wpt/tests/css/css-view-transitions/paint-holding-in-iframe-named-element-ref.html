@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: display old paint of an iframe with a captured element during update callback (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<style>
+  .new {
+    border: 5px solid orange;
+  }
+</style>
+
+<iframe id="inner" class="new" srcdoc="
+  <style>
+    body {
+      background: blue;
+    }
+    #named {
+      width: 100px;
+      height: 50px;
+      background: yellow;
+    }
+  </style>
+  <body>
+    <div id='named'>Old</div>
+  </body>
+"></iframe>
+</html>

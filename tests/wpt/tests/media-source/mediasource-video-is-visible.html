@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en" class="reftest-wait">
+<head>
+    <meta charset="UTF-8">
+    <title>HTML MSE test: video is shown</title>
+    <link rel="author" title="Alicia Boya García" href="mailto:aboya@igalia.com">
+    <link rel="match" href="mediasource-video-is-visible-ref.html">
+    <meta name="fuzzy" content="maxDifference=30;totalPixels=76800">
+    <meta name="assert" content="Video is rendered in the MSE player.">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: white;
+        }
+        body {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+        #video {
+            width: 320px;
+            height: 240px;
+        }
+        #explanation {
+            position: absolute;
+            top: 260px;
+        }
+    </style>
+</head>
+<body>
+<video id="video"></video>
+<div id="explanation">A video containing a blue static image should be visible above.</div>
+<script>
+    const mediaElement = document.getElementById("video");
+
+    class NetworkError extends Error {
+        constructor(message) {
+            super(message);
+        }
+    }
+
+    function requestJSON(url) {
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open("GET", url, true);
+            xhr.responseType = "text";
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState === 4) {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        resolve(JSON.parse(xhr.responseText));
+                    } else {
+                        reject(new NetworkError(`Error ${xhr.status}`));
+                    }
+                }
+            };
+            xhr.send(null);
+        });
+    }
+
+    function requestBinaryMedia(url) {
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open("GET", url, true);
+            xhr.responseType = "arraybuffer";
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState === 4) {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        resolve(xhr.response);
+                    } else {
+                        reject(new NetworkError(`Error ${xhr.status}`));
+                    }
+                }
+            };
+            xhr.send(null);
+        })
+    }
+
+    function waitForEvent(element, eventName) {
+        return new Promise(resolve => {
+            element.addEventListener(eventName, function handler() {
+                element.removeEventListener(eventName, handler);
+                resolve();
+            })
+        });
+    }
+
+    function waitForAppend(sourceBuffer, data) {
+        return new Promise(resolve => {
+            const listener = () => {
+                sourceBuffer.removeEventListener("update", listener);
+                resolve();
+            };
+            sourceBuffer.addEventListener("update", listener);
+            sourceBuffer.appendBuffer(data);
+        });
+    }
+
+    let mediaSource;
+    let audioSB;
+    let videoSB;
+
+    async function main(audioType, audioUrl, videoType, videoUrl) {
+        const audioManifest = await requestJSON(audioUrl);
+        const videoManifest = await requestJSON(videoUrl);
+        const audioData = await requestBinaryMedia(audioManifest.url);
+        const videoData = await requestBinaryMedia(videoManifest.url);
+
+        mediaSource = new MediaSource();
+        mediaElement.src = window.URL.createObjectURL(mediaSource);
+        mediaElement.volume = 0.1;
+        await waitForEvent(mediaSource, "sourceopen");
+
+        audioSB = mediaSource.addSourceBuffer(audioType);
+        videoSB = mediaSource.addSourceBuffer(videoType);
+
+        await waitForAppend(audioSB, audioData.slice(0, audioManifest.init.size));
+        await waitForAppend(videoSB, videoData.slice(0, videoManifest.init.size));
+
+        await waitForAppend(audioSB, audioData.slice(audioManifest.init.size));
+        await waitForAppend(videoSB, videoData.slice(videoManifest.init.size));
+
+        mediaSource.endOfStream();
+        mediaElement.play();
+        await waitForEvent(mediaElement, "ended");
+
+        document.documentElement.classList.remove("reftest-wait");
+    }
+
+    function selectAlternative(alternatives) {
+        for (let alternative of alternatives) {
+            if (MediaSource.isTypeSupported(alternative.mimeType))
+                return [alternative.mimeType, alternative.url];
+        }
+        throw new Error("Could not find suitable alternative");
+    }
+
+    const [audioType, audioUrl] = selectAlternative([
+        {mimeType: 'audio/mp4; codecs="mp4a.40.2"', url: "mp4/test-a-1s.mp4-manifest.json"},
+        {mimeType: 'audio/webm; codecs="opus"', url: "webm/test-a-1s.webm-manifest.json"},
+    ]);
+    const [videoType, videoUrl] = selectAlternative([
+        {mimeType: 'video/mp4; codecs="avc1.42C015"', url: "mp4/test-v-1s-blue.mp4-manifest.json"},
+        {mimeType: 'video/webm; codecs="vp9"', url: "webm/test-v-1s-blue.webm-manifest.json"},
+    ]);
+
+    main(audioType, audioUrl, videoType, videoUrl);
+</script>
+</body>
+</html>

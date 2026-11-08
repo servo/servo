@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Color 4: hsl</title>
+<link rel="author" title="Romain Menke" href="mailto:romainmenke@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#the-hsl-notation">
+<link rel="match" href="hsl-010-ref.html">
+<meta name="assert" content="hsl with l < 0">
+<style>
+    .test { background-color: red; width: 12em; height: 3em; margin-top: 0; }
+    .ref { background-color: color(srgb 0.60146 0.60146 -0.61846); width: 12em; height: 6em; margin-bottom: 0; }
+    .comma { background-color: hsl(240deg, 7176%, -0.85%); }
+    .space { background-color: hsl(240 7176% -0.85%); }
+</style>
+<body>
+    <p>Test passes if you see a single square, and not two or more rectangles of different colors.</p>
+    <div class="ref"></div>
+    <div class="test comma"></div>
+    <div class="test space"></div>
+</body>

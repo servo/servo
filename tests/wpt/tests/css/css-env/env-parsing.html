@@ -12,10 +12,28 @@ test_valid_value('width', 'env(safe-area-inset-top)');
 test_valid_value('width', 'env(safe-area-inset-top,)');
 test_valid_value('width', 'env(safe-area-inset-top, )');
 
-test_invalid_value('width', 'env(safe-area-inset-top ())');
-test_invalid_value('width', 'env(safe-area-inset-top () )');
-test_invalid_value('width', 'env(safe-area-inset-top() )');
-test_invalid_value('width', 'env(safe-area-inset-top (),)');
-test_invalid_value('width', 'env(safe-area-inset-top(),)');
+// env()'s argument is a <declaration-value>, which is only parsed at
+// substitution time as <custom-ident> <integer [0,∞]>*. As a result,
+// these values are valid at parse time and only become invalid at
+// computed-value time when it fails to parse after substitution.
+// https://drafts.csswg.org/css-env-1/#funcdef-env
+test_valid_value('width', 'env(safe-area-inset-top ())');
+test_valid_value('width', 'env(safe-area-inset-top () )');
+test_valid_value('width', 'env(safe-area-inset-top() )');
+test_valid_value('width', 'env(safe-area-inset-top (),)');
+test_valid_value('width', 'env(safe-area-inset-top(),)');
+
+// A free-form production that does not start with "{" matches neither top-level commas nor {} blocks,
+// so a {} block may not be mixed with other values in the name argument.
+test_invalid_value('width', 'env(--x {--y})');
+test_invalid_value('width', 'env({--x} --y)');
+test_invalid_value('width', 'env(--x {--y}, 10px)');
+
+// <declaration-value> is one or more tokens, so an empty name argument is invalid whether or not it
+// is {}-wrapped.
+test_invalid_value('width', 'env()');
+test_invalid_value('width', 'env({})');
+test_invalid_value('width', 'env({}, 10px)');
+test_invalid_value('width', 'env(, 10px)');
 
 </script>

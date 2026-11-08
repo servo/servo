@@ -22,19 +22,53 @@
     assert_equals(bbox.height, height, id + ".getBBox().height");
   }
 
-  // Per resolution (issue #1018): non-rendered elements return zero bbox
-  // instead of throwing InvalidStateError.
+  // coords.html #BoundingBoxes says a non-rendered element still has one:
+  //
+  //   "Even if an element is not in the rendering tree - due to it being
+  //   'display: none', within a 'defs' element, not usually rendered like a
+  //   'symbol' element or not currently present in the document tree - it
+  //   still has a bounding box. A call to getBBox on the element will return
+  //   the same rectangle as if the element were rendered. However, an element
+  //   that is not in the rendering tree does not contribute to the bounding
+  //   box of any ancestor element."
+  //
+  // TWO SEPARATE REQUIREMENTS, and each gets its own test below rather than
+  // being bundled with the other. Measured 2026-09-08: Chrome returns the
+  // container's box as {50,60,100,150}, the child's own rectangle, where the
+  // second sentence requires {0,0,0,0}. Firefox returns {0,0,0,0} for the
+  // child, where the first sentence requires {50,60,100,150}. A single test
+  // asserting both would go red in Chrome and in Firefox and say nothing
+  // about which sentence each one broke.
+  //
+  // svgwg issue #1018 is a SEPARATE rule again and does not reach these
+  // cases. It covers an element whose own geometric attributes are missing or
+  // invalid, and it landed in types.html as "If the element's geometric
+  // attributes are missing or have invalid values (e.g. negative width or
+  // height), such that the element is not rendered, then a SVGRect with x, y,
+  // width and height all set to 0 is returned." Every rect below has valid
+  // geometry, so that sentence does not apply to it.
 
   test(() => {
     assert_bbox("symbol1", 0, 0, 0, 0);
-    assert_bbox("symbol1_rect", 0, 0, 0, 0);
-  }, "Non-rendered symbol with rect returns zero bbox");
+  }, "symbol: the non-rendered container reports zero");
+
+  test(() => {
+    assert_bbox("symbol1_rect", 50, 60, 100, 150);
+  }, "symbol: the rect child reports the geometry it would have if rendered");
 
   test(() => {
     assert_bbox("g_none", 0, 0, 0, 0);
-    assert_bbox("g_none_rect", 0, 0, 0, 0);
-  }, "display:none <g> with rect returns zero bbox");
+  }, "display:none <g>: the non-rendered container reports zero");
 
+  test(() => {
+    assert_bbox("g_none_rect", 70, 80, 200, 250);
+  }, "display:none <g>: the rect child reports the geometry it would have if rendered");
+
+  // DELIBERATELY LEFT ASSERTING ZERO, and it contradicts the paragraph quoted
+  // above, which asks for {90, 100, 20, 25} here just as it does for the two
+  // children above. All three engines return zero, so this is a convergence
+  // against the prose rather than a single engine's bug, and which side should
+  // move is a question for the WG, not something to settle by editing a test.
   test(() => {
     assert_bbox("none_rect", 0, 0, 0, 0);
   }, "display:none <rect> returns zero bbox");

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<link rel="match" href="svg-filter-render-swap-content-visibility-ref.tentative.html">
+
+<style type="text/css">
+    iframe {
+        border: none;
+    }
+    .css-filter {
+        filter: blur(1px);
+    }
+    .svg-filter {
+        filter: url(#svg-filter);
+    }
+    .will-change {
+        padding: 1px;
+        will-change: transform;
+    }
+    #container {
+        contain: strict;
+        width: 100px;
+        height: 100px;
+    }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/svg/styling/support/svg-filter-render-util.js"></script>
+<script>
+    onload = async () => {
+        await waitForRender(() => {});
+        const container = document.getElementById('container');
+        const target = document.getElementById('target');
+        container.style.contentVisibility = 'hidden';
+        await waitForRender(() => {});
+        target.classList.replace('css-filter', 'svg-filter');
+        await waitForRender(() => {});
+        container.style.contentVisibility = 'visible';
+        // Force a synchronous lifecycle update in the same task.
+        document.elementFromPoint(0, 0);
+        await waitForRender(() => {});
+        await waitForRender(takeScreenshot);
+    };
+</script>
+</head>
+<body>
+    <svg width="0" height="0" display="none">
+        <filter id="svg-filter">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="5" />
+        </filter>
+    </svg>
+    <div>
+        SVG filter security test: this test passes if there is no svg filter effect applied to the frame after the swap.
+    </div>
+    <br />
+    <div id="target" class="will-change css-filter">
+        <div id="container">
+            <iframe sandbox width="100px" height="100px" src="/svg/styling/support/svg-filter-render-iframe.html"></iframe>
+        </div>
+    </div>
+</body>
+</html>

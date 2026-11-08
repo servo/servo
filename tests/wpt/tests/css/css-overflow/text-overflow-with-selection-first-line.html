@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow Test: the selection highlight of a text-overflow ellipsis on the first line uses the block's font</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#text-overflow">
+<link rel="match" href="text-overflow-with-selection-first-line-ref.html">
+<meta name="assert" content="The ellipsis is styled according to the block, so its selection highlight is as wide as the ellipsis in the block's font, not in the ::first-line font.">
+<style>
+#container {
+  font-family: monospace;
+  font-size: 16px;
+  width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: pre;
+}
+#container::first-line {
+  font-size: 32px;
+}
+</style>
+<p>Test passes if the selection highlight behind the small "…" below is no wider than the "…" itself.</p>
+<div id="container">0123456789</div>
+<script>
+getSelection().selectAllChildren(container);
+</script>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Masking Shorthand Specified Value Serialization Test: mask shorthand should only serialize non-initial values</title>
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-mask">
+<meta name="assert" content="mask shorthand should only serialize non-initial values, and what it serializes has to parse back to itself">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+  const element = document.createElement('div');
+
+  test((t) => {
+    element.style = 'mask: none;';
+    assert_equals(element.style.mask , 'none');
+  }, "all initial values");
+
+  test((t) => {
+    element.style = 'mask: none; mask-size: contain;';
+    // A <bg-size> can only follow a <position>, so one is synthesized. It must
+    // not be preceded by the space that would separate it from an earlier
+    // component when every earlier component was omitted too.
+    assert_equals(element.style.mask , '0% 0% / contain');
+  }, "mask-size with every earlier component omitted");
+
+  test((t) => {
+    element.style = 'mask: url(/favicon.ico); mask-size: contain;';
+    assert_equals(element.style.mask , 'url("/favicon.ico") 0% 0% / contain');
+  }, "mask-size with a mask-image");
+
+  test((t) => {
+    // A serialization that cannot be reparsed loses the declaration, which is
+    // only visible on the way back in.
+    for (const declarations of [
+        'mask: none; mask-size: contain',
+        'mask: url(/favicon.ico); mask-size: contain',
+        'mask: none; mask-position: left 10px center',
+        'mask: none; mask-position: left -20px top 60px']) {
+      element.style = declarations;
+      const value = element.style.mask;
+      assert_not_equals(value, '', declarations);
+
+      element.style = '';
+      element.style.mask = value;
+      assert_equals(element.style.mask, value, declarations);
+    }
+  }, "the serialized shorthand parses back to itself");
+</script>

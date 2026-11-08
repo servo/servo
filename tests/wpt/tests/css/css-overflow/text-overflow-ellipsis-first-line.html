@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="fuzzy" content="maxDifference=0-255; totalPixels=0-48">
+<title>CSS Overflow Test: a text-overflow ellipsis on the first line makes room for itself with the block's font</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#text-overflow">
+<link rel="match" href="text-overflow-ellipsis-first-line-ref.html">
+<meta name="assert" content="The ellipsis is styled according to the block, so the content is truncated only as much as the ellipsis in the block's font needs, not the ellipsis in the ::first-line font.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+#container {
+  font: 16px/1 Ahem;
+  width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#container::first-line {
+  font-size: 32px;
+}
+</style>
+<p>Test passes if there are three large black squares followed by a small black square below.</p>
+<div id="container">XXXXXXXXXX</div>

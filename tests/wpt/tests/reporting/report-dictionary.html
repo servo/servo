@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reporting: ReportingObserver is given reports as dictionaries</title>
+<link rel="help" href="https://w3c.github.io/reporting/#dom-report">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+function checkReport(report) {
+  assert_equals(Object.getPrototypeOf(report), Object.prototype, "report prototype");
+  assert_array_equals(Object.keys(report), ["body", "type", "url"], "report keys");
+  assert_false("toJSON" in report, "report toJSON");
+  assert_equals(report.type, "test");
+  assert_equals(report.url, location.href);
+  assert_equals(Object.getPrototypeOf(report.body), Object.prototype, "body prototype");
+  assert_array_equals(Object.keys(report.body), ["message"], "body keys");
+  assert_false("toJSON" in report.body, "body toJSON");
+  assert_equals(report.body.message, "Test message.");
+}
+
+promise_test(async t => {
+  const reports = await new Promise(resolve => {
+    const observer = new ReportingObserver(reports => {
+      observer.disconnect();
+      resolve(reports);
+    });
+    observer.observe();
+    test_driver.generate_test_report("Test message.");
+  });
+  assert_equals(reports.length, 1);
+  checkReport(reports[0]);
+  checkReport(structuredClone(reports[0]));
+}, "A report and its body are plain objects that can be structured-cloned");
+</script>

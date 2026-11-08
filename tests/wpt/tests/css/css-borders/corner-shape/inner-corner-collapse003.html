@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<head>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shape">
+<link rel="match" href="inner-corner-collapse003-ref.html">
+<meta name="fuzzy" content="maxDifference=0-60; totalPixels=0-1500">
+<meta name="assert" content="Test that nothing is drawn inside the border when a notch corner is thick enough that its inner edge covers the whole padding box.">
+<style>
+    .target {
+        margin: 10px;
+        width: 150px;
+        height: 150px;
+        box-sizing: border-box;
+        border: 40px solid green;
+        border-radius: 50%;
+        corner-shape: notch scoop bevel round;
+    }
+</style>
+</head>
+<div class=target></div>

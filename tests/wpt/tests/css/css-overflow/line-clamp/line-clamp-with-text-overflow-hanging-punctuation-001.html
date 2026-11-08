@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: text-overflow does not truncate a block ellipsis whose punctuation hangs</title>
+<link rel="author" title="Christian Biesinger" href="mailto:cbiesinger@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#text-overflow">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#hanging-punctuation-property">
+<link rel="match" href="reference/line-clamp-with-text-overflow-hanging-punctuation-001-ref.html">
+<meta name="assert" content="The block ellipsis is subject to hanging-punctuation. When only its hanging punctuation is outside of the line, it does not overflow and text-overflow does not truncate it.">
+<style>
+div {
+  font: 20px/1.2 monospace;
+  width: 10ch;
+  border: 1px solid;
+  margin: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  hanging-punctuation: last;
+}
+.fits-with-hanging { line-clamp: 1 "0123456789”"; }
+.overflows { line-clamp: 1 "0123456789A”"; }
+</style>
+<p>Test passes if the first box shows "0123456789”" and the second box shows "012345678…".
+<div class="fits-with-hanging">x<br>y</div>
+<div class="overflows">x<br>y</div>

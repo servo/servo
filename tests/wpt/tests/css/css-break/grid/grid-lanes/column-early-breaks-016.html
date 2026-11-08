@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>Column grid-lanes spanners absorb expansion in a shorter lane</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="help" href="https://drafts.csswg.org/css-break/#breaking-rules">
+<link rel="match" href="column-early-breaks-016-ref.html">
+<style>
+  .multicol {
+    background: green;
+    columns: 2;
+    column-fill: auto;
+    column-gap: 0;
+    width: 80px;
+    height: 100px;
+  }
+  .grid-lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(2, 20px);
+    width: 40px;
+  }
+</style>
+<p>The colored rectangles on the green background must match the reference.</p>
+<div class="multicol">
+  <div class="grid-lanes">
+    <div style="grid-column: 1;">
+      <div style="height: 20px;"></div>
+      <div style="height: 20px; background: orange; break-before: column;"></div>
+    </div>
+    <div style="grid-column: 2; height: 160px; background: blue;"></div>
+    <div style="grid-column: span 2; height: 20px; background: teal;"></div>
+    <div style="grid-column: 1; height: 20px; background: purple;"></div>
+  </div>
+</div>

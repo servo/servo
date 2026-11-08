@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>Grid with forced break, and nested OOFs depending on grid block-size</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/40267498">
+<link rel="help" href="https://chromium-review.googlesource.com/c/chromium/src/+/8703815/2/third_party/blink/renderer/core/layout/grid/grid_layout_algorithm.cc#1817">
+<div style="columns:7; column-fill:auto; height:100px;">
+  <div style="display:grid; position:relative;">
+    <div style="height:100px;"></div>
+    <div style="height:50px;"></div>
+    <div style="break-before:column;"></div>
+    <div style="position:absolute; top:0; width:100%; height:100%;">
+      <div style="position:absolute; height:100%;"></div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,54 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Scrolling to the fragment of an embedded SVG document does not scroll the parent document</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#scroll-to-the-fragment-identifier">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/linking.html#SVGFragmentIdentifiers">
+<link rel="help" href="https://github.com/w3c/svgwg/issues/1219">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#svg-container > *, #control-container > * { border: 0; }
+</style>
+<body style="margin:0">
+<div id="svg-container" style="padding-block:3000px"></div>
+<div id="control-container" style="padding-block:3000px"></div>
+<script>
+const svgContainer = document.getElementById("svg-container");
+const controlContainer = document.getElementById("control-container");
+
+async function loadEmbeddedDocument(t, container, tagName, urlAttribute, url) {
+  const element = document.createElement(tagName);
+  t.add_cleanup(() => element.remove());
+  const loaded = new Promise(resolve => element.addEventListener("load", resolve, { once: true }));
+  element[urlAttribute] = url;
+  container.append(element);
+  await loaded;
+  return element;
+}
+
+async function assertSVGFragmentDoesNotScrollParent(t, tagName, urlAttribute) {
+  const scrollPositions = [];
+  const recordScroll = () => scrollPositions.push(window.scrollY);
+  window.addEventListener("scroll", recordScroll);
+  t.add_cleanup(() => { window.removeEventListener("scroll", recordScroll); window.scrollTo(0, 0); });
+
+  const svgElement = await loadEmbeddedDocument(t, svgContainer, tagName, urlAttribute, "resources/fragment-target.svg#g1");
+
+  // Positive control: an HTML document with a fragment does scroll the parent. Once that has happened,
+  // the fragment scroll for the SVG document, which loaded first, has had its chance and did not.
+  const controlElement = await loadEmbeddedDocument(t, controlContainer, tagName, urlAttribute, "resources/tall-fragment-target.html#t");
+  await t.step_wait(() => window.scrollY == controlElement.offsetTop, "parent document scrolled to the control element");
+  assert_false(scrollPositions.includes(svgElement.offsetTop), "parent document never scrolled to the SVG element");
+}
+
+promise_test(t => assertSVGFragmentDoesNotScrollParent(t, "object", "data"),
+  "Scrolling to the fragment of an SVG document in an <object> does not scroll the parent document");
+
+promise_test(t => assertSVGFragmentDoesNotScrollParent(t, "embed", "src"),
+  "Scrolling to the fragment of an SVG document in an <embed> does not scroll the parent document");
+
+promise_test(t => assertSVGFragmentDoesNotScrollParent(t, "iframe", "src"),
+  "Scrolling to the fragment of an SVG document in an <iframe> does not scroll the parent document");
+</script>
+</body>

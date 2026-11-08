@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#gap-percent">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#cyclic-percentage-contribution">
+<meta name="assert" content="A percentage column-gap counts as zero in a flex container's max-content width, also when the width is computed again after a layout has resolved it.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.flex {
+  display: flex;
+  width: max-content;
+  column-gap: 10%;
+  position: relative;
+}
+.flex > div {
+  width: 10px;
+  min-height: 0;
+}
+</style>
+<!-- The gap resolves against the 30px the items add up to. -->
+<div class="flex" data-expected-width="30">
+  <div style="flex: 0 0 10px" data-offset-x="0"></div>
+  <div style="flex: 0 0 10px" data-offset-x="13"></div>
+  <div style="flex: 0 0 10px" data-offset-x="26"></div>
+</div>
+<!-- Column wrap: the three lines are 10px wide each. -->
+<div class="flex" style="flex-flow: column wrap; height: 100px" data-expected-width="30">
+  <div style="flex: 0 0 100px" data-offset-x="0"></div>
+  <div style="flex: 0 0 100px" data-offset-x="13"></div>
+  <div style="flex: 0 0 100px" data-offset-x="26"></div>
+</div>
+<script>
+// Have the max-content width computed again once a layout has resolved the gap.
+for (const flex of document.querySelectorAll(".flex")) {
+  flex.offsetWidth;
+  flex.firstElementChild.style.width = "11px";
+  flex.offsetWidth;
+  flex.firstElementChild.style.width = "10px";
+}
+checkLayout(".flex");
+</script>

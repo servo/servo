@@ -1,0 +1,63 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Document-Isolation-Policy: child frames loaded from session history</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/helper.sub.js"></script>
+<script>
+"use strict";
+
+const dip = "isolate-and-require-corp";
+
+function frameURL(origin, policy) {
+  return origin + "/html/document-isolation-policy/resources/back-forward-cache-frame.html" + (policy ? `?pipe=header(Document-Isolation-Policy,${policy})` : "");
+}
+
+// Opens a document with policy in a new top-level traversable, with a child frame on frameOrigin with framePolicy,
+// navigates it cross-site, and goes back. The document can't be restored from the back/forward cache, so it loads
+// again, and its child frame loads from session history. The child frame has to get its own policy again. With
+// navigatedFramePolicy, the child frame first navigates to a document with that policy, so that session history
+// has another URL for it than its src.
+function runFrameTest({ policy, frameOrigin, framePolicy, navigatedFramePolicy }, description) {
+  promise_test(async t => {
+    const pageA = new RemoteContext(token());
+    const pageB = new RemoteContext(token());
+    const pipes = ["header(Cache-Control,no-store)"];
+    if (policy)
+      pipes.push(`header(Document-Isolation-Policy,${policy})`);
+    const urlA = `${originSameOrigin}/html/document-isolation-policy/resources/history-traversal-parent.html?uuid=${pageA.context_id}&frame=${encodeURIComponent(frameURL(frameOrigin, framePolicy))}&pipe=${pipes.join("|")}`;
+    const urlB = originCrossSite + executorPath + pageB.context_id;
+    window.open(urlA, "_blank", "noopener");
+    await pageA.execute_script(waitForPageShow);
+    let before = JSON.parse(await pageA.execute_script(() => askFrame()));
+    assert_equals(before.crossOriginIsolated, framePolicy !== "", "child frame's crossOriginIsolated before navigating");
+    if (navigatedFramePolicy !== undefined) {
+      const navigatedFrameURL = frameURL(frameOrigin, navigatedFramePolicy);
+      await pageA.execute_script(url => navigateFrame(url), [navigatedFrameURL]);
+      before = JSON.parse(await pageA.execute_script(() => askFrame()));
+      assert_equals(before.url, navigatedFrameURL, "child frame's URL after it navigated");
+      assert_equals(before.crossOriginIsolated, navigatedFramePolicy !== "", "child frame's crossOriginIsolated after it navigated");
+    }
+
+    await navigateAndThenBack(pageA, pageB, urlB);
+    assert_implements_optional(await getBFCachedStatus(pageA) === "Not BFCached", "The document has to load again rather than come back from the back/forward cache");
+    const after = JSON.parse(await pageA.execute_script(() => askFrame()));
+    assert_equals(after.url, before.url, "child frame's URL after going back");
+    assert_equals(after.crossOriginIsolated, before.crossOriginIsolated, "child frame's crossOriginIsolated after going back");
+  }, description);
+}
+
+runFrameTest({ policy: "", frameOrigin: originSameOrigin, framePolicy: dip },
+  "A document without a policy and a same-origin child frame with one are loaded again after a cross-site navigation");
+runFrameTest({ policy: dip, frameOrigin: originSameOrigin, framePolicy: "" },
+  "A document with a policy and a same-origin child frame without one are loaded again after a cross-site navigation");
+runFrameTest({ policy: "", frameOrigin: originCrossSite, framePolicy: dip },
+  "A document without a policy and a cross-site child frame with one are loaded again after a cross-site navigation");
+runFrameTest({ policy: dip, frameOrigin: originCrossSite, framePolicy: "" },
+  "A document with a policy and a cross-site child frame without one are loaded again after a cross-site navigation");
+runFrameTest({ policy: "", frameOrigin: originSameOrigin, framePolicy: "", navigatedFramePolicy: dip },
+  "A document without a policy and a same-origin child frame that navigated to a document with one are loaded again after a cross-site navigation");
+</script>

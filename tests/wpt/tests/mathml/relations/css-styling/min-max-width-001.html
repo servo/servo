@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>MathML: min-width and max-width apply to the intrinsic width contributions of MathML elements</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#layout-algorithms">
+<link rel="help" href="https://w3c.github.io/mathml-core/#layout-of-operators">
+<meta name="assert" content="A size specified for the content box of a MathML element (via width, height or related properties such as min-width and max-width) is used instead of the one of its math content, and an operator's lspace and rspace go around its box.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.container {
+    float: left;
+    clear: left;
+}
+</style>
+<body onload="checkLayout('.container')">
+<div class="container" data-expected-width="10"><math><mrow style="max-width: 10px"><mi>x</mi><mi>x</mi><mi>x</mi><mi>x</mi><mi>x</mi></mrow></math></div>
+<div class="container" data-expected-width="200"><math><mrow style="min-width: 200px"><mi>x</mi></mrow></math></div>
+<div class="container" data-expected-width="200"><math><mi style="min-width: 200px">x</mi></math></div>
+<div class="container" data-expected-width="200"><math><mo lspace="0" rspace="0" style="min-width: 200px">+</mo></math></div>
+<div class="container" data-expected-width="220"><math><mo lspace="10px" rspace="10px" style="min-width: 200px">+</mo></math></div>
+<div class="container" data-expected-width="25"><math><mo lspace="10px" rspace="10px" style="max-width: 5px">+</mo></math></div>
+</body>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: reference</title>
+<link rel="author" title="Christian Biesinger" href="mailto:cbiesinger@igalia.com">
+<style>
+div {
+  font: 20px/1.2 monospace;
+  border: 1px solid;
+  margin: 4px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.narrow { width: 1.5ch; }
+.wide { width: 3ch; }
+</style>
+<!-- The block ellipsis is truncated like the same text as content. -->
+<div class="narrow">wxyz</div>
+<div class="narrow" dir="rtl">wxyz</div>
+<div class="wide">wxyz</div>
+<div class="wide" dir="rtl">wxyz</div>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS Container Queries Test: style() query with attr() whose name comes from var()</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#style-container">
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#attr-notation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #target {
+    color: red;
+  }
+
+  @container style(--my-prop: attr(var(--name))) {
+    #target {
+      color: green;
+    }
+  }
+
+  #container {
+    --name: myAttr;
+    --my-prop: "correct";
+  }
+</style>
+<div id="container" myAttr="wrong">
+  <div id="target">Should be green</div>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+  }, "Initially, container does not match attr(var(--name)). Target is red.");
+
+  test(() => {
+    container.setAttribute("myAttr", "correct");
+    assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+  }, "Changing the attribute named by var(--name) to 'correct' in container makes target color green");
+</script>

@@ -25,6 +25,10 @@
 </canvas>
 <script>
   onload = async () => {
+    if (!failIfNot('requestPaint' in HTMLCanvasElement.prototype,
+                   'Missing canvas.requestPaint (reference)')) {
+      return;
+    }
     let r = new Range();
     r.setStart(document.body, 0);
     r.setEnd(document.body, 1);

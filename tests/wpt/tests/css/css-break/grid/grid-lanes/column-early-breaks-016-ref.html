@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Reference for spanners absorbing expansion in a shorter lane</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<style>
+  .reference {
+    background: green;
+    display: flex;
+    width: 80px;
+    height: 100px;
+  }
+  .column {
+    flex: 0 0 40px;
+    position: relative;
+  }
+  .column > div {
+    position: absolute;
+    width: 20px;
+  }
+</style>
+<p>The colored rectangles on the green background must match the reference.</p>
+<div class="reference">
+  <div class="column">
+    <div style="left: 20px; height: 100px; background: blue;"></div>
+  </div>
+  <div class="column">
+    <div style="height: 20px; background: orange;"></div>
+    <div style="left: 20px; height: 60px; background: blue;"></div>
+    <div style="top: 60px; width: 40px; height: 20px; background: teal;"></div>
+    <div style="top: 80px; height: 20px; background: purple;"></div>
+  </div>
+</div>

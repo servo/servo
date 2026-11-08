@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="3000">
+  <rect width="400" height="3000" fill="#eef"/>
+  <foreignObject id="fo" x="0" y="2000" width="400" height="300">
+    <iframe xmlns="http://www.w3.org/1999/xhtml" id="inner" style="border:0" src="tall-fragment-target.html#t" width="380" height="280"></iframe>
+  </foreignObject>
+</svg>

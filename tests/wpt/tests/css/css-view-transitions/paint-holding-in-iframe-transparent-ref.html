@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: content of the embedder behind a transparent iframe keeps updating while the iframe holds its old paint (ref)</title>
+<style>
+  body {
+    margin: 0;
+    background: green;
+  }
+  iframe {
+    width: 200px;
+    height: 200px;
+    border: none;
+  }
+</style>
+
+<iframe srcdoc="
+  <style>
+    body {
+      margin: 0;
+    }
+    #box {
+      margin: 50px;
+      width: 100px;
+      height: 100px;
+      background: yellow;
+    }
+  </style>
+  <div id='box'></div>
+"></iframe>
+</html>

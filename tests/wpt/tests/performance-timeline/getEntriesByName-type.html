@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>getEntriesByName() filters every entry by type</title>
+<link rel="help" href="https://w3c.github.io/performance-timeline/#dfn-filter-buffer-map-by-name-and-type">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(() => {
+  const name = performance.getEntriesByType("navigation")[0].name;
+  assert_equals(performance.getEntriesByName(name, "navigation").length, 1,
+                "navigation type");
+  for (const type of ["resource", "mark", "measure", "paint", "invalid"]) {
+    assert_array_equals(performance.getEntriesByName(name, type), [],
+                        `type "${type}"`);
+  }
+}, "getEntriesByName() does not return the navigation entry for other types");
+</script>

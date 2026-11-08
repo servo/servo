@@ -1,0 +1,39 @@
+<!doctype html>
+<title>CSS Test: Image size is updated when it loads when min/max-block-size depends on the transferred intrinsic sizes</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#sizing-values">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="container"></div>
+<script>
+const cases = [
+  { style: "width: 40px; height: 30px; min-height: min-content", expected: 40 },
+  { style: "width: 40px; height: 30px; min-height: max-content", expected: 40 },
+  { style: "width: 70px; height: 80px; max-height: min-content", expected: 70 },
+  { style: "width: 70px; height: 80px; max-height: max-content", expected: 70 },
+  { style: "writing-mode: vertical-lr; height: 40px; width: 30px; min-width: min-content", expected: 40 },
+  { style: "writing-mode: vertical-lr; height: 40px; width: 30px; min-width: max-content", expected: 40 },
+  { style: "writing-mode: vertical-lr; height: 70px; width: 80px; max-width: min-content", expected: 70 },
+  { style: "writing-mode: vertical-lr; height: 70px; width: 80px; max-width: max-content", expected: 70 },
+];
+
+cases.forEach(({ style, expected }, i) => {
+  promise_test(async t => {
+    const img = document.createElement("img");
+    img.style.cssText = style;
+    document.getElementById("container").appendChild(img);
+    t.add_cleanup(() => img.remove());
+
+    img.offsetWidth; // Ensure the image is laid out before loading.
+
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+      img.src = `/css/support/60x60-green.png?${i}`;
+    });
+
+    assert_equals(img.clientWidth, expected, "width after load");
+    assert_equals(img.clientHeight, expected, "height after load");
+  }, style);
+});
+</script>

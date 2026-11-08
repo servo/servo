@@ -34,9 +34,14 @@
   img {
     image-animation: paused;
   }
+  @supports (image-animation: paused) {
+    .unsupportedFail { display: none; }
+  }
+
 </style>
 
 <img id="img1" src="../../images/anim-gr.gif" onload="loaded()" />
 <img id="img2" onload="loaded()" />
+<h1 class="unsupportedFail">FAIL; property not supported</h1>
 
 </html>

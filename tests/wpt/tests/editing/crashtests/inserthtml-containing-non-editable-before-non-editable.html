@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+addEventListener("DOMContentLoaded", () => {
+  const divOfOLChild = document.querySelector("ol > div");
+  const editingHost = document.querySelector("ol[contenteditable]");
+  getSelection().collapse(divOfOLChild, 0);
+  document.execCommand(
+    "insertHTML",
+    false,
+    `<p><span contenteditable="false"></span></p>`
+  );
+}, {once: true});
+</script>
+</head>
+<body>
+<ol contenteditable>
+<li>a</li>
+<div>
+<span contenteditable="false"></span>
+</div>
+</ol>
+</body>
+</html>

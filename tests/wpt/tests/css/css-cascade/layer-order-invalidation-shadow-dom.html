@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<title>CSS Cascade Layers: layer-order changes update :host, ::slotted(), and ::part() styles</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#layer-ordering">
+<link rel="help" href="https://drafts.csswg.org/css-shadow-1/#host-selector">
+<link rel="help" href="https://drafts.csswg.org/css-shadow-1/#slotted-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-shadow-1/#part">
+<link rel="help" href="https://issues.chromium.org/issues/570832596">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+const RED = 'rgb(255, 0, 0)';
+const GREEN = 'rgb(0, 128, 0)';
+
+function createShadowHost(t, html) {
+  const container = document.createElement('div');
+  container.setHTMLUnsafe(html);
+  const host = container.firstElementChild;
+  document.body.append(host);
+  t.add_cleanup(() => host.remove());
+  return host;
+}
+
+function assertLayerOrderChangeUpdatesColor(t, styleRoot, target, selector) {
+  const orderStyle = document.createElement('style');
+  const ruleStyle = document.createElement('style');
+  ruleStyle.textContent = `
+    @layer first { ${selector} { color: green; } }
+    @layer second { ${selector} { color: red; } }
+  `;
+  styleRoot.append(orderStyle, ruleStyle);
+  t.add_cleanup(() => {
+    orderStyle.remove();
+    ruleStyle.remove();
+  });
+  assert_equals(getComputedStyle(target).color, RED,
+                'Color before changing the layer order');
+  // Reorder layers without changing the sheet containing the matching rules.
+  orderStyle.sheet.insertRule('@layer second, first;', 0);
+  assert_equals(getComputedStyle(target).color, GREEN,
+                'Color after changing the layer order');
+  orderStyle.sheet.deleteRule(0);
+  assert_equals(getComputedStyle(target).color, RED,
+                'Color after removing the layer-order declaration');
+}
+
+test(t => {
+  const host = createShadowHost(t, `
+    <div>
+      <template shadowrootmode="open"></template>
+    </div>
+  `);
+  assertLayerOrderChangeUpdatesColor(t, host.shadowRoot, host, ':host');
+}, ':host styles update after a layer order change');
+
+test(t => {
+  const host = createShadowHost(t, `
+    <div>
+      <span></span>
+      <template shadowrootmode="open">
+        <slot></slot>
+      </template>
+    </div>
+  `);
+  const target = host.firstElementChild;
+  assertLayerOrderChangeUpdatesColor(
+      t, host.shadowRoot, target, '::slotted(span)');
+}, '::slotted() styles update after a layer order change');
+
+test(t => {
+  const host = createShadowHost(t, `
+    <div id="host">
+      <template shadowrootmode="open">
+        <span part="target"></span>
+      </template>
+    </div>
+  `);
+  const target = host.shadowRoot.firstElementChild;
+  assertLayerOrderChangeUpdatesColor(
+      t, document.head, target, '#host::part(target)');
+}, '::part() styles update after a layer order change');
+</script>

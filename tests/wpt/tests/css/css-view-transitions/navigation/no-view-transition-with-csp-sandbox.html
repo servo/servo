@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>View Transitions: CSP sandbox without allow-same-origin must block cross-document view transition</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:roberto_rodriguez2@apple.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/common.js"></script>
+<script>
+assertViewTransitionOnNavigationImplemented();
+
+promise_test(async t => {
+    const result = await new Promise((resolve, reject) => {
+        window.addEventListener("message", event => resolve(event.data));
+        const popup = window.open("resources/csp-sandbox-old.html");
+        t.add_cleanup(() => popup.close());
+        t.step_timeout(() => reject("Timed out waiting for postMessage"), 10000);
+    });
+
+    assert_false(result.hasViewTransition,
+        "CSP-sandboxed document (opaque origin) must not receive an inbound cross-document view transition");
+    assert_equals(result.keyframes.length, 0,
+        "No keyframe data from the previous page should be accessible");
+}, "Cross-document view transition is blocked when new document has CSP sandbox without allow-same-origin");
+</script>

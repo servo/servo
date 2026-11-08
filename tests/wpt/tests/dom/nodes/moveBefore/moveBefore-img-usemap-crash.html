@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>Focusing an area whose image was moved into a shadow root with moveBefore() should not crash</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-parentnode-movebefore">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/image-maps.html#image-map">
+<img usemap="#m" width="100" height="100" style="display: block" src="/images/green.png">
+<map name="m"><area shape="rect" coords="0,0,100,100" href="#a"></map>
+<div id="host"></div>
+<script>
+  host.attachShadow({ mode: "open" }).moveBefore(document.querySelector("img"), null);
+  document.querySelector("area").focus();
+</script>

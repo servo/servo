@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>white-space-trim: discard-before/after with varied content</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#white-space-trim">
+<link rel="match" href="reference/white-space-trim-content-ref.html">
+<meta name="assert" content="discard-before/discard-after collapse only the collapsible white space immediately adjacent to the element's edge, across single/multiple spaces and tabs, and leave inner and non-adjacent white space untouched.">
+<style>
+  .db { white-space-trim: discard-before; }
+  .da { white-space-trim: discard-after; }
+</style>
+</head>
+<body>
+<p>This test passes if it renders identically to the reference.</p>
+<!-- discard-before, single space -> abc --><div>a <span class="db">b</span>c</div>
+<!-- discard-before, multiple spaces -> abc --><div>a   <span class="db">b</span>c</div>
+<!-- discard-before, tab -> abc --><div>a&#9;<span class="db">b</span>c</div>
+<!-- discard-before, only the immediately-preceding space is affected -> a bcd --><div>a b <span class="db">c</span>d</div>
+<!-- discard-before, inner white space untouched -> ab cd --><div>a <span class="db">b c</span>d</div>
+<!-- discard-after, single space -> abc --><div>a<span class="da">b</span> c</div>
+<!-- discard-after, multiple spaces -> abc --><div>a<span class="da">b</span>   c</div>
+<!-- discard-after, white space not immediately after the box is untouched -> abc d --><div>a<span class="da">b</span>c d</div>
+<!-- discard-after, inner trailing white space untouched -> ab c --><div>a<span class="da">b </span>c</div>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Filter Effects: a filter keeps the content that the document edge cuts away</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="match" href="filter-outsets-clipped-by-document-edge-ref.html">
+<meta name="assert" content="A blur samples the whole painted content of the filtered element, including the part that lies outside the document rect, so the visible part of the element stays fully opaque up to the document edge.">
+<meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-4">
+<style>
+html { overflow: hidden; }
+body { margin: 0; }
+.blurred {
+    position: absolute;
+    top: -50px;
+    left: -50px;
+    width: calc(100vw + 100px);
+    height: calc(100vh + 100px);
+    background: green;
+    filter: blur(10px);
+    will-change: filter;
+}
+</style>
+<div class="blurred"></div>

@@ -13,6 +13,7 @@
 <meta name="variant" content="?include=RelativeUrlForSpeculationRulesSet">
 <meta name="variant" content="?include=RelativeUrlForCandidate">
 <meta name="variant" content="?include=UseNonUTF8EncodingForSpeculationRulesSet">
+<meta name="variant" content="?include=OmitCharsetFromSpeculationRulesSet">
 <meta name="variant" content="?include=FailCORS">
 <meta name="variant" content="?include=FailToParseSpeculationRulesHeader">
 <meta name="variant" content="?include=InnerListInSpeculationRulesHeader">
@@ -41,6 +42,8 @@
       useRelativeUrlForSpeculationRulesSet: false,
       // Whether to use UTF-8 encoding for the rule set.
       useUtf8EncodingForSpeculationRulesSet: true,
+      // Whether to omit the charset from the Content-Type header.
+      omitCharsetFromSpeculationRulesSet: false,
       // Whether to force the response to cause a CORS failure.
       failCors: false,
       // Whether to use a valid SpeculationRules header format.
@@ -66,7 +69,7 @@
     if (options.useRelativeUrlForCandidate) {
       executor_url = `executor.sub.html`;
     }
-    let speculation_rule_set_url = `ruleset.py?url=${executor_url}&uuid=${uuid}&page=${page}&status=${options.status}&valid_mime=${options.useValidMimeTypeForSpeculationRulesSet}&valid_json=${options.useValidJsonForSpeculationRulesSet}&empty_json=${options.useEmptySpeculationRulesSet}&fail_cors=${options.failCors}&valid_encoding=${options.useUtf8EncodingForSpeculationRulesSet}&redirect=${options.redirect}`;
+    let speculation_rule_set_url = `ruleset.py?url=${executor_url}&uuid=${uuid}&page=${page}&status=${options.status}&valid_mime=${options.useValidMimeTypeForSpeculationRulesSet}&valid_json=${options.useValidJsonForSpeculationRulesSet}&empty_json=${options.useEmptySpeculationRulesSet}&fail_cors=${options.failCors}&valid_encoding=${options.useUtf8EncodingForSpeculationRulesSet}&omit_charset=${options.omitCharsetFromSpeculationRulesSet}&redirect=${options.redirect}`;
     if (!options.useRelativeUrlForSpeculationRulesSet) {
       let base_url = new URL(SR_PREFETCH_UTILS_URL);
       base_url.hostname = get_host_info().NOTSAMESITE_HOST;
@@ -121,6 +124,10 @@
   subsetTestByKey('UseNonUTF8EncodingForSpeculationRulesSet', promise_test, async t => {
     return runSpeculationRulesFetchTest(t, {useUtf8EncodingForSpeculationRulesSet: false, shouldPrefetch: false});
   }, "The speculation rules set should always be encoded using UTF-8.");
+
+  subsetTestByKey('OmitCharsetFromSpeculationRulesSet', promise_test, async t => {
+    return runSpeculationRulesFetchTest(t, {omitCharsetFromSpeculationRulesSet: true, shouldPrefetch: true});
+  }, "The speculation rules set should be decoded as UTF-8 even when no charset is declared.");
 
   subsetTestByKey('FailCORS', promise_test, async t => {
     return runSpeculationRulesFetchTest(t, {failCors: true, shouldPrefetch: false});

@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSS transitions don't override UA !important display on input type=hidden</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade/#cascade-origin">
+<link rel="help" href="https://html.spec.whatwg.org/#hidden-elements">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14697">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  input {
+    color: red;
+    transition: color 100s;
+  }
+  input.tweak {
+    color: green;
+  }
+</style>
+<input id="input">
+<script>
+'use strict';
+
+promise_test(async t => {
+  const input = document.getElementById("input");
+  const cs = getComputedStyle(input);
+  assert_equals(cs.display, "inline-block", "Initial display value");
+
+  input.classList.add("tweak");
+  const animations = input.getAnimations();
+  assert_equals(animations.length, 1, "Should have started a transition");
+
+  const transition = animations[0];
+  t.add_cleanup(() => transition.cancel());
+  transition.effect.setKeyframes([{ display: "inline-block" }, { display: "inline-block" }]);
+  input.type = "hidden";
+  assert_equals(cs.display, "none", "Transition shouldn't override UA !important display");
+
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  assert_equals(cs.display, "none", "Transition shouldn't override UA !important display after a frame");
+}, "Transitions can't override UA !important display on <input type=hidden>");
+</script>

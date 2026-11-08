@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Display: text properties of a display: contents element apply when it is the only content of a block</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#valdef-display-contents">
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#inheriting">
+<link rel="match" href="display-contents-text-only-content-properties-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+div { font: 20px/1 Ahem; width: 100px; margin-bottom: 10px; }
+.contents { display: contents; }
+</style>
+<div><span class="contents" style="white-space: nowrap">aa aa aa aa</span></div>
+<div style="white-space: nowrap"><span class="contents" style="white-space: normal">aa aa aa aa</span></div>
+<div><span class="contents" style="word-spacing: 20px">a a a</span></div>
+<div><span class="contents" style="letter-spacing: 10px">aaa</span></div>
+<div><span class="contents" style="white-space: break-spaces">aa&#x20;&#x20;&#x20;&#x20;aa</span></div>
+<div><span class="contents" style="font-size: 10px">aaaa aaaa</span></div>

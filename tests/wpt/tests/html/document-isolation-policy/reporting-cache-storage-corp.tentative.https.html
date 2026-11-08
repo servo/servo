@@ -54,9 +54,7 @@ async function runRemoteContextTest(uuid, expected_count, check, context_url, re
           resolve();
 
         const observer = new ReportingObserver((rs) => {
-          for (const r of rs) {
-            reports_received.push(r.toJSON());
-          }
+          reports_received.push(...rs);
           if (count <= reports_received.length)
             resolve();
         });
@@ -89,12 +87,6 @@ async function runDedicatedWorkerTest(t, check, resource_url, expected_count) {
   await runRemoteContextTest(context[0], expected_count, check, context[1], resource_url);
 }
 
-async function runSharedWorkerTest(t, check, resource_url, expected_count) {
-  // Create a shared worker with DocumentIsolationPolicy reporting.
-  const context = await createSharedWorkerContext(t, `${ORIGIN}`, dip_reporting_header);
-  await runRemoteContextTest(context[0], expected_count, check, context[1], resource_url);
-}
-
 async function runIFrameWithServiceWorkerTest(t, check, resource_url, expected_count) {
   // Create an iframe with DocumentIsolationPolicy reporting and a ServiceWorker.
   const context = await createIframeWithSWContext(t, `${ORIGIN}`, dip_reporting_header);
@@ -102,7 +94,7 @@ async function runIFrameWithServiceWorkerTest(t, check, resource_url, expected_c
 }
 
 // We want to test several URLs in various environments (document,
-// dedicated worker, shared worser, service worker). As expectations
+// dedicated worker, document with service worker). As expectations
 // are independent of environment except for the context URLs in reports,
 // we define ENVIRONMENTS and CASES to reduce the code duplication.
 //
@@ -124,7 +116,6 @@ async function runIFrameWithServiceWorkerTest(t, check, resource_url, expected_c
 const ENVIRONMENTS = {
   "document": runIFrameTest,
   "dedicated worker": runDedicatedWorkerTest,
-  "shared worker": runSharedWorkerTest,
   "document with service worker": runIFrameWithServiceWorkerTest,
 };
 

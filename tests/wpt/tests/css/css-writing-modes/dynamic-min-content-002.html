@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#orthogonal-flows">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; background: red;">
+  <div style="display: inline-block; background: green;">
+    <div style="writing-mode: vertical-rl; height: 100px;">
+      <div id="target"></div>
+    </div>
+  </div>
+</div>
+<script>
+document.body.offsetTop;
+document.getElementById('target').innerHTML =
+    '<div style="width: 100px; height: 100px;"></div>';
+</script>

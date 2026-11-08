@@ -11,8 +11,12 @@
 <div id="target"></div>
 
 <script>
-test_computed_value("corner-block-start", "0px round", "normal");
-test_computed_value("corner-block-start", "10px bevel", "10px superellipse(0)");
-test_computed_value("corner-block-start", "normal / 2px round", "normal / 2px superellipse(1)");
-test_computed_value("corner-block-start", "4px 2% squircle / 1em scoop", "4px 2% superellipse(2) / 16px superellipse(-1)");
+test_computed_value("corner-block-start", "0px round", "0px");
+test_computed_value("corner-block-start", "round", "0px");
+test_computed_value("corner-block-start", "bevel", "superellipse(0)");
+test_computed_value("corner-block-start", "10px bevel", "superellipse(0) 10px");
+test_computed_value("corner-block-start", "4px 2% squircle", "superellipse(2) 4px 2%");
+test_computed_value("corner-block-start", "1em scoop", "superellipse(-1) 16px");
+test_computed_value("corner-block-start", "10px 20px / 5px bevel scoop",
+    "superellipse(0) superellipse(-1) 10px 20px / 5px");
 </script>

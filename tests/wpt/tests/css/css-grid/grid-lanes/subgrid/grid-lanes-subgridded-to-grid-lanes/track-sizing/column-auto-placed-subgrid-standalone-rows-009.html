@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes Test: Refreshing an auto-placed branch preserves explicit sibling geometry</title>
+<link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="column-auto-placed-subgrid-standalone-rows-009-ref.html">
+<style>
+  body {
+    margin: 0;
+  }
+
+  .root {
+    background: lightgrey;
+    border: 2px solid black;
+    display: grid-lanes;
+    fit-tolerance: 0;
+    grid-template-columns: 100px 200px 300px;
+    width: 600px;
+  }
+
+  .subgrid {
+    display: grid-lanes;
+    fit-tolerance: 0;
+    grid-template-columns: subgrid;
+  }
+
+  .outer, .deep {
+    grid-column: 1 / -1;
+  }
+
+  .blocker {
+    background: dimgray;
+    grid-column: 1;
+    height: 20px;
+    width: 8px;
+  }
+
+  .stable {
+    grid-column: 3;
+  }
+
+  .leaf {
+    aspect-ratio: 1;
+    background: green;
+    grid-column: 1;
+    min-height: 0;
+    min-width: 0;
+  }
+
+  .outer {
+    border: 2px solid purple;
+  }
+
+  .moving, .stable {
+    border: 2px solid orange;
+  }
+
+  .deep {
+    border: 2px solid cyan;
+  }
+</style>
+<div class="root">
+  <div class="subgrid outer">
+    <div class="blocker"></div>
+    <div class="subgrid moving">
+      <div class="subgrid deep" id="moving-deep">
+        <div class="leaf"></div>
+      </div>
+    </div>
+    <div class="subgrid stable">
+      <div class="subgrid deep" id="stable-deep">
+        <div class="leaf"></div>
+      </div>
+    </div>
+  </div>
+</div>

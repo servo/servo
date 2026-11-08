@@ -21,6 +21,25 @@ window.testIsPerDocument = propertyName => {
 function runTests(propertyName, equalityOrInequalityAsserter, mustOrMustNotReplace) {
   async_test(t => {
     const iframe = document.createElement("iframe");
+
+    iframe.onload = t.step_func_done(() => {
+      const after = frame[propertyName];
+      equalityOrInequalityAsserter(after, before);
+    });
+
+    iframe.src = "/common/blank.html";
+    document.body.appendChild(iframe);
+
+    const frame = iframe.contentWindow;
+    const before = frame[propertyName];
+    assert_implements(before, `window.${propertyName} must be implemented`);
+  }, `Navigating from the transient about:blank ${mustOrMustNotReplace} replace window.${propertyName}`);
+
+  // Browsers behave more narrow than the spec and only reuse the window when
+  // immediately navigating to a non-about:blank URI.
+  // https://github.com/whatwg/html/issues/3267
+  async_test(t => {
+    const iframe = document.createElement("iframe");
     document.body.appendChild(iframe);
     const frame = iframe.contentWindow;
 

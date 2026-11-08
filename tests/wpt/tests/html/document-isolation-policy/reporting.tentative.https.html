@@ -49,7 +49,7 @@ async function fetchInFrameAndObserveReports(t, headers, url, count, options = {
         return;
       }
       new ReportingObserver(list => {
-        reports.push(...list.map(report => report.toJSON()));
+        reports.push(...list);
         if (reports.length >= count)
           resolve();
       }, options).observe();

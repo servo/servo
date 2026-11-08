@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Reference: white-space-trim dynamic on inline-block</title>
+<style>
+  .ib { display: inline-block; }
+</style>
+</head>
+<body>
+  <p>Test passes if both lines below read "ab" / "cd" with no space between the letters.</p>
+  <div>a<span class="ib">b</span></div>
+  <div><span class="ib">c</span>d</div>
+</body>
+</html>

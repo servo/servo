@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<title>CSS Grid Layout Test: min-height and max-height when computing the flex fraction of rows</title>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#algo-flex-tracks">
+<meta name="assert" content="When the free space is indefinite, a definite min-height or max-height on the grid container is used as the available grid space to find the used flex fraction, so flexible rows fill the minimum height and do not grow past the maximum height.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: 50px;
+  }
+
+  .grid > div {
+    height: 20px;
+  }
+</style>
+
+<div class="grid" id="allFlexible" style="min-height: 200px; grid-template-rows: 1fr 1fr">
+  <div></div>
+  <div></div>
+</div>
+
+<div class="grid" id="singleFlexible" style="min-height: 200px; grid-template-rows: 1fr">
+  <div></div>
+</div>
+
+<div class="grid" id="flexFactorSumBelowOne" style="min-height: 200px; grid-template-rows: 0.25fr 0.25fr">
+  <div></div>
+  <div></div>
+</div>
+
+<div class="grid" id="fixedThenFlexible" style="min-height: 200px; grid-template-rows: 30px 1fr">
+  <div></div>
+  <div></div>
+</div>
+
+<div class="grid" id="autoThenFlexible" style="min-height: 200px; grid-template-rows: auto 1fr">
+  <div style="height: 5px"></div>
+  <div style="height: 5px" id="autoThenFlexibleSecondItem"></div>
+</div>
+
+<div class="grid" id="rowGap" style="min-height: 200px; grid-template-rows: 1fr 1fr; row-gap: 20px">
+  <div></div>
+  <div></div>
+</div>
+
+<div class="grid" id="borderAndPadding" style="min-height: 200px; grid-template-rows: 1fr 1fr; border: 5px solid; padding: 2px">
+  <div></div>
+  <div></div>
+</div>
+
+<div class="grid" id="minHeightLargerThanMaxHeight" style="min-height: 200px; max-height: 100px; grid-template-rows: 1fr 1fr">
+  <div></div>
+  <div></div>
+</div>
+
+<div class="grid" id="minHeightWinsOverMaxHeight" style="min-height: 200px; max-height: 100px; grid-template-rows: 1fr 1fr">
+  <div style="height: 120px"></div>
+  <div></div>
+</div>
+
+<div class="grid" id="maxHeight" style="max-height: 150px; grid-template-rows: 1fr 1fr">
+  <div style="height: 100px"></div>
+  <div></div>
+</div>
+
+<div class="grid" id="minHeightBelowContent" style="min-height: 50px; grid-template-rows: 1fr 1fr">
+  <div style="height: 100px"></div>
+  <div style="height: 100px"></div>
+</div>
+
+<div class="grid" id="maxHeightAboveContent" style="max-height: 500px; grid-template-rows: 1fr 1fr">
+  <div></div>
+  <div></div>
+</div>
+
+<div class="grid" id="noSizeConstraints" style="grid-template-rows: 1fr 1fr">
+  <div style="height: 100px"></div>
+  <div></div>
+</div>
+
+<script>
+function usedRowSizes(gridContainer) {
+  return getComputedStyle(gridContainer).gridTemplateRows;
+}
+
+test(() => {
+  assert_equals(usedRowSizes(allFlexible), "100px 100px");
+}, "Equal flexible rows share the minimum height of the grid container");
+
+test(() => {
+  assert_equals(usedRowSizes(singleFlexible), "200px");
+}, "A single flexible row fills the minimum height of the grid container");
+
+test(() => {
+  assert_equals(usedRowSizes(flexFactorSumBelowOne), "50px 50px");
+}, "Flexible rows whose flex factors sum to less than one take up less than the minimum height of the grid container");
+
+test(() => {
+  assert_equals(usedRowSizes(fixedThenFlexible), "30px 170px");
+}, "A flexible row takes the minimum height left over by a fixed row");
+
+test(() => {
+  assert_equals(usedRowSizes(autoThenFlexible), "5px 195px");
+}, "The minimum height left over by an automatic row goes to the flexible row rather than to the automatic row");
+
+test(() => {
+  assert_equals(autoThenFlexibleSecondItem.offsetTop - autoThenFlexible.offsetTop, 5);
+}, "The item in the flexible row is positioned right after the automatic row");
+
+test(() => {
+  assert_equals(usedRowSizes(rowGap), "90px 90px");
+}, "The row gap is subtracted from the minimum height before it is shared between the flexible rows");
+
+test(() => {
+  assert_equals(usedRowSizes(borderAndPadding), "100px 100px");
+}, "The minimum height shared between the flexible rows is the content box size of the grid container");
+
+test(() => {
+  assert_equals(usedRowSizes(minHeightLargerThanMaxHeight), "100px 100px");
+  assert_equals(minHeightLargerThanMaxHeight.offsetHeight, 200);
+}, "A minimum height larger than the maximum height is the size the flexible rows fill");
+
+test(() => {
+  assert_equals(usedRowSizes(minHeightWinsOverMaxHeight), "120px 80px");
+  assert_equals(minHeightWinsOverMaxHeight.offsetHeight, 200);
+}, "Rows too tall for the maximum height are grown to the minimum height rather than to the maximum height");
+
+test(() => {
+  assert_equals(usedRowSizes(maxHeight), "100px 50px");
+  assert_equals(maxHeight.offsetHeight, 150);
+}, "Flexible rows do not grow past the maximum height of the grid container");
+
+test(() => {
+  assert_equals(usedRowSizes(minHeightBelowContent), "100px 100px");
+}, "A minimum height smaller than the rows does not shrink them");
+
+test(() => {
+  assert_equals(usedRowSizes(maxHeightAboveContent), "20px 20px");
+}, "A maximum height larger than the rows does not grow them");
+
+test(() => {
+  assert_equals(usedRowSizes(noSizeConstraints), "100px 100px");
+}, "Flexible rows without a minimum or maximum height are sized to the largest of their contents");
+</script>

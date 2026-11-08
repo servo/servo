@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Auto-positioned percentage-height out-of-flow element in legend inside fragmented fieldset</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/40267498">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:4; column-fill:auto; gap:0; width:100px; height:100px; background:red;">
+  <fieldset style="position:relative; margin:0; border:none; padding:0;">
+    <legend>
+      <div style="left:0; position:absolute; width:100%; height:120px; background:green;"></div>
+      <div style="height:120px;"></div>
+      <div style="left:0; position:absolute; width:100%; height:70%; background:green;"></div>
+      <div style="height:280px;"></div>
+    </legend>
+  </div>
+</div>

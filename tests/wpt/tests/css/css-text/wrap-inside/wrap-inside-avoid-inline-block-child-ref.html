@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>wrap-inside: avoid does not propagate into an inline-block child</title>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    div { width: 110px; font: 20px/20px Ahem; color: green; }
+</style>
+<div><span style="display: inline-block; width: 110px">WW<br>XX YY</span></div>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Canvas measureText() actualBoundingBoxAscent/Descent include the vertical offset of positioned combining marks</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#dom-textmetrics-actualboundingboxascent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@font-face {
+  font-family: mark-origin-y-test;
+  src: url("/fonts/mark-origin-y-test.ttf");
+}
+</style>
+<span style="font-family: mark-origin-y-test; position: absolute; visibility: hidden">A</span>
+<script>
+// html/canvas/tools/generate-mark-origin-y-font.py: at 100px the base "A" inks 0 to 20px above the baseline,
+// U+0301 is positioned by GPOS to ink 70 to 90px above it, and U+0316 to ink 10 to 30px below it. Both marks
+// are drawn on the baseline, so the offset only exists in the shaping result.
+promise_test(async t => {
+    await document.fonts.load("100px mark-origin-y-test", "A\u0301\u0316");
+    const ctx = document.createElement("canvas").getContext("2d");
+    ctx.font = "100px mark-origin-y-test";
+    ctx.textBaseline = "alphabetic";
+
+    const base = ctx.measureText("A");
+    assert_equals(base.actualBoundingBoxAscent, 20, "base ascent");
+    assert_equals(base.actualBoundingBoxDescent, 0, "base descent");
+
+    const raised = ctx.measureText("A\u0301");
+    assert_equals(raised.actualBoundingBoxAscent, 90, "ascent with a raised mark");
+    assert_equals(raised.actualBoundingBoxDescent, 0, "descent with a raised mark");
+
+    const lowered = ctx.measureText("A\u0316");
+    assert_equals(lowered.actualBoundingBoxAscent, 20, "ascent with a lowered mark");
+    assert_equals(lowered.actualBoundingBoxDescent, 30, "descent with a lowered mark");
+}, "measureText() bounding box ascent and descent include the offset of combining marks");
+</script>

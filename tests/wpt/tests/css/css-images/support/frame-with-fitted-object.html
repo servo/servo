@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; }
+  object {
+    position: absolute;
+    left: 0;
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<body>
+<script>
+  // The SVG document is embedded in an <object>, which can be styled by
+  // the parent window through the "style" field of the query string.
+  const object = document.createElement('object');
+  object.style.cssText = new URLSearchParams(location.search).get('style');
+  object.data = 'colors-16x8.svg';
+
+  // The IntersectionObserver entries of the SVG root element are posted to
+  // the parent window. The root element is observed again after every resize,
+  // because a resize alone does not always queue an entry for the new size.
+  object.onload = () => {
+    const observer = new IntersectionObserver(entries => {
+      for (const entry of entries) {
+        const r = entry.intersectionRect;
+        const b = entry.boundingClientRect;
+        parent.postMessage({
+          intersectionRatio: entry.intersectionRatio,
+          intersectionRect: [r.x, r.y, r.width, r.height],
+          boundingClientRect: [b.x, b.y, b.width, b.height],
+        }, '*');
+      }
+    });
+    const observe = () => {
+      observer.disconnect();
+      observer.observe(object.contentDocument.documentElement);
+    };
+    object.contentWindow.addEventListener('resize', observe);
+    observe();
+  };
+  document.body.appendChild(object);
+</script>

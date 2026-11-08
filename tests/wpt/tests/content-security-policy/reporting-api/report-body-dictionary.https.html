@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta http-equiv="content-security-policy" content="img-src 'none'; report-to csp-group">
+<title>ReportingObserver is given CSP violation report bodies as dictionaries</title>
+<link rel="help" href="https://w3c.github.io/webappsec-csp/#dictdef-cspviolationreportbody">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  const reports = await new Promise(resolve => {
+    const observer = new ReportingObserver(reports => {
+      observer.disconnect();
+      resolve(reports);
+    }, { types: ["csp-violation"] });
+    observer.observe();
+    new Image().src = "/content-security-policy/support/fail.png";
+  });
+  assert_equals(reports.length, 1);
+  const body = reports[0].body;
+  assert_equals(Object.getPrototypeOf(body), Object.prototype, "prototype");
+  assert_array_equals(Object.keys(body), [
+    "blockedURL",
+    "columnNumber",
+    "disposition",
+    "documentURL",
+    "effectiveDirective",
+    "lineNumber",
+    "originalPolicy",
+    "referrer",
+    "sample",
+    "sourceFile",
+    "statusCode",
+  ], "keys");
+  assert_false("toJSON" in body, "toJSON");
+  assert_object_equals(structuredClone(body), body, "structured clone");
+}, "A CSP violation report body is a plain object with every CSPViolationReportBody member");
+</script>

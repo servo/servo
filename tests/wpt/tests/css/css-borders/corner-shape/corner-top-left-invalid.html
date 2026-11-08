@@ -11,12 +11,14 @@
 <script>
 test_invalid_value("corner-top-left", "auto");
 test_invalid_value("corner-top-left", "none");
-test_invalid_value("corner-top-left", "scoop");
+test_invalid_value("corner-top-left", "normal");
+test_invalid_value("corner-top-left", "-1px");
 test_invalid_value("corner-top-left", "3% normal");
 test_invalid_value("corner-top-left", "round round");
-test_invalid_value("corner-top-left", "-1px");
-test_invalid_value("corner-top-left", "10px");
-test_invalid_value("corner-top-left", "4px 12px");
+test_invalid_value("corner-top-left", "10px round 5px");
+test_invalid_value("corner-top-left", "round / 10px");
+test_invalid_value("corner-top-left", "10px / bevel");
 test_invalid_value("corner-top-left", "4px / normal");
-test_invalid_value("corner-top-left", "round / 4px");
+test_invalid_value("corner-top-left", "10px 5px / 3px");
+test_invalid_value("corner-top-left", "1px 2px 3px");
 </script>

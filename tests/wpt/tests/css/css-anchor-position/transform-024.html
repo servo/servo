@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<title>Chained anchor painted before target anchor in transformed container</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#scroll">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  #container {
+    transform-origin: top left;
+    transform: scale(2);
+  }
+  #scroller {
+    overflow: hidden;
+    width: 100px;
+    height: 100px;
+  }
+  #anchor1 {
+    anchor-name: --a;
+    margin-top: 150px;
+  }
+  #anchor2 {
+    anchor-name: --b;
+    height: 50px;
+    background: green;
+  }
+  #anchored1 {
+    position: fixed;
+    position-anchor: --a;
+    position-area: bottom span-right;
+    z-index: 1;
+    width: 25px;
+  }
+  #anchored2 {
+    position: fixed;
+    position-anchor: --b;
+    position-area: right span-bottom;
+    width: 25px;
+    height: 50px;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width:100px; height:100px; background:red;">
+  <div id="container">
+    <div id="scroller">
+      <div id="anchor1"></div>
+      <div style="height:1000px;"></div>
+    </div>
+    <div id="anchored1">
+      <div id="anchor2"></div>
+    </div>
+    <div id="anchored2"></div>
+  </div>
+</div>
+<script>
+  scroller.scrollTop = 150;
+</script>

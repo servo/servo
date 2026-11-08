@@ -1,0 +1,26 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Reporting: ReportingObserver callback is invoked with the observer as this</title>
+<link rel="help" href="https://w3c.github.io/reporting/#invoke-observers">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+promise_test(async t => {
+  let observer;
+  const callbackPromise = new Promise(resolve => {
+    observer = new ReportingObserver(function(reports, obs) {
+      resolve({ thisValue: this, obs });
+    });
+  });
+  t.add_cleanup(() => observer.disconnect());
+  observer.observe();
+
+  await test_driver.generate_test_report("Test message.");
+
+  const { thisValue, obs } = await callbackPromise;
+  assert_equals(obs, observer, "second argument is the observer");
+  assert_equals(thisValue, observer, "callback this value is the observer");
+}, "ReportingObserver callback this value is the observer");
+</script>

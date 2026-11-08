@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Scroll Snap 2 Test: Snap Events with nested pseudo-element targets.</title>
+    <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#snap-events">
+    <link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-markers">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/css/css-scroll-snap/snap-events/resources/common.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+  </head>
+  <body>
+    <style>
+      #scroller {
+        overflow: scroll;
+        width: 100px;
+        height: 200px;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+      }
+      #multicol {
+        overflow: hidden;
+        columns: 1;
+        column-fill: auto;
+        width: 100px;
+        height: 50px;
+        scroll-marker-group: after;
+      }
+      #multicol::scroll-marker-group {
+        display: flex;
+        width: 400px;
+      }
+      #multicol::column::scroll-marker {
+        content: "";
+        flex: none;
+        width: 100px;
+        height: 20px;
+        scroll-snap-align: start;
+      }
+    </style>
+    <div id="scroller">
+      <div id="multicol">
+        <div style="height: 200px;"></div>
+      </div>
+    </div>
+
+    <script>
+      // The snap areas are ::column::scroll-marker pseudo-elements, whose
+      // parent is a ::column pseudo-element. The snap target exposed to script
+      // must be the element that ultimately originates them, not ::column.
+      const test_data = {
+        scroller: scroller,
+        scrolling_function: async () => {
+          scroller.scrollTo({left: 200});
+        },
+        expected_snap_targets: { block: null, inline: multicol },
+        expected_scroll_offsets: { x: 200, y: 0 },
+      };
+
+      promise_test(async (t) => {
+        await test_scrollsnapchange(t, test_data);
+      }, "snapTarget for scrollsnapchange is the originating element when a " +
+         "snap area belongs to a nested pseudo-element");
+
+      promise_test(async (t) => {
+        await test_snap_event(t, test_data, "scrollsnapchanging");
+      }, "snapTarget for scrollsnapchanging is the originating element when a " +
+         "snap area belongs to a nested pseudo-element");
+    </script>
+  </body>
+</html>

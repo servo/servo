@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<head>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shape">
+<link rel="match" href="inner-corner-intersection003-ref.html">
+<meta name="fuzzy" content="maxDifference=0-85; totalPixels=0-2285">
+<meta name="assert" content="Test for rendering correctness when the inner edges of two scoop corners intersect across the corner between them.">
+<style>
+    .target {
+        margin: 50px;
+        width: 600px;
+        height: 500px;
+        box-sizing: border-box;
+        border: 100px solid green;
+
+        border-top-left-radius: 50%;
+        corner-top-left-shape: scoop;
+
+        border-top-right-radius: 50% 90%;
+        corner-top-right-shape: scoop;
+
+        border-bottom-left-radius: 90% 10%;
+        corner-bottom-left-shape: scoop;
+    }
+</style>
+</head>
+<div class=target></div>

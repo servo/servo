@@ -1,8 +1,10 @@
 <!doctype HTML>
+<html class="reftest-wait">
 <title>Test that a cross-origin iframe is responsively sized.</title>
 <link rel="author" href="mailto:chrishtr@chromium.org">
 <link rel="help" href="https://drafts.csswg.org/css-sizing/">
 <link rel="match" href="responsive-iframe-ref.html">
+<script src="/common/reftest-wait.js"></script>
 <style>
 iframe {
   border: 1px solid black;
@@ -11,3 +13,12 @@ iframe {
 </style>
 <iframe frameborder=0 src="http://{{hosts[alt][]}}:{{ports[http][0]}}/css/css-sizing/responsive-iframe/resources/iframe-contents.html">
 </iframe>
+<script>
+const iframe = document.querySelector('iframe');
+new ResizeObserver((entries) => {
+  if (entries[0].contentBoxSize[0].blockSize === 400) {
+    takeScreenshot();
+  }
+}).observe(iframe);
+</script>
+</html>

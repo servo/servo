@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>wrap-inside: removing 'avoid' triggers relayout when reset dynamically</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#wrap-inside">
+<link rel="match" href="wrap-inside-avoid-removed-dynamic-ref.html">
+<meta name="assert" content="Resetting wrap-inside from 'avoid' back to 'auto' on an already-laid-out inline box re-runs line layout: the box that was kept together now breaks inside again.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    div { width: 110px; font: 20px/20px Ahem; color: green; }
+</style>
+<!--
+    Initially (wrap-inside: avoid) the box is kept together by breaking before it: "XX" / "YY ZZ".
+    After resetting to 'wrap-inside: auto' normal wrapping applies again: "XX YY" (100px) fits
+    within 110px, so the line breaks inside the box as "XX YY" / "ZZ" - which requires a relayout.
+-->
+<div>XX <span id="target" style="wrap-inside: avoid">YY ZZ</span></div>
+<script>
+    // Force layout in the initial (avoid) state so the change below must trigger a relayout.
+    document.body.offsetTop;
+    document.getElementById("target").style.wrapInside = "auto";
+</script>

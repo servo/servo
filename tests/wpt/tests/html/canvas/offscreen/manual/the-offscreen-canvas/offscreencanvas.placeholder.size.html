@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<!-- Any copyright is dedicated to the Public Domain.
+     https://creativecommons.org/publicdomain/zero/1.0/ -->
+<meta charset="utf-8">
+<title>The size of a placeholder canvas comes from its OffscreenCanvas</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#attr-canvas-width">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#dom-canvas-transfercontroltooffscreen">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+
+function transferredCanvas(t) {
+  let canvas = document.createElement("canvas");
+  canvas.width = 64;
+  canvas.height = 32;
+  document.body.appendChild(canvas);
+  t.add_cleanup(() => canvas.remove());
+  return [canvas, canvas.transferControlToOffscreen()];
+}
+
+test(t => {
+  let [canvas] = transferredCanvas(t);
+  assert_throws_dom("InvalidStateError", () => { canvas.width = 200; });
+  assert_throws_dom("InvalidStateError", () => { canvas.height = 100; });
+  assert_equals(canvas.clientWidth, 64, "placeholder width");
+  assert_equals(canvas.clientHeight, 32, "placeholder height");
+}, "Setting width or height on a placeholder canvas throws");
+
+test(t => {
+  let [canvas, offscreenCanvas] = transferredCanvas(t);
+  canvas.setAttribute("width", "200");
+  canvas.setAttribute("height", "100");
+  assert_equals(offscreenCanvas.width, 64, "OffscreenCanvas width");
+  assert_equals(offscreenCanvas.height, 32, "OffscreenCanvas height");
+  assert_equals(canvas.clientWidth, 64, "placeholder width");
+  assert_equals(canvas.clientHeight, 32, "placeholder height");
+}, "The width and height content attributes do not resize a placeholder canvas");
+
+test(t => {
+  let [canvas, offscreenCanvas] = transferredCanvas(t);
+  let transferred = structuredClone(offscreenCanvas, {transfer: [offscreenCanvas]});
+  assert_equals(offscreenCanvas.width, 0, "original OffscreenCanvas is detached");
+  assert_equals(transferred.width, 64, "transferred OffscreenCanvas width");
+  assert_equals(transferred.height, 32, "transferred OffscreenCanvas height");
+  canvas.setAttribute("width", "200");
+  canvas.setAttribute("height", "100");
+  assert_equals(canvas.clientWidth, 64, "placeholder width after transfer");
+  assert_equals(canvas.clientHeight, 32, "placeholder height after transfer");
+}, "Transferring the OffscreenCanvas preserves the placeholder size");
+
+test(t => {
+  let [canvas] = transferredCanvas(t);
+  // The natural aspect ratio is the bitmap's, 64 by 32, so a width of 128px
+  // gives a height of 64px.
+  canvas.style.width = "128px";
+  assert_equals(canvas.clientHeight, 64, "height from the bitmap aspect ratio");
+  canvas.setAttribute("width", "64");
+  canvas.setAttribute("height", "64");
+  assert_equals(canvas.clientHeight, 64,
+                "height is unchanged by the content attributes");
+}, "The width and height content attributes do not change the aspect ratio of a placeholder canvas");
+
+</script>

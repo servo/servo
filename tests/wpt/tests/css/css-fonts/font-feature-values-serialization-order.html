@@ -1,0 +1,95 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Serialization order of font feature value blocks and declarations</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#serializing-at-rules">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14658">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+// Expected serializations leave the family name Example unquoted, following the CSSWG resolution:
+// https://github.com/w3c/csswg-drafts/issues/5846#issuecomment-3885672626
+function serialize(body) {
+  const sheet = new CSSStyleSheet();
+  sheet.insertRule(`@font-feature-values Example { ${body} }`);
+  return sheet.cssRules[0].cssText;
+}
+
+test(() => {
+  assert_equals(serialize("@swash {} @styleset {}"), "@font-feature-values Example { }");
+}, "An empty rule serializes with one space between its braces");
+
+test(() => {
+  assert_equals(
+    serialize("@swash { pretty: 1; } font-display: swap;"),
+    "@font-feature-values Example { font-display: swap; @swash { pretty: 1; } }"
+  );
+}, "The font-display descriptor serializes before feature value blocks");
+
+test(() => {
+  assert_equals(serialize(`
+    @styleset { a: 6; }
+    @character-variant { a: 5 1; }
+    @annotation { a: 4; }
+    @ornaments { a: 3; }
+    @stylistic { a: 2; }
+    @swash { a: 1; }
+  `), "@font-feature-values Example { @swash { a: 1; } @stylistic { a: 2; } " +
+    "@ornaments { a: 3; } @annotation { a: 4; } @character-variant { a: 5 1; } @styleset { a: 6; } }");
+}, "Block types serialize in a fixed order rather than source order");
+
+test(() => {
+  assert_equals(serialize(`
+    @annotation { }
+    @styleset { a: 1; }
+    @swash { }
+    @ornaments { b: 2; }
+    @stylistic { }
+    @character-variant { }
+  `), "@font-feature-values Example { @ornaments { b: 2; } @styleset { a: 1; } }");
+}, "Empty blocks are omitted without changing the order of nonempty blocks");
+
+test(() => {
+  assert_equals(
+    serialize("@styleset { z: 1; a: 2; m: 3; }"),
+    "@font-feature-values Example { @styleset { z: 1; a: 2; m: 3; } }"
+  );
+}, "Distinct names retain source order rather than alphabetical order");
+
+test(() => {
+  assert_equals(
+    serialize("@styleset { a: 1; b: 2; a: 3; }"),
+    "@font-feature-values Example { @styleset { a: 3; b: 2; } }"
+  );
+}, "A repeated name takes its last value without moving its first position");
+
+test(() => {
+  assert_equals(serialize(`
+    @swash { pretty: 0; cool: 2; }
+    @styleset { other: 3; }
+    @swash { pretty: 1; extra: 4; cool: 5; }
+  `), "@font-feature-values Example { @swash { pretty: 1; cool: 5; extra: 4; } @styleset { other: 3; } }");
+}, "Merging separated blocks preserves first name positions across and within blocks");
+
+test(() => {
+  assert_equals(
+    serialize("@styleset { a: -1; b: 2; a: 3; b: -1; }"),
+    "@font-feature-values Example { @styleset { b: 2; a: 3; } }"
+  );
+}, "Invalid declarations neither reserve a name's position nor replace its value");
+
+test(() => {
+  assert_equals(
+    serialize("@styleset { a: 1; A: 2; b: 3; \\61: 4; }"),
+    "@font-feature-values Example { @styleset { a: 4; A: 2; b: 3; } }"
+  );
+}, "Names are case-sensitive and escaped spellings update the same name in place");
+
+test(() => {
+  assert_equals(
+    serialize("@historical-forms { a: 1; } @styleset { b: 2; }"),
+    "@font-feature-values Example { @styleset { b: 2; } @historical-forms { a: 1; } }"
+  );
+}, "The historical-forms block serializes after the other block types");
+</script>

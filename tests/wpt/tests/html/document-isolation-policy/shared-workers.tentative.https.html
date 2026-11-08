@@ -2,7 +2,7 @@
 <html>
 <meta charset="utf-8">
 <meta name="timeout" content="long">
-<title>Document-Isolation-Policy - policy derivation for Shared Workers</title>
+<title>Document-Isolation-Policy does not apply to Shared Workers</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
@@ -12,10 +12,11 @@
 <script src="resources/worker-support.js"></script>
 <script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
 <body>
-<p>Verify the Document Isolation Policy for Shared Workers by performing a
-cross-origin "fetch" request for a resource that does not specify CORP. Only
-Shared Workers with the default DIP should be able to successfully perform
-this operation.</p>
+<p>Verify that Document-Isolation-Policy does not apply to Shared Workers by
+performing a cross-origin "fetch" request for a resource that does not specify
+CORP. A Shared Worker is in its own agent cluster and can use
+Cross-Origin-Embedder-Policy instead, so the request succeeds whether the
+policy is set on the worker script, its owner, or the creator of its URL.</p>
 <script>
 'use strict';
 
@@ -24,15 +25,14 @@ function makeWorkerUrl(options) {
 }
 
 /**
- * Create a Shared Worker within an iframe and insrtuct it to fetch from a
+ * Create a Shared Worker within an iframe and instruct it to fetch from a
  * specified URL and report on the success of the operation.
  *
  * @param {object} t - a testharness.js subtest instance (used to reset global
  *                     state)
  * @param {string} url - the URL from which the Shared Worker should be
  *                       created
- * @param {string} ownerDip - the Document Isolation Policy of the
-                                       iframe
+ * @param {string} ownerDip - the Document Isolation Policy of the iframe
  */
 async function fetchFromWorker(t, url, ownerDip) {
   const uuid = await createIframeContext(t, get_host_info().HTTPS_ORIGIN, ownerDip);
@@ -63,12 +63,17 @@ async function fetchFromWorker(t, url, ownerDip) {
 promise_test(async (t) => {
   const result = await fetchFromWorker(t, makeWorkerUrl(), dip_none);
   assert_equals(result, 'success');
-}, 'default policy (derived from response)');
+}, 'default policy');
 
 promise_test(async (t) => {
   const result = await fetchFromWorker(t, makeWorkerUrl({ dip: 'isolate-and-require-corp' }), dip_none);
-  assert_equals(result, 'failure');
-}, '"isolate-and-require-corp" (derived from response)');
+  assert_equals(result, 'success');
+}, '"isolate-and-require-corp" on the worker script is ignored');
+
+promise_test(async (t) => {
+  const result = await fetchFromWorker(t, makeWorkerUrl(), dip_require_corp);
+  assert_equals(result, 'success');
+}, '"isolate-and-require-corp" is not inherited from the owner');
 
 promise_test(async (t) => {
   const blobUrl = await createLocalUrl(t, {
@@ -77,7 +82,7 @@ promise_test(async (t) => {
   });
   const result = await fetchFromWorker(t, blobUrl, dip_none);
   assert_equals(result, 'success');
-}, 'default policy (derived from owner set due to use of local scheme - blob URL)');
+}, 'default policy - blob URL');
 
 promise_test(async (t) => {
   const blobUrl = await createLocalUrl(t, {
@@ -86,8 +91,8 @@ promise_test(async (t) => {
     scheme: "blob",
   });
   const result = await fetchFromWorker(t, blobUrl, dip_none);
-  assert_equals(result, 'failure');
-}, 'isolate-and-require-corp (derived from blob URL creator)');
+  assert_equals(result, 'success');
+}, '"isolate-and-require-corp" is not inherited from the blob URL creator');
 
 promise_test(async (t) => {
   const blobUrl = await createLocalUrl(t, {
@@ -95,8 +100,8 @@ promise_test(async (t) => {
     scheme: "blob",
   });
   const result = await fetchFromWorker(t, blobUrl, dip_require_corp);
-  assert_equals(result, 'failure');
-}, '"isolate-and-require-corp" (derived from owner set due to use of local scheme - blob URL)');
+  assert_equals(result, 'success');
+}, '"isolate-and-require-corp" is not inherited from the owner - blob URL');
 
 promise_test(async (t) => {
   const dataUrl = await createLocalUrl(t, {
@@ -105,7 +110,7 @@ promise_test(async (t) => {
   });
   const result = await fetchFromWorker(t, dataUrl, dip_none);
   assert_equals(result, 'success');
-}, 'default policy (derived from owner set due to use of local scheme - data URL)');
+}, 'default policy - data URL');
 
 promise_test(async (t) => {
   const dataUrl = await createLocalUrl(t, {
@@ -115,7 +120,7 @@ promise_test(async (t) => {
   });
   const result = await fetchFromWorker(t, dataUrl, dip_none);
   assert_equals(result, 'success');
-}, 'default policy (not derived from data URL creator)');
+}, '"isolate-and-require-corp" is not inherited from the data URL creator');
 
 promise_test(async (t) => {
   const dataUrl = await createLocalUrl(t, {
@@ -123,8 +128,8 @@ promise_test(async (t) => {
     scheme: "data",
   });
   const result = await fetchFromWorker(t, dataUrl, dip_require_corp);
-  assert_equals(result, 'failure');
-}, '"isolate-and-require-corp" (derived from owner set due to use of local scheme - data URL)');
+  assert_equals(result, 'success');
+}, '"isolate-and-require-corp" is not inherited from the owner - data URL');
 </script>
 </body>
 </html>

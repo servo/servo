@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text Module Test: parsing text-autospace-size with invalid values</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/8510#issuecomment-6438888621">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("text-autospace-size", "normal");
+test_invalid_value("text-autospace-size", "none");
+test_invalid_value("text-autospace-size", "10%");
+test_invalid_value("text-autospace-size", "10px");
+test_invalid_value("text-autospace-size", "calc(1em / 3)");
+</script>
+</body>
+</html>

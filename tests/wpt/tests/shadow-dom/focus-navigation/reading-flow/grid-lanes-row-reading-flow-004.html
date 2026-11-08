@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="timeout" content="long">
-<title>CSS Grid Lanes: reversed grid-rows reading flow with dense items</title>
+<title>CSS Grid Lanes: reversed grid-lanes-track reading flow with dense items</title>
 <link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
 <link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-layout">
 <script src="/resources/testharness.js"></script>
@@ -22,7 +22,7 @@
   grid-lanes-pack: dense;
   grid-lanes-direction: row fill-reverse;
   flow-tolerance: 0;
-  reading-flow: grid-rows;
+  reading-flow: grid-lanes-track;
   width: 120px;
 }
 .lanes > button {
@@ -36,7 +36,7 @@
 
 <!-- L starts in row 1, but its row-2 subtree owns N and O. -->
 <div class="test-case" data-expect="l,i,n,o,m,j,k"
-     data-description="Grid-rows reverses nested dense items within each row, not the rows">
+     data-description="Grid-lanes-track reverses nested dense items within each row, not the rows">
   <div class="lanes">
     <button id="i" style="grid-row: 1; width: 60px">I</button>
     <button id="j" style="grid-row: 3; width: 20px">J</button>

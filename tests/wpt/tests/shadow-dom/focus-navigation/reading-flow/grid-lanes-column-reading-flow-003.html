@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="timeout" content="long">
-<title>CSS Grid Lanes: `grid-columns` follows CSS order within columns in `vertical-rl`</title>
+<title>CSS Grid Lanes: `grid-lanes-track` follows CSS order within columns in `vertical-rl`</title>
 <link rel="help" href="https://www.w3.org/TR/css-display-4/">
 <link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-layout">
 <link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#block-flow">
@@ -14,11 +14,11 @@
 <script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
 
 <div class="test-case" data-expect="c,a,b,d"
-     data-description="`grid-columns` follows CSS order right-to-left within columns in `vertical-rl`">
+     data-description="`grid-lanes-track` follows CSS order right-to-left within columns in `vertical-rl`">
   <div style="display: grid-lanes;
               grid-template-columns: repeat(2, 100px);
               writing-mode: vertical-rl;
-              reading-flow: grid-columns">
+              reading-flow: grid-lanes-track">
     <button id="a" style="grid-column: 1; order: 4; block-size: 40px">A</button>
     <button id="b" style="grid-column: 2; order: -1; block-size: 40px">B</button>
     <button id="c" style="grid-column: 1; order: 2; block-size: 40px">C</button>

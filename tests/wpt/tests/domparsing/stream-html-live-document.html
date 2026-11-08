@@ -1,0 +1,106 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Streamed scripts run against the live document</title>
+<link rel="help" href="https://html.spec.whatwg.org/#html-streaming-methods" />
+<link rel="help" href="https://html.spec.whatwg.org/#dom-document-write" />
+<link rel="help" href="https://html.spec.whatwg.org/#dom-document-close" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  // The parser's Document is an inert temporary document that is never
+  // exposed to script. Streamed scripts run in the live document: a
+  // document.write() call from a streamed script writes to the live document
+  // (implying document.open() since it has finished parsing), and
+  // document.close()/document.open() on the live document do not close the
+  // stream's parser.
+
+  function load_iframe(t) {
+    return new Promise((resolve) => {
+      const iframe = document.createElement("iframe");
+      iframe.srcdoc = "<!doctype html><div id='target'></div>";
+      iframe.onload = () => resolve(iframe);
+      t.add_cleanup(() => iframe.remove());
+      document.body.appendChild(iframe);
+    });
+  }
+
+  for (const method of ["streamHTMLUnsafe", "streamAppendHTMLUnsafe", "streamPrependHTMLUnsafe"]) {
+    promise_test(async (t) => {
+      const iframe = await load_iframe(t);
+      const doc = iframe.contentDocument;
+      const target = doc.getElementById("target");
+      const oldBody = doc.body;
+      assert_equals(doc.readyState, "complete");
+
+      const writer = target[method]({ runScripts: true }).getWriter();
+      await writer.write(
+        "<p id='before'>before</p>" +
+        "<script>document.write('<p id=written>written</p>');</" + "script>" +
+        "<p id='after'>after</p>"
+      );
+      t.add_cleanup(() => doc.close());
+
+      // document.write() on a document that has finished parsing implies
+      // document.open(), which replaces the document's contents.
+      assert_equals(doc.readyState, "loading", "document.open() was implied");
+      assert_not_equals(doc.getElementById("written"), null, "document.write() wrote to the live document");
+      assert_equals(target.isConnected, false, "the old contents were removed from the live document");
+      assert_false(oldBody.isConnected);
+      assert_equals(doc.getElementById("before"), null);
+      assert_equals(doc.getElementById("after"), null);
+
+      // The stream keeps parsing into its (now detached) target.
+      assert_not_equals(target.querySelector("#before"), null);
+      assert_not_equals(target.querySelector("#after"), null, "the rest of the chunk was parsed into the target");
+      await writer.write("<p id='later'>later</p>");
+      await writer.close();
+      assert_not_equals(target.querySelector("#later"), null);
+      assert_equals(target.querySelector("#later").ownerDocument, doc);
+
+      doc.close();
+      // "The end" sets the readiness to "interactive" synchronously, and to
+      // "complete" from a later task.
+      assert_not_equals(doc.readyState, "loading", "document.close() ended the implied document.open()");
+      assert_not_equals(doc.getElementById("written"), null);
+    }, `document.write() from a script streamed by ${method} writes to the live document`);
+
+    promise_test(async (t) => {
+      const iframe = await load_iframe(t);
+      const doc = iframe.contentDocument;
+      const target = doc.getElementById("target");
+
+      const writer = target[method]({ runScripts: true }).getWriter();
+      await writer.write("<p id='first'>first</p><div id='open'>");
+      // The live document has no script-created parser; document.close() is a
+      // no-op and in particular does not append EOF to the stream's parser.
+      doc.close();
+      await writer.write("<p id='second'>second</p>");
+      assert_equals(target.querySelector("#open #second").textContent, "second", "the <div> is still open after document.close()");
+      await writer.write("</div><p id='third'>third</p>");
+      await writer.close();
+      assert_equals(target.querySelector("#first").textContent, "first");
+      assert_equals(target.querySelector("#open").childElementCount, 1);
+      assert_equals(target.querySelector("#third").textContent, "third");
+      assert_equals(doc.readyState, "complete");
+    }, `document.close() on the live document does not close the parser of ${method}`);
+
+    promise_test(async (t) => {
+      const iframe = await load_iframe(t);
+      const doc = iframe.contentDocument;
+      const target = doc.getElementById("target");
+
+      const writer = target[method]({ runScripts: true }).getWriter();
+      await writer.write("<p id='first'>first</p><div id='open'>");
+      doc.open();
+      t.add_cleanup(() => doc.close());
+      assert_false(target.isConnected, "document.open() removed the target from the live document");
+      await writer.write("<p id='second'>second</p></div><p id='third'>third</p>");
+      await writer.close();
+      assert_equals(target.querySelector("#open #second").textContent, "second", "the <div> is still open after document.open()");
+      assert_equals(target.querySelector("#third").textContent, "third");
+      assert_equals(target.querySelector("#third").ownerDocument, doc);
+    }, `document.open() on the live document does not close the parser of ${method}`);
+  }
+</script>
+</body>

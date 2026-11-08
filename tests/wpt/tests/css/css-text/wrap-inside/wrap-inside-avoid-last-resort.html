@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>wrap-inside: avoid breaks inside the box as a last resort</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#wrap-inside">
+<link rel="match" href="wrap-inside-avoid-last-resort-ref.html">
+<meta name="assert" content="With 'wrap-inside: avoid' the box is still broken internally when it alone does not fit and there is no other break opportunity on the line.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    div { width: 70px; font: 20px/20px Ahem; color: green; }
+</style>
+<!--
+    The box "YY ZZ" (100px) is the only content and does not fit within 70px.
+    Since there is no break opportunity outside the box, breaking inside it is the last resort: "YY" / "ZZ".
+-->
+<div><span style="wrap-inside: avoid">YY ZZ</span></div>

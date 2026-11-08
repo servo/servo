@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes Test: Percentage gutters update inherited rows when scrollbars change</title>
+<link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body { margin: 0; }
+  ::-webkit-scrollbar { height: 16px; width: 16px; }
+  ::-webkit-scrollbar-track { background: silver; }
+  ::-webkit-scrollbar-thumb { background: grey; }
+  .root {
+    background: lightgrey;
+    display: grid-lanes;
+    grid-template-rows: 100px 200px 300px;
+    width: 80px;
+  }
+  .subgrid {
+    display: grid-lanes;
+    grid-template-rows: subgrid;
+  }
+  .outer, .inner { grid-row: 1 / -1; }
+  .middle {
+    grid-row: 2 / span 2;
+    overflow: auto;
+    row-gap: 25%;
+    width: 80px;
+  }
+  .leaf {
+    aspect-ratio: 1 / 4;
+    background: green;
+    grid-row: 2;
+    min-height: 0;
+    min-width: 0;
+  }
+  .marker {
+    background: blue;
+    grid-row: 1;
+    width: 10px;
+  }
+  .overflow {
+    grid-row: 1;
+    height: 0;
+    width: 210px;
+  }
+</style>
+<div class="root">
+  <div class="subgrid outer">
+    <div class="subgrid middle" id="gutter-middle">
+      <div class="subgrid inner" id="gutter-inner">
+        <div class="leaf"></div>
+        <div class="marker"></div>
+        <div class="overflow"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  test(() => {
+    const scroller = document.querySelector(".middle");
+    const leaf = document.querySelector(".leaf");
+    const overflow = document.querySelector(".overflow");
+    for (const [width, scrollbar] of [[210, 16], [0, 0], [210, 16]]) {
+      overflow.style.width = `${width}px`;
+      assert_equals(scroller.getBoundingClientRect().height, 500);
+      assert_equals(scroller.offsetHeight - scroller.clientHeight, scrollbar);
+      const gutter = (500 - scrollbar) / 4;
+      const expectedHeight = 300 - scrollbar - gutter / 2;
+      assert_equals(leaf.getBoundingClientRect().height, expectedHeight);
+      assert_equals(leaf.getBoundingClientRect().width, expectedHeight / 4);
+    }
+  }, "Percentage gutter follows the inherited size as scrollbars appear and disappear");
+</script>

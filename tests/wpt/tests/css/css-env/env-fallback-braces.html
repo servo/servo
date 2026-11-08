@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>CSS Environment Variables: {}-wrapped env() fallback</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#component-function-commas">
+<link rel="help" href="https://drafts.csswg.org/css-env-1/#funcdef-env">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<div id="target"></div>
+<script>
+  test_computed_value('color', 'env(missing-name, {rgb(1, 2, 3)})', 'rgb(1, 2, 3)');
+  test_computed_value('color', 'env(missing-name, { rgb(1, 2, 3) })', 'rgb(1, 2, 3)');
+  test_computed_value('color', 'env(missing-name, {rgb(1, 2, 3)} )', 'rgb(1, 2, 3)');
+  test_computed_value('font-family', 'env(missing-name, {Arial, sans-serif})', 'Arial, sans-serif');
+
+  test_invalid_value('color', 'env(missing-name, {rgb(1, 2, 3)} rgb(4, 5, 6))');
+  test_invalid_value('font-family', 'env(missing-name, {Arial}, sans-serif)');
+</script>

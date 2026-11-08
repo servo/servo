@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>CSS Overflow Test: Text in a fixed-pos element at the right edge is painted completely with scrollbar-gutter on both edges</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollbar-gutter-property">
+<link rel="match" href="scrollbar-gutter-fixedpos-005-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+
+<style>
+:root {
+  scrollbar-gutter: stable both-edges;
+}
+.square {
+  position: fixed;
+  top: 0;
+  right: 0;
+  color: green;
+  font: 50px/1 Ahem;
+}
+</style>
+
+<p>Test passes if there is a filled green square at the top-right corner.</p>
+<div class="square">XX<br>XX</div>

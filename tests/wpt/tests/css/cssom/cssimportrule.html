@@ -6,6 +6,7 @@
     <link rel="help" href="http://www.w3.org/TR/cssom-1/#css-rules">
     <link rel="help" href="http://www.w3.org/TR/cssom-1/#the-cssrule-interface">
     <link rel="help" href="http://www.w3.org/TR/cssom-1/#the-cssimportrule-interface">
+    <link rel="help" href="https://drafts.csswg.org/css-cascade-5/#conditional-import">
     <meta name="flags" content="dom">
     <meta name="assert" content="All properties for this CSSImportRule instance of CSSRule are initialized correctly">
     <script src="/resources/testharness.js"></script>
@@ -18,6 +19,10 @@
         @import url("support/a-green") supports((display: flex) or (display: block));
         @import url('quote"quote');
         @page { background-color: red; }
+    </style>
+    <style id="supportsStyleElement">
+        @import url("support/a-green.css") supports(display: flex);
+        @import url("support/a-green.css") supports(not (display: flex));
     </style>
 </head>
 <body>
@@ -119,6 +124,15 @@
         test(function() {
             assert_equals(ruleWithSupports.supportsText, "(display: flex) or (display: block)");
         }, "Value of CSSImportRule supportsText attribute");
+
+        test(function() {
+            const rules = document.getElementById("supportsStyleElement").sheet.cssRules;
+            assert_equals(rules.length, 2, "Both supports conditions should produce import rules");
+            assert_true(rules[0].styleSheet instanceof CSSStyleSheet,
+                        "A true supports condition should expose the imported stylesheet");
+            assert_equals(rules[1].styleSheet, null,
+                          "A false supports condition should not expose the imported stylesheet");
+        }, "CSSImportRule.styleSheet is null for a false supports condition");
     </script>
 </body>
 </html>

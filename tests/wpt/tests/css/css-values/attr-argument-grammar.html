@@ -38,6 +38,9 @@
     test_attr('font-weight', 'attr(var())', '10', '');
     test_attr('font-weight', 'attr(())', '10', '');
     test_attr('font-weight', 'attr(!)', '10', '');
+    test_attr('font-weight', 'attr(data-foo &, 30)', '10', '30');
+    test_attr('font-weight', 'attr(data-foo type(<number>) | <length>, 30)', '10', '30');
+    test_attr('font-weight', 'attr(data-foo type(invalid |), 10)', '0', '10');
 
     document.getElementById("attr").style.setProperty('--x', 'data-foo type(<number>), 10');
     test_attr('font-weight', 'attr(var(--x))', '10', '');

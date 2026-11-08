@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration: a negative percentage inset on a multi-line box extends by a percentage of the whole box (reference)</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+body { margin: 100px; }
+div { width: 100px; will-change: transform; }
+p { font: 20px/2 Ahem; }
+u {
+  text-decoration-line: underline;
+  text-decoration-color: blue;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+  text-decoration-inset: -120px;
+}
+</style>
+
+<div><p><u>abcde fghij klmno</u></p></div>

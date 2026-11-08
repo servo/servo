@@ -42,6 +42,7 @@ promise_test(async t => {
     name: 'parent_tool_default',
     description: 'Parent tool with default exposure',
     inputSchema: { type: 'object', properties: { query: { type: 'string' } } },
+    outputSchema: null,
     annotations: { readOnlyHint: true, untrustedContentHint: false, consequentialHint: false, debugging: false },
     origin: self.origin
   }), 'Tool details should match');
@@ -91,6 +92,7 @@ promise_test(async t => {
     name: 'parent_tool_empty',
     description: 'Parent tool with empty exposedTo',
     inputSchema: { type: 'object', properties: { query: { type: 'string' } } },
+    outputSchema: null,
     origin: self.origin
   }), 'Tool details should match');
 
@@ -140,6 +142,7 @@ promise_test(async t => {
     name: 'iframe_tool_default',
     description: 'Iframe tool with default exposure',
     inputSchema: null,
+    outputSchema: null,
     origin: iframe.contentWindow.origin
   }), 'Tool details should match');
 
@@ -180,6 +183,7 @@ promise_test(async t => {
     name: 'iframe_tool_empty',
     description: 'Iframe tool with empty exposedTo',
     inputSchema: null,
+    outputSchema: null,
     origin: iframe.contentWindow.origin
   }), 'Tool details should match');
 

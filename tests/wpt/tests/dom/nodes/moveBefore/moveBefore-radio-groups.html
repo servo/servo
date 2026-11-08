@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<title>moveBefore() updates radio button groups when a radio changes tree</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/input.html#radio-button-group">
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-parentnode-movebefore">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+function radio(name, { checked = false, required = false } = {}) {
+    const input = document.createElement("input");
+    input.type = "radio";
+    input.name = name;
+    input.checked = checked;
+    input.required = required;
+    return input;
+}
+
+function setup(t) {
+    const container = document.createElement("div");
+    const host = document.createElement("div");
+    container.appendChild(host);
+    document.body.appendChild(container);
+    t.add_cleanup(() => container.remove());
+    return { container, host, shadowRoot: host.attachShadow({ mode: "open" }) };
+}
+
+test(t => {
+    const { container, shadowRoot } = setup(t);
+    const a = radio("light-to-shadow", { checked: true });
+    const b = radio("light-to-shadow");
+    container.append(a, b);
+
+    shadowRoot.moveBefore(a, null);
+    b.checked = true;
+
+    assert_true(b.checked, "b is checked");
+    assert_true(a.checked, "a is in a different tree, so checking b must not uncheck it");
+}, "A radio moved into a shadow root leaves the document's radio button group");
+
+test(t => {
+    const { container, shadowRoot } = setup(t);
+    const inShadow = radio("joins-shadow-group", { checked: true });
+    shadowRoot.appendChild(inShadow);
+    const moved = radio("joins-shadow-group");
+    container.appendChild(moved);
+
+    shadowRoot.moveBefore(moved, null);
+    moved.checked = true;
+    assert_false(inShadow.checked, "checking the moved radio unchecks the shadow root's radio");
+
+    inShadow.checked = true;
+    assert_false(moved.checked, "checking the shadow root's radio unchecks the moved radio");
+}, "A radio moved into a shadow root joins the shadow root's radio button group");
+
+test(t => {
+    const { container, shadowRoot } = setup(t);
+    const inShadow = radio("shadow-to-light");
+    const light = radio("shadow-to-light", { checked: true });
+    shadowRoot.appendChild(inShadow);
+    container.appendChild(light);
+
+    container.moveBefore(inShadow, null);
+    inShadow.checked = true;
+
+    assert_false(light.checked, "the moved radio is now in the document's group");
+}, "A radio moved out of a shadow root joins the document's radio button group");
+
+test(t => {
+    const { container, shadowRoot } = setup(t);
+    const checkedRadio = radio("required-group", { checked: true, required: true });
+    const other = radio("required-group", { required: true });
+    container.append(checkedRadio, other);
+    assert_false(other.validity.valueMissing, "group has a checked radio before the move");
+
+    shadowRoot.moveBefore(checkedRadio, null);
+
+    assert_true(other.validity.valueMissing, "the document's group no longer has a checked radio");
+    assert_false(checkedRadio.validity.valueMissing, "the moved radio is checked in its new group");
+}, "Required radio group validity is updated when the checked radio moves to another tree");
+
+test(t => {
+    const { container, shadowRoot } = setup(t);
+    const moved = radio("invalid-to-valid", { required: true });
+    const other = radio("invalid-to-valid", { required: true });
+    container.append(moved, other);
+    const checkedInShadow = radio("invalid-to-valid", { checked: true });
+    shadowRoot.appendChild(checkedInShadow);
+    assert_true(moved.matches(":invalid"), "no radio in the document's group is checked");
+
+    shadowRoot.moveBefore(moved, null);
+
+    assert_true(moved.matches(":valid"), "the shadow root's group has a checked radio");
+    assert_false(moved.matches(":invalid"));
+    assert_true(other.matches(":invalid"), "the document's group still has no checked radio");
+}, "A required radio moved into a group with a checked radio matches :valid");
+
+test(t => {
+    const { container, shadowRoot } = setup(t);
+    const moved = radio("valid-to-invalid", { required: true });
+    const checkedRadio = radio("valid-to-invalid", { checked: true, required: true });
+    container.append(moved, checkedRadio);
+    const uncheckedInShadow = radio("valid-to-invalid", { required: true });
+    shadowRoot.appendChild(uncheckedInShadow);
+    assert_true(moved.matches(":valid"), "the document's group has a checked radio");
+
+    shadowRoot.moveBefore(moved, null);
+
+    assert_true(moved.matches(":invalid"), "no radio in the shadow root's group is checked");
+    assert_true(uncheckedInShadow.matches(":invalid"));
+    assert_true(checkedRadio.matches(":valid"));
+}, "A required radio moved into a group without a checked radio matches :invalid");
+
+test(t => {
+    const { container, shadowRoot } = setup(t);
+    const form = document.createElement("form");
+    const inForm = radio("form-owned", { checked: true });
+    const otherInForm = radio("form-owned");
+    form.append(inForm, otherInForm);
+    container.appendChild(form);
+    const formlessInShadow = radio("form-owned", { checked: true });
+    shadowRoot.appendChild(formlessInShadow);
+
+    // Moving the form keeps its radios' form owner while changing their tree.
+    shadowRoot.moveBefore(form, null);
+    assert_equals(otherInForm.form, form);
+
+    otherInForm.checked = true;
+    assert_false(inForm.checked, "radios in the form are still in the form's group");
+    assert_true(formlessInShadow.checked, "a radio with a form owner isn't in the shadow root's group for radios without one");
+}, "Radios with a form owner stay in the form's group when moved into a shadow root");
+
+test(t => {
+    const { container } = setup(t);
+    const a = radio("same-tree", { checked: true });
+    const b = radio("same-tree");
+    const other = document.createElement("div");
+    container.append(a, other, b);
+
+    other.moveBefore(a, null);
+    b.checked = true;
+
+    assert_false(a.checked, "a and b are still in the same group");
+}, "A radio moved within the same tree stays in its radio button group");
+</script>
+</body>

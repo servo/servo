@@ -45,6 +45,7 @@ promise_test(async t => {
     name: 'parent_tool_exposed',
     description: 'Parent tool exposed to child',
     inputSchema: { type: 'object', properties: { query: { type: 'string' } } },
+    outputSchema: null,
     origin: self.origin
   }), 'Tool details should match');
 
@@ -105,6 +106,7 @@ promise_test(async t => {
     name: 'iframe_tool_exposed',
     description: 'Iframe tool exposed to parent',
     inputSchema: { type: 'object', properties: { query: { type: 'string' } } },
+    outputSchema: null,
     origin: host_info.HTTPS_REMOTE_ORIGIN
   }), 'Tool details should match');
 

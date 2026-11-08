@@ -2742,6 +2742,1382 @@
   variants:
   - *load-font-variant-definition
 
+- name: 2d.text.shape.selection-rects.tentative
+  desc: >-
+    Check that ShapedText::selectionRects() matches its DOM equivalent, with
+    direction {{ text_direction }}, text align {{ text_align }},
+    {{ letter_spacing }} letter spacing, and {{ variant_names[3] }}.
+  canvas_types: ['HtmlCanvas', 'OffscreenCanvas']
+  code: |
+    function placeAndSelectTextInDOM(text, from, to) {
+      const el = document.createElement("div");
+      el.innerHTML = text;
+      el.style.font = '50px sans-serif';
+      el.style.direction = '{{ text_direction }}';
+      el.style.textAlign = '{{ text_align }}';
+      el.style.letterSpacing = '{{ letter_spacing }}';
+      document.body.appendChild(el);
+
+      let range = document.createRange();
+
+      range.setStart(el.childNodes[0], 0);
+      range.setEnd(el.childNodes[0], text.length);
+      const parent = range.getClientRects()[0];
+      let width = 0;
+      for (const rect of range.getClientRects()) {
+        width += rect.width;
+      }
+
+      range.setStart(el.childNodes[0], from);
+      range.setEnd(el.childNodes[0], to);
+
+      let sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+
+      let sel_rects = sel.getRangeAt(0).getClientRects();
+
+      document.body.removeChild(el);
+
+      // Offset to the alignment point determined by textAlign.
+      let text_align_dx;
+      switch (el.style.textAlign) {
+        case 'right':
+          text_align_dx = width;
+          break;
+        case 'center':
+          text_align_dx = width / 2;
+          break;
+        default:
+          text_align_dx = 0;
+      }
+
+      for(let i = 0 ; i < sel_rects.length ; ++i) {
+        sel_rects[i].x -= parent.x + text_align_dx;
+        sel_rects[i].y -= parent.y;
+      }
+
+      return sel_rects;
+    }
+
+    function checkRectListsMatch(list_a, list_b) {
+      @assert list_a.length === list_b.length;
+      for(let i = 0 ; i < list_a.length ; ++i) {
+        assert_approx_equals(list_a[i].x, list_b[i].x, 1.0);
+        assert_approx_equals(list_a[i].width, list_b[i].width, 1.0);
+        assert_approx_equals(list_a[i].height, list_b[i].height, 1.0);
+        // Y-position not tested here as getting the baseline for text in the
+        // DOM is not straightforward.
+      }
+    }
+    {% if use_directional_override %}
+
+    function addDirectionalOverrideCharacters(text, direction_is_ltr) {
+      // source: www.w3.org/International/questions/qa-bidi-unicode-controls.en
+      const LTR_OVERRIDE = '\u202D';
+      const RTL_OVERRIDE = '\u202E';
+      const OVERRIDE_END = '\u202C';
+      if (direction_is_ltr) {
+        return LTR_OVERRIDE + text + OVERRIDE_END;
+      }
+      return RTL_OVERRIDE + text + OVERRIDE_END;
+    }
+    {% endif %}
+
+    ctx.font = '50px sans-serif';
+    ctx.direction = '{{ text_direction }}';
+    ctx.textAlign = '{{ text_align }}';
+    ctx.letterSpacing = '{{ letter_spacing }}';
+
+    const kTexts = [
+      'UNAVAILABLE',
+      '🏁🎶🏁',
+      '）（あ）（',
+      '-abcd_',
+      'איפה הספרייה?',
+      'bidiמתמטיקה'
+    ]
+
+    for (text of kTexts) {
+      {% if use_directional_override %}
+      text = addDirectionalOverrideCharacters(text, ctx.direction == 'ltr');
+      {% endif %}
+      const st = ctx.shapeText(text);
+      // First character.
+      checkRectListsMatch(
+        st.selectionRects(0, 1),
+        placeAndSelectTextInDOM(text, 0, 1)
+      );
+      // Last character.
+      checkRectListsMatch(
+        st.selectionRects(text.length - 1, text.length),
+        placeAndSelectTextInDOM(text, text.length - 1, text.length)
+      );
+      // Whole string.
+      checkRectListsMatch(
+        st.selectionRects(0, text.length),
+        placeAndSelectTextInDOM(text, 0, text.length)
+      );
+      // Intermediate string.
+      checkRectListsMatch(
+        st.selectionRects(1, text.length - 1),
+        placeAndSelectTextInDOM(text, 1, text.length - 1)
+      );
+      // Invalid start > end string. Creates 0 width rectangle.
+      checkRectListsMatch(
+        st.selectionRects(3, 2),
+        placeAndSelectTextInDOM(text, 3, 2)
+      );
+      checkRectListsMatch(
+        st.selectionRects(1, 0),
+        placeAndSelectTextInDOM(text, 1, 0)
+      );
+    }
+  variants_layout: [single_file, single_file, single_file, single_file]
+  variants:
+  - direction-ltr:
+      text_direction: ltr
+    direction-rtl:
+      text_direction: rtl
+  - align-left:
+      text_align: left
+    align-center:
+      text_align: center
+    align-right:
+      text_align: right
+  - no-spacing:
+      letter_spacing: 0px
+    spacing:
+      letter_spacing: 10px
+  - no-directional-override:
+      use_directional_override: false
+    directional-override:
+      use_directional_override: true
+
+- name: 2d.text.shape.selection-rects-baselines.tentative
+  desc: >-
+    Check that ShapedText::selectionRects() works correctly with
+    textBaseline.
+  code: |
+    ctx.font = '50px sans-serif';
+
+    const kBaselines = [
+      "top",
+      "hanging",
+      "middle",
+      "alphabetic",
+      "ideographic",
+      "bottom",
+    ];
+
+    const kTexts = [
+      'UNAVAILABLE',
+      '🏁🎶🏁',
+      '）（あ）（',
+      '-abcd_',
+      'איפה הספרייה?',
+      'bidiמתמטיקה'
+    ]
+
+    for (const text of kTexts) {
+      for (const baseline of kBaselines) {
+        ctx.textBaseline = baseline;
+        const tm = ctx.measureText(text);
+        const st = ctx.shapeText(text);
+        // First character.
+        for (const r of st.selectionRects(0, 1)) {
+          assert_approx_equals(r.top, -tm.fontBoundingBoxAscent, 1.0);
+          assert_approx_equals(r.bottom, tm.fontBoundingBoxDescent, 1.0);
+        }
+        // Last character.
+        for (const r of st.selectionRects(text.length - 1, text.length)) {
+          assert_approx_equals(r.top, -tm.fontBoundingBoxAscent, 1.0);
+          assert_approx_equals(r.bottom, tm.fontBoundingBoxDescent, 1.0);
+        }
+        // Whole string.
+        for (const r of st.selectionRects(0, text.length)) {
+          assert_approx_equals(r.top, -tm.fontBoundingBoxAscent, 1.0);
+          assert_approx_equals(r.bottom, tm.fontBoundingBoxDescent, 1.0);
+        }
+        // Intermediate string.
+        for (const r of st.selectionRects(1, text.length - 1)) {
+          assert_approx_equals(r.top, -tm.fontBoundingBoxAscent, 1.0);
+          assert_approx_equals(r.bottom, tm.fontBoundingBoxDescent, 1.0);
+        }
+        // Invalid start > end string. Creates 0 width rectangle.
+        for (const r of st.selectionRects(3, 2)) {
+          assert_approx_equals(r.top, -tm.fontBoundingBoxAscent, 1.0);
+          assert_approx_equals(r.bottom, tm.fontBoundingBoxDescent, 1.0);
+        }
+        for (const r of st.selectionRects(1, 0)) {
+          assert_approx_equals(r.top, -tm.fontBoundingBoxAscent, 1.0);
+          assert_approx_equals(r.bottom, tm.fontBoundingBoxDescent, 1.0);
+        }
+      }
+    }
+
+- name: 2d.text.shape.selection-rects-exceptions.tentative
+  desc: >-
+    Check that ShapedText::selectionRects() throws when using invalid
+    indexes.
+  code: |
+    const kTexts = [
+      'UNAVAILABLE',
+      '🏁🎶🏁',
+      '）（あ）（',
+      '-abcd_',
+      'اين المكتبة؟',
+      'bidiالرياضيات'
+    ]
+
+    for (const text of kTexts) {
+      const st = ctx.shapeText(text);
+      // Handled by the IDL binding.
+      assert_throws_js(TypeError, () => st.selectionRects(-1, 0) );
+      assert_throws_js(TypeError, () => st.selectionRects(0, -1) );
+      assert_throws_js(TypeError, () => st.selectionRects(-1, -1) );
+      // Thrown in ShapedText.
+      assert_throws_dom("IndexSizeError",
+                        () => st.selectionRects(text.length + 1, 0) );
+      assert_throws_dom("IndexSizeError",
+                        () => st.selectionRects(0, text.length + 1) );
+      assert_throws_dom("IndexSizeError",
+                        () => st.selectionRects(text.length + 1, text.length + 1) );
+    }
+
+- name: 2d.text.shape.actualBoundingBox.tentative
+  desc: >-
+    Test ShapedText::actualBoundingBox(), with text align {{ text_align }}
+    , and {{ letter_spacing }} letter spacing.
+  test_type: promise
+  fonts:
+  - CanvasTest
+  size: [800, 200]
+  code: |
+    // Use measureText to create a rect for the whole text
+    function getFullTextBoundingBox(text) {
+      const tm = ctx.measureText(text);
+      return {
+        x: -tm.actualBoundingBoxLeft,
+        y: -tm.actualBoundingBoxAscent,
+        width: tm.actualBoundingBoxLeft + tm.actualBoundingBoxRight,
+        height: tm.actualBoundingBoxAscent + tm.actualBoundingBoxDescent
+      };
+    }
+
+    // Returns a string that replaces the characters in text that are not in the
+    // range [start, end) with spaces.
+    function buildTestString(text, start, end) {
+      let ret = '';
+      for (let i = 0; i < text.length; ++i) {
+        if (start <= i && i < end)
+          ret += text[i];
+        else
+          ret += ' ';
+      }
+      return ret;
+    }
+
+    function checkRectsMatch(rect_a, rect_b, text, start, end) {
+      assert_approx_equals(rect_a.x, rect_b.x, 1.0, `${text} :: x :: ${start} to ${end}`);
+      assert_approx_equals(rect_a.y, rect_b.y, 1.0, `${text} :: y :: ${start} to ${end}`);
+      assert_approx_equals(rect_a.width, rect_b.width, 1.0, `${text} :: width :: ${start} to ${end}`);
+      assert_approx_equals(rect_a.height, rect_b.height, 1.0, `${text} :: height :: ${start} to ${end}`);
+    }
+
+    function testForSubstring(text, start, end) {
+      const shapedText = ctx.shapeText(text);
+      const rect_from_api = shapedText.actualBoundingBox(start, end);
+      const rect_from_full_bounds = getFullTextBoundingBox(
+                                      buildTestString(text, start, end));
+      checkRectsMatch(rect_from_api, rect_from_full_bounds, buildTestString(text, start, end), start, end);
+    }
+
+    {{ load_font }}
+    ctx.textAlign = '{{ text_align }}';
+    ctx.letterSpacing = '{{ letter_spacing }}';
+
+    const kAligns = [
+      'left',
+      'center',
+      'right',
+    ];
+
+    const kBaselines = [
+      'top',
+      'hanging',
+      'middle',
+      'alphabetic',
+      'ideographic',
+      'bottom',
+    ];
+
+    ctx.font = '50px CanvasTest';
+    const text = 'ABCDE';
+    for (const align of kAligns) {
+      for (const baseline of kBaselines) {
+        ctx.textAlign = align;
+        ctx.textBaseline = baseline;
+        // Full string.
+        testForSubstring(text, 0, text.length);
+        // Intermediate string.
+        testForSubstring(text, 1, text.length - 1);
+        // First character.
+        testForSubstring(text, 0, 1);
+        // Intermediate character.
+        testForSubstring(text, 2, 3);
+      }
+    }
+  variants_layout:
+      [multi_files, single_file, single_file]
+  variants:
+  - *load-font-variant-definition
+  - align-left:
+      text_align: left
+    align-center:
+      text_align: center
+    align-right:
+      text_align: right
+  - no-spacing:
+      letter_spacing: 0px
+    spacing:
+      letter_spacing: 10px
+
+- name: 2d.text.shape.actualBoundingBox-full-text.tentative
+  desc: >-
+    Test ShapedText::actualBoundingBox() for the full length of the string
+    for some edge cases, with direction {{ text_direction }} and
+    {{ variant_names[1] }}
+  size: [800, 200]
+  code: |
+    // Use measureText to create a rect for the whole text
+    function getFullTextBoundingBox(text) {
+      const tm = ctx.measureText(text);
+      return {
+        x: -tm.actualBoundingBoxLeft,
+        y: -tm.actualBoundingBoxAscent,
+        width: tm.actualBoundingBoxLeft + tm.actualBoundingBoxRight,
+        height: tm.actualBoundingBoxAscent + tm.actualBoundingBoxDescent
+      };
+    }
+
+    function checkRectsMatch(rect_a, rect_b) {
+      assert_approx_equals(rect_a.x, rect_b.x, 1.0);
+      assert_approx_equals(rect_a.y, rect_b.y, 1.0);
+      assert_approx_equals(rect_a.width, rect_b.width, 1.0);
+      assert_approx_equals(rect_a.height, rect_b.height, 1.0);
+    }
+    {% if use_directional_override %}
+
+    function addDirectionalOverrideCharacters(text, direction_is_ltr) {
+      // source: www.w3.org/International/questions/qa-bidi-unicode-controls.en
+      const LTR_OVERRIDE = '\u202D';
+      const RTL_OVERRIDE = '\u202E';
+      const OVERRIDE_END = '\u202C';
+      if (direction_is_ltr) {
+        return LTR_OVERRIDE + text + OVERRIDE_END;
+      }
+      return RTL_OVERRIDE + text + OVERRIDE_END;
+    }
+    {% endif %}
+
+    const kAligns = [
+      'left',
+      'center',
+      'right',
+    ];
+
+    const kBaselines = [
+      'top',
+      'hanging',
+      'middle',
+      'alphabetic',
+      'ideographic',
+      'bottom',
+    ];
+
+    const kTexts = [
+      'UNAVAILABLE',
+      '🏁🎶🏁',
+      '）（あ）（',
+      '-abcd ',
+      'اين المكتبة؟',
+      'bidiالرياضيات'
+    ]
+
+    ctx.font = '50px sans-serif';
+    ctx.direction = '{{ text_direction }}';
+    for (const align of kAligns) {
+      for (const baseline of kBaselines) {
+        ctx.textAlign = align;
+        ctx.textBaseline = baseline;
+        for (text of kTexts) {
+          {% if use_directional_override %}
+          text = addDirectionalOverrideCharacters(text, ctx.direction == 'ltr');
+          {% endif %}
+          const st = ctx.shapeText(text);
+          const rect_from_api = st.actualBoundingBox(0, text.length);
+          const rect_from_full_bounds = getFullTextBoundingBox(text);
+          checkRectsMatch(rect_from_api, rect_from_full_bounds);
+        }
+      }
+    }
+  variants_layout: [single_file, single_file]
+  variants:
+  - direction-ltr:
+      text_direction: ltr
+    direction-rtl:
+      text_direction: rtl
+  - no-directional-override:
+      use_directional_override: false
+    directional-override:
+      use_directional_override: true
+
+- name: 2d.text.shape.actualBoundingBox-exceptions.tentative
+  desc: >-
+    Check that ShapedText::actualBoundingBox() throws when using invalid
+    indexes.
+  code: |
+    const kTexts = [
+      'UNAVAILABLE',
+      '🏁🎶🏁',
+      '）（あ）（',
+      '-abcd_',
+      'اين المكتبة؟',
+      'bidiالرياضيات'
+    ]
+
+    for (const text of kTexts) {
+      const st = ctx.shapeText(text);
+      // Handled by the IDL binding.
+      assert_throws_js(TypeError, () => st.actualBoundingBox(-1, 0) );
+      assert_throws_js(TypeError, () => st.actualBoundingBox(0, -1) );
+      assert_throws_js(TypeError, () => st.actualBoundingBox(-1, -1) );
+      // Thrown in ShapedText.
+      assert_throws_dom("IndexSizeError",
+                        () => st.actualBoundingBox(text.length, 0) );
+      assert_throws_dom("IndexSizeError",
+                        () => st.actualBoundingBox(0, text.length + 1) );
+      assert_throws_dom("IndexSizeError",
+                        () => st.actualBoundingBox(text.length, text.length + 1) );
+    }
+
+- name: 2d.text.shape.advance-to-position.tentative
+  desc: >-
+    Check that ShapedText::advanceToPosition() matches its DOM equivalent,
+    where possible, with direction {{ text_direction }}, text align
+    {{ text_align }}, {{ letter_spacing }} letter spacing and
+    {{ variant_names[3] }}.
+  canvas_types: ['HtmlCanvas', 'OffscreenCanvas']
+  code: |
+    function alignOffset(offset, width) {
+      if ('{{ text_align }}' == 'center') {
+        offset -= width / 2;
+      } else if ('{{ text_align }}' == 'right' ||
+               ('{{ text_direction }}' == 'ltr' && '{{ text_align }}' == 'end') ||
+               ('{{ text_direction }}' == 'rtl' && '{{ text_align }}' == 'start')) {
+        offset -= width;
+      }
+      return offset;
+    }
+
+    {% if use_directional_override %}
+    function addDirectionalOverrideCharacters(text, direction_is_ltr) {
+      // source: www.w3.org/International/questions/qa-bidi-unicode-controls.en
+      const LTR_OVERRIDE = '\u202D';
+      const RTL_OVERRIDE = '\u202E';
+      const OVERRIDE_END = '\u202C';
+      if (direction_is_ltr) {
+        return LTR_OVERRIDE + text + OVERRIDE_END;
+      }
+      return RTL_OVERRIDE + text + OVERRIDE_END;
+    }
+    {% endif %}
+
+    function placeAndMeasureTextInDOM(text, text_width, point) {
+      const el = document.createElement("p");
+      el.innerHTML = text;
+      el.style.font = '50px sans-serif';
+      el.style.direction = '{{ text_direction }}';
+      el.style.letterSpacing = '{{ letter_spacing }}';
+      // Put the text top left to make offsets simpler.
+      el.style.padding = '0px';
+      el.style.margin = '0px';
+      el.style.position = 'absolute';
+      el.style.x = '0px';
+      el.style.y = '0px';
+      document.body.appendChild(el);
+      text_bound = el.getBoundingClientRect();
+      text_x = text_bound.x;
+      text_y = text_bound.y + text_bound.height / 2;
+
+      // Offset to the requested point determined by textAlign and direction.
+      let text_align_dx = 0;
+      if ('{{ text_align }}' == 'center') {
+        text_align_dx = text_width / 2;
+      } else if ('{{ text_align }}' == 'right' ||
+               ('{{ text_direction }}' == 'ltr' && '{{ text_align }}' == 'end') ||
+               ('{{ text_direction }}' == 'rtl' && '{{ text_align }}' == 'start')) {
+        text_align_dx = text_width;
+      }
+      position = document.caretPositionFromPoint(point + text_align_dx + text_x, text_y);
+      @assert position.offsetNode.parentNode === el;
+
+      document.body.removeChild(el);
+
+      return position.offset;
+    }
+
+    ctx.font = '50px sans-serif';
+    ctx.direction = '{{ text_direction }}';
+    ctx.textAlign = '{{ text_align }}';
+    ctx.letterSpacing = '{{ letter_spacing }}';
+
+    const kTexts = [
+      'UNAVAILABLE',
+      '🏁🎶🏁',
+      '）（あ）（',
+      '）（ああ）（',
+      'ああ）（ああ',
+      '--abcd__'
+    ]
+
+    for (text of kTexts) {
+      {% if use_directional_override %}
+      text = addDirectionalOverrideCharacters(text, ctx.direction == 'ltr');
+      {% endif %}
+      const st = ctx.shapeText(text);
+      text_width = st.width;
+      step = 30;
+      if ('{{letter_spacing}}' == '10px') {
+        step = 40;
+      }
+
+      offset = step;
+      adjusted_offset = alignOffset(offset, text_width);
+      st_position = st.advanceToPosition(adjusted_offset);
+      doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+      assert_equals(st_position,
+                    doc_position,
+                    "for " + text + " offset " + offset);
+
+      offset = text_width / 2 - 10;
+      adjusted_offset = alignOffset(offset, text_width);
+      st_position = st.advanceToPosition(adjusted_offset);
+      doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+      assert_equals(st_position,
+                    doc_position,
+                    "for " + text + " offset " + offset);
+
+      offset = text_width / 2 + 10;
+      adjusted_offset = alignOffset(offset, text_width);
+      st_position = st.advanceToPosition(adjusted_offset);
+      doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+      assert_equals(st_position,
+                    doc_position,
+                    "for " + text + " offset " + offset);
+
+      offset = text_width - step;
+      adjusted_offset = alignOffset(offset, text_width);
+      st_position = st.advanceToPosition(adjusted_offset);
+      doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+      assert_equals(st_position,
+                    doc_position,
+                    "for " + text + " offset " + offset);
+    }
+  variants_layout: [single_file, single_file, single_file, single_file]
+  variants:
+  - direction-ltr:
+      text_direction: ltr
+    direction-rtl:
+      text_direction: rtl
+  - align-left:
+      text_align: left
+    align-center:
+      text_align: center
+    align-right:
+      text_align: right
+    align-start:
+      text_align: start
+    align-end:
+      text_align: end
+  - no-spacing:
+      letter_spacing: 0px
+    spacing:
+      letter_spacing: 10px
+  - no-directional-override:
+      use_directional_override: false
+    directional-override:
+      use_directional_override: true
+
+- name: 2d.text.shape.advance-to-position-edges.tentative
+  desc: >-
+    Check that ShapedText::advanceToPosition() gives correct edges when
+    the requested point is outside the range, with direction {{ text_direction }}
+    and text align {{ text_align }}.
+  code: |
+    function computeExpected(text, text_width, offset) {
+      expected_position = 0;
+      if ('{{ text_align }}' == 'center' && offset == 0) {
+        return text.length / 2;
+      }
+      if ('{{ text_direction }}' == 'ltr') {
+        if (offset >= text_width) {
+          return text.length;
+        }
+        if (offset <= -text_width) {
+          return 0;
+        }
+        // offset must be 0.
+        if ('{{ text_align }}' == 'start' || '{{ text_align }}' == 'left') {
+          return 0;
+        } else {
+          return text.length;
+        }
+      } else {
+        if (offset >= text_width) {
+          return 0;
+        }
+        if (offset <= -text_width) {
+          return text.length;
+        }
+        // offset must be 0.
+        if ('{{ text_align }}' == 'start' || '{{ text_align }}' == 'right') {
+          return 0;
+        } else {
+          return text.length;
+        }
+      }
+      return expected_position;
+    }
+
+    ctx.font = '50px sans-serif';
+    ctx.direction = '{{ text_direction }}';
+    ctx.textAlign = '{{ text_align }}';
+    ctx.letterSpacing = '{{ letter_spacing }}';
+
+    // The leading and trailing '-' cause the string to always follow
+    // the specified direction, even though the interior will always be ltr.
+    const text = '-0123456789-';
+
+    // Points are multiples of the string width as reported by
+    // shapedText.width.
+    const kPoints = [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+
+    const st = ctx.shapeText(text);
+    text_width = st.width;
+    for (const multiple of kPoints) {
+      offset = multiple * text_width;
+      st_position = st.advanceToPosition(offset);
+      expected_position = computeExpected(text, text_width, offset);
+      assert_equals(st_position,
+                    expected_position,
+                    "for " + text + " multiple " + multiple);
+    }
+  variants_layout: [single_file, single_file]
+  variants:
+  - direction-ltr:
+      text_direction: ltr
+    direction-rtl:
+      text_direction: rtl
+  - align-left:
+      text_align: left
+    align-center:
+      text_align: center
+    align-right:
+      text_align: right
+    align-start:
+      text_align: start
+    align-end:
+      text_align: end
+
+- name: 2d.text.shape.advance-to-position-edge-cases.tentative
+  desc: >-
+    Test the edge cases for advanceToPosition, where the point is at the
+    edge of glyph and at the midpoint.
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    ctx.direction = 'ltr';
+    ctx.align = 'left';
+    ctx.baseline = 'alphabetic';
+    st = ctx.shapeText('A');
+    const a_width = st.width;
+    st = ctx.shapeText('B');
+    const b_width = st.width;
+    st = ctx.shapeText('C');
+    const c_width = st.width;
+
+    st = ctx.shapeText('ABC');
+    @assert st.advanceToPosition(0) == 0;
+    @assert st.advanceToPosition(a_width / 2) == 0;
+    @assert st.advanceToPosition(a_width / 2 + 1) == 1;
+    @assert st.advanceToPosition(a_width) == 1;
+    @assert st.advanceToPosition(a_width + b_width / 2) == 1;
+    @assert st.advanceToPosition(a_width + b_width / 2 + 1) == 2;
+    @assert st.advanceToPosition(a_width + b_width) == 2;
+    @assert st.advanceToPosition(a_width + b_width + c_width / 2) == 2;
+    @assert st.advanceToPosition(a_width + b_width + c_width / 2 + 1) == 3;
+    @assert st.advanceToPosition(a_width + b_width + c_width) == 3;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.shape.position-to-advance.tentative
+  desc: >-
+    Test ShapedText::positionToAdvance() and its symmetry with
+    advanceToPosition() and glyphClusters().
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    ctx.direction = 'ltr';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+
+    const text = 'ABC';
+    const st = ctx.shapeText(text);
+    const clusters = st.glyphClusters();
+    @assert clusters.length === 3;
+
+    assert_approx_equals(st.positionToAdvance(0), 0, 1e-4);
+    assert_approx_equals(st.positionToAdvance(1), clusters[1].x, 1e-4);
+    assert_approx_equals(st.positionToAdvance(2), clusters[2].x, 1e-4);
+    assert_approx_equals(st.positionToAdvance(3), st.width, 1e-4);
+
+    for (let i = 0; i <= text.length; ++i) {
+      const adv = st.positionToAdvance(i);
+      @assert st.advanceToPosition(adv) === i;
+    }
+
+    assert_throws_js(TypeError, () => st.positionToAdvance(-1));
+    assert_throws_dom("IndexSizeError", () => st.positionToAdvance(text.length + 1));
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.shape.glyph-clusters-split.tentative
+  desc: >-
+    Test that glyphClusters() splits the input correctly into the
+    minimal clusters, keeping emojis together.
+  size: [400, 200]
+  code: |
+    function getClusterIndexes(text) {
+      const clusters = ctx.shapeText(text).glyphClusters();
+      const result = [];
+      for (let i = 0; i < clusters.length; i++) {
+        const end = clusters[i].end;
+        if (end === (i + 1 < clusters.length ? clusters[i + 1].start : text.length)) {
+          result.push(clusters[i].start);
+        } else {
+          result.push([clusters[i].start, clusters[i].end]);
+        }
+      }
+      return result;
+    }
+
+    function assertClusterIndexes(text, expected) {
+      const actual = getClusterIndexes(text);
+      assert_array_equals(actual, expected);
+    }
+
+    ctx.font = '50px serif';
+    const text = 'ABC ☺️❤️';
+    ctx.fillText(text, 20, 100);
+    assertClusterIndexes(text, [0, 1, 2, 3, 4, 6]);
+
+    // [UAX#29]: https://unicode.org/reports/tr29/
+    // [UAX#29] GB9: × (Extend | ZWJ)
+    assertClusterIndexes('X\u200DY', [0, 2]);
+    // [UAX#29] GB11: \p{Extended_Pictographic} Extend* ZWJ × \p{Extended_Pictographic}
+    assertClusterIndexes('\u{1FFFD}\u200D\u{1FFFD}', [0]);
+
+- name: 2d.text.shape.glyph-clusters-exceptions.tentative
+  desc: >-
+    Check that ShapedText::glyphClusters() throws when using invalid
+    indexes.
+  code: |
+    const kTexts = [
+      'UNAVAILABLE',
+      '🏁🎶🏁',
+      '）（あ）（',
+      '-abcd_'
+    ]
+
+    for (const text of kTexts) {
+      const st = ctx.shapeText(text);
+      // Handled by the IDL binding.
+      assert_throws_js(TypeError, () => st.glyphClusters(-1, 0) );
+      assert_throws_js(TypeError, () => st.glyphClusters(0, -1) );
+      assert_throws_js(TypeError, () => st.glyphClusters(-1, -1) );
+      // Thrown in ShapedText.
+      assert_throws_dom("IndexSizeError",
+              () => st.glyphClusters(text.length, 0) );
+      assert_throws_dom("IndexSizeError",
+              () => st.glyphClusters(0, text.length + 1) );
+      assert_throws_dom("IndexSizeError",
+              () => st.glyphClusters(text.length, text.length + 1) );
+    }
+
+- name: 2d.text.shape.glyph-clusters-position.tentative
+  desc: >-
+    Test that ShapedText::glyphClusters() and ShapedText::glyphRuns() return
+    GlyphRun objects positioned according to the context textAlign and
+    textBaseline at shapeText() time, and expose per-run TextMetrics.
+  size: [500, 500]
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '40px CanvasTest';
+    const text = 'E';
+
+    ctx.textBaseline = 'top';
+
+    ctx.textAlign = 'left';
+    let st = ctx.shapeText(text);
+    @assert Math.abs(st.glyphClusters()[0].x) === 0;
+    @assert Math.abs(st.glyphClusters()[0].y) === 0;
+    @assert st.glyphClusters()[0].width === 40;
+    @assert st.glyphClusters()[0].textMetrics().width === 40;
+    @assert st.glyphRuns().length === 1;
+    @assert Math.abs(st.glyphRuns()[0].x) === 0;
+    @assert st.glyphRuns()[0].width === 40;
+
+    ctx.textAlign = 'center';
+    st = ctx.shapeText(text);
+    @assert st.glyphClusters()[0].x === -20;
+    @assert st.glyphRuns()[0].x === -20;
+
+    ctx.textAlign = 'right';
+    st = ctx.shapeText(text);
+    @assert st.glyphClusters()[0].x === -40;
+    @assert st.glyphRuns()[0].x === -40;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.shape.fillGlyphRun-align.tentative
+  desc: >-
+    Test that fillGlyphRun() and fillGlyphRuns() correctly position the text,
+    taking into account the textAlign from the context at the time the text was
+    shaped.
+  size: [250, 43]
+  code: |
+    ctx.font = '20px serif';
+    const text = 'Test ☺️ א';
+    const x = canvas.width / 2;
+    const y = canvas.height / 2;
+
+    ctx.textAlign = '{{ ctx_align }}';
+    let st = ctx.shapeText(text);
+    const clusters = st.glyphClusters();
+
+    // Rendering all clusters with the same (x, y) parameters must be
+    // equivalent to a fillText() call at (x, y).
+    ctx.fillGlyphRuns(clusters, x, y);
+  reference: |
+    ctx.font = '20px serif';
+    const text = 'Test ☺️ א';
+    const x = canvas.width / 2;
+    const y = canvas.height / 2;
+
+    ctx.textAlign = '{{ ctx_align }}';
+
+    // Rendering all clusters with the same (x, y) parameters must be
+    // equivalent to a fillText() call at (x, y).
+    ctx.fillText(text, x, y);
+  variants_layout:
+      [single_file]
+  variants:
+  - ctx_align_left:
+      ctx_align: left
+    ctx_align_center:
+      ctx_align: center
+    ctx_align_right:
+      ctx_align: right
+
+- name: 2d.text.shape.strokeGlyphRun-align.tentative
+  desc: >-
+    Test that strokeGlyphRun() and strokeGlyphRuns() correctly position the
+    text, taking into account the textAlign from the context at the time the
+    text was shaped.
+  size: [250, 43]
+  code: |
+    ctx.font = '20px serif';
+    const text = 'Test ☺️ א';
+    const x = canvas.width / 2;
+    const y = canvas.height / 2;
+
+    ctx.textAlign = '{{ ctx_align }}';
+    let st = ctx.shapeText(text);
+    const clusters = st.glyphClusters();
+
+    // Rendering all clusters with the same (x, y) parameters must be
+    // equivalent to a strokeText() call at (x, y).
+    ctx.strokeGlyphRuns(clusters, x, y);
+  reference: |
+    ctx.font = '20px serif';
+    const text = 'Test ☺️ א';
+    const x = canvas.width / 2;
+    const y = canvas.height / 2;
+
+    ctx.textAlign = '{{ ctx_align }}';
+
+    // Rendering all clusters with the same (x, y) parameters must be
+    // equivalent to a strokeText() call at (x, y).
+    ctx.strokeText(text, x, y);
+  variants_layout:
+      [single_file]
+  variants:
+  - ctx_align_left:
+      ctx_align: left
+    ctx_align_center:
+      ctx_align: center
+    ctx_align_right:
+      ctx_align: right
+
+- name: 2d.text.shape.fillGlyphRun-baseline.tentative
+  desc: >-
+    Test that fillGlyphRun() correctly positions the text, taking into
+    account the textBaseline from the context at the time the text was shaped.
+  size: [180, 43]
+  code: |
+    ctx.font = '20px serif';
+    const text = 'Test ☺️ א';
+    const x = 20;
+    const y = canvas.height / 2;
+
+    ctx.textBaseline = '{{ ctx_baseline }}';
+    let st = ctx.shapeText(text);
+    const clusters = st.glyphClusters();
+
+    // Rendering all clusters with the same (x, y) parameters must be
+    // equivalent to a fillText() call at (x, y).
+    for (const cluster of clusters) {
+        ctx.fillGlyphRun(cluster, x, y);
+    }
+  reference: |
+    ctx.font = '20px serif';
+    const text = 'Test ☺️ א';
+    const x = 20;
+    const y = canvas.height / 2;
+
+    ctx.textBaseline = '{{ ctx_baseline }}';
+    ctx.fillText(text, x, y);
+  variants_layout:
+      [single_file]
+  variants:
+  - ctx_baseline_top:
+      ctx_baseline: top
+    ctx_baseline_middle:
+      ctx_baseline: middle
+    ctx_baseline_bottom:
+      ctx_baseline: bottom
+    ctx_baseline_alphabetic:
+      ctx_baseline: alphabetic
+
+- name: 2d.text.shape.strokeGlyphRun-baseline.tentative
+  desc: >-
+    Test that strokeGlyphRun() correctly positions the text, taking into
+    account the textBaseline from the context at the time the text was shaped.
+  size: [180, 43]
+  code: |
+    ctx.font = '20px serif';
+    const text = 'Test ☺️ א';
+    const x = 20;
+    const y = canvas.height / 2;
+
+    ctx.textBaseline = '{{ ctx_baseline }}';
+    let st = ctx.shapeText(text);
+    const clusters = st.glyphClusters();
+
+    // Rendering all clusters with the same (x, y) parameters must be
+    // equivalent to a strokeText() call at (x, y).
+    for (const cluster of clusters) {
+        ctx.strokeGlyphRun(cluster, x, y);
+    }
+  reference: |
+    ctx.font = '20px serif';
+    const text = 'Test ☺️ א';
+    const x = 20;
+    const y = canvas.height / 2;
+
+    ctx.textBaseline = '{{ ctx_baseline }}';
+    ctx.strokeText(text, x, y);
+  variants_layout:
+      [single_file]
+  variants:
+  - ctx_baseline_top:
+      ctx_baseline: top
+    ctx_baseline_middle:
+      ctx_baseline: middle
+    ctx_baseline_bottom:
+      ctx_baseline: bottom
+    ctx_baseline_alphabetic:
+      ctx_baseline: alphabetic
+
+- name: 2d.text.shape.fillGlyphRun-font-change.tentative
+  desc: >-
+    Test that fillGlyphRun() renders in the font used originally when the
+    text was shaped, even if the font set on the context has changed since.
+  size: [500, 200]
+  code: |
+    ctx.font = '50px sans-serif';
+    const text = 'Hello ♦️ World!';
+    let st = ctx.shapeText(text);
+    const clusters = st.glyphClusters();
+
+    ctx.font = '80px serif';
+
+    const x = 100;
+    const y = 100;
+    for (const cluster of clusters) {
+        ctx.fillGlyphRun(cluster, x, y);
+    }
+  reference: |
+    ctx.font = '50px sans-serif';
+    const text = 'Hello ♦️ World!';
+
+    const x = 100;
+    const y = 100;
+    ctx.fillText(text, x, y);
+
+- name: 2d.text.shape.strokeGlyphRun-font-change.tentative
+  desc: >-
+    Test that strokeGlyphRun() renders in the font used originally when the
+    text was shaped, even if the font set on the context has changed since.
+  size: [500, 200]
+  code: |
+    ctx.font = '50px sans-serif';
+    const text = 'Hello ♦️ World!';
+    let st = ctx.shapeText(text);
+    const clusters = st.glyphClusters();
+
+    ctx.font = '80px serif';
+
+    const x = 100;
+    const y = 100;
+    for (const cluster of clusters) {
+        ctx.strokeGlyphRun(cluster, x, y);
+    }
+  reference: |
+    ctx.font = '50px sans-serif';
+    const text = 'Hello ♦️ World!';
+
+    const x = 100;
+    const y = 100;
+    ctx.strokeText(text, x, y);
+
+- name: 2d.text.shape.fillGlyphRun-drawing-styles-change.tentative
+  desc: >-
+    Test that fillGlyphRun() renders using the drawing styles as they were
+    when `ctx.shapeText()` was called, regardless of any changes in the
+    context since.
+  size: [250, 80]
+  code: |
+    ctx.font = '20px serif';
+    const text = 'Test ♦️ find';
+
+    {{ original_value }}
+
+    let st = ctx.shapeText(text);
+    const clusters = st.glyphClusters();
+
+    {{ modified_value }}
+
+    for (const cluster of clusters) {
+        ctx.fillGlyphRun(cluster, 10, 25);
+    }
+
+    ctx.fillText(text, 10, 50);
+  reference: |
+    ctx.font = '20px serif';
+    const text = 'Test ♦️ find';
+
+    {{ original_value }}
+
+    ctx.fillText(text, 10, 25);
+
+    {{ modified_value }}
+
+    ctx.fillText(text, 10, 50);
+  variants_layout:
+      [single_file]
+  grid_width: 2
+  variants:
+  - letter_spacing:
+      original_value: |-
+       ctx.letterSpacing = '2px';
+      modified_value: |-
+       ctx.letterSpacing = '6px';
+    word_spacing:
+      original_value: |-
+       ctx.wordSpacing = '2px';
+      modified_value: |-
+       ctx.wordSpacing = '10px';
+    font_kerning:
+      original_value: |-
+       ctx.fontKerning = 'none';
+      modified_value: |-
+       ctx.fontKerning = 'normal';
+    font_variant_caps:
+      original_value: |-
+       ctx.fontVariantCaps = 'small-caps';
+      modified_value: |-
+       ctx.fontVariantCaps = 'all-small-caps';
+
+- name: 2d.text.shape.strokeGlyphRun-drawing-styles-change.tentative
+  desc: >-
+    Test that strokeGlyphRun() renders using the drawing styles as they were
+    when `ctx.shapeText()` was called, regardless of any changes in the
+    context since.
+  size: [250, 80]
+  code: |
+    ctx.font = '20px serif';
+    const text = 'Test ♦️ find';
+
+    {{ original_value }}
+
+    let st = ctx.shapeText(text);
+    const clusters = st.glyphClusters();
+
+    {{ modified_value }}
+
+    for (const cluster of clusters) {
+        ctx.strokeGlyphRun(cluster, 10, 25);
+    }
+
+    ctx.strokeText(text, 10, 50);
+  reference: |
+    ctx.font = '20px serif';
+    const text = 'Test ♦️ find';
+
+    {{ original_value }}
+
+    ctx.strokeText(text, 10, 25);
+
+    {{ modified_value }}
+
+    ctx.strokeText(text, 10, 50);
+  variants_layout:
+      [single_file]
+  grid_width: 2
+  variants:
+  - letter_spacing:
+      original_value: |-
+       ctx.letterSpacing = '2px';
+      modified_value: |-
+       ctx.letterSpacing = '6px';
+    word_spacing:
+      original_value: |-
+       ctx.wordSpacing = '2px';
+      modified_value: |-
+       ctx.wordSpacing = '10px';
+    font_kerning:
+      original_value: |-
+       ctx.fontKerning = 'none';
+      modified_value: |-
+       ctx.fontKerning = 'normal';
+    font_variant_caps:
+      original_value: |-
+       ctx.fontVariantCaps = 'small-caps';
+      modified_value: |-
+       ctx.fontVariantCaps = 'all-small-caps';
+
+- name: 2d.text.shape.fillGlyphRun-range.tentative
+  desc: >-
+    Test that glyphClusters(start, end) and fillGlyphRuns() correctly render
+    different ranges of the input text.
+  test_type: promise
+  fonts:
+  - CanvasTest
+  size: [400, 300]
+  code: |
+    {{ load_font }}
+
+    ctx.font = '50px CanvasTest';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    const text = 'EEEEE';
+    let st = ctx.shapeText(text);
+
+    // Background color.
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = '#0f0';
+
+    // Without the first character.
+    ctx.fillGlyphRuns(st.glyphClusters(1, 5), 0, 0);
+    @assert pixel 5,5 ==~ 255,0,0,255;
+    @assert pixel 55,5 ==~ 0,255,0,255;
+    @assert pixel 105,5 ==~ 0,255,0,255;
+    @assert pixel 155,5 ==~ 0,255,0,255;
+    @assert pixel 205,5 ==~ 0,255,0,255;
+    // Without the last character.
+    ctx.fillGlyphRuns(st.glyphClusters(0, 4), 0, 100);
+    @assert pixel 5,105 ==~ 0,255,0,255;
+    @assert pixel 55,105 ==~ 0,255,0,255;
+    @assert pixel 105,105 ==~ 0,255,0,255;
+    @assert pixel 155,105 ==~ 0,255,0,255;
+    @assert pixel 205,105 ==~ 255,0,0,255;
+    // Only the middle character.
+    ctx.fillGlyphRuns(st.glyphClusters(2, 3), 0, 150);
+    @assert pixel 5,155 ==~ 255,0,0,255;
+    @assert pixel 55,155 ==~ 255,0,0,255;
+    @assert pixel 105,155 ==~ 0,255,0,255;
+    @assert pixel 155,155 ==~ 255,0,0,255;
+    @assert pixel 205,155 ==~ 255,0,0,255;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.shape.strokeGlyphRun-range.tentative
+  desc: >-
+    Test that glyphClusters(start, end) and strokeGlyphRuns() correctly render
+    different ranges of the input text.
+  test_type: promise
+  fonts:
+  - CanvasTest
+  size: [400, 300]
+  code: |
+    {{ load_font }}
+
+    ctx.font = '50px CanvasTest';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    const text = 'EEEEE';
+    let st = ctx.shapeText(text);
+
+    // Background color.
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = '#0f0';
+    ctx.lineWidth = 12;
+
+    // Without the first character.
+    ctx.strokeGlyphRuns(st.glyphClusters(1, 5), 0, 0);
+    @assert pixel 5,5 ==~ 255,0,0,255;
+    @assert pixel 55,5 ==~ 0,255,0,255;
+    @assert pixel 105,5 ==~ 0,255,0,255;
+    @assert pixel 155,5 ==~ 0,255,0,255;
+    @assert pixel 205,5 ==~ 0,255,0,255;
+    // Without the last character.
+    ctx.strokeGlyphRuns(st.glyphClusters(0, 4), 0, 100);
+    @assert pixel 5,105 ==~ 0,255,0,255;
+    @assert pixel 55,105 ==~ 0,255,0,255;
+    @assert pixel 105,105 ==~ 0,255,0,255;
+    @assert pixel 155,105 ==~ 0,255,0,255;
+    @assert pixel 245,105 ==~ 255,0,0,255;
+    // Only the middle character.
+    ctx.strokeGlyphRuns(st.glyphClusters(2, 3), 0, 200);
+    @assert pixel 5,205 ==~ 255,0,0,255;
+    @assert pixel 55,205 ==~ 255,0,0,255;
+    @assert pixel 105,205 ==~ 0,255,0,255;
+    @assert pixel 195,205 ==~ 255,0,0,255;
+    @assert pixel 245,205 ==~ 255,0,0,255;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.shape.fillGlyphRuns-and-strokeGlyphRuns.tentative
+  desc: >-
+    Test that fillGlyphRuns(st.glyphRuns(), x, y) and
+    strokeGlyphRuns(st.glyphRuns(), x, y) match fillText() and strokeText()
+    across mixed bidi and fallback runs.
+  size: [300, 100]
+  code: |
+    ctx.font = '20px serif';
+    const text = 'Test ☺️ א World';
+    let st = ctx.shapeText(text);
+    const runs = st.glyphRuns();
+    ctx.fillGlyphRuns(runs, 10, 35);
+    ctx.strokeGlyphRuns(runs, 10, 75);
+  reference: |
+    ctx.font = '20px serif';
+    const text = 'Test ☺️ א World';
+    ctx.fillText(text, 10, 35);
+    ctx.strokeText(text, 10, 75);
+
+- name: 2d.text.shape.fillGlyphRun-direction-change.tentative
+  desc: >-
+    Test that fillGlyphRun() and fillGlyphRuns() render with the direction
+    used when the text was shaped, even if the direction set on the context
+    has changed since.
+  size: [500, 200]
+  code: |
+    ctx.font = '30px serif';
+    ctx.textAlign = 'left';
+    ctx.direction = 'rtl';
+    // Brackets next to the paragraph edges take the paragraph direction, and
+    // are mirrored in RTL.
+    const texts = ['ab (', 'א (b)', 'Test ☺️ א World'];
+    const shaped = texts.map((text) => ctx.shapeText(text));
+
+    ctx.direction = 'ltr';
+    for (let i = 0; i < shaped.length; ++i) {
+      const y = 40 + i * 60;
+      for (const cluster of shaped[i].glyphClusters()) {
+        ctx.fillGlyphRun(cluster, 10, y);
+      }
+      ctx.fillGlyphRuns(shaped[i].glyphRuns(), 260, y);
+    }
+  reference: |
+    ctx.font = '30px serif';
+    ctx.textAlign = 'left';
+    ctx.direction = 'rtl';
+    const texts = ['ab (', 'א (b)', 'Test ☺️ א World'];
+
+    for (let i = 0; i < texts.length; ++i) {
+      const y = 40 + i * 60;
+      ctx.fillText(texts[i], 10, y);
+      ctx.fillText(texts[i], 260, y);
+    }
+
+- name: 2d.text.shape.strokeGlyphRun-direction-change.tentative
+  desc: >-
+    Test that strokeGlyphRun() and strokeGlyphRuns() render with the direction
+    used when the text was shaped, even if the direction set on the context
+    has changed since.
+  size: [500, 200]
+  code: |
+    ctx.font = '30px serif';
+    ctx.textAlign = 'left';
+    ctx.direction = 'rtl';
+    // Brackets next to the paragraph edges take the paragraph direction, and
+    // are mirrored in RTL.
+    const texts = ['ab (', 'א (b)', 'Test ☺️ א World'];
+    const shaped = texts.map((text) => ctx.shapeText(text));
+
+    ctx.direction = 'ltr';
+    for (let i = 0; i < shaped.length; ++i) {
+      const y = 40 + i * 60;
+      for (const cluster of shaped[i].glyphClusters()) {
+        ctx.strokeGlyphRun(cluster, 10, y);
+      }
+      ctx.strokeGlyphRuns(shaped[i].glyphRuns(), 260, y);
+    }
+  reference: |
+    ctx.font = '30px serif';
+    ctx.textAlign = 'left';
+    ctx.direction = 'rtl';
+    const texts = ['ab (', 'א (b)', 'Test ☺️ א World'];
+
+    for (let i = 0; i < texts.length; ++i) {
+      const y = 40 + i * 60;
+      ctx.strokeText(texts[i], 10, y);
+      ctx.strokeText(texts[i], 260, y);
+    }
+
 - name: 2d.text.drawing.style.absolute.spacing
   desc: Testing letter spacing and word spacing with absolute length
   code: |

@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>An SVG script whose ancestor is removed before its end tag doesn't run</title>
+<link rel="help" href="https://html.spec.whatwg.org/#scriptForeignEndTag">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+test(t => {
+    const iframe = document.createElement("iframe");
+    document.body.appendChild(iframe);
+    t.add_cleanup(() => iframe.remove());
+    window.svg_in_detached_ancestor_ran = false;
+    window.svg_control_ran = false;
+    t.add_cleanup(() => {
+        delete window.svg_in_detached_ancestor_ran;
+        delete window.svg_control_ran;
+    });
+    iframe.contentDocument.open();
+    iframe.contentDocument.write(
+        "<svg><script>parent.svg_control_ran = true;</" + "script></svg>" +
+        "<div id='d'><script>document.getElementById('d').remove();</" + "script>" +
+        "<svg><script>parent.svg_in_detached_ancestor_ran = true;</" + "script></svg></div>"
+    );
+    iframe.contentDocument.close();
+    assert_true(window.svg_control_ran, "Connected SVG <script> during document parsing must execute");
+    assert_false(window.svg_in_detached_ancestor_ran, "Disconnected SVG <script> during document parsing must not execute");
+}, "Document parsing does not execute an SVG <script> whose ancestor was disconnected before its end tag");
+</script>

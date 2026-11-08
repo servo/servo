@@ -1,5 +1,6 @@
 # mypy: allow-untyped-calls, allow-untyped-defs
 
+import gc
 import json
 import os
 import signal
@@ -366,6 +367,10 @@ def run_test_iteration(test_status, test_loader, test_queue_builder,
             unexpected_fail_tests = manager_group.unexpected_fail_tests()
             unexpected_pass_tests = manager_group.unexpected_pass_tests()
 
+        # Ensure we free multiprocessing queues and associated file handles
+        # between retries
+        gc.collect()
+
     test_status.unexpected_pass += sum(len(tests) for tests in unexpected_pass_tests.values())
     test_status.unexpected += sum(len(tests) for tests in unexpected_pass_tests.values())
     test_status.unexpected += sum(len(tests) for tests in unexpected_fail_tests.values())
@@ -479,7 +484,6 @@ def run_tests(config, product, test_paths, **kwargs):
         testharness_timeout_multipler = product.get_timeout_multiplier("testharness",
                                                                        test_loader.base_run_info,
                                                                        **kwargs)
-
         mojojs_path = kwargs["mojojs_path"] if kwargs["enable_mojojs"] else None
         inject_script = kwargs["inject_script"] if kwargs["inject_script"] else None
 

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Reference: white-space-trim nested inline boxes</title>
+</head>
+<body>
+<p>This test passes if it renders identically to the reference.</p>
+<div><span>a<b>c</b></span></div>
+<div><span><b>a</b>c</span></div>
+<div>x<span><b>y</b></span>z</div>
+<div>x<span><b>y</b></span>z</div>
+<div>x<i></i><span>y</span>z</div>
+<div>x<span>y</span><i></i>z</div>
+<div>p<span><b>q</b></span>r</div>
+<div>p<span><b>q</b></span>r</div>
+</body>
+</html>

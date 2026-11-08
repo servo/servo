@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Inline-block baseline with an overflow: hidden block inside an inline box</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#baseline-export">
+<link rel="match" href="overflow-hidden-block-in-inline-baseline-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+.title-bar {
+    display: flex;
+    align-items: center;
+    width: 200px;
+    height: 60px;
+    background-color: lightgray;
+    font: 20px/1 Ahem;
+}
+.inline-block {
+    display: inline-block;
+    height: 40px;
+    background-color: green;
+    color: green;
+    font: 20px/40px Ahem;
+}
+.clipped {
+    height: 0;
+    overflow: hidden;
+}
+</style>
+<p>Test passes if the green box is fully inside the gray box.</p>
+<div class="title-bar">
+    <div><div class="inline-block"><span>Details<div class="clipped">Details</div></span></div></div>
+</div>

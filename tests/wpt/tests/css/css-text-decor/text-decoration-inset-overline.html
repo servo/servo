@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration: text-decoration-inset applies to overline</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-inset-property">
+<link rel="match" href="text-decoration-inset-overline-ref.html">
+<meta name="assert" content="text-decoration-inset adjusts the overline endpoints; a large inset trims the overline away.">
+<style>body { margin: 20px; font: 40px/1.5 monospace; } span { text-decoration-line: overline; }</style>
+<p><span style="text-decoration-inset: 1000px">abcdef</span></p>

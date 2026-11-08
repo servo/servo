@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Test: changing 'object-fit' and 'object-position' on object elements with an SVG document</title>
+<link rel="author" title="Felipe Erias" href="mailto:felipeerias@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#the-object-fit">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#the-object-position">
+<link rel="match" href="object-fit-change-svg-001-ref.html">
+<style>
+  object {
+    display: block;
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+  }
+</style>
+<object id="fit" data="support/colors-16x8.svg"></object>
+<object id="position" data="support/colors-16x8.svg"></object>
+<script>
+  // Change the style of both objects after their SVG documents have been
+  // painted at their fitted size, and take the screenshot after the change has
+  // been painted.
+  const twoFrames = () => new Promise(resolve =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  window.addEventListener('load', async () => {
+    await twoFrames();
+    document.getElementById('fit').style.objectFit = 'none';
+    document.getElementById('position').style.objectPosition = 'top';
+    await twoFrames();
+    document.documentElement.classList.remove('reftest-wait');
+  });
+</script>
+</html>

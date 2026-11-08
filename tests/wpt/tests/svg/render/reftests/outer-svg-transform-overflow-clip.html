@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>The overflow clip of a transformed outermost svg element follows its transform</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://svgwg.org/svg2-draft/render.html#OverflowAndClipProperties">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-1/#transform-rendering">
+<link rel="match" href="outer-svg-transform-overflow-clip-ref.html">
+<meta name="assert" content="The content of a rotated outermost svg element is clipped to its rotated viewport, not to its untransformed box.">
+<style>
+body {
+  margin: 0;
+}
+svg {
+  position: absolute;
+  left: 50px;
+  top: 100px;
+  overflow: hidden;
+  transform: rotate(90deg);
+}
+</style>
+<p>Test passes if there is a tall green rectangle.</p>
+<svg width="200" height="100">
+  <rect x="-50" y="-50" width="300" height="200" fill="green"/>
+</svg>

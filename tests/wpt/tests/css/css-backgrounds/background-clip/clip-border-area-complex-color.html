@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Border-area clips background colors to complex borders</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#background-clip">
+<link rel="match" href="clip-border-area-complex-color-ref.html">
+<meta name="fuzzy" content="maxDifference=0-5;totalPixels=0-1000">
+<meta name="assert" content="Border-area clips background colors to dashed, dotted, and double borders, ignoring the transparency of the border color.">
+<style>
+  .box {
+    display: inline-block;
+    width: 100px;
+    height: 100px;
+    margin: 10px;
+    border: 20px dashed transparent;
+    background-color: green;
+    background-clip: border-area;
+  }
+  .dotted { border-style: dotted; border-radius: 40px; }
+  .double { border-style: double; }
+</style>
+<div class="box"></div>
+<div class="box dotted"></div>
+<div class="box double"></div>

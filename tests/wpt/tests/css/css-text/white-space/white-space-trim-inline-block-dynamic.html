@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>white-space-trim: dynamically setting the value on an inline-block triggers relayout</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#white-space-trim">
+<link rel="match" href="reference/white-space-trim-inline-block-dynamic-ref.html">
+<meta name="assert" content="Changing white-space-trim on an already-laid-out inline-block relayouts the line, collapsing the adjacent white space; the inline item list is rebuilt even though an inline-block is not an inline box.">
+<style>
+  .ib { display: inline-block; }
+</style>
+</head>
+<body>
+  <p>Test passes if both lines below read "ab" / "cd" with no space between the letters.</p>
+  <div>a <span class="ib" id="before">b</span></div>
+  <div><span class="ib" id="after">c</span> d</div>
+  <script>
+    // Force an initial layout with the white space present ("a b" / "c d")...
+    document.body.offsetHeight;
+    // ...then change white-space-trim on the inline-blocks. This must trigger a relayout that collapses
+    // the now-discarded white space, otherwise the old (untrimmed) line boxes remain.
+    document.getElementById('before').style.whiteSpaceTrim = 'discard-before';
+    document.getElementById('after').style.whiteSpaceTrim = 'discard-after';
+  </script>
+</body>
+</html>

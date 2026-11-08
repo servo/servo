@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration: text-decoration-inset is not inherited</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-inset-property">
+<link rel="match" href="text-decoration-inset-not-inherited-ref.html">
+<meta name="assert" content="text-decoration-inset is not inherited: a large inset on the parent does not affect the child's own underline.">
+<style>body { margin: 20px; font: 40px/1.5 monospace; }</style>
+<div style="text-decoration-inset: 1000px"><u>abcdef</u></div>

@@ -1,0 +1,44 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Container Timing: an inner container root inserted again does not start its parent container over</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+img {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/container-timing/resources/container-timing-helpers.js"></script>
+<script>
+  promise_test(async t => {
+    assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
+    const collector = observeContainerEntries(t);
+    const outer = addContainerRoot(document.body, 'outer_ct');
+    const inner = addContainerRoot(outer, 'inner_ct');
+    addSquare100Image(inner, {id: 'img_id', style: 'left: 0px; top: 0px'});
+    let entries = await collector.take();
+    assert_equals(entries.length, 2, 'one entry for each container root');
+
+    inner.remove();
+    entries = await collector.take();
+    assert_equals(entries.length, 0, 'no entries while removed');
+
+    outer.appendChild(inner);
+    const beforeRender = performance.now();
+
+    // The outer root's region already covers the image.
+    entries = await collector.take();
+    assert_equals(entries.length, 1, 'entry for the inner root only');
+    checkContainerEntry(entries[0], 'inner_ct', 'img_id', beforeRender);
+    checkContainerIntersectionRect(entries[0], [0, 100, 0, 100]);
+    checkContainerSize(entries[0], 10000);
+  }, 'Removing an inner container root only starts that container over.');
+</script>
+
+</body>

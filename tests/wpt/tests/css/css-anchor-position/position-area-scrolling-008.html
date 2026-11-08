@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<title>Anchor positioned element relayouts to match full layout when scrolling stops</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#scroll">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14112">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/test-common.js"></script>
+<style>
+  #container {
+    position: relative;
+    width: 400px;
+    height: 400px;
+  }
+  #scroller {
+    overflow: scroll;
+    scrollbar-width: none;
+    width: 400px;
+    height: 400px;
+  }
+  #anchor {
+    anchor-name: --a;
+    margin-top: 200px;
+    margin-left: 100px;
+    width: 100px;
+    height: 50px;
+    background: blue;
+  }
+  .anchored {
+    position: absolute;
+    position-anchor: --a;
+    position-try-fallbacks: flip-block;
+    position-visibility: always;
+    align-self: stretch;
+    justify-self: stretch;
+    min-height: 60px;
+  }
+  #anchored-top {
+    position-area: top center;
+    background: cyan;
+  }
+  #anchored-bottom {
+    position-area: bottom center;
+    background: hotpink;
+  }
+</style>
+
+<div id="container">
+  <div id="scroller">
+    <div id="anchor"></div>
+    <div style="height: 1000px;"></div>
+    <div id="anchored-top" class="anchored"></div>
+    <div id="anchored-bottom" class="anchored"></div>
+  </div>
+</div>
+
+<script>
+  promise_test(async () => {
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+    // Anchor is at y: 200..250.
+    // Top IMCB is y: 0..200 (height 200).
+    assert_equals(anchored_top.offsetTop, 0);
+    assert_equals(anchored_top.offsetHeight, 200);
+    // Bottom IMCB is y: 250..400 (height 150).
+    assert_equals(anchored_bottom.offsetTop, 250);
+    assert_equals(anchored_bottom.offsetHeight, 150);
+  }, 'Initial scroll position (0, 0)');
+
+  const anchored_top = document.getElementById('anchored-top');
+  const anchored_bottom = document.getElementById('anchored-bottom');
+
+  promise_test(async () => {
+    scroller.scrollTo(0, 100);
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+    // Anchor is at y: 100..150.
+    // Top IMCB shrinks to y: 0..100 (height 100).
+    assert_equals(anchored_top.offsetTop, 0);
+    assert_equals(anchored_top.offsetHeight, 100);
+    // Bottom IMCB grows to y: 150..400 (height 250).
+    assert_equals(anchored_bottom.offsetTop, 150);
+    assert_equals(anchored_bottom.offsetHeight, 250);
+  }, 'Scroll down to (0, 100) shrinks top and grows bottom once stopped');
+
+  promise_test(async () => {
+    scroller.scrollTo(0, 50);
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+    // Anchor is at y: 150..200.
+    // Top IMCB grows back to y: 0..150 (height 150).
+    assert_equals(anchored_top.offsetTop, 0);
+    assert_equals(anchored_top.offsetHeight, 150);
+    // Bottom IMCB shrinks to y: 200..400 (height 200).
+    assert_equals(anchored_bottom.offsetTop, 200);
+    assert_equals(anchored_bottom.offsetHeight, 200);
+  }, 'Scroll up to (0, 50) grows top back and shrinks bottom once stopped');
+
+  promise_test(async () => {
+    scroller.scrollTo(0, 0);
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+    // Anchor is back at y: 200..250.
+    assert_equals(anchored_top.offsetTop, 0);
+    assert_equals(anchored_top.offsetHeight, 200);
+    assert_equals(anchored_bottom.offsetTop, 250);
+    assert_equals(anchored_bottom.offsetHeight, 150);
+  }, 'Scroll back to (0, 0) restores initial sizes once stopped');
+</script>

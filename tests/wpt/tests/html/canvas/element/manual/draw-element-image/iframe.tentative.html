@@ -4,6 +4,7 @@
 <link rel="help" href="https://github.com/WICG/html-in-canvas">
 <link rel="match" href="iframe-ref.html">
 <script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
 <canvas id="canvas" width="100" height="100" content=drawable>
   <div drawable id="target" style="width: 200px; height: 200px;">
     <iframe style="width: 200px; height: 200px; border: none;"
@@ -20,7 +21,7 @@
       ctx.drawElementImage(target, 0, 0);
       takeScreenshot();
     }
-    canvas.requestPaint();
+    waitForCanvasPaint(canvas);
   }
 </script>
 

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>Natural size of cross-fade() with an argument without natural dimensions</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#cross-fade-sizing">
+<link rel="match" href="cross-fade-natural-size-image-and-gradient-ref.html">
+<meta name="assert" content="A gradient has no natural dimensions, so it is skipped when sizing cross-fade() and the image alone supplies the size: 100x100, not the 50x50 an average with a zero-sized argument would give.">
+<style>
+  div {
+    width: 200px;
+    height: 200px;
+    background-repeat: no-repeat;
+    background-image: cross-fade(url(/images/green-100x100.png) 50%, linear-gradient(rgb(0, 255, 0), rgb(0, 255, 0)) 50%);
+  }
+</style>
+<div></div>

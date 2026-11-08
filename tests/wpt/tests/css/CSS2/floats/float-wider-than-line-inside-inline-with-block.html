@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Test: A float wider than the line, inside an inline box that also contains a block-level box</title>
+<link rel="help" href="https://www.w3.org/TR/CSS21/visuren.html#floats">
+<link rel="help" href="https://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level">
+<link rel="match" href="float-wider-than-line-inside-inline-with-block-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<meta name="assert" content="A float that does not fit beside the content already on its line is placed at the top of the first line below where it fits, even when it is inside an inline box that also contains a block-level box.">
+<style>
+html {
+    width: 200px;
+    font: 20px/1 Ahem;
+    color: green;
+}
+
+html, body, span {
+    padding-inline-end: 160px;
+}
+
+.wideFloat {
+    float: left;
+    width: 100px;
+    height: 20px;
+    background: green;
+}
+</style>
+</head>
+<body>
+XX XX XX XX
+<span>
+<div class="wideFloat"></div>X
+<div style="display: flow-root">X</div>
+</span>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: a transformed iframe holds its old paint in place while its rendering is suppressed (ref)</title>
+<style>
+  body {
+    margin: 0;
+  }
+  iframe {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    border: none;
+  }
+  #identity {
+    top: 30px;
+    left: 40px;
+    transform: translate(0);
+  }
+  #translated {
+    top: 30px;
+    left: 200px;
+    transform: translate(30px, 50px);
+  }
+</style>
+
+<iframe id="identity" srcdoc="
+  <style>
+    body {
+      margin: 0;
+      background: blue;
+    }
+    div {
+      position: absolute;
+      top: 20px;
+      left: 10px;
+      width: 30px;
+      height: 40px;
+      background: yellow;
+    }
+  </style>
+  <div></div>
+"></iframe>
+<iframe id="translated" srcdoc="
+  <style>
+    body {
+      margin: 0;
+      background: blue;
+    }
+    div {
+      position: absolute;
+      top: 20px;
+      left: 10px;
+      width: 30px;
+      height: 40px;
+      background: yellow;
+    }
+  </style>
+  <div></div>
+"></iframe>
+</html>

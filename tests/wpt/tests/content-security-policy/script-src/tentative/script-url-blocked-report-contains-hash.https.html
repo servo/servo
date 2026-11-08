@@ -18,13 +18,17 @@
     promise_test(async t => {
       const expectedHash = await sha256ofURL(scriptUrl);
 
-      return new Promise(resolve => {
+      return new Promise((resolve, reject) => {
         document.addEventListener("securitypolicyviolation", function (e) {
           if (e.blockedURI === scriptUrl) {
-            // sha256ofURL removes the '=' at the end of the hash, so we need to remove it from urlHash.
-            assert_equals(e.urlHash.replace(/=+$/, ''), `url-sha256-${expectedHash}`);
-            assert_equals(e.evalHash, "");
-            resolve();
+            try {
+              // sha256ofURL removes the '=' at the end of the hash, so we need to remove it from urlHash.
+              assert_equals(e.urlHash.replace(/=+$/, ''), `url-sha256-${expectedHash}`);
+              assert_equals(e.evalHash, "");
+              resolve();
+            } catch (err) {
+              reject(err);
+            }
           }
         });
 

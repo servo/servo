@@ -10,18 +10,37 @@
 <script src="/css/support/shorthand-testcommon.js"></script>
 
 <script>
-test_valid_value("corner-top-left", "round 30%", "30% round");
-test_valid_value("corner-top-left", "10px bevel");
-test_valid_value("corner-top-left", "normal");
-test_valid_value("corner-top-left", "4px 2% round");
-test_valid_value("corner-top-left", "superellipse(-0.5) 30% 10px", "30% 10px superellipse(-0.5)");
+// Each component alone; the omitted component resets to its initial value.
+test_valid_value("corner-top-left", "10px");
+test_valid_value("corner-top-left", "bevel");
+test_valid_value("corner-top-left", "round", "0px");
+test_valid_value("corner-top-left", "0px round", "0px");
+
+// Order independence.
+test_valid_value("corner-top-left", "round 30%", "30%");
+test_valid_value("corner-top-left", "10px bevel", "bevel 10px");
+test_valid_value("corner-top-left", "bevel 10px");
+test_valid_value("corner-top-left", "4px 2% round", "4px 2%");
+test_valid_value("corner-top-left", "superellipse(-0.5) 30% 10px");
+
+// The slash form of <border-radius>.
+test_valid_value("corner-top-left", "10px / 5px notch", "notch 10px 5px");
+test_valid_value("corner-top-left", "10px / 10px notch", "notch 10px");
 
 test_shorthand_value("corner-top-left", "10px bevel", {
   "border-top-left-radius": "10px",
   "corner-top-left-shape": "bevel",
 });
-test_shorthand_value("corner-top-left", "normal", {
-  "border-top-left-radius": "0px",
+test_shorthand_value("corner-top-left", "10px", {
+  "border-top-left-radius": "10px",
   "corner-top-left-shape": "round",
+});
+test_shorthand_value("corner-top-left", "bevel", {
+  "border-top-left-radius": "0px",
+  "corner-top-left-shape": "bevel",
+});
+test_shorthand_value("corner-top-left", "10px / 5px notch", {
+  "border-top-left-radius": "10px 5px",
+  "corner-top-left-shape": "notch",
 });
 </script>

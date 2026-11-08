@@ -3408,6 +3408,109 @@
     // hit-test past the end of the dash (t=10.2)
     @assert ctx.isPointInStroke(3.74*scale, 14.46*scale) === false;
 
+- name: 2d.path.isPointInPath.nobitmap
+  desc: isPointInPath() works on a canvas with no bitmap
+  size: [0, 0]
+  code: |
+    ctx.rect(0, 0, 20, 20);
+    @assert ctx.isPointInPath(10, 10) === true;
+    @assert ctx.isPointInPath(0, 0) === true;
+    @assert ctx.isPointInPath(20, 20) === true;
+    @assert ctx.isPointInPath(30, 30) === false;
+    @assert ctx.isPointInPath(-10, 10) === false;
+
+- name: 2d.path.isPointInPath.nobitmap.path2d
+  desc: isPointInPath(path) works on a canvas with no bitmap
+  size: [0, 0]
+  code: |
+    var path = new Path2D();
+    path.rect(0, 0, 20, 20);
+    @assert ctx.isPointInPath(path, 10, 10) === true;
+    @assert ctx.isPointInPath(path, 30, 30) === false;
+
+- name: 2d.path.isPointInPath.nobitmap.transform
+  desc: The transformation matrix mutators apply on a canvas with no bitmap
+  size: [0, 0]
+  code: |
+    ctx.translate(50, 0);
+    ctx.rect(0, 0, 20, 20);
+    @assert ctx.isPointInPath(60, 10) === true;
+    @assert ctx.isPointInPath(10, 10) === false;
+
+    ctx.resetTransform();
+    @assert ctx.getTransform().e === 0;
+    ctx.beginPath();
+    ctx.scale(2, 2);
+    ctx.rect(0, 0, 20, 20);
+    @assert ctx.isPointInPath(30, 30) === true;
+    @assert ctx.isPointInPath(50, 50) === false;
+
+    ctx.setTransform(1, 0, 0, 1, 0, 50);
+    @assert ctx.getTransform().f === 50;
+    ctx.beginPath();
+    ctx.rect(0, 0, 20, 20);
+    @assert ctx.isPointInPath(10, 60) === true;
+    @assert ctx.isPointInPath(10, 10) === false;
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.transform(1, 0, 0, 1, 50, 0);
+    ctx.beginPath();
+    ctx.rect(0, 0, 20, 20);
+    @assert ctx.isPointInPath(60, 10) === true;
+    @assert ctx.isPointInPath(10, 10) === false;
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.rotate(Math.PI / 2);
+    ctx.beginPath();
+    ctx.rect(10, 10, 20, 20);
+    @assert ctx.isPointInPath(-20, 20) === true;
+    @assert ctx.isPointInPath(20, 20) === false;
+
+- name: 2d.path.isPointInPath.nobitmap.winding
+  desc: isPointInPath() honours the fill rule on a canvas with no bitmap
+  size: [0, 0]
+  code: |
+    ctx.rect(0, 0, 40, 40);
+    ctx.rect(10, 10, 20, 20);
+    @assert ctx.isPointInPath(20, 20, 'nonzero') === true;
+    @assert ctx.isPointInPath(20, 20, 'evenodd') === false;
+    @assert ctx.isPointInPath(5, 5, 'nonzero') === true;
+    @assert ctx.isPointInPath(5, 5, 'evenodd') === true;
+
+- name: 2d.path.isPointInStroke.nobitmap
+  desc: isPointInStroke() works on a canvas with no bitmap
+  size: [0, 0]
+  code: |
+    ctx.lineWidth = 10;
+    ctx.moveTo(0, 10);
+    ctx.lineTo(40, 10);
+    @assert ctx.isPointInStroke(20, 10) === true;
+    @assert ctx.isPointInStroke(20, 14) === true;
+    @assert ctx.isPointInStroke(20, 20) === false;
+    @assert ctx.isPointInStroke(60, 10) === false;
+
+- name: 2d.path.isPointInStroke.nobitmap.path2d
+  desc: isPointInStroke(path) works on a canvas with no bitmap
+  size: [0, 0]
+  code: |
+    var path = new Path2D();
+    path.moveTo(0, 10);
+    path.lineTo(40, 10);
+    ctx.lineWidth = 10;
+    @assert ctx.isPointInStroke(path, 20, 10) === true;
+    @assert ctx.isPointInStroke(path, 20, 20) === false;
+
+- name: 2d.path.isPointInStroke.nobitmap.transform
+  desc: isPointInStroke() honours the transformation matrix on a canvas with no bitmap
+  size: [0, 0]
+  code: |
+    ctx.lineWidth = 10;
+    ctx.translate(50, 0);
+    ctx.moveTo(0, 10);
+    ctx.lineTo(40, 10);
+    @assert ctx.isPointInStroke(70, 10) === true;
+    @assert ctx.isPointInStroke(20, 10) === false;
+
 - name: 2d.path.isPointInPath.basic
   desc: Verify the winding rule in isPointInPath works for for rect path.
   code: |

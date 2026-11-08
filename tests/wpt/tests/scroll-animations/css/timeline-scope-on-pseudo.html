@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<title>timeline-scope on a pseudo-element applies to the pseudo-element only</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#timeline-scope">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
+
+<main id=main></main>
+<script>
+  async function inflate(t, template) {
+    t.add_cleanup(() => main.replaceChildren());
+    return runAndWaitForFrameUpdate(() => {
+      main.append(template.content.cloneNode(true));
+    });
+  }
+
+  async function scrollTop(e, value) {
+    e.scrollTop = value;
+    await waitForNextFrame();
+  }
+</script>
+<style>
+  @keyframes anim {
+    from { width: 0px; }
+    to { width: 200px; }
+  }
+
+  .scroller {
+    overflow-y: hidden;
+    width: 200px;
+    height: 200px;
+  }
+  .scroller > .content {
+    margin: 400px 0px;
+    width: 100px;
+    height: 100px;
+    background-color: green;
+  }
+  .target {
+    background-color: coral;
+    width: 0px;
+    animation: anim auto linear;
+    animation-timeline: --t1;
+  }
+  .timeline {
+    scroll-timeline-name: --t1;
+  }
+  .pseudo-scope::before {
+    content: '';
+    timeline-scope: --t1;
+  }
+  .host-scope {
+    timeline-scope: --t1;
+  }
+  .host-scope::before {
+    content: '';
+    timeline-scope: --t2;
+  }
+  .late-pseudo::before, .late-pseudo-unscoped::before {
+    content: '';
+    display: block;
+    height: 10px;
+    width: 0px;
+    background-color: coral;
+  }
+  .late-pseudo::before {
+    timeline-scope: --t1;
+  }
+  .animate::before {
+    animation: anim auto linear;
+    animation-timeline: --t1;
+  }
+</style>
+
+<template id=pseudo_scope>
+  <div class=target>Test</div>
+  <div class=pseudo-scope>
+    <div class="scroller timeline">
+      <div class=content></div>
+    </div>
+  </div>
+</template>
+<script>
+  promise_test(async (t) => {
+    await inflate(t, pseudo_scope);
+    let scroller = main.querySelector('.scroller');
+    let target = main.querySelector('.target');
+
+    const anim = target.getAnimations()[0];
+    await anim.ready;
+
+    await scrollTop(scroller, 350); // 50%
+    assert_equals(getComputedStyle(target).width, '100px'); // 0px => 200px, 50%
+  }, 'timeline-scope on ::before does not hide timelines in the originating ' +
+     'element\'s subtree');
+</script>
+
+<template id=host_and_pseudo_scope>
+  <div class=target>Test</div>
+  <div class=host-scope>
+    <div class="scroller timeline">
+      <div class=content></div>
+    </div>
+  </div>
+</template>
+<script>
+  promise_test(async (t) => {
+    await inflate(t, host_and_pseudo_scope);
+    let host = main.querySelector('.host-scope');
+    let scroller = main.querySelector('.scroller');
+    let target = main.querySelector('.target');
+    await scrollTop(scroller, 350); // 50%
+    assert_equals(getComputedStyle(target).width, '0px',
+                  'scoped by the originating element');
+
+    // Control: without the originating element's scope the timeline is visible.
+    host.style.timelineScope = 'none';
+    await waitForCSSScrollTimelineStyle();
+    assert_equals(getComputedStyle(target).width, '100px',
+                  'visible once the originating element stops scoping');
+  }, 'timeline-scope on ::before does not replace the originating ' +
+     'element\'s own timeline-scope');
+</script>
+
+<template id=late_pseudo_animation>
+  <div class="scroller timeline">
+    <div class=content></div>
+  </div>
+  <div class=late-pseudo></div>
+  <div class=late-pseudo-unscoped></div>
+</template>
+<script>
+  promise_test(async (t) => {
+    await inflate(t, late_pseudo_animation);
+    let scroller = main.querySelector('.scroller');
+    let scoped = main.querySelector('.late-pseudo');
+    let unscoped = main.querySelector('.late-pseudo-unscoped');
+    await scrollTop(scroller, 350); // 50%
+
+    // The pseudo-elements only start animating now, after they were created
+    // with nothing but a timeline-scope.
+    scoped.classList.add('animate');
+    unscoped.classList.add('animate');
+    await waitForCSSScrollTimelineStyle();
+    assert_equals(getComputedStyle(unscoped, '::before').width, '100px',
+                  'unscoped pseudo-element sees the timeline');
+    assert_equals(getComputedStyle(scoped, '::before').width, '0px',
+                  'pseudo-element scoping --t1 cannot see the timeline');
+  }, 'timeline-scope on ::before is honoured when the pseudo-element ' +
+     'starts animating later');
+</script>

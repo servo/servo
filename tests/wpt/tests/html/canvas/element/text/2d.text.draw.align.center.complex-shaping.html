@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>Canvas fillText with textAlign=center/right honors width of complex-shaped glyphs</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<canvas id="canvas" width="400" height="200"></canvas>
+<script>
+function pixelExtents(ctx, width, height) {
+    const data = ctx.getImageData(0, 0, width, height).data;
+    let minX = width, maxX = -1;
+    for (let y = 0; y < height; ++y) {
+        for (let x = 0; x < width; ++x) {
+            if (data[(y * width + x) * 4 + 3] > 0) {
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+            }
+        }
+    }
+    return { minX, maxX };
+}
+
+function pixelExtentsForAlign(align, text, x) {
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.font = "100px serif";
+    ctx.textAlign = align;
+    ctx.fillStyle = "#000";
+    ctx.fillText(text, x, 120);
+    return pixelExtents(ctx, canvas.width, canvas.height);
+}
+
+// Tamil "வ" exercises ComplexTextController's shaping path. Before the fix,
+// the cached width returned to canvas was zero, so textAlign=center/right
+// behaved as textAlign=left.
+const text = "வ";
+const requestedCenter = 200;
+
+test(() => {
+    const left = pixelExtentsForAlign("left", text, 0);
+    assert_greater_than(left.maxX, left.minX, "Glyph must render to compare extents");
+    const glyphWidth = left.maxX - left.minX + 1;
+
+    const center = pixelExtentsForAlign("center", text, requestedCenter);
+    const observedMid = (center.minX + center.maxX) / 2;
+    assert_approx_equals(observedMid, requestedCenter, glyphWidth * 0.1,
+        "textAlign=center must place the glyph centroid at the requested x");
+}, "fillText with textAlign=center centers complex-shaped text on the requested x");
+
+test(() => {
+    const left = pixelExtentsForAlign("left", text, 0);
+    assert_greater_than(left.maxX, left.minX, "Glyph must render to compare extents");
+    const glyphWidth = left.maxX - left.minX + 1;
+
+    const right = pixelExtentsForAlign("right", text, requestedCenter);
+    assert_approx_equals(right.maxX, requestedCenter, glyphWidth * 0.1,
+        "textAlign=right must place the glyph's right edge at the requested x");
+}, "fillText with textAlign=right right-aligns complex-shaped text on the requested x");
+</script>

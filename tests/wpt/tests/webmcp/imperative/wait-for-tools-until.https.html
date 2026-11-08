@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>document.modelContext.waitForToolsUntil()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+</head>
+<body>
+<script>
+// Covers the web-observable contract of `waitForToolsUntil()`; whether
+// consumers of the tools actually wait is up to the user agent.
+
+test(() => {
+  // The argument is a `Promise<any>`, so non-promise values are wrapped.
+  document.modelContext.waitForToolsUntil(42);
+  document.modelContext.waitForToolsUntil(undefined);
+}, 'waitForToolsUntil() accepts non-promise values');
+
+test(() => {
+  assert_throws_js(TypeError, () => document.modelContext.waitForToolsUntil());
+}, 'waitForToolsUntil() requires an argument');
+
+test(() => {
+  const doc = document.implementation.createHTMLDocument();
+  assert_throws_dom('InvalidStateError',
+                    () => doc.modelContext.waitForToolsUntil(Promise.resolve()));
+}, 'waitForToolsUntil() throws InvalidStateError in a document without a frame');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  iframe.src = get_host_info().HTTPS_REMOTE_ORIGIN +
+      '/webmcp/imperative/resources/iframe-wait-for-tools-until.html';
+  // No `allow` attribute, so the `tools` permissions policy is disabled in
+  // this cross-origin iframe.
+
+  const loaded = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await loaded;
+
+  const response = new Promise(resolve => {
+    window.addEventListener('message', e => resolve(e.data), {once: true});
+  });
+  iframe.contentWindow.postMessage('waitForToolsUntil', '*');
+  assert_equals(await response, 'NotAllowedError');
+}, 'waitForToolsUntil() throws NotAllowedError when the tools permissions policy is disabled');
+</script>
+</body>
+</html>

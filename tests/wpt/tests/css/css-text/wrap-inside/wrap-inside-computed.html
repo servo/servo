@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text: parsing and computed value of wrap-inside</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#wrap-inside">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="target"></div>
+<div id="parent" style="wrap-inside: avoid"><div id="child"></div></div>
+<script>
+function computedValueFor(value) {
+    var target = document.getElementById("target");
+    target.style.wrapInside = "";
+    target.style.wrapInside = value;
+    return getComputedStyle(target).wrapInside;
+}
+
+test(function() {
+    assert_equals(computedValueFor(""), "auto");
+}, "wrap-inside initial computed value is 'auto'");
+
+test(function() {
+    assert_equals(computedValueFor("auto"), "auto");
+}, "wrap-inside: auto");
+
+test(function() {
+    assert_equals(computedValueFor("avoid"), "avoid");
+}, "wrap-inside: avoid");
+
+test(function() {
+    var target = document.getElementById("target");
+    target.style.wrapInside = "avoid";
+    target.style.wrapInside = "bogus";
+    assert_equals(target.style.wrapInside, "avoid");
+}, "wrap-inside ignores invalid values");
+
+test(function() {
+    // wrap-inside is not inherited: the child computes the initial value even though its parent is 'avoid'.
+    assert_equals(getComputedStyle(document.getElementById("child")).wrapInside, "auto");
+}, "wrap-inside is not inherited");
+
+test(function() {
+    // The 'inherit' keyword still explicitly pulls the parent's 'avoid' value.
+    var child = document.getElementById("child");
+    child.style.wrapInside = "inherit";
+    assert_equals(getComputedStyle(child).wrapInside, "avoid");
+}, "wrap-inside: inherit resolves to the parent value");
+</script>

@@ -23,6 +23,9 @@ function populateElements(imageSource) {
   for (var i = 0; i < images.length; i++)
     images[i].src = imageSource;
 
+  for (let object of document.getElementsByTagName("object"))
+    object.data = imageSource;
+
   paintCanvases();
 
   for (let video of document.getElementsByTagName("video"))

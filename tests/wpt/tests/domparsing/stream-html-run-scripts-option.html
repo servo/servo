@@ -1,0 +1,230 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>streamAppendHTMLUnsafe with scripts</title>
+<link rel="help" href="https://html.spec.whatwg.org/#html-streaming-methods" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="placeholder"></div>
+<script>
+
+for (const method of ["streamAppendHTMLUnsafe", "streamHTMLUnsafe"]) {
+    promise_test(async t => {
+        const placeholder = document.getElementById("placeholder");
+        const writable = placeholder[method]({runScripts: true});
+        const writer = writable.getWriter();
+        window.did_run = false;
+        t.add_cleanup(() => { delete window.did_run; });
+        await writer.write("<script>window.did_run = true;</" + "script>");
+        await writer.close();
+        assert_true(window.did_run);
+    }, `element.${method} with runScripts: true`);
+
+    promise_test(async t => {
+        const placeholder = document.getElementById("placeholder");
+        const writable = placeholder[method]({runScripts: false});
+        const writer = writable.getWriter();
+        window.did_run = false;
+        t.add_cleanup(() => { delete window.did_run; });
+        await writer.write("<script>window.did_run = true;</" + "script>");
+        await writer.close();
+        assert_false(window.did_run);
+    }, `element.${method} with runScripts: false`);
+
+    promise_test(async t => {
+        const placeholder = document.getElementById("placeholder");
+        const element = document.createElement("div");
+        placeholder.append(element);
+        t.add_cleanup(() => element.remove());
+        const shadowRoot = element.attachShadow({mode: "open"});
+        const writer = shadowRoot[method]({runScripts: false}).getWriter();
+        window.did_run = false;
+        await writer.write("<script>window.did_run = true;<" + "/script>");
+        await writer.close();
+        assert_false(window.did_run);
+    }, `shadowRoot.${method} with runScripts: false`);
+
+    promise_test(async t => {
+        const placeholder = document.getElementById("placeholder");
+        const element = document.createElement("div");
+        placeholder.append(element);
+        t.add_cleanup(() => element.remove());
+        const shadowRoot = element.attachShadow({mode: "open"});
+        const writer = shadowRoot[method]({runScripts: true}).getWriter();
+        window.did_run = false;
+        await writer.write("<script>window.did_run = true;<" + "/script>");
+        await writer.close();
+        assert_true(window.did_run);
+    }, `shadowRoot.${method} with runScripts: true`);
+
+    // F9: SVG <script> does not run with runScripts: false
+    promise_test(async t => {
+        const placeholder = document.getElementById("placeholder");
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        placeholder.append(svg);
+        t.add_cleanup(() => svg.remove());
+        window.did_run = false;
+        const writer = svg[method]({runScripts: false}).getWriter();
+        await writer.write("<script>window.did_run = true;<" + "/script>");
+        await writer.close();
+        assert_false(window.did_run, "SVG <script> must not execute when runScripts is false");
+    }, `svg.${method} with runScripts: false does not execute SVG <script>`);
+
+    // F10: runScripts: true into template contents or a DOMParser document does not execute scripts
+    promise_test(async t => {
+        const template = document.createElement("template");
+        document.body.appendChild(template);
+        t.add_cleanup(() => template.remove());
+        window.did_run = false;
+        const writer = template[method]({runScripts: true}).getWriter();
+        await writer.write("<script>window.did_run = true;<" + "/script><p>in-template</p>");
+        await writer.close();
+        assert_false(window.did_run, "Scripts streamed into <template> must not execute even with runScripts: true");
+        assert_equals(template.content.querySelector("p").textContent, "in-template");
+    }, `template.${method} with runScripts: true does not execute scripts`);
+
+    promise_test(async t => {
+        const parsedDoc = new DOMParser().parseFromString("<!doctype html><body><div id='target'></div></body>", "text/html");
+        const target = parsedDoc.getElementById("target");
+        window.did_run = false;
+        const writer = target[method]({runScripts: true}).getWriter();
+        await writer.write("<script>window.did_run = true;<" + "/script><p>in-domparser</p>");
+        await writer.close();
+        assert_false(window.did_run, "Scripts streamed into a DOMParser document must not execute");
+        assert_equals(target.querySelector("p").textContent, "in-domparser");
+    }, `DOMParser document ${method} with runScripts: true does not execute scripts`);
+
+    // An SVG script element is processed only when the parser runs scripts.
+    promise_test(async t => {
+        const placeholder = document.getElementById("placeholder");
+        const writer = placeholder[method]({runScripts: true}).getWriter();
+        window.did_run = false;
+        t.add_cleanup(() => { window.did_run = false });
+        await writer.write("<svg><script>window.did_run = true;</" + "script></svg>");
+        await writer.close();
+        assert_true(window.did_run);
+    }, `element.${method} runs SVG scripts with runScripts: true`);
+
+    promise_test(async t => {
+        const placeholder = document.getElementById("placeholder");
+        placeholder.replaceChildren();
+        const writer = placeholder[method]({runScripts: false}).getWriter();
+        window.did_run = false;
+        t.add_cleanup(() => { window.did_run = false });
+        await writer.write("<svg><script>window.did_run = true;</" + "script></svg>");
+        await writer.close();
+        assert_false(window.did_run);
+        assert_equals(placeholder.querySelector("svg > script").namespaceURI, "http://www.w3.org/2000/svg");
+    }, `element.${method} does not run SVG scripts with runScripts: false`);
+
+    promise_test(async t => {
+        const disconnected = document.createElement("div");
+        const writer = disconnected[method]({runScripts: true}).getWriter();
+        window.did_run = false;
+        t.add_cleanup(() => { window.did_run = false });
+        await writer.write("<svg><script>window.did_run = true;</" + "script></svg>");
+        await writer.close();
+        assert_false(window.did_run, "SVG <script> in a disconnected target must not execute");
+    }, `element.${method} does not run SVG scripts when target is disconnected`);
+
+    promise_test(async t => {
+        const placeholder = document.getElementById("placeholder");
+        const writer = placeholder[method]({
+            runScripts: true,
+            sanitizer: { removeElements: [{ name: "svg", namespace: "http://www.w3.org/2000/svg" }] },
+        }).getWriter();
+        window.did_run = false;
+        t.add_cleanup(() => { window.did_run = false });
+        await writer.write("<svg><script>window.did_run = true;</" + "script></svg>");
+        await writer.close();
+        assert_false(window.did_run, "SVG <script> whose <svg> ancestor was removed by the sanitizer must not execute");
+    }, `element.${method} does not run SVG scripts when an ancestor is removed by the sanitizer`);
+}
+
+// A parser-inserted script's intended document is the document the parser
+// runs scripts against. If the element is moved to a different document
+// before the parser prepares it, it is not executed.
+for (const method of ["streamHTMLUnsafe", "streamAppendHTMLUnsafe"]) {
+    promise_test(async t => {
+        const iframe = document.createElement("iframe");
+        t.add_cleanup(() => iframe.remove());
+        await new Promise(resolve => {
+            iframe.onload = resolve;
+            document.body.appendChild(iframe);
+        });
+        const otherDocument = iframe.contentDocument;
+        window.did_run = false;
+        iframe.contentWindow.did_run = false;
+        t.add_cleanup(() => { window.did_run = false });
+
+        const placeholder = document.getElementById("placeholder");
+        const writer = placeholder[method]({runScripts: true}).getWriter();
+        await writer.write("<script id='moved'>");
+        const script = placeholder.querySelector("#moved");
+        assert_not_equals(script, null, "the open <script> is inserted before its end tag is seen");
+        otherDocument.body.appendChild(script);
+        assert_equals(script.ownerDocument, otherDocument);
+        await writer.write("window.did_run = true;</" + "script><p id='after-moved'>after</p>");
+        await writer.close();
+
+        assert_false(window.did_run, "script moved to another document must not run in the original document");
+        assert_false(iframe.contentWindow.did_run, "script moved to another document must not run in the new document");
+        assert_not_equals(placeholder.querySelector("#after-moved"), null, "parsing continues after the moved script");
+    }, `element.${method}: a streamed <script> moved to another document before its end tag does not execute`);
+
+    promise_test(async t => {
+        const iframe = document.createElement("iframe");
+        t.add_cleanup(() => iframe.remove());
+        await new Promise(resolve => {
+            iframe.onload = resolve;
+            document.body.appendChild(iframe);
+        });
+        const otherDocument = iframe.contentDocument;
+        window.did_run = false;
+        iframe.contentWindow.did_run = false;
+        t.add_cleanup(() => { window.did_run = false });
+
+        const target = document.body.appendChild(document.createElement("div"));
+        const writer = target[method]({runScripts: true}).getWriter();
+        await writer.write("<p>before</p>");
+        otherDocument.body.appendChild(target);
+        assert_equals(target.ownerDocument, otherDocument);
+        await writer.write("<svg><script>window.did_run = true;</" + "script></svg>");
+        await writer.close();
+
+        assert_not_equals(target.querySelector("svg > script"), null, "parsing continues after the move");
+        assert_false(window.did_run, "SVG script must not run in the original document");
+        assert_false(iframe.contentWindow.did_run, "SVG script must not run in the new document");
+    }, `element.${method}: a streamed SVG <script> does not execute after the target moves to another document`);
+
+    promise_test(async t => {
+        window.did_run = false;
+        t.add_cleanup(() => { window.did_run = false });
+        const placeholder = document.getElementById("placeholder");
+        const elsewhere = document.body.appendChild(document.createElement("div"));
+        t.add_cleanup(() => elsewhere.remove());
+
+        const writer = placeholder[method]({runScripts: true}).getWriter();
+        await writer.write("<script id='moved-same-doc'>");
+        const script = placeholder.querySelector("#moved-same-doc");
+        elsewhere.appendChild(script);
+        await writer.write("window.did_run = true;</" + "script>");
+        await writer.close();
+        assert_true(window.did_run, "a script moved within the same document still executes");
+    }, `element.${method}: a streamed <script> moved within the same document before its end tag still executes`);
+}
+
+for (const method of ["streamHTML", "streamAppendHTML"]) {
+    promise_test(async t => {
+        const placeholder = document.getElementById("placeholder");
+        placeholder.replaceChildren();
+        const writer = placeholder[method]({runScripts: true, sanitizer: {elements: [{name: "svg", namespace: "http://www.w3.org/2000/svg"}, {name: "script", namespace: "http://www.w3.org/2000/svg"}]}}).getWriter();
+        window.did_run = false;
+        t.add_cleanup(() => { window.did_run = false });
+        await writer.write("<svg><script>window.did_run = true;</" + "script></svg>");
+        await writer.close();
+        assert_false(window.did_run);
+        assert_not_equals(placeholder.querySelector("svg"), null);
+        assert_equals(placeholder.querySelector("script"), null, "safe methods remove unsafe elements from the allow list");
+    }, `element.${method} never runs SVG scripts, even with runScripts: true`);
+}
+</script>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: attr() taint participates in transition retarget equality</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#attr-security">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  @property --n {
+    syntax: "<number>";
+    inherits: false;
+    initial-value: 0;
+  }
+
+  #target {
+    --n: 4096;
+    transition: --n 1000s steps(1, start);
+    background-image: if(
+      style(--n: 4096): url(https://does-not-exist.test/404.png);
+      else: none
+    );
+  }
+
+  @starting-style {
+    #target { --n: 0; }
+  }
+
+  #target.tainted {
+    /* Same canonical value as 4096, but attr-tainted. */
+    --n: min(attr(data-secret type(<number>)), 4096);
+  }
+</style>
+
+<div id="target" data-secret="7193"></div>
+
+<script>
+  promise_test(async () => {
+    // Let the initial untainted transition become active before retargeting.
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+
+    const target = document.getElementById("target");
+    assert_equals(getComputedStyle(target).getPropertyValue("--n"), "4096");
+    assert_not_equals(getComputedStyle(target).backgroundImage, "none");
+
+    target.classList.add("tainted");
+    assert_equals(getComputedStyle(target).getPropertyValue("--n"), "4096");
+    assert_equals(getComputedStyle(target).backgroundImage, "none");
+  }, "A taint-only destination change must rebuild an active registered-property transition");
+</script>

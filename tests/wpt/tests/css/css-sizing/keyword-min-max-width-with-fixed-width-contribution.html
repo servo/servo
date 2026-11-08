@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>CSS Sizing: a min-content or max-content min-width or max-width on a fixed-width box, in its intrinsic width contributions</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-contribution">
+<meta name="assert" content="A box's min-content and max-content contributions are its outer size with its min-width and max-width applied: a keyword min-width floors a fixed width at the box's content size, and a keyword max-width caps it there.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.container {
+    float: left;
+    clear: left;
+}
+.content {
+    display: inline-block;
+    width: 100px;
+    height: 10px;
+}
+</style>
+<body onload="checkLayout('.container')">
+<div class="container" data-expected-width="200"><div style="width: 10px; min-width: max-content"><span class="content"></span><span class="content"></span></div></div>
+<div class="container" data-expected-width="100"><div style="width: 10px; min-width: min-content"><span class="content"></span><span class="content"></span></div></div>
+<div class="container" data-expected-width="100"><div style="width: 500px; max-width: min-content"><span class="content"></span><span class="content"></span></div></div>
+</body>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Lists: the outside marker of a list item containing only an hr is visible</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#list-style-position-outside">
+<link rel="match" href="outside-marker-with-hr-content-ref.html">
+<meta name="assert" content="The marker is not placed inside the hr, whose UA overflow:hidden would clip it away.">
+<!-- The reference lets the hr overflow so its marker is not clipped, which leaves the marker baseline aligned on a
+     line of the empty hr rather than top aligned at the list item's content edge: a one pixel difference. -->
+<meta name="fuzzy" content="maxDifference=0-255; totalPixels=0-40">
+<style>
+  ul { margin: 0; padding: 0 0 0 40px; }
+  li { font: 20px/20px monospace; }
+</style>
+
+<p>The test passes if a bullet is visible to the left of the horizontal rule.</p>
+
+<ul><li><hr></li></ul>

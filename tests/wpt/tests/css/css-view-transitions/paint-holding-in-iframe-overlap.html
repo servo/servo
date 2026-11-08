@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View transitions: content of the embedder over an iframe keeps updating while the iframe holds its old paint</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="match" href="paint-holding-in-iframe-overlap-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+  iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 200px;
+    height: 200px;
+    border: none;
+  }
+  #overlay {
+    position: absolute;
+    top: 50px;
+    left: 50px;
+    width: 100px;
+    height: 100px;
+    background: rgba(255, 0, 0, 0.5);
+  }
+</style>
+
+<iframe id="inner" srcdoc="
+  <style>
+    body {
+      margin: 0;
+    }
+  </style>
+"></iframe>
+<div id="overlay"></div>
+<script>
+async function runTest() {
+  await waitForAtLeastOneFrame();
+
+  let contentDocument = inner.contentDocument;
+  contentDocument.body.style.background = "blue";
+
+  contentDocument.startViewTransition(async () => {
+    contentDocument.body.style.background = "green";
+    overlay.style.background = "rgba(255, 255, 0, 0.5)";
+
+    takeScreenshot();
+    return new Promise((resolve) => {});
+  });
+}
+onload = runTest;
+</script>
+</html>

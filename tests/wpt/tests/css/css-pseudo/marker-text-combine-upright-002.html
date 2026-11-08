@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: 'text-combine-upright' on a ::marker in a vertical-rl list item</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#propdef-text-combine-upright">
+<link rel="match" href="marker-text-combine-upright-002-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+body { margin: 0; font: 20px/1 Ahem; }
+ul { margin: 0; writing-mode: vertical-rl; padding-inline-start: 60px; list-style-type: "12"; }
+.inside { list-style-position: inside; }
+li::marker { text-combine-upright: all; color: green; }
+</style>
+<ul><li>X</li></ul>
+<ul class="inside"><li>X</li></ul>

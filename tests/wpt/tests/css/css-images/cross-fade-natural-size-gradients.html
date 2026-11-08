@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>Natural size of cross-fade() with no arguments with natural dimensions</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#cross-fade-sizing">
+<link rel="match" href="cross-fade-natural-size-gradients-ref.html">
+<meta name="assert" content="When no argument of cross-fade() has natural dimensions, neither does the cross-fade(), so it fills its background positioning area.">
+<style>
+  div {
+    width: 200px;
+    height: 100px;
+    background-repeat: no-repeat;
+    background-image: cross-fade(linear-gradient(rgb(0, 255, 0), rgb(0, 255, 0)) 50%, linear-gradient(rgb(0, 255, 0), rgb(0, 255, 0)) 50%);
+  }
+</style>
+<div></div>

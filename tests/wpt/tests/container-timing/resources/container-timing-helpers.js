@@ -132,6 +132,26 @@ async function getContainerEntriesWithin(t, duration = 1000) {
   return entries;
 }
 
+// Observes non-buffered 'container' entries for the lifetime of test `t`. Each
+// call to `take()` waits for pending paints to be reported and returns the
+// entries recorded since the observer started or the previous `take()` call.
+function observeContainerEntries(t) {
+  let entries = [];
+  const observer = new PerformanceObserver(entryList => {
+    entries.push(...entryList.getEntries().filter(e => !isWaitEntry(e)));
+  });
+  observer.observe({type: 'container'});
+  t.add_cleanup(() => observer.disconnect());
+  return {
+    async take() {
+      await waitForPendingPaints();
+      const taken = entries;
+      entries = [];
+      return taken;
+    },
+  };
+}
+
 // Waits `duration` ms, long enough for pending paints to be reported, without
 // observing container entries.
 function waitWithoutObserving(t, duration = 3000) {

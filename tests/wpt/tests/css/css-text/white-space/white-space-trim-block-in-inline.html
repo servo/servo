@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>white-space-trim: discard-before with a block-in-inline in the same formatting context</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#white-space-trim">
+<link rel="match" href="reference/white-space-trim-block-in-inline-ref.html">
+<meta name="assert" content="A block-level box nested in an inline box (block-in-inline) is real content that terminates the trim adjacency; discard-before on that inline box still collapses the collapsible white space before its start, and the block-in-inline lays out normally.">
+<style>
+  .db { white-space-trim: discard-before; }
+</style>
+</head>
+<body>
+<p>This test passes if it renders identically to the reference: a line "ab", then "B" on its own line, then "c".</p>
+<div>a <span class="db">b<div>B</div>c</span></div>
+</body>
+</html>

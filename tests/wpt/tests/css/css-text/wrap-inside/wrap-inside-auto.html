@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>wrap-inside: auto allows breaking inside the box (control)</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#wrap-inside">
+<link rel="match" href="wrap-inside-auto-ref.html">
+<meta name="assert" content="With the initial 'wrap-inside: auto' the box breaks internally just like normal content: 'XX YY' / 'ZZ'. This is the counterpart to wrap-inside-avoid-keeps-box-together.html.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    div { width: 110px; font: 20px/20px Ahem; color: green; }
+</style>
+<div>XX <span style="wrap-inside: auto">YY ZZ</span></div>

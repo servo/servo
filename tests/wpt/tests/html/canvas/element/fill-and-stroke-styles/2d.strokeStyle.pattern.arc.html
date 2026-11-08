@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<link rel="match" href="2d.strokeStyle.pattern.arc-ref.html">
+<meta name="fuzzy" content="maxDifference=0-128; totalPixels=0-1802">
+<title>Canvas test: 2d.strokeStyle.pattern.arc</title>
+<body>
+  <canvas id="canvas" width="200" height="200"></canvas>
+</body>
+<script>
+  var canvas = document.getElementById('canvas');
+  var ctx = canvas.getContext('2d');
+  // Create a simple checkerboard pattern.
+  var patternCanvas = document.createElement('canvas');
+  patternCanvas.width = 20;
+  patternCanvas.height = 20;
+  var pctx = patternCanvas.getContext('2d');
+  pctx.fillStyle = 'red';
+  pctx.fillRect(0, 0, 10, 10);
+  pctx.fillStyle = 'blue';
+  pctx.fillRect(10, 0, 10, 10);
+  pctx.fillStyle = 'blue';
+  pctx.fillRect(0, 10, 10, 10);
+  pctx.fillStyle = 'red';
+  pctx.fillRect(10, 10, 10, 10);
+  var pattern = ctx.createPattern(patternCanvas, 'repeat');
+  ctx.lineWidth = 20;
+  ctx.strokeStyle = pattern;
+  ctx.beginPath();
+  ctx.arc(100, 100, 60, 0, 2 * Math.PI);
+  ctx.stroke();
+</script>

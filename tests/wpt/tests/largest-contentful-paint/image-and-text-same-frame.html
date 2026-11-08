@@ -1,0 +1,61 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Largest Contentful Paint: one entry is emitted for an image and a larger text painted in the same frame</title>
+<link rel="help" href="https://w3c.github.io/largest-contentful-paint/#compute-a-new-largest-contentful-paint-candidate">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #image {
+    visibility: hidden;
+  }
+  #text {
+    font-size: 48px;
+    white-space: nowrap;
+  }
+</style>
+<img id="image">
+<div id="text"></div>
+<script>
+  promise_test(async t => {
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+
+    const image = document.getElementById('image');
+    const text = document.getElementById('text');
+
+    // Load the image while it is hidden, so that it becomes paintable in the
+    // same frame as the text.
+    await new Promise(resolve => {
+      image.addEventListener('load', resolve);
+      image.src = '/images/lcp-100x50.png';
+    });
+    await image.decode();
+    await new Promise(resolve => {
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    });
+
+    // Both candidates are found in the same paint, so any image entry is
+    // delivered no later than the text entry.
+    const entries = await new Promise(resolve => {
+      const entries = [];
+      new PerformanceObserver(entryList => {
+        entries.push(...entryList.getEntries());
+        if (entries.some(e => e.id === 'text')) {
+          resolve(entries);
+        }
+      }).observe({type: 'largest-contentful-paint', buffered: true});
+
+      requestAnimationFrame(() => {
+        image.style.visibility = 'visible';
+        text.textContent = 'This text is much larger than the image';
+      });
+    });
+
+    const range = document.createRange();
+    range.selectNodeContents(text);
+    const textRect = range.getBoundingClientRect();
+    assert_greater_than(textRect.width * textRect.height, 100 * 50,
+      'The text should be larger than the image.');
+    assert_array_equals(entries.map(e => e.id), ['text'],
+      'Only the larger text should be reported.');
+  }, 'Only the largest candidate is reported when an image and text are painted in the same frame');
+</script>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>CSS Sizing: a replaced element's min-content or max-content max-width in its intrinsic width contributions</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-contribution">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#replaced-percentage-min-contribution">
+<meta name="assert" content="A keyword max-width caps a replaced element's fixed width at its natural width in its intrinsic width contributions, and a percentage width keeps its max-content contribution at the natural width.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.container {
+    float: left;
+    clear: left;
+}
+</style>
+<body onload="checkLayout('.container')">
+<div class="container" data-expected-width="100"><canvas width="100" height="100" style="width: 300px; max-width: min-content"></canvas></div>
+<div class="container" data-expected-width="100"><canvas width="100" height="100" style="width: 300px; max-width: max-content"></canvas></div>
+<div class="container" data-expected-width="100"><canvas width="100" height="100" style="width: 50%; max-width: min-content"></canvas></div>
+</body>

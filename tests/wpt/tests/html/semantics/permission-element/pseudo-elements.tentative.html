@@ -8,7 +8,14 @@
   </div>
 
   <style>
-    usermedia::before, usermedia::after { content: "FAIL"; }
+    body {
+      list-style-position: inside;
+      list-style-type: "FAIL";
+    }
+    usermedia {
+      display: inline flow-root list-item;
+    }
+    usermedia::before, usermedia::after, usermedia::marker { content: "FAIL"; }
   </style>
 
   <p>You should not see the word FAIL below.</p>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>white-space-trim: interaction with white-space (collapsible vs preserved)</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#white-space-trim">
+<link rel="match" href="reference/white-space-trim-white-space-ref.html">
+<meta name="assert" content="discard-before/discard-after only affect collapsible white space; preserved white space (pre / pre-wrap / break-spaces) is left intact. Collapsibility is determined by the white space's own containing style, not by the box carrying white-space-trim.">
+<style>
+  .db { white-space-trim: discard-before; }
+  .da { white-space-trim: discard-after; }
+</style>
+</head>
+<body>
+<p>This test passes if it renders identically to the reference.</p>
+<!-- 1. preserved (pre) space before a discard-before box is NOT trimmed -> "a b" --><div style="white-space:pre">a <span class="db">b</span></div>
+<!-- 2. preserved (pre) multiple spaces are all kept -> "a   b" --><div style="white-space:pre">a   <span class="db">b</span></div>
+<!-- 3. preserved (pre) space after a discard-after box is NOT trimmed -> "a b" --><div style="white-space:pre"><span class="da">a</span> b</div>
+<!-- 4. pre-wrap preserved space before a discard-before box is NOT trimmed -> "a b" --><div style="white-space:pre-wrap">a <span class="db">b</span></div>
+<!-- 5. collapsible (normal) space before a discard-before box whose own white-space is pre IS trimmed -> "abc". 'white-space' is a shorthand for 'white-space-trim', so the longhand has to be declared after it. --><div>a <span style="white-space:pre; white-space-trim:discard-before">b</span>c</div>
+<!-- 6. white-space:nowrap keeps spaces collapsible, so discard-before trims -> "abc" --><div style="white-space:nowrap">a <span class="db">b</span>c</div>
+</body>
+</html>

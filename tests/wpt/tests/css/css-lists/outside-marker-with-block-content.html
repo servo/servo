@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Lists: an outside marker does not make its list item's children inline</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#list-style-position-outside">
+<meta name="assert" content="An outside marker takes no part in the list item's in-flow layout, so a list item whose content is a block level box has that box at the top of its content box, not below a line of the marker's own.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+ul { margin: 0; padding: 0 0 0 40px; }
+li { font: 16px/18px monospace; }
+.block { height: 40px; }
+</style>
+
+<ul><li id="static"><div class="block">x</div></li></ul>
+<ul><li id="dynamic" style="list-style-position: inside"><div class="block">x</div></li></ul>
+
+<script>
+document.body.offsetHeight;
+document.getElementById("dynamic").style.listStylePosition = "outside";
+
+test(() => {
+    assert_equals(document.getElementById("static").offsetHeight, 40);
+}, "A list item with an outside marker and block level content is as tall as that content");
+
+test(() => {
+    assert_equals(document.getElementById("dynamic").offsetHeight, 40);
+}, "The same holds after the marker changes from inside to outside");
+</script>

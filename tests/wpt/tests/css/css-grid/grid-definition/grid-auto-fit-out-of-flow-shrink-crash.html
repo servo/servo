@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#valdef-repeat-auto-fit">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#abspos-items">
+<meta name="assert" content="An absolutely-positioned descendant whose grid area ends past the explicit grid does not crash when the number of auto-fit tracks shrinks.">
+<style>
+.grid {
+    display: grid;
+    position: relative;
+    column-gap: 10px;
+    grid-template-columns: repeat(auto-fit, 50px);
+}
+.item {
+    height: 50px;
+}
+.abspos {
+    position: absolute;
+    inset: 0;
+}
+</style>
+<!-- 6 tracks fit in 360px, so line 7 is the last line. After shrinking to 300px only 5 tracks fit and line 7 is past the explicit grid. -->
+<div id="container" style="width: 360px">
+    <div class="grid">
+        <div class="item" style="grid-column: 1"><div class="abspos" style="grid-column: 1 / 7"></div></div>
+        <div class="item" style="grid-column: 2"></div>
+    </div>
+</div>
+<script>
+document.body.offsetWidth;
+container.style.width = "300px";
+document.body.offsetWidth;
+</script>
+<p>PASS if no crash.</p>

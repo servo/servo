@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: a word that wrapped onto the next line moves back up once removing text makes it fit</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#line-breaking">
+<link rel="match" href="line-breaking-dynamic-text-removal-001-ref.html">
+<meta name="assert" content="Removing a character from the first word on a line makes that word narrower, so the word moves back to the previous line once it fits there.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+#container {
+  font: 20px/1 Ahem;
+  width: 140px;
+}
+</style>
+<p>Test passes if there are two black rectangles on the first line and one on the second line below.</p>
+<div id="container">XXX XXX XXX</div>
+<script>
+const text = container.firstChild;
+container.offsetHeight;
+// "XXXX" no longer fits on the first line and wraps.
+text.insertData(7, "X");
+container.offsetHeight;
+// "XXX" fits on the first line again.
+text.deleteData(7, 1);
+</script>

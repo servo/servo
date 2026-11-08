@@ -90,9 +90,9 @@ Some tips to keep in mind while writing tests using remote execution:
 * The functions `attachFencedFrameContext()` and `attachIFrameContext()`
   optionally take a dictionary of configs as an argument. You can use it to
   pass:
-  * The API you want to use to generate the fenced frame urn. Either `'fledge'`,
-    `'sharedstorage'`, or default (case-insensitive). When you use this option,
-    the return value becomes a promise so you **must** await it.For example:
+  * The API you want to use to generate the fenced frame urn. Either `'fledge'`
+    or default (case-insensitive). When you use this option, the return value
+    becomes a promise so you **must** await it. For example:
     ```
     await attachFencedFrameContext({generator_api: 'fledge'});
     ```

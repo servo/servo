@@ -1,6 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html xmlns="http://www.w3.org/1999/xhtml" class="reftest-wait">
 
  <head>
 
@@ -35,6 +35,16 @@
   <div>月火水Abc<br />def木金土</div>
 
   <div>月火水Abc<br />def木金土</div>
+
+  <script type="text/javascript"><![CDATA[
+  document.fonts.ready.then(function() {
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        document.documentElement.classList.remove("reftest-wait");
+      });
+    });
+  });
+  ]]></script>
 
  </body>
 </html>

@@ -1,0 +1,27 @@
+<!-- Quirks mode (no doctype) -->
+<html>
+<head>
+  <title>CSS Test: BR with small explicit line-height shrinks the line in quirks mode</title>
+  <link rel="help" href="https://quirks.spec.whatwg.org/#the-line-height-calculation-quirk">
+  <link rel="match" href="br-line-height-shrink-quirks-ref.html">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <style>
+  body {
+      margin: 0;
+  }
+  div {
+      font: 20px/1 Ahem;
+  }
+  br {
+      line-height: 5px;
+  }
+  </style>
+</head>
+<body>
+  <!-- The BR with line-height: 5px should shrink the line to 5px in quirks mode.
+       "A" and "B" should be separated by a 5px gap. -->
+  <div>A</div>
+  <div><br></div>
+  <div>B</div>
+</body>
+</html>

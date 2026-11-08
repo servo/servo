@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test MP4 Edit List (elst) leading empty edit offset in MSE</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="mediasource-util.js"></script>
+</head>
+<body>
+</body>
+<script>
+const fps = 24;
+const frames_per_keyframe = 8;
+const default_sample_duration = 512;
+const earliest_presentation_time = 1024;
+const frame0_offset = earliest_presentation_time / default_sample_duration;
+const mvhd_timescale = 1000;
+const mdhd_timescale = default_sample_duration * fps;
+
+let media;
+promise_test(async t => {
+  media = await new Promise(
+    r => MediaSourceUtil.fetchManifestAndData(
+      t,
+      `mp4/test-v-128k-320x240-${fps}fps-${frames_per_keyframe}kfr-manifest.json`,
+      (type, data) => r({type, data})));
+  // Truncate at end of first segment (8 frames).
+  const segment0_end = 0x1b1a;
+  media.data = media.data.subarray(0, segment0_end);
+}, 'setup');
+
+function createEdtsBox(entries) {
+  const elst_size = 16 + 12 * entries.length;
+  const edts_size = 8 + elst_size;
+  const buffer = new ArrayBuffer(edts_size);
+  const view = new DataView(buffer);
+
+  // edts box header
+  view.setUint32(0, edts_size);
+  view.setUint32(4, 0x65647473); // 'edts'
+
+  // elst fullbox header (version 0, flags 0)
+  view.setUint32(8, elst_size);
+  view.setUint32(12, 0x656c7374); // 'elst'
+  view.setUint32(16, 0);
+  view.setUint32(20, entries.length);
+
+  let offset = 24;
+  for (const entry of entries) {
+    view.setUint32(offset, entry.segment_duration);
+    view.setInt32(offset + 4, entry.media_time);
+    view.setInt16(offset + 8, 1); // media_rate_integer = 1
+    view.setInt16(offset + 10, 0); // media_rate_fraction = 0
+    offset += 12;
+  }
+  return new Uint8Array(buffer);
+}
+
+function insertEdtsIntoTrack(src, entries) {
+  const edts = createEdtsBox(entries);
+  const moov_offset = 86;
+  const trak_offset = 258;
+  const tkhd_end = 358;
+
+  const out = new Uint8Array(src.length + edts.length);
+  out.set(src.subarray(0, tkhd_end), 0);
+  out.set(edts, tkhd_end);
+  out.set(src.subarray(tkhd_end), tkhd_end + edts.length);
+
+  const view = new DataView(out.buffer);
+  view.setUint32(moov_offset, view.getUint32(moov_offset) + edts.length);
+  view.setUint32(trak_offset, view.getUint32(trak_offset) + edts.length);
+  return out;
+}
+
+async function runElstTest(t, entries, expected_start, expected_end) {
+  assert_implements_optional(MediaSource.isTypeSupported(media.type),
+                             'type supported');
+
+  const v = document.createElement('video');
+  t.add_cleanup(() => v.remove());
+  document.body.appendChild(v);
+
+  const media_source = new MediaSource();
+  const media_source_watcher = new EventWatcher(t, media_source, ['sourceopen']);
+  v.src = URL.createObjectURL(media_source);
+  await media_source_watcher.wait_for('sourceopen');
+
+  const source_buffer = media_source.addSourceBuffer(media.type);
+  const source_buffer_watcher = new EventWatcher(t, source_buffer, ['updateend']);
+
+  const patched_data = insertEdtsIntoTrack(media.data, entries);
+  source_buffer.appendBuffer(patched_data);
+  await source_buffer_watcher.wait_for('updateend');
+
+  assert_equals(source_buffer.buffered.length, 1,
+                'source_buffer.buffered.length after append');
+  assert_approx_equals(source_buffer.buffered.start(0),
+                       expected_start,
+                       1e-5,
+                       'source_buffer.buffered.start(0) after append');
+  assert_approx_equals(source_buffer.buffered.end(0),
+                       expected_end,
+                       1e-5,
+                       'source_buffer.buffered.end(0) after append');
+}
+
+promise_test(async t => {
+  const empty_edit_duration = 500; // 0.5s in mvhd_timescale (1000)
+  const offset = empty_edit_duration / mvhd_timescale;
+  await runElstTest(
+      t,
+      [{segment_duration: empty_edit_duration, media_time: -1}],
+      frame0_offset / fps + offset,
+      (frame0_offset + frames_per_keyframe) / fps + offset);
+}, 'Single leading empty edit in elst shifts buffered range forward');
+
+promise_test(async t => {
+  const empty_edit_duration = 500; // 0.5s in mvhd_timescale (1000)
+  const offset = empty_edit_duration / mvhd_timescale;
+  await runElstTest(
+      t,
+      [
+        {segment_duration: empty_edit_duration, media_time: -1},
+        {segment_duration: 0, media_time: 0},
+      ],
+      frame0_offset / fps + offset,
+      (frame0_offset + frames_per_keyframe) / fps + offset);
+}, 'Leading empty edit followed by media_time=0 edit shifts buffered range forward');
+
+promise_test(async t => {
+  const empty_edit_duration = 500; // 0.5s in mvhd_timescale (1000)
+  const media_time_trim = earliest_presentation_time; // 2/24s in mdhd_timescale
+  const net_offset =
+      empty_edit_duration / mvhd_timescale - media_time_trim / mdhd_timescale;
+  await runElstTest(
+      t,
+      [
+        {segment_duration: empty_edit_duration, media_time: -1},
+        {segment_duration: 0, media_time: media_time_trim},
+      ],
+      frame0_offset / fps + net_offset,
+      (frame0_offset + frames_per_keyframe) / fps + net_offset);
+}, 'Leading empty edit combined with non-zero media_time edit applies net offset');
+</script>
+</html>

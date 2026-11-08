@@ -2,8 +2,8 @@
 <meta charset="utf-8">
 <title>CSS Borders and Box Decorations 4 Test: Parsing 'corner' with invalid values</title>
 <link rel="author" title="Sebastian Zartner" href="mailto:sebastianzartner@gmail.com">
-<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shaping">
-<meta name="assert" content="This test checks that 'corner' supports only a combination of 'border-radius' and 'corner-shape' values.">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shorthand">
+<meta name="assert" content="This test checks that 'corner' supports only <'border-radius'> || <'corner-shape'>.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -11,16 +11,27 @@
 <script>
 test_invalid_value("corner", "auto");
 test_invalid_value("corner", "none");
-test_invalid_value("corner", "scoop");
-test_invalid_value("corner", "3% normal");
-test_invalid_value("corner", "round round round round round");
+test_invalid_value("corner", "normal");
 test_invalid_value("corner", "-1px");
-test_invalid_value("corner", "10px");
-test_invalid_value("corner", "4px 12px");
-test_invalid_value("corner", "4px 12px / normal");
-test_invalid_value("corner", "4px 2% 1em 4% 2px");
+test_invalid_value("corner", "3% normal");
+
+// The pre-2025-08 per-corner, slash-separated prototype grammar.
+test_invalid_value("corner", "10px round / 20px bevel");
+test_invalid_value("corner", "normal / 1px round");
+test_invalid_value("corner", "notch 10px / squircle 30% 10px / 1rem bevel / 2px round");
+test_invalid_value("corner", "36px round / 18px bevel / 28px scoop / 20px notch");
+
+// Components may not interleave or repeat.
+test_invalid_value("corner", "round 10px round");
+test_invalid_value("corner", "10px round 5px");
+test_invalid_value("corner", "round 10% / 2rem squircle");
+test_invalid_value("corner", "round / 10px");
+test_invalid_value("corner", "10px / bevel");
+test_invalid_value("corner", "4px /");
+
+// Too many values.
+test_invalid_value("corner", "1px 2px 3px 4px 5px");
+test_invalid_value("corner", "round round round round round");
 test_invalid_value("corner", "4px / 2px 4% 1em 2% 2px");
-test_invalid_value("corner", "4px / angle");
-test_invalid_value("corner", "angle / 4px");
 test_invalid_value("corner", "4px angle 2% round");
 </script>

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>wrap-inside: a wrap-inside: avoid box nested inside another avoid box is kept together</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#wrap-inside">
+<link rel="match" href="wrap-inside-avoid-nested-ref.html">
+<meta name="assert" content="When a 'wrap-inside: avoid' box is nested inside another 'wrap-inside: avoid' box, the whole outer box is kept together and the line breaks before it.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    div { width: 110px; font: 20px/20px Ahem; color: green; }
+</style>
+<!-- Both boxes are 'wrap-inside: avoid'; the outer box is kept together and the line breaks before it: "X" / "Y Z W". -->
+<div>X <span style="wrap-inside: avoid">Y <span style="wrap-inside: avoid">Z W</span></span></div>

@@ -58,6 +58,41 @@
     assert_true("safe_search" in registeredTool.inputSchema.properties, "Schema should contain 'safe_search' property");
     assert_equals(registeredTool.inputSchema.properties.safe_search.type, "boolean", "safe_search property type should be boolean");
     assert_equals(registeredTool.inputSchema.properties.safe_search.description, "Enable safe search filtering", "safe_search property description is correct");
+
+    assert_equals(registeredTool.outputSchema, null, "outputSchema should be null when omitted");
   }, "Test that getTools() returns the correct inputSchema for an imperative tool");
+
+  promise_test(async t => {
+    const controller = new AbortController();
+    const tool = {
+      name: "output_schema_tool",
+      description: "Tool with output schema",
+      outputSchema: {
+        type: "object",
+        properties: {
+          result: {
+            type: "string",
+            description: "The result string",
+          },
+        },
+        required: ["result"],
+      },
+      execute: () => {},
+    };
+
+    await document.modelContext.registerTool(tool, { signal: controller.signal });
+    t.add_cleanup(() => controller.abort());
+
+    const tools = await document.modelContext.getTools();
+    const registeredTool = tools.find(tool => tool.name === "output_schema_tool");
+    assert_true(!!registeredTool, "Tool should be found");
+    assert_equals(registeredTool.inputSchema, null, "inputSchema should be null when omitted");
+    assert_true(!!registeredTool.outputSchema, "outputSchema should be non-empty");
+    assert_equals(registeredTool.outputSchema.type, "object", "Schema should be an object");
+    assert_true("result" in registeredTool.outputSchema.properties, "Schema should contain 'result' property");
+    assert_equals(registeredTool.outputSchema.properties.result.type, "string", "Result property type should be string");
+    assert_equals(registeredTool.outputSchema.properties.result.description, "The result string", "Result property description is correct");
+    assert_array_equals(registeredTool.outputSchema.required, ["result"], "Result should be a required property");
+  }, "Test that getTools() returns the correct outputSchema for an imperative tool");
 </script>
 </body>

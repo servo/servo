@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta http-equiv="Content-Security-Policy" content="connect-src 'none'">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// The module graph of a worker or a worklet is fetched with the outside
+// settings object, so the connect-src violation of a JSON module import is
+// reported on the creator.
+const kBlockedURL = new URL('/common/dummy.json', location).href;
+
+promise_test(async t => {
+  const worker_src = 'support/import-json-module.js';
+  await Promise.all([
+    new EventWatcher(t, document, 'securitypolicyviolation')
+        .wait_for('securitypolicyviolation')
+        .then(e => {
+          assert_equals(e.blockedURI, kBlockedURL);
+          assert_equals(e.effectiveDirective, 'connect-src');
+          assert_equals(e.violatedDirective, 'connect-src');
+        }),
+    new EventWatcher(t, new Worker(worker_src, {type: 'module'}), 'error')
+        .wait_for('error'),
+  ]);
+}, 'DedicatedWorker: a JSON module import is reported on the creator.');
+
+promise_test(async t => {
+  const worker_src = `support/import-json-module.js?${Math.random()}`;
+  await Promise.all([
+    new EventWatcher(t, document, 'securitypolicyviolation')
+        .wait_for('securitypolicyviolation')
+        .then(e => {
+          assert_equals(e.blockedURI, kBlockedURL);
+          assert_equals(e.effectiveDirective, 'connect-src');
+          assert_equals(e.violatedDirective, 'connect-src');
+        }),
+    new EventWatcher(t, new SharedWorker(worker_src, {type: 'module'}), 'error')
+        .wait_for('error'),
+  ]);
+}, 'SharedWorker: a JSON module import is reported on the creator.');
+
+promise_test(async t => {
+  const worklet_src = 'support/import-json-module.js?worklet';
+  await Promise.all([
+    new EventWatcher(t, document, 'securitypolicyviolation')
+        .wait_for('securitypolicyviolation')
+        .then(e => {
+          assert_equals(e.blockedURI, kBlockedURL);
+          assert_equals(e.effectiveDirective, 'connect-src');
+          assert_equals(e.violatedDirective, 'connect-src');
+        }),
+    promise_rejects_dom(
+        t, 'AbortError', new AudioContext().audioWorklet.addModule(worklet_src)),
+  ]);
+}, 'AudioWorklet: a JSON module import is reported on the creator.');
+</script>

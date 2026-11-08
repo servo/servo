@@ -1,0 +1,17 @@
+ids not carried across a style block
+<link rel="help" href="https://w3c.github.io/webvtt/#collect-a-webvtt-block">
+
+// A stray line that precedes a STYLE block must not be remembered and
+// applied as the id of a later cue that has no id line of its own.
+assert_equals(cues.length, 1);
+assert_equals(cues[0].id, "");
+
+===
+WEBVTT
+
+not-an-id
+STYLE
+::cue { color: lime }
+
+00:00:00.000 --> 00:00:01.000
+text

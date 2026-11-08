@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: reference for output elements, direct clamping</title>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+body {
+  font: 25px/1 Ahem;
+}
+input, button, select, textarea {
+  font: inherit;
+}
+.clamp {
+  width: 240px;
+}
+</style>
+
+<output class="clamp">XX<br>XX<br>XX<br>XX</output>
+<meter class="clamp" value="0.5">XX XX XX XX</meter>
+<progress class="clamp" value="0.5">XX XX XX XX</progress>

@@ -1,0 +1,74 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Navigation Timing redirect data is hidden after a COOP browsing context group switch without a TAO opt-in</title>
+<link rel="help" href="https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-responsestart">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/origin.html#cross-origin-opener-policies">
+<link rel="help" href="https://fetch.spec.whatwg.org/#navigation-tao-check">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script>
+// This is the counterpart to response-start-after-coop-bcg-switch.https.html.
+// There, the redirect chain opts into TAO, so the redirect data (and the
+// navigation start time) are exposed to the destination. Here the redirect
+// chain does NOT set Timing-Allow-Origin, so the navigation fails the
+// navigation TAO check for the destination origin. In that case:
+//  - the redirect data must be obfuscated (redirectCount / redirectStart == 0), and
+//  - the navigation start time from before the cross-origin redirects must not
+//    be leaked across the COOP process swap, i.e. the cross-origin redirect
+//    duration must not show up in responseStart.
+const REDIRECT_DELAY_S = 2;
+const REDIRECT_DELAY_MS = REDIRECT_DELAY_S * 1000;
+
+const redirectTo = destination => {
+  // slow-redirect.py does not send Timing-Allow-Origin, and delays the response
+  // so that a leaked timeOrigin (the navigation start from before the redirects)
+  // would be observable as a large responseStart.
+  const url = new URL("/common/slow-redirect.py", location.href);
+  url.searchParams.set("delay", REDIRECT_DELAY_S);
+  url.searchParams.set("location", destination);
+  return url;
+};
+
+promise_test(async t => {
+  const responseToken = token();
+  const iframeToken = token();
+  const popup = window.open("/common/blank.html", token());
+  assert_not_equals(popup, null, "Popup should be opened");
+
+  t.add_cleanup(async () => {
+    await send(iframeToken, "close");
+    popup.close();
+  });
+
+  await new EventWatcher(t, popup, "load").wait_for("load");
+
+  const postbackURL = new URL(make_absolute_url({ path: "/html/cross-origin-opener-policy/resources/postback.html" }));
+  postbackURL.searchParams.set("channel", "null");
+  postbackURL.searchParams.set("responseToken", responseToken);
+  postbackURL.searchParams.set("iframeToken", iframeToken);
+
+  const finalURL = new URL(make_absolute_url({
+    subdomain: "www",
+    path: "/navigation-timing/resources/coop-response-start.html",
+  }));
+  finalURL.searchParams.set("postback", postbackURL.href);
+
+  const redirectURL = redirectTo(finalURL.href);
+
+  popup.location = redirectURL.href;
+
+  const navigationTiming = JSON.parse(await receive(responseToken));
+  assert_equals(navigationTiming.name, finalURL.href, "The popup should report the final navigation URL");
+
+  // The redirect chain does not opt in via TAO, so its data must be hidden.
+  assert_equals(navigationTiming.redirectCount, 0, "redirectCount must be hidden when the redirect chain does not opt in");
+  assert_equals(navigationTiming.redirectStart, 0, "redirectStart must be hidden when the redirect chain does not opt in");
+
+  // The navigation start time from before the cross-origin redirects must not be
+  // leaked across the COOP process swap: the (cross-origin) redirect duration
+  // must not be observable in responseStart.
+  assert_less_than(navigationTiming.responseStart, REDIRECT_DELAY_MS, "responseStart must not include the cross-origin redirect duration");
+}, "Redirect data is hidden and the navigation start time is not leaked after a cross-origin COOP browsing context group switch without a TAO opt-in");
+</script>

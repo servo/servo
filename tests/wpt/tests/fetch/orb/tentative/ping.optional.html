@@ -1,0 +1,56 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Hyperlink auditing with ORB-blockable responses</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/links.html#hyperlink-auditing">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script>
+for (const [status, type] of [
+  [204, "text/plain"],
+  [200, "text/html"],
+  [200, "application/json"],
+  [200, "text/plain"],
+]) {
+  promise_test(async t => {
+    const id = token();
+    const endpoint = new URL("../resources/ping.py", location.href);
+    endpoint.search = new URLSearchParams({ id, status, type });
+    const frame = document.createElement("iframe");
+    frame.name = id;
+    const loaded = new Promise(resolve => frame.onload = resolve);
+    document.body.append(frame);
+    t.add_cleanup(() => frame.remove());
+    await loaded;
+
+    const link = document.createElement("a");
+    link.href = `/common/blank.html?${id}`;
+    link.target = frame.name;
+    link.ping = get_host_info().HTTP_REMOTE_ORIGIN + endpoint.pathname + endpoint.search;
+    document.body.append(link);
+    t.add_cleanup(() => link.remove());
+
+    const navigated = new Promise(resolve => frame.onload = resolve);
+    link.click();
+    await navigated;
+    assert_equals(frame.contentWindow.location.href, link.href,
+                  "The link navigates to its destination");
+
+    for (let attempt = 0; attempt < 100; ++attempt) {
+      const response = await fetch(endpoint);
+      const ping = await response.json();
+      if (ping !== null) {
+        assert_equals(ping.method, "POST");
+        assert_equals(ping.contentType, "text/ping");
+        assert_equals(ping.body, "PING");
+        assert_equals(ping.pingTo, link.href);
+        return;
+      }
+      await new Promise(resolve => t.step_timeout(resolve, 50));
+    }
+    assert_unreached("The server did not receive the cross-origin ping");
+  }, `Cross-origin ping reaches the server and navigation succeeds with a ${status} ${type} nosniff response`);
+}
+</script>

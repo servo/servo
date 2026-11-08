@@ -1,0 +1,34 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Reporting: buffered option is cleared after the first observe()</title>
+<link rel="help" href="https://w3c.github.io/reporting/#dom-reportingobserver-observe">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+promise_test(async t => {
+  await test_driver.generate_test_report("First message.");
+
+  let resolveReports;
+  const observer = new ReportingObserver(reports => resolveReports(reports),
+                                         {buffered: true});
+  t.add_cleanup(() => observer.disconnect());
+
+  let reports = await new Promise(resolve => {
+    resolveReports = resolve;
+    observer.observe();
+  });
+  assert_array_equals(reports.map(r => r.body.message), ["First message."],
+                      "first observe() delivers the buffered report");
+
+  observer.disconnect();
+  const reportsPromise = new Promise(resolve => resolveReports = resolve);
+  observer.observe();
+  await test_driver.generate_test_report("Second message.");
+
+  reports = await reportsPromise;
+  assert_array_equals(reports.map(r => r.body.message), ["Second message."],
+                      "second observe() does not replay the buffer");
+}, "Calling observe() again after disconnect() does not replay buffered reports");
+</script>

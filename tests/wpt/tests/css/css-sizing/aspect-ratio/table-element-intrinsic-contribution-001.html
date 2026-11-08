@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: a table's min-height transfers to its intrinsic width contributions</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-size-transfers">
+<meta name="assert" content="aspect-ratio applies to the table element, so its min-height transfers through the aspect ratio to its min-content and max-content contributions.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.container {
+    float: left;
+    clear: left;
+}
+table {
+    aspect-ratio: 1;
+    min-height: 200px;
+    border-spacing: 0;
+}
+td {
+    padding: 0;
+}
+</style>
+<body onload="checkLayout('.container')">
+<div class="container" data-expected-width="200">
+    <table><tr><td><div style="width: 10px; height: 10px"></div></td></tr></table>
+</div>
+</body>

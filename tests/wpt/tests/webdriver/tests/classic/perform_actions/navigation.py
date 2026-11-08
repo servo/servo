@@ -3,7 +3,7 @@ import pytest
 from tests.classic.perform_actions.support.refine import get_events
 
 PAGE_CONTENT = """
-    <input></input>
+    <input>
     <script>
         "use strict;"
 

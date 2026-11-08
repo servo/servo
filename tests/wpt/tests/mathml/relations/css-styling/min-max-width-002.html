@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>min-width and max-width</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#layout-algorithms">
+<meta name="assert" content="Verify that min-width and max-width properties constrain the size of the content box, and that the box is as wide as its contribution to a shrink-to-fit container.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/feature-detection.js"></script>
+<script src="/mathml/support/mathml-fragments.js"></script>
+<script src="/mathml/support/box-comparison.js"></script>
+<style>
+  /* Revert style specified in the UA style sheet that changes box size. */
+  merror { border: 0; }
+  mfrac { padding: 0; }
+</style>
+<script>
+  var epsilon = 1;
+
+  setup({ explicit_done: true });
+  window.addEventListener("load", runTests);
+
+  function runTests() {
+
+    for (tag in MathMLFragments) {
+        if (!FragmentHelper.isValidChildOfMrow(tag))
+            continue;
+
+        document.body.insertAdjacentHTML("beforeend", `<div style="position: absolute;"><math><mrow>${MathMLFragments[tag]}</mrow></math></div>`);
+        let div = document.body.lastElementChild;
+        let element = FragmentHelper.element(div.firstElementChild);
+        FragmentHelper.forceNonEmptyDescendants(element);
+
+        test(function() {
+            assert_true(MathMLFeatureDetection[`has_${tag}`](), `${tag} is supported`);
+            element.setAttribute("style", "min-width: 500px;");
+            assert_approx_equals(element.getBoundingClientRect().width, 500, epsilon, "width");
+        }, `min-width property on ${tag}`);
+
+        test(function() {
+            assert_true(MathMLFeatureDetection[`has_${tag}`](), `${tag} is supported`);
+            element.setAttribute("style", "width: 2px; min-width: 500px;");
+            assert_approx_equals(element.getBoundingClientRect().width, 500, epsilon, "width");
+        }, `min-width property on ${tag} (larger than width)`);
+
+        // Note that we skip mtable, which follows CSS tables rules and is never narrower than its content.
+        if (tag != "mtable") {
+            test(function() {
+                assert_true(MathMLFeatureDetection[`has_${tag}`](), `${tag} is supported`);
+                element.setAttribute("style", "width: 500px; max-width: 2px;");
+                assert_approx_equals(element.getBoundingClientRect().width, 2, epsilon, "width");
+            }, `max-width property on ${tag} (content overflowing)`);
+
+            test(function() {
+                assert_true(MathMLFeatureDetection[`has_${tag}`](), `${tag} is supported`);
+                element.setAttribute("style", "width: 500px; max-width: 300px;");
+                assert_approx_equals(element.getBoundingClientRect().width, 300, epsilon, "width");
+            }, `max-width property on ${tag} (smaller than width)`);
+        }
+
+        div.style = "display: none;"; // Hide the div after measurement.
+
+        document.body.insertAdjacentHTML("beforeend", `<div style="position: absolute;"><div style="display: inline-block"><math><mrow>${MathMLFragments[tag]}</mrow></math></div></div>`);
+        let shrinkWrapDiv = document.body.lastElementChild.firstElementChild;
+        let math = shrinkWrapDiv.firstElementChild;
+        element = FragmentHelper.element(math);
+        FragmentHelper.forceNonEmptyDescendants(element);
+
+        test(function() {
+            assert_true(MathMLFeatureDetection[`has_${tag}`](), `${tag} is supported`);
+            element.setAttribute("style", "min-width: 300px;");
+            let refPreferredWidth = 300;
+
+            // In the case of mo, spacing is added around the element so that it is included
+            // in the preferred width calculation, which should be the sum of lspace, rspace and min-width.
+            if (tag === "mo") {
+              element.setAttribute("lspace", "50px");
+              element.setAttribute("rspace", "30px");
+              refPreferredWidth = 380;
+            }
+
+            assert_approx_equals(shrinkWrapDiv.getBoundingClientRect().width, refPreferredWidth, epsilon, "preferred width");
+            assert_approx_equals(math.getBoundingClientRect().width, refPreferredWidth, epsilon, "math width");
+        }, `min-width property on ${tag} (preferred width)`);
+
+        div.style = "display: none;"; // Hide the div after measurement.
+    }
+
+    done();
+  }
+</script>
+</head>
+<body>
+  <div id="log"></div>
+</body>
+</html>

@@ -12,7 +12,7 @@ function startWorkerAndObserveReports(worker_url, wait_for_report) {
   const report_promise = new Promise(resolve => {
     const observer = new ReportingObserver(reports => {
       observer.disconnect();
-      resolve(reports.map(r => r.toJSON()));
+      resolve(reports);
     });
     observer.observe();
   });

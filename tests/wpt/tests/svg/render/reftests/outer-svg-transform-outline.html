@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>The outline of a transformed outermost svg element is not clipped by its viewport</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://svgwg.org/svg2-draft/render.html#OverflowAndClipProperties">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#overflow-properties">
+<link rel="help" href="https://drafts.csswg.org/css-ui/#outline-props">
+<link rel="match" href="outer-svg-transform-outline-ref.html">
+<meta name="assert" content="The viewport clip of an outermost svg element only clips its content, not its outline.">
+<style>
+body {
+  margin: 0;
+}
+svg {
+  display: block;
+  position: absolute;
+  left: 50px;
+  top: 50px;
+  width: 100px;
+  height: 100px;
+  overflow: hidden;
+  transform: translate(10px, 10px);
+  outline: 20px solid green;
+}
+</style>
+<svg>
+  <rect width="100" height="100" fill="green"/>
+</svg>

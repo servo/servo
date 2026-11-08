@@ -7,6 +7,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
+<script src="/common/rendering-utils.js"></script>
 <style>
 iframe {
   frame-sizing: content-height;
@@ -33,25 +34,54 @@ function get_iframe_src() {
   return src;
 }
 
+function waitForHeight(t, element, targetHeight) {
+  if (element.offsetHeight === targetHeight) {
+    return Promise.resolve();
+  }
+  return new Promise(resolve => {
+    const observer = new ResizeObserver(() => {
+      if (element.offsetHeight === targetHeight) {
+        observer.disconnect();
+        resolve();
+      }
+    });
+    t.add_cleanup(() => observer.disconnect());
+    observer.observe(element);
+  });
+}
+
 async_test(t => {
+  const origin = new URLSearchParams(window.location.search).get('origin');
   let numIframeLoadEvents = 0;
-  iframe.addEventListener('load', t.step_func(() => {
+  iframe.addEventListener('load', t.step_func(async () => {
     ++numIframeLoadEvents;
     switch (numIframeLoadEvents) {
-      case 1:
-        assert_equals(iframe.offsetHeight, 200, "Initial height should be 200px");
+      case 1: {
+        await waitForHeight(t, iframe, 200);
+        t.step(() => {
+          assert_equals(iframe.offsetHeight, 200, "Initial height should be 200px");
 
-        // Navigate to non-responsive page.
-        const url = 'iframe-contents-unsized.html';
-        iframe.contentWindow.postMessage({action: 'navigate', url: url}, '*');
+          // Navigate to non-responsive page.
+          const url = 'iframe-contents-unsized.html';
+          iframe.contentWindow.postMessage({action: 'navigate', url: url}, '*');
+        });
         break;
-      case 2:
+      }
+      case 2: {
+        await waitForHeight(t, iframe, 150);
+        await waitForAtLeastOneFrame();
+        if (origin === 'cross') {
+          await waitForAtLeastOneFrame();
+        }
         // The height should have reverted to default (150) because the new page
         // is not responsive and cleared the sizing info.
         // If it didn't clear, it would keep 200 or grow to 400.
-        assert_equals(iframe.offsetHeight, 150, "Height should revert to default 150px");
+        t.step(() => {
+          assert_equals(iframe.offsetHeight, 150, "Height should revert to default 150px");
+        });
         t.done();
         break;
+      }
     }
   }));
 }, "Responsive iframe clears size during navigation to non-responsive page");

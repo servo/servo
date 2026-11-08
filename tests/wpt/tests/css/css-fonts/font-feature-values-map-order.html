@@ -1,0 +1,77 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Iteration order of parsed font feature value maps</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#om-fontfeaturevalues">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14658">
+<link rel="help" href="https://webidl.spec.whatwg.org/#dfn-maplike">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+function createRule(body) {
+  const sheet = new CSSStyleSheet();
+  sheet.insertRule(`@font-feature-values Example { ${body} }`);
+  return sheet.cssRules[0];
+}
+
+test(() => {
+  const map = createRule("@styleset { z: 1; a: 2; m: 3; z: 4; }").styleset;
+  assert_array_equals([...map.keys()], ["z", "a", "m"]);
+  assert_array_equals([...map.entries()].map(([name]) => name), ["z", "a", "m"]);
+  assert_array_equals([...map].map(([name]) => name), ["z", "a", "m"]);
+  const values = [...map.values()];
+  assert_equals(values.length, 3);
+  assert_array_equals(values[0], [4]);
+  assert_array_equals(values[1], [2]);
+  assert_array_equals(values[2], [3]);
+  const visited = [];
+  map.forEach((value, name) => visited.push(name));
+  assert_array_equals(visited, ["z", "a", "m"]);
+}, "All map iteration APIs preserve first name positions with the final parsed values");
+
+test(() => {
+  const rule = createRule(`
+    @swash { pretty: 0; cool: 2; }
+    @styleset { other: 3; }
+    @swash { pretty: 1; extra: 4; cool: 5; }
+  `);
+  assert_array_equals([...rule.swash.keys()], ["pretty", "cool", "extra"]);
+  assert_array_equals(rule.swash.get("pretty"), [1]);
+  assert_array_equals(rule.swash.get("cool"), [5]);
+  assert_array_equals(rule.swash.get("extra"), [4]);
+  assert_array_equals([...rule.styleset.keys()], ["other"]);
+}, "Repeated feature blocks merge without moving existing map entries");
+
+test(() => {
+  const map = createRule("@styleset { a: -1; b: 2; a: 3; b: -1; }").styleset;
+  assert_array_equals([...map.keys()], ["b", "a"]);
+  assert_array_equals(map.get("b"), [2]);
+  assert_array_equals(map.get("a"), [3]);
+}, "Invalid parsed declarations neither reserve positions nor overwrite map entries");
+
+test(() => {
+  const map = createRule("@styleset { a: 1; A: 2; b: 3; \\61: 4; }").styleset;
+  assert_array_equals([...map.keys()], ["a", "A", "b"]);
+  assert_array_equals(map.get("a"), [4]);
+  assert_array_equals(map.get("A"), [2]);
+}, "Parsed names are case-sensitive and escaped spellings update the same map entry");
+
+test(() => {
+  const map = createRule("@styleset { a: 1; b: 2; a: 3; }").styleset;
+  map.set("a", 4);
+  assert_array_equals([...map.keys()], ["a", "b"]);
+  assert_array_equals(map.get("a"), [4]);
+  map.delete("a");
+  map.set("a", 5);
+  assert_array_equals([...map.keys()], ["b", "a"]);
+  assert_array_equals(map.get("a"), [5]);
+}, "Updating a parsed map entry preserves its position while deletion and reinsertion append it");
+
+test(() => {
+  const map = createRule("@character-variant { a: 1 2; b: 3 4; a: 5 6; }").characterVariant;
+  assert_array_equals([...map.keys()], ["a", "b"]);
+  assert_array_equals(map.get("a"), [5, 6]);
+  assert_array_equals(map.get("b"), [3, 4]);
+}, "Character-variant blocks populate the characterVariant map in first name order");
+</script>

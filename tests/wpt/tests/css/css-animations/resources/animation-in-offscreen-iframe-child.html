@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<iframe src="animation-in-offscreen-iframe-grandchild.html"></iframe>
+<script>
+const frame = document.querySelector('iframe');
+
+addEventListener('message', event => {
+  if (event.source === frame.contentWindow) {
+    parent.postMessage(event.data, '*');
+  } else if (event.source === parent && event.data === 'report-state') {
+    frame.contentWindow.postMessage(event.data, '*');
+  }
+});
+</script>

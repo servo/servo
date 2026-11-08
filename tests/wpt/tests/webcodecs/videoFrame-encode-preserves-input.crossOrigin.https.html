@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/common/get-host-info.sub.js'></script>
+  <script src='/webcodecs/videoFrame-utils.js'></script>
+  <script src='/webcodecs/video-encoder-utils.js'></script>
+  <script src='/webcodecs/videoFrame-encode-preserves-input-utils.js'></script>
+</head>
+<body>
+<script>
+const WIDTH = 64;
+const HEIGHT = 64;
+
+// A same-site (same registrable domain), cross-origin child. Same site keeps
+// both documents in one agent cluster so the VideoFrame clone can be
+// structured-cloned across postMessage.
+const HELPER =
+    '/webcodecs/videoFrame-encode-preserves-input.crossOrigin.helper.html';
+const CHILD_ORIGIN = get_host_info().HTTPS_REMOTE_ORIGIN;
+const CHILD = CHILD_ORIGIN + HELPER;
+
+for (const format of ENCODE_FORMATS) {
+  for (const codec of ENCODE_CODECS) {
+    promise_test(async t => {
+      const config = makeEncoderConfig(codec, WIDTH, HEIGHT);
+      await checkEncoderSupport(t, config);
+
+      const frame = new VideoFrame(makeFrameData(format, WIDTH, HEIGHT), {
+        format,
+        codedWidth: WIDTH,
+        codedHeight: HEIGHT,
+        timestamp: 0,
+      });
+
+      const before = await snapshot(frame);
+
+      const iframe = await appendIframe(CHILD);
+
+      const reply = new Promise(resolve => {
+        window.addEventListener('message', function onMessage(e) {
+          if (e.source === iframe.contentWindow && e.origin === CHILD_ORIGIN &&
+              e.data && (e.data.done || e.data.error)) {
+            window.removeEventListener('message', onMessage);
+            resolve(e.data);
+          }
+        });
+      });
+
+      // clone() shares the frame's underlying image data.
+      const shared = frame.clone();
+      iframe.contentWindow.postMessage({frame: shared, config}, CHILD_ORIGIN);
+      shared.close();
+
+      const result = await reply;
+      assert_true(!result.error, result.error);
+
+      assert_buffer_equals(await snapshot(frame), before);
+      frame.close();
+    }, `A ${format} VideoFrame encoded with ${codec.codec} in a same-site ` +
+       `cross-origin child must not mutate the parent's retained frame`);
+  }
+}
+
+function appendIframe(src) {
+  const iframe = document.createElement('iframe');
+  document.body.appendChild(iframe);
+  iframe.src = src;
+  return new Promise(resolve => iframe.onload = () => resolve(iframe));
+}
+</script>
+</body>
+</html>

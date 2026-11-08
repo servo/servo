@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Pointer events in an SVG document embedded with object-fit</title>
+<link rel="author" title="Felipe Erias" href="mailto:felipeerias@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#the-object-fit">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  body { margin: 0; }
+  object {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+  }
+</style>
+<object data="support/colors-16x8.svg"></object>
+<script>
+const loaded = new Promise(resolve => window.addEventListener('load', resolve));
+
+// Clicks at a point and resolves with the pointerdown event, which the SVG
+// document receives if the point is over it, and the object element if not.
+async function pointerDownAt(t, x, y) {
+  const object = document.querySelector('object');
+  const event = new Promise(resolve => {
+    const options = {once: true, signal: t.get_signal()};
+    object.addEventListener('pointerdown', resolve, options);
+    object.contentDocument.addEventListener('pointerdown', resolve, options);
+  });
+  await new test_driver.Actions()
+      .pointerMove(x, y).pointerDown().pointerUp().send();
+  return event;
+}
+
+promise_test(async t => {
+  await loaded;
+  const object = document.querySelector('object');
+  // The 16x8 SVG document is fitted to 100x50 at y=25 inside the 100x100
+  // content box, so y=60 is at y=35 in the SVG document, in its bottom left
+  // rect.
+  const event = await pointerDownAt(t, 25, 60);
+  const bottomLeft = object.contentDocument.querySelectorAll('rect')[2];
+  assert_equals(event.target, bottomLeft, 'target');
+  assert_approx_equals(event.clientX, 25, 1, 'clientX');
+  assert_approx_equals(event.clientY, 35, 1, 'clientY');
+}, 'A pointer event over the fitted SVG document targets it, ' +
+   'with client coordinates relative to it');
+
+promise_test(async t => {
+  await loaded;
+  const object = document.querySelector('object');
+  // y=10 is in the part of the content box that the SVG document does not
+  // cover.
+  const event = await pointerDownAt(t, 25, 10);
+  assert_equals(event.target, object, 'target');
+}, 'A pointer event where the fitted SVG document does not cover the ' +
+   'content box targets the object');
+</script>

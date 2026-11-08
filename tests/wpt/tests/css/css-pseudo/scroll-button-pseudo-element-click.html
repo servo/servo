@@ -16,7 +16,7 @@
   }
 
   /* Put the scroll button in the top left corner of the page. */
-  #scroller::scroll-button(inline-end) {
+  #scroller::scroll-button(right) {
     content: "";
     position: absolute;
     top: 0;
@@ -41,6 +41,7 @@
     assert_true(pseudoTarget instanceof CSSPseudoElement,
                 "pseudoTarget is a CSSPseudoElement");
     assert_equals(pseudoTarget, scroller.pseudo("::scroll-button(inline-end)"));
+    assert_not_equals(pseudoTarget, scroller.pseudo("::scroll-button(right)"));
     assert_equals(pseudoTarget.selectorText, "::scroll-button(inline-end)");
-  }, "Clicking a ::scroll-button() sets pseudoTarget to its CSSPseudoElement");
+  }, "Clicking a ::scroll-button() sets pseudoTarget to its logical CSSPseudoElement");
 </script>

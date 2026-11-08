@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+
+<meta http-equiv="Content-Security-Policy" content="script-src 'unsafe-inline'; img-src 'none'; connect-src 'self'">
+<title>about:blank navigated from javascript: URL popup inherits CSP from initiator</title>
+<body>
+
+<script>
+  // A javascript: URL popup navigates a cross-origin iframe to about:blank.
+  // The about:blank should inherit CSP from the initiator, not the cross-origin page.
+
+  const CROSS_ORIGIN = "http://{{hosts[alt][]}}:{{ports[http][0]}}";
+  const CSP_MARKER = "cross-origin-csp-leak-marker";
+
+  const message_from = (source_token) => {
+    return new Promise(resolve => {
+      window.addEventListener('message', msg => {
+        if (msg.data.token === source_token)
+          resolve(msg.data);
+      });
+    });
+  };
+
+  // Check both correct CSP inheritance and that the cross-origin page's CSP does not leak.
+  promise_test(async t => {
+    const result_token = token();
+    const resource_url = window.origin + "/content-security-policy/support/fail.png";
+    const cross_origin_page = CROSS_ORIGIN +
+      "/content-security-policy/inheritance/support/page-with-csp-marker.html";
+
+    const popupScript = `
+      var i = document.body.appendChild(document.createElement("iframe"));
+      i.addEventListener("load", function() {
+        i.addEventListener("load", function() {
+          var results = {};
+
+          var leakDetected = false;
+          i.contentWindow.addEventListener("securitypolicyviolation", function(e) {
+            if (e.originalPolicy.includes("${CSP_MARKER}")) {
+              leakDetected = true;
+              results.leak = e.originalPolicy;
+            }
+          }, {once: true});
+
+          i.contentWindow.fetch("${resource_url}").finally(function() {
+            var img = i.contentDocument.createElement("img");
+            img.onload = function() {
+              results.imgBlocked = false;
+              opener.postMessage({token: "${result_token}", results: results}, "*");
+            };
+            img.onerror = function() {
+              results.imgBlocked = true;
+              opener.postMessage({token: "${result_token}", results: results}, "*");
+            };
+            img.src = "${resource_url}";
+            i.contentDocument.body.appendChild(img);
+          });
+        }, {once: true});
+        i.contentWindow.location.href = "about:blank";
+      }, {once: true});
+      i.src = "${cross_origin_page}";
+      void 0;
+    `;
+
+    const popup = window.open("javascript:" + popupScript);
+    t.add_cleanup(() => popup.close());
+
+    const { results } = await message_from(result_token);
+    assert_true(results.imgBlocked,
+      "Image should be blocked by initiator's img-src 'none'");
+    assert_equals(results.leak, undefined,
+      "Cross-origin CSP must not leak via SecurityPolicyViolationEvent");
+  }, "about:blank inherits initiator's CSP; cross-origin policy container does not leak.");
+</script>

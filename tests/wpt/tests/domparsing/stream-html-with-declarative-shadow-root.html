@@ -1,0 +1,140 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>streamHTML - declarative shadow roots</title>
+<link rel="help" href="https://html.spec.whatwg.org/#html-streaming-methods" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style id="style"></style>
+<p id="target"></p>
+<script>
+  for (const baseMethod of [
+    "",
+    "Append",
+    "Prepend",
+    "Before",
+    "After",
+    "ReplaceWith",
+  ]) {
+    for (const safe of [true, false]) {
+      for (const sanitize of [
+        "remove-shadow-root",
+        "remove-internal",
+        "none",
+      ]) {
+        const method = `stream${baseMethod}HTML${safe ? "" : "Unsafe"}`;
+        promise_test(async (t) => {
+          const parent = document.createElement("div");
+          const ref_node = document.createElement("div");
+          parent.appendChild(ref_node);
+          const writer = ref_node[method](
+            sanitize === "none"
+              ? {}
+              : {
+                  sanitizer: {
+                    removeAttributes:
+                      sanitize === "remove-shadow-root"
+                        ? ["shadowrootmode"]
+                        : ["forbidden"],
+                  },
+                },
+          ).getWriter();
+          await writer.write(`<span>
+          <template shadowrootmode="open">
+            <h1 forbidden="yes">Forbidden</h1>
+          </template>
+        </span>`);
+          await writer.close();
+          switch (sanitize) {
+            case "remove-shadow-root":
+              assert_equals(parent.querySelector("span").shadowRoot, null);
+              break;
+            case "remove-internal":
+              assert_not_equals(parent.querySelector("span").shadowRoot, null);
+              assert_equals(
+                parent
+                  .querySelector("span")
+                  .shadowRoot.querySelector("h1").textContent,
+                "Forbidden",
+              );
+              assert_false(
+                parent
+                  .querySelector("span")
+                  .shadowRoot.querySelector("h1")
+                  .hasAttribute("forbidden"),
+              );
+              break;
+            case "none":
+              if (safe) {
+                assert_equals(parent.querySelector("span").shadowRoot, null);
+              } else {
+                assert_not_equals(
+                  parent.querySelector("span").shadowRoot,
+                  null,
+                );
+              }
+              break;
+          }
+        }, `element.${method} (sanitization===${sanitize})`);
+      }
+    }
+  }
+
+  promise_test(async (t) => {
+    const streamTarget = document.createElement("div");
+    const writer = streamTarget.streamHTMLUnsafe().getWriter();
+    await writer.write('<div><template shadowrootmode="open"><p>streamed</p></template></div>');
+    await writer.close();
+    assert_not_equals(streamTarget.firstElementChild.shadowRoot, null);
+
+    const innerHTMLTarget = document.createElement("div");
+    innerHTMLTarget.innerHTML = '<div><template shadowrootmode="open"><p>inner</p></template></div>';
+    assert_equals(
+      innerHTMLTarget.firstElementChild.shadowRoot,
+      null,
+      "streamHTMLUnsafe must not leak declarative shadow root allowance to subsequent innerHTML calls",
+    );
+
+    const doc = document.implementation.createHTMLDocument();
+    const docTarget = doc.createElement("div");
+    doc.body.appendChild(docTarget);
+    const docWriter = docTarget.streamHTMLUnsafe().getWriter();
+    await docWriter.write('<div><template shadowrootmode="open"><p>streamed</p></template></div>');
+    await docWriter.close();
+    assert_not_equals(docTarget.firstElementChild.shadowRoot, null);
+
+    doc.open();
+    doc.write('<div id="written"><template shadowrootmode="open"><p>written</p></template></div>');
+    doc.close();
+    assert_equals(
+      doc.getElementById("written").shadowRoot,
+      null,
+      "streamHTMLUnsafe must not enable declarative shadow roots for subsequent document.write()",
+    );
+  }, "streamHTMLUnsafe does not enable declarative shadow roots for subsequent innerHTML or document.write()");
+
+  // A <template shadowrootmode> streamed directly into the target has the
+  // fragment parser's root html element as its would-be host, so it is
+  // inserted as a plain <template>: no shadow root is attached to the target
+  // (or to the parent, for the positional methods).
+  for (const baseMethod of ["", "Append", "Prepend", "Before", "After", "ReplaceWith"]) {
+    for (const safe of [true, false]) {
+      const method = `stream${baseMethod}HTML${safe ? "" : "Unsafe"}`;
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = parent.appendChild(document.createElement("div"));
+        const writer = placeholder[method]().getWriter();
+        await writer.write('<template shadowrootmode="open"><p>top-level</p></template><span>after</span>');
+        await writer.close();
+        assert_equals(parent.shadowRoot, null, "no shadow root is attached to the parent");
+        assert_equals(placeholder.shadowRoot, null, "no shadow root is attached to the target");
+        assert_not_equals(parent.querySelector("span"), null);
+        if (!safe) {
+          const template = parent.querySelector("template");
+          assert_not_equals(template, null, "the template is inserted as a plain <template>");
+          assert_equals(template.getAttribute("shadowrootmode"), "open");
+          assert_equals(template.content.textContent, "top-level");
+        }
+      }, `${method}: a top-level <template shadowrootmode> is inserted as a plain template`);
+    }
+  }
+</script>

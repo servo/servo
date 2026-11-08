@@ -5,8 +5,13 @@
      font-family="sans-serif" font-size="28">
   <metadata>
     <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/paths.html#PathLengthAttribute"/>
-    <h:link rel="match" href="pathLength-zero-percentage-ref.svg"/>
-    <h:meta name="assert" content="A value of zero is valid and must be treated as a scaling factor of infinity."/>
+    <h:link rel="match" href="pathLength-positive-ref.svg"/>
+    <h:meta name="assert"
+            content="A pathLength of zero is a scaling factor of infinity,
+                     but pathLength has no effect on percentage
+                     distance-along-a-path calculations, so a percentage
+                     startOffset is resolved against the computed length of
+                     the path as if pathLength were not specified."/>
   </metadata>
 
   <defs>

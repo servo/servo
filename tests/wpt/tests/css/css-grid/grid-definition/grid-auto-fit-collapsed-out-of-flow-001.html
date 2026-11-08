@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#collapsed-track">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#abspos-items">
+<link rel="match" href="grid-auto-fit-collapsed-out-of-flow-001-ref.html">
+<meta name="assert" content="The grid area of an absolutely-positioned descendant of a grid container accounts for collapsed auto-fit tracks and their collapsed gutters.">
+<style>
+.grid {
+    display: grid;
+    position: relative;
+    width: 300px;
+    background: lightgray;
+    column-gap: 10px;
+    grid-template-columns: repeat(auto-fit, 50px);
+}
+.item {
+    height: 50px;
+}
+.abspos {
+    position: absolute;
+    inset: 0;
+    background: green;
+}
+</style>
+<!-- 5 tracks. Tracks 1, 2 (leading) and 4 (middle) are empty and collapse. -->
+<div class="grid">
+    <div class="item" style="grid-column: 3"><div class="abspos" style="grid-column: 3 / 4"></div></div>
+    <div class="item" style="grid-column: 5"><div class="abspos" style="grid-column: 5 / 6"></div></div>
+</div>

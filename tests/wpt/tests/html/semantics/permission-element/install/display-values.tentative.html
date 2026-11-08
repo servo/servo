@@ -24,11 +24,23 @@
         ["inline-block", ""],
         ["flex", ""],
         ["inline-flex", ""],
+        ["block flow", ""],
+        ["block flow-root", ""],
+        ["inline flow-root", ""],
+        ["block flex", ""],
         ["inline", "style_invalid"],
+        ["inline flow", "style_invalid"],
         ["contents", "style_invalid"],
         ["inline-table", "style_invalid"],
         ["list-item", "style_invalid"],
+        ["inline list-item", "style_invalid"],
+        ["flow-root list-item", "style_invalid"],
+        ["inline flow-root list-item", "style_invalid"],
+        ["block list-item", "style_invalid"],
+        ["block flow-root list-item", "style_invalid"],
         ["ruby", "style_invalid"],
+        ["block ruby", "style_invalid"],
+        ["inline ruby", "style_invalid"],
         ["ruby-text", "style_invalid"],
         ["table", "style_invalid"],
         ["table-caption", "style_invalid"],
@@ -41,27 +53,30 @@
         ["table-row-group", "style_invalid"],
       ];
 
-      testCases.forEach(([displayValue, expectedInvalidReason]) => {
-        async_test((t) => {
+      for (const [displayValue, expectedInvalidReason] of testCases) {
+        promise_test(async (t) => {
           const element = createInstallElementWithStyle(displayValue);
           t.add_cleanup(() => element.remove());
-          element.onvalidationstatuschange = t.step_func(() => {
-            // These two invalid reasons are expected when the install element was just created.
-            if (
-              element.invalidReason == "unsuccessful_registration" ||
-              element.invalidReason == "intersection_changed"
-            ) {
-              return;
-            }
-            assert_equals(
-              element.invalidReason,
-              expectedInvalidReason,
-              `display: ${displayValue} should be ${expectedInvalidReason === "" ? "valid" : "invalid"}`,
-            );
-            t.done();
+
+          await new Promise((resolve) => {
+            element.onvalidationstatuschange = t.step_func(() => {
+              // These two invalid reasons are expected when the install element was just created.
+              if (
+                element.invalidReason == "unsuccessful_registration" ||
+                element.invalidReason == "intersection_changed"
+              ) {
+                return;
+              }
+              assert_equals(
+                element.invalidReason,
+                expectedInvalidReason,
+                `display: ${displayValue} should be ${expectedInvalidReason === "" ? "valid" : "invalid"}`,
+              );
+              resolve();
+            });
           });
         }, `Install element display: ${displayValue} should be ${expectedInvalidReason === "" ? "valid" : "invalid"}`);
-      });
+      }
     </script>
   </body>
 </html>

@@ -1,0 +1,25 @@
+<!-- Quirks mode (no doctype) -->
+<html>
+<head>
+  <title>CSS Test: BR with explicit line-height stretches the line box in quirks mode</title>
+  <link rel="help" href="https://quirks.spec.whatwg.org/#the-line-height-calculation-quirk">
+  <link rel="match" href="br-line-height-stretch-quirks-ref.html">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <style>
+  body {
+      margin: 0;
+  }
+  div {
+      font: 20px/1 Ahem;
+  }
+  br {
+      line-height: 200px;
+  }
+  </style>
+</head>
+<body>
+  <!-- The BR with line-height: 200px should stretch the line to 200px.
+       X should appear at approximately 200px from the top. -->
+  <div><br>X</div>
+</body>
+</html>

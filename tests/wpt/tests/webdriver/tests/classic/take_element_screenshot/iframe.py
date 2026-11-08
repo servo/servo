@@ -5,6 +5,9 @@ from tests.support.image import png_dimensions
 
 from . import element_dimensions, take_element_screenshot
 
+# Compare the reference and iframe content on the same device-pixel grid.
+VIEWPORT_META = '<meta name="viewport" content="width=device-width,initial-scale=1">'
+
 DEFAULT_CONTENT = "<div id='content'>Lorem ipsum dolor sit amet.</div>"
 
 REFERENCE_CONTENT = "<div id='outer'>{}</div>".format(DEFAULT_CONTENT)
@@ -57,9 +60,11 @@ INNER_IFRAME_STYLE = """
 """
 
 
-def test_frame_element(session, inline, iframe):
+@pytest.mark.parametrize("domain", ["", "alt"], ids=["same_origin", "cross_origin"])
+def test_frame_element(session, inline, iframe, domain):
     # Create a reference element which looks exactly like the frame's content
-    session.url = inline("{0}{1}".format(REFERENCE_STYLE, REFERENCE_CONTENT))
+    session.url = inline(
+        VIEWPORT_META + "{0}{1}".format(REFERENCE_STYLE, REFERENCE_CONTENT))
 
     # Capture the inner content as reference image
     ref_el = session.find.css("#content", all=False)
@@ -70,7 +75,8 @@ def test_frame_element(session, inline, iframe):
 
     # Capture the frame's element
     iframe_content = "{0}{1}".format(INNER_IFRAME_STYLE, DEFAULT_CONTENT)
-    session.url = inline("""{0}{1}""".format(OUTER_IFRAME_STYLE, iframe(iframe_content)))
+    session.url = inline(VIEWPORT_META + """{0}{1}""".format(
+        OUTER_IFRAME_STYLE, iframe(iframe_content, domain=domain)))
 
     frame = session.find.css("iframe", all=False)
     session.switch_to_frame(frame)
@@ -88,7 +94,8 @@ def test_frame_element(session, inline, iframe):
 @pytest.mark.parametrize("domain", ["", "alt"], ids=["same_origin", "cross_origin"])
 def test_source_origin(session, inline, iframe, domain):
     # Create a reference element which looks exactly like the iframe
-    session.url = inline("{0}{1}".format(REFERENCE_STYLE, REFERENCE_CONTENT))
+    session.url = inline(
+        VIEWPORT_META + "{0}{1}".format(REFERENCE_STYLE, REFERENCE_CONTENT))
 
     div = session.find.css("div", all=False)
     div_dimensions = element_dimensions(session, div)
@@ -98,8 +105,9 @@ def test_source_origin(session, inline, iframe, domain):
     assert png_dimensions(reference_screenshot) == div_dimensions
 
     iframe_content = "{0}{1}".format(INNER_IFRAME_STYLE, DEFAULT_CONTENT)
-    session.url = inline("""{0}{1}""".format(
-        OUTER_IFRAME_STYLE, iframe(iframe_content, domain=domain)))
+    session.url = inline(
+        VIEWPORT_META + "{0}{1}".format(
+            OUTER_IFRAME_STYLE, iframe(iframe_content, domain=domain)))
 
     frame_element = session.find.css("iframe", all=False)
     frame_dimensions = element_dimensions(session, frame_element)

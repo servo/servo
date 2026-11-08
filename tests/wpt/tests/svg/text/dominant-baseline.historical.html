@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG dominant-baseline does not support use-script, no-change or reset-size</title>
+<link rel="help" href="https://www.w3.org/TR/SVG11/text.html#DominantBaselineProperty">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#DominantBaselineProperty">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg id="svg">
+  <text id="text">text</text>
+</svg>
+<script>
+// use-script, no-change and reset-size were dominant-baseline values in
+// SVG 1.1 but were removed in SVG 2.
+const removedValues = ["use-script", "no-change", "reset-size"];
+
+test(() => {
+  for (const value of removedValues)
+    assert_false(CSS.supports("dominant-baseline", value), value);
+}, "dominant-baseline does not support the SVG 1.1 values removed in SVG 2");
+
+test(() => {
+  const text = document.getElementById("text");
+  for (const value of removedValues) {
+    text.style.setProperty("dominant-baseline", value);
+    assert_equals(text.style.getPropertyValue("dominant-baseline"), "",
+      value + " should not parse in a style declaration");
+    assert_equals(text.style.length, 0, "declaration should remain empty");
+  }
+}, "dominant-baseline removed values are not parsed in a style declaration");
+
+test(() => {
+  const text = document.getElementById("text");
+  // An unsupported presentation attribute value must not contribute a value to
+  // the computed style of the element.
+  for (const value of removedValues) {
+    text.setAttribute("dominant-baseline", value);
+    assert_equals(getComputedStyle(text).getPropertyValue("dominant-baseline"), "auto",
+      value + " should not apply as a presentation attribute");
+  }
+  text.removeAttribute("dominant-baseline");
+}, "dominant-baseline removed values are not supported SVG presentation attributes");
+</script>

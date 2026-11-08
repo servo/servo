@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<title>moveBefore() doesn't change an element's custom element registry</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#move">
+<link rel="help" href="https://dom.spec.whatwg.org/#element-custom-element-registry">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+function scopedShadowRoot(t, registry) {
+  const host = document.body.appendChild(document.createElement("div"));
+  t.add_cleanup(() => host.remove());
+  return host.attachShadow({ mode: "open", customElementRegistry: registry });
+}
+
+test(t => {
+  const registry = new CustomElementRegistry;
+  const shadowRoot = scopedShadowRoot(t, registry);
+  const wrapper = document.body.appendChild(document.createElement("div"));
+  t.add_cleanup(() => wrapper.remove());
+  const element = wrapper.appendChild(document.createElement("div"));
+  assert_equals(element.customElementRegistry, window.customElements, "global registry before the move");
+
+  shadowRoot.moveBefore(wrapper, null);
+  assert_equals(wrapper.customElementRegistry, window.customElements, "the moved element keeps the global registry");
+  assert_equals(element.customElementRegistry, window.customElements, "a descendant of the moved element keeps the global registry");
+
+  document.body.moveBefore(wrapper, null);
+  assert_equals(wrapper.customElementRegistry, window.customElements, "still the global registry after moving back");
+  assert_equals(element.customElementRegistry, window.customElements);
+}, "An element with the global registry keeps it when moved into a shadow root with a scoped registry");
+
+test(t => {
+  const registry = new CustomElementRegistry;
+  const shadowRoot = scopedShadowRoot(t, registry);
+  const element = shadowRoot.appendChild(document.createElement("div", { customElementRegistry: registry }));
+  assert_equals(element.customElementRegistry, registry, "scoped registry before the move");
+
+  document.body.moveBefore(element, null);
+  t.add_cleanup(() => element.remove());
+  assert_equals(element.customElementRegistry, registry, "the moved element keeps the scoped registry");
+
+  shadowRoot.moveBefore(element, null);
+  assert_equals(element.customElementRegistry, registry, "still the scoped registry after moving back");
+}, "An element with a scoped registry keeps it when moved out of its shadow root");
+
+test(t => {
+  const registry1 = new CustomElementRegistry;
+  const registry2 = new CustomElementRegistry;
+  const shadowRoot1 = scopedShadowRoot(t, registry1);
+  const shadowRoot2 = scopedShadowRoot(t, registry2);
+  const element = shadowRoot1.appendChild(document.createElement("div", { customElementRegistry: registry1 }));
+
+  shadowRoot2.moveBefore(element, null);
+
+  assert_equals(element.customElementRegistry, registry1);
+}, "An element with a scoped registry keeps it when moved into a shadow root with a different scoped registry");
+
+test(t => {
+  const registry = new CustomElementRegistry;
+  class ScopedDefinition extends HTMLElement {}
+  registry.define("move-before-registry-element", ScopedDefinition);
+  const shadowRoot = scopedShadowRoot(t, registry);
+
+  const element = document.body.appendChild(document.createElement("move-before-registry-element"));
+  t.add_cleanup(() => element.remove());
+  assert_false(element instanceof ScopedDefinition, "undefined in the global registry before the move");
+
+  shadowRoot.moveBefore(element, null);
+
+  assert_equals(element.customElementRegistry, window.customElements);
+  assert_false(element instanceof ScopedDefinition, "the element isn't upgraded with the shadow root's scoped registry");
+  assert_false(element.matches(":defined"));
+}, "An element with the global registry isn't upgraded by a scoped registry when moved into its shadow root");
+</script>
+</body>

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <title>Makes sure that Link headers preload images with imagesrcset/imagesizes attributes.</title>
 <link rel="help" href="https://github.com/w3c/preload/issues/120">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#select-an-image-source-from-a-source-set">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/preload/resources/preload_helper.js"></script>
@@ -10,10 +11,28 @@
 
     var iterations = 0;
     var expectation = new Array(10).fill(0);
-    if (window.devicePixelRatio < 1.5) {
-        expectation[0] = expectation[5] = expectation[8] = 1;
-    } else if (window.devicePixelRatio >= 1.5) {
-        expectation[1] = expectation[6] = expectation[9] = 1;
+    const dpr = window.devicePixelRatio;
+    const size3 = window.matchMedia("(min-width: 300px)").matches ? 300 : 150;
+    if (dpr <= 1) {
+        expectation[0] = 1;
+    } else if (dpr <= 2) {
+        expectation[1] = 1;
+    } else {
+        expectation[2] = 1;
+    }
+    if (dpr <= 0.5) {
+        expectation[4] = 1;
+    } else if (dpr <= 1) {
+        expectation[5] = 1;
+    } else {
+        expectation[6] = 1;
+    }
+    if (dpr <= 150 / size3) {
+        expectation[7] = 1;
+    } else if (dpr <= 300 / size3) {
+        expectation[8] = 1;
+    } else {
+        expectation[9] = 1;
     }
 
     function check_finished() {

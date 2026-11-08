@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Scoped view transition on an outer SVG root element</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/#scoped-vt">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/#scoped-view-transition-layout">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/#ua-styles">
+<link rel="match" href="scope-green-box-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  .backing {
+    width: 120px;
+    height: 80px;
+    background: blue;
+  }
+
+  .scope {
+    display: block;
+    width: 120px;
+    height: 80px;
+    background: yellow;
+    view-transition-name: target;
+  }
+
+  .scope::view-transition {
+    background: green;
+  }
+
+  .scope::view-transition-group(*) {
+    animation-play-state: paused;
+    opacity: 0;
+  }
+</style>
+
+<!-- Blue backing is exposed if the captured scope's transition overlay is missing. -->
+<div class="backing">
+  <svg class="scope"></svg>
+</div>
+
+<script>
+  failIfNot(Element.prototype.startViewTransition,
+            "Missing Element.prototype.startViewTransition");
+
+  onload = () => reftestPromise(async () => {
+    await waitForCompositorReady();
+    const transitions = Array.from(document.querySelectorAll(".scope"),
+                                   scope => scope.startViewTransition());
+    await Promise.all(transitions.map(transition => transition.ready));
+    await Promise.all(document.getAnimations().map(animation => animation.ready));
+    takeScreenshot();
+  });
+</script>
+</html>

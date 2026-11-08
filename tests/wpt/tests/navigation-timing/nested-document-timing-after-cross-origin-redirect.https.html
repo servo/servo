@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Navigation Timing - A TAO failure on a redirect hop doesn't hide a nested document's own timing info</title>
+<link rel="help" href="https://fetch.spec.whatwg.org/#concept-tao-check"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/custom-cors-response.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+</head>
+<body>
+<script>
+// The redirect fails the TAO check and the final response passes it. Unlike the
+// embedder's resource timing entry for the iframe, the nested document's own
+// navigation entry must still expose its timing info.
+const {HTTPS_REMOTE_ORIGIN} = get_host_info();
+
+const redirectedURL = () => {
+  const finalURL = custom_cors_response({
+    headers: {
+      "Content-Type": "text/html",
+      "Server-Timing": "metric",
+      "Timing-Allow-Origin": "*",
+    },
+    content: "<!DOCTYPE html>",
+  });
+  finalURL.searchParams.append("unique", token());
+  const url = new URL("/navigation-timing/resources/redirect-tao.py",
+    HTTPS_REMOTE_ORIGIN);
+  url.searchParams.append("location", finalURL.href);
+  return url.href;
+};
+
+const navigationEntry = src => new Promise(resolve => {
+  const frame = document.createElement("iframe");
+  frame.onload = () => {
+    resolve(frame.contentWindow.performance.getEntriesByType("navigation")[0]);
+  };
+  frame.src = src;
+  document.body.appendChild(frame);
+});
+
+promise_test(async () => {
+  const entry = await navigationEntry(redirectedURL());
+  assert_equals(entry.serverTiming.length, 1, "serverTiming");
+  assert_not_equals(entry.nextHopProtocol, "", "nextHopProtocol");
+  assert_greater_than(entry.fetchStart, 0, "fetchStart");
+}, "Timing info is exposed when the final document sends " +
+   "Timing-Allow-Origin.");
+</script>
+</body>
+</html>

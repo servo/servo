@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration: a negative percentage inset on a multi-line box extends by a percentage of the whole box</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-inset-property">
+<link rel="match" href="text-decoration-inset-percentage-negative-multiline-ref.html">
+<meta name="assert" content="With box-decoration-break: slice the percentage resolves against the inline size of the whole decorating box, not of one line fragment, and the resulting outward overhang must be painted rather than clipped to the individual line's ink overflow.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+body { margin: 100px; }
+div { width: 100px; will-change: transform; }
+p { font: 20px/2 Ahem; }
+u {
+  text-decoration-line: underline;
+  text-decoration-color: blue;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+  text-decoration-inset: -40%;
+}
+</style>
+
+<!-- The text wraps into three 100px fragments, so the decorating box is 300px and -40% extends each
+     endpoint outward by 120px - far more than any single line is wide. The composited layer means a
+     line whose ink overflow is too small would clip the overhang instead of painting it. -->
+
+<div><p><u>abcde fghij klmno</u></p></div>

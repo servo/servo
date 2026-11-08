@@ -33,7 +33,7 @@ async def test_down_closes_browsing_context(
     wait_for_future_safe,
     mouse_up
 ):
-    url = inline("""<input onmousedown="window.close()">close</input>""")
+    url = inline("""<input onmousedown="window.close()">close""")
 
     # Opening a new context via `window.open` is required
     # for the script to be able to close it.
@@ -394,13 +394,13 @@ async def test_click_navigation(
         assert event["url"] == destination
 
 
-@pytest.mark.parametrize("x, y", [
-    (0, 0),
-    (1, 0),
-    (0, 1),
+@pytest.mark.parametrize("x, y, event_count", [
+    (0, 0, 0),
+    (1, 0, 1),
+    (0, 1, 1),
 ], ids=["default value", "x", "y"])
 async def test_move_to_position_in_viewport(
-    bidi_session, load_static_test_page, top_context, x, y
+    bidi_session, load_static_test_page, top_context, x, y, event_count
 ):
     await load_static_test_page(page="test_actions.html")
 

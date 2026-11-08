@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration: bidi-run seam continuity (reference)</title>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    body { margin: 20px; }
+    div { font: 40px/1.5 Ahem; color: black; }
+    u { text-decoration-line: underline; text-decoration-color: blue; text-underline-position: under; }
+    /* One continuous underline over all nine glyphs (a single run, no interior seam). */
+    .da { text-decoration-inset: 10px -10px; }
+    .db { text-decoration-inset: 8px; }
+</style>
+<div><u class="da">XXXXXXXXX</u></div>
+<div><u class="db">XXXXXXXXX</u></div>

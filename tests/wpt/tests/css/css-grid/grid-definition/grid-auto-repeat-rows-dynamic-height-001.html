@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid/#auto-repeat">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#intrinsic-sizes">
+<meta name="assert" content="A column-flow grid's max-content width follows a change to the height that decides how many auto-fill rows it has.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.target {
+  width: max-content;
+  height: 200px;
+}
+.grid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(auto-fill, 100px);
+  grid-auto-columns: 50px;
+}
+.grid > div {
+  height: 100px;
+}
+</style>
+<!-- At 400px there are four rows, so the four items fit in one 50px column. -->
+<div class="target" data-expected-width="50">
+  <div class="grid" style="height: 100%"><div></div><div></div><div></div><div></div></div>
+</div>
+<div class="target" data-expected-width="50">
+  <div class="grid" style="height: 200px; min-height: 100%"><div></div><div></div><div></div><div></div></div>
+</div>
+<div class="target" data-expected-width="50">
+  <div class="grid" style="max-height: 100%"><div></div><div></div><div></div><div></div></div>
+</div>
+<script>
+document.body.offsetHeight;
+for (const target of document.querySelectorAll(".target"))
+  target.style.height = "400px";
+checkLayout(".target");
+</script>

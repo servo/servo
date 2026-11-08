@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>selectedcontent omits script, frame, iframe, embed, and object elements</title>
+<link rel=help href="https://html.spec.whatwg.org/#clone-an-option-into-a-selectedcontent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<select>
+  <button><selectedcontent></selectedcontent></button>
+  <option selected>
+    <span>one</span>
+    <iframe></iframe>
+    <embed>
+    <object></object>
+    <svg><script></script></svg>
+    <div>
+      <template shadowrootmode="open" shadowrootclonable>
+        <span>shadow</span>
+        <iframe></iframe>
+      </template>
+    </div>
+  </option>
+  <option><span>two</span><iframe></iframe></option>
+</select>
+<script>
+const omitted = "script, frame, iframe, embed, object";
+
+test(() => {
+  const selectedcontent = document.querySelector("selectedcontent");
+  assert_equals(selectedcontent.querySelector("span")?.textContent, "one",
+                "The rest of the option should be cloned");
+  assert_equals(selectedcontent.querySelectorAll(omitted).length, 0,
+                "No script, frame, iframe, embed, or object element should be cloned");
+  const shadowRoot = selectedcontent.querySelector("div")?.shadowRoot;
+  assert_not_equals(shadowRoot, null, "The clonable shadow root should be cloned");
+  assert_equals(shadowRoot.querySelector("span")?.textContent, "shadow",
+                "The rest of the shadow tree should be cloned");
+  assert_equals(shadowRoot.querySelectorAll(omitted).length, 0,
+                "No iframe in a shadow tree should be cloned");
+}, "Cloning a selected option into selectedcontent omits script, frame, iframe, embed, and object elements");
+
+test(() => {
+  const select = document.querySelector("select");
+  const selectedcontent = document.querySelector("selectedcontent");
+  select.options[1].append(document.createElement("frame"));
+  const frames = window.frames.length;
+  select.selectedIndex = 1;
+  assert_equals(selectedcontent.querySelector("span")?.textContent, "two",
+                "selectedcontent should show the newly selected option");
+  assert_equals(selectedcontent.querySelectorAll(omitted).length, 0,
+                "No frame or iframe element should be cloned");
+  assert_equals(window.frames.length, frames, "No frame should be created");
+}, "Selecting an option does not clone its frame and iframe elements into selectedcontent");
+</script>

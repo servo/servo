@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Long Animation Frame Timing: script entries report a null window once their window is detached</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<body>
+<div id="log"></div>
+<script>
+promise_test(async t => {
+  const iframe = document.createElement("iframe");
+  t.add_cleanup(() => iframe.remove());
+  iframe.src = "/common/blank.html";
+  await new Promise(resolve => {
+    iframe.onload = resolve;
+    document.body.appendChild(iframe);
+  });
+
+  // The callback must be created in the iframe so that the script is
+  // attributed to the iframe's window.
+  const iframeScript = iframe.contentDocument.createElement("script");
+  iframeScript.textContent =
+      "function generateLoAF() { parent.generate_loaf_now(); }";
+  iframe.contentDocument.body.appendChild(iframeScript);
+
+  const [, script] = await expect_long_frame_with_script(() => {
+    iframe.contentWindow.requestAnimationFrame(
+        iframe.contentWindow.generateLoAF);
+  }, script => script.window === iframe.contentWindow, t);
+  assert_not_equals(script, undefined,
+      "The LoAF entry must contain a script from the iframe");
+
+  // Keep a reference to the iframe's window so that it can't be garbage
+  // collected.
+  const iframeWindow = iframe.contentWindow;
+  iframe.remove();
+  assert_equals(script.window, null,
+      "The iframe's script must report a null window once detached");
+  assert_not_equals(iframeWindow, null);
+}, "Script entries report a null window once their window is detached");
+</script>

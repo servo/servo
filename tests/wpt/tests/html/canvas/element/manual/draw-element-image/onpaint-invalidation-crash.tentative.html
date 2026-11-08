@@ -2,6 +2,7 @@
 <html class=reftest-wait>
 <link rel="help" href="https://github.com/WICG/html-in-canvas">
 <script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
 <canvas id="canvas" width="200" height="200" content=drawable>
   <div drawable id="target" tabindex="0">
     pass if no crash.
@@ -22,6 +23,6 @@
       takeScreenshot();
     }
   }
-  canvas.requestPaint();
+  waitForCanvasPaint(canvas);
 </script>
 </html>

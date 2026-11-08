@@ -33,6 +33,17 @@ test_computed_value("width", "min(NaN * 1px, 15px)", "0px");
 test_computed_value("width", "min(-15px, NaN * 1px)", "0px");
 test_computed_value("width", "min(NaN * 1px, -15px)", "0px");
 
+// A NaN operand must propagate even when another operand is a percentage,
+// which is resolved later than an absolute length.
+test_computed_value("width", "min(50%, NaN * 1px)", "0px");
+test_computed_value("width", "min(NaN * 1px, 50%)", "0px");
+test_computed_value("width", "max(50%, NaN * 1px)", "0px");
+test_computed_value("width", "max(NaN * 1px, 50%)", "0px");
+test_computed_value("width", "clamp(50%, NaN * 1px, 100px)", "0px");
+test_computed_value("width", "clamp(10px, 50%, NaN * 1px)", "0px");
+test_computed_value("width", "clamp(NaN * 1px, 50%, 100px)", "0px");
+test_computed_value("width", "calc(min(50%, NaN * 1px) + 10px)", "0px");
+
 test_computed_value("width", "calc(infinity * 1px - infinity * 1%)", "0px");
 testComputedValueGreaterOrLowerThan("width", "calc(infinity * 1px + infinity * 1%)", REALLY_LARGE);
 test_computed_value("width", "calc(min(NaN * 1px, infinity * 1px) + max(infinity * 1px, -infinity * 1px))", "0px");
