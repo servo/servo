@@ -861,8 +861,8 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
 
                     // Step 7: Check if the MIME type is not a JavaScript MIME type
                     let not_a_javascript_mime_type =
-                        !metadata.content_type.clone().is_some_and(|ct| {
-                            let mime: Mime = ct.into_inner().into();
+                        !metadata.content_type.is_some_and(|content_type| {
+                            let mime: Mime = content_type.into_inner().into();
                             SCRIPT_JS_MIMES.contains(&mime.essence_str())
                         });
                     if not_a_javascript_mime_type {
