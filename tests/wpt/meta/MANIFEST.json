@@ -418233,6 +418233,19 @@
     "editing": {
      "editing-0": {
       "contenteditable": {
+       "contenteditable-caret-rendering.html": [
+        "c8babf285f9f4aac13f1ef295ee8514739db1156",
+        [
+         null,
+         [
+          [
+           "/html/editing/editing-0/contenteditable/contenteditable-caret-rendering-ref.html",
+           "!="
+          ]
+         ],
+         {}
+        ]
+       ],
        "contenteditable-caret-stops-rendering-when-attribute-removed.html": [
         "ffdaa5e232687f1f3a0aa869cb3f2316d7e509f6",
         [
@@ -575922,6 +575935,10 @@
       "contenteditable": {
        "WEB_FEATURES.yml": [
         "ba84c7e3131b6a6909f03a6edb01f90c4552fef6",
+        []
+       ],
+       "contenteditable-caret-rendering-ref.html": [
+        "cc9aeb412a4a3717db9597384bbf32f4734e9b27",
         []
        ],
        "contenteditable-caret-stops-rendering-when-attribute-removed-ref.html": [

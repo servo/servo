@@ -1,0 +1,9 @@
+<!doctype html>
+<title>When a contenteditable element is focused, it draws a text caret.</title>
+<link rel="author" title="Psychpsyo" href="mailto:psychpsyo@gmail.com">
+<div id="div" contenteditable>Test</div>
+<script>
+  div.focus();
+  // The selection is made in the middle of the text to rule out the possibility of the caret being obscured by the focus outline
+  document.getSelection().setPosition(div.firstChild, 2);
+</script>
