@@ -5,6 +5,8 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/common/utils.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="../resources/utils.js"></script>
 <script src="resources/utils.sub.js"></script>
 
@@ -18,7 +20,7 @@ setup(() => assertSpeculationRulesIsSupported());
 promise_test(async t => {
   const agent = await spawnWindow(t);
   const nextUrl = agent.getExecutorURL({ page: 2 });
-  await agent.forceSinglePrefetch(nextUrl);
+  await agent.forceSinglePrefetchAndWaitForStatus(nextUrl);
   await agent.navigate(nextUrl);
 
   const headers = await agent.getRequestHeaders();
@@ -29,7 +31,7 @@ promise_test(async t => {
 promise_test(async t => {
   const agent = await spawnWindow(t);
   const nextUrl = agent.getExecutorURL({ page: 2 });
-  await agent.forceSinglePrefetch(nextUrl);
+  await agent.forceSinglePrefetchAndWaitForStatus(nextUrl);
   await agent.navigate(nextUrl);
 
   const headers = await agent.getRequestHeaders();
@@ -42,7 +44,7 @@ promise_test(async t => {
   const nextUrl = new URL('/common/redirect.py', location.href);
   const finalUrl = agent.getExecutorURL({ page: 2 });
   nextUrl.searchParams.set('location', finalUrl);
-  await agent.forceSinglePrefetch(nextUrl);
+  await agent.forceSinglePrefetchAndWaitForStatus(nextUrl);
   await agent.navigate(nextUrl, {expectedDestinationUrl: finalUrl});
 
   const headers = await agent.getRequestHeaders();
@@ -55,7 +57,7 @@ promise_test(async t => {
   const nextUrl = new URL('/common/redirect.py', location.href);
   const finalUrl = agent.getExecutorURL({ page: 2 });
   nextUrl.searchParams.set('location', finalUrl);
-  await agent.forceSinglePrefetch(nextUrl);
+  await agent.forceSinglePrefetchAndWaitForStatus(nextUrl);
   await agent.navigate(nextUrl, {expectedDestinationUrl: finalUrl});
 
   const headers = await agent.getRequestHeaders();

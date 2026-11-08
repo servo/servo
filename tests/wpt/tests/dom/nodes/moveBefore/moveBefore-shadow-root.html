@@ -19,4 +19,156 @@ test(() => {
   assert_equals(shadowTarget.shadowRoot.firstChild, child2, "Original lastChild is now firstChild");
   assert_equals(shadowTarget.shadowRoot.lastChild, child1, "Original firstChild is now lastChild");
 }, "moveBefore() is allowed in ShadowRoots (i.e., connected DocumentFragments)");
+
+test(t => {
+  const container = document.createElement('div');
+  t.add_cleanup(() => container.remove());
+  container.setHTMLUnsafe(`
+    <div id="visible_host">
+      <template shadowrootmode="open">
+        <style>#child1 { color: rgb(0, 128, 0); }</style>
+      </template>
+    </div>
+    <div id="hidden_host" style="display: none">
+      <template shadowrootmode="open"></template>
+    </div>
+    <div id="slotless_host">
+      <template shadowrootmode="open"><div>Shadow content</div></template>
+    </div>
+    <div id="slotted_host">
+      <template shadowrootmode="open"><slot id="active_slot"></slot></template>
+      <span id="slotted_span">Assigned</span>
+    </div>
+    <div id="newly_slotted_host">
+      <template shadowrootmode="open"><slot id="newly_active_slot"></slot></template>
+    </div>
+    <div id="manual_host">
+      <template shadowrootmode="open" shadowrootslotassignment="manual">
+        <slot id="manual_slot"></slot>
+      </template>
+    </div>
+    <div id="item1"><span id="child1">Item 1</span></div>
+    <div id="item2">Item 2</div>
+    <div id="item3">Item 3</div>
+    <div id="item4">Item 4</div>
+    <div id="item5">Item 5</div>
+  `);
+  document.body.appendChild(container);
+  container.offsetTop;
+
+  const visibleHost = container.querySelector('#visible_host');
+  const hiddenHost = container.querySelector('#hidden_host');
+  const slotlessHost = container.querySelector('#slotless_host');
+  const activeSlot =
+      container.querySelector('#slotted_host').shadowRoot.querySelector('#active_slot');
+  const newlySlottedHost = container.querySelector('#newly_slotted_host');
+  const newlyActiveSlot =
+      newlySlottedHost.shadowRoot.querySelector('#newly_active_slot');
+  const manualHost = container.querySelector('#manual_host');
+  const item1 = container.querySelector('#item1');
+  const child1 = container.querySelector('#child1');
+  const item2 = container.querySelector('#item2');
+  const item3 = container.querySelector('#item3');
+  const item4 = container.querySelector('#item4');
+  const item5 = container.querySelector('#item5');
+
+  // 1. Moving into a visible ShadowRoot updates descendant styles (even when
+  // item1 already has a pending local style change).
+  item1.style.color = 'rgb(0, 0, 255)';
+  visibleHost.shadowRoot.moveBefore(item1, null);
+  assert_equals(getComputedStyle(item1).color, 'rgb(0, 0, 255)');
+  assert_equals(getComputedStyle(child1).color, 'rgb(0, 128, 0)');
+  assert_greater_than(item1.getBoundingClientRect().width, 0);
+
+  // Moving into a display:none host's ShadowRoot detaches layout.
+  item2.style.color = 'rgb(255, 0, 0)';
+  hiddenHost.shadowRoot.moveBefore(item1, null);
+  assert_equals(item1.getBoundingClientRect().width, 0);
+
+  // 2. Moving into a slotless shadow host detaches layout.
+  slotlessHost.moveBefore(item2, null);
+  assert_equals(item2.getBoundingClientRect().width, 0);
+
+  // 3. Moving into a <slot> with assigned nodes detaches layout.
+  activeSlot.moveBefore(item3, null);
+  assert_equals(item3.getBoundingClientRect().width, 0);
+
+  // 4. Moving into an empty <slot> while a host child is pending assignment
+  // detaches layout.
+  newlySlottedHost.appendChild(document.createElement('span'));
+  newlyActiveSlot.moveBefore(item4, null);
+  assert_equals(item4.getBoundingClientRect().width, 0);
+
+  // 5. Moving an unslotted element into a manual-slotting shadow host detaches
+  // layout.
+  manualHost.moveBefore(item5, null);
+  assert_equals(item5.getBoundingClientRect().width, 0);
+}, "moveBefore() into ShadowRoot, shadow host, and <slot> invalidates style and detaches unslotted elements");
+
+test(t => {
+  const container = document.createElement('div');
+  t.add_cleanup(() => container.remove());
+  container.setHTMLUnsafe(`
+    <style>
+      @keyframes anim {
+        from { opacity: 0.5; }
+        to { opacity: 0.5; }
+      }
+      #animated {
+        animation: anim 10s linear infinite;
+      }
+    </style>
+    <div id="host"><template shadowrootmode="open">
+      <style>
+        @keyframes anim {
+          from { opacity: 0.5; }
+          to { opacity: 0.5; }
+        }
+        #animated {
+          animation: anim 10s linear infinite;
+        }
+      </style>
+      <slot id="slot"></slot>
+    </template><span id="slotted">Slotted</span></div>
+    <div id="animated">Fallback</div>
+    <div id="roundtrip_host"><template shadowrootmode="open"><slot id="roundtrip_slot"></slot></template><div id="roundtrip_item">Hello</div></div>
+    <div id="other"></div>
+  `);
+  document.body.appendChild(container);
+
+  const slot = container.querySelector('#host').shadowRoot.querySelector('#slot');
+  const slotted = container.querySelector('#slotted');
+  const animated = container.querySelector('#animated');
+  const anim = animated.getAnimations()[0];
+  assert_equals(getComputedStyle(animated).opacity, '0.5');
+
+  // Removing the assigned node and moving an element into the <slot> in the
+  // same task should preserve active fallback state and running animations.
+  slotted.remove();
+  slot.moveBefore(animated, null);
+  assert_equals(animated.getAnimations()[0], anim);
+  assert_greater_than(animated.getBoundingClientRect().width, 0);
+
+  // Moving a slotted child out to another element, mutating style, and moving
+  // it back to its shadow host in the same task should recalculate style.
+  const roundtripHost = container.querySelector('#roundtrip_host');
+  const roundtripSlot = roundtripHost.shadowRoot.querySelector('#roundtrip_slot');
+  const roundtripItem = container.querySelector('#roundtrip_item');
+  const other = container.querySelector('#other');
+
+  other.moveBefore(roundtripItem, null);
+  roundtripItem.style.color = 'rgb(255, 0, 0)';
+  roundtripHost.moveBefore(roundtripItem, null);
+  assert_equals(getComputedStyle(roundtripItem).color, 'rgb(255, 0, 0)');
+
+  // Moving between assigned and fallback positions of the same slot in a
+  // single task should also recalculate style.
+  roundtripItem.style.color = 'rgb(0, 128, 0)';
+  roundtripSlot.moveBefore(roundtripItem, null);
+  assert_equals(getComputedStyle(roundtripItem).color, 'rgb(0, 128, 0)');
+
+  roundtripItem.style.color = 'rgb(128, 0, 128)';
+  roundtripHost.moveBefore(roundtripItem, null);
+  assert_equals(getComputedStyle(roundtripItem).color, 'rgb(128, 0, 128)');
+}, "moveBefore() preserves active fallback state and invalidates style across same-task slot roundtrips");
 </script>

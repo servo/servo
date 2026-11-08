@@ -1,0 +1,116 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Extant line break after visible content shouldn't be deleted automatically at least after insertText</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+// <br> before a block boundary is not required if preceding content is visible
+// and making the line. However, some apps may add it intentionally as a private
+// marker. Therefore, they shouldn't be removed when inserting text for the
+// backward compatibility.
+
+addEventListener("load", () => {
+  const editingHost = document.querySelector("div[contenteditable]");
+  const utils = new EditorTestUtils(editingHost);
+  promise_test(async () => {
+    editingHost.setAttribute("style", "white-space: normal");
+    utils.setupEditingHost("<p>{}<br></p>");
+    await utils.sendKey("x");
+    assert_equals(editingHost.innerHTML, "<p>x</p>");
+  }, `Inserting text into empty paragraph should remove the padding <br>`);
+  promise_test(async () => {
+    editingHost.setAttribute("style", "white-space: normal");
+    utils.setupEditingHost("<p>abc[]<br></p>");
+    await utils.sendKey("x");
+    assert_equals(editingHost.innerHTML, "<p>abcx<br></p>");
+  }, `Inserting text before unnecessary line break shouldn't cause removing the <br>`);
+  promise_test(async () => {
+    editingHost.setAttribute("style", "white-space: normal");
+    utils.setupEditingHost("<p>[abc]<br></p>");
+    await utils.sendKey("x");
+    assert_equals(editingHost.innerHTML, "<p>x<br></p>");
+  }, `Replacing all text before unnecessary line break shouldn't cause removing the <br>`);
+  promise_test(async () => {
+    editingHost.setAttribute("style", "white-space: normal");
+    utils.setupEditingHost("<p>abc<br>{}<br></p>");
+    await utils.sendKey("x");
+    assert_equals(editingHost.innerHTML, "<p>abc<br>x</p>");
+  }, `Inserting text before a line break for making an empty line should delete delete the <br>`);
+
+  promise_test(async () => {
+    editingHost.setAttribute("style", "white-space: pre-wrap");
+    utils.setupEditingHost("<p>{}\n</p>");
+    await utils.sendKey("x");
+    assert_equals(editingHost.innerHTML, "<p>x</p>");
+  }, `Inserting text into empty paragraph should remove the padding linefeed`);
+  promise_test(async () => {
+    editingHost.setAttribute("style", "white-space: pre-wrap");
+    utils.setupEditingHost("<p>abc[]\n</p>");
+    await utils.sendKey("x");
+    assert_equals(editingHost.innerHTML, "<p>abcx\n</p>");
+  }, `Inserting text before unnecessary linefeed shouldn't cause removing the linefeed`);
+  promise_test(async () => {
+    editingHost.setAttribute("style", "white-space: pre-wrap");
+    utils.setupEditingHost("<p>[abc]\n</p>");
+    await utils.sendKey("x");
+    assert_equals(editingHost.innerHTML, "<p>x\n</p>");
+  }, `Replacing all text before unnecessary linefeed shouldn't cause removing the linefeed`);
+  promise_test(async () => {
+    editingHost.setAttribute("style", "white-space: pre-wrap");
+    utils.setupEditingHost("<p>abc\n[]\n</p>");
+    await utils.sendKey("x");
+    assert_equals(editingHost.innerHTML, "<p>abc\nx</p>");
+  }, `Inserting text before a linefeed for making an empty line should remove the linefeed`);
+
+  promise_test(async () => {
+    editingHost.setAttribute("style", "white-space: normal");
+    utils.setupEditingHost("<div>{}<br><p>p</p></div>");
+    await utils.sendKey("x");
+    assert_equals(editingHost.innerHTML, "<div>x<p>p</p></div>");
+  }, `Inserting text into empty line before a child block should remove the <br> made an empty line`);
+  promise_test(async () => {
+    editingHost.setAttribute("style", "white-space: normal");
+    utils.setupEditingHost("<div>abc[]<br><p>p</p></div>");
+    await utils.sendKey("x");
+    assert_equals(editingHost.innerHTML, "<div>abcx<br><p>p</p></div>");
+  }, `Inserting text before unnecessary line break before a child block shouldn't cause removing the <br>`);
+  promise_test(async () => {
+    editingHost.setAttribute("style", "white-space: normal");
+    utils.setupEditingHost("<div>[abc]<br><p>p</p></div>");
+    await utils.sendKey("x");
+    assert_equals(editingHost.innerHTML, "<div>x<br><p>p</p></div>");
+  }, `Replacing all text before unnecessary line break before a child block shouldn't cause removing the <br>`);
+
+  promise_test(async () => {
+    editingHost.setAttribute("style", "white-space: pre-wrap");
+    utils.setupEditingHost("<div>[]\n<p>p</p></div>");
+    await utils.sendKey("x");
+    assert_equals(editingHost.innerHTML, "<div>x<p>p</p></div>");
+  }, `Inserting text into empty line before a child block should remove the linefeed made an empty line`);
+  promise_test(async () => {
+    editingHost.setAttribute("style", "white-space: pre-wrap");
+    utils.setupEditingHost("<div>abc[]\n<p>p</p></div>");
+    await utils.sendKey("x");
+    assert_equals(editingHost.innerHTML, "<div>abcx\n<p>p</p></div>");
+  }, `Inserting text before unnecessary linefeed before a child block shouldn't cause removing the linefeed`);
+  promise_test(async () => {
+    editingHost.setAttribute("style", "white-space: pre-wrap");
+    utils.setupEditingHost("<div>[abc]\n<p>p</p></div>");
+    await utils.sendKey("x");
+    assert_equals(editingHost.innerHTML, "<div>x\n<p>p</p></div>");
+  }, `Replacing all text before unnecessary linefeed before a child block shouldn't cause removing the linefeed`);
+}, {once: true});
+</script>
+</head>
+<body>
+  <div contenteditable></div>
+</body>
+</html>

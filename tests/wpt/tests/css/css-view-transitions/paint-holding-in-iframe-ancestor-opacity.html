@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View transitions: opacity of an ancestor of an iframe applies once to its old paint</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="match" href="paint-holding-in-iframe-ancestor-opacity-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+  #container {
+    opacity: 0.5;
+  }
+  iframe {
+    display: block;
+    width: 200px;
+    height: 200px;
+    border: none;
+  }
+</style>
+
+<div id="container">
+  <iframe id="inner" srcdoc="
+    <style>
+      body {
+        margin: 0;
+      }
+    </style>
+  "></iframe>
+</div>
+<script>
+async function runTest() {
+  await waitForAtLeastOneFrame();
+
+  let contentDocument = inner.contentDocument;
+  contentDocument.body.style.background = "blue";
+
+  contentDocument.startViewTransition(async () => {
+    contentDocument.body.style.background = "green";
+
+    takeScreenshot();
+    return new Promise((resolve) => {});
+  });
+}
+onload = runTest;
+</script>
+</html>

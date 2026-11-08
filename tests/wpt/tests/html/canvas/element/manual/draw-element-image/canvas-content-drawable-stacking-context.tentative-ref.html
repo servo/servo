@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<title>HTML-in-Canvas: A canvas with content=drawable is a stacking context (reference)</title>
+<style>
+  div {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    background: red;
+  }
+  canvas {
+    display: block;
+    margin-top: -100px;
+    background: green;
+    isolation: isolate;
+  }
+</style>
+<p>Test passes if there is a green square and no red.</p>
+<div></div>
+<canvas width="100" height="100"></canvas>
+</html>

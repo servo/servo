@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Lists: the outside marker keeps its first formatted line when the multi-column context is destroyed</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#list-style-position-outside">
+<link rel="match" href="outside-marker-multicol-destroyed-ref.html">
+<meta name="assert" content="Destroying the multi-column flow thread moves its children back to the list item, and the marker still aligns with its first formatted line.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  ul { margin: 0; padding: 0 0 0 40px; }
+  li { font: 20px/20px Ahem; width: 200px; }
+</style>
+
+<p>The test passes if the bullet is aligned with the "first" text.</p>
+
+<ul><li id="item" style="columns: 2"><div>first</div><div>second</div></li></ul>
+<script>
+  document.body.offsetHeight;
+  document.getElementById("item").style.columns = "auto";
+  document.body.offsetHeight;
+</script>

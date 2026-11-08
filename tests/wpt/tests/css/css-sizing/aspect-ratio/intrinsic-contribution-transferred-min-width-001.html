@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: a box's transferred minimum width and its max-width in its intrinsic width contributions</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-size-transfers">
+<meta name="assert" content="A min-height transferred through a box's aspect-ratio is capped by a definite max-width, but not by an indefinite one, in the box's intrinsic width contributions.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.container {
+    float: left;
+    clear: left;
+}
+.box {
+    aspect-ratio: 1;
+    min-height: 200px;
+}
+.content {
+    width: 50px;
+    height: 1px;
+}
+</style>
+<body onload="checkLayout('.container')">
+<div class="container" data-expected-width="50"><div class="box" style="max-width: 50px"><div class="content"></div></div></div>
+<div class="container" data-expected-width="200"><div class="box" style="max-width: max-content"><div class="content"></div></div></div>
+<div class="container" data-expected-width="200"><div class="box" style="max-width: min-content"><div class="content"></div></div></div>
+</body>

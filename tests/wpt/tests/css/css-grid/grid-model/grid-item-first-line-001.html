@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: '::first-line' line-height applies to a grid item's first line</title>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-containers">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-line-pseudo">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="This test checks that the line-height from a grid item's '::first-line' pseudo-element is used to size the item's first line.">
+<style>
+  #reference-overlapped-red {
+    width: 100px;
+    height: 100px;
+    background-color: red;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 100px;
+    margin-top: -100px;
+  }
+
+  .item {
+    color: transparent;
+    background-color: green;
+  }
+
+  .item::first-line {
+    line-height: 100px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="reference-overlapped-red"></div>
+<div class="grid">
+  <div class="item">X</div>
+</div>

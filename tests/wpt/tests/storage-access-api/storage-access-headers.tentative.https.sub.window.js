@@ -92,6 +92,14 @@ function redirectedKey(key) {
 }
 
 promise_setup(async () => {
+    // Clear any cookies left on `cross_site` by prior tests in the same WPT
+    // worker, since `test_driver.delete_all_cookies()` only clears cookies for
+    // the top-level document's origin.
+    await SetFirstPartyCookie(
+        cross_site, 'initial-cookie=0;Max-Age=0;Secure;SameSite=None;Path=/');
+    await SetFirstPartyCookie(
+        cross_site, 'cookie=0;Max-Age=0;Secure;SameSite=None;Path=/');
+
     promise_test(async (t) => {
         const key = '{{uuid()}}';
         addCommonCleanupCallback(t);

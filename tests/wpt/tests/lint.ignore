@@ -454,6 +454,7 @@ SET TIMEOUT: html/dom/documents/dom-tree-accessors/Document.currentScript.html
 SET TIMEOUT: html/webappapis/dynamic-markup-insertion/opening-the-input-stream/crbug-583445-regression.window.js
 SET TIMEOUT: html/webappapis/timers/*
 SET TIMEOUT: portals/history/resources/portal-harness.js
+SET TIMEOUT: requestidlecallback/callback-after-removed-frame-with-pending-timeout.html
 SET TIMEOUT: requestidlecallback/deadline-after-expired-timer.html
 SET TIMEOUT: resource-timing/tentative/initiator-url/dedicated-worker-script.html
 SET TIMEOUT: resource-timing/tentative/initiator-url/module-script-from-document.html
@@ -674,9 +675,6 @@ WEB-PLATFORM.TEST:web-bundle/resources/nested/*.wbn
 WEB-PLATFORM.TEST:web-bundle/resources/wbn/*.wbn
 WEB-PLATFORM.TEST:web-bundle/subresource-loading/*.html
 WEB-PLATFORM.TEST:web-bundle/subresource-loading/resources/*.js
-
-# The /.well-known/shared-stored/trusted-origins file uses hard-coded hosts
-WEB-PLATFORM.TEST:shared-storage/resources/trusted-origins.py
 
 # Tests that depend on resources in /gen/ in Chromium:
 # https://github.com/web-platform-tests/wpt/issues/16455

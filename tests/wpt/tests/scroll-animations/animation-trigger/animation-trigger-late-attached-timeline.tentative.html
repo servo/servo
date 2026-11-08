@@ -21,7 +21,9 @@
       }
       .target {
         animation: myAnim linear 0.5s forwards;
-        timeline-trigger: --trigger 150px 200px;
+        animation-trigger: --trigger play-once;
+        /* The trigger has no timeline until the test attaches one. */
+        timeline-trigger: --trigger none 150px 200px;
       }
       .deferred.subject {
         view-timeline: --viewtimeline;
@@ -65,19 +67,19 @@
                                       scroller);
         const animation = target.getAnimations()[0];
         await waitForAnimationFrames(5);
-        // The animation is currently associated with the document timeline and
-        // would automatically run. Cancel it.
-        animation.cancel();
 
         // Enter the trigger range. Since it is not yet associated with the
         // view timeline, this should have no effect.
         await rangeBoundaries.enterTriggerRange();
         await waitForAnimationFrames(5);
+        assert_equals(animation.playState, "paused",
+           "animation is paused before its trigger has a view timeline.");
+        assert_times_equal(animation.currentTime, 0,
+           "animation is at its start before its trigger has a view timeline.");
 
         // Now attach a view timeline. Since we are in the trigger range, we
         // should trigger.
         await testAnimationTrigger(test, async () => {
-          target.style.animationTrigger = "--trigger play-once";
           target.style.timelineTriggerSource = "--viewtimeline";
           await waitForAnimationFrames(5);
         }, target, ["animationstart", "animationend", "animationcancel"],
@@ -87,7 +89,8 @@
            "animation was run when its trigger was attached to a view " +
            " timeline inside the trigger range.");
 
-        // TODO: Add a test which switches the timeline of the trigger.
+        // TODO(crbug.com/580974660): Add a test which switches the timeline of
+        // the trigger.
       }, "late-attached trigger timeline plays animation");
     </script>
   </body>

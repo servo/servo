@@ -1,0 +1,57 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Container Queries Test: container-name set by :host applies to slotted host elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#query-container">
+<link rel="help" href="https://drafts.csswg.org/css-shadow-1/#shadow-names">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="named-size">
+  <template shadowrootmode="open">
+    <style>
+      :host { container: --host-container / inline-size; }
+    </style>
+    <slot></slot>
+  </template>
+  <div id="t1">
+    <template shadowrootmode="open">
+      <style>
+        :host { color: red; }
+        @container --host-container (width >= 0px) {
+          :host { color: green; }
+        }
+      </style>
+    </template>
+  </div>
+</div>
+
+<div id="named-style">
+  <template shadowrootmode="open">
+    <style>
+      :host { --foo: baz; container-name: --host-container; }
+    </style>
+    <slot></slot>
+  </template>
+  <div id="t2">
+    <template shadowrootmode="open">
+      <style>
+        :host { color: red; }
+        @container --host-container style(--foo: baz) {
+          :host { color: green; }
+        }
+      </style>
+    </template>
+  </div>
+</div>
+
+<script>
+  const green = "rgb(0, 128, 0)";
+
+  test(() => {
+    assert_equals(getComputedStyle(t1).color, green);
+  }, "Slotted host's :host size query matches name set by :host of the slot's host");
+
+  test(() => {
+    assert_equals(getComputedStyle(t2).color, green);
+  }, "Slotted host's :host style query matches name set by :host of the slot's host");
+</script>

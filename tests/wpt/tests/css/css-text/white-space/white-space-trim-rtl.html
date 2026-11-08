@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>white-space-trim: discard-before/after in right-to-left content</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#white-space-trim">
+<link rel="match" href="reference/white-space-trim-rtl-ref.html">
+<meta name="assert" content="white-space-trim discards collapsible white space in logical (source) order regardless of bidi direction; the trimmed items are removed before bidi resolution.">
+<style>
+  .db { white-space-trim: discard-before; }
+  .da { white-space-trim: discard-after; }
+</style>
+</head>
+<body>
+<p>Test passes if the two right-to-left lines below match the reference.</p>
+<div dir="rtl">&#1488; <span class="db">&#1489;</span>&#1490;</div>
+<div dir="rtl">&#1488;<span class="da">&#1489;</span> &#1490;</div>
+</body>
+</html>

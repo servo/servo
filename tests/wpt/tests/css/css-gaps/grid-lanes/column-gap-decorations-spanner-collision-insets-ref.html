@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+  body { margin: 0; }
+  main { display: flex; gap: 20px; padding: 16px; width: max-content; }
+  .lanes {
+    position: relative;
+    display: grid-lanes;
+    grid-template-columns: 60px 60px;
+    gap: 20px;
+    width: 140px;
+    height: 240px;
+    background: #cdd5e0;
+  }
+  .spanner {
+    grid-column: 1 / -1;
+    align-self: center;
+    height: 40px;
+    background: purple;
+  }
+  .rule {
+    position: absolute;
+    left: 68px;
+    width: 4px;
+    height: 80px;
+    background: blue;
+  }
+  .before { top: 0; }
+  .after { top: 160px; }
+  .lengths > .before { top: 8px; height: 60px; }
+  .lengths > .after { top: 168px; height: 60px; }
+  .negative > .before { top: -6px; height: 96px; }
+  .negative > .after { top: 154px; height: 96px; }
+</style>
+<main>
+  <div class="lanes percentages">
+    <div class="spanner"></div>
+    <span class="rule before"></span>
+    <span class="rule after"></span>
+  </div>
+  <div class="lanes lengths">
+    <div class="spanner"></div>
+    <span class="rule before"></span>
+    <span class="rule after"></span>
+  </div>
+  <div class="lanes negative">
+    <div class="spanner"></div>
+    <span class="rule before"></span>
+    <span class="rule after"></span>
+  </div>
+</main>

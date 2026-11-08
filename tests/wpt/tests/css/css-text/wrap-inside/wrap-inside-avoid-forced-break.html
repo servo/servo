@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>wrap-inside: avoid does not suppress forced line breaks</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#wrap-inside">
+<link rel="match" href="wrap-inside-avoid-forced-break-ref.html">
+<meta name="assert" content="'wrap-inside: avoid' only suppresses soft wrap opportunities; a forced break (br) inside the box is still honored even though the box would otherwise fit on one line.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    div { width: 200px; font: 20px/20px Ahem; color: green; }
+</style>
+<!-- The box fits within 200px, but the forced break must still split it into two lines. -->
+<div><span style="wrap-inside: avoid">AA<br>BB</span></div>

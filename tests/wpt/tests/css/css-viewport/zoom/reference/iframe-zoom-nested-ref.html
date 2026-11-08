@@ -1,9 +1,12 @@
 <!DOCTYPE html>
+<html class="reftest-wait">
+<head>
 <title>ref for nested iframes with css zoom</title>
 <link rel="author" title="Yotam Hacohen" href="mailto:yotha@chromium.org">
 <link rel="author" title="Stefan Zager" href="mailto:szager@chromium.org">
 <link rel="author" title="Google" href="http://www.google.com/">
 <link rel="help" href="https://drafts.csswg.org/css-viewport/">
+<script src="/common/reftest-wait.js"></script>
 
 <style>
 body {
@@ -21,8 +24,23 @@ iframe {
   --scale: 1.5;
 }
 </style>
+</head>
 
+<body>
+<script>
+let loadedCount = 0;
+
+addEventListener("message", ({ data }) => {
+  if (data != "leaf_loaded") return;
+  loadedCount += 1;
+  if (loadedCount == document.querySelectorAll('iframe').length) {
+    takeScreenshot();
+  }
+});
+</script>
 <iframe id="baseline-ref" src="../resources/nested-iframe.html" scrolling="no"></iframe>
 <iframe id="zoom-child-ref" src="../resources/nested-iframe.html?subscale=2" scrolling="no"></iframe>
 <iframe id="zoom-top-ref" class="scale" src="../resources/nested-iframe.html?topscale=1.5" scrolling="no"></iframe>
 <iframe id="zoom-top-child-ref" class="scale" src="../resources/nested-iframe.html?topscale=1.5&subscale=2" scrolling="no"></iframe>
+</body>
+</html>

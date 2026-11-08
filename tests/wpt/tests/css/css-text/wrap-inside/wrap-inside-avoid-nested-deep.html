@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>wrap-inside: three nested avoid boxes break in the outermost box first</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#wrap-inside">
+<link rel="match" href="wrap-inside-avoid-nested-deep-ref.html">
+<meta name="assert" content="With three nested wrap-inside: avoid boxes and no break outside them, a break in an outer box must be used before a break within an inner box, so the line breaks in the outermost box: 'A' / 'B C D'.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    div { width: 110px; font: 20px/20px Ahem; color: green; }
+</style>
+<!--
+    All break opportunities are inside avoid boxes. Breaking inside the innermost box would give "A B C" / "D", and
+    breaking in the middle box would give "A B" / "C D", but a break in an outer box must be used before a break within
+    an inner box, so the line breaks in the outermost box: "A" / "B C D".
+-->
+<div><span style="wrap-inside: avoid">A <span style="wrap-inside: avoid">B <span style="wrap-inside: avoid">C D</span></span></span></div>

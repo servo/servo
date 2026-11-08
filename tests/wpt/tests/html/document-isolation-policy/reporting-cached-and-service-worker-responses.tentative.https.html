@@ -36,7 +36,7 @@ function loadInFrameAndObserveReports(uuid, url, asImage, count) {
     const reports = [];
     const observed = new Promise(resolve => {
       new ReportingObserver(list => {
-        reports.push(...list.map(report => report.toJSON()));
+        reports.push(...list);
         if (reports.length >= count)
           resolve();
       }).observe();
@@ -95,7 +95,7 @@ function loadWithAndWithoutCORSInFrame(uuid, url, whileLoading) {
     await corsImageLoaded;
 
     reports.push(...observer.takeRecords());
-    return { reports: reports.map(report => report.toJSON()), corsImageWasLoading };
+    return { reports, corsImageWasLoading };
   }, [url, whileLoading]);
 }
 
@@ -149,7 +149,7 @@ promise_test(async t => {
       });
     }
     reports.push(...observer.takeRecords());
-    return reports.map(report => report.toJSON());
+    return reports;
   }, [url]);
   assert_equals(reports.length, 1);
   checkReport(reports[0], new URL(frameURL).href, new URL(url).href, "reporting", "image");

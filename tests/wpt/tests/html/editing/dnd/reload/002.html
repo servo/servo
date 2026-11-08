@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Reload during PNG image drag and drop roundtrip</title>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/dnd.html#drag-and-drop-processing-model">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="support/drag-reload-test.js"></script>
+  <style>
+    body { margin: 20px; }
+  </style>
+  <script>
+    function sourceDragStart(event) {
+      event.dataTransfer.effectAllowed = 'copy';
+      location.reload();
+    }
+
+    function targetDrop(event) {
+      event.preventDefault();
+      const data = event.dataTransfer.getData('text/uri-list').replace(/\r\n$/, '');
+      const image = document.createElement('img');
+      image.id = 'dropped-image';
+      image.src = data;
+      event.currentTarget.after(image);
+    }
+  </script>
+</head>
+<body>
+  <img id="source" src="../resources/circle.png" alt="PNG circle"
+    width="100" height="100"
+    ondragstart="sourceDragStart(event)" ondragenter="event.preventDefault()"
+    ondragover="event.preventDefault()" ondrop="targetDrop(event)">
+  <script>
+    testDragAcrossReload({
+      dataType: 'text/uri-list',
+      getExpectedData: source => source.src,
+      verifyDrop: async (target, expectedData) => {
+        const image = target.ownerDocument.getElementById('dropped-image');
+        assert_not_equals(image, null, 'The drop handler duplicates the image');
+        assert_equals(image.src, expectedData, 'The duplicate has the original URL');
+        await image.decode();
+      },
+    });
+  </script>
+</body>
+</html>

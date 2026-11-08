@@ -1,0 +1,44 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Container Timing: an observer without buffering does not get paints from before it observed</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+img {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/container-timing/resources/container-timing-helpers.js"></script>
+<script>
+  promise_test(async t => {
+    assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
+
+    addSquare100Image(document.body,
+                      {containertiming: 'early_ct', style: 'left: 0px; top: 0px'});
+    await waitWithoutObserving(t);
+
+    // Starts observing synchronously. A paint after observing must not carry
+    // along the earlier one.
+    const entriesPromise = getContainerEntriesWithin(t);
+    addSquare100Image(document.body, {
+      containertiming: 'late_ct',
+      id: 'late_id',
+      style: 'left: 100px; top: 0px',
+    });
+    const beforeRender = performance.now();
+
+    const entries = await entriesPromise;
+    assert_equals(entries.length, 1);
+    checkContainerEntry(entries[0], 'late_ct', 'late_id', beforeRender);
+    checkContainerIntersectionRect(entries[0], [100, 200, 0, 100]);
+    checkContainerSize(entries[0], 10000);
+  }, 'Paints before observing are not reported along with later ones if buffering is disabled.');
+</script>
+
+</body>

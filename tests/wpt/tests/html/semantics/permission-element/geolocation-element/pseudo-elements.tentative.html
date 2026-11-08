@@ -8,7 +8,14 @@
   </div>
 
   <style>
-    geolocation::before, geolocation::after { content: "FAIL"; }
+    body {
+      list-style-position: inside;
+      list-style-type: "FAIL";
+    }
+    geolocation {
+      display: inline flow-root list-item;
+    }
+    geolocation::before, geolocation::after, geolocation::marker { content: "FAIL"; }
   </style>
 
   <p>You should not see the word FAIL below.</p>

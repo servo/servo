@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Display Reference: text properties of a display: contents element apply when it is the only content of a block</title>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+div { font: 20px/1 Ahem; width: 100px; margin-bottom: 10px; }
+</style>
+<div style="white-space: nowrap">aa aa aa aa</div>
+<div>aa aa aa aa</div>
+<div style="word-spacing: 20px">a a a</div>
+<div style="letter-spacing: 10px">aaa</div>
+<div style="white-space: break-spaces">aa&#x20;&#x20;&#x20;&#x20;aa</div>
+<div><span style="font-size: 10px; line-height: 0">aaaa aaaa</span></div>

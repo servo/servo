@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration: text-decoration-inset is not re-applied at interior marked-text boundaries (reference)</title>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    body { margin: 20px; }
+    div { font: 40px/1.5 Ahem; color: black; }
+    /* One continuous underline over the whole element, trimmed 8px only at the outer ends. */
+    u { text-decoration-line: underline; text-decoration-color: blue; text-underline-position: under; text-decoration-inset: 8px; }
+    span { color: green; }
+</style>
+<div><u>XX<span>XX</span>XX</u></div>

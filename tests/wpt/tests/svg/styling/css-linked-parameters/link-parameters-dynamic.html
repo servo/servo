@@ -7,13 +7,13 @@
 <style>
   body { margin: 0; }
   img { display: block; width: 100px; height: 100px; }
-  #target { link-parameters: param(--bg, #a01010); }
+  #target { link-parameters: param(--bg: #a01010); }
 </style>
 <img id="target" src="resources/solid.svg">
 <script>
 window.onload = function() {
     requestAnimationFrame(function() {
-        document.getElementById("target").style.linkParameters = "param(--bg, #0a5c2e)";
+        document.getElementById("target").style.linkParameters = "param(--bg: #0a5c2e)";
         document.documentElement.classList.remove("reftest-wait");
     });
 };

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>CSS Display: getComputedStyle().readingFlow with grid-lanes values</title>
+<link rel="author" title="Hoch Hochkeppel" href="mailto:mhochk@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14290">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value('reading-flow', 'grid-lanes-flow');
+test_computed_value('reading-flow', 'grid-lanes-track');
+test_computed_value('reading-flow', 'grid-lanes-order');
+</script>
+</body>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>getEntriesByName() returns entries sorted by startTime</title>
+<link rel="help" href="https://w3c.github.io/performance-timeline/#dfn-filter-buffer-map-by-name-and-type">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<p>Contentful text</p>
+<script>
+promise_test(async () => {
+  assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+  const fcp = await new Promise(resolve => {
+    new PerformanceObserver(list => {
+      const [entry] = list.getEntriesByName("first-contentful-paint");
+      if (entry) {
+        resolve(entry);
+      }
+    }).observe({type: "paint", buffered: true});
+  });
+
+  const early = performance.mark("first-contentful-paint", {startTime: 0});
+  const late = performance.mark("first-contentful-paint",
+                                {startTime: fcp.startTime + 1000});
+  assert_array_equals(performance.getEntriesByName("first-contentful-paint"),
+                      [early, fcp, late]);
+}, "getEntriesByName() sorts the paint entry by startTime");
+</script>
+</body>

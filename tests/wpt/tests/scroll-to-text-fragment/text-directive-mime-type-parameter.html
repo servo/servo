@@ -1,5 +1,5 @@
 <!doctype html>
-<title>Allow text fragments when the MIME type has a parameter</title>
+<title>Allow text fragments when the MIME type has a parameter or mixed case</title>
 <meta charset=utf-8>
 <link rel="help" href="https://wicg.github.io/scroll-to-text-fragment/#text-directive-allowing-mime-type">
 <script src="/resources/testharness.js"></script>
@@ -13,7 +13,8 @@
 // A "text directive allowing MIME type" is one whose essence is "text/html" or
 // "text/plain". The essence must be compared after stripping any MIME type
 // parameter, so a document served as e.g. "text/html; charset=utf-8" must still
-// process text directives.
+// process text directives. The comparison is also ASCII case-insensitive, so a
+// document served as e.g. "Text/HTML" must be treated the same as "text/html".
 
 function rAF(win) {
   return new Promise((resolve) => {
@@ -42,4 +43,17 @@ promise_test(async function (t) {
 
   popup.close();
 }, 'Text directive allowed in text/html with a charset parameter');
+
+promise_test(async function (t) {
+  // resources/text-html-mixed-case.html is served as "Text/HTML; charset=UTF-8".
+  const popup = await openPopup(`resources/text-html-mixed-case.html#:~:text=target`);
+
+  // rAF twice in case there is any asynchronicity in scrolling to the target.
+  await rAF(popup);
+  await rAF(popup);
+
+  assert_true(popup.scrollY > 0, 'scrolled to fragment');
+
+  popup.close();
+}, 'Text directive allowed in text/html served with mixed-case MIME type');
 </script>

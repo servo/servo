@@ -1,0 +1,10 @@
+<!doctype html>
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-node-adopt">
+<script>
+const template = document.createElement("template");
+template.innerHTML = "<div><span></span></div>";
+const host = template.content.firstElementChild;
+host.attachShadow({ mode: "open" });
+host.getElementsByTagName("span").length;
+document.documentElement.append(host);
+</script>

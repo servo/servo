@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>wrap-inside: avoid breaks before the box, then inside it as a last resort</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#wrap-inside">
+<link rel="match" href="wrap-inside-avoid-break-before-then-inside-ref.html">
+<meta name="assert" content="'wrap-inside: avoid' breaks before the box even though box content would otherwise fit on the first line, then breaks the box internally on the next line because it alone does not fit: 'X' / 'AA' / 'BB'.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    div { width: 90px; font: 20px/20px Ahem; color: green; }
+</style>
+<!--
+    Without avoid, "X AA" (80px) fits within 90px, so normal wrapping keeps it together and breaks the box as "X AA" / "BB".
+    'wrap-inside: avoid' breaks before the box (after "X") instead; then, because "AA BB" (100px) alone does not fit, it breaks inside
+    the box as a last resort: "X" / "AA" / "BB".
+-->
+<div>X <span style="wrap-inside: avoid">AA BB</span></div>

@@ -1,19 +1,35 @@
 // META: global=window,dedicatedworker
-// META: variant=?av1
-// META: variant=?vp8
-// META: variant=?vp9_p0
-// META: variant=?h264_avc
-// META: variant=?h264_annexb
+// META: variant=?av1&upscale
+// META: variant=?av1&downscale
+// META: variant=?av1&aspect
+// META: variant=?vp8&upscale
+// META: variant=?vp8&downscale
+// META: variant=?vp8&aspect
+// META: variant=?vp9_p0&upscale
+// META: variant=?vp9_p0&downscale
+// META: variant=?vp9_p0&aspect
+// META: variant=?h264_avc&upscale
+// META: variant=?h264_avc&downscale
+// META: variant=?h264_avc&aspect
+// META: variant=?h264_annexb&upscale
+// META: variant=?h264_annexb&downscale
+// META: variant=?h264_annexb&aspect
+
+const [codecParam, scaleFilter] = location.search.split('&');
 
 let BASECONFIG = null;
 promise_setup(async () => {
   const config = {
-    '?av1': { codec: 'av01.0.04M.08' },
-    '?vp8': { codec: 'vp8' },
-    '?vp9_p0': { codec: 'vp09.00.10.08' },
-    '?h264_avc': { codec: 'avc1.42001E', avc: { format: 'avc' } },
-    '?h264_annexb': { codec: 'avc1.42001E', avc: { format: 'annexb' } },
-  }[location.search];
+    '?av1': {codec: 'av01.0.04M.08'},
+    '?vp8': {codec: 'vp8'},
+    '?vp9_p0': {codec: 'vp09.00.10.08'},
+    '?h264_avc': {codec: 'avc1.42001E', avc: {format: 'avc'}},
+    '?h264_annexb': {codec: 'avc1.42001E', avc: {format: 'annexb'}},
+  }[codecParam];
+  assert_true(!!config, `Unsupported codec parameter: ${codecParam}`);
+  assert_true(
+      !scaleFilter || ['upscale', 'downscale', 'aspect'].includes(scaleFilter),
+      `Unsupported scale filter: ${scaleFilter}`);
   BASECONFIG = config;
   BASECONFIG.framerate = 30;
   BASECONFIG.bitrate = 3000000;
@@ -157,6 +173,18 @@ function createChannelParameters(channelParams, x, y) {
   }
 }
 
+// Group test cases into 3 balanced variants (3 scales x 2 formats = 6
+// subtests):
+// - 'upscale': uniform upscaling
+// - 'downscale': uniform downscaling
+// - 'aspect': non-uniform aspect-ratio scaling (plus 1x no-op scaling)
+function getScaleType({from, to}) {
+  if (from.w * to.h !== to.w * from.h || (from.w === to.w && from.h === to.h)) {
+    return 'aspect';
+  }
+  return to.w > from.w ? 'upscale' : 'downscale';
+}
+
 
 const scaleTests = [
   { from: { w: 64, h: 64 }, to: { w: 128, h: 128 } }, // Factor 2
@@ -196,6 +224,9 @@ const pixelFormatChannelParameters = [
 ]
 
 for (const scale of scaleTests) {
+  if (scaleFilter && getScaleType(scale) !== scaleFilter) {
+    continue;
+  }
   for (const channelParams of pixelFormatChannelParameters) {
     promise_test(async t => {
       const inputChannelParameters = createChannelParameters(channelParams, scale.from.w, scale.from.h);
@@ -209,6 +240,7 @@ for (const scale of scaleTests) {
         format: channelParams.format
       });
       const outputFrame = await scaleFrame(inputFrame, scale.to);
+      inputFrame.close();
       const outputArrayBuffer = new Uint8Array(outputFrame.allocationSize({ format: 'RGBX' }));
       const layout = await outputFrame.copyTo(outputArrayBuffer, { format: 'RGBX' });
       const stride = layout[0].stride

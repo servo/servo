@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/common/utils.js"></script>
 <script src="../resources/utils.js"></script>
@@ -17,12 +19,16 @@
   // This is split across four test variants due to the test timeouts.
   let { from_protocol, to_protocol } = Object.fromEntries(new URLSearchParams(location.search));
   promise_test(async t => {
+    const shouldPrefetch = to_protocol == "https";
     let agent = await spawnWindow(t, { protocol: from_protocol });
     let nextUrl = agent.getExecutorURL({ protocol: to_protocol, page: 2 });
-    await agent.forceSinglePrefetch(nextUrl);
+    const targetStatus = shouldPrefetch ?
+        PRELOADING_STATUS.READY : PRELOADING_STATUS.FAILURE;
+    await agent.forceSinglePrefetchAndWaitForStatus(
+        nextUrl, {}, targetStatus);
     await agent.navigate(nextUrl);
 
-    if (to_protocol == "https") {
+    if (shouldPrefetch) {
       assert_prefetched(await agent.getRequestHeaders(), "Prefetch should work for HTTPS urls.");
     } else {
       assert_not_prefetched(await agent.getRequestHeaders(), "Prefetch should not work for HTTP urls.");

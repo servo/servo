@@ -30,6 +30,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
+<script src="/common/rendering-utils.js"></script>
 <style>
 iframe {
   border: 0;
@@ -75,6 +76,22 @@ function computeAllowParam() {
   }
 }
 
+function waitForHeight(t, element, targetHeight) {
+  if (element.offsetHeight === targetHeight) {
+    return Promise.resolve();
+  }
+  return new Promise(resolve => {
+    const observer = new ResizeObserver(() => {
+      if (element.offsetHeight === targetHeight) {
+        observer.disconnect();
+        resolve();
+      }
+    });
+    t.add_cleanup(() => observer.disconnect());
+    observer.observe(element);
+  });
+}
+
 if (containerType === 'subdomain' && location.origin !== hostInfo.HTTP_REMOTE_ORIGIN) {
   location.href = hostInfo.HTTP_REMOTE_ORIGIN + location.pathname + location.search;
 } else {
@@ -97,7 +114,7 @@ if (containerType === 'subdomain' && location.origin !== hostInfo.HTTP_REMOTE_OR
     }
 
     iframe.src = iframeSrc;
-    iframe.addEventListener('load', t.step_func(() => {
+    iframe.addEventListener('load', t.step_func(async () => {
       try {
         if (iframe.contentWindow && iframe.contentWindow.location.href === 'about:blank') {
           return;
@@ -105,6 +122,14 @@ if (containerType === 'subdomain' && location.origin !== hostInfo.HTTP_REMOTE_OR
       } catch (e) {
         // Cross-origin iframe accesses `location.href` with `SecurityError`,
         // which means it loaded target URL.
+      }
+      if (expectedHeight !== 150) {
+        await waitForHeight(t, iframe, expectedHeight);
+      } else {
+        await waitForAtLeastOneFrame();
+        if (originType !== 'same') {
+          await waitForAtLeastOneFrame();
+        }
       }
       t.step(() => {
         assert_equals(iframe.offsetHeight, expectedHeight,

@@ -26,6 +26,12 @@ function toolsAreEqual(actual, expected) {
         JSON.stringify(
             actual.inputSchema)} !== ${JSON.stringify(expected.inputSchema)}`;
   }
+  if (JSON.stringify(actual.outputSchema) !==
+      JSON.stringify(expected.outputSchema)) {
+    return `outputSchemas are unequal: ${
+        JSON.stringify(
+            actual.outputSchema)} !== ${JSON.stringify(expected.outputSchema)}`;
+  }
   if (actual.origin !== expected.origin) {
     return `origins are unequal: ${actual.origin} !== ${expected.origin}`;
   }

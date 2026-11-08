@@ -57,7 +57,7 @@
     scrollable.scrollTo(40, 60);
     await waitUntilNextAnimationFrame();
     await waitUntilNextAnimationFrame();
-    assert_rects_equal(anchored, 60, 40, 100, 100);
+    assert_rects_equal(anchored, 80, 70, 80, 70);
   }, "Scroll to 40,60");
 
   promise_test(async() => {
@@ -72,7 +72,7 @@
     scrollable.scrollTo(0, 0);
     await waitUntilNextAnimationFrame();
     await waitUntilNextAnimationFrame();
-    assert_rects_equal(anchored, 150, 250, 50, 225);
+    assert_rects_equal(anchored, 100, 250, 100, 125);
   }, "Scroll to 0,0");
 
   promise_test(async() => {

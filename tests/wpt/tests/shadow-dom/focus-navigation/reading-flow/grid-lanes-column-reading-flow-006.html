@@ -13,10 +13,10 @@
 <script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
 
 <div class="test-case" data-expect="a,c,b,d"
-     data-description="Grid-order uses CSS order and source order for ties">
+     data-description="Grid-lanes-order uses CSS order and source order for ties">
   <div style="display: grid-lanes;
               grid-template-columns: repeat(4, 80px);
-              reading-flow: grid-order">
+              reading-flow: grid-lanes-order">
     <button id="d" style="grid-column: 1; order: 2">D</button>
     <button id="a" style="grid-column: 4; order: -1">A</button>
     <button id="c" style="grid-column: 3">C</button>

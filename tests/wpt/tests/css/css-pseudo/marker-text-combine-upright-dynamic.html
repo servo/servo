@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Test: setting 'text-combine-upright' on a ::marker after layout</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#propdef-text-combine-upright">
+<link rel="match" href="marker-text-combine-upright-002-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/common/reftest-wait.js"></script>
+<style>
+body { margin: 0; font: 20px/1 Ahem; }
+ul { margin: 0; writing-mode: vertical-rl; padding-inline-start: 60px; list-style-type: "12"; }
+.inside { list-style-position: inside; }
+li::marker { color: green; }
+.combine li::marker { text-combine-upright: all; }
+</style>
+<ul><li>X</li></ul>
+<ul class="inside"><li>X</li></ul>
+<script>
+requestAnimationFrame(() => requestAnimationFrame(() => {
+    for (let list of document.querySelectorAll("ul"))
+        list.classList.add("combine");
+    takeScreenshot();
+}));
+</script>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>The outline of an outermost svg element is painted around its border box</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#outline-props">
+<link rel="match" href="outer-svg-outline-ref.html">
+<meta name="assert" content="The outline of an outermost svg element is painted at the position of its border box.">
+<style>
+body {
+  margin: 0;
+}
+svg {
+  display: block;
+  position: absolute;
+  left: 50px;
+  top: 50px;
+  width: 100px;
+  height: 100px;
+  overflow: visible;
+  outline: 20px solid green;
+}
+</style>
+<svg>
+  <rect width="100" height="100" fill="green"/>
+</svg>

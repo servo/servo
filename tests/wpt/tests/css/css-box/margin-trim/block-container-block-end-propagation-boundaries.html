@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<title>Block-end margin trimming through nested blocks</title>
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.outer {
+  display: flow-root;
+  margin-trim: block-end;
+  width: 200px;
+}
+.untrimmed {
+  margin-trim: none;
+}
+.wrapper {
+  margin-block-end: 20px;
+}
+.child {
+  block-size: 50px;
+  margin-block-end: 50px;
+}
+.border {
+  border-block-end: 1px solid;
+}
+.padding {
+  padding-block-end: 1px;
+}
+.fixed {
+  block-size: 100px;
+}
+.minimum {
+  min-block-size: 150px;
+}
+.small-minimum {
+  min-block-size: 25px;
+}
+.maximum {
+  max-block-size: 25px;
+}
+.large-maximum {
+  max-block-size: 100px;
+}
+.bfc {
+  display: flow-root;
+}
+</style>
+<body>
+<script>
+const cases = [
+  ["auto", 0, 50],
+  ["border", 50, 101],
+  ["padding", 50, 101],
+  ["fixed", 50, 100],
+  ["minimum", 50, 150],
+  ["small-minimum", 0, 50],
+  ["maximum", 50, 25],
+  ["large-maximum", 0, 50],
+  ["bfc", 50, 100],
+];
+
+for (const [name, expectedMargin, expectedHeight] of cases) {
+  test(t => {
+    const outer = document.createElement("div");
+    outer.className = "outer";
+    outer.innerHTML =
+      `<div class="wrapper ${name}"><div class="child"></div></div>`;
+    document.body.append(outer);
+    t.add_cleanup(() => outer.remove());
+
+    const wrapper = outer.firstElementChild;
+    const child = wrapper.firstElementChild;
+
+    assert_equals(getComputedStyle(wrapper).marginBlockEnd, "0px",
+                  "The direct child's margin is trimmed");
+    assert_equals(getComputedStyle(child).marginBlockEnd,
+                  `${expectedMargin}px`,
+                  "The descendant margin respects collapse boundaries");
+    assert_equals(outer.getBoundingClientRect().height, expectedHeight,
+                  "The container has the expected height");
+  }, `Block-end trimming through a ${name} wrapper`);
+}
+
+test(t => {
+  const outer = document.createElement("div");
+  outer.className = "outer";
+  outer.innerHTML =
+    '<div class="wrapper"><div class="child"></div></div>';
+  document.body.append(outer);
+  t.add_cleanup(() => outer.remove());
+
+  const wrapper = outer.firstElementChild;
+  const child = wrapper.firstElementChild;
+  assert_equals(getComputedStyle(child).marginBlockEnd, "0px");
+  assert_equals(outer.getBoundingClientRect().height, 50);
+
+  const sibling = document.createElement("div");
+  sibling.className = "child";
+  outer.append(sibling);
+  assert_equals(getComputedStyle(child).marginBlockEnd, "50px",
+                "Adding a following sibling restores the descendant margin");
+  assert_equals(outer.getBoundingClientRect().height, 150);
+
+  sibling.remove();
+  assert_equals(getComputedStyle(child).marginBlockEnd, "0px",
+                "Removing the following sibling trims the margin again");
+  assert_equals(outer.getBoundingClientRect().height, 50);
+
+  for (const [name, expectedMargin, expectedHeight] of cases) {
+    wrapper.className = `wrapper ${name}`;
+    assert_equals(getComputedStyle(child).marginBlockEnd,
+                  `${expectedMargin}px`, `Switching to ${name}`);
+    assert_equals(outer.getBoundingClientRect().height, expectedHeight,
+                  `Height after switching to ${name}`);
+    wrapper.className = "wrapper";
+    assert_equals(getComputedStyle(child).marginBlockEnd, "0px",
+                  `Restoring auto sizing after ${name}`);
+    assert_equals(outer.getBoundingClientRect().height, 50);
+  }
+
+  outer.classList.add("untrimmed");
+  assert_equals(getComputedStyle(child).marginBlockEnd, "50px");
+  assert_equals(getComputedStyle(wrapper).marginBlockEnd, "20px");
+  assert_equals(outer.getBoundingClientRect().height, 100);
+
+  outer.classList.remove("untrimmed");
+  assert_equals(getComputedStyle(child).marginBlockEnd, "0px");
+  assert_equals(getComputedStyle(wrapper).marginBlockEnd, "0px");
+  assert_equals(outer.getBoundingClientRect().height, 50);
+}, "Block-end trimming updates after sibling and boundary changes");
+</script>

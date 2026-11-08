@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: text-overflow hides whole grapheme clusters of text running opposite to the line</title>
+<link rel="author" title="Christian Biesinger" href="mailto:cbiesinger@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#text-overflow">
+<link rel="match" href="reference/text-overflow-ellipsis-bidi-grapheme-001-ref.html">
+<meta name="assert" content="Implementations must hide characters, i.e. entire grapheme clusters, at the end edge of the line, also in text whose direction is opposite to the line's.">
+<style>
+div {
+  font: 20px/1.2 monospace;
+  border: 1px solid;
+  margin: 4px;
+  width: 3.5ch;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+</style>
+<p>Test passes if each box below shows two accented letters "é" and an ellipsis, with no stray accent.
+<!-- Each "e&#x301;" is an "e" followed by a combining acute accent. -->
+<div dir="rtl">e&#x301;e&#x301;e&#x301;e&#x301;e&#x301;</div>
+<div dir="ltr"><bdo dir="rtl">e&#x301;e&#x301;e&#x301;e&#x301;e&#x301;</bdo></div>

@@ -6,7 +6,7 @@ from .. import get_events
 pytestmark = pytest.mark.asyncio
 
 PAGE_CONTENT = """
-    <input></input>
+    <input>
     <script>
         "use strict;"
 

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>white-space-trim: discard-before with ::before generated content</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#white-space-trim">
+<link rel="match" href="reference/white-space-trim-generated-content-ref.html">
+<meta name="assert" content="white-space-trim: discard-before on a ::before pseudo-element collapses the collapsible white space immediately before its start (the spec's comma-separated DT example is built on this).">
+<style>
+  .db::before { content: "X"; white-space-trim: discard-before; }
+</style>
+</head>
+<body>
+<p>Test passes if the line below reads "aXb" with no spaces.</p>
+<div>a <span class="db">b</span></div>
+</body>
+</html>

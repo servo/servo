@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Lists: the outside marker skips an out-of-flow first child</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#list-style-position-outside">
+<link rel="match" href="outside-marker-skips-out-of-flow-first-child-ref.html">
+<meta name="assert" content="An out-of-flow box lays out separately from in-flow content, and its line never becomes the marker's first formatted line.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  ul { margin: 0; padding: 0 0 0 40px; }
+  li { font: 20px/20px Ahem; }
+</style>
+
+<p>The test passes if the bullet is aligned with the "second" text.</p>
+
+<ul><li><div id="first" style="position: absolute">first</div><div>second</div></li></ul>
+<script>
+  document.body.offsetHeight;
+  document.getElementById("first").textContent = "first out of flow";
+  document.body.offsetHeight;
+</script>

@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/common/utils.js"></script>
 <script src="../resources/utils.js"></script>
@@ -13,7 +15,10 @@
   promise_test(async t => {
     let agent = await spawnWindow(t);
     let nextUrl = agent.getExecutorURL({ executor: "conditional-status.py" });
-    await agent.forceSinglePrefetch(nextUrl);
+    // The server responds 503 to the prefetch request, so the prefetch attempt
+    // reaches 'failure' rather than 'ready'.
+    await agent.forceSinglePrefetchAndWaitForStatus(
+        nextUrl, {}, PRELOADING_STATUS.FAILURE);
     await agent.navigate(nextUrl);
 
     const result = await agent.execute_script(() => {

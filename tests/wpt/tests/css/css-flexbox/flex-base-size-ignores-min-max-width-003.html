@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>CSS Flexbox: the flex base size of a form control flex item ignores its own max-width</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#algo-main-item">
+<meta name="assert" content="When determining the flex base size of a form control, its min and max main sizes are ignored: the control's wide intrinsic width makes it hit its max-width while shrinking.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.flex {
+    display: flex;
+    align-items: flex-start;
+    width: 300px;
+}
+.flex > * {
+    min-width: 0;
+    box-sizing: border-box;
+    margin: 0;
+}
+input, textarea {
+    max-width: 100px;
+}
+.content {
+    width: 300px;
+    height: 10px;
+    background-color: green;
+}
+</style>
+<body onload="checkLayout('.flex > *')">
+<div class="flex">
+    <input size="60" data-expected-width="100">
+    <div data-expected-width="200"><div class="content"></div></div>
+</div>
+<div class="flex">
+    <textarea cols="60" data-expected-width="100"></textarea>
+    <div data-expected-width="200"><div class="content"></div></div>
+</div>
+</body>

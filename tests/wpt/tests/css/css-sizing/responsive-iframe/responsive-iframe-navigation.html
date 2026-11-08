@@ -7,7 +7,6 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
-<script src="/common/rendering-utils.js"></script>
 <style>
 iframe {
   frame-sizing: content-height;
@@ -28,6 +27,21 @@ document.addEventListener('DOMContentLoaded', () => {
 async_test(t => {
   let numIframeLoadEvents = 0;
   const heights = [];
+  let onHeightObserved = null;
+
+  function waitForObservedHeight(targetHeight) {
+    if (heights.at(-1) === targetHeight) {
+      return Promise.resolve();
+    }
+    return new Promise(resolve => {
+      onHeightObserved = () => {
+        if (heights.at(-1) === targetHeight) {
+          onHeightObserved = null;
+          resolve();
+        }
+      };
+    });
+  }
 
   // Use `ResizeObserver` to catch all resizes.
   const resizeObserver = new ResizeObserver(t.step_func((entries) => {
@@ -38,7 +52,11 @@ async_test(t => {
       }
       heights.push(entry.contentRect.height);
     }
+    if (onHeightObserved) {
+      onHeightObserved();
+    }
   }));
+  t.add_cleanup(() => resizeObserver.disconnect());
   resizeObserver.observe(iframe);
 
   window.addEventListener('message', t.step_func((e) => {
@@ -61,27 +79,31 @@ async_test(t => {
     ++numIframeLoadEvents;
     switch (numIframeLoadEvents) {
       case 1: {
-        assert_equals(iframe.offsetHeight, 200, "Initial height should be 200px");
-        // Wait for a frame so `ResizeObserver` captures the 200px height
-        // before navigating.
-        await waitForAtLeastOneFrame();
-        let src = 'iframe-contents-slow.html';
-        if (origin === 'cross') {
-          const url = new URL(`resources/${src}`, window.location.href);
-          src = get_host_info().HTTP_REMOTE_ORIGIN + url.pathname;
-        }
-        iframe.contentWindow.postMessage({action: 'navigate', url: src}, '*');
+        // Wait until the responsive resize and `ResizeObserver` capture the
+        // 200px height before navigating.
+        await waitForObservedHeight(200);
+        t.step(() => {
+          assert_equals(iframe.offsetHeight, 200, "Initial height should be 200px");
+          let src = 'iframe-contents-slow.html';
+          if (origin === 'cross') {
+            const url = new URL(`resources/${src}`, window.location.href);
+            src = get_host_info().HTTP_REMOTE_ORIGIN + url.pathname;
+          }
+          iframe.contentWindow.postMessage({action: 'navigate', url: src}, '*');
+        });
         break;
       }
       case 2: {
-        await waitForAtLeastOneFrame();
+        await waitForObservedHeight(400);
         const expect = origin === 'cross' ? [150, 200, 150, 400] : [150, 200, 400];
         if (heights[0] !== 150) {
           // The initial 150px height may not be captured if the first content
           // finishes layout before the first rendering frame.
           expect.shift();
         }
-        assert_array_equals(heights, expect);
+        t.step(() => {
+          assert_array_equals(heights, expect);
+        });
         t.done();
         break;
       }

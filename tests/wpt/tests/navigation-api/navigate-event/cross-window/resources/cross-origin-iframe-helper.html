@@ -8,6 +8,7 @@ navigation.onnavigate = e => {
     userInitiated: e.userInitiated,
     hashChange: e.hashChange,
     formData: e.formData,
+    sourceElement: e.sourceElement ? e.sourceElement.localName : null,
     destination: {
       url: e.destination.url,
       sameDocument: e.destination.sameDocument,

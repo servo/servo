@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Filter: filter on an overflow:hidden rounded element inside a rounded overflow:hidden ancestor keeps its border</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="match" href="filter-ancestor-border-radius-overflow-hidden-border-ref.html">
+<meta name="assert" content="An identity filter on an element with overflow:hidden, border-radius and a border, inside an ancestor with overflow:hidden and border-radius, must still render the element's border.">
+<style>
+.outer { overflow: hidden; border-radius: 10px; }
+.inner { height: 40px; overflow: hidden; border-radius: 5px; border: 3px solid blue; }
+.filtered { filter: brightness(1); }
+</style>
+<div class="outer"><div class="inner filtered"></div></div>

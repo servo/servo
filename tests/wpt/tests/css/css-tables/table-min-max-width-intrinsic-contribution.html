@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>CSS Tables: a table's min-width and max-width in its intrinsic width contributions</title>
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#used-min-width-of-table">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#computing-the-table-width">
+<meta name="assert" content="A table's min-width raises its intrinsic width contributions, and its max-width caps its max-content contribution but never below the table's min-content width.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.container {
+    float: left;
+    clear: left;
+}
+table {
+    border-spacing: 0;
+}
+td {
+    padding: 0;
+}
+.content {
+    width: 100px;
+    height: 10px;
+}
+.wrap {
+    display: inline-block;
+    width: 100px;
+    height: 10px;
+}
+</style>
+<body onload="checkLayout('.container')">
+<div class="container" data-expected-width="300"><table style="min-width: 300px"><tr><td><div class="content"></div></td></tr></table></div>
+<div class="container" data-expected-width="100"><table style="max-width: 50px"><tr><td><div class="content"></div></td></tr></table></div>
+<div class="container" data-expected-width="200"><table style="max-width: 150px"><tr><td><div class="content"></div></td><td><div class="content"></div></td></tr></table></div>
+<div class="container" data-expected-width="150"><table style="max-width: 150px"><tr><td><span class="wrap"></span> <span class="wrap"></span> <span class="wrap"></span></td></tr></table></div>
+</body>

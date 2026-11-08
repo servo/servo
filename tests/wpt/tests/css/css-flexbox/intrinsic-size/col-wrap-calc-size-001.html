@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#intrinsic-cross-sizes">
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#calc-size">
+<meta name="assert" content="calc-size(auto, size) sizes a floated column-wrap container from the same max-content width as width: max-content, where the item's percentage width does not resolve.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.flex {
+  display: flex;
+  flex-flow: column wrap;
+  height: 100px;
+  float: left;
+  clear: left;
+  position: relative;
+}
+.flex > div {
+  min-height: 0;
+}
+.grandchild {
+  float: left;
+  width: 10px;
+  height: 200px;
+}
+</style>
+<div class="flex" style="width: calc-size(auto, size)" data-expected-width="100">
+  <div style="width: 10%; aspect-ratio: 1/5; flex: 0 0 auto" data-offset-x="0">
+    <div class="grandchild"></div>
+    <div class="grandchild"></div>
+  </div>
+  <div style="width: 80px; flex: 0 0 1px" data-offset-x="0"></div>
+</div>
+<div class="flex" style="width: max-content" data-expected-width="100">
+  <div style="width: 10%; aspect-ratio: 1/5; flex: 0 0 auto" data-offset-x="0">
+    <div class="grandchild"></div>
+    <div class="grandchild"></div>
+  </div>
+  <div style="width: 80px; flex: 0 0 1px" data-offset-x="0"></div>
+</div>
+<script>
+checkLayout(".flex");
+</script>

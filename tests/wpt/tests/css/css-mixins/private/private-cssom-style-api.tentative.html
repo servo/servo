@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<title>CSS @private: CSSStyleRule API reuse</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14427">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+  function getPrivateRule(sheetText = '.target { @private { --x: 10px; } }') {
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync(sheetText);
+    return sheet.cssRules[0].cssRules[0];
+  }
+
+  test(() => {
+    const privateRule = getPrivateRule();
+
+    assert_true(privateRule instanceof CSSPrivateRule);
+    assert_true(privateRule instanceof CSSStyleRule);
+    assert_equals(privateRule.cssRules.length, 0);
+  }, 'CSSPrivateRule inherits CSSStyleRule');
+
+  test(() => {
+    const privateRule = getPrivateRule();
+
+    assert_equals(privateRule.insertRule('@media (width > 0px) {}'), 0);
+    assert_true(privateRule.cssRules[0] instanceof CSSMediaRule);
+    assert_equals(privateRule.cssText,
+                  '@private {\n  --x: 10px;\n  @media (width > 0px) {\n}\n}');
+    privateRule.deleteRule(0);
+    assert_equals(privateRule.cssRules.length, 0);
+  }, 'CSSPrivateRule supports inherited rule-list mutation');
+
+  test(() => {
+    const privateRule = getPrivateRule();
+
+    assert_equals(privateRule.selectorText, '');
+
+    privateRule.selectorText = '.other';
+    assert_equals(privateRule.selectorText, '');
+    assert_equals(privateRule.cssText, '@private { --x: 10px; }');
+  }, 'selectorText is empty and ignores assignment');
+
+  test(() => {
+    const privateRule = getPrivateRule();
+
+    assert_equals(privateRule.style[0], '--x');
+    assert_equals(privateRule.style.cssText, '--x: 10px;');
+    assert_equals(privateRule.style.getPropertyValue('--x'), '10px');
+    privateRule.style.setProperty('--x', '20px');
+    assert_equals(privateRule.style.getPropertyValue('--x'), '20px');
+    assert_equals(privateRule.cssText, '@private { --x: 20px; }');
+
+    privateRule.style.setProperty('color', 'red');
+    assert_equals(privateRule.style.getPropertyValue('color'), '');
+  }, 'style exposes and mutates private declarations');
+
+  test(() => {
+    const privateRule = getPrivateRule(
+        '.target { @private { --x <length>: 10px; ' +
+        '--color <color>: red; --untyped: 1px; } }');
+
+    const declarations =
+        '--x <length>: 10px; --color <color>: red; --untyped: 1px;';
+    assert_equals(privateRule.style.cssText, declarations);
+    assert_equals(privateRule.cssText, `@private { ${declarations} }`);
+  }, 'style serializes private declarations with inline types');
+
+  test(() => {
+    const privateRule = getPrivateRule();
+
+    privateRule.style.cssText =
+        '--x <length>: 20px; --bad <length>: red; --y: green';
+    assert_equals(privateRule.style.cssText,
+                  '--x <length>: 20px; --y: green;');
+    assert_equals(privateRule.style.getPropertyValue('--x'), '20px');
+    assert_equals(privateRule.style.getPropertyValue('--bad'), '');
+  }, 'style.cssText uses private declaration parsing');
+
+  test(() => {
+    const privateRule = getPrivateRule();
+
+    privateRule.style.color = 'red';
+    privateRule.style.opacity = 0.5;
+    privateRule.style.setProperty('--new', '30px', 'important');
+    assert_equals(privateRule.style.getPropertyValue('color'), '');
+    assert_equals(privateRule.style.getPropertyValue('opacity'), '');
+    assert_equals(privateRule.style.getPropertyValue('--new'), '30px');
+    assert_equals(privateRule.style.getPropertyPriority('--new'), '');
+    privateRule.style.setProperty('--new', '');
+    assert_equals(privateRule.style.getPropertyValue('--new'), '');
+  }, 'individual style setters preserve private declaration restrictions');
+
+  test(() => {
+    const privateRule = getPrivateRule();
+
+    privateRule.style.cssText = '--b: 2px; color: red; --a: 1px';
+    assert_equals(privateRule.style.getPropertyValue('color'), '');
+    assert_equals(privateRule.style.cssText, '--b: 2px; --a: 1px;');
+    assert_equals(privateRule.cssText, '@private { --b: 2px; --a: 1px; }');
+  }, 'style.cssText filters non-custom declarations');
+
+  test(() => {
+    const privateRule = getPrivateRule();
+
+    assert_true(privateRule.styleMap.has('--x'));
+    privateRule.styleMap.set('--x', '30px');
+    assert_equals(privateRule.styleMap.get('--x').toString(), '30px');
+    assert_equals(privateRule.cssText, '@private { --x: 30px; }');
+
+    assert_throws_js(
+        TypeError, () => privateRule.styleMap.set('margin', '1px'));
+  }, 'styleMap exposes and mutates private declarations');
+
+  test(() => {
+    const privateRule = getPrivateRule();
+    privateRule.parentRule.deleteRule(0);
+
+    privateRule.style.setProperty('--x', '20px');
+    assert_equals(privateRule.cssText, '@private { --x: 20px; }');
+  }, 'style mutations update detached private rules');
+</script>

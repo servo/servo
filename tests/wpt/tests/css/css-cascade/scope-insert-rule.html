@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<title>@scope - insertRule() of a scope rule without a prelude</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scope-atrule">
+<link rel="help" href="https://drafts.csswg.org/cssom/#insert-a-css-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div>
+  <style id="a">#a_target { width: 100px; }</style>
+  <div id="a_target"></div>
+</div>
+<div>
+  <style id="b">#b_target { width: 100px; }</style>
+  <div id="b_target"></div>
+</div>
+<div>
+  <style id="c">#c_target { width: 100px; }</style>
+  <div id="c_target"></div>
+</div>
+<div id="d_parent">
+  <style id="d">#d_target { width: 100px; } @scope { #d_target { color: green; } }</style>
+  <div id="d_target"></div>
+</div>
+<div id="e_parent">
+  <style id="e">@media screen { #e_target { width: 100px; } }</style>
+  <div id="e_target"></div>
+</div>
+<script>
+test(() => {
+  const target = document.getElementById('a_target');
+  assert_equals(getComputedStyle(target).backgroundColor, 'rgba(0, 0, 0, 0)');
+  document.getElementById('a').sheet.insertRule('@scope { #a_target { background-color: green; } }', 0);
+  assert_equals(getComputedStyle(target).backgroundColor, 'rgb(0, 128, 0)');
+}, 'Inserting an implicit @scope rule applies to the parent of the owner node');
+
+test(() => {
+  const target = document.getElementById('b_target');
+  document.getElementById('b').sheet.insertRule('@scope (div) { #b_target { background-color: green; } }', 0);
+  assert_equals(getComputedStyle(target).backgroundColor, 'rgb(0, 128, 0)');
+}, 'Inserting a @scope rule with a prelude');
+
+test(() => {
+  const target = document.getElementById('c_target');
+  const sheet = document.getElementById('c').sheet;
+  sheet.insertRule('@scope { :scope > #c_target { background-color: green; } }', 1);
+  assert_equals(getComputedStyle(target).backgroundColor, 'rgb(0, 128, 0)');
+  sheet.deleteRule(1);
+  assert_equals(getComputedStyle(target).backgroundColor, 'rgba(0, 0, 0, 0)');
+}, 'Inserted implicit @scope rule can use :scope and be removed');
+
+test(() => {
+  const target = document.getElementById('d_target');
+  assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+  document.getElementById('d').sheet.insertRule('#d_target { width: 50px; }', 0);
+  assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+}, 'Existing implicit @scope rule keeps working after the stylesheet is mutated');
+
+test(() => {
+  const target = document.getElementById('e_target');
+  const media = document.getElementById('e').sheet.cssRules[0];
+  media.insertRule('@scope { #e_target { background-color: green; } }', 0);
+  assert_equals(getComputedStyle(target).backgroundColor, 'rgb(0, 128, 0)');
+}, 'Inserting an implicit @scope rule into a grouping rule');
+</script>

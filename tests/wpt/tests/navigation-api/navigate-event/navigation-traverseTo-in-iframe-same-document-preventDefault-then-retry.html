@@ -1,0 +1,55 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../navigation-methods/return-value/resources/helpers.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  await i.contentWindow.navigation.navigate("#").finished;
+  await navigation.navigate("#").finished;
+
+  const iWindow = i.contentWindow;
+  const iNavigation = iWindow.navigation;
+  const targetKey = iNavigation.entries()[0].key;
+  const topIndex = navigation.currentEntry.index;
+
+  navigation.onnavigate = e => e.preventDefault();
+  await assertBothRejectDOM(t, iNavigation.traverseTo(targetKey), "AbortError", iWindow, iWindow.DOMException);
+  assert_equals(iNavigation.currentEntry.index, 1);
+  assert_equals(navigation.currentEntry.index, topIndex);
+
+  // The canceled traversal must not leave a pending traversal behind.
+  navigation.onnavigate = null;
+  const result = iNavigation.traverseTo(targetKey);
+  await assertBothFulfill(t, result, iNavigation.entries()[0], iWindow);
+  assert_equals(iNavigation.currentEntry.index, 0);
+  assert_equals(navigation.currentEntry.index, topIndex - 1);
+}, "navigation.traverseTo() in an iframe can be retried after the parent canceled the traversal");
+
+promise_test(async t => {
+  const second = document.createElement("iframe");
+  second.src = "/common/blank.html";
+  await new Promise(resolve => {
+    second.onload = () => t.step_timeout(resolve, 0);
+    document.body.append(second);
+  });
+  t.add_cleanup(() => second.remove());
+
+  const windows = [i.contentWindow, second.contentWindow];
+  for (const w of windows) {
+    await w.navigation.navigate("#2").finished;
+  }
+  await navigation.navigate("#2").finished;
+
+  navigation.onnavigate = e => e.preventDefault();
+  t.add_cleanup(() => { navigation.onnavigate = null; });
+
+  const keys = windows.map(w => w.navigation.entries()[0].key);
+  await Promise.all(windows.map((w, idx) =>
+      assertBothRejectDOM(t, w.navigation.traverseTo(keys[idx]), "AbortError", w, w.DOMException)));
+}, "navigation.traverseTo() in several iframes with same-document preventDefault in the parent");
+</script>

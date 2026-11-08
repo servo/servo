@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: inline with a block child (ref)</title>
+<link rel="author" href="mailto:emilio@crisal.io">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+:root {
+  font: 20px/1 Ahem;
+}
+
+#wrapper {
+  width: 250px;
+  visibility: hidden;
+}
+span {
+  border: 2px solid black;
+  background: lightblue;
+  visibility: visible;
+}
+.block {
+  background: green;
+  width: 100px;
+}
+
+body {
+  background: pink;
+}
+</style>
+
+<div id="wrapper">
+  FILLER<span>Before<div class="block">Block</div>After</span>
+</div>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes Test: Auto-placed ancestors update explicit descendants' inherited rows</title>
+<link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="row-auto-placed-subgrid-standalone-columns-001-ref.html">
+<style>
+  body {
+    margin: 0;
+  }
+
+  .root {
+    background: lightgrey;
+    border: 2px solid black;
+    display: grid-lanes;
+    fit-tolerance: 0;
+    grid-template-rows: 100px 200px 300px;
+    width: max-content;
+  }
+
+  .subgrid {
+    display: grid-lanes;
+    fit-tolerance: 0;
+    grid-template-rows: subgrid;
+  }
+
+  .outer {
+    border: 2px solid purple;
+    grid-row: 1 / -1;
+  }
+
+  .root-blocker {
+    background: dimgray;
+    grid-row: 1;
+    height: 8px;
+    width: 40px;
+  }
+
+  .outer-blocker {
+    background: steelblue;
+    grid-row: 1;
+    height: 8px;
+    width: 20px;
+  }
+
+  .inner {
+    border: 2px solid cyan;
+    grid-row: 1 / -1;
+  }
+
+  .leaf {
+    aspect-ratio: 1;
+    background: green;
+    grid-row: 1;
+    min-height: 0;
+    min-width: 0;
+  }
+
+  .marker {
+    background: blue;
+    grid-row: 1;
+    width: 10px;
+  }
+
+  .middle {
+    border: 2px solid orange;
+  }
+</style>
+<div class="root">
+  <div class="root-blocker"></div>
+  <div class="subgrid outer">
+    <div class="outer-blocker"></div>
+    <div class="subgrid middle">
+      <div class="subgrid inner">
+        <div class="leaf"></div>
+        <div class="marker"></div>
+      </div>
+    </div>
+  </div>
+</div>

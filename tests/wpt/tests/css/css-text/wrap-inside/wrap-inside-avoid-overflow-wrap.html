@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>wrap-inside: avoid defers an overflow-wrap: anywhere break to a break opportunity outside the box</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#wrap-inside">
+<link rel="match" href="wrap-inside-avoid-overflow-wrap-ref.html">
+<meta name="assert" content="'overflow-wrap: anywhere' breaks at an arbitrary point only as a last resort. With 'wrap-inside: avoid' and a break opportunity outside the box, the line breaks before the box rather than mid-word inside it.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    div { width: 90px; font: 20px/20px Ahem; color: green; }
+</style>
+<!--
+    "XX YYYY" (140px) overflows 90px. 'overflow-wrap: anywhere' may break the box mid-word only as a last resort.
+    Since the space outside the box is an available break opportunity, 'wrap-inside: avoid' breaks there: "XX" / "YYYY".
+-->
+<div>XX <span style="wrap-inside: avoid; overflow-wrap: anywhere">YYYY</span></div>

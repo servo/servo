@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<head>
+<title>CSS Borders and Box Decorations 4: a notch corner whose inner edge meets the next corner's &mdash; reference</title>
+<style>
+    /* The two 275px radii don't fit along the 400px top edge, so they're both scaled down to 200px. The
+       border box then turns in to (200, 200) for the notch and runs straight out to (400, 200) for the
+       bevel. Inset by the 60px border, the notch turns in to (260, 260) and the bevel's edge becomes
+       x - y = 200 - 60 * sqrt(2), which the notch's edge runs into at (260, 144.85). */
+    .target {
+        margin: 20px;
+        width: 400px;
+        height: 400px;
+        background: green;
+        clip-path: path(evenodd, "M 200 0 L 400 200 L 400 400 L 0 400 L 0 200 L 200 200 Z M 260 144.853 L 340 224.853 L 340 340 L 60 340 L 60 260 L 260 260 Z");
+    }
+</style>
+</head>
+<div class=target></div>

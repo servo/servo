@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Form-associated custom element upgrade reaction ordering</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/custom-elements.html#concept-upgrade-an-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+function defineControl(name) {
+  const reactions = [];
+  customElements.define(name, class extends HTMLElement {
+    static formAssociated = true;
+    static observedAttributes = ["disabled"];
+
+    connectedCallback() {
+      reactions.push("connected");
+    }
+    attributeChangedCallback(name, oldValue, value) {
+      reactions.push("attribute", name, oldValue, value);
+    }
+    formAssociatedCallback(owner) {
+      reactions.push("associated", owner);
+    }
+    formDisabledCallback(disabled) {
+      reactions.push("disabled", disabled);
+    }
+  });
+  return reactions;
+}
+
+test(() => {
+  const form = document.createElement("form");
+  const control = document.createElement("upgrade-detached-enabled");
+  form.append(control);
+
+  const reactions = defineControl(control.localName);
+  customElements.upgrade(form);
+
+  assert_equals(control.attachInternals().form, form);
+  assert_array_equals(reactions, ["associated", form], "Upgrade reactions");
+}, "Detached upgrade, enabled");
+
+test(() => {
+  const form = document.createElement("form");
+  const control = document.createElement("upgrade-detached-attribute");
+  control.setAttribute("disabled", "");
+  form.append(control);
+
+  const reactions = defineControl(control.localName);
+  customElements.upgrade(form);
+
+  assert_equals(control.attachInternals().form, form);
+  assert_array_equals(reactions, [
+    "attribute", "disabled", null, "",
+    "associated", form,
+    "disabled", true
+  ], "Upgrade reactions");
+}, "Detached upgrade, disabled by attribute");
+
+test(() => {
+  const form = document.createElement("form");
+  const fieldset = document.createElement("fieldset");
+  fieldset.disabled = true;
+  const control = document.createElement("upgrade-detached-fieldset");
+  fieldset.append(control);
+  form.append(fieldset);
+
+  const reactions = defineControl(control.localName);
+  customElements.upgrade(form);
+
+  assert_equals(control.attachInternals().form, form);
+  assert_array_equals(reactions, [
+    "associated", form,
+    "disabled", true
+  ], "Upgrade reactions");
+}, "Detached upgrade, disabled by fieldset");
+
+test(t => {
+  const form = document.createElement("form");
+  t.add_cleanup(() => form.remove());
+  const control = document.createElement("upgrade-connected-enabled");
+  form.append(control);
+  document.body.append(form);
+
+  const reactions = defineControl(control.localName);
+
+  assert_equals(control.attachInternals().form, form);
+  assert_array_equals(reactions, [
+    "connected",
+    "associated", form
+  ], "Upgrade reactions");
+}, "Connected upgrade, enabled");
+
+test(t => {
+  const form = document.createElement("form");
+  t.add_cleanup(() => form.remove());
+  const control = document.createElement("upgrade-connected-attribute");
+  control.setAttribute("disabled", "");
+  form.append(control);
+  document.body.append(form);
+
+  const reactions = defineControl(control.localName);
+
+  assert_equals(control.attachInternals().form, form);
+  assert_array_equals(reactions, [
+    "attribute", "disabled", null, "",
+    "connected",
+    "associated", form,
+    "disabled", true
+  ], "Upgrade reactions");
+}, "Connected upgrade, disabled by attribute");
+
+test(t => {
+  const form = document.createElement("form");
+  t.add_cleanup(() => form.remove());
+  const fieldset = document.createElement("fieldset");
+  fieldset.disabled = true;
+  const control = document.createElement("upgrade-connected-fieldset");
+  fieldset.append(control);
+  form.append(fieldset);
+  document.body.append(form);
+
+  const reactions = defineControl(control.localName);
+
+  assert_equals(control.attachInternals().form, form);
+  assert_array_equals(reactions, [
+    "connected",
+    "associated", form,
+    "disabled", true
+  ], "Upgrade reactions");
+}, "Connected upgrade, disabled by fieldset");
+</script>

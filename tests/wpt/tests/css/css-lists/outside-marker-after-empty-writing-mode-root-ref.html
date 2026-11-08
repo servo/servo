@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Lists: the outside marker aligns with the first formatted line following an empty writing mode root (reference)</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  ul { margin: 0; padding: 0 0 0 40px; }
+  li { font: 20px/20px Ahem; }
+  div { width: 100px; height: 60px; }
+</style>
+
+<p>The test passes if the bullet is aligned with the "x".</p>
+
+<ul><li><div></div>x</li></ul>

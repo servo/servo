@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>CSS Container Queries Test: style() query with {}-wrapped attr() name for unregistered custom property</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#style-container">
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#component-function-commas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #target-untyped, #target-typed {
+    color: red;
+  }
+
+  @container style(--untyped: attr({data-untyped})) {
+    #target-untyped {
+      color: green;
+    }
+  }
+
+  @container style(--typed: attr({data-typed type(<custom-ident>)})) {
+    #target-typed {
+      color: green;
+    }
+  }
+
+  #container {
+    --untyped: "correct";
+    --typed: correct;
+  }
+</style>
+<div id="container" data-untyped="wrong" data-typed="wrong">
+  <div id="target-untyped">Should be green</div>
+  <div id="target-typed">Should be green</div>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(document.getElementById("target-untyped")).color, "rgb(255, 0, 0)");
+  }, "Initially, container does not match attr({data-untyped}). Target is red.");
+
+  test(() => {
+    container.setAttribute("data-untyped", "correct");
+    assert_equals(getComputedStyle(document.getElementById("target-untyped")).color, "rgb(0, 128, 0)");
+  }, "Changing data-untyped to 'correct' in container makes target color green");
+
+  test(() => {
+    assert_equals(getComputedStyle(document.getElementById("target-typed")).color, "rgb(255, 0, 0)");
+  }, "Initially, container does not match attr({data-typed type(<custom-ident>)}). Target is red.");
+
+  test(() => {
+    container.setAttribute("data-typed", "correct");
+    assert_equals(getComputedStyle(document.getElementById("target-typed")).color, "rgb(0, 128, 0)");
+  }, "Changing data-typed to 'correct' in container makes target color green");
+</script>

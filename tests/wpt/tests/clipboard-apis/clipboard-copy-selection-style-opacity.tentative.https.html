@@ -1,0 +1,77 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Clipboard copy selection tests - opacity style is dropped from the copied HTML</title>
+<link rel="help" href="https://github.com/w3c/clipboard-apis/issues/246">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/user-activation.js"></script>
+<body>
+<div id="container"></div>
+<script>
+
+  const CASES = [
+    {
+      html: `<span style="opacity: 0.5; color: red">target</span>`,
+      description: "opacity in the inline style",
+    },
+    {
+      html: `<span style="color: red; opacity: 0.5 !important">target</span>`,
+      description: "important opacity in the inline style",
+    },
+    {
+      html: `<span style="opacity: 0.5">target</span>`,
+      description: "opacity as the only property in the inline style",
+    },
+  ];
+
+  async function selectAndCopy(element) {
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.selectAllChildren(element);
+
+    return new Promise(resolve => {
+      document.addEventListener("copy", resolve, { once: true });
+      sendCopyShortcutKey();
+    });
+  }
+
+  async function getHTMLFromPasteEvent() {
+    return new Promise(resolve => {
+      document.addEventListener("paste", e => {
+        e.preventDefault();
+        resolve(e.clipboardData.getData("text/html"));
+      }, { once: true });
+      sendPasteShortcutKey();
+    });
+  }
+
+  CASES.forEach(testCase => {
+    promise_test(async t => {
+      const container = document.getElementById("container");
+      container.innerHTML = testCase.html;
+      t.add_cleanup(() => {
+        window.getSelection().removeAllRanges();
+        container.textContent = "";
+      });
+
+      await selectAndCopy(container);
+      const html = await getHTMLFromPasteEvent();
+
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      const target = [...doc.body.querySelectorAll("*")].find(
+        e => e.textContent == "target" && !e.firstElementChild);
+      assert_not_equals(target, undefined,
+                        `The copied element should be found in ${html}`);
+
+      for (const element of doc.body.querySelectorAll("*")) {
+        assert_equals(element.style.opacity, "",
+                      `<${element.localName}> should not have an inline opacity in ${html}`);
+      }
+    }, `Copying an element with ${testCase.description} should drop opacity`);
+  });
+
+</script>
+</body>

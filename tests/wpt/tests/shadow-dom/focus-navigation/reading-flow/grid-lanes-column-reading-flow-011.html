@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="timeout" content="long">
-<title>CSS Grid Lanes: grid-columns reading flow across fragments</title>
+<title>CSS Grid Lanes: grid-lanes-track reading flow across fragments</title>
 <link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
 <link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-layout">
 <link rel="help" href="https://drafts.csswg.org/css-break/">
@@ -23,9 +23,8 @@
 }
 .lanes {
   display: grid-lanes;
-  grid-lanes-direction: column;
   grid-template-columns: 100px 100px;
-  reading-flow: grid-columns;
+  reading-flow: grid-lanes-track;
 }
 .lanes > [tabindex] {
   box-sizing: border-box;
@@ -36,7 +35,7 @@
 </style>
 
 <div class="test-case" data-expect="a1,a2,a3,b1,b2,b3"
-     data-description="Grid-columns reads each complete column across fragments">
+     data-description="Grid-lanes-track reads each complete column across fragments">
   <div class="fragmentainers">
     <div id="lanes" class="lanes">
       <div id="a1" tabindex="0" style="grid-column: 1">A1</div>

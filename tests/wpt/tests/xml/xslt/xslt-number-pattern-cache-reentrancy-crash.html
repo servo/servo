@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<title>XSLT xsl:number pattern cache re-entrancy crash test</title>
+<link rel="help" href="https://crbug.com/582442907">
+<link rel="help" href="https://crbug.com/572578603">
+<body>
+  <p>Test passes if it does not crash.</p>
+  <iframe src="resources/xslt-number-reentrancy-import.xml"></iframe>
+  <iframe src="resources/xslt-number-reentrancy-union.xml"></iframe>
+</body>

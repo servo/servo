@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: display new paint of an iframe after its transition is skipped during update callback (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<style>
+  .new {
+    border: 5px solid orange;
+  }
+</style>
+
+<iframe id="inner" class="new" srcdoc="
+  <style>
+    body {
+      background: green;
+    }
+  </style>
+  <body>
+    This is new content
+  </body>
+"></iframe>
+</html>

@@ -1,0 +1,201 @@
+<!doctype html>
+<title>link rel=preload imagesrcset selects the expected image source</title>
+<meta name="timeout" content="long">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/links.html#preload">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#select-an-image-source-from-a-source-set">
+<link rel="preload" as="image"
+      imagesrcset="resources/square.png?markup-4x 4x, resources/square.png?markup-2.2x-first 2.2x, resources/square.png?markup-1.2x-first 1.2x, resources/square.png?markup-0.5x 0.5x, resources/square.png?markup-1.2x-dup 1.2x, resources/square.png?markup-1.6x 1.6x, resources/square.png?markup-2.2x-dup 2.2x">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<body>
+<script>
+const dpr = window.devicePixelRatio;
+let nextId = 0;
+
+function squareUrl(label) {
+  return getAbsoluteURL(`resources/square.png?${label}-${++nextId}`);
+}
+
+async function preloadAndVerify(t, attrs, expectedUrl, allUrls) {
+  verifyPreloadAndRTSupport();
+  const link = document.createElement("link");
+  t.add_cleanup(() => link.remove());
+  link.rel = "preload";
+  link.as = "image";
+  for (const [name, value] of Object.entries(attrs)) {
+    link.setAttribute(name, value);
+  }
+  await new Promise((resolve, reject) => {
+    link.addEventListener("load", resolve, { once: true });
+    link.addEventListener("error", () => reject(new Error("preload error")), { once: true });
+    document.body.appendChild(link);
+  });
+  for (const url of allUrls) {
+    verifyNumberOfResourceTimingEntries(url, url === expectedUrl ? 1 : 0);
+  }
+}
+
+promise_test(async t => {
+  const low = squareUrl("x-low");
+  const exact = squareUrl("x-exact");
+  const high = squareUrl("x-high");
+  await preloadAndVerify(t, {
+    imagesrcset: `${high} ${2 * dpr}x, ${low} ${0.5 * dpr}x, ${exact} ${1 * dpr}x`,
+  }, exact, [low, exact, high]);
+}, "dynamic preload with unsorted x descriptors selects exact devicePixelRatio match");
+
+promise_test(async t => {
+  const low = squareUrl("x-straddle-low");
+  const firstAbove = squareUrl("x-straddle-above");
+  const high = squareUrl("x-straddle-high");
+  await preloadAndVerify(t, {
+    imagesrcset: `${low} ${0.9 * dpr}x, ${high} ${2 * dpr}x, ${firstAbove} ${1.25 * dpr}x`,
+  }, firstAbove, [low, firstAbove, high]);
+}, "dynamic preload with x descriptors selects smallest density >= devicePixelRatio");
+
+promise_test(async t => {
+  const first = squareUrl("x-dup-first");
+  const second = squareUrl("x-dup-second");
+  const low = squareUrl("x-dup-low");
+  await preloadAndVerify(t, {
+    imagesrcset: `${first} ${1 * dpr}x, ${low} ${0.5 * dpr}x, ${second} ${1 * dpr}x`,
+  }, first, [first, second, low]);
+}, "dynamic preload deduplicates equal densities keeping earliest candidate");
+
+promise_test(async t => {
+  const low = squareUrl("x-below-low");
+  const max = squareUrl("x-below-max");
+  const mid = squareUrl("x-below-mid");
+  await preloadAndVerify(t, {
+    imagesrcset: `${mid} ${0.5 * dpr}x, ${max} ${0.8 * dpr}x, ${low} ${0.25 * dpr}x`,
+  }, max, [low, mid, max]);
+}, "dynamic preload when all densities < devicePixelRatio selects highest density");
+
+promise_test(async t => {
+  const wLow = Math.round(40 * dpr);
+  const wMatch = Math.round(120 * dpr);
+  const wHigh = Math.round(200 * dpr);
+  const uLow = squareUrl("w-low");
+  const uMatch = squareUrl("w-match");
+  const uHigh = squareUrl("w-high");
+  await preloadAndVerify(t, {
+    imagesizes: "100px",
+    imagesrcset: `${uHigh} ${wHigh}w, ${uLow} ${wLow}w, ${uMatch} ${wMatch}w`,
+  }, uMatch, [uLow, uMatch, uHigh]);
+}, "dynamic preload with w descriptors and imagesizes selects first normalized density >= devicePixelRatio");
+
+const windowLoaded = document.readyState === "complete"
+  ? Promise.resolve()
+  : new Promise(resolve => addEventListener("load", resolve, { once: true }));
+
+promise_test(async () => {
+  verifyPreloadAndRTSupport();
+  await windowLoaded;
+
+  const uniqueSorted = [
+    { density: 0.5, url: getAbsoluteURL("resources/square.png?markup-0.5x") },
+    { density: 1.2, url: getAbsoluteURL("resources/square.png?markup-1.2x-first") },
+    { density: 1.6, url: getAbsoluteURL("resources/square.png?markup-1.6x") },
+    { density: 2.2, url: getAbsoluteURL("resources/square.png?markup-2.2x-first") },
+    { density: 4, url: getAbsoluteURL("resources/square.png?markup-4x") },
+  ];
+  const duplicates = [
+    getAbsoluteURL("resources/square.png?markup-1.2x-dup"),
+    getAbsoluteURL("resources/square.png?markup-2.2x-dup"),
+  ];
+  const expected = (uniqueSorted.find(c => c.density >= dpr) || uniqueSorted[uniqueSorted.length - 1]).url;
+  const allUrls = [...uniqueSorted.map(c => c.url), ...duplicates];
+
+  for (const url of allUrls) {
+    verifyNumberOfResourceTimingEntries(url, url === expected ? 1 : 0);
+  }
+}, "markup preload with imagesrcset selects first candidate >= devicePixelRatio after deduplication and sorting");
+
+promise_test(async t => {
+  verifyPreloadAndRTSupport();
+  await windowLoaded;
+  const beforeEntries = performance.getEntriesByType("resource").length;
+  const link = document.createElement("link");
+  t.add_cleanup(() => link.remove());
+  link.rel = "preload";
+  link.as = "image";
+  link.setAttribute("imagesrcset", "");
+  document.body.appendChild(link);
+
+  const marker = squareUrl("sentinel");
+  await preloadAndVerify(t, { href: marker }, marker, [marker]);
+  assert_equals(performance.getEntriesByType("resource").length, beforeEntries + 1);
+}, "preload with empty imagesrcset and no href does not initiate a fetch");
+
+promise_test(async t => {
+  verifyPreloadAndRTSupport();
+  await windowLoaded;
+  const bad = squareUrl("invalid-0w");
+  const beforeEntries = performance.getEntriesByType("resource").length;
+  const link = document.createElement("link");
+  t.add_cleanup(() => link.remove());
+  link.rel = "preload";
+  link.as = "image";
+  link.setAttribute("imagesrcset", `${bad} 0w`);
+  document.body.appendChild(link);
+
+  const marker = squareUrl("invalid-sentinel");
+  await preloadAndVerify(t, { href: marker }, marker, [bad, marker]);
+  assert_equals(performance.getEntriesByType("resource").length, beforeEntries + 1);
+}, "preload with all-invalid imagesrcset candidates and no href does not initiate a fetch");
+
+promise_test(async t => {
+  const bad = squareUrl("invalid-with-href-0w");
+  const fallback = squareUrl("invalid-with-href-fallback");
+  await preloadAndVerify(t, {
+    href: fallback,
+    imagesrcset: `${bad} 0w`,
+  }, fallback, [bad, fallback]);
+}, "preload with all-invalid imagesrcset candidates falls back to href as 1x default source");
+
+promise_test(async t => {
+  const exact = squareUrl("replaceable-exact");
+  const overridden = squareUrl("replaceable-overridden");
+  t.add_cleanup(() => {
+    delete window.devicePixelRatio;
+  });
+  window.devicePixelRatio = 100 * dpr;
+  assert_equals(window.devicePixelRatio, 100 * dpr);
+
+  await preloadAndVerify(t, {
+    imagesrcset: `${exact} ${1 * dpr}x, ${overridden} ${100 * dpr}x`,
+  }, exact, [exact, overridden]);
+}, "shadowing replaceable window.devicePixelRatio does not affect preload imagesrcset selection");
+
+promise_test(async t => {
+  const hrefDefault = squareUrl("href-default-1x");
+  const srcset1x = squareUrl("imagesrcset-explicit-1x");
+  await preloadAndVerify(t, {
+    href: hrefDefault,
+    imagesrcset: `${srcset1x} 1x`,
+  }, srcset1x, [hrefDefault, srcset1x]);
+}, "preload href with imagesrcset 1x candidate: href is omitted in favor of imagesrcset 1x entry");
+
+promise_test(async t => {
+  const hrefDefault = squareUrl("href-joins-1x");
+  const lowUrl = squareUrl("imagesrcset-low-0.5x");
+  const expected = dpr <= 0.5 ? lowUrl : hrefDefault;
+  await preloadAndVerify(t, {
+    href: hrefDefault,
+    imagesrcset: `${lowUrl} 0.5x`,
+  }, expected, [hrefDefault, lowUrl]);
+}, "preload href with lower-density imagesrcset candidate: href joins source set as 1x");
+
+promise_test(async t => {
+  const hrefDefault = squareUrl("href-ignored-with-w");
+  const wMatch = squareUrl("imagesrcset-w-match");
+  const wHigh = squareUrl("imagesrcset-w-high");
+  await preloadAndVerify(t, {
+    href: hrefDefault,
+    imagesizes: "100px",
+    imagesrcset: `${wMatch} ${Math.ceil(100 * dpr)}w, ${wHigh} ${Math.ceil(200 * dpr)}w`,
+  }, wMatch, [hrefDefault, wMatch, wHigh]);
+}, "preload href is ignored when imagesrcset uses width descriptors");
+</script>
+</body>

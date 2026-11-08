@@ -1,0 +1,513 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>HTML streaming methods invoke CE reactions</title>
+<link rel="help" href="https://html.spec.whatwg.org/#html-streaming-methods" />
+<link rel="help" href="https://html.spec.whatwg.org/#custom-elements" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="container"></div>
+<script>
+let elementCount = 0;
+function createCustomElementClass() {
+  const log = [];
+  const name = `custom-elem-${++elementCount}`;
+  const cls = class extends HTMLElement {
+    constructor() {
+      super();
+      log.push("constructed");
+    }
+    connectedCallback() {
+      log.push("connected");
+    }
+    disconnectedCallback() {
+      log.push("disconnected");
+    }
+  };
+  customElements.define(name, cls);
+  return { name, cls, log };
+}
+
+// 1. streamHTML / streamHTMLUnsafe and streamReplaceWithHTML / streamReplaceWithHTMLUnsafe
+// should invoke CE reactions synchronously because they remove elements immediately upon stream creation.
+
+for (const method of ["streamHTML", "streamHTMLUnsafe"]) {
+  promise_test(async (t) => {
+    const container = document.getElementById("container");
+    t.add_cleanup(() => container.replaceChildren());
+
+    const { name: oldName, log: oldLog } = createCustomElementClass();
+    const oldElement = document.createElement(oldName);
+    container.appendChild(oldElement);
+    assert_array_equals(oldLog, ["constructed", "connected"]);
+
+    const { name: newName, log: newLog } = createCustomElementClass();
+    const writer = container[method]({ sanitizer: { elements: [newName] } }).getWriter();
+    // disconnectedCallback should have run synchronously when stream was created
+    assert_array_equals(oldLog, ["constructed", "connected", "disconnected"],
+      `${method} must invoke disconnectedCallback synchronously on removed children`);
+
+    assert_array_equals(newLog, []);
+    await writer.write(`<${newName}></${newName}>`);
+    assert_array_equals(newLog, ["constructed", "connected"],
+      `${method} must invoke connectedCallback when chunk is parsed on write`);
+
+    await writer.close();
+  }, `${method} on Element invokes CE reactions synchronously for removed children and on write`);
+
+  promise_test(async (t) => {
+    const container = document.getElementById("container");
+    t.add_cleanup(() => container.replaceChildren());
+
+    const host = document.createElement("div");
+    container.appendChild(host);
+    const shadow = host.attachShadow({ mode: "open" });
+
+    const { name: oldName, log: oldLog } = createCustomElementClass();
+    const oldElement = document.createElement(oldName);
+    shadow.appendChild(oldElement);
+    assert_array_equals(oldLog, ["constructed", "connected"]);
+
+    const { name: newName, log: newLog } = createCustomElementClass();
+    const options = method.includes("Unsafe") ? undefined : { sanitizer: { elements: [newName] } };
+    const writer = shadow[method](options).getWriter();
+    // disconnectedCallback should have run synchronously when stream was created
+    assert_array_equals(oldLog, ["constructed", "connected", "disconnected"],
+      `${method} on ShadowRoot must invoke disconnectedCallback synchronously on removed children`);
+
+    await writer.write(`<${newName}></${newName}>`);
+    assert_array_equals(newLog, ["constructed", "connected"],
+      `${method} on ShadowRoot must invoke connectedCallback when chunk is parsed on write`);
+
+    await writer.close();
+  }, `${method} on ShadowRoot invokes CE reactions synchronously for removed children and on write`);
+}
+
+for (const method of ["streamReplaceWithHTML", "streamReplaceWithHTMLUnsafe"]) {
+  promise_test(async (t) => {
+    const container = document.getElementById("container");
+    t.add_cleanup(() => container.replaceChildren());
+
+    const { name: oldName, log: oldLog } = createCustomElementClass();
+    const targetElement = document.createElement(oldName);
+    container.appendChild(targetElement);
+    assert_array_equals(oldLog, ["constructed", "connected"]);
+
+    const { name: newName, log: newLog } = createCustomElementClass();
+    const options = method.includes("Unsafe") ? undefined : { sanitizer: { elements: [newName] } };
+    const writer = targetElement[method](options).getWriter();
+    // disconnectedCallback should have run synchronously when stream was created
+    assert_array_equals(oldLog, ["constructed", "connected", "disconnected"],
+      `${method} must invoke disconnectedCallback synchronously on replaced element`);
+
+    await writer.write(`<${newName}></${newName}>`);
+    assert_array_equals(newLog, ["constructed", "connected"],
+      `${method} must invoke connectedCallback when chunk is parsed on write`);
+
+    await writer.close();
+  }, `${method} on ChildNode invokes CE reactions synchronously for replaced element and on write`);
+}
+
+// 2. Methods that do NOT remove elements immediately:
+// streamAppendHTML{Unsafe}, streamPrependHTML{Unsafe}, streamBeforeHTML{Unsafe}, streamAfterHTML{Unsafe}
+// These should NOT invoke disconnectedCallback on creation, and should invoke CE reactions on write/close.
+
+const nonRemovingContainerMethods = [
+  "streamAppendHTML", "streamAppendHTMLUnsafe",
+  "streamPrependHTML", "streamPrependHTMLUnsafe",
+];
+
+for (const method of nonRemovingContainerMethods) {
+  promise_test(async (t) => {
+    const container = document.getElementById("container");
+    t.add_cleanup(() => container.replaceChildren());
+
+    const { name: existingName, log: existingLog } = createCustomElementClass();
+    const existingElement = document.createElement(existingName);
+    container.appendChild(existingElement);
+    assert_array_equals(existingLog, ["constructed", "connected"]);
+
+    const { name: newName, log: newLog } = createCustomElementClass();
+    const options = method.includes("Unsafe") ? undefined : { sanitizer: { elements: [newName] } };
+    const writer = container[method](options).getWriter();
+    // Existing element should NOT be disconnected
+    assert_array_equals(existingLog, ["constructed", "connected"],
+      `${method} must not invoke disconnectedCallback on existing elements`);
+
+    await writer.write(`<${newName}></${newName}>`);
+    assert_array_equals(newLog, ["constructed", "connected"],
+      `${method} must invoke connectedCallback when chunk is parsed on write`);
+
+    await writer.close();
+    assert_array_equals(existingLog, ["constructed", "connected"]);
+  }, `${method} on Element invokes CE reactions on write/close without removing existing elements`);
+
+  promise_test(async (t) => {
+    const container = document.getElementById("container");
+    t.add_cleanup(() => container.replaceChildren());
+
+    const host = document.createElement("div");
+    container.appendChild(host);
+    const shadow = host.attachShadow({ mode: "open" });
+
+    const { name: existingName, log: existingLog } = createCustomElementClass();
+    const existingElement = document.createElement(existingName);
+    shadow.appendChild(existingElement);
+    assert_array_equals(existingLog, ["constructed", "connected"]);
+
+    const { name: newName, log: newLog } = createCustomElementClass();
+    const options = method.includes("Unsafe") ? undefined : { sanitizer: { elements: [newName] } };
+    const writer = shadow[method](options).getWriter();
+    // Existing element should NOT be disconnected
+    assert_array_equals(existingLog, ["constructed", "connected"],
+      `${method} on ShadowRoot must not invoke disconnectedCallback on existing elements`);
+
+    await writer.write(`<${newName}></${newName}>`);
+    assert_array_equals(newLog, ["constructed", "connected"],
+      `${method} on ShadowRoot must invoke connectedCallback when chunk is parsed on write`);
+
+    await writer.close();
+    assert_array_equals(existingLog, ["constructed", "connected"]);
+  }, `${method} on ShadowRoot invokes CE reactions on write/close without removing existing elements`);
+}
+
+const nonRemovingPositionalMethods = [
+  "streamBeforeHTML", "streamBeforeHTMLUnsafe",
+  "streamAfterHTML", "streamAfterHTMLUnsafe",
+];
+
+for (const method of nonRemovingPositionalMethods) {
+  promise_test(async (t) => {
+    const container = document.getElementById("container");
+    t.add_cleanup(() => container.replaceChildren());
+
+    const { name: existingName, log: existingLog } = createCustomElementClass();
+    const targetElement = document.createElement(existingName);
+    container.appendChild(targetElement);
+    assert_array_equals(existingLog, ["constructed", "connected"]);
+
+    const { name: newName, log: newLog } = createCustomElementClass();
+    const options = method.includes("Unsafe") ? undefined : { sanitizer: { elements: [newName] } };
+    const writer = targetElement[method](options).getWriter();
+    // Target element should NOT be disconnected
+    assert_array_equals(existingLog, ["constructed", "connected"],
+      `${method} must not invoke disconnectedCallback on target element`);
+
+    await writer.write(`<${newName}></${newName}>`);
+    assert_array_equals(newLog, ["constructed", "connected"],
+      `${method} must invoke connectedCallback when chunk is parsed on write`);
+
+    await writer.close();
+    assert_array_equals(existingLog, ["constructed", "connected"]);
+  }, `${method} on ChildNode invokes CE reactions on write/close without removing target element`);
+}
+
+// 3. Scoped Custom Element Registry support across streaming methods
+for (const method of [
+  "streamHTML", "streamHTMLUnsafe",
+  "streamAppendHTML", "streamAppendHTMLUnsafe",
+  "streamPrependHTML", "streamPrependHTMLUnsafe",
+]) {
+  // D5: replaceWithChildrenElements preserves scoped customElementRegistry for children
+  promise_test(async (t) => {
+    const container = document.getElementById("container");
+    t.add_cleanup(() => container.replaceChildren());
+
+    const scoped = new CustomElementRegistry();
+    const scopedLog = [];
+    scoped.define("scoped-replaced-child", class extends HTMLElement {
+      constructor() { super(); scopedLog.push("constructed"); }
+      connectedCallback() { scopedLog.push("connected"); }
+    });
+
+    const inner = document.createElement("div", { customElementRegistry: scoped });
+    container.append(inner);
+
+    const writer = inner[method]({
+      sanitizer: {
+        elements: ["scoped-replaced-child"],
+        replaceWithChildrenElements: ["div"],
+      },
+    }).getWriter();
+    await writer.write("<div><scoped-replaced-child></scoped-replaced-child></div>");
+    await writer.close();
+
+    assert_array_equals(scopedLog, ["constructed", "connected"],
+      `${method} with replaceWithChildrenElements must preserve scoped customElementRegistry`);
+  }, `${method} with replaceWithChildrenElements preserves scoped customElementRegistry`);
+
+  promise_test(async (t) => {
+    const container = document.getElementById("container");
+    t.add_cleanup(() => container.replaceChildren());
+
+    const scoped = new CustomElementRegistry();
+    const scopedLog = [];
+    scoped.define(
+      "scoped-element",
+      class extends HTMLElement {
+        constructor() {
+          super();
+          scopedLog.push("constructed");
+        }
+        connectedCallback() {
+          scopedLog.push("connected");
+        }
+      },
+    );
+    const inner = document.createElement("div", {
+      customElementRegistry: scoped,
+    });
+    container.append(inner);
+    const options = method.includes("Unsafe") ? undefined : { sanitizer: { elements: ["scoped-element"] } };
+    const writer = inner[method](options).getWriter();
+    await writer.write("<scoped-element></scoped-element>");
+    await writer.close();
+    assert_array_equals(scopedLog, ["constructed", "connected"],
+      `${method} should use scoped custom element registry`);
+  }, `${method} should use scoped custom element registry`);
+
+  // D6: ShadowRoot target uses ShadowRoot's customElementRegistry, not host's
+  promise_test(async (t) => {
+    const container = document.getElementById("container");
+    t.add_cleanup(() => container.replaceChildren());
+
+    const hostRegistry = new CustomElementRegistry();
+    const shadowRegistry = new CustomElementRegistry();
+    const log = [];
+    hostRegistry.define("scoped-target-ce", class extends HTMLElement {
+      constructor() { super(); log.push("host-registry"); }
+    });
+    shadowRegistry.define("scoped-target-ce", class extends HTMLElement {
+      constructor() { super(); log.push("shadow-registry"); }
+    });
+
+    const host = document.createElement("div", { customElementRegistry: hostRegistry });
+    container.appendChild(host);
+    const shadow = host.attachShadow({ mode: "open", customElementRegistry: shadowRegistry });
+
+    const options = method.includes("Unsafe") ? undefined : { sanitizer: { elements: ["scoped-target-ce"] } };
+    const writer = shadow[method](options).getWriter();
+    await writer.write("<scoped-target-ce></scoped-target-ce>");
+    await writer.close();
+
+    assert_array_equals(log, ["shadow-registry"],
+      `${method} on ShadowRoot must use ShadowRoot's customElementRegistry`);
+  }, `${method} on ShadowRoot uses ShadowRoot's customElementRegistry`);
+}
+
+// 4. H1: Custom element callbacks run before the next inline script in the same chunk
+for (const method of [
+  "streamHTMLUnsafe", "streamAppendHTMLUnsafe", "streamPrependHTMLUnsafe",
+  "streamBeforeHTMLUnsafe", "streamAfterHTMLUnsafe", "streamReplaceWithHTMLUnsafe",
+]) {
+  promise_test(async (t) => {
+    const container = document.getElementById("container");
+    t.add_cleanup(() => container.replaceChildren());
+
+    const { name, log } = createCustomElementClass();
+    window.ce_script_log = log;
+    t.add_cleanup(() => { delete window.ce_script_log; });
+
+    const target = document.createElement("div");
+    container.appendChild(target);
+
+    const writer = target[method]({ runScripts: true }).getWriter();
+    await writer.write(`<${name}></${name}><script>window.ce_script_log.push("inline-script");<` + `/script>`);
+    await writer.close();
+
+    assert_array_equals(log, ["constructed", "connected", "inline-script"],
+      `CE reactions must run before the subsequent inline script in ${method}`);
+  }, `${method}: CE callbacks run before the next inline script in the same chunk`);
+}
+
+// 5. G1, G2, G4: ownerDocument and WritableStream realm
+promise_test(async (t) => {
+  const iframe = document.createElement("iframe");
+  t.add_cleanup(() => iframe.remove());
+  iframe.srcdoc = "<!doctype html><body><div id='target'><span id='ref'></span></div></body>";
+  await new Promise(resolve => {
+    iframe.addEventListener("load", resolve, { once: true });
+    document.body.appendChild(iframe);
+  });
+
+  const iframeDoc = iframe.contentDocument;
+  const iframeWin = iframe.contentWindow;
+  const target = iframeDoc.getElementById("target");
+
+  // G4: Stream realm is the target's realm
+  const stream = target.streamHTMLUnsafe();
+  assert_true(
+    stream instanceof iframeWin.WritableStream,
+    "WritableStream created on iframe element must be in the iframe's realm",
+  );
+
+  // G1: ownerDocument of streamed nodes (including nested children) in an iframe document
+  const writer = stream.getWriter();
+  await writer.write("<section><p><span>nested</span></p></section>");
+  await writer.close();
+
+  const section = target.querySelector("section");
+  const p = target.querySelector("p");
+  const span = target.querySelector("span");
+  assert_equals(section.ownerDocument, iframeDoc);
+  assert_equals(p.ownerDocument, iframeDoc);
+  assert_equals(span.ownerDocument, iframeDoc);
+  assert_equals(span.firstChild.ownerDocument, iframeDoc);
+}, "Streamed nodes in an iframe have the iframe document as ownerDocument, and stream is in the iframe's realm");
+
+promise_test(async (t) => {
+  // G1: ownerDocument in a DOMParser document
+  const parsedDoc = new DOMParser().parseFromString("<!doctype html><body><div id='target'></div></body>", "text/html");
+  const target = parsedDoc.getElementById("target");
+
+  const writer = target.streamHTML().getWriter();
+  await writer.write("<div><p><b>text</b></p></div>");
+  await writer.close();
+
+  for (const node of target.querySelectorAll("*")) {
+    assert_equals(node.ownerDocument, parsedDoc, `${node.tagName} ownerDocument must be the DOMParser document`);
+  }
+  assert_equals(target.querySelector("b").firstChild.ownerDocument, parsedDoc);
+}, "Streamed nodes in a DOMParser document have the DOMParser document as ownerDocument");
+
+promise_test(async (t) => {
+  // G2: Template contents ownerDocument === tpl.content.ownerDocument
+  const tpl = document.createElement("template");
+  const writer = tpl.streamHTML().getWriter();
+  await writer.write("<div><span>inside template</span></div>");
+  await writer.close();
+
+  const div = tpl.content.querySelector("div");
+  const span = tpl.content.querySelector("span");
+  assert_not_equals(div, null);
+  assert_equals(div.ownerDocument, tpl.content.ownerDocument);
+  assert_equals(span.ownerDocument, tpl.content.ownerDocument);
+  assert_equals(span.firstChild.ownerDocument, tpl.content.ownerDocument);
+  assert_not_equals(div.ownerDocument, document, "Template content nodes belong to the template contents ownerDocument");
+}, "Streamed nodes into <template> have tpl.content.ownerDocument as their ownerDocument");
+
+for (const method of ["streamHTML", "streamHTMLUnsafe", "streamAppendHTML", "streamAppendHTMLUnsafe"]) {
+  promise_test(async (t) => {
+    const { name, cls, log } = createCustomElementClass();
+    const tpl = document.createElement("template");
+    const options = method.includes("Unsafe") ? undefined : { sanitizer: { elements: [name, "div"] } };
+    const writer = tpl[method](options).getWriter();
+    await writer.write(`<${name}></${name}><div><${name}></${name}></div>`);
+    await writer.close();
+
+    assert_array_equals(log, [], `${method} on <template> must not construct custom elements in the inert template document`);
+    const els = tpl.content.querySelectorAll(name);
+    assert_equals(els.length, 2);
+    for (const el of els) {
+      assert_false(el instanceof cls, "Custom element inside <template> must remain unupgraded");
+      assert_equals(el.ownerDocument, tpl.content.ownerDocument);
+    }
+  }, `${method} on <template> does not construct or upgrade top-level or nested custom elements`);
+
+  // Disconnected target with a scoped CustomElementRegistry constructs custom
+  // elements before write() resolves (without invoking connectedCallback until connected)
+  promise_test(async (t) => {
+    const scoped = new CustomElementRegistry();
+    const log = [];
+    class ScopedElement extends HTMLElement {
+      constructor() {
+        super();
+        log.push("constructed");
+      }
+      connectedCallback() {
+        log.push("connected");
+      }
+      disconnectedCallback() {
+        log.push("disconnected");
+      }
+    }
+    scoped.define("scoped-disconnected-ce", ScopedElement);
+
+    const disconnectedTarget = document.createElement("div", { customElementRegistry: scoped });
+    const options = method.includes("Unsafe")
+      ? undefined
+      : { sanitizer: { elements: ["scoped-disconnected-ce"] } };
+    const writer = disconnectedTarget[method](options).getWriter();
+    await writer.write("<scoped-disconnected-ce></scoped-disconnected-ce>");
+
+    const el = disconnectedTarget.querySelector("scoped-disconnected-ce");
+    assert_not_equals(el, null);
+    assert_true(el instanceof ScopedElement, "Custom element in disconnected target must be upgraded before write() resolves");
+    assert_array_equals(log, ["constructed"], "Constructor runs before write() resolves without connectedCallback");
+
+    await writer.close();
+    assert_array_equals(log, ["constructed"]);
+
+    const container = document.getElementById("container");
+    t.add_cleanup(() => container.replaceChildren());
+    container.appendChild(disconnectedTarget);
+    assert_array_equals(log, ["constructed", "connected"]);
+  }, `${method} on a disconnected target with scoped registry constructs custom elements before write() resolves`);
+
+  // Misnested formatting elements (<b><div><my-ce></my-ce></b></div>) invoke adoption agency
+  // reactions in order (constructed, connected, then disconnected + connected when moved to new <b>,
+  // and disconnected + connected when <div> is reinserted)
+  promise_test(async (t) => {
+    const container = document.getElementById("container");
+    t.add_cleanup(() => container.replaceChildren());
+
+    const { name, log } = createCustomElementClass();
+    const options = method.includes("Unsafe")
+      ? undefined
+      : { sanitizer: { elements: ["b", "div", name] } };
+    const writer = container[method](options).getWriter();
+    await writer.write(`<b><div><${name}>text</${name}></b></div>`);
+    await writer.close();
+
+    assert_equals(container.innerHTML, `<b></b><div><b><${name}>text</${name}></b></div>`);
+    assert_array_equals(
+      log,
+      ["constructed", "connected", "disconnected", "connected", "disconnected", "connected"],
+      `${method} with misnested formatting elements must invoke adoption agency CE reactions in order`,
+    );
+  }, `${method} with misnested formatting elements (<b><div><my-ce></my-ce></b></div>) invokes adoption agency CE reactions in order`);
+}
+
+// Elements inserted directly into the target use the target's registry, even
+// after the target is adopted into another document mid-stream. This includes
+// children of an element that the sanitizer replaces with its children.
+for (const [description, options, first_chunk] of [
+  ["", undefined, "<p></p>"],
+  [" for children of a replaceWithChildrenElements element", { sanitizer: { replaceWithChildrenElements: ["span"] } }, "<span>"],
+]) {
+  promise_test(async (t) => {
+    const iframe = document.createElement("iframe");
+    t.add_cleanup(() => iframe.remove());
+    await new Promise((resolve) => {
+      iframe.onload = resolve;
+      document.body.appendChild(iframe);
+    });
+    const { name, log } = createCustomElementClass();
+    const iframeLog = [];
+    class IframeCustomElement extends iframe.contentWindow.HTMLElement {
+      constructor() {
+        super();
+        iframeLog.push("constructed");
+      }
+      connectedCallback() {
+        iframeLog.push("connected");
+      }
+    }
+    iframe.contentWindow.customElements.define(name, IframeCustomElement);
+    const target = document.getElementById("container").appendChild(document.createElement("div"));
+    t.add_cleanup(() => target.remove());
+    const writer = target.streamHTMLUnsafe(options).getWriter();
+    await writer.write(first_chunk);
+    iframe.contentDocument.body.appendChild(target);
+    await writer.write(`<${name}></${name}>`);
+    await writer.close();
+
+    const el = target.querySelector(name);
+    assert_not_equals(el, null);
+    assert_array_equals(log, [], "the original document's definition must not be used");
+    assert_array_equals(iframeLog, ["constructed", "connected"], "the new document's definition must be used");
+    assert_true(el instanceof IframeCustomElement);
+  }, `streamHTMLUnsafe uses the new document's registry after the target is adopted mid-stream${description}`);
+}
+</script>
+</body>

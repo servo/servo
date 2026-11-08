@@ -1,0 +1,41 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Container Timing: a container root moved with moveBefore() is reported as a new container</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+img {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/container-timing/resources/container-timing-helpers.js"></script>
+<script>
+  promise_test(async t => {
+    assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
+    assert_implements(Element.prototype.moveBefore, "moveBefore() is not implemented");
+    const collector = observeContainerEntries(t);
+    const first_parent = addElement(document.body, 'div');
+    const second_parent = addElement(document.body, 'div');
+    const div = addContainerRoot(first_parent, 'div_ct');
+    addSquare100Image(div, {id: 'img_id', style: 'left: 0px; top: 0px'});
+    let entries = await collector.take();
+    assert_equals(entries.length, 1, 'entry for the initial paint');
+
+    second_parent.moveBefore(div, null);
+    const beforeRender = performance.now();
+
+    entries = await collector.take();
+    assert_equals(entries.length, 1, 'entry after the move');
+    checkContainerEntry(entries[0], 'div_ct', 'img_id', beforeRender);
+    checkContainerIntersectionRect(entries[0], [0, 100, 0, 100]);
+    checkContainerSize(entries[0], 10000);
+  }, 'Paints after moving the container root with moveBefore() are reported from scratch.');
+</script>
+
+</body>

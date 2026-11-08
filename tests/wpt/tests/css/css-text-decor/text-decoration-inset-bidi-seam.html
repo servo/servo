@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration: text-decoration-inset keeps a single decoration continuous across a bidi run boundary</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-inset-property">
+<link rel="match" href="text-decoration-inset-bidi-seam-ref.html">
+<meta name="assert" content="A single underline spanning a bidi direction boundary is painted as one segment per run. text-decoration-inset applies the whole-decoration shift to every segment (so an interior seam between runs moves with the decoration rather than being pinned) and the extend/trim overhang only at the segment reaching the decoration's visual start/end, so the underline stays continuous. Regression test for the seam between bidi runs being misplaced.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    body { margin: 20px; }
+    div { font: 40px/1.5 Ahem; color: black; }
+    u { text-decoration-line: underline; text-decoration-color: blue; text-underline-position: under; }
+    /* The middle run is forced to the opposite direction with bidi-override. With identical Ahem
+       glyphs the visual glyph positions are unchanged, but the underline is now painted as three
+       bidi-run segments (LTR, RTL, LTR) with two interior seams. */
+    .da { text-decoration-inset: 10px -10px; }
+    .db { text-decoration-inset: 8px; }
+</style>
+<!-- Asymmetric inset: a non-zero whole-decoration shift must move both interior seams with it. -->
+<div><u class="da">XXX<bdo dir="rtl">XXX</bdo>XXX</u></div>
+<!-- Symmetric inset: interior seams are not trimmed; only the outer visual ends are. -->
+<div><u class="db">XXX<bdo dir="rtl">XXX</bdo>XXX</u></div>

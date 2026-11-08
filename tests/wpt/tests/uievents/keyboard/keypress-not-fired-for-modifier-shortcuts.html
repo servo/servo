@@ -1,65 +1,65 @@
 <!DOCTYPE html>
 <meta charset="utf-8" />
-<title>UI Events Test: keypress not fired for modifier shortcuts</title>
+<title>No keypress event for modifier shortcut</title>
 <link rel="author" title="Karl Dubost" href="https://otsukare.info/">
 <link rel="help" href="https://w3c.github.io/uievents/#keypress" />
-<meta name="assert" content="This test checks that keypress events are not fired when Control or Meta modifier keys are active, per the UI Events spec.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <div id="target" tabindex="0">Target</div>
 <script>
-  // WebDriver modifier key codes.
-  const CONTROL = '\uE009';
-  const META = '\uE03D';
+  // The unmodified key that ends each test.
+  const TEST_END_KEY = 'x';
 
-  const modifiers = {
-    "Control": CONTROL,
-    "Meta": META,
-  };
+  // Returns a Promise that waits for a keyup on test end key. We added this
+  // event handler on document to fully separate out the ending interation from
+  // any possible side-effect of a test's keyboard interaction on the focused
+  // element.
+  function testEndKeyUp(test) {
+    return new Promise(resolve => {
+      const ending_keyup_handler = e => {
+        if (e.key == TEST_END_KEY) resolve();
+      };
+      document.body.addEventListener("keyup", ending_keyup_handler);
+      test.add_cleanup(() =>
+        document.body.removeEventListener("keyup", ending_keyup_handler));
+    });
+  }
+
+  // Platform-specific modifier for paste shortcut.
+  const MODIFIER_FOR_SHORTCUT = navigator.platform.includes("Mac")
+        ? {label: 'Meta',    webdriver_code: '\uE03D'}
+        : {label: 'Control', webdriver_code: '\uE009'};
+
+  // Keypress logger for the test.
+  let keypress_fired = false;
+  target.addEventListener("keypress", e => {
+    if (e.key != TEST_END_KEY)
+      keypress_fired = true;
+  });
 
   target.focus();
 
-  for (const [modName, modCode] of Object.entries(modifiers)) {
-    promise_test(() => {
-      let keypressFired = false;
-      return new Promise(resolve => {
-        function onKeypress() {
-          keypressFired = true;
-        }
-        function onKeyup(event) {
-          if (event.key !== modName) {
-            target.removeEventListener("keypress", onKeypress);
-            target.removeEventListener("keyup", onKeyup);
-            resolve(keypressFired);
-          }
-        }
-        target.addEventListener("keypress", onKeypress);
-        target.addEventListener("keyup", onKeyup);
-        test_driver.send_keys(target, modCode + 'v');
-      }).then((fired) => {
-        assert_false(fired, "keypress should not fire for " + modName + "+v");
-      });
-    }, `keypress must not be dispatched for ${modName} + v`);
-  }
+  promise_test(async t => {
+    keypress_fired = false;
 
-  promise_test(() => {
-    let keypressFired = false;
-    return new Promise(resolve => {
-      function onKeypress() {
-        keypressFired = true;
-      }
-      function onKeyup(event) {
-        target.removeEventListener("keypress", onKeypress);
-        target.removeEventListener("keyup", onKeyup);
-        resolve(keypressFired);
-      }
-      target.addEventListener("keypress", onKeypress);
-      target.addEventListener("keyup", onKeyup);
-      test_driver.send_keys(target, 'a');
-    }).then((fired) => {
-      assert_true(fired, "keypress should fire for plain 'a'");
-    });
+    let test_end_promise = testEndKeyUp(t);
+    test_driver.send_keys(target, MODIFIER_FOR_SHORTCUT.webdriver_code + 'v');
+    test_driver.send_keys(target, TEST_END_KEY);
+    await test_end_promise;
+
+    assert_false(keypress_fired);
+  }, `keypress must not be dispatched for ${MODIFIER_FOR_SHORTCUT.label} + v`);
+
+  promise_test(async t => {
+    keypress_fired = false;
+
+    let test_end_promise = testEndKeyUp(t);
+    test_driver.send_keys(target, 'a');
+    test_driver.send_keys(target, TEST_END_KEY);
+    await test_end_promise;
+
+    assert_true(keypress_fired);
   }, `keypress must be dispatched for a plain key`);
 </script>

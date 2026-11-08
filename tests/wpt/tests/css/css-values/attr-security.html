@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <title>CSS Values and Units Test: attr() security limitations</title>
 <link rel="help" href="https://drafts.csswg.org/css-values-5/#attr-security">
+<link rel="help" href="https://drafts.csswg.org/cssom/#serialize-a-url">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
@@ -116,7 +117,7 @@
     test_attr('background-image',
               `src("${url}")`,
               url,
-              `src(url("${url}"))`);
+              `url("${url}")`);
 
     // The following string() function is under discussion in the working group and does not exist yet.
     test_attr('--x',
@@ -130,7 +131,7 @@
     test_attr('background-image',
               'src(string("https://does-not-exist.test/""404.png"))',
               '/404.png',
-              `src(url("${url}"))`);
+              `url("${url}")`);
 
     test_attr('background-image',
               `attr(data-foo type(<url>))`,

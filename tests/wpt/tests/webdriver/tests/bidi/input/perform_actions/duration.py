@@ -52,12 +52,14 @@ async def setup_event_recorder(bidi_session, top_context, inline):
 
 
 async def test_mouse_move_dispatches_multiple_events(
-    bidi_session, top_context, setup_event_recorder
+    bidi_session, configuration, top_context, setup_event_recorder
 ):
     await setup_event_recorder("mousemove")
 
     actions = Actions()
-    actions.add_pointer().pointer_move(x=100, y=200, duration=DURATION)
+    actions.add_pointer().pointer_move(
+        x=100, y=200, duration=DURATION * configuration["timeout_multiplier"]
+    )
     await bidi_session.input.perform_actions(
         actions=actions, context=top_context["context"]
     )
@@ -72,7 +74,7 @@ async def test_mouse_move_dispatches_multiple_events(
 
 
 async def test_touch_move_dispatches_multiple_events(
-    bidi_session, top_context, setup_event_recorder
+    bidi_session, configuration, top_context, setup_event_recorder
 ):
     await setup_event_recorder("pointermove")
 
@@ -80,7 +82,9 @@ async def test_touch_move_dispatches_multiple_events(
     (
         actions.add_pointer(pointer_type="touch")
         .pointer_down(button=0)
-        .pointer_move(x=200, y=100, duration=DURATION)
+        .pointer_move(
+            x=200, y=100, duration=DURATION * configuration["timeout_multiplier"]
+        )
         .pointer_up(button=0)
     )
     await bidi_session.input.perform_actions(
@@ -97,12 +101,18 @@ async def test_touch_move_dispatches_multiple_events(
 
 
 async def test_wheel_scroll_dispatches_multiple_events(
-    bidi_session, top_context, setup_event_recorder
+    bidi_session, configuration, top_context, setup_event_recorder
 ):
     await setup_event_recorder("wheel")
 
     actions = Actions()
-    actions.add_wheel().scroll(x=0, y=0, delta_x=30, delta_y=60, duration=DURATION)
+    actions.add_wheel().scroll(
+        x=0,
+        y=0,
+        delta_x=30,
+        delta_y=60,
+        duration=DURATION * configuration["timeout_multiplier"],
+    )
     await bidi_session.input.perform_actions(
         actions=actions, context=top_context["context"]
     )

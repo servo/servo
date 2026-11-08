@@ -31,7 +31,7 @@
           }
         };
         w.onerror = (e) => {
-          // An error will be triggered because the worker can't import externalScript.js.
+          // Don't report errors from the worker to the harness.
           e.preventDefault();
         };
       });

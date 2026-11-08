@@ -674,6 +674,12 @@ class BidiEmulationProtocolPart(ProtocolPart):
         pass
 
     @abstractmethod
+    async def set_text_layout_mode_override(self,
+            text_layout_mode: Optional[Literal["mobile"]],
+            contexts: List[str]) -> None:
+        pass
+
+    @abstractmethod
     async def set_touch_override(self,
             max_touch_points: Optional[int],
             contexts: List[str]) -> None:

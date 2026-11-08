@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>An out-of-flow child does not cost an editing host its empty line</title>
+<link rel="help" href="https://w3c.github.io/editing/docs/execCommand/#editing-host">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#absolutely-positioned">
+<meta name="assert" content="An empty editing host is laid out with a line so the caret has somewhere to sit. An out-of-flow child contributes no in-flow content, so a host containing only such a child is still empty and must keep that line: its height must match that of a host with no children at all.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body { margin: 0; }
+.host { padding: 1px; font: 16px/18px monospace; }
+.outOfFlow { position: absolute; }
+.floated { float: left; }
+</style>
+
+<div class="host" contenteditable id="empty"></div>
+<div class="host" contenteditable id="absolute"><div class="outOfFlow">out of flow</div></div>
+<div class="host" contenteditable id="float"><div class="floated">floated</div></div>
+<div class="host" contenteditable id="control">in flow</div>
+
+<script>
+const heightOf = id => document.getElementById(id).offsetHeight;
+
+test(() => {
+    assert_greater_than(heightOf("empty"), 2, "an empty editing host is at least a line tall, not just its padding");
+}, "An empty editing host is laid out with a line");
+
+test(() => {
+    assert_equals(heightOf("absolute"), heightOf("empty"));
+}, "An editing host whose only child is absolutely positioned keeps its empty line");
+
+test(() => {
+    assert_equals(heightOf("float"), heightOf("empty"));
+}, "An editing host whose only child is floated keeps its empty line");
+
+test(() => {
+    assert_equals(heightOf("control"), heightOf("empty"));
+}, "An editing host with one line of in-flow content is the same height as an empty one");
+</script>

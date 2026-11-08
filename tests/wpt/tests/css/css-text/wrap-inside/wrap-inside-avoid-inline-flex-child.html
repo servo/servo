@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>wrap-inside: avoid does not propagate into an inline-flex child</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#wrap-inside">
+<link rel="match" href="wrap-inside-avoid-inline-flex-child-ref.html">
+<meta name="assert" content="The 'avoid' effect of an inline box does not propagate across a formatting context boundary: an inline-flex child does not inherit the effective avoid, so the content of its flex item wraps normally and only its explicit inner avoid box is kept together.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    div { width: 110px; font: 20px/20px Ahem; color: green; }
+</style>
+<!--
+    Inside the flex item, "WW XX" (100px) fits within 110px. If the outer avoid propagated into the inline-flex,
+    "WW" would also be avoid and the whole thing would break inside as a last resort: "WW XX" / "YY". Since avoid does
+    not cross the inline-flex boundary, "WW" is a normal wrap opportunity and only the inner "XX YY" box is kept
+    together, so the line breaks before it: "WW" / "XX YY".
+-->
+<div><span style="wrap-inside: avoid"><span style="display: inline-flex"><div>WW <span style="wrap-inside: avoid">XX YY</span></div></span></span></div>

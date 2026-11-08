@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<title>
+  Don't snap to an area that can never be scrolled into view in the cross axis,
+  even when its snap position is closer, but do snap to a zero-width area at
+  the edge of the scrollable overflow
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#snap-scope"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div {
+  position: absolute;
+  margin: 0px;
+}
+.scroller {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  overflow: scroll;
+  scrollbar-width: none;
+  scroll-snap-type: y mandatory;
+}
+.space {
+  width: 300px;
+  height: 1200px;
+}
+.snap {
+  width: 100px;
+  height: 100px;
+  background-color: blue;
+  scroll-snap-align: start;
+}
+
+/* #negative-overflow-scroller: #unreachable1 is left of the scroll origin, so
+   it can never be scrolled into view horizontally. */
+#unreachable1 {
+  left: -500px;
+  top: 0px;
+}
+#visible1 {
+  left: 100px;
+  top: 600px;
+}
+
+/* #clipped-scroller: #unreachable2 is clipped by an overflow: clip box and is
+   past the scrollable overflow, so it can never be scrolled into view
+   horizontally. */
+#clipped-scroller .space {
+  width: 600px;
+}
+.clipper {
+  left: 0px;
+  top: 0px;
+  width: 600px;
+  height: 1200px;
+  overflow: clip;
+}
+#unreachable2 {
+  left: 1200px;
+  top: 0px;
+}
+#visible2 {
+  left: 350px;
+  top: 600px;
+}
+
+/* #zero-width-start-scroller and #zero-width-end-scroller: #edge1 and #edge2
+   are zero-width areas at the start and end edges of the scrollable overflow.
+   They only touch the snapport, but are still visible. */
+#zero-width-start-scroller .space,
+#zero-width-end-scroller .space {
+  width: 600px;
+}
+.zero-width {
+  width: 0px;
+}
+#edge1 {
+  left: 0px;
+  top: 0px;
+}
+#visible3 {
+  left: 100px;
+  top: 600px;
+}
+#edge2 {
+  left: 600px;
+  top: 0px;
+}
+#visible4 {
+  left: 400px;
+  top: 600px;
+}
+</style>
+
+<div class="scroller" id="negative-overflow-scroller">
+  <div class="space"></div>
+  <div id="unreachable1" class="snap"></div>
+  <div id="visible1" class="snap"></div>
+</div>
+
+<div class="scroller" id="clipped-scroller">
+  <div class="space"></div>
+  <div class="clipper">
+    <div id="unreachable2" class="snap"></div>
+  </div>
+  <div id="visible2" class="snap"></div>
+</div>
+
+<div class="scroller" id="zero-width-start-scroller">
+  <div class="space"></div>
+  <div id="edge1" class="snap zero-width"></div>
+  <div id="visible3" class="snap"></div>
+</div>
+
+<div class="scroller" id="zero-width-end-scroller">
+  <div class="space"></div>
+  <div id="edge2" class="snap zero-width"></div>
+  <div id="visible4" class="snap"></div>
+</div>
+
+<script>
+test(() => {
+  const scroller = document.getElementById("negative-overflow-scroller");
+  scroller.scrollTo(0, 0);
+  assert_equals(scroller.scrollLeft, 0);
+  // The scroll ends closer to #unreachable1 (y = 0) than to #visible1
+  // (y = 600), but #unreachable1 can't be visible.
+  scroller.scrollTo(0, 280);
+  assert_equals(scroller.scrollTop, 600);
+}, "Don't snap to an area in negative overflow that can't be scrolled into " +
+   "view, even when it is closer");
+
+test(() => {
+  const scroller = document.getElementById("clipped-scroller");
+  scroller.scrollTo(0, 0);
+  scroller.scrollLeft = scroller.scrollWidth - scroller.clientWidth;
+  assert_equals(scroller.scrollLeft, 300);
+  // The scroll ends closer to #unreachable2 (y = 0) than to #visible2
+  // (y = 600), but #unreachable2 can't be visible.
+  scroller.scrollTo(300, 280);
+  assert_equals(scroller.scrollTop, 600);
+}, "Don't snap to an area clipped past the scrollable overflow that can't be " +
+   "scrolled into view, even when it is closer");
+
+test(() => {
+  const scroller = document.getElementById("zero-width-start-scroller");
+  scroller.scrollTo(0, 0);
+  assert_equals(scroller.scrollLeft, 0);
+  // The scroll ends closer to #edge1 (y = 0) than to #visible3 (y = 600), and
+  // #edge1 is visible at the start edge.
+  scroller.scrollTo(0, 280);
+  assert_equals(scroller.scrollTop, 0);
+}, "Snap to a zero-width area at the start edge of the scrollable overflow");
+
+test(() => {
+  const scroller = document.getElementById("zero-width-end-scroller");
+  scroller.scrollTo(0, 0);
+  scroller.scrollLeft = scroller.scrollWidth - scroller.clientWidth;
+  assert_equals(scroller.scrollLeft, 300);
+  // The scroll ends closer to #edge2 (y = 0) than to #visible4 (y = 600), and
+  // #edge2 is visible at the end edge.
+  scroller.scrollTo(300, 280);
+  assert_equals(scroller.scrollTop, 0);
+}, "Snap to a zero-width area at the end edge of the scrollable overflow");
+</script>

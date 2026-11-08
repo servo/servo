@@ -1,0 +1,19 @@
+{
+    "url": "mp4/test-v-1s-blue.mp4",
+    "init": {
+        "offset": 0,
+        "size": 1053
+    },
+    "media": [
+        {
+            "offset": 1053,
+            "size": 1392,
+            "timestamp": 0.0
+        },
+        {
+            "offset": 2445,
+            "size": 351,
+            "timestamp": 0.5
+        }
+    ]
+}

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Resource Timing - A TAO failure on a redirect hop hides timing info even if the final response passes the TAO check</title>
+<link rel="help" href="https://fetch.spec.whatwg.org/#concept-tao-check"/>
+<link rel="help" href="https://fetch.spec.whatwg.org/#create-an-opaque-timing-info"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/custom-cors-response.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/entry-invariants.js"></script>
+</head>
+<body>
+<script>
+const {HTTPS_REMOTE_ORIGIN} = get_host_info();
+
+const fetchAndEatBody = path => fetch(path).then(r => r.arrayBuffer());
+
+const redirectedURL = redirectTAO => {
+  const finalURL = custom_cors_response({
+    headers: {"Timing-Allow-Origin": "*", "Server-Timing": "metric"},
+  }, HTTPS_REMOTE_ORIGIN);
+  finalURL.searchParams.append("unique", token());
+  const url = new URL("/resource-timing/resources/redirect-cors.py",
+    HTTPS_REMOTE_ORIGIN);
+  url.searchParams.append("allow_origin", "*");
+  if (redirectTAO) {
+    url.searchParams.append("timing_allow_origin", "*");
+  }
+  url.searchParams.append("location", finalURL.href);
+  return url.href;
+};
+
+attribute_test(
+  fetchAndEatBody, redirectedURL(true),
+  entry => {
+    assert_equals(entry.serverTiming.length, 1,
+      "serverTiming should be exposed.");
+    assert_not_equals(entry.nextHopProtocol, "",
+      "nextHopProtocol should be exposed.");
+  },
+  "Timing info is exposed when the redirect and the final response pass the " +
+  "TAO check.");
+
+attribute_test(
+  fetchAndEatBody, redirectedURL(false),
+  entry => {
+    assert_equals(entry.serverTiming.length, 0,
+      "serverTiming should be empty.");
+    assert_equals(entry.nextHopProtocol, "",
+      "nextHopProtocol should be the empty string.");
+    assert_equals(entry.fetchStart, entry.startTime,
+      "fetchStart should be equal to startTime.");
+  },
+  "Timing info is hidden when the redirect fails the TAO check and the final " +
+  "response passes it.");
+</script>
+</body>
+</html>

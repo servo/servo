@@ -119,6 +119,83 @@ promise_test(async t => {
 
 promise_test(async t => {
   const iframe = document.createElement('iframe');
+  iframe.src = '/common/blank.html';
+  iframe.allow = "tools 'none'";
+
+  const { promise: loadPromise, resolve: resolveLoad } = Promise.withResolvers();
+  iframe.onload = resolveLoad;
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await loadPromise;
+
+  await promise_rejects_dom(
+    t, 'NotAllowedError', iframe.contentWindow.DOMException,
+    iframe.contentDocument.modelContext.registerTool({
+      name: 'child_tool',
+      description: 'Child tool',
+      execute: async () => 'success',
+    }),
+    'registerTool() must reject with NotAllowedError when the target ' +
+    'document does not have the tools permission');
+}, 'registerTool() throws NotAllowedError in iframe when permissions policy is disabled');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  iframe.src = '/common/blank.html';
+  iframe.allow = "tools 'none'";
+
+  const { promise: loadPromise, resolve: resolveLoad } = Promise.withResolvers();
+  iframe.onload = resolveLoad;
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await loadPromise;
+
+  await promise_rejects_dom(
+    t, 'NotAllowedError', iframe.contentWindow.DOMException,
+    iframe.contentDocument.modelContext.getTools(),
+    'getTools() must reject with NotAllowedError when the target ' +
+    'document does not have the tools permission');
+}, 'getTools() throws NotAllowedError in same-origin iframe when permissions policy is disabled');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  iframe.src = '/common/blank.html';
+  iframe.allow = "tools 'none'";
+
+  const { promise: loadPromise, resolve: resolveLoad } = Promise.withResolvers();
+  iframe.onload = resolveLoad;
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await loadPromise;
+
+  await promise_rejects_dom(
+    t, 'NotAllowedError', iframe.contentWindow.DOMException,
+    iframe.contentDocument.modelContext.resumeTool('token', async () => 'ok'),
+    'resumeTool() must reject with NotAllowedError when the target ' +
+    'document does not have the tools permission');
+}, 'resumeTool() throws NotAllowedError in iframe when permissions policy is disabled');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  iframe.src = '/common/blank.html';
+  iframe.allow = "tools 'none'";
+
+  const { promise: loadPromise, resolve: resolveLoad } = Promise.withResolvers();
+  iframe.onload = resolveLoad;
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await loadPromise;
+
+  assert_throws_dom(
+    'NotAllowedError', iframe.contentWindow.DOMException,
+    () => iframe.contentDocument.modelContext.waitForToolsUntil(
+        Promise.resolve()),
+    'waitForToolsUntil() must throw NotAllowedError when the target ' +
+    'document does not have the tools permission');
+}, 'waitForToolsUntil() throws NotAllowedError in iframe when permissions policy is disabled');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
   const originB = hostInfo.HTTPS_REMOTE_ORIGIN;
 
   iframe.src = originB + '/webmcp/imperative/resources/iframe-register-tool.html';

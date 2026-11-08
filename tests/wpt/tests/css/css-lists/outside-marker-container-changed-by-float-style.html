@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Lists: the outside marker follows its first formatted line when a float becomes in-flow</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#list-style-position-outside">
+<link rel="match" href="outside-marker-container-changed-by-float-style-ref.html">
+<meta name="assert" content="A float does not hold the marker's first formatted line; when it stops floating, its line becomes the marker's.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  ul { margin: 0; padding: 0 0 0 40px; }
+  li { font: 20px/20px Ahem; }
+</style>
+
+<p>The test passes if the bullet is aligned with the upper "x".</p>
+
+<ul><li><div id="first" style="float: left">x</div><div>x</div></li></ul>
+<script>
+  document.body.offsetHeight;
+  document.getElementById("first").style.float = "none";
+  document.body.offsetHeight;
+</script>

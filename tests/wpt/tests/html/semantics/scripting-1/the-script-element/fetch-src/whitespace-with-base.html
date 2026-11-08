@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Script src with only ASCII whitespace resolves to the base URL</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/scripting.html#prepare-the-script-element">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<base href=whitespace.js>
+<div id=log></div>
+<script>
+async_test(function(t) {
+  var executed = false;
+  window.whitespaceExecuted = function() { executed = true; };
+  var script = document.createElement("script");
+  script.onerror = this.unreached_func("error event should not fire");
+  script.onload = this.step_func_done(function() {
+    assert_true(executed, "whitespace.js should have executed");
+  });
+  script.setAttribute("src", "\t\n\f\r ");
+  document.body.appendChild(script);
+});
+</script>

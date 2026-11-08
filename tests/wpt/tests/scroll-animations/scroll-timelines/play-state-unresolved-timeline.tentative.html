@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Test preservation of play state switching in and out of timelines.</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/13807#issuecomment-4390005560">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="testcommon.js"></script>
+
+<style>
+main {
+  timeline-scope: all;
+}
+</style>
+<script>
+async function assert_width(element, expected) {
+  await waitForNextFrame();
+  assert_equals(getComputedStyle(element).width, expected);
+}
+</script>
+
+<main id=main></main>
+
+<template id=base_template>
+  <style>
+    #scroller {
+      width: 100px;
+      height: 100px;
+      overflow: scroll;
+      scroll-timeline: --foo;
+      scrollbar-width: none;
+    }
+
+    .content {
+      height: 500px;
+    }
+
+    @keyframes kf {
+      0% {
+        width: 100px;
+      }
+      100% {
+        width: 200px;
+      }
+    }
+
+    #target {
+      width: 50px;
+      height: 50px;
+      animation: auto linear kf;
+      animation-timeline: --foo;
+    }
+  </style>
+  <div id=target></div>
+  <div id=scroller><div class=content></div></div>
+</template>
+<script>
+promise_test(async (t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(base_template.content.cloneNode(true));
+  let anim = target.getAnimations()[0];
+  await anim.ready;
+
+  scroller.scrollTop = 200;
+  await assert_width(target, "150px");
+
+  // Switch to unresolved timeline
+  target.style.animationTimeline = "--unknown";
+  await waitForNextFrame();
+
+  // Switch back
+  target.style.animationTimeline = "";
+  scroller.scrollTop = 0;
+
+  // Take the new progress
+  await assert_width(target, "100px");
+  assert_equals(anim.playState, "running");
+
+  // Moving the scroll affects the animation
+  scroller.scrollTop = 300;
+  await assert_width(target, "175px");
+}, "Moving back and forth between scroll timeline and the unresolved timeline preserves the playing state");
+</script>
+
+<script>
+promise_test(async (t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(base_template.content.cloneNode(true));
+  let anim = target.getAnimations()[0];
+  await anim.ready;
+
+  scroller.scrollTop = 200;
+  await assert_width(target, "150px");
+
+  anim.pause();
+  await anim.ready;
+
+  // Switch to unresolved timeline
+  target.style.animationTimeline = "--unknown";
+  await waitForNextFrame();
+
+  // Switch back
+  target.style.animationTimeline = "";
+  scroller.scrollTop = 0;
+
+  // Preserved the previous progress
+  await assert_width(target, "150px");
+  assert_equals(anim.playState, "paused");
+
+  // Does not respond to scroll change
+  scroller.scrollTop = 300;
+  await assert_width(target, "150px");
+}, "Moving back and forth between scroll timeline and the unresolved timeline preserves the paused state");
+</script>
+
+<script>
+promise_test(async (t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(base_template.content.cloneNode(true));
+  let anim = target.getAnimations()[0];
+  await anim.ready;
+
+  scroller.scrollTop = 200;
+  await assert_width(target, "150px");
+
+  // Cause the target to lose the scroll timeline
+  scroller.style.scrollTimeline = "--bar";
+  await waitForNextFrame();
+
+  // Switch back
+  scroller.style.scrollTimeline = "";
+  scroller.scrollTop = 0;
+
+  // Take the new progress
+  await assert_width(target, "100px");
+  assert_equals(anim.playState, "running");
+
+  // Moving the scroll affects the animation
+  scroller.scrollTop = 300;
+  await assert_width(target, "175px");
+}, "Scroll timeline becoming unresolved preserves the playing state");
+</script>
+
+<script>
+promise_test(async (t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(base_template.content.cloneNode(true));
+  let anim = target.getAnimations()[0];
+  await anim.ready;
+  scroller.scrollTop = 200;
+  await assert_width(target, "150px");
+
+  anim.pause();
+  await anim.ready;
+
+  // Cause the target to lose the scroll timeline
+  scroller.style.scrollTimeline = "--bar";
+  await waitForNextFrame();
+
+  // Switch back
+  scroller.style.scrollTimeline = "";
+  scroller.scrollTop = 0;
+
+  // Preserved the previous progress
+  await assert_width(target, "150px");
+  assert_equals(anim.playState, "paused");
+
+  // Does not respond to scroll change
+  scroller.scrollTop = 300;
+  await assert_width(target, "150px");
+}, "Scroll timeline becoming unresolved preserves the paused state");
+</script>

@@ -124,14 +124,6 @@ async function createDedicatedWorkerContext(t, origin, header) {
   return [uuid, worker_url];
 }
 
-async function createSharedWorkerContext(t, origin, header) {
-  const uuid = token();
-  const worker_url = origin + remote_executor_worker_path + header + '&uuid=' + uuid;
-  const worker = new SharedWorker(worker_url);
-  worker.addEventListener('error', t.unreached_func('Worker.onerror'));
-  return [uuid, worker_url];
-}
-
 async function createIframeWithSWContext(t, origin, header) {
   // Register a service worker with no headers.
   const uuid = token();
@@ -150,8 +142,8 @@ async function createIframeWithSWContext(t, origin, header) {
   return [uuid, frame_url];
 }
 
-// A common interface for building the 4 type of execution contexts. Outputs the
-// token needed to create the RemoteContext.
+// A common interface for building the 3 types of execution contexts. Outputs
+// the token needed to create the RemoteContext.
 async function getTokenFromEnvironment(t,  environment, headers) {
   switch(environment) {
     case "document":
@@ -160,10 +152,7 @@ async function getTokenFromEnvironment(t,  environment, headers) {
     case "dedicated_worker":
       const dedicated_worker_context = await createDedicatedWorkerContext(t, window.origin, headers);
       return dedicated_worker_context[0];
-    case "shared_worker":
-      const shared_worker_context = await createSharedWorkerContext(t, window.origin, headers);
-      return shared_worker_context[0];
-    case "service_worker":
+    case "document_with_service_worker":
       const sw_context = await createIframeWithSWContext(t, window.origin, headers);
       return sw_context[0];
   }

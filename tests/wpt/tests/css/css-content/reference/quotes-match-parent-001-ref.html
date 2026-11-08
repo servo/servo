@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en-US">
+<meta charset=utf-8>
+<title>quotes: match-parent reference</title>
+
+<style>
+q { quotes: "«" "»"; }
+
+q { color: green; }
+q q { color: blue; }
+q q q { color: magenta; }
+q q q q { color: cyan; }
+</style>
+
+<p>All levels below should use «French»-style quote marks:</p>
+
+<div>
+foo
+  <q>first,
+    <q>second,
+      <q>third,
+        <q>and fourth</q>
+      level</q>
+    of</q>
+  quotes</q>
+bar
+</div>

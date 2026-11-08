@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration: text-decoration-inset is not re-applied at interior marked-text boundaries</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-inset-property">
+<meta name="assert" content="A single underlined element split into several marked-text pieces (here by a selection over the middle) is one continuous decoration: the inset must trim only the element's true start/end endpoints, not the interior boundaries between marked-text pieces.">
+<link rel="match" href="text-decoration-inset-marked-text-gap-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    body { margin: 20px; }
+    div { font: 40px/1.5 Ahem; color: black; }
+    /* The selection only changes the text color, which keeps the decoration visually continuous
+       but splits it into separate marked-text pieces during painting. */
+    #target::selection { color: green; background-color: transparent; }
+    u { text-decoration-line: underline; text-decoration-color: blue; text-underline-position: under; text-decoration-inset: 8px; }
+</style>
+<div><u id="target">XXXXXX</u></div>
+<script>
+    const target = document.getElementById("target").firstChild;
+    const range = new Range();
+    range.setStart(target, 2);
+    range.setEnd(target, 4);
+    getSelection().removeAllRanges();
+    getSelection().addRange(range);
+</script>

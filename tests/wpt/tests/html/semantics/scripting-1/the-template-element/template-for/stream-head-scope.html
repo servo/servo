@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Streaming HTML into body does not patch markers in head</title>
+<link rel="help" href="https://html.spec.whatwg.org/#html-streaming-methods">
+<link rel="help" href="https://html.spec.whatwg.org/#attr-template-for">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+const bodyMethods = [
+  "streamHTMLUnsafe",
+  "streamAppendHTMLUnsafe",
+  "streamPrependHTMLUnsafe",
+];
+
+const childMethods = [
+  "streamBeforeHTMLUnsafe",
+  "streamAfterHTMLUnsafe",
+  "streamReplaceWithHTMLUnsafe",
+];
+
+for (const method of [...bodyMethods, ...childMethods]) {
+  promise_test(async t => {
+    const iframe = document.createElement("iframe");
+    document.body.appendChild(iframe);
+    t.add_cleanup(() => iframe.remove());
+
+    const doc = iframe.contentDocument;
+    doc.head.innerHTML = '<?start name="p">Old head<?end>';
+    doc.body.innerHTML = '<div id="anchor">anchor</div>';
+
+    const target = bodyMethods.includes(method)
+      ? doc.body
+      : doc.getElementById("anchor");
+    const writer = target[method]().getWriter();
+    await writer.write('<template for="p">New head</template>');
+    await writer.close();
+
+    assert_equals(doc.head.textContent, "Old head", "head marker is not patched");
+    assert_not_equals(
+      doc.body.querySelector('template[for="p"]'),
+      null,
+      "unmatched template is inserted into body instead"
+    );
+  }, `${method} targeting body does not patch markers in head`);
+
+  promise_test(async t => {
+    const iframe = document.createElement("iframe");
+    document.body.appendChild(iframe);
+    t.add_cleanup(() => iframe.remove());
+
+    const doc = iframe.contentDocument;
+    doc.head.innerHTML = '<?start name="p">Old head<?end>';
+    doc.body.innerHTML = '<div id="anchor">anchor</div>';
+
+    const target = bodyMethods.includes(method)
+      ? doc.body
+      : doc.getElementById("anchor");
+    const writer = target[method]().getWriter();
+    await writer.write(
+      '<div id="in-body"><?start name="p">Old body<?end></div>' +
+      '<template for="p">New body</template>'
+    );
+    await writer.close();
+
+    assert_equals(doc.head.textContent, "Old head", "head marker is untouched");
+    assert_equals(
+      doc.getElementById("in-body").textContent,
+      "New body",
+      "body marker within scope is patched"
+    );
+  }, `${method} targeting body patches markers in body without touching head`);
+}
+
+promise_test(async t => {
+  const iframe = document.createElement("iframe");
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+
+  const doc = iframe.contentDocument;
+  const writer = doc.documentElement.streamHTMLUnsafe().getWriter();
+  await writer.write(
+    '<head><div id="in-head"><?start name="p">Old head<?end></div></head>' +
+    '<body><template for="p">New head</template></body>'
+  );
+  await writer.close();
+
+  assert_equals(
+    doc.getElementById("in-head").textContent,
+    "New head",
+    "template inside streamed body patches head when streaming into documentElement"
+  );
+}, "streamHTMLUnsafe on documentElement allows template in body to patch head");
+</script>
+</body>

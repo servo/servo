@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Reference for column grid-lanes early breaks in a resumed container</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<style>
+  .reference {
+    background: green;
+    display: flex;
+    width: 80px;
+    height: 100px;
+  }
+  .column {
+    flex: 0 0 40px;
+  }
+  .lane {
+    width: 20px;
+  }
+</style>
+<p>The colored rectangles on the green background must match the reference.</p>
+<div class="reference">
+  <div class="column"></div>
+  <div class="column"></div>
+  <div class="column">
+    <div class="lane">
+      <div style="height: 40px; background: blue;"></div>
+      <div style="height: 60px; background: orange;"></div>
+    </div>
+  </div>
+</div>

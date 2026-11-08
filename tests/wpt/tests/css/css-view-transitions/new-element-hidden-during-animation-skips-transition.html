@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>View transition is skipped when a captured new element becomes hidden while animating</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/#update-pseudo-element-styles">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+    #target {
+        width: 100px;
+        height: 100px;
+        background: green;
+        view-transition-name: target;
+    }
+    ::view-transition-group(target),
+    ::view-transition-old(target),
+    ::view-transition-new(target) {
+        animation-duration: 100000s;
+    }
+</style>
+<div id="container"><div id="target"></div></div>
+<script>
+promise_test(async t => {
+    const transition = document.startViewTransition();
+    transition.finished.catch(() => { });
+    await transition.ready;
+
+    document.getElementById("container").style.contentVisibility = "hidden";
+
+    const result = await Promise.race([
+        transition.finished.then(() => "finished", () => "finished"),
+        new Promise(resolve => t.step_timeout(() => resolve("timeout"), 1000))
+    ]);
+    assert_equals(result, "finished");
+}, "Skipping the content of the captured new element during the animation phase skips the transition");
+</script>

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Custom Elements: XML fragment parsing algorithm must not construct custom elements synchronously</title>
+<meta name="author" title="Keith Cirkel" href="mailto:wpt@keithcirkel.co.uk" />
+<meta name="assert" content="The XML fragment parsing algorithm creates elements in a new Document, so custom elements are upgraded after insertion rather than constructed during parsing" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/xhtml.html#xml-fragment-parsing-algorithm" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/parsing.html#create-an-element-for-the-token" />
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-create-element" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<div id="container"></div>
+<script>
+<![CDATA[
+
+const container = document.getElementById('container');
+let constructions = [];
+
+class SomeElement extends HTMLElement {
+    constructor() {
+        super();
+        constructions.push({
+            parentNode: this.parentNode,
+            isConnected: this.isConnected,
+            nextSiblingLocalName: this.nextSibling ? this.nextSibling.localName : null,
+            childCount: this.childNodes.length,
+        });
+    }
+}
+customElements.define('some-element', SomeElement);
+
+const markup = '<some-element><span>child</span></some-element><b>after</b>';
+
+function assert_constructed_after_insertion(parent) {
+    assert_equals(constructions.length, 1, 'constructor ran once');
+    const record = constructions[0];
+    assert_equals(record.parentNode, parent, 'element was already inserted when constructed');
+    assert_true(record.isConnected, 'element was connected when constructed');
+    assert_equals(record.nextSiblingLocalName, 'b', 'following sibling was already parsed when constructed');
+    assert_equals(record.childCount, 1, 'children were already parsed when constructed');
+}
+
+test(function () {
+    this.add_cleanup(() => { container.innerHTML = ''; constructions = []; });
+
+    container.innerHTML = markup;
+
+    assert_constructed_after_insertion(container);
+    assert_true(container.firstChild instanceof SomeElement, 'element was upgraded by the time the setter returned');
+}, 'innerHTML on an XML document must upgrade custom elements after insertion, not construct them during parsing');
+
+test(function () {
+    this.add_cleanup(() => { container.innerHTML = ''; constructions = []; });
+
+    container.insertAdjacentHTML('afterbegin', markup);
+
+    assert_constructed_after_insertion(container);
+    assert_true(container.firstChild instanceof SomeElement, 'element was upgraded by the time the call returned');
+}, 'insertAdjacentHTML on an XML document must upgrade custom elements after insertion, not construct them during parsing');
+
+test(function () {
+    this.add_cleanup(() => { container.innerHTML = ''; constructions = []; });
+
+    const target = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+    container.appendChild(target);
+    target.outerHTML = markup;
+
+    assert_constructed_after_insertion(container);
+    assert_true(container.firstChild instanceof SomeElement, 'element was upgraded by the time the setter returned');
+}, 'outerHTML on an XML document must upgrade custom elements after insertion, not construct them during parsing');
+
+]]>
+</script>
+</body>
+</html>

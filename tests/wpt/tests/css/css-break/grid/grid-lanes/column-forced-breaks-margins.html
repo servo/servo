@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>Column grid-lanes preserve item margins after forced breaks</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="help" href="https://drafts.csswg.org/css-break/#break-margins">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .multicol {
+    columns: 2;
+    column-fill: auto;
+    column-gap: 0;
+    width: 80px;
+    height: 100px;
+  }
+  .grid-lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(2, 20px);
+    width: 40px;
+  }
+  .first, .following, .last {
+    grid-column: 1;
+    height: 20px;
+  }
+  .following {
+    margin-block-start: 10px;
+    break-inside: avoid;
+  }
+</style>
+<div id="log"></div>
+<script>
+for (const span of [1, 2]) {
+  for (const forced of ["before", "after", "none"]) {
+    test(t => {
+      const multicol = document.createElement("div");
+      multicol.className = "multicol";
+      multicol.innerHTML = `
+        <div class="grid-lanes">
+          <div class="first" style="height:${forced === "none" ? 90 : 20}px;
+              ${forced === "after" ? "break-after:column" : ""}"></div>
+          <div class="following" style="grid-column:1 / span ${span};
+              ${forced === "before" ? "break-before:column" : ""}"></div>
+          <div class="last"></div>
+        </div>`;
+      document.body.appendChild(multicol);
+      t.add_cleanup(() => multicol.remove());
+      const origin = multicol.getBoundingClientRect();
+      const following = multicol.querySelector(".following").getClientRects()[0];
+      const last = multicol.querySelector(".last").getClientRects()[0];
+      const margin = forced === "none" ? 0 : 10;
+      assert_equals(following.left - origin.left, 40, "The item starts in column 2");
+      assert_equals(following.top - origin.top, margin, "Only forced breaks preserve the start margin");
+      assert_equals(last.left - origin.left, 40, "The last item remains in column 2");
+      assert_equals(last.top - origin.top, margin + 20, "The last item accounts for the margin");
+    }, `${span}-lane item margin after break-${forced === "none" ? "inside: avoid" : `${forced}: column`}`);
+  }
+}
+</script>

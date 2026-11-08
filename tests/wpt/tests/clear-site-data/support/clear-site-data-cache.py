@@ -73,6 +73,7 @@ def main(request, response):
     else:
         headers += [(b"Content-Type", b"text/html")]
 
+    headers += [(b"Access-Control-Allow-Origin", b"*")]
     if cache:
         headers += [(b"cache-control", b"public, max-age=31536000, immutable")]
     else:
@@ -160,8 +161,8 @@ def main(request, response):
             </script>
             <body>
                 {request.url}<br>
-                <img id="randomess1" src="{urls[0]}"></img><br>
-                <img id="randomess2" src="{urls[1]}"></img><br>
+                <img id="randomess1" src="{urls[0]}"><br>
+                <img id="randomess2" src="{urls[1]}"><br>
             </body>'''
     elif response_type == b"css":
         # send unique UUID. helper for below "html_embed_css"

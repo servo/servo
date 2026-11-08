@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration: text-decoration-inset trims the underline inward</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-inset-property">
+<link rel="match" href="text-decoration-inset-trims-underline-ref.html">
+<meta name="assert" content="A large positive text-decoration-inset trims the underline from both endpoints until nothing is drawn.">
+<style>
+    body { margin: 20px; font: 40px/1.5 monospace; }
+    /* The start and end insets together exceed the underline length, so no underline is drawn. */
+    u { text-decoration-inset: 1000px; }
+</style>
+<p><u>abc</u></p>

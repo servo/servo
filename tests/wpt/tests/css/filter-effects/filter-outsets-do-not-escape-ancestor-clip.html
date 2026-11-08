@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Filter Effects: filter outsets do not paint outside an ancestor clip</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="match" href="filter-outsets-do-not-escape-ancestor-clip-ref.html">
+<meta name="assert" content="The outsets of a pixel-moving filter enlarge the area the filtered element paints into, but the element is still clipped by an ancestor with overflow: hidden, whether or not the element is composited.">
+<style>
+.clip {
+    overflow: hidden;
+    width: 100px;
+    height: 100px;
+}
+.composited { will-change: transform; }
+.shadowed {
+    width: 200px;
+    height: 200px;
+    margin: -50px 0 0 -50px;
+    background: green;
+    filter: drop-shadow(60px 0 0 green);
+    will-change: filter;
+}
+</style>
+<p>Test passes if there is a green square below and no green anywhere to the right of or below it.</p>
+<div class="clip">
+    <div class="composited">
+        <div class="shadowed"></div>
+    </div>
+</div>

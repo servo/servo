@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="timeout" content="long">
-<title>CSS Grid Lanes: grid-columns reading flow with spanning items and dense packing</title>
+<title>CSS Grid Lanes: grid-lanes-track reading flow with spanning items and dense packing</title>
 <link rel="help" href="https://www.w3.org/TR/css-display-4/">
 <link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-layout">
 <script src="/resources/testharness.js"></script>
@@ -20,7 +20,7 @@
   display: grid-lanes;
   grid-template-columns: repeat(3, 80px);
   fit-tolerance: 0;
-  reading-flow: grid-columns;
+  reading-flow: grid-lanes-track;
   width: 240px;
 }
 .lanes > button {
@@ -34,7 +34,7 @@
 
 <!-- Spanning items are read once, when first encountered in visual track order. -->
 <div class="test-case" data-expect="a,c,b,d"
-     data-description="Grid-columns reads spanning items once in visual column order">
+     data-description="Grid-lanes-track reads spanning items once in visual column order">
   <div class="lanes">
     <button id="a" style="height: 40px">A</button>
     <button id="b" style="grid-column: span 2; height: 100px">B</button>
@@ -45,8 +45,8 @@
 
 <!-- The gap between E and G in the first track is large enough to backfill H. -->
 <div class="test-case" data-expect="e,h,g,f"
-     data-description="Grid-columns follows visual column order after dense backfill">
-  <div class="lanes" style="grid-lanes-pack: dense">
+     data-description="Grid-lanes-track follows visual column order after dense backfill">
+  <div class="lanes" style="grid-auto-flow: dense; grid-lanes-pack: dense">
     <button id="e" style="height: 40px">E</button>
     <button id="f" style="grid-column: span 2; height: 100px">F</button>
     <button id="g" style="grid-column: span 2; height: 20px">G</button>

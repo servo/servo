@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Michael Zaporozhets" href="mailto:michaelzaporozhets@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-font-loading/#font-face-set-check">
+<meta name="assert" content="Ensure that FontFaceSet.check() returns false, not true, once the only matching
+                             FontFace has permanently failed to load." />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="target">a</div>
+<script>
+promise_test(async function(t) {
+    const family = 'TestFontFaceCheckErrorStatus';
+    const face = new FontFace(family, 'local("nonexistentfont-fb9e6ab2-c0a0-4f0a-9f0a-9c9a9e9a9e9a")');
+    document.fonts.add(face);
+
+    // Apply the family and force layout before the face has settled, so this also covers the
+    // case where the family's matching font face gets looked up (and could be cached) while the
+    // face is still pending, before its status becomes "error".
+    target.style.fontFamily = `${family}, serif`;
+    target.getBoundingClientRect();
+    assert_false(document.fonts.check(`16px ${family}`), 'check() before load settles');
+
+    await promise_rejects_dom(t, 'NetworkError', face.load());
+    assert_equals(face.status, 'error');
+    assert_false(document.fonts.check(`16px ${family}`), 'check() right after the face settles to "error"');
+
+    target.getBoundingClientRect();
+    assert_false(document.fonts.check(`16px ${family}`), 'check() after another layout');
+}, 'check() returns false for a family whose only matching face has already failed to load');
+</script>
+</html>

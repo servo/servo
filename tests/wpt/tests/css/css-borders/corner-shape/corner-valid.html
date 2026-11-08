@@ -2,23 +2,99 @@
 <meta charset="utf-8">
 <title>CSS Borders and Box Decorations 4 Test: Parsing 'corner' with valid values</title>
 <link rel="author" title="Sebastian Zartner" href="mailto:sebastianzartner@gmail.com">
-<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shaping">
-<meta name="assert" content="This test checks that 'corner' supports a combination of 'border-radius' and 'corner-shape' values.">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shorthand">
+<meta name="assert" content="This test checks that 'corner' supports <'corner-shape'> || <'border-radius'>.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
 
 <script>
-test_valid_value("corner", "round 30%", "30% round");
-test_valid_value("corner", "10px bevel");
-test_valid_value("corner", "round 10% / 2rem squircle", "10% round / 2rem squircle");
-test_valid_value("corner", "notch 10px / squircle 30% 10px / 1rem bevel / 2px round", "10px notch / 30% 10px squircle / 1rem bevel / 2px round");
-test_valid_value("corner", "normal");
-test_valid_value("corner", "4px 2% round");
-test_valid_value("corner", "4px 2% round / bevel 1em / normal", "4px 2% round / 1em bevel / normal");
-test_valid_value("corner", "normal / 1px round / normal / 3% squircle");
-test_valid_value("corner", "normal / superellipse(-0.5) 30% 10px / 10px 1rem notch", "normal / 30% 10px superellipse(-0.5) / 10px 1rem notch");
-test_valid_value("corner", "0px notch");
-test_valid_value("corner", "0px superellipse(1)", "normal");
-test_valid_value("corner", "0px round", "normal");
+// Each component alone; the omitted component resets to its initial value.
+test_valid_value("corner", "10px");
+test_valid_value("corner", "bevel");
+test_valid_value("corner", "round", "0px");
+test_valid_value("corner", "0", "0px");
+test_valid_value("corner", "0px round", "0px");
+test_valid_value("corner", "0% bevel", "bevel 0%");
+
+// Order independence.
+test_valid_value("corner", "round 3px", "3px");
+test_valid_value("corner", "3px round", "3px");
+test_valid_value("corner", "bevel 0.25em");
+test_valid_value("corner", "0.25em bevel", "bevel 0.25em");
+test_valid_value("corner", "10px bevel", "bevel 10px");
+test_valid_value("corner", "notch 10px");
+test_valid_value("corner", "superellipse(-0.5) 30% 10px");
+
+// Elliptical radii: the slash belongs to the radius grammar.
+test_valid_value("corner", "round 5px / 3px", "5px / 3px");
+test_valid_value("corner", "5px / 3px bevel", "bevel 5px / 3px");
+test_valid_value("corner", "10px 20px / 5px bevel", "bevel 10px 20px / 5px");
+
+// 1-4 values with corner-copy rules for both components.
+test_valid_value("corner", "1px 2px 3px bevel", "bevel 1px 2px 3px");
+test_valid_value("corner", "bevel scoop 2px");
+test_valid_value("corner", "square bevel bevel square 10px / 50%");
+test_valid_value("corner", "bevel 0 5px 5px 0 / 0 50% 50% 0", "bevel 0px 5px 5px 0px / 0px 50% 50% 0px");
+test_valid_value("corner", "bevel square bevel square 10px / 100%", "bevel square 10px / 100%");
+
+test_shorthand_value("corner", "10px bevel", {
+  "border-top-left-radius": "10px",
+  "border-top-right-radius": "10px",
+  "border-bottom-right-radius": "10px",
+  "border-bottom-left-radius": "10px",
+  "corner-top-left-shape": "bevel",
+  "corner-top-right-shape": "bevel",
+  "corner-bottom-right-shape": "bevel",
+  "corner-bottom-left-shape": "bevel",
+});
+test_shorthand_value("corner", "10px", {
+  "border-top-left-radius": "10px",
+  "border-top-right-radius": "10px",
+  "border-bottom-right-radius": "10px",
+  "border-bottom-left-radius": "10px",
+  "corner-top-left-shape": "round",
+  "corner-top-right-shape": "round",
+  "corner-bottom-right-shape": "round",
+  "corner-bottom-left-shape": "round",
+});
+test_shorthand_value("corner", "bevel", {
+  "border-top-left-radius": "0px",
+  "border-top-right-radius": "0px",
+  "border-bottom-right-radius": "0px",
+  "border-bottom-left-radius": "0px",
+  "corner-top-left-shape": "bevel",
+  "corner-top-right-shape": "bevel",
+  "corner-bottom-right-shape": "bevel",
+  "corner-bottom-left-shape": "bevel",
+});
+test_shorthand_value("corner", "square bevel bevel square 10px / 50%", {
+  "border-top-left-radius": "10px 50%",
+  "border-top-right-radius": "10px 50%",
+  "border-bottom-right-radius": "10px 50%",
+  "border-bottom-left-radius": "10px 50%",
+  "corner-top-left-shape": "square",
+  "corner-top-right-shape": "bevel",
+  "corner-bottom-right-shape": "bevel",
+  "corner-bottom-left-shape": "square",
+});
+test_shorthand_value("corner", "bevel 0 5px 5px 0 / 0 50% 50% 0", {
+  "border-top-left-radius": "0px",
+  "border-top-right-radius": "5px 50%",
+  "border-bottom-right-radius": "5px 50%",
+  "border-bottom-left-radius": "0px",
+  "corner-top-left-shape": "bevel",
+  "corner-top-right-shape": "bevel",
+  "corner-bottom-right-shape": "bevel",
+  "corner-bottom-left-shape": "bevel",
+});
+
+// A later 'corner' resets a shape set by an earlier declaration.
+test(() => {
+  const div = document.createElement('div');
+  div.style.cssText = 'corner-shape: bevel; corner: 10px;';
+  assert_equals(div.style.getPropertyValue('corner-top-left-shape'), 'round');
+  assert_equals(div.style.getPropertyValue('border-top-left-radius'), '10px');
+}, "'corner' resets an omitted component to its initial value");
 </script>

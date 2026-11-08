@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>wrap-inside: avoid breaks before an unbreakable child as a last resort</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#wrap-inside">
+<link rel="match" href="wrap-inside-avoid-nowrap-child-ref.html">
+<meta name="assert" content="When a 'wrap-inside: avoid' box does not fit and its overflowing part cannot wrap (white-space: nowrap), the box breaks at the last soft wrap opportunity inside it - before the unbreakable child - as a last resort.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    div { width: 110px; font: 20px/20px Ahem; color: green; }
+</style>
+<!--
+    "AA BB CC" (160px) does not fit within 110px. The "BB CC" child cannot wrap (nowrap), so the only usable break is the soft wrap
+    opportunity inside the avoid box, before the child: "AA" / "BB CC". The box is broken internally only because there is no break outside it.
+-->
+<div><span style="wrap-inside: avoid">AA <span style="white-space: nowrap">BB CC</span></span></div>

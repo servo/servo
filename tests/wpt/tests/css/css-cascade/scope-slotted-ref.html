@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>@scope - slotted elements reference</title>
+<style>
+h1 { color: purple; }
+</style>
+<div class="test-scope">
+    <x-card>
+        <h1 slot="heading">Slotted H1</h1>
+    </x-card>
+    <h1>Unslotted H1</h1>
+</div>
+<script>
+customElements.define('x-card', class extends HTMLElement {
+    constructor() {
+        super();
+        this.attachShadow({ mode: 'open' }).innerHTML = '<slot name="heading"></slot><slot></slot>';
+    }
+});
+</script>

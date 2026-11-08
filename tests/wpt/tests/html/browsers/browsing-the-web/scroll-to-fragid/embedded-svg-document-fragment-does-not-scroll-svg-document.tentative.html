@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Scrolling to the fragment of an embedded SVG document scrolls neither the SVG document nor the parent document</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#scroll-to-the-fragment-identifier">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/linking.html#SVGFragmentIdentifiers">
+<link rel="help" href="https://github.com/w3c/svgwg/issues/1219">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+iframe { border: 0; }
+</style>
+<body style="margin:0">
+<div style="padding-block:1000px"><iframe id="frame"></iframe></div>
+<div style="padding-block:3000px"><iframe id="control"></iframe></div>
+<script>
+const frame = document.getElementById("frame");
+const control = document.getElementById("control");
+
+promise_test(async t => {
+  const scrollPositions = [];
+  const recordScroll = () => scrollPositions.push(window.scrollY);
+  window.addEventListener("scroll", recordScroll);
+  t.add_cleanup(() => { window.removeEventListener("scroll", recordScroll); window.scrollTo(0, 0); });
+
+  const frameLoaded = new Promise(resolve => frame.addEventListener("load", resolve, { once: true }));
+  frame.src = "resources/tall-fragment-target.svg#far";
+  await frameLoaded;
+
+  // Positive control: an HTML document with a fragment does scroll itself. Once that has happened,
+  // the fragment scroll for the SVG document, which loaded first, has had its chance and did not.
+  const loaded = new Promise(resolve => control.addEventListener("load", resolve, { once: true }));
+  control.src = "resources/tall-fragment-target.html#t";
+  await loaded;
+  await t.step_wait(() => control.contentWindow.scrollY > 0, "control HTML document scrolled to its fragment");
+
+  assert_equals(frame.contentWindow.scrollY, 0, "SVG document scroll position");
+  assert_false(scrollPositions.includes(frame.offsetTop), "parent document never scrolled to the SVG iframe");
+}, "Scrolling to the fragment of an SVG document in an <iframe> does not scroll the SVG document");
+</script>
+</body>

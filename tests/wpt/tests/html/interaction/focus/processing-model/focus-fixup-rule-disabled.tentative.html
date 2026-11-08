@@ -1,0 +1,119 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Focused form controls which become disabled retain focus</title>
+<link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+<link
+  rel="help"
+  href="https://html.spec.whatwg.org/multipage/interaction.html#focus-fixup-rule"
+/>
+<link rel="help" href="https://github.com/whatwg/html/issues/13159" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div>
+  <button id="button">Button</button>
+  <input id="input" />
+  <input id="date" type="date" />
+  <select id="select">
+    <option>Option</option>
+  </select>
+  <textarea id="textarea"></textarea>
+  <fieldset id="fieldset">
+    <button id="fieldset-button">Button</button>
+  </fieldset>
+  <button id="other" disabled>Other</button>
+</div>
+
+<script>
+  "use strict";
+
+  function updateRendering() {
+    return new Promise((r) =>
+      requestAnimationFrame(() => requestAnimationFrame(r)),
+    );
+  }
+
+  function test_disabled_focus(selector, disabler) {
+    promise_test(
+      async (t) => {
+        await updateRendering();
+        const el = document.querySelector(selector);
+        const toggle = disabler ? document.querySelector(disabler) : el;
+        t.add_cleanup(() => {
+          toggle.disabled = false;
+          el.blur();
+        });
+
+        el.focus();
+        assert_equals(
+          document.activeElement,
+          el,
+          "Sanity check: element starts focused",
+        );
+
+        const events = [];
+        for (const type of ["blur", "focusout", "focus", "focusin"]) {
+          el.addEventListener(type, () => events.push(type));
+        }
+
+        toggle.disabled = true;
+        await updateRendering();
+        assert_true(el.matches(":disabled"), "Element is disabled");
+        assert_equals(document.activeElement, el, "Element retains focus");
+        assert_true(el.matches(":focus"), "Element matches :focus");
+        assert_array_equals(events, [], "No focus events fire when disabling");
+
+        document.querySelector("#other").focus();
+        assert_equals(
+          document.activeElement,
+          el,
+          "Another disabled element can't take focus",
+        );
+
+        el.blur();
+        el.focus();
+        assert_not_equals(
+          document.activeElement,
+          el,
+          "Disabled element can't regain focus",
+        );
+
+        toggle.disabled = false;
+        el.focus();
+        assert_equals(
+          document.activeElement,
+          el,
+          "Re-enabled element can be focused",
+        );
+      },
+      `${selector}${disabler ? ` disabled via ${disabler}` : ""}`,
+    );
+  }
+
+  test_disabled_focus("#button");
+  test_disabled_focus("#input");
+  test_disabled_focus("#date");
+  test_disabled_focus("#select");
+  test_disabled_focus("#textarea");
+  test_disabled_focus("#fieldset-button", "#fieldset");
+
+  promise_test(async (t) => {
+    await updateRendering();
+    const el = document.querySelector("#button");
+    t.add_cleanup(() => {
+      el.disabled = false;
+      el.hidden = false;
+    });
+    el.focus();
+    el.disabled = true;
+    await updateRendering();
+    assert_equals(document.activeElement, el, "Disabled element retains focus");
+    el.hidden = true;
+    await updateRendering();
+    assert_equals(
+      document.activeElement,
+      document.body,
+      "Hiding still runs focus fixup",
+    );
+  }, "Other focus fixup triggers still apply to disabled elements");
+</script>

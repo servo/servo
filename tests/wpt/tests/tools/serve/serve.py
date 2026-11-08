@@ -1006,6 +1006,24 @@ def get_route_builder(logger, aliases, config):
     return builder
 
 
+def raise_open_file_limit():
+    if sys.platform != "darwin":
+        return
+
+    # on Darwin, NOFILE starts with a very low limit (256), so bump it up a little
+    # by way of comparison, Debian starts with a limit of 1024, Windows 512
+    import resource  # local, as it only exists on Unix-like systems
+    maxfilesperproc = int(subprocess.check_output(
+        ["sysctl", "-n", "kern.maxfilesperproc"]
+    ).strip())
+    soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    # 2048 is somewhat arbitrary, but gives us some headroom for wptrunner --parallel
+    # note that it's expected that 2048 will be the min here
+    new_soft = min(2048, maxfilesperproc, hard)
+    if soft < new_soft:
+        resource.setrlimit(resource.RLIMIT_NOFILE, (new_soft, hard))
+
+
 class ServerProc:
     def __init__(self, mp_context, scheme=None):
         self.proc = None
@@ -1031,19 +1049,7 @@ class ServerProc:
         os.environ = env
         logger = get_logger(config.logging["level"], log_handlers)
 
-        if sys.platform == "darwin":
-            # on Darwin, NOFILE starts with a very low limit (256), so bump it up a little
-            # by way of comparison, Debian starts with a limit of 1024, Windows 512
-            import resource  # local, as it only exists on Unix-like systems
-            maxfilesperproc = int(subprocess.check_output(
-                ["sysctl", "-n", "kern.maxfilesperproc"]
-            ).strip())
-            soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
-            # 2048 is somewhat arbitrary, but gives us some headroom for wptrunner --parallel
-            # note that it's expected that 2048 will be the min here
-            new_soft = min(2048, maxfilesperproc, hard)
-            if soft < new_soft:
-                resource.setrlimit(resource.RLIMIT_NOFILE, (new_soft, hard))
+        raise_open_file_limit()
         try:
             self.daemon = init_func(logger, host, port, paths, routes, bind_address, config, **kwargs)
         except OSError:

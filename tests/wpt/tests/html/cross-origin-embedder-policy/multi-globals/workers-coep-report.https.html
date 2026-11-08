@@ -13,9 +13,7 @@
 async function observeReports(global) {
   const reports = [];
   const observer = new global.ReportingObserver((rs) => {
-    for (const r of rs) {
-      reports.push(r.toJSON());
-    }
+    reports.push(...rs);
   });
   observer.observe();
 

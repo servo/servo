@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Lists: nested outside markers sharing one first formatted line follow it when it changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#list-style-position-outside">
+<link rel="match" href="outside-marker-nested-shared-container-ref.html">
+<meta name="assert" content="Nested list items resolve to the same first formatted line, and both markers are placed against it.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  ul { margin: 0; padding: 0; }
+  li { font: 20px/20px Ahem; margin-left: 40px; }
+</style>
+
+<p>The test passes if both bullets are on the same line as the "x", to the left of it and of each other.</p>
+
+<ul><li><ul><li><div id="content"></div></li></ul></li></ul>
+<script>
+  document.body.offsetHeight;
+  document.getElementById("content").appendChild(document.createTextNode("x"));
+  document.body.offsetHeight;
+</script>

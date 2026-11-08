@@ -46,7 +46,7 @@ def test_element_outside_of_scrollable_viewport(session, inline):
         </style>
 
         <div class="scroll-container">
-            <input type="text" size="20" value="foo"></input>
+            <input type="text" size="20" value="foo">
         </div>
         """)
 

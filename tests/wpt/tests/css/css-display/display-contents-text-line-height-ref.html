@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Display Reference: the line-height of the parent box applies to text in a display: contents element</title>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+div { font: 20px/30px Ahem; margin: 10px; width: 400px; }
+.big { font-size: 40px; line-height: 0; }
+</style>
+<div>before <span class="big">big</span> after</div>
+<div>before tall after</div>
+<div>before <span class="big">both</span> after</div>
+<div>before <span class="big">changed</span> after</div>
+<div>before unchanged after</div>
+<div><span class="big">single text child</span></div>
+<div style="width: 300px"><span style="white-space: nowrap">no wrap in here</span> wraps</div>

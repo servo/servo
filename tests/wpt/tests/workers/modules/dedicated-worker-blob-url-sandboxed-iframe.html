@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Module workers from blob URLs in a sandboxed iframe with an opaque origin</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/workers.html#dom-worker">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe id="sandboxed-iframe" sandbox="allow-scripts" style="display: none"></iframe>
+
+<script>
+const frame = document.querySelector('#sandboxed-iframe');
+frame.srcdoc = '<!doctype html>\n<meta charset="utf-8">\n' +
+    '<script src="/resources/testharness.js"></' + 'script>\n' +
+    '<script src="dedicated-worker-blob-url.window.js"></' + 'script>\n';
+
+fetch_tests_from_window(frame.contentWindow);
+</script>

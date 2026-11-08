@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: registerTool() after about:blank replaces the initial about:blank document</title>
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<!-- This iframe is far outside the viewport, so lazy loading defers its
+     navigation and it stays on its initial about:blank document [1].
+
+     [1]: https://html.spec.whatwg.org/#is-initial-about:blank -->
+<iframe id="iframe" loading="lazy" src="/common/blank.html"
+        style="position: absolute; top: 10000px"></iframe>
+<script>
+async function toolNames() {
+  const tools = await document.modelContext.getTools();
+  return tools.map(t => t.name);
+}
+
+promise_test(async () => {
+  const iframe = document.getElementById('iframe');
+  const initialDocument = iframe.contentDocument;
+  assert_equals(initialDocument.URL, 'about:blank');
+  await initialDocument.modelContext.registerTool({
+    name: 'initial_tool',
+    description: 'Tool registered by the initial about:blank document',
+    execute: async () => {},
+  });
+  assert_array_equals(await toolNames(), ['initial_tool']);
+
+  // Navigating to about:blank replaces the initial about:blank document.
+  iframe.src = 'about:blank';
+  const newDocument = iframe.contentDocument;
+  assert_not_equals(newDocument, initialDocument);
+  assert_equals(newDocument.URL, 'about:blank');
+
+  await newDocument.modelContext.registerTool({
+    name: 'new_tool',
+    description: 'Tool registered by the new about:blank document',
+    execute: async () => {},
+  });
+  assert_array_equals(await toolNames(), ['new_tool']);
+}, 'The about:blank document that replaces the initial about:blank document ' +
+   'can register tools');
+</script>
+</body>

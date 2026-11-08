@@ -1,0 +1,34 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Container Timing: entries do not expose elements removed from the document</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/container-timing/resources/container-timing-helpers.js"></script>
+<script>
+  promise_test(async t => {
+    assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
+    const div = addContainerRoot(document.body, 'div_ct');
+    const img = addSquare100Image(div, {id: 'img_id'});
+
+    const entries = await getContainerEntries(t);
+    assert_equals(entries.length, 1);
+    const entry = entries[0];
+    assert_equals(entry.rootElement, div);
+    assert_equals(entry.lastPaintedElement.id, 'img_id');
+
+    img.remove();
+    assert_equals(entry.lastPaintedElement, null, 'lastPaintedElement once removed');
+    assert_equals(entry.rootElement, div, 'rootElement while still connected');
+
+    div.remove();
+    assert_equals(entry.rootElement, null, 'rootElement once removed');
+  }, 'rootElement and lastPaintedElement are null once each is removed from the document.');
+</script>
+
+</body>

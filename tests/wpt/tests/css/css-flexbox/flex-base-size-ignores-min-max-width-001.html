@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>CSS Flexbox: the flex base size ignores the item's own min-width and max-width</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#algo-main-item">
+<meta name="assert" content="When determining the flex base size, the item's min and max main sizes are ignored; they clamp the hypothetical main size instead. This holds whether or not the item's intrinsic widths were already computed for a shrink-to-fit ancestor.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.container {
+    float: left;
+    clear: left;
+    max-width: 300px;
+}
+.flex {
+    display: flex;
+    width: 300px;
+}
+.container .flex {
+    width: auto;
+}
+.flex > div {
+    min-width: 0;
+}
+.content {
+    width: 300px;
+    height: 10px;
+    background-color: green;
+}
+</style>
+<body onload="checkLayout('.flex > div')">
+<div class="flex">
+    <div style="max-width: 100px" data-expected-width="100"><div class="content"></div></div>
+    <div data-expected-width="200"><div class="content"></div></div>
+</div>
+<div class="container">
+    <div class="flex">
+        <div style="max-width: 100px" data-expected-width="100"><div class="content"></div></div>
+        <div data-expected-width="200"><div class="content"></div></div>
+    </div>
+</div>
+</body>

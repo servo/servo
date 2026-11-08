@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: text-overflow measures a block ellipsis without the ::first-line style</title>
+<link rel="author" title="Christian Biesinger" href="mailto:cbiesinger@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#text-overflow">
+<link rel="match" href="reference/line-clamp-with-text-overflow-first-line-001-ref.html">
+<meta name="assert" content="The block ellipsis is not part of ::first-line, so text-overflow truncates it as it is rendered, without the letter-spacing of ::first-line.">
+<style>
+div {
+  font: 20px/1.2 monospace;
+  width: 10ch;
+  border: 1px solid;
+  margin: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-clamp: 1 "very long block ellipsis";
+}
+/* With this letter-spacing, fewer characters of the block ellipsis would fit. */
+div::first-line {
+  letter-spacing: 10px;
+}
+</style>
+<p>Test passes if this page renders the same as its reference, which shows the same text as content truncated by text-overflow, without letter-spacing.
+<div>x<br>y</div>
+<div dir="rtl">x<br>y</div>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>scrollIntoView from an SVG document embedded with object-fit</title>
+<link rel="author" title="Felipe Erias" href="mailto:felipeerias@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#the-object-fit">
+<link rel="help" href="https://svgwg.org/svg2-draft/coords.html#ViewportSpace">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollintoview">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body { margin: 0; height: 3000px; }
+  object {
+    position: absolute;
+    top: 1000px;
+    left: 0;
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+  }
+</style>
+<object data="support/colors-16x8.svg" onload="run()"></object>
+<script>
+function run() {
+  test(() => {
+    // The 16x8 SVG document is fitted to 100x50 at y=25 inside the 100x100
+    // content box, so its bottom half starts at y=1050 in this document.
+    const object = document.querySelector('object');
+    object.contentDocument.querySelectorAll('rect')[2]
+        .scrollIntoView({block: 'start'});
+    assert_equals(object.contentWindow.innerHeight, 50, 'fitted height');
+    assert_approx_equals(scrollY, 1050, 1, 'scroll position');
+  }, 'scrollIntoView scrolls to the position of the element in the fitted ' +
+     'SVG document');
+}
+</script>

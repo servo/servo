@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#intrinsic-cross-sizes">
+<meta name="assert" content="A column-wrap container's max-content width follows a change to its parent's height when its height or min-height is a percentage.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.target {
+  width: max-content;
+  height: 400px;
+}
+.flex {
+  display: flex;
+  flex-flow: column wrap;
+}
+.flex > div {
+  width: 50px;
+  height: 100px;
+  flex: none;
+}
+</style>
+<!-- 50% of 200px only fits one item per line, so the two items take two lines. -->
+<div class="target" data-expected-width="100">
+  <div class="flex" style="height: 50%"><div></div><div></div></div>
+</div>
+<div class="target" data-expected-width="100">
+  <div class="flex" style="height: 100px; min-height: 50%"><div></div><div></div></div>
+</div>
+<script>
+document.body.offsetHeight;
+for (const target of document.querySelectorAll(".target"))
+  target.style.height = "200px";
+checkLayout(".target");
+</script>

@@ -26,12 +26,22 @@ self.addEventListener('securitypolicyviolation', e => {
   }
 });
 
+// The import is blocked by the CSP of this worker. Catch the resulting
+// NetworkError, so that the worker's script evaluation doesn't fail; for a
+// service worker that would make its registration fail, which can tear down
+// the worker before it has reported the violation.
+function importBlockedScript() {
+  try {
+    importScripts('externalScript.js');
+  } catch {}
+}
+
 if (typeof SharedWorkerGlobalScope !== 'undefined' && self instanceof SharedWorkerGlobalScope) {
   self.sharedPorts = [];
   self.addEventListener('connect', e => {
     self.sharedPorts.push(e.ports[0]);
-    importScripts('externalScript.js');
+    importBlockedScript();
   });
 } else {
-  importScripts('externalScript.js');
+  importBlockedScript();
 }

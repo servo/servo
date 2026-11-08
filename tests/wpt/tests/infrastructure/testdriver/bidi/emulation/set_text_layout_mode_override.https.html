@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<title>TestDriver bidi.emulation.set_text_layout_mode_override method</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+    let checkCount = 0;
+
+    // The "mobile" text layout mode enables text autosizing, which makes the
+    // browser honor the `text-size-adjust` CSS property. Detect it by
+    // comparing the computed font size of an element with
+    // `text-size-adjust: 200%` against one with `text-size-adjust: none`.
+    function isTextAutosizingEnabled() {
+        // Use a unique inline style per call, so that styles cached before the
+        // override changed are not reused. Workaround for
+        // https://crbug.com/564804235.
+        checkCount++;
+        const unadjusted = document.createElement("div");
+        unadjusted.style.fontSize = "16px";
+        unadjusted.style.textSizeAdjust = "none";
+        unadjusted.style.zIndex = String(checkCount);
+        const adjusted = document.createElement("div");
+        adjusted.style.fontSize = "16px";
+        adjusted.style.textSizeAdjust = "200%";
+        adjusted.style.zIndex = String(checkCount);
+        // `document.body` does not exist yet when the test starts.
+        document.documentElement.append(unadjusted, adjusted);
+        const unadjustedSize = parseFloat(getComputedStyle(unadjusted).fontSize);
+        const adjustedSize = parseFloat(getComputedStyle(adjusted).fontSize);
+        unadjusted.remove();
+        adjusted.remove();
+        return adjustedSize === unadjustedSize * 2;
+    }
+
+    promise_test(async () => {
+        // Get the initial text autosizing state. It depends on the platform.
+        const initialState = isTextAutosizingEnabled();
+
+        // Enable the "mobile" text layout mode.
+        await test_driver.bidi.emulation.set_text_layout_mode_override({
+            textLayoutMode: "mobile"
+        });
+        // Assert text autosizing is enabled.
+        assert_true(isTextAutosizingEnabled());
+
+        // Clear the text layout mode override with null.
+        await test_driver.bidi.emulation.set_text_layout_mode_override({
+            textLayoutMode: null
+        });
+        // Assert text autosizing state is restored to the initial one.
+        assert_equals(isTextAutosizingEnabled(), initialState);
+
+        // Enable the "mobile" text layout mode again.
+        await test_driver.bidi.emulation.set_text_layout_mode_override({
+            textLayoutMode: "mobile"
+        });
+        assert_true(isTextAutosizingEnabled());
+
+        // Clear the text layout mode override by omitting textLayoutMode.
+        await test_driver.bidi.emulation.set_text_layout_mode_override({});
+        // Assert text autosizing state is restored to the initial one.
+        assert_equals(isTextAutosizingEnabled(), initialState);
+    }, "emulate text layout mode and clear override");
+</script>

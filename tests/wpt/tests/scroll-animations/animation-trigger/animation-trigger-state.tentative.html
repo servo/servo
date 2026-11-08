@@ -94,8 +94,11 @@
             // Expect some progress.
             assert_not_equals(getComputedStyle(target).transform,
               initial_transform);
-            // Exit the range, which should pause the animation.
-            return rangeBoundaries.exitExitRangeBelow();
+            // Exit the range, which should pause the animation. Wait for the
+            // trigger's response before sampling the paused animation.
+            return runAndWaitForTriggerResponse(() => {
+              return rangeBoundaries.exitExitRangeBelow();
+            });
           }, target, ["animationstart", "animationend", "animationcancel"],
           [true, false, false]);
         let partial_transform = getComputedStyle(target).transform;

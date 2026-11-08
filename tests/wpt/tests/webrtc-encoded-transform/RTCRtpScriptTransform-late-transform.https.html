@@ -1,0 +1,131 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>RTCRtpScriptTransform set or cleared after negotiation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../mediacapture-streams/permission-helper.js"></script>
+<script src="/webrtc/RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+// Transforms can be changed at any time. Frames must go through a transform no
+// matter when it is set, and pass through untransformed once it is cleared.
+
+// Waits are bounded so that a transform that never gets frames fails its own
+// test rather than timing out the whole file.
+const kWaitMs = 10000;
+
+function nextMessage(target) {
+  return new Promise(resolve => target.onmessage = event => resolve(event.data));
+}
+
+function nextMessageWithTimeout(t, target, description) {
+  return Promise.race([
+    nextMessage(target),
+    new Promise((resolve, reject) => t.step_timeout(
+        () => reject(new Error(`Timed out waiting for ${description}`)),
+        kWaitMs)),
+  ]);
+}
+
+// Returns a transform whose worker drops all frames and reports the first one
+// on `transform.port`.
+async function createDropTransform(t) {
+  const worker = new Worker('RTCRtpScriptTransform-late-transform-worker.js');
+  t.add_cleanup(() => worker.terminate());
+  assert_equals(await nextMessage(worker), 'registered');
+  const channel = new MessageChannel();
+  const transform = new RTCRtpScriptTransform(
+      worker, {port: channel.port2}, [channel.port2]);
+  transform.port = channel.port1;
+  assert_equals(await nextMessage(transform.port), 'started');
+  return transform;
+}
+
+// Grant media permission before any RTCPeerConnection is created; ICE
+// candidate gathering can depend on it.
+promise_setup(() => setMediaPermission());
+
+async function createCapturedTrackWithCleanup(t, kind) {
+  const stream = await navigator.mediaDevices.getUserMedia({[kind]: true});
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+  return track;
+}
+
+function createPeerConnectionPair(t) {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  const pc2 = createPeerConnectionWithCleanup(t);
+  exchangeIceCandidates(pc1, pc2);
+  return [pc1, pc2];
+}
+
+async function getFramesDecoded(receiver) {
+  const stats = await receiver.getStats();
+  for (const report of stats.values()) {
+    if (report.type == 'inbound-rtp') {
+      return report.framesDecoded ?? 0;
+    }
+  }
+  return 0;
+}
+
+async function waitForFramesDecoded(t, receiver) {
+  const kPollMs = 100;
+  for (let waited = 0; waited < kWaitMs; waited += kPollMs) {
+    if (await getFramesDecoded(receiver) > 0) {
+      return;
+    }
+    await new Promise(resolve => t.step_timeout(resolve, kPollMs));
+  }
+  assert_unreached('Timed out waiting for decoded frames');
+}
+
+for (const kind of ['audio', 'video']) {
+  promise_test(async t => {
+    const transform = await createDropTransform(t);
+    const [pc1, pc2] = createPeerConnectionPair(t);
+    const track1 = await createCapturedTrackWithCleanup(t, kind);
+    const track2 = await createCapturedTrackWithCleanup(t, kind);
+    // The offerer's receiver is created here, but its track event only fires
+    // when the answer is applied.
+    pc1.addTrack(track1);
+    pc2.addTrack(track2);
+    pc1.ontrack = t.step_func(event => event.receiver.transform = transform);
+    const frame = nextMessageWithTimeout(t, transform.port, 'a frame');
+    await exchangeOfferAnswer(pc1, pc2);
+    assert_equals(await frame, 'frame');
+  }, `${kind} receiver transform set in the offerer's track event gets frames`);
+
+  promise_test(async t => {
+    const transform = await createDropTransform(t);
+    const [pc1, pc2] = createPeerConnectionPair(t);
+    const track = await createCapturedTrackWithCleanup(t, kind);
+    const sender = pc1.addTrack(track);
+    await exchangeOfferAnswer(pc1, pc2);
+    const frame = nextMessageWithTimeout(t, transform.port, 'a frame');
+    sender.transform = transform;
+    assert_equals(await frame, 'frame');
+  }, `${kind} sender transform set after negotiation gets frames`);
+}
+
+promise_test(async t => {
+  const transform = await createDropTransform(t);
+  const [pc1, pc2] = createPeerConnectionPair(t);
+  const track = await createCapturedTrackWithCleanup(t, 'video');
+  const sender = pc1.addTrack(track);
+  sender.transform = transform;
+  const frame = nextMessageWithTimeout(t, transform.port, 'a frame');
+  await exchangeOfferAnswer(pc1, pc2);
+  assert_equals(await frame, 'frame');
+  const [receiver] = pc2.getReceivers();
+  assert_equals(await getFramesDecoded(receiver), 0,
+                'frames decoded while the transform drops all frames');
+
+  sender.transform = null;
+  await waitForFramesDecoded(t, receiver);
+}, 'video passes through untransformed once the sender transform is cleared');
+</script>

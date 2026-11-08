@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Auto block-size flex containers can grow during fragmentation up to max-block-size</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.multicol {
+  column-count: 1;
+  column-gap: 0;
+  column-fill: auto;
+  inline-size: 100px;
+  block-size: 100px;
+}
+.flex {
+  display: flex;
+  align-items: start;
+  align-content: start;
+}
+.item {
+  flex: none;
+  inline-size: 100px;
+  block-size: 20px;
+}
+.item:not(:last-child) {
+  break-after: always;
+  break-after: column;
+}
+.fragmenting-item {
+  flex: none;
+  inline-size: 100px;
+}
+.unbreakable {
+  block-size: 60px;
+  break-inside: avoid;
+}
+</style>
+<body>
+<template id="pushed-items-template">
+  <div class="multicol">
+    <div class="flex">
+      <div class="item"></div>
+      <div class="item"></div>
+      <div class="item"></div>
+    </div>
+  </div>
+</template>
+<template id="fragmenting-item-template">
+  <div class="multicol">
+    <div class="flex">
+      <div class="fragmenting-item">
+        <div class="unbreakable"></div>
+        <div class="unbreakable"></div>
+        <div class="unbreakable"></div>
+        <div class="unbreakable"></div>
+        <div class="unbreakable"></div>
+      </div>
+    </div>
+  </div>
+</template>
+<script>
+const cases = [
+  ["no maximum", {}, [100, 100, 20]],
+  ["maximum not reached", {maxBlockSize: "1000px"}, [100, 100, 20]],
+  ["maximum reached in the first fragment", {maxBlockSize: "100px"}, [100]],
+  ["maximum reached partway through a later fragment", {maxBlockSize: "150px"}, [100, 50]],
+  ["maximum reached at a later fragment boundary", {maxBlockSize: "200px"}, [100, 100]],
+  ["zero maximum", {maxBlockSize: "0px"}, []],
+  ["minimum overrides maximum", {minBlockSize: "250px", maxBlockSize: "100px"}, [100, 100, 50]],
+  ["definite block-size", {blockSize: "150px", maxBlockSize: "1000px"}, [100, 50]],
+];
+
+for (const writingMode of ["horizontal-tb", "vertical-lr", "vertical-rl"]) {
+  for (const flexFlow of ["row wrap", "column nowrap"]) {
+    for (const [description, style, expected] of cases) {
+      test(t => {
+        const template = document.getElementById("pushed-items-template");
+        const multicol = template.content.firstElementChild.cloneNode(true);
+        t.add_cleanup(() => multicol.remove());
+        multicol.style.writingMode = writingMode;
+        const flex = multicol.firstElementChild;
+        flex.style.flexFlow = flexFlow;
+        Object.assign(flex.style, style);
+        document.body.append(multicol);
+
+        // Overflow fragments may have zero-sized boxes, but must not contribute
+        // any more block-size once the container has reached its maximum.
+        const sizes = Array.from(flex.getClientRects(), rect =>
+          writingMode === "horizontal-tb" ? rect.height : rect.width);
+        assert_array_equals(sizes.filter(size => size !== 0), expected);
+      }, `${writingMode}, ${flexFlow}: ${description}`);
+    }
+  }
+}
+
+for (const flexFlow of ["row wrap", "column nowrap"]) {
+  for (const maxBlockSize of ["none", "1000px"]) {
+    test(t => {
+      const template = document.getElementById("fragmenting-item-template");
+      const multicol = template.content.firstElementChild.cloneNode(true);
+      t.add_cleanup(() => multicol.remove());
+      const flex = multicol.firstElementChild;
+      flex.style.flexFlow = flexFlow;
+      flex.style.maxBlockSize = maxBlockSize;
+      document.body.append(multicol);
+      assert_array_equals(Array.from(flex.getClientRects(), rect => rect.height),
+                          [100, 100, 100, 100, 60]);
+    }, `${flexFlow}, max-block-size: ${maxBlockSize}: unforced breaks inside an item`);
+  }
+}
+</script>

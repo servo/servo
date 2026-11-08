@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selector Invalidation: multiple rules sharing the same :has() argument</title>
+<link rel="help" href="https://drafts.csswg.org/selectors/#relational">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2087787">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .a, .b { color: grey; }
+  #anchor:has(:is(.x .y)) .a { color: green; }
+  #anchor:has(:is(.x .y)) .b { color: green; }
+</style>
+<div id="anchor">
+  <div class="a" id="a"></div>
+  <div class="b" id="b"></div>
+  <div id="container"><div class="y"></div></div>
+</div>
+<script>
+const grey = "rgb(128, 128, 128)";
+const green = "rgb(0, 128, 0)";
+
+function assert_colors(expected) {
+  assert_equals(getComputedStyle(a).color, expected, ".a");
+  assert_equals(getComputedStyle(b).color, expected, ".b");
+}
+
+test(() => {
+  assert_colors(grey);
+  container.classList.add("x");
+  assert_colors(green);
+  container.classList.remove("x");
+  assert_colors(grey);
+}, "Class change invalidates all rules sharing the :has() argument");
+
+test(() => {
+  const x = document.createElement("div");
+  x.className = "x";
+  x.innerHTML = '<div class="y"></div>';
+  anchor.appendChild(x);
+  assert_colors(green);
+  x.remove();
+  assert_colors(grey);
+}, "Insertion and removal invalidate all rules sharing the :has() argument");
+</script>

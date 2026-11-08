@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#calc-size">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#cyclic-percentage-contribution">
+<meta name="assert" content="calc-size(auto, size) on an aspect-ratio box sizes it from the same max-content width as width: max-content, where a child's percentage height does not resolve.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.box {
+  float: left;
+  clear: left;
+  aspect-ratio: 1;
+}
+.percentage-height {
+  height: 100%;
+  aspect-ratio: 2;
+}
+.fixed-width {
+  width: 30px;
+}
+</style>
+<div class="box" style="width: calc-size(auto, size)" data-expected-width="30"><div class="percentage-height"></div><div class="fixed-width"></div></div>
+<div class="box" style="width: max-content" data-expected-width="30"><div class="percentage-height"></div><div class="fixed-width"></div></div>
+<script>
+checkLayout(".box");
+</script>

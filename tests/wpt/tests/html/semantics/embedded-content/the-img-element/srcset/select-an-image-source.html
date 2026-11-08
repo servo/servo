@@ -1,10 +1,11 @@
 <!doctype html>
 <title>img select an image source</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#select-an-image-source">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#select-an-image-source-from-a-source-set">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src=common.js></script>
 <div id=log></div>
-<!-- dup entries -->
+<div id="dup-tests">
 <img srcset='data:,a 1x, data:,b 1x' data-expect='data:,a'>
 <img srcset='data:,a , data:,b 1x' data-expect='data:,a'>
 <img srcset='data:,a 1x, data:,b' data-expect='data:,a'>
@@ -18,3 +19,500 @@
 <img srcset='data:,a 1x, data:,b 1w' sizes='1px' data-expect='data:,a'>
 <img srcset='data:,a 1w, data:,b 2x' sizes='0.5px' data-expect='data:,a'>
 <img srcset='data:,a 2x, data:,b 1w' sizes='0.5px' data-expect='data:,a'>
+</div>
+<script>
+const dpr = window.devicePixelRatio;
+let nextId = 0;
+
+function imageUrl(label) {
+  return new URL(`/images/green-1x1.png?${label}-${++nextId}`, location.href).href;
+}
+
+async function selectImg(t, attrs, style = "") {
+  const img = document.createElement("img");
+  t.add_cleanup(() => img.remove());
+  if (style) {
+    img.style.cssText = style;
+  }
+  const settled = new Promise((resolve, reject) => {
+    img.addEventListener("load", resolve, { once: true });
+    img.addEventListener("error", () => reject(new Error("img load error")), { once: true });
+  });
+  for (const [name, value] of Object.entries(attrs)) {
+    img.setAttribute(name, value);
+  }
+  document.body.appendChild(img);
+  await settled;
+  return img.currentSrc;
+}
+
+const windowLoaded = document.readyState === "complete"
+  ? Promise.resolve()
+  : new Promise(resolve => addEventListener("load", resolve, { once: true }));
+
+for (const img of document.querySelectorAll("#dup-tests img")) {
+  let name = format_value(img.getAttribute("srcset"));
+  if (img.hasAttribute("sizes")) {
+    name += " sizes=" + format_value(img.getAttribute("sizes"));
+  }
+  promise_test(async () => {
+    await windowLoaded;
+    assert_equals(img.currentSrc, img.dataset.expect);
+  }, name);
+}
+
+promise_test(async t => {
+  const initial = imageUrl("initial");
+  const img = document.createElement("img");
+  t.add_cleanup(() => img.remove());
+  const loaded = new Promise((resolve, reject) => {
+    img.addEventListener("load", resolve, { once: true });
+    img.addEventListener("error", () => reject(new Error("unexpected error")), { once: true });
+  });
+  img.setAttribute("srcset", `${initial} 1x`);
+  document.body.appendChild(img);
+  await loaded;
+  assert_equals(img.currentSrc, initial);
+
+  img.setAttribute("srcset", "");
+  await t.step_wait(() => img.currentSrc === "", "currentSrc resets to empty string");
+}, "empty srcset without src selects null and sets currentSrc to empty string");
+
+promise_test(async t => {
+  const low = imageUrl("low");
+  const exact = imageUrl("exact");
+  const high = imageUrl("high");
+  const selected = await selectImg(t, {
+    srcset: `${low} ${0.5 * dpr}x, ${exact} ${1 * dpr}x, ${high} ${2 * dpr}x`,
+  });
+  assert_equals(selected, exact);
+}, "ascending x descriptors: selects candidate matching devicePixelRatio");
+
+promise_test(async t => {
+  const low = imageUrl("low");
+  const mid = imageUrl("mid");
+  const high = imageUrl("high");
+  const selected = await selectImg(t, {
+    srcset: `${low} ${0.9 * dpr}x, ${mid} ${1.25 * dpr}x, ${high} ${2 * dpr}x`,
+  });
+  assert_equals(selected, mid);
+}, "ascending x descriptors without exact match: selects first candidate above devicePixelRatio");
+
+promise_test(async t => {
+  const low = imageUrl("low");
+  const high = imageUrl("high");
+  const selected = await selectImg(t, {
+    srcset: `${low} ${0.9 * dpr}x, ${high} ${2 * dpr}x`,
+  });
+  assert_equals(selected, high);
+}, "x descriptors straddling devicePixelRatio: selects the higher density even when the lower one is closer");
+
+promise_test(async t => {
+  const c1 = imageUrl("3x");
+  const c2 = imageUrl("2x");
+  const c3 = imageUrl("1x");
+  const c4 = imageUrl("0.5x");
+  const selected = await selectImg(t, {
+    srcset: `${c1} ${3 * dpr}x, ${c2} ${2 * dpr}x, ${c3} ${1 * dpr}x, ${c4} ${0.5 * dpr}x`,
+  });
+  assert_equals(selected, c3);
+}, "descending x descriptors: sorts ascending before selecting");
+
+promise_test(async t => {
+  const c2 = imageUrl("2x");
+  const cHalf = imageUrl("0.5x");
+  const c15 = imageUrl("1.5x");
+  const c11 = imageUrl("1.1x");
+  const selected = await selectImg(t, {
+    srcset: `${c2} ${2 * dpr}x, ${cHalf} ${0.5 * dpr}x, ${c15} ${1.5 * dpr}x, ${c11} ${1.1 * dpr}x`,
+  });
+  assert_equals(selected, c11);
+}, "unsorted x descriptors: sorts ascending and picks smallest density >= devicePixelRatio");
+
+promise_test(async t => {
+  const cHigh = imageUrl("high");
+  const firstMatch = imageUrl("first-match");
+  const cLow = imageUrl("low");
+  const duplicateMatch = imageUrl("dup-match");
+  const selected = await selectImg(t, {
+    srcset: `${cHigh} ${2 * dpr}x, ${firstMatch} ${1 * dpr}x, ${cLow} ${0.5 * dpr}x, ${duplicateMatch} ${1 * dpr}x`,
+  });
+  assert_equals(selected, firstMatch);
+}, "non-adjacent duplicate x descriptors: keeps earliest entry");
+
+promise_test(async t => {
+  const low = imageUrl("0.25x");
+  const mid = imageUrl("0.5x");
+  const highest = imageUrl("0.75x");
+  const selected = await selectImg(t, {
+    srcset: `${low} ${0.25 * dpr}x, ${mid} ${0.5 * dpr}x, ${highest} ${0.75 * dpr}x`,
+  });
+  assert_equals(selected, highest);
+}, "all x descriptors below devicePixelRatio: selects highest density");
+
+promise_test(async t => {
+  const mid = imageUrl("0.5x");
+  const highest = imageUrl("0.9x");
+  const low = imageUrl("0.25x");
+  const duplicateHighest = imageUrl("0.9x-dup");
+  const selected = await selectImg(t, {
+    srcset: `${mid} ${0.5 * dpr}x, ${highest} ${0.9 * dpr}x, ${low} ${0.25 * dpr}x, ${duplicateHighest} ${0.9 * dpr}x`,
+  });
+  assert_equals(selected, highest);
+}, "unsorted x descriptors all below devicePixelRatio with duplicate max: sorts and keeps earliest max");
+
+promise_test(async t => {
+  const wLow = Math.round(40 * dpr);
+  const wMatch = Math.round(120 * dpr);
+  const wHigh = Math.round(200 * dpr);
+  const uLow = imageUrl("w-low");
+  const uMatch = imageUrl("w-match");
+  const uHigh = imageUrl("w-high");
+  const selected = await selectImg(t, {
+    sizes: "100px",
+    srcset: `${uHigh} ${wHigh}w, ${uLow} ${wLow}w, ${uMatch} ${wMatch}w`,
+  });
+  assert_equals(selected, uMatch);
+}, "w descriptors with sizes: normalizes densities, sorts ascending, and selects first >= devicePixelRatio");
+
+promise_test(async t => {
+  const wLow = Math.round(40 * dpr);
+  const wMax = Math.round(80 * dpr);
+  const uLow = imageUrl("w-low");
+  const uMax = imageUrl("w-max");
+  const selected = await selectImg(t, {
+    sizes: "100px",
+    srcset: `${uMax} ${wMax}w, ${uLow} ${wLow}w`,
+  });
+  assert_equals(selected, uMax);
+}, "w descriptors all below devicePixelRatio: selects highest normalized density");
+
+promise_test(async t => {
+  const first = imageUrl("inf-first");
+  const second = imageUrl("inf-second");
+  const selected = await selectImg(t, {
+    sizes: "0px",
+    srcset: `${first} 100w, ${second} 200w`,
+  });
+  assert_equals(selected, first);
+}, "w descriptors with sizes=0px: infinite densities deduplicate keeping earliest");
+
+promise_test(async t => {
+  const srcUrl = imageUrl("src-default");
+  const srcsetUrl = imageUrl("srcset-1x");
+  const selected = await selectImg(t, {
+    src: srcUrl,
+    srcset: `${srcsetUrl} 1x`,
+  });
+  assert_equals(selected, srcsetUrl);
+}, "src with srcset 1x candidate: src is omitted in favor of srcset 1x entry");
+
+promise_test(async t => {
+  const srcUrl = imageUrl("src-default");
+  const lowUrl = imageUrl("srcset-low");
+  const selected = await selectImg(t, {
+    src: srcUrl,
+    srcset: `${lowUrl} 0.5x`,
+  });
+  assert_equals(selected, dpr <= 0.5 ? lowUrl : srcUrl);
+}, "src with lower-density srcset candidate: src joins source set as 1x");
+
+promise_test(async t => {
+  const srcUrl = imageUrl("src-default");
+  const highUrl = imageUrl("srcset-high");
+  const highDensity = Math.max(2, 2 * dpr);
+  const selected = await selectImg(t, {
+    src: srcUrl,
+    srcset: `${highUrl} ${highDensity}x`,
+  });
+  assert_equals(selected, dpr <= 1 ? srcUrl : highUrl);
+}, "src with higher-density srcset candidate: selects between 1x src and higher srcset density based on devicePixelRatio");
+
+promise_test(async t => {
+  const high = imageUrl("pic-high");
+  const firstAbove = imageUrl("pic-above");
+  const low = imageUrl("pic-low");
+  const fallback = imageUrl("pic-fallback");
+
+  const picture = document.createElement("picture");
+  t.add_cleanup(() => picture.remove());
+  const source = document.createElement("source");
+  source.setAttribute("srcset", `${high} ${2 * dpr}x, ${low} ${0.5 * dpr}x, ${firstAbove} ${1.2 * dpr}x`);
+  const img = document.createElement("img");
+  img.setAttribute("src", fallback);
+  const loaded = new Promise((resolve, reject) => {
+    img.addEventListener("load", resolve, { once: true });
+    img.addEventListener("error", () => reject(new Error("picture img error")), { once: true });
+  });
+  picture.append(source, img);
+  document.body.appendChild(picture);
+  await loaded;
+  assert_equals(img.currentSrc, firstAbove);
+}, "picture source element uses the same density selection algorithm");
+
+promise_test(async t => {
+  const cachedLow = imageUrl("cached-low");
+  const uncachedExact = imageUrl("uncached-exact");
+
+  await selectImg(t, { src: cachedLow });
+
+  const selected = await selectImg(t, {
+    srcset: `${cachedLow} ${0.5 * dpr}x, ${uncachedExact} ${1 * dpr}x`,
+  });
+  assert_equals(selected, uncachedExact);
+}, "cached lower-density candidate is never preferred over candidate >= devicePixelRatio");
+
+promise_test(async t => {
+  const exact = imageUrl("img-zoom-exact");
+  const double = imageUrl("img-zoom-double");
+  const selected = await selectImg(t, {
+    srcset: `${exact} ${1 * dpr}x, ${double} ${2 * dpr}x`,
+  }, "zoom: 2");
+  assert_equals(selected, exact);
+}, "CSS zoom on the img element itself does not scale x-descriptor target density");
+
+promise_test(async t => {
+  const exact = imageUrl("ancestor-zoom-exact");
+  const double = imageUrl("ancestor-zoom-double");
+  const wrapper = document.createElement("div");
+  wrapper.style.zoom = "2";
+  t.add_cleanup(() => wrapper.remove());
+  const img = document.createElement("img");
+  const settled = new Promise((resolve, reject) => {
+    img.addEventListener("load", resolve, { once: true });
+    img.addEventListener("error", () => reject(new Error("img load error")), { once: true });
+  });
+  img.srcset = `${exact} ${1 * dpr}x, ${double} ${2 * dpr}x`;
+  wrapper.appendChild(img);
+  document.body.appendChild(wrapper);
+  await settled;
+  assert_equals(img.currentSrc, exact);
+}, "CSS zoom on an ancestor element does not scale x-descriptor target density");
+
+promise_test(async t => {
+  const zero = imageUrl("zero-x");
+  const exact = imageUrl("zero-exact");
+  const selected = await selectImg(t, {
+    srcset: `${zero} 0x, ${exact} ${1 * dpr}x`,
+  });
+  assert_equals(selected, exact);
+}, "0x candidate is not selected when a candidate >= devicePixelRatio exists");
+
+promise_test(async t => {
+  const onlyZero = imageUrl("only-zero-x");
+  const selected = await selectImg(t, {
+    srcset: `${onlyZero} 0x`,
+  });
+  assert_equals(selected, onlyZero);
+}, "sole 0x descriptor is selected as last candidate when below devicePixelRatio");
+
+promise_test(async t => {
+  const uncachedMatch = imageUrl("normative-1x");
+  const cachedMid = imageUrl("normative-cached-2x");
+  const uncachedTop = imageUrl("normative-uncached-3x");
+
+  await selectImg(t, { src: cachedMid });
+
+  const selected = await selectImg(t, {
+    srcset: `${uncachedMatch} ${1 * dpr}x, ${cachedMid} ${2 * dpr}x, ${uncachedTop} ${3 * dpr}x`,
+  });
+  assert_in_array(selected, [uncachedMatch, cachedMid]);
+}, "cached mid-density candidate never causes selection of higher uncached candidate");
+
+promise_test(async t => {
+  const exact = imageUrl("replaceable-exact");
+  const overridden = imageUrl("replaceable-overridden");
+  t.add_cleanup(() => {
+    delete window.devicePixelRatio;
+  });
+  window.devicePixelRatio = 100 * dpr;
+  assert_equals(window.devicePixelRatio, 100 * dpr);
+
+  const selected = await selectImg(t, {
+    srcset: `${exact} ${1 * dpr}x, ${overridden} ${100 * dpr}x`,
+  });
+  assert_equals(selected, exact);
+}, "shadowing replaceable window.devicePixelRatio does not affect image source selection");
+
+promise_test(async t => {
+  const first200w = imageUrl("inf-200w-first");
+  const second100w = imageUrl("inf-100w-second");
+  const selected = await selectImg(t, {
+    sizes: "0px",
+    srcset: `${first200w} 200w, ${second100w} 100w`,
+  });
+  assert_equals(selected, first200w);
+}, "w descriptors with sizes=0px (wider first): both normalize to Infinity and earliest wins deduplication");
+
+promise_test(async t => {
+  const w1 = Math.ceil(100 * dpr);
+  const w2 = Math.ceil(200 * dpr);
+  const u1 = imageUrl("sizes-mq-100");
+  const u2 = imageUrl("sizes-mq-200");
+
+  const matchFirst = await selectImg(t, {
+    sizes: "(min-width: 1px) 100px, 200px",
+    srcset: `${u1} ${w1}w, ${u2} ${w2}w`,
+  });
+  assert_equals(matchFirst, u1);
+
+  const matchFallback = await selectImg(t, {
+    sizes: "(max-width: 0px) 100px, 200px",
+    srcset: `${u1} ${w1}w, ${u2} ${w2}w`,
+  });
+  assert_equals(matchFallback, u2);
+}, "w descriptors with media conditions in sizes: normalizes using first matching source size");
+
+promise_test(async t => {
+  const invalid1 = imageUrl("invalid-0w");
+  const invalid2 = imageUrl("invalid-negx");
+  const invalid3 = imageUrl("invalid-desc");
+  const fallback = imageUrl("valid-src-fallback");
+  const selected = await selectImg(t, {
+    src: fallback,
+    srcset: `${invalid1} 0w, ${invalid2} -1x, ${invalid3} foo`,
+  });
+  assert_equals(selected, fallback);
+}, "srcset with only invalid descriptors falls back to src as 1x default source");
+
+promise_test(async t => {
+  const explicit1x = imageUrl("explicit-1x-first");
+  const bareSecond = imageUrl("bare-1x-second");
+  const high = imageUrl("high-after-bare");
+  const selected = await selectImg(t, {
+    srcset: `${explicit1x} 1x, ${bareSecond}, ${high} ${Math.max(2, 2 * dpr)}x`,
+  });
+  assert_equals(selected, dpr <= 1 ? explicit1x : high);
+}, "explicit 1x descriptor before bare URL (default 1x): earliest 1x wins deduplication");
+
+promise_test(async t => {
+  const uncached1x = imageUrl("dedup-cache-1x");
+  const uncached2xFirst = imageUrl("dedup-cache-2x-first");
+  const cached2xSecond = imageUrl("dedup-cache-2x-second");
+
+  await selectImg(t, { src: cached2xSecond });
+
+  const selected = await selectImg(t, {
+    srcset: `${uncached1x} ${1 * dpr}x, ${uncached2xFirst} ${2 * dpr}x, ${cached2xSecond} ${2 * dpr}x`,
+  });
+  assert_equals(selected, uncached1x);
+}, "cached duplicate higher-density candidate is removed by deduplication before cache check");
+
+promise_test(async t => {
+  const uncachedFirst = imageUrl("dedup-same-1x-first");
+  const cachedSecond = imageUrl("dedup-same-1x-second");
+
+  await selectImg(t, { src: cachedSecond });
+
+  const selected = await selectImg(t, {
+    srcset: `${uncachedFirst} ${1 * dpr}x, ${cachedSecond} ${1 * dpr}x`,
+  });
+  assert_equals(selected, uncachedFirst);
+}, "cached duplicate candidate at same density does not override earlier uncached candidate");
+
+promise_test(async t => {
+  const cachedSrc = imageUrl("cached-src-overridden");
+  const uncached1x = imageUrl("uncached-srcset-1x");
+  const uncachedHigh = imageUrl("uncached-srcset-high");
+
+  await selectImg(t, { src: cachedSrc });
+
+  // Set srcset first: setting src alone would take the list of available images path.
+  const selected = await selectImg(t, {
+    srcset: `${uncached1x} 1x, ${uncachedHigh} ${Math.max(2, 2 * dpr)}x`,
+    src: cachedSrc,
+  });
+  assert_equals(selected, dpr <= 1 ? uncached1x : uncachedHigh);
+}, "cached src attribute is excluded from source set when srcset already has a 1x descriptor");
+
+promise_test(async t => {
+  const nonMatchingMedia = imageUrl("pic-media-nomatch");
+  const unsupportedType = imageUrl("pic-type-unsupported");
+  const invalidSrcset = imageUrl("pic-srcset-invalid");
+  const validLow = imageUrl("pic-valid-low");
+  const validMatch = imageUrl("pic-valid-match");
+  const validDup = imageUrl("pic-valid-dup");
+  const fallback = imageUrl("pic-fallback-unused");
+
+  const picture = document.createElement("picture");
+  t.add_cleanup(() => picture.remove());
+
+  const s1 = document.createElement("source");
+  s1.media = "not all";
+  s1.srcset = `${nonMatchingMedia} ${1 * dpr}x`;
+
+  const s2 = document.createElement("source");
+  s2.type = "image/unsupported-mime-type";
+  s2.srcset = `${unsupportedType} ${1 * dpr}x`;
+
+  const s3 = document.createElement("source");
+  s3.srcset = `${invalidSrcset} 0w`;
+
+  const s4 = document.createElement("source");
+  s4.sizes = "100px";
+  s4.srcset = `${validMatch} ${Math.ceil(100 * dpr)}w, ${validLow} ${Math.round(50 * dpr)}w, ${validDup} ${Math.ceil(100 * dpr)}w`;
+
+  const img = document.createElement("img");
+  img.src = fallback;
+  const loaded = new Promise((resolve, reject) => {
+    img.addEventListener("load", resolve, { once: true });
+    img.addEventListener("error", () => reject(new Error("picture img error")), { once: true });
+  });
+  picture.append(s1, s2, s3, s4, img);
+  document.body.appendChild(picture);
+  await loaded;
+  assert_equals(img.currentSrc, validMatch);
+}, "picture skips non-matching/unsupported/empty-source-set sources and normalizes/deduplicates w descriptors on matching source");
+
+promise_test(async t => {
+  const initial1x = imageUrl("dyn-initial-1x");
+  const updatedLow = imageUrl("dyn-updated-low");
+  const updatedMatch = imageUrl("dyn-updated-match");
+
+  const img = document.createElement("img");
+  t.add_cleanup(() => img.remove());
+  let loaded = new Promise((resolve, reject) => {
+    img.addEventListener("load", resolve, { once: true });
+    img.addEventListener("error", () => reject(new Error("img error")), { once: true });
+  });
+  img.srcset = `${initial1x} ${1 * dpr}x`;
+  document.body.appendChild(img);
+  await loaded;
+  assert_equals(img.currentSrc, initial1x);
+
+  loaded = new Promise((resolve, reject) => {
+    img.addEventListener("load", resolve, { once: true });
+    img.addEventListener("error", () => reject(new Error("img error on srcset update")), { once: true });
+  });
+  img.srcset = `${updatedLow} ${0.5 * dpr}x, ${updatedMatch} ${1.5 * dpr}x`;
+  await loaded;
+  assert_equals(img.currentSrc, updatedMatch);
+}, "dynamically updating srcset re-runs image source selection");
+
+promise_test(async t => {
+  const w1 = Math.ceil(100 * dpr);
+  const w2 = Math.ceil(200 * dpr);
+  const u1 = imageUrl("dyn-sizes-100w");
+  const u2 = imageUrl("dyn-sizes-200w");
+
+  const img = document.createElement("img");
+  t.add_cleanup(() => img.remove());
+  let loaded = new Promise((resolve, reject) => {
+    img.addEventListener("load", resolve, { once: true });
+    img.addEventListener("error", () => reject(new Error("img error")), { once: true });
+  });
+  img.sizes = "100px";
+  img.srcset = `${u1} ${w1}w, ${u2} ${w2}w`;
+  document.body.appendChild(img);
+  await loaded;
+  assert_equals(img.currentSrc, u1);
+
+  loaded = new Promise((resolve, reject) => {
+    img.addEventListener("load", resolve, { once: true });
+    img.addEventListener("error", () => reject(new Error("img error on sizes update")), { once: true });
+  });
+  img.sizes = "200px";
+  await loaded;
+  assert_equals(img.currentSrc, u2);
+}, "dynamically increasing sizes re-normalizes w descriptors and selects higher-width candidate");
+</script>

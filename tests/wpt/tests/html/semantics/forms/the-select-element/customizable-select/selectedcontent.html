@@ -271,6 +271,7 @@ test(() => {
 test(() => {
   const select = makeOptionSelectedSelect();
   const optionOne = select.querySelector('option.one');
+  const optionTwo = select.querySelector('option.two');
   const selectedcontent = select.querySelector('selectedcontent');
 
   assert_equals(selectedcontent.innerHTML, optionOne.innerHTML);
@@ -280,9 +281,13 @@ test(() => {
     '<selectedcontent> should not automatically observe DOM modifications inside <option>.');
 
   optionOne.selected = true;
-  assert_equals(selectedcontent.innerHTML, optionOne.innerHTML,
-    'Re-assigning option.selected = true should update <selectedcontent> with the modified option contents.');
-}, 'Re-assigning option.selected = true updates the <selectedcontent>.');
+  assert_not_equals(selectedcontent.innerHTML, optionOne.innerHTML,
+    'Re-assigning option.selected = true on an already-selected option should not update <selectedcontent>.');
+
+  optionTwo.selected = false;
+  assert_not_equals(selectedcontent.innerHTML, optionOne.innerHTML,
+    'Setting option.selected = false on an already-unselected option should not update <selectedcontent>.');
+}, 'Setting option.selected without changing selectedness does not update the <selectedcontent>.');
 
 test(() => {
   const select = document.createElement('select');

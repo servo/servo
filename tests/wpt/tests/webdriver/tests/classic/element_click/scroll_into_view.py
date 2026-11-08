@@ -45,7 +45,7 @@ def test_scroll_into_view(session, inline):
         </style>
 
         <div class="scroll-container">
-            <input type="text" size="20" value="foo"></input>
+            <input type="text" size="20" value="foo">
         </div>
 
         <script>

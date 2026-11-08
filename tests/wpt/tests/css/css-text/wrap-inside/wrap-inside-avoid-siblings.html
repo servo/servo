@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>wrap-inside: avoid keeps sibling avoid boxes intact by breaking between them</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#wrap-inside">
+<link rel="match" href="wrap-inside-avoid-siblings-ref.html">
+<meta name="assert" content="With two sibling 'wrap-inside: avoid' boxes, the line breaks between the boxes rather than inside the second one.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    div { width: 170px; font: 20px/20px Ahem; color: green; }
+</style>
+<!--
+    Without avoid, "AA BB CC" (160px) fits within 170px, so normal wrapping breaks inside the second box as "AA BB CC" / "DD".
+    'wrap-inside: avoid' keeps the second box together by breaking between the two boxes (outside both): "AA BB" / "CC DD".
+-->
+<div><span style="wrap-inside: avoid">AA BB</span> <span style="wrap-inside: avoid">CC DD</span></div>

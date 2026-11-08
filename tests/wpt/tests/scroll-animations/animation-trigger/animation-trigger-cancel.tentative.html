@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="help" src="https://drafts.csswg.org/animation-trigger-1">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/web-animations/testcommon.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+    <script src="support/support.js"></script>
+  </head>
+  <body>
+    <style>
+      @keyframes expand {
+        from { transform: scaleX(1); }
+        to { transform: scaleX(5); }
+      }
+      #scroller {
+        overflow-y: scroll;
+        height: 300px;
+        width: 300px;
+      }
+      #subject {
+        height: 100px;
+        width: 100px;
+        timeline-trigger: --trigger view() contain;
+      }
+      .spacer {
+        height: 400px;
+      }
+      .target {
+        height: 50px;
+        width: 50px;
+        animation: expand linear 100s both;
+        animation-trigger: --trigger play;
+      }
+    </style>
+    <div id="scroller">
+      <div class="spacer"></div>
+      <div id="subject"></div>
+      <div class="spacer"></div>
+    </div>
+    <script>
+      const scroller = document.getElementById("scroller");
+      const subject = document.getElementById("subject");
+
+      const CONTAIN_START_OFFSET = computeContainOffset(scroller, subject, 0);
+      const CONTAIN_END_OFFSET = computeContainOffset(scroller, subject, 100);
+      const rangeBoundaries = getRangeBoundariesForTest(
+          CONTAIN_START_OFFSET, CONTAIN_END_OFFSET,
+          CONTAIN_START_OFFSET, CONTAIN_END_OFFSET, scroller);
+
+      // Creates a target whose CSS animation is attached to the trigger,
+      // outside the trigger range.
+      async function createTriggeredAnimation(test) {
+        await setScrollTop(scroller, 0);
+        await waitForCompositorCommit();
+
+        const target = document.createElement("div");
+        target.className = "target";
+        document.body.appendChild(target);
+        test.add_cleanup(() => target.remove());
+
+        const animation = target.getAnimations()[0];
+        await waitForCompositorCommit();
+        assert_equals(animation.playState, "paused",
+          "animation is paused until its trigger activates.");
+        return { target, animation };
+      }
+
+      async function cancelAnimation(animation) {
+        animation.cancel();
+        assert_equals(animation.playState, "idle",
+          "animation is idle after cancel().");
+        await waitForCompositorCommit();
+      }
+
+      async function assertNotTriggeredOnEnter(animation) {
+        await enter(rangeBoundaries);
+        assert_equals(animation.playState, "idle",
+          "animation is still idle after entering the trigger range.");
+        assert_equals(animation.currentTime, null,
+          "animation has no current time after entering the trigger range.");
+      }
+
+      promise_test(async (test) => {
+        const { animation } = await createTriggeredAnimation(test);
+        await cancelAnimation(animation);
+        await assertNotTriggeredOnEnter(animation);
+      }, "cancel() detaches a CSS animation from its trigger");
+
+      promise_test(async (test) => {
+        const { target, animation } = await createTriggeredAnimation(test);
+        await cancelAnimation(animation);
+
+        // Neither a style change that only re-applies animation-trigger, nor
+        // one that also updates the animation, attaches it again.
+        target.style.backgroundColor = "blue";
+        await waitForCompositorCommit();
+        target.style.animationDuration = "200s";
+        await waitForCompositorCommit();
+        assert_equals(animation.playState, "idle",
+          "animation is still idle after style changes.");
+
+        await assertNotTriggeredOnEnter(animation);
+      }, "Style changes don't attach a cancelled CSS animation to its trigger " +
+         "again");
+
+      promise_test(async (test) => {
+        const { target, animation } = await createTriggeredAnimation(test);
+        await cancelAnimation(animation);
+
+        target.style.animationTrigger = "--trigger replay";
+        await waitForCompositorCommit();
+        assert_equals(animation.playState, "idle",
+          "animation is still idle after changing animation-trigger.");
+
+        await assertNotTriggeredOnEnter(animation);
+      }, "Changing animation-trigger doesn't attach a cancelled CSS animation " +
+         "to a trigger");
+
+      promise_test(async (test) => {
+        const { target, animation } = await createTriggeredAnimation(test);
+        await cancelAnimation(animation);
+
+        // Replace the cancelled animation with a new one.
+        target.style.animationName = "none";
+        await waitForCompositorCommit();
+        target.style.animationName = "";
+        const new_animation = target.getAnimations()[0];
+        assert_not_equals(new_animation, animation,
+          "a new animation replaced the cancelled one.");
+        await waitForCompositorCommit();
+        assert_equals(new_animation.playState, "paused",
+          "new animation is paused until its trigger activates.");
+
+        await testAnimationTrigger(test, () => {
+          return enter(rangeBoundaries);
+        }, target, ["animationstart", "animationcancel"], [true, false]);
+        assert_equals(new_animation.playState, "running",
+          "new animation is running after entering the trigger range.");
+        assert_equals(animation.playState, "idle",
+          "cancelled animation is still idle.");
+      }, "A CSS animation that replaces a cancelled one is attached to the " +
+         "trigger");
+    </script>
+  </body>
+</html>

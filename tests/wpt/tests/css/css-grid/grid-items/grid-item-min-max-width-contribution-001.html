@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>CSS Grid: a grid item's min-width and max-width in its contribution to an auto track</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-content">
+<meta name="assert" content="A grid item's min-content and max-content contributions to an auto track are clamped by its min-width and max-width.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.grid {
+    display: inline-grid;
+    grid-template-columns: auto;
+    vertical-align: top;
+}
+.content {
+    width: 200px;
+    height: 10px;
+}
+</style>
+<body onload="checkLayout('.grid')">
+<div class="grid" data-expected-width="50"><div style="max-width: 50px"><div class="content"></div></div></div>
+<div class="grid" data-expected-width="300"><div style="min-width: 300px"><div class="content"></div></div></div>
+</body>

@@ -31,7 +31,7 @@ function failIfNot(condition, msg) {
     takeScreenshot();
   };
   if (!condition) {
-    if (document.readyState == "interactive") {
+    if (document.readyState !== "loading") {
       fail();
     } else {
       document.addEventListener("DOMContentLoaded", fail, false);
@@ -175,4 +175,3 @@ function waitForActiveCueAndTakeScreenshot() {
     if (textTrack.activeCues && textTrack.activeCues.length)
         pauseVideoAndTakeScreenshot();
 }
-

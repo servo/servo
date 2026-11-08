@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: text-overflow truncates a bidirectional block ellipsis like the same text as content</title>
+<link rel="author" title="Christian Biesinger" href="mailto:cbiesinger@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#text-overflow">
+<link rel="match" href="reference/line-clamp-with-text-overflow-bidi-001-ref.html">
+<meta name="assert" content="When the block ellipsis still overflows the line, text-overflow hides the part of it at the end edge of the line, in each bidi run and in either paragraph direction, the same way as for the same text as content.">
+<style>
+div {
+  font: 20px/1.2 monospace;
+  width: 10ch;
+  border: 1px solid;
+  margin: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.english { line-clamp: 1 "very long block ellipsis"; }
+.hebrew { line-clamp: 1 "אבגדה ופזחטי כלמנ"; }
+.mixed { line-clamp: 1 "abc אבגדה def ופזח"; }
+.mixed-rtl-first { line-clamp: 1 "אבג defghijklmn"; }
+</style>
+<p>Test passes if this page renders the same as its reference, which shows the same text as content truncated by text-overflow.
+<div class="english">x<br>y</div>
+<div class="english" dir="rtl">x<br>y</div>
+<div class="hebrew">x<br>y</div>
+<div class="hebrew" dir="rtl">x<br>y</div>
+<div class="mixed">x<br>y</div>
+<div class="mixed" dir="rtl">x<br>y</div>
+<div class="mixed-rtl-first">x<br>y</div>
+<div class="mixed-rtl-first" dir="rtl">x<br>y</div>

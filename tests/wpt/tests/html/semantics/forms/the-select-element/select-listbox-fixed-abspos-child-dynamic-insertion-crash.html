@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=2089757">
+<style>
+  select {
+    position: fixed;
+  }
+  #abspos {
+    position: absolute;
+    background: green;
+  }
+</style>
+<select multiple size="1">
+  <option>one</option>
+  <option>two</option>
+</select>
+<script>
+  document.documentElement.addEventListener("TestRendered", () => {
+    const abspos = document.createElement("div");
+    abspos.id = "abspos";
+    abspos.textContent = "abspos";
+    document.querySelector("select").appendChild(abspos);
+    document.documentElement.classList.remove("test-wait");
+  });
+</script>
+</html>

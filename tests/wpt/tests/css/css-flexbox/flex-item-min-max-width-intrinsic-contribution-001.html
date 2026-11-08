@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>CSS Flexbox: a flex item's min-width and max-width apply to its intrinsic width contributions after layout</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#intrinsic-item-contributions">
+<meta name="assert" content="A flex item's min-content and max-content contributions are clamped by its min and max main sizes, also when they are queried after the flex container was laid out (which measures the item's flex base size without them).">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.container {
+    width: 500px;
+}
+.flex {
+    display: flex;
+}
+.content {
+    height: 10px;
+    background-color: green;
+}
+</style>
+<div class="container" data-expected-width="200">
+    <div class="flex">
+        <div style="min-width: 200px"><div class="content" style="width: 50px"></div></div>
+    </div>
+</div>
+<div class="container" data-expected-width="100">
+    <div class="flex">
+        <div style="max-width: 100px"><div class="content" style="width: 300px"></div></div>
+    </div>
+</div>
+<script>
+document.body.offsetHeight;
+for (const container of document.querySelectorAll(".container"))
+    container.style.width = "max-content";
+checkLayout(".container");
+</script>

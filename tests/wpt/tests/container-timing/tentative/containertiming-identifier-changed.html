@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Container Timing: changing the containertiming identifier drops the container's paints</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+img {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/container-timing/resources/container-timing-helpers.js"></script>
+<script>
+  promise_test(async t => {
+    assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
+    const collector = observeContainerEntries(t);
+    const div = addContainerRoot(document.body, 'old_ct');
+    addSquare100Image(div, {style: 'left: 0px; top: 0px'});
+    let entries = await collector.take();
+    assert_equals(entries.length, 1, 'entry for the initial paint');
+    assert_equals(entries[0].identifier, 'old_ct');
+
+    div.setAttribute('containertiming', 'new_ct');
+    addSquare100Image(div, {id: 'new_img', style: 'left: 100px; top: 0px'});
+    const beforeRender = performance.now();
+
+    entries = await collector.take();
+    assert_equals(entries.length, 1, 'entry for the new identifier');
+    checkContainerEntry(entries[0], 'new_ct', 'new_img', beforeRender);
+    checkContainerIntersectionRect(entries[0], [100, 200, 0, 100]);
+    checkContainerSize(entries[0], 10000);
+  }, 'A new identifier starts the container over, with only new paints.');
+</script>
+
+</body>

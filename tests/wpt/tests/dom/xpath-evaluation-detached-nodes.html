@@ -183,6 +183,7 @@ test(() => {
   assert_true(items.includes(target));
   assert_true(items.includes(child1));
   assert_true(items.includes(child2));
+  assert_less_than(items.indexOf(child1), items.indexOf(child2), 'span precedes p');
 }, 'ORDERED_NODE_SNAPSHOT_TYPE does not crash with union of connected and disconnected nodes');
 
 test(() => {
@@ -207,6 +208,8 @@ test(() => {
   assert_true(items.includes(disconnectedParent));
   assert_true(items.includes(attr));
   assert_true(items.includes(child));
+  assert_less_than(items.indexOf(disconnectedParent), items.indexOf(attr), 'element precedes its attribute');
+  assert_less_than(items.indexOf(attr), items.indexOf(child), 'attribute precedes child');
 }, 'ORDERED_NODE_SNAPSHOT_TYPE does not crash with union containing disconnected element, attribute, and child');
 
 test(() => {
@@ -321,4 +324,48 @@ test(() => {
   );
   assert_equals(result.snapshotLength, N + 3);
 }, 'TraversalSort with connected node and a disconnected subtree with >10000 nodes');
+
+test(() => {
+  const host = document.body.appendChild(document.createElement('div'));
+  const container = host.attachShadow({ mode: 'open' }).appendChild(document.createElement('div'));
+  const N = 10005;
+  for (let i = 0; i < N; ++i) {
+    container.appendChild(document.createElement('span'));
+  }
+
+  // N + 1 > 10,000 nodes in a shadow tree, triggering TraversalSort().
+  const result = document.evaluate(
+    '(./span | .)',
+    container,
+    null,
+    XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+    null
+  );
+  assert_equals(result.snapshotLength, N + 1);
+  assert_equals(result.snapshotItem(0), container);
+  assert_equals(result.snapshotItem(N), container.lastChild);
+
+  host.remove();
+}, 'TraversalSort with >10000 nodes in a shadow tree');
+
+test(() => {
+  const host = document.body.appendChild(document.createElement('div'));
+  const container = host.attachShadow({ mode: 'open' }).appendChild(document.createElement('div'));
+  const a = container.appendChild(document.createElement('a'));
+  const b = container.appendChild(document.createElement('b'));
+
+  const result = document.evaluate(
+    '(./b | ./a | .)',
+    container,
+    null,
+    XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+    null
+  );
+  assert_equals(result.snapshotLength, 3);
+  assert_equals(result.snapshotItem(0), container);
+  assert_equals(result.snapshotItem(1), a);
+  assert_equals(result.snapshotItem(2), b);
+
+  host.remove();
+}, 'Sorting nodes in a shadow tree');
 </script>

@@ -1,4 +1,5 @@
 <!doctype html>
+<html class="reftest-wait">
 <title>CSS Container Queries Test: Absolute positioned canvas as size container for focusable child</title>
 <link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
 <link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
@@ -21,10 +22,12 @@
 <canvas>
   <div id="target" tabIndex="1"></div>
 </canvas>
+<script src="/common/reftest-wait.js"></script>
 <script>
   requestAnimationFrame(()=> {
     requestAnimationFrame(()=> {
       target.focus();
+      requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
     });
   });
 </script>

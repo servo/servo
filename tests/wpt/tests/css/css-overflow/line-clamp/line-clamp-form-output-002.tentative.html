@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp and output elements, before the clamp point</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-form-output-002-ref.html">
+<meta name="assert" content="Content within an inline output element participates in its ancestor's line clamp, with content after the clamp point hidden.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+body {
+  font: 25px/1 Ahem;
+}
+output {
+  background: cyan;
+}
+.clamp {
+  line-clamp: 2;
+  width: 240px;
+  background: yellow;
+}
+</style>
+
+<div class="clamp">
+  <output>XX<br>XX<br>XX</output><br>
+  XX<br>
+  XX<br>
+  XX
+</div>

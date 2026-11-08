@@ -1,0 +1,55 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// Resolves after the load event so that the next navigation isn't converted to
+// a replace navigation.
+function navigateAndWaitForLoad(t, iframe, navigate) {
+  return new Promise(resolve => {
+    iframe.onload = () => t.step_timeout(resolve, 0);
+    navigate();
+  });
+}
+
+async function setUpIframeWithForwardEntry(t) {
+  const iframe = document.createElement("iframe");
+  await navigateAndWaitForLoad(t, iframe, () => {
+    iframe.src = "/common/blank.html";
+    document.body.append(iframe);
+  });
+  t.add_cleanup(() => iframe.remove());
+
+  await navigateAndWaitForLoad(t, iframe, () => iframe.contentWindow.location.search = "?1");
+  await navigateAndWaitForLoad(t, iframe, () => iframe.contentWindow.location.search = "?2");
+  await navigateAndWaitForLoad(t, iframe, () => iframe.contentWindow.navigation.back());
+
+  const nav = iframe.contentWindow.navigation;
+  assert_equals(nav.currentEntry.index, 1);
+  assert_true(nav.canGoForward);
+  return { iframe, keys: nav.entries().map(e => e.key), historyLength: history.length };
+}
+
+function assertForwardEntryKept(iframe, keys, historyLength) {
+  const nav = iframe.contentWindow.navigation;
+  assert_equals(history.length, historyLength, "replace doesn't change the session history length");
+  assert_array_equals(nav.entries().map(e => e.key), keys);
+  assert_array_equals(nav.entries().map(e => new URL(e.url).search), ["", "?replaced", "?2"]);
+  assert_equals(nav.currentEntry.index, 1);
+  assert_true(nav.canGoForward);
+}
+
+window.onload = () => {
+  promise_test(async t => {
+    const { iframe, keys, historyLength } = await setUpIframeWithForwardEntry(t);
+    await navigateAndWaitForLoad(t, iframe, () => iframe.contentWindow.location.replace("?replaced"));
+    assertForwardEntryKept(iframe, keys, historyLength);
+  }, "entries() keeps forward entries after a cross-document location.replace()");
+
+  promise_test(async t => {
+    const { iframe, keys, historyLength } = await setUpIframeWithForwardEntry(t);
+    await navigateAndWaitForLoad(t, iframe,
+        () => iframe.contentWindow.navigation.navigate("?replaced", { history: "replace" }));
+    assertForwardEntryKept(iframe, keys, historyLength);
+  }, "entries() keeps forward entries after a cross-document navigation.navigate() with history: 'replace'");
+};
+</script>

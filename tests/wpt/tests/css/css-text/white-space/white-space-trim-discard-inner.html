@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>white-space-trim: discard-inner trims collapsible white space at an inline box's content edges</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#white-space-trim">
+<link rel="match" href="reference/white-space-trim-discard-inner-ref.html">
+<meta name="assert" content="'white-space-trim: discard-inner' discards the collapsible white space at the start and end of the element's own content (empty/zero-width inline box boundaries are transparent), including when combined with discard-before / discard-after on the same element.">
+<style>
+  .di { white-space-trim: discard-inner; }
+  .bi { white-space-trim: discard-before discard-inner; }
+  .ai { white-space-trim: discard-after discard-inner; }
+</style>
+</head>
+<body>
+<p>This test passes if it renders identically to the reference.</p>
+<!-- 1. leading and trailing inner white space -> "abc" --><div>a<span class="di"> b </span>c</div>
+<!-- 2. leading inner white space only -> "xyz" --><div>x<span class="di"> y</span>z</div>
+<!-- 3. trailing inner white space only -> "pqr" --><div>p<span class="di">q </span>r</div>
+<!-- 4. inner white space inside a transparent nested box -> "mno" --><div>m<span class="di"><b> n </b></span>o</div>
+<!-- 5. discard-before + discard-inner: the space before the box and both inner edges are trimmed; the space after the box survives -> "ab c" --><div>a <span class="bi"> b </span> c</div>
+<!-- 6. discard-after + discard-inner: both inner edges and the space after the box are trimmed; the space before the box survives -> "d ef" --><div>d <span class="ai"> e </span> f</div>
+</body>
+</html>

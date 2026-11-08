@@ -2,6 +2,8 @@
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/common/utils.js"></script>
 <script src="/websockets/constants.sub.js"></script>
@@ -20,7 +22,7 @@ promise_test(async t => {
   let nextUrl = agent.getExecutorURL({ protocol: 'https', page: 2 });
   await agent.navigate(nextUrl);
 
-  await agent.forceSinglePrefetch(previousUrl);
+  await agent.forceSinglePrefetchAndWaitForStatus(previousUrl);
   await agent.execute_script(() => {
     window.executor.suspend(() => history.go(-1));
   });
@@ -39,7 +41,7 @@ promise_test(async t => {
   let nextUrl = agent.getExecutorURL({ protocol: 'https', page: 2 });
   await agent.navigate(nextUrl);
 
-  await agent.forceSinglePrefetch(previousUrl);
+  await agent.forceSinglePrefetchAndWaitForStatus(previousUrl);
   // In https://html.spec.whatwg.org/multipage/nav-history-apis.html#delta-traverse,
   // `sourceDocument` is `History`'s relevant global object's associated
   // Document. In this case, it's `iframe.contentDocument`, and thus the
@@ -60,7 +62,7 @@ promise_test(async t => {
 promise_test(async t => {
   let agent = await spawnWindow(t, { protocol: 'https', pipe: 'header(Cache-Control, no-store)' });
   let previousUrl = await agent.execute_script(() => location.href);
-  await agent.forceSinglePrefetch(previousUrl);
+  await agent.forceSinglePrefetchAndWaitForStatus(previousUrl);
   await agent.execute_script(() => {
     window.executor.suspend(() => location.reload());
   });

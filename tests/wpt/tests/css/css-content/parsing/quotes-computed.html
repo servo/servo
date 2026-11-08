@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Generated Content Module Level 3: Computed value of `quotes`</title>
+<link rel="help" href="https://drafts.csswg.org/css-content-3/#quotes-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("quotes", "none");
+test_computed_value("quotes", "auto");
+test_computed_value("quotes", "match-parent");
+test_computed_value("quotes", "NONE", "none");
+test_computed_value("quotes", "Auto", "auto");
+test_computed_value("quotes", "Match-Parent", "match-parent");
+test_computed_value("quotes", `"“" "”" "‘" "’"`);
+test_computed_value("quotes", `"\u00AB\u2005" "\u2005\u00BB" "\u2039\u2005" "\u2005\u203A"`);
+test_computed_value("quotes", `"\u00BB" ""`);
+</script>
+</body>
+</html>

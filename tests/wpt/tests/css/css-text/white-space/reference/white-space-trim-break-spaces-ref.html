@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Reference: white-space-trim with break-spaces (preserved white space kept)</title>
+<style>
+  div { white-space-collapse: break-spaces; }
+</style>
+</head>
+<body>
+<p>Test passes if the preserved spaces are kept (identical to the reference).</p>
+<div>a <span>b</span></div>
+<div><span>a</span> b</div>
+</body>
+</html>

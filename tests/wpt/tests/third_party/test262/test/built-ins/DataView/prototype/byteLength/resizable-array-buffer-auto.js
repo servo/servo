@@ -3,8 +3,22 @@
 /*---
 esid: sec-get-dataview.prototype.bytelength
 description: |
-  throws a TypeError if the underlying ArrayBuffer is resized beyond the
-  boundary of the dynamically-sized DataView instance
+  Returns 0 when the instance is length-tracking and the underlying ArrayBuffer
+  shrinks beneath its start offset
+info: |
+  get DataView.prototype.byteLength
+
+  5. If IsViewOutOfBounds(viewRecord) is true, return +0𝔽.
+
+  IsViewOutOfBounds ( viewRecord )
+
+  5. Let byteOffsetStart be view.[[ByteOffset]].
+  6. If view.[[ByteLength]] is auto, then
+    a. Let byteOffsetEnd be bufferByteLength.
+  ...
+  9. If byteOffsetStart > bufferByteLength or byteOffsetEnd > bufferByteLength,
+     return true.
+  10. Return false.
 features: [resizable-arraybuffer]
 ---*/
 
@@ -43,12 +57,14 @@ assert.sameValue(dataView.byteLength, expected, "following shrink (on boundary)"
 
 try {
   ab.resize(0);
-  expected = TypeError;
-} catch (_) {
-  expected = Test262Error;
-}
+  expected = 0;
+} catch (_) {}
 
-assert.throws(expected, function() {
-  dataView.byteLength;
-  throw new Test262Error('the operation completed successfully');
-});
+assert.sameValue(dataView.byteLength, expected, "following shrink (out of bounds)");
+
+try {
+  ab.resize(2);
+  expected = 1;
+} catch (_) {}
+
+assert.sameValue(dataView.byteLength, expected, "following grow (back into bounds)");
