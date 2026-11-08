@@ -222,7 +222,7 @@ impl DocumentFocusHandler {
 
     /// Updates the focus-within state for all relevent ancestors. In case there were both
     /// a previous and new focused element, all ancestors up to the common ancestor are
-    /// traversed. If that's not the case, all ancestors of the respective all updated up
+    /// traversed. If that's not the case, all ancestors of the respective nodes are updated up
     /// to the root node.
     fn update_focus_within_state(
         no_gc: &NoGC,
