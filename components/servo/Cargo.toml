@@ -27,6 +27,7 @@ default = ["aws-lc-rs", "bundled", "clipboard", "default_tooling", "js_jit", "mu
 default_web_features = ["brotli-compression-stream", "clipboard", "subtlecrypto", "webgpu", "webgl", "webxr"]
 default_tooling = ["devtools"]
 
+# Use aws-lc-rs as the cryptography provider for RusTLS.
 aws-lc-rs = ["net/aws-lc-rs"]
 
 # Bundle required resources in the binary.
