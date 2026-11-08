@@ -56,17 +56,13 @@ pub(crate) fn sign<D: Equivalence>(key: &CryptoKey<D>, message: &[u8]) -> Result
                 HmacImpl::update(&mut hmac, message);
                 Ok(HmacImpl::finalize(hmac).to_vec())
             },
-            _ => {
-                return Err(Error::NotSupported(Some(
-                    "Unsupported hash algorithm for HMAC".into(),
-                )));
-            },
+            _ => Err(Error::NotSupported(Some(
+                "Unsupported hash algorithm for HMAC".into(),
+            ))),
         },
-        _ => {
-            return Err(Error::NotSupported(Some(
-                "The key algorithm is not HMAC".into(),
-            )));
-        },
+        _ => Err(Error::NotSupported(Some(
+            "The key algorithm is not HMAC".into(),
+        ))),
     }
 }
 
@@ -109,17 +105,13 @@ pub(crate) fn verify<D: Equivalence>(
                 HmacImpl::update(&mut hmac, message);
                 Ok(hmac.verify_slice(signature).is_ok())
             },
-            _ => {
-                return Err(Error::NotSupported(Some(
-                    "Unsupported hash algorithm for HMAC".into(),
-                )));
-            },
+            _ => Err(Error::NotSupported(Some(
+                "Unsupported hash algorithm for HMAC".into(),
+            ))),
         },
-        _ => {
-            return Err(Error::NotSupported(Some(
-                "The key algorithm is not HMAC".into(),
-            )));
-        },
+        _ => Err(Error::NotSupported(Some(
+            "The key algorithm is not HMAC".into(),
+        ))),
     }
 }
 
