@@ -25,10 +25,11 @@ use crate::traits::Equivalence;
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-sign>
 pub(crate) fn sign<D: Equivalence>(key: &CryptoKey<D>, message: &[u8]) -> Result<Vec<u8>, Error> {
-    // Let mac be the result of performing the MAC Generation operation described in
+    // Step 1. Let mac be the result of performing the MAC Generation operation described in
     // Section 4 of [FIPS-198-1] using the key represented by the [[handle]] internal slot of key,
     // the hash function identified by the hash attribute of the [[algorithm]] internal slot of key
     // and message as the input data text.
+    // Step 2. Return mac.
     match key.algorithm() {
         KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => match algo.hash.name() {
             CryptoAlgorithm::Sha1 => {
@@ -75,10 +76,12 @@ pub(crate) fn verify<D: Equivalence>(
     message: &[u8],
     signature: &[u8],
 ) -> Result<bool, Error> {
-    // Let mac be the result of performing the MAC Generation operation described in
+    // Step 1. Let mac be the result of performing the MAC Generation operation described in
     // Section 4 of [FIPS-198-1] using the key represented by the [[handle]] internal slot of key,
     // the hash function identified by the hash attribute of the [[algorithm]] internal slot of key
     // and message as the input data text.
+    // Step 2. Return true if mac is equal to signature and false otherwise. This comparison must
+    // be performed in constant-time.
     // [[verify_slice]] performs the comparison in constant time.
     match key.algorithm() {
         KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => match algo.hash.name() {
