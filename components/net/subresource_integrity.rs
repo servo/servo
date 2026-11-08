@@ -10,7 +10,7 @@ use base64::Engine;
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use parking_lot::MutexGuard;
 use regex::Regex;
-use sha2::Digest;
+use sha2::{Digest, Sha256, Sha384, Sha512};
 
 type StaticCharVec = &'static [char];
 /// A "space character" according to:
@@ -144,17 +144,17 @@ fn apply_algorithm_to_response(body: MutexGuard<ResponseBody>, algorithm: Algori
     if let ResponseBody::Done(ref vec) = *body {
         match algorithm {
             Algorithm::Sha256 => {
-                let mut hasher = sha2::Sha256::default();
+                let mut hasher = Sha256::default();
                 hasher.update(vec);
                 base64::engine::general_purpose::STANDARD.encode(hasher.finalize())
             },
             Algorithm::Sha384 => {
-                let mut hasher = sha2::Sha384::default();
+                let mut hasher = Sha384::default();
                 hasher.update(vec);
                 base64::engine::general_purpose::STANDARD.encode(hasher.finalize())
             },
             Algorithm::Sha512 => {
-                let mut hasher = sha2::Sha512::default();
+                let mut hasher = Sha512::default();
                 hasher.update(vec);
                 base64::engine::general_purpose::STANDARD.encode(hasher.finalize())
             },
