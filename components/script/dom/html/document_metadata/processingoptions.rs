@@ -37,6 +37,7 @@ use crate::fetch::fetch::create_a_potential_cors_request_with_claim;
 use crate::fetch::network_listener::{
     FetchResponseListener, ResourceTimingListener, submit_timing,
 };
+use crate::scripting::fetching_options::ScriptFetchPriority;
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 trait ValueForKeyInLinkHeader {
@@ -91,7 +92,7 @@ pub(crate) struct LinkProcessingOptions {
     // https://html.spec.whatwg.org/multipage/#link-options-on-document-ready
     // TODO
     // https://html.spec.whatwg.org/multipage/#link-options-fetch-priority
-    // TODO
+    pub(crate) fetch_priority: ScriptFetchPriority,
 }
 
 impl LinkProcessingOptions {
@@ -141,7 +142,9 @@ impl LinkProcessingOptions {
         // Step 7. If attribs["fetchpriority"] exists and is an ASCII case-insensitive match
         // for a fetch priority attribute keyword, then set options's fetch priority to that
         // fetch priority attribute keyword.
-        // TODO
+        if let Some(link_type) = link_object.value_for_key_in_link_header("fetchpriority") {
+            self.fetch_priority = link_type.into();
+        }
         // Step 8. Return true.
         true
     }
@@ -422,6 +425,7 @@ pub(crate) fn process_link_headers(
             origin: document.origin().immutable().to_owned(),
             request_client: global.request_client(None),
             referrer: global.get_referrer(),
+            fetch_priority: Default::default(),
         };
         // Step 2.7. Apply link options from parsed header attributes to options given attribs and rel.
         // If that returned false, then return.
