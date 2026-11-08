@@ -464,8 +464,7 @@ impl DocumentEventHandler {
             .dom_manipulation_task_source()
             .queue_unconditionally(task!(notify_webdriver_input_event_completed: move || {
                 let window = trusted_window.root();
-                window.send_to_embedder(
-                    EmbedderMsg::InputEventsHandled(window.webview_id(), input_event_outcomes));
+                window.notify_or_defer_input_event_outcomes(input_event_outcomes);
             }));
     }
 

@@ -25,8 +25,9 @@ use cssparser::SourceLocation;
 use dom_struct::dom_struct;
 use embedder_traits::user_contents::UserScript;
 use embedder_traits::{
-    AlertResponse, ConfirmResponse, EmbedderMsg, LoadStatus, PromptResponse, ScriptToEmbedderChan,
-    SimpleDialogRequest, Theme, UntrustedNodeAddress, ViewportDetails, WebDriverLoadStatus,
+    AlertResponse, ConfirmResponse, EmbedderMsg, InputEventOutcome, LoadStatus, PromptResponse,
+    ScriptToEmbedderChan, SimpleDialogRequest, Theme, UntrustedNodeAddress, ViewportDetails,
+    WebDriverLoadStatus,
 };
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use fonts::{
@@ -521,6 +522,13 @@ pub(crate) struct Window {
 
     /// <https://html.spec.whatwg.org/multipage/#close-watcher-manager>
     close_watcher_manager: CloseWatcherManager,
+
+    /// Delay input event outcomes when page is closing. The is used to ensure the
+    /// navigable is destroyed before webdriver return success when `window.close()`
+    /// is triggered by perform action command.
+    /// See <https://www.w3.org/TR/webdriver2/#dfn-dispatch-actions-inner> 1.4.2
+    #[no_trace]
+    closing_deffered_input_event_outcomes: RefCell<Option<Vec<InputEventOutcome>>>,
 }
 
 impl Window {
@@ -957,6 +965,7 @@ impl Window {
         // Implemented by passing `false` into the method below
         // Step 2. If the result of checking if unloading is canceled for toUnload is not "continue", then return.
         if !document.check_if_unloading_is_cancelled(cx, false) {
+            self.flush_deferred_input_event_outcomes();
             return;
         }
         // Step 3. Append the following session history traversal steps to traversable:
@@ -965,6 +974,8 @@ impl Window {
         document.unload(cx, false);
         // Step 3.1. Let afterAllUnloads be an algorithm step which destroys traversable.
         self.destroy_top_level_traversable(cx);
+
+        self.flush_deferred_input_event_outcomes();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#cannot-show-simple-dialogs>
@@ -1134,6 +1145,30 @@ impl Window {
 
         // Step 4. Return processedACloseWatcher.
         processed_a_close_watcher
+    }
+
+    fn start_deferring_input_event_outcomes(&self) {
+        self.closing_deffered_input_event_outcomes
+            .borrow_mut()
+            .get_or_insert_default();
+    }
+
+    fn flush_deferred_input_event_outcomes(&self) {
+        if let Some(outcomes) = self
+            .closing_deffered_input_event_outcomes
+            .borrow_mut()
+            .take()
+        {
+            self.send_to_embedder(EmbedderMsg::InputEventsHandled(self.webview_id(), outcomes));
+        }
+    }
+
+    pub(crate) fn notify_or_defer_input_event_outcomes(&self, outcomes: Vec<InputEventOutcome>) {
+        if let Some(delayed) = &mut *self.closing_deffered_input_event_outcomes.borrow_mut() {
+            delayed.extend(outcomes);
+        } else {
+            self.send_to_embedder(EmbedderMsg::InputEventsHandled(self.webview_id(), outcomes));
+        }
     }
 }
 
@@ -1564,6 +1599,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-close>
     fn Close(&self, cx: &mut JSContext) {
+        self.start_deferring_input_event_outcomes();
+
         // Step 1. Let thisTraversable be this's navigable.
         let window_proxy = match self.window_proxy.get() {
             Some(proxy) => proxy,
@@ -4305,6 +4342,7 @@ impl Window {
                 UserActivationTimestamp::PositiveInfinity,
             ),
             close_watcher_manager: CloseWatcherManager::new(),
+            closing_deffered_input_event_outcomes: Default::default(),
         });
 
         WindowBinding::Wrap::<crate::DomTypeHolder>(cx, &origin, win)
