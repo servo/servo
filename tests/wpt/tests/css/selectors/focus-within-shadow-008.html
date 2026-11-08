@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Selectors Level 4: focus-within with shadow DOM</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#focus-within-pseudo">
+<link rel="help" href="https://dom.spec.whatwg.org/#shadow-trees">
+<link rel="match" href="focus-within-shadow-001-ref.html">
+<meta name="flags" content="dom">
+<meta name="assert" content="Checks that ':focus-within' is updated after changing assigned slots of parent element.">
+<style>
+  /* Suppress things that cannot be reproduced in the reference file */
+  :focus {
+    outline: none;
+  }
+  :focus-within {
+      border-color: green;
+  }
+</style>
+<p>Test passes if there is a green rectangle below.</p>
+
+<div id="log"></div>
+<script>
+  if (!document.body.attachShadow)
+    document.getElementById("log").innerHTML = "<strong>Skip this test, shadow DOM is not supported.</strong>";
+</script>
+
+<div id="shadow-host">
+  <div id="parent-of-focusme">
+    <div id="focusme" tabindex="1"></div>
+  </div>
+</div>
+
+<script>
+  var shadowHost = document.getElementById("shadow-host");
+  shadowHost.attachShadow({ mode: "open"}).innerHTML =
+    "<style>" +
+    "  #shadow-div:focus-within { border: solid 15px green; }" +
+    "  #fallback-shadow-div:focus-within { border: solid 15px red; }" +
+    "</style>" +
+    "<div id='shadow-div'>" +
+    "  <slot name=\"first\"></slot>" +
+    "</div>" +
+    "<div id='fallback-shadow-div'>" +
+    "  <slot></slot>" +
+    "</div>";
+  var focusme = document.getElementById("focusme");
+  focusme.focus();
+  focusme.parentElement.slot = 'first';
+  document.documentElement.classList.remove("reftest-wait");
+</script>
+</html>

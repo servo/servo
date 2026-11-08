@@ -401966,6 +401966,32 @@
        {}
       ]
      ],
+     "focus-within-shadow-007.html": [
+      "42ea873de407b7b8fa21e01cf3359069ac285b78",
+      [
+       null,
+       [
+        [
+         "/css/selectors/focus-within-shadow-001-ref.html",
+         "=="
+        ]
+       ],
+       {}
+      ]
+     ],
+     "focus-within-shadow-008.html": [
+      "7f5a576275278fefe9296a58abde6459d7df252f",
+      [
+       null,
+       [
+        [
+         "/css/selectors/focus-within-shadow-001-ref.html",
+         "=="
+        ]
+       ],
+       {}
+      ]
+     ],
      "has-display-none-checked.html": [
       "96b1f8bd0489658bdf5183c4772f780a25dc0bb9",
       [
