@@ -1572,7 +1572,8 @@ impl<'dom> LayoutDom<'dom, Element> {
                 // TODO(mttr) This should take scrollbar size into consideration.
                 //
                 // https://html.spec.whatwg.org/multipage/#textarea-effective-height
-                let value = specified::NoCalcLength::from_em(rows as CSSFloat);
+                let value =
+                    specified::NoCalcLength::new(specified::LengthUnit::Lh, rows as CSSFloat);
                 push(PropertyDeclaration::Height(
                     specified::Size::LengthPercentage(NonNegative(
                         specified::LengthPercentage::Length(value),
