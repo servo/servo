@@ -234,7 +234,7 @@ impl FileReader {
         return_on_abort!();
         // Step 1
         fr.change_ready_state(FileReaderReadyState::Done);
-        *fr.result.borrow_mut() = None;
+        *fr.result.safe_borrow_mut(cx.no_gc()) = None;
 
         let exception = DOMException::new(cx, &fr.global(), error);
         fr.error.set(Some(&exception));
@@ -389,7 +389,7 @@ impl FileReader {
             create_buffer_source::<ArrayBufferU8>(cx, bytes, array_buffer.handle_mut()).is_ok()
         );
 
-        *result.borrow_mut() = Some(FileReaderResult::ArrayBuffer(Heap::default()));
+        *result.safe_borrow_mut(cx.no_gc()) = Some(FileReaderResult::ArrayBuffer(Heap::default()));
 
         if let Some(FileReaderResult::ArrayBuffer(heap)) = &*result.borrow() {
             heap.set(jsval::ObjectValue(array_buffer.get()));
@@ -465,7 +465,7 @@ impl FileReaderMethods<crate::DomTypeHolder> for FileReader {
             self.change_ready_state(FileReaderReadyState::Done);
         }
         // Steps 1 & 3
-        *self.result.borrow_mut() = None;
+        *self.result.safe_borrow_mut(cx.no_gc()) = None;
 
         let exception = DOMException::new(cx, &self.global(), DOMErrorName::AbortError);
         self.error.set(Some(&exception));
@@ -542,7 +542,7 @@ impl FileReader {
         self.change_ready_state(FileReaderReadyState::Loading);
 
         // Set fr’s result to null.
-        *self.result.borrow_mut() = None;
+        *self.result.safe_borrow_mut(cx.no_gc()) = None;
 
         // Set fr’s error to null.
         // See the note below in the error steps.
