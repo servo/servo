@@ -15,6 +15,25 @@ use servo::{CacheEntry, WebViewBuilder};
 
 use crate::common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
 
+fn cacheable_response_handler(
+    request: HyperRequest<Incoming>,
+    response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>,
+) {
+    static MESSAGE: &'static [u8] = b"<!DOCTYPE html>\nHello";
+    // Don't cache response for fallback fetch for `favicon`.
+    if request.uri().path() == "/favicon.ico" {
+        response
+            .headers_mut()
+            .insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
+        return;
+    }
+    response.headers_mut().insert(
+        header::CACHE_CONTROL,
+        HeaderValue::from_static("max-age=3600"),
+    );
+    *response.body_mut() = make_body(MESSAGE.to_vec());
+}
+
 #[test]
 fn test_cache_entries() {
     let servo_test = ServoTest::new();
@@ -31,18 +50,7 @@ fn test_cache_entries() {
     let cache_entries = network_manager.cache_entries();
     assert_eq!(cache_entries.len(), 0);
 
-    static MESSAGE: &'static [u8] = b"<!DOCTYPE html>\nHello";
-    let handler =
-        move |_: HyperRequest<Incoming>,
-              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
-            response.headers_mut().insert(
-                header::CACHE_CONTROL,
-                HeaderValue::from_static("max-age=3600"),
-            );
-            *response.body_mut() = make_body(MESSAGE.to_vec());
-        };
-
-    let (server, url) = make_server(handler);
+    let (server, url) = make_server(cacheable_response_handler);
     let port = url.port().unwrap();
 
     delegate.reset();
@@ -63,18 +71,7 @@ fn test_cache_entries() {
 fn test_clear_cache() {
     let servo_test = ServoTest::new();
 
-    static MESSAGE: &'static [u8] = b"<!DOCTYPE html>\nHello";
-
-    let handler =
-        move |_: HyperRequest<Incoming>,
-              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
-            response.headers_mut().insert(
-                header::CACHE_CONTROL,
-                HeaderValue::from_static("max-age=3600"),
-            );
-            *response.body_mut() = make_body(MESSAGE.to_vec());
-        };
-    let (server, url) = make_server(handler);
+    let (server, url) = make_server(cacheable_response_handler);
 
     let delegate = Rc::new(WebViewDelegateImpl::default());
 
