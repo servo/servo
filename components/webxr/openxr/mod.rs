@@ -22,6 +22,7 @@ use openxr::{
     SwapchainCreateInfo, SwapchainUsageFlags, SystemId, Vector3f, Version, ViewConfigurationType,
 };
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
+use servo_base::id::PainterId;
 use surfman::{
     Context as SurfmanContext, Device as SurfmanDevice, Error as SurfmanError, SurfaceTexture,
 };
@@ -302,12 +303,14 @@ impl DiscoveryAPI<SurfmanGL> for OpenXrDiscovery {
             }
             let granted_features = init.validate(mode, &supported_features)?;
             let context_menu_provider = self.context_menu_provider.take();
+            let painter_id = init.painter_id;
             xr.spawn(move |grand_manager| {
                 OpenXrDevice::new(
                     instance,
                     granted_features,
                     context_menu_provider,
                     grand_manager,
+                    painter_id,
                 )
             })
         } else {
@@ -822,6 +825,7 @@ impl OpenXrDevice {
         granted_features: Vec<String>,
         context_menu_provider: Option<Box<dyn ContextMenuProvider>>,
         grand_manager: LayerGrandManager<SurfmanGL>,
+        painter_id: PainterId,
     ) -> Result<OpenXrDevice, Error> {
         let CreatedInstance {
             instance,
@@ -841,9 +845,12 @@ impl OpenXrDevice {
         let shared_data_clone = shared_data.clone();
         let mut data = shared_data.lock().unwrap();
 
-        let layer_manager = grand_manager.create_layer_manager(move |_| {
+        let layer_manager = grand_manager.create_layer_manager(move |contexts| {
+            let device = contexts
+                .device_for_painter(painter_id)
+                .ok_or(Error::NoMatchingDevice)?;
             let (session, frame_waiter, frame_stream) =
-                GraphicsProvider::create_session(&instance_clone, system)?;
+                GraphicsProvider::create_session(&instance_clone, system, &device)?;
             let (passthrough, passthrough_layer) = if supports_passthrough {
                 let flags = PassthroughFlagsFB::IS_RUNNING_AT_CREATION;
                 let purpose = PassthroughLayerPurposeFB::RECONSTRUCTION;
