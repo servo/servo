@@ -52,7 +52,7 @@ struct DiskCacheInner {
 
 #[derive(MallocSizeOf)]
 /// A struct representing the disk cache.
-pub(crate) struct DiskCache {
+pub struct DiskCache {
     path: PathBuf,
     max_size: usize,
     // the non constant data.
@@ -396,5 +396,24 @@ impl DiskCache {
         }
         inner.entries.clear();
         inner.size = 0;
+    }
+
+    #[cfg(feature = "test-util")]
+    pub fn keys_in_database(&self) -> Vec<CacheKey> {
+        use url::Url;
+
+        let (query, params) = Query::select()
+            .columns([DiskCacheTable::Key])
+            .from(DiskCacheTable::Table)
+            .build_rusqlite(SqliteQueryBuilder);
+        let inner = self.inner.blocking_lock();
+        let mut statement = inner.db.prepare(query.as_str()).unwrap();
+        statement
+            .query_map(&*params.as_params(), |row| Ok(row.get_unwrap("key")))
+            .unwrap()
+            .flatten()
+            .flat_map(|string: String| Url::parse(&string))
+            .map(|url| CacheKey::from_url(ServoUrl::from_url(url)))
+            .collect()
     }
 }

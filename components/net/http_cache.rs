@@ -350,6 +350,11 @@ impl HttpCache {
             }
         }
     }
+    #[cfg(feature = "test-util")]
+    /// Returns the disk cache struct.
+    pub fn disk_cache(&self) -> Option<StdArc<DiskCache>> {
+        self.disk_cache.clone()
+    }
 }
 
 #[derive(Clone)]
