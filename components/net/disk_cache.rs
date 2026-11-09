@@ -57,6 +57,10 @@ pub struct DiskCache {
     max_size: usize,
     // the non constant data.
     inner: TokioMutex<DiskCacheInner>,
+    // We keep the tempdir around, if we are in `temporary_storage` mode.
+    // This is important for non unix systems.
+    #[ignore_malloc_size_of = "Difficult to measure"]
+    tempfile: Option<TempDir>,
 }
 
 /// Identifications for sea_query of the cache table.
@@ -83,7 +87,7 @@ impl Iden for DiskCacheTable {
 
 struct StorageDirectory {
     path: PathBuf,
-    _temp_dir: Option<TempDir>,
+    temp_dir: Option<TempDir>,
 }
 
 /// Get the storage path out of `network_http_disk_cache` preference and `temporary_storage` option.
@@ -96,7 +100,7 @@ fn storage_dir() -> Option<StorageDirectory> {
     ) {
         (false, false) => Some(StorageDirectory {
             path: disk_storage_path.into(),
-            _temp_dir: None,
+            temp_dir: None,
         }),
         (true, true) => {
             let tmp_dir = tempfile::tempdir().unwrap();
@@ -105,7 +109,7 @@ fn storage_dir() -> Option<StorageDirectory> {
             path.push("cache.sqlite3");
             Some(StorageDirectory {
                 path,
-                _temp_dir: Some(tmp_dir),
+                temp_dir: Some(tmp_dir),
             })
         },
         (true, false) => {
@@ -192,6 +196,7 @@ impl DiskCache {
                 inner: TokioMutex::new(inner),
                 path: storage_directory.path,
                 max_size: max_disk_cache_size,
+                tempfile: storage_directory.temp_dir,
             });
 
             (

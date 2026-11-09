@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::time::{Duration, Instant};
+
 use bytes::Bytes;
 use http::header::CACHE_CONTROL;
 use http::{HeaderValue, Method, StatusCode};
@@ -65,6 +67,18 @@ fn simple_disk_restore() {
     }
 
     let cache = &fetch_context.state.http_cache;
+    let (sender, receiver) = crossbeam_channel::unbounded();
+    // Preventing race as sending to disk cache is lazy
+    spawn_blocking_task(async move {
+        loop {
+            if cache.len() == 1 {
+                break;
+            }
+        }
+        let _ = sender.send(());
+    });
+
+    let _ = receiver.recv_deadline(Instant::now() + Duration::from_secs(2));
     assert_eq!(cache.len(), 1);
 
     let disk_cache = cache.disk_cache();
@@ -142,6 +156,19 @@ fn disk_restore_cache_temp() {
     }
 
     let cache = &fetch_context.state.http_cache;
+    let (sender, receiver) = crossbeam_channel::unbounded();
+    // Preventing race as sending to disk cache is lazy
+    spawn_blocking_task(async move {
+        loop {
+            if cache.len() == 1 {
+                break;
+            }
+        }
+        let _ = sender.send(());
+    });
+
+    let _ = receiver.recv_deadline(Instant::now() + Duration::from_secs(2));
+    assert_eq!(cache.len(), 1);
     assert_eq!(cache.len(), 1);
 
     let disk_cache = cache.disk_cache();
