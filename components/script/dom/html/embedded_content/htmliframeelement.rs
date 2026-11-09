@@ -178,6 +178,20 @@ impl HTMLIFrameElement {
         mode: ProcessingMode,
         target_snapshot_params: TargetSnapshotParams,
     ) {
+        // <https://html.spec.whatwg.org/multipage/#navigate>
+        // Step 11. If container is an iframe element and will lazy load element steps
+        // given container returns true, then stop intersection-observing a lazy loading
+        // element container and set container's lazy load resumption steps to null.
+        if self.will_lazy_load_element_steps() {
+            self.owner_document()
+                .stop_intersection_observing_a_lazy_loading_element(
+                    cx.no_gc(),
+                    self.upcast::<Element>(),
+                );
+            self.lazy_load_resumption_steps
+                .set(LazyLoadResumptionSteps::None);
+        }
+
         self.start_new_pipeline(
             cx,
             load_data,
