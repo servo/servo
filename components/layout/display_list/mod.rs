@@ -888,16 +888,37 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
             return;
         }
 
-        let rect = fragment.base.rect().translate(state.origin.to_vector());
-        let common = self.common_properties(state, rect.to_webrender(), &style);
+        let rect = fragment
+            .base
+            .rect()
+            .translate(state.origin.to_vector())
+            .to_webrender();
+        let pipeline_id = fragment.pipeline_id.into();
+
+        // The scroll tree transforms are calculated for query coordinates (relative
+        // to the document origin), but display list coordinates are relative to the
+        // nearest reference frame. We are accounting for that here.
+        let reference_frame_origin = self
+            .paint_info
+            .scroll_tree
+            .reference_frame_offset(state.spatial_id);
+        self.paint_info.iframes.insert(
+            pipeline_id,
+            (
+                state.spatial_id,
+                rect.translate(reference_frame_origin.to_vector()),
+            ),
+        );
+
+        let common = self.common_properties(state, rect, &style);
         self.wr().push_iframe(
-            rect.to_webrender(),
+            rect,
             common.clip_rect,
             &wr::SpaceAndClipInfo {
                 spatial_id: common.spatial_id,
                 clip_chain_id: common.clip_chain_id,
             },
-            fragment.pipeline_id.into(),
+            pipeline_id,
             true,
         );
         // From <https://www.w3.org/TR/paint-timing/#mark-paint-timing>:
@@ -906,7 +927,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
         // > contains just iframes will have first paint (due to the enclosing
         // > boxes of the paintable iframes) but no first contentful paint.
         self.paint_timing_handler
-            .check_if_paintable(rect.to_webrender(), state.accumulated_opacity);
+            .check_if_paintable(rect, state.accumulated_opacity);
     }
 
     fn visit_image(

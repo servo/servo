@@ -12,7 +12,7 @@ use embedder_traits::{
     PaintHitTestResult, Scroll, TouchEvent, TouchEventType, ViewportDetails, WebViewPoint,
     WheelEvent,
 };
-use euclid::{Scale, Size2D, Vector2D};
+use euclid::{Box2D, Rect, Scale, Size2D, Vector2D};
 use log::{debug, warn};
 use malloc_size_of::MallocSizeOf;
 use paint_api::display_list::ScrollType;
@@ -25,11 +25,12 @@ use servo_base::id::{PipelineId, WebViewId};
 use servo_constellation_traits::{
     EmbedderToConstellationMessage, ScrollStateUpdate, WindowSizeType,
 };
-use servo_geometry::DeviceIndependentPixel;
+use servo_geometry::{DeviceIndependentPixel, FastLayoutTransform, au_rect_to_f32_rect};
 use style_traits::CSSPixel;
 use webrender::RenderApi;
 use webrender_api::units::{
-    DevicePixel, DevicePoint, DeviceRect, DeviceVector2D, LayoutTransform, LayoutVector2D,
+    Au, DevicePixel, DevicePoint, DeviceRect, DeviceVector2D, LayoutTransform, LayoutVector2D,
+    RectExt,
 };
 use webrender_api::{DocumentId, ExternalScrollId, PropertyBindingKey, ScrollLocation};
 
@@ -1224,6 +1225,62 @@ impl WebViewRenderer {
         .then(&LayoutTransform::from_untyped(
             &pinch_zoom_transform.to_3d(),
         ))
+    }
+
+    /// If the pipeline is in the current frame tree, find its parent [`PipelineId`] and
+    /// [`PipelineDetails`]. If it is not in the current frame tree return `None`.
+    pub(crate) fn parent_pipeline(
+        &self,
+        pipeline_id: PipelineId,
+    ) -> Option<(PipelineId, &PipelineDetails)> {
+        let parent_id = self.pipelines.get(&pipeline_id)?.parent_pipeline_id?;
+        let parent = self.pipelines.get(&parent_id)?;
+        parent
+            .children
+            .contains(&pipeline_id)
+            .then_some((parent_id, parent))
+    }
+
+    /// Map a rectangle in pipeline viewport coordinates in the pipeline specified by the given
+    /// [`PipelineId`] into device coordinates relative to the WebView origin.
+    pub(crate) fn map_rect_to_device_pixel(
+        &self,
+        mut pipeline_id: PipelineId,
+        rect: Rect<Au, CSSPixel>,
+    ) -> DeviceRect {
+        let mut transform = FastLayoutTransform::identity();
+        while Some(pipeline_id) != self.root_pipeline_id {
+            let Some((parent_pipeline_id, parent_details)) = self.parent_pipeline(pipeline_id)
+            else {
+                break;
+            };
+            let Some((iframe_spatial_node, iframe_rect)) =
+                parent_details.iframes.get(&(pipeline_id.into()))
+            else {
+                break;
+            };
+
+            let pipeline_transform = &parent_details
+                .scroll_tree
+                .cumulative_node_to_root_transform(*iframe_spatial_node);
+            transform = transform
+                .then_translate(iframe_rect.top_left().to_vector())
+                .then(pipeline_transform);
+
+            pipeline_id = parent_pipeline_id;
+        }
+
+        let transform = transform.to_transform().then(&self.root_transform());
+        let rect = transform
+            .outer_transformed_rect(&au_rect_to_f32_rect(rect.cast_unit()))
+            .unwrap_or_default()
+            .to_box2d()
+            .cast_unit();
+        let webview_max_point = DevicePoint::zero() + self.rect.size().to_vector();
+        Box2D::new(
+            rect.min.clamp(DevicePoint::zero(), webview_max_point),
+            rect.max.clamp(DevicePoint::zero(), webview_max_point),
+        )
     }
 }
 
