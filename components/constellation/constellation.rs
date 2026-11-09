@@ -106,6 +106,8 @@ use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg,
 };
+#[cfg(feature = "multiprocess")]
+use embedder_traits::resources::ResourceBytes;
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::user_contents::{UserContentManagerId, UserContents};
 use embedder_traits::{
@@ -516,7 +518,7 @@ pub struct Constellation<STF, SWF> {
     /// Read during startup and provided to image caches that are created
     /// on an as-needed basis, rather than retrieving it every time.
     #[cfg(feature = "multiprocess")]
-    pub(crate) broken_image_icon_data: Vec<u8>,
+    pub(crate) broken_image_icon_data: ResourceBytes,
 
     /// The process manager.
     #[cfg(feature = "multiprocess")]

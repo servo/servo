@@ -8624,6 +8624,7 @@ version = "0.8.0"
 dependencies = [
  "accesskit",
  "bitflags 2.13.2",
+ "bytes",
  "content-security-policy",
  "cookie 0.18.2",
  "crossbeam-channel",
@@ -9959,6 +9960,7 @@ dependencies = [
  "libc",
  "log",
  "mach2",
+ "memmap2",
  "mime_guess",
  "napi-derive-ohos",
  "napi-ohos",
