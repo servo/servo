@@ -159,7 +159,6 @@ impl FileSystemEntryMethods<crate::DomTypeHolder> for FileSystemEntry {
                 };
                 this.pending_callbacks.borrow_mut().swap_remove(index);
 
-                
                 match item {
                     // Step 1.4. Let entry be a new directory entry with item's
                     // name as name and path as full path.
