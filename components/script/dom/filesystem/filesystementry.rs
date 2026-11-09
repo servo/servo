@@ -118,10 +118,6 @@ impl FileSystemEntryMethods<crate::DomTypeHolder> for FileSystemEntry {
 
         // Step 1.2. Let item be the result of evaluating a path with this's
         // root and path.
-        //
-        // Step 1.3. If item is failure, queue a task to invoke errorCallback
-        // (if given) with « a newly created "NotFoundError" DOMException »
-        // and "report", and abort these steps.
         let item = evaluate_path(&self.root(), &path)
             .and_then(DomRoot::downcast::<FileSystemDirectoryEntry>)
             .map(|parent| Trusted::new(&*parent));
@@ -163,19 +159,23 @@ impl FileSystemEntryMethods<crate::DomTypeHolder> for FileSystemEntry {
                 };
                 this.pending_callbacks.borrow_mut().swap_remove(index);
 
-                // Step 1.4. Let entry be a new directory entry with item's
-                // name as name and path as full path.
-                //
-                // Step 1.5. Queue a task to invoke successCallback with « a
-                // new FileSystemDirectoryEntry object associated with entry »
-                // and "report".
+                
                 match item {
+                    // Step 1.4. Let entry be a new directory entry with item's
+                    // name as name and path as full path.
+                    //
+                    // Step 1.5. Queue a task to invoke successCallback with « a
+                    // new FileSystemDirectoryEntry object associated with entry »
+                    // and "report".
                     Some(item) => {
                         let entry = DomRoot::upcast::<FileSystemEntry>(item.root());
                         if let Some(callback) = success_callback {
                             let _ = callback.Call__(cx, &entry, ExceptionHandling::Report);
                         }
                     },
+                    // Step 1.3. If item is failure, queue a task to invoke errorCallback
+                    // (if given) with « a newly created "NotFoundError" DOMException »
+                    // and "report", and abort these steps.
                     None => {
                         if let Some(error_callback) = error_callback {
                             let error =
