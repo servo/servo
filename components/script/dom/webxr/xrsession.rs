@@ -511,18 +511,21 @@ impl XRSession {
         } else {
             return;
         };
+
         let mut clip_planes = util::ClipPlanes::default();
         let near = *render_state.DepthNear() as f32;
         let far = *render_state.DepthFar() as f32;
         clip_planes.update(near, far);
-        let top = *render_state
+
+        let vertical_fov = *render_state
             .GetInlineVerticalFieldOfView()
-            .expect("IVFOV should be non null for inline sessions") /
-            2.;
-        let top = near * top.tan() as f32;
-        let bottom = top;
-        let left = top * size.width as f32 / size.height as f32;
-        let right = left;
+            .expect("IVFOV should be non null for inline sessions")
+            as f32;
+        let aspect = size.width as f32 / size.height as f32;
+        let top = near * (vertical_fov / 2.0).tan();
+        let bottom = -top;
+        let right = top * aspect;
+        let left = -right;
         let matrix = util::frustum_to_projection_matrix(left, right, top, bottom, clip_planes);
         *self.inline_projection_matrix.borrow_mut() = matrix;
     }
@@ -988,9 +991,11 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
 
     /// <https://www.w3.org/TR/webxr-ar-module-1/#dom-xrsession-interactionmode>
     fn InteractionMode(&self) -> XRInteractionMode {
-        // Until Servo supports WebXR sessions on mobile phones or similar non-XR devices,
-        // this should always be world space
-        XRInteractionMode::World_space
+        if !self.is_immersive() {
+            XRInteractionMode::Screen_space
+        } else {
+            XRInteractionMode::World_space
+        }
     }
 
     /// <https://www.w3.org/TR/webxr/#dom-xrsession-framerate>
