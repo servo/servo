@@ -714,7 +714,6 @@ impl LogicalRect<Au> {
         }
     }
 
-    #[cfg_attr(not(test), expect(dead_code))]
     pub(crate) fn as_physical(
         &self,
         writing_mode: WritingMode,
