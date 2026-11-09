@@ -62,12 +62,10 @@ impl BoxTree {
 
         let viewport_overflow = Self::viewport_overflow(root_element, boxes.first());
         let contents = BlockContainer::BlockLevelBoxes(boxes);
-        let contains_floats = contents.contains_floats();
         Self {
-            root: BlockFormattingContext {
-                contents,
-                contains_floats,
-            },
+            root: BlockFormattingContext::from_block_container(
+                contents, false, /* is_table_cell */
+            ),
             // From https://www.w3.org/TR/css-overflow-3/#overflow-propagation:
             // > If visible is applied to the viewport, it must be interpreted as auto.
             // > If clip is applied to the viewport, it must be interpreted as hidden.
