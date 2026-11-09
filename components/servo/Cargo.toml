@@ -28,6 +28,9 @@ default_web_features = ["brotli-compression-stream", "clipboard", "subtlecrypto"
 default_tooling = ["devtools"]
 
 # Use aws-lc-rs as the cryptography provider for RusTLS.
+# If the embedder wants to use a different provider,
+# you need to initialize it yourself before initializing Servo, like this:
+# `rustls::crypto::aws_lc_rs::default_provider().install_default()`
 aws-lc-rs = ["net/aws-lc-rs"]
 
 # Bundle required resources in the binary.
