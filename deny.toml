@@ -29,10 +29,6 @@ ignore = [
     "RUSTSEC-2025-0098",
     # The crate `unic-ucd-ident` is unmaintained.
     "RUSTSEC-2025-0100",
-    # The crate `rsa` is vulnerable to Marvin Attack that leaks
-    # cryptographic secret via side channel. Wait for a patch in stable
-    # release version from upstream.
-    "RUSTSEC-2023-0071",
     # The crate `bincode` is unmaintained. This crate is now pinned in Servo.
     # See the comment above `bincode` entry in Cargo.toml.
     "RUSTSEC-2025-0141",
