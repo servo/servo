@@ -14,6 +14,7 @@ use sea_query::{ColumnDef, Expr, ExprTrait, Iden, OnConflict, Query, SqliteQuery
 use sea_query_rusqlite::RusqliteBinder;
 use servo_config::pref;
 use servo_url::ServoUrl;
+use tempfile::TempDir;
 use tokio::sync::{Mutex as TokioMutex, RwLock as TokioRwLock};
 
 use crate::http_cache::{
@@ -81,26 +82,28 @@ impl Iden for DiskCacheTable {
 }
 
 /// Get the storage path out of `network_http_disk_cache` preference and `temporary_storage` option.
-fn storage_dir() -> Option<PathBuf> {
+// We need to return a file because a tempdir will otherwise close before we open the database
+fn storage_dir() -> (Option<PathBuf>, Option<TempDir>) {
     let disk_storage_path = pref!(network_http_disk_cache);
     match (
         servo_config::opts::get().temporary_storage,
         disk_storage_path.is_empty(),
     ) {
-        (false, false) => Some(disk_storage_path.into()),
+        (false, false) => (Some(disk_storage_path.into()), None),
         (true, true) => {
             let tmp_dir = tempfile::tempdir().unwrap();
             let mut path = tmp_dir.path().to_path_buf();
-            path.set_file_name("cache.sqlite3");
-            Some(path)
+
+            path.push("cache.sqlite3");
+            (Some(path), Some(tmp_dir))
         },
         (true, false) => {
             error!(
                 "Temporary storage cannot be set with explicit disk storage path. Disabling http_disk_cache"
             );
-            None
+            (None, None)
         },
-        (false, true) => None,
+        (false, true) => (None, None),
     }
 }
 
@@ -112,7 +115,7 @@ impl DiskCache {
         cache_assignment: HttpCacheAssignment,
     ) -> (Option<Arc<DiskCache>>, MemoryCacheLifecycle) {
         // For private browsing we currently do not want to store any disk cache.
-        let disk_cache_path = storage_dir();
+        let (disk_cache_path, _tempdir_file) = storage_dir();
 
         if let Some(disk_cache_path) = disk_cache_path &&
             cache_assignment == HttpCacheAssignment::Public
