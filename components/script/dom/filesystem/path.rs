@@ -10,6 +10,13 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::filesystemdirectoryentry::FileSystemDirectoryEntry;
 use crate::dom::filesystementry::FileSystemEntry;
 
+/// <https://wicg.github.io/entries-api/#names-paths>
+/// A valid path is a sequence of '/' separated path segments,
+/// which does not contain contain NUL (U+0000) or '\' (U+005C REVERSE SOLIDUS).
+pub(crate) fn is_valid_path(path: &str) -> bool {
+    !path.contains('\0') && !path.contains('\\')
+}
+
 /// <https://wicg.github.io/entries-api/#resolve-a-relative-path>
 pub(crate) fn resolve_relative_path(abspath: &str, path: &str) -> String {
     // Step 1. If path is an absolute path, return path.
