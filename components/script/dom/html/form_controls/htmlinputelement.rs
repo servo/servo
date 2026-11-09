@@ -2004,7 +2004,7 @@ impl HTMLInputElement {
     /// > then invoke the value sanitization algorithm, if the type attribute's current
     /// > state defines one.
     pub(crate) fn reset(&self, cx: &mut JSContext) {
-        self.user_validity.set(false);
+        self.set_user_validity(false);
         self.value_dirty.set(false);
 
         // We set the value and sanitize all in one go.
