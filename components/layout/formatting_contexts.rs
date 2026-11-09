@@ -217,6 +217,7 @@ impl IndependentFormattingContext {
                     non_replaced_contents,
                     propagated_data,
                     is_list_item,
+                    false, /* is_table_cell */
                 ))
             },
             DisplayInside::Grid => {
@@ -273,6 +274,7 @@ impl IndependentFormattingContext {
                 NonReplacedContents::OfElement,
                 propagated_data,
                 false, /* is_list_item */
+                false, /* is_table_cell */
             ));
 
         let box_slot = widget_info.node.box_slot();

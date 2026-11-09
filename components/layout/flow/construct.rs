@@ -42,21 +42,20 @@ impl BlockFormattingContext {
         contents: NonReplacedContents,
         propagated_data: PropagatedBoxTreeData,
         is_list_item: bool,
+        is_table_cell: bool,
     ) -> Self {
-        Self::from_block_container(BlockContainer::construct(
-            context,
-            info,
-            contents,
-            propagated_data,
-            is_list_item,
-        ))
+        Self::from_block_container(
+            BlockContainer::construct(context, info, contents, propagated_data, is_list_item),
+            is_table_cell,
+        )
     }
 
-    pub(crate) fn from_block_container(contents: BlockContainer) -> Self {
+    pub(crate) fn from_block_container(contents: BlockContainer, is_table_cell: bool) -> Self {
         let contains_floats = contents.contains_floats();
         Self {
             contents,
             contains_floats,
+            is_table_cell,
         }
     }
 }
@@ -816,6 +815,7 @@ impl BlockLevelJob<'_> {
                 let block_formatting_context = BlockFormattingContext {
                     contents: block_container,
                     contains_floats: false,
+                    is_table_cell: false,
                 };
                 ArcRefCell::new(BlockLevelBox::OutsideMarker(OutsideMarker {
                     context: IndependentFormattingContext::new(

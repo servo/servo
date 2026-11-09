@@ -932,6 +932,7 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                                 non_replaced_contents,
                                 self.current_propagated_data,
                                 false, /* is_list_item */
+                                false, /* is_table_cell */
                             ),
                         );
                         let base = LayoutBoxBase::new(info.into(), info.style.clone());
@@ -1207,7 +1208,10 @@ impl<'style, 'builder, 'dom, 'a> TableRowBuilder<'style, 'builder, 'dom, 'a> {
             context: IndependentFormattingContext::new(
                 LayoutBoxBase::new(BaseFragmentInfo::anonymous(), anonymous_info.style),
                 IndependentFormattingContextContents::Flow(
-                    BlockFormattingContext::from_block_container(block_container),
+                    BlockFormattingContext::from_block_container(
+                        block_container,
+                        true, /* is_table_cell */
+                    ),
                 ),
                 propagated_data,
             ),
@@ -1291,6 +1295,7 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
                             non_replaced_contents,
                             propagated_data,
                             false, /* is_list_item */
+                            true,  /* is_table_cell */
                         );
 
                         ArcRefCell::new(TableSlotCell {

@@ -60,6 +60,7 @@ pub(crate) use root::BoxTree;
 pub(crate) struct BlockFormattingContext {
     pub contents: BlockContainer,
     pub contains_floats: bool,
+    pub is_table_cell: bool,
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -496,20 +497,83 @@ impl BlockFormattingContext {
             flow_layout.collapsible_margins_in_children.end.solve() +
             clearance.unwrap_or_default();
 
-        // Buttons center their contents in the block axis. Therefore, create an `AnonymousFragment`
-        // that contains the fragments of the contents, and place it as desired.
-        // TODO: Use `align-content` instead, see https://github.com/w3c/csswg-drafts/issues/14190
-        if let Some(base) = base &&
-            base.base_fragment_info
-                .flags
-                .contains(FragmentFlags::IS_BUTTON)
-        {
+        let mut apply_align_content = || {
+            // Don't handle `align-content` for table cells, since at this point we still
+            // don't know how tall they will be. It's instead handled during table layout.
+            if self.is_table_cell {
+                return;
+            }
+            // Also no need to do anything for the initial containing block.
+            let Some(base) = base else {
+                return;
+            };
+
+            let align_content_style = base.style.get_align_content().primary();
+            let resolved_align_content = match align_content_style.value() {
+                // `normal` behaves as `center` on buttons. Otherwise behaves as `start`.
+                // See <https://github.com/w3c/csswg-drafts/issues/14190>.
+                AlignFlags::NORMAL
+                    if base
+                        .base_fragment_info
+                        .flags
+                        .contains(FragmentFlags::IS_BUTTON) =>
+                {
+                    AlignFlags::CENTER
+                },
+                AlignFlags::NORMAL => AlignFlags::START,
+
+                // Explicit sides.
+                AlignFlags::CENTER => AlignFlags::CENTER,
+                AlignFlags::START | AlignFlags::FLEX_START => AlignFlags::START,
+                AlignFlags::END | AlignFlags::FLEX_END => AlignFlags::END,
+
+                // For <content-distribution>, use the fallback alignment.
+                AlignFlags::SPACE_AROUND | AlignFlags::SPACE_EVENLY => AlignFlags::CENTER,
+                AlignFlags::SPACE_BETWEEN | AlignFlags::STRETCH => AlignFlags::START,
+
+                // Stylo parses baseline values, but behavior is broken in browsers,
+                // so the CSSWG resolved to unship them. Treat them as `start` for now.
+                // <https://github.com/w3c/csswg-drafts/issues/13421>
+                AlignFlags::BASELINE | AlignFlags::LAST_BASELINE => AlignFlags::START,
+
+                // Other `AlignFlags` values shouldn't be valid for `align-content`.
+                _ => {
+                    debug_assert!(
+                        false,
+                        "Unexpected align-content value: {:?}",
+                        align_content_style.value()
+                    );
+                    AlignFlags::START
+                },
+            };
+            // No need to do anything for `start`.
+            if resolved_align_content == AlignFlags::START {
+                return;
+            }
+            // If no overflow alignment is specified, the spec describes a "smart" behavior.
+            // But if that isn't implemented, the default behavior must be `safe` on block
+            // containers. See <https://drafts.csswg.org/css-align/#auto-safety-default>.
+            let is_safe = align_content_style.flags() != AlignFlags::UNSAFE;
+
+            // Compute the free space. If negative, the "safe" alignment variants fall back
+            // to `start` alignment.
             flow_layout.depends_on_block_constraints = true;
             let final_block_size = lazy_block_size.resolve(|| content_block_size);
+            let free_space = final_block_size - content_block_size;
+            if free_space <= Au::zero() && is_safe {
+                return;
+            }
+
+            // Create an `AnonymousFragment` that contains the fragments of the contents,
+            // and place it as desired.
             let align_fragment_rect = LogicalRect {
                 start_corner: LogicalVec2 {
                     inline: Au::zero(),
-                    block: Au::zero().max((final_block_size - content_block_size) / 2),
+                    block: match resolved_align_content {
+                        AlignFlags::END => free_space,
+                        AlignFlags::CENTER => free_space / 2,
+                        _ => unreachable!(),
+                    },
                 },
                 size: LogicalVec2 {
                     inline: containing_block.size.inline,
@@ -524,11 +588,12 @@ impl BlockFormattingContext {
             let align_fragment = PositioningFragment::new_anonymous(
                 base.style.clone(),
                 align_fragment_rect,
-                flow_layout.fragments,
+                std::mem::take(&mut flow_layout.fragments),
                 false, /* is_line_box */
             );
             flow_layout.fragments = vec![Fragment::Positioning(align_fragment)];
-        }
+        };
+        apply_align_content();
 
         IndependentFormattingContextLayoutResult {
             fragments: flow_layout.fragments,

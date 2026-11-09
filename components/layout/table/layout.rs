@@ -2876,6 +2876,8 @@ impl TableSlotCell {
         // The spec still assumes that `vertical-align` is a longhand, so it's not very clear
         // if this logic is completely correct, but it seems to match Firefox.
         // <https://github.com/w3c/csswg-drafts/issues/13458>
+        // TODO: we should only use `vertical-align` for the default `align-content: normal`.
+        // If `align-content` is set to another value, it should take precedence.
         let style_box = self.context.base.style.get_box();
         match style_box.baseline_shift {
             BaselineShift::Keyword(BaselineShiftKeyword::Top) => CellContentAlignment::Top,

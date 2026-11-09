@@ -266,6 +266,7 @@ impl TableSlotCell {
         let contents = IndependentFormattingContextContents::Flow(BlockFormattingContext {
             contents: BlockContainer::BlockLevelBoxes(Vec::new()),
             contains_floats: false,
+            is_table_cell: true,
         });
         let propagated_data =
             PropagatedBoxTreeData::default().disallowing_percentage_table_columns();
