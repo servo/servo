@@ -36,6 +36,10 @@ impl FileSystem {
     ) -> DomRoot<FileSystem> {
         reflect_dom_object(cx, Box::new(FileSystem::new_inherited(name, root)), global)
     }
+
+    pub(crate) fn root(&self) -> DomRoot<FileSystemDirectoryEntry> {
+        DomRoot::from_ref(&self.root)
+    }
 }
 
 impl FileSystemMethods<crate::DomTypeHolder> for FileSystem {
@@ -46,6 +50,6 @@ impl FileSystemMethods<crate::DomTypeHolder> for FileSystem {
 
     /// <https://wicg.github.io/entries-api/#dom-filesystem-root>
     fn Root(&self) -> DomRoot<FileSystemDirectoryEntry> {
-        DomRoot::from_ref(&self.root)
+        self.root()
     }
 }

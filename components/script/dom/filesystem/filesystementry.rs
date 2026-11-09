@@ -9,7 +9,6 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::Reflector;
 
 use crate::dom::bindings::callback::{ExceptionHandling, RootedCallback, TracedCallback};
-use crate::dom::bindings::codegen::Bindings::FileSystemBinding::FileSystemMethods;
 use crate::dom::bindings::codegen::Bindings::FileSystemEntryBinding::{
     ErrorCallback, FileSystemEntryCallback, FileSystemEntryMethods,
 };
@@ -17,7 +16,10 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::USVString;
+use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::filesystem::FileSystem;
+use crate::dom::filesystem::path::{evaluate_path, resolve_relative_path};
+use crate::dom::filesystemdirectoryentry::FileSystemDirectoryEntry;
 
 #[dom_struct]
 pub(crate) struct FileSystemEntry {
@@ -34,7 +36,8 @@ pub(crate) struct FileSystemEntry {
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct PendingEntryCallback {
     id: usize,
-    callback: TracedCallback<FileSystemEntryCallback>,
+    callback: Option<TracedCallback<FileSystemEntryCallback>>,
+    error: Option<TracedCallback<ErrorCallback>>,
 }
 
 impl FileSystemEntry {
@@ -56,6 +59,22 @@ impl FileSystemEntry {
 
     pub(crate) fn set_filesystem(&self, fs: &FileSystem) {
         self.filesystem.set(Some(fs));
+    }
+
+    pub(crate) fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub(crate) fn full_path(&self) -> &str {
+        &self.full_path
+    }
+
+    /// Returns this entry's root directory.
+    pub(crate) fn root(&self) -> DomRoot<FileSystemDirectoryEntry> {
+        self.filesystem
+            .get()
+            .expect("FileSystemEntry must be associated with a FileSystem")
+            .root()
     }
 }
 
@@ -91,28 +110,15 @@ impl FileSystemEntryMethods<crate::DomTypeHolder> for FileSystemEntry {
     fn GetParent(
         &self,
         success_callback: Option<RootedCallback<FileSystemEntryCallback>>,
-        _error_callback: Option<RootedCallback<ErrorCallback>>,
+        error_callback: Option<RootedCallback<ErrorCallback>>,
     ) {
-        let Some(callback) = success_callback else {
-            return;
-        };
-        // Per spec 7.1: in parallel,
-        // 1. (TODO) Let `path` be the result of resolve ".." relative to this's full path.
-        // 2. (TODO) Let `item` be the result of evaluating a path with this’s root and path.
-        // 3. (TODO) Queue errorCallback if `item` is failure.
-        // 4 - 5.  Queue a task to invoke
-        // successCallback with the parent directory entry.
-        //
-        // NOTE: For now, the parent is always the root directory, which is correct
-        // as the `FileSystemEntry` can only be created by webkitGetAsEntry(), which is
-        // single level DnD.
-
         let id = self.next_callback.get();
         self.pending_callbacks
             .borrow_mut()
             .push(PendingEntryCallback {
                 id,
-                callback: callback.to_traced(),
+                callback: success_callback.map(|callback| callback.to_traced()),
+                error: error_callback.map(|callback| callback.to_traced()),
             });
         self.next_callback.set(id + 1);
 
@@ -122,19 +128,57 @@ impl FileSystemEntryMethods<crate::DomTypeHolder> for FileSystemEntry {
             .dom_manipulation_task_source()
             .queue(task!(invoke_get_parent: move |cx| {
                 let this = this.root();
-                let maybe_index = this
+                let Some(index) = this
                     .pending_callbacks
                     .borrow()
                     .iter()
-                    .position(|val| val.id == id);
-                if let Some(index) = maybe_index {
-                    rooted!(&in(cx) let callback = this
-                        .pending_callbacks
-                        .safe_borrow_mut(cx.no_gc())
-                        .swap_remove(index)
-                        .callback);
-                    let entry = DomRoot::upcast::<FileSystemEntry>(this.Filesystem().Root());
-                    let _ = callback.Call__(cx, &entry, ExceptionHandling::Report);
+                    .position(|val| val.id == id)
+                else {
+                    return;
+                };
+
+                let (success_callback, error_callback) = {
+                    let pending = this.pending_callbacks.borrow();
+                    let pending = pending
+                        .get(index)
+                        .expect("callback must still be queued");
+                    (
+                        pending.callback.as_ref().map(|callback| callback.root(cx)),
+                        pending.error.as_ref().map(|callback| callback.root(cx)),
+                    )
+                };
+                this.pending_callbacks.borrow_mut().swap_remove(index);
+
+                // 1. Let path be the result of resolving a relative path with
+                //    this's full path and '..'.
+                let path = resolve_relative_path(this.full_path(), "..");
+
+                // 2. Let item be the result of evaluating a path with this's
+                //    root and path.
+                //
+                // 3. If item is failure, queue a task to invoke errorCallback
+                //    (if given) with « a newly created "NotFoundError"
+                //    DOMException » and "report", and abort these steps.
+                let Some(parent) = evaluate_path(&this.root(), &path)
+                    .and_then(DomRoot::downcast::<FileSystemDirectoryEntry>)
+                else {
+                    if let Some(error_callback) = error_callback {
+                        let error =
+                            DOMException::new(cx, &this.global(), DOMErrorName::NotFoundError);
+                        let _ = error_callback.Call__(cx, &error, ExceptionHandling::Report);
+                    }
+                    return;
+                };
+
+                // 4. Let entry be a new directory entry with item's name as
+                //    name and path as full path.
+                //
+                // 5. Queue a task to invoke successCallback with « a new
+                //    FileSystemDirectoryEntry object associated with entry »
+                //    and "report".
+                let parent = DomRoot::upcast::<FileSystemEntry>(parent);
+                if let Some(callback) = success_callback {
+                    let _ = callback.Call__(cx, &parent, ExceptionHandling::Report);
                 }
             }));
     }
