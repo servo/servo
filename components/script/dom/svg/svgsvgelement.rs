@@ -203,19 +203,12 @@ impl SVGSVGElement {
         let width = iter.next().and_then(|string| parse_double(string).ok())?;
         if width == 0f64 {
             return None;
-        } else if width < 0f64 {
-            Console::error_to_console(
-                &self.global(),
-                "ViewBox does not have valid dimension".into(),
-            );
-
-            return None;
         }
-
         let height = iter.next().and_then(|string| parse_double(string).ok())?;
         if height == 0f64 {
             return None;
-        } else if height < 0f64 {
+        }
+        if width < 0f64 || height < 0f64 {
             Console::error_to_console(
                 &self.global(),
                 "ViewBox does not have valid dimension".into(),
