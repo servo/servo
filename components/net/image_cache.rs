@@ -965,13 +965,13 @@ impl ImageCacheStore {
                     return;
                 };
                 // This stores an Arc copy of a full encoded image for future on demand decodes
-                LoadResult::LoadedEncodedRaster(Arc::new(EncodedImage {
-                    id: msg.key,
-                    metadata: raster_image.metadata,
-                    cors_status: raster_image.cors_status,
-                    load_time: pending.response_end,
-                    bytes: bytes.clone(),
-                }))
+                LoadResult::LoadedEncodedRaster(Arc::new(EncodedImage::new(
+                    msg.key,
+                    raster_image.metadata,
+                    raster_image.cors_status,
+                    pending.response_end,
+                    bytes.clone(),
+                )))
             },
             Some(DecodedImage::Vector(vector_image_data)) => {
                 LoadResult::LoadedVectorImage(vector_image_data)

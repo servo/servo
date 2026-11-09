@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::Arc;
+use std::sync::{Arc, Barrier};
 use std::time::Duration;
 
 use crossbeam_channel::{Receiver, Sender, unbounded};
@@ -10,8 +10,8 @@ use embedder_traits::resources::ResourceBytes;
 use malloc_size_of_derive::MallocSizeOf;
 use net::image_cache::ImageCacheFactoryImpl;
 use net_traits::image_cache::{
-    FontResolver, ImageCache, ImageCacheFactory, ImageCacheResponseMessage, ImageCacheResult,
-    ImageLoadListener, ImageOrMetadataAvailable, ImageResponse, PendingImageId,
+    EncodedImage, FontResolver, Image, ImageCache, ImageCacheFactory, ImageCacheResponseMessage,
+    ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable, ImageResponse, PendingImageId,
     PendingImageResponse, RasterizationResult,
 };
 use net_traits::request::RequestId;
@@ -20,6 +20,7 @@ use net_traits::{
     ResourceTimingType,
 };
 use paint_api::{CrossProcessPaintApi, PaintMessage};
+use pixels::{CorsStatus, ImageMetadata};
 // For dummy Font Resolver
 use resvg::usvg::{Font, fontdb};
 use servo_base::id::{PipelineId, TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
@@ -90,6 +91,79 @@ fn create_test_listener(id: PendingImageId, sender: Sender<ImageResponse>) -> Im
 
 fn jpeg_image_bytes() -> Vec<u8> {
     include_bytes!("test.jpeg").to_vec()
+}
+
+fn encoded_test_image() -> Image {
+    let bytes = Arc::new(jpeg_image_bytes());
+    let metadata = pixels::load_from_memory(&bytes, CorsStatus::Safe)
+        .unwrap()
+        .metadata;
+    Image::Encoded(Arc::new(EncodedImage::new(
+        PendingImageId(0),
+        metadata,
+        CorsStatus::Safe,
+        None,
+        bytes,
+    )))
+}
+
+#[test]
+fn test_encoded_image_reuses_original_decode() {
+    let image = encoded_test_image();
+    let clone = image.clone();
+    let first = image.as_raster_image().unwrap();
+    let second = image.as_raster_image().unwrap();
+    let from_clone = clone.as_raster_image().unwrap();
+    assert!(Arc::ptr_eq(&first, &second));
+    assert!(Arc::ptr_eq(&first, &from_clone));
+    assert_eq!(first.decoded_resolution, image.metadata());
+    assert_eq!(first.cors_status, image.cors_status());
+    assert_eq!(first.load_time, image.load_time());
+}
+
+#[test]
+fn test_encoded_image_concurrent_original_decode() {
+    let image = encoded_test_image();
+    let barrier = Arc::new(Barrier::new(8));
+    let threads: Vec<_> = (0..8)
+        .map(|_| {
+            let image = image.clone();
+            let barrier = barrier.clone();
+            std::thread::spawn(move || {
+                barrier.wait();
+                image.as_raster_image().unwrap()
+            })
+        })
+        .collect();
+    let results: Vec<_> = threads
+        .into_iter()
+        .map(|thread| thread.join().unwrap())
+        .collect();
+    for result in &results {
+        assert!(Arc::ptr_eq(&results[0], result));
+    }
+}
+
+#[test]
+fn test_encoded_image_original_decode_is_independent_of_display_decode() {
+    let image = encoded_test_image();
+    let original = image.as_raster_image().unwrap();
+    let Image::Encoded(source) = &image else {
+        unreachable!();
+    };
+    let display = pixels::load_from_memory_with_target(
+        &source.bytes,
+        source.cors_status,
+        Some(ImageMetadata {
+            width: 1,
+            height: 1,
+        }),
+    )
+    .unwrap();
+    assert_ne!(display.decoded_resolution, original.decoded_resolution);
+    let after_display_decode = image.as_raster_image().unwrap();
+    assert!(Arc::ptr_eq(&original, &after_display_decode));
+    assert_eq!(after_display_decode.decoded_resolution, image.metadata());
 }
 
 fn svg_image_bytes() -> Vec<u8> {

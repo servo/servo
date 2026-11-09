@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use log::debug;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -54,6 +54,8 @@ pub enum Image {
 
 /// A validated static raster source. Display pixels are owned by the cache, not
 /// by DOM/layout references, so replacing a decode releases its old buffer.
+/// Original-size pixels requested by script consumers are cached separately for
+/// the lifetime of this source.
 #[derive(MallocSizeOf)]
 pub struct EncodedImage {
     pub id: PendingImageId,
@@ -62,6 +64,8 @@ pub struct EncodedImage {
     pub load_time: Option<CrossProcessInstant>,
     #[conditional_malloc_size_of]
     pub bytes: Arc<Vec<u8>>,
+    #[conditional_malloc_size_of]
+    original_image: OnceLock<Option<Arc<RasterImage>>>,
 }
 
 impl std::fmt::Debug for EncodedImage {
@@ -75,12 +79,35 @@ impl std::fmt::Debug for EncodedImage {
 }
 
 impl EncodedImage {
+    pub fn new(
+        id: PendingImageId,
+        metadata: ImageMetadata,
+        cors_status: CorsStatus,
+        load_time: Option<CrossProcessInstant>,
+        bytes: Arc<Vec<u8>>,
+    ) -> Self {
+        Self {
+            id,
+            metadata,
+            cors_status,
+            load_time,
+            bytes,
+            original_image: OnceLock::new(),
+        }
+    }
+
     /// Obtain original pixels for consumers such as canvas. Do not use for layout.
+    /// The first access decodes synchronously; subsequent accesses share the result,
+    /// including failures. These pixels are retained until the source is dropped.
     pub fn decode_to_original_size(&self) -> Option<Arc<RasterImage>> {
-        pixels::load_from_memory(&self.bytes, self.cors_status).map(|mut image| {
-            image.load_time = self.load_time;
-            Arc::new(image)
-        })
+        self.original_image
+            .get_or_init(|| {
+                pixels::load_from_memory(&self.bytes, self.cors_status).map(|mut image| {
+                    image.load_time = self.load_time;
+                    Arc::new(image)
+                })
+            })
+            .clone()
     }
 }
 
