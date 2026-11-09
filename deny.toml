@@ -45,6 +45,10 @@ ignore = [
     # The crate `zvariant_derive` is unmaintained. Wait for `atspi-common` to start
     # using `zbus`.
     "RUSTSEC-2026-0372",
+
+    # rusqlite can not be independently updated as sea-query-rusqlite needs update.
+    "RUSTSEC-2026-0459",
+
 ]
 
 # This section is considered when running `cargo deny check licenses`
