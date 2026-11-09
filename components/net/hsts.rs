@@ -102,6 +102,13 @@ impl HstsPreloadList {
             HstsPreloadList::Resource(map) => map.get(domain),
         }
     }
+
+    pub fn len(&self) -> usize {
+        match self {
+            HstsPreloadList::Memory(map) => map.len(),
+            HstsPreloadList::Resource(map) => map.len(),
+        }
+    }
 }
 
 impl MallocSizeOf for HstsPreloadList {

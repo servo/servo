@@ -425,5 +425,5 @@ fn test_hsts_list_with_expired_entry_is_not_is_host_secure() {
 #[test]
 fn test_preload_hsts_domains_well_formed() {
     let hsts_list = HstsPreloadList::from_servo_preload();
-    assert_ne!(hsts_list.0.len(), 0);
+    assert_ne!(hsts_list.len(), 0);
 }
