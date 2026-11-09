@@ -70,8 +70,7 @@ pub(crate) fn evaluate_path(
     // (U+002F SOLIDUS).
 
     // Step 2. Remove the first entry from segments.
-    let mut segments = path.split('/').peekable();
-    segments.next();
+    let mut segments = path.split('/').peekable().skip(1);
 
     // The directory starts at the root; the stack tracks the directories
     // traversed so far so that '..' can walk back up.
