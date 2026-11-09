@@ -929,12 +929,15 @@ impl ScriptThread {
         #[cfg(feature = "webgpu")]
         let gpu_id_hub = Arc::new(IdentityHub::default());
 
+        #[cfg(feature = "devtools")]
         let devtools_client_to_script_thread_sender = if pref!(devtools_server_enabled) {
             Some(&senders.devtools_client_to_script_thread_sender)
         } else {
             None
         }
         .cloned();
+
+        #[cfg(feature = "devtools")]
         let debugger_global = DebuggerGlobalScope::new_if_needed(
             &mut cx,
             PipelineId::new(),

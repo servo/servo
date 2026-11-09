@@ -490,6 +490,7 @@ impl DedicatedWorkerGlobalScope {
                 let mut cx = unsafe { runtime.cx() };
                 let cx = &mut cx;
 
+                #[cfg(feature = "devtools")]
                 let debugger_global = DebuggerGlobalScope::new_if_needed(
                     cx,
                     pipeline_id,

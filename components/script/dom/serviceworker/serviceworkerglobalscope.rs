@@ -361,6 +361,7 @@ impl ServiceWorkerGlobalScope {
                     pipeline_id,
                 } = worker_load_origin;
 
+                #[cfg(feature = "devtools")]
                 let debugger_global = DebuggerGlobalScope::new_if_needed(
                     cx,
                     pipeline_id,
