@@ -401,31 +401,33 @@ def collect_network_response(
     timeout: int = 3,
 ):
     """
-    Watch network-event resources and return the response fields (status, mimeType, sizes)
-    of the first request seen whose URL matches `url_predicate`. These fields arrive in a
-    resources-updated-array message after the request's resources-available-array message.
+    Watch network-event resources and wait for the first request seen whose URL matches
+    `url_predicate` to get a response. Returns the network event, whose `actor` can be sent
+    messages like getResponseContent, and the response fields (status, mimeType, sizes).
+    These fields arrive in a resources-updated-array message after the request's
+    resources-available-array message.
     """
     done = Future()
     # geckordp runs callbacks on a thread pool, so updates may be handled before the
     # matching available event. Buffer them and check for a match from both callbacks.
     lock = Lock()
-    resource_id = None
+    matched_event = None
     responses = {}
 
     def resolve_if_ready():
-        if resource_id in responses and not done.done():
-            done.set_result(responses[resource_id])
+        if matched_event is not None and matched_event["resourceId"] in responses and not done.done():
+            done.set_result((matched_event, responses[matched_event["resourceId"]]))
 
     def on_available(data):
-        nonlocal resource_id
+        nonlocal matched_event
         try:
             with lock:
                 for [resource_type, resources] in data.get("array", []):
                     if resource_type != "network-event":
                         continue
                     for event in resources:
-                        if resource_id is None and url_predicate(event.get("url", "")):
-                            resource_id = event["resourceId"]
+                        if matched_event is None and url_predicate(event.get("url", "")):
+                            matched_event = event
                 resolve_if_ready()
         except Exception as e:
             if not done.done():
@@ -457,7 +459,7 @@ def collect_network_response(
     try:
         result = done.result(timeout)
     except TimeoutError:
-        raise AssertionError(f"No network response update for resource {resource_id}")
+        raise AssertionError(f"No network response update for event {matched_event}")
     if isinstance(result, Exception):
         raise result
     return result
