@@ -84,6 +84,7 @@ pub fn read_bytes(res: Resource) -> ResourceBytes {
     RESOURCE_READER.read(res)
 }
 
+/// Consider using [`read_bytes`] with `str::from_utf8` if you can use a `&str`.
 pub fn read_string(res: Resource) -> String {
     String::from_utf8(read_bytes(res).into_vec()).unwrap()
 }
