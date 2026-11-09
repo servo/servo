@@ -1,0 +1,47 @@
+<!-- quirks mode -->
+<html class="reftest-wait">
+<meta charset="utf-8">
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#stretch-fit-sizing">
+<link rel="help" href="https://quirks.spec.whatwg.org/#the-percentage-height-calculation-quirk">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12421">
+<link rel="help" href="https://github.com/servo/servo/issues/49687">
+<meta name="assert" content="
+  Due to the quirk, if the canvas had a percentage height, it would be resolved against 200px.
+  However, it has `stretch` instead of a percentage, which presumably isn't affected by the quirk (*).
+  Therefore, `stretch` is initially indefinite, and the canvas is 50x50.
+  However, when we set `height: 200px` on the grandparent, both the parent and the canvas should
+  then stretch to 200px.
+  Therefore, through the aspect ratio, the max-content size of the grandparent should become 200px.
+
+  (*) See https://github.com/w3c/csswg-drafts/issues/12421, but this test is still valid regardless.
+.">
+<link rel="match" href="../reference/ref-filled-green-200px-square.html">
+
+<style>
+.stretch {
+  height: -webkit-fill-available;
+  height: -moz-available;
+  height: stretch;
+}
+</style>
+
+<p style="margin: 1em 0">Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="width: 200px; height: 200px; background: red">
+  <div id="dynamic" style="width: max-content; background: green">
+    <div class="stretch">
+      <canvas width="50" height="50" class="stretch"></canvas>
+    </div>
+  </div>
+</div>
+
+<script src="/common/rendering-utils.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<script type="module">
+  await waitForAtLeastOneFrame();
+  dynamic.style.height = "200px";
+  takeScreenshot();
+</script>
+</html>
