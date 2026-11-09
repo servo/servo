@@ -58,6 +58,8 @@ pub(crate) struct HTMLTextAreaElement {
     placeholder: RefCell<TracedDOMString>,
     // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty
     value_dirty: Cell<bool>,
+    /// <https://html.spec.whatwg.org/multipage/#user-validity>
+    user_validity: Cell<bool>,
     form_owner: MutNullableDom<HTMLFormElement>,
     labels_node_list: MutNullableDom<NodeList>,
     validity_state: MutNullableDom<ValidityState>,
@@ -125,6 +127,7 @@ impl HTMLTextAreaElement {
                 },
             )),
             value_dirty: Cell::new(false),
+            user_validity: Cell::new(false),
             form_owner: Default::default(),
             labels_node_list: Default::default(),
             validity_state: Default::default(),
@@ -594,8 +597,13 @@ impl HTMLTextAreaElement {
         self.text_input.borrow_mut().set_content(DOMString::new());
     }
 
+    pub(crate) fn set_user_validity(&self, value: bool) {
+        self.user_validity.set(value);
+    }
+
     pub(crate) fn reset(&self, cx: &mut JSContext) {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-form-reset-control
+        self.set_user_validity(false);
         self.value_dirty.set(false);
         self.text_input
             .safe_borrow_mut(cx.no_gc())

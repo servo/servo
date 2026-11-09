@@ -133,6 +133,8 @@ pub(crate) struct HTMLInputElement {
     pending_webdriver_response: RefCell<Option<Box<PendingWebDriverResponse>>>,
     /// <https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag>
     value_dirty: Cell<bool>,
+    /// <https://html.spec.whatwg.org/multipage/#user-validity>
+    user_validity: Cell<bool>,
 
     /// <https://w3c.github.io/selection-api/#dfn-has-scheduled-selectionchange-event>
     has_scheduled_selectionchange_event: Cell<bool>,
@@ -189,6 +191,7 @@ impl HTMLInputElement {
                 },
             )),
             value_dirty: Cell::new(false),
+            user_validity: Cell::new(false),
             form_owner: Default::default(),
             labels_node_list: MutNullableDom::new(None),
             validity_state: Default::default(),
@@ -370,6 +373,34 @@ impl HTMLInputElement {
                 InputType::Radio(_) |
                 InputType::File(_)
         )
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#states-of-the-type-attribute>
+    pub(crate) fn does_change_event_apply(&self) -> bool {
+        matches!(
+            *self.input_type(),
+            InputType::Text(_) |
+                InputType::Search(_) |
+                InputType::Tel(_) |
+                InputType::Url(_) |
+                InputType::Email(_) |
+                InputType::Password(_) |
+                InputType::Date(_) |
+                InputType::Month(_) |
+                InputType::Week(_) |
+                InputType::Time(_) |
+                InputType::DatetimeLocal(_) |
+                InputType::Number(_) |
+                InputType::Range(_) |
+                InputType::Color(_) |
+                InputType::Checkbox(_) |
+                InputType::Radio(_) |
+                InputType::File(_)
+        )
+    }
+
+    pub(crate) fn set_user_validity(&self, value: bool) {
+        self.user_validity.set(value);
     }
 
     fn update_required_and_optional_state(&self, no_gc: &NoGC) {
@@ -1973,6 +2004,7 @@ impl HTMLInputElement {
     /// > then invoke the value sanitization algorithm, if the type attribute's current
     /// > state defines one.
     pub(crate) fn reset(&self, cx: &mut JSContext) {
+        self.user_validity.set(false);
         self.value_dirty.set(false);
 
         // We set the value and sanitize all in one go.

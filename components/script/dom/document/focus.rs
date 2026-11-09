@@ -12,6 +12,7 @@ use js::gc::RootedGuard;
 use keyboard_types::{KeyboardEvent as KeyboardTypesEvent, Modifiers};
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
+use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::inheritance::Castable;
@@ -21,10 +22,12 @@ use servo_constellation_traits::{
     RemoteFocusOperation, ScriptToConstellationMessage, SequentialFocusDirection,
 };
 
+use crate::dom::activation::Activatable;
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::focusevent::FocusEventType;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
+use crate::dom::input_type::ValueChangeEvents;
 use crate::dom::node::focus::{FocusNavigationScopeOwner, FocusTrigger};
 use crate::dom::types::{Element, EventTarget, FocusEvent, HTMLElement, HTMLIFrameElement, Window};
 use crate::dom::{Document, Event, EventBubbles, EventCancelable, Node, NodeTraits};
@@ -489,9 +492,19 @@ impl DocumentFocusHandler {
             // changed the element's value or its list of selected files while the control was
             // focused without committing that change (such that it is different to what it was
             // when the control was first focused), then:
-            // Step 2.1.1: Set entry's user validity to true.
-            // Step 2.1.2: Fire an event named change at the element, with the bubbles attribute initialized to true.
-            // TODO: Implement this.
+            if let Some(element) = entry.element() &&
+                let Some(input) = element.downcast::<HTMLInputElement>() &&
+                let Some(new_element) = new_focus_target.element() &&
+                let Some(new_input) = new_element.downcast::<HTMLInputElement>() &&
+                input.does_change_event_apply() &&
+                !input.is_instance_activatable() &&
+                (new_input.Value() != input.Value() || new_input.GetFiles() != input.GetFiles())
+            {
+                // Step 2.1.1: Set entry's user validity to true.
+                input.set_user_validity(true);
+                // Step 2.1.2: Fire an event named change at the element, with the bubbles attribute initialized to true.
+                input.fire_value_change_events(cx, ValueChangeEvents::Change);
+            }
 
             // Step 2.2:
             // - If entry is an element, let blur event target be entry.

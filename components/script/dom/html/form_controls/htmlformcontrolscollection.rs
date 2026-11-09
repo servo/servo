@@ -20,6 +20,7 @@ use crate::dom::html::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::html::htmlformelement::HTMLFormElement;
 use crate::dom::node::Node;
 use crate::dom::radionodelist::RadioNodeList;
+use crate::dom::types::{HTMLInputElement, HTMLSelectElement, HTMLTextAreaElement};
 use crate::dom::window::Window;
 
 #[dom_struct]
@@ -53,6 +54,20 @@ impl HTMLFormControlsCollection {
             Box::new(HTMLFormControlsCollection::new_inherited(form, filter)),
             window,
         )
+    }
+}
+
+impl HTMLFormControlsCollection {
+    pub(crate) fn set_user_validity_on_all(&self, cx: &mut JSContext) {
+        self.collection.elements_iter(cx.no_gc()).for_each(|item| {
+            if let Some(input) = item.downcast::<HTMLInputElement>() {
+                input.set_user_validity(true);
+            } else if let Some(select) = item.downcast::<HTMLSelectElement>() {
+                select.set_user_validity(true);
+            } else if let Some(text_area) = item.downcast::<HTMLTextAreaElement>() {
+                text_area.set_user_validity(true);
+            }
+        });
     }
 }
 
