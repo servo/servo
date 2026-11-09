@@ -187552,6 +187552,19 @@
        {}
       ]
      ],
+     "display-table-cell-on-button.html": [
+      "46e7afe8009bb28d4a528ec830813e34e0e36b16",
+      [
+       null,
+       [
+        [
+         "/css/css-display/display-table-cell-on-button-ref.html",
+         "=="
+        ]
+       ],
+       {}
+      ]
+     ],
      "order-dynamic.html": [
       "3810c9d0bb35d0d06b9643d06e2327a9d6a3cb82",
       [
@@ -502576,6 +502589,10 @@
      ],
      "display-on-svg-text-content-element-ref.html": [
       "fa8e0841e9faf64d206136cd21931adbb146a664",
+      []
+     ],
+     "display-table-cell-on-button-ref.html": [
+      "0349a94afc9a1cbf8df836b27b4250f69a5d1144",
       []
      ],
      "parsing": {

@@ -76,32 +76,37 @@ impl DisplayGeneratingBox {
         contents: &Contents,
         info: &NodeAndStyleInfo,
     ) -> Self {
-        // From <https://www.w3.org/TR/css-display-3/#layout-specific-display>:
-        // > When the display property of a replaced element computes to one of
-        // > the layout-internal values, it is handled as having a used value of
-        // > inline.
-        if matches!(self, Self::LayoutInternal(_)) && contents.is_replaced() {
-            Self::OutsideInside {
+        if matches!(contents, Contents::NonReplaced(_)) {
+            return *self;
+        }
+        // The spec quotes below only mention replaced elements, but browsers agree
+        // that they also apply to widgets.
+        match self {
+            // From <https://www.w3.org/TR/css-display-3/#layout-specific-display>:
+            // > When the `display` property of a replaced element computes to one of
+            // > the layout-internal values, it is handled as having a used value of
+            // > `inline`.
+            // Note that `inline` actually behaves as `inline-block` (see below).
+            Self::LayoutInternal(_) => Self::OutsideInside {
                 outside: DisplayOutside::Inline,
-                inside: DisplayInside::Flow {
+                inside: DisplayInside::FlowRoot {
                     is_list_item: false,
                 },
-            }
-        } else if matches!(contents, Contents::Widget(_)) {
-            // <https://html.spec.whatwg.org/multipage/#form-controls>
-            // Widgets should establish an independent formatting context. Therefore,
-            // replace a `flow` inner display type with `flow-root`, or just use
-            // `flow-root` unconditionally, depending on the element.
+            },
+            // From <https://www.w3.org/TR/css-display-3/#replaced-element>:
+            // > Replaced elements always establish an independent formatting context.
+            // Therefore, replace a `flow` inner display type with `flow-root`,
+            // or just use `flow-root` unconditionally, depending on the element.
             // Also, prevent it from being a list item, like Blink and WebKit, but
-            // unlike Gecko. See https://github.com/w3c/csswg-drafts/issues/14187
-            if let DisplayGeneratingBox::OutsideInside { outside, inside } = self &&
-                (matches!(
+            // unlike Gecko. See <https://github.com/w3c/csswg-drafts/issues/14187>
+            Self::OutsideInside { outside, inside }
+                if matches!(
                     inside,
                     DisplayInside::Flow { .. } | DisplayInside::FlowRoot { .. }
                 ) || info.node.type_id() !=
                     Some(LayoutNodeType::Element(
                         LayoutElementType::HTMLButtonElement,
-                    )))
+                    )) =>
             {
                 DisplayGeneratingBox::OutsideInside {
                     outside: *outside,
@@ -109,11 +114,8 @@ impl DisplayGeneratingBox {
                         is_list_item: false,
                     },
                 }
-            } else {
-                *self
-            }
-        } else {
-            *self
+            },
+            _ => *self,
         }
     }
 }

@@ -277,11 +277,6 @@ fn traverse_pseudo_element_contents<'dom>(
 }
 
 impl Contents {
-    /// Returns true iff the `try_from` impl below would return `Err(_)`
-    pub fn is_replaced(&self) -> bool {
-        matches!(self, Contents::Replaced(_))
-    }
-
     pub(crate) fn for_element(node: ServoLayoutNode<'_>, context: &LayoutContext) -> Self {
         let is_widget = matches!(
             node.type_id(),
