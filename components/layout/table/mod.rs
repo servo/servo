@@ -267,6 +267,7 @@ impl TableSlotCell {
             contents: BlockContainer::BlockLevelBoxes(Vec::new()),
             contains_floats: false,
             is_table_cell: true,
+            text_control_size: None,
         });
         let propagated_data =
             PropagatedBoxTreeData::default().disallowing_percentage_table_columns();

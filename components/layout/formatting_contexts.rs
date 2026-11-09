@@ -22,8 +22,7 @@ use crate::dom::{LayoutBox, NodeExt, WeakLayoutBox};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents};
 use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
-use crate::flow::inline::text_run::get_font_for_first_font_for_style;
-use crate::flow::inline::{InlineContainerStateFlags, InlineFormattingContext, line_height};
+use crate::flow::inline::InlineFormattingContext;
 use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags};
 use crate::geom::LogicalVec2;
 use crate::layout_box_base::{IndependentFormattingContextLayoutResult, LayoutBoxBase};
@@ -38,18 +37,6 @@ use crate::table::Table;
 use crate::taffy::TaffyContainer;
 use crate::{ArcRefCell, PropagatedBoxTreeData};
 
-/// <https://html.spec.whatwg.org/multipage/#textarea-effective-height>
-/// Helps format textareas according to their effective size as dictated by the
-/// spec.
-#[derive(Debug, MallocSizeOf)]
-pub(crate) struct TextControlSize {
-    /// The number of rows in this text control, which is used to direct the
-    /// height (and "auto" height) as the spec requires for its automatic
-    /// height.
-    rows: u32,
-    // TODO: Correct cols layout too (https://github.com/servo/servo/issues/44426)
-}
-
 /// <https://drafts.csswg.org/css-display/#independent-formatting-context>
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct IndependentFormattingContext {
@@ -63,10 +50,6 @@ pub(crate) struct IndependentFormattingContext {
     /// If this [`IndependentFormattingContext`] was a layout root, this stores the data
     /// necessary to lay it out again.
     pub layout_root_layout_inputs: AtomicRefCell<Option<Box<LayoutRootLayoutInputs>>>,
-    /// This currently drives layouts for text areas as they require sizing based
-    /// on their number of rows (and cols). Their automatic heights come from
-    /// their rows and not their content.
-    pub text_control_size: Option<TextControlSize>,
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -132,7 +115,6 @@ impl IndependentFormattingContext {
             contents,
             propagated_data,
             layout_root_layout_inputs: None.into(),
-            text_control_size: None,
         }
     }
 
@@ -167,7 +149,6 @@ impl IndependentFormattingContext {
         self.base.clear_fragments_and_dirty_fragment_cache();
         *self.base.cached_inline_content_size.borrow_mut() = None;
         self.base.repair_style(&node_and_style_info.style);
-        self.text_control_size = Self::calculate_text_control_size(node_and_style_info);
     }
 
     pub(crate) fn construct(
@@ -195,21 +176,6 @@ impl IndependentFormattingContext {
             contents,
             propagated_data,
             layout_root_layout_inputs: None.into(),
-            text_control_size: Self::calculate_text_control_size(node_and_style_info),
-        }
-    }
-
-    fn calculate_text_control_size(
-        node_and_style_info: &NodeAndStyleInfo,
-    ) -> Option<TextControlSize> {
-        // This natural height does not apply to pseudo-elements
-        if node_and_style_info.pseudo_element_chain().is_empty() {
-            node_and_style_info
-                .node
-                .textarea_rows()
-                .map(|rows| TextControlSize { rows })
-        } else {
-            None
         }
     }
 
@@ -489,37 +455,7 @@ impl IndependentFormattingContext {
         preferred_aspect_ratio: Option<AspectRatio>,
         lazy_block_size: &LazySize,
     ) -> IndependentFormattingContextLayoutResult {
-        // This happens before checking the formatting context as textareas have
-        // known heights when their rows are present.
-        //
-        // If we don't have a known font for this, we fall back to the default
-        // layout (and sizing) of the content.
-        //
-        // TODO(mttr) This should take scrollbar size into consideration.
-        //
-        // https://html.spec.whatwg.org/multipage/#textarea-effective-height
-        let text_control_block_size = if let Some(text_control_size) = &self.text_control_size &&
-            let Some(font_ref) =
-                get_font_for_first_font_for_style(self.style(), &layout_context.font_context)
-        {
-            let rows = i32::try_from(text_control_size.rows).unwrap_or(i32::MAX);
-
-            Some(
-                line_height(
-                    self.style(),
-                    font_ref.metrics(),
-                    &InlineContainerStateFlags::empty(),
-                ) * rows,
-            )
-        } else {
-            None
-        };
-
-        if let Some(box_size) = text_control_block_size {
-            lazy_block_size.resolve(|| box_size);
-        }
-
-        let mut layout_result = match &self.contents {
+        match &self.contents {
             IndependentFormattingContextContents::Replaced(replaced, widget) => {
                 let mut replaced_layout = replaced.layout(
                     layout_context,
@@ -579,15 +515,7 @@ impl IndependentFormattingContext {
                 containing_block_for_children,
                 containing_block,
             ),
-        };
-
-        if let Some(box_size) = text_control_block_size {
-            // The height according to the rows attribute is its effective height,
-            // regardless of the inner content.
-            layout_result.content_block_size = box_size;
         }
-
-        layout_result
     }
 
     pub(crate) fn layout_and_is_cached(

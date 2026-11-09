@@ -29,6 +29,8 @@ use crate::containing_block::{
 use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
 use crate::flow::float::{Clear, FloatBox, FloatSide, PlacementAmongFloats, SequentialLayoutState};
+use crate::flow::inline::text_run::get_font_for_first_font_for_style;
+use crate::flow::inline::{InlineContainerStateFlags, line_height};
 use crate::flow::same_formatting_context_block::SameFormattingContextBlock;
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
@@ -61,6 +63,22 @@ pub(crate) struct BlockFormattingContext {
     pub contents: BlockContainer,
     pub contains_floats: bool,
     pub is_table_cell: bool,
+    /// This currently drives layouts for text areas as they require sizing based
+    /// on their number of rows. This is only Some for <textarea>s, otherwise it
+    /// is always None.
+    pub text_control_size: Option<TextControlSize>,
+}
+
+/// <https://html.spec.whatwg.org/multipage/#textarea-effective-height>
+/// Helps format textareas according to their effective size as dictated by the
+/// spec.
+#[derive(Debug, MallocSizeOf)]
+pub(crate) struct TextControlSize {
+    /// The number of rows in this text control, which is used to direct the
+    /// height (and "auto" height) as the spec requires for its automatic
+    /// height.
+    rows: u32,
+    // TODO: Correct cols layout too (https://github.com/servo/servo/issues/44426)
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -492,9 +510,29 @@ impl BlockFormattingContext {
             sequential_layout_state.calculate_clearance(Clear::Both, &CollapsedMargin::zero())
         });
 
-        let content_block_size = flow_layout.content_block_size +
+        let mut content_block_size = flow_layout.content_block_size +
             flow_layout.collapsible_margins_in_children.end.solve() +
             clearance.unwrap_or_default();
+
+        // If we don't have a known font for this, we fall back to the default
+        // layout (and sizing) of the content.
+        //
+        // TODO (mttr) This should take scrollbar size into consideration.
+        //
+        // https://html.spec.whatwg.org/multipage/#textarea-effective-height
+        if let Some(base) = base &&
+            let Some(text_control_size) = &self.text_control_size &&
+            let Some(font_ref) =
+                get_font_for_first_font_for_style(&base.style, &layout_context.font_context)
+        {
+            let rows = i32::try_from(text_control_size.rows).unwrap_or(i32::MAX);
+
+            content_block_size = line_height(
+                &base.style,
+                font_ref.metrics(),
+                &InlineContainerStateFlags::empty(),
+            ) * rows;
+        }
 
         let mut apply_align_content = || {
             // Don't handle `align-content` for table cells, since at this point we still

@@ -4,6 +4,7 @@
 
 use layout_api::LayoutNode;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 use style::properties::longhands::list_style_position::computed_value::T as ListStylePosition;
@@ -25,7 +26,7 @@ use crate::dom_traversal::{
 };
 use crate::flow::float::FloatBox;
 use crate::flow::same_formatting_context_block::SameFormattingContextBlock;
-use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
+use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox, TextControlSize};
 use crate::formatting_contexts::{
     IndependentFormattingContext, IndependentFormattingContextContents,
 };
@@ -47,15 +48,32 @@ impl BlockFormattingContext {
         Self::from_block_container(
             BlockContainer::construct(context, info, contents, propagated_data, is_list_item),
             is_table_cell,
+            Self::text_control_size(&info.node),
         )
     }
 
-    pub(crate) fn from_block_container(contents: BlockContainer, is_table_cell: bool) -> Self {
+    /// Calculates the content size for textareas that are instead dictated by
+    /// their rows.
+    fn text_control_size(node: &ServoLayoutNode) -> Option<TextControlSize> {
+        // This natural height does not apply to pseudo-elements
+        if node.pseudo_element_chain().is_empty() {
+            node.textarea_rows().map(|rows| TextControlSize { rows })
+        } else {
+            None
+        }
+    }
+
+    pub(crate) fn from_block_container(
+        contents: BlockContainer,
+        is_table_cell: bool,
+        text_control_size: Option<TextControlSize>,
+    ) -> Self {
         let contains_floats = contents.contains_floats();
         Self {
             contents,
             contains_floats,
             is_table_cell,
+            text_control_size,
         }
     }
 }
@@ -816,6 +834,7 @@ impl BlockLevelJob<'_> {
                     contents: block_container,
                     contains_floats: false,
                     is_table_cell: false,
+                    text_control_size: None,
                 };
                 ArcRefCell::new(BlockLevelBox::OutsideMarker(OutsideMarker {
                     context: IndependentFormattingContext::new(
