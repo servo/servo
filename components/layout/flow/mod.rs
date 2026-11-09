@@ -1686,7 +1686,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     // https://drafts.csswg.org/css2/visudet.html#min-max-widths
     let get_inline_content_sizes = || {
         get_inline_content_sizes(&ConstraintSpace::new(
-            tentative_block_size,
+            block_size_for_children,
             has_quirky_block_size,
             style,
             preferred_aspect_ratio,
