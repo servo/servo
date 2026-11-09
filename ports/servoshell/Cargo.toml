@@ -41,6 +41,7 @@ default_base = [
     "bundled",
     "default_web_features",
     "default_tooling",
+    "default_image_formats",
     "jemalloc",
     "max_log_level",
     "multiprocess",
@@ -52,6 +53,7 @@ jemalloc = ["servo-allocator/use-jemalloc"]
 # We also need to enable our own features, since we also have `cfg` gated code here.
 default_web_features = ["servo/default_web_features", "gamepad", "webgpu", "webgl", "webxr"]
 default_tooling = ["servo/default_tooling", "devtools"]
+default_image_formats = ["servo/default_image_formats"]
 # Bundle required resources in the binary.
 bundled = ["servo/bundled"]
 
@@ -79,6 +81,13 @@ webgl_backtrace = ["servo/webgl_backtrace"]
 webgl = ["servo/webgl"]
 webgpu = ["servo/webgpu"]
 webxr = ["servo/webxr"]
+
+bmp = ["servo/bmp"]
+gif = ["servo/gif"]
+ico = ["servo/ico"]
+jpeg = ["servo/jpeg"]
+png = ["servo/png"]
+webp = ["servo/webp"]
 
 [dependencies]
 accesskit = { workspace = true }

@@ -7,12 +7,20 @@ use std::sync::Arc;
 use std::time::Duration;
 use std::{cmp, fmt, vec};
 
-use image::codecs::{bmp, gif, ico, jpeg, png, webp};
+#[cfg(feature = "png")]
+use image::Limits;
+#[cfg(any(
+    feature = "png",
+    feature = "gif",
+    feature = "webp",
+    feature = "jpeg",
+    feature = "bmp",
+    feature = "ico"
+))]
+use image::codecs;
 use image::error::ImageFormatHint;
 use image::metadata::LoopCount;
-use image::{
-    AnimationDecoder, DynamicImage, ImageDecoder, ImageError, ImageFormat, ImageResult, Limits,
-};
+use image::{AnimationDecoder, DynamicImage, ImageDecoder, ImageError, ImageFormat, ImageResult};
 use log::debug;
 
 use crate::{
@@ -21,25 +29,42 @@ use crate::{
 };
 
 enum GenericImageDecoder<'a> {
-    Apng(Box<png::ApngDecoder<Cursor<&'a [u8]>>>),
-    Png(Box<png::PngDecoder<Cursor<&'a [u8]>>>),
-    Gif(Box<gif::GifDecoder<Cursor<&'a [u8]>>>),
-    Webp(Box<webp::WebPDecoder<Cursor<&'a [u8]>>>),
-    Jpeg(Box<jpeg::JpegDecoder<Cursor<&'a [u8]>>>),
-    Bmp(Box<bmp::BmpDecoder<Cursor<&'a [u8]>>>),
-    Ico(Box<ico::IcoDecoder<Cursor<&'a [u8]>>>),
+    #[cfg(feature = "png")]
+    Apng(Box<codecs::png::ApngDecoder<Cursor<&'a [u8]>>>),
+    #[cfg(feature = "png")]
+    Png(Box<codecs::png::PngDecoder<Cursor<&'a [u8]>>>),
+    #[cfg(feature = "gif")]
+    Gif(Box<codecs::gif::GifDecoder<Cursor<&'a [u8]>>>),
+    #[cfg(feature = "webp")]
+    Webp(Box<codecs::webp::WebPDecoder<Cursor<&'a [u8]>>>),
+    #[cfg(feature = "jpeg")]
+    Jpeg(Box<codecs::jpeg::JpegDecoder<Cursor<&'a [u8]>>>),
+    #[cfg(feature = "bmp")]
+    Bmp(Box<codecs::bmp::BmpDecoder<Cursor<&'a [u8]>>>),
+    #[cfg(feature = "ico")]
+    Ico(Box<codecs::ico::IcoDecoder<Cursor<&'a [u8]>>>),
+    #[doc(hidden)]
+    _Lifetime(std::marker::PhantomData<&'a [u8]>),
 }
 
 impl<'a> std::fmt::Debug for GenericImageDecoder<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, #[allow(unused)] f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            #[cfg(feature = "png")]
             Self::Apng(_) => f.debug_tuple("Apng").finish(),
+            #[cfg(feature = "png")]
             Self::Png(_) => f.debug_tuple("Png").finish(),
+            #[cfg(feature = "gif")]
             Self::Gif(_) => f.debug_tuple("Gif").finish(),
+            #[cfg(feature = "webp")]
             Self::Webp(_) => f.debug_tuple("Webp").finish(),
+            #[cfg(feature = "jpeg")]
             Self::Jpeg(_) => f.debug_tuple("Jpeg").finish(),
+            #[cfg(feature = "bmp")]
             Self::Bmp(_) => f.debug_tuple("Bmp").finish(),
+            #[cfg(feature = "ico")]
             Self::Ico(_) => f.debug_tuple("Ico").finish(),
+            Self::_Lifetime(_) => unreachable!(),
         }
     }
 }
@@ -49,116 +74,180 @@ impl<'a> std::fmt::Debug for GenericImageDecoder<'a> {
 impl<'a> image::ImageDecoder for GenericImageDecoder<'a> {
     fn dimensions(&self) -> (u32, u32) {
         match self {
+            #[cfg(feature = "png")]
             GenericImageDecoder::Apng(_) => {
                 unreachable!("Animated image should never go into non-animated values")
             },
+            #[cfg(feature = "png")]
             GenericImageDecoder::Png(d) => d.dimensions(),
+            #[cfg(feature = "gif")]
             GenericImageDecoder::Gif(d) => d.dimensions(),
+            #[cfg(feature = "webp")]
             GenericImageDecoder::Webp(d) => d.dimensions(),
+            #[cfg(feature = "jpeg")]
             GenericImageDecoder::Jpeg(d) => d.dimensions(),
+            #[cfg(feature = "bmp")]
             GenericImageDecoder::Bmp(d) => d.dimensions(),
+            #[cfg(feature = "ico")]
             GenericImageDecoder::Ico(d) => d.dimensions(),
+            Self::_Lifetime(_) => unreachable!(),
         }
     }
 
     fn color_type(&self) -> image::ColorType {
         match self {
+            #[cfg(feature = "png")]
             GenericImageDecoder::Apng(_) => {
                 unreachable!("Animated image should never go into non-animated values")
             },
+            #[cfg(feature = "png")]
             GenericImageDecoder::Png(d) => d.color_type(),
+            #[cfg(feature = "gif")]
             GenericImageDecoder::Gif(d) => d.color_type(),
+            #[cfg(feature = "webp")]
             GenericImageDecoder::Webp(d) => d.color_type(),
+            #[cfg(feature = "jpeg")]
             GenericImageDecoder::Jpeg(d) => d.color_type(),
+            #[cfg(feature = "bmp")]
             GenericImageDecoder::Bmp(d) => d.color_type(),
+            #[cfg(feature = "ico")]
             GenericImageDecoder::Ico(d) => d.color_type(),
+            Self::_Lifetime(_) => unreachable!(),
         }
     }
 
-    fn read_image(self, buf: &mut [u8]) -> ImageResult<()>
+    fn read_image(self, #[allow(unused)] buf: &mut [u8]) -> ImageResult<()>
     where
         Self: Sized,
     {
         match self {
+            #[cfg(feature = "png")]
             GenericImageDecoder::Apng(_) => {
                 unreachable!("Animated image should never go into non-animated values")
             },
+            #[cfg(feature = "png")]
             GenericImageDecoder::Png(d) => d.read_image(buf),
+            #[cfg(feature = "gif")]
             GenericImageDecoder::Gif(d) => d.read_image(buf),
+            #[cfg(feature = "webp")]
             GenericImageDecoder::Webp(d) => d.read_image(buf),
+            #[cfg(feature = "jpeg")]
             GenericImageDecoder::Jpeg(d) => d.read_image(buf),
+            #[cfg(feature = "bmp")]
             GenericImageDecoder::Bmp(d) => d.read_image(buf),
+            #[cfg(feature = "ico")]
             GenericImageDecoder::Ico(d) => d.read_image(buf),
+            Self::_Lifetime(_) => unreachable!(),
         }
     }
 
-    fn read_image_boxed(self: Box<Self>, buf: &mut [u8]) -> ImageResult<()> {
+    fn read_image_boxed(self: Box<Self>, #[allow(unused)] buf: &mut [u8]) -> ImageResult<()> {
         match *self {
+            #[cfg(feature = "png")]
             GenericImageDecoder::Apng(_) => {
                 unreachable!("Animated image should never go into non-animated values")
             },
+            #[cfg(feature = "png")]
             GenericImageDecoder::Png(d) => d.read_image_boxed(buf),
+            #[cfg(feature = "gif")]
             GenericImageDecoder::Gif(d) => d.read_image_boxed(buf),
+            #[cfg(feature = "webp")]
             GenericImageDecoder::Webp(d) => d.read_image_boxed(buf),
+            #[cfg(feature = "jpeg")]
             GenericImageDecoder::Jpeg(d) => d.read_image_boxed(buf),
+            #[cfg(feature = "bmp")]
             GenericImageDecoder::Bmp(d) => d.read_image_boxed(buf),
+            #[cfg(feature = "ico")]
             GenericImageDecoder::Ico(d) => d.read_image_boxed(buf),
+            Self::_Lifetime(_) => unreachable!(),
         }
     }
 
     fn icc_profile(&mut self) -> ImageResult<Option<Vec<u8>>> {
         match self {
+            #[cfg(feature = "png")]
             GenericImageDecoder::Apng(_) => {
                 unreachable!("Animated image should never go into non-animated values")
             },
+            #[cfg(feature = "png")]
             GenericImageDecoder::Png(d) => d.icc_profile(),
+            #[cfg(feature = "gif")]
             GenericImageDecoder::Gif(d) => d.icc_profile(),
+            #[cfg(feature = "webp")]
             GenericImageDecoder::Webp(d) => d.icc_profile(),
+            #[cfg(feature = "jpeg")]
             GenericImageDecoder::Jpeg(d) => d.icc_profile(),
+            #[cfg(feature = "bmp")]
             GenericImageDecoder::Bmp(d) => d.icc_profile(),
+            #[cfg(feature = "ico")]
             GenericImageDecoder::Ico(d) => d.icc_profile(),
+            Self::_Lifetime(_) => unreachable!(),
         }
     }
 
     fn exif_metadata(&mut self) -> ImageResult<Option<Vec<u8>>> {
         match self {
+            #[cfg(feature = "png")]
             GenericImageDecoder::Apng(_) => {
                 unreachable!("Animated image should never go into non-animated values")
             },
+            #[cfg(feature = "png")]
             GenericImageDecoder::Png(d) => d.exif_metadata(),
+            #[cfg(feature = "gif")]
             GenericImageDecoder::Gif(d) => d.exif_metadata(),
+            #[cfg(feature = "webp")]
             GenericImageDecoder::Webp(d) => d.exif_metadata(),
+            #[cfg(feature = "jpeg")]
             GenericImageDecoder::Jpeg(d) => d.exif_metadata(),
+            #[cfg(feature = "bmp")]
             GenericImageDecoder::Bmp(d) => d.exif_metadata(),
+            #[cfg(feature = "ico")]
             GenericImageDecoder::Ico(d) => d.exif_metadata(),
+            Self::_Lifetime(_) => unreachable!(),
         }
     }
 
     fn xmp_metadata(&mut self) -> ImageResult<Option<Vec<u8>>> {
         match self {
+            #[cfg(feature = "png")]
             GenericImageDecoder::Apng(_) => {
                 unreachable!("Animated image should never go into non-animated values")
             },
+            #[cfg(feature = "png")]
             GenericImageDecoder::Png(d) => d.xmp_metadata(),
+            #[cfg(feature = "gif")]
             GenericImageDecoder::Gif(d) => d.xmp_metadata(),
+            #[cfg(feature = "webp")]
             GenericImageDecoder::Webp(d) => d.xmp_metadata(),
+            #[cfg(feature = "jpeg")]
             GenericImageDecoder::Jpeg(d) => d.xmp_metadata(),
+            #[cfg(feature = "bmp")]
             GenericImageDecoder::Bmp(d) => d.xmp_metadata(),
+            #[cfg(feature = "ico")]
             GenericImageDecoder::Ico(d) => d.xmp_metadata(),
+            Self::_Lifetime(_) => unreachable!(),
         }
     }
 
     fn iptc_metadata(&mut self) -> ImageResult<Option<Vec<u8>>> {
         match self {
+            #[cfg(feature = "png")]
             GenericImageDecoder::Apng(_) => {
                 unreachable!("Animated image should never go into non-animated values")
             },
+            #[cfg(feature = "png")]
             GenericImageDecoder::Png(d) => d.iptc_metadata(),
+            #[cfg(feature = "gif")]
             GenericImageDecoder::Gif(d) => d.iptc_metadata(),
+            #[cfg(feature = "webp")]
             GenericImageDecoder::Webp(d) => d.iptc_metadata(),
+            #[cfg(feature = "jpeg")]
             GenericImageDecoder::Jpeg(d) => d.iptc_metadata(),
+            #[cfg(feature = "bmp")]
             GenericImageDecoder::Bmp(d) => d.iptc_metadata(),
+            #[cfg(feature = "ico")]
             GenericImageDecoder::Ico(d) => d.iptc_metadata(),
+            Self::_Lifetime(_) => unreachable!(),
         }
     }
 }
@@ -167,8 +256,11 @@ impl<'a> image::ImageDecoder for GenericImageDecoder<'a> {
 impl<'a> AnimationDecoder<'a> for GenericImageDecoder<'a> {
     fn into_frames(self) -> image::Frames<'a> {
         match self {
+            #[cfg(feature = "png")]
             GenericImageDecoder::Apng(decoder) => decoder.into_frames(),
+            #[cfg(feature = "gif")]
             GenericImageDecoder::Gif(decoder) => decoder.into_frames(),
+            #[cfg(feature = "webp")]
             GenericImageDecoder::Webp(decoder) => decoder.into_frames(),
             _ => unreachable!("Should never decode these images with animated decoder"),
         }
@@ -176,8 +268,11 @@ impl<'a> AnimationDecoder<'a> for GenericImageDecoder<'a> {
 
     fn loop_count(&self) -> LoopCount {
         match self {
+            #[cfg(feature = "png")]
             GenericImageDecoder::Apng(decoder) => decoder.loop_count(),
+            #[cfg(feature = "gif")]
             GenericImageDecoder::Gif(decoder) => decoder.loop_count(),
+            #[cfg(feature = "webp")]
             GenericImageDecoder::Webp(decoder) => decoder.loop_count(),
             _ => unreachable!("Should never decode these images with animated decoder"),
         }
@@ -203,11 +298,13 @@ pub(crate) trait ServoImageDecoder<'a>: Sized + std::fmt::Debug {
 
 impl<'a> ServoImageDecoder<'a> for DefaultImageDecoder<'a> {
     fn make_decoder(format: ImageFormat, buffer: &'a [u8]) -> ImageResult<Self> {
+        #[allow(unused)]
         let reader = Cursor::new(buffer);
         let decoder = match format {
+            #[cfg(feature = "png")]
             ImageFormat::Png => {
                 let limits = Limits::default();
-                let png_decoder = png::PngDecoder::with_limits(reader, limits)?;
+                let png_decoder = codecs::png::PngDecoder::with_limits(reader, limits)?;
                 if png_decoder.is_apng().unwrap_or_default() {
                     let decoder = png_decoder.apng()?;
                     GenericImageDecoder::Apng(Box::new(decoder))
@@ -215,32 +312,53 @@ impl<'a> ServoImageDecoder<'a> for DefaultImageDecoder<'a> {
                     GenericImageDecoder::Png(Box::new(png_decoder))
                 }
             },
-            ImageFormat::Gif => GenericImageDecoder::Gif(Box::new(gif::GifDecoder::new(reader)?)),
+            #[cfg(feature = "gif")]
+            ImageFormat::Gif => {
+                GenericImageDecoder::Gif(Box::new(codecs::gif::GifDecoder::new(reader)?))
+            },
+            #[cfg(feature = "webp")]
             ImageFormat::WebP => {
-                GenericImageDecoder::Webp(Box::new(webp::WebPDecoder::new(reader)?))
+                GenericImageDecoder::Webp(Box::new(codecs::webp::WebPDecoder::new(reader)?))
             },
+            #[cfg(feature = "jpeg")]
             ImageFormat::Jpeg => {
-                GenericImageDecoder::Jpeg(Box::new(jpeg::JpegDecoder::new(reader)?))
+                GenericImageDecoder::Jpeg(Box::new(codecs::jpeg::JpegDecoder::new(reader)?))
             },
-            ImageFormat::Bmp => GenericImageDecoder::Bmp(Box::new(bmp::BmpDecoder::new(reader)?)),
-            ImageFormat::Ico => GenericImageDecoder::Ico(Box::new(ico::IcoDecoder::new(reader)?)),
+            #[cfg(feature = "bmp")]
+            ImageFormat::Bmp => {
+                GenericImageDecoder::Bmp(Box::new(codecs::bmp::BmpDecoder::new(reader)?))
+            },
+            #[cfg(feature = "ico")]
+            ImageFormat::Ico => {
+                GenericImageDecoder::Ico(Box::new(codecs::ico::IcoDecoder::new(reader)?))
+            },
             _ => {
                 return Err(ImageError::Unsupported(
                     ImageFormatHint::Exact(format).into(),
                 ));
             },
         };
+        #[allow(unreachable_code)]
         Ok(DefaultImageDecoder { decoder })
     }
 
     fn is_animated(&self) -> bool {
         match &self.decoder {
-            GenericImageDecoder::Apng(_) | GenericImageDecoder::Gif(_) => true,
+            #[cfg(feature = "png")]
+            GenericImageDecoder::Apng(_) => true,
+            #[cfg(feature = "gif")]
+            GenericImageDecoder::Gif(_) => true,
+            #[cfg(feature = "webp")]
             GenericImageDecoder::Webp(decoder) => decoder.has_animation(),
-            GenericImageDecoder::Png(_) |
-            GenericImageDecoder::Jpeg(_) |
-            GenericImageDecoder::Bmp(_) |
+            #[cfg(feature = "png")]
+            GenericImageDecoder::Png(_) => false,
+            #[cfg(feature = "jpeg")]
+            GenericImageDecoder::Jpeg(_) => false,
+            #[cfg(feature = "bmp")]
+            GenericImageDecoder::Bmp(_) => false,
+            #[cfg(feature = "ico")]
             GenericImageDecoder::Ico(_) => false,
+            GenericImageDecoder::_Lifetime(_) => unreachable!(),
         }
     }
 

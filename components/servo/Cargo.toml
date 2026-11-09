@@ -18,14 +18,15 @@ crate-type = ["rlib"]
 [features]
 # Note: Servoshell does not use the default features of servo, so you also
 # need to add feature-groups that should be default to ports/servoshell/Cargo.toml
-default = ["bundled", "clipboard", "default_tooling", "js_jit", "multiprocess"]
+default = ["bundled", "clipboard", "default_tooling", "js_jit", "multiprocess", "default_image_formats"]
 
 ## Convenience feature groups, to select multiple related features for a sensible
 #  configuration with `--no-default-features` build
 #
 # A convenience feature to enable all default web features servo has.
-default_web_features = ["brotli-compression-stream", "clipboard", "subtlecrypto", "webgpu", "webgl", "webxr"]
+default_web_features = ["brotli-compression-stream", "clipboard", "subtlecrypto", "webgpu", "webgl", "webxr", "default_image_formats"]
 default_tooling = ["devtools"]
+default_image_formats = ["bmp", "gif", "ico", "jpeg", "png", "webp"]
 
 # Bundle required resources in the binary.
 bundled = ["baked-in-resources", "bundled_freetype"]
@@ -124,6 +125,13 @@ webxr = [
     "script/webxr",
 ]
 
+bmp = ["pixels/bmp"]
+gif = ["pixels/gif"]
+ico = ["pixels/ico"]
+jpeg = ["pixels/jpeg"]
+png = ["pixels/png"]
+webp = ["pixels/webp"]
+
 [dependencies]
 accesskit = { workspace = true }
 bitflags = { workspace = true }
@@ -150,6 +158,7 @@ net_traits = { workspace = true }
 paint = { workspace = true }
 paint_api = { workspace = true }
 parking_lot = { workspace = true }
+pixels = { workspace = true }
 profile = { workspace = true }
 profile_traits = { workspace = true }
 rustc-hash = { workspace = true }

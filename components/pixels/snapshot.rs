@@ -6,10 +6,7 @@ use std::ops::{Bound, Deref, DerefMut, Range, RangeBounds};
 use std::sync::Arc;
 
 use euclid::default::{Rect, Size2D};
-use image::codecs::jpeg::JpegEncoder;
-use image::codecs::png::PngEncoder;
-use image::codecs::webp::WebPEncoder;
-use image::{ExtendedColorType, GenericImageView, ImageEncoder, ImageError, Rgb};
+use image::ImageError;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::GenericSharedMemory;
@@ -334,10 +331,12 @@ impl Snapshot {
     pub fn encode_for_mime_type<W: std::io::Write>(
         &mut self,
         image_type: &EncodedImageType,
-        quality: Option<f64>,
-        encoder: &mut W,
+        #[allow(unused)] quality: Option<f64>,
+        #[allow(unused)] encoder: &mut W,
     ) -> Result<(), ImageError> {
+        #[allow(unused)]
         let width = self.size.width;
+        #[allow(unused)]
         let height = self.size.height;
         let alpha_mode = match image_type {
             EncodedImageType::Jpeg => SnapshotAlphaMode::AsOpaque {
@@ -349,28 +348,39 @@ impl Snapshot {
         };
 
         self.transform(alpha_mode, SnapshotPixelFormat::RGBA);
+        #[allow(unused)]
         let data = &self.data;
 
         match image_type {
+            #[cfg(feature = "png")]
             EncodedImageType::Png => {
+                use image::ImageEncoder;
                 // FIXME(nox): https://github.com/image-rs/image-png/issues/86
                 // FIXME(nox): https://github.com/image-rs/image-png/issues/87
-                PngEncoder::new(encoder).write_image(data, width, height, ExtendedColorType::Rgba8)
+                image::codecs::png::PngEncoder::new(encoder).write_image(
+                    data,
+                    width,
+                    height,
+                    image::ExtendedColorType::Rgba8,
+                )
             },
+            #[cfg(feature = "jpeg")]
             EncodedImageType::Jpeg => {
+                use image::{GenericImageView, Rgb};
+
                 let mut jpeg_encoder = if let Some(quality) = quality {
                     // The specification allows quality to be in [0.0..1.0] but the JPEG encoder
                     // expects it to be in [1..100]
                     if (0.0..=1.0).contains(&quality) {
-                        JpegEncoder::new_with_quality(
+                        image::codecs::jpeg::JpegEncoder::new_with_quality(
                             encoder,
                             (quality * 100.0).round().clamp(1.0, 100.0) as u8,
                         )
                     } else {
-                        JpegEncoder::new(encoder)
+                        image::codecs::jpeg::JpegEncoder::new(encoder)
                     }
                 } else {
-                    JpegEncoder::new(encoder)
+                    image::codecs::jpeg::JpegEncoder::new(encoder)
                 };
 
                 // JPEG doesn't support transparency, so simply calling jpeg_encoder.write_image fails here.
@@ -406,14 +416,32 @@ impl Snapshot {
 
                 jpeg_encoder.encode_image(&image)
             },
+            #[cfg(feature = "webp")]
             EncodedImageType::Webp => {
+                use image::ImageEncoder;
                 // No quality support because of https://github.com/image-rs/image/issues/1984
-                WebPEncoder::new_lossless(encoder).write_image(
+                image::codecs::webp::WebPEncoder::new_lossless(encoder).write_image(
                     data,
                     width,
                     height,
-                    ExtendedColorType::Rgba8,
+                    image::ExtendedColorType::Rgba8,
                 )
+            },
+            #[cfg(not(all(feature = "png", feature = "webp", feature = "jpeg")))]
+            _ => {
+                use image::ImageFormat;
+                use image::error::{ImageFormatHint, UnsupportedError, UnsupportedErrorKind};
+                let hint = ImageFormatHint::Exact(match image_type {
+                    EncodedImageType::Png => ImageFormat::Png,
+                    EncodedImageType::Jpeg => ImageFormat::Jpeg,
+                    EncodedImageType::Webp => ImageFormat::WebP,
+                });
+                Err(ImageError::Unsupported(
+                    UnsupportedError::from_format_and_kind(
+                        hint.clone(),
+                        UnsupportedErrorKind::Format(hint),
+                    ),
+                ))
             },
         }
     }

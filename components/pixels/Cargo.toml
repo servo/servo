@@ -13,6 +13,15 @@ description.workspace = true
 name = "pixels"
 path = "lib.rs"
 
+[features]
+default = []
+bmp = ["image/bmp"]
+gif = ["image/gif"]
+ico = ["image/ico"]
+jpeg = ["image/jpeg"]
+png = ["image/png"]
+webp = ["image/webp"]
+
 [dependencies]
 euclid = { workspace = true }
 image = { workspace = true }

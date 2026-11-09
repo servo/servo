@@ -20,7 +20,7 @@ crossbeam-channel = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 http = { workspace = true }
-image = { workspace = true }
+image = { workspace = true, features = ["png"] }
 keyboard-types = { workspace = true }
 log = { workspace = true }
 rustc-hash = { workspace = true }

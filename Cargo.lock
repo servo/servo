@@ -8256,6 +8256,7 @@ dependencies = [
  "servo-net-traits",
  "servo-paint",
  "servo-paint-api",
+ "servo-pixels",
  "servo-profile",
  "servo-profile-traits",
  "servo-script",
