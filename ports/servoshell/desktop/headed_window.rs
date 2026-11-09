@@ -1171,12 +1171,12 @@ impl PlatformWindow for HeadedWindow {
 
     fn notify_accessibility_tree_update(
         &self,
-        _webview: WebView,
+        webview: WebView,
         tree_update: accesskit::TreeUpdate,
     ) {
         self.gui
             .borrow_mut()
-            .notify_accessibility_tree_update(tree_update);
+            .notify_accessibility_tree_update(webview, tree_update);
     }
 }
 

@@ -403,6 +403,20 @@ impl ServoShellWindow {
             }
         }
     }
+
+    pub(crate) fn set_accessibility_active(self: &Rc<Self>, active: bool) {
+        for (_, webview) in self.webviews() {
+            // Activate accessibility in the WebView.
+            // There are two sites like this; this is the a11y activation site.
+            webview.set_accessibility_active(active);
+        }
+
+        if !active {
+            self.webview_collection
+                .borrow_mut()
+                .clear_known_accesskit_trees();
+        }
+    }
 }
 
 /// A `PlatformWindow` abstracts away the differents kinds of platform windows that might

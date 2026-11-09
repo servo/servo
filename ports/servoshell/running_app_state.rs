@@ -75,6 +75,9 @@ pub struct WebViewCollection {
 
     /// Whether or not the active WebView in this collection has system focus.
     has_system_focus: bool,
+
+    /// [`accesskit::TreeId`]s which are known to have been sent to AccessKit.
+    known_accesskit_tree_ids: HashMap<WebViewId, accesskit::TreeId>,
 }
 
 impl WebViewCollection {
@@ -168,6 +171,31 @@ impl WebViewCollection {
         if let Some(active) = self.active() {
             active.set_focused(focused);
         }
+    }
+
+    pub(crate) fn known_accesskit_tree_id(
+        &self,
+        webview_id: WebViewId,
+    ) -> Option<accesskit::TreeId> {
+        self.known_accesskit_tree_ids.get(&webview_id).copied()
+    }
+
+    pub(crate) fn maybe_record_known_accesskit_tree(
+        &mut self,
+        webview_id: WebViewId,
+        tree_id: accesskit::TreeId,
+    ) {
+        let Some(webview) = self.get(webview_id) else {
+            return;
+        };
+
+        if webview.accesskit_tree_id() == Some(tree_id) {
+            self.known_accesskit_tree_ids.insert(webview.id(), tree_id);
+        }
+    }
+
+    pub(crate) fn clear_known_accesskit_trees(&mut self) {
+        self.known_accesskit_tree_ids.clear();
     }
 }
 
@@ -735,12 +763,8 @@ impl RunningAppState {
             return;
         }
 
-        for window in self.windows().iter() {
-            for (_, webview) in window.webviews() {
-                // Activate accessibility in the WebView.
-                // There are two sites like this; this is the a11y activation site.
-                webview.set_accessibility_active(active);
-            }
+        for window in self.windows.borrow_mut().iter() {
+            window.set_accessibility_active(active);
         }
     }
 

@@ -12,8 +12,14 @@ pub(crate) struct WebViewPanel {
     webview: WebView,
     scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     available_rect: Rect,
+    /// Whether the [`WebView`] represented by this panel is the active webview for servoshell.
     active: bool,
+    /// Whether servoshell-global focus is inside this panel's webview, regardless of whether the
+    /// application itself has system focus.
     contains_focus: bool,
+    /// Whether the [`accesskit::TreeId`] for this panel's webview has been previously sent to
+    /// AccessKit.
+    tree_id_known: bool,
 }
 
 impl WebViewPanel {
@@ -24,6 +30,7 @@ impl WebViewPanel {
         available_rect: Rect,
         active: bool,
         contains_focus: bool,
+        tree_id_known: bool,
     ) -> Self {
         Self {
             id: egui::Id::new(webview_id),
@@ -32,6 +39,7 @@ impl WebViewPanel {
             available_rect,
             active,
             contains_focus,
+            tree_id_known,
         }
     }
 
@@ -42,9 +50,11 @@ impl WebViewPanel {
 
 impl Widget for WebViewPanel {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
+        let tree_id = self.webview.accesskit_tree_id();
+
         // Always build an accesskit graft node, even if the webview isn't currently showing, so that any tree updates
         // from the webview won't cause a panic.
-        if let Some(tree_id) = self.webview.accesskit_tree_id() {
+        if let Some(tree_id) = tree_id {
             let affine = {
                 // The grafted WebView tree reports bounds in device pixels relative to the
                 // WebView's own origin, so this node supplies the offset of the WebView within
@@ -63,7 +73,13 @@ impl Widget for WebViewPanel {
             });
         }
 
-        if !self.active || !self.webview.focused() {
+        // If:
+        // - this is not the active webview, or
+        // - the application doesn't have system focus, or
+        // - accessibility is active, but the initial accesskit update for the webview hasn't been
+        //   sent yet;
+        // then don't move egui focus to this panel on this tick .
+        if !self.active || !self.webview.focused() || (tree_id.is_some() && !self.tree_id_known) {
             ui.memory_mut(|mem| mem.surrender_focus(self.id));
             return ui.response();
         }

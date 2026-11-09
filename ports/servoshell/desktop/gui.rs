@@ -91,7 +91,8 @@ pub struct Gui {
 
     /// AccessKit tree updates pending the next egui tick.
     /// This allows us to ensure that graft nodes are sent before the subtrees they graft.
-    pending_accesskit_updates: Vec<accesskit::TreeUpdate>,
+    /// If a [`WebViewId`] is present, the [`accesskit::TreeUpdate`] is for the [`WebView`] itself.
+    pending_accesskit_updates: Vec<(accesskit::TreeUpdate, Option<WebViewId>)>,
 
     // Whether the `WebViewPanel` corresponding to the currently active `WebView` is focused.
     webview_panel_focused: bool,
@@ -634,7 +635,9 @@ impl Gui {
             for (webview_id, webview) in window.webviews() {
                 let webview_active = active_webview == Some(webview.clone());
                 let webview_contains_focus = webview_active && webview_panel_was_focused;
-                let panel = WebViewPanel::new(webview_id, webview.clone(), scale_factor, available_rect, webview_active, webview_contains_focus);
+                let tree_id = webview.accesskit_tree_id();
+                let tree_id_known = tree_id.is_some() && window.webview_collection.borrow().known_accesskit_tree_id(webview_id) == tree_id;
+                let panel = WebViewPanel::new(webview_id, webview.clone(), scale_factor, available_rect, webview_active, webview_contains_focus, tree_id_known);
                 let panel_id = panel.id();
                 ctx.add(panel);
                 let panel_is_focused = ctx.memory(|mem| mem.has_focus(panel_id));
@@ -696,8 +699,15 @@ impl Gui {
             .accesskit
             .as_mut()
             .expect("guaranteed by Gui::new()");
-        for tree_update in self.pending_accesskit_updates.drain(..) {
+        for (tree_update, webview_id) in self.pending_accesskit_updates.drain(..) {
+            let tree_id = tree_update.tree_id;
             adapter.update_if_active(|| tree_update);
+            if let Some(webview_id) = webview_id {
+                window
+                    .webview_collection
+                    .borrow_mut()
+                    .maybe_record_known_accesskit_tree(webview_id, tree_id);
+            }
         }
     }
 
@@ -808,8 +818,18 @@ impl Gui {
         self.context.egui_ctx.set_zoom_factor(factor);
     }
 
-    pub(crate) fn notify_accessibility_tree_update(&mut self, tree_update: accesskit::TreeUpdate) {
-        self.pending_accesskit_updates.push(tree_update);
+    pub(crate) fn notify_accessibility_tree_update(
+        &mut self,
+        webview: WebView,
+        tree_update: accesskit::TreeUpdate,
+    ) {
+        // If is an update to the WebView's tree, keep track of which WebView is being updated.
+        if webview.accesskit_tree_id() == Some(tree_update.tree_id) {
+            self.pending_accesskit_updates
+                .push((tree_update, Some(webview.id())));
+        } else {
+            self.pending_accesskit_updates.push((tree_update, None));
+        }
     }
 }
 
