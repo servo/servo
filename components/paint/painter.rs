@@ -1058,7 +1058,10 @@ impl Painter {
         let pipeline_id = display_list_info.pipeline_id;
         let details = webview_renderer.ensure_pipeline_details(pipeline_id.into());
 
-        details.install_new_scroll_tree(display_list_info.scroll_tree);
+        details.install_new_scroll_tree_and_iframes(
+            display_list_info.scroll_tree,
+            display_list_info.iframes,
+        );
         details.viewport_scale = Some(display_list_info.viewport_details.hidpi_scale_factor);
 
         let epoch = display_list_info.epoch.into();
