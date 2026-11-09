@@ -51,7 +51,7 @@ use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::properties::longhands::{
-    self, background_image, border_spacing, color, font_family, font_size,
+    self, background_image, border_spacing, font_family, font_size,
 };
 use style::properties::{
     ComputedValues, Importance, PropertyDeclaration, PropertyDeclarationBlock,
@@ -1597,12 +1597,6 @@ impl<'dom> LayoutDom<'dom, Element> {
                 push(PropertyDeclaration::BorderLeftWidth(width_value.clone()));
                 push(PropertyDeclaration::BorderBottomWidth(width_value.clone()));
                 push(PropertyDeclaration::BorderRightWidth(width_value));
-            }
-            if document.quirks_mode() == QuirksMode::Quirks {
-                // <https://quirks.spec.whatwg.org/#the-tables-inherit-color-from-body-quirk>
-                push(PropertyDeclaration::Color(color::SpecifiedValue(
-                    specified::Color::InheritFromBodyQuirk,
-                )));
             }
         }
 
