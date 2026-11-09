@@ -204,41 +204,13 @@ pub trait CacheStorageThreadFactory {
 }
 
 impl CacheStorageThreadFactory for CacheStorageThreadHandle {
-    fn new(config_dir: Option<PathBuf>, temporary_storage: bool) -> CacheStorageThreadHandle {
+    // Current memory-only implementation needs no tempdir or config dir.
+    fn new(_config_dir: Option<PathBuf>, _temporary_storage: bool) -> CacheStorageThreadHandle {
         let (generic_sender, generic_receiver) = generic_channel::channel().unwrap();
-        let mut temp_dir: Option<tempfile::TempDir> = None;
-        let has_config_dir = config_dir.is_some();
-        let base_dir = config_dir
-            .unwrap_or_else(|| {
-                let tmp_dir = tempfile::tempdir().unwrap();
-                let path = tmp_dir.path().to_path_buf();
-                temp_dir = Some(tmp_dir);
-                path
-            })
-            .join("cachestorage");
-        let storage_dir = match (has_config_dir, temporary_storage) {
-            (true, true) => {
-                let tmp_base = base_dir.join("temporary");
-                std::fs::create_dir_all(&tmp_base).unwrap();
-                let tmp_dir = tempfile::tempdir_in(tmp_base).unwrap();
-                let path = tmp_dir.path().to_path_buf();
-                temp_dir = Some(tmp_dir);
-                path
-            },
-            (false, true) => {
-                let unique_id = uuid::Uuid::new_v4().to_string();
-                base_dir.join("temporary").join(unique_id)
-            },
-            (_, false) => base_dir.join("default_v1"),
-        };
-        std::fs::create_dir_all(&storage_dir)
-            .expect("Failed to create CacheStorage storage directory");
         let sender_clone = generic_sender.clone();
         thread::Builder::new()
             .name("CacheStorageThread".to_owned())
             .spawn(move || {
-                // Keep temp_dir alive while the thread runs.
-                let _ = temp_dir;
                 let engine = MemCacheStorageEngine {
                     name_to_cache_map: Default::default(),
                 };
@@ -352,29 +324,5 @@ where
                 },
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::fs;
-
-    use super::{CacheStorageThreadFactory, CacheStorageThreadHandle};
-
-    /// <https://github.com/servo/servo/issues/49656>
-    #[test]
-    fn test_cache_tmp_cleanup_with_config_dir() {
-        let tmp_config_dir = tempfile::tempdir().unwrap();
-        let config_dir = tmp_config_dir.path();
-
-        let handle = <CacheStorageThreadHandle as CacheStorageThreadFactory>::new(
-            Some(config_dir.to_path_buf()),
-            true,
-        );
-        drop(handle);
-
-        // Check if temp dir is cleared.
-        let mut entries = fs::read_dir(config_dir.join("cachestorage").join("temporary")).unwrap();
-        assert!(entries.next().is_none());
     }
 }
