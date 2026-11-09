@@ -1380,8 +1380,8 @@ impl DocumentEventHandler {
             0.0,                             // azimuth_angle
             DOMString::from_static("mouse"), // pointer_type
             true,                            // is_primary
-            vec![],                          // coalesced_events
-            vec![],                          // predicted_events
+            &[],                             // coalesced_events
+            &[],                             // predicted_events
         );
         menu_event.upcast::<Event>().set_composed(true);
 
@@ -2836,8 +2836,8 @@ impl DocumentEventHandler {
             0.0,
             DOMString::from(pointer_type),
             is_primary,
-            vec![],
-            vec![],
+            &[],
+            &[],
         );
         pointer_event.upcast::<Event>().set_composed(true);
         pointer_event.upcast::<Event>().fire(cx, target);
@@ -2886,8 +2886,8 @@ impl DocumentEventHandler {
             0.0,
             DOMString::from(pointer_type),
             is_primary,
-            vec![],
-            vec![],
+            &[],
+            &[],
         );
         pointer_event.upcast::<Event>().set_composed(true);
         pointer_event.upcast::<Event>().fire(cx, target.upcast());

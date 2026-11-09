@@ -6513,21 +6513,21 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 // Step 5.1. Set subtree to the negation of options["selfOnly"].
                 let subtree = (!options.selfOnly).into();
                 // Step 5.2. If options["customElementRegistry"] exists, then set registry to it.
-                let registry = if let Some(registry) = options.customElementRegistry {
-                    // Step 5.3. If registry's is scoped is false and registry
-                    // is not this's custom element registry, then throw a "NotSupportedError" DOMException.
+                let registry = options.customElementRegistry.as_ref().map(Dom::as_rooted);
+
+                // Step 5.3. If registry's is scoped is false and registry is not
+                // this's custom element registry, then throw a "NotSupportedError" DOMException.
+                if registry.as_ref().is_some_and(|registry| {
                     let this_registry = self
                         .custom_element_registry()
                         .expect("Document must have a custom element registry");
-                    if !registry.is_scoped() && registry != this_registry {
-                        return Err(Error::NotSupported(Some(
+
+                    !registry.is_scoped() && *registry != this_registry
+                }) {
+                    return Err(Error::NotSupported(Some(
                             "Imported customElementRegistry is not scoped and does not match existing registry.".into()
                         )));
-                    }
-                    Some(registry)
-                } else {
-                    None
-                };
+                }
                 (subtree, registry)
             },
         };

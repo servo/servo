@@ -195,8 +195,8 @@ impl Touch {
             0.0,      // azimuth_angle
             pointer_type.into(),
             is_primary,
-            vec![], // coalesced_events
-            vec![], // predicted_events
+            &[], // coalesced_events
+            &[], // predicted_events
         );
 
         // https://w3c.github.io/pointerevents/#dfn-attributes-and-default-actions
