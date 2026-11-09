@@ -81,29 +81,40 @@ impl Iden for DiskCacheTable {
     }
 }
 
+struct StorageDirectory {
+    path: PathBuf,
+    _temp_dir: Option<TempDir>,
+}
+
 /// Get the storage path out of `network_http_disk_cache` preference and `temporary_storage` option.
 // We need to return a file because a tempdir will otherwise close before we open the database
-fn storage_dir() -> (Option<PathBuf>, Option<TempDir>) {
+fn storage_dir() -> Option<StorageDirectory> {
     let disk_storage_path = pref!(network_http_disk_cache);
     match (
         servo_config::opts::get().temporary_storage,
         disk_storage_path.is_empty(),
     ) {
-        (false, false) => (Some(disk_storage_path.into()), None),
+        (false, false) => Some(StorageDirectory {
+            path: disk_storage_path.into(),
+            _temp_dir: None,
+        }),
         (true, true) => {
             let tmp_dir = tempfile::tempdir().unwrap();
             let mut path = tmp_dir.path().to_path_buf();
 
             path.push("cache.sqlite3");
-            (Some(path), Some(tmp_dir))
+            Some(StorageDirectory {
+                path,
+                _temp_dir: Some(tmp_dir),
+            })
         },
         (true, false) => {
             error!(
                 "Temporary storage cannot be set with explicit disk storage path. Disabling http_disk_cache"
             );
-            (None, None)
+            None
         },
-        (false, true) => (None, None),
+        (false, true) => None,
     }
 }
 
@@ -115,16 +126,16 @@ impl DiskCache {
         cache_assignment: HttpCacheAssignment,
     ) -> (Option<Arc<DiskCache>>, MemoryCacheLifecycle) {
         // For private browsing we currently do not want to store any disk cache.
-        let (disk_cache_path, _tempdir_file) = storage_dir();
+        let storage_directory = storage_dir();
 
-        if let Some(disk_cache_path) = disk_cache_path &&
+        if let Some(storage_directory) = storage_directory &&
             cache_assignment == HttpCacheAssignment::Public
         {
             let Ok(max_disk_cache_size) = pref!(network_http_disk_cache_size).try_into() else {
                 return (None, MemoryCacheLifecycle::empty());
             };
 
-            let Ok(db) = rusqlite::Connection::open(&disk_cache_path) else {
+            let Ok(db) = rusqlite::Connection::open(&storage_directory.path) else {
                 error!("Could not open disk cache database");
                 return (None, MemoryCacheLifecycle::empty());
             };
@@ -179,7 +190,7 @@ impl DiskCache {
             };
             let disk_cache_data = std::sync::Arc::new(DiskCache {
                 inner: TokioMutex::new(inner),
-                path: disk_cache_path,
+                path: storage_directory.path,
                 max_size: max_disk_cache_size,
             });
 
