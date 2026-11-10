@@ -6,6 +6,7 @@
 //! Flow layout, also known as block-and-inline layout.
 
 use app_units::{Au, MAX_AU};
+use fonts::FontContext;
 use inline::InlineFormattingContext;
 use layout_api::LayoutNode;
 use malloc_size_of_derive::MallocSizeOf;
@@ -79,6 +80,30 @@ pub(crate) struct TextControlSize {
     /// height.
     rows: u32,
     // TODO: Correct cols layout too (https://github.com/servo/servo/issues/44426)
+}
+
+impl TextControlSize {
+    /// Effective block size of this text control, which is the number of rows
+    /// multiplied by the line height. With no font available, this will
+    /// return None.
+    ///
+    /// <https://html.spec.whatwg.org/multipage/#textarea-effective-height>
+    // TODO(mttr): This should take scrollbar size into consideration.
+    fn effective_block_size(
+        &self,
+        style: &ComputedValues,
+        font_context: &FontContext,
+    ) -> Option<Au> {
+        let font_ref = get_font_for_first_font_for_style(style, font_context)?;
+        let line_height = line_height(
+            style,
+            font_ref.metrics(),
+            &InlineContainerStateFlags::empty(),
+        );
+        let rows = i32::try_from(self.rows).unwrap_or(i32::MAX);
+
+        Some(line_height * rows)
+    }
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -510,29 +535,17 @@ impl BlockFormattingContext {
             sequential_layout_state.calculate_clearance(Clear::Both, &CollapsedMargin::zero())
         });
 
-        let mut content_block_size = flow_layout.content_block_size +
+        let measured_block_size = flow_layout.content_block_size +
             flow_layout.collapsible_margins_in_children.end.solve() +
             clearance.unwrap_or_default();
 
-        // If we don't have a known font for this, we fall back to the default
-        // layout (and sizing) of the content.
-        //
-        // TODO (mttr) This should take scrollbar size into consideration.
-        //
-        // https://html.spec.whatwg.org/multipage/#textarea-effective-height
-        if let Some(base) = base &&
-            let Some(text_control_size) = &self.text_control_size &&
-            let Some(font_ref) =
-                get_font_for_first_font_for_style(&base.style, &layout_context.font_context)
-        {
-            let rows = i32::try_from(text_control_size.rows).unwrap_or(i32::MAX);
-
-            content_block_size = line_height(
-                &base.style,
-                font_ref.metrics(),
-                &InlineContainerStateFlags::empty(),
-            ) * rows;
-        }
+        let content_block_size = self
+            .text_control_size
+            .as_ref()
+            .and_then(|text_control_size| {
+                text_control_size.effective_block_size(&base?.style, &layout_context.font_context)
+            })
+            .unwrap_or(measured_block_size);
 
         let mut apply_align_content = || {
             // Don't handle `align-content` for table cells, since at this point we still
