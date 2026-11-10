@@ -4,8 +4,6 @@
 
 #![allow(missing_docs)]
 
-use std::collections::HashMap;
-
 use cookie::Cookie;
 use crossbeam_channel::Sender;
 use euclid::default::Rect as UntypedRect;
@@ -23,7 +21,7 @@ use url::Url;
 use webdriver::command::SetPermissionState;
 use webdriver::error::ErrorStatus;
 
-use crate::{InputEvent, JSValue, JavaScriptEvaluationError, ScreenshotCaptureError, TraversalId};
+use crate::{InputEvent, JSValue, JavaScriptEvaluationError, ScreenshotCaptureError};
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum WebDriverUserPrompt {
@@ -97,13 +95,13 @@ pub enum WebDriverCommandMsg {
         GenericOneshotSender<Size2D<f32, DeviceIndependentPixel>>,
     ),
     /// Load a URL in the top-level browsing context with the given ID.
-    LoadUrl(WebViewId, Url, GenericSender<WebDriverLoadStatus>),
+    LoadUrl(WebViewId, Url),
     /// Refresh the top-level browsing context with the given ID.
-    Refresh(WebViewId, GenericSender<WebDriverLoadStatus>),
+    Refresh(WebViewId),
     /// Navigate the webview with the given ID to the previous page in the browsing context's history.
-    GoBack(WebViewId, GenericSender<WebDriverLoadStatus>),
+    GoBack(WebViewId),
     /// Navigate the webview with the given ID to the next page in the browsing context's history.
-    GoForward(WebViewId, GenericSender<WebDriverLoadStatus>),
+    GoForward(WebViewId),
     /// Pass a webdriver command to the script thread of the current pipeline
     /// of a browsing context.
     ScriptCommand(BrowsingContextId, WebDriverScriptCommand),
@@ -127,12 +125,8 @@ pub enum WebDriverCommandMsg {
     ),
     /// Create a new webview that loads about:blank. The embedder will use
     /// the provided channels to return the top level browsing context id
-    /// associated with the new webview, and sets a "load status sender" if provided.
-    NewWindow(
-        NewWindowTypeHint,
-        GenericOneshotSender<WebViewId>,
-        Option<GenericSender<WebDriverLoadStatus>>,
-    ),
+    /// associated with the new webview.
+    NewWindow(NewWindowTypeHint, GenericOneshotSender<WebViewId>),
     /// Close the webview associated with the provided id.
     CloseWebView(WebViewId, GenericOneshotSender<()>),
     /// Make the given WebView the WebView to use for input event interaction.
@@ -146,6 +140,9 @@ pub enum WebDriverCommandMsg {
     IsWebViewOpen(WebViewId, GenericOneshotSender<bool>),
     /// Check whether browsing context is open.
     IsBrowsingContextOpen(BrowsingContextId, GenericOneshotSender<bool>),
+    /// Check whether the given webview has a navigation attempt in progress. This is
+    /// ordered with navigation commands, so it also synchronizes the WebDriver server.
+    IsNavigationInProgress(WebViewId, GenericOneshotSender<bool>),
     CurrentUserPrompt(WebViewId, GenericOneshotSender<Option<WebDriverUserPrompt>>),
     HandleUserPrompt(
         WebViewId,
@@ -154,6 +151,10 @@ pub enum WebDriverCommandMsg {
     ),
     GetAlertText(WebViewId, GenericOneshotSender<Result<String, ()>>),
     SendAlertText(WebViewId, String),
+    /// Register a sender to report navigation and loading statuses for the given webview.
+    AddLoadStatusSender(WebViewId, GenericSender<WebDriverLoadStatusMessage>),
+    /// Stop reporting navigation and loading statuses for the given webview.
+    RemoveLoadStatusSender(WebViewId),
     FocusBrowsingContext(BrowsingContextId),
     Shutdown,
     ResetAllCookies(Sender<()>),
@@ -267,8 +268,6 @@ pub enum WebDriverScriptCommand {
         bool,
         GenericSender<Result<bool, ErrorStatus>>,
     ),
-    AddLoadStatusSender(WebViewId, GenericSender<WebDriverLoadStatus>),
-    RemoveLoadStatusSender(WebViewId),
     SetProtocolHandlerAutomationMode(CustomHandlersAutomationMode),
     SetPermission(
         String,
@@ -285,24 +284,31 @@ pub enum WebDriverFrameId {
     Element(String),
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum WebDriverLoadStatus {
+    /// A navigation has started in the top-level browsing context.
     NavigationStart,
-    // Navigation stops for any reason
+    /// A navigation stopped for any reason other than completing successfully.
     NavigationStop,
-    // Document ready state is complete
+    /// The document's `readyState` is complete.
     Complete,
-    // Load timeout
+    /// The load timed out.
     Timeout,
-    // Navigation is blocked by a user prompt
+    /// The navigation is blocked by a user prompt.
     Blocked,
+}
+
+/// A [`WebDriverLoadStatus`] for a particular top-level browsing context.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct WebDriverLoadStatusMessage {
+    pub webview_id: WebViewId,
+    pub status: WebDriverLoadStatus,
 }
 
 /// A collection of [`GenericSender`]s that are used to asynchronously communicate
 /// to a WebDriver server with information about application state.
 #[derive(Clone, Default)]
 pub struct WebDriverSenders {
-    pub load_status_senders: FxHashMap<WebViewId, GenericSender<WebDriverLoadStatus>>,
+    pub load_status_senders: FxHashMap<WebViewId, GenericSender<WebDriverLoadStatusMessage>>,
     pub script_evaluation_interrupt_sender: Option<GenericSender<WebDriverJSResult>>,
-    pub pending_traversals: HashMap<TraversalId, GenericSender<WebDriverLoadStatus>>,
 }

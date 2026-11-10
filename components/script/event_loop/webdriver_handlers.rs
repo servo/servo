@@ -10,7 +10,6 @@ use cookie::Cookie;
 use embedder_traits::{
     CustomHandlersAutomationMode, JSValue, JavaScriptEvaluationError,
     JavaScriptEvaluationResultSerializationError, WebDriverFrameId, WebDriverJSResult,
-    WebDriverLoadStatus,
 };
 use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
@@ -2194,27 +2193,6 @@ pub(crate) fn handle_is_selected(
             }),
         )
         .unwrap();
-}
-
-pub(crate) fn handle_add_load_status_sender(
-    documents: &DocumentCollection,
-    pipeline: PipelineId,
-    reply: GenericSender<WebDriverLoadStatus>,
-) {
-    if let Some(document) = documents.find_document(pipeline) {
-        let window = document.window();
-        window.set_webdriver_load_status_sender(Some(reply));
-    }
-}
-
-pub(crate) fn handle_remove_load_status_sender(
-    documents: &DocumentCollection,
-    pipeline: PipelineId,
-) {
-    if let Some(document) = documents.find_document(pipeline) {
-        let window = document.window();
-        window.set_webdriver_load_status_sender(None);
-    }
 }
 
 /// <https://w3c.github.io/webdriver/#dfn-scrolls-into-view>

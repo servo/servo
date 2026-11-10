@@ -6,7 +6,6 @@
 
 use std::cell::{Cell, Ref, RefCell};
 use std::collections::HashMap;
-use std::collections::hash_map::Entry;
 use std::rc::Rc;
 
 use crossbeam_channel::{Receiver, Sender, unbounded};
@@ -33,9 +32,9 @@ use servo::{
     ConsoleLogLevel, CreateNewWebViewRequest, DeviceIntPoint, DeviceIntSize, EmbedderControl,
     EmbedderControlId, EventLoopWaker, GenericSender, InputEvent, InputEventId, InputEventResult,
     JSValue, LoadStatus, PermissionRequest, PrefValue, Preferences, ScreenshotCaptureError, Servo,
-    ServoDelegate, ServoError, TraversalId, UserContentManager, WebDriverCommandMsg,
-    WebDriverJSResult, WebDriverLoadStatus, WebDriverScriptCommand, WebDriverSenders, WebView,
-    WebViewDelegate, WebViewId,
+    ServoDelegate, ServoError, UserContentManager, WebDriverCommandMsg, WebDriverJSResult,
+    WebDriverLoadStatus, WebDriverLoadStatusMessage, WebDriverScriptCommand, WebDriverSenders,
+    WebView, WebViewDelegate, WebViewId,
 };
 use url::Url;
 
@@ -569,21 +568,10 @@ impl RunningAppState {
         });
     }
 
-    pub(crate) fn set_pending_traversal(
-        &self,
-        traversal_id: TraversalId,
-        sender: GenericSender<WebDriverLoadStatus>,
-    ) {
-        self.webdriver_senders
-            .borrow_mut()
-            .pending_traversals
-            .insert(traversal_id, sender);
-    }
-
     pub(crate) fn set_load_status_sender(
         &self,
         webview_id: WebViewId,
-        sender: GenericSender<WebDriverLoadStatus>,
+        sender: GenericSender<WebDriverLoadStatusMessage>,
     ) {
         self.webdriver_senders
             .borrow_mut()
@@ -591,7 +579,7 @@ impl RunningAppState {
             .insert(webview_id, sender);
     }
 
-    fn remove_load_status_sender(&self, webview_id: WebViewId) {
+    pub(crate) fn remove_load_status_sender(&self, webview_id: WebViewId) {
         self.webdriver_senders
             .borrow_mut()
             .load_status_senders
@@ -653,24 +641,13 @@ impl RunningAppState {
                 // safely set a new interrupt sender and remove the previous one here.
                 self.set_script_command_interrupt_sender(Some(response_sender.clone()));
             },
-            WebDriverScriptCommand::AddLoadStatusSender(webview_id, load_status_sender) => {
-                self.set_load_status_sender(*webview_id, load_status_sender.clone());
-            },
-            WebDriverScriptCommand::RemoveLoadStatusSender(webview_id) => {
-                self.remove_load_status_sender(*webview_id);
-            },
             _ => {
                 self.set_script_command_interrupt_sender(None);
             },
         }
     }
 
-    pub(crate) fn handle_webdriver_load_url(
-        &self,
-        webview_id: WebViewId,
-        url: Url,
-        load_status_sender: GenericSender<WebDriverLoadStatus>,
-    ) {
+    pub(crate) fn handle_webdriver_load_url(&self, webview_id: WebViewId, url: Url) {
         let Some(webview) = self.webview_by_id(webview_id) else {
             return;
         };
@@ -679,7 +656,6 @@ impl RunningAppState {
             .dismiss_embedder_controls_for_webview(webview_id);
 
         info!("Loading URL in webview {}: {}", webview_id, url);
-        self.set_load_status_sender(webview_id, load_status_sender);
         webview.load(url);
     }
 
@@ -766,14 +742,6 @@ impl WebViewDelegate for RunningAppState {
         self.window_for_webview(&webview).set_needs_update();
     }
 
-    fn notify_traversal_complete(&self, _webview: WebView, traversal_id: TraversalId) {
-        let mut webdriver_state = self.webdriver_senders.borrow_mut();
-        if let Entry::Occupied(entry) = webdriver_state.pending_traversals.entry(traversal_id) {
-            let sender = entry.remove();
-            let _ = sender.send(WebDriverLoadStatus::Complete);
-        }
-    }
-
     fn request_move_to(&self, webview: WebView, new_position: DeviceIntPoint) {
         self.platform_window_for_webview(&webview)
             .set_position(new_position);
@@ -845,21 +813,9 @@ impl WebViewDelegate for RunningAppState {
     fn notify_load_status_changed(&self, webview: WebView, status: LoadStatus) {
         self.window_for_webview(&webview).set_needs_update();
 
-        let webdriver_status = match status {
-            LoadStatus::Complete => WebDriverLoadStatus::Complete,
-            LoadStatus::Stopped => WebDriverLoadStatus::NavigationStop,
-            _ => return,
-        };
-
-        if let Some(sender) = self
-            .webdriver_senders
-            .borrow_mut()
-            .load_status_senders
-            .remove(&webview.id())
-        {
-            let _ = sender.send(webdriver_status);
+        if matches!(status, LoadStatus::Complete | LoadStatus::Stopped) {
+            self.maybe_request_screenshot(webview);
         }
-        self.maybe_request_screenshot(webview);
     }
 
     fn notify_fullscreen_state_changed(&self, webview: WebView, fullscreen_state: bool) {
@@ -897,7 +853,10 @@ impl WebViewDelegate for RunningAppState {
                     .load_status_senders
                     .get(&webview.id())
                 {
-                    let _ = sender.send(WebDriverLoadStatus::Blocked);
+                    let _ = sender.send(WebDriverLoadStatusMessage {
+                        webview_id: webview.id(),
+                        status: WebDriverLoadStatus::Blocked,
+                    });
                 };
             }
 

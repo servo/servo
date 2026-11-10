@@ -149,10 +149,19 @@ impl RunningAppState {
                     let context = self.webview_by_id(webview_id);
                     sender.send_or_warn(context.is_some());
                 },
-                WebDriverCommandMsg::IsBrowsingContextOpen(..) => {
+                WebDriverCommandMsg::IsBrowsingContextOpen(..) |
+                WebDriverCommandMsg::IsNavigationInProgress(..) => {
                     self.servo().execute_webdriver_command(msg);
                 },
-                WebDriverCommandMsg::NewWindow(type_hint, response_sender, load_status_sender) => {
+                WebDriverCommandMsg::AddLoadStatusSender(webview_id, ref sender) => {
+                    self.set_load_status_sender(webview_id, sender.clone());
+                    self.servo().execute_webdriver_command(msg);
+                },
+                WebDriverCommandMsg::RemoveLoadStatusSender(webview_id) => {
+                    self.remove_load_status_sender(webview_id);
+                    self.servo().execute_webdriver_command(msg);
+                },
+                WebDriverCommandMsg::NewWindow(type_hint, response_sender) => {
                     let url = Url::parse("about:blank").unwrap();
                     let new_webview = match (type_hint, create_platform_window) {
                         (
@@ -179,9 +188,6 @@ impl RunningAppState {
 
                     if let Err(error) = response_sender.send(new_webview.id()) {
                         warn!("Failed to send response of NewWebview: {error}");
-                    }
-                    if let Some(load_status_sender) = load_status_sender {
-                        self.set_load_status_sender(new_webview.id(), load_status_sender);
                     }
                 },
                 WebDriverCommandMsg::CloseWebView(webview_id, response_sender) => {
@@ -277,25 +283,22 @@ impl RunningAppState {
                         );
                     };
                 },
-                WebDriverCommandMsg::LoadUrl(webview_id, url, load_status_sender) => {
-                    self.handle_webdriver_load_url(webview_id, url, load_status_sender);
+                WebDriverCommandMsg::LoadUrl(webview_id, url) => {
+                    self.handle_webdriver_load_url(webview_id, url);
                 },
-                WebDriverCommandMsg::Refresh(webview_id, load_status_sender) => {
+                WebDriverCommandMsg::Refresh(webview_id) => {
                     if let Some(webview) = self.webview_by_id(webview_id) {
-                        self.set_load_status_sender(webview_id, load_status_sender);
                         webview.reload();
                     }
                 },
-                WebDriverCommandMsg::GoBack(webview_id, load_status_sender) => {
+                WebDriverCommandMsg::GoBack(webview_id) => {
                     if let Some(webview) = self.webview_by_id(webview_id) {
-                        let traversal_id = webview.go_back(1);
-                        self.set_pending_traversal(traversal_id, load_status_sender);
+                        webview.go_back(1);
                     }
                 },
-                WebDriverCommandMsg::GoForward(webview_id, load_status_sender) => {
+                WebDriverCommandMsg::GoForward(webview_id) => {
                     if let Some(webview) = self.webview_by_id(webview_id) {
-                        let traversal_id = webview.go_forward(1);
-                        self.set_pending_traversal(traversal_id, load_status_sender);
+                        webview.go_forward(1);
                     }
                 },
                 WebDriverCommandMsg::InputEvent(webview_id, input_event, response_sender) => {
