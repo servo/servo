@@ -228,6 +228,7 @@ pub(crate) enum OneshotTimerCallback {
     },
     /// Run a GC with following GCReason
     GC {
+        #[no_trace]
         pipeline_id: PipelineId,
         #[ignore_malloc_size_of = "Just an enum"]
         #[no_trace]
