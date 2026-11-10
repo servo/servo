@@ -291,7 +291,8 @@ impl Document {
                 let referrer = self.owner_global().get_referrer();
                 let request = create_a_potential_cors_request_with_claim(
                     Some(self.webview_id()),
-                    UrlWithBlobClaim::from_url_without_having_claimed_blob(favicon_url.clone()),
+                    UrlWithBlobClaim::for_url(favicon_url.clone())
+                        .expect("no blob scheme position"),
                     Destination::Image,
                     None,
                     None,
