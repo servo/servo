@@ -796,9 +796,7 @@ impl HTMLFormElement {
             self.firing_submission_events.set(true);
             // Step 5.3. For each element field in the list of submittable elements
             // whose form owner is form, set field's user validity to true.
-            self
-                .Elements(cx)
-                .set_user_validity_on_all(cx);
+            self.Elements(cx).set_user_validity_on_all(cx);
             // Step 5.4. If the submitter element's no-validate state is false,
             // then interactively validate the constraints of form and examine
             // the result. If the result is negative (i.e., the constraint validation
