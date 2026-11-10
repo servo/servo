@@ -1,0 +1,31 @@
+<!doctype html>
+<head>
+<meta charset="utf-8">
+<title>Video load during pending seek should not deadlock</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<video id="video" preload="metadata" muted></video>
+<script type="text/javascript">
+
+promise_test(async t => {
+  const video = document.getElementById("video");
+  video.src = "/media/movie_5.webm";
+  await new Promise(r => video.oncanplay = r);
+  // Seek remains pending: the GstPlay thread asks for data from the new
+  // position and waits for the script thread to provide them. We don't wait for
+  // seeked because seek has to remain pending until it is dropped by the source
+  // change below.
+  video.currentTime = 2;
+  // Busy-wait to keep the script thread busy so that it can't give the data to
+  // the seek_data request before the source change drops the seek.
+  const start = performance.now();
+  while (performance.now() - start < 500) {}
+  video.src = "/media/movie_5.webm?reload";
+  await new Promise(r => video.oncanplay = r);
+});
+
+</script>
+</body>
+</html>
