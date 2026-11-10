@@ -633,17 +633,21 @@ impl Gui {
             // webviews from causing a panic in AccessKit.
             let active_webview = window.active_webview();
             for (webview_id, webview) in window.webviews() {
-                let webview_active = active_webview == Some(webview.clone());
+                let webview_active = active_webview.as_ref() == Some(&webview);
                 let webview_contains_focus = webview_active && webview_panel_was_focused;
                 let tree_id = webview.accesskit_tree_id();
                 let tree_id_known = tree_id.is_some() && window.webview_collection.borrow().known_accesskit_tree_id(webview_id) == tree_id;
-                let panel = WebViewPanel::new(webview_id, webview.clone(), scale_factor, available_rect, webview_active, webview_contains_focus, tree_id_known);
-                let panel_id = panel.id();
-                ctx.add(panel);
-                let panel_is_focused = ctx.memory(|mem| mem.has_focus(panel_id));
-                if panel_is_focused {
+                let panel = WebViewPanel::new(
+                    webview.clone(),
+                    scale_factor,
+                    available_rect,
+                    webview_active,
+                    webview_contains_focus,
+                    tree_id_known
+                );
+                if ctx.add(panel).has_focus() {
                     self.webview_panel_focused = true;
-                } else if webview_active && !webview.focused() && webview_panel_was_focused {
+                } else if webview_contains_focus && !webview.focused() {
                     // If the window loses focus, we need to unfocus the webview panel to avoid a
                     // panic in AccessKit, but we should return focus to it once the window is
                     // focused again.
