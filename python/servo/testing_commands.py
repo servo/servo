@@ -517,12 +517,12 @@ class MachCommands(CommandBase):
 
     @Command(
         "update-manifest",
-        description="Run test-wpt --manifest-update SKIP_TESTS to regenerate MANIFEST.json",
+        description="Update the cached MANIFEST.json files",
         category="testing",
         parser=wpt.manifestupdate.create_parser,
     )
     def update_manifest(self, **kwargs: Any) -> int:
-        return wpt.manifestupdate.update(check_clean=False)
+        return wpt.manifestupdate.update(**kwargs)
 
     @Command("fmt", description="Format Rust, Python, and TOML files", category="testing")
     def format_code(self) -> int:

@@ -22,6 +22,7 @@ import mozlog.formatters
 
 from . import SERVO_ROOT, WPT_PATH, WPT_TOOLS_PATH
 from .grouping_formatter import ServoFormatter, ServoHandler, UnexpectedResult, UnexpectedSubtestResult
+from .manifestupdate import ensure_manifests_up_to_date
 from wptrunner import wptcommandline
 from wptrunner import wptrunner
 
@@ -83,7 +84,9 @@ def run_tests(default_binary_path: str, multiprocess: bool, **kwargs: Any) -> in
     set_if_none(kwargs, "product", product)
     set_if_none(kwargs, "config", os.path.join(WPT_PATH, "config.ini"))
     set_if_none(kwargs, "include_manifest", os.path.join(WPT_PATH, "include.ini"))
-    set_if_none(kwargs, "manifest_update", False)
+
+    ensure_updated_manifest = kwargs.get("manifest_update") is not False
+    kwargs["manifest_update"] = False
 
     raise_file_handle_limit()
     set_if_none(kwargs, "processes", multiprocessing.cpu_count())
@@ -162,6 +165,9 @@ def run_tests(default_binary_path: str, multiprocess: bool, **kwargs: Any) -> in
     handler = ServoHandler(detect_flakes=kwargs["retry_unexpected"] >= 1)
     assert logger is not None
     logger.add_handler(handler)
+
+    if ensure_updated_manifest:
+        ensure_manifests_up_to_date(logger)
 
     with tempfile.TemporaryDirectory(prefix="servo-") as config_dir:
         kwargs["binary_args"] += ["--config-dir", config_dir]
