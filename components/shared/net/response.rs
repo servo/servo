@@ -4,6 +4,7 @@
 
 //! The [Response](https://fetch.spec.whatwg.org/#responses) object
 //! resulting from a [fetch operation](https://fetch.spec.whatwg.org/#concept-fetch)
+use std::sync::Arc as StdArc;
 use std::sync::atomic::AtomicBool;
 
 use http::HeaderMap;
@@ -100,11 +101,8 @@ pub struct Response {
     url: Option<ServoUrl>,
     pub url_list: Vec<ServoUrl>,
     pub status: HttpStatus,
-    #[serde(
-        deserialize_with = "::hyper_serde::deserialize",
-        serialize_with = "::hyper_serde::serialize"
-    )]
-    pub headers: HeaderMap,
+    #[conditional_malloc_size_of]
+    pub headers: StdArc<Serde<HeaderMap>>,
     #[conditional_malloc_size_of]
     pub body: Arc<Mutex<ResponseBody>>,
     pub cache_state: CacheState,
@@ -144,7 +142,7 @@ impl Response {
             url: Some(url),
             url_list: vec![],
             status: HttpStatus::default(),
-            headers: HeaderMap::new(),
+            headers: Default::default(),
             body: Arc::new(Mutex::new(ResponseBody::Empty)),
             cache_state: CacheState::None,
             tls_security_info: None,
@@ -165,7 +163,7 @@ impl Response {
     pub fn from_init(init: ResponseInit, resource_timing_type: ResourceTimingType) -> Response {
         let mut res = Response::new(init.url, ResourceFetchTiming::new(resource_timing_type));
         res.location_url = init.location_url;
-        res.headers = init.headers;
+        res.headers = StdArc::new(Serde(init.headers));
         res.referrer = init.referrer;
         res.status = HttpStatus::new_raw(init.status_code, vec![]);
         res
@@ -178,7 +176,7 @@ impl Response {
             url: None,
             url_list: vec![],
             status: HttpStatus::new_error(),
-            headers: HeaderMap::new(),
+            headers: Default::default(),
             body: Arc::new(Mutex::new(ResponseBody::Empty)),
             cache_state: CacheState::None,
             tls_security_info: None,
@@ -277,7 +275,7 @@ impl Response {
                     })
                     .map(|(n, v)| (n.clone(), v.clone()))
                     .collect();
-                response.headers = headers;
+                response.headers = StdArc::new(Serde(headers));
             },
 
             ResponseType::Cors => {
@@ -307,20 +305,20 @@ impl Response {
                     })
                     .map(|(n, v)| (n.clone(), v.clone()))
                     .collect();
-                response.headers = headers;
+                response.headers = StdArc::new(Serde(headers));
             },
 
             ResponseType::Opaque => {
                 response.url_list = vec![];
                 response.url = None;
-                response.headers = HeaderMap::new();
+                response.headers = Default::default();
                 response.status = HttpStatus::new_error();
                 response.body = Arc::new(Mutex::new(ResponseBody::Empty));
                 response.cache_state = CacheState::None;
             },
 
             ResponseType::OpaqueRedirect => {
-                response.headers = HeaderMap::new();
+                response.headers = Default::default();
                 response.status = HttpStatus::new_error();
                 response.body = Arc::new(Mutex::new(ResponseBody::Empty));
                 response.cache_state = CacheState::None;
@@ -339,7 +337,7 @@ impl Response {
             let mut metadata = Metadata::default(url.clone());
             metadata.set_content_type(extract_mime_type_as_mime(&response.headers).as_ref());
             metadata.location_url.clone_from(&response.location_url);
-            metadata.headers = Some(Serde(response.headers.clone()));
+            metadata.headers = Some(response.headers.clone());
             metadata.status.clone_from(&response.status);
             metadata.referrer.clone_from(&response.referrer);
             metadata.referrer_policy = response.referrer_policy;

@@ -1112,7 +1112,11 @@ impl XMLHttpRequest {
         // XXXManishearth Clear cache entries in case of a network error
         self.process_partial_response(
             cx,
-            XHRProgress::HeadersReceived(gen_id, headers.map(Serde::into_inner), status),
+            XHRProgress::HeadersReceived(
+                gen_id,
+                headers.map(|headermap| headermap.0.clone()),
+                status,
+            ),
         );
         Ok(())
     }

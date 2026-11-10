@@ -12,6 +12,7 @@
 
 use std::future::Future;
 use std::pin::Pin;
+use std::sync::Arc;
 
 use headers::{ContentType, HeaderMapExt};
 use servo::UserAgentPlatform;
@@ -100,7 +101,7 @@ fn json_response(
         request.current_url(),
         ResourceFetchTiming::new(request.timing_type()),
     );
-    response.headers.typed_insert(ContentType::json());
+    Arc::make_mut(&mut response.headers).typed_insert(ContentType::json());
     *response.body.lock() = ResponseBody::Done(body.into_bytes());
     Box::pin(std::future::ready(response))
 }

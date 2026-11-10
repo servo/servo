@@ -11,6 +11,7 @@ use std::fs::File;
 use std::future::Future;
 use std::io::{BufReader, Read};
 use std::pin::Pin;
+use std::sync::Arc;
 
 use flate2::read::GzDecoder;
 use headers::{ContentType, HeaderMapExt};
@@ -75,7 +76,7 @@ impl ResourceProtocolHandler {
 
             // Set Content-Type header.
             let mime = mime_guess::from_path(file_path).first_or_octet_stream();
-            response.headers.typed_insert(ContentType::from(mime));
+            Arc::make_mut(&mut response.headers).typed_insert(ContentType::from(mime));
 
             // Setup channel to receive cross-thread messages about the file fetch
             // operation.

@@ -996,9 +996,7 @@ impl RangeRequestBounds {
 
 fn create_blank_reply(url: ServoUrl, timing_type: ResourceTimingType) -> Response {
     let mut response = Response::new(url, ResourceFetchTiming::new(timing_type));
-    response
-        .headers
-        .typed_insert(ContentType::from(mime::TEXT_HTML_UTF_8));
+    Arc::make_mut(&mut response.headers).typed_insert(ContentType::from(mime::TEXT_HTML_UTF_8));
     *response.body.lock() = ResponseBody::Done(vec![]);
     response.status = HttpStatus::default();
     response
@@ -1006,9 +1004,7 @@ fn create_blank_reply(url: ServoUrl, timing_type: ResourceTimingType) -> Respons
 
 fn create_about_memory(url: ServoUrl, timing_type: ResourceTimingType) -> Response {
     let mut response = Response::new(url, ResourceFetchTiming::new(timing_type));
-    response
-        .headers
-        .typed_insert(ContentType::from(mime::TEXT_HTML_UTF_8));
+    Arc::make_mut(&mut response.headers).typed_insert(ContentType::from(mime::TEXT_HTML_UTF_8));
     *response.body.lock() = ResponseBody::Done(resources::read_bytes(Resource::AboutMemoryHTML));
     response.status = HttpStatus::default();
     response

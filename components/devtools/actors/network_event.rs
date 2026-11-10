@@ -430,7 +430,7 @@ impl Actor for NetworkEventActor {
                     .response
                     .headers
                     .as_ref()
-                    .map(get_header_list)
+                    .map(|headermap| get_header_list(&headermap.0))
                     .unwrap_or_default();
                 let raw_headers = get_raw_headers(&list);
 
@@ -468,11 +468,13 @@ impl Actor for NetworkEventActor {
                 let response = response.as_ref().ok_or(ActorError::Internal)?;
 
                 let headers = response.response.headers.as_ref();
-                let list = headers.map(get_header_list).unwrap_or_default();
+                let list = headers
+                    .map(|headermap| get_header_list(&headermap.0))
+                    .unwrap_or_default();
                 let raw_headers = get_raw_headers(&list);
 
                 let mime_type = headers
-                    .and_then(extract_mime_type_as_dataurl_mime)
+                    .and_then(|headermap| extract_mime_type_as_dataurl_mime(&headermap.0))
                     .map(|url| url.to_string());
                 let transferred_size = headers
                     .and_then(|header| header.typed_get::<ContentLength>())
@@ -631,7 +633,7 @@ impl NetworkEventActor {
             status: status.code().to_string(),
             status_text: String::from_utf8_lossy(status.message()).to_string(),
             mime_type: headers
-                .and_then(extract_mime_type_as_dataurl_mime)
+                .and_then(|headermap| extract_mime_type_as_dataurl_mime(&headermap.0))
                 .map(|url| url.to_string()),
             transferred_size: headers
                 .and_then(|header| header.typed_get::<ContentLength>())

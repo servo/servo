@@ -343,7 +343,9 @@ pub(crate) fn determine_cors_settings_for_token(token: &str) -> Option<CorsSetti
 }
 
 /// <https://html.spec.whatwg.org/multipage/#extract-links-from-headers>
-pub(crate) fn extract_links_from_headers(headers: &Option<Serde<HeaderMap>>) -> Vec<LinkHeader> {
+pub(crate) fn extract_links_from_headers(
+    headers: &Option<Arc<Serde<HeaderMap>>>,
+) -> Vec<LinkHeader> {
     // Step 1. Let links be a new list.
     let mut links = Vec::new();
     let Some(headers) = headers else {

@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
+
 use content_security_policy::{CspList, PolicyDisposition};
 use http::header::HeaderMap;
 use hyper_serde::Serde;
@@ -17,7 +19,7 @@ pub(crate) fn check_a_navigation_response_adherence_to_x_frame_options(
     window: &Window,
     csp_list: Option<&CspList>,
     destination_origin: &MutableOrigin,
-    headers: Option<&Serde<HeaderMap>>,
+    headers: Option<&Arc<Serde<HeaderMap>>>,
 ) -> bool {
     // Step 1. If navigable is not a child navigable, then return true.
     if window.window_proxy().parent().is_none() {
