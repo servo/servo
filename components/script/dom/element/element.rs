@@ -2694,18 +2694,25 @@ impl Element {
         if self.is::<HTMLScriptElement>() {
             for attr in self.attrs().borrow().iter() {
                 // Step 2.1: If attribute’s name contains an ASCII case-insensitive match
-                // for "<script" or "<style", return "Not Nonceable".
+                // for "<link", "<script", or "<style", return "Not Nonceable".
 
                 // to_ascii_lowercase is already optimized for `LocalName`.
                 let attr_name = attr.name().to_ascii_lowercase();
-                if attr_name.contains("<script") || attr_name.contains("<style") {
+                if attr_name.contains("<link") ||
+                    attr_name.contains("<script") ||
+                    attr_name.contains("<style")
+                {
                     return false;
                 }
+
                 // Step 2.2: If attribute’s value contains an ASCII case-insensitive match
-                // for "<script" or "<style", return "Not Nonceable".
+                // for "<link", "<script", or "<style", return "Not Nonceable".
                 let attr_value = attr.value();
                 let attr_value = string_as_ascii_lowercase(&attr_value);
-                if attr_value.contains("<script") || attr_value.contains("<style") {
+                if attr_value.contains("<link") ||
+                    attr_value.contains("<script") ||
+                    attr_value.contains("<style")
+                {
                     return false;
                 }
             }
