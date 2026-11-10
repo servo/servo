@@ -585,7 +585,7 @@ impl HTMLSelectElement {
                 let this = this.root();
 
                 // Step 1. Set the select element's user validity to true.
-                self.set_user_validity(true);
+                this.set_user_validity(true);
 
                 // Step 2. Fire an event named input at the select element, with the bubbles and composed
                 // attributes initialized to true.
