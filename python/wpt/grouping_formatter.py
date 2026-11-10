@@ -156,7 +156,7 @@ class TestStatusData(TestEndData):
 
 
 class ProcessOutputData(GlobalTestData):
-    process: int
+    process: str
     data: str
     command: NotRequired[str]
     test: NotRequired[str]

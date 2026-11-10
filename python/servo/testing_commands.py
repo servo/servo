@@ -634,11 +634,11 @@ class MachCommands(CommandBase):
                 l2 = cur_op.readline()
                 if not l1:
                     break
-                result["Test"].append(str(l1).split("|")[0].strip())
-                result["Prev_Time"].append(float(str(l1).split("|")[1].strip()))
-                result["Cur_Time"].append(float(str(l2).split("|")[1].strip()))
-                a = float(str(l1).split("|")[1].strip())
-                b = float(str(l2).split("|")[1].strip())
+                result["Test"].append(l1.split("|")[0].strip())
+                result["Prev_Time"].append(float(l1.split("|")[1].strip()))
+                result["Cur_Time"].append(float(l2.split("|")[1].strip()))
+                a = float(l1.split("|")[1].strip())
+                b = float(l2.split("|")[1].strip())
                 result["Difference(%)"].append(((b - a) / a) * 100)
 
             width_col1 = max([len(x) for x in result["Test"]])

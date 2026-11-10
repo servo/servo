@@ -22,7 +22,8 @@ ruff == 0.11.10
 ply == 3.8
 
 # For Cross-platform colored terminal text
-colorama == 0.3.7
+colorama == 0.4.6
+types-colorama == 0.4.15.20260508
 
 # For Python3 compatibility
 six == 1.16
