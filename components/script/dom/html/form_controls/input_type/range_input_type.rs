@@ -72,7 +72,10 @@ impl RangeInputType {
         }
 
         // Don't capture the pointer for a widget that has no box to drag a thumb along.
-        let Some(axis) = SliderAxis::new(cx, input) else {
+        let Some(ref shadow_root) = *self.shadow_tree.borrow() else {
+            return ValueChangeEvents::empty();
+        };
+        let Some(axis) = SliderAxis::new(cx, input, &shadow_root.slider_thumb) else {
             return ValueChangeEvents::empty();
         };
 
@@ -146,7 +149,10 @@ impl RangeInputType {
         input: &HTMLInputElement,
         event: &PointerEvent,
     ) -> ValueChangeEvents {
-        let Some(axis) = SliderAxis::new_without_reflow(input) else {
+        let Some(ref shadow_root) = *self.shadow_tree.borrow() else {
+            return ValueChangeEvents::empty();
+        };
+        let Some(axis) = SliderAxis::new_without_reflow(input, &shadow_root.slider_thumb) else {
             return ValueChangeEvents::empty();
         };
         self.update_value_from_pointer(cx, input, event, &axis)
@@ -335,11 +341,11 @@ fn range_bounds(input: &HTMLInputElement) -> (f64, f64) {
 /// The axis a slider's thumb travels along, in client coordinates, together with the value
 /// domain it maps onto.
 struct SliderAxis {
-    /// The client coordinate of the inline start edge of the slider, on whichever physical
+    /// The client coordinate of the inset inline start edge of the slider, on whichever physical
     /// axis `is_vertical` selects.
-    inline_start: Au,
+    inset_inline_start: Au,
 
-    /// The length of the slider along its inline axis. Always greater than zero.
+    /// The adjusted length of the slider along its inline axis. Always greater than zero.
     length: Au,
 
     /// Whether the inline axis is the vertical one.
@@ -355,16 +361,28 @@ struct SliderAxis {
 
 impl SliderAxis {
     /// The axis at the start of a drag, flushing layout so the geometry is current.
-    fn new(cx: &mut JSContext, input: &HTMLInputElement) -> Option<Self> {
-        Self::from_padding_box(input, input.upcast::<Node>().padding_box(cx)?)
+    fn new(cx: &mut JSContext, input: &HTMLInputElement, thumb: &Dom<Element>) -> Option<Self> {
+        Self::from_padding_box(
+            input,
+            input.upcast::<Node>().padding_box(cx)?,
+            thumb.upcast::<Node>().padding_box(cx)?,
+        )
     }
 
     /// The axis for the moves that follow, without forcing a layout.
-    fn new_without_reflow(input: &HTMLInputElement) -> Option<Self> {
-        Self::from_padding_box(input, input.upcast::<Node>().padding_box_without_reflow()?)
+    fn new_without_reflow(input: &HTMLInputElement, thumb: &Dom<Element>) -> Option<Self> {
+        Self::from_padding_box(
+            input,
+            input.upcast::<Node>().padding_box_without_reflow()?,
+            thumb.upcast::<Node>().padding_box_without_reflow()?,
+        )
     }
 
-    fn from_padding_box(input: &HTMLInputElement, padding_box: Rect<Au, CSSPixel>) -> Option<Self> {
+    fn from_padding_box(
+        input: &HTMLInputElement,
+        padding_box: Rect<Au, CSSPixel>,
+        thumb_padding_box: Rect<Au, CSSPixel>,
+    ) -> Option<Self> {
         // The caller has just queried a box, so the style data is current either way.
         let inline_start_side = input
             .upcast::<Element>()
@@ -372,15 +390,35 @@ impl SliderAxis {
             .writing_mode
             .inline_start_physical_side();
 
-        let (inline_start, length, is_vertical, direction) = match inline_start_side {
-            PhysicalSide::Left => (padding_box.min_x(), padding_box.width(), false, 1),
-            PhysicalSide::Right => (padding_box.max_x(), padding_box.width(), false, -1),
-            PhysicalSide::Top => (padding_box.min_y(), padding_box.height(), true, 1),
-            PhysicalSide::Bottom => (padding_box.max_y(), padding_box.height(), true, -1),
+        let (inset_inline_start, length, is_vertical, direction) = match inline_start_side {
+            PhysicalSide::Left => (
+                padding_box.min_x() + thumb_padding_box.width() / 2,
+                padding_box.width() - thumb_padding_box.width(),
+                false,
+                1,
+            ),
+            PhysicalSide::Right => (
+                padding_box.max_x() - thumb_padding_box.width() / 2,
+                padding_box.width() - thumb_padding_box.width(),
+                false,
+                -1,
+            ),
+            PhysicalSide::Top => (
+                padding_box.min_y() + thumb_padding_box.height() / 2,
+                padding_box.height() - thumb_padding_box.height(),
+                true,
+                1,
+            ),
+            PhysicalSide::Bottom => (
+                padding_box.max_y() - thumb_padding_box.height() / 2,
+                padding_box.height() - thumb_padding_box.height(),
+                true,
+                -1,
+            ),
         };
 
         (length > Au::zero()).then_some(Self {
-            inline_start,
+            inset_inline_start,
             length,
             is_vertical,
             direction,
@@ -392,7 +430,7 @@ impl SliderAxis {
     /// is before that edge, larger than the slider's length when it is past its inline end.
     fn offset_of(&self, point: Point2D<Au, CSSPixel>) -> Au {
         let coordinate = if self.is_vertical { point.y } else { point.x };
-        (coordinate - self.inline_start) * self.direction
+        (coordinate - self.inset_inline_start) * self.direction
     }
 
     /// The value a thumb centered `offset` away from the inline start edge represents.
@@ -480,9 +518,9 @@ impl SpecificShadowTree<HTMLInputElement, RangeInputType> for RangeInputShadowTr
             0.0
         } else {
             let clamped_value = value_num.clamp(min, max);
-            (clamped_value - min) / (max - min) * 100.0
+            (clamped_value - min) / (max - min)
         };
-
+        let percentage = percent * 100.0;
         if self.last_percent.replace(percent) == percent {
             return;
         }
@@ -490,12 +528,12 @@ impl SpecificShadowTree<HTMLInputElement, RangeInputType> for RangeInputShadowTr
         self.slider_thumb.set_attribute(
             cx,
             &local_name!("style"),
-            AttrValue::String(format!("inset-inline-start: {percent}% !important;")),
+            AttrValue::String(format!("--progress: {percent} !important;")),
         );
         self.slider_fill.set_attribute(
             cx,
             &local_name!("style"),
-            AttrValue::String(format!("width: {percent}% !important;")),
+            AttrValue::String(format!("width: {percentage}% !important;")),
         );
     }
 }
