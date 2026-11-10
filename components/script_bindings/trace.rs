@@ -334,6 +334,8 @@ unsafe impl<Handle: JSTraceable + Clone, Sink: JSTraceable + XmlTreeSink<Handle 
 
 /// Roots any JSTraceable thing, at the cost of wrapping it in a Box.
 /// Unlike the rooted! macro, the resulting RootedTraceableBox can be safely moved.
+/// RootedTraceableBox is slower to create and drop than roots created by rooted!, due to the extra
+/// allocations involved.
 ///
 /// If you have a valid DomObject, use DomRoot.
 /// If you have GC things like *mut JSObject or JSVal, or anything implementing Rootable, use rooted!.
