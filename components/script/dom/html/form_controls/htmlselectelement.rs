@@ -299,14 +299,36 @@ impl HTMLSelectElement {
         }
     }
 
-    pub(crate) fn set_user_validity(&self, value: bool) {
+    pub(crate) fn set_user_validity(&self, cx: &mut JSContext, value: bool) {
         self.user_validity.set(value);
+        self.update_user_valid_state(cx);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#selector-user-valid>
+    /// <https://html.spec.whatwg.org/multipage/#selector-user-invalid>
+    pub(crate) fn update_user_valid_state(&self, cx: &mut JSContext) {
+        if self.user_validity.get() {
+            let satisfies_constraints =
+                self.is_instance_validatable(cx) && self.satisfies_constraints(cx);
+            let element = self.upcast::<Element>();
+            element.set_state(cx.no_gc(), ElementState::USER_VALID, satisfies_constraints);
+            element.set_state(
+                cx.no_gc(),
+                ElementState::USER_INVALID,
+                !satisfies_constraints,
+            );
+        } else {
+            // Avoid computing constrain validation if user validity is false
+            let element = self.upcast::<Element>();
+            element.set_state(cx.no_gc(), ElementState::USER_VALID, false);
+            element.set_state(cx.no_gc(), ElementState::USER_INVALID, false);
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-select-element:concept-form-reset-control>
     pub(crate) fn reset(&self, cx: &mut JSContext) {
         // Step 1. Set selectElement's user validity to false.
-        self.set_user_validity(false);
+        self.set_user_validity(cx, false);
         // Step 2. For each optionElement of selectElement's list of options:
         for opt in self.list_of_options(cx) {
             // Step 2.1. If optionElement has a selected attribute, then set
@@ -585,7 +607,7 @@ impl HTMLSelectElement {
                 let this = this.root();
 
                 // Step 1. Set the select element's user validity to true.
-                this.set_user_validity(true);
+                this.set_user_validity(cx, true);
 
                 // Step 2. Fire an event named input at the select element, with the bubbles and composed
                 // attributes initialized to true.

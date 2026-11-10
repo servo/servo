@@ -597,13 +597,35 @@ impl HTMLTextAreaElement {
         self.text_input.borrow_mut().set_content(DOMString::new());
     }
 
-    pub(crate) fn set_user_validity(&self, value: bool) {
+    pub(crate) fn set_user_validity(&self, cx: &mut JSContext, value: bool) {
         self.user_validity.set(value);
+        self.update_user_valid_state(cx);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#selector-user-valid>
+    /// <https://html.spec.whatwg.org/multipage/#selector-user-invalid>
+    pub(crate) fn update_user_valid_state(&self, cx: &mut JSContext) {
+        if self.user_validity.get() {
+            let satisfies_constraints =
+                self.is_instance_validatable(cx) && self.satisfies_constraints(cx);
+            let element = self.upcast::<Element>();
+            element.set_state(cx.no_gc(), ElementState::USER_VALID, satisfies_constraints);
+            element.set_state(
+                cx.no_gc(),
+                ElementState::USER_INVALID,
+                !satisfies_constraints,
+            );
+        } else {
+            // Avoid computing constrain validation if user validity is false
+            let element = self.upcast::<Element>();
+            element.set_state(cx.no_gc(), ElementState::USER_VALID, false);
+            element.set_state(cx.no_gc(), ElementState::USER_INVALID, false);
+        }
     }
 
     pub(crate) fn reset(&self, cx: &mut JSContext) {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-form-reset-control
-        self.set_user_validity(false);
+        self.set_user_validity(cx, false);
         self.value_dirty.set(false);
         self.text_input
             .safe_borrow_mut(cx.no_gc())

@@ -399,8 +399,9 @@ impl HTMLInputElement {
         )
     }
 
-    pub(crate) fn set_user_validity(&self, value: bool) {
+    pub(crate) fn set_user_validity(&self, cx: &mut JSContext, value: bool) {
         self.user_validity.set(value);
+        self.update_user_valid_state(cx);
     }
 
     fn update_required_and_optional_state(&self, no_gc: &NoGC) {
@@ -1987,6 +1988,27 @@ impl HTMLInputElement {
         );
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#selector-user-valid>
+    /// <https://html.spec.whatwg.org/multipage/#selector-user-invalid>
+    pub(crate) fn update_user_valid_state(&self, cx: &mut JSContext) {
+        if self.user_validity.get() {
+            let satisfies_constraints =
+                self.is_instance_validatable(cx) && self.satisfies_constraints(cx);
+            let element = self.upcast::<Element>();
+            element.set_state(cx.no_gc(), ElementState::USER_VALID, satisfies_constraints);
+            element.set_state(
+                cx.no_gc(),
+                ElementState::USER_INVALID,
+                !satisfies_constraints,
+            );
+        } else {
+            // Avoid computing constrain validation if user validity is false
+            let element = self.upcast::<Element>();
+            element.set_state(cx.no_gc(), ElementState::USER_VALID, false);
+            element.set_state(cx.no_gc(), ElementState::USER_INVALID, false);
+        }
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#concept-fe-mutable>
     pub(crate) fn is_mutable(&self) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-input-element:concept-fe-mutable
@@ -2004,7 +2026,7 @@ impl HTMLInputElement {
     /// > then invoke the value sanitization algorithm, if the type attribute's current
     /// > state defines one.
     pub(crate) fn reset(&self, cx: &mut JSContext) {
-        self.set_user_validity(false);
+        self.set_user_validity(cx, false);
         self.value_dirty.set(false);
 
         // We set the value and sanitize all in one go.
@@ -2187,6 +2209,7 @@ impl HTMLInputElement {
                     .perform_validation_and_update(cx, ValidationFlags::all());
             },
         }
+        self.update_user_valid_state(cx);
     }
 
     fn value_changed(&self, cx: &mut JSContext) {

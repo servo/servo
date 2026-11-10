@@ -501,7 +501,7 @@ impl DocumentFocusHandler {
                 (new_input.Value() != input.Value() || new_input.GetFiles() != input.GetFiles())
             {
                 // Step 2.1.1: Set entry's user validity to true.
-                input.set_user_validity(true);
+                input.set_user_validity(cx, true);
                 // Step 2.1.2: Fire an event named change at the element, with the bubbles attribute initialized to true.
                 input.fire_value_change_events(cx, ValueChangeEvents::Change);
             }
