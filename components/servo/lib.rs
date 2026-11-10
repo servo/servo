@@ -44,7 +44,7 @@
 mod clipboard_delegate;
 #[cfg(feature = "gamepad")]
 mod gamepad_delegate;
-#[cfg(all(feature = "geolocation", target_os = "linux"))]
+#[cfg(all(feature = "geolocation", target_os = "linux", not(target_env = "ohos")))]
 mod geoclue;
 mod geolocation_delegate;
 #[cfg(all(
