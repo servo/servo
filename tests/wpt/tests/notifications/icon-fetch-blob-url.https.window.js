@@ -5,8 +5,8 @@
 
 async function createBlobUrl() {
   const response = await fetch("resources/icon.png");
-  const buffer = await response.arrayBuffer();
-  return URL.createObjectURL(new Blob([buffer], { type: "image/png" }));
+  const blob = await response.blob();
+  return URL.createObjectURL(blob);
 }
 
 let registration;
