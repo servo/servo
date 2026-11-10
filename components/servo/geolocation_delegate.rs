@@ -151,7 +151,7 @@ fn default_position_response() -> GeolocationResult {
 /// service when Servo has a backend for it, and otherwise reports that no position is available.
 #[derive(Default)]
 pub(crate) struct DefaultGeolocationDelegate {
-    #[cfg(all(feature = "geolocation", target_os = "linux"))]
+    #[cfg(all(feature = "geolocation", target_os = "linux", not(target_env = "ohos")))]
     geoclue: std::cell::OnceCell<Option<crate::geoclue::Geoclue>>,
 }
 
@@ -171,7 +171,7 @@ impl DefaultGeolocationDelegate {
 
 impl GeolocationDelegate for DefaultGeolocationDelegate {
     fn request_position(&self, _webview: WebView, request: PositionRequest) {
-        #[cfg(all(feature = "geolocation", target_os = "linux"))]
+        #[cfg(all(feature = "geolocation", target_os = "linux", not(target_env = "ohos")))]
         if let Some(geoclue) = self.backend() {
             return geoclue.request_position(request);
         }
@@ -182,7 +182,7 @@ impl GeolocationDelegate for DefaultGeolocationDelegate {
     }
 
     fn start_watch(&self, _webview: WebView, watch: PositionWatch) {
-        #[cfg(all(feature = "geolocation", target_os = "linux"))]
+        #[cfg(all(feature = "geolocation", target_os = "linux", not(target_env = "ohos")))]
         if let Some(geoclue) = self.backend() {
             return geoclue.start_watch(watch);
         }
@@ -193,7 +193,7 @@ impl GeolocationDelegate for DefaultGeolocationDelegate {
     }
 
     fn stop_watch(&self, _webview: WebView, _id: &GeolocationWatchId) {
-        #[cfg(all(feature = "geolocation", target_os = "linux"))]
+        #[cfg(all(feature = "geolocation", target_os = "linux", not(target_env = "ohos")))]
         if let Some(geoclue) = self.backend() {
             geoclue.stop_watch(_id);
         }
