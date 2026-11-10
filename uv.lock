@@ -393,11 +393,11 @@ wheels = [
 
 [[package]]
 name = "colorama"
-version = "0.3.7"
+version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f0/d0/21c6449df0ca9da74859edc40208b3a57df9aca7323118c913e58d442030/colorama-0.3.7.tar.gz", hash = "sha256:e043c8d32527607223652021ff648fbb394d5e19cba9f1a698670b338c9d782b", size = 24602, upload-time = "2016-03-08T09:18:49.284Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d8/53/6f443c9a4a8358a93a6792e2acffb9d9d5cb0a5cfd8802644b7b1c9a02e4/colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44", size = 27697, upload-time = "2022-10-25T02:36:22.414Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b7/8e/ddb32ddaabd431813e180ca224e844bab8ad42fbb47ee07553f0ec44cd86/colorama-0.3.7-py2.py3-none-any.whl", hash = "sha256:a4c0f5bc358a62849653471e309dcc991223cf86abafbec17cd8f41327279e89", size = 19912, upload-time = "2016-03-08T09:19:23.797Z" },
+    { url = "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6", size = 25335, upload-time = "2022-10-25T02:36:20.889Z" },
 ]
 
 [[package]]
@@ -1832,6 +1832,7 @@ dependencies = [
     { name = "six" },
     { name = "taskcluster" },
     { name = "toml" },
+    { name = "types-colorama" },
     { name = "types-pyyaml" },
     { name = "types-requests" },
     { name = "urllib3" },
@@ -1841,7 +1842,7 @@ dependencies = [
 requires-dist = [
     { name = "aioquic", specifier = "==1.2.0" },
     { name = "blessed", specifier = "==1.20.0" },
-    { name = "colorama", specifier = "==0.3.7" },
+    { name = "colorama", specifier = "==0.4.6" },
     { name = "distro", specifier = "==1.4" },
     { name = "flake8", marker = "python_full_version < '3.9'", specifier = "==5.0.4" },
     { name = "flake8", marker = "python_full_version >= '3.9'", specifier = "==6.1.0" },
@@ -1882,6 +1883,7 @@ requires-dist = [
     { name = "six", specifier = "==1.16" },
     { name = "taskcluster", specifier = "==100.1.0" },
     { name = "toml", specifier = "==0.9.2" },
+    { name = "types-colorama", specifier = "==0.4.15.20260508" },
     { name = "types-pyyaml", specifier = "==6.0.12.20241230" },
     { name = "types-requests" },
     { name = "types-requests", specifier = "==2.32.0.20241016" },
@@ -1947,6 +1949,15 @@ name = "toml"
 version = "0.9.2"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/5c/b2/8a18ced00a43f2cc5261f9ac9f1c94621251400a80db1567177719355177/toml-0.9.2.tar.gz", hash = "sha256:b3953bffe848ad9a6d554114d82f2dcb3e23945e90b4d9addc9956f37f336594", size = 7607, upload-time = "2016-07-28T05:35:55.521Z" }
+
+[[package]]
+name = "types-colorama"
+version = "0.4.15.20260508"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/be/d5/4870d88c6c87adf786ef33d674cbf82b3a2d5fcbe6deec29282cff80e8b3/types_colorama-0.4.15.20260508.tar.gz", hash = "sha256:3a8916039e57452bd21f57e674e1f221ca9e4f319893c5e3bbd37b845c27d8e6", size = 10638, upload-time = "2026-05-08T04:47:14.593Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/56/33/a3449e3e93c43861b92d0a93ed4ea5505756463e507625812cfb29c91c7a/types_colorama-0.4.15.20260508-py3-none-any.whl", hash = "sha256:b0c39908a3e5171ef1f8bf3d59fae082e9eaff3a19ca49b6d640b83f78cff61c", size = 10755, upload-time = "2026-05-08T04:47:13.761Z" },
+]
 
 [[package]]
 name = "types-pyyaml"

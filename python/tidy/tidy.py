@@ -502,7 +502,6 @@ def run_cargo_deny_lints() -> Iterator[tuple[str, int, str]]:
 
     errors = []
     for line in result.stderr.splitlines():
-        line = str(line)
         # Ignore empty lines. This is only relevant when `cargo-deny` crashed and we need to below print
         # what the corrupt line is.
         if not line.strip():
