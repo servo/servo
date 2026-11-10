@@ -19,7 +19,7 @@ from wptrunner.update.base import exit_unclean  # noqa: F401
 from . import WPT_PATH, manifestupdate
 
 TEST_ROOT = os.path.join(WPT_PATH, "tests")
-META_ROOTS = [os.path.join(WPT_PATH, "meta"), os.path.join(WPT_PATH, "meta-legacy")]
+META_ROOT = os.path.join(WPT_PATH, "meta")
 GITHUB_ACTION_RUN_URL_REGEX = re.compile(r"github\.com\/(\w+\/\w+)\/actions\/runs\/(\d+)$")
 
 
@@ -58,35 +58,34 @@ def remove_unused_metadata() -> None:
     unused_files = []
     unused_dirs = []
 
-    for meta_root in META_ROOTS:
-        for base_dir, dir_names, files in os.walk(meta_root):
-            # Skip recursing into any directories that were previously found to be missing.
-            if any([os.path.commonpath([base_dir, unused_dir]) == unused_dir for unused_dir in unused_dirs]):
+    for base_dir, dir_names, files in os.walk(META_ROOT):
+        # Skip recursing into any directories that were previously found to be missing.
+        if any([os.path.commonpath([base_dir, unused_dir]) == unused_dir for unused_dir in unused_dirs]):
+            continue
+
+        for dir_name in dir_names:
+            dir_path = os.path.join(base_dir, dir_name)
+
+            # Skip any known directories that are meta-metadata.
+            if dir_name == ".cache":
+                unused_dirs.append(dir_path)
                 continue
 
-            for dir_name in dir_names:
-                dir_path = os.path.join(base_dir, dir_name)
+            # Turn tests/wpt/meta/foo into tests/wpt/tests/foo.
+            test_dir = os.path.join(TEST_ROOT, os.path.relpath(dir_path, META_ROOT))
+            if not os.path.exists(test_dir):
+                unused_dirs.append(dir_path)
 
-                # Skip any known directories that are meta-metadata.
-                if dir_name == ".cache":
-                    unused_dirs.append(dir_path)
-                    continue
+        for fname in files:
+            # Skip any known files that are meta-metadata.
+            if not fname.endswith(".ini") or fname == "__dir__.ini":
+                continue
 
-                # Turn tests/wpt/meta/foo into tests/wpt/tests/foo.
-                test_dir = os.path.join(TEST_ROOT, os.path.relpath(dir_path, meta_root))
-                if not os.path.exists(test_dir):
-                    unused_dirs.append(dir_path)
+            # Turn tests/wpt/meta/foo/bar.html.ini into tests/wpt/tests/foo/bar.html.
+            test_file = os.path.join(TEST_ROOT, os.path.relpath(base_dir, META_ROOT), fname[:-4])
 
-            for fname in files:
-                # Skip any known files that are meta-metadata.
-                if not fname.endswith(".ini") or fname == "__dir__.ini":
-                    continue
-
-                # Turn tests/wpt/meta/foo/bar.html.ini into tests/wpt/tests/foo/bar.html.
-                test_file = os.path.join(TEST_ROOT, os.path.relpath(base_dir, meta_root), fname[:-4])
-
-                if not os.path.exists(test_file):
-                    unused_files.append(os.path.join(base_dir, fname))
+            if not os.path.exists(test_file):
+                unused_files.append(os.path.join(base_dir, fname))
 
     for file in unused_files:
         print(f"    - {file}")
