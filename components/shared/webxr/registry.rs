@@ -21,6 +21,7 @@ pub struct Registry {
 
 pub struct MainThreadRegistry<GL> {
     discoveries: Vec<Box<dyn DiscoveryAPI<GL>>>,
+    fallback_discoveries: Vec<Box<dyn DiscoveryAPI<GL>>>,
     sessions: Vec<Box<dyn MainThreadSession>>,
     mocks: Vec<Box<dyn MockDiscoveryAPI<GL>>>,
     sender: GenericSender<RegistryMsg>,
@@ -90,11 +91,13 @@ impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
             return Err(Error::CommunicationError);
         };
         let discoveries = Vec::new();
+        let fallback_discoveries = Vec::new();
         let sessions = Vec::new();
         let mocks = Vec::new();
         let waker = MainThreadWakerImpl::new(waker)?;
         Ok(MainThreadRegistry {
             discoveries,
+            fallback_discoveries,
             sessions,
             mocks,
             sender,
@@ -117,6 +120,13 @@ impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
         D: DiscoveryAPI<GL>,
     {
         self.discoveries.push(Box::new(discovery));
+    }
+
+    pub fn register_fallback<D>(&mut self, fallback: D)
+    where
+        D: DiscoveryAPI<GL>,
+    {
+        self.fallback_discoveries.push(Box::new(fallback));
     }
 
     pub fn register_mock<D>(&mut self, discovery: D)
@@ -167,11 +177,20 @@ impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
                 return Ok(());
             }
         }
+        for fallback in &self.fallback_discoveries {
+            if fallback.supports_session(mode) {
+                return Ok(());
+            }
+        }
         Err(Error::NoMatchingDevice)
     }
 
     fn request_session(&mut self, mode: SessionMode, init: SessionInit) -> Result<Session, Error> {
-        for discovery in &mut self.discoveries {
+        for discovery in self
+            .discoveries
+            .iter_mut()
+            .chain(self.fallback_discoveries.iter_mut())
+        {
             if discovery.supports_session(mode) {
                 let id = SessionId(self.next_session_id);
                 self.next_session_id += 1;
