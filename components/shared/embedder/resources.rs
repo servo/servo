@@ -169,7 +169,6 @@ impl Resource {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ResourceBytes {
     bytes: Bytes,
-    heap_allocated: bool,
 }
 
 impl AsRef<[u8]> for ResourceBytes {
@@ -180,11 +179,7 @@ impl AsRef<[u8]> for ResourceBytes {
 
 impl MallocSizeOf for ResourceBytes {
     fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
-        if self.heap_allocated {
-            self.bytes.size_of(ops)
-        } else {
-            0
-        }
+        self.bytes.size_of(ops)
     }
 }
 
@@ -193,7 +188,6 @@ impl ResourceBytes {
     pub fn from_static(bytes: &'static [u8]) -> Self {
         ResourceBytes {
             bytes: Bytes::from_static(bytes),
-            heap_allocated: false,
         }
     }
 
@@ -201,7 +195,6 @@ impl ResourceBytes {
     pub fn from_vec(bytes: Vec<u8>) -> Self {
         ResourceBytes {
             bytes: bytes.into(),
-            heap_allocated: true,
         }
     }
 
@@ -209,7 +202,6 @@ impl ResourceBytes {
     pub fn from_owner<T: AsRef<[u8]> + Send + Sync + 'static>(owner: T) -> Self {
         ResourceBytes {
             bytes: Bytes::from_owner(owner),
-            heap_allocated: false,
         }
     }
 

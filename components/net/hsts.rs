@@ -90,34 +90,22 @@ pub struct HstsList {
 /// To generate a new version of the FST map file run `./mach update-hsts-preload`
 /// `T` is the backing store.
 #[derive(Debug)]
-pub enum HstsPreloadList {
-    Memory(fst::Map<Vec<u8>>),
-    Resource(fst::Map<ResourceBytes>),
-}
+pub struct HstsPreloadList(fst::Map<ResourceBytes>);
 
 impl HstsPreloadList {
     fn get(&self, domain: &str) -> Option<u64> {
-        match self {
-            HstsPreloadList::Memory(map) => map.get(domain),
-            HstsPreloadList::Resource(map) => map.get(domain),
-        }
+        self.0.get(domain)
     }
 
     #[expect(clippy::len_without_is_empty)]
     pub fn len(&self) -> usize {
-        match self {
-            HstsPreloadList::Memory(map) => map.len(),
-            HstsPreloadList::Resource(map) => map.len(),
-        }
+        self.0.len()
     }
 }
 
 impl MallocSizeOf for HstsPreloadList {
     fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
-        match self {
-            HstsPreloadList::Memory(map) => map.size_of(ops),
-            HstsPreloadList::Resource(map) => map.size_of(ops),
-        }
+        self.0.as_fst().as_inner().size_of(ops)
     }
 }
 
@@ -131,17 +119,21 @@ pub fn hsts_preload_size_of(ops: &mut MallocSizeOfOps) -> usize {
 impl HstsPreloadList {
     /// Create an `HstsList` from the bytes of a JSON preload file.
     pub fn from_preload(preload_content: ResourceBytes) -> Option<HstsPreloadList> {
-        Map::new(preload_content)
-            .map(HstsPreloadList::Resource)
-            .ok()
+        Map::new(preload_content).map(HstsPreloadList).ok()
     }
 
     pub fn from_servo_preload() -> HstsPreloadList {
         debug!("Intializing HSTS Preload list");
         let map_bytes = resources::read_bytes(Resource::HstsPreloadList);
+
         HstsPreloadList::from_preload(map_bytes).unwrap_or_else(|| {
             error!("HSTS preload file is invalid. Setting HSTS list to default values");
-            HstsPreloadList::Memory(MapBuilder::memory().into_map())
+            let list = MapBuilder::memory()
+                .into_map()
+                .map_data(ResourceBytes::from_vec)
+                .expect("Should always be valid");
+
+            HstsPreloadList(list)
         })
     }
 
