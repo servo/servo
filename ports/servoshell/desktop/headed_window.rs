@@ -266,8 +266,8 @@ impl HeadedWindow {
             return;
         }
 
-        // A primary mouse button event moves keyboard focus to the webview.
-        if button == MouseButton::Left {
+        // A primary mouse or secondary button event moves keyboard focus to the webview.
+        if button == MouseButton::Left || button == MouseButton::Right {
             self.gui.borrow_mut().set_webview_panel_focused(true);
         }
 
