@@ -332,8 +332,8 @@ impl Event {
 
         let mut target = DomRoot::from_ref(target);
 
-        // Save the original dispatch target. Keyboard default actions need the
-        // element the event was originally fired on, not the retargeted host.
+        // Save the original dispatch target. Default actions need the element the
+        // event was originally fired on, not the retargeted host.
         let original_target = target.clone();
 
         // Step 1. Set event’s dispatch flag.
@@ -696,22 +696,24 @@ impl Event {
         // Compare:
         // https://w3c.github.io/uievents/#default-action
         // https://dom.spec.whatwg.org/#action-versus-occurance
-        if !self.DefaultPrevented() {
-            if self.is::<KeyboardEvent>() {
-                // For keyboard events, use the original dispatch target rather than
-                // event.GetTarget(). Composed keyboard events may retarget across
-                // shadow boundaries, but the default action (character input, Tab
-                // navigation) should use the element the event was originally fired on.
-                if let Some(node) = original_target.downcast::<Node>() {
-                    let vtable = vtable_for(node);
-                    vtable.handle_event(cx, self);
-                }
-            } else if let Some(target) = self.GetTarget() &&
-                let Some(node) = target.downcast::<Node>()
-            {
-                let vtable = vtable_for(node);
-                vtable.handle_event(cx, self);
-            }
+        //
+        // The default action runs on the element the event was fired at, not on
+        // event.GetTarget(): composed events are retargeted across shadow boundaries,
+        // so after dispatch that is the outermost shadow host, and a control inside a
+        // shadow tree, such as the range inputs of the media controls, would never see
+        // its own default actions.
+        if !self.DefaultPrevented() &&
+            let Some(node) = original_target.downcast::<Node>()
+        {
+            // A keyboard event is fired at the very element that acts (character
+            // input, Tab navigation). Any other event may be fired at a user agent
+            // widget's internals, which act for the widget.
+            let node = if self.is::<KeyboardEvent>() {
+                DomRoot::from_ref(node)
+            } else {
+                default_action_node(node)
+            };
+            vtable_for(&node).handle_event(cx, self);
         }
 
         // Step 8. Set event’s currentTarget attribute to null.
@@ -1311,6 +1313,22 @@ impl TaskOnce for SimpleEventTask {
         let target = self.target.root();
         target.fire_event(cx, self.name);
     }
+}
+
+/// The node that runs the default action of a pointer or other non-keyboard event
+/// fired at `node`: `node` itself, unless it is part of a user agent widget, whose
+/// internals (a range input's thumb, say) act for the widget's host.
+///
+/// This doesn't leave the shadow tree of the media controls, which isn't marked as a
+/// user agent widget, so that the controls inside it run their own default actions.
+fn default_action_node(node: &Node) -> DomRoot<Node> {
+    let mut node = DomRoot::from_ref(node);
+    while node.is_in_ua_widget() &&
+        let Some(shadow_root) = node.containing_shadow_root()
+    {
+        node = DomRoot::upcast(shadow_root.Host());
+    }
+    node
 }
 
 /// <https://dom.spec.whatwg.org/#concept-event-listener-invoke>
