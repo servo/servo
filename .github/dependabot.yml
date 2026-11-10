@@ -89,7 +89,7 @@ updates:
     wayland-related:
       patterns:
         - "wayland-*"
-    wgpu:
+    wgpu-related:
       patterns:
         - "naga*"
         - "wgpu*"
