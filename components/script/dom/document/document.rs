@@ -2532,10 +2532,9 @@ impl Document {
         if self.visibility_state.get() == DocumentVisibilityState::Visible &&
             self.window().is_top_level()
         {
-            let document = Trusted::new(self);
             self.window.as_global_scope().schedule_callback(
                 OneshotTimerCallback::GC {
-                    document,
+                    pipeline_id: self.pipeline_id(),
                     reason: js::jsapi::GCReason::LOAD_END,
                 },
                 Duration::from_secs(pref!(dom_document_load_gc_timeout).try_into().unwrap()),
