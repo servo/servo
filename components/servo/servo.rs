@@ -638,6 +638,21 @@ impl ServoInner {
                     webview.clipboard_delegate().set_text(webview, string);
                 }
             },
+            EmbedderMsg::StoreSecret(webview_id, origin, secret, result_sender) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let _ = result_sender.send(
+                        webview
+                            .credential_management_delegate()
+                            .store(origin, secret),
+                    );
+                }
+            },
+            EmbedderMsg::RetrieveSecret(webview_id, origin, result_sender) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let _ = result_sender
+                        .send(webview.credential_management_delegate().retrieve(origin));
+                }
+            },
             EmbedderMsg::SetCursor(webview_id, cursor) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview.set_cursor(cursor);
