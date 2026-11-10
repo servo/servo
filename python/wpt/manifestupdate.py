@@ -10,7 +10,6 @@ import os
 import sys
 import tempfile
 from collections import defaultdict
-from six import iterkeys, iteritems
 
 from . import SERVO_ROOT, WPT_PATH
 from mozlog import commandline
@@ -61,7 +60,7 @@ def update(
 
 
 def _update(logger: Any, test_paths: Mapping[str, TestRoot], rebuild: bool) -> int:
-    for url_base, paths in iteritems(test_paths):
+    for url_base, paths in test_paths.items():
         manifest_path = os.path.join(paths.metadata_path, "MANIFEST.json")
         cache_subdir = os.path.relpath(os.path.dirname(manifest_path), os.path.dirname(__file__))
         wptmanifest.manifest.load_and_update(
@@ -78,7 +77,7 @@ def _update(logger: Any, test_paths: Mapping[str, TestRoot], rebuild: bool) -> i
 def _check_clean(logger: Any, test_paths: Mapping[str, TestRoot]) -> int:
     manifests_by_path = {}
     rv = 0
-    for url_base, paths in iteritems(test_paths):
+    for url_base, paths in test_paths.items():
         tests_path = paths.tests_path
         manifest_path = os.path.join(paths.metadata_path, "MANIFEST.json")
 
@@ -104,7 +103,7 @@ def _check_clean(logger: Any, test_paths: Mapping[str, TestRoot]) -> int:
 
         manifests_by_path[manifest_path] = (old_manifest, new_manifest)
 
-    for manifest_path, (old_manifest, new_manifest) in iteritems(manifests_by_path):
+    for manifest_path, (old_manifest, new_manifest) in manifests_by_path.items():
         if not diff_manifests(logger, manifest_path, old_manifest, new_manifest):
             logger.error("Manifest %s is outdated, use |./mach update-manifest| to fix." % manifest_path)
             rv = 1
@@ -137,8 +136,8 @@ def diff_manifests(logger: Any, manifest_path: Any, old_manifest: Any, new_manif
                 test_id = tuple(test_id)
                 items[path].add((test_type, test_id))
 
-    old_paths = set(iterkeys(old_items))
-    new_paths = set(iterkeys(new_items))
+    old_paths = set(old_items)
+    new_paths = set(new_items)
 
     added_paths = new_paths - old_paths
     deleted_paths = old_paths - new_paths
