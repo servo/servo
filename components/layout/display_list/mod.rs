@@ -1806,10 +1806,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             .paint_info
             .external_scroll_id_for_scroll_tree_node(state.spatial_id);
 
-        let mut common = builder.common_properties(state, rect, self.fragment.style());
-        if let Some(clip_chain_id) = self.border_edge_clip(builder, state, false) {
-            common.clip_chain_id = clip_chain_id;
-        }
+        let common = builder.common_properties(state, rect, self.fragment.style());
         builder.wr().push_hit_test(
             common.clip_rect,
             common.clip_chain_id,
