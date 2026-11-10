@@ -121,7 +121,9 @@ impl FileSystemEntry {
                 pending.error.as_ref().map(|callback| callback.root(cx)),
             )
         };
-        self.pending_callbacks.borrow_mut().swap_remove(index);
+        self.pending_callbacks
+            .safe_borrow_mut(cx)
+            .swap_remove(index);
 
         match result {
             Ok(entry) => {
