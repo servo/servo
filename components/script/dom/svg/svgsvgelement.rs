@@ -44,7 +44,6 @@ pub(crate) struct SVGSVGElement {
     svggraphicselement: SVGGraphicsElement,
     #[no_trace]
     uuid: Uuid,
-    #[no_trace = "This does not need to be traced"]
     viewbox_ratio: Cell<Option<f32>>,
     // The XML source of subtree rooted at this SVG element, serialized into
     // a base64 encoded `data:` url. This is cached to avoid recomputation
