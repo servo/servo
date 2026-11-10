@@ -67,14 +67,14 @@ pub(crate) struct BlockFormattingContext {
     /// This currently drives layouts for text areas as they require sizing based
     /// on their number of rows. This is only Some for <textarea>s, otherwise it
     /// is always None.
-    pub text_control_size: Option<TextControlSize>,
+    pub text_area_size: Option<TextareaSize>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#textarea-effective-height>
 /// Helps format textareas according to their effective size as dictated by the
 /// spec.
 #[derive(Debug, MallocSizeOf)]
-pub(crate) struct TextControlSize {
+pub(crate) struct TextareaSize {
     /// The number of rows in this text control, which is used to direct the
     /// height (and "auto" height) as the spec requires for its automatic
     /// height.
@@ -82,7 +82,7 @@ pub(crate) struct TextControlSize {
     // TODO: Correct cols layout too (https://github.com/servo/servo/issues/44426)
 }
 
-impl TextControlSize {
+impl TextareaSize {
     /// Effective block size of this text control, which is the number of rows
     /// multiplied by the line height. With no font available, this will
     /// return None.
@@ -540,7 +540,7 @@ impl BlockFormattingContext {
             clearance.unwrap_or_default();
 
         let content_block_size = self
-            .text_control_size
+            .text_area_size
             .as_ref()
             .and_then(|text_control_size| {
                 text_control_size.effective_block_size(&base?.style, &layout_context.font_context)

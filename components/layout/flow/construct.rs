@@ -26,7 +26,7 @@ use crate::dom_traversal::{
 };
 use crate::flow::float::FloatBox;
 use crate::flow::same_formatting_context_block::SameFormattingContextBlock;
-use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox, TextControlSize};
+use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox, TextareaSize};
 use crate::formatting_contexts::{
     IndependentFormattingContext, IndependentFormattingContextContents,
 };
@@ -54,10 +54,10 @@ impl BlockFormattingContext {
 
     /// Calculates the content size for textareas that are instead dictated by
     /// their rows.
-    fn text_control_size(node: &ServoLayoutNode) -> Option<TextControlSize> {
+    fn text_control_size(node: &ServoLayoutNode) -> Option<TextareaSize> {
         // This natural height does not apply to pseudo-elements
         if node.pseudo_element_chain().is_empty() {
-            node.textarea_rows().map(|rows| TextControlSize { rows })
+            node.textarea_rows().map(|rows| TextareaSize { rows })
         } else {
             None
         }
@@ -66,14 +66,14 @@ impl BlockFormattingContext {
     pub(crate) fn from_block_container(
         contents: BlockContainer,
         is_table_cell: bool,
-        text_control_size: Option<TextControlSize>,
+        text_area_size: Option<TextareaSize>,
     ) -> Self {
         let contains_floats = contents.contains_floats();
         Self {
             contents,
             contains_floats,
             is_table_cell,
-            text_control_size,
+            text_area_size,
         }
     }
 }
@@ -834,7 +834,7 @@ impl BlockLevelJob<'_> {
                     contents: block_container,
                     contains_floats: false,
                     is_table_cell: false,
-                    text_control_size: None,
+                    text_area_size: None,
                 };
                 ArcRefCell::new(BlockLevelBox::OutsideMarker(OutsideMarker {
                     context: IndependentFormattingContext::new(

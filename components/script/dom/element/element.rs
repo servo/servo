@@ -1675,9 +1675,6 @@ impl<'dom> LayoutDom<'dom, Element> {
     }
 
     pub(crate) fn get_rows(self) -> Option<u32> {
-        // Don't panic since `display` can cause this to be called on arbitrary elements.
-        // Not and_then as get_rows always has an intrinsic value of 2 (see
-        // get_rows implementation).
         self.downcast::<HTMLTextAreaElement>()
             .map(|element| element.get_rows())
     }
