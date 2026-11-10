@@ -32,8 +32,8 @@ impl ResourceReaderMethods for ResourceReaderImpl {
             .join("named_resources")
             .join(res.filename());
         let file = File::open(file_path).expect("Could not read file");
-        // Safety: "The resource directory on ohos is read-only, so it's safe to mmap
-        // the file, since the contents can't change.".
+        // Safety: The resource directory on ohos is read-only, so it's safe to mmap
+        // the file, since the contents can't change.
         let mmap = unsafe { memmap2::Mmap::map(&file).expect("Could not memory map resource") };
         ResourceBytes::from_owner(mmap)
     }
