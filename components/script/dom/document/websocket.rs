@@ -214,6 +214,10 @@ impl WebSocket {
             WebSocketRequestState::Connecting => {
                 // If the WebSocket connection is not yet established: Fail the WebSocket connection.
                 self.fail_the_websocket_connection();
+                // Prevent an already queued open task from reopening the failed connection.
+                // Once studown starts, another cleanup call can not restart it, this make the WS teardown
+                // idempotent prevents duplicate shutdown actions and tasks.
+                self.ready_state.set(WebSocketRequestState::Closing);
                 true
             },
             WebSocketRequestState::Open => {
@@ -221,6 +225,9 @@ impl WebSocket {
                 // WebSocket closing handshake, with the status code to use in the WebSocket
                 // Close message being 1001.
                 self.start_the_websocket_closing_handshake(Some(close_code::GOING_AWAY), None);
+                // Once studown starts, another cleanup call can not restart it, this make the WS teardown
+                // idempotent prevents duplicate shutdown actions and tasks.
+                self.ready_state.set(WebSocketRequestState::Closing);
                 true
             },
             WebSocketRequestState::Closing | WebSocketRequestState::Closed => {
