@@ -94,7 +94,9 @@ pub struct Gui {
     /// If a [`WebViewId`] is present, the [`accesskit::TreeUpdate`] is for the [`WebView`] itself.
     pending_accesskit_updates: Vec<(accesskit::TreeUpdate, Option<WebViewId>)>,
 
-    // Whether the `WebViewPanel` corresponding to the currently active `WebView` is focused.
+    // Whether the [`WebViewPanel`] corresponding to the currently active [`WebView`] is focused.
+    // This remains `true` even if the application uses system focus, so that application focus can
+    // be re-set to the [`WebViewPanel`] once the application regains system focus.
     webview_panel_focused: bool,
 }
 
@@ -270,10 +272,12 @@ impl Gui {
         }
     }
 
+    /// See [`Self::webview_panel_focused`].
     pub(crate) fn webview_panel_focused(&self) -> bool {
         self.webview_panel_focused
     }
 
+    /// See [`Self::webview_panel_focused`].
     pub(crate) fn set_webview_panel_focused(&mut self, focused: bool) {
         self.webview_panel_focused = focused;
     }

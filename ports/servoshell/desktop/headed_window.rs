@@ -606,6 +606,9 @@ impl HeadedWindow {
             WindowEvent::KeyboardInput { .. } if self.gui.borrow().webview_panel_focused() => {
                 // Keyboard events should go to the WebView unless some other GUI
                 // component has keyboard focus.
+                //
+                // TODO: Release focus from the webview if keyboard focus moves past the beginning
+                // or end of the web contents.
             },
             ref event => {
                 if let WindowEvent::Focused(focused) = event {

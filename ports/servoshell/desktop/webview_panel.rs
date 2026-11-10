@@ -80,12 +80,12 @@ impl Widget for WebViewPanel {
         }
 
         let response = ui.interact(self.available_rect, self.id, Sense::FOCUSABLE);
-        if self.contains_focus {
+
+        // If the application lost and regained system focus since last time this panel was drawn,
+        // we need to request focus; otherwise, focus will reset to the first UI element.
+        if !response.has_focus() && self.contains_focus {
             response.request_focus();
         }
-
-        // TODO: Release focus from the webview if keyboard focus moves past the beginning or end
-        // of the web contents.
 
         response
     }
