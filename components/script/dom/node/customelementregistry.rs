@@ -594,7 +594,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
         // Step 16: Append definition to this's custom element definition set.
         self.definitions
-            .borrow_mut()
+            .safe_borrow_mut(cx.no_gc())
             .insert(name.clone(), definition.clone());
 
         // Step 17: If this's is scoped is true, then for each document of
@@ -627,7 +627,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         // Step 19.2: Remove this's when-defined promise map[name].
         let promise = self
             .when_defined
-            .borrow_mut()
+            .safe_borrow_mut(cx.no_gc())
             .remove(&name)
             .map(|promise| promise.root(cx));
         if let Some(promise) = promise {
@@ -695,7 +695,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         existing_promise.unwrap_or_else(|| {
             let promise = Promise::new_in_realm(realm);
             self.when_defined
-                .borrow_mut()
+                .safe_borrow_mut(realm.no_gc())
                 .insert(name, promise.to_traced());
             promise
         })
@@ -778,7 +778,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
                 if self.is_scoped.get() {
                     let document = element.upcast::<Node>().owner_doc();
                     self.scoped_document_set
-                        .borrow_mut()
+                        .safe_borrow_mut(cx.no_gc())
                         .insert(Dom::from_ref(&document));
                 }
             // Step 4.3. If inclusiveDescendant's custom element registry is not this, then continue.
@@ -1063,14 +1063,17 @@ pub(crate) fn upgrade_element(
     // Step 6. Add element to the end of definition's construction stack.
     definition
         .construction_stack
-        .borrow_mut()
+        .safe_borrow_mut(cx.no_gc())
         .push(ConstructionStackEntry::Element(Dom::from_ref(element)));
 
     // Steps 7-8, successful case
     let result = run_upgrade_constructor(cx, &definition, element);
 
     // "regardless of whether the above steps threw an exception" step
-    definition.construction_stack.borrow_mut().pop();
+    definition
+        .construction_stack
+        .safe_borrow_mut(cx.no_gc())
+        .pop();
 
     // Step 8 exception handling
     if let Err(error) = result {
@@ -1323,15 +1326,15 @@ impl CustomElementReactionStack {
 
     pub(crate) fn pop_current_element_queue(&self, cx: &mut JSContext) {
         rooted_vec!(let mut stack);
-        mem::swap(&mut *stack, &mut *self.stack.borrow_mut());
+        mem::swap(&mut *stack, &mut *self.stack.safe_borrow_mut(cx.no_gc()));
 
         if let Some(current_queue) = stack.last() {
             current_queue.invoke_reactions(cx);
         }
         stack.pop();
 
-        mem::swap(&mut *self.stack.borrow_mut(), &mut *stack);
-        self.stack.borrow_mut().append(&mut *stack);
+        mem::swap(&mut *self.stack.safe_borrow_mut(cx.no_gc()), &mut *stack);
+        self.stack.safe_borrow_mut(cx.no_gc()).append(&mut *stack);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#enqueue-an-element-on-the-appropriate-element-queue>
@@ -1565,7 +1568,7 @@ impl ElementQueue {
         while let Some(element) = self.next_element() {
             element.invoke_reactions(cx)
         }
-        self.queue.borrow_mut().clear();
+        self.queue.safe_borrow_mut(cx.no_gc()).clear();
     }
 
     fn next_element(&self) -> Option<DomRoot<Element>> {
