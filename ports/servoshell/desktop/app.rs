@@ -35,7 +35,7 @@ use crate::window::{PlatformWindow, ServoShellWindowId, TopLevelWebViewCreationR
 pub(crate) enum AppState {
     Initializing,
     Running(Rc<RunningAppState>),
-    /// A state were we are in the process of shuttding down but still need the reference to the [`RunningAppState`].
+    /// A state were we are in the process of shutting down but still need the reference to the [`RunningAppState`].
     Teardown(Rc<RunningAppState>),
     ShuttingDown,
 }
