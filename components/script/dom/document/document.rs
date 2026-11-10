@@ -3695,7 +3695,6 @@ impl Document {
         let observer = self
             .lazy_load_intersection_observer
             .or_init(|| IntersectionObserver::new_lazy_load(cx, &self.window));
-        // Step 3
         observer.Observe(cx.no_gc(), element);
     }
 
@@ -3706,7 +3705,7 @@ impl Document {
         element: &Element,
     ) {
         // The spec asserts the observer is not null. We skip quietly instead,
-        // because later navigation code may call this for iframes that were
+        // because navigation code may call this for iframes that were
         // never observed (for example ones with a `src` attribute).
         if let Some(observer) = self.lazy_load_intersection_observer.get() {
             observer.Unobserve(no_gc, element);

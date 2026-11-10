@@ -114,7 +114,6 @@ pub(crate) struct HTMLIFrameElement {
 }
 
 impl HTMLIFrameElement {
-    /// Whether this iframe still has pending lazy load resumption steps.
     /// <https://html.spec.whatwg.org/multipage/#lazy-load-resumption-steps>
     pub(crate) fn has_lazy_load_resumption_steps(&self) -> bool {
         !matches!(
