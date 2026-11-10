@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use accesskit::Affine;
-use egui::{EventFilter, Rect, Sense, Widget};
+use egui::{Rect, Sense, Widget};
 use euclid::Scale;
-use servo::{DeviceIndependentPixel, DevicePixel, WebView, WebViewId};
+use servo::{DeviceIndependentPixel, DevicePixel, WebView};
 
 pub(crate) struct WebViewPanel {
     id: egui::Id,
