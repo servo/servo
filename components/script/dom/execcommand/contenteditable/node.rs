@@ -1817,11 +1817,9 @@ impl Node {
     /// <https://w3c.github.io/editing/docs/execCommand/#collapsed-block-prop>
     pub(crate) fn is_collapsed_block_prop(&self, no_gc: &NoGC) -> bool {
         // > A collapsed block prop is either a collapsed line break that is not an extraneous line break,
-
-        // TODO: Check for collapsed line break
-        if self
-            .downcast::<HTMLBRElement>()
-            .is_some_and(|br| !br.is_extraneous_line_break())
+        if self.is_collapsed_line_break(no_gc) &&
+            self.downcast::<HTMLBRElement>()
+                .is_some_and(|br| !br.is_extraneous_line_break())
         {
             return true;
         }
@@ -2422,5 +2420,55 @@ impl Node {
             // Step 8. Return the resolved value for node of the relevant CSS property for command.
             _ => command.resolved_value_for_node(element),
         }
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#collapsed-line-break>
+    pub(crate) fn is_collapsed_line_break(&self, no_gc: &NoGC) -> bool {
+        // > A collapsed line break is a br that begins a line box which has nothing else in it,
+        // > and therefore has zero height.
+        if !self.is::<HTMLBRElement>() {
+            return false;
+        }
+
+        // Inspired by the reverse-engineered implementation from Ladybird, we look at DOM nodes to
+        // figure out what "nothing else in it" means. However, we don't follow the logic from Ladybird
+        // completely, as the end-condition for block nodes is different.
+        //
+        // If the next node contains some text, then it is not collapsed. This would be the case where
+        // there is a `<br>some text`.
+        //
+        // In any other case, we either have inline or block nodes. For inline nodes, it means that these
+        // nodes would be rendered on the same line. In that case, we also aren't collapsed. For example
+        // when there is a `<br><span></span>`
+        //
+        // Only in the case that a `<br>` is followed by nothing (whitespace or no nodes) leading immediately
+        // to a block node, it is considered collapsed.
+        let root = self
+            .block_node_of()
+            .unwrap_or_else(|| self.editing_host_of().expect("Must always be editable"));
+
+        for following in self.following_nodes_unrooted(no_gc, &root, ShadowIncluding::No) {
+            if let Some(text) = UnrootedDom::downcast::<Text>(following.clone()) {
+                if text.is_whitespace_node() {
+                    continue;
+                }
+                return false;
+            }
+
+            // This is checking if we have nodes like comments, which we should not consider for this algorithm
+            let Some(element) = UnrootedDom::downcast::<Element>(following.clone()) else {
+                continue;
+            };
+
+            if following.is_block_node() {
+                return true;
+            }
+
+            if element.is_void() {
+                return false;
+            }
+        }
+
+        true
     }
 }
