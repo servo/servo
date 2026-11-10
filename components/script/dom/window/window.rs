@@ -78,7 +78,9 @@ use script_bindings::principals::ServoJSPrincipals;
 use script_bindings::reflector::DomObject;
 use script_bindings::root::Root;
 use script_traits::{ConstellationInputEvent, ScriptThreadMessage, WebViewState};
+use selectors::Parser;
 use selectors::attr::CaseSensitivity;
+use selectors::parser::is_css2_pseudo_element;
 use servo_arc::Arc as ServoArc;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::{self, GenericCallback, GenericSender};
@@ -101,9 +103,9 @@ use style::dom::OpaqueNode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::properties::PropertyId;
 use style::properties::style_structs::Font;
-use style::selector_parser::PseudoElement;
+use style::selector_parser::{PseudoElement, SelectorParser};
 use style::str::HTML_SPACE_CHARACTERS;
-use style::stylesheets::UrlExtraData;
+use style::stylesheets::{Origin as StyleOrigin, UrlExtraData};
 use style_traits::CSSPixel;
 use stylo_atoms::Atom;
 use time::Duration as TimeDuration;
@@ -2067,32 +2069,33 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         let mut is_null = false;
 
         // Step 3: If pseudoElt is provided, is not the empty string, and starts with a colon, then:
-        // Step 3.1: Parse pseudoElt as a <pseudo-element-selector>, and let type be the result.
-        // TODO(#43095): This is quite hacky and it would be better to have a parsing function that
-        // is integrated with stylo `PseudoElement` itself. Comparing with stylo, we are now currently
-        // missing `::backdrop`, `::color-swatch`, and `::details-content`.
-        let pseudo = pseudo.map(|mut s| {
-            s.make_ascii_lowercase();
-            s
-        });
-        let pseudo = match pseudo {
-            Some(ref pseudo) if pseudo == ":before" || pseudo == "::before" => {
-                Some(PseudoElement::Before)
-            },
-            Some(ref pseudo) if pseudo == ":after" || pseudo == "::after" => {
-                Some(PseudoElement::After)
-            },
-            Some(ref pseudo) if pseudo == "::selection" => Some(PseudoElement::Selection),
-            Some(ref pseudo) if pseudo == "::marker" => Some(PseudoElement::Marker),
-            Some(ref pseudo) if pseudo == "::placeholder" => Some(PseudoElement::Placeholder),
-            Some(ref pseudo) if pseudo.starts_with(':') => {
+        let pseudo = pseudo
+            .filter(|pseudo| pseudo.starts_with(':'))
+            .and_then(|pseudo| {
+                // Step 3.1: Parse pseudoElt as a <pseudo-element-selector>, and let type be the result.
+                let pseudo = pseudo.str();
+                let pseudo = pseudo
+                    .strip_prefix("::")
+                    .or_else(|| {
+                        pseudo
+                            .strip_prefix(":")
+                            .filter(|pseudo_name| is_css2_pseudo_element(pseudo_name))
+                    })
+                    .and_then(|pseudo_name| {
+                        SelectorParser {
+                            stylesheet_origin: StyleOrigin::Author,
+                            namespaces: &Default::default(),
+                            url_data: &UrlExtraData(self.Document().url().get_arc()),
+                            for_supports_rule: false,
+                        }
+                        .parse_pseudo_element(pseudo_name)
+                        .ok()
+                    });
                 // Step 3.2: If type is failure, or is a ::slotted() or ::part()
                 // pseudo-element, let obj be null.
-                is_null = true;
-                None
-            },
-            _ => None,
-        };
+                is_null = pseudo.is_none();
+                pseudo
+            });
 
         // Step 4. Let decls be an empty list of CSS declarations.
         // Step 5: If obj is not null, and elt is connected, part of the flat tree, and
