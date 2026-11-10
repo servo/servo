@@ -68,6 +68,11 @@ impl Widget for WebViewPanel {
             });
         }
 
+        if !self.contains_focus {
+            // Ensure that we don't hold on to focus if something else may be trying to claim it.
+            ui.memory_mut(|mem| mem.surrender_focus(self.id));
+        }
+
         // If:
         // - this is not the active webview, or
         // - the application doesn't have system focus, or
@@ -75,7 +80,6 @@ impl Widget for WebViewPanel {
         //   sent yet;
         // then don't move egui focus to this panel on this tick .
         if !self.active || !self.webview.focused() || (tree_id.is_some() && !self.tree_id_known) {
-            ui.memory_mut(|mem| mem.surrender_focus(self.id));
             return ui.response();
         }
 
@@ -86,6 +90,10 @@ impl Widget for WebViewPanel {
         if !response.has_focus() && self.contains_focus {
             response.request_focus();
         }
+
+        // Note: we don't need to use `Memory::set_focus_lock_filter()` here because `HeadedWindow`
+        // already grabs keyboard events if `Gui::webview_panel_focused` is true.
+        // See `HeadedWindow::handle_winit_window_event()`.
 
         response
     }

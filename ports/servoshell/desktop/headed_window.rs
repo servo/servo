@@ -621,9 +621,15 @@ impl HeadedWindow {
                         //
                         // If the window gained focus, we still need to wait a tick before
                         // requesting focus on the webview panel, so skip it here.
-                        let mut gui = self.gui.borrow_mut();
-                        gui.update(&state, &window, self);
+                        self.gui.borrow_mut().update(&state, &window, self);
                     }
+                } else if let WindowEvent::MouseInput { .. } = event &&
+                    should_forward_mouse_event_to_egui()
+                {
+                    // If the user may have moved focus to egui, allow egui to claim focus.
+                    let mut gui = self.gui.borrow_mut();
+                    gui.set_webview_panel_focused(false);
+                    gui.update(&state, &window, self);
                 }
 
                 let response = self
@@ -644,8 +650,6 @@ impl HeadedWindow {
                 {
                     consumed = false;
                 } else {
-                    // TODO how do we handle the tab key? (see doc for consumed)
-                    // Note that servo doesn’t yet support tabbing through links and inputs
                     consumed = response.consumed;
                 }
             },
