@@ -192,6 +192,10 @@ impl WebSocket {
     fn fail_the_websocket_connection(&self) {
         let _ = self.callback.send(WebSocketDomAction::Abort);
 
+        // Once studown starts, another cleanup call can not restart it, this make the WS teardown
+        // idempotent prevents duplicate shutdown actions and tasks.
+        self.ready_state.set(WebSocketRequestState::Closing);
+
         fail_the_websocket_connection(
             Trusted::new(self),
             &self
@@ -205,6 +209,9 @@ impl WebSocket {
     /// <https://datatracker.ietf.org/doc/html/rfc6455#section-7.1.2>
     fn start_the_websocket_closing_handshake(&self, code: Option<u16>, reason: Option<String>) {
         let _ = self.callback.send(WebSocketDomAction::Close(code, reason));
+        // Once studown starts, another cleanup call can not restart it, this make the WS teardown
+        // idempotent prevents duplicate shutdown actions and tasks.
+        self.ready_state.set(WebSocketRequestState::Closing);
     }
 
     /// <https://websockets.spec.whatwg.org/#make-disappear>
@@ -215,9 +222,6 @@ impl WebSocket {
                 // If the WebSocket connection is not yet established: Fail the WebSocket connection.
                 self.fail_the_websocket_connection();
                 // Prevent an already queued open task from reopening the failed connection.
-                // Once studown starts, another cleanup call can not restart it, this make the WS teardown
-                // idempotent prevents duplicate shutdown actions and tasks.
-                self.ready_state.set(WebSocketRequestState::Closing);
                 true
             },
             WebSocketRequestState::Open => {
@@ -225,9 +229,6 @@ impl WebSocket {
                 // WebSocket closing handshake, with the status code to use in the WebSocket
                 // Close message being 1001.
                 self.start_the_websocket_closing_handshake(Some(close_code::GOING_AWAY), None);
-                // Once studown starts, another cleanup call can not restart it, this make the WS teardown
-                // idempotent prevents duplicate shutdown actions and tasks.
-                self.ready_state.set(WebSocketRequestState::Closing);
                 true
             },
             WebSocketRequestState::Closing | WebSocketRequestState::Closed => {
@@ -512,13 +513,11 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
                 // If the WebSocket connection is not yet established: Fail the WebSocket
                 // connection and set this's ready state to CLOSING (2).
                 self.fail_the_websocket_connection();
-                self.ready_state.set(WebSocketRequestState::Closing);
             },
             WebSocketRequestState::Open => {
                 // If the WebSocket closing handshake has not yet been started: Start the
                 // WebSocket closing handshake and set this's ready state to CLOSING (2).
                 self.start_the_websocket_closing_handshake(code, reason.map(|reason| reason.0));
-                self.ready_state.set(WebSocketRequestState::Closing);
             },
         }
         Ok(())
