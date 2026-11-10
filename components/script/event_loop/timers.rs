@@ -228,7 +228,7 @@ pub(crate) enum OneshotTimerCallback {
     },
     /// Run a GC with following GCReason
     GC {
-        document: Trusted<crate::dom::Document>,
+        pipeline_id: PipelineId,
         #[ignore_malloc_size_of = "Just an enum"]
         #[no_trace]
         reason: js::jsapi::GCReason,
@@ -249,12 +249,16 @@ impl OneshotTimerCallback {
                 // Step 4.4 Perform completionSteps.
                 completion(cx, global);
             },
-            OneshotTimerCallback::GC { document, reason } => {
-                let document = document.root();
-                document
-                    .window()
-                    .script_thread()
-                    .run_gc_with_reason(cx, reason);
+            OneshotTimerCallback::GC {
+                pipeline_id,
+                reason,
+            } => {
+                if let Some(document) = ScriptThread::find_document(pipeline_id) {
+                    document
+                        .window()
+                        .script_thread()
+                        .run_gc_with_reason(cx, reason);
+                }
             },
         }
     }
