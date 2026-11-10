@@ -609,7 +609,9 @@ impl BlockFormattingContext {
             // to `start` alignment.
             flow_layout.depends_on_block_constraints = true;
             let final_block_size = lazy_block_size.resolve(|| content_block_size);
-            let free_space = final_block_size - content_block_size;
+            // Must use the text as the alignment subject in the case of a textarea
+            // and not the effective size (https://github.com/servo/servo/pull/49734#issuecomment-6773635158)
+            let free_space = final_block_size - measured_block_size;
             if free_space <= Au::zero() && is_safe {
                 return;
             }
@@ -627,7 +629,7 @@ impl BlockFormattingContext {
                 },
                 size: LogicalVec2 {
                     inline: containing_block.size.inline,
-                    block: content_block_size,
+                    block: measured_block_size,
                 },
             }
             .as_physical_deprecated(containing_block);
