@@ -8,7 +8,7 @@ use std::num::NonZeroU64;
 use std::sync::LazyLock;
 use std::time::Duration;
 
-use embedder_traits::resources::{self, Resource};
+use embedder_traits::resources::{self, Resource, ResourceBytes};
 use fst::{Map, MapBuilder};
 use headers::{HeaderMapExt, StrictTransportSecurity};
 use http::HeaderMap;
@@ -88,13 +88,24 @@ pub struct HstsList {
 /// as well as potentially swpaping out the underlying type to something immutable
 /// and more efficient like FSTs or DAFSA/DAWGs.
 /// To generate a new version of the FST map file run `./mach update-hsts-preload`
-#[derive(Clone, Debug)]
-pub struct HstsPreloadList(pub fst::Map<Vec<u8>>);
+/// `T` is the backing store.
+#[derive(Debug)]
+pub struct HstsPreloadList(fst::Map<ResourceBytes>);
+
+impl HstsPreloadList {
+    fn get(&self, domain: &str) -> Option<u64> {
+        self.0.get(domain)
+    }
+
+    #[expect(clippy::len_without_is_empty)]
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+}
 
 impl MallocSizeOf for HstsPreloadList {
-    #[expect(unsafe_code)]
     fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
-        unsafe { ops.malloc_size_of(self.0.as_fst().as_inner().as_ptr()) }
+        self.0.as_fst().as_inner().size_of(ops)
     }
 }
 
@@ -107,16 +118,22 @@ pub fn hsts_preload_size_of(ops: &mut MallocSizeOfOps) -> usize {
 
 impl HstsPreloadList {
     /// Create an `HstsList` from the bytes of a JSON preload file.
-    pub fn from_preload(preload_content: Vec<u8>) -> Option<HstsPreloadList> {
+    pub fn from_preload(preload_content: ResourceBytes) -> Option<HstsPreloadList> {
         Map::new(preload_content).map(HstsPreloadList).ok()
     }
 
     pub fn from_servo_preload() -> HstsPreloadList {
         debug!("Intializing HSTS Preload list");
         let map_bytes = resources::read_bytes(Resource::HstsPreloadList);
+
         HstsPreloadList::from_preload(map_bytes).unwrap_or_else(|| {
             error!("HSTS preload file is invalid. Setting HSTS list to default values");
-            HstsPreloadList(MapBuilder::memory().into_map())
+            let list = MapBuilder::memory()
+                .into_map()
+                .map_data(ResourceBytes::from_vec)
+                .expect("Should always be valid");
+
+            HstsPreloadList(list)
         })
     }
 
@@ -125,7 +142,7 @@ impl HstsPreloadList {
         let parts = host[..host.len() - base_domain.len()].rsplit_terminator('.');
         let mut domain_to_test = base_domain.to_owned();
 
-        if self.0.get(&domain_to_test).is_some_and(|id| {
+        if self.get(&domain_to_test).is_some_and(|id| {
             // The FST map ids were constructed such that the parity represents the includeSubdomain flag
             id % 2 == 1 || domain_to_test == host
         }) {
@@ -135,7 +152,7 @@ impl HstsPreloadList {
         // Check all further subdomains up to the passed host
         for part in parts {
             domain_to_test = format!("{}.{}", part, domain_to_test);
-            if self.0.get(&domain_to_test).is_some_and(|id| {
+            if self.get(&domain_to_test).is_some_and(|id| {
                 // The FST map ids were constructed such that the parity represents the includeSubdomain flag
                 id % 2 == 1 || domain_to_test == host
             }) {

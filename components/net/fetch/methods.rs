@@ -1009,7 +1009,8 @@ fn create_about_memory(url: ServoUrl, timing_type: ResourceTimingType) -> Respon
     response
         .headers
         .typed_insert(ContentType::from(mime::TEXT_HTML_UTF_8));
-    *response.body.lock() = ResponseBody::Done(resources::read_bytes(Resource::AboutMemoryHTML));
+    *response.body.lock() =
+        ResponseBody::Done(resources::read_bytes(Resource::AboutMemoryHTML).into_vec());
     response.status = HttpStatus::default();
     response
 }

@@ -197,9 +197,12 @@ impl DebuggerGlobalScope {
         let mut realm = enter_auto_realm(cx, self);
         let cx = &mut realm.current_realm();
 
+        let bytes = resources::read_bytes(Resource::DebuggerJS);
         let _ = self.global_scope.evaluate_js_on_global(
             cx,
-            resources::read_string(Resource::DebuggerJS).into(),
+            str::from_utf8(bytes.as_ref())
+                .expect("Should have DebuggerJS resource")
+                .into(),
             "",
             None,
             None,

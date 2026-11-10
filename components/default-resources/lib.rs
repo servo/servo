@@ -4,7 +4,7 @@
 
 use std::path::PathBuf;
 
-use embedder_traits::resources::{Resource, ResourceReaderMethods};
+use embedder_traits::resources::{Resource, ResourceBytes, ResourceReaderMethods};
 
 /// A default resource reader that provides baked in resources.
 pub struct DefaultResourceReader;
@@ -16,8 +16,8 @@ impl ResourceReaderMethods for DefaultResourceReader {
     fn sandbox_access_files_dirs(&self) -> Vec<PathBuf> {
         vec![]
     }
-    fn read(&self, file: Resource) -> Vec<u8> {
-        match file {
+    fn read(&self, file: Resource) -> ResourceBytes {
+        ResourceBytes::from_static(match file {
             Resource::BluetoothBlocklist => &include_bytes!("resources/gatt_blocklist.txt")[..],
             Resource::DomainList => &include_bytes!("resources/public_domains.txt")[..],
             Resource::HstsPreloadList => &include_bytes!("resources/hsts_preload.fstmap")[..],
@@ -31,8 +31,7 @@ impl ResourceReaderMethods for DefaultResourceReader {
             Resource::AboutMemoryHTML => &include_bytes!("resources/about-memory.html")[..],
             Resource::DebuggerJS => &include_bytes!("resources/debugger.js")[..],
             Resource::JsonViewerHTML => &include_bytes!("resources/json-viewer.html")[..],
-        }
-        .to_owned()
+        })
     }
 }
 

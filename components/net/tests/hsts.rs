@@ -7,6 +7,7 @@ use std::num::NonZeroU64;
 use std::time::Duration as StdDuration;
 
 use base64::Engine;
+use embedder_traits::resources::ResourceBytes;
 use net::hsts::{HstsEntry, HstsList, HstsPreloadList};
 use net_traits::IncludeSubdomains;
 
@@ -288,7 +289,7 @@ fn test_push_entry_to_hsts_list_should_add_an_entry() {
 fn test_parse_hsts_preload_should_return_none_when_json_invalid() {
     let mock_preload_content = "derp".as_bytes().to_vec();
     assert!(
-        HstsPreloadList::from_preload(mock_preload_content).is_none(),
+        HstsPreloadList::from_preload(ResourceBytes::from_vec(mock_preload_content)).is_none(),
         "invalid preload list should not have parsed"
     )
 }
@@ -299,7 +300,8 @@ fn test_parse_hsts_preload_should_decode_host_and_includes_subdomains() {
     let mock_preload_content = base64::engine::general_purpose::STANDARD
         .decode("AwAAAAAAAAAAAAAAAAAAAAAQkMQAEJfHAwABBW9jEQLNws/J0MXqwgIAAAAAAAAAJwAAAAAAAADVOFe6")
         .unwrap();
-    let hsts_list = HstsPreloadList::from_preload(mock_preload_content).unwrap();
+    let hsts_list =
+        HstsPreloadList::from_preload(ResourceBytes::from_vec(mock_preload_content)).unwrap();
 
     assert_eq!(hsts_list.is_host_secure("derp"), false);
     assert_eq!(hsts_list.is_host_secure("example.com"), true);
@@ -423,5 +425,5 @@ fn test_hsts_list_with_expired_entry_is_not_is_host_secure() {
 #[test]
 fn test_preload_hsts_domains_well_formed() {
     let hsts_list = HstsPreloadList::from_servo_preload();
-    assert_ne!(hsts_list.0.len(), 0);
+    assert_ne!(hsts_list.len(), 0);
 }

@@ -131,6 +131,7 @@ ohos-vsync = { workspace = true }
 ohos-window-sys = { workspace = true }
 ohos-sys-opaque-types = { workspace = true }
 ohos-window-manager-sys = { workspace = true, features = ["api-14"] }
+memmap2 = { workspace = true }
 xcomponent-sys = { workspace = true, features = ["api-20", "keyboard-types"] }
 
 [target.'cfg(any(target_os = "android", target_env = "ohos"))'.dependencies]
