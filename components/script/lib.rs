@@ -59,6 +59,7 @@ pub(crate) use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
 // it is useful that they are accessible at the root of the crate.
 pub(crate) use crate::dom::bindings::inheritance::HasParent;
 pub(crate) use crate::dom::bindings::trace::{CustomTraceable, JSTraceable};
+pub use crate::dom::html::form_controls::input_type::submit_input_type::DEFAULT_SUBMIT_VALUE as HTML_INPUT_TYPE_SUBMIT_DEFAULT_VALUE;
 pub use crate::dom::serviceworker::serviceworker_manager::ServiceWorkerManager;
 pub use crate::engine::handle::JSEngineSetup;
 pub use crate::engine::init::init;
