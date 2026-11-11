@@ -3796,20 +3796,12 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth>
     fn ScrollWidth(&self, cx: &mut JSContext) -> i32 {
-        self.upcast::<Node>()
-            .scroll_area(cx)
-            .size
-            .width
-            .to_nearest_px()
+        self.upcast::<Node>().scroll_area(cx).size.width
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollheight>
     fn ScrollHeight(&self, cx: &mut JSContext) -> i32 {
-        self.upcast::<Node>()
-            .scroll_area(cx)
-            .size
-            .height
-            .to_nearest_px()
+        self.upcast::<Node>().scroll_area(cx).size.height
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-clienttop>

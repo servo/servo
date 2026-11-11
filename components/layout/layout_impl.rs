@@ -601,7 +601,7 @@ impl Layout for LayoutThread {
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> Rect<Au, CSSPixel> {
+    fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> Rect<i32, CSSPixel> {
         with_layout_state(|| {
             let node = node.map(|node| unsafe { ServoLayoutNode::new(&node) });
             process_node_scroll_area_request(self, node, self.fragment_tree.borrow().clone())

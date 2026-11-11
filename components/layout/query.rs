@@ -184,15 +184,12 @@ pub fn process_node_scroll_area_request(
     layout_thread: &LayoutThread,
     requested_node: Option<ServoLayoutNode<'_>>,
     fragment_tree: Option<Rc<FragmentTree>>,
-) -> Rect<Au, CSSPixel> {
+) -> Rect<i32, CSSPixel> {
     let Some(tree) = fragment_tree else {
         return Rect::zero();
     };
 
-    // Must return the area in [Au] instead of rounding it because rounding it
-    // here prematurely with the rect's origin will cause inconsistencies in
-    // calculations of scrollHeight + area elsewhere.
-    match requested_node {
+    let rect = match requested_node {
         Some(node) => node
             .fragments_for_pseudo(None)
             .first()
@@ -201,7 +198,15 @@ pub fn process_node_scroll_area_request(
         None => tree
             .scrollable_overflow()
             .union(&tree.initial_containing_block),
-    }
+    };
+
+    // Must round origin and size separately as rounding the resulting rect
+    // will cause miscalculations on floating point origins.
+    Rect::new(
+        rect.origin.map(Au::to_f32_px).round(),
+        rect.size.to_vector().map(Au::to_f32_px).to_size().round(),
+    )
+    .to_i32()
 }
 
 /// Return the resolved value of property for a given (pseudo)element.

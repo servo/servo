@@ -122,9 +122,7 @@ impl ScrollingBox {
             .window()
             .scrolling_area_query(cx, node_to_query)
             .size
-            .to_vector()
-            .map(Au::to_f32_px)
-            .to_size()
+            .to_f32()
             .cast_unit();
         self.cached_content_size.set(Some(content_size));
         content_size
