@@ -22,6 +22,7 @@ fn test_unminify_script() {
     let servo_test = ServoTest::new_with_builder(|builder| {
         let mut opts = opts::Opts::default();
         opts.unminify_js = true;
+        opts.temporary_storage = true;
         builder.opts(opts)
     });
 
