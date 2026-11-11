@@ -49,7 +49,8 @@ use tokio::sync::Mutex as TokioMutex;
 
 use crate::async_runtime::{init_async_runtime, spawn_task};
 use crate::connector::{
-    CACertificates, CertificateErrorOverrideManager, create_http_client, create_tls_config,
+    CACertificates, CertificateErrorOverrideManager, NameResolver, create_http_client,
+    create_tls_config,
 };
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
@@ -93,6 +94,7 @@ pub fn new_resource_threads(
     certificate_path: Option<String>,
     ignore_certificate_errors: bool,
     protocols: Arc<ProtocolRegistry>,
+    name_resolver: Option<NameResolver>,
 ) -> (ResourceThreads, ResourceThreads, Box<dyn AsyncRuntime>) {
     // Initialize the async runtime, and get a handle to it for use in clean shutdown.
     let async_runtime = init_async_runtime();
@@ -114,6 +116,7 @@ pub fn new_resource_threads(
         ca_certificates,
         ignore_certificate_errors,
         protocols,
+        name_resolver,
     );
     (
         ResourceThreads::new(public_core),
@@ -133,6 +136,7 @@ pub fn new_core_resource_thread(
     ca_certificates: CACertificates<'static>,
     ignore_certificate_errors: bool,
     protocols: Arc<ProtocolRegistry>,
+    name_resolver: Option<NameResolver>,
 ) -> (CoreResourceThread, CoreResourceThread) {
     let (public_setup_chan, public_setup_port) = generic_channel::channel().unwrap();
     let (private_setup_chan, private_setup_port) = generic_channel::channel().unwrap();
@@ -154,6 +158,7 @@ pub fn new_core_resource_thread(
                 ca_certificates.clone(),
                 ignore_certificate_errors,
                 blob_token_communicator,
+                name_resolver.clone(),
             );
 
             let mut channel_manager = ResourceChannelManager {
@@ -174,6 +179,7 @@ pub fn new_core_resource_thread(
                         refresh_receiver,
                         protocols,
                         embedder_proxy,
+                        name_resolver,
                     )
                 },
                 String::from("network-cache-reporter"),
@@ -199,6 +205,7 @@ fn create_http_states(
     ca_certificates: CACertificates<'static>,
     ignore_certificate_errors: bool,
     embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
+    name_resolver: Option<NameResolver>,
 ) -> (Arc<HttpState>, Arc<HttpState>) {
     let auth_cache = config_dir
         .and_then(|config_dir| servo_base::read_json_from_file(config_dir, "auth_cache.json").ok())
@@ -218,11 +225,14 @@ fn create_http_states(
         cors_cache: RwLock::new(CorsCache::default()),
         history_states: RwLock::new(FxHashMap::default()),
         http_cache: HttpCache::new(HttpCacheAssignment::Public),
-        client: create_http_client(create_tls_config(
-            ca_certificates.clone(),
-            ignore_certificate_errors,
-            override_manager.clone(),
-        )),
+        client: create_http_client(
+            create_tls_config(
+                ca_certificates.clone(),
+                ignore_certificate_errors,
+                override_manager.clone(),
+            ),
+            name_resolver.clone(),
+        ),
         override_manager,
         embedder_proxy: embedder_proxy.clone(),
     };
@@ -235,11 +245,14 @@ fn create_http_states(
         cors_cache: RwLock::new(CorsCache::default()),
         history_states: RwLock::new(FxHashMap::default()),
         http_cache: HttpCache::new(HttpCacheAssignment::Private),
-        client: create_http_client(create_tls_config(
-            ca_certificates,
-            ignore_certificate_errors,
-            override_manager.clone(),
-        )),
+        client: create_http_client(
+            create_tls_config(
+                ca_certificates,
+                ignore_certificate_errors,
+                override_manager.clone(),
+            ),
+            name_resolver,
+        ),
         override_manager,
         embedder_proxy,
     };
@@ -258,12 +271,14 @@ impl ResourceChannelManager {
         refresh_receiver: GenericReceiver<CoreResourceMsg>,
         protocols: Arc<ProtocolRegistry>,
         embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
+        name_resolver: Option<NameResolver>,
     ) {
         let (public_http_state, private_http_state) = create_http_states(
             self.config_dir.as_deref(),
             self.ca_certificates.clone(),
             self.ignore_certificate_errors,
             embedder_proxy,
+            name_resolver,
         );
 
         let mut rx_set = GenericReceiverSet::new();
@@ -707,6 +722,7 @@ pub struct CoreResourceManager {
     preloaded_resources: SharedPreloadedResources,
     /// <https://fetch.spec.whatwg.org/#concept-fetch-record>
     in_flight_keep_alive_records: SharedInflightKeepAliveRecords,
+    name_resolver: Option<NameResolver>,
 }
 
 impl CoreResourceManager {
@@ -717,6 +733,7 @@ impl CoreResourceManager {
         ca_certificates: CACertificates<'static>,
         ignore_certificate_errors: bool,
         blob_token_communicator: Arc<Mutex<BlobTokenCommunicator>>,
+        name_resolver: Option<NameResolver>,
     ) -> CoreResourceManager {
         CoreResourceManager {
             devtools_sender,
@@ -727,6 +744,7 @@ impl CoreResourceManager {
             ignore_certificate_errors,
             preloaded_resources: Default::default(),
             in_flight_keep_alive_records: Default::default(),
+            name_resolver,
         }
     }
 
@@ -824,6 +842,7 @@ impl CoreResourceManager {
             let entry = PreloadEntry::new(request.integrity_metadata.clone());
             preloaded_resources.insert(preload_id.clone(), entry);
         }
+        let name_resolver = self.name_resolver.clone();
 
         spawn_task(async move {
             // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
@@ -845,6 +864,7 @@ impl CoreResourceManager {
                 ignore_certificate_errors,
                 preloaded_resources: preloaded_resources.clone(),
                 in_flight_keep_alive_records,
+                name_resolver,
             };
 
             match res_init_ {
@@ -909,6 +929,7 @@ impl CoreResourceManager {
         let ignore_certificate_errors = self.ignore_certificate_errors;
         let in_flight_keep_alive_records = self.in_flight_keep_alive_records.clone();
         let preloaded_resources = self.preloaded_resources.clone();
+        let name_resolver = self.name_resolver.clone();
 
         spawn_task(async move {
             let mut event_sender = event_sender;
@@ -945,6 +966,7 @@ impl CoreResourceManager {
                         ignore_certificate_errors,
                         preloaded_resources,
                         in_flight_keep_alive_records,
+                        name_resolver,
                     };
                     fetch(request, &mut event_sender, &context).await;
                 },
