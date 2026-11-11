@@ -143,7 +143,7 @@ pub(crate) fn execute_insert_text_command(
         // Step 14.1. If node has only one child, which is a collapsed line break, remove its child from it.
         if node.children_count() == 1 &&
             let Some(child) = node.children().next() &&
-            child.is_collapsed_line_break(cx.no_gc())
+            child.is_collapsed_line_break(cx)
         {
             child.remove_self(cx);
         }

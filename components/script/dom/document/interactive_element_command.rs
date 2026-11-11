@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use js::context::JSContext;
+use layout_api::QueryMsg;
 use script_bindings::codegen::GenericBindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
 use script_bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElementMethods;
 use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
@@ -108,30 +109,31 @@ impl TryFrom<&HTMLElement> for InteractiveElementCommand {
 }
 
 impl InteractiveElementCommand {
-    fn is_node_or_ancestor_inert(node: &Node) -> bool {
+    fn is_node_or_ancestor_inert(cx: &mut JSContext, node: &Node) -> bool {
+        node.owner_window().layout_reflow(cx, QueryMsg::StyleQuery);
         node.inclusive_ancestors(ShadowIncluding::No)
-            .any(|node| node.is_inert())
+            .any(|node| node.is_inert_without_reflow())
     }
 
-    pub(crate) fn disabled(&self) -> bool {
+    pub(crate) fn disabled(&self, cx: &mut JSContext) -> bool {
         match self {
             // <https://html.spec.whatwg.org/multipage#using-the-a-element-to-define-a-command>
             // > The Disabled State facet of the command is true if the element or one of its
             // > ancestors is inert, and false otherwise.
             InteractiveElementCommand::Anchor(anchor) => {
-                Self::is_node_or_ancestor_inert(anchor.upcast::<Node>())
+                Self::is_node_or_ancestor_inert(cx, anchor.upcast::<Node>())
             },
             // <https://html.spec.whatwg.org/multipage/#using-the-button-element-to-define-a-command>
             // > The Disabled State of the command is true if the element or one of its ancestors
             // > is inert, or if the element's disabled state is set, and false otherwise.
             InteractiveElementCommand::Button(button) => {
-                Self::is_node_or_ancestor_inert(button.upcast::<Node>()) || button.Disabled()
+                Self::is_node_or_ancestor_inert(cx, button.upcast::<Node>()) || button.Disabled()
             },
             // <https://html.spec.whatwg.org/multipage/#using-the-input-element-to-define-a-command>
             // > The Disabled State of the command is true if the element or one of its ancestors is
             // > inert, or if the element's disabled state is set, and false otherwise.
             InteractiveElementCommand::Input(input) => {
-                Self::is_node_or_ancestor_inert(input.upcast::<Node>()) || input.Disabled()
+                Self::is_node_or_ancestor_inert(cx, input.upcast::<Node>()) || input.Disabled()
             },
             // <https://html.spec.whatwg.org/multipage/#using-the-option-element-to-define-a-command>
             // > The Disabled State of the command is true if the element is disabled, or if its
@@ -142,13 +144,13 @@ impl InteractiveElementCommand {
                     option
                         .nearest_ancestor_select()
                         .is_some_and(|select| select.Disabled()) ||
-                    Self::is_node_or_ancestor_inert(option.upcast::<Node>())
+                    Self::is_node_or_ancestor_inert(cx, option.upcast::<Node>())
             },
             // <https://html.spec.whatwg.org/multipage#using-the-accesskey-attribute-to-define-a-command-on-other-elements>
             // > The Disabled State of the command is true if the element or one of its ancestors is
             // > inert, and false otherwise.
             InteractiveElementCommand::HTMLElement(element) => {
-                Self::is_node_or_ancestor_inert(element.upcast::<Node>())
+                Self::is_node_or_ancestor_inert(cx, element.upcast::<Node>())
             },
         }
     }

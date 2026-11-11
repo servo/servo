@@ -1235,8 +1235,13 @@ impl CanvasState {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor>
-    pub(super) fn set_shadow_color(&self, canvas: Option<&HTMLCanvasElement>, value: DOMString) {
-        if let Ok(rgba) = parse_color(canvas, &value) {
+    pub(super) fn set_shadow_color(
+        &self,
+        cx: &mut JSContext,
+        canvas: Option<&HTMLCanvasElement>,
+        value: DOMString,
+    ) {
+        if let Ok(rgba) = parse_color(cx, canvas, &value) {
             self.state.borrow_mut().shadow_color = rgba;
         }
     }
@@ -1261,12 +1266,13 @@ impl CanvasState {
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle>
     pub(super) fn set_stroke_style(
         &self,
+        cx: &mut JSContext,
         canvas: Option<&HTMLCanvasElement>,
         value: StringOrCanvasGradientOrCanvasPattern,
     ) {
         match value {
             StringOrCanvasGradientOrCanvasPattern::String(string) => {
-                if let Ok(rgba) = parse_color(canvas, &string) {
+                if let Ok(rgba) = parse_color(cx, canvas, &string) {
                     self.state.borrow_mut().stroke_style = CanvasFillOrStrokeStyle::Color(rgba);
                 }
             },
@@ -1304,12 +1310,13 @@ impl CanvasState {
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle>
     pub(super) fn set_fill_style(
         &self,
+        cx: &mut JSContext,
         canvas: Option<&HTMLCanvasElement>,
         value: StringOrCanvasGradientOrCanvasPattern,
     ) {
         match value {
             StringOrCanvasGradientOrCanvasPattern::String(string) => {
-                if let Ok(rgba) = parse_color(canvas, &string) {
+                if let Ok(rgba) = parse_color(cx, canvas, &string) {
                     self.state.borrow_mut().fill_style = CanvasFillOrStrokeStyle::Color(rgba);
                 }
             },
@@ -2722,6 +2729,7 @@ impl UnshapedTextRun<'_> {
 
 /// <https://drafts.csswg.org/css-color/#parse-a-css-color-value>
 pub(super) fn parse_color(
+    cx: &mut JSContext,
     canvas: Option<&HTMLCanvasElement>,
     string: &DOMString,
 ) -> Result<AbsoluteColor, ()> {
@@ -2758,8 +2766,8 @@ pub(super) fn parse_color(
             None => AbsoluteColor::BLACK,
             Some(canvas) => {
                 let canvas_element = canvas.upcast::<Element>();
-                match canvas_element.style() {
-                    Some(ref s) if canvas_element.has_css_layout_box() => {
+                match canvas_element.style(cx) {
+                    Some(ref s) if canvas_element.has_css_layout_box(cx) => {
                         s.get_inherited_text().color
                     },
                     _ => AbsoluteColor::BLACK,

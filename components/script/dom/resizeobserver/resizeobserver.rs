@@ -210,7 +210,7 @@ fn create_and_populate_a_resizeobserverentry(
     }
 
     // Step 7. If target is not an SVG element or target is an SVG element with an associated CSS layout box do these steps:
-    let use_padding = *target.namespace() != ns!(svg) || target.has_css_layout_box();
+    let use_padding = *target.namespace() != ns!(svg) || target.has_css_layout_box(cx);
     let (padding_top, padding_left) = if use_padding {
         // Step 7.1. Set this.contentRect.top to target.padding top.
         // Step 7.2. Set this.contentRect.left to target.padding left.
