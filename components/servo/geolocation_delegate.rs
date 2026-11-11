@@ -10,6 +10,8 @@ use servo_base::generic_channel::GenericCallback;
 use servo_config::pref;
 
 use crate::WebView;
+#[cfg(all(feature = "geolocation", target_os = "linux", not(target_env = "ohos")))]
+use crate::geoclue::Geoclue;
 
 /// A request for a single geolocation fix, corresponding to one call to
 /// navigator.geolocation.getCurrentPosition()
@@ -150,22 +152,18 @@ fn default_position_response() -> GeolocationResult {
 /// The delegate installed when the embedder does not supply one. It uses the platform's location
 /// service when Servo has a backend for it, and otherwise reports that no position is available.
 #[derive(Default)]
-pub(crate) struct DefaultGeolocationDelegate {
-    #[cfg(all(feature = "geolocation", target_os = "linux", not(target_env = "ohos")))]
-    geoclue: std::cell::OnceCell<Option<crate::geoclue::Geoclue>>,
-}
+pub(crate) struct DefaultGeolocationDelegate {}
 
-#[cfg(all(feature = "geolocation", target_os = "linux"))]
+#[cfg(all(feature = "geolocation", target_os = "linux", not(target_env = "ohos")))]
 impl DefaultGeolocationDelegate {
     /// The system backend, or `None` if it is unavailable or the testing preferences are standing
     /// in for one.
-    fn backend(&self) -> Option<&crate::geoclue::Geoclue> {
+    fn backend(&self) -> Option<&Geoclue> {
         if pref!(dom_geolocation_test_position_enabled) {
             return None;
         }
-        self.geoclue
-            .get_or_init(crate::geoclue::Geoclue::spawn)
-            .as_ref()
+
+        Geoclue::singleton()
     }
 }
 

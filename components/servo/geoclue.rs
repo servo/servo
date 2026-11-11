@@ -9,7 +9,7 @@
 //! - `Manager.GetClient()` returns one client per D-Bus connection, so every page using
 //!   geolocation in this Servo instance shares a single client. The task multiplexes and
 //!   keeps one client alive for as long as anything wants a position, requests the highest
-//!   accuracy asked for, and dispatches each update to all consumers.
+//!   accuracy asked for, and dispatches each update to all delegate requests.
 //! - GeoClue has no one-shot request. `getCurrentPosition()` is served by joining the shared
 //!   client and taking the first position emitted by the stream.
 
@@ -18,7 +18,7 @@ use std::collections::HashMap;
 use embedder_traits::{GeolocationError, GeolocationPositionData, GeolocationWatchId};
 use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender, unbounded};
 use futures::{FutureExt, StreamExt, select};
-use log::error;
+use log::{debug, error};
 use net::async_runtime;
 use zbus::proxy::CacheProperties;
 use zbus::zvariant::OwnedObjectPath;
@@ -156,10 +156,18 @@ enum Request {
 /// A handle to the task that owns Servo's connection to GeoClue.
 pub(crate) struct Geoclue(UnboundedSender<Request>);
 
+static GEOCLUE: std::sync::OnceLock<Option<Geoclue>> = std::sync::OnceLock::new();
+
 impl Geoclue {
+    /// Get the singleton instance of the Geoclue client.
+    pub(crate) fn singleton() -> Option<&'static Self> {
+        GEOCLUE.get_or_init(|| Geoclue::spawn()).as_ref()
+    }
+
     /// Start the GeoClue task on Servo's shared runtime. The connection is created lazily, so a session
     /// that never uses geolocation pays nothing.
     pub(crate) fn spawn() -> Option<Self> {
+        debug!("Spawning Geoclue DBus client");
         if !async_runtime::async_runtime_initialized() {
             error!("No async runtime yet; geolocation is unavailable.");
             return None;
@@ -426,9 +434,9 @@ impl GeoclueTaskState {
             .build()
             .await?;
 
-        // Use "firefox" as our desktop ID since it's part of the default GeoClue
-        // configuration on most Linux distributions.
-        client.set_desktop_id("firefox").await?;
+        // This is supposed to match the name of a .desktop file to bypass
+        // the need for interactive agent authorization.
+        client.set_desktop_id("servo").await?;
 
         client.set_requested_accuracy_level(accuracy as u32).await?;
         client.start().await?;
