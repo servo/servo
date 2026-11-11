@@ -261,6 +261,10 @@ pub struct LayoutConfig {
     pub user_stylesheets: Rc<Vec<DocumentStyleSheet>>,
     pub theme: Theme,
     pub embedder_chan: ScriptToEmbedderChan,
+    /// Document-scoped key for hashing the inputs of CSS `random()` functions.
+    /// This random value is 128 bits, as required for the key of the SipHash-1-3
+    /// keyed hash function (see [`style::device::Device::document_random_hasher()`]).
+    pub document_random_hasher_key: (u64, u64),
 }
 
 bitflags! {

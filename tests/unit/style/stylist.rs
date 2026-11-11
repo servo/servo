@@ -252,6 +252,7 @@ fn mock_stylist() -> Stylist {
         initial_style,
         Box::new(DummyMetricsProvider),
         Box::from("Submit"),
+        (0, 0), /* document_random_hasher_key */
         MediaData {
             media_type: MediaType::screen(),
             quirks_mode: QuirksMode::NoQuirks,
