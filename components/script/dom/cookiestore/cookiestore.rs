@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
 use std::collections::VecDeque;
 
 use cookie::{Cookie, SameSite};
@@ -50,16 +51,26 @@ struct DroppableCookieStore {
     store_id: CookieStoreId,
     #[no_trace]
     unregister_channel: GenericSender<CoreResourceMsg>,
+    unregistered: Cell<bool>,
+}
+
+impl DroppableCookieStore {
+    fn unregister(&self) {
+        if !self.unregistered.get() {
+            self.unregistered.set(true);
+            let res = self
+                .unregister_channel
+                .send(CoreResourceMsg::RemoveCookieListener(self.store_id));
+            if res.is_err() {
+                error!("Failed to send cookiestore message to resource threads");
+            }
+        }
+    }
 }
 
 impl Drop for DroppableCookieStore {
     fn drop(&mut self) {
-        let res = self
-            .unregister_channel
-            .send(CoreResourceMsg::RemoveCookieListener(self.store_id));
-        if res.is_err() {
-            error!("Failed to send cookiestore message to resource threads");
-        }
+        self.unregister();
     }
 }
 
@@ -142,6 +153,7 @@ impl CookieStore {
             droppable: DroppableCookieStore {
                 store_id: CookieStoreId::new(),
                 unregister_channel,
+                unregistered: Cell::new(false),
             },
         }
     }
@@ -156,6 +168,13 @@ impl CookieStore {
         );
         store.setup_route();
         store
+    }
+
+    /// Called when the global scope is being torn down to clean up the cookie store listener
+    /// and break the circular reference held by the resource thread.
+    pub(crate) fn clean_up(&self) {
+        self.droppable.unregister();
+        self.in_flight.borrow_mut().clear();
     }
 
     fn setup_route(&self) {

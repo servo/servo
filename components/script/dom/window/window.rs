@@ -543,6 +543,10 @@ impl Window {
         self.upcast::<GlobalScope>()
     }
 
+    pub(crate) fn cookie_store(&self) -> Option<DomRoot<CookieStore>> {
+        self.cookie_store.get()
+    }
+
     /// <https://www.w3.org/TR/largest-contentful-paint/#has-dispatched-scroll-event>
     pub(crate) fn mark_has_dispatched_scroll_event(&self) {
         self.has_dispatched_scroll_event.set(true);
