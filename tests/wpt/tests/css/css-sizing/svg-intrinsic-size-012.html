@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: Test SVG intrinsic sizing with several values for the width and height attributes</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14117">
+<meta name="assert" content="
+  The width and height attributes only set natural sizes if they're literal number-tokens,
+  or dimension-tokens for an absolute length unit. Also they must be non-negative.
+">
+
+<style>
+body {
+  /* To test var(--n) and inherit(--n) */
+  --n: 100;
+  --l: 100px;
+}
+svg {
+  display: block;
+  border: solid;
+  width: auto; /* Avoid presentational hint from the attribute */
+  height: auto; /* Avoid presentational hint from the attribute */
+}
+</style>
+
+<div id="log"></div>
+<svg id="target" data-n="100" data-l="100px"></svg>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const valid = {
+  // Positive numbers and absolute lengths
+  // https://www.w3.org/TR/css-values-4/#absolute-lengths
+  "96": 96,
+  "96px": 96,
+  "2.54cm": 96,
+  "25.4mm": 96,
+  "101.6Q": 96,
+  "1in": 96,
+  "6pc": 96,
+  "72pt": 96,
+
+  // Zero, including negative zero
+  "0": 0,
+  "-0": 0,
+  "0px": 0,
+  "-0px": 0,
+  "0cm": 0,
+  "-0cm": 0,
+
+  // Non-canonical forms
+  " 100 ": 100,
+  " 100px ": 100,
+  "+100": 100,
+  "+100px": 100,
+  "1e2": 100,
+  "1e2px": 100,
+  "100pX": 100,
+};
+const invalid = [
+  // Trash
+  "",
+  " ",
+  "-",
+  "trash",
+
+  // Font-relative length units
+  // https://www.w3.org/TR/css-values-4/#font-relative-lengths
+  "1em",
+  "1rem",
+  "1ex",
+  "1rex",
+  "1cap",
+  "1rcap",
+  "1ch",
+  "1rch",
+  "1ic",
+  "1ric",
+  "1lh",
+  "1rlh",
+
+  // Viewport-percentage length units
+  // https://www.w3.org/TR/css-values-4/#viewport-relative-lengths
+  "1vw",
+  "1svw",
+  "1lvw",
+  "1dvw",
+  "1vh",
+  "1svh",
+  "1lvh",
+  "1dvh",
+  "1vi",
+  "1svi",
+  "1lvi",
+  "1dvi",
+  "1vb",
+  "1svb",
+  "1lvb",
+  "1dvb",
+  "1vmin",
+  "1svmin",
+  "1lvmin",
+  "1dvmin",
+  "1vmax",
+  "1svmax",
+  "1lvmax",
+  "1dvmax",
+
+  // Container-relative length units
+  // https://www.w3.org/TR/css-conditional-5/#container-lengths
+  "1cqw",
+  "1cqh",
+  "1cqi",
+  "1cqb",
+  "1cqmin",
+  "1cqmax",
+
+  // Zero with invalid units
+  "0em",
+  "0rem",
+  "0vw",
+  "0svw",
+  "0cqw",
+  "0cqh",
+
+  // Percentages
+  "0%",
+  "1%",
+  "100%",
+
+  // Variable unit references
+  // https://drafts.csswg.org/css-variables-2/#variable-unit-reference
+  "1--n",
+  "1--l",
+
+  // Negative amounts
+  "-1",
+  "-1px",
+  "-1cm",
+  "-1%",
+
+  // Math functions
+  // https://www.w3.org/TR/css-values-4/#math
+  "calc(1)",
+  "calc(1px)",
+  "min(1)",
+  "min(1px)",
+  "clamp(1, 1, 1)",
+  "clamp(1px, 1px, 1px)",
+  "round(1, 1)",
+  "round(1px, 1px)",
+  "mod(1, 1)",
+  "mod(1px, 1px)",
+  "rem(1, 1)",
+  "rem(1px, 1px)",
+  "sin(0)",
+  "cos(0)",
+  "tan(0)",
+  "pow(1, 1)",
+  "sqrt(1)",
+  "hypot(1)",
+  "hypot(1px)",
+  "log(1)",
+  "exp(1)",
+  "abs(1)",
+  "abs(1px)",
+  "sign(1)",
+  "sign(1px)",
+  "calc(e)",
+  "calc(pi)",
+  "calc(infinity)",
+  "calc(-infinity)",
+  "calc(NaN)",
+
+  // Other functions
+  "attr(data-n number)",
+  "attr(data-n px)",
+  "attr(data-l type(<length>))",
+  "var(--n)",
+  "var(--l)",
+  "inherit(--n)",
+  "inherit(--l)",
+  "sibling-index()",
+];
+
+const target = document.getElementById("target");
+for (let [size, expected] of Object.entries(valid)) {
+  test(function() {
+    target.setAttribute("width", size);
+    target.setAttribute("height", size);
+    assert_equals(target.clientWidth, expected, "width");
+    assert_equals(target.clientHeight, expected, "height");
+  }, `"${size}" is a valid natural size`);
+}
+for (let size of invalid) {
+  test(function() {
+    target.setAttribute("width", size);
+    target.setAttribute("height", size);
+    assert_equals(target.clientWidth, 300, "width");
+    assert_equals(target.clientHeight, 150, "height");
+  }, `"${size}" is NOT a valid natural size`);
+}
+</script>
