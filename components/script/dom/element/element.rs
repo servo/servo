@@ -5387,11 +5387,11 @@ impl Element {
                     .perform_validation_and_update(cx, ValidationFlags::all());
             }
             return validatable.is_instance_validatable(cx.no_gc()) &&
-                !validatable.satisfies_constraints(cx);
+                !validatable.satisfies_constraints();
         }
 
         if let Some(internals) = self.get_element_internals() {
-            return internals.is_invalid(cx);
+            return internals.is_invalid(cx.no_gc());
         }
         false
     }
