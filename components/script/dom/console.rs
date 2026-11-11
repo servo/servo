@@ -1299,6 +1299,25 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         }
     }
 
+    /// <https://console.spec.whatwg.org/#dirxml>
+    fn Dirxml(cx: &mut JSContext, global: &GlobalScope, data: Vec<HandleValue>) {
+        // Step 1. Let finalList be a new list, initially empty.
+        // Step 2. For each item of data:
+        // Step 2.1. Let converted be a DOM tree representation of item if possible; otherwise
+        // let converted be item with optimally useful formatting applied.
+        // TODO: Print DOM nodes as a DOM tree. For now every item gets the same formatting
+        // as `console.log`.
+        // Step 2.2. Append converted to finalList.
+        // Step 3. Perform Logger("dirxml", finalList).
+        Console::method(
+            cx,
+            global,
+            ConsoleLogLevel::Log,
+            data,
+            IncludeStackTrace::No,
+        );
+    }
+
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console/assert>
     fn Assert(
         cx: &mut JSContext,
