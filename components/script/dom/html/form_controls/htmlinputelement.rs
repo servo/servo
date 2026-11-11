@@ -2226,7 +2226,11 @@ impl HTMLInputElement {
     }
 
     fn value_changed(&self, cx: &mut JSContext) {
-        self.changed_by_user_while_focused.set(self.upcast::<Element>().owner_window().has_transient_activation());
+        self.changed_by_user_while_focused.set(
+            self.upcast::<Element>()
+                .owner_window()
+                .has_transient_activation(),
+        );
         self.maybe_update_shared_selection();
         self.update_related_validity_states(cx);
         if self.upcast::<Node>().is_connected() {
