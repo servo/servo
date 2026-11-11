@@ -1,9 +1,9 @@
 // Create an `<iframe>` element with the given script contents and then
 // return true if `<iframe>`'s document is no longer resident in memory.
-async function createAndDestroyIframeWithHTML(html) {
+async function createAndDestroyIframeWithHTML(html, message) {
   const waitForFrameMessage = new Promise((resolve) => {
     window.addEventListener("message", (event) => {
-      if (event.data == "testStarted") {
+      if (event.data == (message || "testStarted")) {
         resolve();
       }
     })
