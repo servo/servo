@@ -26,7 +26,6 @@ use crate::dom::event::eventtarget::EventTarget;
 use crate::dom::html::interactive::htmldialogelement::HTMLDialogElement;
 use crate::dom::node::NodeTraits;
 use crate::dom::promise::Promise;
-use crate::dom::window::Window;
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
 use crate::runtime::script_runtime::ScriptThreadEventCategory;
 use crate::tasks::task::TaskOnce;
@@ -38,8 +37,8 @@ use crate::tasks::task_source::TaskSourceName;
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct DocumentOverlayHandler {
-    /// The [`Window`] element for this [`DocumentOverlayHandler`].
-    window: Dom<Window>,
+    /// The [`Document`] this [`DocumentOverlayHandler`] belongs to.
+    document: Dom<Document>,
     /// Entry node for fullscreen.
     fullscreen_element: MutNullableDom<Element>,
     /// <https://drafts.csswg.org/css-position-4/#document-top-layer>
@@ -55,9 +54,9 @@ pub(crate) struct DocumentOverlayHandler {
 }
 
 impl DocumentOverlayHandler {
-    pub(crate) fn new(window: &Window) -> Self {
+    pub(crate) fn new(document: &Document) -> Self {
         Self {
-            window: Dom::from_ref(window),
+            document: Dom::from_ref(document),
             fullscreen_element: MutNullableDom::new(None),
             top_layer: Default::default(),
             pending_top_layer_removals: Default::default(),
@@ -98,7 +97,7 @@ impl DocumentOverlayHandler {
     ) -> RootedPromise {
         // Step 1
         // > Let pendingDoc be this’s node document.
-        let document = self.window.Document();
+        let document = pending.owner_document();
 
         // Step 2
         // > Let promise be a new promise.
@@ -186,7 +185,7 @@ impl DocumentOverlayHandler {
 
         // Step 7
         // > Return promise, and run the remaining steps in parallel.
-        let pipeline_id = self.window.pipeline_id();
+        let pipeline_id = self.document.window().pipeline_id();
 
         let trusted_pending = Trusted::new(pending);
         let trusted_pending_doc = Trusted::new(&*document);
@@ -204,14 +203,14 @@ impl DocumentOverlayHandler {
             TaskSourceName::DOMManipulation,
         );
         let msg = MainThreadScriptMsg::Common(script_msg);
-        self.window.main_thread_script_chan().send(msg).unwrap();
+        self.document.window().main_thread_script_chan().send(msg).unwrap();
 
         promise
     }
 
     /// <https://fullscreen.spec.whatwg.org/#exit-fullscreen>
     pub(crate) fn exit_fullscreen(&self, cx: &mut JSContext) -> RootedPromise {
-        let document = self.window.Document();
+        let document = &*self.document;
 
         // Step 1
         // > Let promise be a new promise
@@ -244,7 +243,7 @@ impl DocumentOverlayHandler {
         let trusted_element = Trusted::new(&*element);
         let trusted_promise = TrustedPromise::from(&promise);
         let handler = ElementPerformFullscreenExit::new(trusted_element, trusted_promise);
-        let pipeline_id = Some(self.window.pipeline_id());
+        let pipeline_id = Some(self.document.window().pipeline_id());
         let script_msg = CommonScriptMsg::Task(
             ScriptThreadEventCategory::ExitFullscreen,
             handler,
@@ -252,23 +251,23 @@ impl DocumentOverlayHandler {
             TaskSourceName::DOMManipulation,
         );
         let msg = MainThreadScriptMsg::Common(script_msg);
-        self.window.main_thread_script_chan().send(msg).unwrap();
+        self.document.window().main_thread_script_chan().send(msg).unwrap();
 
         promise
     }
 
     /// <https://html.spec.whatwg.org/multipage/#allowed-to-use>
     pub(crate) fn get_allow_fullscreen(&self) -> bool {
-        match self.window.Document().browsing_context() {
+        match self.document.browsing_context() {
             // Step 1
             None => false,
             Some(_) => {
                 // Step 2
-                if self.window.is_top_level() {
+                if self.document.window().is_top_level() {
                     true
                 } else {
                     // Step 3
-                    self.window
+                    self.document.window()
                         .GetFrameElement()
                         .is_some_and(|el| el.has_attribute(&local_name!("allowfullscreen")))
                 }
@@ -451,7 +450,7 @@ impl DocumentOverlayHandler {
 
         // > While document is so blocked, every node that is connected to document, with the
         // > exception of the subject element and its flat tree descendants, must become inert.
-        if let Some(document_element) = self.window.Document().GetDocumentElement() {
+        if let Some(document_element) = self.document.GetDocumentElement() {
             let is_inert = new_topmost_modal.is_some() ||
                 document_element.has_attribute(&local_name!("inert"));
             document_element.set_state(no_gc, ElementState::INERT, is_inert);

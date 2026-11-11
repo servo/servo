@@ -4,7 +4,7 @@
 
 #![cfg_attr(crown, allow(crown::jscontext_first_arg))]
 
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, OnceCell, RefCell};
 use std::cmp::Ordering;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
@@ -469,7 +469,7 @@ pub(crate) struct Document {
     /// A helper used to process and store data related to focus handling.
     focus_handler: DocumentFocusHandler,
     /// A helper used to process and store data related to overlays.
-    overlay_handler: DocumentOverlayHandler,
+    overlay_handler: OnceCell<DocumentOverlayHandler>,
     /// A helper to handle showing and hiding user interface controls in the embedding layer.
     embedder_controls: DocumentEmbedderControls,
     id_map: TreeOrderedIndexMap,
@@ -4270,7 +4270,7 @@ impl Document {
             quirks_mode: Cell::new(quirks_mode),
             event_handler: DocumentEventHandler::new(window),
             focus_handler: DocumentFocusHandler::new(window, has_focus),
-            overlay_handler: DocumentOverlayHandler::new(window),
+            overlay_handler: Default::default(),
             embedder_controls: DocumentEmbedderControls::new(window),
             id_map: TreeOrderedIndexMap::id(),
             name_map: TreeOrderedIndexMap::name(),
@@ -4450,7 +4450,8 @@ impl Document {
 
     /// Get the [`Document`]'s [`DocumentOverlayHandler`].
     pub(crate) fn overlay_handler(&self) -> &DocumentOverlayHandler {
-        &self.overlay_handler
+        self.overlay_handler
+            .get_or_init(|| DocumentOverlayHandler::new(self))
     }
 
     /// Get the [`Document`]'s [`DocumentEmbedderControls`].
