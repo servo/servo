@@ -598,8 +598,10 @@ impl HTMLTextAreaElement {
     }
 
     pub(crate) fn set_user_validity(&self, cx: &mut JSContext, value: bool) {
-        self.user_validity.set(value);
-        self.update_user_valid_state(cx);
+        if self.user_validity.get() != value {
+            self.user_validity.set(value);
+            self.update_user_valid_state(cx);
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#selector-user-valid>
