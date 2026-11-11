@@ -12,11 +12,12 @@ import tempfile
 from argparse import ArgumentParser, Namespace
 from typing import Any
 
+from .manifestupdate import ensure_manifests_up_to_date
 from wptrunner import wptcommandline  # noqa: F401
 from wptrunner.update import WPTUpdate, setup_logging  # noqa: F401
 from wptrunner.update.base import exit_unclean  # noqa: F401
 
-from . import WPT_PATH, manifestupdate
+from . import WPT_PATH
 
 TEST_ROOT = os.path.join(WPT_PATH, "tests")
 META_ROOT = os.path.join(WPT_PATH, "meta")
@@ -37,12 +38,6 @@ def do_sync(**kwargs: str) -> int:
 
     if last_commit == subprocess.check_output(["git", "log", "-1"]):
         return 255
-
-    # Update the manifest twice to reach a fixed state
-    # (https://github.com/servo/servo/issues/22275).
-    print("Updating test manifests...")
-    manifestupdate.update(check_clean=False)
-    manifestupdate.update(check_clean=False)
 
     remove_unused_metadata()
 
@@ -120,6 +115,8 @@ def run_update(**kwargs: Any) -> bool:
         return download_run_results_and_then_run_update(kwargs)
 
     logger = setup_logging(kwargs, {"mach": sys.stdout})
+    ensure_manifests_up_to_date(logger)
+
     return WPTUpdate(logger, **kwargs).run() != exit_unclean
 
 
@@ -171,6 +168,7 @@ def download_run_results_and_then_run_update(kwargs: dict[str, Any]) -> bool:
 
         kwargs["run_log"] = downloaded_run_logs
         logger = setup_logging(kwargs, {"mach": sys.stdout})
+        ensure_manifests_up_to_date(logger)
         return WPTUpdate(logger, **kwargs).run() != exit_unclean
 
 

@@ -80,3 +80,9 @@ justfile
 
 # devcontainer
 devcontainer-lock.json
+
+# WPT Manifest files (cached and generated)
+tests/wpt/meta/MANIFEST.json
+tests/wpt/webgpu/meta/MANIFEST.json
+tests/wpt/webgl/meta/MANIFEST.json
+tests/wpt/mozilla/meta/MANIFEST.json
