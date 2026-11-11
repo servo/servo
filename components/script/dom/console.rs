@@ -96,7 +96,8 @@ impl Console {
         #[cfg(feature = "devtools")]
         if global.devtools_chan().is_some() {
             rooted_vec!(let mut seen);
-            let devtools_arguments = if messages.get(0).is_none_or(|message| !message.is_string()) {
+            let devtools_arguments = if messages.first().is_none_or(|message| !message.is_string())
+            {
                 messages
                     .iter()
                     .map(|msg| devtools::console_argument_from_handle_value(cx, *msg, &mut seen))
