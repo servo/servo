@@ -1210,8 +1210,8 @@ impl<'style, 'builder, 'dom, 'a> TableRowBuilder<'style, 'builder, 'dom, 'a> {
                 IndependentFormattingContextContents::Flow(
                     BlockFormattingContext::from_block_container(
                         block_container,
-                        true, /* is_table_cell */
-                        None,
+                        /* is_table_cell = */ true,
+                        /* text_area_size = */ None,
                     ),
                 ),
                 propagated_data,

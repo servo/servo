@@ -101,8 +101,8 @@ impl<'dom> ModernContainerJob<'dom> {
 
                 let block_formatting_context = BlockFormattingContext::from_block_container(
                     BlockContainer::InlineFormattingContext(inline_formatting_context),
-                    false, /* is_table_cell */
-                    None,
+                    /* is_table_cell = */ false,
+                    /* text_area_size = */ None,
                 );
 
                 let info = builder.anonymous_info();

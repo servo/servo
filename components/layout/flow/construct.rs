@@ -26,7 +26,7 @@ use crate::dom_traversal::{
 };
 use crate::flow::float::FloatBox;
 use crate::flow::same_formatting_context_block::SameFormattingContextBlock;
-use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox, TextareaSize};
+use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox, TextAreaSize};
 use crate::formatting_contexts::{
     IndependentFormattingContext, IndependentFormattingContextContents,
 };
@@ -48,25 +48,20 @@ impl BlockFormattingContext {
         Self::from_block_container(
             BlockContainer::construct(context, info, contents, propagated_data, is_list_item),
             is_table_cell,
-            Self::text_control_size(&info.node),
+            Self::text_area_size(&info.node),
         )
     }
 
     /// Calculates the content size for textareas that are instead dictated by
     /// their rows.
-    fn text_control_size(node: &ServoLayoutNode) -> Option<TextareaSize> {
-        // This natural height does not apply to pseudo-elements
-        if node.pseudo_element_chain().is_empty() {
-            node.textarea_rows().map(|rows| TextareaSize { rows })
-        } else {
-            None
-        }
+    fn text_area_size(node: &ServoLayoutNode) -> Option<TextAreaSize> {
+        node.textarea_rows().map(|rows| TextAreaSize { rows })
     }
 
     pub(crate) fn from_block_container(
         contents: BlockContainer,
         is_table_cell: bool,
-        text_area_size: Option<TextareaSize>,
+        text_area_size: Option<TextAreaSize>,
     ) -> Self {
         let contains_floats = contents.contains_floats();
         Self {

@@ -67,23 +67,24 @@ pub(crate) struct BlockFormattingContext {
     /// This currently drives layouts for text areas as they require sizing based
     /// on their number of rows. This is only Some for <textarea>s, otherwise it
     /// is always None.
-    pub text_area_size: Option<TextareaSize>,
+    pub text_area_size: Option<TextAreaSize>,
 }
 
-/// <https://html.spec.whatwg.org/multipage/#textarea-effective-height>
 /// Helps format textareas according to their effective size as dictated by the
 /// spec.
+/// <https://html.spec.whatwg.org/multipage/rendering.html#the-textarea-element-2>
 #[derive(Debug, MallocSizeOf)]
-pub(crate) struct TextareaSize {
-    /// The number of rows in this text control, which is used to direct the
-    /// height (and "auto" height) as the spec requires for its automatic
-    /// height.
+pub(crate) struct TextAreaSize {
+    /// The number of rows in this `<textarea>`, which is used to determine
+    /// its intrinsic block size when it has `field-sizing: fixed`.
+    /// <https://html.spec.whatwg.org/multipage/#textarea-effective-height>
+    /// <https://drafts.csswg.org/css-forms-1/#field-sizing>
     rows: u32,
-    // TODO: Correct cols layout too (https://github.com/servo/servo/issues/44426)
+    // TODO(44426): Store cols too, for the intrinsic inline size.
 }
 
-impl TextareaSize {
-    /// Effective block size of this text control, which is the number of rows
+impl TextAreaSize {
+    /// Effective block size of this text area, which is the number of rows
     /// multiplied by the line height. With no font available, this will
     /// return None.
     ///
@@ -101,7 +102,6 @@ impl TextareaSize {
             &InlineContainerStateFlags::empty(),
         );
         let rows = i32::try_from(self.rows).unwrap_or(i32::MAX);
-
         Some(line_height * rows)
     }
 }
@@ -535,17 +535,17 @@ impl BlockFormattingContext {
             sequential_layout_state.calculate_clearance(Clear::Both, &CollapsedMargin::zero())
         });
 
-        let measured_block_size = flow_layout.content_block_size +
+        let content_block_size = flow_layout.content_block_size +
             flow_layout.collapsible_margins_in_children.end.solve() +
             clearance.unwrap_or_default();
 
-        let content_block_size = self
+        let intrinsic_block_size = self
             .text_area_size
             .as_ref()
-            .and_then(|text_control_size| {
-                text_control_size.effective_block_size(&base?.style, &layout_context.font_context)
+            .and_then(|text_area_size| {
+                text_area_size.effective_block_size(&base?.style, &layout_context.font_context)
             })
-            .unwrap_or(measured_block_size);
+            .unwrap_or(content_block_size);
 
         let mut apply_align_content = || {
             // Don't handle `align-content` for table cells, since at this point we still
@@ -607,11 +607,11 @@ impl BlockFormattingContext {
 
             // Compute the free space. If negative, the "safe" alignment variants fall back
             // to `start` alignment.
+            // Note that the alignment subject is the actual contents of the box, even if
+            // the intrinsic block size is different (as is the case with <textarea>)
             flow_layout.depends_on_block_constraints = true;
-            let final_block_size = lazy_block_size.resolve(|| content_block_size);
-            // Must use the text as the alignment subject in the case of a textarea
-            // and not the effective size (https://github.com/servo/servo/pull/49734#issuecomment-6773635158)
-            let free_space = final_block_size - measured_block_size;
+            let final_block_size = lazy_block_size.resolve(|| intrinsic_block_size);
+            let free_space = final_block_size - content_block_size;
             if free_space <= Au::zero() && is_safe {
                 return;
             }
@@ -629,7 +629,7 @@ impl BlockFormattingContext {
                 },
                 size: LogicalVec2 {
                     inline: containing_block.size.inline,
-                    block: measured_block_size,
+                    block: content_block_size,
                 },
             }
             .as_physical_deprecated(containing_block);
@@ -649,7 +649,7 @@ impl BlockFormattingContext {
 
         IndependentFormattingContextLayoutResult {
             fragments: flow_layout.fragments,
-            content_block_size,
+            content_block_size: intrinsic_block_size,
             content_inline_size_for_table: None,
             baselines: flow_layout.baselines,
             depends_on_block_constraints: flow_layout.depends_on_block_constraints,
