@@ -58,7 +58,7 @@ fn create_test_image_cache() -> (Arc<dyn ImageCache>, Receiver<PipelineId>) {
     let dummy_resolver = Arc::new(DummyFontResolver);
     let image_decoder = Arc::new(DefaultImageDecoder::default());
 
-    let factory = ImageCacheFactoryImpl::new(ResourceBytes::from_vec(image_decoder, vec![]));
+    let factory = ImageCacheFactoryImpl::new(image_decoder, ResourceBytes::from_vec(vec![]));
     let cache = factory.create(
         TEST_WEBVIEW_ID,
         TEST_PIPELINE_ID,
