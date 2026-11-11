@@ -914,7 +914,7 @@ fn layout_block_level_children(
             &mut placement_state,
             ignore_block_margins_for_stretch,
         ),
-        None => layout_block_level_children_in_parallel(
+        None => layout_block_level_children_maybe_in_parallel(
             layout_context,
             positioning_context,
             child_boxes,
@@ -943,7 +943,7 @@ fn layout_block_level_children(
     }
 }
 
-fn layout_block_level_children_in_parallel(
+fn layout_block_level_children_maybe_in_parallel(
     layout_context: &LayoutContext,
     positioning_context: &mut PositioningContext,
     child_boxes: &[ArcRefCell<BlockLevelBox>],
@@ -953,22 +953,31 @@ fn layout_block_level_children_in_parallel(
     let mut layout_results: Vec<(Fragment, PositioningContext)> =
         Vec::with_capacity(child_boxes.len());
 
-    child_boxes
-        .par_iter()
-        .map(|child_box| {
-            let mut child_positioning_context = PositioningContext::default();
-            let fragment = child_box.borrow().layout(
-                layout_context,
-                &mut child_positioning_context,
-                placement_state.containing_block,
-                /* sequential_layout_state = */ None,
-                /* collapsible_with_parent_start_margin = */ None,
-                ignore_block_margins_for_stretch,
-                false, /* has_inline_parent */
-            );
-            (fragment, child_positioning_context)
-        })
-        .collect_into_vec(&mut layout_results);
+    let layout = |child_box: &ArcRefCell<BlockLevelBox>| {
+        let mut child_positioning_context = PositioningContext::default();
+        let fragment = child_box.borrow().layout(
+            layout_context,
+            &mut child_positioning_context,
+            placement_state.containing_block,
+            /* sequential_layout_state = */ None,
+            /* collapsible_with_parent_start_margin = */ None,
+            ignore_block_margins_for_stretch,
+            false, /* has_inline_parent */
+        );
+        (fragment, child_positioning_context)
+    };
+
+    let job_counts = child_boxes
+        .iter()
+        .map(|block_level_box| block_level_box.borrow().subtree_size());
+    if layout_context.should_parallelize_layout(job_counts) {
+        child_boxes
+            .par_iter()
+            .map(layout)
+            .collect_into_vec(&mut layout_results);
+    } else {
+        layout_results.extend(child_boxes.iter().map(layout));
+    };
 
     layout_results
         .into_iter()
