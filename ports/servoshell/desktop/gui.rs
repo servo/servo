@@ -89,10 +89,10 @@ pub struct Gui {
     /// These need to be cached across egui draw calls.
     favicon_textures: HashMap<WebViewId, (egui::TextureHandle, egui::load::SizedTexture)>,
 
-    /// A record of accessibility tree ids that have already been sent to AccessKit.
-    /// This is used to avoid focusing a grafted tree before it has been sent. Pruned
-    /// at the end of each GUI update.
-    sent_accesskit_trees: HashSet<accesskit::TreeId>,
+    /// A record of accessibility tree ids that correspond to extant WebViews and have already been
+    /// sent to AccessKit. This is used to avoid focusing a grafted tree before it has been sent.
+    /// Pruned at the end of each GUI update.
+    sent_webview_accesskit_trees: HashSet<accesskit::TreeId>,
 
     /// AccessKit tree updates pending to be sent during the next call to [`Self::update`].
     /// This allows us to ensure that graft nodes are sent before the subtrees they graft.
@@ -272,7 +272,7 @@ impl Gui {
             can_go_back: false,
             can_go_forward: false,
             favicon_textures: Default::default(),
-            sent_accesskit_trees: Default::default(),
+            sent_webview_accesskit_trees: Default::default(),
             pending_accesskit_updates: vec![],
             webview_widget_focused: false,
         }
@@ -652,10 +652,10 @@ impl Gui {
                 // been sent yet, so we need to keep track of whether a TreeUpdate containing the
                 // grafted tree has been sent before focusing the WebViewWidget if accessibility is
                 // active.
-                let tree_id_known = webview
+                let tree_id_sent = webview
                     .accesskit_tree_id()
-                    .is_none_or(|tree_id| self.sent_accesskit_trees.contains(&tree_id));
-                let can_take_focus = webview_active && webview.focused() && tree_id_known;
+                    .is_none_or(|tree_id| self.sent_webview_accesskit_trees.contains(&tree_id));
+                let can_take_focus = webview_active && webview.focused() && tree_id_sent;
                 let panel = WebViewWidget::new(
                     webview.clone(),
                     scale_factor,
@@ -722,11 +722,11 @@ impl Gui {
         for tree_update in self.pending_accesskit_updates.drain(..) {
             let tree_id = tree_update.tree_id;
             adapter.update_if_active(|| tree_update);
-            self.sent_accesskit_trees.insert(tree_id);
+            self.sent_webview_accesskit_trees.insert(tree_id);
         }
 
-        // Prune any unused AccessKit tree ids.
-        self.sent_accesskit_trees.retain(|tree_id| {
+        // Prune any AccessKit tree ids which don't correspond to extant WebViews.
+        self.sent_webview_accesskit_trees.retain(|tree_id| {
             window
                 .webview_collection()
                 .values()
