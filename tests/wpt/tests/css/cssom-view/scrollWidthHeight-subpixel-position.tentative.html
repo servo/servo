@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="author" title="Jacob Mackenzie-Websdale" href="mailto:jacobmacweb@proton.me">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollheight">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/9866">
+<meta name="assert" content="An element with no overflow reports the same integer for scrollWidth/Height and clientWidth/Height, even when its position offset is a non-integer value">
+<title>scroll{Width,Height} shouldn't change with the position of the node</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body { margin: 0; }
+/* .7px important for testing rounding on scrollHeight */
+#target { width: 200.7px; height: 100.7px; border: 1px solid black; position: relative; }
+</style>
+
+<div id="target"></div>
+
+<script>
+let target = document.getElementById("target");
+
+for (let top of ["0px", "0.2px", "0.4px", "0.5px", "0.6px", "0.8px"]) {
+  for (let left of ["0px", "0.2px", "0.4px", "0.5px", "0.6px", "0.8px"]) {
+    test(function() {
+      target.style.top = top;
+      target.style.left = left;
+      let sh = target.scrollHeight;
+      let sw = target.scrollWidth;
+      let ch = target.clientHeight;
+      let cw = target.clientWidth;
+      assert_equals(sh, ch, "scrollHeight should match clientHeight, since there's no overflow");
+      assert_equals(sw, cw, "scrollWidth should match clientWidth, since there's no overflow");
+    }, `scroll{Width,Height} should match client{Width,Height} if there is no overflow and their position is offset on top by ${top} and left by ${left}`)
+  }
+}
+</script>
