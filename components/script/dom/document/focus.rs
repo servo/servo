@@ -12,7 +12,6 @@ use js::gc::RootedGuard;
 use keyboard_types::{KeyboardEvent as KeyboardTypesEvent, Modifiers};
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
-use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::inheritance::Castable;
@@ -495,7 +494,8 @@ impl DocumentFocusHandler {
             if let Some(element) = entry.element() &&
                 let Some(input) = element.downcast::<HTMLInputElement>() &&
                 input.does_change_event_apply() &&
-                !input.has_defined_activation_behavior()
+                !input.has_defined_activation_behavior() &&
+                input.changed_by_user_while_focused()
             {
                 // Step 2.1.1: Set entry's user validity to true.
                 input.set_user_validity(cx, true);

@@ -135,6 +135,7 @@ pub(crate) struct HTMLInputElement {
     value_dirty: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#user-validity>
     user_validity: Cell<bool>,
+    changed_by_user_while_focused: Cell<bool>,
 
     /// <https://w3c.github.io/selection-api/#dfn-has-scheduled-selectionchange-event>
     has_scheduled_selectionchange_event: Cell<bool>,
@@ -192,6 +193,7 @@ impl HTMLInputElement {
             )),
             value_dirty: Cell::new(false),
             user_validity: Cell::new(false),
+            changed_by_user_while_focused: Cell::new(false),
             form_owner: Default::default(),
             labels_node_list: MutNullableDom::new(None),
             validity_state: Default::default(),
@@ -401,6 +403,11 @@ impl HTMLInputElement {
 
     pub(crate) fn has_defined_activation_behavior(&self) -> bool {
         InputActivationType::new_from_input_type(&self.input_type()).is_some()
+    }
+
+    #[inline]
+    pub(crate) fn changed_by_user_while_focused(&self) -> bool {
+        self.changed_by_user_while_focused.get()
     }
 
     pub(crate) fn set_user_validity(&self, cx: &mut JSContext, value: bool) {
@@ -2219,6 +2226,7 @@ impl HTMLInputElement {
     }
 
     fn value_changed(&self, cx: &mut JSContext) {
+        self.changed_by_user_while_focused.set(self.upcast::<Element>().owner_window().has_transient_activation());
         self.maybe_update_shared_selection();
         self.update_related_validity_states(cx);
         if self.upcast::<Node>().is_connected() {
