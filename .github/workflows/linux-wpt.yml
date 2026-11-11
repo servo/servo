@@ -26,9 +26,6 @@ env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   GST_PLUGIN_FEATURE_RANK: pulsesink:NONE,alsasink:NONE,jacksink:NONE,fakesink:MAX
-  INTERMITTENT_TRACKER_DASHBOARD_SECRET: ${{ !inputs.wpt-sync-from-upstream && secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET || '' }}
-  INTERMITTENT_TRACKER_DASHBOARD_SECRET_PROD: ${{ !inputs.wpt-sync-from-upstream && secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET_PROD || '' }}
-  INTERMITTENT_TRACKER_DASHBOARD_SECRET_STAGING: ${{ !inputs.wpt-sync-from-upstream && secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET_STAGING || '' }}
   WPT_ALWAYS_SUCCEED_ARG: "${{ inputs.wpt-sync-from-upstream && '--always-succeed' || '' }}"
 
 jobs:
@@ -67,6 +64,9 @@ jobs:
       - runner-select
     name: WPT [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
+    permissions:
+      contents: read
+      issues: read
     strategy:
       fail-fast: false
       matrix:
@@ -119,7 +119,7 @@ jobs:
             --filter-intermittents wpt-filtered-logs/linux/${{ matrix.chunk_id }}.json \
             ${{ inputs.wpt-args }}
         env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
+          GH_TOKEN: ${{ github.token }}
       - name: Archive results (filtered)
         uses: actions/upload-artifact@v7
         if: ${{ always() }}
