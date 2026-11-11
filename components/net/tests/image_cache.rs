@@ -108,6 +108,7 @@ fn encoded_test_image() -> Image {
 }
 
 #[test]
+/// To make sure that cloning just increases Arc instead of an extra allocation.
 fn test_encoded_image_reuses_original_decode() {
     let image = encoded_test_image();
     let clone = image.clone();
@@ -122,6 +123,9 @@ fn test_encoded_image_reuses_original_decode() {
 }
 
 #[test]
+/// This is a test to see if running more than one "simultanious requests" to as_raster_image
+/// would produce "one Arc". But it does not guarantee if the extra runners did "extra job"
+/// and just discarded their job results...
 fn test_encoded_image_concurrent_original_decode() {
     let image = encoded_test_image();
     let barrier = Arc::new(Barrier::new(8));
@@ -164,6 +168,30 @@ fn test_encoded_image_original_decode_is_independent_of_display_decode() {
     let after_display_decode = image.as_raster_image().unwrap();
     assert!(Arc::ptr_eq(&original, &after_display_decode));
     assert_eq!(after_display_decode.decoded_resolution, image.metadata());
+}
+
+#[test]
+fn test_encoded_image_caches_original_decode_failure() {
+    let source = EncodedImage::new(
+        PendingImageId(0),
+        ImageMetadata {
+            width: 1,
+            height: 1,
+        },
+        CorsStatus::Safe,
+        None,
+        Arc::new(b"not an image".to_vec()),
+    );
+
+    assert!(!source.original_decode_failed());
+
+    assert!(source.decode_to_original_size().is_none());
+    // A cached failure is distinct from a decode that was never attempted.
+    // see original_decode_failed
+    assert!(source.original_decode_failed());
+
+    assert!(source.decode_to_original_size().is_none());
+    assert!(source.original_decode_failed());
 }
 
 fn svg_image_bytes() -> Vec<u8> {

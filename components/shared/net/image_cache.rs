@@ -109,6 +109,15 @@ impl EncodedImage {
             })
             .clone()
     }
+
+    #[cfg(feature = "test-util")]
+    /// There is currently no clear destinction between None that mean decode failed once
+    /// and None that mean OnceLock is cached to None.
+    /// TODO: have a proper way to recover from fail
+    /// but now, I just expose this to have a test.
+    pub fn original_decode_failed(&self) -> bool {
+        matches!(self.original_image.get(), Some(None))
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
