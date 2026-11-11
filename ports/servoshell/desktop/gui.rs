@@ -277,17 +277,9 @@ impl Gui {
         self.webview_panel_focused
     }
 
-    /// See [`webview_panel_is_focused`](#structfield.webview_panel_is_focused)
+    /// See [`webview_panel_focused`](#structfield.webview_panel_focused)
     pub(crate) fn set_webview_panel_focused(&mut self, focused: bool) {
         self.webview_panel_focused = focused;
-    }
-
-    pub(crate) fn surrender_focus(&self) {
-        self.context.egui_ctx.memory_mut(|memory| {
-            if let Some(focused) = memory.focused() {
-                memory.surrender_focus(focused);
-            }
-        });
     }
 
     pub(crate) fn on_window_event(

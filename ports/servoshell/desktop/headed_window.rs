@@ -598,11 +598,6 @@ impl HeadedWindow {
                 window.queue_user_interface_command(UserInterfaceCommand::Back);
                 consumed = true;
             },
-            WindowEvent::MouseWheel { .. } | WindowEvent::MouseInput { .. }
-                if !should_forward_mouse_event_to_egui() =>
-            {
-                self.gui.borrow().surrender_focus();
-            },
             WindowEvent::KeyboardInput { .. } if self.gui.borrow().webview_panel_focused() => {
                 // Keyboard events should go to the WebView unless some other GUI
                 // component has keyboard focus.
@@ -629,7 +624,6 @@ impl HeadedWindow {
                     // If the user may have moved focus to egui, allow egui to claim focus.
                     let mut gui = self.gui.borrow_mut();
                     gui.set_webview_panel_focused(false);
-                    gui.update(&state, &window, self);
                 }
 
                 let response = self
