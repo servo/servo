@@ -9,6 +9,7 @@ use html5ever::{QualName, local_name, ns};
 use js::context::{JSContext, NoGC};
 use script_bindings::reflector::reflect_dom_object;
 
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLOptionsCollectionBinding::HTMLOptionsCollectionMethods;
@@ -56,10 +57,14 @@ impl HTMLOptionsCollection {
         )
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#append-new-option-elements>
     fn add_new_elements(&self, cx: &mut JSContext, count: u32) -> ErrorResult {
+        // Step 1. Let fragment be the result of creating a document fragment given select's node document.
         let root = self.upcast().root_node();
         let document = root.owner_document();
+        let fragment = DomRoot::upcast::<Node>(document.CreateDocumentFragment(cx));
 
+        // Step 2. Append count new option elements to fragment.
         for _ in 0..count {
             let element = Element::create(
                 cx,
@@ -70,9 +75,10 @@ impl HTMLOptionsCollection {
                 CustomElementCreationMode::Asynchronous,
                 None,
             );
-            let node = element.upcast::<Node>();
-            root.AppendChild(cx, node)?;
+            fragment.AppendChild(cx, element.upcast())?;
         }
+        // Step 3. Append fragment to select.
+        root.AppendChild(cx, &fragment)?;
         Ok(())
     }
 }
