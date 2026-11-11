@@ -564,3 +564,19 @@ slot {
 *::selection {
   background: rgba(176, 214, 255, 1.0);
 }
+
+/* Ensure the entire document uses the same writing mode, until we support orthogonal flows. */
+:not(:root, html:root > body:first-of-type),
+::before,
+::after,
+::backdrop,
+::file-selector-button,
+::marker,
+::details-content,
+::color-swatch,
+::slider-fill,
+::slider-thumb,
+::slider-track,
+::-moz-progress-bar {
+  writing-mode: inherit !important;
+}
