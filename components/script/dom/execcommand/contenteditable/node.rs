@@ -1614,7 +1614,7 @@ impl Node {
                 .map(|node| node.as_rooted())
         };
         child.is_some_and(|child| {
-            child.is_visible(cx) && (child.is_block_node(cx) || child.is::<HTMLElement>())
+            child.is_visible(cx) && (child.is_block_node(cx) || child.is::<HTMLBRElement>())
         })
     }
 
@@ -1834,7 +1834,7 @@ impl Node {
     /// <https://w3c.github.io/editing/docs/execCommand/#collapsed-block-prop>
     pub(crate) fn is_collapsed_block_prop(&self, cx: &mut JSContext) -> bool {
         // > A collapsed block prop is either a collapsed line break that is not an extraneous line break,
-        if self.is_collapsed_line_break(no_gc) &&
+        if self.is_collapsed_line_break(cx) &&
             self.downcast::<HTMLBRElement>()
                 .is_some_and(|br| !br.is_extraneous_line_break(cx))
         {
@@ -2447,7 +2447,7 @@ impl Node {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#collapsed-line-break>
-    pub(crate) fn is_collapsed_line_break(&self, no_gc: &NoGC) -> bool {
+    pub(crate) fn is_collapsed_line_break(&self, cx: &mut JSContext) -> bool {
         // > A collapsed line break is a br that begins a line box which has nothing else in it,
         // > and therefore has zero height.
         if !self.is::<HTMLBRElement>() {
@@ -2468,23 +2468,23 @@ impl Node {
         // Only in the case that a `<br>` is followed by nothing (whitespace or no nodes) leading immediately
         // to a block node, it is considered collapsed.
         let root = self
-            .block_node_of()
+            .block_node_of(cx)
             .unwrap_or_else(|| self.editing_host_of().expect("Must always be editable"));
 
-        for following in self.following_nodes_unrooted(no_gc, &root, ShadowIncluding::No) {
-            if let Some(text) = UnrootedDom::downcast::<Text>(following.clone()) {
-                if text.is_whitespace_node() {
+        for following in self.following_nodes(&root, ShadowIncluding::No) {
+            if let Some(text) = following.downcast::<Text>() {
+                if text.is_whitespace_node(cx) {
                     continue;
                 }
                 return false;
             }
 
             // This is checking if we have nodes like comments, which we should not consider for this algorithm
-            let Some(element) = UnrootedDom::downcast::<Element>(following.clone()) else {
+            let Some(element) = following.downcast::<Element>() else {
                 continue;
             };
 
-            if following.is_block_node() {
+            if following.is_block_node(cx) {
                 return true;
             }
 

@@ -358,12 +358,9 @@ impl Selection {
         // Step 24. For each node contained in the active range, append node to node list if the
         // last member of node list (if any) is not an ancestor of node; node is editable;
         // and node is not a thead, tbody, tfoot, tr, th, or td.
-        let nodes = self
-            .expect_active_range(cx)
-            .contained_nodes(cx.no_gc())
-            .map(|node| node.as_rooted())
-            .collect::<Vec<DomRoot<Node>>>();
-        for node in nodes {
+        let active_range = self.expect_active_range(cx);
+        let mut contained_nodes = active_range.contained_nodes_rooted();
+        while let Some(node) = contained_nodes.next(cx.no_gc()) {
             // This type is only used to tell the compiler how to handle the type of `node_list.last()`.
             // It is not allowed to add a `& DomRoot<Node>` annotation, as test-tidy disallows that.
             // However, if we omit the type, the compiler doesn't know what it is, since we also
@@ -394,13 +391,10 @@ impl Selection {
             node.remove_self(cx);
             // Step 25.3. If the block node of parent has no visible children, and parent is editable or an editing host,
             // call createElement("br") on the context object and append the result as the last child of parent.
-            if parent.block_node_of(cx).is_some_and(|block_node| {
-                let children: Vec<DomRoot<Node>> = block_node
-                    .children_unrooted(cx.no_gc())
-                    .map(|node| node.as_rooted())
-                    .collect();
-                children.iter().all(|child| child.is_invisible(cx))
-            }) && parent.is_editable_or_editing_host()
+            if parent
+                .block_node_of(cx)
+                .is_some_and(|block_node| block_node.children().all(|child| child.is_invisible(cx))) &&
+                parent.is_editable_or_editing_host()
             {
                 let br = context_object.create_element(cx, "br");
                 if parent.AppendChild(cx, br.upcast()).is_err() {

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use js::context::JSContext;
+use layout_api::QueryMsg;
 use script_bindings::codegen::GenericBindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
 use script_bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElementMethods;
 use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
@@ -109,8 +110,9 @@ impl TryFrom<&HTMLElement> for InteractiveElementCommand {
 
 impl InteractiveElementCommand {
     fn is_node_or_ancestor_inert(cx: &mut JSContext, node: &Node) -> bool {
+        node.owner_window().layout_reflow(cx, QueryMsg::StyleQuery);
         node.inclusive_ancestors(ShadowIncluding::No)
-            .any(|node| node.is_inert(cx))
+            .any(|node| node.is_inert_without_reflow())
     }
 
     pub(crate) fn disabled(&self, cx: &mut JSContext) -> bool {

@@ -337,7 +337,7 @@ impl Selection {
         });
     }
 
-    pub(crate) fn update_overlaps_document_selection_flags(&self, cx: &mut JSContext) {
+    pub(crate) fn update_overlaps_document_selection_flags(&self, no_gc: &NoGC) {
         if !self.visible_selection_dirty.take() {
             return;
         }
@@ -346,21 +346,21 @@ impl Selection {
             self.range
                 .borrow()
                 .as_ref()
-                .is_some_and(|range| self.should_paint_caret(range, cx.no_gc())),
+                .is_some_and(|range| self.should_paint_caret(range, no_gc)),
         );
-        let previously_flagged_nodes: FxHashSet<DomRoot<Node>> = self
-            .iter_nodes_with_overlaps_document_selection_flag(cx.no_gc())
-            .map(|node| node.as_rooted())
+
+        let previously_flagged_nodes = self
+            .iter_nodes_with_overlaps_document_selection_flag(no_gc)
             .collect();
-        let flat_tree_selection = FlatTreeSelection::from_selection_if_renderable(cx.no_gc(), self);
+        let flat_tree_selection = FlatTreeSelection::from_selection_if_renderable(no_gc, self);
         VisibleSelectionFlagUpdate::run(
-            cx,
+            no_gc,
             previously_flagged_nodes,
             flat_tree_selection.as_ref(),
             &self.document,
             self.paints_caret.get(),
         );
-        self.set_visible_range(cx.no_gc(), flat_tree_selection);
+        self.set_visible_range(no_gc, flat_tree_selection);
     }
 
     fn should_paint_caret(&self, range: &SelectionRange, no_gc: &NoGC) -> bool {
@@ -1466,18 +1466,14 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
             return DOMString::new();
         };
 
-        let mut user_select_cache: FxHashMap<DomRoot<Node>, UsedUserSelect> = Default::default();
+        let mut user_select_cache = Default::default();
         let mut string = DOMString::new();
-        let nodes = visible_selection
-            .traversal(cx.no_gc())
-            .map(|node| node.as_rooted())
-            .collect::<Vec<DomRoot<Node>>>();
-        for node in nodes {
+        for node in visible_selection.traversal() {
             let Some(character_data) = node.downcast::<CharacterData>() else {
                 continue;
             };
 
-            if node.used_user_select(cx, &mut user_select_cache) == UsedUserSelect::None {
+            if node.used_user_select(cx.no_gc(), &mut user_select_cache) == UsedUserSelect::None {
                 continue;
             }
 
@@ -1526,7 +1522,7 @@ fn position_in_flat_tree_for_selection(
     boundary: &FlatTreeBoundary,
 ) -> FlatTreeNodePosition {
     if boundary.container.is::<CharacterData>() {
-        return FlatTreeNodePosition::Inside(boundary.container.clone());
+        return FlatTreeNodePosition::Inside(boundary.container.as_rooted());
     }
 
     let shadow_host_or_node = |node: &Node| {
@@ -1544,12 +1540,12 @@ fn position_in_flat_tree_for_selection(
     } else if let Some(last_child) = boundary.container.GetLastChild() &&
         let FlatTreeParent::Parent(_) = last_child.parent_in_flat_tree(no_gc)
     {
-        return FlatTreeNodePosition::After(shadow_host_or_node(&boundary.container.clone()));
+        return FlatTreeNodePosition::After(shadow_host_or_node(&boundary.container.as_rooted()));
     }
 
     // The container has no child in the flat tree or the child indicated by the index
     // isn't in the flat tree, so just return a position inside that container.
-    FlatTreeNodePosition::Inside(shadow_host_or_node(&boundary.container.clone()))
+    FlatTreeNodePosition::Inside(shadow_host_or_node(&boundary.container.as_rooted()))
 }
 
 impl Node {
@@ -1655,21 +1651,22 @@ pub(crate) fn compare_shadow_including_dom_positions(
     }
 }
 
-struct FlatTreeBoundary {
-    container: DomRoot<Node>,
+struct FlatTreeBoundary<'no_gc> {
+    container: UnrootedDom<'no_gc, Node>,
     offset: u32,
 }
 
-struct FlatTreeSelection {
-    start: FlatTreeBoundary,
-    end: FlatTreeBoundary,
+struct FlatTreeSelection<'no_gc> {
+    no_gc: &'no_gc NoGC,
+    start: FlatTreeBoundary<'no_gc>,
+    end: FlatTreeBoundary<'no_gc>,
 }
 
-impl FlatTreeSelection {
+impl<'no_gc> FlatTreeSelection<'no_gc> {
     /// Get the [`FlatTreeSelection`] for this [`Selection`], returning `None` if the [`Selection`]
     /// doesn't have a range or if that flat tree range is unrenderable (for instance, because one
     /// or both of the endpoints is not in the flat tree).
-    fn from_selection_if_renderable(no_gc: &NoGC, selection: &Selection) -> Option<Self> {
+    fn from_selection_if_renderable(no_gc: &'no_gc NoGC, selection: &Selection) -> Option<Self> {
         let range = selection.range.borrow();
         let range = range.as_ref()?;
 
@@ -1705,12 +1702,13 @@ impl FlatTreeSelection {
         }
 
         Some(FlatTreeSelection {
+            no_gc,
             start: FlatTreeBoundary {
-                container: start_container.as_rooted(),
+                container: start_container,
                 offset: start_offset,
             },
             end: FlatTreeBoundary {
-                container: end_container.as_rooted(),
+                container: end_container,
                 offset: end_offset,
             },
         })
@@ -1720,20 +1718,20 @@ impl FlatTreeSelection {
         let text = character_data.data();
         let node: &Node = character_data.upcast();
         RangeAny::new(
-            (node == &*self.start.container)
+            (node == &**self.start.container)
                 .then(|| Utf16CodeUnits(self.start.offset).to_utf32_code_units_in(&text)),
-            (node == &*self.end.container)
+            (node == &**self.end.container)
                 .then(|| Utf16CodeUnits(self.end.offset).to_utf32_code_units_in(&text)),
         )
     }
 
-    fn traversal<'no_gc>(&self, no_gc: &'no_gc NoGC) -> VisibleSelectionTraversal<'no_gc> {
-        let start_position = position_in_flat_tree_for_selection(no_gc, &self.start);
-        let end_position = position_in_flat_tree_for_selection(no_gc, &self.end);
+    fn traversal(&self) -> VisibleSelectionTraversal<'no_gc> {
+        let start_position = position_in_flat_tree_for_selection(self.no_gc, &self.start);
+        let end_position = position_in_flat_tree_for_selection(self.no_gc, &self.end);
         VisibleSelectionTraversal {
             following: start_position
                 .node()
-                .following_flat_tree_nodes_unrooted(no_gc),
+                .following_flat_tree_nodes_unrooted(self.no_gc),
             start: start_position,
             end: end_position,
             finished: false,
@@ -1790,30 +1788,32 @@ impl<'no_gc> Iterator for VisibleSelectionTraversal<'no_gc> {
     }
 }
 
-struct VisibleSelectionFlagUpdate {
+struct VisibleSelectionFlagUpdate<'no_gc> {
+    no_gc: &'no_gc NoGC,
     /// The nodes that previously had the OVERLAPS_DOCUMENT_SELECTION set on them before
     /// this flag update.
     ///
     /// Hash keys are pointer addresses which are not directly controlled by web content
     /// so we don’t need HashDoS resistance and can use a faster hasher than `std`’s default
-    previously_flagged_nodes: FxHashSet<DomRoot<Node>>,
+    previously_flagged_nodes: FxHashSet<UnrootedDom<'no_gc, Node>>,
     /// Cache shared between calls to [`Node::used_user_select`]
-    used_user_select_cache: FxHashMap<DomRoot<Node>, UsedUserSelect>,
+    used_user_select_cache: FxHashMap<UnrootedDom<'no_gc, Node>, UsedUserSelect>,
     /// Whether or not this update requires a display list update.
     needs_new_display_list: bool,
     /// Whether or not the caret needs to be painted for the visible selection.
     paints_caret: bool,
 }
 
-impl VisibleSelectionFlagUpdate {
+impl<'no_gc> VisibleSelectionFlagUpdate<'no_gc> {
     fn run(
-        cx: &mut JSContext,
-        previously_flagged_nodes: FxHashSet<DomRoot<Node>>,
-        flat_tree_selection: Option<&FlatTreeSelection>,
+        no_gc: &'no_gc NoGC,
+        previously_flagged_nodes: FxHashSet<UnrootedDom<'no_gc, Node>>,
+        flat_tree_selection: Option<&FlatTreeSelection<'_>>,
         document: &Document,
         paints_caret: bool,
     ) {
         let mut update = Self {
+            no_gc,
             previously_flagged_nodes,
             used_user_select_cache: Default::default(),
             needs_new_display_list: false,
@@ -1821,62 +1821,49 @@ impl VisibleSelectionFlagUpdate {
         };
 
         if let Some(flat_tree_selection) = flat_tree_selection {
-            let (ancestors, nodes) = {
-                let traversal = flat_tree_selection.traversal(cx.no_gc());
-                let ancestors: Vec<DomRoot<Node>> = traversal
-                    .start
-                    .node()
-                    .ancestors_in_flat_tree_unrooted(cx.no_gc())
-                    .map(|node| node.as_rooted())
-                    .collect();
-                let nodes: Vec<DomRoot<Node>> = traversal.map(|node| node.as_rooted()).collect();
-                (ancestors, nodes)
-            };
-            for ancestor in &ancestors {
-                update.set(cx, ancestor, flat_tree_selection);
+            let traversal = flat_tree_selection.traversal();
+            for ancestor in traversal
+                .start
+                .node()
+                .ancestors_in_flat_tree_unrooted(no_gc)
+            {
+                update.set(&ancestor, flat_tree_selection);
             }
-            for node in &nodes {
-                update.set(cx, node, flat_tree_selection);
+            for node in traversal {
+                update.set(&node, flat_tree_selection);
             }
         }
 
-        update.finish(cx, document);
+        update.finish(document);
     }
 
-    fn set(
-        &mut self,
-        cx: &mut JSContext,
-        node: &Node,
-        flat_tree_selection: &FlatTreeSelection,
-    ) {
-        let node_root = DomRoot::from_ref(node);
+    fn set(&mut self, node: &UnrootedDom<'no_gc, Node>, flat_tree_selection: &FlatTreeSelection) {
         if !node.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) {
             node.set_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION, true);
-            debug_assert!(!self.previously_flagged_nodes.contains(&node_root));
+            debug_assert!(!self.previously_flagged_nodes.contains(node));
         } else {
-            self.previously_flagged_nodes.remove(&node_root);
+            self.previously_flagged_nodes.remove(node);
         }
 
         // TODO: We should ensure that the style is up-to-date before reading the
         // `user-select` property and changes to `user-select` should trigger new visual
         // selection updates. Not doing this means that the calculations here are one
         // layout old and are never run again until the selection changes.
-        let user_select = node.used_user_select(cx, &mut self.used_user_select_cache);
+        let user_select = node.used_user_select(self.no_gc, &mut self.used_user_select_cache);
         let inhibited = user_select == UsedUserSelect::None;
         node.set_flag(NodeFlags::SELECTION_INHIBITED, inhibited);
 
-        self.set_node_selection(cx, node, (!inhibited).then_some(flat_tree_selection));
+        self.set_node_selection(node, (!inhibited).then_some(flat_tree_selection));
     }
 
-    fn clear(&mut self, cx: &mut JSContext, node: &Node) {
+    fn clear(&mut self, node: &Node) {
         node.set_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION, false);
         node.set_flag(NodeFlags::SELECTION_INHIBITED, false);
-        self.set_node_selection(cx, node, None);
+        self.set_node_selection(node, None);
     }
 
     fn set_character_data_selection(
         &mut self,
-        cx: &mut JSContext,
         character_data: &CharacterData,
         range: Option<RangeAny<Utf32CodeUnits>>,
     ) {
@@ -1889,29 +1876,24 @@ impl VisibleSelectionFlagUpdate {
             // properly in the box tree.
             character_data
                 .upcast::<Node>()
-                .dirty(cx.no_gc(), NodeDamage::ContentOrHeritage);
+                .dirty(self.no_gc, NodeDamage::ContentOrHeritage);
         }
     }
 
-    fn set_node_selection(
-        &mut self,
-        cx: &mut JSContext,
-        node: &Node,
-        flat_tree_selection: Option<&FlatTreeSelection>,
-    ) {
+    fn set_node_selection(&mut self, node: &Node, flat_tree_selection: Option<&FlatTreeSelection>) {
         if let Some(character_data) = node.downcast::<CharacterData>() {
             let range = flat_tree_selection.map(|flat_tree_selection| {
                 flat_tree_selection.range_for_character_data(character_data)
             });
-            self.set_character_data_selection(cx, character_data, range);
+            self.set_character_data_selection(character_data, range);
         } else if node.set_element_selection(flat_tree_selection.is_some()) {
             self.needs_new_display_list = true;
         }
     }
 
-    fn finish(mut self, cx: &mut JSContext, document: &Document) {
+    fn finish(mut self, document: &Document) {
         for node in std::mem::take(&mut self.previously_flagged_nodes) {
-            self.clear(cx, &node);
+            self.clear(&node);
         }
         if self.needs_new_display_list {
             document.window().layout().set_needs_new_display_list();

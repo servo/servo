@@ -16,11 +16,24 @@ use crate::dom::execcommand::basecommand::{
 };
 use crate::dom::execcommand::commands::fontsize::legacy_font_size_for;
 use crate::dom::html::htmllielement::HTMLLIElement;
-use crate::dom::iterators::ShadowIncluding;
+use crate::dom::iterators::{ShadowIncluding, TreeIterator};
 use crate::dom::node::Node;
 use crate::dom::range::Range;
 use crate::dom::selection::Selection;
 use crate::dom::text::Text;
+
+pub(crate) struct ContainedNodes<'a> {
+    range: &'a Range,
+    traversal: TreeIterator,
+}
+
+impl ContainedNodes<'_> {
+    pub(crate) fn next(&mut self, no_gc: &NoGC) -> Option<DomRoot<Node>> {
+        self.traversal
+            .by_ref()
+            .find(|node| self.range.contains(no_gc, node))
+    }
+}
 
 impl Range {
     /// <https://w3c.github.io/editing/docs/execCommand/#effectively-contained>
@@ -114,6 +127,15 @@ impl Range {
         self.CommonAncestorContainer()
             .traverse_preorder_unrooted(no_gc, ShadowIncluding::No)
             .filter(|node| self.contains(no_gc, node))
+    }
+
+    pub(crate) fn contained_nodes_rooted(&self) -> ContainedNodes<'_> {
+        ContainedNodes {
+            range: self,
+            traversal: self
+                .CommonAncestorContainer()
+                .traverse_preorder(ShadowIncluding::No),
+        }
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#block-extend>

@@ -271,11 +271,8 @@ pub(crate) fn execute_outdent_command(
     //         is not an ancestor of node; node is editable;
     //         and either node has no editable descendants, or is an ol or ul,
     //         or is an li whose parent is an ol or ul.
-    let contained: Vec<DomRoot<Node>> = new_range
-        .contained_nodes(cx.no_gc())
-        .map(|node| node.as_rooted())
-        .collect();
-    for node in contained {
+    let mut contained_nodes = new_range.contained_nodes_rooted();
+    while let Some(node) = contained_nodes.next(cx.no_gc()) {
         // This type is only used to tell the compiler how to handle the type of `node_list.last()`.
         // It is not allowed to add a `& DomRoot<Node>` annotation, as test-tidy disallows that.
         // However, if we omit the type, the compiler doesn't know what it is, since we also

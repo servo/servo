@@ -125,23 +125,14 @@ pub(crate) fn execute_indent_command(
     //         if node is editable and is an allowed child of "div" or "ol"
     //         and if the last member of node list (if any) is not an ancestor of node,
     //         append node to node list.
-    let nodes = new_range
-        .contained_nodes(cx.no_gc())
-        .map(|node| node.as_rooted())
-        .collect::<Vec<DomRoot<Node>>>();
-    for node in nodes {
+    let mut contained_nodes = new_range.contained_nodes_rooted();
+    while let Some(node) = contained_nodes.next(cx.no_gc()) {
         if node.is_editable(cx) &&
             (is_allowed_child(
-                NodeOrString::Node({
-                    let no_gc = cx.no_gc();
-                    UnrootedDom::from_ref(&*node, no_gc)
-                }),
+                NodeOrString::Node(UnrootedDom::from_ref(&*node, cx.no_gc())),
                 NodeOrString::String("div".to_owned()),
             ) || is_allowed_child(
-                NodeOrString::Node({
-                    let no_gc = cx.no_gc();
-                    UnrootedDom::from_ref(&*node, no_gc)
-                }),
+                NodeOrString::Node(UnrootedDom::from_ref(&*node, cx.no_gc())),
                 NodeOrString::String("ol".to_owned()),
             )) &&
             node_list

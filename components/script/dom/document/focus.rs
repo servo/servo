@@ -414,7 +414,6 @@ impl DocumentFocusHandler {
     /// but the internal state of the [`DocumentFocusHandler`] is not updated. This
     /// is so that the focus state is preserved when the `WebView` regains system
     /// focus.
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn focus_update_steps(
         &self,
         cx: &mut JSContext,
