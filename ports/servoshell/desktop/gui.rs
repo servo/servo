@@ -220,6 +220,7 @@ impl Gui {
         event_loop_proxy: EventLoopProxy<AppEvent>,
         rendering_context: Rc<OffscreenRenderingContext>,
         initial_url: Url,
+        device_pixel_override: Option<f32>,
     ) -> Self {
         rendering_context
             .make_current()
@@ -248,6 +249,10 @@ impl Gui {
             // On platforms where winit fails to obtain a system theme, fall back to a light theme
             // since it is the more common default.
             options.fallback_theme = egui::Theme::Light;
+
+            options.zoom_factor = device_pixel_override.map_or(1.0, |device_pixel_override| {
+                device_pixel_override / winit_window.scale_factor() as f32
+            });
         });
 
         Self {

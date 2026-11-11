@@ -192,6 +192,7 @@ impl HeadedWindow {
             event_loop_proxy.clone(),
             rendering_context.clone(),
             initial_url,
+            servoshell_preferences.device_pixel_ratio_override,
         ));
 
         debug!("Created window {:?}", winit_window.id());
