@@ -95,7 +95,7 @@ pub struct Gui {
     pending_accesskit_updates: Vec<(accesskit::TreeUpdate, Option<WebViewId>)>,
 
     // Whether the [`WebViewPanel`] corresponding to the currently active [`WebView`] is focused.
-    // This remains `true` even if the application uses system focus, so that application focus can
+    // This remains `true` even if the application loses system focus, so that application focus can
     // be re-set to the [`WebViewPanel`] once the application regains system focus.
     webview_panel_focused: bool,
 }
