@@ -457,7 +457,7 @@ struct CmdArgs {
 
     /// Number of threads to use for layout.
     #[bpaf(short('y'), long, argument("1"))]
-    layout_threads: Option<i64>,
+    layout_threads: Option<u64>,
 
     ///
     ///  Directory root with unminified scripts.
