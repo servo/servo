@@ -2537,7 +2537,7 @@ impl Document {
                     pipeline_id: self.pipeline_id(),
                     reason: js::jsapi::GCReason::LOAD_END,
                 },
-                Duration::from_secs(pref!(dom_document_load_gc_timeout).try_into().unwrap()),
+                Duration::from_secs(pref!(dom_document_load_gc_timeout)),
             );
         }
     }

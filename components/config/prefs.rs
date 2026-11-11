@@ -153,7 +153,7 @@ pub struct Preferences {
     pub dom_document_dblclick_timeout: i64,
     pub dom_document_dblclick_dist: i64,
     /// How long we should wait after finish load to do a GC in seconds.
-    pub dom_document_load_gc_timeout: i64,
+    pub dom_document_load_gc_timeout: u64,
     // feature: File and Directory Entries API | #45653 | Web/API/File_and_Directory_Entries_API
     pub dom_entries_api_enabled: bool,
     // feature: Document.execCommand | #25005 | Web/API/Document/execCommand
