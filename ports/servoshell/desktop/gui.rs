@@ -631,8 +631,15 @@ impl Gui {
             for (webview_id, webview) in window.webviews() {
                 let webview_active = active_webview.as_ref() == Some(&webview);
                 let webview_contains_focus = webview_active && webview_panel_was_focused;
+
+                // AccessKit will panic if we try to focus a graft node whose grafted tree hasn't
+                // been sent yet, so we need to keep track of whether a TreeUpdate containing the
+                // grafted tree has been sent before focusing the WebViewPanel if accessibility is
+                // active.
                 let tree_id = webview.accesskit_tree_id();
-                let tree_id_known = tree_id.is_some() && window.webview_collection.borrow().known_accesskit_tree_id(webview_id) == tree_id;
+                let tree_id_known = tree_id.is_some() &&
+                    window.webview_collection.borrow().known_accesskit_tree_id(webview_id) == tree_id;
+
                 let panel = WebViewPanel::new(
                     webview.clone(),
                     scale_factor,
@@ -641,12 +648,10 @@ impl Gui {
                     webview_contains_focus,
                     tree_id_known
                 );
-                if ctx.add(panel).has_focus() {
-                    self.webview_panel_focused = true;
-                } else if webview_contains_focus && !webview.focused() {
-                    // If the window loses focus, we need to unfocus the webview panel to avoid a
-                    // panic in AccessKit, but we should return focus to it once the window is
-                    // focused again.
+                if ctx.add(panel).has_focus() || (webview_contains_focus && !webview.focused()) {
+                    // If the window loses focus, the panel will be unfocused to avoid a panic in
+                    // AccessKit, but we should return focus to it once the window is focused
+                    // again, so we keep this flag set.
                     self.webview_panel_focused = true;
                 }
             }
