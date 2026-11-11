@@ -97,6 +97,7 @@ use crate::css::stylesheet_loader::StylesheetContextId;
 use crate::css::stylesheet_set::StylesheetSetRef;
 use crate::dom::animationtimeline::AnimationTimeline;
 use crate::dom::attr::Attr;
+use crate::dom::audio::baseaudiocontext::BaseAudioContext;
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
 use crate::dom::bindings::callback::{ExceptionHandling, TracedCallback};
 use crate::dom::bindings::codegen::Bindings::AnimationFrameProviderBinding::FrameRequestCallback;
@@ -757,6 +758,10 @@ pub(crate) struct Document {
     /// Active media elements that are kept alive while playing or eligible for autoplay.
     active_media_elements: DomRefCell<FxHashSet<Dom<HTMLMediaElement>>>,
 
+    /// <https://webaudio.github.io/web-audio-api/#unloading-a-document>
+    /// Audio contexts that need to be closed when the document unloads.
+    audio_contexts: DomRefCell<FxHashSet<Dom<BaseAudioContext>>>,
+
     /// <https://html.spec.whatwg.org/multipage/#details-name-group>
     details_name_groups: DomRefCell<Option<DetailsNameGroups>>,
 
@@ -897,6 +902,7 @@ impl Document {
         }
 
         self.clean_up_media_elements(cx.no_gc());
+        self.clean_up_audio_contexts(cx);
 
         // Step 3. For each WebTransport object transport whose relevant global object is window, run the context cleanup steps given transport.
         // TODO
@@ -943,7 +949,7 @@ impl Document {
             .remove(&Dom::from_ref(element));
     }
 
-    fn clean_up_media_elements(&self, no_gc: &NoGC) {
+    pub(crate) fn clean_up_media_elements(&self, no_gc: &NoGC) {
         let media_elements: Vec<DomRoot<HTMLMediaElement>> = self
             .active_media_elements
             .borrow()
@@ -953,6 +959,32 @@ impl Document {
         self.active_media_elements.borrow_mut().clear();
         for element in &media_elements {
             element.clean_up_on_document_unload(self, no_gc);
+        }
+    }
+
+    pub(crate) fn register_audio_context(&self, context: &BaseAudioContext) {
+        self.audio_contexts
+            .borrow_mut()
+            .insert(Dom::from_ref(context));
+    }
+
+    pub(crate) fn unregister_audio_context(&self, context: &BaseAudioContext) {
+        self.audio_contexts
+            .borrow_mut()
+            .remove(&Dom::from_ref(context));
+    }
+
+    /// <https://webaudio.github.io/web-audio-api/#unloading-a-document>
+    pub(crate) fn clean_up_audio_contexts(&self, cx: &mut JSContext) {
+        let audio_contexts: Vec<DomRoot<BaseAudioContext>> = self
+            .audio_contexts
+            .borrow()
+            .iter()
+            .map(|ctx| DomRoot::from_ref(&**ctx))
+            .collect();
+        self.audio_contexts.borrow_mut().clear();
+        for context in audio_contexts {
+            context.close_from_document_unload(cx);
         }
     }
 
@@ -4411,6 +4443,7 @@ impl Document {
             ever_had_favicon_link: Cell::new(false),
             websockets: DOMTracker::new(),
             active_media_elements: Default::default(),
+            audio_contexts: Default::default(),
             details_name_groups: Default::default(),
             protocol_handler_automation_mode: Default::default(),
             layout_animations_test_enabled: pref!(layout_animations_test_enabled),
