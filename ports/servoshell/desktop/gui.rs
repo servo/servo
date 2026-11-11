@@ -272,12 +272,12 @@ impl Gui {
         }
     }
 
-    /// See [`Self::webview_panel_focused`].
+    /// See [`webview_panel_focused`](#structfield.webview_panel_focused)
     pub(crate) fn webview_panel_focused(&self) -> bool {
         self.webview_panel_focused
     }
 
-    /// See [`Self::webview_panel_focused`].
+    /// See [`webview_panel_is_focused`](#structfield.webview_panel_is_focused)
     pub(crate) fn set_webview_panel_focused(&mut self, focused: bool) {
         self.webview_panel_focused = focused;
     }
