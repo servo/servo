@@ -213,6 +213,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
             required_features,
             optional_features,
             first_person_observer_view: pref!(dom_webxr_first_person_observer_view),
+            painter_id: global.as_window().webview_id().into(),
         };
 
         let mut trusted = Some(TrustedPromise::from(&promise));

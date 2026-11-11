@@ -5,8 +5,8 @@
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
+use std::thread;
 use std::time::Duration;
-use std::{mem, thread};
 
 use euclid::{Point2D, Rect, RigidTransform3D, Rotation3D, Size2D, Transform3D, Vector3D};
 use glow::{self as gl, HasContext, PixelUnpackData};
@@ -22,6 +22,7 @@ use openxr::{
     SwapchainCreateInfo, SwapchainUsageFlags, SystemId, Vector3f, Version, ViewConfigurationType,
 };
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
+use servo_base::id::PainterId;
 use surfman::{
     Context as SurfmanContext, Device as SurfmanDevice, Error as SurfmanError, SurfaceTexture,
 };
@@ -291,7 +292,7 @@ impl DiscoveryAPI<SurfmanGL> for OpenXrDiscovery {
                 needs_passthrough,
                 &self.app_info,
             )
-            .map_err(|e| Error::BackendSpecific(e))?;
+            .map_err(Error::BackendSpecific)?;
 
             let mut supported_features = vec!["local-floor".into(), "bounded-floor".into()];
             if instance.supports_hands {
@@ -302,12 +303,14 @@ impl DiscoveryAPI<SurfmanGL> for OpenXrDiscovery {
             }
             let granted_features = init.validate(mode, &supported_features)?;
             let context_menu_provider = self.context_menu_provider.take();
+            let painter_id = init.painter_id;
             xr.spawn(move |grand_manager| {
                 OpenXrDevice::new(
                     instance,
                     granted_features,
                     context_menu_provider,
                     grand_manager,
+                    painter_id,
                 )
             })
         } else {
@@ -322,19 +325,19 @@ impl DiscoveryAPI<SurfmanGL> for OpenXrDiscovery {
         // We'll make a "default" instance here to check the blend modes,
         // then a proper one in request_session with hands/secondary support if needed.
         let needs_passthrough = mode == SessionMode::ImmersiveAR;
-        if let Ok(instance) = create_instance(false, false, needs_passthrough, &self.app_info) {
-            if let Ok(blend_modes) = instance.instance.enumerate_environment_blend_modes(
+        if let Ok(instance) = create_instance(false, false, needs_passthrough, &self.app_info) &&
+            let Ok(blend_modes) = instance.instance.enumerate_environment_blend_modes(
                 instance.system,
                 ViewConfigurationType::PRIMARY_STEREO,
-            ) {
-                if mode == SessionMode::ImmersiveAR {
-                    supports = blend_modes.contains(&EnvironmentBlendMode::ADDITIVE) ||
-                        blend_modes.contains(&EnvironmentBlendMode::ALPHA_BLEND) ||
-                        instance.supports_passthrough;
-                } else if mode == SessionMode::ImmersiveVR {
-                    // Immersive VR sessions are not precluded by non-opaque blending
-                    supports = blend_modes.len() > 0;
-                }
+            )
+        {
+            if mode == SessionMode::ImmersiveAR {
+                supports = blend_modes.contains(&EnvironmentBlendMode::ADDITIVE) ||
+                    blend_modes.contains(&EnvironmentBlendMode::ALPHA_BLEND) ||
+                    instance.supports_passthrough;
+            } else if mode == SessionMode::ImmersiveVR {
+                // Immersive VR sessions are not precluded by non-opaque blending
+                supports = !blend_modes.is_empty();
             }
         }
         supports
@@ -555,13 +558,14 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
                 .device(context_id)
                 .expect("missing device for context");
             let context = contexts.context(context_id).expect("missing GL context");
-            for surface_texture in mem::replace(&mut layer.surface_textures, vec![]) {
-                if let Some(surface_texture) = surface_texture {
-                    let mut surface = device
-                        .destroy_surface_texture(context, surface_texture)
-                        .unwrap();
-                    device.destroy_surface(context, &mut surface).unwrap();
-                }
+            for surface_texture in std::mem::take(&mut layer.surface_textures)
+                .into_iter()
+                .flatten()
+            {
+                let mut surface = device
+                    .destroy_surface_texture(context, surface_texture)
+                    .unwrap();
+                device.destroy_surface(context, &mut surface).unwrap();
             }
         }
     }
@@ -580,7 +584,7 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
 
         // At this point the frame contents have been rendered, so we can release access to the texture
         // in preparation for displaying it.
-        for (_, openxr_layer) in &mut self.openxr_layers {
+        for openxr_layer in self.openxr_layers.values_mut() {
             if openxr_layer.waited {
                 openxr_layer.swapchain.release_image().map_err(|e| {
                     Error::BackendSpecific(format!("Session::release_image {:?}", e))
@@ -821,6 +825,7 @@ impl OpenXrDevice {
         granted_features: Vec<String>,
         context_menu_provider: Option<Box<dyn ContextMenuProvider>>,
         grand_manager: LayerGrandManager<SurfmanGL>,
+        painter_id: PainterId,
     ) -> Result<OpenXrDevice, Error> {
         let CreatedInstance {
             instance,
@@ -840,9 +845,12 @@ impl OpenXrDevice {
         let shared_data_clone = shared_data.clone();
         let mut data = shared_data.lock().unwrap();
 
-        let layer_manager = grand_manager.create_layer_manager(move |_| {
+        let layer_manager = grand_manager.create_layer_manager(move |contexts| {
+            let device = contexts
+                .device_for_painter(painter_id)
+                .ok_or(Error::NoMatchingDevice)?;
             let (session, frame_waiter, frame_stream) =
-                GraphicsProvider::create_session(&instance_clone, system)?;
+                GraphicsProvider::create_session(&instance_clone, system, &device)?;
             let (passthrough, passthrough_layer) = if supports_passthrough {
                 let flags = PassthroughFlagsFB::IS_RUNNING_AT_CREATION;
                 let purpose = PassthroughLayerPurposeFB::RECONSTRUCTION;
@@ -955,7 +963,7 @@ impl OpenXrDevice {
                         e
                     ))
                 })?
-                .get(0)
+                .first()
                 .expect(
                     "Session::enumerate_view_configuration_views() returned no secondary views",
                 );
@@ -1432,21 +1440,16 @@ impl DeviceAPI for OpenXrDevice {
                     break;
                 },
             };
-            match event {
-                Some(openxr::Event::SessionStateChanged(session_change)) => {
-                    match session_change.state() {
-                        openxr::SessionState::EXITING => {
-                            break;
-                        },
-                        openxr::SessionState::STOPPING => {
-                            if let Err(e) = self.session.end() {
-                                error!("Session failed to end while STOPPING: {:?}", e);
-                            }
-                        },
-                        _ => (),
-                    }
-                },
-                _ => (),
+            if let Some(openxr::Event::SessionStateChanged(session_change)) = event {
+                match session_change.state() {
+                    openxr::SessionState::EXITING => break,
+                    openxr::SessionState::STOPPING => {
+                        if let Err(e) = self.session.end() {
+                            error!("Session failed to end while STOPPING: {:?}", e);
+                        }
+                    },
+                    _ => (),
+                }
             }
             thread::sleep(Duration::from_millis(30));
         }
