@@ -72,7 +72,7 @@ pub(crate) struct BlockFormattingContext {
 
 /// Helps format textareas according to their effective size as dictated by the
 /// spec.
-/// <https://html.spec.whatwg.org/multipage/rendering.html#the-textarea-element-2>
+/// <https://html.spec.whatwg.org/multipage/#the-textarea-element-2>
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct TextAreaSize {
     /// The number of rows in this `<textarea>`, which is used to determine
