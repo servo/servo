@@ -22,7 +22,6 @@ use servo_constellation_traits::{
     RemoteFocusOperation, ScriptToConstellationMessage, SequentialFocusDirection,
 };
 
-use crate::dom::activation::Activatable;
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::focusevent::FocusEventType;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
@@ -492,13 +491,11 @@ impl DocumentFocusHandler {
             // changed the element's value or its list of selected files while the control was
             // focused without committing that change (such that it is different to what it was
             // when the control was first focused), then:
+            // TODO: that entire last part
             if let Some(element) = entry.element() &&
                 let Some(input) = element.downcast::<HTMLInputElement>() &&
-                let Some(new_element) = new_focus_target.element() &&
-                let Some(new_input) = new_element.downcast::<HTMLInputElement>() &&
                 input.does_change_event_apply() &&
-                !input.is_instance_activatable() &&
-                (new_input.Value() != input.Value() || new_input.GetFiles() != input.GetFiles())
+                !input.has_defined_activation_behavior()
             {
                 // Step 2.1.1: Set entry's user validity to true.
                 input.set_user_validity(cx, true);

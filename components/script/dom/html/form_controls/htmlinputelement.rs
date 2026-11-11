@@ -399,6 +399,10 @@ impl HTMLInputElement {
         )
     }
 
+    pub(crate) fn has_defined_activation_behavior(&self) -> bool {
+        InputActivationType::new_from_input_type(&self.input_type()).is_some()
+    }
+
     pub(crate) fn set_user_validity(&self, cx: &mut JSContext, value: bool) {
         if self.user_validity.get() != value {
             self.user_validity.set(value);
