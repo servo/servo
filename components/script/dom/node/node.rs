@@ -1226,7 +1226,7 @@ impl Node {
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth>
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollheight>
-    pub(crate) fn scroll_area(&self, cx: &mut JSContext) -> Rect<i32, CSSPixel> {
+    pub(crate) fn scroll_area(&self, cx: &mut JSContext) -> Rect<Au, CSSPixel> {
         // "1. Let document be the element’s node document.""
         let document = self.owner_doc();
 
@@ -1238,7 +1238,11 @@ impl Node {
         // "3. Let viewport width/height be the width of the viewport excluding the width/height of the
         // scroll bar, if any, or zero if there is no viewport."
         let window = document.window();
-        let viewport = Size2D::new(window.InnerWidth(), window.InnerHeight()).cast_unit();
+        let viewport = Size2D::new(
+            Au::from_px(window.InnerWidth()),
+            Au::from_px(window.InnerHeight()),
+        )
+        .cast_unit();
 
         let in_quirks_mode = document.quirks_mode() == QuirksMode::Quirks;
         let is_root = self.downcast::<Element>().is_some_and(|e| e.is_root());

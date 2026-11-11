@@ -424,7 +424,7 @@ pub trait Layout {
         animations: DocumentAnimationSet,
         animation_timeline_value: f64,
     ) -> Option<ServoArc<Font>>;
-    fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> Rect<i32, CSSPixel>;
+    fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> Rect<Au, CSSPixel>;
     /// Find the closest character offset of the point within descendants of the given
     /// node, if it has text content. This works even if the point is outside of all of
     /// the layout boxes of the node.
