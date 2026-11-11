@@ -7,48 +7,44 @@ use egui::{Rect, Sense, Widget};
 use euclid::Scale;
 use servo::{DeviceIndependentPixel, DevicePixel, WebView};
 
-pub(crate) struct WebViewPanel {
+pub(crate) struct WebViewWidget {
     id: egui::Id,
     webview: WebView,
     scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     available_rect: Rect,
-    /// Whether the [`WebView`] represented by this panel is the active webview for servoshell.
-    active: bool,
-    /// Whether servoshell-global focus is inside this panel's webview, regardless of whether the
+    /// Whether servoshell-global focus is inside this widget's webview, regardless of whether the
     /// application itself has system focus.
     contains_focus: bool,
-    /// Whether the [`accesskit::TreeId`] for this panel's webview has been previously sent to
-    /// AccessKit.
-    tree_id_known: bool,
+    /// Whether the webview is ready to take egui focus yet: it's window has system focus and,
+    /// if accessibilty has been activated, it's AccessKit tree has been sent.
+    can_take_focus: bool,
 }
 
-impl WebViewPanel {
+impl WebViewWidget {
     pub fn new(
         webview: WebView,
         scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
         available_rect: Rect,
-        active: bool,
         contains_focus: bool,
-        tree_id_known: bool,
+        can_take_focus: bool,
     ) -> Self {
         Self {
             id: egui::Id::new(webview.id()),
             webview,
             scale_factor,
             available_rect,
-            active,
             contains_focus,
-            tree_id_known,
+            can_take_focus,
         }
     }
 }
 
-impl Widget for WebViewPanel {
+impl Widget for WebViewWidget {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
         let tree_id = self.webview.accesskit_tree_id();
 
-        // Always build an accesskit graft node, even if the webview isn't currently showing, so that any tree updates
-        // from the webview won't cause a panic.
+        // Always build an AccessKit graft node, even if the webview isn't currently showing, so
+        // that any tree updates from the webview won't cause a panic.
         if let Some(tree_id) = tree_id {
             ui.accesskit_node_builder(self.id, |node| {
                 let affine = {
@@ -68,31 +64,26 @@ impl Widget for WebViewPanel {
             });
         }
 
-        if !self.contains_focus {
-            // Ensure that we don't hold on to focus if something else may be trying to claim it.
-            ui.memory_mut(|mem| mem.surrender_focus(self.id));
-        }
-
         // If:
         // - this is not the active webview, or
         // - the application doesn't have system focus, or
-        // - accessibility is active, but the initial accesskit update for the webview hasn't been
+        // - accessibility is active, but the initial AccessKit update for the webview hasn't been
         //   sent yet;
-        // then don't move egui focus to this panel on this tick .
-        if !self.active || !self.webview.focused() || (tree_id.is_some() && !self.tree_id_known) {
-            return ui.response();
+        // then don't move egui focus to this widget on this tick.
+        if !self.can_take_focus {
+            return ui.interact(self.available_rect, self.id, Sense::hover());
         }
 
         let response = ui.interact(self.available_rect, self.id, Sense::FOCUSABLE);
 
-        // If the application lost and regained system focus since last time this panel was drawn,
+        // If the application lost and regained system focus since last time this widget was drawn,
         // we need to request focus; otherwise, focus will reset to the first UI element.
         if !response.has_focus() && self.contains_focus {
             response.request_focus();
         }
 
         // Note: we don't need to use `Memory::set_focus_lock_filter()` here because `HeadedWindow`
-        // already grabs keyboard events if `Gui::webview_panel_focused` is true.
+        // already grabs keyboard events if `Gui::webview_widget_focused` is true.
         // See `HeadedWindow::handle_winit_window_event()`.
 
         response

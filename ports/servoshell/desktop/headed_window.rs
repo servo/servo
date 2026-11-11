@@ -266,9 +266,9 @@ impl HeadedWindow {
             return;
         }
 
-        // A primary mouse or secondary button event moves keyboard focus to the webview.
+        // A primary or secondary mouse button event moves keyboard focus to the webview.
         if button == MouseButton::Left || button == MouseButton::Right {
-            self.gui.borrow_mut().set_webview_panel_focused(true);
+            self.gui.borrow_mut().set_webview_widget_focused(true);
         }
 
         if self
@@ -598,7 +598,7 @@ impl HeadedWindow {
                 window.queue_user_interface_command(UserInterfaceCommand::Back);
                 consumed = true;
             },
-            WindowEvent::KeyboardInput { .. } if self.gui.borrow().webview_panel_focused() => {
+            WindowEvent::KeyboardInput { .. } if self.gui.borrow().webview_widget_focused() => {
                 // Keyboard events should go to the WebView unless some other GUI
                 // component has keyboard focus.
                 //
@@ -611,19 +611,13 @@ impl HeadedWindow {
 
                     if !focused {
                         // If the window lost focus, update the gui so that if focus is in web
-                        // contents the webview panel can surrender focus to avoid a crash in
+                        // contents the webview widget can surrender focus to avoid a crash in
                         // accesskit when on_window_event() is called below.
                         //
                         // If the window gained focus, we still need to wait a tick before
-                        // requesting focus on the webview panel, so skip it here.
+                        // requesting focus on the webview widget, so skip it here.
                         self.gui.borrow_mut().update(&state, &window, self);
                     }
-                } else if let WindowEvent::MouseInput { .. } = event &&
-                    should_forward_mouse_event_to_egui()
-                {
-                    // If the user may have moved focus to egui, allow egui to claim focus.
-                    let mut gui = self.gui.borrow_mut();
-                    gui.set_webview_panel_focused(false);
                 }
 
                 let response = self
@@ -1172,12 +1166,12 @@ impl PlatformWindow for HeadedWindow {
 
     fn notify_accessibility_tree_update(
         &self,
-        webview: WebView,
+        _webview: WebView,
         tree_update: accesskit::TreeUpdate,
     ) {
         self.gui
             .borrow_mut()
-            .notify_accessibility_tree_update(webview, tree_update);
+            .notify_accessibility_tree_update(tree_update);
     }
 }
 
