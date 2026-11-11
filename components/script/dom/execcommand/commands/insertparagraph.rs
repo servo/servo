@@ -16,6 +16,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::comment::Comment;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
+use crate::dom::execcommand::commands::insertlinebreak::execute_insert_line_break_command;
 use crate::dom::execcommand::contenteditable::node::{
     NodeOrString, is_allowed_child, node_matches_local_name, split_the_parent, wrap_node_list,
 };
@@ -143,7 +144,9 @@ pub(crate) fn execute_insert_paragraph_command(
                     cx.no_gc(),
                 ),
             ) {
-                return true;
+                // Instead of true, browsers actually insert a line break instead:
+                // https://github.com/w3c/editing/issues/552
+                return execute_insert_line_break_command(cx, document, selection);
             }
             // Step 11.5.2. Set container to the result of calling createElement(tag) on the context object.
             let container = document.create_element(cx, tag.str());
