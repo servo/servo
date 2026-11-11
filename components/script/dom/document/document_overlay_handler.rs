@@ -203,7 +203,11 @@ impl DocumentOverlayHandler {
             TaskSourceName::DOMManipulation,
         );
         let msg = MainThreadScriptMsg::Common(script_msg);
-        self.document.window().main_thread_script_chan().send(msg).unwrap();
+        self.document
+            .window()
+            .main_thread_script_chan()
+            .send(msg)
+            .unwrap();
 
         promise
     }
@@ -251,7 +255,11 @@ impl DocumentOverlayHandler {
             TaskSourceName::DOMManipulation,
         );
         let msg = MainThreadScriptMsg::Common(script_msg);
-        self.document.window().main_thread_script_chan().send(msg).unwrap();
+        self.document
+            .window()
+            .main_thread_script_chan()
+            .send(msg)
+            .unwrap();
 
         promise
     }
@@ -267,7 +275,8 @@ impl DocumentOverlayHandler {
                     true
                 } else {
                     // Step 3
-                    self.document.window()
+                    self.document
+                        .window()
                         .GetFrameElement()
                         .is_some_and(|el| el.has_attribute(&local_name!("allowfullscreen")))
                 }
