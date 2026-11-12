@@ -24,7 +24,9 @@ use webrender_api::units::LayoutVector2D;
 
 use super::accessibility_node::{AccessibilityNode, DirtyState};
 use crate::ArcRefCell;
-use crate::accessibility::accessibility_node::{Integrity, NodeExpectations, SubtreeState};
+use crate::accessibility::accessibility_node::{
+    Integrity, LocalAccessibilityDamage, NodeExpectations, SubtreeState,
+};
 use crate::accessibility::{AccessibilityContext, AccessibilityDamageMap};
 
 #[derive(Debug, Default)]
@@ -94,7 +96,7 @@ pub(super) struct AccessibilityUpdate<'update> {
     /// Whether the tree's focused node has changed in this update.
     focused_node_changed: bool,
     /// Counters to track how many nodes we've checked for changes or updated in this tree update.
-    pub(super) counters: UpdateCounters,
+    pub(crate) counters: UpdateCounters,
 
     /// Map of [`NodeId`] to the [`AccessibilityDamage`] which was passed in for that node.
     damage_map: FxHashMap<NodeId, AccessibilityDamage>,
@@ -102,6 +104,9 @@ pub(super) struct AccessibilityUpdate<'update> {
     /// which have damage, including nodes which are newly added to the accessibility tree.
     dom_node_map: RefCell<FxHashMap<NodeId, ServoLayoutNode<'update>>>,
 
+    /// Map of accessibility node to `LocalDamage` which couldn't be resolved during the inital
+    /// tree walk.
+    unresolved_local_damage: FxHashMap<NodeId, LocalAccessibilityDamage>,
     /// The previous text node in tree order within the same container node.
     pub(super) closest_previous_text: Option<ArcRefCell<AccessibilityNode>>,
 }
@@ -256,7 +261,37 @@ impl AccessibilityTree {
             update,
         );
 
-        damage_root.borrow().update_ancestors(local_damage, update);
+        let mut nodes_with_subtree_changes: FxHashSet<NodeId> = FxHashSet::default();
+        if !local_damage.is_empty() {
+            nodes_with_subtree_changes.insert(damage_root_id);
+        }
+
+        for (id, damage) in update.take_unresolved_local_damage() {
+            let Some(node) = self.node_for_id(id) else {
+                continue;
+            };
+            nodes_with_subtree_changes.extend(
+                node.borrow_mut()
+                    .resolve_remaining_local_damage(damage, update),
+            );
+        }
+
+        if nodes_with_subtree_changes.is_empty() {
+            return;
+        }
+
+        self.mark_nodes_and_ancestors_dirty(
+            nodes_with_subtree_changes.iter(),
+            DirtyState::empty(),
+            DirtyState::from(LocalAccessibilityDamage::SubtreeChanged),
+        );
+
+        for id in nodes_with_subtree_changes {
+            let Some(node) = self.node_for_id(id) else {
+                continue;
+            };
+            node.borrow().update_ancestors(update);
+        }
     }
 
     /// Read all scroll offsets directly from the scroll tree, and use them to populate
@@ -685,6 +720,7 @@ impl<'update> AccessibilityUpdate<'update> {
             counters: UpdateCounters::default(),
             damage_map,
             dom_node_map: RefCell::new(dom_node_map),
+            unresolved_local_damage: FxHashMap::default(),
             closest_previous_text: None,
         }
     }
@@ -805,6 +841,21 @@ impl<'update> AccessibilityUpdate<'update> {
 
     pub(super) fn take_dom_node(&mut self, node_id: &NodeId) -> Option<ServoLayoutNode<'update>> {
         self.dom_node_map.borrow_mut().remove(node_id)
+    }
+
+    pub(super) fn add_unresolved_local_damage(
+        &mut self,
+        node_id: NodeId,
+        damage: LocalAccessibilityDamage,
+    ) {
+        self.unresolved_local_damage
+            .entry(node_id)
+            .or_insert(LocalAccessibilityDamage::empty())
+            .insert(damage);
+    }
+
+    fn take_unresolved_local_damage(&mut self) -> FxHashMap<NodeId, LocalAccessibilityDamage> {
+        std::mem::take(&mut self.unresolved_local_damage)
     }
 
     #[expect(unsafe_code)]
