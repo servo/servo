@@ -62,7 +62,7 @@ def update(
 def _update(logger: Any, test_paths: Mapping[str, TestRoot], rebuild: bool) -> int:
     for url_base, paths in test_paths.items():
         manifest_path = os.path.join(paths.metadata_path, "MANIFEST.json")
-        cache_subdir = os.path.relpath(os.path.dirname(manifest_path), os.path.dirname(__file__))
+        cache_subdir = os.path.relpath(os.path.dirname(manifest_path), SERVO_ROOT)
         wptmanifest.manifest.load_and_update(
             paths.tests_path,
             manifest_path,
