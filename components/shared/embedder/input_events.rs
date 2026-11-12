@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use bitflags::bitflags;
 use keyboard_types::{Code, CompositionEvent, Key, KeyState, Location, Modifiers};
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 
@@ -46,6 +47,12 @@ bitflags! {
 pub struct InputEventOutcome {
     pub id: InputEventId,
     pub result: InputEventResult,
+}
+
+impl MallocSizeOf for InputEventOutcome {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        0
+    }
 }
 
 /// An input event that is sent from the embedder to Servo.
