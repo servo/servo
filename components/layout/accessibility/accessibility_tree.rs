@@ -25,6 +25,7 @@ use webrender_api::units::LayoutVector2D;
 
 use super::accessibility_node::{AccessibilityNode, DirtyState};
 use crate::ArcRefCell;
+use crate::accessibility::accessibility_node::SubtreeState;
 use crate::accessibility::{AccessibilityContext, AccessibilityDamageMap};
 
 #[derive(Debug, Default)]
@@ -101,6 +102,9 @@ pub(super) struct AccessibilityUpdate<'update> {
     /// Map of [`NodeId`] to the corresponding [`ServoLayoutNode`]. This is populated for nodes
     /// which have damage, including nodes which are newly added to the accessibility tree.
     dom_node_map: RefCell<FxHashMap<NodeId, ServoLayoutNode<'update>>>,
+
+    /// The previous text node in tree order within the same container node.
+    pub(super) closest_previous_text: Option<ArcRefCell<AccessibilityNode>>,
 }
 
 /// Tracks changes to a node's relation to the tree within an update.
@@ -222,9 +226,8 @@ impl AccessibilityTree {
         self.root_node = Some(root_node);
     }
 
-    /// Update all nodes with damage tracked in `update` based on their `AccessibilityDamage`. If
-    /// any [`LocalAccessibilityDamage`] results from the update, propagate
-    /// [`LocalAccessibilityDamage::SubtreeChanged`] to its ancestors.
+    /// Update all nodes with damage tracked in `update` based on their `AccessibilityDamage`, and
+    /// resolve any local damage resulting from those updates.
     fn apply_changes_from_dom_tree(
         &mut self,
         context: &AccessibilityContext,
@@ -234,11 +237,10 @@ impl AccessibilityTree {
             return;
         };
         let damage_root = self.assert_node_for_id(&damage_root_id);
-        let hidden = false;
         let local_damage = damage_root.borrow_mut().update_subtree(
             damage_root.clone(),
             AccessibilityDamage::empty(),
-            hidden,
+            SubtreeState::empty(),
             context,
             self,
             update,
@@ -418,7 +420,7 @@ impl AccessibilityTree {
             let mut node = node_ref.borrow_mut();
             node.initialize_from_dom_node(dom_node);
             update.insert_damage(id, AccessibilityDamage::Rebuild);
-            node.add_dirty_state(DirtyState::HasDamage);
+            node.add_dirty_state(DirtyState::HasDamage | DirtyState::New);
         }
 
         (id, node_ref)
@@ -661,6 +663,7 @@ impl<'update> AccessibilityUpdate<'update> {
             counters: UpdateCounters::default(),
             damage_map,
             dom_node_map: RefCell::new(dom_node_map),
+            closest_previous_text: None,
         }
     }
 
