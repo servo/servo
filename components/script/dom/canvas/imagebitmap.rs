@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
 use js::context::{JSContext, NoGC};
 use js::realm::CurrentRealm;
-use pixels::{CorsStatus, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
+use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
 use script_bindings::cell::DomRefCell;
 use script_bindings::error::{Error, Fallible};
@@ -534,17 +534,14 @@ impl ImageBitmap {
                 // (e.g., a vector graphic with no natural size), then queue
                 // a global task, using the bitmap task source, to reject promise
                 // with an "InvalidStateError" DOMException and abort these steps.
-                let image_decoder = global_scope.image_cache().decoder();
-                let Some(raster_image) =
-                    pixels::load_from_memory(image_decoder, &bytes, CorsStatus::Safe)
-                else {
+                let Some(image) = global_scope.image_cache().decode_image(&bytes) else {
                     reject_promise_on_bitmap_task_source(&p);
                     return p;
                 };
 
                 // Step 6.4. Set imageBitmap's bitmap data to imageData, cropped
                 // to the source rectangle with formatting.
-                let snapshot = raster_image.as_snapshot();
+                let snapshot: Snapshot = image.into();
                 let Some(bitmap_data) =
                     ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
                 else {

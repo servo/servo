@@ -26,8 +26,8 @@ use net_traits::{FetchResponseMsg, Metadata, NetworkError};
 use paint_api::{CrossProcessPaintApi, ImageUpdate, SerializableImageData};
 use parking_lot::Mutex;
 use pixels::{
-    CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage, ServoImageDecoder,
-    load_from_memory,
+    CorsStatus, DecodedRasterImage, ImageCodec, ImageFrame, ImageMetadata, PixelFormat,
+    RasterImage, load_from_memory,
 };
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
@@ -98,7 +98,7 @@ fn parse_svg_document_in_memory(
 }
 
 fn decode_bytes_sync(
-    image_decoder: Arc<dyn ServoImageDecoder>,
+    image_decoder: &dyn ImageCodec,
     key: LoadKey,
     bytes: &[u8],
     cors: CorsStatus,
@@ -117,13 +117,13 @@ fn decode_bytes_sync(
         parse_svg_document_in_memory(bytes, usvg_options)
             .ok()
             .map(|svg_tree| {
-                DecodedImage::Vector(VectorImageData {
+                RasterOrVectorImage::Vector(VectorImageData {
                     svg_tree: Arc::new(svg_tree),
                     cors_status: cors,
                 })
             })
     } else {
-        load_from_memory(image_decoder, bytes, cors).map(DecodedImage::Raster)
+        load_from_memory(image_decoder, bytes, cors).map(RasterOrVectorImage::Raster)
     };
 
     DecoderMsg { key, image }
@@ -263,7 +263,7 @@ impl std::fmt::Debug for VectorImageData {
     }
 }
 
-enum DecodedImage {
+enum RasterOrVectorImage {
     Raster(RasterImage),
     Vector(VectorImageData),
 }
@@ -271,7 +271,7 @@ enum DecodedImage {
 /// Message that the decoder worker threads send to the image cache.
 struct DecoderMsg {
     key: LoadKey,
-    image: Option<DecodedImage>,
+    image: Option<RasterOrVectorImage>,
 }
 
 #[derive(MallocSizeOf)]
@@ -797,11 +797,11 @@ impl ImageCacheStore {
     fn handle_decoder(&mut self, msg: DecoderMsg) {
         let image = match msg.image {
             None => LoadResult::FailedToLoadOrDecode,
-            Some(DecodedImage::Raster(raster_image)) => {
+            Some(RasterOrVectorImage::Raster(raster_image)) => {
                 self.load_image_with_keycache(PendingKey::RasterImage((msg.key, raster_image)));
                 return;
             },
-            Some(DecodedImage::Vector(vector_image_data)) => {
+            Some(RasterOrVectorImage::Vector(vector_image_data)) => {
                 LoadResult::LoadedVectorImage(vector_image_data)
             },
         };
@@ -814,15 +814,12 @@ pub struct ImageCacheFactoryImpl {
     broken_image_icon_data: Arc<ResourceBytes>,
     /// Thread pool for image decoding
     thread_pool: Arc<ThreadPool>,
-    /// Image Decoder
-    image_decoder: Arc<dyn ServoImageDecoder>,
+    /// The image codec to use for image caches created with this factory.
+    image_decoder: Arc<dyn ImageCodec>,
 }
 
 impl ImageCacheFactoryImpl {
-    pub fn new(
-        image_decoder: Arc<dyn ServoImageDecoder>,
-        broken_image_icon_data: ResourceBytes,
-    ) -> Self {
+    pub fn new(image_decoder: Arc<dyn ImageCodec>, broken_image_icon_data: ResourceBytes) -> Self {
         debug!("Creating new ImageCacheFactoryImpl");
 
         Self {
@@ -882,7 +879,7 @@ impl ImageCacheFactory for ImageCacheFactoryImpl {
             thread_pool: self.thread_pool.clone(),
             usvg_options: Arc::new(opt),
             usvg_font_resolver: font_resolver.clone(),
-            image_decoder: self.image_decoder.clone(),
+            image_codec: self.image_decoder.clone(),
         })
     }
 }
@@ -903,8 +900,8 @@ pub struct ImageCacheImpl {
     ///
     /// This is only used inside `usvg::Options` but is here so we can measure it.
     usvg_font_resolver: Arc<dyn FontResolver>,
-    /// The `ServoImageEncoder` instance we will use to encode iamges.
-    image_decoder: Arc<dyn ServoImageDecoder>,
+    /// The [`ImageCodec`] instance we will use to decode and encode images.
+    image_codec: Arc<dyn ImageCodec>,
 }
 
 impl ImageCache for ImageCacheImpl {
@@ -1340,10 +1337,10 @@ impl ImageCache for ImageCacheImpl {
 
                         let local_store = self.store.clone();
                         let usvg_options = self.usvg_options.clone();
-                        let image_decoder = self.image_decoder.clone();
+                        let image_decoder = self.image_codec.clone();
                         self.thread_pool.spawn(move || {
                             let msg = decode_bytes_sync(
-                                image_decoder,
+                                image_decoder.as_ref(),
                                 key,
                                 &bytes,
                                 cors_status,
@@ -1395,13 +1392,13 @@ impl ImageCache for ImageCacheImpl {
             .broken_image_icon_image
             .get_or_init(|| {
                 let mut image = load_from_memory(
-                    self.image_decoder.clone(),
+                    self.image_codec.as_ref(),
                     self.broken_image_icon_data.as_ref().as_ref(),
                     CorsStatus::Unsafe,
                 )
                 .or_else(|| {
                     load_from_memory(
-                        self.image_decoder.clone(),
+                        self.image_codec.as_ref(),
                         FALLBACK_RIPPY,
                         CorsStatus::Unsafe,
                     )
@@ -1416,8 +1413,11 @@ impl ImageCache for ImageCacheImpl {
             .clone()
     }
 
-    fn decoder(&self) -> Arc<dyn ServoImageDecoder> {
-        self.image_decoder.clone()
+    fn decode_image(&self, buffer: &[u8]) -> Option<DecodedRasterImage> {
+        if buffer.is_empty() {
+            return None;
+        }
+        self.image_codec.decode_image(buffer)
     }
 }
 

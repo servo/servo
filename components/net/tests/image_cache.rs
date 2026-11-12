@@ -20,7 +20,7 @@ use net_traits::{
     ResourceTimingType,
 };
 use paint_api::{CrossProcessPaintApi, PaintMessage};
-use pixels::DefaultImageDecoder;
+use pixels::DefaultImageCodec;
 // For dummy Font Resolver
 use resvg::usvg::{Font, fontdb};
 use servo_base::id::{PipelineId, TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
@@ -56,7 +56,7 @@ fn create_test_image_cache() -> (Arc<dyn ImageCache>, Receiver<PipelineId>) {
         }
     })));
     let dummy_resolver = Arc::new(DummyFontResolver);
-    let image_decoder = Arc::new(DefaultImageDecoder::default());
+    let image_decoder = Arc::new(DefaultImageCodec::default());
 
     let factory = ImageCacheFactoryImpl::new(image_decoder, ResourceBytes::from_vec(vec![]));
     let cache = factory.create(
