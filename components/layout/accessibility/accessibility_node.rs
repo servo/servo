@@ -118,6 +118,10 @@ pub(super) struct AccessibilityNode {
     parent_node: Option<WeakRefCell<AccessibilityNode>>,
     /// All this node's children.
     child_nodes: Vec<ArcRefCell<AccessibilityNode>>,
+    /// This node's previous sibling, if any.
+    previous_sibling: Option<WeakRefCell<AccessibilityNode>>,
+    /// This node's next sibling, if any.
+    next_sibling: Option<WeakRefCell<AccessibilityNode>>,
     /// The [`OpaqueNode`] for the DOM node which corresponds to this accessibility node, if any.
     /// An accessibility node may not correspond to a DOM node if it corresponds to a
     /// pseudo-element, or in a test.
@@ -142,6 +146,8 @@ impl AccessibilityNode {
             accesskit_node: accesskit::Node::new(role),
             parent_node: None,
             child_nodes: vec![],
+            previous_sibling: None,
+            next_sibling: None,
             opaque_node: None,
             scroll_offset: None,
             flags: Flags::empty(),
@@ -294,9 +300,7 @@ impl AccessibilityNode {
     ) -> LocalAccessibilityDamage {
         let mut local_damage = LocalAccessibilityDamage::empty();
 
-        if !dom_damage.intersects(
-            AccessibilityDamage::Node | AccessibilityDamage::Children | AccessibilityDamage::Layout,
-        ) {
+        if dom_damage.is_empty() {
             return local_damage;
         }
 
@@ -371,13 +375,15 @@ impl AccessibilityNode {
         // Then, (re-)add all the remaining DOM children. Note that this means that some children
         // may end up being "Moved" even though they haven't changed parents, and may even be in the
         // same position as previously.
+        if let Some(last) = self.child_nodes.last() {
+            last.borrow_mut().next_sibling = None;
+        }
         let weak_self = ref_self.downgrade();
+        let mut previous_sibling = self.child_nodes.last().cloned();
         for dom_child in remaining_dom_children {
             let (child_id, child_ref) = tree.get_or_create_node(&dom_child, update);
-            // TODO(#47162): Since we need to update bounds for all nodes, we need to ensure every
-            // AccessibilityNode has a corresponding DOM node available to be retrieved from the
-            // AccessibilityUpdate. Once we no longer update bounds on all nodes, we won't need to
-            // add all nodes like this.
+            // We need to ensure every AccessibilityNode which may be updated has a corresponding
+            // DOM node available to be retrieved from the AccessibilityUpdate.
             update.insert_dom_node(child_id, dom_child);
 
             // Update self.child_nodes in place.
@@ -386,6 +392,14 @@ impl AccessibilityNode {
 
             let mut child = child_ref.borrow_mut();
             child.parent_node = Some(weak_self.clone());
+            child.previous_sibling = previous_sibling
+                .as_ref()
+                .map(|node_ref| node_ref.downgrade());
+            child.next_sibling = None;
+            if let Some(ref previous_sibling) = previous_sibling {
+                previous_sibling.borrow_mut().next_sibling = Some(child_ref.downgrade());
+            }
+            previous_sibling = Some(child_ref.clone());
 
             if update.is_new(&child_id) {
                 self.dirty_state |= DirtyState::DescendantHasDamage;
@@ -887,21 +901,35 @@ impl AccessibilityNode {
         self.accesskit_node.clear_transform();
         self.dirty_state |= DirtyState::Updated;
     }
+}
 
-    pub(super) fn assert_integrity(&self, expected_parent: Option<WeakRefCell<AccessibilityNode>>) {
+pub(super) struct NodeExpectations {
+    pub(super) parent_node: Option<WeakRefCell<AccessibilityNode>>,
+    pub(super) previous_sibling: Option<WeakRefCell<AccessibilityNode>>,
+    pub(super) next_sibling: Option<WeakRefCell<AccessibilityNode>>,
+}
+
+pub(super) trait Integrity {
+    fn assert_integrity(&self, expected: NodeExpectations);
+}
+
+impl Integrity for AccessibilityNode {
+    fn assert_integrity(&self, expected: NodeExpectations) {
         debug_assert!(pref!(expensive_accessibility_test_assertions_enabled));
 
-        if let Some(actual_parent) = &self.parent_node {
-            let expected = expected_parent.expect("Actual parent but no expected parent");
-            let expected = expected.upgrade().expect("Expected parent was dropped");
-            let actual = actual_parent.upgrade().expect("Actual parent was dropped");
-            assert!(actual.ptr_eq(&expected));
-        } else {
-            assert!(
-                expected_parent.is_none(),
-                "Expected parent but no actual parent"
-            );
-        }
+        assert_relation(self, &self.parent_node, expected.parent_node, "parent");
+        assert_relation(
+            self,
+            &self.previous_sibling,
+            expected.previous_sibling,
+            "previous sibling",
+        );
+        assert_relation(
+            self,
+            &self.next_sibling,
+            expected.next_sibling,
+            "next sibling",
+        );
 
         assert!(
             self.dirty_state.is_empty(),
@@ -916,6 +944,36 @@ impl AccessibilityNode {
             "children() IDs didn't match child_ids() for {self:?}"
         );
     }
+}
+
+fn assert_relation(
+    node: &AccessibilityNode,
+    actual: &Option<WeakRefCell<AccessibilityNode>>,
+    expected: Option<WeakRefCell<AccessibilityNode>>,
+    relation: &str,
+) {
+    let Some(actual) = actual else {
+        assert!(
+            expected.is_none(),
+            "Expected {relation} but no actual {relation} on {node:?}"
+        );
+        return;
+    };
+    let expected = expected
+        .unwrap_or_else(|| panic!("Actual {relation} but no expected {relation} on {node:?}",));
+    let expected = expected
+        .upgrade()
+        .unwrap_or_else(|| panic!("Expected {relation} on {node:?} was dropped"));
+    let actual = actual
+        .upgrade()
+        .unwrap_or_else(|| panic!("Actual {relation} on {node:?} was dropped"));
+    assert!(
+        actual.ptr_eq(&expected),
+        "actual {:?} did not match expected {:?} for {relation} of {:?}",
+        actual,
+        expected,
+        node
+    );
 }
 
 impl Debug for AccessibilityNode {
