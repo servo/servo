@@ -417,10 +417,10 @@ impl ServiceWorkerManager {
             }
 
             // Step 2: If registration’s active worker is not null and registration’s active worker’s state is "activating", return.
-            if let Some(active_worker) = registration.active_worker.as_ref() {
-                if active_worker.state == ServiceWorkerState::Activating {
-                    return;
-                }
+            if let Some(active_worker) = registration.active_worker.as_ref() &&
+                active_worker.state == ServiceWorkerState::Activating
+            {
+                // return;
             }
         }
     }
