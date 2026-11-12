@@ -538,21 +538,20 @@ impl BlockFormattingContext {
             sequential_layout_state.calculate_clearance(Clear::Both, &CollapsedMargin::zero())
         });
 
-        // CSS Sizing 4 § 4.2: non-replaced boxes with a preferred aspect ratio
-        // calculate their automatic block size the same as replaced elements.
-        let content_block_size = if let Some(ratio) = preferred_aspect_ratio {
-            ratio.compute_dependent_size(LogicalAxis::Block, containing_block.size.inline)
-        } else {
-            flow_layout.content_block_size +
-                flow_layout.collapsible_margins_in_children.end.solve() +
-                clearance.unwrap_or_default()
-        };
+        let content_block_size = flow_layout.content_block_size +
+            flow_layout.collapsible_margins_in_children.end.solve() +
+            clearance.unwrap_or_default();
 
         let intrinsic_block_size = self
             .textarea_size
             .as_ref()
             .and_then(|textarea_size| {
                 textarea_size.effective_block_size(&base?.style, &layout_context.font_context)
+            })
+            .or_else(|| {
+                preferred_aspect_ratio.map(|ratio| {
+                    ratio.compute_dependent_size(LogicalAxis::Block, containing_block.size.inline)
+                })
             })
             .unwrap_or(content_block_size);
 
