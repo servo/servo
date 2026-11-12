@@ -232,10 +232,21 @@ impl AccessibilityTree {
         context: &AccessibilityContext,
         update: &mut AccessibilityUpdate,
     ) {
-        let Some(damage_root_id) = self.mark_nodes_and_ancestors_dirty(update) else {
+        let Some(damage_root_id) = self.mark_nodes_and_ancestors_dirty(
+            update.damage_map.keys(),
+            DirtyState::HasDamage,
+            DirtyState::DescendantHasDamage,
+        ) else {
             return;
         };
         let damage_root = self.assert_node_for_id(&damage_root_id);
+        for ancestor in damage_root.borrow().ancestors() {
+            ancestor
+                .borrow_mut()
+                .remove_dirty_state(DirtyState::DescendantHasDamage);
+        }
+        update.ensure_dom_node_for_damage_root(damage_root_id, self);
+
         let local_damage = damage_root.borrow_mut().update_subtree(
             damage_root.clone(),
             AccessibilityDamage::empty(),
@@ -305,12 +316,12 @@ impl AccessibilityTree {
     /// - remove the [`DirtyState::HasDirtyDescendants`] flag on nodes between the common ancestor
     ///   and the root;
     /// - return the common ancestor.
-    fn mark_nodes_and_ancestors_dirty(
+    fn mark_nodes_and_ancestors_dirty<'update>(
         &mut self,
-        update: &mut AccessibilityUpdate,
+        mut dirty_node_ids: impl Iterator<Item = &'update NodeId>,
+        node_dirty_state: DirtyState,
+        ancestor_dirty_state: DirtyState,
     ) -> Option<NodeId> {
-        let mut dirty_node_ids = update.damage_map.keys();
-
         // An ordered list of common ancestors for the nodes seen so far, from shallowest to
         // deepest. At the end of the loop, the lowest common ancestor is the last node in this vec.
         let mut common_ancestors: Vec<NodeId> = Vec::new();
@@ -318,21 +329,20 @@ impl AccessibilityTree {
         {
             // Initialize the list of potential common ancestors.
             let node_id = dirty_node_ids.next()?;
-            update.collect_dom_node_ancestors(node_id, self);
             let first_node = self.assert_node_for_id(node_id);
             let mut first_node = first_node.borrow_mut();
-            first_node.add_dirty_state(DirtyState::HasDamage);
+            first_node.add_dirty_state(node_dirty_state);
             common_ancestors.push(first_node.id());
             common_ancestors.extend(first_node.ancestors().map(|ancestor| {
                 let mut ancestor = ancestor.borrow_mut();
-                ancestor.add_dirty_state(DirtyState::DescendantHasDamage);
+                ancestor.add_dirty_state(ancestor_dirty_state);
                 ancestor.id()
             }));
             common_ancestors.reverse();
         }
 
         let mut truncate_ancestors = |node: &AccessibilityNode| -> bool {
-            if node.dirty_state().descendant_has_damage() {
+            if node.dirty_state().intersects(ancestor_dirty_state) {
                 if let Some(pos) = common_ancestors.iter().position(|&id| id == node.id()) {
                     common_ancestors.truncate(pos + 1);
                 }
@@ -344,7 +354,7 @@ impl AccessibilityTree {
         for node_id in dirty_node_ids {
             let node = self.assert_node_for_id(node_id);
             let mut node = node.borrow_mut();
-            node.add_dirty_state(DirtyState::HasDamage);
+            node.add_dirty_state(node_dirty_state);
 
             if truncate_ancestors(&node) {
                 continue;
@@ -359,20 +369,11 @@ impl AccessibilityTree {
                     break;
                 }
 
-                ancestor.add_dirty_state(DirtyState::DescendantHasDamage);
+                ancestor.add_dirty_state(ancestor_dirty_state);
             }
         }
 
-        let lowest_common_ancestor = common_ancestors.pop();
-
-        for ancestor_id in common_ancestors {
-            let ancestor = self.assert_node_for_id(&ancestor_id);
-            ancestor
-                .borrow_mut()
-                .remove_dirty_state(DirtyState::DescendantHasDamage);
-        }
-
-        lowest_common_ancestor
+        common_ancestors.pop()
     }
 
     fn update_focused_node(
@@ -807,15 +808,23 @@ impl<'update> AccessibilityUpdate<'update> {
     }
 
     #[expect(unsafe_code)]
-    fn collect_dom_node_ancestors(&self, node_id: &NodeId, tree: &AccessibilityTree) {
+    fn ensure_dom_node_for_damage_root(&self, damage_root_id: NodeId, tree: &AccessibilityTree) {
+        let Some(start_node_id) = self.damage_map.keys().next() else {
+            unreachable!(
+                "ensure_dom_node_for_damage_root should not be called if damage_map is empty"
+            );
+        };
         let mut dom_node_map = self.dom_node_map.borrow_mut();
         let dom_node = dom_node_map
-            .get(node_id)
-            .expect("collect_dom_node_ancestors should be called for a known DOM node");
+            .get(start_node_id)
+            .expect("damage_map should not contain damage for non-existent nodes");
         let mut parent = unsafe { dom_node.dangerous_flat_tree_parent() };
         while let Some(node) = parent {
             if let Some(node_id) = tree.existing_id_for_opaque(node.opaque()) {
                 dom_node_map.insert(node_id, node);
+                if node_id == damage_root_id {
+                    break;
+                }
             }
             parent = unsafe { node.dangerous_flat_tree_parent() };
         }
