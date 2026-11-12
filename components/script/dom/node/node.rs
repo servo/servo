@@ -27,7 +27,7 @@ use js::rust::HandleObject;
 use keyboard_types::Modifiers;
 use layout_api::{
     AccessibilityDamage, AxesOverflow, BoxAreaType, CSSPixelRectVec, GenericLayoutData,
-    NodeRenderingType, PhysicalSides, TrustedNodeAddress, with_layout_state,
+    NodeRenderingType, PhysicalSides, QueryMsg, TrustedNodeAddress, with_layout_state,
 };
 use libc::{self, uintptr_t};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
@@ -666,8 +666,8 @@ impl Node {
             0.0,                                // azimuth_angle
             DOMString::new(),                   // pointer_type
             false,                              // is_primary
-            vec![],                             // coalesced_events
-            vec![],                             // predicted_events
+            &[],                                // coalesced_events
+            &[],                                // predicted_events
         );
 
         // Step 4. Set event's composed flag.
@@ -2303,10 +2303,10 @@ impl Node {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#editable>
-    pub(crate) fn is_editable(&self) -> bool {
+    pub(crate) fn is_editable(&self, cx: &mut JSContext) -> bool {
         // https://html.spec.whatwg.org/multipage/#inert
         // When a node is inert: If it is editable, the node behaves as if it were non-editable.
-        if self.is_inert() {
+        if self.is_inert(cx) {
             return false;
         }
 
@@ -2330,17 +2330,23 @@ impl Node {
         html_element.is_some() || (!self.is::<Element>() && parent.is::<HTMLElement>())
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#inert>
-    /// A node (in particular elements and text nodes) can be inert.
-    ///
-    /// Inertness is propagated using the internal `-moz-inert` property.
-    pub(crate) fn is_inert(&self) -> bool {
+    /// Like [`Self::is_inert`], but does not trigger a reflow.
+    pub(crate) fn is_inert_without_reflow(&self) -> bool {
         self.downcast::<Element>()
-            .and_then(Element::style)
+            .and_then(Element::style_without_reflow)
             .is_some_and(|style| {
                 *style.get__moz_inert() == Inert::Inert ||
                     *style.get_interactivity() == Interactivity::Inert
             })
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#inert>
+    /// A node (in particular elements and text nodes) can be inert.
+    ///
+    /// Inertness is propagated using the internal `-moz-inert` property.
+    pub(crate) fn is_inert(&self, cx: &mut JSContext) -> bool {
+        self.owner_window().layout_reflow(cx, QueryMsg::StyleQuery);
+        self.is_inert_without_reflow()
     }
 }
 

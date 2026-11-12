@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>An open WebSocket does not leak the Document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/memory/resources/leak-helpers.js"></script>
+<body>
+<script>
+promise_test(async () => {
+  assert_true(await createAndDestroyIframeWithHTML("<script>new WebSocket(\"wss://{{host}}:{{ports[wss][0]}}/echo\");<\/script>"));
+}, "An open WebSocket does not leak the Document");
+</script>
+</body>

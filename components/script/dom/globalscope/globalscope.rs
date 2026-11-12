@@ -344,6 +344,11 @@ impl GlobalScope {
     pub(crate) fn tear_down(&self) {
         self.fetch_group_mut().terminate(self);
         self.close_event_sources();
+        if let Some(window) = self.downcast::<Window>() &&
+            let Some(cookie_store) = window.cookie_store()
+        {
+            cookie_store.clean_up();
+        }
         self.with_module_map(|module_map| std::mem::take(&mut *module_map.borrow_mut()));
     }
 

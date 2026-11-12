@@ -25,7 +25,8 @@ use crate::cell::ArcRefCell;
 use crate::containing_block::{ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize};
 use crate::flow::inline::text_run::{FontAndScriptInfo, SharedTextRunData};
 use crate::fragment_tree::{
-    BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, FragmentFlags, TextFragment,
+    BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, FragmentAndLogicalRect, FragmentFlags,
+    TextFragment,
 };
 use crate::geom::{LogicalRect, LogicalSides, LogicalVec2, PhysicalRect, PhysicalSize};
 use crate::positioned::{
@@ -61,14 +62,9 @@ bitflags! {
 }
 
 struct FragmentAndData {
-    fragment: Fragment,
-
-    /// The logical rectangle of the fragment, relative within the current inline box (or line).
-    /// This logical rectangle will be converted into a physical one, and the Fragment's
-    /// `content_rect` will be updated once the inline box's final size is known in
-    /// [`LineItemLayout::end_inline_box`].
-    logical_rect: LogicalRect<Au>,
-
+    /// The [`FragmentAndLogicalRect`] used to determine this fragment's final physical
+    /// rectangle.
+    fragment_and_rect: FragmentAndLogicalRect,
     /// If the fragment is for an inline box, this is the list of floats which are either
     /// direct children or descendants within other inline boxes. Once the final physical
     /// rect of the fragment is known, the position of these floats needs to be adjusted.
@@ -76,18 +72,16 @@ struct FragmentAndData {
 }
 
 impl FragmentAndData {
-    fn new(fragment: Fragment, logical_rect: LogicalRect<Au>) -> Self {
-        Self::new_with_propagated_floats(fragment, logical_rect, Vec::new())
+    fn new(fragment_and_rect: FragmentAndLogicalRect) -> Self {
+        Self::new_with_propagated_floats(fragment_and_rect, Vec::new())
     }
 
     fn new_with_propagated_floats(
-        fragment: Fragment,
-        logical_rect: LogicalRect<Au>,
+        fragment_and_rect: FragmentAndLogicalRect,
         propagated_floats: Vec<Arc<BoxFragment>>,
     ) -> Self {
         Self {
-            fragment,
-            logical_rect,
+            fragment_and_rect,
             propagated_floats,
         }
     }
@@ -99,16 +93,22 @@ impl FragmentAndData {
     /// This shouldn't be used for floats, since they are anchored to a side of the inline
     /// formatting context, not to their container.
     fn resolve_physical_rect_and_adjust_floats(&self, container: &ContainingBlock) {
-        debug_assert!(!matches!(self.fragment, Fragment::Float(_)));
+        debug_assert!(!matches!(
+            self.fragment_and_rect.fragment,
+            Fragment::Float(_)
+        ));
 
-        let Some(base) = self.fragment.base() else {
+        let Some(base) = self.fragment_and_rect.fragment.base() else {
             return;
         };
 
         // We do not know the actual physical position of a logically laid out inline element, until
         // we know the width of the containing inline block. This step converts the logical rectangle
         // into a physical one based on the inline formatting context width.
-        let rect = self.logical_rect.as_physical_deprecated(container);
+        let rect = self
+            .fragment_and_rect
+            .logical_rect
+            .as_physical_deprecated(container);
         base.set_rect(rect);
 
         // Floats are anchored to a side of the inline formatting context, but in the box tree
@@ -130,10 +130,13 @@ impl FragmentAndData {
     ) -> Vec<Fragment> {
         let mut fragments = Vec::with_capacity(fragments_and_data.len());
         for fragment_and_data in fragments_and_data {
-            if !matches!(fragment_and_data.fragment, Fragment::Float(_)) {
+            if !matches!(
+                fragment_and_data.fragment_and_rect.fragment,
+                Fragment::Float(_)
+            ) {
                 fragment_and_data.resolve_physical_rect_and_adjust_floats(container)
             }
-            fragments.push(fragment_and_data.fragment);
+            fragments.push(fragment_and_data.fragment_and_rect.fragment);
         }
         fragments
     }
@@ -149,7 +152,7 @@ impl FragmentAndData {
         let mut fragments = Vec::with_capacity(fragments_and_data.len());
         let mut propagated_floats = Vec::new();
         for mut fragment_and_data in fragments_and_data {
-            if let Fragment::Float(ref float) = fragment_and_data.fragment {
+            if let Fragment::Float(ref float) = fragment_and_data.fragment_and_rect.fragment {
                 if relative_adjustement != PhysicalSize::zero() {
                     float.base.translate_rect(relative_adjustement);
                 }
@@ -157,7 +160,7 @@ impl FragmentAndData {
             } else {
                 fragment_and_data.resolve_physical_rect_and_adjust_floats(container)
             }
-            fragments.push(fragment_and_data.fragment);
+            fragments.push(fragment_and_data.fragment_and_rect.fragment);
             propagated_floats.append(&mut fragment_and_data.propagated_floats);
         }
         (fragments, propagated_floats)
@@ -615,8 +618,7 @@ impl LineItemLayout<'_, '_> {
         self.current_state
             .fragments_and_data
             .push(FragmentAndData::new_with_propagated_floats(
-                fragment,
-                content_rect,
+                FragmentAndLogicalRect::new(fragment, content_rect),
                 propagated_floats,
             ));
     }
@@ -702,7 +704,7 @@ impl LineItemLayout<'_, '_> {
         self.current_state.inline_advance += inline_advance;
         self.current_state
             .fragments_and_data
-            .push(FragmentAndData::new(
+            .push(FragmentAndData::new(FragmentAndLogicalRect::new(
                 Fragment::Text(Arc::new(TextFragment {
                     base: BaseFragment::new(text_item.base_fragment_info, PhysicalRect::zero()),
                     run_data: text_item.text_fragment_run_data,
@@ -714,7 +716,7 @@ impl LineItemLayout<'_, '_> {
                     is_empty_for_text_cursor: text_item.is_empty_for_text_cursor,
                 })),
                 content_rect,
-            ));
+            )));
     }
 
     fn layout_atomic(&mut self, atomic: AtomicLineItem) {
@@ -770,10 +772,10 @@ impl LineItemLayout<'_, '_> {
 
         self.current_state
             .fragments_and_data
-            .push(FragmentAndData::new(
+            .push(FragmentAndData::new(FragmentAndLogicalRect::new(
                 Fragment::Box(atomic.fragment),
                 content_rect,
-            ));
+            )));
     }
 
     fn layout_absolute(&mut self, absolute: AbsolutelyPositionedLineItem) {
@@ -838,10 +840,10 @@ impl LineItemLayout<'_, '_> {
         self.current_positioning_context_mut().push(hoisted_box);
         self.current_state
             .fragments_and_data
-            .push(FragmentAndData::new(
+            .push(FragmentAndData::new(FragmentAndLogicalRect::new(
                 Fragment::AbsoluteOrFixedPositionedPlaceholder(hoisted_fragment),
                 LogicalRect::zero(),
-            ));
+            )));
     }
 
     fn layout_float(&mut self, float: FloatLineItem) {
@@ -867,10 +869,10 @@ impl LineItemLayout<'_, '_> {
             .translate_rect(offset.to_physical_size(self.containing_block().style.writing_mode));
         self.current_state
             .fragments_and_data
-            .push(FragmentAndData::new(
+            .push(FragmentAndData::new(FragmentAndLogicalRect::new(
                 Fragment::Float(float.fragment),
                 LogicalRect::zero(),
-            ));
+            )));
     }
 
     fn layout_block_level(&mut self, block_level: Arc<BoxFragment>) {
@@ -882,10 +884,10 @@ impl LineItemLayout<'_, '_> {
         content_rect.start_corner.block -= self.line_metrics.block_offset;
         self.current_state
             .fragments_and_data
-            .push(FragmentAndData::new(
+            .push(FragmentAndData::new(FragmentAndLogicalRect::new(
                 Fragment::Box(block_level),
                 content_rect,
-            ));
+            )));
     }
 
     #[inline]

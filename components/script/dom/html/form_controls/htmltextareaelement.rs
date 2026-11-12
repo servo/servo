@@ -42,7 +42,7 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
-    BindContext, ChildrenMutation, CloneChildrenFlag, Node, NodeTraits, UnbindContext,
+    BindContext, ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, NodeTraits, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::text_input::EmbedderClipboardProvider;
@@ -730,6 +730,10 @@ impl VirtualMethods for HTMLTextAreaElement {
                 // > - textarea elements that do not have a required attribute
                 element.set_state(cx.no_gc(), ElementState::OPTIONAL_, !required);
             },
+            local_name!("rows") => {
+                // So we can recalculate the effective height based on rows.
+                self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
+            },
             _ => {},
         }
 
@@ -846,6 +850,13 @@ impl Validatable for HTMLTextAreaElement {
     fn validity_state(&self, cx: &mut JSContext) -> DomRoot<ValidityState> {
         self.validity_state
             .or_init(|| ValidityState::new(cx, &self.owner_window(), self.upcast()))
+    }
+
+    fn satisfies_constraints(&self) -> bool {
+        let Some(validity_state) = self.validity_state.get() else {
+            return true;
+        };
+        validity_state.invalid_flags().is_empty()
     }
 
     fn is_instance_validatable(&self, no_gc: &NoGC) -> bool {

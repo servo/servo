@@ -6,6 +6,7 @@
 //! Flow layout, also known as block-and-inline layout.
 
 use app_units::{Au, MAX_AU};
+use fonts::FontContext;
 use inline::InlineFormattingContext;
 use layout_api::LayoutNode;
 use malloc_size_of_derive::MallocSizeOf;
@@ -29,6 +30,8 @@ use crate::containing_block::{
 use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
 use crate::flow::float::{Clear, FloatBox, FloatSide, PlacementAmongFloats, SequentialLayoutState};
+use crate::flow::inline::text_run::get_font_for_first_font_for_style;
+use crate::flow::inline::{InlineContainerStateFlags, line_height};
 use crate::flow::same_formatting_context_block::SameFormattingContextBlock;
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
@@ -61,6 +64,46 @@ pub(crate) struct BlockFormattingContext {
     pub contents: BlockContainer,
     pub contains_floats: bool,
     pub is_table_cell: bool,
+    /// This currently drives layouts for textareas as they require sizing based
+    /// on their number of rows. This is only Some for <textarea>s, otherwise it
+    /// is always None.
+    pub textarea_size: Option<TextareaSize>,
+}
+
+/// Helps format textareas according to their effective size as dictated by the
+/// spec.
+/// <https://html.spec.whatwg.org/multipage/#the-textarea-element-2>
+#[derive(Debug, MallocSizeOf)]
+pub(crate) struct TextareaSize {
+    /// The number of rows in this `<textarea>`, which is used to determine
+    /// its intrinsic block size when it has `field-sizing: fixed`.
+    /// <https://html.spec.whatwg.org/multipage/#textarea-effective-height>
+    /// <https://drafts.csswg.org/css-forms-1/#field-sizing>
+    rows: u32,
+    // TODO(44426): Store cols too, for the intrinsic inline size.
+}
+
+impl TextareaSize {
+    /// Effective block size of this textarea, which is the number of rows
+    /// multiplied by the line height. With no font available, this will
+    /// return None.
+    ///
+    /// <https://html.spec.whatwg.org/multipage/#textarea-effective-height>
+    // TODO(mttr): This should take scrollbar size into consideration.
+    fn effective_block_size(
+        &self,
+        style: &ComputedValues,
+        font_context: &FontContext,
+    ) -> Option<Au> {
+        let font_ref = get_font_for_first_font_for_style(style, font_context)?;
+        let line_height = line_height(
+            style,
+            font_ref.metrics(),
+            &InlineContainerStateFlags::empty(),
+        );
+        let rows = i32::try_from(self.rows).unwrap_or(i32::MAX);
+        Some(line_height * rows)
+    }
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -496,6 +539,14 @@ impl BlockFormattingContext {
             flow_layout.collapsible_margins_in_children.end.solve() +
             clearance.unwrap_or_default();
 
+        let intrinsic_block_size = self
+            .textarea_size
+            .as_ref()
+            .and_then(|textarea_size| {
+                textarea_size.effective_block_size(&base?.style, &layout_context.font_context)
+            })
+            .unwrap_or(content_block_size);
+
         let mut apply_align_content = || {
             // Don't handle `align-content` for table cells, since at this point we still
             // don't know how tall they will be. It's instead handled during table layout.
@@ -556,8 +607,10 @@ impl BlockFormattingContext {
 
             // Compute the free space. If negative, the "safe" alignment variants fall back
             // to `start` alignment.
+            // Note that the alignment subject is the actual contents of the box, even if
+            // the intrinsic block size is different (as is the case with <textarea>)
             flow_layout.depends_on_block_constraints = true;
-            let final_block_size = lazy_block_size.resolve(|| content_block_size);
+            let final_block_size = lazy_block_size.resolve(|| intrinsic_block_size);
             let free_space = final_block_size - content_block_size;
             if free_space <= Au::zero() && is_safe {
                 return;
@@ -596,7 +649,7 @@ impl BlockFormattingContext {
 
         IndependentFormattingContextLayoutResult {
             fragments: flow_layout.fragments,
-            content_block_size,
+            content_block_size: intrinsic_block_size,
             content_inline_size_for_table: None,
             baselines: flow_layout.baselines,
             depends_on_block_constraints: flow_layout.depends_on_block_constraints,
@@ -914,7 +967,7 @@ fn layout_block_level_children(
             &mut placement_state,
             ignore_block_margins_for_stretch,
         ),
-        None => layout_block_level_children_in_parallel(
+        None => layout_block_level_children_maybe_in_parallel(
             layout_context,
             positioning_context,
             child_boxes,
@@ -943,7 +996,7 @@ fn layout_block_level_children(
     }
 }
 
-fn layout_block_level_children_in_parallel(
+fn layout_block_level_children_maybe_in_parallel(
     layout_context: &LayoutContext,
     positioning_context: &mut PositioningContext,
     child_boxes: &[ArcRefCell<BlockLevelBox>],
@@ -953,22 +1006,31 @@ fn layout_block_level_children_in_parallel(
     let mut layout_results: Vec<(Fragment, PositioningContext)> =
         Vec::with_capacity(child_boxes.len());
 
-    child_boxes
-        .par_iter()
-        .map(|child_box| {
-            let mut child_positioning_context = PositioningContext::default();
-            let fragment = child_box.borrow().layout(
-                layout_context,
-                &mut child_positioning_context,
-                placement_state.containing_block,
-                /* sequential_layout_state = */ None,
-                /* collapsible_with_parent_start_margin = */ None,
-                ignore_block_margins_for_stretch,
-                false, /* has_inline_parent */
-            );
-            (fragment, child_positioning_context)
-        })
-        .collect_into_vec(&mut layout_results);
+    let layout = |child_box: &ArcRefCell<BlockLevelBox>| {
+        let mut child_positioning_context = PositioningContext::default();
+        let fragment = child_box.borrow().layout(
+            layout_context,
+            &mut child_positioning_context,
+            placement_state.containing_block,
+            /* sequential_layout_state = */ None,
+            /* collapsible_with_parent_start_margin = */ None,
+            ignore_block_margins_for_stretch,
+            false, /* has_inline_parent */
+        );
+        (fragment, child_positioning_context)
+    };
+
+    let job_counts = child_boxes
+        .iter()
+        .map(|block_level_box| block_level_box.borrow().subtree_size());
+    if layout_context.should_parallelize_layout(job_counts) {
+        child_boxes
+            .par_iter()
+            .map(layout)
+            .collect_into_vec(&mut layout_results);
+    } else {
+        layout_results.extend(child_boxes.iter().map(layout));
+    };
 
     layout_results
         .into_iter()

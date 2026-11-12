@@ -5,6 +5,7 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::Reflector;
 
@@ -76,6 +77,68 @@ impl FileSystemEntry {
             .expect("FileSystemEntry must be associated with a FileSystem")
             .root()
     }
+
+    /// Queue `success_callback` and `error_callback` for the task that will
+    /// invoke one of them, and returns the id used to look them up.
+    pub(crate) fn queue_entry_callback(
+        &self,
+        success_callback: Option<RootedCallback<FileSystemEntryCallback>>,
+        error_callback: Option<RootedCallback<ErrorCallback>>,
+    ) -> usize {
+        let id = self.next_callback.get();
+        self.pending_callbacks
+            .borrow_mut()
+            .push(PendingEntryCallback {
+                id,
+                callback: success_callback.map(|callback| callback.to_traced()),
+                error: error_callback.map(|callback| callback.to_traced()),
+            });
+        self.next_callback.set(id + 1);
+        id
+    }
+
+    /// Invoke the callbacks queued under `id` with `result`, unless the task was cancelled.
+    pub(crate) fn dispatch_entry_callback(
+        &self,
+        cx: &mut JSContext,
+        id: usize,
+        result: Result<DomRoot<FileSystemEntry>, DOMErrorName>,
+    ) {
+        let Some(index) = self
+            .pending_callbacks
+            .borrow()
+            .iter()
+            .position(|val| val.id == id)
+        else {
+            return;
+        };
+
+        let (success_callback, error_callback) = {
+            let pending = self.pending_callbacks.borrow();
+            let pending = pending.get(index).expect("callback must still be queued");
+            (
+                pending.callback.as_ref().map(|callback| callback.root(cx)),
+                pending.error.as_ref().map(|callback| callback.root(cx)),
+            )
+        };
+        self.pending_callbacks
+            .safe_borrow_mut(cx)
+            .swap_remove(index);
+
+        match result {
+            Ok(entry) => {
+                if let Some(callback) = success_callback {
+                    let _ = callback.Call__(cx, &entry, ExceptionHandling::Report);
+                }
+            },
+            Err(name) => {
+                if let Some(error_callback) = error_callback {
+                    let error = DOMException::new(cx, &self.global(), name);
+                    let _ = error_callback.Call__(cx, &error, ExceptionHandling::Report);
+                }
+            },
+        }
+    }
 }
 
 impl FileSystemEntryMethods<crate::DomTypeHolder> for FileSystemEntry {
@@ -120,17 +183,9 @@ impl FileSystemEntryMethods<crate::DomTypeHolder> for FileSystemEntry {
         // root and path.
         let item = evaluate_path(&self.root(), &path)
             .and_then(DomRoot::downcast::<FileSystemDirectoryEntry>)
-            .map(|parent| Trusted::new(&*parent));
+            .map(|item| Trusted::new(&*item));
 
-        let id = self.next_callback.get();
-        self.pending_callbacks
-            .borrow_mut()
-            .push(PendingEntryCallback {
-                id,
-                callback: success_callback.map(|callback| callback.to_traced()),
-                error: error_callback.map(|callback| callback.to_traced()),
-            });
-        self.next_callback.set(id + 1);
+        let id = self.queue_entry_callback(success_callback, error_callback);
 
         let this = Trusted::new(self);
         self.global()
@@ -138,51 +193,25 @@ impl FileSystemEntryMethods<crate::DomTypeHolder> for FileSystemEntry {
             .dom_manipulation_task_source()
             .queue(task!(invoke_get_parent: move |cx| {
                 let this = this.root();
-                let Some(index) = this
-                    .pending_callbacks
-                    .borrow()
-                    .iter()
-                    .position(|val| val.id == id)
-                else {
-                    return;
-                };
-
-                let (success_callback, error_callback) = {
-                    let pending = this.pending_callbacks.borrow();
-                    let pending = pending
-                        .get(index)
-                        .expect("callback must still be queued");
-                    (
-                        pending.callback.as_ref().map(|callback| callback.root(cx)),
-                        pending.error.as_ref().map(|callback| callback.root(cx)),
-                    )
-                };
-                this.pending_callbacks.borrow_mut().swap_remove(index);
-
-                match item {
+                let result = match item {
+                    // Step 1.3. If item is failure, queue a task to invoke
+                    // errorCallback (if given) with « a newly created
+                    // "NotFoundError" DOMException » and "report", and abort
+                    // these steps.
+                    None => Err(DOMErrorName::NotFoundError),
                     // Step 1.4. Let entry be a new directory entry with item's
                     // name as name and path as full path.
                     //
                     // Step 1.5. Queue a task to invoke successCallback with « a
                     // new FileSystemDirectoryEntry object associated with entry »
                     // and "report".
-                    Some(item) => {
-                        let entry = DomRoot::upcast::<FileSystemEntry>(item.root());
-                        if let Some(callback) = success_callback {
-                            let _ = callback.Call__(cx, &entry, ExceptionHandling::Report);
-                        }
-                    },
-                    // Step 1.3. If item is failure, queue a task to invoke errorCallback
-                    // (if given) with « a newly created "NotFoundError" DOMException »
-                    // and "report", and abort these steps.
-                    None => {
-                        if let Some(error_callback) = error_callback {
-                            let error =
-                                DOMException::new(cx, &this.global(), DOMErrorName::NotFoundError);
-                            let _ = error_callback.Call__(cx, &error, ExceptionHandling::Report);
-                        }
-                    },
-                }
+                    //
+                    // TODO: Return a new directory entry as the spec requires.
+                    // We can fix this once directory members are resolved by path
+                    // with embedder support.
+                    Some(item) => Ok(DomRoot::upcast::<FileSystemEntry>(item.root())),
+                };
+                this.dispatch_entry_callback(cx, id, result);
             }));
     }
 }

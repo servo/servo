@@ -420,7 +420,7 @@ pub struct ScriptThread {
     needs_rendering_update: Arc<AtomicBool>,
 
     #[cfg(feature = "devtools")]
-    debugger_global: Dom<DebuggerGlobalScope>,
+    debugger_global: Option<Dom<DebuggerGlobalScope>>,
 
     debugger_paused: Cell<bool>,
 
@@ -930,24 +930,28 @@ impl ScriptThread {
         let gpu_id_hub = Arc::new(IdentityHub::default());
 
         #[cfg(feature = "devtools")]
-        let debugger_global = {
-            let debugger_global = DebuggerGlobalScope::new(
-                PipelineId::new(),
-                senders.devtools_server_sender.clone(),
-                senders.devtools_client_to_script_thread_sender.clone(),
-                senders.memory_profiler_sender.clone(),
-                senders.time_profiler_sender.clone(),
-                senders.pipeline_to_constellation_sender.clone(),
-                senders.pipeline_to_embedder_sender.clone(),
-                state.resource_threads.clone(),
-                state.storage_threads.clone(),
-                #[cfg(feature = "webgpu")]
-                gpu_id_hub.clone(),
-                &mut cx,
-            );
-            debugger_global.execute(&mut cx);
-            debugger_global
-        };
+        let devtools_client_to_script_thread_sender = if pref!(devtools_server_enabled) {
+            Some(&senders.devtools_client_to_script_thread_sender)
+        } else {
+            None
+        }
+        .cloned();
+
+        #[cfg(feature = "devtools")]
+        let debugger_global = DebuggerGlobalScope::new_if_needed(
+            &mut cx,
+            PipelineId::new(),
+            &senders.devtools_server_sender,
+            &devtools_client_to_script_thread_sender,
+            &senders.memory_profiler_sender,
+            &senders.time_profiler_sender,
+            &senders.pipeline_to_constellation_sender,
+            &senders.pipeline_to_embedder_sender,
+            &state.resource_threads,
+            &state.storage_threads,
+            #[cfg(feature = "webgpu")]
+            &gpu_id_hub,
+        );
 
         let shared_style_locks = Default::default();
         let user_contents_for_manager_id =
@@ -1005,7 +1009,8 @@ impl ScriptThread {
                     scheduled_update_the_rendering: Default::default(),
                     needs_rendering_update: Arc::new(AtomicBool::new(false)),
                     #[cfg(feature = "devtools")]
-                    debugger_global: debugger_global.as_traced(),
+                    debugger_global: debugger_global
+                        .map(|debugger_global| debugger_global.as_traced()),
                     debugger_paused: Cell::new(false),
                     privileged_urls: state.privileged_urls,
                     this: weak_script_thread.clone(),
@@ -1269,7 +1274,7 @@ impl ScriptThread {
             }
 
             // > 23. For each doc of docs, process top layer removals given doc.
-            document.process_top_layer_removals(cx.no_gc());
+            document.process_top_layer_removals(cx);
         }
 
         let should_generate_frame = !painters_generating_frames.is_empty();
@@ -2280,54 +2285,67 @@ impl ScriptThread {
                 )
             },
             DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, eager, reply) => {
-                self.debugger_global.fire_eval(
-                    cx,
-                    code.into(),
-                    id,
-                    None,
-                    frame_actor_id,
-                    eager,
-                    reply,
-                );
+                if let Some(debugger_global) = &self.debugger_global {
+                    debugger_global.fire_eval(
+                        cx,
+                        code.into(),
+                        id,
+                        None,
+                        frame_actor_id,
+                        eager,
+                        reply,
+                    );
+                }
             },
             DevtoolScriptControlMsg::GetPossibleBreakpoints(spidermonkey_id, result_sender) => {
-                self.debugger_global.fire_get_possible_breakpoints(
-                    cx,
-                    spidermonkey_id,
-                    result_sender,
-                );
+                if let Some(debugger_global) = &self.debugger_global {
+                    debugger_global.fire_get_possible_breakpoints(
+                        cx,
+                        spidermonkey_id,
+                        result_sender,
+                    );
+                }
             },
             DevtoolScriptControlMsg::SetBreakpoint(spidermonkey_id, script_id, offset) => {
-                self.debugger_global
-                    .fire_set_breakpoint(cx, spidermonkey_id, script_id, offset);
+                if let Some(debugger_global) = &self.debugger_global {
+                    debugger_global.fire_set_breakpoint(cx, spidermonkey_id, script_id, offset);
+                }
             },
             DevtoolScriptControlMsg::ClearBreakpoint(spidermonkey_id, script_id, offset) => {
-                self.debugger_global
-                    .fire_clear_breakpoint(cx, spidermonkey_id, script_id, offset);
+                if let Some(debugger_global) = &self.debugger_global {
+                    debugger_global.fire_clear_breakpoint(cx, spidermonkey_id, script_id, offset);
+                }
             },
             DevtoolScriptControlMsg::Interrupt => {
-                self.debugger_global.fire_interrupt(cx);
+                if let Some(debugger_global) = &self.debugger_global {
+                    debugger_global.fire_interrupt(cx);
+                }
             },
             DevtoolScriptControlMsg::ListFrames(pipeline_id, start, count, result_sender) => {
-                self.debugger_global
-                    .fire_list_frames(cx, pipeline_id, start, count, result_sender);
+                if let Some(debugger_global) = &self.debugger_global {
+                    debugger_global.fire_list_frames(cx, pipeline_id, start, count, result_sender);
+                }
             },
             DevtoolScriptControlMsg::GetEnvironment(request, result_sender) => {
-                self.debugger_global
-                    .fire_get_environment(cx, request, result_sender);
+                if let Some(debugger_global) = &self.debugger_global {
+                    debugger_global.fire_get_environment(cx, request, result_sender);
+                }
             },
             DevtoolScriptControlMsg::Resume(resume_limit_type, frame_actor_id) => {
-                self.debugger_global
-                    .fire_resume(cx, resume_limit_type, frame_actor_id);
-                self.debugger_paused.set(false);
+                if let Some(debugger_global) = &self.debugger_global {
+                    debugger_global.fire_resume(cx, resume_limit_type, frame_actor_id);
+                    self.debugger_paused.set(false);
+                }
             },
             DevtoolScriptControlMsg::Blackbox(spidermonkey_id, coverage) => {
-                self.debugger_global
-                    .fire_blackbox(cx, spidermonkey_id, coverage);
+                if let Some(debugger_global) = &self.debugger_global {
+                    debugger_global.fire_blackbox(cx, spidermonkey_id, coverage);
+                }
             },
             DevtoolScriptControlMsg::Unblackbox(spidermonkey_id, coverage) => {
-                self.debugger_global
-                    .fire_unblackbox(cx, spidermonkey_id, coverage);
+                if let Some(debugger_global) = &self.debugger_global {
+                    debugger_global.fire_unblackbox(cx, spidermonkey_id, coverage);
+                }
             },
         }
     }
@@ -3606,13 +3624,10 @@ impl ScriptThread {
             },
         };
         #[cfg(feature = "devtools")]
-        if self.senders.devtools_server_sender.is_some() {
-            self.debugger_global.fire_add_debuggee(
-                cx,
-                window.upcast(),
-                incomplete.pipeline_id,
-                None,
-            );
+        if self.senders.devtools_server_sender.is_some() &&
+            let Some(debugger_global) = &self.debugger_global
+        {
+            debugger_global.fire_add_debuggee(cx, window.upcast(), incomplete.pipeline_id, None);
         }
 
         let mut realm = enter_auto_realm(cx, &*window);

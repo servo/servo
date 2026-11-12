@@ -217,11 +217,13 @@ impl Paint {
 
         // Create the WebXR main thread.
         #[cfg(feature = "webxr")]
-        let webxr_main_thread = webxr::MainThreadRegistry::new(
+        let mut webxr_main_thread = webxr::MainThreadRegistry::new(
             state.event_loop_waker.clone(),
             webxr_layer_grand_manager,
         )
         .expect("Failed to create WebXR device registry");
+        #[cfg(feature = "webxr")]
+        webxr_main_thread.register_fallback(webxr::inline::InlineDiscovery);
 
         #[cfg(feature = "webgl")]
         let webgl_paint = WebGLPaint {

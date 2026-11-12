@@ -51,7 +51,7 @@ use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::properties::longhands::{
-    self, background_image, border_spacing, color, font_family, font_size,
+    self, background_image, border_spacing, font_family, font_size,
 };
 use style::properties::{
     ComputedValues, Importance, PropertyDeclaration, PropertyDeclarationBlock,
@@ -67,7 +67,7 @@ use style::values::computed::{Overflow, UserSelect};
 use style::values::generics::NonNegative;
 use style::values::generics::position::PreferredRatio;
 use style::values::generics::ratio::Ratio;
-use style::values::{AtomIdent, AtomString, CSSFloat, computed, specified};
+use style::values::{AtomIdent, AtomString, computed, specified};
 use style::{ArcSlice, CaseSensitivityExt, dom_apis, thread_state};
 use style_traits::CSSPixel;
 use stylo_atoms::Atom;
@@ -538,23 +538,27 @@ impl Element {
     }
 
     // https://drafts.csswg.org/cssom-view/#css-layout-box
-    pub(crate) fn has_css_layout_box(&self) -> bool {
-        self.style().is_some_and(|s| !s.get_display().is_none())
+    pub(crate) fn has_css_layout_box(&self, cx: &mut JSContext) -> bool {
+        self.style(cx).is_some_and(|s| !s.get_display().is_none())
     }
 
     /// <https://drafts.csswg.org/cssom-view/#potentially-scrollable>
-    pub(crate) fn is_potentially_scrollable_body(&self) -> bool {
-        self.is_potentially_scrollable_body_shared_logic(false)
+    pub(crate) fn is_potentially_scrollable_body(&self, cx: &mut JSContext) -> bool {
+        self.is_potentially_scrollable_body_shared_logic(cx, false)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#potentially-scrollable>
-    pub(crate) fn is_potentially_scrollable_body_for_scrolling_element(&self) -> bool {
-        self.is_potentially_scrollable_body_shared_logic(true)
+    pub(crate) fn is_potentially_scrollable_body_for_scrolling_element(
+        &self,
+        cx: &mut JSContext,
+    ) -> bool {
+        self.is_potentially_scrollable_body_shared_logic(cx, true)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#potentially-scrollable>
     fn is_potentially_scrollable_body_shared_logic(
         &self,
+        cx: &mut JSContext,
         treat_overflow_clip_on_parent_as_hidden: bool,
     ) -> bool {
         let node = self.upcast::<Node>();
@@ -566,14 +570,14 @@ impl Element {
         // "An element body (which will be the body element) is potentially
         // scrollable if all of the following conditions are true:
         //  - body has an associated box."
-        if !self.has_css_layout_box() {
+        if !self.has_css_layout_box(cx) {
             return false;
         }
 
         // " - body’s parent element’s computed value of the overflow-x or
         //     overflow-y properties is neither visible nor clip."
         if let Some(parent) = node.GetParentElement() &&
-            let Some(style) = parent.style()
+            let Some(style) = parent.style(cx)
         {
             let mut overflow_x = style.get_box().get_overflow_x();
             let mut overflow_y = style.get_box().get_overflow_y();
@@ -596,7 +600,7 @@ impl Element {
 
         // " - body’s computed value of the overflow-x or overflow-y properties
         //     is neither visible nor clip."
-        if let Some(style) = self.style() &&
+        if let Some(style) = self.style(cx) &&
             !style.get_box().get_overflow_x().is_scrollable() &&
             !style.get_box().get_overflow_y().is_scrollable()
         {
@@ -634,7 +638,9 @@ impl Element {
     ///  2. The style specifies that overflow should be scrollable (`auto`, `hidden` or `scroll`).
     ///  3. The fragment actually has content that overflows the box.
     fn has_scrolling_box(&self, cx: &mut JSContext) -> bool {
-        self.has_css_layout_box() && self.establishes_scroll_container(cx) && self.has_overflow(cx)
+        self.has_css_layout_box(cx) &&
+            self.establishes_scroll_container(cx) &&
+            self.has_overflow(cx)
     }
 
     pub(crate) fn shadow_root(&self) -> Option<DomRoot<ShadowRoot>> {
@@ -1033,9 +1039,8 @@ impl Element {
         document.finish_handle_scroll_event(self.upcast());
     }
 
-    pub(crate) fn style(&self) -> Option<ServoArc<ComputedValues>> {
-        self.owner_window()
-            .layout_reflow_deprecated(QueryMsg::StyleQuery);
+    pub(crate) fn style(&self, cx: &mut JSContext) -> Option<ServoArc<ComputedValues>> {
+        self.owner_window().layout_reflow(cx, QueryMsg::StyleQuery);
         self.style_without_reflow()
     }
 
@@ -1563,24 +1568,6 @@ impl<'dom> LayoutDom<'dom, Element> {
             }
         }
 
-        let rows = self
-            .downcast::<HTMLTextAreaElement>()
-            .map(LayoutDom::get_rows);
-        if let Some(rows) = rows {
-            let rows = rows as i32;
-            if rows > 0 {
-                // TODO(mttr) This should take scrollbar size into consideration.
-                //
-                // https://html.spec.whatwg.org/multipage/#textarea-effective-height
-                let value = specified::NoCalcLength::from_em(rows as CSSFloat);
-                push(PropertyDeclaration::Height(
-                    specified::Size::LengthPercentage(NonNegative(
-                        specified::LengthPercentage::Length(value),
-                    )),
-                ));
-            }
-        }
-
         if let Some(table) = self.downcast::<HTMLTableElement>() {
             if let Some(cellspacing) = table.get_cellspacing() {
                 let width_value = specified::Length::from_px(cellspacing as f32);
@@ -1597,12 +1584,6 @@ impl<'dom> LayoutDom<'dom, Element> {
                 push(PropertyDeclaration::BorderLeftWidth(width_value.clone()));
                 push(PropertyDeclaration::BorderBottomWidth(width_value.clone()));
                 push(PropertyDeclaration::BorderRightWidth(width_value));
-            }
-            if document.quirks_mode() == QuirksMode::Quirks {
-                // <https://quirks.spec.whatwg.org/#the-tables-inherit-color-from-body-quirk>
-                push(PropertyDeclaration::Color(color::SpecifiedValue(
-                    specified::Color::InheritFromBodyQuirk,
-                )));
             }
         }
 
@@ -1690,6 +1671,11 @@ impl<'dom> LayoutDom<'dom, Element> {
         // Don't panic since `display` can cause this to be called on arbitrary elements.
         self.downcast::<HTMLTableCellElement>()
             .and_then(|element| element.get_rowspan())
+    }
+
+    pub(crate) fn get_rows(self) -> Option<u32> {
+        self.downcast::<HTMLTextAreaElement>()
+            .map(|element| element.get_rows())
     }
 
     #[inline]
@@ -2694,18 +2680,25 @@ impl Element {
         if self.is::<HTMLScriptElement>() {
             for attr in self.attrs().borrow().iter() {
                 // Step 2.1: If attribute’s name contains an ASCII case-insensitive match
-                // for "<script" or "<style", return "Not Nonceable".
+                // for "<link", "<script", or "<style", return "Not Nonceable".
 
                 // to_ascii_lowercase is already optimized for `LocalName`.
                 let attr_name = attr.name().to_ascii_lowercase();
-                if attr_name.contains("<script") || attr_name.contains("<style") {
+                if attr_name.contains("<link") ||
+                    attr_name.contains("<script") ||
+                    attr_name.contains("<style")
+                {
                     return false;
                 }
+
                 // Step 2.2: If attribute’s value contains an ASCII case-insensitive match
-                // for "<script" or "<style", return "Not Nonceable".
+                // for "<link", "<script", or "<style", return "Not Nonceable".
                 let attr_value = attr.value();
                 let attr_value = string_as_ascii_lowercase(&attr_value);
-                if attr_value.contains("<script") || attr_value.contains("<style") {
+                if attr_value.contains("<link") ||
+                    attr_value.contains("<script") ||
+                    attr_value.contains("<style")
+                {
                     return false;
                 }
             }
@@ -2807,7 +2800,7 @@ impl Element {
         // TODO: Implement the promise and smooth scroll behavior.
         if document.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             document.quirks_mode() == QuirksMode::Quirks &&
-            !self.is_potentially_scrollable_body()
+            !self.is_potentially_scrollable_body(cx)
         {
             window.scroll(cx, x, y, behavior);
             return;
@@ -3537,14 +3530,14 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // scrollY on window.
         if document.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             document.quirks_mode() == QuirksMode::Quirks &&
-            !self.is_potentially_scrollable_body()
+            !self.is_potentially_scrollable_body(cx)
         {
             return window.ScrollY(cx) as f64;
         }
 
         // Step 8. If the element does not have any associated box, return zero and
         // terminate these steps.
-        if !self.has_css_layout_box() {
+        if !self.has_css_layout_box(cx) {
             return 0.0;
         }
 
@@ -3599,7 +3592,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // these steps.
         if document.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             document.quirks_mode() == QuirksMode::Quirks &&
-            !self.is_potentially_scrollable_body()
+            !self.is_potentially_scrollable_body(cx)
         {
             let window_scroll_x = window.ScrollX(cx) as f32;
             window.scroll(cx, window_scroll_x, y, behavior);
@@ -3654,14 +3647,14 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // scrollX on window.
         if document.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             document.quirks_mode() == QuirksMode::Quirks &&
-            !self.is_potentially_scrollable_body()
+            !self.is_potentially_scrollable_body(cx)
         {
             return window.ScrollX(cx) as f64;
         }
 
         // Step 8. If the element does not have any associated box, return zero and
         // terminate these steps.
-        if !self.has_css_layout_box() {
+        if !self.has_css_layout_box(cx) {
             return 0.0;
         }
 
@@ -3715,7 +3708,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // terminate these steps.
         if document.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             document.quirks_mode() == QuirksMode::Quirks &&
-            !self.is_potentially_scrollable_body()
+            !self.is_potentially_scrollable_body(cx)
         {
             let window_scroll_y = window.ScrollY(cx) as f32;
             window.scroll(cx, x, window_scroll_y, behavior);
@@ -3770,7 +3763,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // Step 7: If the element does not have any associated box, or is not
         //         available to user-agent features, then return.
-        if !self.has_css_layout_box() {
+        if !self.has_css_layout_box(cx) {
             return;
         }
 
@@ -3873,13 +3866,14 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-gethtml>
     fn GetHTML(&self, cx: &mut JSContext, options: &GetHTMLOptions) -> DOMString {
+        let shadow_roots = options.shadowRoots.iter().map(Dom::as_rooted).collect();
         // > Element's getHTML(options) method steps are to return the result of HTML fragment serialization
         // > algorithm with this, options["serializableShadowRoots"], and options["shadowRoots"].
         self.upcast::<Node>().html_serialize(
             cx,
             TraversalScope::ChildrenOnly(None),
             options.serializableShadowRoots,
-            options.shadowRoots.clone(),
+            shadow_roots,
         )
     }
 
@@ -4811,14 +4805,13 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 3. If options is a KeyframeAnimationOptions object, let timeline be the timeline member of
         // options or, if timeline member of options is missing, the default document timeline of the node document
         // of the element on which this method was called.
-        let timeline =
-            if let UnrestrictedDoubleOrKeyframeAnimationOptions::KeyframeAnimationOptions(options) =
-                &options
-            {
-                options.timeline.clone().flatten()
-            } else {
-                None
-            };
+        let timeline = match &options {
+            UnrestrictedDoubleOrKeyframeAnimationOptions::KeyframeAnimationOptions(opts) => opts
+                .timeline
+                .as_ref()
+                .and_then(|inner| inner.as_ref().map(Dom::as_rooted)),
+            _ => None,
+        };
         let timeline = timeline.unwrap_or_else(|| {
             let document = self.owner_document();
             DomRoot::upcast(document.Timeline())
@@ -4836,7 +4829,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
                 UnrestrictedDoubleOrKeyframeEffectOptions::UnrestrictedDouble(value)
             },
             UnrestrictedDoubleOrKeyframeAnimationOptions::KeyframeAnimationOptions(options) => {
-                UnrestrictedDoubleOrKeyframeEffectOptions::KeyframeEffectOptions(options.parent)
+                UnrestrictedDoubleOrKeyframeEffectOptions::KeyframeEffectOptions(
+                    options.into_inner().parent,
+                )
             },
         };
         let effect =
@@ -5379,11 +5374,11 @@ impl Element {
                     .perform_validation_and_update(cx, ValidationFlags::all());
             }
             return validatable.is_instance_validatable(cx.no_gc()) &&
-                !validatable.satisfies_constraints(cx);
+                !validatable.satisfies_constraints();
         }
 
         if let Some(internals) = self.get_element_internals() {
-            return internals.is_invalid(cx);
+            return internals.is_invalid(cx.no_gc());
         }
         false
     }

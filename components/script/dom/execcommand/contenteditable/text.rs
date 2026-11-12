@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use atomic_refcell::AtomicRef;
-use js::context::NoGC;
+use js::context::JSContext;
 use script_bindings::inheritance::Castable;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 
@@ -23,7 +23,7 @@ impl Text {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#whitespace-node>
-    pub(crate) fn is_whitespace_node(&self) -> bool {
+    pub(crate) fn is_whitespace_node(&self, cx: &mut JSContext) -> bool {
         // > A whitespace node is either a Text node whose data is the empty string;
         let data = self.data();
         if data.is_empty() {
@@ -36,7 +36,7 @@ impl Text {
             return false;
         };
         // TODO: Optimize the below to only do a traversal once and in the match handle the expected collapse value
-        let Some(style) = parent.style() else {
+        let Some(style) = parent.style(cx) else {
             return false;
         };
         let white_space_collapse = style.get_inherited_text().white_space_collapse;
@@ -59,9 +59,9 @@ impl Text {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#collapsed-whitespace-node>
-    pub(crate) fn is_collapsed_whitespace_node(&self, no_gc: &NoGC) -> bool {
+    pub(crate) fn is_collapsed_whitespace_node(&self, cx: &mut JSContext) -> bool {
         // Step 1. If node is not a whitespace node, return false.
-        if !self.is_whitespace_node() {
+        if !self.is_whitespace_node(cx) {
             return false;
         }
         // Step 2. If node's data is the empty string, return true.
@@ -87,7 +87,7 @@ impl Text {
             //
             // Note that the spec is written as "while not". Since this is the end-condition, we need to invert
             // the condition to decide when to stop.
-            if parent.is_block_node() {
+            if parent.is_block_node(cx) {
                 break;
             }
             resolved_ancestor = parent;
@@ -97,13 +97,13 @@ impl Text {
         // Step 8.1. Let reference be the node before it in tree order.
         for reference in node.preceding_nodes(&resolved_ancestor) {
             // Step 8.2. If reference is a block node or a br, return true.
-            if reference.is_block_node() || reference.is::<HTMLBRElement>() {
+            if reference.is_block_node(cx) || reference.is::<HTMLBRElement>() {
                 return true;
             }
             // Step 8.3. If reference is a Text node that is not a whitespace node, or is an img, break from this loop.
             if reference
                 .downcast::<Text>()
-                .is_some_and(|text| !text.is_whitespace_node()) ||
+                .is_some_and(|text| !text.is_whitespace_node(cx)) ||
                 reference.is::<HTMLImageElement>()
             {
                 break;
@@ -112,17 +112,15 @@ impl Text {
         // Step 9. Let reference be node.
         // Step 10. While reference is a descendant of ancestor:
         // Step 10.1. Let reference be the node after it in tree order, or null if there is no such node.
-        for reference in
-            node.following_nodes_unrooted(no_gc, &resolved_ancestor, ShadowIncluding::No)
-        {
+        for reference in node.following_nodes(&resolved_ancestor, ShadowIncluding::No) {
             // Step 10.2. If reference is a block node or a br, return true.
-            if reference.is_block_node() || reference.is::<HTMLBRElement>() {
+            if reference.is_block_node(cx) || reference.is::<HTMLBRElement>() {
                 return true;
             }
             // Step 10.3. If reference is a Text node that is not a whitespace node, or is an img, break from this loop.
             if reference
                 .downcast::<Text>()
-                .is_some_and(|text| !text.is_whitespace_node()) ||
+                .is_some_and(|text| !text.is_whitespace_node(cx)) ||
                 reference.is::<HTMLImageElement>()
             {
                 break;
@@ -136,6 +134,7 @@ impl Text {
     /// and deduplicated here, since we need to do this for both start and end nodes
     pub(crate) fn has_whitespace_and_has_parent_with_whitespace_preserve(
         &self,
+        cx: &mut JSContext,
         offset: u32,
         space_characters: &'static [&'static char],
     ) -> bool {
@@ -145,7 +144,11 @@ impl Text {
         let has_preserve_space = self
             .upcast::<Node>()
             .GetParentNode()
-            .and_then(|parent_node| parent_node.downcast::<Element>().and_then(Element::style))
+            .and_then(|parent_node| {
+                parent_node
+                    .downcast::<Element>()
+                    .and_then(|element| element.style(cx))
+            })
             .is_some_and(|style| {
                 // Note that for "pre" and "pre-wrap", the longhand "white-space-collapse: preserve" applies
                 // https://www.w3.org/TR/css-text-4/#white-space-property

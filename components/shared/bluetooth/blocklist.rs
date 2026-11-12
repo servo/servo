@@ -67,7 +67,8 @@ impl BluetoothBlocklist {
 fn parse_blocklist() -> Option<HashMap<String, Blocklist>> {
     // Step 1 missing, currently we parse ./resources/gatt_blocklist.txt.
     let valid_uuid_regex = Regex::new(VALID_UUID_REGEX).unwrap();
-    let content = resources::read_string(Resource::BluetoothBlocklist);
+    let resource_bytes = resources::read_bytes(Resource::BluetoothBlocklist);
+    let content = str::from_utf8(resource_bytes.as_ref()).unwrap();
     // Step 3
     let mut result = HashMap::new();
     // Step 2 and 4

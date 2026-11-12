@@ -18,5 +18,6 @@ mod headless_window;
 mod keyutils;
 mod protocols;
 mod tracing;
+mod webview_widget;
 #[cfg(feature = "webxr")]
 mod webxr;

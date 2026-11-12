@@ -362,24 +362,20 @@ impl ServiceWorkerGlobalScope {
                 } = worker_load_origin;
 
                 #[cfg(feature = "devtools")]
-                let debugger_global = DebuggerGlobalScope::new(
-                    pipeline_id,
-                    init.to_devtools_sender.clone(),
-                    init.from_devtools_sender
-                        .clone()
-                        .expect("Guaranteed by update_serviceworker"),
-                    init.mem_profiler_chan.clone(),
-                    init.time_profiler_chan.clone(),
-                    init.script_to_constellation_chan.clone(),
-                    init.script_to_embedder_chan.clone(),
-                    init.resource_threads.clone(),
-                    init.storage_threads.clone(),
-                    #[cfg(feature = "webgpu")]
-                    Arc::new(IdentityHub::default()),
+                let debugger_global = DebuggerGlobalScope::new_if_needed(
                     cx,
+                    pipeline_id,
+                    &init.to_devtools_sender,
+                    &init.from_devtools_sender,
+                    &init.mem_profiler_chan,
+                    &init.time_profiler_chan,
+                    &init.script_to_constellation_chan,
+                    &init.script_to_embedder_chan,
+                    &init.resource_threads,
+                    &init.storage_threads,
+                    #[cfg(feature = "webgpu")]
+                    &Arc::new(IdentityHub::default()),
                 );
-                #[cfg(feature = "devtools")]
-                debugger_global.execute(cx);
 
                 // Service workers are time limited
                 // https://w3c.github.io/ServiceWorker/#service-worker-lifetime
@@ -392,7 +388,7 @@ impl ServiceWorkerGlobalScope {
                 #[cfg(not(feature = "devtools"))]
                 let devtools_mpsc_port = None;
                 #[cfg(feature = "devtools")]
-                let debugger_global_for_scope = Some(&*debugger_global);
+                let debugger_global_for_scope = debugger_global.as_deref();
                 #[cfg(not(feature = "devtools"))]
                 let debugger_global_for_scope: Option<&WorkerDebuggerGlobalScope> = None;
 
@@ -421,7 +417,7 @@ impl ServiceWorkerGlobalScope {
                 let global_scope = service_worker_global_scope.upcast::<GlobalScope>();
 
                 #[cfg(feature = "devtools")]
-                if devtools_enabled {
+                if devtools_enabled && let Some(debugger_global) = &debugger_global {
                     debugger_global.fire_add_debuggee(
                         cx,
                         global_scope,

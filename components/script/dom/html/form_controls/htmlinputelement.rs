@@ -66,7 +66,7 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlformelement::{
     FormControl, FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement, SubmittedFrom,
 };
-use crate::dom::input_type::radio_input_type::radio_group_iter;
+use crate::dom::input_type::radio_input_type::radio_group_iter_unrooted;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
@@ -783,10 +783,10 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#suffering-from-being-missing>
-    fn suffers_from_being_missing(&self, value: &DOMString) -> bool {
+    fn suffers_from_being_missing(&self, no_gc: &NoGC, value: &DOMString) -> bool {
         self.input_type()
             .as_specific()
-            .suffers_from_being_missing(self, value)
+            .suffers_from_being_missing(no_gc, self, value)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#suffering-from-a-type-mismatch>
@@ -1990,7 +1990,7 @@ impl HTMLInputElement {
                 let root = self
                     .upcast::<Node>()
                     .GetRootNode(&GetRootNodeOptions::empty());
-                radio_group_iter(self, group.as_ref(), form.as_deref(), &root)
+                radio_group_iter_unrooted(no_gc, self, group.as_ref(), form.as_deref(), &root)
                     .all(|elem| !elem.Checked())
             },
             _ => false,
@@ -2751,6 +2751,13 @@ impl Validatable for HTMLInputElement {
             .or_init(|| ValidityState::new(cx, &self.owner_window(), self.upcast()))
     }
 
+    fn satisfies_constraints(&self) -> bool {
+        let Some(validity_state) = self.validity_state.get() else {
+            return true;
+        };
+        validity_state.invalid_flags().is_empty()
+    }
+
     fn is_instance_validatable(&self, no_gc: &NoGC) -> bool {
         // https://html.spec.whatwg.org/multipage/#hidden-state-(type%3Dhidden)%3Abarred-from-constraint-validation
         // https://html.spec.whatwg.org/multipage/#button-state-(type%3Dbutton)%3Abarred-from-constraint-validation
@@ -2777,7 +2784,7 @@ impl Validatable for HTMLInputElement {
         let value = self.Value();
 
         if validate_flags.contains(ValidationFlags::VALUE_MISSING) &&
-            self.suffers_from_being_missing(&value)
+            self.suffers_from_being_missing(cx.no_gc(), &value)
         {
             failed_flags.insert(ValidationFlags::VALUE_MISSING);
         }

@@ -7,11 +7,9 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-import configparser
 import fnmatch
 import functools
 import glob
-import io
 import itertools
 import json
 import os
@@ -25,7 +23,6 @@ from collections.abc import Iterator, Callable
 import types
 
 import colorama
-import wpt.manifestupdate
 import tomllib
 
 from .licenseck import APACHE, COPYRIGHT, MPL, OLD_MPL, licenses_toml
@@ -502,7 +499,6 @@ def run_cargo_deny_lints() -> Iterator[tuple[str, int, str]]:
 
     errors = []
     for line in result.stderr.splitlines():
-        line = str(line)
         # Ignore empty lines. This is only relevant when `cargo-deny` crashed and we need to below print
         # what the corrupt line is.
         if not line.strip():
@@ -825,34 +821,6 @@ def check_webidl_spec(file_name: str, contents: bytes) -> Iterator[tuple[int, st
     yield (0, "No specification link found.")
 
 
-def check_that_manifests_exist() -> Iterator[tuple[str, int, str]]:
-    # Determine the metadata and test directories from the configuration file.
-    metadata_dirs = []
-    config = configparser.ConfigParser()
-    config.read(WPT_CONFIG_INI_PATH)
-    for key in config:
-        if key.startswith("manifest:"):
-            metadata_dirs.append(os.path.join("./tests/wpt/", config[key]["metadata"]))
-
-    for directory in metadata_dirs:
-        manifest_path = os.path.join(TOPDIR, directory, "MANIFEST.json")
-        if not os.path.isfile(manifest_path):
-            yield (WPT_CONFIG_INI_PATH, 0, f"Path in config was not found: {manifest_path}")
-
-
-def check_that_manifests_are_clean() -> Iterator[tuple[str, int, str]]:
-    from wptrunner import wptlogging
-
-    print("\r ➤  Checking WPT manifests for cleanliness...")
-    output_stream = io.StringIO("")
-    logger = wptlogging.setup({}, {"mach": output_stream})
-    if wpt.manifestupdate.update(check_clean=True, logger=logger):
-        for line in output_stream.getvalue().splitlines():
-            if "ERROR" in line:
-                yield (WPT_CONFIG_INI_PATH, 0, line)
-        yield (WPT_CONFIG_INI_PATH, 0, "WPT manifest is dirty. Run `./mach update-manifest`.")
-
-
 def lint_wpt_test_files() -> Iterator[tuple[str, int, str]]:
     from tools.lint import lint
 
@@ -897,12 +865,6 @@ def run_wpt_lints(only_changed_files: bool) -> Iterator[tuple[str, int, str]]:
             print("\r ➤  Skipping WPT lint checks, because no relevant files changed.")
             return
 
-    manifests_exist_errors = list(check_that_manifests_exist())
-    if manifests_exist_errors:
-        yield from manifests_exist_errors
-        return
-
-    yield from check_that_manifests_are_clean()
     yield from lint_wpt_test_files()
     yield from check_flake8_lints()
 
@@ -971,8 +933,13 @@ def check_config_file(config_file: LiteralString, print_text: bool = True) -> It
     skip_dirs = ["./target", "./tests", "./support/crown/target"]
     invalid_dirs = [d for d in exclude_dirs if not os.path.isdir(d) and not any(s in d for s in skip_dirs)]
 
-    # Check for invalid listed ignored files
-    invalid_files = [f for f in exclude.get("files", []) if not os.path.exists(f)]
+    # Check for invalid listed ignored files, but ignore any file listed in the skipped
+    # directories -- these kinds of file are typically generated automatically.
+    invalid_files = [
+        file
+        for file in exclude.get("files", [])
+        if not os.path.exists(file) and not any(skip_dir in file for skip_dir in skip_dirs)
+    ]
 
     current_table = ""
     for idx, line in enumerate(lines):

@@ -321,17 +321,17 @@ where
     fn resolve_promise_with_key_pair(
         &self,
         promise: &<D::Promise as PromiseHelpers<D>>::StackRoot,
-        key_pair: CryptoKeyPair<D>,
+        key_pair: &CryptoKeyPair<D>,
     ) {
-        let trusted_private_key = key_pair.privateKey.map(|key| Trusted::new(&*key));
-        let trusted_public_key = key_pair.publicKey.map(|key| Trusted::new(&*key));
+        let trusted_private_key = key_pair.privateKey.as_deref().map(Trusted::new);
+        let trusted_public_key = key_pair.publicKey.as_deref().map(Trusted::new);
         let trusted_promise = promise.to_trusted();
         self.global_from_reflector()
             .queue_crypto_task_source(task!(resolve_key: move |cx| {
-                let key_pair = CryptoKeyPair::<D> {
-                    privateKey: trusted_private_key.map(|trusted_key| trusted_key.root()),
-                    publicKey: trusted_public_key.map(|trusted_key| trusted_key.root()),
-                };
+                let key_pair = RootedTraceableBox::new(CryptoKeyPair::<D> {
+                    privateKey: trusted_private_key.map(|trusted_key| trusted_key.root().as_traced()),
+                    publicKey: trusted_public_key.map(|trusted_key| trusted_key.root().as_traced()),
+                });
                 let promise = trusted_promise.root(cx);
                 promise.resolve_native(cx, &key_pair);
             }));
@@ -915,7 +915,7 @@ where
                         subtle.resolve_promise_with_key(promise, &key);
                     },
                     CryptoKeyOrCryptoKeyPair::CryptoKeyPair(key_pair) => {
-                        subtle.resolve_promise_with_key_pair(promise, key_pair);
+                        subtle.resolve_promise_with_key_pair(promise, &key_pair);
                     },
                 }
             }));

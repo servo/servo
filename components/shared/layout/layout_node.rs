@@ -241,6 +241,9 @@ pub trait LayoutNode<'dom>: Copy + Debug + NodeInfo + Send + Sync {
     /// Return the table rowspan property if it is an element that supports it.
     fn table_rowspan(&self) -> Option<u32>;
 
+    /// Return the textarea rows property if it is an element that supports it.
+    fn textarea_rows(&self) -> Option<u32>;
+
     /// Whether this is a container for the text within a single-line text input. This
     /// is used to solve the special case of line height for a text entry widget.
     /// <https://html.spec.whatwg.org/multipage/#the-input-element-as-a-text-entry-widget>

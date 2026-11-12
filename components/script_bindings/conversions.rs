@@ -33,7 +33,7 @@ use crate::inheritance::Castable;
 use crate::js::JS_GetProperty;
 use crate::num::Finite;
 use crate::reflector::{DomObject, Reflector};
-use crate::root::DomRoot;
+use crate::root::{Dom, DomRoot};
 use crate::str::{ByteString, DOMString, USVString};
 use crate::trace::RootedTraceableBox;
 use crate::utils::{DOMClass, DOMJSClass};
@@ -200,6 +200,13 @@ impl<T: DomObject + IDLInterface> FromJSValConvertible for DomRoot<T> {
 impl<T: DomObject> ToJSValConvertible for DomRoot<T> {
     fn to_jsval(&self, cx: &mut JSContext, rval: MutableHandleValue) {
         self.reflector().to_jsval(cx, rval);
+    }
+}
+
+impl<T: DomObject> ToJSValConvertible for Dom<T> {
+    fn to_jsval(&self, cx: &mut JSContext, rval: MutableHandleValue) {
+        let root = self.as_rooted();
+        root.to_jsval(cx, rval);
     }
 }
 

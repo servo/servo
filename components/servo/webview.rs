@@ -911,6 +911,8 @@ impl WebView {
             self.inner_mut().grafted_accesskit_tree_epoch = None;
         }
 
+        self.send_accessibility_root_node();
+
         self.servo().constellation_proxy().send(
             EmbedderToConstellationMessage::SetAccessibilityActive(self.id(), active),
         );

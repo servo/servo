@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 #[cfg(any(
     target_os = "windows",
     target_os = "linux",
@@ -20,7 +20,6 @@ use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use accesskit::Affine;
 use dpi::PhysicalSize;
 use egui::text::{CCursor, CCursorRange};
 use egui::text_edit::TextEditState;
@@ -57,6 +56,7 @@ use winit::window::Window;
 
 use crate::desktop::event_loop::AppEvent;
 use crate::desktop::headed_window;
+use crate::desktop::webview_widget::WebViewWidget;
 use crate::running_app_state::{RunningAppState, UserInterfaceCommand};
 use crate::window::{ServoShellWindow, TopLevelWebViewCreationRequest};
 
@@ -89,9 +89,20 @@ pub struct Gui {
     /// These need to be cached across egui draw calls.
     favicon_textures: HashMap<WebViewId, (egui::TextureHandle, egui::load::SizedTexture)>,
 
-    /// AccessKit tree updates pending the next egui tick.
+    /// A record of accessibility tree ids that correspond to extant WebViews and have already been
+    /// sent to AccessKit. This is used to avoid focusing a grafted tree before it has been sent.
+    /// Pruned at the end of each GUI update.
+    sent_webview_accesskit_trees: HashSet<accesskit::TreeId>,
+
+    /// AccessKit tree updates pending to be sent during the next call to [`Self::update`].
     /// This allows us to ensure that graft nodes are sent before the subtrees they graft.
     pending_accesskit_updates: Vec<accesskit::TreeUpdate>,
+
+    /// Whether the [`WebViewWidget`] corresponding to the currently active [`WebView`] has keyboard
+    /// focus within the egui interface. This remains `true` even if the application loses system
+    /// focus, so that application focus can be re-set to the [`WebViewWidget`] once the application
+    /// regains system focus.
+    webview_widget_focused: bool,
 }
 
 fn truncate_with_ellipsis(input: &str, max_length: usize) -> String {
@@ -261,22 +272,20 @@ impl Gui {
             can_go_back: false,
             can_go_forward: false,
             favicon_textures: Default::default(),
+            sent_webview_accesskit_trees: Default::default(),
             pending_accesskit_updates: vec![],
+            webview_widget_focused: false,
         }
     }
 
-    pub(crate) fn has_keyboard_focus(&self) -> bool {
-        self.context
-            .egui_ctx
-            .memory(|memory| memory.focused().is_some())
+    /// See [`webview_widget_focused`](#structfield.webview_widget_focused)
+    pub(crate) fn webview_widget_focused(&self) -> bool {
+        self.webview_widget_focused
     }
 
-    pub(crate) fn surrender_focus(&self) {
-        self.context.egui_ctx.memory_mut(|memory| {
-            if let Some(focused) = memory.focused() {
-                memory.surrender_focus(focused);
-            }
-        });
+    /// See [`webview_widget_focused`](#structfield.webview_widget_focused)
+    pub(crate) fn set_webview_widget_focused(&mut self, focused: bool) {
+        self.webview_widget_focused = focused;
     }
 
     pub(crate) fn on_window_event(
@@ -592,9 +601,12 @@ impl Gui {
                                         info
                                     });
                                     if new_window_button.clicked() {
-                                        let url = Url::parse("servo:newtab").expect("Should be able to unconditionally parse 'servo:newtab' as URL");
+                                        let url = Url::parse("servo:newtab")
+                                            .expect("'servo:newtab' should be valid");
                                         window.queue_user_interface_command(
-                                            UserInterfaceCommand::NewWindow(TopLevelWebViewCreationRequest::WithUrl(url)),
+                                            UserInterfaceCommand::NewWindow(
+                                                TopLevelWebViewCreationRequest::WithUrl(url),
+                                            ),
                                         );
                                     }
                                 },
@@ -607,38 +619,58 @@ impl Gui {
                 *toolbar_height = Length::default();
             }
 
-            let scale =
-                Scale::<_, DeviceIndependentPixel, DevicePixel>::new(ctx.pixels_per_point());
-
             headed_window.for_each_active_dialog(window, |dialog| dialog.update(ctx));
 
             // If the top parts of the GUI changed size, then update the size of the WebView and also
             // the size of its RenderingContext.
             let available_rect = ctx.available_rect_before_wrap();
 
-            // Build a graft node for each WebView.
-            let affine = {
-                // The grafted WebView tree reports bounds in device pixels relative to the
-                // WebView's own origin, so this node supplies the offset of the WebView within
-                // the window, and scales it to the same scale as the rest of the nodes in egui's
-                // AccessKit tree.
-                let scale = (1.0 / window.platform_window().hidpi_scale_factor().get()) as f64;
-                let x = available_rect.min.x as f64;
-                let y = available_rect.min.y as f64;
-                Affine::new([scale, 0.0, 0.0, scale, x, y])
-            };
-            for (webview_id, webview) in window.webviews() {
-                if let Some(tree_id) = webview.accesskit_tree_id() {
-                    let id = egui::Id::new(webview_id);
-                    ctx.accesskit_node_builder(id, |node| {
-                        node.set_tree_id(tree_id);
-                        // Only the transform is set: AccessKit consumers exclude graft nodes from
-                        // the presented tree, so bounds on this node would never be read.
-                        node.set_transform(affine);
-                    });
+            let scale_factor =
+                Scale::<_, DeviceIndependentPixel, DevicePixel>::new(ctx.pixels_per_point());
+
+            // Some other widget may have claimed focus on this tick, so detect if the currently
+            // focused egui widget is still a WebView.
+            let focused_widget = ctx.memory(|memory| memory.focused());
+            if focused_widget.is_some_and(|focused_widget| {
+                !window
+                    .webview_collection()
+                    .values()
+                    .any(|webview| egui::Id::new(webview.id()) == focused_widget)
+            }) {
+                self.webview_widget_focused = false;
+            }
+
+            // Create a WebViewWidget for each webview, not just the active one, so that every
+            // webview gets an AccessKit graft node. This prevents any TreeUpdates from inactive
+            // webviews from causing a panic in AccessKit.
+            let active_webview = window.active_webview();
+            for (_, webview) in window.webviews() {
+                let webview_active = active_webview.as_ref() == Some(&webview);
+                let webview_contains_focus = webview_active && self.webview_widget_focused;
+
+                // AccessKit will panic if we try to focus a graft node whose grafted tree hasn't
+                // been sent yet, so we need to keep track of whether a TreeUpdate containing the
+                // grafted tree has been sent before focusing the WebViewWidget if accessibility is
+                // active.
+                let tree_id_sent = webview
+                    .accesskit_tree_id()
+                    .is_none_or(|tree_id| self.sent_webview_accesskit_trees.contains(&tree_id));
+                let can_take_focus = webview_active && webview.focused() && tree_id_sent;
+                let panel = WebViewWidget::new(
+                    webview.clone(),
+                    scale_factor,
+                    available_rect,
+                    webview_contains_focus,
+                    can_take_focus,
+                );
+
+                // If focus moves into the WebView via keyboard or assistive technology, then we need
+                // to update the GUI state to reflect that.
+                if ctx.add(panel).gained_focus() {
+                    self.webview_widget_focused = true;
                 }
             }
-            let size = Size2D::new(available_rect.width(), available_rect.height()) * scale;
+            let size = Size2D::new(available_rect.width(), available_rect.height()) * scale_factor;
             if let Some(webview) = window.active_webview() &&
                 size != webview.size()
             {
@@ -688,8 +720,18 @@ impl Gui {
             .as_mut()
             .expect("guaranteed by Gui::new()");
         for tree_update in self.pending_accesskit_updates.drain(..) {
+            let tree_id = tree_update.tree_id;
             adapter.update_if_active(|| tree_update);
+            self.sent_webview_accesskit_trees.insert(tree_id);
         }
+
+        // Prune any AccessKit tree ids which don't correspond to extant WebViews.
+        self.sent_webview_accesskit_trees.retain(|tree_id| {
+            window
+                .webview_collection()
+                .values()
+                .any(|webview| webview.accesskit_tree_id() == Some(*tree_id))
+        });
     }
 
     /// Paint the GUI, as of the last update.

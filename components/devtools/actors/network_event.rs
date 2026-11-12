@@ -153,6 +153,7 @@ struct ResponseFields {
     #[serde(skip_serializing_if = "Option::is_none")]
     transferred_size: Option<u64>,
     content_size: usize,
+    truncated: bool,
 }
 
 #[derive(Clone, Serialize)]
@@ -192,6 +193,7 @@ struct ResponseContent {
     text: Value,
     #[serde(skip_serializing_if = "Option::is_none")]
     transferred_size: Option<u64>,
+    truncated: bool,
 }
 
 #[derive(Clone, Serialize, MallocSizeOf)]
@@ -481,27 +483,28 @@ impl Actor for NetworkEventActor {
                 let content = response.response.body.as_ref().map(|body| {
                     let (encoding, text) = if mime_type.is_some() {
                         // Queue a LongStringActor for this body
-                        let body_string = String::from_utf8_lossy(body).to_string();
+                        let body_string = String::from_utf8_lossy(&body.data).to_string();
                         let long_string_actor = LongStringActor::register(registry, body_string);
                         let value = long_string_actor.long_string_obj();
                         (None, serde_json::to_value(value).unwrap())
                     } else {
-                        let b64 = STANDARD.encode(body);
+                        let b64 = STANDARD.encode(&body.data);
                         (Some("base64".into()), serde_json::to_value(b64).unwrap())
                     };
                     let is_content_encoded = encoding.is_some();
 
                     ResponseContent {
-                        body_size: body.len(),
+                        body_size: body.data.len(),
                         content_charset: String::new(),
-                        decoded_body_size: body.len(),
+                        decoded_body_size: body.content_size,
                         encoding,
                         headers_size: raw_headers.len(),
                         is_content_encoded,
                         mime_type,
-                        size: body.len(),
+                        size: body.content_size,
                         text,
                         transferred_size,
+                        truncated: body.truncated,
                     }
                 });
 
@@ -624,7 +627,7 @@ impl NetworkEventActor {
                 .response
                 .body
                 .as_ref()
-                .is_some_and(|body| !body.is_empty()),
+                .is_some_and(|body| !body.data.is_empty()),
             response_cookies_available: cookies.is_some(),
             response_headers_available: headers.is_some(),
             response_start_available: true,
@@ -640,8 +643,13 @@ impl NetworkEventActor {
                 .response
                 .body
                 .as_ref()
-                .map(|body| body.len())
+                .map(|body| body.content_size)
                 .unwrap_or(0),
+            truncated: response
+                .response
+                .body
+                .as_ref()
+                .is_some_and(|body| body.truncated),
         })
     }
 

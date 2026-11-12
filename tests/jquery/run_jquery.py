@@ -8,12 +8,10 @@ import os
 import re
 import subprocess
 import sys
-import six.moves.BaseHTTPServer
-import six.moves.SimpleHTTPServer
-import six.moves.socketserver
+import http.server
+import socketserver
 import threading
 import urllib
-import six
 
 # List of jQuery modules that will be tested.
 # TODO(gw): Disabled most of them as something has been
@@ -125,7 +123,7 @@ def read_existing_results(module):
 # Write a set of results to file
 def write_results(module, results):
     with open(module_filename(module), 'w') as file:
-        for result in six.itervalues(test_results):
+        for result in results.values():
             file.write(result.text + '\n')
 
 
@@ -136,11 +134,11 @@ def print_usage():
 
 # Run a simple HTTP server to serve up the jQuery test suite
 def run_http_server():
-    class ThreadingSimpleServer(six.moves.socketserver.ThreadingMixIn,
-                                six.moves.BaseHTTPServer.HTTPServer):
+    class ThreadingSimpleServer(socketserver.ThreadingMixIn,
+                                http.server.HTTPServer):
         allow_reuse_address = True
 
-    class RequestHandler(six.moves.SimpleHTTPServer.SimpleHTTPRequestHandler):
+    class RequestHandler(http.server.SimpleHTTPRequestHandler):
         # TODO(gw): HACK copy the fixed version from python
         # main repo - due to https://bugs.python.org/issue23112
         def send_head(self):

@@ -22,15 +22,17 @@ ruff == 0.11.10
 ply == 3.8
 
 # For Cross-platform colored terminal text
-colorama == 0.3.7
-
-# For Python3 compatibility
-six == 1.16
+colorama == 0.4.6
+types-colorama == 0.4.15.20260508
 
 # For wpt scripts and their tests.
 flask
 requests
 types-requests
+
+# Not strictly necessary, but this improves manifest
+# generation performance in WPT.
+ujson
 
 # For mach package on macOS.
 Mako == 1.3.12

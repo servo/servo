@@ -615,7 +615,7 @@ impl LayoutDom<'_, HTMLVideoElement> {
             current_frame,
             metadata,
             poster_or_src_url: if video.htmlmediaelement.show_poster() {
-                video.poster_url.borrow().clone().map(|url| url.url())
+                video.poster_url.borrow().as_ref().map(|url| url.url())
             } else {
                 video.htmlmediaelement.current_src_url()
             },

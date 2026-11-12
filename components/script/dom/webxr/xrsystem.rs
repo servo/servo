@@ -111,6 +111,13 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
     fn IsSessionSupported(&self, cx: &mut CurrentRealm, mode: XRSessionMode) -> RootedPromise {
         // XXXManishearth this should select an XR device first
         let promise = Promise::new_in_realm(cx);
+
+        // > 2. If mode is "inline", resolve promise with true and return it.
+        if mode == XRSessionMode::Inline {
+            promise.resolve_native(cx, &true);
+            return promise;
+        }
+
         let mut trusted = Some(TrustedPromise::from(&promise));
         let global = self.global();
         let task_source = global
@@ -206,6 +213,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
             required_features,
             optional_features,
             first_person_observer_view: pref!(dom_webxr_first_person_observer_view),
+            painter_id: global.as_window().webview_id().into(),
         };
 
         let mut trusted = Some(TrustedPromise::from(&promise));

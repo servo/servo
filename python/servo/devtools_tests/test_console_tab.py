@@ -227,13 +227,13 @@ class TestConsoleTab:
     def test_console_log_sprintf_substitutions(self, run_servoshell):
         script_tag = (
             "<script>let log_sprintf = () => "
-            "console.log('String %s Int %d Int %i Float %f', 'string', 32, 46, Math.PI);"
+            "console.log('String %s Int %d Int %i Float %f ANonConsumedArgument %f', 'string', 32, 46, Math.PI);"
             "</script>"
         )
         run_servoshell(url=f"data:text/html,{script_tag}")
 
         result = evaluate_and_capture_console_log_output("log_sprintf();")
-        assert result["arguments"] == ["String string Int 32 Int 46 Float 3.141592653589793"]
+        assert result["arguments"] == ["String string Int 32 Int 46 Float 3.141592653589793 ANonConsumedArgument %f"]
 
     def test_console_unhandled_promise_rejection(self, run_servoshell):
         run_servoshell(url="data:text/html,")

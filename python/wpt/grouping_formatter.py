@@ -14,7 +14,6 @@ import mozlog.reader
 from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Optional, NotRequired, Union, TypedDict, Literal
-from six import itervalues
 
 DEFAULT_MOVE_UP_CODE = "\x1b[A"
 DEFAULT_CLEAR_EOL_CODE = "\x1b[K"
@@ -156,7 +155,7 @@ class TestStatusData(TestEndData):
 
 
 class ProcessOutputData(GlobalTestData):
-    process: int
+    process: str
     data: str
     command: NotRequired[str]
     test: NotRequired[str]
@@ -240,7 +239,7 @@ class ServoHandler(mozlog.reader.LogHandler):
             self.currently_detecting_flakes = True
         self.reset_state()
 
-        self.number_of_tests = sum(len(tests) for tests in itervalues(data["tests"]))
+        self.number_of_tests = sum(len(tests) for tests in data["tests"].values())
         self.suite_start_time = data["time"]
 
     def suite_end(self, data: GlobalTestData) -> Optional[str]:

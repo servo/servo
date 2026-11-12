@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::ffi::CString;
 use std::ptr::NonNull;
 
@@ -16,8 +16,9 @@ use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
 use js::context::JSContext;
 use js::conversions::{FromJSValConvertible, jsstr_to_string};
-use js::jsapi::{HandleValueArray, JSITER_OWNONLY, JSType, PropertyDescriptor};
-use js::jsval::UndefinedValue;
+use js::gc::RootedVec;
+use js::jsapi::{HandleValueArray, Heap, JSITER_OWNONLY, JSType, PropertyDescriptor};
+use js::jsval::{JSVal, UndefinedValue};
 use js::realm::CurrentRealm;
 use js::rust::wrappers2::{
     IsArgumentsObject, JS_CallFunctionName, JS_HasOwnProperty, JS_TypeOfValue,
@@ -370,15 +371,6 @@ fn is_arguments_object(object: HandleObject) -> bool {
     unsafe { IsArgumentsObject(object) }
 }
 
-#[derive(Clone, Eq, Hash, PartialEq)]
-struct HashableJSVal(u64);
-
-impl From<HandleValue<'_>> for HashableJSVal {
-    fn from(v: HandleValue<'_>) -> HashableJSVal {
-        HashableJSVal(v.get().asBits_)
-    }
-}
-
 /// <https://w3c.github.io/webdriver/#dfn-json-clone>
 pub(crate) fn jsval_to_webdriver(
     cx: &mut CurrentRealm,
@@ -386,7 +378,8 @@ pub(crate) fn jsval_to_webdriver(
     val: HandleValue,
 ) -> WebDriverJSResult {
     run_a_script::<DomTypeHolder, _, _>(cx, global_scope, |cx| {
-        let mut seen = HashSet::new();
+        // The values in `seen` are rooted, so they stay correct if a GC moves objects.
+        rooted_vec!(let mut seen);
         let result = jsval_to_webdriver_inner(cx, global_scope, val, &mut seen);
 
         if result.is_err() {
@@ -402,7 +395,7 @@ fn jsval_to_webdriver_inner(
     cx: &mut CurrentRealm,
     global_scope: &GlobalScope,
     val: HandleValue,
-    seen: &mut HashSet<HashableJSVal>,
+    seen: &mut RootedVec<'_, Box<Heap<JSVal>>>,
 ) -> WebDriverJSResult {
     if val.get().is_undefined() {
         Ok(JSValue::Undefined)
@@ -502,18 +495,20 @@ fn clone_an_object(
     cx: &mut CurrentRealm,
     global_scope: &GlobalScope,
     val: HandleValue,
-    seen: &mut HashSet<HashableJSVal>,
+    seen: &mut RootedVec<'_, Box<Heap<JSVal>>>,
     object_handle: HandleObject,
 ) -> WebDriverJSResult {
-    let hashable = val.into();
     // Step 1. If value is in `seen`, return error with error code javascript error.
-    if seen.contains(&hashable) {
+    if seen
+        .iter()
+        .any(|seen_value| seen_value.get().asBits_ == val.get().asBits_)
+    {
         return Err(JavaScriptEvaluationError::SerializationError(
             JavaScriptEvaluationResultSerializationError::OtherJavaScriptError,
         ));
     }
     // Step 2. Append value to `seen`.
-    seen.insert(hashable.clone());
+    seen.push(Heap::boxed(val.get()));
 
     let return_val = if is_array_like::<crate::DomTypeHolder>(cx, val) ||
         is_arguments_object(object_handle)
@@ -612,7 +607,7 @@ fn clone_an_object(
         Ok(JSValue::Object(result))
     };
     // Step 5. Remove the last element of `seen`.
-    seen.remove(&hashable);
+    seen.pop();
     // Step 6. Return success with data `result`.
     return_val
 }
@@ -1943,7 +1938,7 @@ pub(crate) fn handle_element_clear(
                 }
 
                 let paint_tree = get_element_pointer_interactable_paint_tree(cx, &element);
-                if !is_element_in_view(&element, &paint_tree) {
+                if !is_element_in_view(cx, &element, &paint_tree) {
                     return Err(ErrorStatus::ElementNotInteractable);
                 }
 
@@ -2019,7 +2014,7 @@ pub(crate) fn handle_element_click(
                 // return error with error code element not interactable.
                 let paint_tree = get_element_pointer_interactable_paint_tree(cx, &container);
 
-                if !is_element_in_view(&container, &paint_tree) {
+                if !is_element_in_view(cx, &container, &paint_tree) {
                     return Err(ErrorStatus::ElementNotInteractable);
                 }
 
@@ -2096,7 +2091,11 @@ pub(crate) fn handle_element_click(
 }
 
 /// <https://w3c.github.io/webdriver/#dfn-in-view>
-fn is_element_in_view(element: &Element, paint_tree: &[DomRoot<Element>]) -> bool {
+fn is_element_in_view(
+    cx: &mut JSContext,
+    element: &Element,
+    paint_tree: &[DomRoot<Element>],
+) -> bool {
     // An element is in view if it is a member of its own pointer-interactable paint tree,
     // given the pretense that its pointer events are not disabled.
     if !paint_tree.iter().any(|e| &**e == element) {
@@ -2107,7 +2106,7 @@ fn is_element_in_view(element: &Element, paint_tree: &[DomRoot<Element>]) -> boo
     // An element is said to have pointer events disabled
     // if the resolved value of its "pointer-events" style property is "none".
     element
-        .style()
+        .style(cx)
         .is_none_or(|style| style.get_inherited_ui().pointer_events != PointerEvents::None)
 }
 
@@ -2221,7 +2220,7 @@ pub(crate) fn handle_remove_load_status_sender(
 fn scroll_into_view(cx: &mut JSContext, element: &Element) {
     // Check if element is already in view
     let paint_tree = get_element_pointer_interactable_paint_tree(cx, element);
-    if is_element_in_view(element, &paint_tree) {
+    if is_element_in_view(cx, element, &paint_tree) {
         return;
     }
 

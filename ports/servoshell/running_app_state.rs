@@ -335,15 +335,11 @@ impl RunningAppState {
             has_focus
         {
             previously_focused_window
-                .webview_collection
-                .borrow_mut()
+                .webview_collection_mut()
                 .set_focused(false);
         }
 
-        window
-            .webview_collection
-            .borrow_mut()
-            .set_focused(has_focus);
+        window.webview_collection_mut().set_focused(has_focus);
 
         if let Some(previously_focused_window) = &*focused_window &&
             Rc::ptr_eq(previously_focused_window, &window) &&
@@ -736,11 +732,7 @@ impl RunningAppState {
         }
 
         for window in self.windows().iter() {
-            for (_, webview) in window.webviews() {
-                // Activate accessibility in the WebView.
-                // There are two sites like this; this is the a11y activation site.
-                webview.set_accessibility_active(active);
-            }
+            window.set_accessibility_active(active);
         }
     }
 

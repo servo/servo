@@ -10,6 +10,7 @@ use std::panic::AssertUnwindSafe;
 use std::sync::Arc;
 use std::{mem, thread_local};
 
+use embedder_traits::resources::ResourceBytes;
 use imsz::imsz_from_reader;
 use log::{debug, error, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps};
@@ -39,6 +40,8 @@ use webrender_api::ImageKey as WebRenderImageKey;
 use webrender_api::units::DeviceIntSize;
 
 use crate::image_cache::KeyCacheState::PipelineClosed;
+
+const MAX_SVG_DEPTH: u32 = 500;
 
 thread_local! {
     pub static SUPPRESS_ABORT_IN_PANIC_HOOK: Cell<bool> = const { Cell::new(false) };
@@ -806,13 +809,13 @@ impl ImageCacheStore {
 
 pub struct ImageCacheFactoryImpl {
     /// The data to use for the broken image icon used when images cannot load.
-    broken_image_icon_data: Arc<Vec<u8>>,
+    broken_image_icon_data: Arc<ResourceBytes>,
     /// Thread pool for image decoding
     thread_pool: Arc<ThreadPool>,
 }
 
 impl ImageCacheFactoryImpl {
-    pub fn new(broken_image_icon_data: Vec<u8>) -> Self {
+    pub fn new(broken_image_icon_data: ResourceBytes) -> Self {
         debug!("Creating new ImageCacheFactoryImpl");
 
         Self {
@@ -850,6 +853,7 @@ impl ImageCacheFactory for ImageCacheFactoryImpl {
             },
             font_resolver: usvg_font_resolver,
             fontdb: Arc::new(fontdb::Database::new()),
+            max_depth: MAX_SVG_DEPTH,
             ..usvg::Options::default()
         };
 
@@ -881,7 +885,7 @@ pub struct ImageCacheImpl {
     /// Maps an SVGElement uuid to a pending image id in the store
     svg_id_image_id_map: Arc<Mutex<FxHashMap<Uuid, PendingImageId>>>,
     /// The data to use for the broken image icon used when images cannot load.
-    broken_image_icon_data: Arc<Vec<u8>>,
+    broken_image_icon_data: Arc<ResourceBytes>,
     /// Thread pool for image decoding. This is shared with other [`ImageCache`]s in the
     /// same process.
     thread_pool: Arc<ThreadPool>,
@@ -1378,8 +1382,11 @@ impl ImageCache for ImageCacheImpl {
         store
             .broken_image_icon_image
             .get_or_init(|| {
-                let mut image = load_from_memory(&self.broken_image_icon_data, CorsStatus::Unsafe)
-                    .or_else(|| load_from_memory(FALLBACK_RIPPY, CorsStatus::Unsafe))?;
+                let mut image = load_from_memory(
+                    self.broken_image_icon_data.as_ref().as_ref(),
+                    CorsStatus::Unsafe,
+                )
+                .or_else(|| load_from_memory(FALLBACK_RIPPY, CorsStatus::Unsafe))?;
                 let image_key = store
                     .paint_api
                     .generate_image_key_blocking(store.webview_id)

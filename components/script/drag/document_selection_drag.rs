@@ -303,7 +303,7 @@ impl Node {
         // https://html.spec.whatwg.org/multipage/#inert
         // > When a node is inert: Text selection functionality must act as if
         // > the 'user-select' CSS property were set to 'none'.
-        if self.is_inert() {
+        if self.is_inert_without_reflow() {
             cache.insert(cache_key, UsedUserSelect::None);
             return UsedUserSelect::None;
         }
