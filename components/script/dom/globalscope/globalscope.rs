@@ -2927,7 +2927,6 @@ impl GlobalScope {
     }
 
     /// <https://www.w3.org/TR/CSP/#get-csp-of-object>
-    /// Use this if you want to test something on CspList. Avoids copying.
     pub(crate) fn call_on_csp_list<T, F: FnOnce(&Option<CspList>) -> T>(&self, f: F) -> T {
         if self.is::<Window>() || self.is::<WorkerGlobalScope>() {
             return f(&self.policy_container().as_ref().csp_list);
