@@ -19,6 +19,8 @@ use style::context::{QuirksMode, SharedStyleContext};
 use style::logical_geometry::LogicalAxis;
 use style::properties::ComputedValues;
 use style::servo::selector_parser::PseudoElement;
+use style::values::computed::{AlignmentBaseline, BaselineShift};
+use style::values::generics::box_::BaselineShiftKeyword;
 use style::values::specified::align::AlignFlags;
 use style::values::specified::{Display, TextAlignKeyword};
 
@@ -484,6 +486,34 @@ impl OutsideMarker {
     }
 }
 
+/// The used value of `align-content` for a block formatting context.
+#[derive(PartialEq)]
+pub(crate) enum ContentAlignment {
+    Start,
+    SafeEnd,
+    UnsafeEnd,
+    SafeCenter,
+    UnsafeCenter,
+    Baseline,
+}
+
+impl ContentAlignment {
+    pub(crate) fn resolve_offset(
+        &self,
+        free_space: impl FnOnce() -> Au,
+        baseline: impl FnOnce() -> Au,
+    ) -> Au {
+        match self {
+            Self::Start => Au::zero(),
+            Self::SafeEnd => Au::zero().max(free_space()),
+            Self::UnsafeEnd => free_space(),
+            Self::SafeCenter => Au::zero().max(free_space() / 2),
+            Self::UnsafeCenter => free_space() / 2,
+            Self::Baseline => baseline(),
+        }
+    }
+}
+
 impl BlockFormattingContext {
     pub(super) fn layout(
         &self,
@@ -553,61 +583,26 @@ impl BlockFormattingContext {
                 return;
             };
 
-            let align_content_style = base.style.get_align_content().primary();
-            let resolved_align_content = match align_content_style.value() {
-                // `normal` behaves as `center` on buttons. Otherwise behaves as `start`.
-                // See <https://github.com/w3c/csswg-drafts/issues/14190>.
-                AlignFlags::NORMAL
-                    if base
-                        .base_fragment_info
-                        .flags
-                        .contains(FragmentFlags::IS_BUTTON) =>
-                {
-                    AlignFlags::CENTER
-                },
-                AlignFlags::NORMAL => AlignFlags::START,
+            let content_alignment = self.content_alignment(base);
 
-                // Explicit sides.
-                AlignFlags::CENTER => AlignFlags::CENTER,
-                AlignFlags::START | AlignFlags::FLEX_START => AlignFlags::START,
-                AlignFlags::END | AlignFlags::FLEX_END => AlignFlags::END,
-
-                // For <content-distribution>, use the fallback alignment.
-                AlignFlags::SPACE_AROUND | AlignFlags::SPACE_EVENLY => AlignFlags::CENTER,
-                AlignFlags::SPACE_BETWEEN | AlignFlags::STRETCH => AlignFlags::START,
-
-                // Stylo parses baseline values, but behavior is broken in browsers,
-                // so the CSSWG resolved to unship them. Treat them as `start` for now.
-                // <https://github.com/w3c/csswg-drafts/issues/13421>
-                AlignFlags::BASELINE | AlignFlags::LAST_BASELINE => AlignFlags::START,
-
-                // Other `AlignFlags` values shouldn't be valid for `align-content`.
-                _ => {
-                    debug_assert!(
-                        false,
-                        "Unexpected align-content value: {:?}",
-                        align_content_style.value()
-                    );
-                    AlignFlags::START
-                },
-            };
-            // No need to do anything for `start`.
-            if resolved_align_content == AlignFlags::START {
+            // No need to do anything for `start`. `baseline` is broken outside table cells,
+            // treat it as `start` for now (<https://github.com/w3c/csswg-drafts/issues/13421>).
+            if matches!(
+                content_alignment,
+                ContentAlignment::Start | ContentAlignment::Baseline
+            ) {
                 return;
             }
-            // If no overflow alignment is specified, the spec describes a "smart" behavior.
-            // But if that isn't implemented, the default behavior must be `safe` on block
-            // containers. See <https://drafts.csswg.org/css-align/#auto-safety-default>.
-            let is_safe = align_content_style.flags() != AlignFlags::UNSAFE;
 
-            // Compute the free space. If negative, the "safe" alignment variants fall back
-            // to `start` alignment.
-            // Note that the alignment subject is the actual contents of the box, even if
-            // the intrinsic block size is different (as is the case with <textarea>)
             flow_layout.depends_on_block_constraints = true;
-            let final_block_size = lazy_block_size.resolve(|| intrinsic_block_size);
-            let free_space = final_block_size - content_block_size;
-            if free_space <= Au::zero() && is_safe {
+            let align_offset = content_alignment.resolve_offset(
+                // Compute the free space: final block size minus block size of the contents.
+                // Note that the alignment subject is the actual contents of the box, even if
+                // the intrinsic block size is different (as is the case with <textarea>)
+                || lazy_block_size.resolve(|| intrinsic_block_size) - content_block_size,
+                || unreachable!("Should have already returned for baseline"),
+            );
+            if align_offset.is_zero() {
                 return;
             }
 
@@ -616,11 +611,7 @@ impl BlockFormattingContext {
             let align_fragment_rect = LogicalRect {
                 start_corner: LogicalVec2 {
                     inline: Au::zero(),
-                    block: match resolved_align_content {
-                        AlignFlags::END => free_space,
-                        AlignFlags::CENTER => free_space / 2,
-                        _ => unreachable!(),
-                    },
+                    block: align_offset,
                 },
                 size: LogicalVec2 {
                     inline: containing_block.inline_size(),
@@ -650,6 +641,65 @@ impl BlockFormattingContext {
             depends_on_block_constraints: flow_layout.depends_on_block_constraints,
             specific_layout_info: None,
             collapsible_margins_in_children: CollapsedBlockMargins::zero(),
+        }
+    }
+
+    pub(crate) fn content_alignment(&self, base: &LayoutBoxBase) -> ContentAlignment {
+        let align_content_style = base.style.get_align_content().primary();
+
+        // If no overflow alignment is specified, the spec describes a "smart" behavior.
+        // But if that isn't implemented, the default behavior must be `safe` on block
+        // containers. See <https://drafts.csswg.org/css-align/#auto-safety-default>.
+        let is_safe = align_content_style.flags() != AlignFlags::UNSAFE;
+
+        match align_content_style.value() {
+            // - On table cells, `align-content: normal` defers to `vertical-align`.
+            //   The spec still assumes that `vertical-align` is a longhand, so it's not very
+            //   clear if this logic is completely correct, but it seems to match Firefox.
+            //   See <https://github.com/w3c/csswg-drafts/issues/13458>.
+            // - On buttons, it behaves as `safe center`.
+            //   See <https://github.com/w3c/csswg-drafts/issues/14190>.
+            // - Otherwise behaves as `start`.
+            AlignFlags::NORMAL if self.is_table_cell => match base.style.get_baseline_shift() {
+                BaselineShift::Keyword(BaselineShiftKeyword::Top) => ContentAlignment::Start,
+                BaselineShift::Keyword(BaselineShiftKeyword::Bottom) => ContentAlignment::SafeEnd,
+                _ => match base.style.get_alignment_baseline() {
+                    AlignmentBaseline::Middle => ContentAlignment::SafeCenter,
+                    _ => ContentAlignment::Baseline,
+                },
+            },
+            AlignFlags::NORMAL
+                if base
+                    .base_fragment_info
+                    .flags
+                    .contains(FragmentFlags::IS_BUTTON) =>
+            {
+                ContentAlignment::SafeCenter
+            },
+            AlignFlags::NORMAL => ContentAlignment::Start,
+
+            // Explicit <content-position>.
+            AlignFlags::CENTER if is_safe => ContentAlignment::SafeCenter,
+            AlignFlags::CENTER => ContentAlignment::UnsafeCenter,
+            AlignFlags::START | AlignFlags::FLEX_START => ContentAlignment::Start,
+            AlignFlags::END | AlignFlags::FLEX_END if is_safe => ContentAlignment::SafeEnd,
+            AlignFlags::END | AlignFlags::FLEX_END => ContentAlignment::UnsafeEnd,
+
+            // For <content-distribution>, use the fallback alignment.
+            AlignFlags::SPACE_AROUND | AlignFlags::SPACE_EVENLY => ContentAlignment::SafeCenter,
+            AlignFlags::SPACE_BETWEEN | AlignFlags::STRETCH => ContentAlignment::Start,
+
+            // The CSSWG resolved to unship the baseline values for `align-content`, and Blink
+            // doesn't even parse `align-content: last baseline`, so don't bother telling them
+            // apart. For now, treat them as `vertical-align: baseline` on table cells.
+            // See <https://github.com/w3c/csswg-drafts/issues/13421>
+            AlignFlags::BASELINE | AlignFlags::LAST_BASELINE => ContentAlignment::Baseline,
+
+            // Other `AlignFlags` values shouldn't be valid for `align-content`.
+            unexpected => {
+                debug_assert!(false, "Unexpected align-content value: {:?}", unexpected);
+                ContentAlignment::Start
+            },
         }
     }
 

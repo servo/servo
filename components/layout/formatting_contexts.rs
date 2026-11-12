@@ -20,8 +20,8 @@ use crate::context::LayoutContext;
 use crate::dom::{LayoutBox, NodeExt, WeakLayoutBox};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents};
 use crate::flexbox::FlexContainer;
-use crate::flow::BlockFormattingContext;
 use crate::flow::inline::InlineFormattingContext;
+use crate::flow::{BlockFormattingContext, ContentAlignment};
 use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags};
 use crate::geom::LogicalVec2;
 use crate::layout_box_base::{IndependentFormattingContextLayoutResult, LayoutBoxBase};
@@ -681,6 +681,15 @@ impl IndependentFormattingContext {
                 block_formatting_context.inline_formatting_context()
             },
             _ => None,
+        }
+    }
+
+    pub(crate) fn content_alignment_for_block_formatting_context(&self) -> ContentAlignment {
+        match &self.contents {
+            IndependentFormattingContextContents::Flow(block_formatting_context) => {
+                block_formatting_context.content_alignment(&self.base)
+            },
+            _ => panic!("Not a block formattign context"),
         }
     }
 }

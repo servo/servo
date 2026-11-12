@@ -23,10 +23,8 @@ use style::computed_values::visibility::T as Visibility;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::{
-    AlignmentBaseline, BaselineShift, BorderStyle, LengthPercentage as ComputedLengthPercentage,
-    Percentage,
+    BorderStyle, LengthPercentage as ComputedLengthPercentage, Percentage,
 };
-use style::values::generics::box_::BaselineShiftKeyword;
 
 use super::{
     ArcRefCell, CollapsedBorder, CollapsedBorderLine, SpecificTableGridInfo, Table, TableCaption,
@@ -37,6 +35,7 @@ use crate::containing_block::{
 };
 use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
+use crate::flow::ContentAlignment;
 use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, ExtraBackground, Fragment, FragmentFlags,
@@ -56,14 +55,6 @@ use crate::style_ext::{
     BorderStyleColor, Clamp, ComputedValuesExt, LayoutStyle, PaddingBorderMargin,
 };
 use crate::table::WeakTableLevelBox;
-
-#[derive(PartialEq)]
-enum CellContentAlignment {
-    Top,
-    Bottom,
-    Middle,
-    Baseline,
-}
 
 /// A result of a final or speculative layout of a single cell in
 /// the table. Note that this is only done for slots that are not
@@ -1235,7 +1226,7 @@ impl<'a> TableLayout<'a> {
                         max_row_height.max_assign(outer_block_size);
                     }
 
-                    if cell.content_alignment() == CellContentAlignment::Baseline {
+                    if cell.content_alignment() == ContentAlignment::Baseline {
                         let ascent = layout.ascent();
                         let border_padding_start =
                             layout.border.block_start + layout.padding.block_start;
@@ -2028,7 +2019,7 @@ impl<'a> TableLayout<'a> {
         // If this cell has baseline alignment, it can adjust the table's overall baseline.
         let row_block_offset = row_fragment_layout.rect.start_corner.block;
         let row_baseline = self.row_baselines[row_index];
-        if cell.content_alignment() == CellContentAlignment::Baseline && !layout.is_empty() {
+        if cell.content_alignment() == ContentAlignment::Baseline && !layout.is_empty() {
             let baseline = row_block_offset + row_baseline;
             if row_index == 0 {
                 baselines.first = Some(baseline);
@@ -2865,21 +2856,10 @@ impl TableLayoutStyle<'_> {
 }
 
 impl TableSlotCell {
-    fn content_alignment(&self) -> CellContentAlignment {
-        // The spec still assumes that `vertical-align` is a longhand, so it's not very clear
-        // if this logic is completely correct, but it seems to match Firefox.
-        // <https://github.com/w3c/csswg-drafts/issues/13458>
-        // TODO: we should only use `vertical-align` for the default `align-content: normal`.
-        // If `align-content` is set to another value, it should take precedence.
-        let style_box = self.context.base.style.get_box();
-        match style_box.baseline_shift {
-            BaselineShift::Keyword(BaselineShiftKeyword::Top) => CellContentAlignment::Top,
-            BaselineShift::Keyword(BaselineShiftKeyword::Bottom) => CellContentAlignment::Bottom,
-            _ => match style_box.alignment_baseline {
-                AlignmentBaseline::Middle => CellContentAlignment::Middle,
-                _ => CellContentAlignment::Baseline,
-            },
-        }
+    #[inline]
+    fn content_alignment(&self) -> ContentAlignment {
+        self.context
+            .content_alignment_for_block_formatting_context()
     }
 
     #[expect(clippy::too_many_arguments)]
@@ -2899,17 +2879,14 @@ impl TableSlotCell {
         let cell_style = self.context.style();
         let cell_content_rect = cell_rect.deflate(&(layout.padding + layout.border));
         let content_block_size = layout.layout.content_block_size;
-        let free_space = || Au::zero().max(cell_content_rect.size.block - content_block_size);
-        let vertical_align_offset = match self.content_alignment() {
-            CellContentAlignment::Top => Au::zero(),
-            CellContentAlignment::Bottom => free_space(),
-            CellContentAlignment::Middle => free_space().scale_by(0.5),
-            CellContentAlignment::Baseline => {
+        let align_offset = self.content_alignment().resolve_offset(
+            || cell_content_rect.size.block - content_block_size,
+            || {
                 cell_baseline -
                     (layout.padding.block_start + layout.border.block_start) -
                     layout.ascent()
             },
-        };
+        );
 
         let mut base_fragment_info = self.context.base.base_fragment_info;
         if cell_style.get_inherited_table().empty_cells == EmptyCells::Hide &&
@@ -2924,14 +2901,14 @@ impl TableSlotCell {
         }
 
         // Create an `AnonymousFragment` to move the cell contents to the cell baseline.
-        let mut vertical_align_fragment_rect = cell_content_rect;
-        vertical_align_fragment_rect.start_corner = LogicalVec2 {
+        let mut align_fragment_rect = cell_content_rect;
+        align_fragment_rect.start_corner = LogicalVec2 {
             inline: Au::zero(),
-            block: vertical_align_offset,
+            block: align_offset,
         };
-        let vertical_align_fragment = PositioningFragment::new_anonymous(
+        let align_fragment = PositioningFragment::new_anonymous(
             cell_style.clone(),
-            vertical_align_fragment_rect.as_physical_deprecated(&ContainingBlock {
+            align_fragment_rect.as_physical_deprecated(&ContainingBlock {
                 size: ContainingBlockSize::new(
                     cell_content_rect.size.inline,
                     SizeConstraint::Definite(cell_content_rect.size.block),
@@ -2965,7 +2942,7 @@ impl TableSlotCell {
         BoxFragment::new(
             base_fragment_info,
             cell_style.clone(),
-            vec![Fragment::Positioning(vertical_align_fragment)],
+            vec![Fragment::Positioning(align_fragment)],
             physical_cell_rect,
             layout.padding.to_physical(table_style.writing_mode),
             layout.border.to_physical(table_style.writing_mode),
