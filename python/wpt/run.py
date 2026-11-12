@@ -207,13 +207,24 @@ def get_intermittent_issues_from_github(gh_token: str | None) -> list[dict]:
 
     try:
         output = subprocess.check_output(
-            ["gh", "api", "graphql", "--jq", ".data.search.nodes[]", "-f", f"query={INTERMITTENT_ISSUES_GRAPHQL}"],
+            [
+                "gh",
+                "api",
+                "graphql",
+                "--paginate",
+                "--jq",
+                ".data.search.nodes[]",
+                "-f",
+                f"query={INTERMITTENT_ISSUES_GRAPHQL}",
+            ],
             env=environment,
             text=True,
         )
     except (FileNotFoundError, subprocess.CalledProcessError):
         print("Filtering intermittents requires having `gh` installed and authenticated.")
-        return []
+        # Raise this exception instead of eating it because this will surface
+        # intermittent filtering failures on the CI more quickly.
+        raise
     return [json.loads(line) for line in output.splitlines()]
 
 

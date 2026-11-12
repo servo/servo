@@ -58,7 +58,7 @@ jobs:
             --filter-intermittents wpt-filtered-logs/${{ env.NAME }}/${{ matrix.chunk_id }}.json \
             ${{ inputs.wpt-args }}
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.INTERMITTENT_ISSUES_TOKEN || github.token }}
       - name: Archive results (filtered)
         uses: actions/upload-artifact@v7
         if: ${{ always() }}
