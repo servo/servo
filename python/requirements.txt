@@ -30,6 +30,10 @@ flask
 requests
 types-requests
 
+# Not strictly necessary, but this improves manifest
+# generation performance in WPT.
+ujson
+
 # For mach package on macOS.
 Mako == 1.3.12
 
