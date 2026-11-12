@@ -133,9 +133,8 @@ impl HTMLStyleElement {
         // and the style element's child text content, then return. [CSP]
         let doc = self.owner_document();
         let global = &self.owner_global();
-        if global
-            .get_csp_list()
-            .should_elements_inline_type_behavior_be_blocked(
+        if global.call_on_csp_list(|csp_list| {
+            csp_list.should_elements_inline_type_behavior_be_blocked(
                 cx,
                 global,
                 self.upcast(),
@@ -143,7 +142,7 @@ impl HTMLStyleElement {
                 &node.child_text_content().str(),
                 doc.get_current_parser_line(),
             )
-        {
+        }) {
             return;
         }
 
