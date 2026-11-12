@@ -41,6 +41,8 @@ use webrender_api::units::DeviceIntSize;
 
 use crate::image_cache::KeyCacheState::PipelineClosed;
 
+const MAX_SVG_DEPTH: u32 = 500;
+
 thread_local! {
     pub static SUPPRESS_ABORT_IN_PANIC_HOOK: Cell<bool> = const { Cell::new(false) };
 }
@@ -851,6 +853,7 @@ impl ImageCacheFactory for ImageCacheFactoryImpl {
             },
             font_resolver: usvg_font_resolver,
             fontdb: Arc::new(fontdb::Database::new()),
+            max_depth: MAX_SVG_DEPTH,
             ..usvg::Options::default()
         };
 
