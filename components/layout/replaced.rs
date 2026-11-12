@@ -162,6 +162,17 @@ pub(crate) enum ReplacedContentKind {
     Audio,
 }
 
+impl ReplacedContentKind {
+    pub(crate) fn can_be_selected(&self) -> bool {
+        !matches!(
+            self,
+            ReplacedContentKind::Audio |
+                ReplacedContentKind::IFrame(..) |
+                ReplacedContentKind::Canvas(..)
+        )
+    }
+}
+
 impl ReplacedContents {
     pub fn for_element(node: ServoLayoutNode<'_>, context: &LayoutContext) -> Option<Self> {
         if let Some(ref data_attribute_string) = node.as_typeless_object_with_data_attribute() &&
@@ -224,11 +235,13 @@ impl ReplacedContents {
                 .handle_animated_image(node.opaque(), image.clone());
         }
 
+        let selected = kind.can_be_selected() && node.replaced_is_selected();
+
         Some(Self {
             base_fragment_info: node.into(),
             kind,
             is_content_replacement: false,
-            selected: Arc::new(AtomicBool::new(node.replaced_is_selected())),
+            selected: Arc::new(AtomicBool::new(selected)),
             selected_style: SharedStyle::new(node.selected_style(&context.style_context)),
             natural_size,
         })
@@ -771,15 +784,9 @@ impl ReplacedContents {
     /// Set whether or not this [`ReplacedContents`] is selected. Returns `true` if anything
     /// changed.
     pub(crate) fn set_selection(&self, selected: bool) -> bool {
-        // Only build a display list if the value changed and if this isn't an `<iframe>`,
-        // `<audio>`, or `<canvas>` element as they do not paint a selection tint.
-        self.selected.swap(selected, Ordering::Relaxed) != selected &&
-            !matches!(
-                self.kind,
-                ReplacedContentKind::Audio |
-                    ReplacedContentKind::IFrame(..) |
-                    ReplacedContentKind::Canvas(..)
-            )
+        // Only build a display list if the value changed and if this replaced element
+        // can be selected (e.g. not an `<iframe>`, `<audio>`, or `<canvas>`).
+        self.kind.can_be_selected() && self.selected.swap(selected, Ordering::Relaxed) != selected
     }
 }
 
