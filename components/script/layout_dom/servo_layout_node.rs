@@ -330,7 +330,6 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
     }
 
     fn textarea_rows(&self) -> Option<u32> {
-        // This natural height does not apply to pseudo-elements
         if self.pseudo_element_chain().is_empty() {
             self.node
                 .downcast::<Element>()

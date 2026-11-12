@@ -64,17 +64,17 @@ pub(crate) struct BlockFormattingContext {
     pub contents: BlockContainer,
     pub contains_floats: bool,
     pub is_table_cell: bool,
-    /// This currently drives layouts for text areas as they require sizing based
+    /// This currently drives layouts for textareas as they require sizing based
     /// on their number of rows. This is only Some for <textarea>s, otherwise it
     /// is always None.
-    pub text_area_size: Option<TextAreaSize>,
+    pub textarea_size: Option<TextareaSize>,
 }
 
 /// Helps format textareas according to their effective size as dictated by the
 /// spec.
 /// <https://html.spec.whatwg.org/multipage/#the-textarea-element-2>
 #[derive(Debug, MallocSizeOf)]
-pub(crate) struct TextAreaSize {
+pub(crate) struct TextareaSize {
     /// The number of rows in this `<textarea>`, which is used to determine
     /// its intrinsic block size when it has `field-sizing: fixed`.
     /// <https://html.spec.whatwg.org/multipage/#textarea-effective-height>
@@ -83,8 +83,8 @@ pub(crate) struct TextAreaSize {
     // TODO(44426): Store cols too, for the intrinsic inline size.
 }
 
-impl TextAreaSize {
-    /// Effective block size of this text area, which is the number of rows
+impl TextareaSize {
+    /// Effective block size of this textarea, which is the number of rows
     /// multiplied by the line height. With no font available, this will
     /// return None.
     ///
@@ -540,10 +540,10 @@ impl BlockFormattingContext {
             clearance.unwrap_or_default();
 
         let intrinsic_block_size = self
-            .text_area_size
+            .textarea_size
             .as_ref()
-            .and_then(|text_area_size| {
-                text_area_size.effective_block_size(&base?.style, &layout_context.font_context)
+            .and_then(|textarea_size| {
+                textarea_size.effective_block_size(&base?.style, &layout_context.font_context)
             })
             .unwrap_or(content_block_size);
 

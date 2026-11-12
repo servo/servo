@@ -1211,7 +1211,7 @@ impl<'style, 'builder, 'dom, 'a> TableRowBuilder<'style, 'builder, 'dom, 'a> {
                     BlockFormattingContext::from_block_container(
                         block_container,
                         /* is_table_cell = */ true,
-                        /* text_area_size = */ None,
+                        /* textarea_size = */ None,
                     ),
                 ),
                 propagated_data,

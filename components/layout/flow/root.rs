@@ -64,7 +64,7 @@ impl BoxTree {
         let contents = BlockContainer::BlockLevelBoxes(boxes);
         Self {
             root: BlockFormattingContext::from_block_container(
-                contents, /* is_table_cell = */ false, /* text_area_size = */ None,
+                contents, /* is_table_cell = */ false, /* textarea_size = */ None,
             ),
             // From https://www.w3.org/TR/css-overflow-3/#overflow-propagation:
             // > If visible is applied to the viewport, it must be interpreted as auto.
