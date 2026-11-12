@@ -1384,28 +1384,27 @@ impl InlineFormattingContextLayout<'_> {
         // The inline part of this start offset was taken into account when determining
         // the inline start of the line in `calculate_inline_start_for_current_line` so
         // we do not need to include it in the `start_corner` of the line's main Fragment.
-        let start_corner = LogicalVec2 {
-            inline: Au::zero(),
-            block: block_start_position,
-        };
-
-        let logical_origin_in_physical_coordinates =
-            start_corner.to_physical_offset_deprecated(self.containing_block().style.writing_mode);
-        self.positioning_context
-            .adjust_static_position_of_hoisted_fragments_with_offset(
-                &logical_origin_in_physical_coordinates,
-                start_positioning_context_length,
-            );
-
         let containing_block = self.containing_block();
-        let physical_line_rect = LogicalRect {
-            start_corner,
+        let containing_block_writing_mode = containing_block.style.writing_mode;
+        let logical_line_rect = LogicalRect {
+            start_corner: LogicalVec2 {
+                inline: Au::zero(),
+                block: block_start_position,
+            },
             size: LogicalVec2 {
                 inline: containing_block.inline_size(),
                 block: effective_block_advance.resolve(),
             },
-        }
-        .as_physical_deprecated(containing_block);
+        };
+        let physical_line_rect = logical_line_rect.as_physical_deprecated(containing_block);
+
+        self.positioning_context
+            .adjust_static_position_of_hoisted_fragments(
+                &logical_line_rect,
+                containing_block_writing_mode,
+                start_positioning_context_length,
+            );
+
         self.fragments
             .push(Fragment::Positioning(PositioningFragment::new_anonymous(
                 self.root_nesting_level.style.clone(),
@@ -1535,7 +1534,7 @@ impl InlineFormattingContextLayout<'_> {
         let block_offset_from_containining_block_top = state
             .current_block_position_including_margins() -
             state.current_containing_block_offset();
-        state.place_float_fragment(
+        let float_content_rect = state.place_float_fragment(
             &float.fragment,
             self.placement_state.containing_block,
             CollapsedMargin::zero(),
@@ -1543,7 +1542,8 @@ impl InlineFormattingContextLayout<'_> {
         );
         self.positioning_context
             .adjust_static_position_of_hoisted_fragments_in_range(
-                &float.fragment.base.rect().origin.to_vector(),
+                &float_content_rect,
+                self.placement_state.containing_block.style.writing_mode,
                 &float.range,
             )
     }
