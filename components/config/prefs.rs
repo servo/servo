@@ -270,7 +270,7 @@ pub struct Preferences {
     pub gfx_subpixel_text_antialiasing_enabled: bool,
     pub gfx_texture_swizzling_enabled: bool,
     /// The amount of image keys we request per batch for the image cache.
-    pub image_key_batch_size: i64,
+    pub image_key_batch_size: u64,
     /// Whether or not the DOM inspector should show shadow roots of user-agent shadow trees
     pub inspector_show_servo_internal_shadow_roots: bool,
     /// A locale tag (eg. es-ES) to use for language negotiation instead of the system locale.
