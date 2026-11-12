@@ -490,7 +490,6 @@ impl DocumentFocusHandler {
             // changed the element's value or its list of selected files while the control was
             // focused without committing that change (such that it is different to what it was
             // when the control was first focused), then:
-            // TODO: that entire last part
             if let Some(element) = entry.element() &&
                 let Some(input) = element.downcast::<HTMLInputElement>() &&
                 input.does_change_event_apply() &&
