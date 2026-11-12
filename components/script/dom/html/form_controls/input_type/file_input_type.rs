@@ -110,9 +110,9 @@ impl SpecificInputType for FileInputType {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file):suffering-from-being-missing>
-    fn suffers_from_being_missing<'no_gc>(
+    fn suffers_from_being_missing(
         &self,
-        _no_gc: &'no_gc NoGC,
+        _no_gc: &NoGC,
         input: &HTMLInputElement,
         _value: &DOMString,
     ) -> bool {

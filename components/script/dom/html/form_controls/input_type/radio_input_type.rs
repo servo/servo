@@ -46,9 +46,9 @@ impl SpecificInputType for RadioInputType {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):suffering-from-being-missing>
-    fn suffers_from_being_missing<'no_gc>(
+    fn suffers_from_being_missing(
         &self,
-        no_gc: &'no_gc NoGC,
+        no_gc: &NoGC,
         input: &HTMLInputElement,
         _value: &DOMString,
     ) -> bool {
@@ -287,7 +287,7 @@ where
     root.traverse_preorder_unrooted(no_gc, ShadowIncluding::No)
         .filter_map(UnrootedDom::downcast::<HTMLInputElement>)
         .filter(move |current_element| {
-            &**current_element == &Dom::from_ref(elem) ||
+            **current_element == Dom::from_ref(elem) ||
                 in_same_group(current_element, form, group, Some(root))
         })
 }

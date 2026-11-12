@@ -737,7 +737,7 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#suffering-from-being-missing>
-    fn suffers_from_being_missing<'no_gc>(&self, no_gc: &'no_gc NoGC, value: &DOMString) -> bool {
+    fn suffers_from_being_missing(&self, no_gc: &NoGC, value: &DOMString) -> bool {
         self.input_type()
             .as_specific()
             .suffers_from_being_missing(no_gc, self, value)
