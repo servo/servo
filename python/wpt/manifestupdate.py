@@ -5,6 +5,7 @@
 import argparse
 import hashlib
 import os
+import pathlib
 import subprocess
 import sys
 
@@ -89,7 +90,8 @@ def get_manifest_hash(test_roots: Mapping[str, TestRoot]) -> str:
     """Calculate the hash for the manifest files from the git rev-parse output of
     the test directories and the hash of all staged and unstaged changes in them."""
     test_paths = [
-        os.path.relpath(test_root.tests_path, SERVO_ROOT).replace(os.sep, "/") for test_root in test_roots.values()
+        pathlib.PurePath(os.path.relpath(test_root.tests_path, SERVO_ROOT)).as_posix()
+        for test_root in test_roots.values()
     ]
 
     # This runs `git rev-parse` on all test directories to see if the hash matches
