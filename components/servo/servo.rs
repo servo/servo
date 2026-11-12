@@ -43,7 +43,7 @@ use net_traits::ResourceThreads;
 use paint::{InitialPaintState, Paint};
 pub use paint_api::rendering_context::RenderingContext;
 use paint_api::{CrossProcessPaintApi, PaintMessage, PaintProxy};
-use pixels::{DefaultImageDecoder, ServoImageDecoder};
+use pixels::{DefaultImageCodec, ImageCodec};
 use profile::{mem as profile_mem, time as profile_time};
 use profile_traits::mem::MemoryReportResult;
 #[cfg(feature = "multiprocess")]
@@ -1330,7 +1330,7 @@ fn create_constellation(
     async_runtime: Box<dyn net_traits::AsyncRuntime>,
     public_storage_threads: StorageThreads,
     private_storage_threads: StorageThreads,
-    image_decoder: Arc<dyn ServoImageDecoder>,
+    image_codec: Arc<dyn ImageCodec>,
 ) {
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
@@ -1376,7 +1376,7 @@ fn create_constellation(
         async_runtime,
         privileged_urls,
         wake_lock_provider: Box::new(DefaultWakeLockDelegate),
-        image_decoder,
+        image_codec,
     };
 
     let layout_factory = Arc::new(LayoutFactoryImpl());
@@ -1428,15 +1428,17 @@ fn set_logger(script_to_constellation_sender: ScriptToConstellationSender) {
     log::set_max_level(filter);
 }
 
-/// The main parameters for the ContentProcess.
+/// Parameters used to initialize a new content process in multiprocess mode.
+#[cfg(feature = "multiprocess")]
 pub struct ContentProcessParameters {
-    pub image_decoder: Arc<dyn ServoImageDecoder>,
+    pub image_decoder: Arc<dyn ImageCodec>,
 }
 
+#[cfg(feature = "multiprocess")]
 impl Default for ContentProcessParameters {
     fn default() -> Self {
         Self {
-            image_decoder: Arc::new(DefaultImageDecoder::default()),
+            image_decoder: Arc::new(DefaultImageCodec),
         }
     }
 }
@@ -1559,7 +1561,7 @@ pub struct ServoBuilder {
     preferences: Option<Box<Preferences>>,
     event_loop_waker: Box<dyn EventLoopWaker>,
     protocol_registry: ProtocolRegistry,
-    image_decoder: Arc<dyn ServoImageDecoder>,
+    image_decoder: Arc<dyn ImageCodec>,
 }
 
 impl Default for ServoBuilder {
@@ -1569,7 +1571,7 @@ impl Default for ServoBuilder {
             preferences: Default::default(),
             event_loop_waker: Box::new(DefaultEventLoopWaker),
             protocol_registry: Default::default(),
-            image_decoder: Arc::new(pixels::DefaultImageDecoder {}),
+            image_decoder: Arc::new(DefaultImageCodec),
         }
     }
 }
@@ -1599,9 +1601,9 @@ impl ServoBuilder {
         self
     }
 
-    /// Notice that to support a different then the default [`DefaultImageDecoder`] in multiprocess mode,
-    /// you also need to set this up in [`ContentProcessParamters`].
-    pub fn image_decoder(mut self, image_decoder: Arc<dyn ServoImageDecoder>) -> Self {
+    /// Override the default image encoder and decoder used in Servo. Note that in multiprocess
+    /// mode, you must also pass the same encoder in [`ContentProcessParameters`].
+    pub fn image_decoder(mut self, image_decoder: Arc<dyn ImageCodec>) -> Self {
         self.image_decoder = image_decoder;
         self
     }

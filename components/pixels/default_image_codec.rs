@@ -14,9 +14,9 @@ use image::{
 };
 use log::debug;
 
-use crate::traits::{DecodedImage, ServoImageDecoder};
 use crate::{
-    ImageFrame, ImageMetadata, PixelFormat, Repeat, detect_image_format, rgba8_premultiply_inplace,
+    DecodedRasterImage, ImageCodec, ImageFrame, ImageMetadata, PixelFormat, Repeat,
+    detect_image_format, rgba8_premultiply_inplace,
 };
 
 enum GenericImageDecoder<'a> {
@@ -53,14 +53,6 @@ impl<'a> GenericImageDecoder<'a> {
             GenericImageDecoder::Bmp(_) |
             GenericImageDecoder::Ico(_) => false,
         }
-    }
-
-    fn decoder(self) -> impl ImageDecoder {
-        self
-    }
-
-    fn animated_decoder(self) -> impl AnimationDecoder<'a> {
-        self
     }
 }
 
@@ -204,7 +196,7 @@ impl<'a> AnimationDecoder<'a> for GenericImageDecoder<'a> {
     }
 }
 
-pub(crate) fn decode_static_image(mut image_decoder: impl ImageDecoder) -> Option<DecodedImage> {
+fn decode_static_image(mut image_decoder: impl ImageDecoder) -> Option<DecodedRasterImage> {
     let orientation = image_decoder.orientation();
 
     let Ok(mut dynamic_image) = DynamicImage::from_decoder(image_decoder) else {
@@ -231,7 +223,7 @@ pub(crate) fn decode_static_image(mut image_decoder: impl ImageDecoder) -> Optio
         width: rgba.width(),
         height: rgba.height(),
     };
-    Some(DecodedImage {
+    Some(DecodedRasterImage {
         metadata: ImageMetadata {
             width: rgba.width(),
             height: rgba.height(),
@@ -244,7 +236,7 @@ pub(crate) fn decode_static_image(mut image_decoder: impl ImageDecoder) -> Optio
     })
 }
 
-pub(crate) fn decode_animated_image<'a, T>(animated_image_decoder: T) -> Option<DecodedImage>
+fn decode_animated_image<'a, T>(animated_image_decoder: T) -> Option<DecodedRasterImage>
 where
     T: AnimationDecoder<'a>,
 {
@@ -310,7 +302,7 @@ where
         bytes.extend_from_slice(frame.buffer());
     }
 
-    Some(DecodedImage {
+    Some(DecodedRasterImage {
         metadata: ImageMetadata { width, height },
         frames,
         format: PixelFormat::RGBA8,
@@ -321,9 +313,9 @@ where
 }
 
 #[derive(Default)]
-pub struct DefaultImageDecoder {}
+pub struct DefaultImageCodec;
 
-impl DefaultImageDecoder {
+impl DefaultImageCodec {
     fn make_decoder<'a>(
         format: ImageFormat,
         buffer: &'a [u8],
@@ -359,8 +351,8 @@ impl DefaultImageDecoder {
     }
 }
 
-impl ServoImageDecoder for DefaultImageDecoder {
-    fn decode_image(&self, buffer: &[u8]) -> Option<DecodedImage> {
+impl ImageCodec for DefaultImageCodec {
+    fn decode_image(&self, buffer: &[u8]) -> Option<DecodedRasterImage> {
         let image_fmt_result = detect_image_format(buffer);
         match image_fmt_result {
             Err(msg) => {
@@ -373,9 +365,9 @@ impl ServoImageDecoder for DefaultImageDecoder {
                 };
 
                 if image_decoder.is_animated() {
-                    decode_animated_image(image_decoder.animated_decoder())
+                    decode_animated_image(image_decoder)
                 } else {
-                    decode_static_image(image_decoder.decoder())
+                    decode_static_image(image_decoder)
                 }
             },
         }
