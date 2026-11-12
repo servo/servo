@@ -20,6 +20,7 @@ use js::rust::wrappers2::{
 use js::rust::{HandleObject, MutableHandleObject};
 use num_traits::ToPrimitive;
 use script_bindings::cell::{DomRefCell, Ref};
+use script_bindings::codegen::GenericBindings::InputEventBinding::InputEventMethods;
 use script_bindings::codegen::GenericBindings::SelectionBinding::SelectionMethods;
 use script_bindings::domstring::{TracedDOMString, parse_floating_point_number};
 use servo_base::generic_channel::GenericSender;
@@ -73,7 +74,7 @@ use crate::dom::node::{
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::text_input::EmbedderClipboardProvider;
-use crate::dom::types::FocusEvent;
+use crate::dom::types::{FocusEvent, InputEvent};
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::realms::enter_auto_realm;
@@ -2666,7 +2667,11 @@ impl VirtualMethods for HTMLInputElement {
             .as_specific()
             .handle_event(cx, self, event);
 
-        self.value_changed(cx);
+        if let Some(event) = event.downcast::<InputEvent>() &&
+            self.value_dirty.get()
+        {
+            self.value_changed(cx);
+        }
 
         self.fire_value_change_events(cx, value_change_events);
 
