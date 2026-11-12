@@ -16,7 +16,7 @@ async function createAndDestroyIframeWithHTML(html, message) {
   // Wait for the document to signal that it has parsed and started the test.
   await waitForFrameMessage;
   // A small timeout to ensure that things move forward enough.
-  await new Promise(resolve => step_timeout(resolve, 100));
+  await new Promise(resolve => step_timeout(resolve, 500));
 
   const weakDocument = new WeakRef(iframe.contentDocument);
   iframe.remove();

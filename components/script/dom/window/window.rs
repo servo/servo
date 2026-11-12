@@ -616,6 +616,13 @@ impl Window {
         self.as_global_scope()
             .task_manager()
             .cancel_all_tasks_and_ignore_future_tasks();
+
+        // Remove any devicechange callbacks from the WebXR registry
+        // so we don't hold any references to XRSystem
+        #[cfg(feature = "webxr")]
+        if let Some(mut registry) = self.webxr_registry() {
+            registry.remove_device_change_callbacks(self.pipeline_id());
+        }
     }
 
     /// Get a sender to the time profiler thread.

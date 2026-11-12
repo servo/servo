@@ -7,6 +7,7 @@ use log::warn;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{self, GenericCallback, GenericReceiver, GenericSender};
+use servo_base::id::PipelineId;
 
 use crate::{
     DiscoveryAPI, Error, GLTypes, LayerGrandManager, MainThreadSession, MockDeviceInit,
@@ -29,7 +30,7 @@ pub struct MainThreadRegistry<GL> {
     waker: MainThreadWakerImpl,
     grand_manager: LayerGrandManager<GL>,
     next_session_id: u32,
-    device_change_callbacks: Vec<GenericCallback<()>>,
+    device_change_callbacks: Vec<(PipelineId, GenericCallback<()>)>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -82,10 +83,21 @@ impl Registry {
         self.waker.wake();
     }
 
-    pub fn set_device_change_callback(&mut self, callback: GenericCallback<()>) {
+    pub fn set_device_change_callback(
+        &mut self,
+        pipeline_id: PipelineId,
+        callback: GenericCallback<()>,
+    ) {
         let _ = self
             .sender
-            .send(RegistryMsg::SetDeviceChangeCallback(callback));
+            .send(RegistryMsg::SetDeviceChangeCallback(pipeline_id, callback));
+        self.waker.wake();
+    }
+
+    pub fn remove_device_change_callbacks(&mut self, pipeline_id: PipelineId) {
+        let _ = self
+            .sender
+            .send(RegistryMsg::RemoveDeviceChangeCallbacks(pipeline_id));
         self.waker.wake();
     }
 }
@@ -163,7 +175,7 @@ impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
             changed |= discovery.poll_device_changed();
         }
         if changed {
-            for callback in &self.device_change_callbacks {
+            for (_, callback) in &self.device_change_callbacks {
                 let _ = callback.send(());
             }
         }
@@ -189,8 +201,12 @@ impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
             RegistryMsg::SimulateDeviceConnection(init, dest) => {
                 let _ = dest.send(self.simulate_device_connection(init));
             },
-            RegistryMsg::SetDeviceChangeCallback(callback) => {
-                self.device_change_callbacks.push(callback);
+            RegistryMsg::SetDeviceChangeCallback(pipeline_id, callback) => {
+                self.device_change_callbacks.push((pipeline_id, callback));
+            },
+            RegistryMsg::RemoveDeviceChangeCallbacks(pipeline_id) => {
+                self.device_change_callbacks
+                    .retain(|(id, _)| *id != pipeline_id);
             },
         }
     }
@@ -259,5 +275,6 @@ enum RegistryMsg {
         MockDeviceInit,
         ProfileGenericCallback<Result<GenericSender<MockDeviceMsg>, Error>>,
     ),
-    SetDeviceChangeCallback(GenericCallback<()>),
+    SetDeviceChangeCallback(PipelineId, GenericCallback<()>),
+    RemoveDeviceChangeCallbacks(PipelineId),
 }

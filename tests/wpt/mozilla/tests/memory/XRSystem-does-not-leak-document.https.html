@@ -6,13 +6,13 @@
 <body>
     <script>
       const tests = [
-          "<script>navigator.xr.ondevicechange = () => {}<\/script>",
-          "<script type=\"module\">await navigator.xr.isSessionSupported(\"inline\")<\/script>"
+          "<script>navigator.xr.ondevicechange = () => {}; window.parent.postMessage('xrReady');<\/script>",
+          "<script type=\"module\">await navigator.xr.isSessionSupported(\"inline\"); window.parent.postMessage('xrReady');<\/script>"
       ];
 
       for (const test of tests) {
           promise_test(async () => {
-            assert_true(await createAndDestroyIframeWithHTML(test));
+            assert_true(await createAndDestroyIframeWithHTML(test, "xrReady"));
           }, `'${test}' does not leak the document`);
       }
     </script>

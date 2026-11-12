@@ -82,7 +82,7 @@ impl XRSystem {
         .expect("Could not create XR devicechange callback");
 
         if let Some(mut registry) = window.webxr_registry() {
-            registry.set_device_change_callback(callback);
+            registry.set_device_change_callback(window.pipeline_id(), callback);
         }
 
         this
