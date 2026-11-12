@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>svg viewbox negative sizes</title>
+<meta name="assert" content="The svg element should not have an aspect ratio in this state especially when viewbox widht -1, height -2">
+<link rel="help" href="https://www.w3.org/TR/SVG2/coords.html#ViewBoxAttribute">
+<link rel="help" href="https://www.w3.org/TR/css-sizing-3/#intrinsic-sizes">
+<link rel="help" href="https://www.w3.org/TR/css-images-3/#default-object-size">
+<link rel="help" href="https://github.com/servo/servo/pull/49317">
+
+
+<link rel="match" href="../../css/reference/ref-filled-green-300px-square.html">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 300px; background: red">
+  <svg viewBox="0 0 -1 -2" style="display: block; height: 300px; background: green"></svg>
+</div>
