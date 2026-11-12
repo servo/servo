@@ -1847,6 +1847,21 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         || None, /* ratio_dependent_block_size */
     );
 
+    // Make the block size definite so children can resolve block percentages against it.
+    if let Some(ratio_dependent_block_size) =
+        compute_ratio_dependent_block_size(preferred_aspect_ratio, inline_size)
+    {
+        block_size_for_children = SizeConstraint::Definite(content_box_sizes.block.resolve(
+            LogicalAxis::Block,
+            automatic_block_size,
+            Au::zero,
+            block_stretch_size,
+            ContentSizes::default,
+            is_table,
+            || Some(ratio_dependent_block_size),
+        ));
+    }
+
     let containing_block_for_children = ContainingBlock {
         size: ContainingBlockSize {
             inline: inline_size,
