@@ -100,7 +100,7 @@ pub enum ServiceWorkerManagerMsg {
 
 /// <https://w3c.github.io/ServiceWorker/#dfn-state>
 /// A service worker has an associated state, which is one of:
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum ServiceWorkerState {
     /// "parsed".
     /// It is initially "parsed".
