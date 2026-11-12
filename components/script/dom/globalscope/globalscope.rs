@@ -2927,12 +2927,12 @@ impl GlobalScope {
     }
 
     /// <https://www.w3.org/TR/CSP/#get-csp-of-object>
-    pub(crate) fn get_csp_list(&self) -> Option<CspList> {
+    pub(crate) fn call_on_csp_list<T, F: FnOnce(&Option<CspList>) -> T>(&self, f: F) -> T {
         if self.is::<Window>() || self.is::<WorkerGlobalScope>() {
-            return self.policy_container().csp_list.clone();
+            return f(&self.policy_container().as_ref().csp_list);
         }
         // TODO: Worklet global scopes.
-        None
+        f(&None)
     }
 
     pub(crate) fn status_code(&self) -> Option<u16> {
