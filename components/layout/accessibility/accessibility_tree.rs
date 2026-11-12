@@ -25,6 +25,7 @@ use webrender_api::units::LayoutVector2D;
 
 use super::accessibility_node::{AccessibilityNode, DirtyState};
 use crate::ArcRefCell;
+use crate::accessibility::accessibility_node::TraversalState;
 use crate::accessibility::{AccessibilityContext, AccessibilityDamageMap};
 
 #[derive(Debug, Default)]
@@ -222,9 +223,8 @@ impl AccessibilityTree {
         self.root_node = Some(root_node);
     }
 
-    /// Update all nodes with damage tracked in `update` based on their `AccessibilityDamage`. If
-    /// any [`LocalAccessibilityDamage`] results from the update, propagate
-    /// [`LocalAccessibilityDamage::SubtreeChanged`] to its ancestors.
+    /// Update all nodes with damage tracked in `update` based on their `AccessibilityDamage`, and
+    /// resolve any local damage resulting from those updates.
     fn apply_changes_from_dom_tree(
         &mut self,
         context: &AccessibilityContext,
@@ -234,11 +234,11 @@ impl AccessibilityTree {
             return;
         };
         let damage_root = self.assert_node_for_id(&damage_root_id);
-        let hidden = false;
+        let mut traversal = TraversalState::default();
         let local_damage = damage_root.borrow_mut().update_subtree(
             damage_root.clone(),
             AccessibilityDamage::empty(),
-            hidden,
+            &mut traversal,
             context,
             self,
             update,
@@ -419,7 +419,7 @@ impl AccessibilityTree {
             node.initialize_from_dom_node(dom_node);
             update.insert_damage(id, AccessibilityDamage::all());
             node.add_dirty_state(DirtyState::HasDamage);
-        }
+	}
 
         (id, node_ref)
     }
@@ -690,7 +690,7 @@ impl<'update> AccessibilityUpdate<'update> {
         self.tree_changes.insert(node_id, resolved_change);
     }
 
-    pub(super) fn is_new(&mut self, node_id: &NodeId) -> bool {
+    pub(super) fn is_new(&self, node_id: &NodeId) -> bool {
         self.tree_changes.get(node_id) == Some(&TreeChange::New)
     }
 
