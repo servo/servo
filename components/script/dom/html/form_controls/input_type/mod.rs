@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use bitflags::bitflags;
 use embedder_traits::InputMethodType;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use script_bindings::domstring::DOMString;
@@ -404,7 +404,12 @@ pub(crate) trait SpecificInputType {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-required-attribute%3Asuffering-from-being-missing>
-    fn suffers_from_being_missing(&self, input: &HTMLInputElement, value: &DOMString) -> bool {
+    fn suffers_from_being_missing<'no_gc>(
+        &self,
+        _no_gc: &'no_gc NoGC,
+        input: &HTMLInputElement,
+        value: &DOMString,
+    ) -> bool {
         input.Required() &&
             input.value_mode() == ValueMode::Value &&
             input.is_mutable() &&
