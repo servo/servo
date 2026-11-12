@@ -4,6 +4,7 @@
 
 use std::collections::VecDeque;
 use std::fmt::Debug;
+use std::ops::DerefMut;
 use std::sync::LazyLock;
 
 use accesskit::{Affine, NodeId, Role};
@@ -190,22 +191,37 @@ impl AccessibilityNode {
 
     /// Update each of this node's ancestors based on changes which have already been applied in the
     /// tree.
-    pub(super) fn update_ancestors(
-        &self,
-        local_damage: LocalAccessibilityDamage,
-        update: &mut AccessibilityUpdate,
-    ) {
-        if local_damage.is_empty() {
-            return;
-        }
+    pub(super) fn update_ancestors(&self, update: &mut AccessibilityUpdate) {
+        let subtree_changed = DirtyState::from(LocalAccessibilityDamage::SubtreeChanged);
         for node in self.ancestors() {
             let mut node = node.borrow_mut();
+            if !node.dirty_state().contains(subtree_changed) {
+                break;
+            }
             node.update_node_local(LocalAccessibilityDamage::SubtreeChanged, update);
-            node.dirty_state -= DirtyState::DescendantHasDamage;
             if node.dirty_state.updated() {
                 update.add(&mut node);
             }
+            node.remove_dirty_state(subtree_changed);
         }
+    }
+
+    pub(super) fn resolve_remaining_local_damage(
+        &mut self,
+        damage: LocalAccessibilityDamage,
+        update: &mut AccessibilityUpdate,
+    ) -> FxHashSet<NodeId> {
+        let mut changed_nodes = FxHashSet::default();
+        // TODO:
+        // - return changed node IDs
+        // - call mark_nodes_and_ancestors_dirty with dirty nodes
+        // - return damage root
+        // - write new function resolve_local_damage_in_subtree()
+        // - calling function calls resolve_local_damage_in_subtree()
+        if damage.intersects(LocalAccessibilityDamage::TextChanged) {
+            changed_nodes.extend(self.resolve_text_change(update));
+        }
+        changed_nodes
     }
 
     pub(super) fn initialize_from_dom_node(&mut self, dom_node: &ServoLayoutNode) {
@@ -253,8 +269,9 @@ impl AccessibilityNode {
         if dom_damage.intersects(AccessibilityDamage::Children | AccessibilityDamage::Layout) {
             // If this node has damage from layout, this ensures that all of its children have
             // their corresponding DOM nodes in `update`.
-            local_damage
-                .insert(self.update_children_from_dom_node(ref_self, dom_node, tree, update));
+            local_damage.insert(
+                self.update_children_from_dom_node(ref_self, dom_node, traversal, tree, update),
+            );
         }
 
         local_damage
@@ -266,6 +283,7 @@ impl AccessibilityNode {
         &mut self,
         ref_self: &ArcRefCell<AccessibilityNode>,
         dom_node: &ServoLayoutNode<'update>,
+        traversal: &mut TraversalState,
         tree: &mut AccessibilityTree,
         update: &mut AccessibilityUpdate<'update>,
     ) -> LocalAccessibilityDamage {
@@ -331,6 +349,9 @@ impl AccessibilityNode {
 
             if update.is_new(&child_id) {
                 self.dirty_state |= DirtyState::DescendantHasDamage;
+                if !traversal.subtree_state.contains(SubtreeState::New) {
+                    update.add_unresolved_local_damage(child_id, LocalAccessibilityDamage::New);
+                }
             } else {
                 update.set_tree_state_change(child_id, TreeChange::PendingMove);
             }
@@ -363,7 +384,14 @@ impl AccessibilityNode {
             // FIXME: this should take into account editing selection units (grapheme clusters?)
             local_damage.insert(self.set_value(&text_content));
 
-            local_damage.insert(self.maybe_hide_irrelevant_whitepace(ref_self, traversal, update));
+            if traversal.subtree_state.contains(SubtreeState::New) {
+                local_damage
+                    .insert(self.maybe_hide_irrelevant_whitepace(ref_self, traversal, update));
+            } else {
+                // Otherwise, we'll figure out the implications of this node's text changing after
+                // the initial tree walk is finished.
+                update.add_unresolved_local_damage(self.id, LocalAccessibilityDamage::TextChanged);
+            }
         }
 
         local_damage
@@ -599,6 +627,65 @@ impl AccessibilityNode {
         damage
     }
 
+    /// For a text node in an existing subtree whose text changed in this update, check the
+    /// preceding and following text nodes (if any) to determine whether any now need to be hidden
+    /// or un-hidden based on the new text value of this node.
+    ///
+    /// Return a set of the IDs of any nodes which changed hidden status due to the text change.
+    ///
+    /// See [`Self::is_irrelevant_whitespace`].
+    fn resolve_text_change(&mut self, update: &mut AccessibilityUpdate<'_>) -> FxHashSet<NodeId> {
+        let mut changed_nodes = FxHashSet::default();
+        let stay_within = self
+            .ancestors()
+            .find(|node| CONTAINER_ROLES.contains(&node.borrow().role()))
+            .map(|container| container.borrow().id());
+
+        let closest_previous_text = self
+            .before(stay_within)
+            .find(|node| node.borrow().role() == Role::TextRun);
+        let damage = if let Some(closest_previous_text) = closest_previous_text.as_ref() {
+            let closest_previous_text = closest_previous_text.borrow();
+            self.hide_if_irrelevant_whitespace(Some(&closest_previous_text))
+        } else {
+            self.hide_if_irrelevant_whitespace(None)
+        };
+        if !damage.is_empty() {
+            update.add(self);
+            changed_nodes.insert(self.id());
+        }
+
+        if let Some(closest_previous_text) = closest_previous_text {
+            let damage = self
+                .maybe_unhide_previous_whitespace_only_node(closest_previous_text.clone(), update);
+            if !damage.is_empty() {
+                changed_nodes.insert(closest_previous_text.borrow().id());
+                update.add(closest_previous_text.borrow_mut().deref_mut());
+            }
+        }
+
+        if let Some(next_text_run) = self
+            .after(stay_within)
+            .find(|node| node.borrow().role() == Role::TextRun)
+        {
+            let mut next_text_run = next_text_run.borrow_mut();
+            let damage = next_text_run.hide_if_irrelevant_whitespace(Some(self));
+            if !damage.is_empty() {
+                changed_nodes.insert(next_text_run.id());
+                update.add(&mut next_text_run);
+            }
+        }
+        changed_nodes
+    }
+
+    fn hide_if_irrelevant_whitespace(
+        &mut self,
+        closest_previous_text: Option<&AccessibilityNode>,
+    ) -> LocalAccessibilityDamage {
+        let is_irrelevant_whitespace = self.is_irrelevant_whitespace(closest_previous_text);
+        self.set_is_hidden(is_irrelevant_whitespace)
+    }
+
     fn label_from_descendants(&self) -> Option<String> {
         if !NAME_FROM_CONTENTS_ROLES.contains(&self.role()) {
             return None;
@@ -681,14 +768,12 @@ impl AccessibilityNode {
         self.child_nodes.iter()
     }
 
-    #[cfg(test)]
     pub(super) fn previous_sibling(&self) -> Option<ArcRefCell<AccessibilityNode>> {
         self.previous_sibling
             .as_ref()
             .and_then(|weak| weak.upgrade())
     }
 
-    #[cfg(test)]
     pub(super) fn next_sibling(&self) -> Option<ArcRefCell<AccessibilityNode>> {
         self.next_sibling.as_ref().and_then(|weak| weak.upgrade())
     }
@@ -722,7 +807,6 @@ impl AccessibilityNode {
         AccessibilityNodeIterator::new(self.parent(), |node| node.parent_node.clone()?.upgrade())
     }
 
-    #[cfg(test)]
     pub(super) fn after(
         &self,
         stay_within: Option<NodeId>,
@@ -730,7 +814,6 @@ impl AccessibilityNode {
         AccessibilityNodeTreeOrderIterator::new(self, stay_within, TreeOrder::Forwards)
     }
 
-    #[cfg(test)]
     pub(super) fn before(
         &self,
         stay_within: Option<NodeId>,
@@ -1053,21 +1136,18 @@ where
     }
 }
 
-#[cfg(test)]
 #[derive(Copy, Clone, PartialEq)]
 enum TreeOrder {
     Forwards,
     Backwards,
 }
 
-#[cfg(test)]
 struct AccessibilityNodeTreeOrderIterator {
     next_value: Option<ArcRefCell<AccessibilityNode>>,
     stay_within: Option<NodeId>,
     order: TreeOrder,
 }
 
-#[cfg(test)]
 impl AccessibilityNodeTreeOrderIterator {
     fn new(start_node: &AccessibilityNode, stay_within: Option<NodeId>, order: TreeOrder) -> Self {
         let next_value = Self::compute_next_value(start_node, false, &stay_within, order);
@@ -1079,7 +1159,6 @@ impl AccessibilityNodeTreeOrderIterator {
     }
 }
 
-#[cfg(test)]
 impl Iterator for AccessibilityNodeTreeOrderIterator {
     type Item = ArcRefCell<AccessibilityNode>;
 
@@ -1092,7 +1171,6 @@ impl Iterator for AccessibilityNodeTreeOrderIterator {
     }
 }
 
-#[cfg(test)]
 impl AccessibilityNodeTreeOrderIterator {
     fn compute_next_value(
         node: &AccessibilityNode,
@@ -1163,14 +1241,16 @@ bitflags! {
     /// on other nodes.
     #[derive(Clone, Copy, Default, Debug, Eq, PartialEq)]
     pub(super) struct LocalAccessibilityDamage: u16 {
+        /// This node was created during this update.
+        const New = 0b0001;
         /// This node's children changed, and/or any node in its subtree changed.
-        const SubtreeChanged = 0b0001;
+        const SubtreeChanged = 0b0010;
         /// This node's computed role changed.
-        const RoleChanged = 0b0010;
+        const RoleChanged = 0b0100;
         /// This node's computed label or text value (for a text node) changed.
-        const TextChanged = 0b0100;
+        const TextChanged = 0b1000;
         /// This node's visibility changed.
-        const VisibilityChanged = 0b1000;
+        const VisibilityChanged = 0b0001_0000;
     }
 }
 
@@ -1280,6 +1360,18 @@ impl DirtyState {
 
     pub(super) fn self_or_descendant_has_damage(&self) -> bool {
         self.intersects(DirtyState::HasDamage | DirtyState::DescendantHasDamage)
+    }
+}
+
+impl From<LocalAccessibilityDamage> for DirtyState {
+    fn from(value: LocalAccessibilityDamage) -> Self {
+        Self::from_bits_retain(value.bits() << 8)
+    }
+}
+
+impl From<DirtyState> for LocalAccessibilityDamage {
+    fn from(value: DirtyState) -> Self {
+        Self::from_bits_retain(value.bits() >> 8)
     }
 }
 

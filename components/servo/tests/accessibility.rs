@@ -1461,6 +1461,141 @@ fn test_accessibility_only_irrelevant_whitespace_hidden_static() {
     );
 }
 
+#[test]
+fn test_accessibility_only_irrelevant_whitespace_hidden_mutation() {
+    let url = "data:text/html,<!DOCTYPE html>
+               <nav>
+                 <a id='news' href='/news'><span>News</span> <span> and updates</span></a>
+                 <a id='services' href='/services'>Services</a>
+               </nav>
+               <main>
+                 <p id='beginning'>In the beginning,</p>
+               </main>";
+    let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let root_children: Vec<accesskit_consumer::Node> = root.children().collect();
+    // <nav>, space, <main>
+    assert_eq!(root_children.len(), 3);
+    let root_whitespace = root_children[1];
+    assert_eq!(root_whitespace.role(), Role::TextRun);
+    assert_eq!(
+        root_whitespace.is_hidden(),
+        true,
+        "Space between <nav> and <main> should be hidden."
+    );
+
+    let nav = root_children[0];
+    assert_eq!(nav.role(), Role::Navigation);
+    let nav_children: Vec<accesskit_consumer::Node> = nav.children().collect();
+    // space, <a>, space, <a>, space
+    assert_eq!(nav_children.len(), 5);
+
+    let nav_whitespace_1 = nav_children[0];
+    assert_eq!(nav_whitespace_1.role(), Role::TextRun);
+    assert_eq!(
+        nav_whitespace_1.is_hidden(),
+        true,
+        "Space at the beginning of the nav should be hidden."
+    );
+
+    let nav_whitespace_2 = nav_children[2];
+    assert_eq!(nav_whitespace_2.role(), Role::TextRun);
+    assert_eq!(
+        nav_whitespace_2.is_hidden(),
+        false,
+        "Space between the two links should not be hidden."
+    );
+
+    let nav_whitespace_3 = nav_children[4];
+    assert_eq!(nav_whitespace_3.role(), Role::TextRun);
+    assert_eq!(
+        nav_whitespace_3.is_hidden(),
+        true,
+        "Space at the end of the container should be hidden."
+    );
+
+    let news = nav_children[1];
+    assert_eq!(news.label(), Some("News and updates".to_owned()));
+    let news_children: Vec<accesskit_consumer::Node> = news.children().collect();
+    // <span>, space, <span>
+    assert_eq!(news_children.len(), 3);
+    let news_whitespace = news_children[1];
+    assert_eq!(news_whitespace.role(), Role::TextRun);
+    assert_eq!(
+        news_whitespace.is_hidden(),
+        true,
+        "Space between two spans should be hidden, since the second span begins with a space."
+    );
+
+    // Remove the space at the beginning of " and updates".
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "news.lastElementChild.firstChild.deleteData(0, 1);",
+    );
+    let update = expect_single_update(&servo_test, delegate.clone());
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+
+    // No change in root or nav
+    let root_children: Vec<accesskit_consumer::Node> = root.children().collect();
+    assert_eq!(root_children.len(), 3);
+    let root_whitespace = root_children[1];
+    assert_eq!(root_whitespace.role(), Role::TextRun);
+    assert_eq!(root_whitespace.is_hidden(), true);
+    let nav = root_children[0];
+    assert_eq!(nav.role(), Role::Navigation);
+    let nav_children: Vec<accesskit_consumer::Node> = nav.children().collect();
+    assert_eq!(nav_children.len(), 5);
+
+    let news = nav_children[1];
+    assert_eq!(
+        news.label(),
+        Some("News and updates".to_owned()),
+        "Label should stay the same even though the whitespace node is un-hidden."
+    );
+    let news_children: Vec<accesskit_consumer::Node> = news.children().collect();
+    assert_eq!(news_children.len(), 3);
+    let news_whitespace = news_children[1];
+    assert_eq!(news_whitespace.role(), Role::TextRun);
+    assert_eq!(
+        news_whitespace.is_hidden(),
+        false,
+        "Space between two spans should be un-hidden, since the whitespace is now relevant."
+    );
+
+    // Add a space at the end of "News".
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "news.firstElementChild.firstChild.appendData(' ');",
+    );
+    let update = expect_single_update(&servo_test, delegate);
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+
+    let root_children: Vec<accesskit_consumer::Node> = root.children().collect();
+    let nav = root_children[0];
+    let nav_children: Vec<accesskit_consumer::Node> = nav.children().collect();
+    let news = nav_children[1];
+
+    assert_eq!(
+        news.label(),
+        Some("News and updates".to_owned()),
+        "Label should stay the same even though the whitespace node is re-hidden."
+    );
+    let news_children: Vec<accesskit_consumer::Node> = news.children().collect();
+    assert_eq!(news_children.len(), 3);
+    let news_whitespace = news_children[1];
+    assert_eq!(news_whitespace.role(), Role::TextRun);
+    assert_eq!(
+        news_whitespace.is_hidden(),
+        true,
+        "Space between two spans should be hidden again, since the whitespace is now irrelevant again."
+    );
+}
+
 // ************************************************************************************************
 // If you're adding a new test here, consider adding a matching test in
 // tests/wpt/mozilla/tests/accessibility-tree/
