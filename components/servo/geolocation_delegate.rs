@@ -10,6 +10,8 @@ use servo_base::generic_channel::GenericCallback;
 use servo_config::pref;
 
 use crate::WebView;
+#[cfg(all(feature = "geolocation", target_os = "linux", not(target_env = "ohos")))]
+use crate::geoclue::Geoclue;
 
 /// A request for a single geolocation fix, corresponding to one call to
 /// navigator.geolocation.getCurrentPosition()
@@ -147,6 +149,51 @@ fn default_position_response() -> GeolocationResult {
     })
 }
 
-pub(crate) struct DefaultGeolocationDelegate;
+/// The delegate installed when the embedder does not supply one. It uses the platform's location
+/// service when Servo has a backend for it, and otherwise reports that no position is available.
+#[derive(Default)]
+pub(crate) struct DefaultGeolocationDelegate {}
 
-impl GeolocationDelegate for DefaultGeolocationDelegate {}
+#[cfg(all(feature = "geolocation", target_os = "linux", not(target_env = "ohos")))]
+impl DefaultGeolocationDelegate {
+    /// The system backend, or `None` if it is unavailable or the testing preferences are standing
+    /// in for one.
+    fn backend(&self) -> Option<&Geoclue> {
+        if pref!(dom_geolocation_test_position_enabled) {
+            return None;
+        }
+
+        Geoclue::singleton()
+    }
+}
+
+impl GeolocationDelegate for DefaultGeolocationDelegate {
+    fn request_position(&self, _webview: WebView, request: PositionRequest) {
+        #[cfg(all(feature = "geolocation", target_os = "linux", not(target_env = "ohos")))]
+        if let Some(geoclue) = self.backend() {
+            return geoclue.request_position(request);
+        }
+        match default_position_response() {
+            Ok(position) => request.success(position),
+            Err(error) => request.failure(error),
+        }
+    }
+
+    fn start_watch(&self, _webview: WebView, watch: PositionWatch) {
+        #[cfg(all(feature = "geolocation", target_os = "linux", not(target_env = "ohos")))]
+        if let Some(geoclue) = self.backend() {
+            return geoclue.start_watch(watch);
+        }
+        match default_position_response() {
+            Ok(position) => watch.update(position),
+            Err(error) => watch.error(error),
+        }
+    }
+
+    fn stop_watch(&self, _webview: WebView, _id: &GeolocationWatchId) {
+        #[cfg(all(feature = "geolocation", target_os = "linux", not(target_env = "ohos")))]
+        if let Some(geoclue) = self.backend() {
+            geoclue.stop_watch(_id);
+        }
+    }
+}

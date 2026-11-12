@@ -8180,6 +8180,7 @@ dependencies = [
  "dpi",
  "env_logger",
  "euclid",
+ "futures",
  "gaol",
  "gleam",
  "glow",
@@ -8246,6 +8247,7 @@ dependencies = [
  "webrender",
  "webrender_api",
  "winit",
+ "zbus",
 ]
 
 [[package]]
