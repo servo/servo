@@ -887,3 +887,127 @@ fn test_accessibility_update_add_some_nodes_twice() {
         }
     );
 }
+
+#[cfg(test)]
+#[test]
+fn test_accessibility_tree_traversal() {
+    let mut tree = AccessibilityTree::new(accesskit::TreeId::ROOT, Epoch::default());
+    let mut root_update = AccessibilityUpdate::new(AccessibilityDamageMap::default(), &tree);
+
+    let root_node = tree.get_or_create_node_with_id(NodeId(0), &mut root_update);
+    tree.root_node = Some(root_node.clone());
+
+    let node_1 = tree.get_or_create_node_with_id(NodeId(1), &mut root_update);
+    let node_2 = tree.get_or_create_node_with_id(NodeId(2), &mut root_update);
+    let node_3 = tree.get_or_create_node_with_id(NodeId(3), &mut root_update);
+    let node_4 = tree.get_or_create_node_with_id(NodeId(4), &mut root_update);
+    let node_5 = tree.get_or_create_node_with_id(NodeId(5), &mut root_update);
+    let node_6 = tree.get_or_create_node_with_id(NodeId(6), &mut root_update);
+    let node_7 = tree.get_or_create_node_with_id(NodeId(7), &mut root_update);
+    let node_8 = tree.get_or_create_node_with_id(NodeId(8), &mut root_update);
+    let node_9 = tree.get_or_create_node_with_id(NodeId(9), &mut root_update);
+
+    {
+        let mut root_node = root_node.borrow_mut();
+        root_node.set_children_for_testing(
+            vec![NodeId(1), NodeId(7)],
+            vec![node_1.clone(), node_7.clone()],
+        );
+    }
+
+    {
+        let mut node_1 = node_1.borrow_mut();
+        node_1.set_parent_for_testing(root_node.clone());
+        node_1.set_children_for_testing(
+            vec![NodeId(2), NodeId(3)],
+            vec![node_2.clone(), node_3.clone()],
+        );
+        node_1.set_next_sibling_for_testing(node_7.clone());
+    }
+
+    {
+        let mut node_2 = node_2.borrow_mut();
+        node_2.set_parent_for_testing(node_1.clone());
+        node_2.set_next_sibling_for_testing(node_3.clone());
+    }
+
+    {
+        let mut node_3 = node_3.borrow_mut();
+        node_3.set_parent_for_testing(node_1.clone());
+        node_3.set_children_for_testing(
+            vec![NodeId(4), NodeId(5), NodeId(6)],
+            vec![node_4.clone(), node_5.clone(), node_6.clone()],
+        );
+        node_3.set_previous_sibling_for_testing(node_2.clone());
+    }
+
+    {
+        let mut node_4 = node_4.borrow_mut();
+        node_4.set_parent_for_testing(node_3.clone());
+        node_4.set_next_sibling_for_testing(node_5.clone());
+    }
+
+    {
+        let mut node_5 = node_5.borrow_mut();
+        node_5.set_parent_for_testing(node_3.clone());
+        node_5.set_previous_sibling_for_testing(node_4.clone());
+        node_5.set_next_sibling_for_testing(node_6.clone());
+    }
+
+    {
+        let mut node_6 = node_6.borrow_mut();
+        node_6.set_parent_for_testing(node_3.clone());
+        node_6.set_previous_sibling_for_testing(node_5.clone());
+    }
+
+    {
+        let mut node_7 = node_7.borrow_mut();
+        node_7.set_parent_for_testing(root_node.clone());
+        node_7.set_children_for_testing(
+            vec![NodeId(8), NodeId(9)],
+            vec![node_8.clone(), node_9.clone()],
+        );
+        node_7.set_previous_sibling_for_testing(node_1.clone());
+    }
+
+    {
+        let mut node_8 = node_8.borrow_mut();
+        node_8.set_parent_for_testing(node_7.clone());
+        node_8.set_next_sibling_for_testing(node_9.clone());
+    }
+
+    {
+        let mut node_9 = node_9.borrow_mut();
+        node_9.set_parent_for_testing(node_7.clone());
+        node_9.set_previous_sibling_for_testing(node_8.clone());
+    }
+
+    // The node IDs are in tree order, so traversing forward should always increase the ID by one,
+    // and traversing backwards should always decrease the ID by one.
+    for node in tree.nodes.values() {
+        let node = node.borrow();
+        let node_id = node.id().0;
+
+        let mut visited_nodes = 0;
+        let expected_visited_nodes = 9 - node_id;
+        let mut previous_id = node_id;
+        for node in node.after(None) {
+            let node = node.borrow();
+            assert!(node.id().0 == previous_id + 1);
+            previous_id = node.id().0;
+            visited_nodes += 1;
+        }
+        assert_eq!(visited_nodes, expected_visited_nodes, "after {}", node_id);
+
+        let mut visited_nodes = 0;
+        let expected_visited_nodes = node_id;
+        let mut previous_id = node_id;
+        for node in node.before(None) {
+            let node = node.borrow();
+            assert!(node.id().0 == previous_id - 1);
+            previous_id = node.id().0;
+            visited_nodes += 1;
+        }
+        assert_eq!(visited_nodes, expected_visited_nodes, "before {}", node_id);
+    }
+}

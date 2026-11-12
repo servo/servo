@@ -732,6 +732,23 @@ impl AccessibilityNode {
     }
 
     #[cfg(test)]
+    pub(super) fn previous_sibling(&self) -> Option<ArcRefCell<AccessibilityNode>> {
+        self.previous_sibling
+            .as_ref()
+            .and_then(|weak| weak.upgrade())
+    }
+
+    #[cfg(test)]
+    pub(super) fn next_sibling(&self) -> Option<ArcRefCell<AccessibilityNode>> {
+        self.next_sibling.as_ref().and_then(|weak| weak.upgrade())
+    }
+
+    #[cfg(test)]
+    pub(super) fn set_parent_for_testing(&mut self, parent: ArcRefCell<AccessibilityNode>) {
+        self.parent_node = Some(parent.downgrade());
+    }
+
+    #[cfg(test)]
     pub(super) fn set_children_for_testing(
         &mut self,
         child_ids: Vec<NodeId>,
@@ -741,8 +758,37 @@ impl AccessibilityNode {
         self.child_nodes = child_nodes;
     }
 
+    #[cfg(test)]
+    pub(super) fn set_previous_sibling_for_testing(
+        &mut self,
+        sibling: ArcRefCell<AccessibilityNode>,
+    ) {
+        self.previous_sibling = Some(sibling.downgrade());
+    }
+
+    #[cfg(test)]
+    pub(super) fn set_next_sibling_for_testing(&mut self, sibling: ArcRefCell<AccessibilityNode>) {
+        self.next_sibling = Some(sibling.downgrade());
+    }
+
     pub(super) fn ancestors(&self) -> impl Iterator<Item = ArcRefCell<AccessibilityNode>> {
         AccessibilityNodeIterator::new(self.parent(), |node| node.parent_node.clone()?.upgrade())
+    }
+
+    #[cfg(test)]
+    pub(super) fn after(
+        &self,
+        stay_within: Option<NodeId>,
+    ) -> impl Iterator<Item = ArcRefCell<AccessibilityNode>> {
+        AccessibilityNodeTreeOrderIterator::new(self, stay_within, TreeOrder::Forwards)
+    }
+
+    #[cfg(test)]
+    pub(super) fn before(
+        &self,
+        stay_within: Option<NodeId>,
+    ) -> impl Iterator<Item = ArcRefCell<AccessibilityNode>> {
+        AccessibilityNodeTreeOrderIterator::new(self, stay_within, TreeOrder::Backwards)
     }
 
     pub(super) fn child_ids(&self) -> &[NodeId] {
@@ -1057,6 +1103,129 @@ where
             .as_ref()
             .and_then(|node| (self.next_fn)(&node.borrow()));
         next_value
+    }
+}
+
+#[cfg(test)]
+#[derive(Copy, Clone)]
+enum TreeOrder {
+    Forwards,
+    Backwards,
+}
+
+#[cfg(test)]
+struct AccessibilityNodeTreeOrderIterator {
+    previous: Option<ArcRefCell<AccessibilityNode>>,
+    next_value: Option<ArcRefCell<AccessibilityNode>>,
+    stay_within: Option<NodeId>,
+    order: TreeOrder,
+}
+
+#[cfg(test)]
+impl AccessibilityNodeTreeOrderIterator {
+    fn new(start_node: &AccessibilityNode, stay_within: Option<NodeId>, order: TreeOrder) -> Self {
+        let previous = None;
+        let next_value = Self::compute_next_value(start_node, &previous, &stay_within, order);
+        AccessibilityNodeTreeOrderIterator {
+            previous,
+            next_value,
+            stay_within,
+            order,
+        }
+    }
+}
+
+#[cfg(test)]
+impl Iterator for AccessibilityNodeTreeOrderIterator {
+    type Item = ArcRefCell<AccessibilityNode>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let next_value = self.next_value.take();
+        self.next_value = next_value.as_ref().and_then(|node| {
+            Self::compute_next_value(
+                &node.borrow(),
+                &self.previous,
+                &self.stay_within,
+                self.order,
+            )
+        });
+        self.previous = next_value.clone();
+        next_value
+    }
+}
+
+#[cfg(test)]
+impl AccessibilityNodeTreeOrderIterator {
+    fn compute_next_value(
+        node: &AccessibilityNode,
+        previous: &Option<ArcRefCell<AccessibilityNode>>,
+        stay_within: &Option<NodeId>,
+        order: TreeOrder,
+    ) -> Option<ArcRefCell<AccessibilityNode>> {
+        match order {
+            TreeOrder::Forwards => {
+                let mut descend = false;
+                if let Some(previous) = previous.as_ref() {
+                    let previous_id = previous.borrow().id();
+                    if let Some(parent) = node.parent() &&
+                        parent.borrow().id() == previous_id
+                    {
+                        descend = true;
+                    } else if let Some(sibling) = node.previous_sibling() {
+                        let sibling = sibling.borrow();
+                        if sibling.id() == previous_id {
+                            descend = true;
+                        } else {
+                            for ancestor in previous.borrow().ancestors() {
+                                if sibling.id() == ancestor.borrow().id() {
+                                    descend = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    descend = true;
+                }
+
+                if descend && let Some(first_child) = node.children().next() {
+                    return Some(first_child.clone());
+                }
+
+                if let Some(next_sibling) = node.next_sibling() {
+                    return Some(next_sibling);
+                }
+
+                for ancestor in node.ancestors() {
+                    let ancestor = ancestor.borrow();
+                    if stay_within == &Some(ancestor.id()) {
+                        return None;
+                    }
+                    if let Some(next_sibling) = ancestor.next_sibling() {
+                        return Some(next_sibling);
+                    }
+                }
+
+                None
+            },
+            TreeOrder::Backwards => {
+                if let Some(prev_sibling) = node.previous_sibling() {
+                    let mut child_ref = prev_sibling;
+                    while let Some(last_child) = child_ref.clone().borrow().children().last() {
+                        child_ref = last_child.clone();
+                    }
+                    return Some(child_ref);
+                }
+
+                let parent = node.parent()?;
+
+                if stay_within == &Some(parent.borrow().id()) {
+                    return None;
+                }
+
+                Some(parent)
+            },
+        }
     }
 }
 
