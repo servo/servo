@@ -569,12 +569,10 @@ impl TaffyContainer {
                     taffy::Point {
                         x: Au::from_f32_px(
                             layout.location.x + layout.padding.left + layout.border.left,
-                        ) - pbm.padding.inline_start -
-                            pbm.border.inline_start,
+                        ) - content_box_offset.x,
                         y: Au::from_f32_px(
                             layout.location.y + layout.padding.top + layout.border.top,
-                        ) - pbm.padding.block_start -
-                            pbm.border.block_start,
+                        ) - content_box_offset.y,
                     },
                     taffy::Size {
                         width: layout.size.width -
