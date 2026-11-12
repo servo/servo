@@ -597,31 +597,27 @@ impl HTMLTextAreaElement {
         self.text_input.borrow_mut().set_content(DOMString::new());
     }
 
-    pub(crate) fn set_user_validity(&self, cx: &mut JSContext, value: bool) {
+    pub(crate) fn set_user_validity(&self, no_gc: &NoGC, value: bool) {
         if self.user_validity.get() != value {
             self.user_validity.set(value);
-            self.update_user_valid_state(cx);
+            self.update_user_valid_state(no_gc);
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#selector-user-valid>
     /// <https://html.spec.whatwg.org/multipage/#selector-user-invalid>
-    pub(crate) fn update_user_valid_state(&self, cx: &mut JSContext) {
+    pub(crate) fn update_user_valid_state(&self, no_gc: &NoGC) {
         if self.user_validity.get() {
             let satisfies_constraints =
-                self.is_instance_validatable(cx) && self.satisfies_constraints(cx);
+                self.is_instance_validatable(no_gc) && self.satisfies_constraints();
             let element = self.upcast::<Element>();
-            element.set_state(cx.no_gc(), ElementState::USER_VALID, satisfies_constraints);
-            element.set_state(
-                cx.no_gc(),
-                ElementState::USER_INVALID,
-                !satisfies_constraints,
-            );
+            element.set_state(no_gc, ElementState::USER_VALID, satisfies_constraints);
+            element.set_state(no_gc, ElementState::USER_INVALID, !satisfies_constraints);
         } else {
             // Avoid computing constrain validation if user validity is false
             let element = self.upcast::<Element>();
-            element.set_state(cx.no_gc(), ElementState::USER_VALID, false);
-            element.set_state(cx.no_gc(), ElementState::USER_INVALID, false);
+            element.set_state(no_gc, ElementState::USER_VALID, false);
+            element.set_state(no_gc, ElementState::USER_INVALID, false);
         }
     }
 

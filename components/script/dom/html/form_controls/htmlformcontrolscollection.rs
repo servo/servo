@@ -59,28 +59,13 @@ impl HTMLFormControlsCollection {
 
 impl HTMLFormControlsCollection {
     pub(crate) fn set_user_validity_on_all(&self, cx: &mut JSContext) {
-        let elements = self
-            .collection
-            .elements_iter(cx.no_gc())
-            .filter_map(|elem| {
-                if elem.is::<HTMLInputElement>() ||
-                    elem.is::<HTMLSelectElement>() ||
-                    elem.is::<HTMLTextAreaElement>()
-                {
-                    Some(elem.as_rooted())
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<DomRoot<Element>>>();
-
-        elements.iter().for_each(|item| {
+        self.collection.elements_iter(cx.no_gc()).for_each(|item| {
             if let Some(input) = item.downcast::<HTMLInputElement>() {
-                input.set_user_validity(cx, true);
+                input.set_user_validity(cx.no_gc(), true);
             } else if let Some(select) = item.downcast::<HTMLSelectElement>() {
-                select.set_user_validity(cx, true);
+                select.set_user_validity(cx.no_gc(), true);
             } else if let Some(text_area) = item.downcast::<HTMLTextAreaElement>() {
-                text_area.set_user_validity(cx, true);
+                text_area.set_user_validity(cx.no_gc(), true);
             }
         });
     }

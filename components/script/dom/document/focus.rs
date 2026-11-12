@@ -497,7 +497,7 @@ impl DocumentFocusHandler {
                 input.changed_by_user_while_focused()
             {
                 // Step 2.1.1: Set entry's user validity to true.
-                input.set_user_validity(cx, true);
+                input.set_user_validity(cx.no_gc(), true);
                 // Step 2.1.2: Fire an event named change at the element, with the bubbles attribute initialized to true.
                 input.fire_value_change_events(cx, ValueChangeEvents::Change);
             }
