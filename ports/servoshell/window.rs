@@ -411,6 +411,7 @@ impl ServoShellWindow {
         }
     }
 
+    #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
     pub(crate) fn set_accessibility_active(self: &Rc<Self>, active: bool) {
         for (_, webview) in self.webviews() {
             // Activate accessibility in the WebView.
