@@ -45,9 +45,8 @@ use crate::image_cache::KeyCacheState::PipelineClosed;
 
 const MAX_SVG_DEPTH: u32 = 500;
 
-#[cfg(test)]
-#[path = "image_cache_tests.rs"]
-mod tests;
+#[cfg(feature = "test-util")]
+pub mod test_util;
 
 thread_local! {
     pub static SUPPRESS_ABORT_IN_PANIC_HOOK: Cell<bool> = const { Cell::new(false) };
@@ -436,7 +435,6 @@ struct RasterizationTask {
 enum PendingKey {
     RasterImage((LoadKey, RasterImage)),
     Svg((LoadKey, RasterImage, DeviceIntSize)),
-    // The counter is a demand epoch, not a size-request generation.
     DemandDecodedRaster((LoadKey, RasterDecodeRequestCounter, RasterImage)),
 }
 
@@ -532,6 +530,27 @@ struct DemandDrivenRasterEntry {
 }
 
 impl DemandDrivenRasterEntry {
+    /// uses previously defined hysteresis check to return target
+    /// but the current already decoded and scaled image might be on any state
+    /// so we check whether the dimentions of image in question that can be
+    /// - not decoded yet,
+    /// - being decoded and or registered to webrender,
+    /// - already has webrender key
+    fn decode_target(&self, required: ImageMetadata) -> ImageMetadata {
+        determine_demand_decode_target(
+            self.encoded_image_source.metadata,
+            self.decoding.or(self.pending).or_else(|| {
+                self.current_decoded_scaled_image
+                    .as_ref()
+                    .map(|image| image.decoded_resolution)
+            }),
+            required,
+        )
+    }
+
+    /// propmts the decode_target in case we need change
+    /// if target is different and is not None, update private fields.
+    /// the counter only goes up if target passes hysterisys check
     fn update_target(&mut self, required: Option<ImageMetadata>) {
         let target = required.map(|required| self.decode_target(required));
         if self.target_image_metadata == target {
@@ -545,18 +564,8 @@ impl DemandDrivenRasterEntry {
         }
     }
 
-    fn decode_target(&self, required: ImageMetadata) -> ImageMetadata {
-        determine_demand_decode_target(
-            self.encoded_image_source.metadata,
-            self.decoding.or(self.pending).or_else(|| {
-                self.current_decoded_scaled_image
-                    .as_ref()
-                    .map(|image| image.decoded_resolution)
-            }),
-            required,
-        )
-    }
-
+    /// Checks if the finished job better match than whats already there
+    /// Accepts despite missmatch if nothing is present yet
     fn accepts_result(&self, epoch: RasterDecodeRequestCounter, size: ImageMetadata) -> bool {
         let Some(target) = self.target_image_metadata else {
             return false;

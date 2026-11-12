@@ -9,6 +9,7 @@ use crossbeam_channel::{Receiver, Sender, unbounded};
 use embedder_traits::resources::ResourceBytes;
 use malloc_size_of_derive::MallocSizeOf;
 use net::image_cache::ImageCacheFactoryImpl;
+use net::image_cache::test_util::DemandDecodeTestCache;
 use net_traits::image_cache::{
     EncodedImage, FontResolver, Image, ImageCache, ImageCacheFactory, ImageCacheResponseMessage,
     ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable, ImageResponse, PendingImageId,
@@ -91,6 +92,167 @@ fn create_test_listener(id: PendingImageId, sender: Sender<ImageResponse>) -> Im
 
 fn jpeg_image_bytes() -> Vec<u8> {
     include_bytes!("test.jpeg").to_vec()
+}
+
+fn decode_size(width: u32) -> ImageMetadata {
+    ImageMetadata {
+        width,
+        height: width,
+    }
+}
+
+fn demand_decode_test_cache() -> DemandDecodeTestCache {
+    let image = pixels::load_from_memory(&jpeg_image_bytes(), CorsStatus::Safe).unwrap();
+    DemandDecodeTestCache::new(decode_size(2000), image)
+}
+
+#[test]
+fn continuous_resize_preserves_running_decode() {
+    let mut cache = demand_decode_test_cache();
+    cache.update_demand(Some(decode_size(300)));
+    let counter = cache.state().unwrap().counter;
+    let job = cache.begin_decode(decode_size(300));
+    for width in (150..=360).chain((150..=360).rev()).cycle().take(2000) {
+        cache.update_demand(Some(decode_size(width)));
+        let state = cache.state().unwrap();
+        assert_eq!(state.target, Some(decode_size(300)));
+        assert_eq!(state.counter, counter);
+        assert!(cache.accepts(job));
+    }
+}
+
+#[test]
+fn running_decode_uses_existing_hysteresis_boundaries() {
+    let mut cache = demand_decode_test_cache();
+    cache.begin_decode(decode_size(300));
+    for (required, expected) in [(150, 300), (149, 149), (360, 300), (361, 600), (1900, 1900)] {
+        assert_eq!(
+            cache.select_target(decode_size(required)),
+            decode_size(expected)
+        );
+    }
+}
+
+#[test]
+fn shrinking_decode_takes_precedence_over_installed_pixels() {
+    let mut cache = demand_decode_test_cache();
+    cache.set_installed(decode_size(1000));
+    let job = cache.begin_decode(decode_size(400));
+    cache.update_demand(Some(decode_size(401)));
+    assert_eq!(cache.state().unwrap().target, Some(decode_size(400)));
+    assert!(cache.accepts(job));
+}
+
+#[test]
+fn first_result_paints_after_large_demand_change_then_refines() {
+    let mut cache = demand_decode_test_cache();
+    cache.update_demand(Some(decode_size(300)));
+    let job = cache.begin_decode(decode_size(300));
+    // Even changes outside the band must not prevent the first paint.
+    for width in [1000, 100, 1800, 900, 1000] {
+        cache.update_demand(Some(decode_size(width)));
+    }
+    let counter = cache.state().unwrap().counter;
+    let (sender, receiver) = unbounded();
+    cache.set_callback(Box::new(move |message| sender.send(message).unwrap()));
+    cache.finish_decode(job);
+    let state = cache.state().unwrap();
+    let key = state.key.expect("first result must have a paintable key");
+    assert_eq!(state.installed, Some(decode_size(300)));
+    assert_eq!(state.target, Some(decode_size(1000)));
+    assert!(!state.completed);
+    assert!(matches!(receiver.try_recv().unwrap(),
+        ImageCacheResponseMessage::RasterDecodeReady(_, PendingImageId(0), generation)
+        if generation == counter));
+
+    let refinement = cache.begin_decode(decode_size(1000));
+    cache.finish_decode(refinement);
+    let state = cache.state().unwrap();
+    assert_eq!(state.installed, Some(decode_size(1000)));
+    assert_eq!(state.key, Some(key));
+    assert!(state.completed);
+}
+
+#[test]
+fn first_result_survives_resizing_while_waiting_for_key() {
+    let mut cache = demand_decode_test_cache();
+    cache.update_demand(Some(decode_size(300)));
+    let job = cache.begin_decode(decode_size(300));
+    cache.wait_for_key();
+    cache.finish_decode(job);
+    for width in [301, 350, 1000, 1001] {
+        cache.update_demand(Some(decode_size(width)));
+        assert_eq!(cache.state().unwrap().pending_keys, 1);
+    }
+    cache.provide_key();
+    assert_eq!(cache.state().unwrap().installed, Some(decode_size(300)));
+    assert!(cache.state().unwrap().key.is_some());
+}
+
+#[test]
+fn withdrawn_demand_rejects_old_results_even_after_reappearing() {
+    let mut cache = demand_decode_test_cache();
+    cache.update_demand(Some(decode_size(300)));
+    let job = cache.begin_decode(decode_size(300));
+    cache.update_demand(None);
+    assert!(!cache.accepts(job));
+    cache.update_demand(Some(decode_size(301)));
+    assert!(!cache.accepts(job));
+    cache.finish_decode(job);
+    let state = cache.state().unwrap();
+    assert_eq!(state.pending_keys, 0);
+    assert!(state.installed.is_none());
+    let new_job = cache.begin_decode(decode_size(300));
+    assert!(cache.accepts(new_job));
+}
+
+#[test]
+fn withdrawing_demand_prunes_key_waiting_result() {
+    let mut cache = demand_decode_test_cache();
+    cache.update_demand(Some(decode_size(300)));
+    let job = cache.begin_decode(decode_size(300));
+    cache.wait_for_key();
+    cache.finish_decode(job);
+    assert_eq!(cache.state().unwrap().pending_keys, 1);
+    cache.update_demand(None);
+    let state = cache.state().unwrap();
+    assert_eq!(state.pending_keys, 0);
+    assert!(state.pending.is_none());
+}
+
+#[test]
+fn unsuitable_refinement_does_not_replace_existing_pixels() {
+    let mut cache = demand_decode_test_cache();
+    cache.set_installed(decode_size(300));
+    let job = cache.begin_decode(decode_size(400));
+    cache.queue_result(job);
+    cache.update_demand(Some(decode_size(1000)));
+    assert!(!cache.accepts(job));
+    let state = cache.state().unwrap();
+    assert_eq!(state.installed, Some(decode_size(300)));
+    assert_eq!(state.pending_keys, 0);
+    assert!(state.pending.is_none());
+    cache.clear();
+    assert!(cache.state().is_none());
+    cache.finish_decode(job);
+    assert!(cache.state().is_none());
+    assert_eq!(cache.pending_keys(), 0);
+}
+
+#[test]
+fn cleared_cache_rejects_old_decode_with_reused_load_id() {
+    let mut cache = demand_decode_test_cache();
+    cache.update_demand(Some(decode_size(300)));
+    let old_job = cache.begin_decode(decode_size(300));
+    cache.clear();
+    cache.insert_source();
+    cache.update_demand(Some(decode_size(300)));
+    cache.begin_decode(decode_size(300));
+    cache.finish_decode(old_job);
+    let state = cache.state().unwrap();
+    assert_eq!(state.decoding, Some(decode_size(300)));
+    assert!(state.installed.is_none());
+    assert_eq!(state.pending_keys, 0);
 }
 
 fn encoded_test_image() -> Image {

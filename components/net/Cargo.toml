@@ -13,7 +13,7 @@ autotests = false # Inhibit lookup for tests/*.rs without [[test]] sections
 [lib]
 name = "net"
 path = "lib.rs"
-test = true
+test = false
 doctest = false
 
 [features]
