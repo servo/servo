@@ -236,23 +236,25 @@ impl CookieStorage {
             cookie.creation_time = old_cookie.creation_time;
         }
 
-        // https://cookiestore.spec.whatwg.org/#cookie-change
-        // > A newly-created cookie which is immediately evicted is considered deleted.
-        let mut changes = vec![];
+        // An already-expired cookie is never stored. Setting one is how cookies are deleted, and the
+        // existing cookie (if any) has already been removed above.
         if is_cookie_expired(&cookie) {
-            cookie.immediately_evicted = true;
+            // https://cookiestore.spec.whatwg.org/#cookie-change
+            // > A newly-created cookie which is immediately evicted is considered deleted.
             // NOTE: We do not process a change if the immediately evicted cookie does not overwrite
             // an existing cookie, as that cookie would not be observable by the browser. This
             // mirrors the behaviour of other browsers and WPT expectations.
             if old_cookie.is_some() {
-                changes.push(ServoCookieChange {
-                    cookie: cookie.clone(),
+                self.process_cookie_changes(&[ServoCookieChange {
+                    cookie,
                     type_: CookieChangeType::Deleted,
-                });
+                }]);
             }
+            return;
         }
 
         // Step 12
+        let mut changes = vec![];
         let domain = reg_host(cookie.cookie.domain().as_ref().unwrap_or(&""));
         let cookies = self.cookies_map.entry(domain).or_default();
 
@@ -287,7 +289,7 @@ impl CookieStorage {
                 old_cookie.cookie.same_site() == cookie.cookie.same_site() &&
                 old_cookie.expiry_time == cookie.expiry_time
         });
-        if !cookie.immediately_evicted && !is_identical {
+        if !is_identical {
             changes.push(ServoCookieChange {
                 cookie: cookie.clone(),
                 type_: CookieChangeType::Changed,
@@ -485,8 +487,6 @@ fn evict_expired_cookies(cookies: &mut Vec<ServoCookie>) -> Vec<ServoCookieChang
         .extract_if(.., |c| is_cookie_expired(c))
         // https://cookiestore.spec.whatwg.org/#cookie-change
         // > A cookie which is otherwise evicted or removed is considered deleted.
-        // NOTE: An immediately evicted cookie has already been processed on insertion.
-        .filter(|c| !c.immediately_evicted)
         .map(|cookie| ServoCookieChange {
             cookie,
             type_: CookieChangeType::Deleted,

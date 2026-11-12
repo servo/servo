@@ -39,8 +39,6 @@ pub struct ServoCookie {
     pub creation_time: SystemTime,
     pub last_access: SystemTime,
     pub expiry_time: Option<SystemTime>,
-    #[serde(skip)]
-    pub immediately_evicted: bool,
 }
 
 impl ServoCookie {
@@ -278,7 +276,6 @@ impl ServoCookie {
             creation_time: SystemTime::now(),
             last_access: SystemTime::now(),
             expiry_time,
-            immediately_evicted: false,
         })
     }
 

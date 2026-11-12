@@ -41,6 +41,7 @@ fn test_0001() {
 }
 
 #[test]
+#[should_panic] // Look at cookie_http_state_utils.py if this test fails
 fn test_0002() {
     let r = run(
         "http://home.example.org:8888/cookie-parser?0002",
@@ -85,7 +86,6 @@ fn test_0005() {
 }
 
 #[test]
-#[should_panic] // Look at cookie_http_state_utils.py if this test fails
 fn test_0006() {
     let r = run(
         "http://home.example.org:8888/cookie-parser?0006",
@@ -1018,6 +1018,7 @@ fn test_comma0005() {
 }
 
 #[test]
+#[should_panic] // Look at cookie_http_state_utils.py if this test fails
 fn test_comma0006() {
     let r = run(
         "http://home.example.org:8888/cookie-parser?comma0006",
@@ -1028,6 +1029,7 @@ fn test_comma0006() {
 }
 
 #[test]
+#[should_panic] // Look at cookie_http_state_utils.py if this test fails
 fn test_comma0007() {
     let r = run(
         "http://home.example.org:8888/cookie-parser?comma0007",
@@ -1456,7 +1458,6 @@ fn test_domain0042() {
 }
 
 #[test]
-#[should_panic] // Look at cookie_http_state_utils.py if this test fails
 fn test_mozilla0001() {
     let r = run(
         "http://home.example.org:8888/cookie-parser?mozilla0001",
@@ -1467,7 +1468,6 @@ fn test_mozilla0001() {
 }
 
 #[test]
-#[should_panic] // Look at cookie_http_state_utils.py if this test fails
 fn test_mozilla0002() {
     let r = run(
         "http://home.example.org:8888/cookie-parser?mozilla0002",
@@ -1478,7 +1478,6 @@ fn test_mozilla0002() {
 }
 
 #[test]
-#[should_panic] // Look at cookie_http_state_utils.py if this test fails
 fn test_mozilla0003() {
     let r = run(
         "http://home.example.org:8888/cookie-parser?mozilla0003",
@@ -1499,7 +1498,6 @@ fn test_mozilla0004() {
 }
 
 #[test]
-#[should_panic] // Look at cookie_http_state_utils.py if this test fails
 fn test_mozilla0005() {
     let r = run(
         "http://home.example.org:8888/cookie-parser?mozilla0005",
@@ -1520,7 +1518,6 @@ fn test_mozilla0006() {
 }
 
 #[test]
-#[should_panic] // Look at cookie_http_state_utils.py if this test fails
 fn test_mozilla0007() {
     let r = run(
         "http://home.example.org:8888/cookie-parser?mozilla0007",
@@ -1541,7 +1538,6 @@ fn test_mozilla0008() {
 }
 
 #[test]
-#[should_panic] // Look at cookie_http_state_utils.py if this test fails
 fn test_mozilla0009() {
     let r = run(
         "http://home.example.org:8888/cookie-parser?mozilla0009",
@@ -1556,7 +1552,6 @@ fn test_mozilla0009() {
 }
 
 #[test]
-#[should_panic] // Look at cookie_http_state_utils.py if this test fails
 fn test_mozilla0010() {
     let r = run(
         "http://home.example.org:8888/cookie-parser?mozilla0010",
@@ -1598,7 +1593,6 @@ fn test_mozilla0012() {
 }
 
 #[test]
-#[should_panic] // Look at cookie_http_state_utils.py if this test fails
 fn test_mozilla0013() {
     let r = run(
         "http://home.example.org:8888/cookie-parser?mozilla0013",
