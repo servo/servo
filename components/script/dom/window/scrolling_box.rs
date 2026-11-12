@@ -145,10 +145,10 @@ impl ScrollingBox {
         size
     }
 
-    pub(crate) fn parent(&self) -> Option<ScrollingBox> {
+    pub(crate) fn parent(&self, cx: &mut JSContext) -> Option<ScrollingBox> {
         match &self.target {
             ScrollingBoxSource::Element(element) => {
-                element.scrolling_box(ScrollContainerQueryFlags::empty())
+                element.scrolling_box(cx, ScrollContainerQueryFlags::empty())
             },
             ScrollingBoxSource::Viewport(_) => None,
         }

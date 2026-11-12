@@ -2424,9 +2424,9 @@ impl DocumentEventHandler {
             .focused_area()
             .element()
             .or(self.most_recently_clicked_element.get().as_deref())
-            .and_then(|element| element.scrolling_box(ScrollContainerQueryFlags::Inclusive))
+            .and_then(|element| element.scrolling_box(cx, ScrollContainerQueryFlags::Inclusive))
             .unwrap_or_else(|| {
-                document.viewport_scrolling_box(ScrollContainerQueryFlags::Inclusive)
+                document.viewport_scrolling_box(cx, ScrollContainerQueryFlags::Inclusive)
             });
 
         while !scrolling_box.can_keyboard_scroll_in_axis(cx, scroll_axis) {
@@ -2434,8 +2434,8 @@ impl DocumentEventHandler {
             if scrolling_box.is_viewport() {
                 break;
             }
-            let parent = scrolling_box.parent().unwrap_or_else(|| {
-                document.viewport_scrolling_box(ScrollContainerQueryFlags::Inclusive)
+            let parent = scrolling_box.parent(cx).unwrap_or_else(|| {
+                document.viewport_scrolling_box(cx, ScrollContainerQueryFlags::Inclusive)
             });
             scrolling_box = parent;
         }

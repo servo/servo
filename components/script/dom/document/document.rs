@@ -5720,9 +5720,13 @@ impl Document {
             .unwrap_or_else(|| self.creation_sandboxing_flag_set())
     }
 
-    pub(crate) fn viewport_scrolling_box(&self, flags: ScrollContainerQueryFlags) -> ScrollingBox {
+    pub(crate) fn viewport_scrolling_box(
+        &self,
+        cx: &mut JSContext,
+        flags: ScrollContainerQueryFlags,
+    ) -> ScrollingBox {
         self.window()
-            .scrolling_box_query(None, flags)
+            .scrolling_box_query(cx, None, flags)
             .expect("We should always have a ScrollingBox for the Viewport")
     }
 
