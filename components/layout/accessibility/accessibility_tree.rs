@@ -838,15 +838,13 @@ fn test_accessibility_update_add_some_nodes_twice() {
         let id = NodeId(id);
         let node = tree.get_or_create_node_with_id(id, &mut root_update);
         node.borrow_mut().set_role(role);
-        (id, node)
+        node
     })
     .collect();
 
-    {
-        let (child_node_ids, child_nodes): (Vec<_>, Vec<_>) = nodes.iter().cloned().unzip();
-        let mut root_node = root_node.borrow_mut();
-        root_node.set_children_for_testing(child_node_ids, child_nodes);
-    }
+    root_node
+        .borrow_mut()
+        .set_children_for_testing(root_node.clone(), nodes);
 
     let mut update = AccessibilityUpdate::new(AccessibilityDamageMap::default(), &tree);
 
@@ -883,4 +881,87 @@ fn test_accessibility_update_add_some_nodes_twice() {
             focus: NodeId(2),
         }
     );
+}
+
+#[cfg(test)]
+#[test]
+fn test_accessibility_tree_traversal() {
+    let mut tree = AccessibilityTree::new(accesskit::TreeId::ROOT, Epoch::default());
+    let mut root_update = AccessibilityUpdate::new(AccessibilityDamageMap::default(), &tree);
+
+    let root_node = tree.get_or_create_node_with_id(NodeId(0), &mut root_update);
+    tree.root_node = Some(root_node.clone());
+
+    let node_1 = tree.get_or_create_node_with_id(NodeId(1), &mut root_update);
+    let node_2 = tree.get_or_create_node_with_id(NodeId(2), &mut root_update);
+    let node_3 = tree.get_or_create_node_with_id(NodeId(3), &mut root_update);
+    let node_4 = tree.get_or_create_node_with_id(NodeId(4), &mut root_update);
+    let node_5 = tree.get_or_create_node_with_id(NodeId(5), &mut root_update);
+    let node_6 = tree.get_or_create_node_with_id(NodeId(6), &mut root_update);
+    let node_7 = tree.get_or_create_node_with_id(NodeId(7), &mut root_update);
+    let node_8 = tree.get_or_create_node_with_id(NodeId(8), &mut root_update);
+    let node_9 = tree.get_or_create_node_with_id(NodeId(9), &mut root_update);
+
+    root_node
+        .borrow_mut()
+        .set_children_for_testing(root_node.clone(), vec![node_1.clone(), node_7.clone()]);
+    node_1
+        .borrow_mut()
+        .set_children_for_testing(node_1.clone(), vec![node_2.clone(), node_3.clone()]);
+
+    node_3.borrow_mut().set_children_for_testing(
+        node_3.clone(),
+        vec![node_4.clone(), node_5.clone(), node_6.clone()],
+    );
+
+    node_7
+        .borrow_mut()
+        .set_children_for_testing(node_7.clone(), vec![node_8.clone(), node_9.clone()]);
+
+    for node in tree.nodes.values() {
+        let node = node.borrow();
+        let node_id = node.id().0;
+
+        let mut visited_nodes = 0;
+        // The node IDs are in tree order, so traversing forward from a leaf node should always
+        // increase the ID by one, and traversing backwards from a leaf node should always decrease
+        // the ID by one.
+        let (mut previous_id, expected_after, expected_before) = if node.child_ids().is_empty() {
+            (node_id, 9 - node_id, node_id)
+        } else if node_id == 0 {
+            // No non-descendant nodes before or after root node
+            (0, 0, 0)
+        } else if node_id == 1 {
+            // Nodes after node_1 start from its next sibling, node_7, so the previous ID is 6.
+            // Only the root node is before node_1.
+            (6, 3, 1)
+        } else if node_id == 3 {
+            // Nodes after node_3 start from its parent's next sibling, node_7, so the previous ID
+            // is 6.
+            // node_2, node_1 and the root node are before node_3
+            (6, 3, 3)
+        } else {
+            // No non-descendant nodes after node_7.
+            // Nodes before node_7 are nodes 6, 5, 4, 3, 2, 1 and the root node.
+            (0, 0, 7)
+        };
+
+        for node in node.after(None) {
+            let node = node.borrow();
+            assert!(node.id().0 == previous_id + 1);
+            previous_id = node.id().0;
+            visited_nodes += 1;
+        }
+        assert_eq!(visited_nodes, expected_after, "after {}", node_id);
+
+        let mut visited_nodes = 0;
+        let mut previous_id = node_id;
+        for node in node.before(None) {
+            let node = node.borrow();
+            assert!(node.id().0 == previous_id - 1);
+            previous_id = node.id().0;
+            visited_nodes += 1;
+        }
+        assert_eq!(visited_nodes, expected_before, "before {}", node_id);
+    }
 }
