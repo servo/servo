@@ -67,7 +67,7 @@ use style::values::computed::{Overflow, UserSelect};
 use style::values::generics::NonNegative;
 use style::values::generics::position::PreferredRatio;
 use style::values::generics::ratio::Ratio;
-use style::values::{AtomIdent, AtomString, CSSFloat, computed, specified};
+use style::values::{AtomIdent, AtomString, computed, specified};
 use style::{ArcSlice, CaseSensitivityExt, dom_apis, thread_state};
 use style_traits::CSSPixel;
 use stylo_atoms::Atom;
@@ -1568,24 +1568,6 @@ impl<'dom> LayoutDom<'dom, Element> {
             }
         }
 
-        let rows = self
-            .downcast::<HTMLTextAreaElement>()
-            .map(LayoutDom::get_rows);
-        if let Some(rows) = rows {
-            let rows = rows as i32;
-            if rows > 0 {
-                // TODO(mttr) This should take scrollbar size into consideration.
-                //
-                // https://html.spec.whatwg.org/multipage/#textarea-effective-height
-                let value = specified::NoCalcLength::from_em(rows as CSSFloat);
-                push(PropertyDeclaration::Height(
-                    specified::Size::LengthPercentage(NonNegative(
-                        specified::LengthPercentage::Length(value),
-                    )),
-                ));
-            }
-        }
-
         if let Some(table) = self.downcast::<HTMLTableElement>() {
             if let Some(cellspacing) = table.get_cellspacing() {
                 let width_value = specified::Length::from_px(cellspacing as f32);
@@ -1689,6 +1671,11 @@ impl<'dom> LayoutDom<'dom, Element> {
         // Don't panic since `display` can cause this to be called on arbitrary elements.
         self.downcast::<HTMLTableCellElement>()
             .and_then(|element| element.get_rowspan())
+    }
+
+    pub(crate) fn get_rows(self) -> Option<u32> {
+        self.downcast::<HTMLTextAreaElement>()
+            .map(|element| element.get_rows())
     }
 
     #[inline]

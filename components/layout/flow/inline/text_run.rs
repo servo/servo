@@ -827,7 +827,7 @@ fn character_cannot_change_font(character: char) -> bool {
     )
 }
 
-pub(super) fn get_font_for_first_font_for_style(
+pub(crate) fn get_font_for_first_font_for_style(
     style: &ComputedValues,
     font_context: &FontContext,
 ) -> Option<FontRef> {
