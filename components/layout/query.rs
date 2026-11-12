@@ -200,11 +200,13 @@ pub fn process_node_scroll_area_request(
             .union(&tree.initial_containing_block),
     };
 
+    // Note that with `Rect::round()`, the resulting size would depend on
+    // the position (and change when both the origin and size are not whole
+    // integers). To avoid that, round origin and size separately.
     Rect::new(
-        rect.origin.map(Au::to_f32_px),
-        rect.size.to_vector().map(Au::to_f32_px).to_size(),
+        rect.origin.map(Au::to_f32_px).round(),
+        rect.size.to_vector().map(Au::to_f32_px).to_size().round(),
     )
-    .round()
     .to_i32()
 }
 
