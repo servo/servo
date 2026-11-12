@@ -189,7 +189,7 @@ pub(crate) fn outer_inline(
                         block_stretch_size,
                         || block_content_size,
                         is_table,
-                        None, /* ratio_dependent_block_size */
+                        || None, /* ratio_dependent_block_size */
                     ))
                 } else {
                     content_box_sizes.block.resolve_extrinsic(
@@ -707,9 +707,10 @@ impl Sizes {
 
     /// Resolves the three sizes into a single numerical value.
     ///
-    /// `ratio_dependent_block_size` is the block size obtained from a preferred
-    /// aspect ratio and the resolved inline size, if any. When present, it is
-    /// used instead of the content size for intrinsic block sizes.
+    /// `get_ratio_dependent_block_size` is a callback that returns the block size
+    /// obtained from a preferred aspect ratio and the resolved inline size, if any.
+    /// When it returns `Some`, it is used instead of the content size for intrinsic
+    /// block sizes.
     #[expect(clippy::too_many_arguments)]
     #[inline]
     pub(crate) fn resolve(
@@ -720,16 +721,12 @@ impl Sizes {
         stretch_size: Option<Au>,
         get_content_size: impl FnOnce() -> ContentSizes,
         is_table: bool,
-        ratio_dependent_block_size: Option<Au>,
+        get_ratio_dependent_block_size: impl FnOnce() -> Option<Au>,
     ) -> Au {
-        let ratio_dependent_block_size = match axis {
-            LogicalAxis::Block => ratio_dependent_block_size,
-            LogicalAxis::Inline => None,
-        };
-        let get_content_size = || match ratio_dependent_block_size {
+        let get_content_size = || match get_ratio_dependent_block_size() {
             // FIXME: This ignores the automatic content-based minimum size.
-            Some(size) => ContentSizes::from(size),
-            None => get_content_size(),
+            Some(size) if axis == LogicalAxis::Block => ContentSizes::from(size),
+            _ => get_content_size(),
         };
         if is_table && axis == LogicalAxis::Block {
             // The intrinsic block size of a table already takes sizing properties into account,
@@ -896,7 +893,7 @@ impl<'a> LazySize<'a> {
                 data.stretch_size,
                 || get_content_size().into(),
                 data.is_table,
-                data.ratio_dependent_block_size,
+                || data.ratio_dependent_block_size,
             )
         })
     }

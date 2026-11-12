@@ -1834,7 +1834,7 @@ impl FlexItem<'_> {
                             block_stretch_size,
                             || block_content_size,
                             is_table,
-                            None, /* ratio_dependent_block_size */
+                            || None, /* ratio_dependent_block_size */
                         ))
                     } else if let Some(ratio_dependent_block_size) =
                         compute_ratio_dependent_block_size(
@@ -1849,7 +1849,7 @@ impl FlexItem<'_> {
                             block_stretch_size,
                             ContentSizes::default,
                             is_table,
-                            Some(ratio_dependent_block_size),
+                            || Some(ratio_dependent_block_size),
                         ))
                     } else {
                         self.content_cross_sizes.resolve_extrinsic(
@@ -1872,7 +1872,7 @@ impl FlexItem<'_> {
                     stretch_size,
                     || self.inline_content_sizes(flex_context, used_main_size),
                     is_table,
-                    None, /* ratio_dependent_block_size */
+                    || None, /* ratio_dependent_block_size */
                 )
             });
             // The main size of a flex item is considered to be definite if its flex basis is definite
@@ -2225,7 +2225,7 @@ impl FlexItem<'_> {
             // see https://github.com/w3c/csswg-drafts/issues/11408.
             self.box_.independent_formatting_context.is_table() &&
                 cross_axis == LogicalAxis::Inline,
-            ratio_dependent_block_size,
+            || ratio_dependent_block_size,
         )
     }
 
@@ -2747,7 +2747,7 @@ impl FlexItemBox {
 
         // TODO: This is wrong if the item writing mode is different from the flex
         // container's writing mode.
-        let inline_size = {
+        let inline_size = LazyCell::new(|| {
             let stretch_size = flex_context
                 .containing_block
                 .inline_stretch_size(pbm_auto_is_zero.cross);
@@ -2765,18 +2765,18 @@ impl FlexItemBox {
                 stretch_size,
                 get_content_size,
                 false,
-                None, /* ratio_dependent_block_size */
+                || None, /* ratio_dependent_block_size */
             )
-        };
+        });
 
-        let ratio_dependent_block_size =
-            compute_ratio_dependent_block_size(preferred_aspect_ratio, inline_size);
+        let get_ratio_dependent_block_size =
+            || compute_ratio_dependent_block_size(preferred_aspect_ratio, *inline_size);
         let mut content_block_size = || {
             self.independent_formatting_context
                 .content_block_size_under_default_constraint(
                     flex_context.layout_context,
                     &mut positioning_context,
-                    inline_size,
+                    *inline_size,
                     flex_context.containing_block,
                     preferred_aspect_ratio,
                     &LazySize::intrinsic(),
@@ -2800,12 +2800,12 @@ impl FlexItemBox {
                     // so the content block size doesn't take sizing properties into account.
                     // Therefore, pretending that it's never a table tends to provide a better result.
                     false, /* is_table */
-                    ratio_dependent_block_size,
+                    get_ratio_dependent_block_size,
                 );
                 inner_block_size + pbm_auto_is_zero.main
             },
             IntrinsicSizingMode::Size => {
-                ratio_dependent_block_size.unwrap_or_else(content_block_size)
+                get_ratio_dependent_block_size().unwrap_or_else(content_block_size)
             },
         }
     }
