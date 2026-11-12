@@ -368,7 +368,6 @@ pub(crate) trait ComputedValuesExt {
         &self,
         fragment_flags: FragmentFlags,
     ) -> bool;
-    fn is_internal_table_box(&self) -> bool;
     fn preferred_aspect_ratio(
         &self,
         natural_aspect_ratio: Option<CSSFloat>,
@@ -990,11 +989,6 @@ impl ComputedValuesExt for ComputedValues {
 
         // TODO: We need to handle CSS Contain here.
         false
-    }
-
-    #[inline]
-    fn is_internal_table_box(&self) -> bool {
-        self.get_display().outside() == stylo::DisplayOutside::InternalTable
     }
 
     /// Resolve the preferred aspect ratio for a box that doesn't have a natural

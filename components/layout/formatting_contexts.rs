@@ -633,15 +633,14 @@ impl IndependentFormattingContext {
         &self,
         padding_border_sums: &LogicalVec2<Au>,
     ) -> Option<AspectRatio> {
-        // `aspect-ratio` doesn't apply to internal table boxes.
-        if !self.is_replaced() && self.style().is_internal_table_box() {
-            return None;
-        }
-
         match &self.contents {
             IndependentFormattingContextContents::Replaced(replaced, _) => {
                 replaced.preferred_aspect_ratio(self.style(), padding_border_sums)
             },
+            // `aspect-ratio` doesn't apply to internal table boxes.
+            // Note: Widgets ignore `display`, so check whether this actually is a
+            // table cell in layout instead of checking the computed `display`.
+            IndependentFormattingContextContents::Flow(bfc) if bfc.is_table_cell => None,
             // Aspect ratio on tables is underspecified.
             // https://github.com/w3c/csswg-drafts/issues/11419
             IndependentFormattingContextContents::Table(_) => None,
