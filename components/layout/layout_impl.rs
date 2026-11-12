@@ -70,7 +70,7 @@ use style::properties::style_structs::Font;
 use style::properties::{ComputedValues, LonghandId, NonCustomPropertyId, PropertyId, ShorthandId};
 use style::queries::values::PrefersColorScheme;
 use style::selector_parser::{PseudoElement, SnapshotMap};
-use style::servo::media_features::PointerCapabilities;
+use style::servo::media_features::{MediaFeatures, PointerCapabilities};
 use style::shared_lock::{SharedRwLock, StylesheetGuards};
 use style::stylesheets::{DocumentStyleSheet, Origin, Stylesheet};
 use style::stylist::Stylist;
@@ -879,6 +879,7 @@ impl LayoutThread {
                 prefers_color_scheme: config.theme.into(),
                 primary_pointer_capabilities: PointerCapabilities::default(),
                 all_pointer_capabilities: PointerCapabilities::default(),
+                features: MediaFeatures::empty(),
             },
         );
 

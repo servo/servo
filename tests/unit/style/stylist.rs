@@ -19,7 +19,7 @@ use style::queries::values::PrefersColorScheme;
 use style::rule_tree::{RuleCascadeFlags, StyleSource};
 use style::selector_map::SelectorMap;
 use style::selector_parser::{SelectorImpl, SelectorParser};
-use style::servo::media_features::PointerCapabilities;
+use style::servo::media_features::{MediaFeatures, PointerCapabilities};
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::StyleRule;
 use style::stylist::{
@@ -261,6 +261,7 @@ fn mock_stylist() -> Stylist {
             prefers_color_scheme: PrefersColorScheme::Light,
             primary_pointer_capabilities: PointerCapabilities::default(),
             all_pointer_capabilities: PointerCapabilities::default(),
+            features: MediaFeatures::empty(),
         },
     );
     Stylist::new(device, QuirksMode::NoQuirks)
