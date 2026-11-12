@@ -351,7 +351,7 @@ impl SameFormattingContextBlock {
             block_stretch_size,
             || content_block_size.into(),
             false, /* is_table */
-            ratio_dependent_block_size,
+            || ratio_dependent_block_size,
         );
 
         // If the final block size is different than the intrinsic size of the contents,
