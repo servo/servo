@@ -96,12 +96,15 @@ use servo_base::{Epoch, generic_channel};
 use servo_canvas_traits::webgl::WebGLPipeline;
 use servo_config::opts::{self, DiagnosticsLoggingOption};
 use servo_config::{pref, prefs};
+#[cfg(feature = "devtools")]
 use servo_constellation_traits::{
-    HistoryTraversalSource, LoadData, LoadOrigin, NavigationHistoryBehavior, PaintMetricEvent,
-    RemoteFocusOperation, ScreenshotReadinessResponse, ScriptToConstellationChan,
-    ScriptToConstellationMessage, ScrollStateUpdate, ServiceWorkerState,
-    SessionHistoryTraversalRequest, StructuredSerializedData, TargetSnapshotParams,
-    TraversalDirection, WindowSizeType,
+    HistoryTraversalSource, SessionHistoryTraversalRequest, TraversalDirection,
+};
+use servo_constellation_traits::{
+    LoadData, LoadOrigin, NavigationHistoryBehavior, PaintMetricEvent, RemoteFocusOperation,
+    ScreenshotReadinessResponse, ScriptToConstellationChan, ScriptToConstellationMessage,
+    ScrollStateUpdate, ServiceWorkerState, StructuredSerializedData, TargetSnapshotParams,
+    WindowSizeType,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, OriginSnapshot, ServoUrl};
 use smallvec::SmallVec;
@@ -3844,20 +3847,23 @@ impl ScriptThread {
             .unwrap();
 
         // Notify devtools that a new script global exists.
-        let incomplete_browsing_context_id: BrowsingContextId = webview_id.into();
-        let is_top_level_global = incomplete_browsing_context_id == incomplete.browsing_context_id;
         #[cfg(feature = "devtools")]
-        self.notify_devtools(
-            document.Title(),
-            final_url.clone(),
-            is_top_level_global,
-            (
-                incomplete.browsing_context_id,
-                incomplete.pipeline_id,
-                None,
-                webview_id,
-            ),
-        );
+        {
+            let incomplete_browsing_context_id: BrowsingContextId = webview_id.into();
+            let is_top_level_global =
+                incomplete_browsing_context_id == incomplete.browsing_context_id;
+            self.notify_devtools(
+                document.Title(),
+                final_url.clone(),
+                is_top_level_global,
+                (
+                    incomplete.browsing_context_id,
+                    incomplete.pipeline_id,
+                    None,
+                    webview_id,
+                ),
+            );
+        }
 
         if !incomplete.load_data.is_initial_about_blank {
             if is_html_document == IsHTMLDocument::NonHTMLDocument {
@@ -4504,6 +4510,7 @@ impl ScriptThread {
         }
     }
 
+    #[cfg(feature = "devtools")]
     fn handle_navigate_to(&self, pipeline_id: PipelineId, url: ServoUrl) {
         // The constellation only needs to know the WebView ID for navigation,
         // but actors don't keep track of it. Infer WebView ID from pipeline ID instead.
@@ -4523,6 +4530,7 @@ impl ScriptThread {
         }
     }
 
+    #[cfg(feature = "devtools")]
     fn handle_traverse_history(&self, pipeline_id: PipelineId, direction: TraversalDirection) {
         // The constellation only needs to know the WebView ID for navigation,
         // but actors don't keep track of it. Infer WebView ID from pipeline ID instead.

@@ -1901,6 +1901,7 @@ impl Node {
     }
 
     /// Returns the node's `unique_id` if it has been computed before and `None` otherwise.
+    #[cfg(feature = "devtools")]
     pub(crate) fn unique_id_if_already_present(&self) -> Option<String> {
         Ref::filter_map(self.rare_data.borrow(), |rare_data| {
             rare_data

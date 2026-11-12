@@ -19,6 +19,7 @@ use js::rust::{CustomAutoRooterGuard, HandleObject, HandleValue};
 use net_traits::request::Referrer;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::reflect_dom_object_with_proto;
+#[cfg(feature = "devtools")]
 use servo_base::generic_channel;
 use servo_base::id::WorkerId;
 use servo_constellation_traits::{StructuredSerializedData, WorkerScriptLoadOrigin};

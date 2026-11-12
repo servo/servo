@@ -19,6 +19,7 @@ use net_traits::image_cache::ImageCache;
 use profile_traits::{mem, time};
 use script_bindings::cell::DomRefCell;
 use script_traits::Painter;
+#[cfg(feature = "devtools")]
 use servo_base::generic_channel::GenericCallback;
 use servo_base::id::PipelineId;
 use servo_constellation_traits::ScriptToConstellationSender;
