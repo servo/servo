@@ -29,6 +29,7 @@ pub struct MainThreadRegistry<GL> {
     waker: MainThreadWakerImpl,
     grand_manager: LayerGrandManager<GL>,
     next_session_id: u32,
+    device_change_callbacks: Vec<GenericCallback<()>>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -80,6 +81,13 @@ impl Registry {
             .send(RegistryMsg::SimulateDeviceConnection(init, dest));
         self.waker.wake();
     }
+
+    pub fn set_device_change_callback(&mut self, callback: GenericCallback<()>) {
+        let _ = self
+            .sender
+            .send(RegistryMsg::SetDeviceChangeCallback(callback));
+        self.waker.wake();
+    }
 }
 
 impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
@@ -105,6 +113,7 @@ impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
             waker,
             grand_manager,
             next_session_id: 0,
+            device_change_callbacks: vec![],
         })
     }
 
@@ -115,10 +124,11 @@ impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
         }
     }
 
-    pub fn register<D>(&mut self, discovery: D)
+    pub fn register<D>(&mut self, mut discovery: D)
     where
         D: DiscoveryAPI<GL>,
     {
+        discovery.set_waker(self.waker.callback.clone());
         self.discoveries.push(Box::new(discovery));
     }
 
@@ -147,6 +157,17 @@ impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
         while let Ok(msg) = self.receiver.try_recv() {
             self.handle_msg(msg);
         }
+
+        let mut changed = false;
+        for discovery in &mut self.discoveries {
+            changed |= discovery.poll_device_changed();
+        }
+        if changed {
+            for callback in &self.device_change_callbacks {
+                let _ = callback.send(());
+            }
+        }
+
         for session in &mut self.sessions {
             session.run_one_frame();
         }
@@ -167,6 +188,9 @@ impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
             },
             RegistryMsg::SimulateDeviceConnection(init, dest) => {
                 let _ = dest.send(self.simulate_device_connection(init));
+            },
+            RegistryMsg::SetDeviceChangeCallback(callback) => {
+                self.device_change_callbacks.push(callback);
             },
         }
     }
@@ -235,4 +259,5 @@ enum RegistryMsg {
         MockDeviceInit,
         ProfileGenericCallback<Result<GenericSender<MockDeviceMsg>, Error>>,
     ),
+    SetDeviceChangeCallback(GenericCallback<()>),
 }
