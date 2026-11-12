@@ -226,6 +226,14 @@ pub(crate) enum OneshotTimerCallback {
         #[ignore_malloc_size_of = "Closure"]
         completion: CompletionStep,
     },
+    /// Run a GC with following GCReason
+    GC {
+        #[no_trace]
+        pipeline_id: PipelineId,
+        #[ignore_malloc_size_of = "Just an enum"]
+        #[no_trace]
+        reason: js::jsapi::GCReason,
+    },
 }
 
 impl OneshotTimerCallback {
@@ -241,6 +249,17 @@ impl OneshotTimerCallback {
                 // <https://html.spec.whatwg.org/multipage/#run-steps-after-a-timeout>
                 // Step 4.4 Perform completionSteps.
                 completion(cx, global);
+            },
+            OneshotTimerCallback::GC {
+                pipeline_id,
+                reason,
+            } => {
+                if let Some(document) = ScriptThread::find_document(pipeline_id) {
+                    document
+                        .window()
+                        .script_thread()
+                        .run_gc_with_reason(cx, reason);
+                }
             },
         }
     }

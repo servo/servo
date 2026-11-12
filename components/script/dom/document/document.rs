@@ -2563,6 +2563,18 @@ impl Document {
                 Duration::from_secs(*time),
             );
         }
+
+        if self.visibility_state.get() == DocumentVisibilityState::Visible &&
+            self.window().is_top_level()
+        {
+            self.window.as_global_scope().schedule_callback(
+                OneshotTimerCallback::GC {
+                    pipeline_id: self.pipeline_id(),
+                    reason: js::jsapi::GCReason::LOAD_END,
+                },
+                Duration::from_secs(pref!(dom_document_load_gc_timeout)),
+            );
+        }
     }
 
     /// Step 9 of <https://html.spec.whatwg.org/multipage/#the-end>
