@@ -141,14 +141,14 @@ int test_preferences_i64_roundtrip(void)
     if (preferences == NULL)
         return 1;
 
-    servo_preferences_set_i64(preferences, "layout_threads", 4);
-    if (servo_preferences_get_i64(preferences, "layout_threads") != 4) {
+    servo_preferences_set_i64(preferences, "js_mem_max", 4);
+    if (servo_preferences_get_i64(preferences, "js_mem_max") != 4) {
         servo_preferences_free(preferences);
         return 1;
     }
 
-    servo_preferences_set_i64(preferences, "layout_threads", -1);
-    if (servo_preferences_get_i64(preferences, "layout_threads") != -1) {
+    servo_preferences_set_i64(preferences, "js_mem_max", -1);
+    if (servo_preferences_get_i64(preferences, "js_mem_max") != -1) {
         servo_preferences_free(preferences);
         return 1;
     }

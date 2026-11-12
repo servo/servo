@@ -109,11 +109,11 @@ pub struct Preferences {
     pub fonts_serif: String,
     pub fonts_sans_serif: String,
     pub fonts_monospace: String,
-    pub fonts_default_size: i64,
-    pub fonts_default_monospace_size: i64,
+    pub fonts_default_size: u64,
+    pub fonts_default_monospace_size: u64,
     /// The amount of time that a half cycle of a text caret blink takes in milliseconds.
     /// If this value is less than or equal to zero, then caret blink is disabled.
-    pub editing_caret_blink_time: i64,
+    pub editing_caret_blink_time: u64,
     pub css_animations_testing_enabled: bool,
     /// Start the devtools server at startup
     pub devtools_server_enabled: bool,
@@ -156,8 +156,8 @@ pub struct Preferences {
     pub dom_credential_management_enabled: bool,
     // feature: WebCrypto API | #40687 | Web/API/Web_Crypto_API
     pub dom_crypto_subtle_enabled: bool,
-    pub dom_document_dblclick_timeout: i64,
-    pub dom_document_dblclick_dist: i64,
+    pub dom_document_dblclick_timeout: u64,
+    pub dom_document_dblclick_dist: u64,
     // feature: File and Directory Entries API | #45653 | Web/API/File_and_Directory_Entries_API
     pub dom_entries_api_enabled: bool,
     // feature: Document.execCommand | #25005 | Web/API/Document/execCommand
@@ -209,7 +209,7 @@ pub struct Preferences {
     pub dom_storage_manager_api_enabled: bool,
     // feature: ServiceWorker | #36538 | Web/API/Service_Worker_API
     pub dom_serviceworker_enabled: bool,
-    pub dom_serviceworker_timeout_seconds: i64,
+    pub dom_serviceworker_timeout_seconds: u64,
     // feature: SharedWorker | #7458 | Web/API/SharedWorker
     pub dom_sharedworker_enabled: bool,
     pub dom_servo_helpers_enabled: bool,
@@ -258,7 +258,7 @@ pub struct Preferences {
     pub dom_worklet_enabled: bool,
     pub dom_worklet_blockingsleep_enabled: bool,
     pub dom_worklet_testing_enabled: bool,
-    pub dom_worklet_timeout_ms: i64,
+    pub dom_worklet_timeout_ms: u64,
     /// <https://drafts.csswg.org/cssom-view/#the-visualviewport-interface>
     // feature: VisualViewport | #41341 | Web/API/VisualViewport
     pub dom_visual_viewport_enabled: bool,
@@ -272,7 +272,7 @@ pub struct Preferences {
     pub gfx_subpixel_text_antialiasing_enabled: bool,
     pub gfx_texture_swizzling_enabled: bool,
     /// The amount of image keys we request per batch for the image cache.
-    pub image_key_batch_size: i64,
+    pub image_key_batch_size: u64,
     /// Whether or not the DOM inspector should show shadow roots of user-agent shadow trees
     pub inspector_show_servo_internal_shadow_roots: bool,
     /// A locale tag (eg. es-ES) to use for language negotiation instead of the system locale.
@@ -288,29 +288,29 @@ pub struct Preferences {
     pub js_ion_enabled: bool,
     pub js_ion_unsafe_eager_compilation_enabled: bool,
     pub js_mem_gc_compacting_enabled: bool,
-    pub js_mem_gc_empty_chunk_count_min: i64,
-    pub js_mem_gc_high_frequency_heap_growth_max: i64,
-    pub js_mem_gc_high_frequency_heap_growth_min: i64,
-    pub js_mem_gc_high_frequency_high_limit_mb: i64,
-    pub js_mem_gc_high_frequency_low_limit_mb: i64,
-    pub js_mem_gc_high_frequency_time_limit_ms: i64,
+    pub js_mem_gc_empty_chunk_count_min: u64,
+    pub js_mem_gc_high_frequency_heap_growth_max: u64,
+    pub js_mem_gc_high_frequency_heap_growth_min: u64,
+    pub js_mem_gc_high_frequency_high_limit_mb: u64,
+    pub js_mem_gc_high_frequency_low_limit_mb: u64,
+    pub js_mem_gc_high_frequency_time_limit_ms: u64,
     /// Whether or not incremental garbage collection is turned on. This is currently
     /// turned off by default as pre-barriers are not implemented yet. If turned on, it
     /// will likely lead to memory corruption.
     ///
     /// See <https://github.com/servo/servo/issues/7621>.
     pub js_mem_gc_incremental_enabled: bool,
-    pub js_mem_gc_incremental_slice_ms: i64,
-    pub js_mem_gc_low_frequency_heap_growth: i64,
-    pub js_mem_gc_malloc_threshold_base_mb: i64,
+    pub js_mem_gc_incremental_slice_ms: u64,
+    pub js_mem_gc_low_frequency_heap_growth: u64,
+    pub js_mem_gc_malloc_threshold_base_mb: u64,
     pub js_mem_gc_per_zone_enabled: bool,
-    pub js_mem_gc_urgent_threshold_mb: i64,
-    pub js_mem_gc_zeal_frequency: i64,
-    pub js_mem_gc_zeal_level: i64,
+    pub js_mem_gc_urgent_threshold_mb: u64,
+    pub js_mem_gc_zeal_frequency: u64,
+    pub js_mem_gc_zeal_level: u64,
     pub js_mem_max: i64,
     pub js_native_regex_enabled: bool,
     pub js_offthread_compilation_enabled: bool,
-    pub js_timers_minimum_duration: i64,
+    pub js_timers_minimum_duration: u64,
     pub js_wasm_baseline_enabled: bool,
     pub js_wasm_enabled: bool,
     pub js_wasm_ion_enabled: bool,
@@ -330,7 +330,7 @@ pub struct Preferences {
     // feature: CSS writing modes | #2560 | Web/CSS/Guides/Writing_modes
     pub layout_css_writing_mode_enabled: bool,
     pub layout_style_sharing_cache_enabled: bool,
-    pub layout_threads: i64,
+    pub layout_threads: u64,
     /// The minimum number of parallelizable jobs required before turning on parallelism
     /// for a set of jobs.
     ///
@@ -631,7 +631,7 @@ impl Preferences {
     /// this returns `None`.
     pub fn editing_caret_blink_time(&self) -> Option<Duration> {
         if self.editing_caret_blink_time > 0 {
-            Some(Duration::from_millis(self.editing_caret_blink_time as u64))
+            Some(Duration::from_millis(self.editing_caret_blink_time))
         } else {
             None
         }
