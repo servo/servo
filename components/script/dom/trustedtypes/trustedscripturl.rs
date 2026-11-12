@@ -54,7 +54,7 @@ impl TrustedScriptURL {
                     cx,
                     TrustedType::TrustedScriptURL,
                     global,
-                    value.as_ref().into(),
+                    value.into(),
                     sink,
                     DEFAULT_SCRIPT_SINK_GROUP,
                 )
