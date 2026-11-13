@@ -2651,8 +2651,8 @@ impl Element {
         let global = self.owner_global();
         // Step 1: Let CSP list be element's shadow-including root's policy container's CSP list.
         // Step 2: If CSP list contains a header-delivered Content Security Policy,
-        // and element has a nonce content attribute whose value is not the empty string, then:s
-        if global.call_on_csp_list(|csp_list| {
+        // and element has a nonce content attribute whose value is not the empty string, then:
+        if !global.call_on_csp_list(|csp_list| {
             csp_list.as_ref().is_none_or(|csp_list| {
                 csp_list.contains_a_header_delivered_content_security_policy() ||
                     self.get_string_attribute(&local_name!("nonce")).is_empty()
