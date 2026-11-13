@@ -182,11 +182,12 @@ impl LinkRelations {
     /// [`<area>`]: https://html.spec.whatwg.org/multipage/#the-area-element
     /// [`<form>`]: https://html.spec.whatwg.org/multipage/#the-form-element
     pub(crate) fn for_element(element: &Element) -> Self {
-        let rel = element.get_attribute_string_value(&local_name!("rel"));
+        let rel = element.get_attribute_string_ref(&local_name!("rel"));
 
         let mut relations = rel
             .map(|attribute| {
                 attribute
+                    .value()
                     .split(HTML_SPACE_CHARACTERS)
                     .map(Self::from_single_keyword)
                     .collect()
