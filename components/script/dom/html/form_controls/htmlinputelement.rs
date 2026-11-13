@@ -1000,6 +1000,66 @@ impl HTMLInputElement {
         // The rest of the steps
         image_input_type.dimensions(cx, self)
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-value>
+    pub(crate) fn set_value(&self, cx: &mut JSContext, mut value: DOMString, changed_by_user: bool) -> ErrorResult {
+        match self.value_mode() {
+            ValueMode::Value => {
+                {
+                    // Step 3. Set the element's dirty value flag to true.
+                    self.value_dirty.set(true);
+
+                    // Step 4. Invoke the value sanitization algorithm, if the element's type
+                    // attribute's current state defines one.
+                    self.sanitize_value(&mut value);
+
+                    let mut text_input = self.text_input.safe_borrow_mut(cx.no_gc());
+
+                    // Step 5. If the element's value (after applying the value sanitization algorithm)
+                    // is different from oldValue, and the element has a text entry cursor position,
+                    // move the text entry cursor position to the end of the text control,
+                    // unselecting any selected text and resetting the selection direction to "none".
+                    if text_input.get_content() != value {
+                        // Step 2. Set the element's value to the new value.
+                        text_input.set_content(value);
+
+                        text_input.clear_selection_to_end();
+                    }
+                }
+
+                // Additionally, update the placeholder shown state in another
+                // scope to prevent the borrow checker issue. This is normally
+                // being done in the attributed mutated.
+                self.update_placeholder_shown_state(cx.no_gc());
+                self.maybe_update_shared_selection();
+            },
+            ValueMode::Default | ValueMode::DefaultOn => {
+                self.upcast::<Element>()
+                .set_string_attribute(cx, &local_name!("value"), value);
+            },
+            ValueMode::Filename => {
+                if value.is_empty() {
+                    let window = self.owner_window();
+                    let fl = FileList::new(cx, &window, vec![]);
+                    self.input_type().as_specific().set_files(&fl)
+                } else {
+                    return Err(Error::InvalidState(Some(
+                        "Non-empty value provided for filename".into(),
+                    )));
+                }
+            },
+        }
+
+        self.value_changed(cx, changed_by_user);
+        self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
+        Ok(())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-checked>
+    pub(crate) fn set_checked(&self, cx: &mut JSContext, checked: bool, changed_by_user: bool) {
+        self.update_checkedness(cx, checked, true);
+        self.value_changed(cx, changed_by_user);
+    }
 }
 
 impl<'dom> LayoutDom<'dom, HTMLInputElement> {
@@ -1280,8 +1340,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-input-checked>
     fn SetChecked(&self, cx: &mut JSContext, checked: bool) {
-        self.update_checkedness(cx, checked, true);
-        self.value_changed(cx);
+        self.set_checked(cx, checked, false);
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-input-colorspace
@@ -1348,57 +1407,8 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-input-value>
-    fn SetValue(&self, cx: &mut JSContext, mut value: DOMString) -> ErrorResult {
-        match self.value_mode() {
-            ValueMode::Value => {
-                {
-                    // Step 3. Set the element's dirty value flag to true.
-                    self.value_dirty.set(true);
-
-                    // Step 4. Invoke the value sanitization algorithm, if the element's type
-                    // attribute's current state defines one.
-                    self.sanitize_value(&mut value);
-
-                    let mut text_input = self.text_input.safe_borrow_mut(cx.no_gc());
-
-                    // Step 5. If the element's value (after applying the value sanitization algorithm)
-                    // is different from oldValue, and the element has a text entry cursor position,
-                    // move the text entry cursor position to the end of the text control,
-                    // unselecting any selected text and resetting the selection direction to "none".
-                    if text_input.get_content() != value {
-                        // Step 2. Set the element's value to the new value.
-                        text_input.set_content(value);
-
-                        text_input.clear_selection_to_end();
-                    }
-                }
-
-                // Additionally, update the placeholder shown state in another
-                // scope to prevent the borrow checker issue. This is normally
-                // being done in the attributed mutated.
-                self.update_placeholder_shown_state(cx.no_gc());
-                self.maybe_update_shared_selection();
-            },
-            ValueMode::Default | ValueMode::DefaultOn => {
-                self.upcast::<Element>()
-                    .set_string_attribute(cx, &local_name!("value"), value);
-            },
-            ValueMode::Filename => {
-                if value.is_empty() {
-                    let window = self.owner_window();
-                    let fl = FileList::new(cx, &window, vec![]);
-                    self.input_type().as_specific().set_files(&fl)
-                } else {
-                    return Err(Error::InvalidState(Some(
-                        "Non-empty value provided for filename".into(),
-                    )));
-                }
-            },
-        }
-
-        self.value_changed(cx);
-        self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
-        Ok(())
+    fn SetValue(&self, cx: &mut JSContext, value: DOMString) -> ErrorResult {
+        self.set_value(cx, value, false)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-defaultvalue
@@ -1688,7 +1698,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
     fn SetRangeText(&self, cx: &mut JSContext, replacement: DOMString) -> ErrorResult {
         self.set_dom_range_text(cx, replacement, None, None, Default::default())?;
-        self.value_changed(cx);
+        self.value_changed(cx, false);
         Ok(())
     }
 
@@ -1708,7 +1718,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             Some(Utf16CodeUnits::from(end)),
             selection_mode,
         )?;
-        self.value_changed(cx);
+        self.value_changed(cx, false);
         Ok(())
     }
 
@@ -2058,7 +2068,7 @@ impl HTMLInputElement {
                 .set_files(&FileList::new(cx, &self.owner_window(), vec![]));
         }
 
-        self.value_changed(cx);
+        self.value_changed(cx, false);
     }
 
     /// <https://w3c.github.io/webdriver/#ref-for-dfn-clear-algorithm-3>
@@ -2089,7 +2099,7 @@ impl HTMLInputElement {
             text_input.set_content(value);
         }
 
-        self.value_changed(cx);
+        self.value_changed(cx, false);
     }
 
     fn update_placeholder_shown_state(&self, no_gc: &NoGC) {
@@ -2222,11 +2232,10 @@ impl HTMLInputElement {
         self.update_user_valid_state(cx.no_gc());
     }
 
-    fn value_changed(&self, cx: &mut JSContext) {
+    fn value_changed(&self, cx: &mut JSContext, changed_by_user: bool) {
         self.changed_by_user_while_focused.set(
-            self.upcast::<Element>()
-                .owner_window()
-                .has_transient_activation(),
+            changed_by_user &&
+                self.upcast::<Element>().focus_state()
         );
         self.maybe_update_shared_selection();
         self.update_related_validity_states(cx);
@@ -2581,7 +2590,7 @@ impl VirtualMethods for HTMLInputElement {
             },
         }
 
-        self.value_changed(cx);
+        self.value_changed(cx, false);
 
         if could_have_had_embedder_control && !self.may_have_embedder_control() {
             self.owner_document()
@@ -2619,7 +2628,7 @@ impl VirtualMethods for HTMLInputElement {
         self.input_type()
             .as_specific()
             .run_shared_bind_to_tree_or_moving_steps(cx, self);
-        self.value_changed(cx);
+        self.value_changed(cx, false);
     }
 
     fn moving_steps(&self, cx: &mut JSContext, context: &MoveContext) {
@@ -2664,7 +2673,7 @@ impl VirtualMethods for HTMLInputElement {
             .handle_event(cx, self, event);
 
         if event.is::<InputEvent>() && self.value_dirty.get() {
-            self.value_changed(cx);
+            self.value_changed(cx, true);
         }
 
         self.fire_value_change_events(cx, value_change_events);
@@ -2695,7 +2704,7 @@ impl VirtualMethods for HTMLInputElement {
         elem.text_input
             .safe_borrow_mut(cx.no_gc())
             .clone_content_from(&self.text_input.borrow());
-        elem.value_changed(cx);
+        elem.value_changed(cx, false);
     }
 
     fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
@@ -2844,7 +2853,7 @@ impl Activatable for HTMLInputElement {
             .legacy_pre_activation_behavior(cx, self);
 
         if activation_state.is_some() {
-            self.value_changed(cx);
+            self.value_changed(cx, false);
         }
 
         activation_state
@@ -2878,7 +2887,7 @@ impl Activatable for HTMLInputElement {
         ty.as_specific()
             .legacy_canceled_activation_behavior(cx, self, cache);
 
-        self.value_changed(cx);
+        self.value_changed(cx, false);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-input-element:activation-behaviour>
