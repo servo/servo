@@ -1002,7 +1002,12 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-input-value>
-    pub(crate) fn set_value(&self, cx: &mut JSContext, mut value: DOMString, changed_by_user: bool) -> ErrorResult {
+    pub(crate) fn set_value(
+        &self,
+        cx: &mut JSContext,
+        mut value: DOMString,
+        changed_by_user: bool,
+    ) -> ErrorResult {
         match self.value_mode() {
             ValueMode::Value => {
                 {
@@ -1035,7 +1040,7 @@ impl HTMLInputElement {
             },
             ValueMode::Default | ValueMode::DefaultOn => {
                 self.upcast::<Element>()
-                .set_string_attribute(cx, &local_name!("value"), value);
+                    .set_string_attribute(cx, &local_name!("value"), value);
             },
             ValueMode::Filename => {
                 if value.is_empty() {
@@ -2233,10 +2238,8 @@ impl HTMLInputElement {
     }
 
     fn value_changed(&self, cx: &mut JSContext, changed_by_user: bool) {
-        self.changed_by_user_while_focused.set(
-            changed_by_user &&
-                self.upcast::<Element>().focus_state()
-        );
+        self.changed_by_user_while_focused
+            .set(changed_by_user && self.upcast::<Element>().focus_state());
         self.maybe_update_shared_selection();
         self.update_related_validity_states(cx);
         if self.upcast::<Node>().is_connected() {
