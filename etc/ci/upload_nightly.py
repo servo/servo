@@ -15,7 +15,7 @@ import io
 import json
 import os
 from os import path
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 import sys
@@ -124,7 +124,7 @@ def upload_to_s3(
 def upload_nightly(
     platform: str, secret_from_environment: bool, github_release_id: int | None, packages: List[str]
 ) -> int:
-    timestamp = datetime.utcnow().replace(microsecond=0)
+    timestamp = datetime.now(timezone.utc).replace(microsecond=0)
     for package in packages:
         # TODO: This if feels like it should not be necessary. Let's add a warning, and make this an
         # error later.
