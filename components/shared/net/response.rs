@@ -43,8 +43,9 @@ pub enum TerminationReason {
 
 /// The response body can still be pushed to after fetch
 /// This provides a way to store unfinished response bodies
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum ResponseBody {
+    #[default]
     Empty, // XXXManishearth is this necessary, or is Done(vec![]) enough?
     #[serde(with = "serde_bytes")]
     Receiving(Vec<u8>),
