@@ -3544,7 +3544,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 9. Return the y-coordinate of the scrolling area at the alignment point
         // with the top of the padding edge of the element.
         let point = window.scroll_offset_query(cx, node);
-        point.y.abs() as f64
+        point.y as f64
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
@@ -3661,7 +3661,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 9. Return the x-coordinate of the scrolling area at the alignment point
         // with the left of the padding edge of the element.
         let point = window.scroll_offset_query(cx, node);
-        point.x.abs() as f64
+        point.x as f64
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollleft>
