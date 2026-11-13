@@ -84,7 +84,7 @@ pub trait RenderingContext {
     fn refresh_driver(&self) -> Option<Rc<dyn RefreshDriver>> {
         None
     }
-    /// The associated adapter to the WebGL display server.
+    /// The associated adapter to use for WebGL. Default to `None`.
     fn adapter(&self) -> Option<Adapter> {
         None
     }
