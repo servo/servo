@@ -432,10 +432,21 @@ marquee {
   white-space: nowrap;
 }
 
-/* https://drafts.csswg.org/css-ui-4/#content-selection */
+/* https://drafts.csswg.org/css-ui-4/#content-selection
+
+   There seem to be discrepencies between browsers about which input types should have
+   what `user-select` values. See
+   https://github.com/w3c/csswg-drafts/issues/9709#issuecomment-2041439088
+*/
 button, meter, progress, select,
-/* https://github.com/w3c/csswg-drafts/issues/9709#issuecomment-2041439088 */
-input:is([type=color], [type=range], [type=reset], [type=button], [type=submit])
+input:is(
+    [type=button],
+    [type=color],
+    [type=file],
+    [type=range],
+    [type=reset],
+    [type=submit]
+)
 {
   user-select: none;
 }
