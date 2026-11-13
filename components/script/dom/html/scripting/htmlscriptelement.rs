@@ -704,9 +704,8 @@ impl HTMLScriptElement {
 
         // Step 19. CSP.
         if !element.has_attribute(&local_name!("src")) &&
-            global
-                .get_csp_list()
-                .should_elements_inline_type_behavior_be_blocked(
+            global.call_on_csp_list(|csp_list| {
+                csp_list.should_elements_inline_type_behavior_be_blocked(
                     cx,
                     global,
                     element,
@@ -714,6 +713,7 @@ impl HTMLScriptElement {
                     &text,
                     self.line_number as u32,
                 )
+            })
         {
             warn!("Blocking inline script due to CSP");
             return;

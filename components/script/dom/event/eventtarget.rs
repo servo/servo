@@ -651,9 +651,8 @@ impl EventTarget {
         if let Some(element) = self.downcast::<Element>() {
             let doc = element.owner_document();
             let global = &doc.global();
-            if global
-                .get_csp_list()
-                .should_elements_inline_type_behavior_be_blocked(
+            if global.call_on_csp_list(|csp_list| {
+                csp_list.should_elements_inline_type_behavior_be_blocked(
                     cx,
                     global,
                     element.upcast(),
@@ -661,7 +660,7 @@ impl EventTarget {
                     source,
                     line as u32,
                 )
-            {
+            }) {
                 return;
             }
         };

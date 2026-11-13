@@ -151,9 +151,9 @@ impl TrustedScript {
                 },
             }
         };
-        global
-            .get_csp_list()
-            .is_js_evaluation_allowed(cx, global, &source_string.str())
+        global.call_on_csp_list(|csp_list| {
+            csp_list.is_js_evaluation_allowed(cx, global, &source_string.str())
+        })
     }
 }
 

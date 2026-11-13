@@ -843,10 +843,9 @@ impl JsTimers {
 
                 // Step 9.6.3. Perform EnsureCSPDoesNotBlockStringCompilation(realm, « », handler, handler, timer, « », handler).
                 // If this throws an exception, catch it, report it for global, and abort these steps.
-                if global
-                    .get_csp_list()
-                    .is_js_evaluation_allowed(cx, global, &code_str.str())
-                {
+                if global.call_on_csp_list(|csp_list| {
+                    csp_list.is_js_evaluation_allowed(cx, global, &code_str.str())
+                }) {
                     // Step 9.6.2. Assert: handler is a string.
                     RootedInternalTimerCallback::StringTimerCallback(
                         code_str,

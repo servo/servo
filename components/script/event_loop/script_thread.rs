@@ -654,10 +654,14 @@ impl ScriptThread {
 
         // Step 5: If the result of should navigation request of type be blocked by
         // Content Security Policy? given request and cspNavigationType is "Blocked", then return. [CSP]
-        if initiator_global
-            .get_csp_list()
-            .should_navigation_request_be_blocked(cx, initiator_global, load_data, container)
-        {
+        if initiator_global.call_on_csp_list(|csp_list| {
+            csp_list.should_navigation_request_be_blocked(
+                cx,
+                initiator_global,
+                load_data,
+                container,
+            )
+        }) {
             return false;
         }
 
