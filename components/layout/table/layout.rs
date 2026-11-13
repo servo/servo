@@ -33,8 +33,7 @@ use super::{
     TableLayoutStyle, TableSlot, TableSlotCell, TableSlotCoordinates, TableTrack, TableTrackGroup,
 };
 use crate::containing_block::{
-    ConstraintSpace, ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize,
-    IndefiniteContainingBlock,
+    ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock,
 };
 use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
@@ -338,7 +337,6 @@ impl<'a> TableLayout<'a> {
                 } else {
                     let constraint_space = ConstraintSpace::new(
                         SizeConstraint::default(),
-                        HasQuirkyBlockSize(false),
                         &cell.context.base.style,
                         cell.context.preferred_aspect_ratio(&padding_border_sums),
                     );
@@ -753,7 +751,7 @@ impl<'a> TableLayout<'a> {
         // of the table, by enforcing its min-content size as a minimum.
         // This should be roughly equivalent to what the spec calls "used width of a table".
         // https://drafts.csswg.org/css-tables/#used-width-of-table
-        self.table_width = containing_block_for_children.size.inline;
+        self.table_width = containing_block_for_children.inline_size();
 
         // > The assignable table width is the used width of the table minus the total horizontal
         // > border spacing (if any). This is the width that we will be able to allocate to the
@@ -1123,11 +1121,10 @@ impl<'a> TableLayout<'a> {
 
             let preferred_aspect_ratio = cell.context.preferred_aspect_ratio(&padding_border_sums);
             let containing_block_for_children = ContainingBlock {
-                size: ContainingBlockSize {
-                    inline: total_cell_width,
-                    block: SizeConstraint::default(),
-                    has_quirky_block_size: HasQuirkyBlockSize(false),
-                },
+                size: ContainingBlockSize::new(
+                    total_cell_width,          /* inline_size */
+                    SizeConstraint::default(), /* block_size */
+                ),
                 style: &cell.context.base.style,
             };
 
@@ -1495,7 +1492,10 @@ impl<'a> TableLayout<'a> {
         // space for the entire table wrapper, but here we are using that amount for the table grid.
         // Therefore, if there is a caption, this will cause overflow. Gecko and WebKit have the
         // same problem, but not Blink.
-        let table_height_from_style = containing_block_for_children.size.block.definite_or_min();
+        assert!(!containing_block_for_children.has_quirky_block_size());
+        let table_height_from_style = containing_block_for_children
+            .maybe_quirky_block_size()
+            .definite_or_min();
 
         let block_border_spacing = self.table.total_border_spacing().block;
         let table_height_from_rows = row_sizes.iter().sum::<Au>() + block_border_spacing;
@@ -1529,11 +1529,10 @@ impl<'a> TableLayout<'a> {
         parent_positioning_context: &mut PositioningContext,
     ) -> BoxFragment {
         let containing_block = &ContainingBlock {
-            size: ContainingBlockSize {
-                inline: self.table_width + self.pbm.padding_border_sums.inline,
-                block: SizeConstraint::default(),
-                has_quirky_block_size: HasQuirkyBlockSize(false),
-            },
+            size: ContainingBlockSize::new(
+                self.table_width + self.pbm.padding_border_sums.inline, /* inline_size */
+                SizeConstraint::default(),                              /* block_size */
+            ),
             style: &self.table.style,
         };
 
@@ -1580,7 +1579,7 @@ impl<'a> TableLayout<'a> {
         self.pbm = layout_style
             .padding_border_margin_with_writing_mode_and_containing_block_inline_size(
                 table_writing_mode,
-                containing_block_for_table.size.inline,
+                containing_block_for_table.inline_size(),
             );
         self.compute_measures(layout_context, table_writing_mode);
         self.compute_table_width(containing_block_for_children);
@@ -1600,11 +1599,10 @@ impl<'a> TableLayout<'a> {
         // TODO: This is broken for orthogonal flows, because the inline size of the parent isn't necessarily
         // the inline size of the table.
         let containing_block_for_logical_conversion = ContainingBlock {
-            size: ContainingBlockSize {
-                inline: self.table_width,
-                block: containing_block_for_table.size.block,
-                has_quirky_block_size: HasQuirkyBlockSize(false),
-            },
+            size: ContainingBlockSize::new(
+                self.table_width,                               /* inline_size */
+                containing_block_for_table.block_size().into(), /* block_size */
+            ),
             style: containing_block_for_children.style,
         };
         let offset_from_wrapper = -self.pbm.padding - self.pbm.border;
@@ -2307,11 +2305,10 @@ impl<'a> RowFragmentLayout<'a> {
     ) -> Self {
         let rect = dimensions.get_row_rect(index);
         let containing_block = ContainingBlock {
-            size: ContainingBlockSize {
-                inline: rect.size.inline,
-                block: SizeConstraint::Definite(rect.size.block),
-                has_quirky_block_size: HasQuirkyBlockSize(false),
-            },
+            size: ContainingBlockSize::new(
+                rect.size.inline,
+                SizeConstraint::Definite(rect.size.block),
+            ),
             style: table_style,
         };
         Self {
@@ -2335,25 +2332,18 @@ impl<'a> RowFragmentLayout<'a> {
                 relative_adjustement(&self.row.base.style, containing_block_for_children);
         }
 
-        let (inline_size, block_size) = if let Some(row_group_layout) = row_group_fragment_layout {
+        let size = if let Some(row_group_layout) = row_group_fragment_layout {
             self.rect.start_corner -= row_group_layout.rect.start_corner;
-            (
+            ContainingBlockSize::new(
                 row_group_layout.rect.size.inline,
                 SizeConstraint::Definite(row_group_layout.rect.size.block),
             )
         } else {
-            (
-                containing_block_for_logical_conversion.size.inline,
-                containing_block_for_logical_conversion.size.block,
-            )
+            containing_block_for_logical_conversion.size.clone()
         };
 
         let row_group_containing_block = ContainingBlock {
-            size: ContainingBlockSize {
-                inline: inline_size,
-                block: block_size,
-                has_quirky_block_size: HasQuirkyBlockSize(false),
-            },
+            size,
             style: containing_block_for_logical_conversion.style,
         };
 
@@ -2942,11 +2932,10 @@ impl TableSlotCell {
         let vertical_align_fragment = PositioningFragment::new_anonymous(
             cell_style.clone(),
             vertical_align_fragment_rect.as_physical_deprecated(&ContainingBlock {
-                size: ContainingBlockSize {
-                    inline: cell_content_rect.size.inline,
-                    block: SizeConstraint::Definite(cell_content_rect.size.block),
-                    has_quirky_block_size: HasQuirkyBlockSize(false),
-                },
+                size: ContainingBlockSize::new(
+                    cell_content_rect.size.inline,
+                    SizeConstraint::Definite(cell_content_rect.size.block),
+                ),
                 style: cell_style,
             }),
             layout.layout.fragments,

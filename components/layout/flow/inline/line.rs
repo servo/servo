@@ -22,7 +22,7 @@ use unicode_bidi::{BidiInfo, Level};
 use super::inline_box::{InlineBoxContainerState, InlineBoxIdentifier, InlineBoxTreePathToken};
 use super::{InlineFormattingContextLayout, LineBlockSizes, line_height};
 use crate::cell::ArcRefCell;
-use crate::containing_block::{ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize};
+use crate::containing_block::{ContainingBlock, ContainingBlockSize};
 use crate::flow::inline::text_run::{FontAndScriptInfo, SharedTextRunData};
 use crate::fragment_tree::{
     BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, FragmentAndLogicalRect, FragmentFlags,
@@ -557,11 +557,10 @@ impl LineItemLayout<'_, '_> {
             FragmentAndData::resolve_physical_rects_and_adjust_and_collect_floats(
                 inner_state.fragments_and_data,
                 &ContainingBlock {
-                    size: ContainingBlockSize {
-                        inline: content_rect.size.inline,
-                        block: Default::default(),
-                        has_quirky_block_size: HasQuirkyBlockSize(false),
-                    },
+                    size: ContainingBlockSize::new(
+                        content_rect.size.inline,
+                        Default::default(), /* block_size */
+                    ),
                     style: containing_block.style,
                 },
                 relative_adjustement,

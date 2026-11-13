@@ -21,7 +21,6 @@ use crate::PropagatedBoxTreeData;
 use crate::cell::{ArcRefCell, RefOrAtomicRef};
 use crate::containing_block::{
     ConstraintSpace, ContainingBlock, ContainingBlockSize, DefiniteContainingBlock,
-    HasQuirkyBlockSize,
 };
 use crate::context::LayoutContext;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
@@ -657,14 +656,9 @@ impl IndependentFormattingContext {
 
         // The inline axis can be fully resolved, computing intrinsic sizes using the
         // extrinsic block size.
-        let has_quirky_block_size = HasQuirkyBlockSize(false);
         let get_inline_content_size = || {
-            let constraint_space = ConstraintSpace::new(
-                tentative_block_size,
-                has_quirky_block_size,
-                &style,
-                preferred_aspect_ratio,
-            );
+            let constraint_space =
+                ConstraintSpace::new(tentative_block_size, &style, preferred_aspect_ratio);
             self.inline_content_sizes(layout_context, &constraint_space)
                 .sizes
         };
@@ -678,11 +672,7 @@ impl IndependentFormattingContext {
         );
 
         let containing_block_for_children = ContainingBlock {
-            size: ContainingBlockSize {
-                inline: inline_size,
-                block: tentative_block_size,
-                has_quirky_block_size,
-            },
+            size: ContainingBlockSize::new(inline_size, tentative_block_size),
             style: &style,
         };
         // TODO: https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
@@ -1061,16 +1051,8 @@ pub(crate) fn relative_adjustement(
     // It's not completely clear what to do with indefinite percentages
     // (https://github.com/w3c/csswg-drafts/issues/9353), so we match
     // other browsers and treat them as 'auto' offsets.
-    let cbis = containing_block.size.inline;
-    let cbbs = if containing_block.has_quirky_block_size() {
-        // The actual block size of the containing block is indefinite,
-        // but the value was overridden in order to resolve percentages
-        // for the purpose of calculating the size of the element.
-        // However, now we are resolving the position instead of the size.
-        None
-    } else {
-        containing_block.size.block.to_definite()
-    };
+    let cbis = containing_block.inline_size();
+    let cbbs = containing_block.block_size();
     let box_offsets = style
         .box_offsets(containing_block.style.writing_mode)
         .map_inline_and_block_axes(
