@@ -651,16 +651,20 @@ pub(crate) fn import_key<D: Equivalence>(
                 )));
             }
 
-            // Step 2.5. If the alg field of jwk is not one of the alg values corresponding to the
-            // name member of normalizedAlgorithm indicated in Section 8 of
-            // [draft-ietf-jose-pqc-kem-05] (Figure 1 or 2), then throw a DataError.
+            // Step 2.5. If the alg field of jwk is not present, or its value does not identify the
+            // ML-KEM parameter set indicated by the name member of normalizedAlgorithm, then throw
+            // a DataError.
+            //
+            // NOTE: The "alg" values registered in the IANA JSON Web Signature and Encryption
+            // Algorithms registry for the ML-KEM parameter sets defined by this specification are
+            // ML-KEM-512, ML-KEM-768, and ML-KEM-1024. Implementations should also accept other
+            // values from this registry that identify a JWE algorithm using the same ML-KEM
+            // parameter set, provided that the JWE algorithm's JWK representation is compatible
+            // with the representation defined here apart from the "alg" value. Examples include the
+            // values proposed in [draft-ietf-jose-hpke-pq-pqt], once registered.
             match normalized_algorithm.name {
                 CryptoAlgorithm::MlKem512 => {
-                    if jwk
-                        .alg
-                        .as_ref()
-                        .is_none_or(|alg| alg != "ML-KEM-512" && alg != "ML-KEM-512-AES128KW")
-                    {
+                    if jwk.alg.as_ref().is_none_or(|alg| alg != "ML-KEM-512") {
                         return Err(Error::Data(Some(
                             "The alg field of jwk is not invalid.".into(),
                         )));
@@ -670,7 +674,7 @@ pub(crate) fn import_key<D: Equivalence>(
                     if jwk
                         .alg
                         .as_ref()
-                        .is_none_or(|alg| alg != "ML-KEM-768" && alg != "ML-KEM-768-AES192KW")
+                        .is_none_or(|alg| alg != "ML-KEM-768" && alg != "HPKE-12")
                     {
                         return Err(Error::Data(Some(
                             "The alg field of jwk is not invalid.".into(),
@@ -681,7 +685,7 @@ pub(crate) fn import_key<D: Equivalence>(
                     if jwk
                         .alg
                         .as_ref()
-                        .is_none_or(|alg| alg != "ML-KEM-1024" && alg != "ML-KEM-1024-AES256KW")
+                        .is_none_or(|alg| alg != "ML-KEM-1024" && alg != "HPKE-13")
                     {
                         return Err(Error::Data(Some(
                             "The alg field of jwk is not invalid.".into(),
@@ -1132,8 +1136,6 @@ pub(crate) fn export_key<D: Equivalence>(
         },
         // If format is "jwk":
         KeyFormat::Jwk => {
-            // The JWK format for ML-KEM is not standardized yet and thus subject to change.
-
             // Step 2.1. Let jwk be a new JsonWebKey dictionary.
             let mut jwk = JsonWebKey::default();
 
@@ -1147,23 +1149,8 @@ pub(crate) fn export_key<D: Equivalence>(
             // Step 2.3. Set the kty attribute of jwk to "AKP".
             jwk.kty = Some(DOMString::from_static("AKP"));
 
-            // Step 2.4. Set the alg attribute of jwk to the alg value corresponding to the name
-            // member of normalizedAlgorithm indicated in Section 8 of [draft-ietf-jose-pqc-kem-05]
-            // (Figure 1).
-            //
-            // <https://www.ietf.org/archive/id/draft-ietf-jose-pqc-kem-01.html#direct-table>
-            let alg = match key_algorithm.name {
-                CryptoAlgorithm::MlKem512 => "ML-KEM-512",
-                CryptoAlgorithm::MlKem768 => "ML-KEM-768",
-                CryptoAlgorithm::MlKem1024 => "ML-KEM-1024",
-                _ => {
-                    return Err(Error::Operation(Some(format!(
-                        "{} is not an ML-KEM algorithm",
-                        key_algorithm.name.as_str()
-                    ))));
-                },
-            };
-            jwk.alg = Some(DOMString::from(alg));
+            // Step 2.4.  Set the alg attribute of jwk to the name member of keyAlgorithm.
+            jwk.alg = Some(DOMString::from_static(key_algorithm.name.as_str()));
 
             // Step 2.5. Set the pub attribute of jwk to the base64url encoded public key
             // corresponding to the [[handle]] internal slot of key.

@@ -377,9 +377,21 @@ pub(crate) fn import_key<D: Equivalence>(
             // Step 2.5. If the alg field of jwk is not present, or its value does not identify the
             // hybrid KEM instance indicated by the name member of normalizedAlgorithm, then throw a
             // DataError.
+            //
+            // NOTE: The "alg" values registered in the IANA JSON Web Signature and Encryption
+            // Algorithms registry for the hybrid KEM instances defined by this specification are
+            // MLKEM768-P256, MLKEM768-X25519, and MLKEM1024-P384. Implementations should also
+            // accept other values from this registry that identify a JWE algorithm using the same
+            // hybrid KEM instance, provided that the JWE algorithm's JWK representation is
+            // compatible with the representation defined here apart from the "alg" value. Examples
+            // include the values proposed in [draft-ietf-jose-hpke-pq-pqt], once registered.
             match normalized_algorithm.name {
                 CryptoAlgorithm::MlKem768X25519 => {
-                    if jwk.alg.as_ref().is_none_or(|alg| alg != "MLKEM768-X25519") {
+                    if jwk
+                        .alg
+                        .as_ref()
+                        .is_none_or(|alg| alg != "MLKEM768-X25519" && alg != "HPKE-9")
+                    {
                         return Err(Error::Data(Some(
                             "The alg field of jwk is not invalid.".into(),
                         )));
