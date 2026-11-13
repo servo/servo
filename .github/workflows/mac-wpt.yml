@@ -25,9 +25,6 @@ jobs:
     runs-on: ${{ inputs.arm && 'macos-15' || 'macos-15-intel' }}
     env:
       max_chunk_id: 5
-    permissions:
-      contents: read
-      issues: read
     strategy:
       fail-fast: false
       matrix:

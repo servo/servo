@@ -64,9 +64,6 @@ jobs:
       - runner-select
     name: WPT [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
-    permissions:
-      contents: read
-      issues: read
     strategy:
       fail-fast: false
       matrix:
