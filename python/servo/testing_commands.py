@@ -204,6 +204,7 @@ class MachCommands(CommandBase):
             "servo-layout-api",
             "servo",
             "servo-metrics",
+            "servo-media-gstreamer",
             "servo-net",
             "servo-net-traits",
             "servo-paint",
