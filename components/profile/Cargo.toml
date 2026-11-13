@@ -21,6 +21,7 @@ serde_json = { workspace = true }
 servo-allocator = { workspace = true }
 servo-base = { workspace = true }
 servo-config = { workspace = true }
+servo-media = { workspace = true }
 time = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
