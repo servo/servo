@@ -185,6 +185,7 @@ impl FontMetrics {
 #[derive(Debug, Default)]
 struct CachedShapeData {
     glyph_advances: FxHashMap<GlyphId, FractionalPixel>,
+    glyph_bounds: FxHashMap<GlyphId, Rect<f32>>,
     glyph_indices: FxHashMap<char, Option<GlyphId>>,
     shaped_text: HashMap<ShapeCacheEntry, Arc<ShapedText>>,
 }
@@ -198,7 +199,10 @@ impl malloc_size_of::MallocSizeOf for CachedShapeData {
             .iter()
             .map(|(key, value)| key.size_of(ops) + (*value).size_of(ops))
             .sum::<usize>();
-        self.glyph_advances.size_of(ops) + self.glyph_indices.size_of(ops) + shaped_text_size
+        self.glyph_advances.size_of(ops) +
+            self.glyph_bounds.size_of(ops) +
+            self.glyph_indices.size_of(ops) +
+            shaped_text_size
     }
 }
 
@@ -573,7 +577,17 @@ impl Font {
     }
 
     pub fn typographic_bounds(&self, glyph_id: GlyphId) -> Rect<f32> {
-        self.handle.typographic_bounds(glyph_id)
+        {
+            let cache = self.cached_shape_data.read();
+            if let Some(bounds) = cache.glyph_bounds.get(&glyph_id) {
+                return *bounds;
+            }
+        }
+
+        let bounds = self.handle.typographic_bounds(glyph_id);
+        let mut cache = self.cached_shape_data.write();
+        cache.glyph_bounds.insert(glyph_id, bounds);
+        bounds
     }
 
     /// Get the [`FontBaseline`] for this font.
