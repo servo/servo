@@ -12,7 +12,7 @@ interface XRSystem: EventTarget {
   Promise<XRSession> requestSession(XRSessionMode mode, optional  XRSessionInit parameters = {});
 
   // Events
-  // attribute EventHandler ondevicechange;
+  attribute EventHandler ondevicechange;
 };
 
 [SecureContext]
