@@ -187,9 +187,9 @@ impl ElementInternals {
     }
 
     pub(crate) fn is_invalid(&self, no_gc: &NoGC) -> bool {
-        self.is_target_form_associated() &&
-            self.is_instance_validatable(no_gc) &&
-            !self.satisfies_constraints()
+        self.is_target_form_associated()
+            && self.is_instance_validatable(no_gc)
+            && !self.satisfies_constraints()
     }
 
     pub(crate) fn custom_states_for_layout<'a>(&'a self) -> Option<LayoutDom<'a, CustomStateSet>> {
@@ -424,10 +424,8 @@ impl Validatable for ElementInternals {
     }
 
     fn satisfies_constraints(&self) -> bool {
-        let Some(validity_state) = self.validity_state.get() else {
-            return true;
-        };
-        validity_state.invalid_flags().is_empty()
+        self.validity_state
+            .is_none_or(|validity_state| validity_state.invalid_flags().is_empty())
     }
 
     /// <https://html.spec.whatwg.org/multipage#candidate-for-constraint-validation>
@@ -440,8 +438,8 @@ impl Validatable for ElementInternals {
         // The form-associated custom element is barred from constraint validation,
         // if the readonly attribute is specified, the element is disabled,
         // or the element has a datalist element ancestor.
-        !self.as_element().read_write_state() &&
-            !self.as_element().disabled_state() &&
-            !is_barred_by_datalist_ancestor(no_gc, self.target_element.upcast::<Node>())
+        !self.as_element().read_write_state()
+            && !self.as_element().disabled_state()
+            && !is_barred_by_datalist_ancestor(no_gc, self.target_element.upcast::<Node>())
     }
 }

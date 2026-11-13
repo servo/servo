@@ -2674,10 +2674,8 @@ impl Validatable for HTMLInputElement {
     }
 
     fn satisfies_constraints(&self) -> bool {
-        let Some(validity_state) = self.validity_state.get() else {
-            return true;
-        };
-        validity_state.invalid_flags().is_empty()
+        self.validity_state
+            .is_none_or(|validity_state| validity_state.invalid_flags().is_empty())
     }
 
     fn is_instance_validatable(&self, no_gc: &NoGC) -> bool {
