@@ -1297,25 +1297,16 @@ impl Document {
 
     /// <https://html.spec.whatwg.org/multipage/#fallback-base-url>
     pub(crate) fn fallback_base_url(&self) -> ServoUrl {
+        // Step 1. If document's URL matches about:blank or matches about:srcdoc,
+        // and document's about base URL is non-null, then return document's about base URL.
         let document_url = self.url();
-        // Step 1: If document is an iframe srcdoc document:
-        if document_url.as_str() == "about:srcdoc" {
-            // Step 1.1: Assert: document's about base URL is non-null.
-            // Step 1.2: Return document's about base URL.
-            return self
-                .about_base_url()
-                .expect("about:srcdoc page should always have an about base URL");
-        }
-
-        // Step 2: If document's URL matches about:blank and document's about base URL is
-        // non-null, then return document's about base URL.
-        if document_url.matches_about_blank() &&
+        if (document_url.matches_about_blank() || document_url.matches_about_srcdoc()) &&
             let Some(about_base_url) = self.about_base_url()
         {
             return about_base_url;
         }
 
-        // Step 3: Return document's URL.
+        // Step 2. Return document's URL.
         document_url
     }
 
