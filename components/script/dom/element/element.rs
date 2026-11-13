@@ -153,6 +153,7 @@ use crate::dom::html::htmllabelelement::HTMLLabelElement;
 use crate::dom::html::htmllegendelement::HTMLLegendElement;
 use crate::dom::html::htmllinkelement::HTMLLinkElement;
 use crate::dom::html::htmlmarqueeelement::HTMLMarqueeElement;
+use crate::dom::html::htmlmediaelement::HTMLMediaElement;
 use crate::dom::html::htmlobjectelement::HTMLObjectElement;
 use crate::dom::html::htmloutputelement::HTMLOutputElement;
 use crate::dom::html::htmlscriptelement::HTMLScriptElement;
@@ -5288,6 +5289,12 @@ impl Element {
                 HTMLElementTypeId::HTMLLabelElement,
             )) => {
                 let element = self.downcast::<HTMLLabelElement>().unwrap();
+                Some(element as &dyn Activatable)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLMediaElement(_),
+            )) => {
+                let element = self.downcast::<HTMLMediaElement>().unwrap();
                 Some(element as &dyn Activatable)
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(
