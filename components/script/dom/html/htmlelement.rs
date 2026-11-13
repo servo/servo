@@ -38,9 +38,7 @@ use crate::dom::characterdata::CharacterData;
 use crate::dom::css::cssstyledeclaration::{
     CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner,
 };
-use crate::dom::customelementregistry::{
-    CallbackReaction, CustomElementRegistry, CustomElementState,
-};
+use crate::dom::customelementregistry::{CustomElementRegistry, CustomElementState};
 use crate::dom::document::Document;
 use crate::dom::document::focus::FocusableArea;
 use crate::dom::document_event_handler::character_to_code;
@@ -75,7 +73,6 @@ use crate::dom::node::{
 use crate::dom::shadowroot::shadowroot::ShadowRoot;
 use crate::dom::text::Text;
 use crate::dom::window::scrolling_box::{ScrollAxisState, ScrollRequirement};
-use crate::event_loop::script_thread::ScriptThread;
 
 #[dom_struct]
 pub(crate) struct HTMLElement {
@@ -227,38 +224,18 @@ impl HTMLElement {
         }
     }
 
-    /// Update the disabled state of this disableable form control to the given `disabled` value
-    /// and enqueue callback reactions for it, if it's a form-associated custom element.
-    pub(crate) fn set_disabled_state_and_notify(&self, cx: &mut JSContext, disabled: bool) {
-        debug_assert!(self.is_disableable_form_control());
+    /// <https://html.spec.whatwg.org/multipage/#concept-fe-disabled>
+    pub(crate) fn is_form_element_disabled(&self, no_gc: &NoGC) -> bool {
+        // > A form control is disabled if any of the following are true:
+        // > - The element is a button, input, select, textarea, or form-associated custom
+        // > element, and the disabled attribute is specified on this element (regardless of
+        // > its value).
+        // > - The element is a descendant of a fieldset element whose disabled attribute is
+        // > specified, and is not a descendant of that fieldset element's first legend element
+        // > child, if any.
         let element = self.as_element();
-        if disabled == element.disabled_state() {
-            return;
-        }
-
-        element.set_disabled_state(cx.no_gc(), disabled);
-        element.set_enabled_state(cx.no_gc(), !disabled);
-
-        if self.is_form_associated_custom_element() {
-            ScriptThread::enqueue_callback_reaction(
-                cx,
-                element,
-                CallbackReaction::FormDisabled(disabled),
-                None,
-            );
-        }
-    }
-
-    /// If this is a disableable form control, determine if it is disabled by an attribute or by an
-    /// ancestor fieldset and update its disabled state.
-    pub(crate) fn maybe_update_form_control_disabled(&self, cx: &mut JSContext) {
-        if !self.is_disableable_form_control() {
-            return;
-        }
-        let element = self.as_element();
-        let disabled = element.has_attribute(&local_name!("disabled")) ||
-            element.is_disabled_by_ancestor_fieldset(cx.no_gc());
-        self.set_disabled_state_and_notify(cx, disabled);
+        (self.is_disableable_form_control() && element.has_attribute(&local_name!("disabled"))) ||
+            element.is_disabled_by_ancestor_fieldset(no_gc)
     }
 }
 
@@ -546,17 +523,25 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-click>
     fn Click(&self, cx: &mut JSContext) {
-        let element = self.as_element();
-        if element.disabled_state() {
+        // 1. If this element is a form control that is disabled, then return.
+        if self.is_form_element_disabled(cx.no_gc()) {
             return;
         }
+
+        // 2. If this element's click in progress flag is set, then return.
+        let element = self.as_element();
         if element.click_in_progress() {
             return;
         }
+
+        // 3. Set this element's click in progress flag.
         element.set_click_in_progress(true);
 
+        // 4. Fire a synthetic pointer event named click at this element, with the not trusted flag set.
         self.upcast::<Node>()
             .fire_synthetic_pointer_event_not_trusted(cx, atom!("click"));
+
+        // 5. Unset this element's click in progress flag.
         element.set_click_in_progress(false);
     }
 
@@ -1387,10 +1372,8 @@ impl VirtualMethods for HTMLElement {
                     selection.set_visible_selection_dirty();
                 }
             },
-            // Adding or removing a "disabled" attribute may disable or enable a disableable
-            // form control.
             (&local_name!("disabled"), _) => {
-                self.maybe_update_form_control_disabled(cx);
+                element.invalidate_disabled_state(cx);
             },
             (&local_name!("readonly"), mutation) if self.is_form_associated_custom_element() => {
                 match mutation {
@@ -1425,7 +1408,7 @@ impl VirtualMethods for HTMLElement {
         if let Some(super_type) = self.super_type() {
             super_type.bind_to_tree(cx, context);
         }
-        self.maybe_update_form_control_disabled(cx);
+        self.element.invalidate_disabled_state(cx);
         if self.element.has_attribute(&local_name!("accesskey")) {
             self.update_assigned_access_key();
         }
@@ -1435,7 +1418,7 @@ impl VirtualMethods for HTMLElement {
         if let Some(super_type) = self.super_type() {
             super_type.unbind_from_tree(cx, context);
         }
-
+        self.element.invalidate_disabled_state(cx);
         if self.as_element().has_attribute(&local_name!("accesskey")) {
             self.owner_document()
                 .event_handler()
@@ -1493,11 +1476,9 @@ impl VirtualMethods for HTMLElement {
         // movedNode.
         if let Some(form_control) = self.element.as_maybe_form_control() {
             form_control.moving_steps(cx);
-
-            // This isn't a part of the steps, but disabledness is specified in relation to
-            // an element's ancestry which is changing here.
-            self.maybe_update_form_control_disabled(cx);
         }
+
+        self.element.invalidate_disabled_state(cx);
     }
 }
 

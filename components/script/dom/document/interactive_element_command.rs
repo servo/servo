@@ -4,11 +4,8 @@
 
 use js::context::JSContext;
 use layout_api::QueryMsg;
-use script_bindings::codegen::GenericBindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
 use script_bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElementMethods;
-use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use script_bindings::codegen::GenericBindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
-use script_bindings::codegen::GenericBindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::DomRoot;
@@ -127,23 +124,25 @@ impl InteractiveElementCommand {
             // > The Disabled State of the command is true if the element or one of its ancestors
             // > is inert, or if the element's disabled state is set, and false otherwise.
             InteractiveElementCommand::Button(button) => {
-                Self::is_node_or_ancestor_inert(cx, button.upcast::<Node>()) || button.Disabled()
+                Self::is_node_or_ancestor_inert(cx, button.upcast::<Node>()) ||
+                    button.is_form_element_disabled()
             },
             // <https://html.spec.whatwg.org/multipage/#using-the-input-element-to-define-a-command>
             // > The Disabled State of the command is true if the element or one of its ancestors is
             // > inert, or if the element's disabled state is set, and false otherwise.
             InteractiveElementCommand::Input(input) => {
-                Self::is_node_or_ancestor_inert(cx, input.upcast::<Node>()) || input.Disabled()
+                Self::is_node_or_ancestor_inert(cx, input.upcast::<Node>()) ||
+                    input.is_form_element_disabled()
             },
             // <https://html.spec.whatwg.org/multipage/#using-the-option-element-to-define-a-command>
             // > The Disabled State of the command is true if the element is disabled, or if its
             // > nearest ancestor select element is disabled, or if it or one of its ancestors is
             // > inert, and false otherwise.
             InteractiveElementCommand::Option(option) => {
-                option.Disabled() ||
+                option.is_option_disabled(cx.no_gc()) ||
                     option
                         .nearest_ancestor_select()
-                        .is_some_and(|select| select.Disabled()) ||
+                        .is_some_and(|select| select.is_form_element_disabled()) ||
                     Self::is_node_or_ancestor_inert(cx, option.upcast::<Node>())
             },
             // <https://html.spec.whatwg.org/multipage#using-the-accesskey-attribute-to-define-a-command-on-other-elements>

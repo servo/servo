@@ -334,8 +334,7 @@ impl HTMLSelectElement {
             }
             // Step 5.2 If firstEnabledOption is null and option is not disabled, then set
             // firstEnabledOption to option.
-            let element = option.upcast::<Element>();
-            if first_enabled.is_none() && !element.disabled_state() {
+            if first_enabled.is_none() && !option.is_option_disabled(no_gc) {
                 first_enabled = Some(option.as_rooted());
             }
         }
@@ -356,13 +355,17 @@ impl HTMLSelectElement {
         has_changed
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set>
+    /// Step 5.6 (specific to HTMLSelectElement)
     pub(crate) fn push_form_data(&self, no_gc: &NoGC, data_set: &mut Vec<FormDatum>) {
         if self.Name().is_empty() {
             return;
         }
+        // 5.6. If the field element is a select element, then for each option element in the select
+        // element's list of options whose selectedness is true and that is not disabled, create an
+        // entry with name and the value of the option element, and append it to entry list.
         for opt in self.list_of_options(no_gc) {
-            let element = opt.upcast::<Element>();
-            if opt.Selected() && element.enabled_state() {
+            if opt.Selected() && !opt.is_option_disabled(no_gc) {
                 data_set.push(FormDatum {
                     ty: self.Type(),
                     name: self.Name(),
@@ -441,11 +444,12 @@ impl HTMLSelectElement {
     pub(crate) fn show_menu(&self, cx: &mut JSContext) {
         // Collect list of optgroups and options
         let mut index = 0;
+        let no_gc = cx.no_gc();
         let mut embedder_option_from_option = |option: &HTMLOptionElement| {
             let embedder_option = SelectElementOption {
                 id: index,
                 label: option.displayed_label().into(),
-                is_disabled: option.Disabled(),
+                is_disabled: option.is_option_disabled(no_gc),
             };
             index += 1;
             embedder_option
@@ -537,8 +541,7 @@ impl HTMLSelectElement {
                     first_selected = Some(DomRoot::from_ref(&option));
                 }
                 option.set_selectedness(cx.no_gc(), false);
-                let element = option.upcast::<Element>();
-                if first_enabled.is_none() && !element.disabled_state() {
+                if first_enabled.is_none() && !option.is_option_disabled(cx.no_gc()) {
                     first_enabled = Some(DomRoot::from_ref(&option));
                 }
             }
@@ -587,8 +590,7 @@ impl HTMLSelectElement {
     }
 
     fn may_have_embedder_control(&self) -> bool {
-        let el = self.upcast::<Element>();
-        !el.disabled_state()
+        !self.is_form_element_disabled()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#select-enabled-selectedcontent>
@@ -657,6 +659,15 @@ impl HTMLSelectElement {
                 option.clone_an_option_into_selectedcontent(cx, selected_content);
             },
         }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-fe-disabled>
+    /// <https://html.spec.whatwg.org/multipage/#concept-element-disabled>
+    pub(crate) fn is_form_element_disabled(&self) -> bool {
+        // For select elements, the form element disabled concept is aligned with the disabled state.
+        self.upcast::<Element>()
+            .state()
+            .contains(ElementState::DISABLED)
     }
 }
 
@@ -921,12 +932,16 @@ impl VirtualMethods for HTMLSelectElement {
                 // > - select elements that do not have a required attribute
                 element.set_state(cx.no_gc(), ElementState::OPTIONAL_, !required);
             },
-            local_name!("disabled") => {
-                self.validity_state(cx)
-                    .perform_validation_and_update(cx, ValidationFlags::VALUE_MISSING);
-            },
             local_name!("form") => {
                 self.form_attribute_mutated(cx, mutation);
+            },
+            local_name!("disabled") => {
+                if !matches!(mutation, AttributeMutation::Set(Some(_))) {
+                    // Invalidate optgroup and option elements whose nearest ancestor select
+                    // disabledness might have changed
+                    self.upcast::<Element>()
+                        .invalidate_descendants_disabled_state(cx);
+                }
             },
             _ => {},
         }
@@ -1008,8 +1023,7 @@ impl Validatable for HTMLSelectElement {
     fn is_instance_validatable(&self, no_gc: &NoGC) -> bool {
         // https://html.spec.whatwg.org/multipage/#enabling-and-disabling-form-controls%3A-the-disabled-attribute%3Abarred-from-constraint-validation
         // https://html.spec.whatwg.org/multipage/#the-datalist-element%3Abarred-from-constraint-validation
-        !self.upcast::<Element>().disabled_state() &&
-            !is_barred_by_datalist_ancestor(no_gc, self.upcast())
+        !self.is_form_element_disabled() && !is_barred_by_datalist_ancestor(no_gc, self.upcast())
     }
 
     fn perform_validation(
@@ -1043,7 +1057,7 @@ impl Activatable for HTMLSelectElement {
     }
 
     fn is_instance_activatable(&self) -> bool {
-        !self.upcast::<Element>().disabled_state()
+        !self.is_form_element_disabled()
     }
 
     fn activation_behavior(

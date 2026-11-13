@@ -10,6 +10,7 @@ use js::context::{JSContext, NoGC};
 use script_bindings::cell::DomRefCell;
 use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
+use stylo_dom::ElementState;
 
 use crate::dom::bindings::codegen::Bindings::ElementInternalsBinding::{
     ElementInternalsMethods, ValidityStateFlags,
@@ -146,10 +147,20 @@ impl ElementInternals {
         {
             warn!("We are in perform_entry_construction on an element with disabled attribute!");
         }
-        if self.target_element.upcast::<Element>().disabled_state() {
+        if self
+            .target_element
+            .upcast::<Element>()
+            .state()
+            .contains(ElementState::DISABLED)
+        {
             warn!("We are in perform_entry_construction on an element with disabled bit!");
         }
-        if !self.target_element.upcast::<Element>().enabled_state() {
+        if !self
+            .target_element
+            .upcast::<Element>()
+            .state()
+            .contains(ElementState::ENABLED)
+        {
             warn!("We are in perform_entry_construction on an element without enabled bit!");
         }
 
@@ -441,7 +452,7 @@ impl Validatable for ElementInternals {
         // if the readonly attribute is specified, the element is disabled,
         // or the element has a datalist element ancestor.
         !self.as_element().read_write_state() &&
-            !self.as_element().disabled_state() &&
+            !self.target_element.is_form_element_disabled(no_gc) &&
             !is_barred_by_datalist_ancestor(no_gc, self.target_element.upcast::<Node>())
     }
 }

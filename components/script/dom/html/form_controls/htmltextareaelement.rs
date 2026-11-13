@@ -159,7 +159,7 @@ impl HTMLTextAreaElement {
     pub(crate) fn is_mutable(&self) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element%3Aconcept-fe-mutable
         // https://html.spec.whatwg.org/multipage/#the-readonly-attribute:concept-fe-mutable
-        !(self.upcast::<Element>().disabled_state() || self.ReadOnly())
+        !(self.is_form_element_disabled() || self.ReadOnly())
     }
 
     fn handle_focus_event(&self, cx: &mut JSContext, event: &FocusEvent) {
@@ -230,6 +230,21 @@ impl HTMLTextAreaElement {
                     // n/a
                 }),
             );
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-fe-disabled>
+    /// <https://html.spec.whatwg.org/multipage/#concept-element-disabled>
+    pub(crate) fn is_form_element_disabled(&self) -> bool {
+        // For textarea elements, the form element disabled concept is aligned with the disabled state.
+        self.upcast::<Element>()
+            .state()
+            .contains(ElementState::DISABLED)
+    }
+
+    pub(crate) fn disabled_state_changed(&self, no_gc: &NoGC) {
+        let read_write = !(self.ReadOnly() || self.is_form_element_disabled());
+        self.upcast::<Element>()
+            .set_read_write_state(no_gc, read_write);
     }
 }
 
@@ -619,19 +634,6 @@ impl VirtualMethods for HTMLTextAreaElement {
             .unwrap()
             .attribute_mutated(cx, attr, mutation);
         match *attr.local_name() {
-            local_name!("disabled") => {
-                let el = self.upcast::<Element>();
-                match mutation {
-                    AttributeMutation::Set(_) => {
-                        el.set_read_write_state(cx.no_gc(), false);
-                    },
-                    AttributeMutation::Removed => {
-                        if !el.disabled_state() && !el.read_write_state() {
-                            el.set_read_write_state(cx.no_gc(), true);
-                        }
-                    },
-                }
-            },
             local_name!("maxlength") => match *attr.value() {
                 AttrValue::Int(_, value) => {
                     let mut text_input = self.text_input.safe_borrow_mut(cx.no_gc());
@@ -678,7 +680,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                         el.set_read_write_state(cx.no_gc(), false);
                     },
                     AttributeMutation::Removed => {
-                        el.set_read_write_state(cx.no_gc(), !el.disabled_state());
+                        el.set_read_write_state(cx.no_gc(), !self.is_form_element_disabled());
                     },
                 }
             },
@@ -831,7 +833,7 @@ impl Validatable for HTMLTextAreaElement {
         // https://html.spec.whatwg.org/multipage/#enabling-and-disabling-form-controls%3A-the-disabled-attribute%3Abarred-from-constraint-validation
         // https://html.spec.whatwg.org/multipage/#the-textarea-element%3Abarred-from-constraint-validation
         // https://html.spec.whatwg.org/multipage/#the-datalist-element%3Abarred-from-constraint-validation
-        !self.upcast::<Element>().disabled_state() &&
+        !self.is_form_element_disabled() &&
             !self.ReadOnly() &&
             !is_barred_by_datalist_ancestor(no_gc, self.upcast())
     }

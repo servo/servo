@@ -382,6 +382,15 @@ impl HTMLButtonElement {
             .get_attribute_string_value(&local_name!("value"))
             .map(|value| value.into())
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-fe-disabled>
+    /// <https://html.spec.whatwg.org/multipage/#concept-element-disabled>
+    pub(crate) fn is_form_element_disabled(&self) -> bool {
+        // For button elements, the form element disabled concept is aligned with the disabled state.
+        self.upcast::<Element>()
+            .state()
+            .contains(ElementState::DISABLED)
+    }
 }
 
 impl VirtualMethods for HTMLButtonElement {
@@ -399,10 +408,6 @@ impl VirtualMethods for HTMLButtonElement {
             .unwrap()
             .attribute_mutated(cx, attr, mutation);
         match *attr.local_name() {
-            local_name!("disabled") => {
-                self.validity_state(cx)
-                    .perform_validation_and_update(cx, ValidationFlags::all());
-            },
             local_name!("type") => {
                 match mutation {
                     AttributeMutation::Set(_) => self.set_type(cx, Some(attr.to_dom_string())),
@@ -469,7 +474,7 @@ impl Validatable for HTMLButtonElement {
         // https://html.spec.whatwg.org/multipage/#enabling-and-disabling-form-controls%3A-the-disabled-attribute%3Abarred-from-constraint-validation
         // https://html.spec.whatwg.org/multipage/#the-datalist-element%3Abarred-from-constraint-validation
         self.is_submit_button() &&
-            !self.upcast::<Element>().disabled_state() &&
+            !self.is_form_element_disabled() &&
             !is_barred_by_datalist_ancestor(no_gc, self.upcast())
     }
 }
@@ -481,7 +486,7 @@ impl Activatable for HTMLButtonElement {
 
     fn is_instance_activatable(&self) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-button-element
-        !self.upcast::<Element>().disabled_state() &&
+        !self.is_form_element_disabled() &&
         // In addition, if this button is the file selector button, let the containing
         // `<input>` handle activation.
             self.upcast::<Node>().implemented_pseudo_element() !=
@@ -496,7 +501,7 @@ impl Activatable for HTMLButtonElement {
         target: &EventTarget,
     ) {
         // Step 1. If element is disabled, then return.
-        if self.upcast::<Element>().disabled_state() {
+        if self.is_form_element_disabled() {
             return;
         }
 

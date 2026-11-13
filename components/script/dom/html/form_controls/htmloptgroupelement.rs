@@ -20,6 +20,7 @@ use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmloptionelement::HTMLOptionElement;
 use crate::dom::html::htmlselectelement::HTMLSelectElement;
+use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{BindContext, Node, UnbindContext};
 use crate::dom::validation::Validatable;
@@ -72,6 +73,29 @@ impl HTMLOptGroupElement {
         }
     }
 
+    /// Like the [option element nearest ancestor select](https://html.spec.whatwg.org/multipage/#option-element-nearest-ancestor-select),
+    /// but an ancestor optgroup also means there is none.
+    pub(crate) fn nearest_ancestor_select(&self) -> Option<DomRoot<HTMLSelectElement>> {
+        for ancestor in self.upcast::<Node>().ancestors() {
+            let Some(element) = ancestor.downcast::<Element>() else {
+                continue;
+            };
+            if matches!(
+                element.local_name(),
+                &local_name!("datalist") |
+                    &local_name!("hr") |
+                    &local_name!("option") |
+                    &local_name!("optgroup")
+            ) {
+                return None;
+            }
+            if let Some(select) = DomRoot::downcast::<HTMLSelectElement>(ancestor) {
+                return Some(select);
+            }
+        }
+        None
+    }
+
     fn owner_select_element(&self) -> Option<DomRoot<HTMLSelectElement>> {
         self.upcast::<Node>()
             .GetParentNode()
@@ -108,24 +132,13 @@ impl VirtualMethods for HTMLOptGroupElement {
             .unwrap()
             .attribute_mutated(cx, attr, mutation);
         if attr.local_name() == &local_name!("disabled") {
-            let disabled_state = match mutation {
-                AttributeMutation::Set(None) => true,
-                AttributeMutation::Set(Some(_)) => {
-                    // Option group was already disabled.
-                    return;
-                },
-                AttributeMutation::Removed => false,
-            };
-            let element = self.upcast::<Element>();
-            element.set_disabled_state(cx.no_gc(), disabled_state);
-            element.set_enabled_state(cx.no_gc(), !disabled_state);
-
-            let options = element
+            let options = self
                 .upcast::<Node>()
-                .children()
+                .traverse_preorder(ShadowIncluding::No)
                 .filter_map(DomRoot::downcast::<HTMLOptionElement>);
+            // The disabledness of descendant option elements might have changed.
             for option in options {
-                option.update_disabled_state(cx.no_gc());
+                option.upcast::<Element>().invalidate_disabled_state(cx);
             }
         }
     }
