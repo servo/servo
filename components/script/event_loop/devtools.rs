@@ -21,7 +21,6 @@ use script_bindings::root::Dom;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::PipelineId;
 use servo_config::pref;
-use style::attr::AttrValue;
 use style::stylesheets::Origin;
 
 use crate::conversions::Convert;
@@ -771,11 +770,9 @@ pub(crate) fn handle_modify_attribute(
     for modification in modifications {
         match modification.new_value {
             Some(string) => {
-                elem.set_attribute(
-                    cx,
-                    &LocalName::from(modification.attribute_name),
-                    AttrValue::String(string),
-                );
+                let name = LocalName::from(modification.attribute_name);
+                let value = elem.parse_attribute(&ns!(), &name, DOMString::from(string));
+                elem.set_attribute(cx, &name, value);
             },
             None => elem.RemoveAttribute(cx, DOMString::from(modification.attribute_name)),
         }
