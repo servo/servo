@@ -125,6 +125,8 @@ pub enum WebGLMsg {
         WebGLContextId,
         Size2D<u32>,
         GenericSender<Result<(), String>>,
+        /// Returns which size it was actually resized to.
+        GenericSender<Size2D<u32>>,
     ),
     /// Drops a WebGLContext.
     RemoveContext(WebGLContextId),
@@ -166,6 +168,8 @@ pub struct WebGLCreateContextResult {
     pub glsl_version: WebGLSLVersion,
     /// The GL API used by the context.
     pub api_type: GlType,
+    /// The size the context choose.
+    pub size: Size2D<u32>,
 }
 
 /// Defines the WebGL version
@@ -228,9 +232,14 @@ impl WebGLMsgSender {
         &self,
         size: Size2D<u32>,
         sender: GenericSender<Result<(), String>>,
+        size_returner: GenericSender<Size2D<u32>>,
     ) -> WebGLSendResult {
-        self.sender
-            .send(WebGLMsg::ResizeContext(self.ctx_id, size, sender))
+        self.sender.send(WebGLMsg::ResizeContext(
+            self.ctx_id,
+            size,
+            sender,
+            size_returner,
+        ))
     }
 
     #[inline]
