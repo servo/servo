@@ -224,9 +224,9 @@ def create_github_reports(body: str, tag: str = ""):
         "name": tag,
         "head_sha": get_commit_sha(),
         "status": "completed",
-        "started_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat() + "Z",
+        "started_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "conclusion": conclusion,
-        "completed_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat() + "Z",
+        "completed_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "output": {
             "title": f"Aggregated {tag} report",
             "summary": body,
