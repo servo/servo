@@ -104,7 +104,7 @@ pub(super) struct AccessibilityUpdate<'update> {
     /// which have damage, including nodes which are newly added to the accessibility tree.
     dom_node_map: RefCell<FxHashMap<NodeId, ServoLayoutNode<'update>>>,
 
-    /// Map of accessibility node to `LocalDamage` which couldn't be resolved during the inital
+    /// Map of accessibility node to `LocalDamage` which couldn't be resolved during the initial
     /// tree walk.
     unresolved_local_damage: FxHashMap<NodeId, LocalAccessibilityDamage>,
     /// The previous text node in tree order within the same container node.
@@ -860,11 +860,10 @@ impl<'update> AccessibilityUpdate<'update> {
 
     #[expect(unsafe_code)]
     fn ensure_dom_node_for_damage_root(&self, damage_root_id: NodeId, tree: &AccessibilityTree) {
-        let Some(start_node_id) = self.damage_map.keys().next() else {
-            unreachable!(
-                "ensure_dom_node_for_damage_root should not be called if damage_map is empty"
+        let start_node_id =
+            self.damage_map.keys().next().expect(
+                "ensure_dom_node_for_damage_root should not be called if damage_map is empty",
             );
-        };
         let mut dom_node_map = self.dom_node_map.borrow_mut();
         let dom_node = dom_node_map
             .get(start_node_id)

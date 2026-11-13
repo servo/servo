@@ -455,14 +455,18 @@ impl AccessibilityNode {
                 // While walking a newly added subtree, compute irrelevant whitespace as we go, so
                 // we don't need to repeatedly walk across the entire subtree.
                 let closest_previous_text = std::mem::take(&mut update.closest_previous_text);
-                let is_irrelevant_whitespace =
-                    if let Some(closest_previous_text) = closest_previous_text.as_ref() {
-                        let closest_previous_text = closest_previous_text.borrow();
-                        self.is_irrelevant_whitespace(Some(&closest_previous_text))
-                    } else {
-                        self.is_irrelevant_whitespace(None)
-                    } || self.flags.contains(Flags::MayBeIrrelevantWhitespace);
-                local_damage.insert(self.set_is_hidden(is_irrelevant_whitespace));
+                let is_irrelevant_whitespace = {
+                    let closest_previous_text = closest_previous_text
+                        .as_ref()
+                        .map(|closest_previous_text| closest_previous_text.borrow());
+                    self.is_irrelevant_whitespace(closest_previous_text.as_deref())
+                };
+                let maybe_irrelevant_whitespace =
+                    self.flags.contains(Flags::MayBeIrrelevantWhitespace);
+
+                local_damage.insert(
+                    self.set_is_hidden(is_irrelevant_whitespace || maybe_irrelevant_whitespace),
+                );
                 if let Some(closest_previous_text) = closest_previous_text &&
                     !is_irrelevant_whitespace
                 {
@@ -591,7 +595,7 @@ impl AccessibilityNode {
     /// For this method, we pass in only the closest previous text node, since we can determine that
     /// during a tree walk. If the previous text node doesn't provide enough information to
     /// determine whether this node is irrelevant whitespace, this node is marked as
-    ///  and this method returns `false`.
+    /// [`Flags::MaybeIrrelevantWhitespace`] and this method returns `false`.
     ///
     /// [`Self::maybe_unhide_previous_whitespace_only_node()`] will determine whether a node already
     /// marked as [`Flags::MayBeIrrelevantWhitespace`] should be hidden based on its subsequent text
@@ -1188,7 +1192,7 @@ enum TreeOrder {
 }
 
 struct AccessibilityNodeTreeOrderIterator {
-    previous: Option<ArcRefCell<AccessibilityNode>>,
+    previous_node: Option<ArcRefCell<AccessibilityNode>>,
     next_value: Option<ArcRefCell<AccessibilityNode>>,
     stay_within: Option<NodeId>,
     order: TreeOrder,
@@ -1196,47 +1200,27 @@ struct AccessibilityNodeTreeOrderIterator {
 
 impl AccessibilityNodeTreeOrderIterator {
     fn new(start_node: &AccessibilityNode, stay_within: Option<NodeId>, order: TreeOrder) -> Self {
-        let previous = None;
-        let next_value = Self::compute_next_value(start_node, &previous, &stay_within, order);
+        let previous_node = None;
+        let next_value = Self::compute_next_node(start_node, &previous_node, &stay_within, order);
         AccessibilityNodeTreeOrderIterator {
-            previous,
+            previous_node,
             next_value,
             stay_within,
             order,
         }
     }
-}
 
-impl Iterator for AccessibilityNodeTreeOrderIterator {
-    type Item = ArcRefCell<AccessibilityNode>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let next_value = self.next_value.take();
-        self.next_value = next_value.as_ref().and_then(|node| {
-            Self::compute_next_value(
-                &node.borrow(),
-                &self.previous,
-                &self.stay_within,
-                self.order,
-            )
-        });
-        self.previous = next_value.clone();
-        next_value
-    }
-}
-
-impl AccessibilityNodeTreeOrderIterator {
-    fn compute_next_value(
+    fn compute_next_node(
         node: &AccessibilityNode,
-        previous: &Option<ArcRefCell<AccessibilityNode>>,
+        previous_node: &Option<ArcRefCell<AccessibilityNode>>,
         stay_within: &Option<NodeId>,
         order: TreeOrder,
     ) -> Option<ArcRefCell<AccessibilityNode>> {
         match order {
             TreeOrder::Forwards => {
                 let mut descend = false;
-                if let Some(previous) = previous.as_ref() {
-                    let previous_id = previous.borrow().id();
+                if let Some(previous_node) = previous_node.as_ref() {
+                    let previous_id = previous_node.borrow().id();
                     if let Some(parent) = node.parent() &&
                         parent.borrow().id() == previous_id
                     {
@@ -1246,7 +1230,7 @@ impl AccessibilityNodeTreeOrderIterator {
                         if sibling.id() == previous_id {
                             descend = true;
                         } else {
-                            for ancestor in previous.borrow().ancestors() {
+                            for ancestor in previous_node.borrow().ancestors() {
                                 if sibling.id() == ancestor.borrow().id() {
                                     descend = true;
                                     break;
@@ -1296,6 +1280,24 @@ impl AccessibilityNodeTreeOrderIterator {
                 Some(parent)
             },
         }
+    }
+}
+
+impl Iterator for AccessibilityNodeTreeOrderIterator {
+    type Item = ArcRefCell<AccessibilityNode>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let next_value = self.next_value.take();
+        self.next_value = next_value.as_ref().and_then(|node| {
+            Self::compute_next_node(
+                &node.borrow(),
+                &self.previous_node,
+                &self.stay_within,
+                self.order,
+            )
+        });
+        self.previous_node = next_value.clone();
+        next_value
     }
 }
 
@@ -1363,6 +1365,8 @@ static HTML_ELEMENT_ROLE_MAPPINGS: LazyLock<FxHashMap<LocalName, Role>> = LazyLo
 static NAME_FROM_CONTENTS_ROLES: LazyLock<FxHashSet<Role>> =
     LazyLock::new(|| [(Role::Heading), (Role::Link)].into_iter().collect());
 
+/// This is a subset of <https://www.w3.org/TR/wai-aria/#document_structure_roles>, based on the
+/// heuristic of nodes which are expected to contain inline nodes.
 static CONTAINER_ROLES: LazyLock<FxHashSet<Role>> = LazyLock::new(|| {
     [
         (Role::Article),
