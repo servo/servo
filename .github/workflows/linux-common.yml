@@ -144,6 +144,11 @@ jobs:
           sudo apt install -qy tshark shellcheck
           ./mach bootstrap --yes --skip-lints --skip-nextest
 
+      # Install ALSA development headers (needed for alsa-sys crate for WebMIDI)
+      - name: Install libasound2-dev
+        shell: bash
+        run: sudo apt install libasound2-dev
+
       # Only enable `sccache` on forks. On the main repository we suffer from too much cache-trashing,
       # and also don't need it for builds running on our self-hosted runners (cached cargo target directory).
       # On forks expected activity is much lower, so the 10GB cache will be sufficient for the expected
