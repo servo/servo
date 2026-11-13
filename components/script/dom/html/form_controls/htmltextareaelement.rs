@@ -829,9 +829,9 @@ impl Validatable for HTMLTextAreaElement {
         // https://html.spec.whatwg.org/multipage/#enabling-and-disabling-form-controls%3A-the-disabled-attribute%3Abarred-from-constraint-validation
         // https://html.spec.whatwg.org/multipage/#the-textarea-element%3Abarred-from-constraint-validation
         // https://html.spec.whatwg.org/multipage/#the-datalist-element%3Abarred-from-constraint-validation
-        !self.upcast::<Element>().disabled_state()
-            && !self.ReadOnly()
-            && !is_barred_by_datalist_ancestor(no_gc, self.upcast())
+        !self.upcast::<Element>().disabled_state() &&
+            !self.ReadOnly() &&
+            !is_barred_by_datalist_ancestor(no_gc, self.upcast())
     }
 
     fn perform_validation(
@@ -848,10 +848,10 @@ impl Validatable for HTMLTextAreaElement {
 
         // https://html.spec.whatwg.org/multipage/#suffering-from-being-missing
         // https://html.spec.whatwg.org/multipage/#the-textarea-element%3Asuffering-from-being-missing
-        if validate_flags.contains(ValidationFlags::VALUE_MISSING)
-            && self.Required()
-            && self.is_mutable()
-            && value_len == 0
+        if validate_flags.contains(ValidationFlags::VALUE_MISSING) &&
+            self.Required() &&
+            self.is_mutable() &&
+            value_len == 0
         {
             failed_flags.insert(ValidationFlags::VALUE_MISSING);
         }

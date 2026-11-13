@@ -286,8 +286,8 @@ impl HTMLSelectElement {
             self.list_of_options(no_gc)
                 .next()
                 .filter(|node| {
-                    node.Value().is_empty()
-                        && !has_ancestor_optgroup_between_self_and_select(no_gc, node.upcast())
+                    node.Value().is_empty() &&
+                        !has_ancestor_optgroup_between_self_and_select(no_gc, node.upcast())
                 })
                 .map(|node| node.as_rooted())
         } else {
@@ -342,9 +342,9 @@ impl HTMLSelectElement {
 
         // Step 6. If lastSelectedOption is null, firstEnabledOption is not null, and select's
         // display size is 1:
-        if last_selected.is_none()
-            && let Some(first_enabled) = first_enabled
-            && self.display_size() == 1
+        if last_selected.is_none() &&
+            let Some(first_enabled) = first_enabled &&
+            self.display_size() == 1
         {
             // Step 6.1. Set firstEnabledOption's selectedness to true.
             first_enabled.set_selectedness(no_gc, true);
@@ -545,8 +545,8 @@ impl HTMLSelectElement {
 
             if let Some(first_selected) = first_selected {
                 first_selected.set_selectedness(cx.no_gc(), true);
-            } else if self.display_size() == 1
-                && let Some(first_enabled) = first_enabled
+            } else if self.display_size() == 1 &&
+                let Some(first_enabled) = first_enabled
             {
                 first_enabled.set_selectedness(cx.no_gc(), true);
             }
@@ -964,8 +964,8 @@ impl VirtualMethods for HTMLSelectElement {
 
     fn handle_event(&self, cx: &mut js::context::JSContext, event: &Event) {
         self.super_type().unwrap().handle_event(cx, event);
-        if let Some(event) = event.downcast::<FocusEvent>()
-            && *event.upcast::<Event>().type_() != *"blur"
+        if let Some(event) = event.downcast::<FocusEvent>() &&
+            *event.upcast::<Event>().type_() != *"blur"
         {
             self.owner_document()
                 .embedder_controls()
@@ -1006,8 +1006,8 @@ impl Validatable for HTMLSelectElement {
     fn is_instance_validatable(&self, no_gc: &NoGC) -> bool {
         // https://html.spec.whatwg.org/multipage/#enabling-and-disabling-form-controls%3A-the-disabled-attribute%3Abarred-from-constraint-validation
         // https://html.spec.whatwg.org/multipage/#the-datalist-element%3Abarred-from-constraint-validation
-        !self.upcast::<Element>().disabled_state()
-            && !is_barred_by_datalist_ancestor(no_gc, self.upcast())
+        !self.upcast::<Element>().disabled_state() &&
+            !is_barred_by_datalist_ancestor(no_gc, self.upcast())
     }
 
     fn perform_validation(
@@ -1022,8 +1022,8 @@ impl Validatable for HTMLSelectElement {
         if validate_flags.contains(ValidationFlags::VALUE_MISSING) && self.Required() {
             let placeholder = self.get_placeholder_label_option(cx.no_gc());
             let is_value_missing = !self.list_of_options(cx.no_gc()).any(|e| {
-                e.Selected()
-                    && placeholder
+                e.Selected() &&
+                    placeholder
                         .as_ref()
                         .map(|placeholder| **placeholder != **e)
                         .unwrap_or(true)
@@ -1065,10 +1065,10 @@ fn skip_descendants_for_list_of_options(no_gc: &NoGC, node: &Node) -> bool {
     //   - node is an hr element;
     //   - node is an option element;
     //   - node is a datalist element;
-    if node.is::<HTMLSelectElement>()
-        || node.is::<HTMLHRElement>()
-        || node.is::<HTMLOptionElement>()
-        || node.is::<HTMLDataListElement>()
+    if node.is::<HTMLSelectElement>() ||
+        node.is::<HTMLHRElement>() ||
+        node.is::<HTMLOptionElement>() ||
+        node.is::<HTMLDataListElement>()
     {
         return true;
     }
@@ -1078,8 +1078,8 @@ fn skip_descendants_for_list_of_options(no_gc: &NoGC, node: &Node) -> bool {
     //
     // We shouldn't recurse into them because of the check above and `select` here is the
     // originating select element of this call.
-    if node.is::<HTMLOptGroupElement>()
-        && has_ancestor_optgroup_between_self_and_select(no_gc, node)
+    if node.is::<HTMLOptGroupElement>() &&
+        has_ancestor_optgroup_between_self_and_select(no_gc, node)
     {
         return true;
     }
