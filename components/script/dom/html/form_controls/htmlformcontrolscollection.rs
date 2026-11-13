@@ -58,14 +58,14 @@ impl HTMLFormControlsCollection {
 }
 
 impl HTMLFormControlsCollection {
-    pub(crate) fn set_user_validity_on_all(&self, cx: &mut JSContext) {
-        self.collection.elements_iter(cx.no_gc()).for_each(|item| {
+    pub(crate) fn set_user_validity_on_all(&self, no_gc: &NoGC) {
+        self.collection.elements_iter(no_gc).for_each(|item| {
             if let Some(input) = item.downcast::<HTMLInputElement>() {
-                input.set_user_validity(cx.no_gc(), true);
+                input.set_user_validity(no_gc, true);
             } else if let Some(select) = item.downcast::<HTMLSelectElement>() {
-                select.set_user_validity(cx.no_gc(), true);
+                select.set_user_validity(no_gc, true);
             } else if let Some(text_area) = item.downcast::<HTMLTextAreaElement>() {
-                text_area.set_user_validity(cx.no_gc(), true);
+                text_area.set_user_validity(no_gc, true);
             }
         });
     }

@@ -377,7 +377,8 @@ impl HTMLInputElement {
         )
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#states-of-the-type-attribute>
+    /// <https://html.spec.whatwg.org/multipage/#the-input-element:event-change>
+    /// These values are taken from the table listed for the "change" event.
     pub(crate) fn does_change_event_apply(&self) -> bool {
         matches!(
             *self.input_type(),
