@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Reference for SVG image viewport fitting</title>
+<style>
+  .case { position: absolute; left: 8px; width: 500px; height: 250px; }
+  .case:nth-of-type(1) { top: 8px; }
+  .case:nth-of-type(2) { top: 68px; }
+  .case:nth-of-type(3) { top: 128px; }
+  .case:nth-of-type(4) { top: 263px; }
+  .case:nth-of-type(5) { top: 323px; }
+  .case:nth-of-type(6) { top: 383px; }
+  .case:nth-of-type(7) { top: 443px; }
+  .viewport { width: 100px; height: 50px; position: relative; }
+  .image { position: absolute; left: 30px; width: 40px; height: 50px; background: green; }
+  .image::before { content: ""; display: block; width: 25%; height: 20%; background: blue; }
+  .indefinite { height: 125px; }
+  .indefinite .image { left: 0; width: 100px; height: 125px; }
+  .none .image { left: 0; width: 100px; }
+  .slice .image { left: 0; width: 100px; }
+  .slice .image::before { display: none; }
+  .selector .image { left: 0; width: 40px; }
+  .frame { position: absolute; left: 208px; top: 8px; width: 516px; height: 516px; }
+  .frame .image { left: 18px; top: 8px; width: 80px; height: 100px; }
+</style>
+<div class="case"><div class="viewport"><div class="image"></div></div></div>
+<div class="case"><div class="viewport"><div class="image"></div></div></div>
+<div class="case indefinite"><div class="viewport"><div class="image"></div></div></div>
+<div class="case none"><div class="viewport"><div class="image"></div></div></div>
+<div class="case slice"><div class="viewport"><div class="image"></div></div></div>
+<div class="case"><div class="viewport"><div class="image"></div></div></div>
+<div class="case selector"><div class="viewport"><div class="image"></div></div></div>
+<div class="frame"><div class="image"></div></div>
