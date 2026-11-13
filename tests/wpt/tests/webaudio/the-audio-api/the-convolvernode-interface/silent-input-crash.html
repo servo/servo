@@ -1,0 +1,14 @@
+<!doctype html>
+<html class="test-wait">
+<link rel="help" href="https://github.com/servo/servo/issues/49769">
+<script>
+  actx = new AudioContext();
+  let node = actx.createConvolver();
+  node.buffer = actx.createBuffer(2, 2, actx.sampleRate);;
+  node.connect(actx.destination);
+  setTimeout(() => {
+      // Force an interaction with the audio threaed.
+      actx.currentTime;
+      document.documentElement.classList.remove("test-wait");
+  }, 100);
+</script>
