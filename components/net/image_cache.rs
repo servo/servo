@@ -564,8 +564,8 @@ impl DemandDrivenRasterEntry {
         }
     }
 
-    /// Checks if the finished job better match than whats already there
-    /// Accepts despite missmatch if nothing is present yet
+    /// A check that is common when prunning, decode finish, and key available
+    /// can be called several times on same image during stages.
     fn accepts_result(&self, epoch: RasterDecodeRequestCounter, size: ImageMetadata) -> bool {
         let Some(target) = self.target_image_metadata else {
             return false;
