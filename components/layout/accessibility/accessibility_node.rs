@@ -1157,21 +1157,7 @@ impl AccessibilityNodeTreeOrderIterator {
             order,
         }
     }
-}
 
-impl Iterator for AccessibilityNodeTreeOrderIterator {
-    type Item = ArcRefCell<AccessibilityNode>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let current_value = self.next_value.take();
-        self.next_value = current_value.as_ref().and_then(|node| {
-            Self::compute_next_value(&node.borrow(), true, &self.stay_within, self.order)
-        });
-        current_value
-    }
-}
-
-impl AccessibilityNodeTreeOrderIterator {
     fn compute_next_value(
         node: &AccessibilityNode,
         descend: bool,
@@ -1218,6 +1204,18 @@ impl AccessibilityNodeTreeOrderIterator {
                 Some(parent)
             },
         }
+    }
+}
+
+impl Iterator for AccessibilityNodeTreeOrderIterator {
+    type Item = ArcRefCell<AccessibilityNode>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let current_value = self.next_value.take();
+        self.next_value = current_value.as_ref().and_then(|node| {
+            Self::compute_next_value(&node.borrow(), true, &self.stay_within, self.order)
+        });
+        current_value
     }
 }
 
