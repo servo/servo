@@ -22,7 +22,7 @@ use crate::context::LayoutContext;
 use crate::dom::{LayoutBox, WeakLayoutBox};
 use crate::dom_traversal::{NodeAndStyleInfo, NonReplacedContents};
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragment_tree::{BoxFragment, Fragment, FragmentFlags};
+use crate::fragment_tree::{BoxFragment, FragmentChildren, FragmentFlags};
 use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSize};
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
@@ -90,7 +90,7 @@ impl TaffyContainer {
 pub(crate) struct TaffyItemBox {
     pub(crate) taffy_layout: taffy::Layout,
     pub(crate) taffy_baselines: taffy::Baselines,
-    pub(crate) child_fragments: Vec<Fragment>,
+    pub(crate) child_fragments: FragmentChildren,
     pub(crate) positioning_context: PositioningContext,
     pub(crate) style: Arc<ComputedValues>,
     pub(crate) taffy_level_box: TaffyItemBoxInner,
@@ -127,7 +127,7 @@ impl TaffyItemBox {
         Self {
             taffy_layout: Default::default(),
             taffy_baselines: taffy::Baselines::NONE,
-            child_fragments: Vec::new(),
+            child_fragments: Default::default(),
             positioning_context: PositioningContext::default(),
             style,
             taffy_level_box: inner,

@@ -38,7 +38,7 @@ use crate::dom::WeakLayoutBox;
 use crate::flow::ContentAlignment;
 use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::{
-    BoxFragment, CollapsedBlockMargins, ExtraBackground, Fragment, FragmentFlags,
+    BoxFragment, CollapsedBlockMargins, ExtraBackground, Fragment, FragmentChildren, FragmentFlags,
     PositioningFragment, SpecificLayoutInfo,
 };
 use crate::geom::{
@@ -89,7 +89,7 @@ impl CellLayout {
     fn is_empty_for_empty_cells(&self) -> bool {
         self.layout
             .fragments
-            .iter()
+            .fragments()
             .all(|fragment| matches!(fragment, Fragment::AbsoluteOrFixedPositionedPlaceholder(_)))
     }
 }
@@ -1599,8 +1599,9 @@ impl<'a> TableLayout<'a> {
         let offset_from_wrapper = -self.pbm.padding - self.pbm.border;
         let mut current_block_offset = offset_from_wrapper.block_start;
 
+        let mut table_layout_fragments = Vec::new();
         let mut table_layout = IndependentFormattingContextLayoutResult {
-            fragments: Vec::new(),
+            fragments: Default::default(),
             content_block_size: Zero::zero(),
             content_inline_size_for_table: None,
             baselines: Baselines::default(),
@@ -1681,9 +1682,7 @@ impl<'a> TableLayout<'a> {
                     containing_block_for_logical_conversion.style.writing_mode,
                     original_positioning_context_length,
                 );
-                table_layout
-                    .fragments
-                    .push(Fragment::Box(grid_fragment.into()));
+                table_layout_fragments.push(Fragment::Box(grid_fragment.into()));
             } else {
                 let caption_fragments = self.table.captions.iter().filter_map(|caption| {
                     let caption = caption.borrow();
@@ -1741,11 +1740,12 @@ impl<'a> TableLayout<'a> {
                     caption.context.base.set_fragment(caption_fragment.clone());
                     Some(caption_fragment)
                 });
-                table_layout.fragments.extend(caption_fragments);
+                table_layout_fragments.extend(caption_fragments);
             }
         }
 
         table_layout.content_block_size = current_block_offset + offset_from_wrapper.block_end;
+        table_layout.fragments = FragmentChildren::PhysicalDeprecated(table_layout_fragments);
         table_layout
     }
 
@@ -1783,7 +1783,7 @@ impl<'a> TableLayout<'a> {
             return BoxFragment::new(
                 self.table.grid_base_fragment_info,
                 self.table.grid_style.clone(),
-                Vec::new(),
+                Default::default(),
                 content_rect,
                 self.pbm.padding.to_physical(table_writing_mode),
                 self.pbm.border.to_physical(table_writing_mode),
@@ -1902,7 +1902,7 @@ impl<'a> TableLayout<'a> {
         BoxFragment::new(
             self.table.grid_base_fragment_info,
             self.table.grid_style.clone(),
-            table_fragments,
+            FragmentChildren::PhysicalDeprecated(table_fragments),
             content_rect,
             self.pbm.padding.to_physical(table_writing_mode),
             self.pbm.border.to_physical(table_writing_mode),
@@ -2346,7 +2346,7 @@ impl<'a> RowFragmentLayout<'a> {
         let mut row_fragment = BoxFragment::new(
             self.row.base.base_fragment_info,
             self.row.base.style.clone(),
-            self.fragments,
+            FragmentChildren::PhysicalDeprecated(self.fragments),
             self.rect
                 .as_physical_deprecated(&row_group_containing_block),
             PhysicalSides::zero(), /* padding */
@@ -2418,7 +2418,7 @@ impl RowGroupFragmentLayout {
         let mut row_group_fragment = BoxFragment::new(
             row_group.base.base_fragment_info,
             row_group.base.style.clone(),
-            self.fragments,
+            FragmentChildren::PhysicalDeprecated(self.fragments),
             self.rect
                 .as_physical_deprecated(containing_block_for_logical_conversion),
             PhysicalSides::zero(), /* padding */
@@ -2947,7 +2947,7 @@ impl TableSlotCell {
         BoxFragment::new(
             base_fragment_info,
             cell_style.clone(),
-            vec![Fragment::Positioning(align_fragment)],
+            FragmentChildren::PhysicalDeprecated(vec![Fragment::Positioning(align_fragment)]),
             cell_content_rect.as_physical_deprecated(containing_block),
             layout.padding.to_physical(table_style.writing_mode),
             layout.border.to_physical(table_style.writing_mode),
