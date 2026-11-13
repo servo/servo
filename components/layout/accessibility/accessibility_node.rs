@@ -425,14 +425,18 @@ impl AccessibilityNode {
                 // While walking a newly added subtree, compute irrelevant whitespace as we go, so
                 // we don't need to repeatedly walk across the entire subtree.
                 let closest_previous_text = std::mem::take(&mut update.closest_previous_text);
-                let is_irrelevant_whitespace =
-                    if let Some(closest_previous_text) = closest_previous_text.as_ref() {
-                        let closest_previous_text = closest_previous_text.borrow();
-                        self.is_irrelevant_whitespace(Some(&closest_previous_text))
-                    } else {
-                        self.is_irrelevant_whitespace(None)
-                    } || self.flags.contains(Flags::MayBeIrrelevantWhitespace);
-                local_damage.insert(self.set_is_hidden(is_irrelevant_whitespace));
+                let is_irrelevant_whitespace = {
+                    let closest_previous_text = closest_previous_text
+                        .as_ref()
+                        .map(|closest_previous_text| closest_previous_text.borrow());
+                    self.is_irrelevant_whitespace(closest_previous_text.as_deref())
+                };
+                let maybe_irrelevant_whitespace =
+                    self.flags.contains(Flags::MayBeIrrelevantWhitespace);
+
+                local_damage.insert(
+                    self.set_is_hidden(is_irrelevant_whitespace || maybe_irrelevant_whitespace),
+                );
                 if let Some(closest_previous_text) = closest_previous_text &&
                     !is_irrelevant_whitespace
                 {
@@ -557,7 +561,7 @@ impl AccessibilityNode {
     /// For this method, we pass in only the closest previous text node, since we can determine that
     /// during a tree walk. If the previous text node doesn't provide enough information to
     /// determine whether this node is irrelevant whitespace, this node is marked as
-    ///  and this method returns `false`.
+    /// [`Flags::MaybeIrrelevantWhitespace`] and this method returns `false`.
     ///
     /// [`Self::maybe_unhide_previous_whitespace_only_node()`] will determine whether a node already
     /// marked as [`Flags::MayBeIrrelevantWhitespace`] should be hidden based on its subsequent text
@@ -1054,6 +1058,8 @@ static HTML_ELEMENT_ROLE_MAPPINGS: LazyLock<FxHashMap<LocalName, Role>> = LazyLo
 static NAME_FROM_CONTENTS_ROLES: LazyLock<FxHashSet<Role>> =
     LazyLock::new(|| [(Role::Heading), (Role::Link)].into_iter().collect());
 
+/// This is a subset of <https://www.w3.org/TR/wai-aria/#document_structure_roles>, based on the
+/// heuristic of nodes which are expected to contain inline nodes.
 static CONTAINER_ROLES: LazyLock<FxHashSet<Role>> = LazyLock::new(|| {
     [
         (Role::Article),
