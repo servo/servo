@@ -126,7 +126,7 @@ fn test_accessibility_after_navigate_and_back() {
     let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url_1);
     let root_web_area = assert_tree_structure_and_get_root_web_area(&tree);
 
-    let result = find_all_matching_nodes(root_web_area, |node| {
+    let result = find_all_matching_nodes_in_tree_order(root_web_area, |node| {
         node.role() == accesskit::Role::TextRun
     });
     assert_eq!(result.len(), 1);
@@ -141,7 +141,9 @@ fn test_accessibility_after_navigate_and_back() {
     update_tree_after_min_updates(&servo_test, &delegate, &mut tree, 3);
 
     let root_node = tree.state().root();
-    let result = find_all_matching_nodes(root_node, |node| node.role() == accesskit::Role::TextRun);
+    let result = find_all_matching_nodes_in_tree_order(root_node, |node| {
+        node.role() == accesskit::Role::TextRun
+    });
     assert_eq!(result.len(), 1);
     let text_node = result[0];
 
@@ -153,7 +155,9 @@ fn test_accessibility_after_navigate_and_back() {
     update_tree_after_min_updates(&servo_test, &delegate, &mut tree, 3);
 
     let root_node = tree.state().root();
-    let result = find_all_matching_nodes(root_node, |node| node.role() == accesskit::Role::TextRun);
+    let result = find_all_matching_nodes_in_tree_order(root_node, |node| {
+        node.role() == accesskit::Role::TextRun
+    });
     assert_eq!(result.len(), 1);
     let text_node = result[0];
 
@@ -463,15 +467,15 @@ fn test_accessibility_partial_subtree_move_and_delete() {
     assert_eq!(children.len(), 2);
     let header = children[0];
     assert_eq!(header.role(), Role::Banner);
-    let h1 = find_all_matching_nodes(header, |node| node.role() == Role::Heading)[0];
+    let h1 = find_all_matching_nodes_in_tree_order(header, |node| node.role() == Role::Heading)[0];
     assert_eq!(h1.label(), Some("This is an h1".to_owned()));
-    let _p = find_all_matching_nodes(header, |node| node.role() == Role::Paragraph)
+    let _p = find_all_matching_nodes_in_tree_order(header, |node| node.role() == Role::Paragraph)
         .pop()
         .expect("Should be exactly one Paragraph node");
 
     let article = children[1];
     assert_eq!(article.role(), Role::Article);
-    let h2 = find_all_matching_nodes(article, |node| node.role() == Role::Heading)[0];
+    let h2 = find_all_matching_nodes_in_tree_order(article, |node| node.role() == Role::Heading)[0];
     assert_eq!(h2.label(), Some("This is an h2".to_owned()));
 
     let _ = evaluate_javascript(
@@ -707,7 +711,7 @@ fn test_accessibility_bounds_omitted_for_display_none() {
     let (_servo_test, _delegate, _webview, tree) = build_webview_and_tree(url);
 
     let root = assert_tree_structure_and_get_root_web_area(&tree);
-    for node in find_all_matching_nodes(root, |node| {
+    for node in find_all_matching_nodes_in_tree_order(root, |node| {
         node.data().html_tag() == Some("span") || node.role() == Role::TextRun
     }) {
         assert!(
@@ -1392,6 +1396,71 @@ fn test_accessibility_focus_moves() {
     );
 }
 
+#[test]
+fn test_accessibility_only_irrelevant_whitespace_hidden_static() {
+    let url = "data:text/html,<!DOCTYPE html>
+               <a id='link' href='%23main'>Skip to main content</a>
+               <nav>
+                   <a id='news' href='/news'><span>News</span> <span> and updates</span></a>
+                   <a id='services' href='/services'>Services </a>
+                   <a id='contact' href='/contact'>Contact</a>
+                   <a id='about' href='/about'>About</a>
+               </nav>";
+    let (_servo_test, _delegate, _webview, tree) = build_webview_and_tree(url);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let root_children: Vec<accesskit_consumer::Node> = root.children().collect();
+    // <a>, space, <nav>
+    assert_eq!(root_children.len(), 3);
+    let whitespace = root_children[1];
+    assert_eq!(whitespace.role(), Role::TextRun);
+    assert_eq!(
+        whitespace.is_hidden(),
+        true,
+        "Whitespace before <nav> is irrelevant because <nav> is a container"
+    );
+
+    let nav = root_children[2];
+    let all_whitespace = find_all_matching_nodes_in_tree_order(nav, |node| {
+        node.role() == Role::TextRun &&
+            node.value()
+                .expect("Text nodes should always have a value")
+                .trim()
+                .is_empty()
+    });
+    assert_eq!(all_whitespace.len(), 6);
+    assert_eq!(
+        all_whitespace[0].is_hidden(),
+        true,
+        "First whitespace is irrelevant because it precedes any actual text in the container."
+    );
+    assert_eq!(
+        all_whitespace[1].is_hidden(),
+        true,
+        "Second whitespace is irrelevant because it comes before \" and updates\"."
+    );
+    assert_eq!(
+        all_whitespace[2].is_hidden(),
+        false,
+        "Third whitespace is *relevant* because it comes between \" and updates\" and \"Services \"."
+    );
+    assert_eq!(
+        all_whitespace[3].is_hidden(),
+        true,
+        "Fourth whitespace is irrelevant because it comes after \"Services \"."
+    );
+    assert_eq!(
+        all_whitespace[2].is_hidden(),
+        false,
+        "Fifth whitespace is *relevant* because it comes between \"Contact\" and \"About\"."
+    );
+    assert_eq!(
+        all_whitespace[5].is_hidden(),
+        true,
+        "Sixth whitespace is irrelevant because it's after the last text run in the container."
+    );
+}
+
 // ************************************************************************************************
 // If you're adding a new test here, consider adding a matching test in
 // tests/wpt/mozilla/tests/accessibility-tree/
@@ -1606,7 +1675,7 @@ fn find_first_matching_node(
     None
 }
 
-fn find_all_matching_nodes(
+fn find_all_matching_nodes_in_tree_order(
     root_node: accesskit_consumer::Node<'_>,
     mut predicate: impl FnMut(&accesskit_consumer::Node) -> bool,
 ) -> Vec<accesskit_consumer::Node<'_>> {
@@ -1617,7 +1686,7 @@ fn find_all_matching_nodes(
             result.push(candidate);
         }
         for child in candidate.children() {
-            children.push_back(child);
+            children.push_front(child);
         }
     }
     result
