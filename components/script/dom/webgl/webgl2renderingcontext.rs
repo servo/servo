@@ -290,17 +290,15 @@ impl WebGL2RenderingContext {
         ];
         let vao = self.current_vao(cx);
         for prog_attrib in program.active_attribs().iter() {
-            // TODO(#34300): remove unwrap
-            let Some(attrib) = vao.get_vertex_attrib(prog_attrib.location.unwrap_or(u32::MAX))
-            else {
+            // Built-in inputs have no location and read no vertex attribute.
+            let Some(location) = prog_attrib.location else {
+                continue;
+            };
+            let Some(attrib) = vao.get_vertex_attrib(location) else {
                 return self.base.webgl_error(InvalidOperation);
             };
 
-            // TODO(#34300): remove unwrap
-            let current_vertex_attrib = self.base.current_vertex_attribs()[prog_attrib
-                .location
-                .map(|l| l as usize)
-                .unwrap_or(usize::MAX)];
+            let current_vertex_attrib = self.base.current_vertex_attribs()[location as usize];
             // The base type comes from the call that set the attribute:
             //
             // https://registry.khronos.org/webgl/specs/latest/2.0/#ATTRIBUTE_TYPE_MATCH
