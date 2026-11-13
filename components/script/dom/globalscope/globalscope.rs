@@ -2152,6 +2152,18 @@ impl GlobalScope {
         self.devtools_chan.as_ref()
     }
 
+    /// The debugger global that has this global as a debuggee, if any.
+    #[cfg(feature = "devtools")]
+    pub(crate) fn debugger_global(
+        &self,
+        cx: &mut JSContext,
+    ) -> Option<DomRoot<DebuggerGlobalScope>> {
+        if self.is::<Window>() {
+            return with_script_thread(|script_thread| script_thread.debugger_global());
+        }
+        self.downcast::<WorkerGlobalScope>()?.debugger_global(cx)
+    }
+
     /// Get a sender to the memory profiler thread.
     pub(crate) fn mem_profiler_chan(&self) -> &profile_mem::ProfilerChan {
         &self.mem_profiler_chan

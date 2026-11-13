@@ -14,9 +14,12 @@ use dom_struct::dom_struct;
 use embedder_traits::ScriptToEmbedderChan;
 use embedder_traits::resources::{self, Resource};
 use js::context::JSContext;
+use js::rust::HandleValue;
 use js::rust::wrappers2::JS_DefineDebuggerObject;
 use net_traits::ResourceThreads;
 use profile_traits::{mem, time};
+use script_bindings::callback::{RootedCallback, TracedCallback};
+use script_bindings::cell::DomRefCell;
 use script_bindings::interfaces::HasOrigin;
 use script_bindings::reflector::DomObject;
 use servo_base::generic_channel::{GenericCallback, GenericSender, channel};
@@ -25,8 +28,10 @@ use servo_constellation_traits::ScriptToConstellationSender;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 
+use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::DebuggerGetEnvironmentEventBinding::EnvironmentInfo;
 use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding;
+use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding::GetFunctionParameterNames;
 use crate::dom::bindings::codegen::Bindings::DebuggerInterruptEventBinding::{
     FrameInfo, FrameOffset, PauseReason,
 };
@@ -74,6 +79,8 @@ pub(crate) struct DebuggerGlobalScope {
     get_list_frame_result_sender: RefCell<Option<GenericSender<Vec<String>>>>,
     #[no_trace]
     get_environment_result_sender: RefCell<Option<GenericSender<String>>>,
+    /// Callback registered by debugger.js that returns the parameter names of a debuggee function.
+    get_function_parameter_names: DomRefCell<Option<TracedCallback<GetFunctionParameterNames>>>,
     #[no_trace]
     pipeline_id: PipelineId,
     #[no_trace]
@@ -123,6 +130,7 @@ impl DebuggerGlobalScope {
             get_possible_breakpoints_result_sender: RefCell::new(None),
             get_list_frame_result_sender: RefCell::new(None),
             get_environment_result_sender: RefCell::new(None),
+            get_function_parameter_names: Default::default(),
             eval_result_sender: RefCell::new(None),
             pipeline_id: debugger_pipeline_id,
             origin: MutableOrigin::new(ImmutableOrigin::new_opaque()),
@@ -447,6 +455,24 @@ impl DebuggerGlobalScope {
     pub(crate) fn pipeline_id(&self) -> PipelineId {
         self.pipeline_id
     }
+
+    /// Get the parameter names of a debuggee function, using the callback registered by debugger.js.
+    /// Returns `None` if no callback has been registered or the callback fails.
+    pub(crate) fn function_parameter_names(
+        &self,
+        cx: &mut JSContext,
+        function: HandleValue,
+    ) -> Option<Vec<String>> {
+        let callback = self
+            .get_function_parameter_names
+            .borrow()
+            .as_ref()
+            .map(|callback| callback.root(cx))?;
+        let names = callback
+            .Call__(cx, function, ExceptionHandling::Report)
+            .ok()?;
+        Some(names.into_iter().map(String::from).collect())
+    }
 }
 
 impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
@@ -753,6 +779,13 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
         let _ = chan.send(msg);
 
         rx.recv().ok().map(DOMString::from)
+    }
+
+    fn SetGetFunctionParameterNamesCallback(
+        &self,
+        callback: RootedCallback<GetFunctionParameterNames>,
+    ) {
+        *self.get_function_parameter_names.borrow_mut() = Some(callback.to_traced());
     }
 
     fn GetEnvironmentResult(&self, environment_actor_id: DOMString) {
