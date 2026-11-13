@@ -458,6 +458,24 @@ pub struct GStreamerPlayer {
     download_buffering_enabled: AtomicBool,
 }
 
+/// downloadbuffer keeps the download in the user cache directory and it will
+/// make the whole pipeline fail if it can't be accessed.
+fn ensure_download_directory() -> bool {
+    let cache_dir = glib::user_cache_dir();
+    match std::fs::create_dir_all(&cache_dir) {
+        Ok(()) => true,
+        Err(error) => {
+            gstreamer::warning!(
+                gstreamer::DebugCategory::get("servoplayer").unwrap(),
+                "Can't use cache dir {:?} ({}), won't be able to use progressive download",
+                cache_dir,
+                error
+            );
+            false
+        },
+    }
+}
+
 impl GStreamerPlayer {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
@@ -511,9 +529,10 @@ impl GStreamerPlayer {
         let signal_adapter = gstreamer_play::PlaySignalAdapter::new_sync_emit(&player);
         let pipeline = player.pipeline();
 
-        // FIXME(#282): The progressive downloading breaks playback on Windows and Android.
-        if !cfg!(any(target_os = "windows", target_os = "android")) &&
-            self.download_buffering_enabled.load(Ordering::Relaxed)
+        // FIXME(#43421): The progressive downloading breaks playback on Android.
+        if !cfg!(target_os = "android") &&
+            self.download_buffering_enabled.load(Ordering::Relaxed) &&
+            ensure_download_directory()
         {
             // Set player to perform progressive downloading. This will make the
             // player store the downloaded media in a local temporary file for
@@ -739,6 +758,13 @@ impl GStreamerPlayer {
                 }
             }
 
+            let new_duration = metadata.duration;
+            let duration_changed = new_duration.is_some() &&
+                inner
+                    .last_metadata
+                    .as_ref()
+                    .is_some_and(|last_metadata| last_metadata.duration != new_duration);
+
             inner.last_metadata = Some(metadata.clone());
             gstreamer::info!(
                 inner.cat,
@@ -747,6 +773,20 @@ impl GStreamerPlayer {
                 metadata
             );
             let _ = notify!(observer, PlayerEvent::MetadataUpdated(metadata));
+
+            // We need to check this here because there is no guarantee that
+            // duration-changed and media-info-updated come in the same order.
+            // If the latter arrives before the former, it will look like the
+            // new duration was the old one.
+            if duration_changed {
+                gstreamer::info!(
+                    inner.cat,
+                    obj = &inner.player,
+                    "Duration changed with metadata: {:?}",
+                    new_duration
+                );
+                let _ = notify!(observer, PlayerEvent::DurationChanged(new_duration));
+            }
 
             if send_pause_event {
                 let _ = notify!(observer, PlayerEvent::StateChanged(PlaybackState::Paused));
