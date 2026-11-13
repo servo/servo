@@ -36,3 +36,15 @@ function readAll(reader) {
     doBatch();
   });
 }
+
+function getFileAsPromise(entry, path, options = {}) {
+  return new Promise((resolve, reject) => {
+    entry.getFile(path, options, resolve, reject);
+  });
+}
+
+function getDirectoryAsPromise(entry, path, options = {}) {
+  return new Promise((resolve, reject) => {
+    entry.getDirectory(path, options, resolve, reject);
+  });
+}

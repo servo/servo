@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Entries API: FileSystemDirectoryEntry.getDirectory() with script-created DataTransfer</title>
+<link rel=help href="https://wicg.github.io/entries-api/#dom-filesystemdirectoryentry-getdirectory">
+<link rel=author title="Euclid Ye" href="mailto:yezhizhenjiakang@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="automated-support.js"></script>
+
+<script>
+for (const path of ['', null, undefined, '/', '.']) {
+  promise_test(async () => {
+    const root = createRoot();
+    const entry = await getDirectoryAsPromise(root, path);
+    assert_true(entry.isDirectory);
+    assert_false(entry.isFile);
+    assert_equals(entry.name, root.name);
+    assert_equals(entry.fullPath, root.fullPath);
+  }, `getDirectory() resolves the directory itself: ${JSON.stringify(path)}`);
+}
+
+promise_test(
+  t => promise_rejects_dom(t, 'TypeMismatchError',
+                           getDirectoryAsPromise(createRoot(), 'test.txt')),
+  'getDirectory() rejects a file path');
+
+promise_test(
+  t => promise_rejects_dom(t, 'NotFoundError',
+                           getDirectoryAsPromise(createRoot(), 'nope')),
+  'getDirectory() rejects a missing path');
+
+for (const path of ['\x00', '\\']) {
+  promise_test(
+    t => promise_rejects_dom(t, 'TypeMismatchError',
+                             getDirectoryAsPromise(createRoot(), path)),
+    `getDirectory() rejects an invalid path: ${JSON.stringify(path)}`);
+}
+
+promise_test(
+  t => promise_rejects_dom(
+    t, 'SecurityError',
+    getDirectoryAsPromise(createRoot(), 'test.txt', {create: true})),
+  'getDirectory() rejects the create option');
+</script>

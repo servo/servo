@@ -70,12 +70,19 @@ impl FileSystemEntry {
         &self.full_path
     }
 
-    /// Returns this entry's root directory.
-    pub(crate) fn root(&self) -> DomRoot<FileSystemDirectoryEntry> {
+    pub(crate) fn is_file(&self) -> bool {
+        self.is_file
+    }
+
+    pub(crate) fn filesystem(&self) -> DomRoot<FileSystem> {
         self.filesystem
             .get()
             .expect("FileSystemEntry must be associated with a FileSystem")
-            .root()
+    }
+
+    /// Returns this entry's root directory.
+    pub(crate) fn root(&self) -> DomRoot<FileSystemDirectoryEntry> {
+        self.filesystem().root()
     }
 
     /// Queue `success_callback` and `error_callback` for the task that will
@@ -164,9 +171,7 @@ impl FileSystemEntryMethods<crate::DomTypeHolder> for FileSystemEntry {
 
     /// <https://wicg.github.io/entries-api/#dom-filesystementry-filesystem>
     fn Filesystem(&self) -> DomRoot<FileSystem> {
-        self.filesystem
-            .get()
-            .expect("FileSystemEntry must be associated with a FileSystem")
+        self.filesystem()
     }
 
     /// <https://wicg.github.io/entries-api/#dom-filesystementry-getparent>
