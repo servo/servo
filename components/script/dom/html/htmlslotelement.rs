@@ -10,6 +10,7 @@ use js::context::{JSContext, NoGC};
 use js::gc::RootedVec;
 use js::rust::HandleObject;
 use script_bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
+use script_bindings::dom::UnrootedDom;
 
 use crate::dom::bindings::codegen::Bindings::HTMLSlotElementBinding::{
     AssignedNodesOptions, HTMLSlotElementMethods,
@@ -300,7 +301,7 @@ impl HTMLSlotElement {
                     let found_slot = slottable.find_a_slot(cx.no_gc(), false);
 
                     // Step 6.2 If foundSlot is slot, then append slottable to result.
-                    if found_slot.is_some_and(|found_slot| &*found_slot == self) {
+                    if found_slot.is_some_and(|found_slot| *found_slot == self) {
                         result.push(slottable.clone());
                     }
                 }
@@ -416,11 +417,11 @@ impl HTMLSlotElement {
 
 impl Slottable {
     /// <https://dom.spec.whatwg.org/#find-a-slot>
-    pub(crate) fn find_a_slot(
+    pub(crate) fn find_a_slot<'a>(
         &self,
-        no_gc: &NoGC,
+        no_gc: &'a NoGC,
         open_flag: bool,
-    ) -> Option<DomRoot<HTMLSlotElement>> {
+    ) -> Option<UnrootedDom<'a, HTMLSlotElement>> {
         // Step 1. If slottable’s parent is null, then return null.
         let parent = self.node().get_parent_node_unrooted(no_gc)?;
 
@@ -438,12 +439,12 @@ impl Slottable {
         // Step 5. If shadow’s slot assignment is "manual", then return the slot in shadow’s descendants whose
         // manually assigned nodes contains slottable, if any; otherwise null.
         if shadow_root.SlotAssignment() == SlotAssignmentMode::Manual {
-            return self.assigned_slot();
+            return self.assigned_slot_unrooted(no_gc);
         }
 
         // Step 6. Return the first slot in tree order in shadow’s descendants whose
         // name is slottable’s name, if any; otherwise null.
-        shadow_root.slot_for_name(&self.name())
+        shadow_root.slot_for_name(&self.name(), no_gc)
     }
 
     /// <https://dom.spec.whatwg.org/#assign-a-slot>
@@ -463,6 +464,10 @@ impl Slottable {
 
     pub(crate) fn assigned_slot(&self) -> Option<DomRoot<HTMLSlotElement>> {
         self.node().assigned_slot()
+    }
+
+    pub(crate) fn assigned_slot_unrooted<'a>(&self, no_gc: &'a NoGC) -> Option<UnrootedDom<'a, HTMLSlotElement>> {
+        self.node().assigned_slot_unrooted(no_gc)
     }
 
     pub(crate) fn set_assigned_slot(&self, no_gc: &NoGC, assigned_slot: Option<&HTMLSlotElement>) {
