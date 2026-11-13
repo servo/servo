@@ -36,13 +36,14 @@ use crate::dom::comparator::compare_dom_positions;
 use crate::dom::document::Document;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::iterators::{PrePostIteration, UnrootedFollowingFlatTreeNodesTraversal};
-use crate::dom::node::{Node, NodeTraits};
 use crate::dom::range::Range;
 use crate::dom::selection_range::{RootedSelectionBoundary, SelectionBoundary, SelectionRange};
 use crate::dom::staticrange::StaticRange;
 use crate::dom::traversal::FlatTreeForSelectionNoGcTraversal;
 use crate::dom::types::{HTMLInputElement, HTMLTextAreaElement, ShadowRoot};
-use crate::dom::{CharacterData, FlatTreeParent, NodeDamage, NodeFlags, StartOrEnd};
+use crate::dom::{
+    CharacterData, Element, FlatTreeParent, Node, NodeDamage, NodeFlags, NodeTraits, StartOrEnd,
+};
 
 /// Used value of [`user-select`](https://drafts.csswg.org/css-ui-4/#propdef-user-select):
 /// like the computed value but excludes `auto`.
@@ -1773,6 +1774,13 @@ impl<'no_gc> Iterator for VisibleSelectionTraversal<'no_gc> {
                     // on that nodes descendants.
                     if &**node == self.start.node() &&
                         matches!(self.start, FlatTreeNodePosition::After(_))
+                    {
+                        self.skip_subtree = true;
+                    }
+
+                    if let Some(element) = node.downcast::<Element>() &&
+                        let Some(shadow_root) = element.shadow_root() &&
+                        shadow_root.is_user_agent_widget()
                     {
                         self.skip_subtree = true;
                     }

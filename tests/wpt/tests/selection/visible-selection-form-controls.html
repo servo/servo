@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>Visible document selection does not affect form controls</title>
+<link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+<link rel="match" href="visible-selection-form-controls-ref.html">
+<meta name="assert" content="The rendering of a selection that spans form controls should not show them as selected.">
+
+<body>
+    <input value=foo><input type=file><span>Non form control content</span>
+</body>
+
+<script>
+    document.getSelection().selectAllChildren(document.body);
+</script>
