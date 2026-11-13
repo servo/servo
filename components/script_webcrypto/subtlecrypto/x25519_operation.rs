@@ -723,7 +723,7 @@ pub(crate) fn get_public_key<D: Equivalence>(
     // Step 12. Set the [[type]] internal slot of publicKey to "public".
     // Step 13. Set the [[algorithm]] internal slot of publicKey to algorithm.
     // Step 14. Set the [[extractable]] internal slot of publicKey to true.
-    // Step 15. Set the [[usages]] internal slot of publicKey to usages.
+    // Step 15. Set the [[usages]] internal slot of publicKey to the normalized value of usages.
     let Handle::X25519PrivateKey(private_key) = key.handle() else {
         return Err(Error::Operation(Some(
             "Key handle does not match with a X25519 private key".into(),
@@ -735,7 +735,7 @@ pub(crate) fn get_public_key<D: Equivalence>(
         KeyType::Public,
         true,
         algorithm.clone(),
-        usages,
+        usages.normalized_value(),
         Handle::X25519PublicKey(private_key.into()),
     );
 
