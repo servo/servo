@@ -12,7 +12,7 @@
 
       for (const test of tests) {
           promise_test(async () => {
-            assert_true(await createAndDestroyIframeWithHTML(test, "xrReady"));
+            assert_true(await createAndDestroyIframeWithHTML(test, "xrReady", 500));
           }, `'${test}' does not leak the document`);
       }
     </script>

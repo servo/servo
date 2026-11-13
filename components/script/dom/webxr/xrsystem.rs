@@ -17,6 +17,7 @@ use stylo_atoms::Atom;
 use webxr_api::{Error as XRError, Session, SessionInit, SessionMode};
 
 use crate::conversions::Convert;
+use crate::dom::SimpleEventTask;
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::{
     XRSessionInit, XRSessionMode, XRSystemMethods,
 };
@@ -70,13 +71,13 @@ impl XRSystem {
             .dom_manipulation_task_source()
             .to_sendable();
         let callback = GenericCallback::new({
-            let this = Trusted::new(&*this);
+            let this: Trusted<EventTarget> = Trusted::new(this.upcast());
             move |_| {
                 let this = this.clone();
-                task_source.queue(task!(fire_devicechange: move |cx| {
-                    let this = this.root();
-                    this.global().task_manager().dom_manipulation_task_source().queue_simple_event(this.upcast(), Atom::from("devicechange"));
-                }));
+                task_source.queue(SimpleEventTask {
+                    target: this,
+                    name: Atom::from("devicechange"),
+                });
             }
         })
         .expect("Could not create XR devicechange callback");

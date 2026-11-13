@@ -82,9 +82,12 @@ impl Drop for OpenXRDevicePoller {
     fn drop(&mut self) {
         let _ = self.shutdown_sender.send(());
         if let Some(handle) = self.handle.take() {
-            handle
-                .join()
-                .expect("Failed to join xr device poller handle");
+            let _ = handle.join().map_err(|e| {
+                warn!(
+                    "Failed to join openxr device poller handle on drop: {:?}",
+                    e
+                )
+            });
         }
     }
 }
