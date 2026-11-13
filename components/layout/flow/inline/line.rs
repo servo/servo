@@ -30,7 +30,8 @@ use crate::fragment_tree::{
 };
 use crate::geom::{LogicalRect, LogicalSides, LogicalVec2, PhysicalRect, PhysicalSize};
 use crate::positioned::{
-    AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, relative_adjustement,
+    AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, StaticPositionRect,
+    relative_adjustement,
 };
 
 pub(super) struct LineMetrics {
@@ -566,15 +567,13 @@ impl LineItemLayout<'_, '_> {
                 relative_adjustement,
             );
 
-        // Previously all the fragment's children were positioned relative to the linebox,
-        // but they need to be made relative to this fragment.
-        let physical_content_rect = content_rect.as_physical_deprecated(containing_block);
-
         let mut fragment = BoxFragment::new(
             inline_box.base.base_fragment_info,
             style.clone(),
             fragments,
-            physical_content_rect,
+            // Previously all the fragment's children were positioned relative to the linebox,
+            // but they need to be made relative to this fragment.
+            content_rect.as_physical_deprecated(containing_block),
             padding.to_physical(containing_block_writing_mode),
             border.to_physical(containing_block_writing_mode),
             margin.to_physical(containing_block_writing_mode),
@@ -584,18 +583,13 @@ impl LineItemLayout<'_, '_> {
             fragment.base.flags.insert(FragmentFlags::DO_NOT_PAINT);
         }
 
-        let offset_from_parent_ifc = LogicalVec2 {
-            inline: pbm_sums.inline_start + self.current_state.inline_advance,
-            block: content_rect.start_corner.block,
-        }
-        .to_physical_offset_deprecated(containing_block_writing_mode);
-
         match inner_state.positioning_context_or_start_offset_in_parent {
             Either::Left(mut positioning_context) => {
                 positioning_context
                     .layout_collected_children(self.layout.layout_context, &mut fragment);
-                positioning_context.adjust_static_position_of_hoisted_fragments_with_offset(
-                    &offset_from_parent_ifc,
+                positioning_context.adjust_static_position_of_hoisted_fragments(
+                    &content_rect,
+                    containing_block_writing_mode,
                     PositioningContextLength::zero(),
                 );
                 self.current_positioning_context_mut()
@@ -603,8 +597,9 @@ impl LineItemLayout<'_, '_> {
             },
             Either::Right(start_offset) => {
                 self.current_positioning_context_mut()
-                    .adjust_static_position_of_hoisted_fragments_with_offset(
-                        &offset_from_parent_ifc,
+                    .adjust_static_position_of_hoisted_fragments(
+                        &content_rect,
+                        containing_block_writing_mode,
                         start_offset,
                     );
             },
@@ -757,9 +752,9 @@ impl LineItemLayout<'_, '_> {
         };
 
         if let Some(mut positioning_context) = atomic.positioning_context {
-            let physical_rect_as_if_in_root = content_rect.as_physical_deprecated(containing_block);
-            positioning_context.adjust_static_position_of_hoisted_fragments_with_offset(
-                &physical_rect_as_if_in_root.origin.to_vector(),
+            positioning_context.adjust_static_position_of_hoisted_fragments(
+                &content_rect,
+                containing_block.style.writing_mode,
                 PositioningContextLength::zero(),
             );
 
@@ -819,20 +814,20 @@ impl LineItemLayout<'_, '_> {
         // Since alignment of absolutes in inlines is currently always `start`, the size of
         // of the static position rectangle does not matter.
         let containing_block = self.containing_block();
+        let containing_block_writing_mode = containing_block.style.writing_mode;
         let static_position_rect = LogicalRect {
             start_corner: initial_start_corner,
             size: LogicalVec2::zero(),
-        }
-        .as_physical_deprecated(containing_block);
+        };
 
         let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
             absolute.absolutely_positioned_box.clone(),
-            static_position_rect,
+            StaticPositionRect::new(static_position_rect, containing_block_writing_mode),
             LogicalVec2 {
                 inline: AlignFlags::START,
                 block: AlignFlags::START,
             },
-            containing_block.style.writing_mode,
+            containing_block_writing_mode,
         );
 
         let hoisted_fragment = hoisted_box.fragment.clone();

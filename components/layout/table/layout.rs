@@ -1650,18 +1650,19 @@ impl<'a> TableLayout<'a> {
                         grid_pbm.block_start,
                 );
 
+                let grid_fragment_rect = LogicalRect {
+                    start_corner: LogicalVec2 {
+                        inline: offset_from_wrapper.inline_start + grid_pbm.inline_start,
+                        block: current_block_offset + grid_pbm.block_start,
+                    },
+                    size: LogicalVec2::from_physical_size(
+                        &grid_fragment.base.rect().size,
+                        table_writing_mode,
+                    ),
+                };
                 grid_fragment.base.set_rect(
-                    LogicalRect {
-                        start_corner: LogicalVec2 {
-                            inline: offset_from_wrapper.inline_start + grid_pbm.inline_start,
-                            block: current_block_offset + grid_pbm.block_start,
-                        },
-                        size: LogicalVec2::from_physical_size(
-                            &grid_fragment.base.rect().size,
-                            table_writing_mode,
-                        ),
-                    }
-                    .as_physical_deprecated(&containing_block_for_logical_conversion),
+                    grid_fragment_rect
+                        .as_physical_deprecated(&containing_block_for_logical_conversion),
                 );
 
                 current_block_offset += LogicalVec2::from_physical_size(
@@ -1675,12 +1676,14 @@ impl<'a> TableLayout<'a> {
                         Some(logical_grid_content_rect.size.inline);
                 }
 
-                let grid_fragment = Fragment::Box(grid_fragment.into());
                 positioning_context.adjust_static_position_of_hoisted_fragments(
-                    &grid_fragment,
+                    &grid_fragment_rect,
+                    containing_block_for_logical_conversion.style.writing_mode,
                     original_positioning_context_length,
                 );
-                table_layout.fragments.push(grid_fragment);
+                table_layout
+                    .fragments
+                    .push(Fragment::Box(grid_fragment.into()));
             } else {
                 let caption_fragments = self.table.captions.iter().filter_map(|caption| {
                     let caption = caption.borrow();
@@ -1707,18 +1710,19 @@ impl<'a> TableLayout<'a> {
                         _ => LogicalVec2::zero(),
                     };
 
+                    let logical_caption_rect = LogicalRect {
+                        start_corner: LogicalVec2 {
+                            inline: offset_from_wrapper.inline_start + caption_pbm.inline_start,
+                            block: current_block_offset + caption_pbm.block_start,
+                        } + caption_relative_offset,
+                        size: LogicalVec2::from_physical_size(
+                            &caption_fragment.content_rect().size,
+                            table_writing_mode,
+                        ),
+                    };
                     caption_fragment.base.set_rect(
-                        LogicalRect {
-                            start_corner: LogicalVec2 {
-                                inline: offset_from_wrapper.inline_start + caption_pbm.inline_start,
-                                block: current_block_offset + caption_pbm.block_start,
-                            } + caption_relative_offset,
-                            size: LogicalVec2::from_physical_size(
-                                &caption_fragment.content_rect().size,
-                                table_writing_mode,
-                            ),
-                        }
-                        .as_physical_deprecated(&containing_block_for_logical_conversion),
+                        logical_caption_rect
+                            .as_physical_deprecated(&containing_block_for_logical_conversion),
                     );
 
                     current_block_offset += LogicalVec2::from_physical_size(
@@ -1729,7 +1733,8 @@ impl<'a> TableLayout<'a> {
 
                     let caption_fragment = Fragment::Box(caption_fragment.into());
                     positioning_context.adjust_static_position_of_hoisted_fragments(
-                        &caption_fragment,
+                        &logical_caption_rect,
+                        containing_block_for_logical_conversion.style.writing_mode,
                         original_positioning_context_length,
                     );
 
@@ -2926,11 +2931,11 @@ impl TableSlotCell {
         // TODO(mrobinson): This is correct for absolutes that are direct children of the table
         // cell, but wrong for absolute fragments that are more deeply nested in the hierarchy of
         // fragments.
-        let physical_cell_rect = cell_content_rect.as_physical_deprecated(containing_block);
         layout
             .positioning_context
-            .adjust_static_position_of_hoisted_fragments_with_offset(
-                &physical_cell_rect.origin.to_vector(),
+            .adjust_static_position_of_hoisted_fragments(
+                &cell_content_rect,
+                containing_block.style.writing_mode,
                 PositioningContextLength::zero(),
             );
         positioning_context.append(layout.positioning_context);
@@ -2943,7 +2948,7 @@ impl TableSlotCell {
             base_fragment_info,
             cell_style.clone(),
             vec![Fragment::Positioning(align_fragment)],
-            physical_cell_rect,
+            cell_content_rect.as_physical_deprecated(containing_block),
             layout.padding.to_physical(table_style.writing_mode),
             layout.border.to_physical(table_style.writing_mode),
             PhysicalSides::zero(), /* margin */

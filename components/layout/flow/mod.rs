@@ -44,7 +44,9 @@ use crate::geom::{
     PhysicalSides,
 };
 use crate::layout_box_base::{IndependentFormattingContextLayoutResult, LayoutBoxBase};
-use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
+use crate::positioned::{
+    AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, StaticPositionRect,
+};
 use crate::sizing::{
     self, ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, LazySize, Size,
     SizeConstraint, Sizes,
@@ -617,15 +619,15 @@ impl BlockFormattingContext {
                     inline: containing_block.inline_size(),
                     block: content_block_size,
                 },
-            }
-            .as_physical_deprecated(containing_block);
-            positioning_context.adjust_static_position_of_hoisted_fragments_with_offset(
-                &align_fragment_rect.origin.to_vector(),
+            };
+            positioning_context.adjust_static_position_of_hoisted_fragments(
+                &align_fragment_rect,
+                containing_block.style.writing_mode,
                 previous_positioning_context_len,
             );
             let align_fragment = PositioningFragment::new_anonymous(
                 base.style.clone(),
-                align_fragment_rect,
+                align_fragment_rect.as_physical_deprecated(containing_block),
                 std::mem::take(&mut flow_layout.fragments),
                 false, /* is_line_box */
             );
@@ -1081,10 +1083,15 @@ fn layout_block_level_children_maybe_in_parallel(
         .into_iter()
         .map(|(mut fragment, mut child_positioning_context)| {
             placement_state.place_fragment_and_update_baseline(&mut fragment, None);
-            child_positioning_context.adjust_static_position_of_hoisted_fragments(
-                &fragment,
-                PositioningContextLength::zero(),
-            );
+
+            if let Some(rect) = fragment.base().map(|base| base.rect()) {
+                child_positioning_context.adjust_static_position_of_hoisted_fragments(
+                    &LogicalRect::from_physical_deprecated(rect, placement_state.containing_block),
+                    placement_state.containing_block.style.writing_mode,
+                    PositioningContextLength::zero(),
+                );
+            }
+
             positioning_context.append(child_positioning_context);
             fragment
         })
@@ -1141,10 +1148,13 @@ fn layout_block_level_child(
     );
 
     placement_state.place_fragment_and_update_baseline(&mut fragment, sequential_layout_state);
-    positioning_context.adjust_static_position_of_hoisted_fragments(
-        &fragment,
-        positioning_context_length_before_layout,
-    );
+    if let Some(rect) = fragment.base().map(|base| base.rect()) {
+        positioning_context.adjust_static_position_of_hoisted_fragments(
+            &LogicalRect::from_physical_deprecated(rect, placement_state.containing_block),
+            placement_state.containing_block.style.writing_mode,
+            positioning_context_length_before_layout,
+        );
+    }
 
     fragment
 }
@@ -1203,7 +1213,7 @@ impl BlockLevelBox {
                     // This is incorrect, however we do not know the correct positioning
                     // until later, in PlacementState::place_fragment, and this value will be
                     // adjusted there
-                    PhysicalRect::zero(),
+                    StaticPositionRect::default(),
                     LogicalVec2 {
                         inline: AlignFlags::START,
                         block: AlignFlags::START,
@@ -2337,15 +2347,16 @@ impl<'container> PlacementState<'container> {
             Fragment::AbsoluteOrFixedPositionedPlaceholder(fragment) => {
                 // The alignment of absolutes in block flow layout is always "start", so the size of
                 // the static position rectangle does not matter.
-                fragment.borrow_mut().original_static_position_rect = LogicalRect {
+                let rect = LogicalRect {
                     start_corner: LogicalVec2 {
                         block: (self.current_margin.solve() +
                             self.current_block_direction_position),
                         inline: Au::zero(),
                     },
                     size: LogicalVec2::zero(),
-                }
-                .as_physical_deprecated(self.containing_block);
+                };
+                fragment.borrow_mut().original_static_position_rect =
+                    StaticPositionRect::new(rect, self.containing_block.style.writing_mode);
             },
             Fragment::Float(box_fragment) => {
                 let sequential_layout_state = sequential_layout_state
