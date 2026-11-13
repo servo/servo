@@ -5,7 +5,7 @@
 
 <style>
 @import "/fonts/ahem.css";
-body {
+#target, #ref {
   font: 10px/1 Ahem;
 }
 
@@ -110,14 +110,16 @@ const TALL = 50;
 const SHORT = 40;
 const C1HEIGHT = 10 * 2;
 
-test(() => {
+promise_setup(() => document.fonts.ready);
+
+promise_test(async () => {
   ref.className = 'valign-top';
   target.className = 'alignc-start';
   testEquivalence(target, ref);
   assert_equals(target.querySelector('.content1').offsetTop, 0);
 }, 'vertical-align:top and align-content:start are equivalent');
 
-test(() => {
+promise_test(async () => {
   ref.className = 'valign-middle';
   target.className = 'alignc-center';
   testEquivalence(target, ref);
@@ -129,7 +131,7 @@ test(() => {
   assert_equals(target.querySelector('.content1').offsetTop, (SHORT - C1HEIGHT) / 2);
 }, 'vertical-align:middle and `align-content:unsafe center` are equivalent');
 
-test(() => {
+promise_test(async () => {
   ref.className = 'valign-bottom';
   target.className = 'alignc-end';
   testEquivalence(target, ref);
@@ -141,33 +143,33 @@ test(() => {
   assert_equals(target.querySelector('.content1').offsetTop, SHORT - C1HEIGHT);
 }, 'vertical-align:bottom and `align-content:unsafe end` are equivalent');
 
-test(() => {
+promise_test(async () => {
   ref.className = 'valign-baseline';
   target.className = 'alignc-baseline';
   testEquivalence(target, ref);
 }, 'vertical-align:baseline and align-content:baseline are equivalent');
 
-test(() => {
+promise_test(async () => {
   ref.className = 'valign-middle';
   target.className = 'alignc-safe-center';
   testEquivalence(target, ref);
   assert_equals(target.querySelector('.content1').offsetTop, (TALL - C1HEIGHT) / 2);
 }, 'vertical-align:middle and `align-content:safe center` are equivalent if the container is tall');
 
-test(() => {
+promise_test(async () => {
   ref.className = 'valign-bottom';
   target.className = 'alignc-safe-end';
   testEquivalence(target, ref);
   assert_equals(target.querySelector('.content1').offsetTop, TALL - C1HEIGHT);
 }, 'vertical-align:bottom and `align-content:safe end` are equivalent if the container is tall');
 
-test(() => {
+promise_test(async () => {
   ref.className = 'alignc-center-short';
   target.className = 'alignc-safe-center-short';
   testEquivalence(target, ref);
 }, '`align-content:safe center` is equivalent to `unsafe center` even if the specified `height` is short');
 
-test(() => {
+promise_test(async () => {
   ref.className = 'alignc-end-short';
   target.className = 'alignc-safe-end-short';
 }, '`align-content:safe end` is equivalent to `unsafe end` even if the specified `height` is short');
