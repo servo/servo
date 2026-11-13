@@ -5681,6 +5681,7 @@ impl Document {
         Some(top_level_site)
     }
 
+    #[cfg(feature = "devtools")]
     pub(crate) fn highlight_dom_node(&self, node: Option<&Node>) {
         self.highlighted_dom_node.set(node);
         self.add_restyle_reason(RestyleReason::HighlightedDOMNodeChanged);
@@ -5837,6 +5838,7 @@ impl Document {
         self.theme_override.get()
     }
 
+    #[cfg(feature = "devtools")]
     pub(crate) fn set_theme_override(&self, new_theme: Option<Theme>) {
         self.theme_override.set(new_theme);
         self.window.refresh_theme();

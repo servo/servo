@@ -4332,10 +4332,12 @@ impl Window {
         self.Document().pipeline_id()
     }
 
+    #[cfg(feature = "devtools")]
     pub(crate) fn live_devtools_updates(&self) -> bool {
         self.devtools_wants_updates.get()
     }
 
+    #[cfg(feature = "devtools")]
     pub(crate) fn set_devtools_wants_updates(&self, value: bool) {
         self.devtools_wants_updates.set(value);
     }

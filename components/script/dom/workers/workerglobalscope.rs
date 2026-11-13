@@ -21,6 +21,7 @@ use encoding_rs::UTF_8;
 use fonts::FontContext;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use js::context::JSContext;
+#[cfg(feature = "devtools")]
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSContext as RawJSContext, Value};
 use js::realm::CurrentRealm;
@@ -34,9 +35,12 @@ use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, Resource
 use profile_traits::mem::{ProcessReports, perform_memory_report};
 use script_bindings::callback::RootedCallback;
 use script_bindings::cell::{DomRefCell, Ref};
+#[cfg(feature = "devtools")]
 use script_bindings::conversions::root_from_handlevalue;
 use script_bindings::domstring::TracedDOMString;
+#[cfg(feature = "devtools")]
 use script_bindings::reflector::DomObject;
+#[cfg(feature = "devtools")]
 use script_bindings::root::rooted_heap_handle;
 use script_bindings::trace::CustomTraceable;
 use servo_base::cross_process_instant::CrossProcessInstant;
