@@ -285,7 +285,9 @@ impl CanvasState {
         let size = adjust_canvas_size(size);
         script_to_constellation_chan
             .send(ScriptToConstellationMessage::CreateCanvasPaintThread(
-                size, sender,
+                size,
+                global.webview_id().expect("Should have a webview"),
+                sender,
             ))
             .unwrap();
         let (canvas_thread_sender, canvas_id) = receiver.recv().ok()??;
