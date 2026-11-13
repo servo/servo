@@ -47,6 +47,7 @@ pub(crate) fn sign<D: Equivalence>(
     //     [NIST-SP800-185] using the key represented by [[handle]] internal slot of key as the K
     //     input parameter, message as the X input parameter, the outputLength member of
     //     normalizedAlgorithm as the L input parameter, and customization as the S input parameter.
+    // Step 3. If performing the operation results in an error, then throw an OperationError.
     let Handle::KmacKey(kmac_key) = key.handle() else {
         return Err(Error::Operation(Some(
             "[[handle]] internal slot of key is not a KMAC key".into(),
@@ -80,7 +81,7 @@ pub(crate) fn sign<D: Equivalence>(
         },
     };
 
-    // Step 3. Return a byte sequence containing mac.
+    // Step 4. Return a byte sequence containing mac.
     Ok(mac)
 }
 
@@ -109,7 +110,8 @@ pub(crate) fn verify<D: Equivalence>(
     //     [NIST-SP800-185] using the key represented by [[handle]] internal slot of key as the K
     //     input parameter, message as the X input parameter, the outputLength member of
     //     normalizedAlgorithm as the L input parameter, and customization as the S input parameter.
-    // Step 3. Let computedMac be a byte sequence containing mac.
+    // Step 3. If performing the operation results in an error, then throw an OperationError.
+    // Step 4. Let computedMac be a byte sequence containing mac.
     let Handle::KmacKey(kmac_key) = key.handle() else {
         return Err(Error::Operation(Some(
             "[[handle]] internal slot of key is not a KMAC key".into(),
@@ -143,7 +145,7 @@ pub(crate) fn verify<D: Equivalence>(
         },
     };
 
-    // Step 4. Return true if computedMac is equal to signature and false otherwise. This comparison
+    // Step 5. Return true if computedMac is equal to signature and false otherwise. This comparison
     // must be performed in constant-time.
     Ok(computed_mac.ct_eq(signature).into())
 }
