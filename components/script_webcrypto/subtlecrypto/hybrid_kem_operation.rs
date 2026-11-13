@@ -36,7 +36,7 @@ pub(crate) fn encapsulate<D: Equivalence>(
     // function for the hybrid KEM instance indicated by the name member of algorithm in Section 4
     // of [draft-irtf-cfrg-concrete-hybrid-kems-04], using the key represented by the [[handle]]
     // internal slot of key as the ek input parameter.
-    // Step 3. If the Encaps function returned an error, return an OperationError.
+    // Step 3. If the Encaps function returned an error, throw an OperationError.
     let (shared_key, ciphertext) = match normalized_algorithm.name {
         CryptoAlgorithm::MlKem768X25519 => {
             let Handle::MlKem768X25519PublicKey(public_key) = key.handle() else {
@@ -83,7 +83,7 @@ pub(crate) fn decapsulate<D: Equivalence>(
     // hybrid KEM instance indicated by the name member of algorithm in Section 4 of
     // [draft-irtf-cfrg-concrete-hybrid-kems-04], using the key represented by the [[handle]]
     // internal slot of key as the dk input parameter, and ciphertext as the ct input parameter.
-    // Step 3. If the Decaps function returned an error, return an OperationError.
+    // Step 3. If the Decaps function returned an error, throw an OperationError.
     let shared_key = match normalized_algorithm.name {
         CryptoAlgorithm::MlKem768X25519 => {
             let Handle::MlKem768X25519PrivateKey(private_key) = key.handle() else {

@@ -37,12 +37,12 @@ pub(crate) fn encapsulate<D: Equivalence>(
     // Step 2. Perform the encapsulation key check described in Section 7.2 of [FIPS-203] with the
     // parameter set indicated by the name member of algorithm, using the key represented by the
     // [[handle]] internal slot of key as the ek input parameter.
-    // Step 3. If the encapsulation key check failed, return an OperationError.
+    // Step 3. If the encapsulation key check failed, throw an OperationError.
     // Step 4. Let sharedKey and ciphertext be the outputs that result from performing the
     // ML-KEM.Encaps function described in Section 7.2 of [FIPS-203] with the parameter set
     // indicated by the name member of algorithm, using the key represented by the [[handle]]
     // internal slot of key as the ek input parameter.
-    // Step 5. If the ML-KEM.Encaps function returned an error, return an OperationError.
+    // Step 5. If the ML-KEM.Encaps function returned an error, throw an OperationError.
     let (shared_key, ciphertext) = match normalized_algorithm.name {
         CryptoAlgorithm::MlKem512 => {
             let Handle::MlKem512PublicKey(public_key) = key.handle() else {
@@ -107,7 +107,7 @@ pub(crate) fn decapsulate<D: Equivalence>(
     // the parameter set indicated by the name member of algorithm, using the key represented by
     // the [[handle]] internal slot of key as the dk input parameter, and ciphertext as the c input
     // parameter.
-    // Step 3. If the decapsulation key check failed, return an OperationError.
+    // Step 3. If the decapsulation key check failed, throw an OperationError.
     // Step 4. Let sharedKey be the output that results from performing the ML-KEM.Decaps function
     // described in Section 7.3 of [FIPS-203] with the parameter set indicated by the name member
     // of algorithm, using the key represented by the [[handle]] internal slot of key as the dk

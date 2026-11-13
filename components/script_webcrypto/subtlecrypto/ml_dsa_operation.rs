@@ -55,7 +55,7 @@ pub(crate) fn sign<D: Equivalence>(
     // specified in Section 5.2 of [FIPS-204], with the parameter set indicated by the name member
     // of normalizedAlgorithm, using the ML-DSA private key associated with key as sk, message as M
     // and context as ctx.
-    // Step 5. If the ML-DSA.Sign algorithm returned an error, return an OperationError.
+    // Step 5. If the ML-DSA.Sign algorithm returned an error, throw an OperationError.
     let result = match normalized_algorithm.name {
         CryptoAlgorithm::MlDsa44 => {
             let Handle::MlDsa44PrivateKey(private_key) = key.handle() else {
@@ -136,7 +136,7 @@ pub(crate) fn verify<D: Equivalence>(
     // specified in Section 5.3 of [FIPS-204], with the parameter set indicated by the name member
     // of normalizedAlgorithm, using the ML-DSA public key associated with key as pk, message as M,
     // signature as σ and context as ctx.
-    // Step 5. If the ML-DSA.Verify algorithm returned an error, return an OperationError.
+    // Step 5. If the ML-DSA.Verify algorithm returned an error, throw an OperationError.
     let result = match normalized_algorithm.name {
         CryptoAlgorithm::MlDsa44 => {
             let Handle::MlDsa44PublicKey(public_key) = key.handle() else {
