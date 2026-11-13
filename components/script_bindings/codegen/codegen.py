@@ -1081,7 +1081,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
 
         # For safety, we want to return types that are already rooted so callers
         # don't have to think about it.
-        require_heap_root = (isMember in ["Union", "Dictionary"] or sourceDescription == "return value")
+        require_heap_root = (isMember == "Union" or sourceDescription == "return value")
 
         if require_heap_root:
             typeName = f"Heap{typeName}"

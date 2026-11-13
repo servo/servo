@@ -23,7 +23,8 @@ pub(crate) mod base {
     pub(crate) use js::realm::{AutoRealm, CurrentRealm};
     pub(crate) use js::rust::wrappers2::{Call, GetArrayLength, JS_GetElement, JS_SetElement};
     pub(crate) use js::rust::{
-        HandleObject, HandleValue, MutableHandle, MutableHandleObject, MutableHandleValue,
+        CustomTrace, HandleObject, HandleValue, MutableHandle, MutableHandleObject,
+        MutableHandleValue,
     };
     pub(crate) use js::typedarray;
     pub(crate) use js::typedarray::{
