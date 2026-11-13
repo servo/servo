@@ -5,7 +5,7 @@
 use crate::DecodedRasterImage;
 
 /// A trait that implements image encoding and decoding. This allows embedders to
-/// use custom image encoding and ecoding when setting it in `ServoBuilder`.
+/// use custom image encoding and decoding when setting it in `ServoBuilder`.
 pub trait ImageCodec: Sync + Send {
     /// Takes an encoded image as a buffer of bytes and returns a decoded [`DecodedRasterImage`].
     ///
