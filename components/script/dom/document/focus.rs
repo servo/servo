@@ -728,7 +728,8 @@ impl DocumentFocusHandler {
         if let Some(sequential_focus_navigation_starting_point) =
             self.sequential_focus_navigation_starting_point() &&
             starting_point.as_ref().is_none_or(|starting_point| {
-                starting_point.is_ancestor_of(&sequential_focus_navigation_starting_point)
+                starting_point
+                    .is_ancestor_of(cx.no_gc(), &sequential_focus_navigation_starting_point)
             })
         {
             starting_point = Some(sequential_focus_navigation_starting_point);
