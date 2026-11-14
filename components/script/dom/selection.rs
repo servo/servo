@@ -1715,6 +1715,10 @@ impl<'no_gc> FlatTreeSelection<'no_gc> {
         })
     }
 
+    fn is_collapsed(&self) -> bool {
+        self.start.container == self.end.container && self.start.offset == self.end.offset
+    }
+
     fn range_for_character_data(&self, character_data: &CharacterData) -> RangeAny<Utf32CodeUnits> {
         let text = character_data.data();
         let node: &Node = character_data.upcast();
@@ -1894,7 +1898,9 @@ impl<'no_gc> VisibleSelectionFlagUpdate<'no_gc> {
                 flat_tree_selection.range_for_character_data(character_data)
             });
             self.set_character_data_selection(character_data, range);
-        } else if node.set_element_selection(flat_tree_selection.is_some()) {
+        } else if node.set_element_selection(
+            flat_tree_selection.is_some_and(|selection| !selection.is_collapsed()),
+        ) {
             self.needs_new_display_list = true;
         }
     }
