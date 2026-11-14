@@ -766,12 +766,12 @@ impl HTMLFormElement {
         submit_method_flag: SubmittedFrom,
         submitter: FormSubmitterElement,
     ) {
-        // Step 1
+        // Step 1. If form cannot navigate, then return.
         if self.upcast::<Element>().cannot_navigate() {
             return;
         }
 
-        // Step 2
+        // Step 2. If form's constructing entry list is true, then return.
         if self.constructing_entry_list.get() {
             return;
         }
@@ -786,21 +786,27 @@ impl HTMLFormElement {
         }
 
         let base = doc.base_url();
-        // TODO: Handle browsing contexts (Step 5)
-        // Step 6
+        // Step 5. If submitted from submit() method is false:
         if submit_method_flag == SubmittedFrom::NotFromForm {
-            // Step 6.1
+            // Step 5.1. If form's firing submission events is true, then return.
             if self.firing_submission_events.get() {
                 return;
             }
-            // Step 6.2
+            // Step 5.2. Set form's firing submission events to true.
             self.firing_submission_events.set(true);
-            // Step 6.3
+            // Step 5.3. For each element field in the list of submittable elements
+            // whose form owner is form, set field's user validity to true.
+            self.Elements(cx).set_user_validity_on_all(cx.no_gc());
+            // Step 5.4. If the submitter element's no-validate state is false,
+            // then interactively validate the constraints of form and examine
+            // the result. If the result is negative (i.e., the constraint validation
+            // concluded that there were invalid fields and probably informed the
+            // user of this):
             if !submitter.no_validate(self) && self.interactive_validation(cx).is_err() {
                 self.firing_submission_events.set(false);
                 return;
             }
-            // Step 6.4
+            // Step 5.5
             // spec calls this "submitterButton" but it doesn't have to be a button,
             // just not be the form itself
             let submitter_button = match submitter {
@@ -815,7 +821,7 @@ impl HTMLFormElement {
                 FormSubmitterElement::Button(b) => Some(b.upcast::<HTMLElement>()),
             };
 
-            // Step 6.5
+            // Step 5.6
             let event = SubmitEvent::new(
                 cx,
                 self.global().as_window(),
@@ -827,13 +833,13 @@ impl HTMLFormElement {
             let event = event.upcast::<Event>();
             event.fire(cx, self.upcast::<EventTarget>());
 
-            // Step 6.6
+            // Step 5.7
             self.firing_submission_events.set(false);
-            // Step 6.7
+            // Step 5.8
             if event.DefaultPrevented() {
                 return;
             }
-            // Step 6.8
+            // Step 5.9
             if self.upcast::<Element>().cannot_navigate() {
                 return;
             }
