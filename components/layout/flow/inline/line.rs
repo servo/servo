@@ -25,8 +25,8 @@ use crate::cell::ArcRefCell;
 use crate::containing_block::{ContainingBlock, ContainingBlockSize};
 use crate::flow::inline::text_run::{FontAndScriptInfo, SharedTextRunData};
 use crate::fragment_tree::{
-    BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, FragmentAndLogicalRect, FragmentFlags,
-    TextFragment,
+    BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, FragmentAndLogicalRect,
+    FragmentChildren, FragmentFlags, TextFragment,
 };
 use crate::geom::{LogicalRect, LogicalSides, LogicalVec2, PhysicalRect, PhysicalSize};
 use crate::positioned::{
@@ -570,7 +570,7 @@ impl LineItemLayout<'_, '_> {
         let mut fragment = BoxFragment::new(
             inline_box.base.base_fragment_info,
             style.clone(),
-            fragments,
+            FragmentChildren::PhysicalDeprecated(fragments),
             // Previously all the fragment's children were positioned relative to the linebox,
             // but they need to be made relative to this fragment.
             content_rect.as_physical_deprecated(containing_block),

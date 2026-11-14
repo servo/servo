@@ -466,7 +466,11 @@ impl IndependentFormattingContext {
                 // Widget should know the size of the replaced contents.
                 let resolved_block_size =
                     lazy_block_size.resolve(|| replaced_layout.content_block_size);
-                let widget_cb = ContainingBlock {
+                let widget_size = LogicalVec2 {
+                    inline: containing_block_for_children.inline_size(),
+                    block: resolved_block_size,
+                };
+                let widget_containing_block = ContainingBlock {
                     size: ContainingBlockSize::new(
                         containing_block_for_children.inline_size(),
                         SizeConstraint::Definite(resolved_block_size),
@@ -474,17 +478,20 @@ impl IndependentFormattingContext {
                     style: &self.base.style,
                 };
                 if let Some(widget) = widget {
-                    let mut widget_layout = widget.borrow().layout(
+                    let widget_layout = widget.borrow().layout(
                         layout_context,
                         positioning_context,
-                        &widget_cb,
-                        &widget_cb,
+                        &widget_containing_block,
+                        &widget_containing_block,
                         None,
                         &LazySize::intrinsic(),
                     );
-                    replaced_layout
-                        .fragments
-                        .append(&mut widget_layout.fragments);
+
+                    replaced_layout.fragments.append(
+                        widget_layout.fragments,
+                        self.base.style.writing_mode,
+                        widget_size,
+                    );
                 }
                 replaced_layout
             },

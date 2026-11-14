@@ -37,7 +37,7 @@ use crate::flow::same_formatting_context_block::SameFormattingContextBlock;
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
     BaseFragmentInfo, BlockLevelLayoutInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin,
-    Fragment, FragmentFlags, PositioningFragment,
+    Fragment, FragmentChildren, FragmentFlags, PositioningFragment,
 };
 use crate::geom::{
     AuOrAuto, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect,
@@ -422,18 +422,23 @@ impl OutsideMarker {
             &LazySize::intrinsic(),
         );
 
-        let max_inline_size = layout
-            .fragments
-            .iter()
-            .map(|fragment| {
-                LogicalRect::from_physical_deprecated(
-                    fragment.base().map(|base| base.rect()).unwrap_or_default(),
-                    &containing_block_for_children,
-                )
-                .max_inline_position()
-            })
-            .max()
-            .unwrap_or_default();
+        let max_inline_size = match &layout.fragments {
+            FragmentChildren::PhysicalDeprecated(fragments) => fragments
+                .iter()
+                .map(|fragment| {
+                    LogicalRect::from_physical_deprecated(
+                        fragment.base().map(|base| base.rect()).unwrap_or_default(),
+                        &containing_block_for_children,
+                    )
+                    .max_inline_position()
+                })
+                .max(),
+            FragmentChildren::Logical(fragments) => fragments
+                .iter()
+                .map(|fragment| fragment.logical_rect.max_inline_position())
+                .max(),
+        }
+        .unwrap_or_default();
 
         // Position the marker beyond the inline start of the border box list item. This needs to
         // take into account the border and padding of the item.
@@ -631,7 +636,8 @@ impl BlockFormattingContext {
                 std::mem::take(&mut flow_layout.fragments),
                 false, /* is_line_box */
             );
-            flow_layout.fragments = vec![Fragment::Positioning(align_fragment)];
+            flow_layout.fragments =
+                FragmentChildren::PhysicalDeprecated(vec![Fragment::Positioning(align_fragment)]);
         };
         apply_align_content();
 
@@ -1023,7 +1029,7 @@ fn layout_block_level_children(
         ),
     };
 
-    let depends_on_block_constraints = fragments.iter().any(|fragment| {
+    let depends_on_block_constraints = fragments.fragments().any(|fragment| {
         fragment.base().is_some_and(|base| {
             base.flags.contains(
                 FragmentFlags::SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM,
@@ -1049,7 +1055,7 @@ fn layout_block_level_children_maybe_in_parallel(
     child_boxes: &[ArcRefCell<BlockLevelBox>],
     placement_state: &mut PlacementState,
     ignore_block_margins_for_stretch: LogicalSides1D<bool>,
-) -> Vec<Fragment> {
+) -> FragmentChildren {
     let mut layout_results: Vec<(Fragment, PositioningContext)> =
         Vec::with_capacity(child_boxes.len());
 
@@ -1079,7 +1085,7 @@ fn layout_block_level_children_maybe_in_parallel(
         layout_results.extend(child_boxes.iter().map(layout));
     };
 
-    layout_results
+    let fragments = layout_results
         .into_iter()
         .map(|(mut fragment, mut child_positioning_context)| {
             placement_state.place_fragment_and_update_baseline(&mut fragment, None);
@@ -1095,7 +1101,8 @@ fn layout_block_level_children_maybe_in_parallel(
             positioning_context.append(child_positioning_context);
             fragment
         })
-        .collect()
+        .collect();
+    FragmentChildren::PhysicalDeprecated(fragments)
 }
 
 fn layout_block_level_children_sequentially(
@@ -1105,11 +1112,11 @@ fn layout_block_level_children_sequentially(
     sequential_layout_state: &mut SequentialLayoutState,
     placement_state: &mut PlacementState,
     ignore_block_margins_for_stretch: LogicalSides1D<bool>,
-) -> Vec<Fragment> {
+) -> FragmentChildren {
     // Because floats are involved, we do layout for this block formatting context in tree
     // order without parallelism. This enables mutable access to a `SequentialLayoutState` that
     // tracks every float encountered so far (again in tree order).
-    child_boxes
+    let fragments = child_boxes
         .iter()
         .map(|child_box| {
             layout_block_level_child(
@@ -1122,7 +1129,8 @@ fn layout_block_level_children_sequentially(
                 false, /* has_inline_parent */
             )
         })
-        .collect()
+        .collect();
+    FragmentChildren::PhysicalDeprecated(fragments)
 }
 
 fn layout_block_level_child(
