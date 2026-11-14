@@ -7,7 +7,6 @@ use std::sync::Arc;
 use bytes::Bytes;
 use embedder_traits::{Image as EmbedderImage, PixelFormat as EmbedderPixelFormat};
 use js::context::JSContext;
-use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::image_cache::{
     Image, ImageCache, ImageCacheResponseCallback, ImageCacheResult, ImageLoadListener,
     ImageOrMetadataAvailable, ImageResponse, PendingImageId, RasterizationResult,
@@ -29,6 +28,7 @@ use crate::fetch::fetch::create_a_potential_cors_request_with_claim;
 use crate::fetch::network_listener::{
     FetchResponseListener, ResourceTimingListener, submit_timing,
 };
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 pub(crate) struct FaviconFetchContext {
     /// A handle to the image cache for the [`Document`] of this context.
@@ -291,7 +291,10 @@ impl Document {
                 let referrer = self.owner_global().get_referrer();
                 let request = create_a_potential_cors_request_with_claim(
                     Some(self.webview_id()),
-                    UrlWithBlobClaim::from_url_without_having_claimed_blob(favicon_url.clone()),
+                    ensure_blob_referenced_by_url_is_kept_alive(
+                        &self.owner_global(),
+                        favicon_url.clone(),
+                    ),
                     Destination::Image,
                     None,
                     None,
