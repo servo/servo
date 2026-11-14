@@ -8,7 +8,7 @@ use log::debug;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use paint_api::CrossProcessPaintApi;
-use pixels::{CorsStatus, ImageMetadata, RasterImage};
+use pixels::{CorsStatus, DecodedRasterImage, ImageMetadata, RasterImage};
 use profile_traits::mem::Report;
 use resvg::usvg::{Font, fontdb};
 use serde::{Deserialize, Serialize};
@@ -288,4 +288,7 @@ pub trait ImageCache: Sync + Send {
 
     /// Clear the image cache.
     fn clear(&self);
+
+    /// Takes an encoded image as a buffer of bytes and returns a decoded [`DecodedImage`].
+    fn decode_image(&self, buffer: &[u8]) -> Option<DecodedRasterImage>;
 }

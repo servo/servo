@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-mod decoding;
+mod default_image_codec;
 mod snapshot;
+mod traits;
 
 use std::borrow::Cow;
 use std::fmt;
@@ -15,7 +16,7 @@ use std::time::Duration;
 use euclid::default::{Point2D, Rect, Size2D};
 use image::imageops::{self, FilterType};
 use image::{ImageBuffer, ImageFormat, Rgba};
-use log::{debug, error};
+use log::error;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use servo_base::cross_process_instant::CrossProcessInstant;
@@ -26,7 +27,8 @@ use webrender_api::{
     ImageDescriptor, ImageDescriptorFlags, ImageFormat as WebRenderImageFormat, ImageKey,
 };
 
-use crate::decoding::ServoImageDecoder;
+pub use crate::default_image_codec::DefaultImageCodec;
+pub use crate::traits::ImageCodec;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum FilterQuality {
@@ -315,6 +317,22 @@ pub struct RasterImage {
     pub loop_count: Option<Repeat>,
 }
 
+impl RasterImage {
+    fn from_decoded_image(decoded_image: DecodedRasterImage, cors_status: CorsStatus) -> Self {
+        Self {
+            metadata: decoded_image.metadata,
+            format: decoded_image.format,
+            id: None,
+            cors_status,
+            load_time: None,
+            bytes: Arc::new(decoded_image.bytes),
+            frames: decoded_image.frames,
+            is_opaque: decoded_image.is_opaque,
+            loop_count: decoded_image.loop_count,
+        }
+    }
+}
+
 fn sensible_delay(delay: Duration) -> Duration {
     // Very small timeout values are problematic for two reasons: we don't want
     // to burn energy redrawing animated images extremely fast, and broken tools
@@ -529,30 +547,17 @@ pub struct ImageMetadata {
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.
 
-pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<RasterImage> {
+pub fn load_from_memory(
+    image_decoder: &dyn ImageCodec,
+    buffer: &[u8],
+    cors_status: CorsStatus,
+) -> Option<RasterImage> {
     if buffer.is_empty() {
         return None;
     }
-
-    let image_fmt_result = detect_image_format(buffer);
-    match image_fmt_result {
-        Err(msg) => {
-            debug!("{}", msg);
-            None
-        },
-        Ok(format) => {
-            let Ok(image_decoder) = decoding::DefaultImageDecoder::make_decoder(format, buffer)
-            else {
-                return None;
-            };
-
-            if image_decoder.is_animated() {
-                decoding::decode_animated_image(cors_status, image_decoder.animated_decoder())
-            } else {
-                decoding::decode_static_image(cors_status, image_decoder.decoder())
-            }
-        },
-    }
+    image_decoder
+        .decode_image(buffer)
+        .map(|decoded_image| RasterImage::from_decoded_image(decoded_image, cors_status))
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img
@@ -704,6 +709,49 @@ fn is_webp(buffer: &[u8]) -> bool {
     // > of the whole file is at most 4 GiB minus 2 bytes.
     let len: usize = u32::from_le_bytes(size) as usize;
     buffer[8..].len() >= len && &buffer[8..12] == b"WEBP"
+}
+
+/// The decoded Image bytes and metadata.
+pub struct DecodedRasterImage {
+    /// The metadata for this decoded image.
+    pub metadata: ImageMetadata,
+    /// The [`PixelFormat`] of this decoded image. Preference is given to RGBA8.
+    pub format: PixelFormat,
+    /// The bytes of this decoded image.
+    pub bytes: Vec<u8>,
+    /// The frames of the image.
+    pub frames: Vec<ImageFrame>,
+    /// Whether or not all of the frames of this decoded image are opaque.
+    pub is_opaque: bool,
+    /// The loop count for this image's animation. For animated images, this
+    /// has a default value of `Repeat::Infinite` (if no loop count is specified in
+    /// the image). For images that do not animate, this will be `None`.
+    pub loop_count: Option<Repeat>,
+}
+
+impl From<DecodedRasterImage> for Snapshot {
+    fn from(image: DecodedRasterImage) -> Self {
+        let size = Size2D::new(image.metadata.width, image.metadata.height);
+        let format = match image.format {
+            PixelFormat::BGRA8 => SnapshotPixelFormat::BGRA,
+            PixelFormat::RGBA8 => SnapshotPixelFormat::RGBA,
+            pixel_format => {
+                unimplemented!("unsupported pixel format ({pixel_format:?})");
+            },
+        };
+
+        let alpha_mode = SnapshotAlphaMode::Transparent {
+            premultiplied: true,
+        };
+
+        Snapshot::from_arc_vec(
+            size.cast(),
+            format,
+            alpha_mode,
+            Arc::new(image.bytes),
+            image.frames[0].byte_range.clone(),
+        )
+    }
 }
 
 #[cfg(test)]
