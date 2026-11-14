@@ -8,7 +8,7 @@ use std::iter;
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderControlRequest, SelectElementRequest};
 use embedder_traits::{SelectElementOption, SelectElementOptionOrOptgroup};
-use html5ever::{local_name, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name};
 use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use script_bindings::cell::{DomRefCell, Ref};
@@ -999,10 +999,8 @@ impl Validatable for HTMLSelectElement {
     }
 
     fn satisfies_constraints(&self) -> bool {
-        let Some(validity_state) = self.validity_state.get() else {
-            return true;
-        };
-        validity_state.invalid_flags().is_empty()
+        self.validity_state
+            .is_none_or(|validity_state| validity_state.invalid_flags().is_empty())
     }
 
     fn is_instance_validatable(&self, no_gc: &NoGC) -> bool {

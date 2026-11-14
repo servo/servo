@@ -116,7 +116,7 @@ impl SpecificInputType for FileInputType {
         input: &HTMLInputElement,
         _value: &DOMString,
     ) -> bool {
-        input.Required() && self.filelist.get().is_none_or(|files| files.Length() == 0)
+        input.Required() && self.filelist.is_none_or(|files| files.Length() == 0)
     }
 
     fn value_for_shadow_dom(&self, input: &HTMLInputElement) -> DOMString {

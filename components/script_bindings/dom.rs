@@ -305,6 +305,22 @@ impl<T: DomObject> MutNullableDom<T> {
             }
         }
     }
+
+    /// Returns true if the [`MutNullableDom`] contains `None` or
+    /// the value inside matches the provided predicate.
+    pub fn is_none_or<F>(&self, cb: F) -> bool
+    where
+        F: FnOnce(&T) -> bool,
+    {
+        assert_in_script();
+        unsafe {
+            if let Some(ref value) = *self.ptr.get() {
+                cb(value)
+            } else {
+                true
+            }
+        }
+    }
 }
 
 impl<T: DomObject> PartialEq for MutNullableDom<T> {
