@@ -42,8 +42,8 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::{Guard, Headers};
 use crate::dom::stream::readablestream::ReadableStream;
 use crate::fetch::body::{
-    BodyMixin, BodyType, Extractable, body_text_stream, clone_body_stream_for_dom_body,
-    consume_body,
+    BodyMixin, BodySource, BodyType, Extractable, ExtractedBody, body_text_stream,
+    clone_body_stream_for_dom_body, consume_body,
 };
 use crate::fetch::fetch::{FetchCallState, RequestWithGlobalScope};
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
@@ -554,27 +554,44 @@ impl Request {
 
     /// <https://fetch.spec.whatwg.org/#concept-request-clone>
     fn clone_from(cx: &mut js::context::JSContext, r: &Request) -> Fallible<DomRoot<Request>> {
-        let req = r.request.borrow();
-        let url = req.url();
-        let headers_guard = r.Headers(cx).get_guard();
-
         // Step 1. Let newRequest be a copy of request, except for its body.
-        let mut new_req_inner = req.clone();
-        let body = new_req_inner.body.take();
+        // The body is copied too; stream-backed bodies are rebound after Step 2.
+        let new_req_inner = r.request.borrow().clone();
+        let url = new_req_inner.url();
+        let headers_guard = r.Headers(cx).get_guard();
+        let stream_body_len = new_req_inner
+            .body
+            .as_ref()
+            .filter(|body| body.source_is_null())
+            .map(|body| body.len());
 
         let r_clone = Request::new(cx, &r.global(), None, url, None /* state */);
         *r_clone.request.borrow_mut() = new_req_inner;
 
-        // Step 2. If request’s body is non-null, set newRequest’s body
-        // to the result of cloning request’s body.
-        if let Some(body) = body {
-            r_clone.request.borrow_mut().body = Some(body);
-        }
-
         r_clone.Headers(cx).copy_from_headers(&r.Headers(cx))?;
         r_clone.Headers(cx).set_guard(headers_guard);
 
+        // Step 2. If request’s body is non-null, set newRequest’s body
+        // to the result of cloning request’s body.
         clone_body_stream_for_dom_body(cx, &r.body_stream, &r_clone.body_stream)?;
+
+        // The net body of both requests still points at the original stream, which
+        // tee() just locked: rebind each one to its own tee branch.
+        if let Some(total_bytes) = stream_body_len {
+            for request in [r, &*r_clone] {
+                let Some(stream) = request.body_stream.get() else {
+                    continue;
+                };
+                let (net_body, _) = ExtractedBody {
+                    stream,
+                    source: BodySource::Null,
+                    total_bytes,
+                    content_type: None,
+                }
+                .into_net_request_body(cx);
+                request.request.borrow_mut().body = Some(net_body);
+            }
+        }
 
         // Step 3. Return newRequest.
         Ok(r_clone)
