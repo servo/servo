@@ -34,6 +34,8 @@ pub(crate) struct AudioParam {
     #[no_trace]
     param: ParamType,
     automation_rate: Cell<AutomationRate>,
+    /// The last value reported by the rendering thread, returned if that thread has gone away.
+    last_value: Cell<f32>,
     default_value: f32,
     min_value: f32,
     max_value: f32,
@@ -58,6 +60,7 @@ impl AudioParam {
             node_type,
             param,
             automation_rate: Cell::new(automation_rate),
+            last_value: Cell::new(default_value),
             default_value,
             min_value,
             max_value,
@@ -155,7 +158,12 @@ impl AudioParamMethods<crate::DomTypeHolder> for AudioParam {
         }
         let (tx, rx) = mpsc::channel();
         self.message_node(AudioNodeMessage::GetParamValue(self.param, tx));
-        Finite::wrap(rx.recv().unwrap())
+        // The rendering thread is gone if the context was closed or the thread panicked.
+        // Keep returning the last value it reported instead of panicking.
+        if let Ok(value) = rx.recv() {
+            self.last_value.set(value);
+        }
+        Finite::wrap(self.last_value.get())
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-audioparam-value>
