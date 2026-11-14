@@ -14,7 +14,9 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
-use crate::dom::execcommand::contenteditable::node::{NodeOrString, is_allowed_child};
+use crate::dom::execcommand::contenteditable::node::{
+    NodeOrString, is_allowed_child, move_preserving_ranges,
+};
 use crate::dom::execcommand::contenteditable::selection::SelectionDeletionStripWrappers;
 use crate::dom::html::htmlpreelement::HTMLPreElement;
 use crate::dom::selection::Selection;
@@ -156,6 +158,10 @@ pub(crate) fn execute_insert_line_break_command(
         unreachable!("Should always be able to collapse the selection.");
     }
 
+    active_range = selection
+        .active_range(cx)
+        .expect("Must always have an active range");
+
     // Step 10. If br is a collapsed line break, call createElement("br") on the context object and
     //          let extra br be the result, then call insertNode(extra br) on the active range.
     if newline_node.is_collapsed_line_break(cx) {
@@ -166,9 +172,9 @@ pub(crate) fn execute_insert_line_break_command(
             DomRoot::upcast(document.create_element(cx, "br"))
         };
 
-        if active_range.InsertNode(cx, &extra_newline_node).is_err() {
-            unreachable!("The node should always be insertable.");
-        }
+        move_preserving_ranges(cx, &extra_newline_node, |cx| {
+            active_range.InsertNode(cx, &extra_newline_node)
+        });
     }
 
     // Step 11. Return true.
