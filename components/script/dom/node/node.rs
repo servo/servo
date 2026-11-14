@@ -1061,39 +1061,31 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-tree-inclusive-ancestor>
-    pub(crate) fn is_inclusive_ancestor_of(&self, child: &Node) -> bool {
+    pub(crate) fn is_inclusive_ancestor_of(&self, no_gc: &NoGC, child: &Node) -> bool {
         // > An inclusive ancestor is an object or one of its ancestors.
-        self == child || self.is_ancestor_of(child)
+        self == child || self.is_ancestor_of(no_gc, child)
     }
 
     /// <https://dom.spec.whatwg.org/#concept-tree-ancestor>
-    pub(crate) fn is_ancestor_of(&self, possible_descendant: &Node) -> bool {
+    pub(crate) fn is_ancestor_of(&self, no_gc: &NoGC, possible_descendant: &Node) -> bool {
         // > An object A is called an ancestor of an object B if and only if B is a descendant of A.
-        let mut current = &possible_descendant.parent_node;
-        let mut done = false;
-
-        while let Some(node) = current.if_is_some(|node| {
-            done = node == self;
-            &node.parent_node
-        }) {
-            if done {
-                break;
-            }
-            current = node
-        }
-        done
+        possible_descendant
+            .ancestors_unrooted(no_gc)
+            .any(|ancestor| ancestor == *self)
     }
 
     /// <https://dom.spec.whatwg.org/#concept-tree-host-including-inclusive-ancestor>
-    fn is_host_including_inclusive_ancestor(&self, child: &Node) -> bool {
+    fn is_host_including_inclusive_ancestor(&self, no_gc: &NoGC, child: &Node) -> bool {
         // An object A is a host-including inclusive ancestor of an object B, if either A is an inclusive ancestor of B,
         // or if B’s root has a non-null host and A is a host-including inclusive ancestor of B’s root’s host.
-        self.is_inclusive_ancestor_of(child) ||
+        self.is_inclusive_ancestor_of(no_gc, child) ||
             child
                 .GetRootNode(&GetRootNodeOptions::empty())
                 .downcast::<DocumentFragment>()
                 .and_then(|fragment| fragment.host())
-                .is_some_and(|host| self.is_host_including_inclusive_ancestor(host.upcast()))
+                .is_some_and(|host| {
+                    self.is_host_including_inclusive_ancestor(no_gc, host.upcast())
+                })
     }
 
     /// <https://dom.spec.whatwg.org/#concept-shadow-including-inclusive-ancestor>
@@ -1432,7 +1424,7 @@ impl Node {
 
         // Step 2. If node is a host-including inclusive ancestor of newParent, then throw a
         // "HierarchyRequestError" DOMException.
-        if node.is_host_including_inclusive_ancestor(new_parent) {
+        if node.is_host_including_inclusive_ancestor(cx.no_gc(), new_parent) {
             return Err(Error::HierarchyRequest(Some(
                 "`node` node cannot be the inclusive ancestor of the `newParent` node".into(),
             )));
@@ -2580,7 +2572,7 @@ impl Node {
         }
 
         // Step 2. If node is a host-including inclusive ancestor of parent, then throw a "HierarchyRequestError" DOMException.
-        if node.is_host_including_inclusive_ancestor(parent) {
+        if node.is_host_including_inclusive_ancestor(no_gc, parent) {
             return Err(Error::HierarchyRequest(Some(
                 "Node is a host-including inclusive ancestor of parent".to_owned(),
             )));
@@ -4424,10 +4416,10 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-contains>
-    fn Contains(&self, maybe_other: Option<&Node>) -> bool {
+    fn Contains(&self, no_gc: &NoGC, maybe_other: Option<&Node>) -> bool {
         match maybe_other {
             None => false,
-            Some(other) => self.is_inclusive_ancestor_of(other),
+            Some(other) => self.is_inclusive_ancestor_of(no_gc, other),
         }
     }
 

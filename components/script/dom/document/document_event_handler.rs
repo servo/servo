@@ -725,7 +725,7 @@ impl DocumentEventHandler {
             if let Some(old_target) = self.current_hover_target.get() {
                 let old_target_is_ancestor_of_new_target = old_target
                     .upcast::<Node>()
-                    .is_ancestor_of(new_target.upcast::<Node>());
+                    .is_ancestor_of(cx.no_gc(), new_target.upcast::<Node>());
 
                 // If the old target is an ancestor of the new target, this can be skipped
                 // completely, since the node's hover state will be reset below.

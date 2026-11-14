@@ -199,25 +199,27 @@ impl Range {
         // Steps 5-6.
         let common_ancestor = self.CommonAncestorContainer();
 
-        let first_partially_contained_child = if start_node.is_inclusive_ancestor_of(&end_node) {
-            // Step 7.
-            None
-        } else {
-            // Step 8.
-            common_ancestor
-                .children()
-                .find(|node| Range::partially_contains(self, node))
-        };
+        let first_partially_contained_child =
+            if start_node.is_inclusive_ancestor_of(no_gc, &end_node) {
+                // Step 7.
+                None
+            } else {
+                // Step 8.
+                common_ancestor
+                    .children()
+                    .find(|node| Range::partially_contains(self, node))
+            };
 
-        let last_partially_contained_child = if end_node.is_inclusive_ancestor_of(&start_node) {
-            // Step 9.
-            None
-        } else {
-            // Step 10.
-            common_ancestor
-                .rev_children()
-                .find(|node| Range::partially_contains(self, node))
-        };
+        let last_partially_contained_child =
+            if end_node.is_inclusive_ancestor_of(no_gc, &start_node) {
+                // Step 9.
+                None
+            } else {
+                // Step 10.
+                common_ancestor
+                    .rev_children()
+                    .find(|node| Range::partially_contains(self, node))
+            };
 
         // Step 11.
         let contained_children: Vec<DomRoot<Node>> = common_ancestor
@@ -913,14 +915,14 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             contained_children,
         } = self.contained_children(cx.no_gc())?;
 
-        let (new_node, new_offset) = if start_node.is_inclusive_ancestor_of(&end_node) {
+        let (new_node, new_offset) = if start_node.is_inclusive_ancestor_of(cx.no_gc(), &end_node) {
             // Step 13.
             (DomRoot::from_ref(&*start_node), start_offset)
         } else {
             // Step 14.1-2.
             let reference_node = start_node
                 .ancestors()
-                .take_while(|n| !n.is_inclusive_ancestor_of(&end_node))
+                .take_while(|n| !n.is_inclusive_ancestor_of(cx.no_gc(), &end_node))
                 .last()
                 .unwrap_or(DomRoot::from_ref(&start_node));
             // Step 14.3.
@@ -1170,17 +1172,21 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         // Step 5. Let newNode and newOffset be null.
         // Step 6. If originalStartNode is an inclusive ancestor of originalEndNode,
         // then set newNode to originalStartNode and newOffset to originalStartOffset.
-        let (new_node, new_offset) = if start_node.is_inclusive_ancestor_of(&end_node) {
+        let (new_node, new_offset) = if start_node.is_inclusive_ancestor_of(cx.no_gc(), &end_node) {
             (DomRoot::from_ref(&*start_node), start_offset)
         } else {
             // Step 7. Otherwise:
-            fn compute_reference(start_node: &Node, end_node: &Node) -> (DomRoot<Node>, u32) {
+            fn compute_reference(
+                no_gc: &NoGC,
+                start_node: &Node,
+                end_node: &Node,
+            ) -> (DomRoot<Node>, u32) {
                 // Step 7.1. Let referenceNode be originalStartNode.
                 let mut reference_node = DomRoot::from_ref(start_node);
                 // Step 7.2. While referenceNode’s parent is non-null and
                 // is not an inclusive ancestor of originalEndNode: set referenceNode to its parent.
                 while let Some(parent) = reference_node.GetParentNode() {
-                    if parent.is_inclusive_ancestor_of(end_node) {
+                    if parent.is_inclusive_ancestor_of(no_gc, end_node) {
                         // Step 7.3. Set newNode to referenceNode’s parent and newOffset to referenceNode’s index + 1.
                         return (parent, reference_node.index() + 1);
                     }
@@ -1189,7 +1195,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                 unreachable!()
             }
 
-            compute_reference(&start_node, &end_node)
+            compute_reference(cx.no_gc(), &start_node, &end_node)
         };
 
         // Step 8. Set this’s start and end to (newNode, newOffset).
@@ -1232,9 +1238,9 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
 
         if start
             .inclusive_ancestors(ShadowIncluding::No)
-            .any(|n| !n.is_inclusive_ancestor_of(&end) && !n.is::<Text>()) ||
+            .any(|n| !n.is_inclusive_ancestor_of(cx.no_gc(), &end) && !n.is::<Text>()) ||
             end.inclusive_ancestors(ShadowIncluding::No)
-                .any(|n| !n.is_inclusive_ancestor_of(&start) && !n.is::<Text>())
+                .any(|n| !n.is_inclusive_ancestor_of(cx.no_gc(), &start) && !n.is::<Text>())
         {
             return Err(Error::InvalidState(Some(
                 "Range partially contains a non-Text node".into(),
@@ -1539,12 +1545,12 @@ impl Document {
             // Step 4: For each live range whose start node is an inclusive descendant of
             // node, set its start to (parent, index).
             let start_container = range.start_container();
-            if removed_node.is_inclusive_ancestor_of(&start_container) {
+            if removed_node.is_inclusive_ancestor_of(no_gc, &start_container) {
                 range.set_start_without_reporting(parent_of_removed_node, index_of_removed_node());
             }
             // Step 5: For each live range whose end node is an inclusive descendant of node,
             // set its end to (parent, index).
-            if removed_node.is_inclusive_ancestor_of(&range.end_container()) {
+            if removed_node.is_inclusive_ancestor_of(no_gc, &range.end_container()) {
                 range.set_end_without_reporting(parent_of_removed_node, index_of_removed_node());
             }
 

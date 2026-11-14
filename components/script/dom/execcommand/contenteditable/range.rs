@@ -60,9 +60,9 @@ impl Range {
         // > node has at least one child; and all its children are effectively contained in range;
         node.children_count() > 0 && node.children().all(|child| self.is_effectively_contained_node(no_gc, &child))
         // > and either range's start node is not a descendant of node or is not a Text node or range's start offset is zero;
-        && (!node.is_ancestor_of(&start_container) || !start_container.is::<Text>() || self.start_offset() == 0)
+        && (!node.is_ancestor_of(no_gc, &start_container) || !start_container.is::<Text>() || self.start_offset() == 0)
         // > and either range's end node is not a descendant of node or is not a Text node or range's end offset is its end node's length.
-        && (!node.is_ancestor_of(&end_container) || !end_container.is::<Text>() || self.end_offset() == end_container.len())
+        && (!node.is_ancestor_of(no_gc, &end_container) || !end_container.is::<Text>() || self.end_offset() == end_container.len())
     }
 
     /// The definition of "effectively contained" contains the recursion of

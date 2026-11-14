@@ -137,7 +137,7 @@ pub(crate) fn execute_indent_command(
             )) &&
             node_list
                 .last()
-                .is_none_or(|last| !last.is_ancestor_of(&node))
+                .is_none_or(|last| !last.is_ancestor_of(cx.no_gc(), &node))
         {
             node_list.push(node);
         }
