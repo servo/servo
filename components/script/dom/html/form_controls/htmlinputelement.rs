@@ -44,6 +44,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, N
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::document::Document;
@@ -2191,14 +2192,45 @@ impl HTMLInputElement {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#input-support-picker>
+    pub(crate) fn supports_a_picker(&self) -> bool {
+        matches!(
+            *self.input_type.borrow(),
+            InputType::Date(_) |
+                InputType::Month(_) |
+                InputType::Week(_) |
+                InputType::Time(_) |
+                InputType::DatetimeLocal(_) |
+                InputType::Color(_) |
+                InputType::File(_)
+        )
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#show-the-picker,-if-applicable>
     pub(crate) fn show_the_picker_if_applicable(&self, cx: &mut JSContext) {
-        // FIXME: Implement most of this algorithm
+        let global = self.upcast::<Element>().global();
+
+        // Step 1. If element's relevant global object does not have transient activation, then return.
+        if !global.as_window().has_transient_activation() {
+            return;
+        }
 
         // Step 2. If element is not mutable, then return.
         if !self.is_mutable() {
             return;
         }
+
+        // Step 3. Consume user activation given element's relevant global object.
+        global.as_window().consume_user_activation();
+
+        // Step 4. If element does not support a picker, then return.
+        if !self.supports_a_picker() {
+            return;
+        }
+
+        // Step 5. If element is an input element and element's type attribute is in the File Upload state,
+        // then run these steps in parallel:
+        // TODO: blocked on Webdriver BiDi (#42766)
 
         // Step 6. Otherwise, the user agent should show the relevant user interface for selecting a value for element,
         // in the way it normally would when the user interacts with the control.
