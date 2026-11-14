@@ -314,12 +314,12 @@ impl ShadowRoot {
     }
 
     /// Find the first slot with the given name among this root's descendants in tree order
-    pub(crate) fn slot_for_name(&self, name: &DOMString) -> Option<DomRoot<HTMLSlotElement>> {
+    pub(crate) fn slot_for_name<'a>(&self, name: &DOMString, no_gc: &'a NoGC) -> Option<UnrootedDom<'a, HTMLSlotElement>> {
         self.slots
             .borrow()
             .get(name)
             .and_then(|slots| slots.first())
-            .map(|slot| slot.as_rooted())
+            .map(|slot| slot.as_unrooted(no_gc))
     }
 
     pub(crate) fn has_slot_descendants(&self) -> bool {
