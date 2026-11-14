@@ -50,6 +50,7 @@ use net_traits::policy_container::PolicyContainer;
 use net_traits::pub_domains::{Site, is_pub_domain};
 use net_traits::request::{
     InsecureRequestsPolicy, PreloadId, PreloadKey, PreloadedResources, RequestBuilder,
+    UpgradeInsecureNavigations,
 };
 use net_traits::{ReferrerPolicy, ResourceFetchTiming};
 use paint_api::display_list::PaintTimingInfo;
@@ -2079,10 +2080,40 @@ impl Document {
 
     pub(crate) fn set_policy_container(&self, policy_container: StdArc<PolicyContainer>) {
         *self.policy_container.borrow_mut() = policy_container;
+        self.update_upgrade_insecure_navigations_set();
     }
 
     pub(crate) fn set_csp_list(&self, csp_list: Option<CspList>) {
         StdArc::make_mut(&mut *self.policy_container.borrow_mut()).set_csp_list(csp_list);
+        self.update_upgrade_insecure_navigations_set();
+    }
+
+    /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#delivery> Step 3-4
+    fn update_upgrade_insecure_navigations_set(&self) {
+        if let Some(csp_list) = self.get_csp_list().as_ref() {
+            for policy in &csp_list.0 {
+                if policy.contains_a_directive_whose_name_is("upgrade-insecure-requests") &&
+                    policy.disposition == PolicyDisposition::Enforce
+                {
+                    if let ImmutableOrigin::Tuple(_, host, port) = self.url.borrow().origin() {
+                        let tuple = UpgradeInsecureNavigations {
+                            host: host.to_string(),
+                            port,
+                        };
+                        let global_scope = self.window.as_global_scope();
+
+                        global_scope
+                            .script_to_constellation_chan()
+                            .send(ScriptToConstellationMessage::AddTupleToUpgradeInsecureNavigationsSet(tuple.clone()))
+                            .unwrap();
+                        global_scope
+                            .upgrade_insecure_navigations_set_mut()
+                            .insert(tuple);
+                    }
+                    return;
+                }
+            }
+        }
     }
 
     /// <https://www.w3.org/TR/CSP/#enforced>
