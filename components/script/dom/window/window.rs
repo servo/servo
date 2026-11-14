@@ -6,6 +6,7 @@
 
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell, RefMut};
+use std::collections::HashSet;
 use std::collections::hash_map::Entry;
 use std::default::Default;
 use std::ffi::c_void;
@@ -60,7 +61,7 @@ use net_traits::image_cache::{
     ImageCache, ImageCacheResponseCallback, ImageCacheResponseMessage, ImageLoadListener,
     ImageResponse, PendingImageId, PendingImageResponse, RasterizationCompleteResponse,
 };
-use net_traits::request::{Origin, Referrer, RequestClient};
+use net_traits::request::{Origin, Referrer, RequestClient, UpgradeInsecureNavigations};
 use net_traits::{ResourceFetchTiming, ResourceThreads};
 use num_traits::ToPrimitive;
 use paint_api::{CrossProcessPaintApi, PinchZoomInfos};
@@ -620,6 +621,13 @@ impl Window {
         self.as_global_scope()
             .task_manager()
             .cancel_all_tasks_and_ignore_future_tasks();
+
+        // Remove any devicechange callbacks from the WebXR registry
+        // so we don't hold any references to XRSystem
+        #[cfg(feature = "webxr")]
+        if let Some(mut registry) = self.webxr_registry() {
+            registry.remove_device_change_callbacks(self.pipeline_id());
+        }
     }
 
     /// Get a sender to the time profiler thread.
@@ -1084,6 +1092,10 @@ impl Window {
             origin: Origin::Origin(origin.immutable().clone()),
             is_nested_browsing_context: !self.is_top_level(),
             insecure_requests_policy,
+            upgrade_insecure_navigations_set: self
+                .as_global_scope()
+                .upgrade_insecure_navigations_set()
+                .clone(),
             has_trustworthy_ancestor_origin,
             network_partition_key,
         }
@@ -3551,6 +3563,12 @@ impl Window {
         } else {
             Some(self.IsSecureContext())
         };
+
+        let upgrade_insecure_navigations_set = self
+            .as_global_scope()
+            .upgrade_insecure_navigations_set()
+            .clone();
+
         LoadData::new(
             LoadOrigin::Script(self.origin().snapshot()),
             url,
@@ -3560,6 +3578,7 @@ impl Window {
             source_document.get_referrer_policy(),
             secure_context,
             Some(source_document.insecure_requests_policy()),
+            upgrade_insecure_navigations_set,
             source_document.has_trustworthy_ancestor_origin(),
             source_document.creation_sandboxing_flag_set_considering_parent_iframe(),
         )
@@ -4206,6 +4225,7 @@ impl Window {
         player_context: WindowGLContext,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
+        inherited_upgrade_insecure_navigations_set: HashSet<UpgradeInsecureNavigations>,
         weak_script_thread: Weak<ScriptThread>,
     ) -> DomRoot<Self> {
         let error_reporter = CSSErrorReporter {
@@ -4229,6 +4249,7 @@ impl Window {
                 #[cfg(feature = "webgpu")]
                 gpu_id_hub,
                 inherited_secure_context,
+                inherited_upgrade_insecure_navigations_set,
                 unminify_js,
             ),
             caches: Default::default(),
@@ -4325,10 +4346,12 @@ impl Window {
         self.Document().pipeline_id()
     }
 
+    #[cfg(feature = "devtools")]
     pub(crate) fn live_devtools_updates(&self) -> bool {
         self.devtools_wants_updates.get()
     }
 
+    #[cfg(feature = "devtools")]
     pub(crate) fn set_devtools_wants_updates(&self, value: bool) {
         self.devtools_wants_updates.set(value);
     }

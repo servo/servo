@@ -256,7 +256,14 @@ pub(crate) fn import_key<D: Equivalence>(
             // Step 3.4. Let data be the byte sequence obtained by decoding the k field of jwk.
             data = jwk.decode_required_string_field(JwkStringField::K)?;
 
-            // Step 3.5. If the alg field of jwk is present, and is not "C20P", then throw a
+            // Step 3.5. If the length in bits of data is not 256, then throw a DataError.
+            if data.len() != 32 {
+                return Err(Error::Data(Some(
+                    "Length in bits of data is not 256".into(),
+                )));
+            }
+
+            // Step 3.6. If the alg field of jwk is present, and is not "C20P", then throw a
             // DataError.
             if jwk.alg.as_ref().is_some_and(|alg| alg != "C20P") {
                 return Err(Error::Data(Some(
@@ -264,7 +271,7 @@ pub(crate) fn import_key<D: Equivalence>(
                 )));
             }
 
-            // Step 3.6. If usages is non-empty and the use field of jwk is present and is not
+            // Step 3.7. If usages is non-empty and the use field of jwk is present and is not
             // "enc", then throw a DataError.
             if !usages.is_empty() && jwk.use_.as_ref().is_some_and(|use_| use_ != "enc") {
                 return Err(Error::Data(Some(
@@ -273,12 +280,12 @@ pub(crate) fn import_key<D: Equivalence>(
                 )));
             }
 
-            // Step 3.7. If the key_ops field of jwk is present, and is invalid according to the
+            // Step 3.8. If the key_ops field of jwk is present, and is invalid according to the
             // requirements of JSON Web Key [JWK] or does not contain all of the specified usages
             // values, then throw a DataError.
             jwk.check_key_ops(&usages)?;
 
-            // Step 3.8. If the ext field of jwk is present and has the value false and extractable
+            // Step 3.9. If the ext field of jwk is present and has the value false and extractable
             // is true, then throw a DataError.
             if jwk.ext.is_some_and(|ext| !ext) && extractable {
                 return Err(Error::Data(Some(

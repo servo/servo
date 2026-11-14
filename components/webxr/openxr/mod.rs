@@ -22,6 +22,7 @@ use openxr::{
     SwapchainCreateInfo, SwapchainUsageFlags, SystemId, Vector3f, Version, ViewConfigurationType,
 };
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
+use servo_base::generic_channel::GenericCallback;
 use servo_base::id::PainterId;
 use surfman::{
     Context as SurfmanContext, Device as SurfmanDevice, Error as SurfmanError, SurfaceTexture,
@@ -43,11 +44,15 @@ use input::OpenXRInput;
 mod graphics;
 mod interaction_profiles;
 use graphics::{GraphicsProvider, GraphicsProviderMethods};
+mod poller;
+use poller::OpenXRDevicePoller;
 
 #[cfg(target_os = "windows")]
 mod graphics_d3d11;
 #[cfg(target_os = "windows")]
 use graphics_d3d11::Backend;
+
+const OPENXR_VERSION: Version = Version::new(1, 0, 36);
 
 const HEIGHT: f32 = 1.4;
 
@@ -166,6 +171,8 @@ impl<Eye> ViewInfo<Eye> {
 pub struct OpenXrDiscovery {
     context_menu_provider: Option<Box<dyn ContextMenuProvider>>,
     app_info: AppInfo,
+    poller: OpenXRDevicePoller,
+    last_device: Option<Option<(u64, String)>>,
 }
 
 impl OpenXrDiscovery {
@@ -176,6 +183,8 @@ impl OpenXrDiscovery {
         Self {
             context_menu_provider,
             app_info,
+            poller: OpenXRDevicePoller::new(),
+            last_device: None,
         }
     }
 }
@@ -214,7 +223,7 @@ fn create_instance(
         application_version: app_info.application_version,
         engine_name: &app_info.engine_name,
         engine_version: app_info.engine_version,
-        api_version: Version::new(1, 0, 36),
+        api_version: OPENXR_VERSION,
     };
 
     let mut exts = ExtensionSet::default();
@@ -341,6 +350,25 @@ impl DiscoveryAPI<SurfmanGL> for OpenXrDiscovery {
             }
         }
         supports
+    }
+
+    fn poll_device_changed(&mut self) -> bool {
+        let latest = self.poller.try_recv();
+        let Some(device) = latest else {
+            return false;
+        };
+
+        let changed = match self.last_device {
+            // Don't fire if headset already initially connected, only on change
+            None => false,
+            Some(ref previous) => *previous != device,
+        };
+        self.last_device = Some(device);
+        changed
+    }
+
+    fn set_waker(&mut self, waker: GenericCallback<()>) {
+        self.poller.set_waker(waker);
     }
 }
 

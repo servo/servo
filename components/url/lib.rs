@@ -250,16 +250,16 @@ impl ServoUrl {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#matches-about:blank>
-    pub fn matches_about_blank(&self) -> bool {
-        // A URL matches about:blank if
-
+    /// <https://html.spec.whatwg.org/multipage/#matches-about:srcdoc>
+    fn matches_about_url(&self, path_string: &str) -> bool {
         // its scheme is "about",
         if self.scheme() != "about" {
             return false;
         }
 
         // its path contains a single string "blank",
-        let path_is_blank = self.0.path() == "blank";
+        // its path contains a single string "srcdoc",
+        let path_matches = self.0.path() == path_string;
 
         // its username and password are the empty string,
         let empty_username_and_password =
@@ -268,7 +268,18 @@ impl ServoUrl {
         // and its host is null.
         let null_host = self.0.host().is_none();
 
-        path_is_blank && empty_username_and_password && null_host
+        path_matches && empty_username_and_password && null_host
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#matches-about:blank>
+    pub fn matches_about_blank(&self) -> bool {
+        self.matches_about_url("blank")
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#matches-about:srcdoc>
+    pub fn matches_about_srcdoc(&self) -> bool {
+        // > its query is null
+        self.matches_about_url("srcdoc") && self.0.query().is_none()
     }
 }
 

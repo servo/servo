@@ -14,15 +14,14 @@ use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 
 use crate::containing_block::{
-    ConstraintSpace, ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize,
-    IndefiniteContainingBlock,
+    ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock,
 };
 use crate::context::LayoutContext;
 use crate::dom::{LayoutBox, NodeExt, WeakLayoutBox};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents};
 use crate::flexbox::FlexContainer;
-use crate::flow::BlockFormattingContext;
 use crate::flow::inline::InlineFormattingContext;
+use crate::flow::{BlockFormattingContext, ContentAlignment};
 use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags};
 use crate::geom::LogicalVec2;
 use crate::layout_box_base::{IndependentFormattingContextLayoutResult, LayoutBoxBase};
@@ -467,26 +466,32 @@ impl IndependentFormattingContext {
                 // Widget should know the size of the replaced contents.
                 let resolved_block_size =
                     lazy_block_size.resolve(|| replaced_layout.content_block_size);
-                let widget_cb = ContainingBlock {
-                    size: ContainingBlockSize {
-                        inline: containing_block_for_children.size.inline,
-                        block: SizeConstraint::Definite(resolved_block_size),
-                        has_quirky_block_size: HasQuirkyBlockSize(false),
-                    },
+                let widget_size = LogicalVec2 {
+                    inline: containing_block_for_children.inline_size(),
+                    block: resolved_block_size,
+                };
+                let widget_containing_block = ContainingBlock {
+                    size: ContainingBlockSize::new(
+                        containing_block_for_children.inline_size(),
+                        SizeConstraint::Definite(resolved_block_size),
+                    ),
                     style: &self.base.style,
                 };
                 if let Some(widget) = widget {
-                    let mut widget_layout = widget.borrow().layout(
+                    let widget_layout = widget.borrow().layout(
                         layout_context,
                         positioning_context,
-                        &widget_cb,
-                        &widget_cb,
+                        &widget_containing_block,
+                        &widget_containing_block,
                         None,
                         &LazySize::intrinsic(),
                     );
-                    replaced_layout
-                        .fragments
-                        .append(&mut widget_layout.fragments);
+
+                    replaced_layout.fragments.append(
+                        widget_layout.fragments,
+                        self.base.style.writing_mode,
+                        widget_size,
+                    );
                 }
                 replaced_layout
             },
@@ -600,11 +605,10 @@ impl IndependentFormattingContext {
             layout_context,
             positioning_context,
             &ContainingBlock {
-                size: ContainingBlockSize {
-                    inline: inline_size,
-                    block: SizeConstraint::default(),
-                    has_quirky_block_size: HasQuirkyBlockSize(false),
-                },
+                size: ContainingBlockSize::new(
+                    inline_size,
+                    SizeConstraint::default(), /* block_size */
+                ),
                 style: self.style(),
             },
             containing_block,
@@ -684,6 +688,15 @@ impl IndependentFormattingContext {
                 block_formatting_context.inline_formatting_context()
             },
             _ => None,
+        }
+    }
+
+    pub(crate) fn content_alignment_for_block_formatting_context(&self) -> ContentAlignment {
+        match &self.contents {
+            IndependentFormattingContextContents::Flow(block_formatting_context) => {
+                block_formatting_context.content_alignment(&self.base)
+            },
+            _ => panic!("Not a block formattign context"),
         }
     }
 }

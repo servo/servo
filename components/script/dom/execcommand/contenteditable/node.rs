@@ -2450,7 +2450,15 @@ impl Node {
     pub(crate) fn is_collapsed_line_break(&self, cx: &mut JSContext) -> bool {
         // > A collapsed line break is a br that begins a line box which has nothing else in it,
         // > and therefore has zero height.
-        if !self.is::<HTMLBRElement>() {
+        //
+        // This also takes into account a newly created text node with the only value "\n", since
+        // that's what browsers insert when the white-space CSS property indicates it has pre-formatted
+        // content.
+        if !self.is::<HTMLBRElement>() &&
+            !self
+                .downcast::<Text>()
+                .is_some_and(|text| text.data().as_str() == "\n")
+        {
             return false;
         }
 

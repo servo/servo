@@ -1190,7 +1190,7 @@ pub(crate) fn get_public_key<D: Equivalence>(
     // Step 12. Set the [[type]] internal slot of publicKey to "public".
     // Step 13. Set the [[algorithm]] internal slot of publicKey to algorithm.
     // Step 14. Set the [[extractable]] internal slot of publicKey to true.
-    // Step 15. Set the [[usages]] internal slot of publicKey to usages.
+    // Step 15. Set the [[usages]] internal slot of publicKey to the normalized value of usages.
     let public_key_handle = match key.handle() {
         Handle::P256PrivateKey(private_key) => Handle::P256PublicKey(private_key.public_key()),
         Handle::P384PrivateKey(private_key) => Handle::P384PublicKey(private_key.public_key()),
@@ -1207,7 +1207,7 @@ pub(crate) fn get_public_key<D: Equivalence>(
         KeyType::Public,
         true,
         algorithm.clone(),
-        usages,
+        usages.normalized_value(),
         public_key_handle,
     );
 

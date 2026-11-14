@@ -7,31 +7,33 @@ import dataclasses
 import json
 import multiprocessing
 import os
-import re
+import subprocess
 import sys
 import tempfile
-import urllib.error
-import urllib.parse
-import urllib.request
 
-from typing import List, NamedTuple, Optional, Union, cast, Any
+from typing import List, cast, Any
 from collections.abc import Callable
 
 import mozlog
 import mozlog.formatters
 
 from . import SERVO_ROOT, WPT_PATH, WPT_TOOLS_PATH
-from .grouping_formatter import ServoFormatter, ServoHandler, UnexpectedResult, UnexpectedSubtestResult
+from .grouping_formatter import ServoFormatter, ServoHandler, UnexpectedResult
 from .manifestupdate import ensure_manifests_up_to_date
 from wptrunner import wptcommandline
 from wptrunner import wptrunner
 
 
 CERTS_PATH = os.path.join(WPT_TOOLS_PATH, "certs")
-TRACKER_API = "https://intermittent-tracker.servo.org"
-TRACKER_API_ENV_VAR = "INTERMITTENT_TRACKER_API"
-TRACKER_DASHBOARD_SECRET_ENV_VAR = "INTERMITTENT_TRACKER_DASHBOARD_SECRET_PROD"
-TRACKER_DASHBOARD_MAXIMUM_OUTPUT_LENGTH = 1024
+INTERMITTENT_ISSUES_GRAPHQL = """
+query($endCursor: String) {
+  search(query: "repo:servo/servo is:issue is:open label:I-intermittent -label:C-disabled",
+         type: ISSUE, first: 100, after: $endCursor) {
+    pageInfo { hasNextPage endCursor }
+    nodes { ... on Issue { number title } }
+  }
+}
+"""
 
 
 def set_if_none(args: dict, key: str, value: bool | int | str) -> None:
@@ -74,7 +76,9 @@ def run_tests(default_binary_path: str, multiprocess: bool, **kwargs: Any) -> in
     # The pytest framework used in the webdriver conformance tests dumps the
     # environment variables when unexpected results occur, and this variable
     # makes CI logs unreadable.
-    github_context = os.environ.pop("GITHUB_CONTEXT", None)
+    os.environ.pop("GITHUB_CONTEXT", None)
+    # Also remove this environment variable to prevent it leaking into the logs.
+    gh_token = os.environ.pop("GH_TOKEN", None)
 
     # Allow to run with the legacy Servo WPT configuration. This is required
     # until necessary improvements are made to the debugging experience with
@@ -181,10 +185,7 @@ def run_tests(default_binary_path: str, multiprocess: bool, **kwargs: Any) -> in
 
     # Filter intermittents if that was specified on the command-line.
     if filter_intermittents_output:
-        if github_context:
-            os.environ["GITHUB_CONTEXT"] = github_context
-
-        all_filtered = filter_intermittents(handler.unexpected_results, filter_intermittents_output)
+        all_filtered = filter_intermittents(handler.unexpected_results, filter_intermittents_output, gh_token)
         return_value = 0 if all_filtered else 1
 
     # Write the unexpected-only raw log if that was specified on the command-line.
@@ -199,109 +200,42 @@ def run_tests(default_binary_path: str, multiprocess: bool, **kwargs: Any) -> in
     return return_value
 
 
-class GithubContextInformation(NamedTuple):
-    build_url: Optional[str]
-    pull_url: Optional[str]
-    branch_name: Optional[str]
+def get_intermittent_issues_from_github(gh_token: str | None) -> list[dict]:
+    environment = dict(os.environ)
+    if gh_token:
+        environment["GH_TOKEN"] = gh_token
+
+    try:
+        output = subprocess.check_output(
+            [
+                "gh",
+                "api",
+                "graphql",
+                "--paginate",
+                "--jq",
+                ".data.search.nodes[]",
+                "-f",
+                f"query={INTERMITTENT_ISSUES_GRAPHQL}",
+            ],
+            env=environment,
+            text=True,
+        )
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        print("Filtering intermittents requires having `gh` installed and authenticated.")
+        # Raise this exception instead of eating it because this will surface
+        # intermittent filtering failures on the CI more quickly.
+        raise
+    return [json.loads(line) for line in output.splitlines()]
 
 
-class TrackerDashboardFilter:
-    def __init__(self) -> None:
-        base_url = os.environ.get(TRACKER_API_ENV_VAR, TRACKER_API)
-        self.headers = {"Content-Type": "application/json"}
-        if TRACKER_DASHBOARD_SECRET_ENV_VAR in os.environ and os.environ[TRACKER_DASHBOARD_SECRET_ENV_VAR]:
-            self.url = f"{base_url}/dashboard/attempts"
-            secret = os.environ[TRACKER_DASHBOARD_SECRET_ENV_VAR]
-            self.headers["Authorization"] = f"Bearer {secret}"
-        else:
-            self.url = f"{base_url}/dashboard/query"
-
-    @staticmethod
-    def get_github_context_information() -> GithubContextInformation:
-        github_context = json.loads(os.environ.get("GITHUB_CONTEXT", "{}"))
-        if not github_context:
-            return GithubContextInformation(None, None, None)
-
-        repository = github_context["repository"]
-        repo_url = f"https://github.com/{repository}"
-
-        run_id = github_context["run_id"]
-        build_url = f"{repo_url}/actions/runs/{run_id}"
-
-        commit_title = "<no title>"
-        if "merge_group" in github_context["event"]:
-            commit_title = github_context["event"]["merge_group"]["head_commit"]["message"]
-        if "head_commit" in github_context["event"]:
-            commit_title = github_context["event"]["head_commit"]["message"]
-
-        pr_url = None
-        match = re.match(r"^Auto merge of #(\d+)", commit_title) or re.match(r"\(#(\d+)\)", commit_title)
-        if match:
-            pr_url = f"{repo_url}/pull/{match.group(1)}" if match else None
-
-        return GithubContextInformation(build_url, pr_url, github_context["ref_name"])
-
-    def make_data_from_result(
-        self,
-        result: Union[UnexpectedResult, UnexpectedSubtestResult],
-    ) -> dict:
-        data = {
-            "path": result.path,
-            "subtest": None,
-            "expected": result.expected,
-            "actual": result.actual,
-            "time": result.time // 1000,
-            # Truncate the message, to avoid issues with lots of output causing "HTTP
-            # Error 413: Request Entity Too Large."
-            # See https://github.com/servo/servo/issues/31845.
-            "message": result.message[0:TRACKER_DASHBOARD_MAXIMUM_OUTPUT_LENGTH],
-            "stack": result.stack,
-        }
-        if isinstance(result, UnexpectedSubtestResult):
-            data["subtest"] = result.subtest
-        return data
-
-    def report_failures(self, unexpected_results: List[UnexpectedResult]) -> None:
-        attempts = []
+def filter_intermittents(unexpected_results: List[UnexpectedResult], output_path: str, gh_token: str | None) -> bool:
+    print(f"Filtering {len(unexpected_results)} unexpected results for known intermittents")
+    known_intermittents = get_intermittent_issues_from_github(gh_token)
+    if known_intermittents:
         for result in unexpected_results:
-            attempts.append(self.make_data_from_result(result))
-            for subtest_result in result.unexpected_subtest_results:
-                attempts.append(self.make_data_from_result(subtest_result))
-
-        context = self.get_github_context_information()
-        try:
-            request = urllib.request.Request(
-                url=self.url,
-                method="POST",
-                data=json.dumps(
-                    {
-                        "branch": context.branch_name,
-                        "build_url": context.build_url,
-                        "pull_url": context.pull_url,
-                        "attempts": attempts,
-                    }
-                ).encode("utf-8"),
-                headers=self.headers,
-            )
-
-            known_intermittents = dict()
-            with urllib.request.urlopen(request) as response:
-                for test in json.load(response)["known"]:
-                    known_intermittents[test["path"]] = [issue["number"] for issue in test["issues"]]
-
-        except urllib.error.HTTPError as e:
-            print(e)
-            print(e.readlines())
-            raise (e)
-
-        for result in unexpected_results:
-            result.issues = known_intermittents.get(result.path, [])
-
-
-def filter_intermittents(unexpected_results: List[UnexpectedResult], output_path: str) -> bool:
-    dashboard = TrackerDashboardFilter()
-    print(f"Filtering {len(unexpected_results)} unexpected results for known intermittents via <{dashboard.url}>")
-    dashboard.report_failures(unexpected_results)
+            result.issues = [
+                intermittent["number"] for intermittent in known_intermittents if result.path in intermittent["title"]
+            ]
 
     def add_result(
         output: list[str],

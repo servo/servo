@@ -1873,10 +1873,6 @@ where
                 // specified by normalizedSharedKeyAlgorithm using "raw-secret" as format, the
                 // sharedKey field of encapsulatedBits as keyData, sharedKeyAlgorithm as algorithm
                 // and using extractable and usages.
-                // Step 14. Set the [[extractable]] internal slot of sharedKey to extractable.
-                // Step 15. Set the [[usages]] internal slot of sharedKey to the normalized value
-                // of usages.
-                // NOTE: Step 14 and 15 are done by the importKey operation in Step 13.
                 let encapsulated_shared_key = match &encapsulated_bits.shared_key {
                     Some(shared_key) => shared_key,
                     None => {
@@ -1902,18 +1898,30 @@ where
                     },
                 };
 
-                // Step 16. Let encapsulatedKey be a new EncapsulatedKey dictionary with sharedKey
+                // Step 14. If usages is empty, then throw a SyntaxError.
+                if usages.is_empty() {
+                    subtle.reject_promise_with_error(promise, Error::Syntax(Some(
+                        "Usages is empty".into())));
+                    return;
+                }
+
+                // Step 15. Set the [[extractable]] internal slot of sharedKey to extractable.
+                // Step 16. Set the [[usages]] internal slot of sharedKey to the normalized value
+                // of usages.
+                // NOTE: Done by the importKey operation in Step 13.
+
+                // Step 17. Let encapsulatedKey be a new EncapsulatedKey dictionary with sharedKey
                 // set to sharedKey and ciphertext set to the ciphertext field of encapsulatedBits.
                 let encapsulated_key = EncapsulatedKey {
                     shared_key: Some(Trusted::new(&shared_key)),
                     ciphertext:encapsulated_bits.ciphertext,
                 };
 
-                // Step 17. Queue a global task on the crypto task source, given realm's global
+                // Step 18. Queue a global task on the crypto task source, given realm's global
                 // object, to perform the remaining steps.
-                // Step 18. Let result be the result of converting encapsulatedKey to an ECMAScript
+                // Step 19. Let result be the result of converting encapsulatedKey to an ECMAScript
                 // Object in realm, as defined by [WebIDL].
-                // Step 19. Resolve promise with result.
+                // Step 20. Resolve promise with result.
                 subtle.resolve_promise_with_encapsulated_key(promise, encapsulated_key);
             })
         );
@@ -2115,10 +2123,6 @@ where
                 // specified by normalizedSharedKeyAlgorithm using "raw-secret" as format, the
                 // decapsulatedBits as keyData, sharedKeyAlgorithm as algorithm and using
                 // extractable and usages.
-                // Step 15. Set the [[extractable]] internal slot of sharedKey to extractable.
-                // Step 16. Set the [[usages]] internal slot of sharedKey to the normalized value
-                // of usages.
-                // NOTE: Step 15 and 16 are done by the importKey operation in Step 14.
                 let shared_key_result = normalized_shared_key_algorithm.import_key(
                     cx,
                     &*subtle.global_from_reflector(),
@@ -2135,11 +2139,23 @@ where
                     },
                 };
 
-                // Step 17. Queue a global task on the crypto task source, given realm's global
+                // Step 15. If usages is empty, then throw a SyntaxError.
+                if usages.is_empty() {
+                    subtle.reject_promise_with_error(promise, Error::Syntax(Some(
+                        "Usages is empty".into())));
+                    return;
+                }
+
+                // Step 16. Set the [[extractable]] internal slot of sharedKey to extractable.
+                // Step 17. Set the [[usages]] internal slot of sharedKey to the normalized value
+                // of usages.
+                // NOTE: Done by the importKey operation in Step 14.
+
+                // Step 18. Queue a global task on the crypto task source, given realm's global
                 // object, to perform the remaining steps.
-                // Step 18. Let result be the result of converting sharedKey to an ECMAScript
+                // Step 19. Let result be the result of converting sharedKey to an ECMAScript
                 // Object in realm, as defined by [WebIDL].
-                // Step 19. Resolve promise with result.
+                // Step 20. Resolve promise with result.
                 subtle.resolve_promise_with_key(promise, &shared_key);
             }));
         promise

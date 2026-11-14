@@ -23,24 +23,22 @@ use style::computed_values::visibility::T as Visibility;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::{
-    AlignmentBaseline, BaselineShift, BorderStyle, LengthPercentage as ComputedLengthPercentage,
-    Percentage,
+    BorderStyle, LengthPercentage as ComputedLengthPercentage, Percentage,
 };
-use style::values::generics::box_::BaselineShiftKeyword;
 
 use super::{
     ArcRefCell, CollapsedBorder, CollapsedBorderLine, SpecificTableGridInfo, Table, TableCaption,
     TableLayoutStyle, TableSlot, TableSlotCell, TableSlotCoordinates, TableTrack, TableTrackGroup,
 };
 use crate::containing_block::{
-    ConstraintSpace, ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize,
-    IndefiniteContainingBlock,
+    ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock,
 };
 use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
+use crate::flow::ContentAlignment;
 use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::{
-    BoxFragment, CollapsedBlockMargins, ExtraBackground, Fragment, FragmentFlags,
+    BoxFragment, CollapsedBlockMargins, ExtraBackground, Fragment, FragmentChildren, FragmentFlags,
     PositioningFragment, SpecificLayoutInfo,
 };
 use crate::geom::{
@@ -57,14 +55,6 @@ use crate::style_ext::{
     BorderStyleColor, Clamp, ComputedValuesExt, LayoutStyle, PaddingBorderMargin,
 };
 use crate::table::WeakTableLevelBox;
-
-#[derive(PartialEq)]
-enum CellContentAlignment {
-    Top,
-    Bottom,
-    Middle,
-    Baseline,
-}
 
 /// A result of a final or speculative layout of a single cell in
 /// the table. Note that this is only done for slots that are not
@@ -99,7 +89,7 @@ impl CellLayout {
     fn is_empty_for_empty_cells(&self) -> bool {
         self.layout
             .fragments
-            .iter()
+            .fragments()
             .all(|fragment| matches!(fragment, Fragment::AbsoluteOrFixedPositionedPlaceholder(_)))
     }
 }
@@ -338,7 +328,6 @@ impl<'a> TableLayout<'a> {
                 } else {
                     let constraint_space = ConstraintSpace::new(
                         SizeConstraint::default(),
-                        HasQuirkyBlockSize(false),
                         &cell.context.base.style,
                         cell.context.preferred_aspect_ratio(&padding_border_sums),
                     );
@@ -753,7 +742,7 @@ impl<'a> TableLayout<'a> {
         // of the table, by enforcing its min-content size as a minimum.
         // This should be roughly equivalent to what the spec calls "used width of a table".
         // https://drafts.csswg.org/css-tables/#used-width-of-table
-        self.table_width = containing_block_for_children.size.inline;
+        self.table_width = containing_block_for_children.inline_size();
 
         // > The assignable table width is the used width of the table minus the total horizontal
         // > border spacing (if any). This is the width that we will be able to allocate to the
@@ -1123,11 +1112,10 @@ impl<'a> TableLayout<'a> {
 
             let preferred_aspect_ratio = cell.context.preferred_aspect_ratio(&padding_border_sums);
             let containing_block_for_children = ContainingBlock {
-                size: ContainingBlockSize {
-                    inline: total_cell_width,
-                    block: SizeConstraint::default(),
-                    has_quirky_block_size: HasQuirkyBlockSize(false),
-                },
+                size: ContainingBlockSize::new(
+                    total_cell_width,          /* inline_size */
+                    SizeConstraint::default(), /* block_size */
+                ),
                 style: &cell.context.base.style,
             };
 
@@ -1238,7 +1226,7 @@ impl<'a> TableLayout<'a> {
                         max_row_height.max_assign(outer_block_size);
                     }
 
-                    if cell.content_alignment() == CellContentAlignment::Baseline {
+                    if cell.content_alignment() == ContentAlignment::Baseline {
                         let ascent = layout.ascent();
                         let border_padding_start =
                             layout.border.block_start + layout.padding.block_start;
@@ -1495,7 +1483,10 @@ impl<'a> TableLayout<'a> {
         // space for the entire table wrapper, but here we are using that amount for the table grid.
         // Therefore, if there is a caption, this will cause overflow. Gecko and WebKit have the
         // same problem, but not Blink.
-        let table_height_from_style = containing_block_for_children.size.block.definite_or_min();
+        assert!(!containing_block_for_children.has_quirky_block_size());
+        let table_height_from_style = containing_block_for_children
+            .maybe_quirky_block_size()
+            .definite_or_min();
 
         let block_border_spacing = self.table.total_border_spacing().block;
         let table_height_from_rows = row_sizes.iter().sum::<Au>() + block_border_spacing;
@@ -1529,11 +1520,10 @@ impl<'a> TableLayout<'a> {
         parent_positioning_context: &mut PositioningContext,
     ) -> BoxFragment {
         let containing_block = &ContainingBlock {
-            size: ContainingBlockSize {
-                inline: self.table_width + self.pbm.padding_border_sums.inline,
-                block: SizeConstraint::default(),
-                has_quirky_block_size: HasQuirkyBlockSize(false),
-            },
+            size: ContainingBlockSize::new(
+                self.table_width + self.pbm.padding_border_sums.inline, /* inline_size */
+                SizeConstraint::default(),                              /* block_size */
+            ),
             style: &self.table.style,
         };
 
@@ -1580,7 +1570,7 @@ impl<'a> TableLayout<'a> {
         self.pbm = layout_style
             .padding_border_margin_with_writing_mode_and_containing_block_inline_size(
                 table_writing_mode,
-                containing_block_for_table.size.inline,
+                containing_block_for_table.inline_size(),
             );
         self.compute_measures(layout_context, table_writing_mode);
         self.compute_table_width(containing_block_for_children);
@@ -1600,18 +1590,18 @@ impl<'a> TableLayout<'a> {
         // TODO: This is broken for orthogonal flows, because the inline size of the parent isn't necessarily
         // the inline size of the table.
         let containing_block_for_logical_conversion = ContainingBlock {
-            size: ContainingBlockSize {
-                inline: self.table_width,
-                block: containing_block_for_table.size.block,
-                has_quirky_block_size: HasQuirkyBlockSize(false),
-            },
+            size: ContainingBlockSize::new(
+                self.table_width,                               /* inline_size */
+                containing_block_for_table.block_size().into(), /* block_size */
+            ),
             style: containing_block_for_children.style,
         };
         let offset_from_wrapper = -self.pbm.padding - self.pbm.border;
         let mut current_block_offset = offset_from_wrapper.block_start;
 
+        let mut table_layout_fragments = Vec::new();
         let mut table_layout = IndependentFormattingContextLayoutResult {
-            fragments: Vec::new(),
+            fragments: Default::default(),
             content_block_size: Zero::zero(),
             content_inline_size_for_table: None,
             baselines: Baselines::default(),
@@ -1661,18 +1651,19 @@ impl<'a> TableLayout<'a> {
                         grid_pbm.block_start,
                 );
 
+                let grid_fragment_rect = LogicalRect {
+                    start_corner: LogicalVec2 {
+                        inline: offset_from_wrapper.inline_start + grid_pbm.inline_start,
+                        block: current_block_offset + grid_pbm.block_start,
+                    },
+                    size: LogicalVec2::from_physical_size(
+                        &grid_fragment.base.rect().size,
+                        table_writing_mode,
+                    ),
+                };
                 grid_fragment.base.set_rect(
-                    LogicalRect {
-                        start_corner: LogicalVec2 {
-                            inline: offset_from_wrapper.inline_start + grid_pbm.inline_start,
-                            block: current_block_offset + grid_pbm.block_start,
-                        },
-                        size: LogicalVec2::from_physical_size(
-                            &grid_fragment.base.rect().size,
-                            table_writing_mode,
-                        ),
-                    }
-                    .as_physical_deprecated(&containing_block_for_logical_conversion),
+                    grid_fragment_rect
+                        .as_physical_deprecated(&containing_block_for_logical_conversion),
                 );
 
                 current_block_offset += LogicalVec2::from_physical_size(
@@ -1686,12 +1677,12 @@ impl<'a> TableLayout<'a> {
                         Some(logical_grid_content_rect.size.inline);
                 }
 
-                let grid_fragment = Fragment::Box(grid_fragment.into());
                 positioning_context.adjust_static_position_of_hoisted_fragments(
-                    &grid_fragment,
+                    &grid_fragment_rect,
+                    containing_block_for_logical_conversion.style.writing_mode,
                     original_positioning_context_length,
                 );
-                table_layout.fragments.push(grid_fragment);
+                table_layout_fragments.push(Fragment::Box(grid_fragment.into()));
             } else {
                 let caption_fragments = self.table.captions.iter().filter_map(|caption| {
                     let caption = caption.borrow();
@@ -1718,18 +1709,19 @@ impl<'a> TableLayout<'a> {
                         _ => LogicalVec2::zero(),
                     };
 
+                    let logical_caption_rect = LogicalRect {
+                        start_corner: LogicalVec2 {
+                            inline: offset_from_wrapper.inline_start + caption_pbm.inline_start,
+                            block: current_block_offset + caption_pbm.block_start,
+                        } + caption_relative_offset,
+                        size: LogicalVec2::from_physical_size(
+                            &caption_fragment.content_rect().size,
+                            table_writing_mode,
+                        ),
+                    };
                     caption_fragment.base.set_rect(
-                        LogicalRect {
-                            start_corner: LogicalVec2 {
-                                inline: offset_from_wrapper.inline_start + caption_pbm.inline_start,
-                                block: current_block_offset + caption_pbm.block_start,
-                            } + caption_relative_offset,
-                            size: LogicalVec2::from_physical_size(
-                                &caption_fragment.content_rect().size,
-                                table_writing_mode,
-                            ),
-                        }
-                        .as_physical_deprecated(&containing_block_for_logical_conversion),
+                        logical_caption_rect
+                            .as_physical_deprecated(&containing_block_for_logical_conversion),
                     );
 
                     current_block_offset += LogicalVec2::from_physical_size(
@@ -1740,18 +1732,20 @@ impl<'a> TableLayout<'a> {
 
                     let caption_fragment = Fragment::Box(caption_fragment.into());
                     positioning_context.adjust_static_position_of_hoisted_fragments(
-                        &caption_fragment,
+                        &logical_caption_rect,
+                        containing_block_for_logical_conversion.style.writing_mode,
                         original_positioning_context_length,
                     );
 
                     caption.context.base.set_fragment(caption_fragment.clone());
                     Some(caption_fragment)
                 });
-                table_layout.fragments.extend(caption_fragments);
+                table_layout_fragments.extend(caption_fragments);
             }
         }
 
         table_layout.content_block_size = current_block_offset + offset_from_wrapper.block_end;
+        table_layout.fragments = FragmentChildren::PhysicalDeprecated(table_layout_fragments);
         table_layout
     }
 
@@ -1789,7 +1783,7 @@ impl<'a> TableLayout<'a> {
             return BoxFragment::new(
                 self.table.grid_base_fragment_info,
                 self.table.grid_style.clone(),
-                Vec::new(),
+                Default::default(),
                 content_rect,
                 self.pbm.padding.to_physical(table_writing_mode),
                 self.pbm.border.to_physical(table_writing_mode),
@@ -1908,7 +1902,7 @@ impl<'a> TableLayout<'a> {
         BoxFragment::new(
             self.table.grid_base_fragment_info,
             self.table.grid_style.clone(),
-            table_fragments,
+            FragmentChildren::PhysicalDeprecated(table_fragments),
             content_rect,
             self.pbm.padding.to_physical(table_writing_mode),
             self.pbm.border.to_physical(table_writing_mode),
@@ -2030,7 +2024,7 @@ impl<'a> TableLayout<'a> {
         // If this cell has baseline alignment, it can adjust the table's overall baseline.
         let row_block_offset = row_fragment_layout.rect.start_corner.block;
         let row_baseline = self.row_baselines[row_index];
-        if cell.content_alignment() == CellContentAlignment::Baseline && !layout.is_empty() {
+        if cell.content_alignment() == ContentAlignment::Baseline && !layout.is_empty() {
             let baseline = row_block_offset + row_baseline;
             if row_index == 0 {
                 baselines.first = Some(baseline);
@@ -2307,11 +2301,10 @@ impl<'a> RowFragmentLayout<'a> {
     ) -> Self {
         let rect = dimensions.get_row_rect(index);
         let containing_block = ContainingBlock {
-            size: ContainingBlockSize {
-                inline: rect.size.inline,
-                block: SizeConstraint::Definite(rect.size.block),
-                has_quirky_block_size: HasQuirkyBlockSize(false),
-            },
+            size: ContainingBlockSize::new(
+                rect.size.inline,
+                SizeConstraint::Definite(rect.size.block),
+            ),
             style: table_style,
         };
         Self {
@@ -2335,32 +2328,25 @@ impl<'a> RowFragmentLayout<'a> {
                 relative_adjustement(&self.row.base.style, containing_block_for_children);
         }
 
-        let (inline_size, block_size) = if let Some(row_group_layout) = row_group_fragment_layout {
+        let size = if let Some(row_group_layout) = row_group_fragment_layout {
             self.rect.start_corner -= row_group_layout.rect.start_corner;
-            (
+            ContainingBlockSize::new(
                 row_group_layout.rect.size.inline,
                 SizeConstraint::Definite(row_group_layout.rect.size.block),
             )
         } else {
-            (
-                containing_block_for_logical_conversion.size.inline,
-                containing_block_for_logical_conversion.size.block,
-            )
+            containing_block_for_logical_conversion.size.clone()
         };
 
         let row_group_containing_block = ContainingBlock {
-            size: ContainingBlockSize {
-                inline: inline_size,
-                block: block_size,
-                has_quirky_block_size: HasQuirkyBlockSize(false),
-            },
+            size,
             style: containing_block_for_logical_conversion.style,
         };
 
         let mut row_fragment = BoxFragment::new(
             self.row.base.base_fragment_info,
             self.row.base.style.clone(),
-            self.fragments,
+            FragmentChildren::PhysicalDeprecated(self.fragments),
             self.rect
                 .as_physical_deprecated(&row_group_containing_block),
             PhysicalSides::zero(), /* padding */
@@ -2432,7 +2418,7 @@ impl RowGroupFragmentLayout {
         let mut row_group_fragment = BoxFragment::new(
             row_group.base.base_fragment_info,
             row_group.base.style.clone(),
-            self.fragments,
+            FragmentChildren::PhysicalDeprecated(self.fragments),
             self.rect
                 .as_physical_deprecated(containing_block_for_logical_conversion),
             PhysicalSides::zero(), /* padding */
@@ -2875,21 +2861,10 @@ impl TableLayoutStyle<'_> {
 }
 
 impl TableSlotCell {
-    fn content_alignment(&self) -> CellContentAlignment {
-        // The spec still assumes that `vertical-align` is a longhand, so it's not very clear
-        // if this logic is completely correct, but it seems to match Firefox.
-        // <https://github.com/w3c/csswg-drafts/issues/13458>
-        // TODO: we should only use `vertical-align` for the default `align-content: normal`.
-        // If `align-content` is set to another value, it should take precedence.
-        let style_box = self.context.base.style.get_box();
-        match style_box.baseline_shift {
-            BaselineShift::Keyword(BaselineShiftKeyword::Top) => CellContentAlignment::Top,
-            BaselineShift::Keyword(BaselineShiftKeyword::Bottom) => CellContentAlignment::Bottom,
-            _ => match style_box.alignment_baseline {
-                AlignmentBaseline::Middle => CellContentAlignment::Middle,
-                _ => CellContentAlignment::Baseline,
-            },
-        }
+    #[inline]
+    fn content_alignment(&self) -> ContentAlignment {
+        self.context
+            .content_alignment_for_block_formatting_context()
     }
 
     #[expect(clippy::too_many_arguments)]
@@ -2909,17 +2884,14 @@ impl TableSlotCell {
         let cell_style = self.context.style();
         let cell_content_rect = cell_rect.deflate(&(layout.padding + layout.border));
         let content_block_size = layout.layout.content_block_size;
-        let free_space = || Au::zero().max(cell_content_rect.size.block - content_block_size);
-        let vertical_align_offset = match self.content_alignment() {
-            CellContentAlignment::Top => Au::zero(),
-            CellContentAlignment::Bottom => free_space(),
-            CellContentAlignment::Middle => free_space().scale_by(0.5),
-            CellContentAlignment::Baseline => {
+        let align_offset = self.content_alignment().resolve_offset(
+            || cell_content_rect.size.block - content_block_size,
+            || {
                 cell_baseline -
                     (layout.padding.block_start + layout.border.block_start) -
                     layout.ascent()
             },
-        };
+        );
 
         let mut base_fragment_info = self.context.base.base_fragment_info;
         if cell_style.get_inherited_table().empty_cells == EmptyCells::Hide &&
@@ -2934,19 +2906,18 @@ impl TableSlotCell {
         }
 
         // Create an `AnonymousFragment` to move the cell contents to the cell baseline.
-        let mut vertical_align_fragment_rect = cell_content_rect;
-        vertical_align_fragment_rect.start_corner = LogicalVec2 {
+        let mut align_fragment_rect = cell_content_rect;
+        align_fragment_rect.start_corner = LogicalVec2 {
             inline: Au::zero(),
-            block: vertical_align_offset,
+            block: align_offset,
         };
-        let vertical_align_fragment = PositioningFragment::new_anonymous(
+        let align_fragment = PositioningFragment::new_anonymous(
             cell_style.clone(),
-            vertical_align_fragment_rect.as_physical_deprecated(&ContainingBlock {
-                size: ContainingBlockSize {
-                    inline: cell_content_rect.size.inline,
-                    block: SizeConstraint::Definite(cell_content_rect.size.block),
-                    has_quirky_block_size: HasQuirkyBlockSize(false),
-                },
+            align_fragment_rect.as_physical_deprecated(&ContainingBlock {
+                size: ContainingBlockSize::new(
+                    cell_content_rect.size.inline,
+                    SizeConstraint::Definite(cell_content_rect.size.block),
+                ),
                 style: cell_style,
             }),
             layout.layout.fragments,
@@ -2960,11 +2931,11 @@ impl TableSlotCell {
         // TODO(mrobinson): This is correct for absolutes that are direct children of the table
         // cell, but wrong for absolute fragments that are more deeply nested in the hierarchy of
         // fragments.
-        let physical_cell_rect = cell_content_rect.as_physical_deprecated(containing_block);
         layout
             .positioning_context
-            .adjust_static_position_of_hoisted_fragments_with_offset(
-                &physical_cell_rect.origin.to_vector(),
+            .adjust_static_position_of_hoisted_fragments(
+                &cell_content_rect,
+                containing_block.style.writing_mode,
                 PositioningContextLength::zero(),
             );
         positioning_context.append(layout.positioning_context);
@@ -2976,8 +2947,8 @@ impl TableSlotCell {
         BoxFragment::new(
             base_fragment_info,
             cell_style.clone(),
-            vec![Fragment::Positioning(vertical_align_fragment)],
-            physical_cell_rect,
+            FragmentChildren::PhysicalDeprecated(vec![Fragment::Positioning(align_fragment)]),
+            cell_content_rect.as_physical_deprecated(containing_block),
             layout.padding.to_physical(table_style.writing_mode),
             layout.border.to_physical(table_style.writing_mode),
             PhysicalSides::zero(), /* margin */

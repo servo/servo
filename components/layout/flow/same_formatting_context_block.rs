@@ -197,7 +197,7 @@ impl SameFormattingContextBlock {
         } = solve_margins(
             containing_block,
             &pbm,
-            containing_block_for_children.size.inline,
+            containing_block_for_children.inline_size(),
             justify_self,
         );
 
@@ -272,7 +272,7 @@ impl SameFormattingContextBlock {
                     block_start: sequential_layout_state.bfc_relative_block_position,
                     block_start_margins_not_collapsed: sequential_layout_state.current_margin,
                     inline_start,
-                    inline_end: inline_start + containing_block_for_children.size.inline,
+                    inline_end: inline_start + containing_block_for_children.inline_size(),
                 };
                 Some(sequential_layout_state.replace_containing_block_position_info(new_cb_offsets))
             },
@@ -408,7 +408,7 @@ impl SameFormattingContextBlock {
             },
             size: LogicalVec2 {
                 block: block_size,
-                inline: containing_block_for_children.size.inline,
+                inline: containing_block_for_children.inline_size(),
             },
         };
 

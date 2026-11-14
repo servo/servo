@@ -94,6 +94,7 @@ impl CSSStyleRule {
         *self.style_rule.borrow_mut() = stylerule;
     }
 
+    #[cfg(feature = "devtools")]
     pub(crate) fn block_id(&self) -> usize {
         let guard = self.css_grouping_rule.shared_lock().read();
         self.style_rule

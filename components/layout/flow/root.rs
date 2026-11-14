@@ -275,11 +275,12 @@ impl BoxTree {
         let physical_containing_block: Rect<Au, CSSPixel> =
             PhysicalSize::from_untyped(viewport).into();
 
+        let initial_containing_block_size = LogicalVec2::from_physical_size(
+            &physical_containing_block.size,
+            self.initial_containing_block_style.writing_mode,
+        );
         let initial_containing_block = DefiniteContainingBlock {
-            size: LogicalVec2::from_physical_size(
-                &physical_containing_block.size,
-                self.initial_containing_block_style.writing_mode,
-            ),
+            size: initial_containing_block_size,
             style: &self.initial_containing_block_style,
         };
 
@@ -292,7 +293,11 @@ impl BoxTree {
             None,
         );
 
-        let mut root_fragments = independent_layout.fragments;
+        let root_fragments = independent_layout.fragments;
+        let mut root_fragments = root_fragments.into_physical_fragments(
+            self.initial_containing_block_style.writing_mode,
+            initial_containing_block_size,
+        );
 
         // Zero box for `:root { display: none }`, one for the root element otherwise.
         assert!(root_fragments.len() <= 1);

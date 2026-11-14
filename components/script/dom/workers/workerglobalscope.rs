@@ -21,6 +21,7 @@ use encoding_rs::UTF_8;
 use fonts::FontContext;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use js::context::JSContext;
+#[cfg(feature = "devtools")]
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSContext as RawJSContext, Value};
 use js::realm::CurrentRealm;
@@ -34,9 +35,12 @@ use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, Resource
 use profile_traits::mem::{ProcessReports, perform_memory_report};
 use script_bindings::callback::RootedCallback;
 use script_bindings::cell::{DomRefCell, Ref};
+#[cfg(feature = "devtools")]
 use script_bindings::conversions::root_from_handlevalue;
 use script_bindings::domstring::TracedDOMString;
+#[cfg(feature = "devtools")]
 use script_bindings::reflector::DomObject;
+#[cfg(feature = "devtools")]
 use script_bindings::root::rooted_heap_handle;
 use script_bindings::trace::CustomTraceable;
 use servo_base::cross_process_instant::CrossProcessInstant;
@@ -157,6 +161,9 @@ pub(crate) fn prepare_workerscope_init(
         pipeline_id: global.pipeline_id(),
         origin: global.origin().immutable().clone(),
         inherited_secure_context: Some(global.is_secure_context()),
+        inherited_upgrade_insecure_navigations_set: global
+            .upgrade_insecure_navigations_set()
+            .clone(),
         unminify_js: global.unminify_js(),
         #[cfg(feature = "webgl")]
         webgl_chan,
@@ -438,6 +445,7 @@ impl WorkerGlobalScope {
                 #[cfg(feature = "webgpu")]
                 gpu_id_hub,
                 init.inherited_secure_context,
+                init.inherited_upgrade_insecure_navigations_set,
                 init.unminify_js,
             ),
             caches: Default::default(),
@@ -560,6 +568,16 @@ impl WorkerGlobalScope {
 
     pub(crate) fn worker_id(&self) -> WorkerId {
         self.worker_id
+    }
+
+    /// The debugger global for this worker, if devtools created one.
+    #[cfg(feature = "devtools")]
+    pub(crate) fn debugger_global(
+        &self,
+        cx: &mut JSContext,
+    ) -> Option<DomRoot<DebuggerGlobalScope>> {
+        let debugger_global_handle = rooted_heap_handle(self, |this| &this.debugger_global);
+        root_from_handlevalue::<DebuggerGlobalScope>(cx, debugger_global_handle).ok()
     }
 
     pub(crate) fn pipeline_id(&self) -> PipelineId {

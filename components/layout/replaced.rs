@@ -21,18 +21,14 @@ use servo_url::ServoUrl;
 use style::Zero;
 use style::attr::AttrValue;
 use style::computed_values::object_fit::T as ObjectFit;
-use style::context::TreeCountingCaches;
-use style::dom::DummyElementContext;
 use style::logical_geometry::{LogicalAxis, WritingMode};
-use style::properties::{ComputedValues, StyleBuilder};
-use style::rule_cache::RuleCacheConditions;
-use style::rule_tree::RuleCascadeFlags;
-use style::stylesheets::container_rule::ContainerSizeQuery;
+use style::properties::ComputedValues;
 use style::url::ComputedUrl;
 use style::values::CSSFloat;
+use style::values::computed::Content;
 use style::values::computed::image::Image as ComputedImage;
-use style::values::computed::{Content, Context, ToComputedValue};
 use style::values::generics::counters::{GenericContentItem, GenericContentItems};
+use style::values::specified::length::LengthPercentage;
 use url::Url;
 use web_atoms::local_name;
 use webrender_api::ImageKey;
@@ -42,7 +38,8 @@ use crate::containing_block::{ConstraintSpace, ContainingBlock};
 use crate::context::{LayoutContext, LayoutImageCacheResult};
 use crate::dom::NodeExt;
 use crate::fragment_tree::{
-    BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment, IFrameFragment, ImageFragment,
+    BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment, FragmentChildren,
+    IFrameFragment, ImageFragment,
 };
 use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize};
 use crate::layout_box_base::{IndependentFormattingContextLayoutResult, LayoutBoxBase};
@@ -166,6 +163,17 @@ pub(crate) enum ReplacedContentKind {
     Audio,
 }
 
+impl ReplacedContentKind {
+    pub(crate) fn paints_selection_highlight(&self) -> bool {
+        !matches!(
+            self,
+            ReplacedContentKind::Audio |
+                ReplacedContentKind::IFrame(..) |
+                ReplacedContentKind::Canvas(..)
+        )
+    }
+}
+
 impl ReplacedContents {
     pub fn for_element(node: ServoLayoutNode<'_>, context: &LayoutContext) -> Option<Self> {
         if let Some(ref data_attribute_string) = node.as_typeless_object_with_data_attribute() &&
@@ -228,11 +236,13 @@ impl ReplacedContents {
                 .handle_animated_image(node.opaque(), image.clone());
         }
 
+        let paint_selection_highlight =
+            kind.paints_selection_highlight() && node.replaced_is_selected();
         Some(Self {
             base_fragment_info: node.into(),
             kind,
             is_content_replacement: false,
-            selected: Arc::new(AtomicBool::new(node.replaced_is_selected())),
+            selected: Arc::new(AtomicBool::new(paint_selection_highlight)),
             selected_style: SharedStyle::new(node.selected_style(&context.style_context)),
             natural_size,
         })
@@ -243,41 +253,20 @@ impl ReplacedContents {
         context: &LayoutContext,
         node: ServoLayoutNode<'_>,
     ) -> (ReplacedContentKind, NaturalSizes) {
-        let rule_cache_conditions = &mut RuleCacheConditions::default();
-        let mut tree_counting_caches = TreeCountingCaches::default();
-
-        let parent_style = node.style(&context.style_context);
-        let style_builder = StyleBuilder::new(
-            context.style_context.stylist.device(),
-            Some(context.style_context.stylist),
-            Some(&parent_style),
-            None,
-            None,
-            false,
-        );
-
-        // TODO: use the correct element context in order to properly resolve
-        // `sibling-index()`, like Blink. Or maybe do it like Gecko, and only
-        // accept literals, see https://github.com/w3c/csswg-drafts/issues/14117
-        let element_context = &DummyElementContext;
-
-        let to_computed_context = Context::new(
-            style_builder,
-            context.style_context.quirks_mode(),
-            rule_cache_conditions,
-            ContainerSizeQuery::none(),
-            RuleCascadeFlags::empty(),
-            element_context,
-            &mut tree_counting_caches,
-        );
-
         let attr_to_computed = |attr_val: &AttrValue| {
-            if let AttrValue::LengthPercentage(_, length_percentage) = attr_val {
-                length_percentage
-                    .to_computed_value(&to_computed_context)?
-                    .to_length()
-            } else {
-                None
+            // See <https://github.com/w3c/csswg-drafts/issues/14117>:
+            // > width and height only affect natural size if they're literal number-tokens,
+            // > or dimension-tokens for an absolute length unit
+            //
+            // Note that numbers have already been converted into a length with px units.
+            // The logic below avoids percentages, calc(), and non-absolute units.
+            // Also requires a non-negative amount.
+            match attr_val {
+                AttrValue::LengthPercentage(_, Some(LengthPercentage::Length(length))) => length
+                    .to_computed_pixel_length_without_context()
+                    .ok()
+                    .filter(|size| *size >= 0.),
+                _ => None,
             }
         };
         let width = svg_data.width.and_then(attr_to_computed);
@@ -285,14 +274,14 @@ impl ReplacedContents {
 
         let ratio = match (width, height) {
             (Some(width), Some(height)) if !width.is_zero() && !height.is_zero() => {
-                Some(width.px() / height.px())
+                Some(width / height)
             },
-            _ => svg_data.ratio_from_view_box(),
+            _ => svg_data.view_box_ratio,
         };
 
         let natural_size = NaturalSizes {
-            width: width.map(|w| Au::from_f32_px(w.px())),
-            height: height.map(|h| Au::from_f32_px(h.px())),
+            width: width.map(Au::from_f32_px),
+            height: height.map(Au::from_f32_px),
             ratio,
         };
 
@@ -333,7 +322,7 @@ impl ReplacedContents {
         (
             ReplacedContentKind::SVGElement {
                 vector_image,
-                has_viewbox: svg_data.view_box.is_some(),
+                has_viewbox: svg_data.view_box_ratio.is_some(),
             },
             natural_size,
         )
@@ -768,7 +757,7 @@ impl ReplacedContents {
         lazy_block_size: &LazySize,
     ) -> IndependentFormattingContextLayoutResult {
         let writing_mode = base.style.writing_mode;
-        let inline_size = containing_block_for_children.size.inline;
+        let inline_size = containing_block_for_children.inline_size();
         let content_block_size = self.content_size(
             LogicalAxis::Block,
             preferred_aspect_ratio,
@@ -788,7 +777,11 @@ impl ReplacedContents {
             // The result doesn't depend on `containing_block_for_children.size.block`,
             // but it depends on `lazy_block_size`, which is probably tied to that.
             depends_on_block_constraints: true,
-            fragments: self.make_fragments(layout_context, &base.style, size),
+            fragments: FragmentChildren::PhysicalDeprecated(self.make_fragments(
+                layout_context,
+                &base.style,
+                size,
+            )),
             specific_layout_info: None,
         }
     }
@@ -796,13 +789,10 @@ impl ReplacedContents {
     /// Set whether or not this [`ReplacedContents`] is selected. Returns `true` if anything
     /// changed.
     pub(crate) fn set_selection(&self, selected: bool) -> bool {
-        // Only build a display list if the value changed and if this isn't an `<iframe>`
-        // or `<audio>` element as they do not paint a selection tint.
-        self.selected.swap(selected, Ordering::Relaxed) != selected &&
-            !matches!(
-                self.kind,
-                ReplacedContentKind::Audio | ReplacedContentKind::IFrame(..)
-            )
+        // Only build a display list if the value changed and its content actually paints a
+        // selection highlight.
+        self.kind.paints_selection_highlight() &&
+            self.selected.swap(selected, Ordering::Relaxed) != selected
     }
 }
 
@@ -812,10 +802,11 @@ impl ComputeInlineContentSizes for ReplacedContents {
         _: &LayoutContext,
         constraint_space: &ConstraintSpace,
     ) -> InlineContentSizesResult {
+        debug_assert!(!constraint_space.has_quirky_block_size.0);
         let inline_content_size = self.content_size(
             LogicalAxis::Inline,
             constraint_space.preferred_aspect_ratio,
-            &|| constraint_space.block_size,
+            &|| constraint_space.maybe_quirky_block_size,
             &|| self.fallback_inline_size(constraint_space.style.writing_mode),
         );
         InlineContentSizesResult {

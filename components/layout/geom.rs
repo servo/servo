@@ -28,13 +28,13 @@ pub type PhysicalSides<U> = euclid::SideOffsets2D<U, CSSPixel>;
 pub type AuOrAuto = AutoOr<Au>;
 pub type LengthPercentageOrAuto<'a> = AutoOr<&'a LengthPercentage>;
 
-#[derive(Clone, Copy, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Default, MallocSizeOf, PartialEq)]
 pub struct LogicalVec2<T> {
     pub inline: T,
     pub block: T,
 }
 
-#[derive(Clone, Copy, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Default, MallocSizeOf, PartialEq)]
 pub struct LogicalRect<T> {
     pub start_corner: LogicalVec2<T>,
     pub size: LogicalVec2<T>,
@@ -77,15 +77,6 @@ impl<T: fmt::Debug> fmt::Debug for LogicalVec2<T> {
         f.write_str(", b: ")?;
         self.block.fmt(f)?;
         f.write_str(" }")
-    }
-}
-
-impl<T: Default> Default for LogicalVec2<T> {
-    fn default() -> Self {
-        Self {
-            inline: T::default(),
-            block: T::default(),
-        }
     }
 }
 
@@ -264,7 +255,7 @@ impl LogicalVec2<Au> {
         let inline = flip(
             inline,
             Au::zero(),
-            containing_block.size.inline,
+            containing_block.inline_size(),
             writing_mode.is_inline_flipped(),
         );
 
@@ -652,7 +643,6 @@ impl LogicalRect<Au> {
         }
     }
 
-    #[cfg_attr(not(test), expect(dead_code))]
     pub(crate) fn from_physical(
         rect: PhysicalRect<Au>,
         writing_mode: WritingMode,
@@ -673,7 +663,7 @@ impl LogicalRect<Au> {
         Self::from_physical_inner(
             rect,
             containing_block.style.writing_mode,
-            containing_block.size.inline,
+            containing_block.inline_size(),
             None,
         )
     }
@@ -732,7 +722,7 @@ impl LogicalRect<Au> {
     ) -> PhysicalRect<Au> {
         self.as_physical_inner(
             containing_block.style.writing_mode,
-            containing_block.size.inline,
+            containing_block.inline_size(),
             None,
         )
     }

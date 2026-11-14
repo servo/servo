@@ -28,19 +28,20 @@ use super::geom::{FlexAxis, FlexRelativeRect, FlexRelativeSides, FlexRelativeVec
 use super::{FlexContainer, FlexContainerConfig, FlexItemBox, FlexLevelBox};
 use crate::cell::ArcRefCell;
 use crate::containing_block::{
-    ConstraintSpace, ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize,
-    IndefiniteContainingBlock,
+    ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock,
 };
 use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
 use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::{
-    BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags, SpecificLayoutInfo,
+    BoxFragment, CollapsedBlockMargins, Fragment, FragmentChildren, FragmentFlags,
+    SpecificLayoutInfo,
 };
 use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2};
 use crate::layout_box_base::IndependentFormattingContextLayoutResult;
 use crate::positioned::{
-    AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, relative_adjustement,
+    AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, StaticPositionRect,
+    relative_adjustement,
 };
 use crate::sizing::{
     ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, IntrinsicSizingMode,
@@ -116,7 +117,7 @@ enum FlexContent {
 /// Return type of `FlexItem::layout`
 struct FlexItemLayoutResult {
     hypothetical_cross_size: Au,
-    fragments: Vec<Fragment>,
+    fragments: FragmentChildren,
     positioning_context: PositioningContext,
 
     /// Baselines from the item’s content, relative to the item’s margin box.
@@ -633,8 +634,8 @@ impl FlexContainer {
             // https://drafts.csswg.org/css-flexbox/#definite-sizes
             container_inner_size_constraint: self.config.flex_axis.vec2_to_flex_relative(
                 LogicalVec2 {
-                    inline: SizeConstraint::Definite(containing_block.size.inline),
-                    block: containing_block.size.block,
+                    inline: SizeConstraint::Definite(containing_block.inline_size()),
+                    block: containing_block.maybe_quirky_block_size(),
                 },
             ),
         };
@@ -642,10 +643,10 @@ impl FlexContainer {
         // “Determine the main size of the flex container”
         // https://drafts.csswg.org/css-flexbox/#algo-main-container
         let container_main_size = match self.config.flex_axis {
-            FlexAxis::Row => containing_block.size.inline,
+            FlexAxis::Row => containing_block.inline_size(),
             FlexAxis::Column => lazy_block_size.resolve(|| {
                 let mut containing_block = IndefiniteContainingBlock::from(containing_block);
-                containing_block.size.block = None;
+                containing_block.size.maybe_quirky_block_size = None;
                 self.main_content_sizes(layout_context, &containing_block, || &flex_context)
                     .sizes
                     .max_content
@@ -735,7 +736,7 @@ impl FlexContainer {
         // https://drafts.csswg.org/css-flexbox/#algo-cross-container
         let container_cross_size = match self.config.flex_axis {
             FlexAxis::Row => lazy_block_size.resolve(|| content_cross_size),
-            FlexAxis::Column => containing_block.size.inline,
+            FlexAxis::Column => containing_block.inline_size(),
         };
 
         let container_size = FlexRelativeVec2 {
@@ -903,13 +904,16 @@ impl FlexContainer {
             },
         );
 
+        let flex_container_size = LogicalVec2 {
+            inline: containing_block.inline_size(),
+            block: content_block_size,
+        };
         let fragments = absolutely_positioned_items_with_original_order
             .into_iter()
             .map(|child_as_abspos| match child_as_abspos {
                 FlexContent::AbsolutelyPositionedBox(absolutely_positioned_box) => self
                     .create_absolutely_positioned_flex_child_fragment(
                         absolutely_positioned_box,
-                        containing_block,
                         container_size,
                         positioning_context,
                     ),
@@ -918,13 +922,17 @@ impl FlexContainer {
                     // per flex item, in the original order.
                     let (fragment, mut child_positioning_context) =
                         flex_item_fragments.next().unwrap();
-                    let fragment = Fragment::Box(fragment);
                     child_positioning_context.adjust_static_position_of_hoisted_fragments(
-                        &fragment,
+                        &LogicalRect::from_physical(
+                            fragment.base.rect(),
+                            self.style.writing_mode,
+                            flex_container_size,
+                        ),
+                        self.style.writing_mode,
                         PositioningContextLength::zero(),
                     );
                     positioning_context.append(child_positioning_context);
-                    fragment
+                    Fragment::Box(fragment)
                 },
             })
             .collect::<Vec<_>>();
@@ -956,7 +964,7 @@ impl FlexContainer {
         let depends_on_block_constraints = true;
 
         IndependentFormattingContextLayoutResult {
-            fragments,
+            fragments: FragmentChildren::PhysicalDeprecated(fragments),
             content_block_size,
             content_inline_size_for_table: None,
             baselines,
@@ -984,7 +992,6 @@ impl FlexContainer {
     fn create_absolutely_positioned_flex_child_fragment(
         &self,
         absolutely_positioned_box: ArcRefCell<AbsolutelyPositionedBox>,
-        containing_block: &ContainingBlock,
         container_size: FlexRelativeVec2<Au>,
         positioning_context: &mut PositioningContext,
     ) -> Fragment {
@@ -1017,12 +1024,11 @@ impl FlexContainer {
         let static_position_rect = LogicalRect {
             start_corner: LogicalVec2::zero(),
             size: self.config.flex_axis.vec2_to_flow_relative(container_size),
-        }
-        .as_physical_deprecated(containing_block);
+        };
 
         let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
             absolutely_positioned_box,
-            static_position_rect,
+            StaticPositionRect::new(static_position_rect, self.style.writing_mode),
             logical_alignment,
             self.config.writing_mode,
         );
@@ -1593,18 +1599,17 @@ impl InitialFlexLineLayout<'_> {
                         Size::Initial => item.item.automatic_cross_size == Size::Stretch,
                         Size::Stretch => true,
                         _ => false,
-                    }) && SizeConstraint::Definite(used_cross_size) !=
-                        layout.containing_block_size.block &&
+                    }) && Some(used_cross_size) != layout.containing_block_size.block_size() &&
                         layout.depends_on_block_constraints
                 },
-                LogicalAxis::Inline => used_cross_size != layout.containing_block_size.inline,
+                LogicalAxis::Inline => used_cross_size != layout.containing_block_size.inline_size,
             };
             if needs_new_layout {
                 #[cfg(feature = "tracing")]
                 tracing::warn!(
                     name: "Flex item stretch cache miss",
-                    cached_inline = ?layout.containing_block_size.inline,
-                    cached_block = ?layout.containing_block_size.block,
+                    cached_inline = ?layout.containing_block_size.inline_size,
+                    cached_block = ?layout.containing_block_size.block_size(),
                     required_cross_size = ?used_cross_size,
                     cross_axis = ?cross_axis,
                     depends_on_block_constraints = layout.depends_on_block_constraints,
@@ -1873,11 +1878,7 @@ impl FlexItem<'_> {
 
         let item_style = independent_formatting_context.style();
         let item_as_containing_block = ContainingBlock {
-            size: ContainingBlockSize {
-                inline: inline_size,
-                block: block_size,
-                has_quirky_block_size: HasQuirkyBlockSize(false),
-            },
+            size: ContainingBlockSize::new(inline_size, block_size),
             style: item_style,
         };
 
@@ -2372,12 +2373,8 @@ impl FlexItemBox {
             if cross_axis_is_item_block_axis {
                 // The main axis is the inline axis, so we can get the content size from the normal
                 // preferred widths calculation.
-                let constraint_space = ConstraintSpace::new(
-                    cross_size,
-                    HasQuirkyBlockSize(false),
-                    style,
-                    preferred_aspect_ratio,
-                );
+                let constraint_space =
+                    ConstraintSpace::new(cross_size, style, preferred_aspect_ratio);
                 let content_sizes = flex_item
                     .inline_content_sizes(layout_context, &constraint_space)
                     .sizes;
@@ -2774,12 +2771,7 @@ impl FlexItemBox {
         preferred_aspect_ratio: Option<AspectRatio>,
     ) -> ContentSizes {
         let style = self.independent_formatting_context.style();
-        let constraint_space = ConstraintSpace::new(
-            block_size,
-            HasQuirkyBlockSize(false),
-            style,
-            preferred_aspect_ratio,
-        );
+        let constraint_space = ConstraintSpace::new(block_size, style, preferred_aspect_ratio);
         self.independent_formatting_context
             .inline_content_sizes(flex_context.layout_context, &constraint_space)
             .sizes

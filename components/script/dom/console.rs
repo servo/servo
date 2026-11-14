@@ -170,6 +170,14 @@ impl Console {
     pub(crate) fn internal_error(cx: &mut JSContext, global: &GlobalScope, message: String) {
         Console::send_string_message(cx, global, ConsoleLogLevel::Error, message);
     }
+
+    pub(crate) fn error_to_console(global: &GlobalScope, message: String) {
+        global.send_to_embedder(EmbedderMsg::ShowConsoleApiMessage(
+            global.webview_id(),
+            ConsoleLogLevel::Error,
+            message,
+        ));
+    }
 }
 
 #[expect(unsafe_code)]
@@ -529,9 +537,13 @@ mod devtools {
                 let display_name = ptr::NonNull::new(*display_name)
                     .map(|display_name| unsafe { jsstr_to_string(cx, display_name) });
 
-                // TODO: We should get the actual argument names from the function
-                // It's not trivial since we can't access the debugger API here
-                let parameter_names = (0..arity).map(|i| format!("<arg{i}>")).collect();
+                // The parameter names come from the Debugger API, via the debugger global.
+                // Fall back to placeholders if there is no debugger global to ask.
+                let global = GlobalScope::from_current_realm(&mut CurrentRealm::assert(cx));
+                let parameter_names = global
+                    .debugger_global(cx)
+                    .and_then(|debugger| debugger.function_parameter_names(cx, handle_value))
+                    .unwrap_or_else(|| (0..arity).map(|i| format!("<arg{i}>")).collect());
 
                 let function = Box::new(FunctionPreview {
                     name,

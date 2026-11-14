@@ -24,7 +24,7 @@ use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment, Fra
 use crate::SharedStyle;
 use crate::display_list::{ClipId, ToWebRender};
 use crate::formatting_contexts::Baselines;
-use crate::fragment_tree::CumulativeContentRectCalculation;
+use crate::fragment_tree::{CumulativeContentRectCalculation, FragmentChildren};
 use crate::geom::{
     AuOrAuto, LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides,
     SyncPhysicalRectAu,
@@ -160,7 +160,7 @@ impl BoxFragment {
     pub(crate) fn new(
         base_fragment_info: BaseFragmentInfo,
         style: ServoArc<ComputedValues>,
-        children: Vec<Fragment>,
+        children: FragmentChildren,
         content_rect: PhysicalRect<Au>,
         padding: PhysicalSides<Au>,
         border: PhysicalSides<Au>,
@@ -168,6 +168,11 @@ impl BoxFragment {
         specific_layout_info: Option<SpecificLayoutInfo>,
     ) -> Self {
         let rare_data = BoxFragmentRareData::new(specific_layout_info);
+        let children = children.into_physical_fragments(
+            style.writing_mode,
+            LogicalVec2::from_physical_size(&content_rect.size, style.writing_mode),
+        );
+
         Self {
             base: BaseFragment::new(base_fragment_info, content_rect),
             style: style.into(),
