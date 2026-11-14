@@ -870,6 +870,7 @@ impl LayoutThread {
             ComputedValues::initial_values_with_font_override(font),
             Box::new(LayoutFontMetricsProvider(config.font_context.clone())),
             Box::from(HTML_INPUT_TYPE_SUBMIT_DEFAULT_VALUE),
+            config.document_random_hasher_key,
             MediaData {
                 media_type: MediaType::screen(),
                 quirks_mode: QuirksMode::NoQuirks,
