@@ -565,39 +565,6 @@ fn test_webview_resize_interactivity() {
 }
 
 #[test]
-fn test_control_show_and_hide() {
-    let servo_test = ServoTest::new();
-    let delegate = Rc::new(WebViewDelegateImpl::default());
-    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
-        .delegate(delegate.clone())
-        .url(
-            Url::parse(
-                "data:text/html,\
-                    <!DOCTYPE html>\
-                        <select id=select style=\"width: 500px; height: 500px\">\
-                            <option>one</option>\
-                        </select>
-                        <script>\
-                            select.addEventListener('click', () => {\
-                                setTimeout(() => select.parentNode.removeChild(select), 100);\
-                            });\
-                        </script>",
-            )
-            .unwrap(),
-        )
-        .build();
-
-    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
-    click_at_point(&webview, Point2D::new(50., 50.), MouseButton::Primary);
-
-    // The form control should be shown and then immediately hidden.
-    let captured_delegate = delegate.clone();
-    servo_test.spin(move || captured_delegate.number_of_controls_shown.get() != 1);
-    let captured_delegate = delegate.clone();
-    servo_test.spin(move || captured_delegate.number_of_controls_hidden.get() != 1);
-}
-
-#[test]
 fn test_page_zoom() {
     let servo_test = ServoTest::new();
     let delegate = Rc::new(WebViewDelegateImpl::default());

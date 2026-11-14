@@ -27,7 +27,7 @@ use servo::{
     convert_rect_to_css_pixel,
 };
 use url::Url;
-use winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
+use winit::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
 use winit::event::{
     ElementState, Ime, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase, WindowEvent,
 };
@@ -449,17 +449,12 @@ impl HeadedWindow {
     fn show_ime(&self, control_id: EmbedderControlId, input_method: InputMethodControl) {
         self.visible_input_method.set(Some(control_id));
 
-        let position = input_method.position();
+        let position = input_method.position().to_f32();
+        let toolbar_height = (self.toolbar_height() * self.hidpi_scale_factor()).0;
         self.winit_window.set_ime_allowed(true);
         self.winit_window.set_ime_cursor_area(
-            LogicalPosition::new(
-                position.min.x,
-                position.min.y + (self.toolbar_height().0 as i32),
-            ),
-            LogicalSize::new(
-                position.max.x - position.min.x,
-                position.max.y - position.min.y,
-            ),
+            PhysicalPosition::new(position.min.x, position.min.y + toolbar_height),
+            PhysicalSize::new(position.width(), position.height()),
         );
     }
 
@@ -1083,22 +1078,10 @@ impl PlatformWindow for HeadedWindow {
         let control_id = embedder_control.id();
         match embedder_control {
             EmbedderControl::SelectElement(prompt) => {
-                // FIXME: Reading the toolbar height is needed here to properly position the select dialog.
-                // But if the toolbar height changes while the dialog is open then the position won't be updated
-                let offset = self.gui.borrow().toolbar_height();
-                self.add_dialog(
-                    webview_id,
-                    Dialog::new_select_element_dialog(prompt, offset),
-                );
+                self.add_dialog(webview_id, Dialog::new_select_element_dialog(prompt));
             },
             EmbedderControl::ColorPicker(color_picker) => {
-                // FIXME: Reading the toolbar height is needed here to properly position the select dialog.
-                // But if the toolbar height changes while the dialog is open then the position won't be updated
-                let offset = self.gui.borrow().toolbar_height();
-                self.add_dialog(
-                    webview_id,
-                    Dialog::new_color_picker_dialog(color_picker, offset),
-                );
+                self.add_dialog(webview_id, Dialog::new_color_picker_dialog(color_picker));
             },
             EmbedderControl::InputMethod(input_method_control) => {
                 self.show_ime(control_id, input_method_control);
@@ -1114,8 +1097,7 @@ impl PlatformWindow for HeadedWindow {
                 self.add_dialog(webview_id, Dialog::new_simple_dialog(simple_dialog));
             },
             EmbedderControl::ContextMenu(prompt) => {
-                let offset = self.gui.borrow().toolbar_height();
-                self.add_dialog(webview_id, Dialog::new_context_menu(prompt, offset));
+                self.add_dialog(webview_id, Dialog::new_context_menu(prompt));
             },
         }
     }

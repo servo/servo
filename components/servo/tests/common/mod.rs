@@ -12,11 +12,12 @@ use dpi::PhysicalSize;
 use embedder_traits::EventLoopWaker;
 use paint_api::rendering_context::{RenderingContext, SoftwareRenderingContext};
 use servo::{
-    ConsoleLogLevel, EmbedderControl, InputEvent, InputEventId, InputEventResult, JSValue,
-    JavaScriptEvaluationError, LoadStatus, MouseButton, MouseButtonAction, MouseButtonEvent,
-    MouseMoveEvent, Preferences, Servo, ServoBuilder, SimpleDialog, WebView, WebViewDelegate,
+    ConsoleLogLevel, DeviceIntRect, EmbedderControl, InputEvent, InputEventId, InputEventResult,
+    JSValue, JavaScriptEvaluationError, LoadStatus, MouseButton, MouseButtonAction,
+    MouseButtonEvent, MouseMoveEvent, Preferences, Servo, ServoBuilder, SimpleDialog, WebView,
+    WebViewDelegate,
 };
-use webrender_api::units::DevicePoint;
+use webrender_api::units::{DevicePoint, DeviceRect};
 
 pub struct ServoTest {
     pub servo: Servo,
@@ -116,6 +117,26 @@ impl WebViewDelegateImpl {
         self.fullscreen.set(false);
         self.crashes.set(0);
         *self.input_event_result.borrow_mut() = None;
+    }
+}
+
+impl WebViewDelegateImpl {
+    #[allow(dead_code)]
+    pub fn last_embedder_control_rect(&self) -> DeviceIntRect {
+        self.controls_shown
+            .borrow()
+            .last()
+            .map(|control| match control {
+                EmbedderControl::SelectElement(select_element) => select_element.position(),
+                EmbedderControl::ColorPicker(color_picker) => color_picker.position(),
+                EmbedderControl::FilePicker(..) => Default::default(),
+                EmbedderControl::InputMethod(input_method_control) => {
+                    input_method_control.position()
+                },
+                EmbedderControl::SimpleDialog(..) => Default::default(),
+                EmbedderControl::ContextMenu(context_menu) => context_menu.position(),
+            })
+            .unwrap_or_default()
     }
 }
 
