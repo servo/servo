@@ -322,6 +322,7 @@ impl TextControlElement for HTMLTextAreaElement {
     fn handle_text_content_changed(&self, cx: &mut JSContext) {
         self.validity_state(cx)
             .perform_validation_and_update(cx, ValidationFlags::all());
+        self.update_user_valid_state(cx.no_gc());
 
         let placeholder_shown =
             self.text_input.borrow().is_empty() && !self.placeholder.borrow().is_empty();
@@ -735,6 +736,7 @@ impl VirtualMethods for HTMLTextAreaElement {
 
         self.validity_state(cx)
             .perform_validation_and_update(cx, ValidationFlags::all());
+        self.update_user_valid_state(cx.no_gc());
     }
 
     fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
@@ -770,6 +772,7 @@ impl VirtualMethods for HTMLTextAreaElement {
         self.super_type().unwrap().unbind_from_tree(cx, context);
         self.validity_state(cx)
             .perform_validation_and_update(cx, ValidationFlags::all());
+        self.update_user_valid_state(cx.no_gc());
     }
 
     // The cloning steps for textarea elements must propagate the raw value
@@ -791,6 +794,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             .clone_content_from(&self.text_input.borrow());
         el.validity_state(cx)
             .perform_validation_and_update(cx, ValidationFlags::all());
+        el.update_user_valid_state(cx.no_gc());
     }
 
     fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
@@ -810,6 +814,7 @@ impl VirtualMethods for HTMLTextAreaElement {
 
         self.validity_state(cx)
             .perform_validation_and_update(cx, ValidationFlags::all());
+        self.update_user_valid_state(cx.no_gc());
 
         if let Some(super_type) = self.super_type() {
             super_type.handle_event(cx, event);
