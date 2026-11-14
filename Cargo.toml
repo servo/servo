@@ -225,14 +225,14 @@ rustls-pki-types = "1.14"
 rustls-platform-verifier = "0.7.0"
 sea-query = { version = "1.0.1", default-features = false, features = ["backend-sqlite", "derive"] }
 sea-query-rusqlite = "0.8.0"
-selectors = { git = "https://github.com/servo/stylo", rev = "fa0bd5f8eb5a2f0ce10373c3b9451d41431352b3" }
+selectors = { git = "https://github.com/servo/stylo", rev = "53f67a4d1486efcd742ec3a700fa3f89f45fec7a" }
 serde = "1.0.228"
 serde_bytes = "0.11"
 serde_core = "1.0.226"
 serde_json = "1.0"
 serde_test = "1.0"
 serde_with = "3.13"
-servo_arc = { git = "https://github.com/servo/stylo", rev = "fa0bd5f8eb5a2f0ce10373c3b9451d41431352b3" }
+servo_arc = { git = "https://github.com/servo/stylo", rev = "53f67a4d1486efcd742ec3a700fa3f89f45fec7a" }
 sha1 = "0.11"
 sha2 = "0.11"
 sha3 = "0.12"
@@ -243,12 +243,12 @@ speexdsp-resampler = "0.1.0"
 sponge-cursor = "0.1"
 string_cache = "0.11"
 strum = { version = "0.28", features = ["derive"] }
-stylo = { git = "https://github.com/servo/stylo", rev = "fa0bd5f8eb5a2f0ce10373c3b9451d41431352b3" }
-stylo_atoms = { git = "https://github.com/servo/stylo", rev = "fa0bd5f8eb5a2f0ce10373c3b9451d41431352b3" }
-stylo_dom = { git = "https://github.com/servo/stylo", rev = "fa0bd5f8eb5a2f0ce10373c3b9451d41431352b3" }
-stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "fa0bd5f8eb5a2f0ce10373c3b9451d41431352b3" }
-stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "fa0bd5f8eb5a2f0ce10373c3b9451d41431352b3" }
-stylo_traits = { git = "https://github.com/servo/stylo", rev = "fa0bd5f8eb5a2f0ce10373c3b9451d41431352b3" }
+stylo = { git = "https://github.com/servo/stylo", rev = "53f67a4d1486efcd742ec3a700fa3f89f45fec7a" }
+stylo_atoms = { git = "https://github.com/servo/stylo", rev = "53f67a4d1486efcd742ec3a700fa3f89f45fec7a" }
+stylo_dom = { git = "https://github.com/servo/stylo", rev = "53f67a4d1486efcd742ec3a700fa3f89f45fec7a" }
+stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "53f67a4d1486efcd742ec3a700fa3f89f45fec7a" }
+stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "53f67a4d1486efcd742ec3a700fa3f89f45fec7a" }
+stylo_traits = { git = "https://github.com/servo/stylo", rev = "53f67a4d1486efcd742ec3a700fa3f89f45fec7a" }
 surfman = "0.14.0"
 svgtypes = "0.16"
 swapper = "0.1"
