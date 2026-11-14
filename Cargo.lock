@@ -8191,6 +8191,7 @@ dependencies = [
  "ipc-channel",
  "itertools 0.15.0",
  "keyboard-types",
+ "libc",
  "log",
  "mozangle",
  "ohos-pasteboard",
