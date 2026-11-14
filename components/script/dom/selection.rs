@@ -1898,8 +1898,9 @@ impl<'no_gc> VisibleSelectionFlagUpdate<'no_gc> {
                 flat_tree_selection.range_for_character_data(character_data)
             });
             self.set_character_data_selection(character_data, range);
-        } else if node.set_element_selection(flat_tree_selection.is_some_and(|s| !s.is_collapsed()))
-        {
+        } else if node.set_element_selection(
+            flat_tree_selection.is_some_and(|selection| !selection.is_collapsed()),
+        ) {
             self.needs_new_display_list = true;
         }
     }

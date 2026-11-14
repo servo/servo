@@ -163,7 +163,7 @@ pub(crate) enum ReplacedContentKind {
 }
 
 impl ReplacedContentKind {
-    pub(crate) fn can_be_selected(&self) -> bool {
+    pub(crate) fn paints_selection_highlight(&self) -> bool {
         !matches!(
             self,
             ReplacedContentKind::Audio |
@@ -235,13 +235,13 @@ impl ReplacedContents {
                 .handle_animated_image(node.opaque(), image.clone());
         }
 
-        let selected = kind.can_be_selected() && node.replaced_is_selected();
-
+        let paint_selection_highlight =
+            kind.paints_selection_highlight() && node.replaced_is_selected();
         Some(Self {
             base_fragment_info: node.into(),
             kind,
             is_content_replacement: false,
-            selected: Arc::new(AtomicBool::new(selected)),
+            selected: Arc::new(AtomicBool::new(paint_selection_highlight)),
             selected_style: SharedStyle::new(node.selected_style(&context.style_context)),
             natural_size,
         })
@@ -784,9 +784,10 @@ impl ReplacedContents {
     /// Set whether or not this [`ReplacedContents`] is selected. Returns `true` if anything
     /// changed.
     pub(crate) fn set_selection(&self, selected: bool) -> bool {
-        // Only build a display list if the value changed and if this replaced element
-        // can be selected (e.g. not an `<iframe>`, `<audio>`, or `<canvas>`).
-        self.kind.can_be_selected() && self.selected.swap(selected, Ordering::Relaxed) != selected
+        // Only build a display list if the value changed and its content actually paints a
+        // selection highlight.
+        self.kind.paints_selection_highlight() &&
+            self.selected.swap(selected, Ordering::Relaxed) != selected
     }
 }
 
