@@ -613,8 +613,7 @@ impl FileManagerStore {
     ) -> Result<SelectedFile, FileManagerThreadError> {
         use net_traits::filemanager_thread::FileManagerThreadError::FileSystemError;
 
-        let file = File::open(file_path).map_err(|e| FileSystemError(e.to_string()))?;
-        let metadata = file
+        let metadata = file_path
             .metadata()
             .map_err(|e| FileSystemError(e.to_string()))?;
         let modified = metadata
