@@ -5,6 +5,7 @@
 use app_units::Au;
 use layout_api::{AxesOverflow, LayoutElementType, LayoutNode, LayoutNodeType};
 use malloc_size_of_derive::MallocSizeOf;
+use servo_config::pref;
 use style::Zero;
 use style::color::AbsoluteColor;
 use style::computed_values::direction::T as Direction;
@@ -370,6 +371,10 @@ pub(crate) trait ComputedValuesExt {
     fn preferred_aspect_ratio(
         &self,
         natural_aspect_ratio: Option<CSSFloat>,
+        padding_border_sums: &LogicalVec2<Au>,
+    ) -> Option<AspectRatio>;
+    fn preferred_aspect_ratio_for_non_replaced(
+        &self,
         padding_border_sums: &LogicalVec2<Au>,
     ) -> Option<AspectRatio>;
     fn background_is_transparent(&self) -> bool;
@@ -984,6 +989,19 @@ impl ComputedValuesExt for ComputedValues {
 
         // TODO: We need to handle CSS Contain here.
         false
+    }
+
+    /// Resolve the preferred aspect ratio for a box that doesn't have a natural
+    /// aspect ratio.
+    fn preferred_aspect_ratio_for_non_replaced(
+        &self,
+        padding_border_sums: &LogicalVec2<Au>,
+    ) -> Option<AspectRatio> {
+        if pref!(layout_css_aspect_ratio_enabled) {
+            self.preferred_aspect_ratio(None, padding_border_sums)
+        } else {
+            None
+        }
     }
 
     /// Resolve the preferred aspect ratio according to the given natural aspect
