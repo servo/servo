@@ -26,7 +26,7 @@ use dom_struct::dom_struct;
 use embedder_traits::user_contents::UserScript;
 use embedder_traits::{
     AlertResponse, ConfirmResponse, EmbedderMsg, LoadStatus, PromptResponse, ScriptToEmbedderChan,
-    SimpleDialogRequest, Theme, UntrustedNodeAddress, ViewportDetails, WebDriverLoadStatus,
+    SimpleDialogRequest, Theme, UntrustedNodeAddress, ViewportDetails,
 };
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use fonts::{
@@ -383,10 +383,6 @@ pub(crate) struct Window {
     /// cases.
     #[no_trace]
     layout_blocker: Cell<LayoutBlocker>,
-
-    /// A channel to notify webdriver if there is a navigation
-    #[no_trace]
-    webdriver_load_status_sender: RefCell<Option<GenericSender<WebDriverLoadStatus>>>,
 
     /// The current state of the window object
     current_state: Cell<WindowState>,
@@ -3711,18 +3707,6 @@ impl Window {
         // activating this document due to a navigation.
         self.Document().title_changed();
     }
-    pub(crate) fn set_webdriver_load_status_sender(
-        &self,
-        sender: Option<GenericSender<WebDriverLoadStatus>>,
-    ) {
-        *self.webdriver_load_status_sender.borrow_mut() = sender;
-    }
-
-    pub(crate) fn webdriver_load_status_sender(
-        &self,
-    ) -> Option<GenericSender<WebDriverLoadStatus>> {
-        self.webdriver_load_status_sender.borrow().clone()
-    }
 
     pub(crate) fn is_alive(&self) -> bool {
         self.current_state.get() == WindowState::Alive
@@ -4271,7 +4255,6 @@ impl Window {
             devtools_marker_sender: Default::default(),
             #[cfg(feature = "devtools")]
             devtools_markers: Default::default(),
-            webdriver_load_status_sender: Default::default(),
             error_reporter,
             media_query_lists: DOMTracker::new(),
             #[cfg(feature = "bluetooth")]

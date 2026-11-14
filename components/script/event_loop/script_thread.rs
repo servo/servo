@@ -2711,16 +2711,6 @@ impl ScriptThread {
                 strict_file_interactability,
                 reply,
             ),
-            WebDriverScriptCommand::AddLoadStatusSender(_, response_sender) => {
-                webdriver_handlers::handle_add_load_status_sender(
-                    &documents,
-                    pipeline_id,
-                    response_sender,
-                )
-            },
-            WebDriverScriptCommand::RemoveLoadStatusSender(_) => {
-                webdriver_handlers::handle_remove_load_status_sender(&documents, pipeline_id)
-            },
             // https://github.com/servo/servo/issues/23535
             // The Script messages need different treatment since the JS script might mutate
             // `self.documents`, which would conflict with the immutable borrow of it that
