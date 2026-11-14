@@ -33,19 +33,26 @@ use servo_canvas_traits::canvas::{
     LinearGradientStyle, Path, RadialGradientStyle, RangeError, RepetitionStyle, RoundRectRadius,
     ShadowOptions, TextRun,
 };
+use servo_config::pref;
 use servo_constellation_traits::ScriptToConstellationMessage;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::color::{AbsoluteColor, ColorFlags, ColorSpace};
 use style::computed_values::font_variant_position::T as FontVariantPosition;
+use style::context::QuirksMode;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
+use style::properties::shorthands::font;
 use style::properties::style_structs::Font;
 use style::stylesheets::CssRuleType;
 use style::values::computed::color::Color as ComputedColor;
 use style::values::computed::font::FontStyle;
 use style::values::computed::{
-    FontFeatureSettings, FontVariantEastAsian, FontVariantLigatures, FontVariantNumeric,
+    CSSPixelLength, FontFamily, FontFeatureSettings, FontSize, FontVariantEastAsian,
+    FontVariantLigatures, FontVariantNumeric, font as computed_font,
 };
+use style::values::generics::NonNegative;
 use style::values::specified::color::Color;
+use style::values::specified::font::{self as specified_font, KeywordInfo};
+use style::values::specified::{LengthPercentage, LengthUnit};
 use style::{Atom, Zero};
 use style_traits::values::ToCss;
 use style_traits::{CssWriter, ParsingMode};
@@ -142,6 +149,12 @@ pub(super) struct CanvasContextState {
 }
 
 impl CanvasContextState {
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-font>
+    /// > If the computed values are undefined for a particular case (e.g.
+    /// > because the font style source object is not an element or is not being
+    /// > rendered), then the relative keywords must be interpreted relative to
+    /// > the normal-weight 10px sans-serif default.
+    const DEFAULT_FONT_SIZE_PX: f32 = 10.0;
     const DEFAULT_FONT_STYLE: &'static str = "10px sans-serif";
 
     pub(super) fn new() -> CanvasContextState {
@@ -1727,7 +1740,7 @@ impl CanvasState {
     pub(super) fn set_font(
         &self,
         cx: &mut JSContext,
-        _global_scope: &GlobalScope,
+        global_scope: &GlobalScope,
         canvas: Option<&HTMLCanvasElement>,
         value: DOMString,
     ) {
@@ -1736,18 +1749,16 @@ impl CanvasState {
                 let node = canvas.upcast::<Node>();
                 let window = canvas.owner_window();
 
-                let Some(resolved_font) =
-                    window.resolved_font_style_query(cx, node, String::from(value))
-                else {
-                    return;
-                };
-
-                resolved_font
+                window.resolved_font_style_query(cx, node, String::from(value))
             },
-            None => return, // offscreen canvas doesn't have a placeholder canvas
+            None => resolve_offscreen_font(global_scope.api_base_url(), &value.str()),
         };
 
-        self.state.borrow_mut().font_style = Some(resolved_font_style);
+        let Some(font_style) = resolved_font_style else {
+            return;
+        };
+
+        self.state.borrow_mut().font_style = Some(font_style);
     }
 
     fn font_style(&self) -> ServoArc<Font> {
@@ -2907,4 +2918,107 @@ fn replace_ascii_whitespace(text: &str) -> String {
             _ => c,
         })
         .collect()
+}
+
+/// Same as stylo's private LARGER_FONT_SIZE_RATIO (style/values/specified/font.rs),
+/// the ratio Firefox and Chrome use for larger/smaller.
+const LARGER_FONT_SIZE_RATIO: f32 = 1.2;
+
+/// Resolves the font to use for a offscreen canvas given a font string.
+/// <https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-font>
+fn resolve_offscreen_font(base_url: ServoUrl, font: &str) -> Option<ServoArc<Font>> {
+    let urlextradata = base_url.into_url().into();
+
+    // In an offscreen canvas we have no document or quirks mode
+    let parser_context = parser_context_for_anonymous_content(
+        CssRuleType::Style,
+        ParsingMode::DEFAULT,
+        &urlextradata,
+    );
+    let mut parser = Parser::new(font);
+    let Ok(font_shorthand) =
+        parser.parse_entirely(|parser| font::parse_value(&parser_context, parser))
+    else {
+        // This also covers cases like 'inherit' and 'initial' that the spec
+        // explicitly declares are not supported.
+        return None;
+    };
+
+    let font_families = match font_shorthand.font_family {
+        specified_font::FontFamily::Values(family_list) => family_list,
+        specified_font::FontFamily::System(_) => return None,
+    };
+
+    let mut font = Font::initial_values();
+
+    font.set_font_family(computed_font::FontFamily {
+        families: font_families,
+        is_system_font: false,
+        is_initial: false,
+    });
+    font.set_font_size(calculate_derived_offscreen_font_size(
+        font_shorthand.font_size,
+    )?);
+    
+
+    Some(ServoArc::new(font))
+}
+
+/// Calculates a font size for an offscreen canvas (respecting `smaller` and
+/// `larger` keywords, percentages, `em`, and `rem`).
+fn calculate_derived_offscreen_font_size(
+    specified: specified_font::FontSize,
+) -> Option<computed_font::FontSize> {
+    // Font size base for source objects that are not being rendered is 10px,
+    // but still 16px for keywords (like medium).
+    let relative_base = CSSPixelLength::new(CanvasContextState::DEFAULT_FONT_SIZE_PX);
+    let medium_size = CSSPixelLength::new(pref!(fonts_default_size) as f32);
+
+    let (size, keyword_info) = match specified {
+        specified_font::FontSize::Keyword(info) => {
+            let size = info
+                .kw
+                .to_length_without_context(QuirksMode::NoQuirks, medium_size);
+
+            (size.0, Some(info))
+        },
+        specified_font::FontSize::Larger => (relative_base * LARGER_FONT_SIZE_RATIO, None),
+        specified_font::FontSize::Smaller => (relative_base / LARGER_FONT_SIZE_RATIO, None),
+        specified_font::FontSize::Length(length_percentage) => {
+            // Calculate either based on percentage or fixed unit.
+            let computed_size = length_percentage
+                .compute_without_context()
+                .map(|lp| lp.resolve(relative_base))
+                .or_else(|| {
+                    let LengthPercentage::Length(no_calc_length) = length_percentage else {
+                        return None;
+                    };
+
+                    let unit = no_calc_length.length_unit();
+                    let value = no_calc_length.unitless_value();
+
+                    let computed_value = match unit {
+                        LengthUnit::Em | LengthUnit::Rem => relative_base * value,
+                        // Follows Chromium behaviour of resolving vw/vh units
+                        // as 0.
+                        _ if unit.is_viewport_percentage() => CSSPixelLength::zero(),
+                        // TODO: Other units are not yet handled in offscreen
+                        // canvases.
+                        _ => return None,
+                    };
+
+                    Some(computed_value)
+                })?;
+
+            (computed_size, None)
+        },
+        specified_font::FontSize::System(system_font) => return None,
+    };
+
+    let size = NonNegative::new(size.px());
+    Some(computed_font::FontSize {
+        computed_size: size,
+        used_size: size,
+        keyword_info: keyword_info.unwrap_or_else(KeywordInfo::none),
+    })
 }
