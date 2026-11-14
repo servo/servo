@@ -4,6 +4,7 @@
 
 use std::ops::Range;
 
+use icu_properties::props::{EnumeratedProperty, LineBreak};
 use icu_segmenter::LineSegmenter;
 use icu_segmenter::options::LineBreakOptions;
 use servo_base::text::Utf8CodeUnits;
@@ -18,18 +19,20 @@ pub(crate) struct LineBreaker {
 impl LineBreaker {
     pub(crate) fn new(string: &str, options: LineBreakOptions<'_>) -> Self {
         let line_segmenter = LineSegmenter::new_auto(options);
-        Self {
+        let mut linebreaks = line_segmenter
+            .segment_str(string)
             // From https://docs.rs/icu_segmenter/1.5.0/icu_segmenter/struct.LineSegmenter.html
             // > For consistency with the grapheme, word, and sentence segmenters, there is always a
             // > breakpoint returned at index 0, but this breakpoint is not a meaningful line break
             // > opportunity.
             //
             // Skip this first line break opportunity, as it isn't interesting to us.
-            linebreaks: line_segmenter
-                .segment_str(string)
-                .skip(1)
-                .map(|offset| Utf8CodeUnits(offset as u32))
-                .collect(),
+            .skip(1)
+            .map(|offset| Utf8CodeUnits(offset as u32))
+            .collect();
+        add_break_opportunities_after_space(string, &mut linebreaks);
+        Self {
+            linebreaks,
             current_linebreak_offset: 0,
             additional_break_at_start: None,
         }
@@ -76,6 +79,63 @@ impl LineBreaker {
     pub(crate) fn take_additional_break_at_start(&mut self) -> Option<Utf8CodeUnits> {
         self.additional_break_at_start.take()
     }
+}
+
+/// Add soft wrap opportunities before punctuation that UAX #14 LB13 keeps
+/// attached to the preceding word even after a space.
+///
+/// Chrome, Firefox and WebKit allow a break there and is flexible to UA:
+/// <https://drafts.csswg.org/css-text-3/#line-break-details>
+fn add_break_opportunities_after_space(string: &str, linebreaks: &mut Vec<Utf8CodeUnits>) {
+    let mut extra_linebreaks = Vec::new();
+    // U+0020 is the only character in the `Space` line breaking class which is one byte in
+    // UTF-8, so it can be found without a character iterator. Only the character after each
+    // space needs to be decoded and classified.
+    for (space_offset, _) in string.match_indices(' ') {
+        let offset = space_offset + 1;
+        let Some(character) = string[offset..].chars().next() else {
+            continue;
+        };
+        if is_punctuation_kept_after_spaces_by_lb13(LineBreak::for_char(character)) {
+            extra_linebreaks.push(Utf8CodeUnits(offset as u32));
+        }
+    }
+
+    if extra_linebreaks.is_empty() {
+        return;
+    }
+
+    // Both lists are sorted, so merge them in one pass.
+    let mut merged = Vec::with_capacity(linebreaks.len() + extra_linebreaks.len());
+    let mut existing_linebreaks = linebreaks.iter().copied().peekable();
+    for offset in extra_linebreaks {
+        while existing_linebreaks
+            .peek()
+            .is_some_and(|next| *next < offset)
+        {
+            merged.push(existing_linebreaks.next().unwrap());
+        }
+        // skip duplicate.
+        if existing_linebreaks.peek() != Some(&offset) {
+            merged.push(offset);
+        }
+    }
+    merged.extend(existing_linebreaks);
+    *linebreaks = merged;
+}
+
+/// The line breaking classes for which UAX #14 rule LB13 prohibits a break even when the
+/// character is preceded by a space: CL, CP, EX, IS and SY.
+/// <https://www.unicode.org/reports/tr14/#LB13>
+fn is_punctuation_kept_after_spaces_by_lb13(line_break: LineBreak) -> bool {
+    matches!(
+        line_break,
+        LineBreak::ClosePunctuation |
+            LineBreak::CloseParenthesis |
+            LineBreak::Exclamation |
+            LineBreak::InfixNumeric |
+            LineBreak::BreakSymbols
+    )
 }
 
 #[cfg(test)]
