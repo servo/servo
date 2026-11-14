@@ -274,14 +274,15 @@ impl ResourceChannelManager {
         let refresh_id = rx_set.add(refresh_receiver);
         let mut selector = rx_set.selector();
 
-        loop {
+        'outer: loop {
             for received in selector.select().into_iter() {
-                // Handles case where profiler thread shuts down before resource thread.
                 match received {
+                    // Handles case where profiler thread shuts down before resource thread.
                     GenericSelectionResult::ChannelClosed(_) => continue,
                     GenericSelectionResult::Error(error) => {
                         log::error!("Found selection error: {error}")
                     },
+                    GenericSelectionResult::AllChannelsClosed(_) => break 'outer,
                     GenericSelectionResult::MessageReceived(id, msg) => {
                         if id == revoker_id {
                             let CoreResourceMsg::RevokeTokenForFile(revocation_request) = msg
@@ -333,6 +334,7 @@ impl ResourceChannelManager {
                 }
             }
         }
+        log::info!("Resource thread terminated");
     }
 
     fn process_report(

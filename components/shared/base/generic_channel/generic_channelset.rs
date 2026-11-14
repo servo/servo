@@ -160,14 +160,6 @@ impl<T: Serialize + for<'de> Deserialize<'de>> GenericReceiverSet<T> {
         };
         Selector { inner }
     }
-
-    /// One-shot select. Builds a [`Selector`], runs select once and drops it.
-    ///
-    /// For usage in loops consider using [`GenericReceiverSet::selector()`] to build the selector
-    /// once upfront.
-    pub fn select(&mut self) -> SmallVec<[GenericSelectionResult<T>; 2]> {
-        self.selector().select()
-    }
 }
 
 /// Borrows of a [`GenericReceiverSet`] used to drive repeated `select` calls
