@@ -11,7 +11,7 @@
 
 # This allows using types that are defined later in the file.
 from __future__ import annotations
-from datetime import datetime
+from datetime import datetime, timezone
 
 import json
 import os
@@ -224,9 +224,9 @@ def create_github_reports(body: str, tag: str = ""):
         "name": tag,
         "head_sha": get_commit_sha(),
         "status": "completed",
-        "started_at": datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+        "started_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "conclusion": conclusion,
-        "completed_at": datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+        "completed_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "output": {
             "title": f"Aggregated {tag} report",
             "summary": body,
