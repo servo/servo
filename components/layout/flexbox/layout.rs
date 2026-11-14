@@ -34,7 +34,8 @@ use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
 use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::{
-    BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags, SpecificLayoutInfo,
+    BoxFragment, CollapsedBlockMargins, Fragment, FragmentChildren, FragmentFlags,
+    SpecificLayoutInfo,
 };
 use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2};
 use crate::layout_box_base::IndependentFormattingContextLayoutResult;
@@ -116,7 +117,7 @@ enum FlexContent {
 /// Return type of `FlexItem::layout`
 struct FlexItemLayoutResult {
     hypothetical_cross_size: Au,
-    fragments: Vec<Fragment>,
+    fragments: FragmentChildren,
     positioning_context: PositioningContext,
 
     /// Baselines from the item’s content, relative to the item’s margin box.
@@ -963,7 +964,7 @@ impl FlexContainer {
         let depends_on_block_constraints = true;
 
         IndependentFormattingContextLayoutResult {
-            fragments,
+            fragments: FragmentChildren::PhysicalDeprecated(fragments),
             content_block_size,
             content_inline_size_for_table: None,
             baselines,

@@ -26,8 +26,8 @@ use crate::dom::{LayoutBox, WeakLayoutBox};
 use crate::flow::CollapsibleWithParentStartMargin;
 use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::{
-    BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, Fragment, FragmentStatus,
-    SpecificLayoutInfo,
+    BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, Fragment, FragmentChildren,
+    FragmentStatus, SpecificLayoutInfo,
 };
 use crate::geom::LogicalSides1D;
 use crate::positioned::{PositioningContext, relative_adjustement};
@@ -400,7 +400,7 @@ pub(crate) enum LayoutResultAndInputs {
 
 #[derive(Clone, MallocSizeOf)]
 pub(crate) struct IndependentFormattingContextLayoutResult {
-    pub fragments: Vec<Fragment>,
+    pub fragments: FragmentChildren,
 
     /// <https://drafts.csswg.org/css2/visudet.html#root-height>
     pub content_block_size: Au,

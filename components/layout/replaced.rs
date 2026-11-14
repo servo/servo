@@ -38,7 +38,8 @@ use crate::containing_block::{ConstraintSpace, ContainingBlock};
 use crate::context::{LayoutContext, LayoutImageCacheResult};
 use crate::dom::NodeExt;
 use crate::fragment_tree::{
-    BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment, IFrameFragment, ImageFragment,
+    BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment, FragmentChildren,
+    IFrameFragment, ImageFragment,
 };
 use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize};
 use crate::layout_box_base::{IndependentFormattingContextLayoutResult, LayoutBoxBase};
@@ -763,7 +764,11 @@ impl ReplacedContents {
             // The result doesn't depend on `containing_block_for_children.size.block`,
             // but it depends on `lazy_block_size`, which is probably tied to that.
             depends_on_block_constraints: true,
-            fragments: self.make_fragments(layout_context, &base.style, size),
+            fragments: FragmentChildren::PhysicalDeprecated(self.make_fragments(
+                layout_context,
+                &base.style,
+                size,
+            )),
             specific_layout_info: None,
         }
     }

@@ -14,8 +14,8 @@ use style::properties::ComputedValues;
 
 use super::{BaseFragment, BaseFragmentInfo, Fragment};
 use crate::SharedStyle;
-use crate::fragment_tree::CumulativeContentRectCalculation;
-use crate::geom::{PhysicalRect, SyncPhysicalRectAu};
+use crate::fragment_tree::{CumulativeContentRectCalculation, FragmentChildren};
+use crate::geom::{LogicalVec2, PhysicalRect, SyncPhysicalRectAu};
 
 /// Can contain child fragments with relative coordinates, but does not contribute to painting
 /// itself. [`PositioningFragment`]s may be completely anonymous, or just non-painting Fragments
@@ -52,9 +52,13 @@ impl PositioningFragment {
     pub fn new_anonymous(
         style: ServoArc<ComputedValues>,
         rect: PhysicalRect<Au>,
-        children: Vec<Fragment>,
+        children: FragmentChildren,
         is_line_box: bool,
     ) -> Arc<Self> {
+        let children = children.into_physical_fragments(
+            style.writing_mode,
+            LogicalVec2::from_physical_size(&rect.size, style.writing_mode),
+        );
         Self::new_with_base_fragment_info(
             BaseFragmentInfo::anonymous(),
             style,

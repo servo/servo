@@ -138,7 +138,9 @@ use crate::flow::{
     skippable_for_block_percentage_quirk,
 };
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
-use crate::fragment_tree::{CollapsedMargin, Fragment, FragmentFlags, PositioningFragment};
+use crate::fragment_tree::{
+    CollapsedMargin, Fragment, FragmentChildren, FragmentFlags, PositioningFragment,
+};
 use crate::geom::{LogicalRect, LogicalSides1D, LogicalVec2};
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
@@ -1409,7 +1411,7 @@ impl InlineFormattingContextLayout<'_> {
             .push(Fragment::Positioning(PositioningFragment::new_anonymous(
                 self.root_nesting_level.style.clone(),
                 physical_line_rect,
-                fragments,
+                FragmentChildren::PhysicalDeprecated(fragments),
                 true, /* is_line_box */
             )));
     }
@@ -2382,7 +2384,7 @@ impl InlineFormattingContext {
             layout.placement_state.finish();
 
         IndependentFormattingContextLayoutResult {
-            fragments: layout.fragments,
+            fragments: FragmentChildren::PhysicalDeprecated(layout.fragments),
             content_block_size,
             collapsible_margins_in_children,
             baselines,
