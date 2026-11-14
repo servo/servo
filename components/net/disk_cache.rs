@@ -14,6 +14,7 @@ use sea_query::{ColumnDef, Expr, ExprTrait, Iden, OnConflict, Query, SqliteQuery
 use sea_query_rusqlite::RusqliteBinder;
 use servo_config::pref;
 use servo_url::ServoUrl;
+use tempfile::TempDir;
 use tokio::sync::{Mutex as TokioMutex, RwLock as TokioRwLock};
 
 use crate::http_cache::{
@@ -51,11 +52,15 @@ struct DiskCacheInner {
 
 #[derive(MallocSizeOf)]
 /// A struct representing the disk cache.
-pub(crate) struct DiskCache {
+pub struct DiskCache {
     path: PathBuf,
     max_size: usize,
     // the non constant data.
     inner: TokioMutex<DiskCacheInner>,
+    // We keep the tempdir around, if we are in `temporary_storage` mode.
+    // This is important for non unix systems.
+    #[ignore_malloc_size_of = "Difficult to measure"]
+    tempfile: Option<TempDir>,
 }
 
 /// Identifications for sea_query of the cache table.
@@ -80,19 +85,32 @@ impl Iden for DiskCacheTable {
     }
 }
 
+struct StorageDirectory {
+    path: PathBuf,
+    temp_dir: Option<TempDir>,
+}
+
 /// Get the storage path out of `network_http_disk_cache` preference and `temporary_storage` option.
-fn storage_dir() -> Option<PathBuf> {
+// We need to return a file because a tempdir will otherwise close before we open the database
+fn storage_dir() -> Option<StorageDirectory> {
     let disk_storage_path = pref!(network_http_disk_cache);
     match (
         servo_config::opts::get().temporary_storage,
         disk_storage_path.is_empty(),
     ) {
-        (false, false) => Some(disk_storage_path.into()),
+        (false, false) => Some(StorageDirectory {
+            path: disk_storage_path.into(),
+            temp_dir: None,
+        }),
         (true, true) => {
             let tmp_dir = tempfile::tempdir().unwrap();
             let mut path = tmp_dir.path().to_path_buf();
-            path.set_file_name("cache.sqlite3");
-            Some(path)
+
+            path.push("cache.sqlite3");
+            Some(StorageDirectory {
+                path,
+                temp_dir: Some(tmp_dir),
+            })
         },
         (true, false) => {
             error!(
@@ -112,16 +130,16 @@ impl DiskCache {
         cache_assignment: HttpCacheAssignment,
     ) -> (Option<Arc<DiskCache>>, MemoryCacheLifecycle) {
         // For private browsing we currently do not want to store any disk cache.
-        let disk_cache_path = storage_dir();
+        let storage_directory = storage_dir();
 
-        if let Some(disk_cache_path) = disk_cache_path &&
+        if let Some(storage_directory) = storage_directory &&
             cache_assignment == HttpCacheAssignment::Public
         {
             let Ok(max_disk_cache_size) = pref!(network_http_disk_cache_size).try_into() else {
                 return (None, MemoryCacheLifecycle::empty());
             };
 
-            let Ok(db) = rusqlite::Connection::open(&disk_cache_path) else {
+            let Ok(db) = rusqlite::Connection::open(&storage_directory.path) else {
                 error!("Could not open disk cache database");
                 return (None, MemoryCacheLifecycle::empty());
             };
@@ -176,8 +194,9 @@ impl DiskCache {
             };
             let disk_cache_data = std::sync::Arc::new(DiskCache {
                 inner: TokioMutex::new(inner),
-                path: disk_cache_path,
+                path: storage_directory.path,
                 max_size: max_disk_cache_size,
+                tempfile: storage_directory.temp_dir,
             });
 
             (
@@ -382,5 +401,24 @@ impl DiskCache {
         }
         inner.entries.clear();
         inner.size = 0;
+    }
+
+    #[cfg(feature = "test-util")]
+    pub fn keys_in_database(&self) -> Vec<CacheKey> {
+        use url::Url;
+
+        let (query, params) = Query::select()
+            .columns([DiskCacheTable::Key])
+            .from(DiskCacheTable::Table)
+            .build_rusqlite(SqliteQueryBuilder);
+        let inner = self.inner.blocking_lock();
+        let mut statement = inner.db.prepare(query.as_str()).unwrap();
+        statement
+            .query_map(&*params.as_params(), |row| Ok(row.get_unwrap("key")))
+            .unwrap()
+            .flatten()
+            .flat_map(|string: String| Url::parse(&string))
+            .map(|url| CacheKey::from_url(ServoUrl::from_url(url)))
+            .collect()
     }
 }

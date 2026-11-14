@@ -339,6 +339,12 @@ impl HttpCache {
     pub fn len(&self) -> usize {
         self.entries.len()
     }
+
+    #[cfg(feature = "test-util")]
+    /// Returns the disk cache struct.
+    pub fn disk_cache(&self) -> Option<StdArc<DiskCache>> {
+        self.disk_cache.clone()
+    }
 }
 
 #[derive(Clone)]
