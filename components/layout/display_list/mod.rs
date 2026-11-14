@@ -24,6 +24,7 @@ use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
 use style::computed_values::background_blend_mode::SingleComputedValue as BackgroundBlendMode;
 use style::computed_values::border_image_outset::T as BorderImageOutset;
+use style::computed_values::font_style::T as FontStyle;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
@@ -34,7 +35,7 @@ use style::properties::longhands::visibility::computed_value::T as Visibility;
 use style::properties::style_structs::Border;
 use style::values::computed::basic_shape::ClipPath as ComputedClipPath;
 use style::values::computed::{
-    BorderImageSideWidth, BorderImageWidth, BorderStyle, LengthPercentage,
+    BorderImageSideWidth, BorderImageWidth, BorderStyle, FontSynthesisStyle, LengthPercentage,
     NonNegativeLengthOrNumber, NumberOrPercentage, OutlineStyle,
 };
 use style::values::generics::NonNegative;
@@ -50,7 +51,7 @@ use webrender_api::{
     ClipChainId, ClipMode, ColorF, CommonItemProperties, ComplexClipRegion, GlyphInstance,
     MixBlendMode, NinePatchBorder, NinePatchBorderSource, NormalBorder, PrimitiveFlags,
     PropertyBinding, PropertyBindingKey, RasterSpace, SpatialId, StackingContextFlags,
-    TransformStyle, units,
+    SyntheticItalics, TransformStyle, units,
 };
 use wr::units::LayoutVector2D;
 
@@ -1186,14 +1187,45 @@ impl Fragment {
         }
 
         let parent_style = fragment.style();
+        let font_metrics = &fragment.font_metrics;
         // Gecko gets the text bounding box based on the ink overflow bounds. Since
         // we don't need to calculate this yet (as we do not implement `contain:
         // paint`), we just need to make sure these boundaries are big enough to
         // contain the inked portion of the glyphs. We assume that the descent and
         // ascent are big enough and then just expand the advance-based boundaries by
         // twice the size of the biggest advance in the advance dimention.
+        //
+        // A synthetic oblique skews the glyph ink beyond the advance-based box, so extend the
+        // horizontal edges by the skew overhang, mirroring the bounding-box adjustment in Gecko's
+        // `gfxFont::Measure`. Positions and advances are unchanged: the shear maps baseline
+        // points onto themselves.
+        let synthetic_skew = {
+            let font = parent_style.get_font();
+            let font_style = font.slow_clone_font_style();
+            let style_angle = if font_style == FontStyle::ITALIC {
+                FontStyle::DEFAULT_OBLIQUE_DEGREES as f32
+            } else {
+                font_style.oblique_degrees()
+            };
+            let angle = match (font_style, font.slow_clone_font_synthesis_style()) {
+                (FontStyle::NORMAL, _) | (_, FontSynthesisStyle::None) => 0.0,
+                (FontStyle::ITALIC, FontSynthesisStyle::ObliqueOnly) => FontStyle::DEFAULT_OBLIQUE_DEGREES as f32,
+                (FontStyle::ITALIC, FontSynthesisStyle::Auto) => style_angle,
+                (style, _) => style.oblique_degrees(),
+            };
+            // Reuse WebRender's clamp and quantisation so the padding matches the applied shear
+            // (`oblique 90deg` must not become an infinite `tan`).
+            SyntheticItalics::from_degrees(angle).to_skew()
+        };
+        let synthetic_overhang = Au::from_f32_px(
+            (synthetic_skew.abs() * (font_metrics.ascent + font_metrics.descent).to_f32_px())
+                .ceil(),
+        );
         let glyph_bounds = rect
-            .inflate(largest_advance.scale_by(2.0), Au::zero())
+            .inflate(
+                largest_advance.scale_by(2.0) + synthetic_overhang,
+                Au::zero(),
+            )
             .to_webrender();
         let common = builder.common_properties(state, glyph_bounds, &parent_style);
 

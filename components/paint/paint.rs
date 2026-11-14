@@ -552,7 +552,7 @@ impl Paint {
                 font_instance_key,
                 font_key,
                 size,
-                flags,
+                font_instance_options,
                 platform_options,
                 variations,
             ) => {
@@ -564,7 +564,7 @@ impl Paint {
                         font_instance_key,
                         font_key,
                         size,
-                        flags,
+                        font_instance_options,
                         platform_options,
                         variations,
                     );
