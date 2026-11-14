@@ -409,8 +409,20 @@ impl ServiceWorkerManager {
     }
 
     /// <https://w3c.github.io/ServiceWorker/#try-activate>
-    fn try_activate_registration(&mut self, _url: ServoUrl) {
-        // TODO: implement.
+    fn try_activate_registration(&mut self, url: ServoUrl) {
+        if let Some(registration) = self.registrations.get(&url) {
+            // Step 1: If registration’s waiting worker is null, return.
+            if registration.waiting_worker.is_none() {
+                return;
+            }
+
+            // Step 2: If registration’s active worker is not null and registration’s active worker’s state is "activating", return.
+            if let Some(active_worker) = registration.active_worker.as_ref() {
+                if active_worker.state == ServiceWorkerState::Activating {
+                    return;
+                }
+            }
+        }
     }
 
     /// <https://w3c.github.io/ServiceWorker/#unregister>
