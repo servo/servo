@@ -3384,19 +3384,28 @@ impl Window {
         self.scroll_container_query(node, flags)
             .and_then(|response| {
                 Some(match response {
-                    ScrollContainerResponse::Viewport(overflow) => {
-                        (ScrollingBoxSource::Viewport(self.Document()), overflow)
-                    },
-                    ScrollContainerResponse::Element(parent_node_address, overflow) => {
+                    ScrollContainerResponse::Viewport(overflow, writing_mode) => (
+                        ScrollingBoxSource::Viewport(self.Document()),
+                        overflow,
+                        writing_mode,
+                    ),
+                    ScrollContainerResponse::Element(
+                        parent_node_address,
+                        overflow,
+                        writing_mode,
+                    ) => {
                         let node = unsafe { from_untrusted_node_address(parent_node_address) };
                         (
                             ScrollingBoxSource::Element(DomRoot::downcast(node)?),
                             overflow,
+                            writing_mode,
                         )
                     },
                 })
             })
-            .map(|(source, overflow)| ScrollingBox::new(source, overflow))
+            .map(|(source, overflow, writing_mode)| {
+                ScrollingBox::new(source, overflow, writing_mode)
+            })
     }
 
     #[expect(unsafe_code)]
