@@ -4,7 +4,6 @@
 
 use std::cell::RefCell;
 use std::fmt::Debug;
-use std::iter::repeat;
 use std::sync::atomic;
 use std::sync::atomic::AtomicU64;
 
@@ -25,6 +24,9 @@ use webrender_api::units::LayoutVector2D;
 
 use super::accessibility_node::{AccessibilityNode, DirtyState};
 use crate::ArcRefCell;
+use crate::accessibility::accessibility_node::{
+    Integrity, LocalAccessibilityDamage, NodeExpectations, SubtreeState,
+};
 use crate::accessibility::{AccessibilityContext, AccessibilityDamageMap};
 
 #[derive(Debug, Default)]
@@ -94,13 +96,19 @@ pub(super) struct AccessibilityUpdate<'update> {
     /// Whether the tree's focused node has changed in this update.
     focused_node_changed: bool,
     /// Counters to track how many nodes we've checked for changes or updated in this tree update.
-    pub(super) counters: UpdateCounters,
+    pub(crate) counters: UpdateCounters,
 
     /// Map of [`NodeId`] to the [`AccessibilityDamage`] which was passed in for that node.
     damage_map: FxHashMap<NodeId, AccessibilityDamage>,
     /// Map of [`NodeId`] to the corresponding [`ServoLayoutNode`]. This is populated for nodes
     /// which have damage, including nodes which are newly added to the accessibility tree.
     dom_node_map: RefCell<FxHashMap<NodeId, ServoLayoutNode<'update>>>,
+
+    /// Map of accessibility node to `LocalDamage` which couldn't be resolved during the initial
+    /// tree walk.
+    unresolved_local_damage: FxHashMap<NodeId, LocalAccessibilityDamage>,
+    /// The previous text node in tree order within the same container node.
+    pub(super) closest_previous_text: Option<ArcRefCell<AccessibilityNode>>,
 }
 
 /// Tracks changes to a node's relation to the tree within an update.
@@ -222,29 +230,68 @@ impl AccessibilityTree {
         self.root_node = Some(root_node);
     }
 
-    /// Update all nodes with damage tracked in `update` based on their `AccessibilityDamage`. If
-    /// any [`LocalAccessibilityDamage`] results from the update, propagate
-    /// [`LocalAccessibilityDamage::SubtreeChanged`] to its ancestors.
+    /// Update all nodes with damage tracked in `update` based on their `AccessibilityDamage`, and
+    /// resolve any local damage resulting from those updates.
     fn apply_changes_from_dom_tree(
         &mut self,
         context: &AccessibilityContext,
         update: &mut AccessibilityUpdate,
     ) {
-        let Some(damage_root_id) = self.mark_nodes_and_ancestors_dirty(update) else {
+        let Some(damage_root_id) = self.mark_nodes_and_ancestors_dirty(
+            update.damage_map.keys(),
+            DirtyState::HasDamage,
+            DirtyState::DescendantHasDamage,
+        ) else {
             return;
         };
         let damage_root = self.assert_node_for_id(&damage_root_id);
-        let hidden = false;
+        for ancestor in damage_root.borrow().ancestors() {
+            ancestor
+                .borrow_mut()
+                .remove_dirty_state(DirtyState::DescendantHasDamage);
+        }
+        update.ensure_dom_node_for_damage_root(damage_root_id, self);
+
         let local_damage = damage_root.borrow_mut().update_subtree(
             damage_root.clone(),
             AccessibilityDamage::empty(),
-            hidden,
+            SubtreeState::empty(),
             context,
             self,
             update,
         );
 
-        damage_root.borrow().update_ancestors(local_damage, update);
+        let mut nodes_with_subtree_changes: FxHashSet<NodeId> = FxHashSet::default();
+        if !local_damage.is_empty() {
+            nodes_with_subtree_changes.insert(damage_root_id);
+        }
+
+        for (id, damage) in update.take_unresolved_local_damage() {
+            let Some(node) = self.node_for_id(id) else {
+                continue;
+            };
+            nodes_with_subtree_changes.extend(
+                node.borrow_mut()
+                    .resolve_remaining_local_damage(damage, update),
+            );
+        }
+
+        if nodes_with_subtree_changes.is_empty() {
+            return;
+        }
+
+        self.mark_nodes_and_ancestors_dirty(
+            nodes_with_subtree_changes.iter(),
+            DirtyState::empty(),
+            DirtyState::from(LocalAccessibilityDamage::SubtreeChanged),
+        );
+
+        for id in nodes_with_subtree_changes {
+            let Some(node) = self.node_for_id(id) else {
+                continue;
+            };
+            node.borrow().update_ancestors(update);
+        }
     }
 
     /// Read all scroll offsets directly from the scroll tree, and use them to populate
@@ -304,12 +351,12 @@ impl AccessibilityTree {
     /// - remove the [`DirtyState::HasDirtyDescendants`] flag on nodes between the common ancestor
     ///   and the root;
     /// - return the common ancestor.
-    fn mark_nodes_and_ancestors_dirty(
+    fn mark_nodes_and_ancestors_dirty<'update>(
         &mut self,
-        update: &mut AccessibilityUpdate,
+        mut dirty_node_ids: impl Iterator<Item = &'update NodeId>,
+        node_dirty_state: DirtyState,
+        ancestor_dirty_state: DirtyState,
     ) -> Option<NodeId> {
-        let mut dirty_node_ids = update.damage_map.keys();
-
         // An ordered list of common ancestors for the nodes seen so far, from shallowest to
         // deepest. At the end of the loop, the lowest common ancestor is the last node in this vec.
         let mut common_ancestors: Vec<NodeId> = Vec::new();
@@ -317,21 +364,20 @@ impl AccessibilityTree {
         {
             // Initialize the list of potential common ancestors.
             let node_id = dirty_node_ids.next()?;
-            update.collect_dom_node_ancestors(node_id, self);
             let first_node = self.assert_node_for_id(node_id);
             let mut first_node = first_node.borrow_mut();
-            first_node.add_dirty_state(DirtyState::HasDamage);
+            first_node.add_dirty_state(node_dirty_state);
             common_ancestors.push(first_node.id());
             common_ancestors.extend(first_node.ancestors().map(|ancestor| {
                 let mut ancestor = ancestor.borrow_mut();
-                ancestor.add_dirty_state(DirtyState::DescendantHasDamage);
+                ancestor.add_dirty_state(ancestor_dirty_state);
                 ancestor.id()
             }));
             common_ancestors.reverse();
         }
 
         let mut truncate_ancestors = |node: &AccessibilityNode| -> bool {
-            if node.dirty_state().descendant_has_damage() {
+            if node.dirty_state().intersects(ancestor_dirty_state) {
                 if let Some(pos) = common_ancestors.iter().position(|&id| id == node.id()) {
                     common_ancestors.truncate(pos + 1);
                 }
@@ -343,7 +389,7 @@ impl AccessibilityTree {
         for node_id in dirty_node_ids {
             let node = self.assert_node_for_id(node_id);
             let mut node = node.borrow_mut();
-            node.add_dirty_state(DirtyState::HasDamage);
+            node.add_dirty_state(node_dirty_state);
 
             if truncate_ancestors(&node) {
                 continue;
@@ -358,20 +404,11 @@ impl AccessibilityTree {
                     break;
                 }
 
-                ancestor.add_dirty_state(DirtyState::DescendantHasDamage);
+                ancestor.add_dirty_state(ancestor_dirty_state);
             }
         }
 
-        let lowest_common_ancestor = common_ancestors.pop();
-
-        for ancestor_id in common_ancestors {
-            let ancestor = self.assert_node_for_id(&ancestor_id);
-            ancestor
-                .borrow_mut()
-                .remove_dirty_state(DirtyState::DescendantHasDamage);
-        }
-
-        lowest_common_ancestor
+        common_ancestors.pop()
     }
 
     fn update_focused_node(
@@ -418,7 +455,7 @@ impl AccessibilityTree {
             let mut node = node_ref.borrow_mut();
             node.initialize_from_dom_node(dom_node);
             update.insert_damage(id, AccessibilityDamage::Rebuild);
-            node.add_dirty_state(DirtyState::HasDamage);
+            node.add_dirty_state(DirtyState::HasDamage | DirtyState::New);
         }
 
         (id, node_ref)
@@ -599,11 +636,17 @@ impl AccessibilityTree {
             return;
         };
 
+        let root_expected = NodeExpectations {
+            parent_node: None,
+            previous_sibling: None,
+            next_sibling: None,
+        };
+
         // Traverse the tree from the given root.
-        // `nodes` is a Vec of pairs of nodes and their expected parents.
-        let mut nodes = vec![(root_node, None)];
+        // `nodes` is a Vec of pairs of nodes and their expected relations.
+        let mut nodes = vec![(root_node, root_expected)];
         let mut seen_node_ids = FxHashSet::default();
-        while let Some((node, expected_parent)) = nodes.pop() {
+        while let Some((node, expected)) = nodes.pop() {
             let node = node.borrow();
 
             // If this fails, then the tree is not a tree at all.
@@ -613,12 +656,28 @@ impl AccessibilityTree {
                 node.id()
             );
 
-            node.assert_integrity(expected_parent);
+            node.assert_integrity(expected);
 
             // assert_node_for_id() here double-checks that the node hasn't been incorrectly evicted
             // from the map while it's still retained as a child node.
-            let weak_node = Some(self.assert_node_for_id(&node.id()).downgrade());
-            nodes.extend(node.children().cloned().zip(repeat(weak_node)));
+            let weak_node = Some(self.assert_node_for_id(&node.id()).downgrade().clone());
+            let mut weak_previous_child = None;
+            let children_peekable = node.children().peekable();
+            for child_ref in children_peekable {
+                let child_expectations = NodeExpectations {
+                    parent_node: weak_node.clone(),
+                    previous_sibling: weak_previous_child.clone(),
+                    next_sibling: None,
+                };
+                let weak_child = child_ref.downgrade();
+                if weak_previous_child.is_some() &&
+                    let Some((_, previous_expectations)) = nodes.last_mut()
+                {
+                    previous_expectations.next_sibling = Some(weak_child.clone());
+                }
+                weak_previous_child = Some(weak_child);
+                nodes.push((child_ref.clone(), child_expectations));
+            }
         }
 
         // If this fails, then the tree has orphaned nodes (a leak).
@@ -661,6 +720,8 @@ impl<'update> AccessibilityUpdate<'update> {
             counters: UpdateCounters::default(),
             damage_map,
             dom_node_map: RefCell::new(dom_node_map),
+            unresolved_local_damage: FxHashMap::default(),
+            closest_previous_text: None,
         }
     }
 
@@ -782,16 +843,38 @@ impl<'update> AccessibilityUpdate<'update> {
         self.dom_node_map.borrow_mut().remove(node_id)
     }
 
+    pub(super) fn add_unresolved_local_damage(
+        &mut self,
+        node_id: NodeId,
+        damage: LocalAccessibilityDamage,
+    ) {
+        self.unresolved_local_damage
+            .entry(node_id)
+            .or_insert(LocalAccessibilityDamage::empty())
+            .insert(damage);
+    }
+
+    fn take_unresolved_local_damage(&mut self) -> FxHashMap<NodeId, LocalAccessibilityDamage> {
+        std::mem::take(&mut self.unresolved_local_damage)
+    }
+
     #[expect(unsafe_code)]
-    fn collect_dom_node_ancestors(&self, node_id: &NodeId, tree: &AccessibilityTree) {
+    fn ensure_dom_node_for_damage_root(&self, damage_root_id: NodeId, tree: &AccessibilityTree) {
+        let start_node_id =
+            self.damage_map.keys().next().expect(
+                "ensure_dom_node_for_damage_root should not be called if damage_map is empty",
+            );
         let mut dom_node_map = self.dom_node_map.borrow_mut();
         let dom_node = dom_node_map
-            .get(node_id)
-            .expect("collect_dom_node_ancestors should be called for a known DOM node");
+            .get(start_node_id)
+            .expect("damage_map should not contain damage for non-existent nodes");
         let mut parent = unsafe { dom_node.dangerous_flat_tree_parent() };
         while let Some(node) = parent {
             if let Some(node_id) = tree.existing_id_for_opaque(node.opaque()) {
                 dom_node_map.insert(node_id, node);
+                if node_id == damage_root_id {
+                    break;
+                }
             }
             parent = unsafe { node.dangerous_flat_tree_parent() };
         }
@@ -862,4 +945,128 @@ fn test_accessibility_update_add_some_nodes_twice() {
             focus: NodeId(2),
         }
     );
+}
+
+#[cfg(test)]
+#[test]
+fn test_accessibility_tree_traversal() {
+    let mut tree = AccessibilityTree::new(accesskit::TreeId::ROOT, Epoch::default());
+    let mut root_update = AccessibilityUpdate::new(AccessibilityDamageMap::default(), &tree);
+
+    let root_node = tree.get_or_create_node_with_id(NodeId(0), &mut root_update);
+    tree.root_node = Some(root_node.clone());
+
+    let node_1 = tree.get_or_create_node_with_id(NodeId(1), &mut root_update);
+    let node_2 = tree.get_or_create_node_with_id(NodeId(2), &mut root_update);
+    let node_3 = tree.get_or_create_node_with_id(NodeId(3), &mut root_update);
+    let node_4 = tree.get_or_create_node_with_id(NodeId(4), &mut root_update);
+    let node_5 = tree.get_or_create_node_with_id(NodeId(5), &mut root_update);
+    let node_6 = tree.get_or_create_node_with_id(NodeId(6), &mut root_update);
+    let node_7 = tree.get_or_create_node_with_id(NodeId(7), &mut root_update);
+    let node_8 = tree.get_or_create_node_with_id(NodeId(8), &mut root_update);
+    let node_9 = tree.get_or_create_node_with_id(NodeId(9), &mut root_update);
+
+    {
+        let mut root_node = root_node.borrow_mut();
+        root_node.set_children_for_testing(
+            vec![NodeId(1), NodeId(7)],
+            vec![node_1.clone(), node_7.clone()],
+        );
+    }
+
+    {
+        let mut node_1 = node_1.borrow_mut();
+        node_1.set_parent_for_testing(root_node.clone());
+        node_1.set_children_for_testing(
+            vec![NodeId(2), NodeId(3)],
+            vec![node_2.clone(), node_3.clone()],
+        );
+        node_1.set_next_sibling_for_testing(node_7.clone());
+    }
+
+    {
+        let mut node_2 = node_2.borrow_mut();
+        node_2.set_parent_for_testing(node_1.clone());
+        node_2.set_next_sibling_for_testing(node_3.clone());
+    }
+
+    {
+        let mut node_3 = node_3.borrow_mut();
+        node_3.set_parent_for_testing(node_1.clone());
+        node_3.set_children_for_testing(
+            vec![NodeId(4), NodeId(5), NodeId(6)],
+            vec![node_4.clone(), node_5.clone(), node_6.clone()],
+        );
+        node_3.set_previous_sibling_for_testing(node_2.clone());
+    }
+
+    {
+        let mut node_4 = node_4.borrow_mut();
+        node_4.set_parent_for_testing(node_3.clone());
+        node_4.set_next_sibling_for_testing(node_5.clone());
+    }
+
+    {
+        let mut node_5 = node_5.borrow_mut();
+        node_5.set_parent_for_testing(node_3.clone());
+        node_5.set_previous_sibling_for_testing(node_4.clone());
+        node_5.set_next_sibling_for_testing(node_6.clone());
+    }
+
+    {
+        let mut node_6 = node_6.borrow_mut();
+        node_6.set_parent_for_testing(node_3.clone());
+        node_6.set_previous_sibling_for_testing(node_5.clone());
+    }
+
+    {
+        let mut node_7 = node_7.borrow_mut();
+        node_7.set_parent_for_testing(root_node.clone());
+        node_7.set_children_for_testing(
+            vec![NodeId(8), NodeId(9)],
+            vec![node_8.clone(), node_9.clone()],
+        );
+        node_7.set_previous_sibling_for_testing(node_1.clone());
+    }
+
+    {
+        let mut node_8 = node_8.borrow_mut();
+        node_8.set_parent_for_testing(node_7.clone());
+        node_8.set_next_sibling_for_testing(node_9.clone());
+    }
+
+    {
+        let mut node_9 = node_9.borrow_mut();
+        node_9.set_parent_for_testing(node_7.clone());
+        node_9.set_previous_sibling_for_testing(node_8.clone());
+    }
+
+    // The node IDs are in tree order, so traversing forward should always increase the ID by one,
+    // and traversing backwards should always decrease the ID by one.
+    for node in tree.nodes.values() {
+        let node = node.borrow();
+        let node_id = node.id().0;
+
+        let mut visited_nodes = 0;
+        let expected_visited_nodes = 9 - node_id;
+        let mut previous_id = node_id;
+        for node in node.after(None) {
+            let node = node.borrow();
+            assert!(node.id().0 == previous_id + 1);
+            previous_id = node.id().0;
+            visited_nodes += 1;
+        }
+        assert_eq!(visited_nodes, expected_visited_nodes, "after {}", node_id);
+
+        let mut visited_nodes = 0;
+        let expected_visited_nodes = node_id;
+        let mut previous_id = node_id;
+        for node in node.before(None) {
+            let node = node.borrow();
+            assert!(node.id().0 == previous_id - 1);
+            previous_id = node.id().0;
+            visited_nodes += 1;
+        }
+        assert_eq!(visited_nodes, expected_visited_nodes, "before {}", node_id);
+    }
 }
