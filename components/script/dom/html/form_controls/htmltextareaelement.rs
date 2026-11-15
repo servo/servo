@@ -810,9 +810,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             self.handle_focus_event(cx, event);
         }
 
-        self.validity_state(cx)
-            .perform_validation_and_update(cx, ValidationFlags::all());
-        self.update_user_valid_state(cx.no_gc());
+        self.update_related_validity_states(cx);
 
         if let Some(super_type) = self.super_type() {
             super_type.handle_event(cx, event);
