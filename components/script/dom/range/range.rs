@@ -623,6 +623,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         self.set_start(no_gc, &parent, index);
         // Step 5.
         self.set_end(no_gc, &parent, index + 1);
+        self.maybe_update_document(); // owning document could have changed
         Ok(())
     }
 
@@ -638,6 +639,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         self.set_start(no_gc, node, 0);
         // Step 4.
         self.set_end(no_gc, node, length);
+        self.maybe_update_document(); // owning document could have changed
         Ok(())
     }
 
