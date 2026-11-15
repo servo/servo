@@ -149,10 +149,6 @@ pub(super) struct CanvasContextState {
 
 impl CanvasContextState {
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-font>
-    /// > If the computed values are undefined for a particular case (e.g.
-    /// > because the font style source object is not an element or is not being
-    /// > rendered), then the relative keywords must be interpreted relative to
-    /// > the normal-weight 10px sans-serif default.
     const DEFAULT_FONT_SIZE_PX: f32 = 10.0;
     const DEFAULT_FONT_STYLE: &'static str = "10px sans-serif";
 
@@ -2990,7 +2986,7 @@ fn resolve_offscreen_font(base_url: ServoUrl, font: &str) -> Option<ServoArc<Fon
 }
 
 /// Calculates a font size for an offscreen canvas (respecting `smaller` and
-/// `larger` keywords, percentages, `em`, and `rem`).
+/// `larger` keywords, percentages, `em`, `ex`, `ch`, `ic`).
 fn calculate_derived_offscreen_font_size(
     specified: specified_font::FontSize,
 ) -> Option<computed_font::FontSize> {
@@ -3024,6 +3020,15 @@ fn calculate_derived_offscreen_font_size(
 
                     let computed_value = match unit {
                         LengthUnit::Em | LengthUnit::Rem => relative_base * value,
+                        // For ex, ch, ic, either sane defaults according to the
+                        // spec, when it is 'impossible or impractical' to calculate,
+                        // or defaults taken from Chromium.
+                        // https://drafts.csswg.org/css-values-4/#font-relative-lengths
+                        LengthUnit::Ex | LengthUnit::Ch | LengthUnit::Rex | LengthUnit::Rch => {
+                            relative_base * value * 0.5
+                        },
+                        LengthUnit::Ic | LengthUnit::Ric => relative_base * value,
+
                         // Follows Chromium behaviour of resolving vw/vh units
                         // as 0.
                         _ if unit.is_viewport_percentage() => CSSPixelLength::zero(),
