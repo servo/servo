@@ -184,9 +184,9 @@ pub struct SelectedFile {
     pub filename: PathBuf,
     pub modified: SystemTime,
     pub size: u64,
-    /// https://w3c.github.io/FileAPI/#dfn-type
+    /// <https://w3c.github.io/FileAPI/#dfn-type>
     pub type_string: String,
-    /// https://wicg.github.io/entries-api/#dom-file-webkitrelativepath
+    /// <https://wicg.github.io/entries-api/#dom-file-webkitrelativepath>
     pub relative_path: Option<String>,
 }
 
