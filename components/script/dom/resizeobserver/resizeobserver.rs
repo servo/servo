@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use app_units::Au;
 use dom_struct::dom_struct;
@@ -21,7 +22,6 @@ use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::ResizeObserverBinding::{
     ResizeObserverBoxOptions, ResizeObserverCallback, ResizeObserverMethods, ResizeObserverOptions,
 };
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::document::RenderingUpdateReason;
@@ -48,6 +48,9 @@ impl ResizeObservationDepth {
 pub(crate) struct ResizeObserver {
     reflector_: Reflector,
 
+    /// The [`Window`] that this [`ResizeObserver`] was created in.
+    window: Dom<Window>,
+
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-callback-slot>
     callback: TracedCallback<ResizeObserverCallback>,
 
@@ -58,16 +61,24 @@ pub(crate) struct ResizeObserver {
     /// and [`[[skippedTargets]]`](https://drafts.csswg.org/resize-observer/#dom-resizeobserver-skippedtargets-slot)
     /// internal slots.
     observation_targets: DomRefCell<Vec<(ResizeObservation, Dom<Element>)>>,
+
+    /// An index that indicates what order this [`ResizeObsever`] was created in. This is used for
+    /// keeping them in sorted order in the `Document`'s collection of observers.
+    creation_order: usize,
 }
 
 impl ResizeObserver {
     pub(crate) fn new_inherited(
+        window: &Window,
         callback: RootedCallback<ResizeObserverCallback>,
     ) -> ResizeObserver {
+        static CREATION_ORDER: AtomicUsize = AtomicUsize::new(0);
         ResizeObserver {
             reflector_: Reflector::new(),
+            window: Dom::from_ref(window),
             callback: callback.to_traced(),
             observation_targets: Default::default(),
+            creation_order: CREATION_ORDER.fetch_add(1, Ordering::Relaxed),
         }
     }
 
@@ -77,7 +88,7 @@ impl ResizeObserver {
         proto: Option<HandleObject>,
         callback: RootedCallback<ResizeObserverCallback>,
     ) -> DomRoot<ResizeObserver> {
-        let observer = Box::new(ResizeObserver::new_inherited(callback));
+        let observer = Box::new(ResizeObserver::new_inherited(window, callback));
         reflect_dom_object_with_proto(cx, observer, window, proto)
     }
 
@@ -167,6 +178,11 @@ impl ResizeObserver {
             .borrow()
             .iter()
             .any(|(observation, _)| observation.state.get() == ObservationState::Skipped)
+    }
+
+    /// Whether or not the given [`ResizeObserver`] was created after this one.
+    pub(crate) fn created_after(&self, other: &ResizeObserver) -> bool {
+        self.creation_order > other.creation_order
     }
 }
 
@@ -273,10 +289,7 @@ impl ResizeObserverMethods<crate::DomTypeHolder> for ResizeObserver {
         proto: Option<HandleObject>,
         callback: RootedCallback<ResizeObserverCallback>,
     ) -> DomRoot<ResizeObserver> {
-        let rooted_observer = ResizeObserver::new(cx, window, proto, callback);
-        let document = window.Document();
-        document.add_resize_observer(cx, &rooted_observer);
-        rooted_observer
+        ResizeObserver::new(cx, window, proto, callback)
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-observe>
@@ -299,24 +312,35 @@ impl ResizeObserverMethods<crate::DomTypeHolder> for ResizeObserver {
         self.observation_targets
             .safe_borrow_mut(no_gc)
             .push((resize_observation, Dom::from_ref(target)));
-        target
-            .owner_window()
-            .Document()
-            .add_rendering_update_reason(
-                RenderingUpdateReason::ResizeObserverStartedObservingTarget,
-            );
+
+        let document = self.window.document_unrooted(no_gc);
+        document.add_rendering_update_reason(
+            RenderingUpdateReason::ResizeObserverStartedObservingTarget,
+        );
+
+        // This isn't specified, but this is what Servo does to ensure that ResizeObservers can be
+        // garbage collected properly. `Unobserve` will remove the observer from the Document.
+        document.add_resize_observer(no_gc, self);
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-unobserve>
     fn Unobserve(&self, no_gc: &NoGC, target: &Element) {
         self.observation_targets
             .safe_borrow_mut(no_gc)
-            .retain_mut(|(_obs, other)| !(&**other == target));
+            .retain_mut(|(_, other)| !(&**other == target));
+        if self.observation_targets.borrow().is_empty() {
+            self.window
+                .document_unrooted(no_gc)
+                .remove_resize_observer(no_gc, self);
+        }
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-disconnect>
     fn Disconnect(&self, no_gc: &NoGC) {
         self.observation_targets.safe_borrow_mut(no_gc).clear();
+        self.window
+            .document_unrooted(no_gc)
+            .remove_resize_observer(no_gc, self);
     }
 }
 

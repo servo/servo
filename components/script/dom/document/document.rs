@@ -3539,11 +3539,30 @@ impl Document {
         &self.id_map
     }
 
-    /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-resizeobserver>
-    pub(crate) fn add_resize_observer(&self, cx: &mut JSContext, resize_observer: &ResizeObserver) {
+    /// <https://drafts.csswg.org/resize-observer/#lifetime>
+    pub(crate) fn add_resize_observer(&self, no_gc: &NoGC, resize_observer: &ResizeObserver) {
+        let mut resize_observers = self.resize_observers.safe_borrow_mut(no_gc);
+        let mut insertion_index = None;
+        for (index, existing_resize_observer) in resize_observers.iter().enumerate() {
+            if &**existing_resize_observer == resize_observer {
+                return;
+            }
+            if existing_resize_observer.created_after(resize_observer) {
+                insertion_index = Some(index);
+                break;
+            }
+        }
+
+        match insertion_index {
+            Some(index) => resize_observers.insert(index, Dom::from_ref(resize_observer)),
+            None => resize_observers.push(Dom::from_ref(resize_observer)),
+        }
+    }
+
+    pub(crate) fn remove_resize_observer(&self, no_gc: &NoGC, resize_observer: &ResizeObserver) {
         self.resize_observers
-            .safe_borrow_mut(cx)
-            .push(Dom::from_ref(resize_observer));
+            .safe_borrow_mut(no_gc)
+            .retain(|existing_resize_observer| &**existing_resize_observer != resize_observer);
     }
 
     /// <https://drafts.csswg.org/resize-observer/#gather-active-observations-h>
