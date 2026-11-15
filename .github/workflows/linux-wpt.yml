@@ -96,6 +96,8 @@ jobs:
           ./mach bootstrap --yes --skip-lints --skip-nextest
           # FIXME #35029
           sudo apt purge -y fonts-droid-fallback
+          sudo apt-get install -y earlyoom
+          sudo systemctl stop earlyoom
       - name: Sync from upstream WPT
         if: ${{ inputs.wpt-sync-from-upstream }}
         run: |
@@ -105,6 +107,12 @@ jobs:
           mkdir -p wpt-filtered-logs/linux
           mkdir -p wpt-full-logs/linux
           nproc=$(nproc)
+          # Early OOM modeled after https://github.com/web-platform-tests/wpt/blob/c0f2b11f490d5849bf4d48c276b68681e894b1fb/tools/ci/run_tc.py#L126-L132
+          sudo earlyoom -p -r 60 \
+            --prefer='^servoshell$' --avoid=python \
+            > wpt-full-logs/linux/earlyoom.log 2>&1 &
+          earlyoom_pid=$!
+          trap 'sudo kill "$earlyoom_pid" 2>/dev/null || true' EXIT
           ./mach test-wpt \
             --bin ${{ inputs.binary-path }} \
             $WPT_ALWAYS_SUCCEED_ARG \

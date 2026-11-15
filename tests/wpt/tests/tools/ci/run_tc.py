@@ -126,7 +126,7 @@ def get_parser():
 def start_userspace_oom_killer(log_only=False):
     # Start userspace OOM killer: https://github.com/rfjakob/earlyoom
     # It will report memory usage every minute and prefer to kill browsers.
-    cmd = ["sudo", "earlyoom", "-p", "-r", "60", "--prefer=(chrome|firefox)", "--avoid=python"]
+    cmd = ["sudo", "earlyoom", "-p", "-r", "60", "--prefer=(chrome|firefox|servoshell)", "--avoid=python"]
     if log_only:
         cmd.append("--dryrun")
     start(cmd)
