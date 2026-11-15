@@ -46,10 +46,9 @@ use style::stylesheets::CssRuleType;
 use style::values::computed::color::Color as ComputedColor;
 use style::values::computed::font::FontStyle;
 use style::values::computed::{
-    CSSPixelLength, FontFamily, FontFeatureSettings, FontSize, FontVariantEastAsian,
-    FontVariantLigatures, FontVariantNumeric, font as computed_font,
+    CSSPixelLength, FontFeatureSettings, FontVariantEastAsian, FontVariantLigatures,
+    FontVariantNumeric, NonNegativeLength, font as computed_font,
 };
-use style::values::generics::NonNegative;
 use style::values::specified::color::Color;
 use style::values::specified::font::{self as specified_font, KeywordInfo};
 use style::values::specified::{LengthPercentage, LengthUnit};
@@ -2959,7 +2958,33 @@ fn resolve_offscreen_font(base_url: ServoUrl, font: &str) -> Option<ServoArc<Fon
     font.set_font_size(calculate_derived_offscreen_font_size(
         font_shorthand.font_size,
     )?);
-    
+
+    font.set_font_weight(match font_shorthand.font_weight {
+        specified_font::FontWeight::Absolute(w) => w.compute()?,
+        specified_font::FontWeight::Bolder => computed_font::FontWeight::NORMAL.bolder(),
+        specified_font::FontWeight::Lighter => computed_font::FontWeight::NORMAL.lighter(),
+        specified_font::FontWeight::System(_) => return None,
+    });
+
+    font.set_font_style(match font_shorthand.font_style {
+        specified_font::FontStyle::Specified(font_style) => match font_style {
+            style::values::generics::font::FontStyle::Oblique(angle) => {
+                computed_font::FontStyle::oblique(angle.degrees()?)
+            },
+            style::values::generics::font::FontStyle::Italic => computed_font::FontStyle::ITALIC,
+        },
+        specified_font::FontStyle::System(_) => return None,
+    });
+
+    font.set_font_width(match font_shorthand.font_width {
+        specified_font::FontWidth::Width(non_negative) => {
+            computed_font::FontWidth::from_percentage(non_negative.0.resolve()?)
+        },
+        specified_font::FontWidth::Keyword(font_width_keyword) => font_width_keyword.compute(),
+        specified_font::FontWidth::System(_) => return None,
+    });
+
+    font.set_font_variant_caps(font_shorthand.font_variant_caps);
 
     Some(ServoArc::new(font))
 }
@@ -3012,10 +3037,10 @@ fn calculate_derived_offscreen_font_size(
 
             (computed_size, None)
         },
-        specified_font::FontSize::System(system_font) => return None,
+        specified_font::FontSize::System(_) => return None,
     };
 
-    let size = NonNegative::new(size.px());
+    let size = NonNegativeLength::new(size.px());
     Some(computed_font::FontSize {
         computed_size: size,
         used_size: size,
