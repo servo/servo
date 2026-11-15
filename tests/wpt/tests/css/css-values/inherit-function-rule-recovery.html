@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>CSS Values: inherit() does not break parsing of the rules that follow</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#inherit-notation">
+<link rel="help" href="https://drafts.csswg.org/css-variables/#defining-variables">
+<link rel="help" href="https://drafts.csswg.org/css-syntax-3/#consume-a-declaration">
+<meta name="assert" content="Whether or not inherit() is supported, a declaration that uses it must not change how the rest of the style sheet parses.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  // These checks hold whether or not the engine supports inherit(). If it
+  // does, the declarations are valid. If it doesn't, inherit() is an unknown
+  // function: the custom properties still hold a valid token sequence, and
+  // the standard-property declaration is dropped. Either way the following
+  // rules must parse as written.
+  const FOLLOWING = ' .q2 { color: green; } .q3 { color: red; }';
+
+  function parse(text) {
+    const style = document.createElement('style');
+    style.textContent = text;
+    document.head.append(style);
+    const rules = [...style.sheet.cssRules];
+    style.remove();
+    return rules;
+  }
+
+  function assert_following_rules(rules) {
+    assert_equals(rules.length, 3, 'number of top-level rules');
+    assert_equals(rules[1].selectorText, '.q2', 'second rule');
+    assert_equals(rules[2].selectorText, '.q3', 'third rule');
+  }
+
+  const declarations = [
+    '--d: calc(inherit(--d) + 1)',
+    '--d: calc(inherit(--d, 0) + 1)',
+    '--d: (inherit(--d))',
+    '--d: inherit(--d)',
+    'width: calc(inherit(--d) + 1px)',
+  ];
+
+  for (const declaration of declarations) {
+    test(() => {
+      const rules = parse(`.q1 { ${declaration}; }` + FOLLOWING);
+      assert_following_rules(rules);
+      assert_equals(rules[0].selectorText, '.q1', 'first rule');
+      assert_equals(rules[0].cssRules.length, 0, 'first rule has no nested rules');
+    }, `Rules after "${declaration}" parse as written`);
+  }
+
+  test(() => {
+    const rules = parse(
+      '@supports (color: inherit(--x)) { .q1 { --d: calc(inherit(--d) + 1); } }' + FOLLOWING);
+    assert_following_rules(rules);
+    assert_true(rules[0] instanceof CSSSupportsRule, 'first rule is @supports');
+    assert_equals(rules[0].cssRules.length, 1, 'rules inside @supports');
+    assert_equals(rules[0].cssRules[0].cssRules.length, 0, 'inner rule has no nested rules');
+  }, 'Rules after an @supports block that uses inherit() parse as written');
+</script>

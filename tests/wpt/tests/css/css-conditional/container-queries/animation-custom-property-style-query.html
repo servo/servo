@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Container Queries - Style query on animated custom property</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#animated-containers">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @property --x {
+    syntax: "<integer>";
+    inherits: true;
+    initial-value: 0;
+  }
+  @keyframes anim {
+    from, to { --x: 1; }
+  }
+  #container {
+    animation: anim 1s linear 1s paused;
+  }
+  #target {
+    color: red;
+  }
+  @container style(--x: 1) {
+    #target {
+      color: green;
+    }
+  }
+</style>
+<div id=container>
+  <div id=target></div>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+    container.getAnimations()[0].currentTime = 1500;
+    assert_equals(getComputedStyle(container).getPropertyValue("--x"), "1");
+    assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+  }, "Style query re-evaluates when an animation changes a custom property on the container");
+</script>

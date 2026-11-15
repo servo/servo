@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>CSS stretch(): a table with percentage arguments</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#used-width-of-table">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="A stretch() percentage on a table resolves against the containing block, and percentage margins against its inline size.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .container {
+    width: 200px;
+    height: 400px;
+  }
+  table {
+    /* 75% of 200px less 50px, and 37.5% of 400px less 25% of 200px. */
+    width: stretch(75%);
+    margin-right: 50px;
+    height: stretch(37.5%);
+    margin-bottom: 25%;
+    border-spacing: 0;
+    background: green;
+  }
+  td {
+    padding: 0;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="container">
+  <table><tr><td></td></tr></table>
+</div>

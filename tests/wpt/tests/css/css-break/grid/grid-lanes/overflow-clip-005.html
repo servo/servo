@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Inline-only clipping allows grid-lanes rows to fragment past the block-end</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#overflow-properties">
+<link rel="match" href="overflow-clip-005-ref.html">
+<style>
+  .multicol {
+    columns: 2;
+    column-fill: auto;
+    column-gap: 0;
+    width: 100px;
+    height: 100px;
+    background: lightgray;
+  }
+  .lanes {
+    display: grid-lanes;
+    grid-template-rows: repeat(3, 60px);
+    height: 180px;
+    overflow-x: clip;
+    overflow-y: visible;
+  }
+  .lanes > div { width: 50px; }
+</style>
+<div class="multicol">
+  <div class="lanes">
+    <div style="background: green"></div>
+    <div style="background: teal; break-before: column"></div>
+    <div style="background: orange; break-before: column"></div>
+  </div>
+</div>

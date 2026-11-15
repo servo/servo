@@ -44,6 +44,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import time
 import zipfile
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
@@ -159,15 +160,20 @@ def start_dbus():
 
 
 def install_chrome(channel):
+    """Install Chrome and return the path to its binary, or None if it is
+    installed later by the job itself."""
     if channel == "canary":
         # Chrome for Testing Canary is installed via --install-browser
-        return
+        return None
     if channel in ("experimental", "dev"):
         deb_archive = "google-chrome-unstable_current_amd64.deb"
+        binary = "/opt/google/chrome-unstable/chrome"
     elif channel == "beta":
         deb_archive = "google-chrome-beta_current_amd64.deb"
+        binary = "/opt/google/chrome-beta/chrome"
     elif channel == "stable":
         deb_archive = "google-chrome-stable_current_amd64.deb"
+        binary = "/opt/google/chrome/chrome"
     else:
         raise ValueError("Unrecognized release channel: %s" % channel)
 
@@ -178,6 +184,29 @@ def install_chrome(channel):
 
     run(["sudo", "apt-get", "-qqy", "update"])
     run(["sudo", "gdebi", "-qn", "/tmp/%s" % deb_archive])
+    return binary
+
+
+def warm_up_chrome(binary):
+    # Chrome bundles its own fontconfig, whose cache format may differ from the
+    # caches built into the image. If that happens, the first Chrome launch
+    # rescans all fonts, which can hit the test timeout on CI worker.
+    # To prevent that, launch Chrome once before the job to build the font
+    # caches. It will take little time if the font cache is compatible already.
+    # See https://github.com/web-platform-tests/wpt/issues/62901 for the full
+    # context.
+    print("INFO: Warming up Chrome to update the font caches", flush=True)
+    start_time = time.monotonic()
+    with tempfile.TemporaryDirectory() as profile:
+        # --no-sandbox for the same reason as in tools/wpt/run.py (gh-20133)
+        cmd = [binary, "--headless=new", "--no-sandbox", "--no-first-run",
+               "--user-data-dir=%s" % profile, "--dump-dom", "about:blank"]
+        try:
+            result = subprocess.call(cmd, stdout=subprocess.DEVNULL, timeout=120)
+        except subprocess.TimeoutExpired:
+            result = "timeout"
+    print("INFO: Chrome warm-up finished (%s) in %.1fs" %
+          (result, time.monotonic() - start_time))
 
 
 def start_xvfb():
@@ -275,9 +304,10 @@ def setup_environment(**kwargs):
     if kwargs["install_certificates"]:
         install_certificates()
 
+    chrome_binary = None
     if "chrome" in kwargs["browser"]:
         assert kwargs["channel"] is not None
-        install_chrome(kwargs["channel"])
+        chrome_binary = install_chrome(kwargs["channel"])
 
     # These browsers use dbus for various features.
     if {"chrome", "firefox", "webkitgtk_minibrowser", "wpewebkit_minibrowser"}.intersection(
@@ -290,6 +320,9 @@ def setup_environment(**kwargs):
     if kwargs["oom_killer"]:
         log_only = "firefox_android" in kwargs["browser"]
         start_userspace_oom_killer(log_only)
+
+    if chrome_binary is not None:
+        warm_up_chrome(chrome_binary)
 
 
 def setup_repository(**kwargs):

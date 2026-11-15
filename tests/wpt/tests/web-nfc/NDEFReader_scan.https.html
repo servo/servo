@@ -290,8 +290,7 @@ nfc_test(async (t, mockNFC) => {
                                 createUnknownRecord(test_buffer_data),
                                 createUrlRecord(test_url_data),
                                 createUrlRecord(test_url_data, true),
-                                createRecord('w3.org:xyz', test_buffer_data)],
-                                test_message_origin);
+                                createRecord('w3.org:xyz', test_buffer_data)]);
   const ndefWatcher = new EventWatcher(t, ndef, ["reading", "readingerror"]);
   const promise = ndefWatcher.wait_for("reading").then(event => {
     assert_equals(event.serialNumber, fake_tag_serial_number);

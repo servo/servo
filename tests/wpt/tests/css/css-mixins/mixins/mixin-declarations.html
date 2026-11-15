@@ -7,13 +7,13 @@
     <script src="/resources/testharnessreport.js"></script>
     <style>
       @mixin --m1() {
-        @result {
-          color: green;
-        }
+        color: green;
+        --ordinary: green;
       }
       div {
         color: red;
         @apply --m1;
+        background-color: var(--ordinary, red);
       }
     </style>
   </head>
@@ -23,6 +23,9 @@
     test(() => {
       let target = document.getElementById('target');
       assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+      assert_equals(getComputedStyle(target).backgroundColor, 'rgb(0, 128, 0)');
+      assert_equals(getComputedStyle(target).getPropertyValue('--ordinary'),
+                    'green');
     });
   </script>
   </body>

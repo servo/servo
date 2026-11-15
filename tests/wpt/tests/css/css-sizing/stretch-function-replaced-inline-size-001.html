@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>CSS stretch(): the inline size of a replaced element</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="stretch() fits the margin box of a replaced element to its argument in the inline axis, whatever the box-sizing, and percentage margins resolve against the containing block's inline size.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .container {
+    width: 200px;
+  }
+  canvas {
+    display: block;
+    height: 25px;
+    background: green;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="container">
+  <canvas width="10" height="10" style="width: stretch(150px); margin-right: 50px;"></canvas>
+  <canvas width="10" height="10" style="width: stretch(75%); margin-right: 50px;"></canvas>
+  <canvas width="10" height="10" style="width: stretch(150px); margin-right: 25%;"></canvas>
+  <canvas width="10" height="10" style="width: stretch(100px); padding-right: 20px; box-sizing: border-box;"></canvas>
+</div>

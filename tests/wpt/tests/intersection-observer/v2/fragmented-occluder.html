@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/intersection-observer-test-utils.js"></script>
+
+<style>
+body, html {
+  margin: 0;
+}
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 600px;
+}
+.target {
+  position: absolute;
+  width: 80px;
+  height: 40px;
+  background-color: green;
+}
+.multicol-v {
+  position: absolute;
+  left: 100px;
+  width: 100px;
+  height: 200px;
+  columns: 2;
+  column-gap: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.multicol-h {
+  position: absolute;
+  left: 350px;
+  width: 200px;
+  height: 100px;
+  columns: 2;
+  column-gap: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.box {
+  visibility: visible;
+}
+.frag {
+  width: 100px;
+  height: 100px;
+}
+.break {
+  break-after: column;
+}
+.shadow-left {
+  box-shadow: -100px 0 0 0 black;
+}
+.shadow-right {
+  box-shadow: 100px 0 0 0 black;
+}
+.shadow-top {
+  box-shadow: 0 -100px 0 0 black;
+}
+</style>
+
+<!-- vertical-rl: 1st fragment child shadow-right covers target_vrl_first,
+     2nd fragment child shadow-left covers target_vrl_second, while
+     target_vrl_unoccluded on the left of the 1st fragment stays visible. -->
+<div class="target" id="target_vrl_first" style="left: 210px; top: 10px;"></div>
+<div class="target" id="target_vrl_second" style="left: 10px; top: 110px;"></div>
+<div class="target" id="target_vrl_unoccluded" style="left: 10px; top: 10px;"></div>
+<div class="multicol-v" style="top: 0; writing-mode: vertical-rl;">
+  <div class="box">
+    <div class="frag break shadow-right occluder"></div>
+    <div class="frag shadow-left occluder"></div>
+  </div>
+</div>
+
+<!-- sideways-rl: 2nd fragment child shadow-left covers target_srl. -->
+<div class="target" id="target_srl" style="left: 10px; top: 310px;"></div>
+<div class="multicol-v" style="top: 200px; writing-mode: sideways-rl;">
+  <div class="box">
+    <div class="frag break"></div>
+    <div class="frag shadow-left occluder"></div>
+  </div>
+</div>
+
+<!-- vertical-rl: fragmented box self shadow (clone) covers target_vrl_self. -->
+<div class="target" id="target_vrl_self" style="left: 10px; top: 510px;"></div>
+<div class="multicol-v" style="top: 400px; writing-mode: vertical-rl;">
+  <div class="box shadow-left occluder" style="box-decoration-break: clone;">
+    <div class="frag break"></div>
+    <div class="frag"></div>
+  </div>
+</div>
+
+<!-- vertical-lr: 2nd fragment child shadow-left covers target_vlr. -->
+<div class="target" id="target_vlr" style="left: 360px; top: 110px;"></div>
+<div class="multicol-v" style="left: 450px; top: 0; writing-mode: vertical-lr;">
+  <div class="box">
+    <div class="frag break"></div>
+    <div class="frag shadow-left occluder"></div>
+  </div>
+</div>
+
+<!-- horizontal-tb: 2nd fragment child shadow-top covers target_htb. -->
+<div class="target" id="target_htb" style="left: 460px; top: 210px;"></div>
+<div class="multicol-h" style="top: 300px;">
+  <div class="box">
+    <div class="frag break"></div>
+    <div class="frag shadow-top occluder"></div>
+  </div>
+</div>
+
+<!-- horizontal-tb: fragmented box self shadow (clone) covers target_htb_self. -->
+<div class="target" id="target_htb_self" style="left: 460px; top: 410px;"></div>
+<div class="multicol-h" style="top: 500px;">
+  <div class="box shadow-top occluder" style="box-decoration-break: clone;">
+    <div class="frag break"></div>
+    <div class="frag"></div>
+  </div>
+</div>
+
+<script>
+const delay = 100;
+const entries = new Map();
+const occludedIds = [
+  "target_vrl_first",
+  "target_vrl_second",
+  "target_srl",
+  "target_vrl_self",
+  "target_vlr",
+  "target_htb",
+  "target_htb_self",
+];
+const allIds = [...occludedIds, "target_vrl_unoccluded"];
+
+runTestCycle(function() {
+  const observer = new IntersectionObserver(function(changes) {
+    for (const entry of changes) {
+      entries.set(entry.target.id, entry);
+    }
+  }, {trackVisibility: true, delay: delay});
+  for (const id of allIds) {
+    const target = document.getElementById(id);
+    assert_true(!!target, id + " exists");
+    observer.observe(target);
+  }
+  assert_equals(observer.takeRecords().length, 0, "No initial notifications.");
+  runTestCycle(step0, "First rAF.", delay);
+}, "IntersectionObserverV2 with fragmented box-shadow occluders.", delay);
+
+function step0() {
+  for (const occluder of document.querySelectorAll(".occluder")) {
+    occluder.style.boxShadow = "none";
+  }
+  runTestCycle(step1, "Remove box-shadow from occluders.", delay);
+
+  assert_equals(entries.size, allIds.length, "Initial notifications for all targets.");
+  for (const id of occludedIds) {
+    assert_false(entries.get(id).isVisible, id + " should initially be occluded.");
+  }
+  assert_true(entries.get("target_vrl_unoccluded").isVisible,
+              "target_vrl_unoccluded should be visible.");
+  entries.clear();
+}
+
+function step1() {
+  assert_equals(entries.size, occludedIds.length,
+                "Notifications after removing box-shadow.");
+  for (const id of occludedIds) {
+    assert_true(entries.get(id).isVisible,
+                id + " should be visible after removing box-shadow.");
+  }
+}
+</script>

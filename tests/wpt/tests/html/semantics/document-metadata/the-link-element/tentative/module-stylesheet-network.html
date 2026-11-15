@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Module link: network loading, failures, and redirect-relative URLs</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/ShadowDOM/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+
+<body>
+<script type="module">
+import {createLink, waitForEvent, createShadowRoot} from "./module-stylesheet-helpers.js";
+
+promise_test(async t => {
+  const root = createShadowRoot(t, "<span>test</span>");
+  const link = createLink(t, /*import=*/"./module-stylesheet-blue.css?network");
+  const result = waitForEvent(link);
+  root.prepend(link);
+
+  assert_equals(link.sheet, null,
+      "the sheet is unavailable while the module fetch is pending");
+  assert_equals(root.styleSheets.length, 0);
+  assert_equals(root.adoptedStyleSheets.length, 0);
+
+  assert_equals(await result, "load");
+  const sheet = link.sheet;
+  assert_true(sheet instanceof CSSStyleSheet);
+  assert_equals(root.styleSheets[0], sheet);
+  assert_equals(sheet.cssRules[0].style.color, "rgb(0, 0, 255)");
+  assert_equals(getComputedStyle(root.querySelector("span")).color,
+                "rgb(0, 0, 255)");
+
+  // Shared identity with import(..., {with:{type:"css"}}).
+  const imported = await import("./module-stylesheet-blue.css?network",
+                               { with: { type: "css" } });
+  assert_equals(imported.default, sheet,
+      "module link shares the module-map sheet with import()");
+}, "A network CSS module connects after fetching and shares its identity.");
+
+promise_test(async t => {
+  // A 404 network failure leaves no sheet connected and fires error.
+  const root = createShadowRoot(t, "<span>test</span>");
+  const link = createLink(t, /*import=*/"./module-stylesheet-missing.css?404");
+  const result = waitForEvent(link);
+  root.prepend(link);
+
+  assert_equals(await result, "error");
+  assert_equals(link.sheet, null,
+      "no connected sheet remains after a failed fetch");
+  assert_equals(root.styleSheets.length, 0);
+  assert_equals(getComputedStyle(root.querySelector("span")).color,
+                "rgb(0, 0, 0)");
+}, "A failed network fetch fires error and connects no sheet.");
+
+promise_test(async t => {
+  const target =
+      "/html/semantics/scripting-1/the-script-element/css-module/" +
+      "resources/redirect-target.css";
+  const redirect = "/common/redirect.py?location=" + target;
+  const root = createShadowRoot(t, '<span id="target">test</span>');
+  const link = createLink(t, /*import=*/redirect);
+  const result = waitForEvent(link);
+  root.prepend(link);
+
+  assert_equals(await result, "load");
+  assert_equals(getComputedStyle(root.querySelector("#target")).color,
+                "rgb(0, 128, 0)");
+  const expected = new URL(
+      "/html/semantics/scripting-1/the-script-element/css-module/" +
+      "resources/image.png", document.baseURI).href;
+  assert_equals(getComputedStyle(root.querySelector("#target")).backgroundImage,
+                'url("' + expected + '")',
+                "relative URLs use the response URL after redirect");
+
+  const imported = await import(redirect, { with: { type: "css" } });
+  assert_equals(link.sheet, imported.default,
+      "the redirecting request URL identifies the shared module-map entry");
+}, "A redirected CSS module loads and resolves relative URLs from its response.");
+</script>

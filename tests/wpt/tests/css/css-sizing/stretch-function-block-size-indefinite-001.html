@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS stretch(): a percentage argument of an indefinite containing block</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#percentage-sizing">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="A stretch() percentage of an indefinite containing block behaves as auto, as the percentage would on its own.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .container {
+    width: 100px;
+  }
+  .test {
+    /* Fails where stretch() is unsupported. */
+    height: 10px;
+    height: stretch(50%);
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .content {
+    height: 100px;
+    background: green;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="container">
+  <div class="test"><div class="content"></div></div>
+</div>

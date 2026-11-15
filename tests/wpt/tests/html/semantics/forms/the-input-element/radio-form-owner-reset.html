@@ -1,0 +1,194 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Resetting a radio button's form owner does not temporarily disassociate it</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+test(t => {
+  const container = document.createElement("div");
+  container.innerHTML = `
+    <form id="A"></form>
+    <form id="B"><input type="radio" name="group"></form>
+    <input type="radio" name="group" form="A">
+    <input type="radio" name="group">`;
+  document.body.append(container);
+  t.add_cleanup(() => container.remove());
+  const [formA, formB] = container.querySelectorAll("form");
+  const [destination, moving, ownerless] = container.querySelectorAll("input");
+  destination.checked = true;
+  moving.checked = true;
+  ownerless.checked = true;
+  assert_equals(moving.form, formA);
+  assert_true(destination.checked);
+  assert_true(moving.checked);
+  assert_true(ownerless.checked);
+
+  moving.setAttribute("form", "B");
+
+  assert_equals(moving.form, formB);
+  assert_true(moving.checked);
+  assert_false(destination.checked, "The destination group's radio is unchecked");
+  assert_true(ownerless.checked, "The ownerless radio remains checked");
+}, "Changing the form attribute reassociates a radio without joining the ownerless group");
+
+test(t => {
+  const container = document.createElement("div");
+  container.innerHTML = `
+    <form id="A"></form>
+    <form id="A"><input type="radio" name="group"></form>
+    <input type="radio" name="group" form="A">
+    <input type="radio" name="group">`;
+  document.body.append(container);
+  t.add_cleanup(() => container.remove());
+  const [formA, formB] = container.querySelectorAll("form");
+  const [destination, moving, ownerless] = container.querySelectorAll("input");
+  destination.checked = true;
+  moving.checked = true;
+  ownerless.checked = true;
+  assert_equals(moving.form, formA);
+  assert_true(destination.checked);
+  assert_true(moving.checked);
+  assert_true(ownerless.checked);
+
+  formA.id = "other";
+
+  assert_equals(moving.form, formB);
+  assert_true(moving.checked);
+  assert_false(destination.checked, "The destination group's radio is unchecked");
+  assert_true(ownerless.checked, "The ownerless radio remains checked");
+}, "Changing the ID target reassociates a radio without joining the ownerless group");
+
+test(t => {
+  const container = document.createElement("div");
+  container.innerHTML = `
+    <form id="A"></form>
+    <input type="radio" name="group" form="A">
+    <input type="radio" name="group">`;
+  document.body.append(container);
+  t.add_cleanup(() => container.remove());
+  const form = container.querySelector("form");
+  const [associated, ownerless] = container.querySelectorAll("input");
+  associated.checked = true;
+  ownerless.checked = true;
+  assert_equals(associated.form, form);
+  assert_true(associated.checked);
+  assert_true(ownerless.checked);
+
+  associated.setAttribute("form", "A");
+
+  assert_equals(associated.form, form);
+  assert_true(associated.checked);
+  assert_true(ownerless.checked, "The ownerless radio remains checked");
+}, "Setting the form attribute to its current value does not disassociate a radio");
+
+test(t => {
+  const container = document.createElement("div");
+  container.innerHTML = `
+    <form id="A"></form>
+    <input type="radio" name="group" form="A">
+    <input type="radio" name="group">`;
+  document.body.append(container);
+  t.add_cleanup(() => container.remove());
+  const form = container.querySelector("form");
+  const [associated, ownerless] = container.querySelectorAll("input");
+  associated.checked = true;
+  ownerless.checked = true;
+  assert_equals(associated.form, form);
+  assert_true(associated.checked);
+  assert_true(ownerless.checked);
+
+  form.id = "A";
+
+  assert_equals(associated.form, form);
+  assert_true(associated.checked);
+  assert_true(ownerless.checked, "The ownerless radio remains checked");
+}, "Setting the form's ID to its current value does not disassociate a radio");
+
+test(t => {
+  const container = document.createElement("div");
+  container.innerHTML = `
+    <form id="A"></form>
+    <form id="B"><input type="radio" name="group"></form>
+    <input type="radio" name="group" form="A">
+    <input type="radio" name="group">`;
+  document.body.append(container);
+  t.add_cleanup(() => container.remove());
+  const formA = container.querySelector("form");
+  const [otherFormRadio, moving, ownerless] = container.querySelectorAll("input");
+  otherFormRadio.checked = true;
+  moving.checked = true;
+  ownerless.checked = true;
+  assert_equals(moving.form, formA);
+  assert_true(otherFormRadio.checked);
+  assert_true(moving.checked);
+  assert_true(ownerless.checked);
+
+  moving.setAttribute("form", "missing");
+
+  assert_equals(moving.form, null);
+  assert_true(moving.checked);
+  assert_true(otherFormRadio.checked, "The other form's radio remains checked");
+  assert_false(ownerless.checked, "The ownerless radio is unchecked on actual disassociation");
+}, "Changing the form attribute to an unmatched ID makes a radio join the ownerless group");
+
+test(t => {
+  const container = document.createElement("div");
+  container.innerHTML = `
+    <form id="owner"><input type="radio" name="group" form="owner"></form>
+    <input type="radio" name="group">`;
+  document.body.append(container);
+  t.add_cleanup(() => container.remove());
+  const form = container.querySelector("form");
+  const [associated, ownerless] = container.querySelectorAll("input");
+  associated.checked = true;
+  ownerless.checked = true;
+  assert_equals(associated.form, form);
+  assert_equals(ownerless.form, null);
+  assert_true(associated.checked);
+  assert_true(ownerless.checked);
+
+  container.remove();
+
+  assert_true(ownerless.checked, "The associated radio never joins the ownerless group");
+  assert_true(associated.checked);
+  assert_equals(associated.form, form, "The ancestor form remains the owner after disconnection");
+  assert_equals(ownerless.form, null);
+}, "Disconnecting a subtree preserves radio checkedness when the form owner is unchanged");
+
+test(t => {
+  const container = document.createElement("div");
+  container.innerHTML = `
+    <form id="outside"></form>
+    <div>
+      <form id="ancestor">
+        <input type="radio" name="group">
+        <input type="radio" name="group" form="outside">
+      </form>
+      <input type="radio" name="group">
+    </div>`;
+  document.body.append(container);
+  t.add_cleanup(() => container.remove());
+  const subtree = container.lastElementChild;
+  const [outside, ancestor] = container.querySelectorAll("form");
+  const [destination, moving, ownerless] = container.querySelectorAll("input");
+  destination.checked = true;
+  moving.checked = true;
+  ownerless.checked = true;
+  assert_equals(destination.form, ancestor);
+  assert_equals(moving.form, outside);
+  assert_equals(ownerless.form, null);
+  assert_true(destination.checked);
+  assert_true(moving.checked);
+  assert_true(ownerless.checked);
+
+  subtree.remove();
+
+  assert_true(ownerless.checked, "The reassociated radio never joins the ownerless group");
+  assert_equals(moving.form, ancestor, "The disconnected radio falls back to its ancestor form");
+  assert_true(moving.checked);
+  assert_false(destination.checked, "The ancestor form's radio is unchecked");
+  assert_equals(destination.form, ancestor);
+  assert_equals(ownerless.form, null);
+}, "Disconnecting a subtree reassociates a radio with its ancestor form without joining the ownerless group");
+</script>

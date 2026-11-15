@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declarative Fragment: template src requires text/fragment MIME type</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+
+<div id="target-fragment">
+  <?start name="marker-fragment">Original Fragment<?end>
+</div>
+<template for="marker-fragment"
+          src="../resources/chunked-html.py?delay=0&mime=text/fragment&chunk1=%3Cspan%20id%3D%22ok-fragment%22%3EFRAGMENT_OK%3C%2Fspan%3E"></template>
+
+<div id="target-fragment-charset">
+  <?start name="marker-fragment-charset">Original Charset<?end>
+</div>
+<template for="marker-fragment-charset"
+          src="../resources/chunked-html.py?delay=0&mime=text/fragment%3B%20charset%3Dutf-8&chunk1=%3Cspan%20id%3D%22ok-charset%22%3ECHARSET_OK%3C%2Fspan%3E"></template>
+
+<div id="target-html">
+  <?start name="marker-html">Original HTML<?end>
+</div>
+<template for="marker-html"
+          src="../resources/chunked-html.py?delay=0&mime=text/html&chunk1=%3Cspan%20id%3D%22bad-html%22%3EHTML_REJECTED%3C%2Fspan%3E"></template>
+
+<div id="target-plain">
+  <?start name="marker-plain">Original Plain<?end>
+</div>
+<template for="marker-plain"
+          src="../resources/chunked-html.py?delay=0&mime=text/plain&chunk1=%3Cspan%20id%3D%22bad-plain%22%3EPLAIN_REJECTED%3C%2Fspan%3E"></template>
+
+<script>
+function waitForElement(container, selector) {
+  return new Promise(resolve => {
+    const existing = container.querySelector(selector);
+    if (existing) {
+      resolve(existing);
+      return;
+    }
+    const observer = new MutationObserver(() => {
+      const found = container.querySelector(selector);
+      if (found) {
+        observer.disconnect();
+        resolve(found);
+      }
+    });
+    observer.observe(container, { childList: true, subtree: true });
+  });
+}
+
+promise_test(async () => {
+  const targetFragment = document.getElementById('target-fragment');
+  const targetCharset = document.getElementById('target-fragment-charset');
+
+  const spanFragment = await waitForElement(targetFragment, '#ok-fragment');
+  const spanCharset = await waitForElement(targetCharset, '#ok-charset');
+
+  assert_equals(spanFragment.textContent, 'FRAGMENT_OK');
+  assert_equals(spanCharset.textContent, 'CHARSET_OK');
+
+  // Allow time for any rejected fetches to complete.
+  await new Promise(resolve => step_timeout(resolve, 100));
+
+  const targetHtml = document.getElementById('target-html');
+  assert_equals(targetHtml.querySelector('#bad-html'), null, "text/html response must be rejected");
+
+  const targetPlain = document.getElementById('target-plain');
+  assert_equals(targetPlain.querySelector('#bad-plain'), null, "text/plain response must be rejected");
+}, "Template src accepts text/fragment and rejects text/html or text/plain");
+</script>
+</body>

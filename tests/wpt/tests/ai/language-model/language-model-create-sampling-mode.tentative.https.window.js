@@ -84,3 +84,18 @@ promise_test(async t => {
   }
   session.destroy();
 }, 'LanguageModel.create() accepts a sampling mode and ignores legacy temperature and topK sampling options');
+
+promise_test(async t => {
+  const invalidModes = ['invalid', '', 'Balanced', null, 123];
+  for (const mode of invalidModes) {
+    await promise_rejects_js(
+        t, TypeError, createLanguageModel({samplingMode: mode}),
+        `create() should reject with TypeError for samplingMode=${
+            JSON.stringify(mode)}`);
+  }
+  await promise_rejects_js(
+      t, TypeError,
+      createLanguageModel(
+          {samplingMode: 'invalid', temperature: 0.8, topK: 10}),
+      'create() should reject invalid samplingMode even with legacy options');
+}, 'LanguageModel.create() rejects with TypeError for invalid sampling modes');

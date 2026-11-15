@@ -11,6 +11,9 @@
         "webtransport_h3": [
           "../webtransport/requirements.txt"
         ],
+        "websocket_h3": [
+          "../websocket/requirements.txt"
+        ],
         "dns": [
           "requirements_dns.txt"
         ]

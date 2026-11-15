@@ -1,0 +1,112 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>drawImage stretches an SVG image non-uniformly to fit the destination rectangle</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-drawimage">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/canvas-tests.js"></script>
+<div id="log"></div>
+<script>
+// A 100x100 SVG split into four 50x50 quadrants:
+// red (top left), lime (top right), blue (bottom left), yellow (bottom right).
+const quadrants =
+  '<rect width="50" height="50" fill="red"/>' +
+  '<rect x="50" width="50" height="50" fill="lime"/>' +
+  '<rect y="50" width="50" height="50" fill="blue"/>' +
+  '<rect x="50" y="50" width="50" height="50" fill="yellow"/>';
+
+const svgSources = {
+  "viewBox": '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">' + quadrants + '</svg>',
+  "no viewBox": '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">' + quadrants + '</svg>',
+};
+
+const RED = [255, 0, 0, 255];
+const LIME = [0, 255, 0, 255];
+const BLUE = [0, 0, 255, 255];
+const YELLOW = [255, 255, 0, 255];
+
+function loadImage(svg) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = "data:image/svg+xml," + encodeURIComponent(svg);
+  });
+}
+
+function assertColor(canvas, x, y, color) {
+  _assertPixel(canvas, x, y, ...color);
+}
+
+for (const [name, svg] of Object.entries(svgSources)) {
+  promise_test(async () => {
+    const img = await loadImage(svg);
+    const canvas = document.createElement("canvas");
+    canvas.width = 200;
+    canvas.height = 100;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0, 200, 100);
+    assertColor(canvas, 5, 5, RED);
+    assertColor(canvas, 95, 45, RED);
+    assertColor(canvas, 105, 5, LIME);
+    assertColor(canvas, 195, 45, LIME);
+    assertColor(canvas, 5, 55, BLUE);
+    assertColor(canvas, 95, 95, BLUE);
+    assertColor(canvas, 105, 55, YELLOW);
+    assertColor(canvas, 195, 95, YELLOW);
+  }, `5-argument drawImage with a non-uniform scale (${name})`);
+
+  promise_test(async () => {
+    const img = await loadImage(svg);
+    const canvas = document.createElement("canvas");
+    canvas.width = 100;
+    canvas.height = 200;
+    const ctx = canvas.getContext("2d");
+    // Top right quadrant, stretched to 100x100.
+    ctx.drawImage(img, 50, 0, 50, 50, 0, 0, 100, 100);
+    // Right half, stretched to 100x100.
+    ctx.drawImage(img, 50, 0, 50, 100, 0, 100, 100, 100);
+    assertColor(canvas, 5, 5, LIME);
+    assertColor(canvas, 95, 95, LIME);
+    assertColor(canvas, 5, 105, LIME);
+    assertColor(canvas, 95, 145, LIME);
+    assertColor(canvas, 5, 155, YELLOW);
+    assertColor(canvas, 95, 195, YELLOW);
+  }, `9-argument drawImage with a source rectangle and a non-uniform scale (${name})`);
+}
+
+// The viewBox is twice as tall as the natural size, so preserveAspectRatio
+// letterboxes the content into the middle half of the 100x100 image.
+const letterboxedSvg =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 200">' +
+  '<rect width="100" height="200" fill="lime"/></svg>';
+const TRANSPARENT = [0, 0, 0, 0];
+
+promise_test(async () => {
+  const img = await loadImage(letterboxedSvg);
+  const canvas = document.createElement("canvas");
+  canvas.width = 100;
+  canvas.height = 100;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(img, 0, 0, 100, 100);
+  assertColor(canvas, 5, 50, TRANSPARENT);
+  assertColor(canvas, 30, 5, LIME);
+  assertColor(canvas, 70, 95, LIME);
+  assertColor(canvas, 95, 50, TRANSPARENT);
+}, "drawImage with a uniform scale keeps the preserveAspectRatio of the SVG image");
+
+promise_test(async () => {
+  const img = await loadImage(letterboxedSvg);
+  const canvas = document.createElement("canvas");
+  canvas.width = 200;
+  canvas.height = 100;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(img, 0, 0, 200, 100);
+  assertColor(canvas, 5, 50, TRANSPARENT);
+  assertColor(canvas, 40, 50, TRANSPARENT);
+  assertColor(canvas, 60, 5, LIME);
+  assertColor(canvas, 140, 95, LIME);
+  assertColor(canvas, 160, 50, TRANSPARENT);
+  assertColor(canvas, 195, 50, TRANSPARENT);
+}, "drawImage applies the preserveAspectRatio of the SVG image at its natural size, then stretches it");
+</script>

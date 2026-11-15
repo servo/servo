@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ManagedMediaSource in a dedicated worker: attachment, events and playback</title>
+<link rel="help" href="https://w3c.github.io/media-source/#managedmediasource-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../mediasource-message-util.js"></script>
+<body>
+<script>
+async_test(t => {
+  assert_implements(self.ManagedMediaSource, 'ManagedMediaSource is supported');
+  assert_true(ManagedMediaSource.canConstructInDedicatedWorker, 'ManagedMediaSource.canConstructInDedicatedWorker');
+
+  const video = document.createElement('video');
+  // Some user agents require remote playback to be disabled, or an alternative
+  // source to be provided, before a ManagedMediaSource can open.
+  video.disableRemotePlayback = true;
+  video.muted = true;
+  document.body.appendChild(video);
+  t.add_cleanup(() => video.remove());
+  video.onerror = t.unreached_func('video element error');
+
+  let workerDone = false;
+  let ended = false;
+  const maybeDone = () => {
+    if (workerDone && ended)
+      t.done();
+  };
+  video.onended = t.step_func(() => {
+    ended = true;
+    maybeDone();
+  });
+
+  const worker = new Worker('mediasource-manager-worker-play.js');
+  t.add_cleanup(() => worker.terminate());
+  worker.onerror = t.unreached_func('worker error');
+  worker.onmessage = t.step_func(e => {
+    switch (e.data.subject) {
+      case messageSubject.ERROR:
+        assert_unreached('Worker error: ' + e.data.info);
+        break;
+      case messageSubject.HANDLE:
+        video.srcObject = e.data.info;
+        video.play();
+        break;
+      case messageSubject.WORKER_DONE:
+        workerDone = true;
+        maybeDone();
+        break;
+      default:
+        assert_unreached('Unexpected message subject: ' + e.data.subject);
+    }
+  });
+}, 'ManagedMediaSource constructed in a dedicated worker fires startstreaming and bufferedchange, and plays');
+</script>
+</body>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Aligned row items make progress when their row starts before the item</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="match" href="row-breaks-016-ref.html">
+<style>
+  .multicol { columns: 4; column-gap: 0; column-fill: auto; width: 320px; height: 30px; background: lightgray; }
+  .lanes { display: grid-lanes; grid-template-rows: 50px 50px; width: 80px; }
+  .lanes > div { width: 40px; }
+</style>
+<div class="multicol">
+  <div class="lanes">
+    <div style="grid-row: 1; height: 20px; align-self: center; background: orange;"></div>
+    <div style="grid-row: 2; height: 30px; align-self: end; background: purple;"></div>
+    <div style="grid-row: 1 / span 2; height: 40px; align-self: center; background: teal;"></div>
+  </div>
+</div>

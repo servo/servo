@@ -116,6 +116,28 @@ port definitions of your choice e.g.:
 }
 ```
 
+The WebSocket-over-HTTP/3 server is disabled by default. Start it with
+`./wpt serve --websocket-h3`; it prints its automatically chosen UDP port and
+starts a paired HTTPS listener on the same numbered TCP port. To run the
+WebSocket H3 test variant manually, open
+`https://web-platform.test:<port>/websockets/binary/001.html?wpt_flags=websocket-h3`
+using that port. The HTTPS listener advertises the H3 endpoint through
+Alt-Svc, and the test uses the configured port for its `wss:` connection.
+With `wpt run`, the server uses port 11001 and is also disabled by default;
+pass `--enable-websocket-h3` to start it and enable the WebSocket
+`?wpt_flags=websocket-h3` test variants. Without it, those variants are
+skipped. Browsers must separately support WebSocket over H3; for local builds
+where the implementation is behind a feature flag, enable that flag with
+`--binary-arg` when running the test.
+
+The browser must also accept the WPT test certificate for the QUIC connection
+to the H3 server. Certificate settings that allow ordinary HTTPS tests may not
+also allow QUIC: some browsers distinguish a locally trusted root from a
+recognized public root and require an additional test exception for QUIC.
+Check your browser's test-certificate configuration if the H3 connection
+fails. HTTP/3 requires TLS; switching to plain HTTP does not remove this
+requirement.
+
 After your `hosts` file is configured, the servers will be locally accessible at:
 
 http://web-platform.test:8000/<br>

@@ -1,0 +1,16 @@
+<!doctype html>
+<title>Event timeStamp in AudioWorkletGlobalScope</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+promise_test(async t => {
+  const context = new OfflineAudioContext(1, 128, 44100);
+  await context.audioWorklet.addModule('processors/event-timestamp-processor.js');
+  const node = new AudioWorkletNode(context, 'event-timestamp-processor');
+  const reply = await new Promise(resolve => {
+    node.port.onmessage = event => resolve(event.data);
+  });
+  assert_equals(reply.type, 'number');
+  assert_greater_than_equal(reply.value, 0);
+}, 'new Event().timeStamp in AudioWorkletGlobalScope returns a non-negative number');
+</script>

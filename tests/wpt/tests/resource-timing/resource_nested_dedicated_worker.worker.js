@@ -7,7 +7,7 @@ async_test(function() {
     assert_equals(2, childNumEntries,
       "There should be two resource timing entries: 2 image XHRs");
 
-    const parentNumEntries = performance.getEntries().length;
+    const parentNumEntries = performance.getEntriesByType("resource").length;
     assert_equals(2, parentNumEntries,
       "There should be two resource timing entries: " +
       "one is for importScripts() and the another is for a nested worker");

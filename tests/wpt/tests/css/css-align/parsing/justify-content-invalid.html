@@ -27,14 +27,26 @@ test_invalid_value("justify-content", "legacy center");
 test_invalid_value("justify-content", "legacy left");
 test_invalid_value("justify-content", "legacy");
 test_invalid_value("justify-content", "normal baseline");
+test_invalid_value("justify-content", "normal safe");
+test_invalid_value("justify-content", "normal space-between");
 test_invalid_value("justify-content", "right legacy");
+test_invalid_value("justify-content", "right safe left");
 test_invalid_value("justify-content", "safe self-end");
 test_invalid_value("justify-content", "safe");
 test_invalid_value("justify-content", "self-end unsafe");
 test_invalid_value("justify-content", "self-start");
 test_invalid_value("justify-content", "space-between flow-end");
 test_invalid_value("justify-content", "start safe");
+test_invalid_value("justify-content", "start right space-between");
 test_invalid_value("justify-content", "unsafe");
+test_invalid_value("justify-content", "unsafe auto");
+test_invalid_value("justify-content", "end space-between start");
+test_invalid_value("justify-content", "end unsafe");
+test_invalid_value("justify-content", "last-baseline center");
+test_invalid_value("justify-content", "space-around stretch");
+test_invalid_value("justify-content", "space-between right safe");
+test_invalid_value("justify-content", "stretch center");
+test_invalid_value("justify-content", "stretch normal");
 </script>
 </body>
 </html>

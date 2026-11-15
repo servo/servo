@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: ideographic space at the end of line must hang in text-only content</title>
+<link rel="author" title="Christian Biesinger" href="mailto:cbiesinger@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="match" href="reference/trailing-ideographic-space-026-ref.html">
+<meta name="assert" content="An ideographic space (U+3000) at the end of the line must hang, and therefore not count toward the max-content width, also when the block contains nothing but text and line breaks.">
+<style>
+div {
+  width: max-content;
+  line-height: 1;
+  color: transparent;
+  background: green;
+}
+</style>
+
+<p>Test passes if the green rectangle below is as wide as two ideographic characters (ああ).
+
+<div>ああ&#x3000;<br>ああ</div>
+<!-- Like trailing-ideographic-space-001, but without any inline box,
+  as engines can lay out text-only content differently.
+  The ideographic space hangs, so the div is only two characters wide.
+-->

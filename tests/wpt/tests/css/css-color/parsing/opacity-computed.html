@@ -41,6 +41,9 @@ test_computed_value("opacity", "min(0, 0.5)", "0");
 test_computed_value("opacity", "max(0.5, 0)", "0.5");
 test_computed_value("opacity", "max(0, 0.5)", "0.5");
 test_computed_value("opacity", "min(-0.4, 0.5)", "0");
+test_computed_value("opacity", "2.5e-1", "0.25");
+test_computed_value("opacity", "2.5e1%", "0.25");
+test_computed_value("opacity", "100.25%", "1");
 
 </script>
 </body>

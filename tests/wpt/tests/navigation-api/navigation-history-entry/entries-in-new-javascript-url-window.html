@@ -1,0 +1,30 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  const w = window.open("javascript:'<title>loaded</title><script>window.historyLengthWhileParsing = history.length<\/script>'");
+  t.add_cleanup(() => w.close());
+  await t.step_wait(() => w.document.title === "loaded" &&
+                          w.document.readyState === "complete");
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+
+  assert_equals(w.historyLengthWhileParsing, 1);
+  assert_equals(w.history.length, 1);
+  assert_not_equals(w.navigation.currentEntry, null);
+  assert_array_equals(w.navigation.entries(), [w.navigation.currentEntry]);
+  assert_equals(w.navigation.currentEntry.url, "about:blank");
+  const id = w.navigation.currentEntry.id;
+
+  w.location.href = new URL("/common/blank.html?next", location.href).href;
+  await t.step_wait(() => w.location.search === "?next" &&
+                          w.document.readyState === "complete");
+
+  assert_equals(w.history.length, 2,
+                "navigating away from a javascript: URL document isn't a replace");
+  const entries = w.navigation.entries();
+  assert_equals(entries.length, 2);
+  assert_equals(entries[0].id, id);
+  assert_equals(entries[0].url, "about:blank");
+}, "entries() and currentEntry should be set in a new javascript: URL window");
+</script>

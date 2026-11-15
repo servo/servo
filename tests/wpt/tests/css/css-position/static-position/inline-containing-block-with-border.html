@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: static position of an absolutely positioned box whose containing block is an inline box with borders</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#staticpos-rect">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#def-cb">
+<meta name="assert" content="The static position does not depend on the containing block, so an absolutely positioned box with auto insets lands at the same place whether or not its bordered and padded inline box ancestor establishes its containing block.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.container {
+    position: relative;
+    font: 20px/1 Ahem;
+    width: 300px;
+    height: 300px;
+}
+.abs {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+}
+</style>
+<div id="tests"></div>
+<script>
+const borders = {
+    inlineStart: "border-inline-start: 30px solid; padding-inline-start: 7px",
+    blockStart: "border-block-start: 25px solid; padding-block-start: 3px",
+    all: "border: 10px solid; padding: 5px",
+};
+const configurations = [
+    { writingMode: "writing-mode: horizontal-tb; direction: ltr", borders: [borders.inlineStart, borders.blockStart, borders.all] },
+    { writingMode: "writing-mode: horizontal-tb; direction: rtl", borders: [borders.inlineStart, borders.all] },
+    { writingMode: "writing-mode: vertical-rl; direction: ltr", borders: [borders.inlineStart, borders.blockStart, borders.all] },
+    { writingMode: "writing-mode: vertical-lr; direction: ltr", borders: [borders.inlineStart, borders.blockStart, borders.all] },
+];
+const outOfFlowBoxes = [
+    { tag: "i", description: "originally inline-level" },
+    { tag: "div", description: "originally block-level" },
+];
+const tests = document.getElementById("tests");
+
+function createContainer(containerStyle, inlineBoxStyle, tag)
+{
+    const container = document.createElement("div");
+    container.className = "container";
+    container.style.cssText = containerStyle;
+    container.innerHTML = `XX <span style="${inlineBoxStyle}">XX<${tag} class="abs"></${tag}>YY</span> ZZ`;
+    tests.append(container);
+    return container;
+}
+
+function offsetInContainer(container)
+{
+    const rect = container.querySelector(".abs").getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    return { left: rect.left - containerRect.left, top: rect.top - containerRect.top };
+}
+
+for (const configuration of configurations) {
+    for (const border of configuration.borders) {
+        for (const outOfFlowBox of outOfFlowBoxes) {
+            // The reference inline box does not establish a containing block, the container does.
+            const reference = createContainer(configuration.writingMode, border, outOfFlowBox.tag);
+            const target = createContainer(configuration.writingMode, `position: relative; ${border}`, outOfFlowBox.tag);
+            test(() => {
+                const expected = offsetInContainer(reference);
+                const actual = offsetInContainer(target);
+                assert_equals(actual.left, expected.left, "left");
+                assert_equals(actual.top, expected.top, "top");
+            }, `${configuration.writingMode}; inline box '${border}'; ${outOfFlowBox.description} absolutely positioned box`);
+        }
+    }
+}
+
+tests.remove();
+</script>

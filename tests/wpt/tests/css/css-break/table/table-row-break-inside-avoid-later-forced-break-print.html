@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>A table row with break-inside: avoid moves to the next page whole, even though a later row has a forced break</title>
+<link rel="help" href="https://drafts.csswg.org/css-break-3/#break-within">
+<link rel="help" href="https://drafts.csswg.org/css-break-3/#forced-breaks">
+<link rel="help" href="https://drafts.csswg.org/css-break-3/#unforced-breaks">
+<link rel="match" href="table-row-break-inside-avoid-later-forced-break-print-ref.html">
+<meta name="assert" content="A forced break between two rows doesn't allow breaks inside an earlier row of the same row group with break-inside: avoid.">
+<style>
+@page { size: 5in 3in; margin: 0; }
+:root { print-color-adjust: exact; }
+body { margin: 0; }
+table { border-spacing: 0; }
+td { padding: 0; }
+div { width: 100px; height: 48px; background: blue; }
+.first { height: 144px; background: green; }
+.avoid { break-inside: avoid; }
+.avoid div { background: orange; }
+.forced { break-before: page; }
+.forced div { background: purple; }
+</style>
+<table>
+  <tbody>
+    <tr><td><div class="first"></div></td></tr>
+    <tr class="avoid"><td><div></div><div></div><div></div><div></div></td></tr>
+    <tr><td><div></div></td></tr>
+    <tr><td><div></div></td></tr>
+    <tr><td><div></div></td></tr>
+    <tr><td><div></div></td></tr>
+    <tr><td><div></div></td></tr>
+    <tr><td><div></div></td></tr>
+    <tr><td><div></div></td></tr>
+    <tr><td><div></div></td></tr>
+    <tr><td><div></div></td></tr>
+    <tr><td><div></div></td></tr>
+    <tr class="forced"><td><div></div></td></tr>
+    <tr><td><div></div></td></tr>
+  </tbody>
+</table>

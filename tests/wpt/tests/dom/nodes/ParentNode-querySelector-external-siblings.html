@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>querySelector(All) with siblings outside the query root</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-parentnode-queryselector">
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+"use strict";
+
+function makeList(t) {
+  const list = document.createElement("ul");
+  list.innerHTML = `
+    <li class="before">
+      <div class="userContainer"><strong>
+        <a class="avatar" href="/outside"></a>
+      </strong></div>
+    </li>
+    <li class="scope">
+      <div class="userContainer"><strong>
+        <a class="avatar" href="/inside"></a>
+      </strong></div>
+    </li>`;
+  document.body.append(list);
+  t.add_cleanup(() => list.remove());
+  const root = list.lastElementChild;
+  return {list, root, match: root.querySelector("a")};
+}
+
+test(t => {
+  const {root, match} = makeList(t);
+  const selector = ".userContainer > strong > a.avatar[href]";
+  assert_equals(root.querySelector(selector), match);
+  assert_array_equals(root.querySelectorAll(selector), [match]);
+}, "Child-only queries return the root's descendant, not a preceding sibling's descendant");
+
+test(t => {
+  const {list, root, match} = makeList(t);
+  list.className = "ancestor";
+  const before = root.previousElementSibling;
+  const earlierSibling = document.createElement("li");
+  earlierSibling.className = "earlier-sibling";
+  list.insertBefore(earlierSibling, before);
+
+  const selector =
+      ".ancestor > .earlier-sibling + .before + .scope > " +
+      ".userContainer > strong > a.avatar[href]";
+  assert_equals(root.querySelector(selector), match);
+  assert_array_equals(root.querySelectorAll(selector), [match]);
+
+  before.remove();
+  assert_equals(root.querySelector(selector), null);
+  assert_array_equals(root.querySelectorAll(selector), []);
+}, "Queries match external ancestors and multiple siblings, and reflect sibling removal");
+
+test(t => {
+  const container = document.createElement("div");
+  container.innerHTML = `
+    <div class="before"></div>
+    <div class="match-parent"></div>
+    <section>
+      <span class="target"></span>
+      <div class="before"></div>
+      <div class="match-parent"><span class="target"></span></div>
+    </section>`;
+  document.body.append(container);
+  t.add_cleanup(() => container.remove());
+
+  const root = container.lastElementChild;
+  const nestedMatch = root.lastElementChild.firstElementChild;
+  const selector = ".before + .match-parent > .target";
+  assert_equals(root.querySelector(selector), nestedMatch);
+  assert_array_equals(root.querySelectorAll(selector), [nestedMatch]);
+}, "Queries find an internal sibling chain when the root does not match the parent selector");
+
+test(t => {
+  const chain = `
+    <div class="chain-start"></div>
+    <div class="chain-middle"></div>
+    <div class="chain-end"></div>`;
+  const container = document.createElement("div");
+  container.innerHTML = `${chain}
+    <section class="query-root target">
+      <div class="target"></div>
+    </section>`;
+  document.body.append(container);
+  t.add_cleanup(() => container.remove());
+
+  const root = container.lastElementChild;
+  const selector =
+      ".chain-start + .chain-middle + .chain-end + .target";
+  assert_equals(root.querySelector(selector), null);
+  assert_array_equals(root.querySelectorAll(selector), []);
+
+  root.innerHTML = `${chain}<div class="target"></div>`;
+  const match = root.lastElementChild;
+  assert_equals(root.querySelector(selector), match);
+  assert_array_equals(root.querySelectorAll(selector), [match]);
+}, "Subject sibling chains only match within the query root");
+</script>

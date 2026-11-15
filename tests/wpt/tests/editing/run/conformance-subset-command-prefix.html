@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="variant" content="?1-1">
+<meta name="variant" content="?2-2">
+<meta name="variant" content="?3-4">
+<title>Editing conformance subsets execute only the needed command prefix</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../include/implementation.js"></script>
+<script>var testsJsLibraryOnly = true;</script>
+<script src="../include/tests.js"></script>
+<script src="/common/subset-tests.js"></script>
+<body>
+<div id="log"></div>
+<div id="test-container"></div>
+<script>
+runConformanceTest(
+    ["[]x", [["insertText", "a"], ["insertText", "b"]], "ab[]x", [true, true], {}]);
+test(() => {
+    const expected = location.search === "?1-1" ? "ax" : "abx";
+    assert_equals(document.querySelector("#test-container div").innerHTML, expected);
+}, "Only the required command prefix changes the test content");
+document.getElementById("test-container").remove();
+</script>

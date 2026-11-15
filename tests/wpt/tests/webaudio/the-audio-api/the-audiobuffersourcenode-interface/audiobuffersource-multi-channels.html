@@ -14,7 +14,8 @@
       // Test AudioBufferSourceNode supports 5.1 channel.
       // Creating context and fetching expected audio.
       promise_test(async () => {
-        const sampleRate = 44100.0;
+        // 44100 / 5 keeps all 6 tones below Nyquist with 5x fewer samples.
+        const sampleRate = 8820;
         const context = new OfflineAudioContext(
             6, sampleRate * toneLengthSeconds, sampleRate);
 
@@ -39,11 +40,9 @@
 
         const renderedAudio = await context.startRendering();
 
-        // Compute a threshold based on the maximum error, |maxUlp|,
-        // in ULP. This is experimentally determined. Assuming that
-        // the reference file is a 16-bit wav file, the max values in
-        // the wave file are +/- 32768.
-        const maxUlp = 1;
+        // 16-bit Q1.15 PCM reference WAV; allow 2 LSB so both /32768 and
+        // /32767 int16-to-float32 decoder conventions pass.
+        const maxUlp = 2;
         const threshold = maxUlp / 32768;
         for (let k = 0; k < renderedAudio.numberOfChannels; ++k) {
           assert_array_approx_equals(

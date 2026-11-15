@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>CSS stretch(): the intrinsic size contributions of a box with a minimum or maximum inline size</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-contribution">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="A fixed stretch() argument in min-width and max-width bounds the margin box the box contributes to its container's intrinsic sizes.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .container {
+    width: max-content;
+    height: 20px;
+    background: green;
+  }
+  .wide {
+    width: 500px;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="container"><div style="width: 500px; max-width: stretch(100px); margin-right: 10px;"></div></div>
+<div class="container"><div style="width: 10px; min-width: stretch(100px); margin-right: 10px;"></div></div>
+<div class="container"><div style="width: 500px; max-width: stretch(100px); padding-right: 20px;"></div></div>
+<div class="container"><div style="width: 10px; min-width: stretch(100px); border-right: 20px solid green;"></div></div>
+<div class="container"><div style="max-width: stretch(100px); margin-right: 10px;"><div class="wide"></div></div></div>

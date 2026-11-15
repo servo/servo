@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>CSS Fonts 4 test: parsing the font-feature-settings descriptor</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-rend-desc">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style id="testStyle">
+</style>
+<script>
+  const sheet = testStyle.sheet;
+  // font-feature-settings grammar : normal | <feature-tag-value>#
+  tests = [
+    { value: 'normal', expected: 'normal' },
+    { value: '"liga"', expected: '"liga"' },
+    { value: "'liga'", expected: '"liga"' },
+    { value: '"liga" 0', expected: '"liga" 0' },
+    { value: 'liga', expected: '' },
+    { value: '"ligatures"', expected: '' },
+  ];
+
+  for (let t of tests) {
+    test(() => {
+      assert_equals(sheet.cssRules.length, 0, "testSheet should initially be empty");
+      sheet.insertRule("@font-face { font-feature-settings: " + t.value + "}");
+      try {
+        assert_equals(sheet.cssRules[0].style.getPropertyValue("font-feature-settings"), t.expected);
+      } finally {
+        sheet.deleteRule(0);
+      }
+    }, "Check that font-feature-settings: " + t.value + " is " + (t.expected ? "valid" : "invalid"));
+  }
+</script>

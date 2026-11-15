@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>scale in the transform attribute resizes the outermost svg element's box, inline in an HTML document</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#TransformProperty">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/styling.html#PresentationAttributes">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-1/#transform-attribute-specificity">
+<link rel="match" href="reference/outer-svg-transform-in-html-scale-ref.html">
+<style>
+body { margin: 0 }
+svg { display: block }
+</style>
+<svg width="200" height="100" transform="scale(0.5)">
+  <rect width="200" height="100" fill="green"/>
+</svg>

@@ -6,6 +6,8 @@
 <link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
 <link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-clip-path">
 <meta name="assert" content="clip-path supports the full grammar '<clip-source> | [ <basic-shape> || <geometry-box> ] | none'.">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#funcdef-basic-shape-ellipse">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#radial-gradients">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -33,6 +35,10 @@ test_valid_value("clip-path", "circle(farthest-side at center top)");
 test_valid_value("clip-path", "circle(4% at top right)", "circle(4% at right top)");
 
 test_valid_value("clip-path", "ellipse()");
+test_valid_value("clip-path", "ellipse(3%)");
+test_valid_value("clip-path", "ellipse(3% at 100% 0%)");
+test_valid_value("clip-path", "ellipse(closest-side)", "ellipse()");
+test_valid_value("clip-path", "ellipse(farthest-side at 100% 0%)");
 test_valid_value("clip-path", "ellipse(1px closest-side)");
 test_valid_value("clip-path", "ellipse(at 10% 20%)");
 test_valid_value("clip-path", "ellipse(closest-side closest-side at 10% 20%)", "ellipse(at 10% 20%)");

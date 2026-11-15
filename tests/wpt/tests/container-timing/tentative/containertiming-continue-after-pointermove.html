@@ -1,0 +1,33 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Container Timing: moving the pointer does not stop recording</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/container-timing/resources/container-timing-helpers.js"></script>
+<div id="root" containertiming="div_ct">
+  <img src="/container-timing/resources/square100.png">
+</div>
+<script>
+  promise_test(async t => {
+    assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
+    const entries = await getContainerEntries(t);
+    assert_equals(entries.length, 1, 'entries before pointer move');
+
+    await new test_driver.Actions().pointerMove(50, 50).send();
+
+    addSquare100Image(document.getElementById('root'));
+    const allEntries = await getContainerEntries(t, 2);
+
+    assert_equals(allEntries.length, 2, 'entries after pointer move');
+  }, 'Container timing keeps recording after the pointer moves.');
+</script>
+</body>

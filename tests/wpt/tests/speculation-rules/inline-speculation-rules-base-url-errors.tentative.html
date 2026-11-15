@@ -19,30 +19,29 @@ promise_test(async t => {
   let elementErrorCount = 0;
   let globalErrorCount = 0;
 
-  const elementError = new Promise(resolve => {
-    script.addEventListener('error', () => {
-      elementErrorCount++;
-      resolve();
-    });
-  });
+  script.addEventListener('error', () => elementErrorCount++);
 
+  let resolveGlobalError;
+  const globalError = new Promise(resolve => resolveGlobalError = resolve);
   const onWindowError = e => {
     e.preventDefault();
     globalErrorCount++;
+    resolveGlobalError();
   };
   window.addEventListener('error', onWindowError);
   t.add_cleanup(() => window.removeEventListener('error', onWindowError));
 
   document.head.appendChild(script);
-  await elementError;
-  assert_equals(elementErrorCount, 1, 'initial element error event count');
+  await globalError;
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+  assert_equals(elementErrorCount, 0, 'initial element error event count');
   assert_equals(globalErrorCount, 1, 'initial window error event count');
 
   // Modifying a disconnected <base> element should not trigger base URL updates.
   const disconnectedBase = document.createElement('base');
   disconnectedBase.href = 'https://example.com/disconnected/';
   disconnectedBase.cloneNode(true);
-  assert_equals(elementErrorCount, 1, 'element error count after disconnected base');
+  assert_equals(elementErrorCount, 0, 'element error count after disconnected base');
   assert_equals(globalErrorCount, 1, 'window error count after disconnected base');
 
   // Inserting, updating, and removing a connected <base> element should not
@@ -55,7 +54,7 @@ promise_test(async t => {
   base.remove();
 
   await new Promise(resolve => t.step_timeout(resolve, 0));
-  assert_equals(elementErrorCount, 1, 'element error count after base URL changes');
+  assert_equals(elementErrorCount, 0, 'element error count after base URL changes');
   assert_equals(globalErrorCount, 1, 'window error count after base URL changes');
 }, 'Base URL changes do not re-fire error events on invalid speculation rules');
 </script>

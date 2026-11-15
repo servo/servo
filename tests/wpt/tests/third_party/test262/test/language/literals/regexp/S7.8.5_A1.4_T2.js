@@ -10,24 +10,17 @@ description: Complex test with eval, using syntax pattern
 ---*/
 
 for (var cu = 0; cu <= 0xffff; ++cu) {
-  var Elimination =
-    ((cu === 0x002A) || (cu === 0x002F) || (cu === 0x005C) || (cu === 0x002B) ||
-     (cu === 0x003F) || (cu === 0x0028) || (cu === 0x0029) ||
-     (cu === 0x005B) || (cu === 0x005D) || (cu === 0x007B) || (cu === 0x007D));
-     /*
-          * \u002A     / \u002F     \ \u005C     + \u002B
-          ? \u003F     ( \u0028     ) \u0029
-          [ \u005B     ] \u005D     { \u007B     } \u007D
-     */
   var LineTerminator = ((cu === 0x000A) || (cu === 0x000D) || (cu === 0x2028) || (cu === 0x2029));
-  if ((Elimination || LineTerminator ) === false) {
+  if (LineTerminator === false) {
     var xx = "\\" + String.fromCharCode(cu);
     try {
       var pattern = eval("/" + xx + "/");
     } catch (e) {
-      var identifierPartNotUnicodeIDContinue = ((cu === 0x0024) || (cu === 0x200C) || (cu === 0x200D));
-      if (e instanceof SyntaxError && !identifierPartNotUnicodeIDContinue) {
-        // Use eval with var-declaration to check if `cu` is in UnicodeIDContinue.
+      // If `cu` is in |UnicodeIDContinue|, a SyntaxError is acceptable
+      // (but not required, cf. Annex B |SourceCharacterIdentityEscape|).
+      // Check by using it in an eval-declared `var`.
+      var isSpecialIdentifierPart = cu === 0x0024; // `$` is not ID_Continue
+      if (e instanceof SyntaxError && !isSpecialIdentifierPart) {
         try {
           eval("var _" + String.fromCharCode(cu));
           continue;

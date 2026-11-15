@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>CSS Flexbox: a stretch() flex basis</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#flex-basis-property">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#algo-main-item">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="A stretch() flex basis is the size of the flex item's margin box, whatever the box-sizing, and a percentage argument resolves against the flex container.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .flex {
+    display: flex;
+    width: 300px;
+    height: 25px;
+  }
+  .item {
+    flex-grow: 0;
+    flex-shrink: 0;
+    background: green;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="flex"><div class="item" style="flex-basis: stretch(150px); margin-right: 50px;"></div></div>
+<!-- 50% of 300px, less the 50px margin. -->
+<div class="flex"><div class="item" style="flex-basis: stretch(50%); margin-right: 50px;"></div></div>
+<div class="flex"><div class="item" style="flex: 0 0 stretch(110px); margin-right: 10px;"></div></div>
+<div class="flex"><div class="item" style="flex-basis: stretch(100px); padding-right: 20px; box-sizing: border-box;"></div></div>

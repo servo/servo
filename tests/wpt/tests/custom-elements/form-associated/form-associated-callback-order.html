@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<title>formAssociatedCallback is called after connectedCallback and disconnectedCallback</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-node-insert">
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-node-remove">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#reset-the-form-owner">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+const log = [];
+
+customElements.define("face-element", class extends HTMLElement {
+  static formAssociated = true;
+  connectedCallback() {
+    log.push(`${this.id}: connected`);
+  }
+  disconnectedCallback() {
+    log.push(`${this.id}: disconnected`);
+  }
+  formAssociatedCallback(form) {
+    log.push(`${this.id}: formAssociated(${form ? form.id : "null"})`);
+  }
+});
+
+customElements.define("wrapper-element", class extends HTMLElement {
+  disconnectedCallback() {
+    log.push(`${this.id}: disconnected`);
+  }
+});
+
+function create(t, name, id) {
+  const element = document.createElement(name);
+  element.id = id;
+  t.add_cleanup(() => element.remove());
+  return element;
+}
+
+function setup(t) {
+  const form = create(t, "form", "form");
+  document.body.appendChild(form);
+  return { form, face: create(t, "face-element", "face") };
+}
+
+test(t => {
+  const { form, face } = setup(t);
+  log.length = 0;
+  form.appendChild(face);
+  assert_array_equals(log, ["face: connected", "face: formAssociated(form)"]);
+}, "Inserting a control into a form calls connectedCallback before formAssociatedCallback");
+
+test(t => {
+  const { face } = setup(t);
+  face.setAttribute("form", "form");
+  log.length = 0;
+  document.body.appendChild(face);
+  assert_array_equals(log, ["face: connected", "face: formAssociated(form)"]);
+}, "Inserting a control with a form attribute calls connectedCallback before formAssociatedCallback");
+
+test(t => {
+  const { form, face } = setup(t);
+  form.appendChild(face);
+  log.length = 0;
+  face.remove();
+  assert_array_equals(log, ["face: disconnected", "face: formAssociated(null)"]);
+}, "Removing a control from a form calls disconnectedCallback before formAssociatedCallback");
+
+test(t => {
+  const { face } = setup(t);
+  face.setAttribute("form", "form");
+  document.body.appendChild(face);
+  log.length = 0;
+  face.remove();
+  assert_array_equals(log, ["face: disconnected", "face: formAssociated(null)"]);
+}, "Removing a control with a form attribute calls disconnectedCallback before formAssociatedCallback");
+
+test(t => {
+  const { form } = setup(t);
+  const container = create(t, "div", "container");
+  const face1 = create(t, "face-element", "face1");
+  const face2 = create(t, "face-element", "face2");
+  container.append(face1, face2);
+  form.appendChild(container);
+  log.length = 0;
+  container.remove();
+  assert_array_equals(log, [
+    "face1: disconnected",
+    "face1: formAssociated(null)",
+    "face2: disconnected",
+    "face2: formAssociated(null)",
+  ]);
+}, "Removing an element containing two controls from a form calls each control's callbacks in tree order");
+
+test(t => {
+  const { form, face } = setup(t);
+  const wrapper = create(t, "wrapper-element", "wrapper");
+  wrapper.appendChild(face);
+  form.appendChild(wrapper);
+  log.length = 0;
+  wrapper.remove();
+  assert_array_equals(log, ["wrapper: disconnected", "face: disconnected", "face: formAssociated(null)"]);
+}, "Removing a custom element containing a control from a form calls the control's callbacks after the custom element's");
+</script>
+</body>

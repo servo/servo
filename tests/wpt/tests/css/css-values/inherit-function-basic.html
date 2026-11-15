@@ -137,3 +137,35 @@
     assert_equals(getComputedStyle(target).zIndex, '4');
   }, 'inherit() can be used within if()');
 </script>
+
+<template id=inherit_attr_taint>
+  <style>
+    #parent {
+      --url-attr: attr(data-url);
+      --url-css: "https://does-not-exist.test/404.png";
+    }
+    #inherit-attr {
+      --x: image-set(inherit(--url-attr));
+      background-image: image-set(inherit(--url-attr));
+    }
+    #inherit-css {
+      background-image: image-set(inherit(--url-css));
+    }
+  </style>
+  <div id=parent data-url="https://does-not-exist.test/404.png">
+    <div id="inherit-attr"></div>
+    <div id="inherit-css"></div>
+  </div>
+</template>
+<script>
+  test((t) => {
+    main.append(inherit_attr_taint.content.cloneNode(true));
+    t.add_cleanup(() => { main.replaceChildren(); });
+    const url = 'https://does-not-exist.test/404.png';
+    const inheritAttr = document.getElementById('inherit-attr');
+    const inheritCss = document.getElementById('inherit-css');
+    assert_equals(getComputedStyle(inheritAttr).getPropertyValue('--x'), `image-set("${url}")`);
+    assert_equals(getComputedStyle(inheritAttr).backgroundImage, 'none');
+    assert_equals(getComputedStyle(inheritCss).backgroundImage, `image-set(url("${url}") 1dppx)`);
+  }, 'inherit() of an attr()-tainted value stays tainted');
+</script>

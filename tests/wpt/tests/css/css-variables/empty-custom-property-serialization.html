@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Existing empty custom properties serialize to a space</title>
+<link rel="help" href="https://drafts.csswg.org/css-variables-1/#serializing-custom-props">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/9847">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+test(() => {
+  const style = document.createElement("div").style;
+  style.cssText = "--empty:;";
+  assert_equals(style.getPropertyValue("--empty"), " ");
+  assert_equals(style.getPropertyValue("--absent"), "");
+  assert_equals(style.length, 1);
+}, "An existing empty custom property is distinguishable from an absent property");
+
+test(() => {
+  const style = document.createElement("div").style;
+  style.cssText = "--empty:;";
+  style.setProperty("--empty", style.getPropertyValue("--empty"));
+  assert_equals(style.getPropertyValue("--empty"), " ");
+  assert_equals(style.length, 1);
+}, "Round-tripping an empty custom property through setProperty preserves its declaration");
+
+test(() => {
+  const style = document.createElement("div").style;
+  style.cssText = "--empty:;";
+  assert_equals(style.removeProperty("--empty"), " ");
+  assert_equals(style.getPropertyValue("--empty"), "");
+  assert_equals(style.length, 0);
+}, "removeProperty returns the serialization of the existing empty value");
+
+test(() => {
+  const style = document.createElement("div").style;
+  style.setProperty("--empty", " ");
+  assert_equals(style.getPropertyValue("--empty"), " ");
+  style.setProperty("--empty", "");
+  assert_equals(style.getPropertyValue("--empty"), "");
+  assert_equals(style.length, 0);
+}, "An empty string passed to setProperty still removes a custom property");
+</script>

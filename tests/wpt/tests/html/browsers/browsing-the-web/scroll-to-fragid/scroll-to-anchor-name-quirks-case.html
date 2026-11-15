@@ -1,0 +1,50 @@
+<html>
+<meta charset="utf-8">
+<title>Anchor name matching is case-sensitive in quirks mode</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#the-indicated-part-of-the-document">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<a name="sample_é" id="anchor"></a>
+<a name="Destination" id="earlier-anchor"></a>
+<a name="destination" id="exact-anchor"></a>
+
+<script>
+const anchor = document.getElementById("anchor");
+
+test(() => {
+  assert_equals(document.compatMode, "BackCompat", "Page must be in quirks mode");
+}, "Test is running in quirks mode.");
+
+test(() => {
+  location.hash = "#sample_é";
+  assert_equals(document.querySelector(":target"), anchor,
+    "Exact case match should find the anchor");
+}, "Exact case match finds the anchor.");
+
+test(() => {
+  location.hash = "#SAMPLE_é";
+  assert_equals(document.querySelector(":target"), null,
+    "ASCII-case-insensitive match should not find the anchor");
+}, "ASCII-uppercased fragment does not match.");
+
+test(() => {
+  location.hash = "#sample_É";
+  assert_equals(document.querySelector(":target"), null,
+    "Non-ASCII case-insensitive match should not find the anchor");
+}, "Non-ASCII-uppercased fragment does not match.");
+
+test(() => {
+  // U+017F (long s) case-folds to ASCII "s".
+  location.hash = "#ſample_é";
+  assert_equals(document.querySelector(":target"), null,
+    "Unicode-case-insensitive match should not find the anchor");
+}, "Unicode case-folded fragment (long s) does not match.");
+
+test(() => {
+  location.hash = "#destination";
+  assert_equals(document.querySelector(":target"),
+    document.getElementById("exact-anchor"),
+    "An earlier case-insensitive match must not hide an exact match");
+}, "Exact match is found after an earlier case-mismatched anchor.");
+</script>

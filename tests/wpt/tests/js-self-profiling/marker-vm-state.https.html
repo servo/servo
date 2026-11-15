@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>JS Self-Profiling script markers</title>
+  <link rel="help" href="https://wicg.github.io/js-self-profiling/#dfn-capture-a-marker">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+
+  <script src="resources/profile-utils.js"></script>
+</head>
+
+<body>
+
+  <script>
+    function scriptFunction(sample) {
+      sample();
+    }
+  </script>
+
+  <script>
+    promise_test(async t => {
+      // The .headers file serves COOP and COEP headers.
+      assert_true(self.crossOriginIsolated,
+        "Cross origin isolation is required to surface markers");
+      const trace = await ProfileUtils.profileFunction(scriptFunction);
+
+      assert_true(ProfileUtils.containsSample(trace, {
+        marker: 'script'
+      }));
+    }, 'Script execution samples have a script marker in cross-origin-isolated documents');
+
+  </script>
+</body>
+
+</html>

@@ -1,5 +1,6 @@
 // META: global=window,dedicatedworker,sharedworker
 // META: script=ticker.js
+// META: script=/common/utils.js
 
 promise_test(async t => {
   const getCount = ticker(1000);
@@ -11,8 +12,8 @@ promise_test(async t => {
 }, "import() should not drain the microtask queue if it fails during specifier resolution");
 
 promise_test(async t => {
-  // Use Date.now() to ensure that the module is not in the module map
-  const specifier = "./empty-module.js?" + Date.now();
+  // Use a unique token to ensure that the module is not in the module map
+  const specifier = "./empty-module.js?" + token();
 
   await import(specifier);
 
@@ -22,8 +23,8 @@ promise_test(async t => {
 }, "import() should not drain the microtask queue when loading an already loaded module");
 
 promise_test(async t => {
-  // Use Date.now() to ensure that the module is not in the module map
-  const specifier = "./empty-module.js?" + Date.now();
+  // Use a unique token to ensure that the module is not in the module map
+  const specifier = "./empty-module.js?" + token();
 
   const getCount = ticker(1e6);
   await import(specifier);

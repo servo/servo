@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS @private: mixins</title>
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14243">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+    @mixin --private-width() {
+      @private {
+        --size: 1em;
+      }
+      width: var(--size, 999px);
+    }
+
+    @mixin --overridden-private() {
+      @private {
+        --color: red;
+      }
+      --color: green;
+      color: var(--color);
+    }
+
+    @mixin --descendant-private() {
+      @private {
+        --size: 20px;
+      }
+      & > .child {
+        width: var(--size, 999px);
+      }
+    }
+
+    @mixin --sibling-private() {
+      @private {
+        --size: 20px;
+      }
+      & + .sibling {
+        width: var(--size, 30px);
+      }
+    }
+
+    @mixin --private-height() {
+      @private {
+        --size: 20px;
+      }
+      height: var(--size, 999px);
+    }
+
+    @mixin --wrap() {
+      @private {
+        --size: 20px;
+      }
+      @contents;
+    }
+
+    #first {
+      font-size: 10px;
+      @apply --private-width;
+    }
+
+    #second {
+      font-size: 20px;
+      @apply --private-width;
+    }
+
+    #overridden {
+      @apply --overridden-private;
+    }
+
+    #descendant-host {
+      @apply --descendant-private;
+    }
+
+    #sibling-host {
+      @apply --sibling-private;
+    }
+
+    #leak {
+      @apply --private-height;
+      width: var(--size, 77px);
+    }
+
+    #both {
+      @private {
+        --size: 5px;
+      }
+      @apply --private-height;
+      width: var(--size, 1px);
+    }
+
+    #contents {
+      @apply --wrap {
+        width: var(--size, 33px);
+      }
+    }
+
+    #contents-private {
+      @apply --wrap {
+        @private {
+          --size: 9px;
+        }
+        width: var(--size, 33px);
+      }
+    }
+
+    @mixin --outer() {
+      @private {
+        --q: 6px;
+      }
+      @apply --wrap {
+        @private {
+          --r: 7px;
+        }
+        width: var(--r, 1px);
+        height: var(--q, 2px);
+      }
+    }
+
+    #nested-contents {
+      @apply --outer;
+    }
+
+    @mixin --shadowed(--c2: green, --c3: green) {
+      @private {
+        --c3: blue;
+      }
+      border-right-color: var(--c2);
+      border-bottom-color: var(--c3);
+    }
+
+    #shadowed {
+      border-style: solid;
+      --c2: red;
+      --c3: red;
+      @apply --shadowed();
+    }
+
+    @mixin --param-width(--p) {
+      width: var(--p, 999px);
+    }
+
+    #param-over-private {
+      @private {
+        --p: 1px;
+      }
+      @apply --param-width(2px);
+    }
+
+    @mixin --nested() {
+      @private {
+        --size: 5px;
+      }
+      & > .n {
+        @private {
+          --size: 33px;
+        }
+        width: var(--size, 3px);
+      }
+      & > .m {
+        width: var(--size, 4px);
+      }
+    }
+
+    #nested-host {
+      @apply --nested;
+    }
+
+    @mixin --tagged(--v) {
+      @private {
+        --size: var(--v);
+      }
+      & > .x {
+        width: var(--size, 999px);
+      }
+    }
+
+    #outer {
+      @apply --tagged(10px);
+    }
+
+    .x {
+      @apply --tagged(20px);
+    }
+  </style>
+</head>
+<body>
+  <div id="first"></div>
+  <div id="second"></div>
+  <div id="overridden"></div>
+  <div id="descendant-host"><div id="descendant" class="child"></div></div>
+  <div id="sibling-host"></div>
+  <div id="sibling" class="sibling"></div>
+  <div id="leak"></div>
+  <div id="both"></div>
+  <div id="contents"></div>
+  <div id="contents-private"></div>
+  <div id="nested-contents"></div>
+  <div id="outer"><div id="inner" class="x"></div></div>
+  <div id="shadowed"></div>
+  <div id="param-over-private"></div>
+  <div id="nested-host">
+    <div id="n" class="n"></div>
+    <div id="m" class="m"></div>
+  </div>
+  <script>
+    function style(id) {
+      return getComputedStyle(document.getElementById(id));
+    }
+
+    test(() => {
+      assert_equals(style('first').width, '10px');
+      assert_equals(style('second').width, '20px');
+    }, 'Each @apply resolves its private variables on the applying element');
+
+    test(() => {
+      assert_equals(style('overridden').color, 'rgb(0, 128, 0)');
+      assert_equals(style('overridden').getPropertyValue('--color'), '');
+    }, 'Mixin declarations can override a private variable');
+
+    test(() => {
+      assert_equals(style('descendant').width, '20px');
+    }, 'Mixin private variables inherit to descendants');
+
+    test(() => {
+      assert_equals(style('sibling').width, '30px');
+    }, 'Mixin private variables are not visible to siblings');
+
+    test(() => {
+      assert_equals(style('leak').height, '20px');
+      assert_equals(style('leak').width, '77px');
+    }, 'The applying rule cannot see the mixin\'s private variables');
+
+    test(() => {
+      assert_equals(style('both').width, '5px');
+      assert_equals(style('both').height, '20px');
+    }, 'A mixin\'s private variable is separate from one with the same name ' +
+       'on the applying rule');
+
+    test(() => {
+      assert_equals(style('contents').width, '33px');
+    }, 'Rules passed through @contents cannot see the mixin\'s private ' +
+       'variables');
+
+    test(() => {
+      assert_equals(style('contents-private').width, '9px');
+    }, '@private works in an @apply\'s @contents block and is separate from ' +
+       'the mixin\'s private variable with the same name');
+
+    test(() => {
+      assert_equals(style('nested-contents').width, '7px');
+      assert_equals(style('nested-contents').height, '6px');
+    }, '@private in an @apply\'s @contents block inside a mixin');
+
+    test(() => {
+      assert_equals(style('inner').width, '10px');
+    }, 'Each @apply of the same mixin has its own private variable');
+
+    test(() => {
+      assert_equals(style('shadowed').borderRightColor, 'rgb(0, 128, 0)');
+      assert_equals(style('shadowed').borderBottomColor, 'rgb(0, 0, 255)');
+    }, 'A @private variable shadows a mixin parameter with the same name');
+
+    test(() => {
+      assert_equals(style('param-over-private').width, '2px');
+    }, 'A mixin parameter shadows a private variable of the applying rule');
+
+    test(() => {
+      assert_equals(style('n').width, '33px');
+    }, '@private works in a rule nested in a mixin');
+
+    test(() => {
+      assert_equals(style('m').width, '5px');
+    }, 'A rule nested in a mixin sees the mixin\'s private variables');
+  </script>
+</body>
+</html>

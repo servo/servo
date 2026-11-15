@@ -94,6 +94,34 @@ const movePointerToScrollbar =
       return actions.pointerMove(x, y);
     }
 
+// Sends input with `sendActions` and waits for an event of `type` on `target`.
+// Resolves with the return value of `onEvent`, which is called while the event
+// is dispatched. Fails the test if the event hasn't fired within `timeout` ms
+// of the input actions completing.
+function waitForDragEvent(t, target, type, timeout, onEvent, sendActions) {
+  return new Promise((resolve, reject) => {
+    let timer;
+    let fired = false;
+    const listener = t.step_func(event => {
+      fired = true;
+      clearTimeout(timer);
+      resolve(onEvent(event));
+    });
+    target.addEventListener(type, listener, {once: true});
+    t.add_cleanup(() => target.removeEventListener(type, listener));
+
+    Promise.resolve().then(sendActions).then(() => {
+      if (fired) {
+        return;
+      }
+      timer = t.step_timeout(() => {
+        assert_unreached(`No ${type} event fired within ${timeout}ms of the ` +
+                         `input actions completing`);
+      }, timeout);
+    }, reject);
+  });
+}
+
 // The dragDropTest function can be used for tests which require the drag and
 // drop movement. `dragElement` takes the element that needs to be dragged.
 // `dropElement` and `dropPosition` is where you want to drop the `dragElement`
@@ -114,50 +142,36 @@ function dragDropTest(dragElement, dropElement, onDropCallBack, testDescription,
     }, testDescription + ' (skipped - no scrollbars)');
     return;
   }
-  promise_test((t) => new Promise(async (resolve, reject) => {
-    dropElement.addEventListener('drop', t.step_func((event) => {
-      if (onDropCallBack(event) == true) {
-        resolve();
-      } else {
-        reject();
-      }
-    }));
-    try {
-      var actions = new test_driver.Actions();
+  promise_test(async (t) => {
+    const result = await waitForDragEvent(t, dropElement, 'drop', 1000,
+                                          onDropCallBack, () => {
+      let actions = new test_driver.Actions();
       actions = movePointerToCenter(dragElement, dragIframe, actions)
         .pointerDown();
       actions = movePointerToPosition(dropElement, dropIframe, dropPosition, actions)
         .pointerUp();
-      await actions.send();
-    } catch (e) {
-      reject(e);
-    }
-  }, testDescription));
+      return actions.send();
+    });
+    assert_true(result, 'onDropCallBack result');
+  }, testDescription);
 }
 
 // Similar to `dragDropTest`, but instead of listening to the `drop` event on
 // the `dropElement`, this function listens to `dragend` on the `dragElement`.
 function dragEndTest(dragElement, dropElement, onDropCallBack, testDescription,
                      dragIframe = undefined, dropIframe = undefined) {
-  promise_test((t) => new Promise(async (resolve, reject) => {
-    dragElement.addEventListener('dragend', t.step_func((event) => {
-      if (onDropCallBack(event) == true) {
-        resolve();
-      } else {
-        reject();
-      }
-    }));
-    try {
-      var actions = new test_driver.Actions();
+  promise_test(async (t) => {
+    const result = await waitForDragEvent(t, dragElement, 'dragend', 1000,
+                                          onDropCallBack, () => {
+      let actions = new test_driver.Actions();
       actions = movePointerToCenter(dragElement, dragIframe, actions)
         .pointerDown();
       actions = movePointerToCenter(dropElement, dropIframe, actions)
         .pointerUp();
-      await actions.send();
-    } catch (e) {
-      reject(e);
-    }
-  }, testDescription));
+      return actions.send();
+    });
+    assert_true(result, 'onDropCallBack result');
+  }, testDescription);
 }
 
 // The dragDropTestNoDropEvent function performs a drag-and-drop test but
@@ -231,20 +245,12 @@ function dragAndDropWithLayoutShift(dragElement, dropElement) {
 // bug is resolved.
 function dragDropTestWithLayoutShift(dragElement, dropElement, onDropCallBack,
                                      testDescription) {
-  promise_test((t) => new Promise(async (resolve, reject) => {
-                 dropElement.addEventListener('drop', t.step_func((event) => {
-                   if (onDropCallBack(event) == true) {
-                     resolve();
-                   } else {
-                     reject();
-                   }
-                 }));
-                 try {
-                   await dragAndDropWithLayoutShift(dragElement, dropElement);
-                 } catch (e) {
-                   reject(e);
-                 }
-               }, testDescription));
+  promise_test(async (t) => {
+    const result = await waitForDragEvent(
+        t, dropElement, 'drop', 1000, onDropCallBack,
+        () => dragAndDropWithLayoutShift(dragElement, dropElement));
+    assert_true(result, 'onDropCallBack result');
+  }, testDescription);
 }
 
 const calculateScrollbarThickness = () => {

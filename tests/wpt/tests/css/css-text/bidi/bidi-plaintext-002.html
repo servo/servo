@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Text test: unicode-bidi:plaintext line alignment after a dynamic change of line breaks</title>
+
+<link rel="match" href="reference/bidi-plaintext-002-ref.html">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1558431">
+
+<style>
+.test {
+  font: 20px Arial, sans-serif;
+  margin: 10px;
+  border: 1px solid gray;
+  width: 20em;
+  unicode-bidi: plaintext;
+}
+.narrow {
+  width: 6em;
+}
+</style>
+
+<p>Alignment of text in both boxes should match (all lines of the Hebrew
+paragraph right-aligned):</p>
+
+<div class="test" id="a">Hello World!<br>שלום עולם שלום עולם שלום עולם</div>
+
+<div class="test" id="b"><span>Hello World!<br>שלום עולם שלום עולם שלום עולם</span></div>
+
+<script>
+document.documentElement.classList.add("reftest-wait");
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  // Make the line breaks change after the initial layout.
+  document.getElementById("a").classList.add("narrow");
+  document.getElementById("b").classList.add("narrow");
+  document.documentElement.offsetHeight;
+  requestAnimationFrame(() => {
+    document.documentElement.classList.remove("reftest-wait");
+  });
+}));
+</script>

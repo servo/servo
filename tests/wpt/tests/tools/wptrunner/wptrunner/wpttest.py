@@ -214,6 +214,8 @@ class RunInfo(Dict[str, Any]):
 
 
 def server_protocol(manifest_item):
+    if hasattr(manifest_item, "websocket_h3") and manifest_item.websocket_h3:
+        return "websocket-h3-https"
     if hasattr(manifest_item, "h2") and manifest_item.h2:
         return "h2"
     if hasattr(manifest_item, "https") and manifest_item.https:

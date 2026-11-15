@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: If there are no breakpoints in the line that will fit the ellipsis, characters are removed off the end</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<meta name="assert" content="If there are no possible soft wrap opportunities after which the block-ellipsis could be placed so that it fits in the line without overflowing, then characters are removed off the end of the line until it fits.">
+<style>
+.rel {
+    position: relative;
+    font-family: Ahem;
+    line-height: 1;
+    font-size: 25px;
+}
+.bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100px;
+    color: red;
+}
+.test {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100px;
+    line-clamp: 4;
+    color: transparent;
+}
+.red { color: red; }
+.green { color: green; }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.
+
+<div class="rel">
+    <div class="bg">
+        XXXX
+        XXXX
+        XXXX
+        XXX<span class="green">X</span>
+    </div>
+
+    <div class="test">
+        <span class="green">XXXX
+        XXXX
+        XXXX
+        XXX</span><span class="red">XX
+        XXXX</span>
+    </div>
+</div>

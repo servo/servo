@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Anchor Positioning Test: anchor() when the containing block of the anchored box is a bordered, offset inline box</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-pos">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#def-cb">
+<meta name="assert" content="anchor() resolves against the anchor box rect in the coordinate space of the anchored box's containing block, when that containing block is a relatively positioned inline box with borders and padding that does not start at the start of the line.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.container {
+    position: relative;
+    font: 20px/1 Ahem;
+    width: 300px;
+}
+.inline-box {
+    position: relative;
+    border: 10px solid;
+    padding: 5px;
+}
+.anchor {
+    anchor-name: --anchor;
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+}
+.anchored {
+    position: absolute;
+    position-anchor: --anchor;
+    left: anchor(right);
+    top: anchor(bottom);
+    width: 5px;
+    height: 5px;
+}
+</style>
+<div class="container">XX <span class="inline-box">XX<i class="anchor"></i>XX<i class="anchored"></i></span></div>
+<script>
+test(() => {
+    const anchorRect = document.querySelector(".anchor").getBoundingClientRect();
+    const anchoredRect = document.querySelector(".anchored").getBoundingClientRect();
+    assert_approx_equals(anchoredRect.left, anchorRect.right, 0.5, "left");
+    assert_approx_equals(anchoredRect.top, anchorRect.bottom, 0.5, "top");
+}, "The anchored box is placed at the bottom right corner of the anchor");
+document.querySelector(".container").remove();
+</script>

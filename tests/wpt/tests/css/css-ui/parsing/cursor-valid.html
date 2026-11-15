@@ -88,6 +88,15 @@ test_valid_value(
 
 test_valid_value(
   "cursor",
+  'url("https://example.com/") 1 2, url("https://example.com/2"), url("https://example.com/3") 3 4, crosshair',
+  [
+    'url("https://example.com/") 1 2, url("https://example.com/2"), url("https://example.com/3") 3 4, crosshair',
+    'url(https://example.com/) 1 2, url(https://example.com/2), url(https://example.com/3) 3 4, crosshair'
+  ]
+);
+
+test_valid_value(
+  "cursor",
   'image-set("https://example.com/" 1x) 5 6, grab',
   [
     'image-set(url("https://example.com/") 1x) 5 6, grab',
@@ -101,6 +110,15 @@ test_valid_value(
   [
     'image-set(url("https://example.com/") 1x, url("https://example.com/highres") 2x) 5 6, grab',
     'image-set(url(https://example.com/) 1x, url(https://example.com/highres) 2x) 5 6, grab'
+  ]
+);
+
+test_valid_value(
+  "cursor",
+  'image-set(url("https://example.com/") 0.3x, url("https://example.com/5x") 5x) 6 5, url("https://example.com/") 1 2, pointer',
+  [
+    'image-set(url("https://example.com/") 0.3x, url("https://example.com/5x") 5x) 6 5, url("https://example.com/") 1 2, pointer',
+    'image-set(url(https://example.com/) 0.3x, url(https://example.com/5x) 5x) 6 5, url(https://example.com/) 1 2, pointer'
   ]
 );
 

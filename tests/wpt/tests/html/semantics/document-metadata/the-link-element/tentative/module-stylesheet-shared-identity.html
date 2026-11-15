@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Module link: shared identity across import-map aliases for data URLs and CSS files</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/ShadowDOM/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script type="importmap">
+{
+  "imports": {
+    "shared": "data:text/css,%23target%7Bcolor:green%7D",
+    "shared-alias": "data:text/css,%23target%7Bcolor:green%7D",
+    "shared-file": "./module-stylesheet-blue.css?shared-alias",
+    "shared-file-alias": "./module-stylesheet-blue.css?shared-alias"
+  }
+}
+</script>
+
+<div id="target">Test content</div>
+
+<script type="module">
+import {loadResult} from "./module-stylesheet-helpers.js";
+
+for (const [specifier, description] of [
+  ["shared", "a data URL"],
+  ["shared-file", "a static CSS file"],
+]) {
+  promise_test(async t => {
+    // Same resolved URL reached through two different bare specifiers.
+    const [a, b] = await Promise.all([
+      loadResult(t, specifier),
+      loadResult(t, `${specifier}-alias`),
+    ]);
+    assert_equals(a.event, "load");
+    assert_equals(b.event, "load");
+    assert_true(a.link.sheet instanceof CSSStyleSheet);
+    assert_equals(a.link.sheet, b.link.sheet,
+        "Different specifiers that resolve to the same URL share one sheet.");
+  }, `Distinct specifiers resolving to ${description} share sheet identity.`);
+}
+
+</script>

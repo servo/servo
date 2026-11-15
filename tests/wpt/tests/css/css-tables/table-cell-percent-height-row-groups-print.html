@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Percentage block-size inside table cells of every row group of a paginated table</title>
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#table-cell-content-relayout">
+<link rel="help" href="https://drafts.csswg.org/css-break/#fragmentation-model">
+<link rel="match" href="table-cell-percent-height-row-groups-print-ref.html">
+<meta name="assert" content="Percentage block-sizes inside cells of a header, a footer and several bodies resolve against the block-size of the rows the cell spans on every page of a paginated table.">
+<style>
+@page { size: 5in 2in; margin: 0; }
+:root { print-color-adjust: exact; }
+html, body { margin: 0; }
+table { border-spacing: 0; }
+td { padding: 0; width: 50px; vertical-align: top; }
+td > div { width: 40px; height: 100%; background: green; }
+</style>
+<table>
+  <thead><tr><td style="height: 20px"><div></div></td><td></td></tr></thead>
+  <tfoot><tr><td style="height: 15px"><div></div></td><td></td></tr></tfoot>
+  <tbody>
+    <tr><td style="height: 30px"><div></div></td><td rowspan="2" style="height: 90px"><div></div></td></tr>
+    <tr><td style="height: 60px"><div></div></td></tr>
+    <tr><td style="height: 90px"><div></div></td><td></td></tr>
+  </tbody>
+  <tbody>
+    <tr><td style="height: 40px"><div></div></td><td></td></tr>
+    <tr><td style="height: 10px"><div></div></td><td></td></tr>
+  </tbody>
+</table>

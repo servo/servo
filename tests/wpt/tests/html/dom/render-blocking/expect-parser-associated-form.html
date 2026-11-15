@@ -1,0 +1,73 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Reinserting a parser-associated form control unblocks an expect link</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/infrastructure.html#dom-trees">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/links.html#link-type-expect">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/html/semantics/resources/resource-test-helpers.js"></script>
+<body>
+<script>
+"use strict";
+/* global controlledResponse */
+
+async function renderingOpportunity() {
+  // Allow time for an incorrectly unblocked child to render. Parent callbacks
+  // do not guarantee that the child has had a rendering opportunity.
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+}
+
+async function createFrame(t, control = false) {
+  // Keep the parser blocked: finishing parsing would independently unblock rendering.
+  const blocking = controlledResponse(t, "", "text/javascript");
+  const iframe = document.createElement("iframe");
+  t.add_cleanup(() => iframe.remove());
+  const ready = new Promise(resolve => { window.documentReady = resolve; });
+  iframe.src = "resources/expect-parser-associated-form.html?" +
+    new URLSearchParams({ blocking: blocking.url, control });
+  document.body.append(iframe);
+  await ready;
+  return iframe;
+}
+
+promise_test(async t => {
+  assert_implements(document.createElement("link").relList.supports("expect"),
+                    "rel=expect must be supported");
+  t.add_cleanup(() => { delete window.documentReady; });
+  // Start a still-blocked control first: the spec permits a render-blocking timeout,
+  // which must not be mistaken for unblocking caused by the insertion.
+  // https://html.spec.whatwg.org/multipage/dom.html#render-blocked
+  const blockedControl = await createFrame(t);
+  let blockedControlRendered = false;
+  blockedControl.contentWindow.requestAnimationFrame(() => { blockedControlRendered = true; });
+  const iframe = await createFrame(t);
+  const doc = iframe.contentDocument;
+  let rendered = false;
+  iframe.contentWindow.requestAnimationFrame(() => { rendered = true; });
+
+  // Wait for an unblocked document to render, so iframe startup cannot be
+  // mistaken for render blocking. Start it after the target document is ready.
+  const control = await createFrame(t, true);
+  await new Promise(resolve => { control.contentWindow.requestAnimationFrame(resolve); });
+  await renderingOpportunity();
+  assert_false(rendered, "The missing target blocks rendering");
+
+  // Use document parsing, not fragment parsing, to set the parser inserted flag.
+  // Move the whole form so the input stays in the same tree as its owner and the
+  // removing steps do not reset its form owner or clear that flag.
+  const parsed = new DOMParser().parseFromString('<form><input id="target"></form>', "text/html");
+  const form = parsed.querySelector("form");
+  const input = form.firstElementChild;
+  assert_equals(input.form, form, "The parser associates the input with the form");
+  doc.body.append(form);
+  assert_equals(input.form, form, "Moving the form preserves the association");
+
+  // Wait for the child itself: its rendering opportunities need not coincide
+  // with the parent's.
+  await new Promise(resolve => { iframe.contentWindow.requestAnimationFrame(resolve); });
+  assert_equals(doc.readyState, "loading", "Parsing has not finished");
+  assert_false(blockedControlRendered, "The document without a target remains render-blocked");
+}, "A parser-inserted flag must not skip internal resource link processing on insertion");
+</script>

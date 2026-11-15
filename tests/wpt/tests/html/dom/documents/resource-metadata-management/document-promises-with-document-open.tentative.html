@@ -1,0 +1,136 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>
+  document.parsed, document.contentLoaded, and document.loaded with
+  document.open()
+</title>
+<link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+<link rel="help" href="https://github.com/whatwg/html/pull/1936" />
+<link
+  rel="help"
+  href="https://html.spec.whatwg.org/multipage/#current-document-readiness"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe src="/common/blank.html"></iframe>
+
+<script>
+  "use strict";
+
+  const loadPromise = new Promise((resolve) => (window.onload = resolve));
+
+  function delay(t, ms) {
+    return new Promise((resolve) => t.step_timeout(resolve, ms));
+  }
+
+  promise_test(async (t) => {
+    await loadPromise;
+
+    const contentDoc = frames[0].document;
+    assert_equals(
+      contentDoc.readyState,
+      "complete",
+      "Precondition: the iframe has loaded",
+    );
+
+    const parsedBefore = contentDoc.parsed;
+    const contentLoadedBefore = contentDoc.contentLoaded;
+    const loadedBefore = contentDoc.loaded;
+
+    // Sanity check: they all work
+    await Promise.all([parsedBefore, contentLoadedBefore, loadedBefore]);
+
+    contentDoc.open();
+
+    assert_equals(
+      contentDoc.readyState,
+      "loading",
+      "After document.open(), readyState must be loading",
+    );
+
+    assert_not_equals(
+      contentDoc.parsed,
+      parsedBefore,
+      "document.open() must reset document.parsed",
+    );
+    assert_not_equals(
+      contentDoc.contentLoaded,
+      contentLoadedBefore,
+      "document.open() must reset document.contentLoaded",
+    );
+    assert_not_equals(
+      contentDoc.loaded,
+      loadedBefore,
+      "document.open() must reset document.loaded",
+    );
+
+    const parsedAfter = contentDoc.parsed;
+    const contentLoadedAfter = contentDoc.contentLoaded;
+    const loadedAfter = contentDoc.loaded;
+
+    const fulfilled = [];
+    parsedAfter.then(() => {
+      fulfilled.push("parsed");
+    });
+    contentLoadedAfter.then(() => {
+      fulfilled.push("contentLoaded");
+    });
+    loadedAfter.then(() => {
+      fulfilled.push("loaded");
+    });
+
+    await delay(t, 10);
+
+    assert_array_equals(
+      fulfilled,
+      [],
+      "None of the promises should be fulfilled 10 ms after document.open()",
+    );
+    assert_equals(
+      contentDoc.parsed,
+      parsedAfter,
+      "document.parsed must be stable while loading",
+    );
+    assert_equals(
+      contentDoc.contentLoaded,
+      contentLoadedAfter,
+      "document.contentLoaded must be stable while loading",
+    );
+    assert_equals(
+      contentDoc.loaded,
+      loadedAfter,
+      "document.loaded must be stable while loading",
+    );
+
+    contentDoc.close();
+
+    await Promise.all([parsedAfter, contentLoadedAfter, loadedAfter]);
+
+    assert_array_equals(
+      fulfilled,
+      ["parsed", "contentLoaded", "loaded"],
+      "After document.close(), the promises must fulfill in order",
+    );
+    assert_equals(
+      contentDoc.readyState,
+      "complete",
+      "After document.close(), readyState must be complete",
+    );
+    assert_equals(
+      contentDoc.parsed,
+      parsedAfter,
+      "document.parsed must be stable after loading",
+    );
+    assert_equals(
+      contentDoc.contentLoaded,
+      contentLoadedAfter,
+      "document.contentLoaded must be stable after loading",
+    );
+    assert_equals(
+      contentDoc.loaded,
+      loadedAfter,
+      "document.loaded must be stable after loading",
+    );
+  }, "document.parsed, document.contentLoaded, and document.loaded with document.open()");
+</script>

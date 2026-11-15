@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Module link: module-map reuse and script-added import maps</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/ShadowDOM/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script type="module">
+import {loadResult} from "./module-stylesheet-helpers.js";
+
+for (const firstConsumer of ["JavaScript", "link"]) {
+  promise_test(async t => {
+    const url = URL.createObjectURL(new Blob(["#target { color: blue; }"],
+        {type: "text/css"}));
+    t.add_cleanup(() => URL.revokeObjectURL(url));
+    let module;
+    if (firstConsumer === "JavaScript") {
+      module = await import(url, {with: {type: "css"}});
+      assert_true(module.default instanceof CSSStyleSheet);
+    } else {
+      const {event} = await loadResult(t, url);
+      assert_equals(event, "load");
+    }
+
+    // A second fetch would fail after revocation; only module-map reuse works.
+    URL.revokeObjectURL(url);
+    if (firstConsumer === "JavaScript") {
+      const {event} = await loadResult(t, url);
+      assert_equals(event, "load", "The link reuses the imported CSS module.");
+      const reimported = await import(url, {with: {type: "css"}});
+      assert_equals(reimported.default, module.default);
+    } else {
+      module = await import(url, {with: {type: "css"}});
+      assert_true(module.default instanceof CSSStyleSheet);
+      assert_equals(module.default.cssRules.length, 1);
+      assert_equals(module.default.cssRules[0].style.color, "blue");
+    }
+  }, `${firstConsumer} loads a CSS module first: the other consumer reuses the module map.`);
+}
+
+promise_test(async t => {
+  const url = URL.createObjectURL(new Blob(["#target { color: green; }"],
+      {type: "text/css"}));
+  t.add_cleanup(() => URL.revokeObjectURL(url));
+  const importMap = document.createElement("script");
+  importMap.type = "importmap";
+  importMap.textContent = JSON.stringify({
+    imports: {"module-link-script-added": url}
+  });
+  t.add_cleanup(() => importMap.remove());
+  document.head.append(importMap);
+
+  const {event} = await loadResult(t, "module-link-script-added");
+  assert_equals(event, "load", "The link resolves the script-added mapping.");
+  URL.revokeObjectURL(url);
+  const module = await import("module-link-script-added", {with: {type: "css"}});
+  const direct = await import(url, {with: {type: "css"}});
+  assert_equals(module.default, direct.default);
+  assert_equals(module.default.cssRules[0].style.color, "green");
+}, "A script-added import map resolves a module link and shares its module with JavaScript.");
+</script>

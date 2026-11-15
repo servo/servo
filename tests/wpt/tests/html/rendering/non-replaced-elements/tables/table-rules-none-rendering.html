@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>The table rules=none attribute collapses borders and draws no lines</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#tables-2">
+<link rel="match" href="table-rules-none-rendering-ref.html">
+<meta name="assert" content="rules=none, like every valid rules value, gives the table border-collapse: collapse and a hidden border, and leaves the cells without borders. With the border attribute the table keeps its 1px outset border and the cells lose their inset borders.">
+<style>
+  /* The cell background shows the gaps that would appear if the borders were not collapsed. */
+  table { color: black; display: inline-table; vertical-align: top; margin: 0 12px 12px 0; }
+  td { width: 20px; height: 20px; padding: 0; background: silver; }
+</style>
+
+<table rules="none">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<table rules="none" border="1">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>

@@ -169,14 +169,14 @@ allInterestForElements.forEach(el => {
       }
     },{signal});
     await focusOn(another);
-    assert_array_equals(events,['target interest','target loseinterest (cancelable)','anothertarget interest','target loseinterest (cancelable)'],
-        'the loseinterest listener should fire but get cancelled, anothertarget should still get interest, and that should close the first target popover firing another loseinterest');
+    assert_array_equals(events,['target interest','target loseinterest (cancelable)','anothertarget interest','target loseinterest (not cancelable)'],
+        'the loseinterest listener should fire but get cancelled, anothertarget should still get interest, and that should close the first target popover firing another (non-cancelable) loseinterest');
     events = [];
-    verifyInterest([el,another],`${description} should still have interest because loseinterest was cancelled`);
+    verifyInterest(another,`${description} should lose interest because its target popover was hidden`);
     assert_false(target.matches(':popover-open'),'anothertarget popover opens, closing target');
     assert_true(anothertarget.matches(':popover-open'));
     await sendLoseInterestHotkey();
-    assert_array_equals(events,['anothertarget loseinterest (not cancelable)', 'target loseinterest (not cancelable)'],'Lose interest hot key loses interest in all elements');
+    assert_array_equals(events,['anothertarget loseinterest (not cancelable)'],'Lose interest hot key loses interest in all elements');
     assert_false(target.matches(':popover-open'));
     assert_false(anothertarget.matches(':popover-open'));
     verifyInterest(undefined,`Nothing has interest now`);

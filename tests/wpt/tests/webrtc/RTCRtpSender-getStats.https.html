@@ -67,10 +67,16 @@
     const [transceiver] = caller.getTransceivers();
     const statsReportFirst = await sender.getStats();
     transceiver.stop();
+    assert_equals(transceiver.direction, 'stopped');
+    assert_not_equals(transceiver.currentDirection, 'stopped');
     const statsReportSecond = await sender.getStats();
+    await exchangeOfferAnswer(caller, callee);
+    assert_equals(transceiver.currentDirection, 'stopped');
+    const statsReportThird = await sender.getStats();
     assert_true(!![...statsReportFirst.values()].find(({type}) => type === 'outbound-rtp'));
-    assert_false(!![...statsReportSecond.values()].find(({type}) => type === 'outbound-rtp'));
-  }, 'sender.getStats() should work on a stopped transceiver but not have outbound-rtp stats');
+    assert_true(!![...statsReportSecond.values()].find(({type}) => type === 'outbound-rtp'));
+    assert_false(!![...statsReportThird.values()].find(({type}) => type === 'outbound-rtp'));
+  }, 'sender.getStats() should work on a stopped transceiver but not have outbound-rtp stats after renegotiation');
 
   promise_test(async t => {
     const caller = new RTCPeerConnection();

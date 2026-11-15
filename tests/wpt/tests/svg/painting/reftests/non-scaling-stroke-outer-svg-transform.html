@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>non-scaling-stroke with a transform on the outermost svg element</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/painting.html#PaintingVectorEffects">
+<link rel="match" href="non-scaling-stroke-outer-svg-transform-ref.html">
+<meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-200">
+<meta name="assert" content="The transform of the outermost svg element, set as attribute or CSS property, is outside the host coordinate space, so it scales a non-scaling stroke like the rest of the svg.">
+<style>
+  body { margin: 0; }
+  svg { display: block; width: 200px; height: 200px; }
+  rect { fill: none; stroke: green; stroke-width: 10px; vector-effect: non-scaling-stroke; }
+</style>
+<svg transform="scale(0.5)"><g transform="scale(2)"><rect x="25" y="25" width="50" height="50"/></g></svg>
+<svg style="transform: scale(0.5)"><g transform="scale(2)"><rect x="25" y="25" width="50" height="50"/></g></svg>

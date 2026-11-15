@@ -48,4 +48,13 @@
     assert_equals(getComputedStyle(target).getPropertyValue("--bottom"), "no");
   }, "Check that scroll-state(scrollable) matches both top when scrolled to the end");
 
+  promise_test(async t => {
+    t.add_cleanup(() => { root.style.overflow = ""; });
+    root.scrollTop = 100;
+    root.style.overflow = "hidden";
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(target).getPropertyValue("--top"), "no");
+    assert_equals(getComputedStyle(target).getPropertyValue("--bottom"), "no");
+  }, "Check that scroll-state(scrollable) does not match when root has overflow:hidden");
+
 </script>

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS @private: lexical scope and DOM inheritance</title>
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14004#issuecomment-5050748895">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+    body {
+      font-size: 10px;
+    }
+
+    @property --real-size {
+      syntax: "<length>";
+      inherits: true;
+      initial-value: 29px;
+    }
+
+    @function --global-color() returns <color> {
+      result: var(--function-color, blue);
+    }
+
+    .a {
+      @private {
+        --private-size: 20px;
+      }
+      --real-size: 10em;
+      font-size: 20px;
+      width: var(--private-size, 9em);
+
+      & > .b {
+        font-size: 30px;
+        width: var(--private-size, 93em);
+        height: var(--real-size, 87em);
+      }
+
+      & > .c {
+        @private {
+          --private-size: 80px;
+        }
+        width: var(--private-size, 75em);
+      }
+
+      & + .d {
+        width: var(--private-size, 93em);
+        height: var(--real-size, 87em);
+      }
+    }
+
+    .a > .b {
+      margin: var(--private-size, 75em);
+      padding: var(--real-size, 63em);
+    }
+
+    #cycle {
+      @private {
+        --a: var(--b);
+        --b: var(--a);
+      }
+      width: var(--a, 17px);
+    }
+
+    #function-scope {
+      @private {
+        --function-color: red;
+      }
+      color: --global-color();
+    }
+
+    #valueless {
+      @private {
+        --x;
+      }
+      width: var(--x, 23px);
+    }
+
+    #same-scope {
+      @private {
+        --x: green;
+      }
+      @private {
+        --y: var(--x, red);
+      }
+      color: var(--y, red);
+    }
+
+    #nested-scope {
+      @private {
+        --x: red;
+      }
+      & {
+        @private {
+          --y: var(--x, green);
+        }
+        color: var(--y, red);
+        background-color: var(--x, blue);
+      }
+    }
+
+    #nested-override {
+      @private {
+        --x: red;
+      }
+      & {
+        @private {
+          --y: var(--x, green);
+        }
+        --y: var(--x, blue);
+        color: var(--y, purple);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="a" class="a">
+    <div id="b" class="b"></div>
+    <div id="c" class="c"></div>
+  </div>
+  <div id="d" class="d"></div>
+  <div id="cycle"></div>
+  <div id="function-scope"></div>
+  <div id="valueless"></div>
+  <div id="same-scope"></div>
+  <div id="nested-scope"></div>
+  <div id="nested-override"></div>
+  <script>
+    test(() => {
+      const style = getComputedStyle(document.getElementById('a'));
+      assert_equals(style.width, '20px');
+      assert_equals(style.getPropertyValue('--private-size'), '');
+      assert_equals(style.getPropertyValue('--real-size'), '200px');
+      assert_array_equals(
+          Array.from(style).filter(name => name.startsWith('--')),
+          ['--real-size']);
+      assert_array_equals(
+          Array.from(document.getElementById('a').computedStyleMap().keys())
+              .filter(name => name.startsWith('--')),
+          ['--real-size']);
+
+      document.getElementById('a').style.setProperty('--dynamic', '1px');
+      const names = Array.from(style).filter(name => name.startsWith('--'));
+      assert_true(names.includes('--dynamic'));
+      assert_true(names.includes('--real-size'));
+      document.getElementById('a').style.removeProperty('--dynamic');
+    }, 'A private variable resolves on its declaring element');
+
+    test(() => {
+      const style = getComputedStyle(document.getElementById('b'));
+      assert_equals(style.width, '20px');
+      assert_equals(style.height, '200px');
+      assert_equals(style.marginTop, '2250px');
+      assert_equals(style.paddingTop, '200px');
+      assert_equals(style.getPropertyValue('--private-size'), '');
+    }, 'Resolved private variables inherit but remain lexically private');
+
+    test(() => {
+      assert_equals(getComputedStyle(document.getElementById('c')).width,
+                    '80px');
+    }, 'A nested @private rule eclipses the outer binding');
+
+    test(() => {
+      const style = getComputedStyle(document.getElementById('d'));
+      assert_equals(style.width, '930px');
+      assert_equals(style.height, '29px');
+    }, 'A lexically visible private variable does not inherit to a sibling');
+
+    test(() => {
+      assert_equals(getComputedStyle(document.getElementById('cycle')).width,
+                    '17px');
+    }, 'Cycles between private variables are invalid at computed-value time');
+
+    test(() => {
+      assert_equals(
+          getComputedStyle(document.getElementById('function-scope')).color,
+          'rgb(0, 0, 255)');
+    }, 'A function body does not capture the caller private scope');
+
+    test(() => {
+      assert_equals(
+          getComputedStyle(document.getElementById('valueless')).width,
+          '23px');
+    }, 'A valueless private declaration is ignored');
+
+    test(() => {
+      assert_equals(
+          getComputedStyle(document.getElementById('same-scope')).color,
+          'rgb(0, 128, 0)');
+    }, 'Private initializers can reference names from another block in the same scope');
+
+    test(() => {
+      const style = getComputedStyle(document.getElementById('nested-scope'));
+      assert_equals(style.color, 'rgb(0, 128, 0)');
+      assert_equals(style.backgroundColor, 'rgb(255, 0, 0)');
+    }, 'A nested private initializer does not capture an enclosing private name');
+
+    test(() => {
+      assert_equals(
+          getComputedStyle(document.getElementById('nested-override')).color,
+          'rgb(255, 0, 0)');
+    }, 'Ordinary assignments to private properties can reference enclosing private names');
+  </script>
+</body>
+</html>

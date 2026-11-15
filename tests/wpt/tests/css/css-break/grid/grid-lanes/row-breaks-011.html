@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Row breaks account for container block-start padding on resumption</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="match" href="row-breaks-011-ref.html">
+<style>
+  .multicol { columns: 2; column-gap: 0; column-fill: auto; width: 160px; height: 100px; background: lightgray; }
+  .lanes { display: grid-lanes; grid-template-rows: 40px 40px 20px; padding-block: 10px; width: 80px; }
+  .lanes > div { width: 80px; }
+</style>
+<div class="multicol">
+  <div class="lanes">
+    <div style="grid-row: 1; background: orange;"></div>
+    <div style="grid-row: 2; background: teal; break-before: column;"></div>
+    <div style="grid-row: 3; background: purple;"></div>
+  </div>
+</div>

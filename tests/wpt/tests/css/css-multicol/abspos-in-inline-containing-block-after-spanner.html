@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Multi-column Layout Test: an absolutely positioned image in an inline box containing block after a column spanner</title>
+<link rel="help" href="https://drafts.csswg.org/css-multicol-1/#column-span">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#def-cb">
+<meta name="assert" content="An absolutely positioned image whose containing block is a relatively positioned inline box after a column spanner is where it is laid out and hit tested there, with and without insets.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.multicol { position: relative; columns: 2; column-gap: 0; width: 400px; line-height: 20px; }
+.spacer { display: inline-block; width: 30px; height: 10px; }
+.spanner { column-span: all; height: 30px; }
+.image { position: absolute; width: 20px; height: 20px; }
+.insets { left: 5px; top: 3px; }
+</style>
+<div class="multicol"><span class="spacer"></span><br><span class="spacer"></span><br><div class="spanner"></div><span class="spacer"></span><br><span class="spacer"></span><br><span class="spacer"></span> <span style="position: relative"><span class="spacer"></span><img class="image"></span><br><span class="spacer"></span> <span style="position: relative"><span class="spacer"></span><img class="image insets"></span><br><span class="spacer"></span><br><span class="spacer"></span></div>
+<script>
+for (const image of document.querySelectorAll(".image")) {
+    test(() => {
+        const rects = image.getClientRects();
+        assert_equals(rects.length, 1, "number of rects");
+        assert_equals(rects[0].width, 20, "width");
+        assert_equals(rects[0].height, 20, "height");
+        assert_equals(document.elementFromPoint(rects[0].left + 10, rects[0].top + 10), image, "hit test");
+    }, `Absolutely positioned image ${image.classList.contains("insets") ? "with" : "without"} insets in an inline box containing block after a column spanner`);
+}
+</script>

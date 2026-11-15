@@ -1,0 +1,161 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>KeyframeEffect.getKeyframes() when detached from CSSAnimation</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#keyframes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+@keyframes anim-omit-from {
+  to {
+    color: rgb(255, 0, 0);
+  }
+}
+</style>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(t => {
+  const div = addDiv(t);
+  div.style.color = 'rgb(0, 0, 255)';
+  div.style.animation = 'anim-omit-from 100s';
+
+  const cssAnim = div.getAnimations()[0];
+  const effect = cssAnim.effect;
+
+  // While associated with a CSSAnimation, computed keyframes are returned,
+  // including a generated initial keyframe with the target's computed style.
+  assert_frame_lists_equal(effect.getKeyframes(), [
+    {
+      offset: 0,
+      computedOffset: 0,
+      easing: 'ease',
+      composite: 'replace',
+      color: 'rgb(0, 0, 255)',
+    },
+    {
+      offset: 1,
+      computedOffset: 1,
+      easing: 'ease',
+      composite: 'auto',
+      color: 'rgb(255, 0, 0)',
+    },
+  ]);
+
+  // Moving the effect to a plain Animation disassociates it from the
+  // CSSAnimation; getKeyframes() must not return CSS computed keyframes.
+  const anim = new Animation(effect, document.timeline);
+  div.style.color = 'rgb(0, 128, 0)';
+
+  assert_frame_lists_equal(anim.effect.getKeyframes(), [
+    {
+      offset: 1,
+      computedOffset: 1,
+      easing: 'ease',
+      composite: 'auto',
+      color: 'rgb(255, 0, 0)',
+    },
+  ]);
+}, 'KeyframeEffect.getKeyframes() does not return computed CSS keyframes ' +
+   'after moving effect from a CSSAnimation to an Animation');
+
+test(t => {
+  const div = addDiv(t);
+  div.style.color = 'rgb(0, 0, 255)';
+  div.style.animation = 'anim-omit-from 100s';
+
+  const cssAnim = div.getAnimations()[0];
+  const effect = cssAnim.effect;
+  cssAnim.effect = null;
+
+  div.style.color = 'rgb(0, 128, 0)';
+
+  assert_frame_lists_equal(effect.getKeyframes(), [
+    {
+      offset: 1,
+      computedOffset: 1,
+      easing: 'ease',
+      composite: 'auto',
+      color: 'rgb(255, 0, 0)',
+    },
+  ]);
+}, 'KeyframeEffect.getKeyframes() does not return computed CSS keyframes ' +
+   'after detaching effect from a CSSAnimation');
+
+test(t => {
+  const div = addDiv(t);
+  div.style.color = 'rgb(0, 0, 255)';
+  div.style.animation = 'anim-omit-from 100s';
+
+  const cssAnim = div.getAnimations()[0];
+  const effect = cssAnim.effect;
+  cssAnim.effect = null;
+  cssAnim.effect = effect;
+
+  div.style.color = 'rgb(0, 128, 0)';
+
+  assert_frame_lists_equal(effect.getKeyframes(), [
+    {
+      offset: 1,
+      computedOffset: 1,
+      easing: 'ease',
+      composite: 'auto',
+      color: 'rgb(255, 0, 0)',
+    },
+  ]);
+}, 'KeyframeEffect.getKeyframes() does not return computed CSS keyframes ' +
+   'after re-attaching a detached effect to a CSSAnimation');
+
+test(t => {
+  const div = addDiv(t);
+  div.style.color = 'rgb(0, 0, 255)';
+  div.style.animation = 'anim-omit-from 100s';
+
+  const cssAnim = div.getAnimations()[0];
+  div.style.display = 'none';
+
+  assert_frame_lists_equal(cssAnim.effect.getKeyframes(), [
+    {
+      offset: 1,
+      computedOffset: 1,
+      easing: 'ease',
+      composite: 'auto',
+      color: 'rgb(255, 0, 0)',
+    },
+  ]);
+}, 'KeyframeEffect.getKeyframes() does not synthesize empty keyframes when ' +
+   'target has no computed style');
+
+promise_test(async t => {
+  const div = addDiv(t);
+  let gotTransition = false;
+  div.addEventListener('transitionrun', () => {
+    gotTransition = true;
+  });
+
+  div.style.animation = 'anim-omit-from 100s';
+  const cssAnim = div.getAnimations()[0];
+  const effect = cssAnim.effect;
+  const anim = new Animation(effect, document.timeline);
+
+  div.style.transition = 'opacity 100s';
+  getComputedStyle(div).opacity;
+
+  div.style.opacity = '0.5';
+  effect.getKeyframes();
+
+  const cover = new Animation(
+    new KeyframeEffect(div, { opacity: [0, 1] }, 100 * MS_PER_SEC)
+  );
+  cover.play();
+
+  await cover.ready;
+  await waitForAnimationFrames(1);
+
+  assert_false(gotTransition, 'A transition should NOT have been triggered');
+}, 'KeyframeEffect.getKeyframes() on an effect moved from a CSSAnimation ' +
+   'does not trigger a style change event');
+</script>
+</body>

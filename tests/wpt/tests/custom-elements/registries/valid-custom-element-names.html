@@ -92,7 +92,7 @@ function createStringWithSeparatorMode(codePoint, prefix, separatorMode) {
   }
 }
 
-for (const prefix of ['', 'a', 'A', ' ', '\0']) {
+for (const prefix of ['', 'a', 'A', ' ', '\0', 'a\u{1F171}']) {
   for (const codePoint of testCodePoints) {
     for (const separatorMode of [0, 1, 2]) {
       const str = createStringWithSeparatorMode(
@@ -105,6 +105,30 @@ for (const prefix of ['', 'a', 'A', ' ', '\0']) {
     }
   }
 }
+
+test(() => {
+  for (const validName of validCustomElementNames) {
+    const element = document.createElement(validName);
+    assert_equals(Object.getPrototypeOf(element), HTMLElement.prototype, debugString(validName));
+  }
+}, 'document.createElement() creates an HTMLElement for a valid custom element name');
+
+test(() => {
+  for (const validName of validCustomElementNames) {
+    const div = document.createElement('div');
+    div.innerHTML = `<${validName}>`;
+    const element = div.firstChild;
+    assert_equals(element.localName, validName, debugString(validName));
+    assert_equals(Object.getPrototypeOf(element), HTMLElement.prototype, debugString(validName));
+  }
+}, 'The HTML parser creates an HTMLElement for a valid custom element name');
+
+test(() => {
+  for (const validName of validCustomElementNames) {
+    const element = document.createElement(validName);
+    assert_true(element.attachShadow({ mode: 'open' }) instanceof ShadowRoot, debugString(validName));
+  }
+}, 'attachShadow() succeeds for a valid custom element name');
 
 let nextClassNumber = 1;
 function createElementClass() {

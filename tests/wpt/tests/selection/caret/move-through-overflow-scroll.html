@@ -1,0 +1,52 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Up/down arrow keys should move caret to the end/start of an overflow:scroll element</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2075160">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<div contenteditable id="host">
+  <p id="before">Before</p>
+  <div style="overflow:scroll;">
+    <p id="scrollable1">scrollable 1</p>
+    <p id="scrollable2">scrollable 2</p>
+  </div>
+  <p id="after">After</p>
+</div>
+<script>
+"use strict";
+
+const kUp = "\uE013";
+const kDown = "\uE015";
+const expected = ["before", "scrollable1", "scrollable2", "after"];
+const host = document.getElementById("host");
+
+host.focus();
+
+promise_test(async () => {
+  const start = document.getElementById(expected[0]);
+  getSelection().collapse(start.firstChild);
+  for (let i = 1; i < expected.length; i++) {
+    await test_driver.send_keys(host, kDown);
+    assert_equals(
+      getSelection().anchorNode.parentNode,
+      document.getElementById(expected[i]),
+      `Expected caret to be at #${expected[i]} after ${i} down arrow presses.`);
+  }
+}, "Down arrow key should move to the start of the container");
+
+promise_test(async () => {
+  const end = document.getElementById(expected[expected.length - 1]);
+  getSelection().collapse(end.firstChild);
+  for (let i = 1; i < expected.length; i++) {
+    const expectedId = expected[expected.length - 1 - i];
+    await test_driver.send_keys(host, kUp);
+    assert_equals(
+      getSelection().anchorNode.parentNode,
+      document.getElementById(expectedId),
+      `Expected caret to be at #${expectedId} after ${i} up arrow presses.`);
+  }
+}, "Up arrow key should move to the end of the container");
+</script>
+

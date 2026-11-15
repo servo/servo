@@ -79,6 +79,9 @@ class VariantData(TypedDict, total=False):
     longhand: Set[str]
 
 
+# Warning: changes to this table that cause changes in the tests that end up in the manifest,
+# without changes to the corresponding `.any.js` source files. In this case, an RFC and a bump of
+# the manifest version are required.
 _any_variants: Dict[Text, VariantData] = {
     "window": {"suffix": ".any.html"},
     "window-module": {},

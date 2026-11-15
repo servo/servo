@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>CSS fit-content(): a percentage argument of an absolutely positioned box resolves against its containing block</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-fit-content">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="The argument of stretch() is resolved exactly as for length-percentage values standing alone, so the insets don't change what a percentage refers to.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .container {
+    position: relative;
+    width: 300px;
+    height: 100px;
+  }
+  .test {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 150px;
+    width: fit-content(calc(100% / 3));
+    height: 100px;
+    background: green;
+    font-size: 0;
+  }
+  .test > div {
+    display: inline-block;
+    width: 60px;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="container">
+  <div class="test"><div></div><div></div></div>
+</div>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Module link: tree-scope moves and counted mixed stylesheet references</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/LinkTagModuleImport/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script type="module">
+import {createLink, waitForEvent, createShadowRoot} from "./module-stylesheet-helpers.js";
+
+promise_test(async t => {
+  const firstRoot = createShadowRoot(t, "<span>first</span>");
+  const secondRoot = createShadowRoot(t, "<span>second</span>");
+  const link = createLink(t, /*import=*/"./module-stylesheet-red.css?scope-move");
+  const first = waitForEvent(link);
+  firstRoot.prepend(link);
+  assert_equals(await first, "load");
+  const sheet = link.sheet;
+  assert_array_equals(Array.from(firstRoot.styleSheets), [sheet]);
+  assert_equals(getComputedStyle(firstRoot.querySelector("span")).color,
+      "rgb(255, 0, 0)");
+
+  const moved = waitForEvent(link);
+  secondRoot.prepend(link);
+  assert_equals(await moved, "load");
+  assert_equals(link.sheet, sheet, "Identity is preserved across the move.");
+  assert_equals(firstRoot.styleSheets.length, 0);
+  assert_array_equals(Array.from(secondRoot.styleSheets), [sheet]);
+  assert_equals(getComputedStyle(firstRoot.querySelector("span")).color,
+      "rgb(0, 0, 0)");
+  assert_equals(getComputedStyle(secondRoot.querySelector("span")).color,
+      "rgb(255, 0, 0)");
+  sheet.replaceSync("span { color: rgb(0, 128, 0); }");
+  assert_equals(getComputedStyle(firstRoot.querySelector("span")).color,
+      "rgb(0, 0, 0)", "Mutation does not affect the old scope.");
+  assert_equals(getComputedStyle(secondRoot.querySelector("span")).color,
+      "rgb(0, 128, 0)", "Mutation invalidates the new scope.");
+}, "Moving a module link transfers its stylesheet and mutation invalidation to the new tree scope.");
+
+promise_test(async t => {
+  const adoptedRoot = createShadowRoot(t, "<span>adopted</span>");
+  const importedRoot = createShadowRoot(t, "<span>imported</span>");
+  const specifier = "./module-stylesheet-blue.css?mixed-references";
+  const {default: sheet} = await import(specifier, {with: {type: "css"}});
+  const links = [];
+  for (const root of [adoptedRoot, importedRoot]) {
+    root.adoptedStyleSheets = [sheet, sheet];
+    t.add_cleanup(() => {
+      root.adoptedStyleSheets = [];
+    });
+    const first = createLink(t, /*import=*/specifier);
+    const second = createLink(t, /*import=*/specifier);
+    const results = [first, second].map(waitForEvent);
+    root.prepend(first, second);
+    assert_array_equals(await Promise.all(results), ["load", "load"]);
+    assert_equals(first.sheet, sheet);
+    assert_equals(second.sheet, sheet);
+    assert_array_equals(Array.from(root.styleSheets), [sheet, sheet]);
+    assert_array_equals(root.adoptedStyleSheets, [sheet, sheet]);
+    links.push([first, second]);
+  }
+  function assertColor(root, color) {
+    assert_equals(getComputedStyle(root.querySelector("span")).color, color);
+  }
+  function mutateAndCheck(color) {
+    sheet.replaceSync(`span { color: ${color}; }`);
+    assertColor(adoptedRoot, color);
+    assertColor(importedRoot, color);
+  }
+  assertColor(adoptedRoot, "rgb(0, 0, 255)");
+  assertColor(importedRoot, "rgb(0, 0, 255)");
+  mutateAndCheck("rgb(255, 0, 0)");
+
+  links[0][0].remove();
+  links[0][1].remove();
+  importedRoot.adoptedStyleSheets = [];
+  assert_equals(adoptedRoot.styleSheets.length, 0);
+  assert_array_equals(adoptedRoot.adoptedStyleSheets, [sheet, sheet]);
+  assert_array_equals(Array.from(importedRoot.styleSheets), [sheet, sheet]);
+  assert_equals(importedRoot.adoptedStyleSheets.length, 0);
+  mutateAndCheck("rgb(0, 128, 0)");
+
+  adoptedRoot.adoptedStyleSheets.pop();
+  links[1][0].remove();
+  assert_array_equals(adoptedRoot.adoptedStyleSheets, [sheet]);
+  assert_array_equals(Array.from(importedRoot.styleSheets), [sheet]);
+  mutateAndCheck("rgb(0, 0, 255)");
+
+  adoptedRoot.adoptedStyleSheets = [];
+  assertColor(adoptedRoot, "rgb(0, 0, 0)");
+  sheet.replaceSync("span { color: rgb(128, 0, 128); }");
+  assertColor(adoptedRoot, "rgb(0, 0, 0)");
+  assertColor(importedRoot, "rgb(128, 0, 128)");
+  links[1][1].remove();
+  assert_equals(importedRoot.styleSheets.length, 0);
+  assertColor(importedRoot, "rgb(0, 0, 0)");
+  sheet.replaceSync("span { color: rgb(255, 0, 0); }");
+  assertColor(adoptedRoot, "rgb(0, 0, 0)");
+  assertColor(importedRoot, "rgb(0, 0, 0)");
+}, "Mixed duplicate adoptions and module links retain independent counted tree-scope references.");
+</script>

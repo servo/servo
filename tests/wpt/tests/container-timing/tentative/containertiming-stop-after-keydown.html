@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Container Timing: paints after a keydown are not reported</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/container-timing/resources/container-timing-helpers.js"></script>
+<div id="root" containertiming="div_ct">
+  <img src="/container-timing/resources/square100.png">
+</div>
+<input id="input">
+<script>
+  promise_test(async t => {
+    assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
+    const entries = await getContainerEntries(t);
+    assert_equals(entries.length, 1, 'entries before input');
+
+    await test_driver.send_keys(document.getElementById('input'), 'k');
+
+    // No container entry can end the wait after the input.
+    addSquare100Image(document.getElementById('root'));
+    const laterEntries = await getContainerEntriesWithin(t);
+
+    assert_equals(laterEntries.length, 0, 'entries after input');
+  }, 'Container timing stops recording after a keydown.');
+</script>
+</body>

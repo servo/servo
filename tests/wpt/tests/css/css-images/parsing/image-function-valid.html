@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>CSS Images Module Level 4: parsing image(&lt;color&gt;)</title>
+<title>CSS Images Module Level 5: parsing image()</title>
 <link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
-<link rel="help" href="https://drafts.csswg.org/css-images-4/#image-notation">
+<link rel="help" href="https://drafts.csswg.org/css-images-5/#image-notation">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
 <div id="target"></div>
 <script>
+test_valid_value("background-image", "image(url(foo.png))", 'image(url("foo.png"))');
 test_valid_value("background-image", "image(red)");
 test_valid_value("background-image", "image(transparent)");
 test_valid_value("background-image", "image(rgb(0 128 255))",

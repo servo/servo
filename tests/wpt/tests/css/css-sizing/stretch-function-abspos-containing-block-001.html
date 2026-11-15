@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>CSS stretch(): children of an absolutely positioned box with a fixed stretch() block size</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#percentage-sizing">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="An absolutely positioned box sized with a fixed stretch() in the block axis gives its percentage, stretch and orthogonal children its content box, with its margins taken off.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .container {
+    position: relative;
+    width: 200px;
+    height: 400px;
+  }
+  .abspos {
+    position: absolute;
+    top: 0;
+    width: 25px;
+    height: stretch(150px);
+    margin-bottom: 50px;
+  }
+  .test {
+    background: green;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="container">
+  <div class="abspos" style="left: 0;"><div class="test" style="height: 100%;"></div></div>
+  <div class="abspos" style="left: 25px;"><div class="test" style="height: stretch;"></div></div>
+  <div class="abspos" style="left: 50px; height: 200px; max-height: stretch(150px);"><div class="test" style="height: 100%;"></div></div>
+  <div class="abspos" style="left: 75px;"><div class="test" style="writing-mode: vertical-lr; width: 25px; height: 100%;"></div></div>
+</div>

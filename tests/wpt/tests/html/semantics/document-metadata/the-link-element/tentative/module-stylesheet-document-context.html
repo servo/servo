@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Module link: windowless documents and detached frames</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/ShadowDOM/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script type="module">
+import {createLink, loadResult} from "./module-stylesheet-helpers.js";
+
+promise_test(async t => {
+  const windowlessDocument = document.implementation.createHTMLDocument();
+  assert_equals(windowlessDocument.defaultView, null);
+  const link = createLink(t, /*import=*/"data:text/css,/* valid module */");
+  const order = [];
+  const result = new Promise(resolve => {
+    for (const type of ["load", "error"]) {
+      link.addEventListener(type, () => {
+        order.push(type);
+        resolve();
+      }, {once: true});
+    }
+  });
+  windowlessDocument.head.append(link);
+  assert_equals(link.ownerDocument, windowlessDocument);
+  order.push("inserted");
+  await Promise.resolve();
+  order.push("microtask");
+  await result;
+  assert_array_equals(order, ["inserted", "microtask", "error"]);
+  assert_equals(link.sheet, null);
+}, "A module link in a document without a window fires an asynchronous error.");
+
+for (const insertBeforeDetach of [false, true]) {
+  promise_test(async t => {
+    const frame = document.createElement("iframe");
+    t.add_cleanup(() => frame.remove());
+    const ready = new Promise(resolve => frame.onload = resolve);
+    frame.srcdoc = "<!doctype html><head></head><body></body>";
+    document.body.append(frame);
+    await ready;
+    const childDocument = frame.contentDocument;
+    const link = createLink(t, /*import=*/"data:text/css,/* original */");
+    const events = [];
+    link.addEventListener("load", () => events.push("load"));
+    link.addEventListener("error", () => events.push("error"));
+    if (insertBeforeDetach) {
+      childDocument.head.append(link);
+    }
+    frame.remove();
+    // Retain and mutate the old document after its browsing context is gone.
+    childDocument.head.append(link);
+    link.setAttribute("import", "data:text/css,/* detached replacement */");
+    assert_equals(link.ownerDocument, childDocument);
+    assert_true(link.isConnected);
+    assert_equals(link.sheet, null);
+    assert_array_equals(events, [], "No synchronous completion is dispatched.");
+
+    // A live-document request provides a completion barrier without relying on
+    // event delivery in the destroyed browsing context.
+    const barrier = await loadResult(t, "unmapped-detached-frame-barrier");
+    assert_equals(barrier.event, "error");
+    assert_equals(link.sheet, null);
+    assert_false(events.includes("load"), "The detached link does not load.");
+  }, `A module link ${
+      insertBeforeDetach ? "pending during" : "inserted after"
+      } iframe detachment can be reprocessed without crashing.`);
+}
+</script>

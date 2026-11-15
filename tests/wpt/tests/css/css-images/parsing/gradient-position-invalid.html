@@ -14,6 +14,10 @@
 <script>
 test_invalid_value("background-image", "radial-gradient(at top 0px, red, blue)");
 
+// The position must come after the shape and size.
+test_invalid_value("background-image", "radial-gradient(at 10px 20% circle closest-side, red, blue)");
+test_invalid_value("background-image", "radial-gradient(circle at 10px 20% circle, red, blue)");
+
 // The following were supported in an earlier version of the spec.
 // https://github.com/w3c/csswg-drafts/issues/2140
 // Deprecated in Blink with support to be removed in M68, around July 2018.

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>DataTransferItemList remove() and clear() of a File item</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dnd.html#dom-datatransferitemlist-remove">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dnd.html#dom-datatransferitemlist-clear">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+test(() => {
+  const dt = new DataTransfer();
+  dt.items.add(new File(["a"], "a.txt", { type: "text/plain" }));
+  assert_equals(dt.items.length, 1);
+
+  dt.items.remove(0);
+  assert_equals(dt.items.length, 0);
+  assert_equals(dt.files.length, 0);
+}, "remove()ing a File item before accessing files");
+
+test(() => {
+  const dt = new DataTransfer();
+  dt.items.add(new File(["a"], "a.txt", { type: "text/plain" }));
+  assert_equals(dt.items.length, 1);
+
+  dt.items.clear();
+  assert_equals(dt.items.length, 0);
+  assert_equals(dt.files.length, 0);
+}, "clear()ing a File item before accessing files");
+
+test(() => {
+  const dt = new DataTransfer();
+  assert_equals(dt.files.length, 0);
+  dt.items.add(new File(["a"], "a.txt", { type: "text/plain" }));
+  dt.items.add(new File(["b"], "b.txt", { type: "text/plain" }));
+  assert_equals(dt.files.length, 2);
+
+  dt.items.remove(0);
+  assert_equals(dt.items.length, 1);
+  assert_equals(dt.files.length, 1);
+  assert_equals(dt.files[0].name, "b.txt");
+}, "remove()ing a File item after accessing files");
+</script>

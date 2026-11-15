@@ -96,6 +96,26 @@ test(() => {
   ]);
 }, "setPathData() rejects multi-character type strings");
 
+for (const command of ["A", "a"]) {
+  for (const [flagIndex, flagName] of [[3, "large-arc"], [4, "sweep"]]) {
+    for (const invalidValue of [-1, 0.5, 2]) {
+      test(() => {
+        const values = [10, 10, 0, 0, 1, 20, 20];
+        values[flagIndex] = invalidValue;
+        const path = createPath();
+        path.setPathData([
+          { type: "M", values: [0, 0] },
+          { type: command, values },
+          { type: "L", values: [30, 30] }
+        ]);
+        assert_path_data_equals(path.getPathData(), [
+          { type: "M", values: [0, 0] }
+        ]);
+      }, `setPathData() rejects ${command} ${flagName} flag ${invalidValue}`);
+    }
+  }
+}
+
 test(() => {
   const path = createPath("M 99 99");
   // Per SVG Paths §9.7, a path that does not begin with a moveto is invalid;

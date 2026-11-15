@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Containment Test: text in a content-visibility: hidden grid is measured with a web font that loaded while it was hidden</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#content-visibility">
+<link rel="match" href="content-visibility-hidden-grid-web-font-load-ref.html">
+<meta name="assert" content="Once the content of a content-visibility: hidden grid is shown, its text is laid out with the web font that finished loading while the content was hidden.">
+<style>
+#grid {
+    display: grid;
+    content-visibility: hidden;
+}
+.label {
+    font: 20px/1 LateWebFont, monospace;
+    color: green;
+    border: 5px solid green;
+}
+</style>
+<p>Test passes if the green border hugs the green box.</p>
+<div id="grid"><div><span class="label">XXXX</span></div></div>
+<script>
+// Lay out the hidden grid with the fallback font first.
+document.body.offsetHeight;
+const face = new FontFace("LateWebFont", "url(/fonts/Ahem.ttf)");
+document.fonts.add(face);
+face.load().then(() => {
+    // Apply the web font while the grid content is still hidden, then show it.
+    document.body.offsetHeight;
+    document.getElementById("grid").style.contentVisibility = "visible";
+    document.documentElement.classList.remove("reftest-wait");
+});
+</script>
+</html>

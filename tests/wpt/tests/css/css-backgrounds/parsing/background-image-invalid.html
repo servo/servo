@@ -24,6 +24,26 @@ test_invalid_value("background-image", "repeating-radial-gradient(-20% 30% at ce
 test_invalid_value("background-image", "radial-gradient(20px -30px at center, red, blue)");
 test_invalid_value("background-image", "repeating-radial-gradient(20px -30px ellipse at center, red, blue)");
 
+// linear-gradient() needs at least one color stop, and a direction must be an angle or "to" followed by one or two side keywords.
+test_invalid_value("background-image", "linear-gradient(top)");
+test_invalid_value("background-image", "linear-gradient(to top)");
+test_invalid_value("background-image", "linear-gradient(10deg)");
+test_invalid_value("background-image", "linear-gradient(10deg red, blue)");
+test_invalid_value("background-image", "linear-gradient(to red, blue)");
+test_invalid_value("background-image", "linear-gradient(to left red, blue)");
+test_invalid_value("background-image", "linear-gradient(to top center, red, blue)");
+test_invalid_value("background-image", "linear-gradient(to left left, red, blue)");
+test_invalid_value("background-image", "linear-gradient(to left center, red, blue)");
+test_invalid_value("background-image", "linear-gradient(to left 10deg, red, blue)");
+test_invalid_value("background-image", "linear-gradient(10px 20%, red, blue)");
+
+// A circle takes a single length, and an ellipse two <length-percentage>s.
+test_invalid_value("background-image", "radial-gradient(circle 10%, red, blue)");
+test_invalid_value("background-image", "radial-gradient(circle 10px 10px, red, blue)");
+test_invalid_value("background-image", "radial-gradient(circle 10px closest-side, red, blue)");
+test_invalid_value("background-image", "radial-gradient(ellipse 10px, red, blue)");
+test_invalid_value("background-image", "radial-gradient(ellipse 10%, red, blue)");
+
 test_invalid_value("background-image", "cross-fade(auto blue, 50% red)");
 test_invalid_value("background-image", "cross-fade(1px red, green)");
 test_invalid_value("background-image", "cross-fade(calc(1% + 1px) red, green)");

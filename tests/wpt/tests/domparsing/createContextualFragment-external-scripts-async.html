@@ -27,7 +27,7 @@
       delete window.resolve_fast;
     });
     const markup =
-      `<script src="resources/slow.js?pipe=trickle(d0.3)&id=${id}"><` + "/script>" +
+      `<script src="resources/slow.sub.js?pipe=trickle(d0.3)&id=${id}"><` + "/script>" +
       `<script src="data:text/javascript,if (window.current_test_id === ${id}) { window.events.push('fast'); window.resolve_fast(); }"><` + "/script>" +
       `<script>if (window.current_test_id === ${id}) window.events.push('inline');<` + "/script>";
     return { markup, slowRan, fastRan };

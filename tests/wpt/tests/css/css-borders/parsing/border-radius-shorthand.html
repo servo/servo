@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders Module Level 3: border-radius sets longhands</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-borders/#border-radius">
+<meta name="assert" content="border-radius supports the full grammar '<length-percentage [0,∞]>{1,4} [ / <length-percentage [0,∞]>{1,4} ]?'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_shorthand_value('border-radius', '10px', {
+  'border-top-left-radius': '10px',
+  'border-top-right-radius': '10px',
+  'border-bottom-right-radius': '10px',
+  'border-bottom-left-radius': '10px',
+});
+
+test_shorthand_value('border-radius', '10px 20px', {
+  'border-top-left-radius': '10px',
+  'border-top-right-radius': '20px',
+  'border-bottom-right-radius': '10px',
+  'border-bottom-left-radius': '20px',
+});
+
+test_shorthand_value('border-radius', '10px 20px 30px', {
+  'border-top-left-radius': '10px',
+  'border-top-right-radius': '20px',
+  'border-bottom-right-radius': '30px',
+  'border-bottom-left-radius': '20px',
+});
+
+test_shorthand_value('border-radius', '10px 20px 30px 40px', {
+  'border-top-left-radius': '10px',
+  'border-top-right-radius': '20px',
+  'border-bottom-right-radius': '30px',
+  'border-bottom-left-radius': '40px',
+});
+
+test_shorthand_value('border-radius', '10% 20px', {
+  'border-top-left-radius': '10%',
+  'border-top-right-radius': '20px',
+  'border-bottom-right-radius': '10%',
+  'border-bottom-left-radius': '20px',
+});
+
+test_shorthand_value('border-radius', '10px 20px 30px 40px / 15px', {
+  'border-top-left-radius': '10px 15px',
+  'border-top-right-radius': '20px 15px',
+  'border-bottom-right-radius': '30px 15px',
+  'border-bottom-left-radius': '40px 15px',
+});
+
+test_shorthand_value('border-radius', '10px 20px 30px 40px / 15px 25px', {
+  'border-top-left-radius': '10px 15px',
+  'border-top-right-radius': '20px 25px',
+  'border-bottom-right-radius': '30px 15px',
+  'border-bottom-left-radius': '40px 25px',
+});
+
+test_shorthand_value('border-radius', '10px 20px 30px 40px / 15px 25px 35px', {
+  'border-top-left-radius': '10px 15px',
+  'border-top-right-radius': '20px 25px',
+  'border-bottom-right-radius': '30px 35px',
+  'border-bottom-left-radius': '40px 25px',
+});
+
+test_shorthand_value('border-radius', '10px 20px 30px 40px / 15px 25px 35px 45px', {
+  'border-top-left-radius': '10px 15px',
+  'border-top-right-radius': '20px 25px',
+  'border-bottom-right-radius': '30px 35px',
+  'border-bottom-left-radius': '40px 45px',
+});
+
+test_shorthand_value('border-radius', '10px / 20px 30px 40px', {
+  'border-top-left-radius': '10px 20px',
+  'border-top-right-radius': '10px 30px',
+  'border-bottom-right-radius': '10px 40px',
+  'border-bottom-left-radius': '10px 30px',
+});
+</script>
+</body>
+</html>

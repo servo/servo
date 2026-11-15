@@ -24,6 +24,28 @@ test_valid_value("background-image", 'light-dark(image(blue), url("b.png"))');
 test_valid_value("background-image", 'light-dark(image-set(url("a.png") 1x), image-set(url("b.png") 2x))');
 test_valid_value("background-image", 'light-dark(image-set("a.png" 1x), image-set("b.png" 2x))', ['light-dark(image-set("a.png" 1x), image-set("b.png" 2x))', 'light-dark(image-set(url("a.png") 1x), image-set(url("b.png") 2x))']);
 
+test_valid_value("background-image", "linear-gradient(red)");
+test_valid_value("background-image", "linear-gradient(red 0%)");
+test_valid_value("background-image", "linear-gradient(red 0, blue)", "linear-gradient(red 0px, blue)");
+test_valid_value("background-image", "linear-gradient(red 10px, blue 20px)");
+test_valid_value("background-image", "linear-gradient(to top, red, blue)");
+test_valid_value("background-image", "linear-gradient(to top left, red, blue)", "linear-gradient(to left top, red, blue)");
+test_valid_value("background-image", "linear-gradient(10deg, red 0%, 25%, blue)");
+test_valid_value("background-image", "repeating-linear-gradient(red, blue)");
+
+test_valid_value("background-image", "radial-gradient(red, blue)");
+test_valid_value("background-image", "radial-gradient(farthest-corner, red, blue)", "radial-gradient(red, blue)");
+test_valid_value("background-image", "radial-gradient(closest-side, red, blue)");
+test_valid_value("background-image", "radial-gradient(ellipse, red, blue)", "radial-gradient(red, blue)");
+test_valid_value("background-image", "radial-gradient(ellipse farthest-corner, red, blue)", "radial-gradient(red, blue)");
+test_valid_value("background-image", "radial-gradient(ellipse closest-side, red, blue)", "radial-gradient(closest-side, red, blue)");
+test_valid_value("background-image", "radial-gradient(ellipse 10px 20px, red, blue)", "radial-gradient(10px 20px, red, blue)");
+test_valid_value("background-image", "radial-gradient(circle, red, blue)");
+test_valid_value("background-image", "radial-gradient(circle farthest-corner, red, blue)", "radial-gradient(circle, red, blue)");
+test_valid_value("background-image", "radial-gradient(circle closest-side, red, blue)");
+test_valid_value("background-image", "radial-gradient(circle 10px, red, blue)", "radial-gradient(10px, red, blue)");
+test_valid_value("background-image", "repeating-radial-gradient(red, blue)");
+
 test_valid_value(
     "background-image",
     "cross-fade(50% url(http://www.example.com), 50% url(http://www.example.com))", [

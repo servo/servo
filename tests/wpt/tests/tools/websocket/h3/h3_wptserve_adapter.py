@@ -73,6 +73,7 @@ class _H3RequestHandlerAdapter:
         protocol: Any,
     ) -> None:
         self.server = server
+        self.scheme = server.scheme
         self.headers = headers
         self.command = headers.get("method", "GET")
         self.path = headers.get("path", "/")

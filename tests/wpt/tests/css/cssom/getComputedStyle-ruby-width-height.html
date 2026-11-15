@@ -1,0 +1,31 @@
+<!doctype html>
+<title>getComputedStyle() returns the computed width and height of ruby boxes</title>
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://drafts.csswg.org/cssom/#resolved-value">
+<link rel="help" href="https://drafts.csswg.org/css-ruby/#box-style">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+  .sized {
+    width: 123px;
+    height: 45px;
+  }
+</style>
+<div>
+  <span class="sized">s</span><ruby class="sized"><rb class="sized">base</rb><rt class="sized">text</rt></ruby>
+  <span id="block" style="display: block ruby; width: 10%">b</span>
+</div>
+<script>
+for (const sel of ["span.sized", "ruby", "rb", "rt"]) {
+  test(function() {
+    const cs = getComputedStyle(document.querySelector(sel));
+    assert_equals(cs.width, "123px", "width");
+    assert_equals(cs.height, "45px", "height");
+  }, `Resolved width and height of ${sel} are the computed values`);
+}
+
+test(function() {
+  assert_not_equals(getComputedStyle(document.getElementById("block")).width,
+                    "10%");
+}, "Resolved width of a block-level ruby is the used value");
+</script>

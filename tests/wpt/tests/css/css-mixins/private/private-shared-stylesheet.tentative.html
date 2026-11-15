@@ -40,4 +40,43 @@
     firstRule.parentRule.deleteRule(0);
     assert_equals(firstRule.cssText, expected);
   }, 'Shared stylesheets and detached rules preserve authored private names');
+
+  promise_test(async t => {
+    const firstFrame = await loadFrame(t);
+    const secondFrame = await loadFrame(t);
+    const firstRule = getPrivateRule(firstFrame);
+    const secondRule = getPrivateRule(secondFrame);
+    firstRule.parentRule.style.setProperty('width', 'var(--x)');
+    secondRule.parentRule.style.setProperty('width', 'var(--x)');
+    const firstTarget = firstFrame.contentDocument.querySelector('.target');
+    const secondTarget = secondFrame.contentDocument.querySelector('.target');
+    assert_equals(firstFrame.contentWindow.getComputedStyle(firstTarget).width,
+                  '10px');
+    assert_equals(secondFrame.contentWindow.getComputedStyle(secondTarget).width,
+                  '10px');
+    secondRule.styleMap.set('--x', '25px');
+    assert_equals(secondFrame.contentWindow.getComputedStyle(secondTarget).width,
+                  '25px');
+    assert_equals(firstFrame.contentWindow.getComputedStyle(firstTarget).width,
+                  '10px');
+  }, 'Private values remain isolated after a shared stylesheet is mutated');
+
+  promise_test(async t => {
+    const frame = await loadFrame(t);
+    const doc = frame.contentDocument;
+    const firstLink = doc.querySelector('link');
+    const secondLink = firstLink.cloneNode();
+    await new Promise(resolve => {
+      secondLink.onload = resolve;
+      firstLink.after(secondLink);
+    });
+
+    const secondRule = secondLink.sheet.cssRules[0];
+    const target = doc.querySelector('.target');
+    secondRule.style.width = 'var(--x, 20px)';
+    assert_equals(frame.contentWindow.getComputedStyle(target).width, '10px');
+    secondRule.cssRules[0].style.removeProperty('--x');
+    assert_equals(frame.contentWindow.getComputedStyle(target).width, '20px');
+    assert_equals(getPrivateRule(frame).style.getPropertyValue('--x'), '10px');
+  }, 'A copied stylesheet cannot capture private values from the original sheet');
 </script>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>CSS stretch(): percentage block size children</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#percentage-sizing">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="A box sized with stretch() in the block axis gives its percentage block size children its content box, with its margins taken off.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .column {
+    float: left;
+    width: 25px;
+    height: 200px;
+  }
+  .test {
+    height: 100%;
+    background: green;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="column"><div style="height: stretch(150px); margin-bottom: 50px;"><div class="test"></div></div></div>
+<div class="column"><div style="height: stretch(75%); margin-bottom: 50px;"><div class="test"></div></div></div>
+<div class="column"><div style="height: 10px; min-height: stretch(150px); margin-bottom: 50px;"><div class="test"></div></div></div>
+<div class="column"><div style="height: 200px; max-height: stretch(150px); margin-bottom: 50px;"><div class="test"></div></div></div>

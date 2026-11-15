@@ -1,0 +1,324 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="variant" content="?linebreak=br">
+<meta name="variant" content="?linebreak=linefeed">
+<title>Preserve line break immediately before the end boundary of inline editing host</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<script src="/clipboard-apis/resources/user-activation.js"></script>
+<script>
+"use strict";
+
+const params = new URLSearchParams(document.location.search);
+const linebreak = params.get("linebreak") == "br" ? "<br>" : "\n";
+
+/**
+ * This test checks whether the line break at end of an inline editing host
+ * preserves the surrounding content layout after editing around it.
+ * This does not check whether the line break type is the best one for the
+ * compatibility. It should be checked in another test.
+ * This test does not expected the compatible behavior between major browsers.
+ * Instead, this test expects the ideal behavior to preserve the layout with
+ * surrounding content.
+ */
+
+addEventListener("load", async () => {
+  const editingHost = document.querySelector("span");
+  if (linebreak == "\n") {
+    editingHost.style.whiteSpace = "pre";
+  }
+  const utils = new EditorTestUtils(editingHost);
+  for (const precedingContent of ["", "<br>", "XYZ", "<div>child block</div>"]) {
+    for (let prevSibling = editingHost.previousSibling; prevSibling;
+          prevSibling = editingHost.previousSibling) {
+      prevSibling.remove();
+    }
+    if (precedingContent != "") {
+      editingHost.insertAdjacentHTML("beforebegin", precedingContent);
+    }
+    const followingBlockBoundary =
+      precedingContent == "" || precedingContent == "<div>child block</div>";
+    for (const followingContent of ["", "<br>", "XYZ", "<div>child block</div>"]) {
+      for (let nextSibling = editingHost.nextSibling; nextSibling;
+            nextSibling = editingHost.nextSibling) {
+        nextSibling.remove();
+      }
+      if (followingContent != "") {
+        editingHost.insertAdjacentHTML("afterend", followingContent);
+      }
+      const followedByBlockBoundary =
+        followingContent == "" || followingContent == "<div>child block</div>";
+      const lineBreakShouldBePreservedForParentBlock =
+        precedingContent == "" && followingContent == "";
+      const lineBreakShouldBePreservedForEmptyLine =
+        followedByBlockBoundary && precedingContent != "XYZ";
+      const editingHostCondition =
+          `(${precedingContent}<span contenteditable></span>${followingContent})`
+      function assert_editing_host_innerHTML(expected, message) {
+        if (Array.isArray(expected)) {
+          assert_in_array(editingHost.innerHTML, expected, message);
+        } else {
+          assert_equals(editingHost.innerHTML, expected, message);
+        }
+      }
+
+      /**
+       * "insertText"
+       */
+      test(t => {
+        utils.setupEditingHost(`{}${linebreak}`);
+        document.execCommand("insertText", false, "a");
+        document.execCommand("insertText", false, "b");
+        document.execCommand("insertText", false, "c");
+        assert_editing_host_innerHTML(
+          ["abc", `abc${linebreak}`]
+        );
+      }, `"insertText" should work ${editingHostCondition}`);
+      test(t => {
+        utils.setupEditingHost(`{}${linebreak}`);
+        document.execCommand("insertText", false, "\n");
+        // To make 2 lines before a block boundary, 2 linebreaks are required.
+        assert_editing_host_innerHTML(
+          linebreak == "<br>" ? "<br><br>" : ["<br><br>", "\n<br>", "\n\n"]
+        );
+      }, `"insertText", "\\n" should make the editing host has 2 lines ${editingHostCondition}`);
+
+      /**
+       * "delete" (Backspace)
+       */
+      test(t => {
+        utils.setupEditingHost(`abc[]${linebreak}`);
+        document.execCommand("delete");
+        document.execCommand("delete");
+        document.execCommand("delete");
+        document.execCommand("delete");
+        // Neither deleting all preceding text nor the extra deletion shouldn't
+        // delete the following line break.
+        assert_editing_host_innerHTML(
+          linebreak == "<br>" ? "<br>" : ["<br>", "\n"]
+        );
+      }, `"delete" shouldn't delete the following linebreak ${editingHostCondition}`);
+      test(t => {
+        utils.setupEditingHost(`{abc${linebreak}}`);
+        document.execCommand("delete");
+        if (lineBreakShouldBePreservedForParentBlock) {
+          // For preserving the parent block, inline editing host should
+          // preserve a line break when it's empty.
+          assert_editing_host_innerHTML(
+            linebreak == "<br>" ? "<br>" : ["<br>", "\n"]
+          );
+        } else if (lineBreakShouldBePreservedForEmptyLine) {
+          // For preserving the empty line, inline editing host should preserve
+          // a line break when it's empty.
+          assert_editing_host_innerHTML(
+            linebreak == "<br>" ? "<br>" : ["<br>", "\n"]
+          );
+        } else {
+          // Otherwise, it's fine to it becomes empty.
+          assert_editing_host_innerHTML("");
+        }
+      },
+      lineBreakShouldBePreservedForParentBlock
+        ? `"delete" shouldn't delete the selected linebreak to preserve the parent block ${editingHostCondition}`
+        : (lineBreakShouldBePreservedForEmptyLine
+             ? `"delete" shouldn't delete the selected linebreak to preserve the empty line ${editingHostCondition}`
+             : `"delete" should delete the selected linebreak ${editingHostCondition}`)
+      );
+      test(t => {
+        utils.setupEditingHost(`abc[]`);
+        document.execCommand("delete");
+        document.execCommand("delete");
+        document.execCommand("delete");
+        if (lineBreakShouldBePreservedForParentBlock) {
+          // For preserving the parent block, inline editing host should
+          // preserve a line break when it's empty.
+          assert_editing_host_innerHTML(
+            linebreak == "<br>" ? "<br>" : ["<br>", "\n"]
+          );
+        } else if (lineBreakShouldBePreservedForEmptyLine) {
+          // For preserving the empty line, inline editing host should preserve
+          // a line break when it's empty.
+          assert_editing_host_innerHTML(
+            linebreak == "<br>" ? "<br>" : ["<br>", "\n"]
+          );
+        } else {
+          // Otherwise, it's fine to it becomes empty.
+          assert_editing_host_innerHTML("");
+        }
+      },
+      lineBreakShouldBePreservedForParentBlock
+        ? `"delete" should make a line break to preserve the parent block ${editingHostCondition}`
+        : (lineBreakShouldBePreservedForEmptyLine
+             ? `"delete" should make a linebreak to preserve the empty line ${editingHostCondition}`
+             : `"delete" shouldn't make a line break ${editingHostCondition}`)
+      );
+
+      /**
+       * "forwarddelete" (Delete)
+       */
+      test(t => {
+        utils.setupEditingHost(`[]abc${linebreak}`);
+        document.execCommand("forwarddelete");
+        document.execCommand("forwarddelete");
+        document.execCommand("forwarddelete");
+        document.execCommand("forwarddelete");
+        if (lineBreakShouldBePreservedForParentBlock) {
+          // For preserving the parent block, inline editing host should
+          // preserve a line break when it's empty.
+          assert_editing_host_innerHTML(
+            linebreak == "<br>" ? "<br>" : ["<br>", "\n"]
+          );
+        } else if (lineBreakShouldBePreservedForEmptyLine) {
+          // For preserving the empty line, inline editing host should preserve
+          // a line break when it's empty.
+          assert_editing_host_innerHTML(
+            linebreak == "<br>" ? "<br>" : ["<br>", "\n"]
+          );
+        } else {
+          // Otherwise, it's fine to it becomes empty.
+          assert_editing_host_innerHTML("");
+        }
+        assert_editing_host_innerHTML(
+          linebreak == "<br>" ? "<br>" : ["<br>", "\n"]
+        );
+      },
+      lineBreakShouldBePreservedForParentBlock
+        ? `"forwarddelete" shouldn't delete the linebreak to preserve the parent block ${editingHostCondition}`
+        : (lineBreakShouldBePreservedForEmptyLine
+             ? `"forwarddelete" shouldn't delete the linebreak to preserve the empty line ${editingHostCondition}`
+             : `"forwarddelete" should delete the linebreak ${editingHostCondition}`)
+      );
+      test(t => {
+        utils.setupEditingHost(`{abc${linebreak}}`);
+        document.execCommand("forwarddelete");
+        if (lineBreakShouldBePreservedForParentBlock) {
+          // For preserving the parent block, inline editing host should
+          // preserve a line break when it's empty.
+          assert_editing_host_innerHTML(
+            linebreak == "<br>" ? "<br>" : ["<br>", "\n"]
+          );
+        } else if (lineBreakShouldBePreservedForEmptyLine) {
+          // For preserving the empty line in the parent block, inline editing
+          // host should preserve a line break when it's empty.
+          assert_editing_host_innerHTML(
+            linebreak == "<br>" ? "<br>" : ["<br>", "\n"]
+          );
+        } else {
+          // Otherwise, it's fine to it becomes empty.
+          assert_editing_host_innerHTML("");
+        }
+      },
+      lineBreakShouldBePreservedForParentBlock
+        ? `"forwarddelete" shouldn't delete the selected linebreak to preserve the parent block ${editingHostCondition}`
+        : (lineBreakShouldBePreservedForEmptyLine
+             ? `"forwarddelete" shouldn't delete the selected linebreak to preserve the empty line ${editingHostCondition}`
+             : `"forwarddelete" should delete the selected linebreak ${editingHostCondition}`)
+      );
+      test(t => {
+        utils.setupEditingHost(`[]abc`);
+        document.execCommand("forwarddelete");
+        document.execCommand("forwarddelete");
+        document.execCommand("forwarddelete");
+        if (lineBreakShouldBePreservedForParentBlock) {
+          // For the parent block can have caret, inline editing host should
+          // preserve a line break when it's empty.
+          assert_editing_host_innerHTML(
+            linebreak == "<br>" ? "<br>" : ["<br>", "\n"]
+          );
+        } else if (lineBreakShouldBePreservedForEmptyLine) {
+          // For the empty line in the parent block, inline editing host should
+          // preserve a line break when it's empty.
+          assert_editing_host_innerHTML(
+            linebreak == "<br>" ? "<br>" : ["<br>", "\n"]
+          );
+        } else {
+          // Otherwise, it's fine to it becomes empty.
+          assert_editing_host_innerHTML("");
+        }
+      },
+      lineBreakShouldBePreservedForParentBlock
+        ? `"forwarddelete" should make a line break to preserve the parent block ${editingHostCondition}`
+        : (lineBreakShouldBePreservedForEmptyLine
+             ? `"forwarddelete" should make a linebreak to preserve the empty line ${editingHostCondition}`
+             : `"forwarddelete" shouldn't make a line break ${editingHostCondition}`)
+      );
+
+      /**
+       * "bold"
+       */
+      test(t => {
+        utils.setupEditingHost(
+          linebreak == "<br>" ? `{${linebreak}}${linebreak}` : `[${linebreak}]${linebreak}`);
+        document.execCommand("bold");
+        document.execCommand("bold");
+        assert_editing_host_innerHTML(
+          linebreak == "<br>" ? "<br><br>" : ["<br><br>", "\n<br>", "\n\n"]
+        );
+      }, `"bold" shouldn't delete the linebreaks (one linebreak selected) ${editingHostCondition}`);
+      test(t => {
+        utils.setupEditingHost(`{${linebreak}${linebreak}}`);
+        document.execCommand("bold");
+        document.execCommand("bold");
+        assert_editing_host_innerHTML(
+          linebreak == "<br>" ? "<br><br>" : ["<br><br>", "\n<br>", "\n\n"]
+        );
+      }, `"bold" shouldn't delete the linebreaks (both linebreaks selected) ${editingHostCondition}`);
+
+      /**
+       * "insertHTML"
+       */
+      test(t => {
+        utils.setupEditingHost(`{}${linebreak}`);
+        document.execCommand("insertHTML", false, "a");
+        document.execCommand("insertHTML", false, "b");
+        document.execCommand("insertHTML", false, "c");
+        assert_editing_host_innerHTML(
+          ["abc", `abc${linebreak}`]
+        );
+      }, `"insertHTML", "abc" should work ${editingHostCondition}`);
+      test(t => {
+        utils.setupEditingHost(`{}${linebreak}`);
+        document.execCommand("insertHTML", false, "<br>");
+        // To make 2 lines before a block boundary, 2 linebreaks are required.
+        assert_editing_host_innerHTML(
+          linebreak == "<br>" ? "<br><br>" : ["<br><br>", "\n<br>", "\n\n"]
+        );
+      }, `"insertHTML", "<br>" should make the editing host has 2 lines ${editingHostCondition}`);
+
+      /**
+       * pasting
+       */
+      promise_test(async t => {
+        utils.setupEditingHost("[abc]");
+        await sendCopyShortcutKey();
+        utils.setupEditingHost(`{}${linebreak}`);
+        await sendPasteShortcutKey();
+        assert_editing_host_innerHTML(
+          ["abc", `abc${linebreak}`]
+        );
+      }, `"paste", "abc" should work ${editingHostCondition}`);
+      promise_test(async t => {
+        utils.setupEditingHost("{<br>}<br>");
+        await sendCopyShortcutKey();
+        utils.setupEditingHost(`{}${linebreak}`);
+        await sendPasteShortcutKey();
+        // To make 2 lines before a block boundary, 2 linebreaks are required.
+        assert_editing_host_innerHTML(
+          linebreak == "<br>" ? "<br><br>" : ["<br><br>", "\n<br>", "\n\n"]
+        );
+      }, `"paste", "<br>" should make the editing host has 2 lines ${editingHostCondition}`);
+    }
+  }
+}, {once: true});
+</script>
+</head>
+<body>
+  <div id="container"><span contenteditable></span></div>
+</body>
+</html>

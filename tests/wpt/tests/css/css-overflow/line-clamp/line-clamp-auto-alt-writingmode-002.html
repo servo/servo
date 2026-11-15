@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: `line-clamp: auto` with a vertical writing mode</title>
+<link rel="author" title="Seva Alipov" href="mailto:salipov@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-auto-alt-writingmode-002-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+.clamp {
+  font: 25px/1 Ahem;
+  writing-mode: vertical-rl;
+  line-clamp: auto;
+  max-block-size: 2lh;
+  background: yellow;
+  inline-size: 8ch;
+}
+</style>
+<div class="clamp">
+  Line 1<br>
+  Line 2<br>
+  Line 3<br>
+  Line 4
+</div>

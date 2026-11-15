@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Module link: fetch success and failure</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/ShadowDOM/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<div id="target">Test content</div>
+
+<script type="module">
+import {loadResult} from "./module-stylesheet-helpers.js";
+
+promise_test(async t => {
+  // A bare specifier with no import map entry cannot be resolved.
+  const { link, event } = await loadResult(t, "not-a-valid-bare-specifier");
+  assert_equals(event, "error", "Resolution failure fires error.");
+  assert_equals(link.sheet, null, "No sheet is connected on resolution failure.");
+}, "Unresolvable module specifier fires error and connects no sheet.");
+
+promise_test(async t => {
+  // A wrong-MIME resource (not text/css) is a module fetch failure.
+  const { link, event } =
+      await loadResult(t, "data:text/plain,%23target%7Bcolor:blue%7D");
+  assert_equals(event, "error", "Wrong MIME type fires error.");
+  assert_equals(link.sheet, null, "No sheet is connected on MIME failure.");
+  assert_not_equals(
+      getComputedStyle(document.getElementById("target")).color,
+      "rgb(0, 0, 255)", "No styles applied on failure.");
+}, "Non-CSS MIME type fires error and connects no sheet.");
+
+promise_test(async t => {
+  const {link, event} = await loadResult(t, "https://[invalid]/style.css");
+  assert_equals(event, "error", "An invalid URL fires error.");
+  assert_equals(link.sheet, null, "No sheet is connected on resolution failure.");
+}, "A malformed absolute URL fires error and connects no sheet.");
+
+for (const status of [404, 503]) {
+  promise_test(async t => {
+    const target = document.getElementById("target");
+    const initialColor = getComputedStyle(target).color;
+    const {link, event} = await loadResult(
+        t, `./module-stylesheet-blue.css?pipe=status(${status})`);
+    assert_equals(event, "error", "A non-OK HTTP status fires error.");
+    assert_equals(link.sheet, null, "No sheet is connected on HTTP failure.");
+    assert_equals(getComputedStyle(target).color, initialColor,
+        "The CSS response body is not applied.");
+  }, `A CSS response with HTTP status ${status} fires error.`);
+}
+
+promise_test(async t => {
+  const url = URL.createObjectURL(new Blob(["#target { color: blue; }"],
+      {type: "text/css"}));
+  URL.revokeObjectURL(url);
+  const {link, event} = await loadResult(t, url);
+  assert_equals(event, "error", "An unavailable resource fires error.");
+  assert_equals(link.sheet, null, "No sheet is connected on network failure.");
+}, "A revoked CSS blob URL fires error and connects no sheet.");
+
+promise_test(async t => {
+  const {link, event} = await loadResult(t, "data:text/css,");
+  assert_equals(event, "load");
+}, "A successful CSS module fetch fires load.");
+</script>

@@ -7,17 +7,13 @@
     <script src="/resources/testharnessreport.js"></script>
     <style>
        @mixin --m1() {
-         @result {
-           color: red;
-           & {
-             --foo: bar;
-           }
+         color: red;
+         & {
+           --foo: bar;
          }
        }
        @mixin --m2() {
-         @result {
-           color: red;
-         }
+         color: red;
        }
        #target1 {
          @apply --m1;
@@ -30,9 +26,7 @@
      </style>
      <style>
        @mixin --m3() {
-         @result {
-           color: green;
-         }
+         color: green;
        }
        #target3 {
          color: red;
@@ -47,18 +41,15 @@
         test(() => {
           let ss = document.styleSheets[0];
           assert_equals(ss.cssRules[0].name, '--m1');
-          assert_equals(ss.cssRules[0].cssRules.length, 1);
-          assert_equals(ss.cssRules[0].cssRules[0].cssRules.length, 2);
+          assert_equals(ss.cssRules[0].cssRules.length, 2);
           let target = document.getElementById('target1');
 
           assert_equals(getComputedStyle(target).color, 'rgb(255, 0, 0)');
-          ss.cssRules[0].cssRules[0].cssRules[1].style.color = 'green';
+          ss.cssRules[0].cssRules[1].style.color = 'green';
           assert_equals(ss.cssRules[0].cssText,
 `@mixin --m1 {
-  @result {
   color: red;
   & { --foo: bar; color: green; }
-}
 }`);
           assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
         }, 'invalidation of @mixin from same stylesheet');
@@ -69,12 +60,10 @@
           let target = document.getElementById('target2');
 
           assert_equals(getComputedStyle(target).color, 'rgb(255, 0, 0)');
-          ss.cssRules[1].cssRules[0].cssRules[0].style.color = 'green';
+          ss.cssRules[1].cssRules[0].style.color = 'green';
           assert_equals(ss.cssRules[1].cssText,
 `@mixin --m2 {
-  @result {
   color: green;
-}
 }`);
           assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
         }, 'invalidation of @mixin from different stylesheet');

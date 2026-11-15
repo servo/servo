@@ -23,14 +23,6 @@ async function run_test(t, sw_policy, dw_policy, expected_success, expected_inte
 
   const target_url = get_host_info().HTTPS_ORIGIN + '/common/blank-with-cors.html';
 
-  let sw_intercepted = false;
-  const listener = (event) => {
-    if (event.data && event.data.type === 'sw-intercepted') {
-      sw_intercepted = true;
-    }
-  };
-  iframe.contentWindow.navigator.serviceWorker.addEventListener('message', listener);
-
   worker.port.start();
   worker.port.postMessage(target_url);
 
@@ -43,7 +35,12 @@ async function run_test(t, sw_policy, dw_policy, expected_success, expected_inte
     };
   });
 
-  iframe.contentWindow.navigator.serviceWorker.removeEventListener('message', listener);
+  // The worker's result implies the Service Worker's fetch handler already ran.
+  const sw_intercepted = await new Promise((resolve) => {
+    const channel = new MessageChannel();
+    channel.port1.onmessage = (e) => resolve(e.data);
+    registration.active.postMessage(null, [channel.port2]);
+  });
 
   assert_equals(worker_result.success, expected_success,
     `Fetch success expectation: ${expected_success}. Result error: ${worker_result.error || 'none'}`);

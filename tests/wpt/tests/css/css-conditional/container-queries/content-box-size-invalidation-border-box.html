@@ -1,0 +1,95 @@
+<!doctype html>
+<title>Container queries and units respond to content box changes when the border box size stays the same</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-lengths">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  .container {
+    box-sizing: border-box;
+    width: 400px;
+    height: 200px;
+  }
+  #inline-size-container {
+    container-type: inline-size;
+  }
+  #size-container {
+    container-type: size;
+  }
+  #auto-scrollbar-container {
+    container-type: inline-size;
+    overflow-y: auto;
+  }
+  .units {
+    width: 100cqi;
+    height: 100cqb;
+  }
+  .query {
+    color: red;
+  }
+  @container (width <= 300px) {
+    .query { color: green; }
+  }
+  @container (height <= 100px) {
+    .query { background-color: green; }
+  }
+</style>
+<div id="inline-size-container" class="container">
+  <div id="inline-size-units" class="units"></div>
+  <div id="inline-size-query" class="query"></div>
+</div>
+<div id="size-container" class="container">
+  <div id="size-units" class="units"></div>
+  <div id="size-query" class="query"></div>
+</div>
+<div id="auto-scrollbar-container" class="container">
+  <div id="auto-scrollbar-units" class="units" style="height: 400px"></div>
+</div>
+<script>
+  setup(() => assert_implements_size_container_queries());
+
+  test(() => {
+    assert_equals(getComputedStyle(document.getElementById("inline-size-units")).width, "400px");
+    assert_equals(getComputedStyle(document.getElementById("inline-size-query")).color, "rgb(255, 0, 0)");
+
+    document.getElementById("inline-size-container").style.paddingRight = "100px";
+    assert_equals(getComputedStyle(document.getElementById("inline-size-units")).width, "300px");
+    assert_equals(getComputedStyle(document.getElementById("inline-size-query")).color, "rgb(0, 128, 0)");
+
+    document.getElementById("inline-size-container").style.paddingRight = "0px";
+    assert_equals(getComputedStyle(document.getElementById("inline-size-units")).width, "400px");
+    assert_equals(getComputedStyle(document.getElementById("inline-size-query")).color, "rgb(255, 0, 0)");
+  }, "Inline padding change on a border-box inline-size container");
+
+  test(() => {
+    assert_equals(getComputedStyle(document.getElementById("size-units")).height, "200px");
+    assert_equals(getComputedStyle(document.getElementById("size-query")).backgroundColor, "rgba(0, 0, 0, 0)");
+
+    document.getElementById("size-container").style.paddingBottom = "100px";
+    assert_equals(getComputedStyle(document.getElementById("size-units")).height, "100px");
+    assert_equals(getComputedStyle(document.getElementById("size-query")).backgroundColor, "rgb(0, 128, 0)");
+
+    document.getElementById("size-container").style.paddingBottom = "0px";
+    assert_equals(getComputedStyle(document.getElementById("size-units")).height, "200px");
+    assert_equals(getComputedStyle(document.getElementById("size-query")).backgroundColor, "rgba(0, 0, 0, 0)");
+  }, "Block padding change on a border-box size container");
+
+  test(() => {
+    document.getElementById("inline-size-container").style.borderRightWidth = "100px";
+    document.getElementById("inline-size-container").style.borderRightStyle = "solid";
+    assert_equals(getComputedStyle(document.getElementById("inline-size-units")).width, "300px");
+    assert_equals(getComputedStyle(document.getElementById("inline-size-query")).color, "rgb(0, 128, 0)");
+
+    document.getElementById("inline-size-container").style.borderRightWidth = "0px";
+    assert_equals(getComputedStyle(document.getElementById("inline-size-units")).width, "400px");
+    assert_equals(getComputedStyle(document.getElementById("inline-size-query")).color, "rgb(255, 0, 0)");
+  }, "Inline border change on a border-box inline-size container");
+
+  test(() => {
+    assert_equals(getComputedStyle(document.getElementById("auto-scrollbar-units")).width, "400px");
+
+    document.getElementById("auto-scrollbar-container").style.paddingRight = "100px";
+    assert_equals(getComputedStyle(document.getElementById("auto-scrollbar-units")).width, "300px");
+  }, "Inline padding change on a border-box inline-size container with an auto scrollbar");
+</script>

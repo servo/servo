@@ -200,9 +200,9 @@ promise_test(async t => {
 </select>
 
 <script>
-// The selectedcontent post-connection steps leave the update queued by removing
-// the option to its microtask, which updates the inserted selectedcontent along
-// with the existing one.
+// The selectedcontent post-connection steps perform the update queued by
+// removing the option, which updates the inserted selectedcontent along with
+// the existing one.
 promise_test(async t => {
   const select = document.getElementById('select7');
   const selectedcontent = select.querySelector('selectedcontent');
@@ -213,19 +213,17 @@ promise_test(async t => {
   select.options[0].remove();
   select.querySelector('button').append(newSelectedcontent);
 
-  assert_equals(newSelectedcontent.textContent, '',
-    'Inserting selectedcontent should not update it while an update is queued.');
+  assert_equals(selectedcontent.textContent, 'two',
+    'Inserting selectedcontent should update the existing selectedcontent synchronously.');
+  assert_equals(newSelectedcontent.textContent, 'two',
+    'Inserting selectedcontent should update it synchronously.');
   await new Promise(queueMicrotask);
 
-  assert_equals(selectedcontent.textContent, 'two',
-    'The existing selectedcontent should match the selected option.');
-  assert_equals(newSelectedcontent.textContent, 'two',
-    'The inserted selectedcontent should match the selected option.');
   assert_equals(takeRecords().length, 1,
     'The existing selectedcontent should be updated once.');
   assert_equals(takeNewRecords().length, 1,
     'The inserted selectedcontent should be updated once.');
-}, 'Inserting selectedcontent while an update of its select\'s selectedcontent elements is queued leaves it to that update.');
+}, 'Inserting selectedcontent performs a pending update of its select\'s selectedcontent elements.');
 </script>
 
 <select id=select8 size=2>

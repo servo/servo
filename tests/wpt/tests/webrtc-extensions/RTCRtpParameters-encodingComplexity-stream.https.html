@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>RTCRtpEncodingParameters encodingComplexity attribute with active video stream</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+function createCanvasTrack(width, height) {
+  const canvas = Object.assign(
+      document.createElement('canvas'), {width, height});
+  const ctx = canvas.getContext('2d');
+  let tick = 0;
+  const interval = setInterval(() => {
+    ctx.fillStyle = (tick++ % 2 === 0) ? 'rgb(0, 128, 255)' : 'rgb(255, 128, 0)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }, 1000 / 30);
+  const [track] = canvas.captureStream().getTracks();
+  const nativeStop = track.stop;
+  track.stop = () => {
+    clearInterval(interval);
+    nativeStop.apply(track);
+  };
+  return track;
+}
+
+async function waitForEncodedFramesAbove(t, pc, minFrames) {
+  for (let i = 0; i < 100; ++i) {
+    const report = await pc.getStats();
+    for (const stats of report.values()) {
+      if (stats.type === 'outbound-rtp' &&
+          (stats.framesEncoded || 0) > minFrames) {
+        return stats.framesEncoded;
+      }
+    }
+    await new Promise(r => t.step_timeout(r, 50));
+  }
+  assert_unreached(`Timed out waiting for framesEncoded > ${minFrames}`);
+}
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  pc1.onicecandidate = e => pc2.addIceCandidate(e.candidate);
+  pc2.onicecandidate = e => pc1.addIceCandidate(e.candidate);
+
+  const track = createCanvasTrack(120, 60);
+  t.add_cleanup(() => track.stop());
+
+  const {sender} = pc1.addTransceiver(track, {
+    sendEncodings: [{encodingComplexity: 'low'}]
+  });
+
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(pc2.localDescription);
+
+  let count = await waitForEncodedFramesAbove(t, pc1, 0);
+
+  let params = sender.getParameters();
+  params.encodings[0].encodingComplexity = 'maximum';
+  await sender.setParameters(params);
+  count = await waitForEncodedFramesAbove(t, pc1, count);
+
+  params = sender.getParameters();
+  delete params.encodings[0].encodingComplexity;
+  await sender.setParameters(params);
+  await waitForEncodedFramesAbove(t, pc1, count);
+}, 'Active video stream continues encoding across encodingComplexity updates and reset');
+</script>

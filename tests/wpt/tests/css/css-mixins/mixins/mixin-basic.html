@@ -7,49 +7,41 @@
     <script src="/resources/testharnessreport.js"></script>
     <style>
       @mixin --m1() {  /* Will be overwritten. */
-        @result {
-          .cls {
-            color: red;
-          }
-        }
-      }
-      @mixin --m1() {
-        @result {
-          .cls {
-            color: green;
-          }
-        }
-      }
-      @mixin invalid-name() {
-        @result {
-          .cls {
-            color: red;
-          }
-        }
-      }
-      @mixin --no-parameter-list {
-        @result {
-          .cls {
-            border: 1px solid green;
-          }
-        }
-      }
-      @mixin --missing-result1() {
-       .cls {
+        .cls {
           color: red;
         }
       }
-      @mixin --missing-result2() {
-        color: red;
+      @mixin --m1() {
+        .cls {
+          color: green;
+        }
+      }
+      @mixin invalid-name() {
+        .cls {
+          color: red;
+        }
+      }
+      @mixin --no-parameter-list {
+        .cls {
+          border: 1px solid green;
+        }
+      }
+      @mixin --nested-body() {
+        .cls {
+          color: green;
+        }
+      }
+      @mixin --declarations-body() {
+        color: green;
       }
       @mixin --empty1() {}
-      @mixin --empty2() { @result {} }
+      @mixin --empty2() {  }
       div {
         @apply --m1;
         @apply invalid-name;
         @apply --no-parameter-list;
-        @apply --missing-result1;
-        @apply --missing-result2;
+        @apply --nested-body;
+        @apply --declarations-body;
         @apply --empty1;
         @apply --empty2;
       }

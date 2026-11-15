@@ -301,6 +301,15 @@
         });
     }
 
+    window.test_driver_internal.bidi.bluetooth.simulate_gatt_mtu_change =
+        function(params) {
+        return create_action('bidi.bluetooth.simulate_gatt_mtu_change', {
+            // Default to the current window.
+            context: window,
+            ...params
+        });
+    }
+
     window.test_driver_internal.bidi.bluetooth.simulate_service =
         function(params) {
         return create_action('bidi.bluetooth.simulate_service', {

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: insets and percentage sizes of an absolutely positioned box whose containing block is an inline box in vertical-lr</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#def-cb">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#block-flow">
+<meta name="assert" content="The containing block formed by an inline box is the rectangle from the start-most padding edges of its first fragment to the end-most padding edges of its last fragment, also in vertical-lr and when the inline box has borders and padding.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.container {
+    position: relative;
+    writing-mode: vertical-lr;
+    font: 20px/1 Ahem;
+    width: 300px;
+    height: 300px;
+}
+.abs {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+}
+</style>
+<div id="tests"></div>
+<script>
+const decorations = ["", "border: 10px solid; border-inline-start-width: 30px; padding: 5px; padding-inline-end: 7px"];
+const contents = [
+    { description: "single line", before: "XX ", inside: "XXXX" },
+    { description: "two lines", before: "XXXXXX ", inside: "AAAA BBBB CCCC" },
+];
+const outOfFlowStyles = [
+    { style: "top: 0; left: 0", edges: ["top", "left"] },
+    { style: "bottom: 0; right: 0", edges: ["bottom", "right"] },
+    { style: "inset: 0; width: auto; height: auto", edges: ["left", "top", "right", "bottom"] },
+    { style: "inset: 0; width: 100%; height: 100%", edges: ["left", "top", "right", "bottom"] },
+];
+const tests = document.getElementById("tests");
+
+// Start-most padding edges of the first fragment and end-most padding edges of the last fragment.
+function containingBlockEdges(inlineBox)
+{
+    const fragments = inlineBox.getClientRects();
+    const first = fragments[0];
+    const last = fragments[fragments.length - 1];
+    const style = getComputedStyle(inlineBox);
+    const border = side => parseFloat(style[`border-${side}-width`]);
+    return { left: first.left + border("left"), top: first.top + border("top"), right: last.right - border("right"), bottom: last.bottom - border("bottom") };
+}
+
+for (const decoration of decorations) {
+    for (const content of contents) {
+        for (const outOfFlowStyle of outOfFlowStyles) {
+            const container = document.createElement("div");
+            container.className = "container";
+            container.innerHTML = `${content.before}<span style="position: relative; ${decoration}">${content.inside.substring(0, 2)}<i class="abs" style="${outOfFlowStyle.style}"></i>${content.inside.substring(2)}</span> ZZ`;
+            tests.append(container);
+            test(() => {
+                const expected = containingBlockEdges(container.querySelector("span"));
+                const actual = container.querySelector(".abs").getBoundingClientRect();
+                for (const edge of outOfFlowStyle.edges)
+                    assert_approx_equals(actual[edge], expected[edge], 0.5, `${edge} edge`);
+            }, `inline box '${decoration || "no decoration"}'; ${content.description}; absolutely positioned box '${outOfFlowStyle.style}'`);
+        }
+    }
+}
+
+tests.remove();
+</script>

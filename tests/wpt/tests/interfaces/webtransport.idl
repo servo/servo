@@ -17,7 +17,7 @@ interface WebTransportDatagramDuplexStream {
 
   readonly attribute unsigned long maxDatagramSize;
   attribute unrestricted double? incomingMaxAge;
-  attribute unrestricted double? outgoingMaxAge;
+  attribute unrestricted double outgoingMaxAge;
   attribute unsigned long incomingMaxBufferedDatagrams;
   attribute unsigned long outgoingMaxBufferedDatagrams;
 };

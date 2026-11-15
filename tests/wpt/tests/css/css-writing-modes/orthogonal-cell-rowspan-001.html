@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Writing Modes test: orthogonal table cell spanning several rows</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#orthogonal-flows">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2060385">
+<meta name="assert" content="An orthogonal table cell with rowspan > 1 lays out its content using the block-size of all the rows it spans, and the rows grow to fit that content.">
+<link rel="match" href="reference/orthogonal-cell-rowspan-001-ref.html">
+
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+
+<style>
+.container {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+table {
+  font: 20px/1 Ahem;
+  border-spacing: 0;
+}
+
+td {
+  padding: 0;
+  color: green;
+}
+
+td.filler {
+  width: 20px;
+  height: 20px;
+}
+
+.vrl { writing-mode: vertical-rl; }
+.vlr { writing-mode: vertical-lr; }
+.slr { writing-mode: sideways-lr; }
+.anywhere { overflow-wrap: anywhere; }
+</style>
+
+<p>Test passes if there are six identical green shapes below, each made of two 20x40 bars stacked vertically with a 20px gap between them.</p>
+
+<div class="container">
+  <table><tr><td class="vrl" rowspan="2">XX XX</td><td class="filler"></td></tr><tr><td class="filler"></td></tr></table>
+  <table><tr><td class="vlr" rowspan="2">XX XX</td><td class="filler"></td></tr><tr><td class="filler"></td></tr></table>
+  <table><tr><td class="slr" rowspan="2">XX XX</td><td class="filler"></td></tr><tr><td class="filler"></td></tr></table>
+  <table><tr><td class="vrl anywhere" rowspan="2">XX XX</td><td class="filler"></td></tr><tr><td class="filler"></td></tr></table>
+  <table><tr><td class="vlr anywhere" rowspan="2">XX XX</td><td class="filler"></td></tr><tr><td class="filler"></td></tr></table>
+  <table><tr><td class="slr anywhere" rowspan="3">XX XX</td><td class="filler"></td></tr><tr><td class="filler"></td></tr><tr><td class="filler"></td></tr></table>
+</div>
