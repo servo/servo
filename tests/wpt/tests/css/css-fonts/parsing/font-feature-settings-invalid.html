@@ -12,12 +12,24 @@
 <body>
 <script>
 test_invalid_value('font-feature-settings', 'normal "dlig"');
+test_invalid_value('font-feature-settings', 'normal, normal');
 test_invalid_value('font-feature-settings', '"c2sc", normal');
 
 test_invalid_value('font-feature-settings', '"tnum" "hist"');
 test_invalid_value('font-feature-settings', '"silly" off');
 
 test_invalid_value('font-feature-settings', 'dlig');
+test_invalid_value('font-feature-settings', 'dlig, DLIG, DLig');
+test_invalid_value('font-feature-settings', '1');
+test_invalid_value('font-feature-settings', 'off');
+test_invalid_value('font-feature-settings', '"aaaaa"');
+test_invalid_value('font-feature-settings', '"aaaa" 1.5');
+test_invalid_value('font-feature-settings', '"aaaa" "bbbb"');
+test_invalid_value('font-feature-settings', '"aaaa",');
+test_invalid_value('font-feature-settings', '"aaaa", on');
+test_invalid_value('font-feature-settings', '"aaaa" 1, "bbbb", 0');
+test_invalid_value('font-feature-settings', ',');
+test_invalid_value('font-feature-settings', ',"aaaa"');
 </script>
 </body>
 </html>

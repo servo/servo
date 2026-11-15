@@ -1,0 +1,43 @@
+<!doctype html>
+<title>A javascript: URL navigation in an object or embed element's initially loaded document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// Resolves after the load event so that the next navigation isn't converted to
+// a replace navigation.
+function navigateAndWaitForLoad(t, element, navigate) {
+  return new Promise(resolve => {
+    element.onload = () => t.step_timeout(resolve, 0);
+    navigate();
+  });
+}
+
+const windowLoaded = new Promise(resolve => window.onload = resolve);
+const blank = new URL("resources/blank.html", location.href).href;
+
+for (const [tag, attribute] of [["object", "data"], ["embed", "src"]]) {
+  promise_test(async t => {
+    await windowLoaded;
+    const element = document.createElement(tag);
+    element[attribute] = blank;
+    t.add_cleanup(() => element.remove());
+    await navigateAndWaitForLoad(t, element, () => document.body.append(element));
+    const win = window[window.length - 1];
+
+    const historyLength = history.length;
+    await navigateAndWaitForLoad(t, element, () => win.location.href = "javascript:'<p id=replaced>replaced</p>'");
+    assert_not_equals(win.document.getElementById("replaced"), null);
+    assert_equals(win.location.href, blank);
+    assert_equals(history.length, historyLength, "a javascript: URL navigation is a replace");
+
+    await navigateAndWaitForLoad(t, element, () => win.location.href = blank + "?next");
+    assert_equals(win.location.search, "?next");
+    assert_equals(history.length, historyLength + 1,
+                  "navigating away from a javascript: URL document isn't a replace");
+
+    await navigateAndWaitForLoad(t, element, () => win.history.back());
+    assert_equals(win.location.href, blank);
+    assert_equals(history.length, historyLength + 1);
+  }, `A javascript: URL navigation in the document an <${tag}> loaded for its element replaces its session history entry`);
+}
+</script>

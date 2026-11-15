@@ -103,7 +103,7 @@
 
 
     <hr/><!------------------------------------------------------------------------------------------------------------>
-    <p>There should be a blue and cyan rectangles of the same width:</p>
+    <p>There should only be a cyan rectangle of non-zero width:</p>
     <p>Unresolvable percentage widths are resolved as auto in first pass (replaced elements)</p>
     <div>
         <x-table style="width: 0px; height: 18px; background: red;">
@@ -113,7 +113,7 @@
     </div>
     <script>
 
-        assertOffsetWidthEquals('a',document.querySelector('input[style="background:cyan; appearance:none; -webkit-appearance:none; border:0;margin:0;padding:0;"]').offsetWidth);
+        assertOffsetWidthEquals('a', 0);
 
     </script>
 

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<title>timeline-scope on an ancestor does not hide a timeline from its declaring element's subtree</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#timeline-scoping">
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#timeline-scope">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+
+<main id=main></main>
+<script>
+  async function inflate(t, template) {
+    t.add_cleanup(() => main.replaceChildren());
+    return runAndWaitForFrameUpdate(() => {
+       main.append(template.content.cloneNode(true));
+    });
+  }
+
+  async function scrollTop(e, value) {
+    e.scrollTop = value;
+    await waitForNextFrame();
+  }
+</script>
+<style>
+  @keyframes anim {
+    from { width: 0px; }
+    to { width: 200px; }
+  }
+
+  .outer, .inner {
+    overflow: auto;
+    height: 200px;
+  }
+  .inner {
+    height: 100px;
+  }
+  .scope {
+    timeline-scope: --t1;
+  }
+  .scroll-timeline {
+    scroll-timeline: --t1 y;
+  }
+  .view-timeline {
+    view-timeline: --t1 y;
+  }
+  .ghost {
+    height: 20px;
+  }
+  .content {
+    height: 300px;
+  }
+  .target {
+    width: 0px;
+    animation: anim linear both;
+    animation-timeline: --t1;
+  }
+</style>
+
+<template id=nested_scopes_non_overflowing_inner>
+  <div class="outer scope scroll-timeline">
+    <div class="inner scope scroll-timeline">
+      <div class=target></div>
+      <div class="ghost view-timeline"></div>
+    </div>
+  </div>
+</template>
+<script>
+  promise_test(async (t) => {
+    await inflate(t, nested_scopes_non_overflowing_inner);
+    let inner = main.querySelector('.inner');
+    let target = main.querySelector('.target');
+
+    const anim = target.getAnimations()[0];
+    assert_true(anim.timeline instanceof ScrollTimeline, 'timeline is a ScrollTimeline');
+    assert_false(anim.timeline instanceof ViewTimeline, 'timeline is not a ViewTimeline');
+    assert_equals(anim.timeline.source, inner, 'timeline source is the inner scroller');
+    assert_equals(anim.timeline.currentTime, null, 'timeline is inactive');
+    assert_equals(getComputedStyle(target).width, '0px');
+  }, 'The scroll timeline declared on the nearest ancestor is used even when an outer ' +
+     'ancestor declares timeline-scope and a descendant declares a view timeline');
+</script>
+
+<template id=nested_scopes_overflowing_inner>
+  <div class="outer scope">
+    <div class="inner scope scroll-timeline">
+      <div class=target></div>
+      <div class=content></div>
+    </div>
+  </div>
+</template>
+<script>
+  promise_test(async (t) => {
+    await inflate(t, nested_scopes_overflowing_inner);
+    let inner = main.querySelector('.inner');
+    let target = main.querySelector('.target');
+
+    const anim = target.getAnimations()[0];
+    assert_equals(anim.timeline.source, inner, 'timeline source is the inner scroller');
+    await anim.ready;
+
+    const maxScroll = inner.scrollHeight - inner.clientHeight;
+    await scrollTop(inner, maxScroll / 2);
+    assert_equals(getComputedStyle(target).width, '100px'); // 0px => 200px, 50%
+  }, 'A scroll timeline hoisted by an outer ancestor timeline-scope remains referenceable ' +
+     'from the declaring element\'s subtree when that element also declares timeline-scope');
+</script>

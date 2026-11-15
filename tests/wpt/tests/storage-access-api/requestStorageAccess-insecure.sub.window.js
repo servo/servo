@@ -42,36 +42,20 @@ if (topLevelDocument) {
      "document.requestStorageAccess() in a detached DOMParser result");
   }, "[non-fully-active] document.requestStorageAccess() should reject when run in a detached DOMParser document");
 
-  // Create a test with a single-child same-origin iframe.
-  const sameOriginFramePromise = RunTestsInIFrame(
-      'resources/requestStorageAccess-iframe.html?testCase=same-origin-frame');
-
-  // Create a test with a single-child cross-origin iframe.
-  const crossOriginFramePromise = RunTestsInIFrame(
-      'http://{{domains[www]}}:{{ports[http][0]}}/storage-access-api/resources/requestStorageAccess-iframe.html?testCase=cross-origin-frame');
-
-  // Validate the nested-iframe scenario where the same-origin frame
-  // containing the tests is not the first child.
-  const nestedSameOriginFramePromise = RunTestsInNestedIFrame(
-      'resources/requestStorageAccess-iframe.html?testCase=nested-same-origin-frame');
-
-  // Validate the nested-iframe scenario where the cross-origin frame
-  // containing the tests is not the first child.
-  const nestedCrossOriginFramePromise = RunTestsInNestedIFrame(
-      'http://{{domains[www]}}:{{ports[http][0]}}/storage-access-api/resources/requestStorageAccess-iframe.html?testCase=nested-cross-origin-frame');
-
   // Because the iframe tests expect no user activation, and because they
   // load asynchronously, we want to first run those tests before simulating
   // clicks on the page.
-  const testsWithoutUserActivation = [
-    sameOriginFramePromise,
-    crossOriginFramePromise,
-    nestedSameOriginFramePromise,
-    nestedCrossOriginFramePromise,
-  ];
+  const allFrameTests = RunTestsInIFrame(
+      'resources/requestStorageAccess-iframe.html?testCase=same-origin-frame')
+    .then(() => RunTestsInNestedIFrame(
+      'resources/requestStorageAccess-iframe.html?testCase=nested-same-origin-frame'))
+    .then(() => RunTestsInIFrame(
+      'http://{{domains[www]}}:{{ports[http][0]}}/storage-access-api/resources/requestStorageAccess-iframe.html?testCase=cross-origin-frame'))
+    .then(() => RunTestsInNestedIFrame(
+      'http://{{domains[www]}}:{{ports[http][0]}}/storage-access-api/resources/requestStorageAccess-iframe.html?testCase=nested-cross-origin-frame'));
 
   promise_test(async t => {
-    await Promise .all(testsWithoutUserActivation);
+    await allFrameTests;
     await RunCallbackWithGesture(() => {
       return promise_rejects_dom(t, "NotAllowedError", document.requestStorageAccess(),
       "should reject in insecure context");

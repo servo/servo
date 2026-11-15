@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>Overflow continuing after a row item's block-end does not repeat forced row breaks</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="match" href="row-breaks-012-ref.html">
+<style>
+  .multicol { columns: 3; column-gap: 0; column-fill: auto; width: 240px; height: 100px; background: lightgray; }
+  .lanes { display: grid-lanes; grid-template-rows: 20px 40px; width: 80px; }
+</style>
+<div class="multicol">
+  <div class="lanes">
+    <div style="grid-row: 1; width: 40px; height: 20px;">
+      <div style="height: 250px; background: blue;"></div>
+    </div>
+    <div style="grid-row: 1; width: 40px; background: teal;"></div>
+    <div style="grid-row: 2; width: 80px; background: orange; break-before: column;"></div>
+  </div>
+</div>

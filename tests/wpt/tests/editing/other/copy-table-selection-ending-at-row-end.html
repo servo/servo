@@ -1,0 +1,44 @@
+<!doctype html>
+
+<head>
+  <title>Test for copying a table with the selection ending at the end of a row</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="../include/editor-test-utils.js"></script>
+</head>
+
+<body>
+  <table>
+    <tbody>
+      <tr id="row1"><td id="a">A</td><td>B</td></tr>
+      <tr id="row2"><td id="c">C</td><td>D</td></tr>
+    </tbody>
+  </table>
+
+  <div id="pasteTarget" contenteditable="true"></div>
+
+  <script>
+    promise_test(async t => {
+      const row1 = document.getElementById('row1');
+      const tbody = row1.parentNode;
+      const offsetAfterRow1 = Array.from(tbody.childNodes).indexOf(row1) + 1;
+      const textA = document.getElementById('a').firstChild;
+      getSelection().setBaseAndExtent(textA, 0, tbody, offsetAfterRow1);
+      await (new EditorTestUtils(tbody)).sendCopyShortcutKey();
+
+      const target = document.getElementById('pasteTarget');
+      getSelection().collapse(target);
+      await (new EditorTestUtils(target)).sendPasteShortcutKey();
+
+      test(() => {
+        const copiedCells = Array.from(document.querySelectorAll('#pasteTarget tr'),
+                          row => Array.from(row.cells, cell => cell.textContent));
+        assert_array_equals(copiedCells.map(String),
+                            ['A,B']);
+      });
+    }, 'Selection ending after a table row does not copy the next row.');
+  </script>
+</body>

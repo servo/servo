@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<title>@property changes in media queries update computed style</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1/#conditional-rules">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe id="frame" style="width: 100px; height: 100px"></iframe>
+
+<script>
+promise_test(async () => {
+  const frame = document.querySelector('#frame');
+  const loaded = new Promise(resolve =>
+      frame.addEventListener('load', resolve, {once: true}));
+  frame.srcdoc = `
+    <style>
+      @property --initial {
+        syntax: "<length>";
+        inherits: false;
+        initial-value: 1px;
+      }
+      @property --syntax {
+        syntax: "<length>";
+        inherits: false;
+        initial-value: 2px;
+      }
+      @property --inherited {
+        syntax: "<number>";
+        inherits: false;
+        initial-value: 3;
+      }
+      @media (min-width: 200px) {
+        @property --initial {
+          syntax: "<length>";
+          inherits: false;
+          initial-value: 4px;
+        }
+        @property --syntax {
+          syntax: "<color>";
+          inherits: false;
+          initial-value: blue;
+        }
+        @property --inherited {
+          syntax: "<number>";
+          inherits: true;
+          initial-value: 5;
+        }
+      }
+      #parent { --inherited: 6; }
+      #target { --syntax: red; }
+    </style>
+    <div id="parent"><div id="target"></div></div>`;
+  await loaded;
+
+  const target = frame.contentDocument.querySelector('#target');
+  let style = getComputedStyle(target);
+  assert_equals(style.getPropertyValue('--initial'), '1px');
+  assert_equals(style.getPropertyValue('--syntax'), '2px');
+  assert_equals(style.getPropertyValue('--inherited'), '3');
+
+  frame.style.width = '300px';
+  await new Promise(resolve => requestAnimationFrame(() =>
+      requestAnimationFrame(resolve)));
+  style = getComputedStyle(target);
+  assert_equals(style.getPropertyValue('--initial'), '4px');
+  assert_equals(style.getPropertyValue('--syntax'), 'rgb(255, 0, 0)');
+  assert_equals(style.getPropertyValue('--inherited'), '6');
+
+  frame.style.width = '100px';
+  await new Promise(resolve => requestAnimationFrame(() =>
+      requestAnimationFrame(resolve)));
+  style = getComputedStyle(target);
+  assert_equals(style.getPropertyValue('--initial'), '1px');
+  assert_equals(style.getPropertyValue('--syntax'), '2px');
+  assert_equals(style.getPropertyValue('--inherited'), '3');
+}, 'Changing a media query updates @property initial-value, syntax, and inherits descriptors');
+</script>

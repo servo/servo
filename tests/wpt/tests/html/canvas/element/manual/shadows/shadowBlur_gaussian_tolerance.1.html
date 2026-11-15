@@ -188,4 +188,14 @@ run_blur_test({
   expected_sigma: 15,
   pixel_skip: 13
 });
+run_blur_test({
+  name: "very large blur",
+  // Large enough to also exercise implementations that only accelerate
+  // larger canvases.
+  canvas_width: 400,
+  canvas_height: 400,
+  shadowBlur: 120,
+  expected_sigma: 60,
+  pixel_skip: 37
+});
 </script>

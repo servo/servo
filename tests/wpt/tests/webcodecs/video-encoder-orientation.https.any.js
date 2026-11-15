@@ -91,6 +91,7 @@ promise_test(async t => {
   frame.close();
   await encoder.flush();
   assert_equals(output_chunks.length, 1);
+  assert_equals(output_chunks[0].type, 'key');
   assert_equals(decoderConfig.rotation, 90);
   assert_equals(decoderConfig.flip, true);
 
@@ -100,6 +101,7 @@ promise_test(async t => {
   frame.close();
   await encoder.flush();
   assert_equals(output_chunks.length, 2);
+  assert_equals(output_chunks[1].type, 'key');
   assert_equals(decoderConfig.rotation, 270);
   assert_equals(decoderConfig.flip, false);
 

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>Monolithic overflow preserves resumed grid-lanes row geometry</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .multicol {
+    columns: 2;
+    column-gap: 0;
+    column-fill: auto;
+    width: 160px;
+    height: 100px;
+  }
+  .lanes { display: grid-lanes; grid-template-rows: auto 20px; width: 80px; }
+  .lanes > div { width: 40px; }
+  .monolithic { grid-row: 1; height: 150px; }
+  .parallel { grid-row: 1; }
+  .last { grid-row: 2; }
+</style>
+<div id="log"></div>
+<script>
+for (const monolithicStyle of ["writing-mode: vertical-lr", "overflow: hidden"]) {
+  test(t => {
+    const multicol = document.createElement("div");
+    multicol.className = "multicol";
+    multicol.innerHTML = `
+      <div class="lanes">
+        <div class="monolithic" style="${monolithicStyle}"></div>
+        <div class="parallel"></div>
+        <div class="last"></div>
+      </div>`;
+    document.body.append(multicol);
+    t.add_cleanup(() => multicol.remove());
+    const origin = multicol.getBoundingClientRect();
+    const rects = multicol.querySelector(".parallel").getClientRects();
+    assert_equals(rects.length, 2, "The parallel item resumes in column 2");
+    assert_equals(rects[0].height, 100, "The parallel item fills column 1");
+    assert_equals(rects[1].height, 0, "Consumed overflow does not expand the item");
+    const last = multicol.querySelector(".last").getBoundingClientRect();
+    assert_equals(last.left - origin.left, 80, "The next row starts in column 2");
+    assert_equals(last.top - origin.top, 0, "The next row has no spurious expansion");
+    assert_equals(last.height, 20, "The next row keeps its specified height");
+  }, `Row geometry is independent of overflow compensation with ${monolithicStyle}`);
+}
+</script>

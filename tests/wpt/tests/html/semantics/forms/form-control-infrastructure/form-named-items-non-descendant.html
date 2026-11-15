@@ -1,0 +1,57 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Named items of a form update when associated elements that aren't its descendants change</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/forms.html#dom-form-nameditem">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+
+<table><form id=parser><tr><td><script>
+const lookupsBeforeAssociation = [document.getElementById("parser").pic, document.getElementById("parser").field];
+</script><img name=pic><input name=field></table></form>
+
+<table><form id=rename><tr><td><img name=pic></table></form>
+
+<table><form id=removal><tr><td><img name=pic></table></form>
+
+<form id=attribute></form>
+
+<script>
+test(() => {
+  const form = document.getElementById("parser"),
+        img = form.parentNode.querySelector("img"),
+        input = form.parentNode.querySelector("input");
+  assert_array_equals(lookupsBeforeAssociation, [undefined, undefined]);
+  assert_false(form.contains(img));
+  assert_false(form.contains(input));
+  assert_equals(form.pic, img);
+  assert_equals(form.field, input);
+}, "Elements the parser associates with a form that isn't their ancestor are added to the form's named items after a lookup");
+
+test(t => {
+  const form = document.getElementById("attribute");
+  assert_equals(form.x, undefined);
+  const input = document.createElement("input");
+  input.name = "x";
+  input.setAttribute("form", "attribute");
+  document.body.append(input);
+  t.add_cleanup(() => input.remove());
+  assert_equals(form.x, input);
+}, "Inserting an input associated with a form via the form attribute after a lookup adds it to the form's named items");
+
+test(() => {
+  const form = document.getElementById("rename"),
+        img = form.parentNode.querySelector("img");
+  assert_equals(form.pic, img);
+  img.name = "pic2";
+  assert_equals(form.pic2, img);
+}, "Renaming an img associated with a form that isn't its ancestor updates the form's named items");
+
+test(() => {
+  const form = document.getElementById("removal"),
+        img = form.parentNode.querySelector("img");
+  assert_equals(form.pic, img);
+  img.remove();
+  assert_equals(form.pic, undefined);
+}, "Removing an img associated with a form that isn't its ancestor removes it from the form's named items");
+</script>

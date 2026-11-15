@@ -1,13 +1,17 @@
 import copy
+import errno
 import json
+import logging
 import os
+import socket
 import ssl
-import sys
 import subprocess
+import sys
+import time
 import urllib
+from typing import Optional
 
 import html5lib
-import py
 import pytest
 
 from wptserver import WPTServer
@@ -18,10 +22,12 @@ HARNESS = os.path.join(HERE, 'harness.html')
 TEST_TYPES = ('functional', 'unit')
 
 sys.path.insert(0, os.path.normpath(os.path.join(WPT_ROOT, "tools")))
-import localpaths
+import localpaths  # noqa: F401
 
 sys.path.insert(0, os.path.normpath(os.path.join(WPT_ROOT, "tools", "webdriver")))
 import webdriver
+
+logger = logging.getLogger(__name__)
 
 
 def pytest_addoption(parser):
@@ -43,6 +49,45 @@ def pytest_collect_file(file_path, path, parent):
     return HTMLFile.from_parent(parent, path=file_path, test_type=test_type)
 
 
+def wait_for_service(
+    host: str,
+    port: int,
+    timeout: float = 60,
+    server_process: Optional[subprocess.Popen] = None,
+) -> bool:
+    """Waits until network service given as a tuple of (host, port) becomes
+    available, `timeout` duration is reached, or the `server_process` exits at
+    which point ``socket.error`` is raised."""
+    addr = (host, port)
+    logger.debug("Trying to connect to %s:%d", host, port)
+    end = time.time() + timeout
+    while end > time.time():
+        if server_process is not None and server_process.poll() is not None:
+            returncode = server_process.poll()
+            logger.debug(
+                "Server process %d exited with %d, giving up trying to connect",
+                server_process.pid,
+                returncode,
+            )
+            break
+
+        so = socket.socket()
+        try:
+            so.connect(addr)
+        except socket.timeout:
+            pass
+        except OSError as e:
+            if e.errno != errno.ECONNREFUSED:
+                raise
+        else:
+            logger.debug("Connected to %s:%d", host, port)
+            return True
+        finally:
+            so.close()
+        time.sleep(0.5)
+    raise OSError("Service is unavailable: %s:%i" % addr)
+
+
 def pytest_configure(config):
     config.proc = subprocess.Popen(["geckodriver"])
     config.add_cleanup(config.proc.kill)
@@ -53,6 +98,7 @@ def pytest_configure(config):
     if config.getoption("--headless"):
         capabilities["alwaysMatch"]["moz:firefoxOptions"]["args"] = ["--headless"]
 
+    wait_for_service("localhost", 4444, server_process=config.proc)
     config.driver = webdriver.Session("localhost", 4444,
                                       capabilities=capabilities)
     config.driver.start()

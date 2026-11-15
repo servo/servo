@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Overflow Reference: A green fullscreen element</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+#target {
+  background: green;
+}
+</style>
+
+<div id="target"></div>
+
+<script>
+document.addEventListener("fullscreenchange", () => {
+  document.documentElement.classList.remove("reftest-wait");
+});
+test_driver.bless("fullscreen", () => target.requestFullscreen());
+</script>
+</html>

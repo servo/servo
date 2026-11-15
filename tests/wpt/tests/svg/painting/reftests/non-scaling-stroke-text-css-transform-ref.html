@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<style>
+  body { margin: 0; }
+  svg { display: block; width: 150px; height: 30px; }
+  .scaled { transform: scale(2); transform-origin: 0 0; }
+  div { height: 60px; }
+</style>
+<div class="scaled">
+  <svg>
+    <g transform="scale(2)">
+      <text x="2" y="12" font-size="10" fill="none" stroke="green" stroke-width="2">Hello</text>
+    </g>
+  </svg>
+</div>
+<svg class="scaled">
+  <g transform="scale(2)">
+    <text x="2" y="12" font-size="10" fill="none" stroke="green" stroke-width="2">Hello</text>
+  </g>
+</svg>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS modules use UTF-8 independently of the response charset</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/ShadowDOM/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script type="module">
+import {createLink, waitForEvent, createShadowRoot} from "./module-stylesheet-helpers.js";
+
+for (const bom of [false, true]) {
+  promise_test(async t => {
+    const url = "./module-stylesheet-encoding.py" + (bom ? "?bom" : "");
+    const moduleRoot = createShadowRoot(t, "<span>module</span>");
+    const classicRoot = createShadowRoot(t, "<span>classic</span>");
+    const module = createLink(t, /*import=*/url);
+    const classic = createLink(t, /*import=*/undefined, /*href=*/url);
+    const results = [waitForEvent(module), waitForEvent(classic)];
+    moduleRoot.prepend(module);
+    classicRoot.prepend(classic);
+    assert_array_equals(await Promise.all(results), ["load", "load"]);
+    assert_equals(getComputedStyle(moduleRoot.querySelector("span"), "::before").content,
+                  '"é"', "CSS modules always decode as UTF-8");
+    assert_equals(getComputedStyle(classicRoot.querySelector("span"), "::before").content,
+                  bom ? '"é"' : '"Ã©"',
+                  "classic CSS uses the BOM or the response charset");
+  }, `UTF-8 CSS module versus classic response charset, BOM ${bom}`);
+}
+</script>

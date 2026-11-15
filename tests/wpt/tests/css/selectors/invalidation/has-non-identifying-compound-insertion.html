@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selector Invalidation: :has() with a type-only or :not() compound before a sibling class compound</title>
+<link rel="author" title="Jonathan Watt" href="mailto:jwatt@jwatt.org">
+<link rel="help" href="https://drafts.csswg.org/selectors/#relational">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  div { color: grey; }
+  #subject1:has(div + .a) { color: green; }
+  #subject2:has(div ~ .a) { color: green; }
+  #subject3:has(:not(.x) + .a) { color: green; }
+  #subject4:has(> div + .a) { color: green; }
+  #subject5:has(div + .a + .b) { color: green; }
+  #subject6:has(div + .a) { color: green; }
+</style>
+<div id="subject1"><span class="a"></span></div>
+<div id="subject2"><span class="a"></span></div>
+<div id="subject3"><span class="a x"></span></div>
+<div id="subject4"><span class="a"></span></div>
+<div id="subject5"><span class="a"></span><span class="b"></span></div>
+<div id="subject6"><span></span><div id="middle6"></div><span class="a"></span></div>
+<script>
+  const grey = "rgb(128, 128, 128)";
+  const green = "rgb(0, 128, 0)";
+
+  function color(id) {
+    return getComputedStyle(document.getElementById(id)).color;
+  }
+
+  function test_insertion(id, description) {
+    test(() => {
+      const subject = document.getElementById(id);
+      const newElement = document.createElement("div");
+      assert_equals(color(id), grey, "before insertion");
+      subject.insertBefore(newElement, subject.firstChild);
+      assert_equals(color(id), green, "after insertion");
+      newElement.remove();
+      assert_equals(color(id), grey, "after removal");
+    }, description);
+  }
+
+  test_insertion("subject1", "insert and remove a div matched by the type-only compound in :has(div + .a)");
+  test_insertion("subject2", "insert and remove a div matched by the type-only compound in :has(div ~ .a)");
+  test_insertion("subject3", "insert and remove a div matched by the :not() compound in :has(:not(.x) + .a)");
+  test_insertion("subject4", "insert and remove a div matched by the type-only compound in :has(> div + .a)");
+  test_insertion("subject5", "insert and remove a div matched by the type-only compound in :has(div + .a + .b)");
+
+  test(() => {
+    const middle = document.getElementById("middle6");
+    assert_equals(color("subject6"), green, "before removal");
+    middle.remove();
+    assert_equals(color("subject6"), grey, "after removal");
+  }, "remove a div matched by the type-only compound in :has(div + .a) from between two siblings");
+</script>

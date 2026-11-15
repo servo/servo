@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>non-scaling-stroke painted with a gradient or a pattern inside a CSS transform</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/painting.html#PaintingVectorEffects">
+<link rel="match" href="non-scaling-stroke-paint-server-transform-ref.html">
+<meta name="fuzzy" content="maxDifference=0-70;totalPixels=0-200">
+<meta name="assert" content="A paint server on a non-scaling stroke follows all the transforms of the element: the scale(2) group, which the stroke width ignores, and the CSS transform on the div.">
+<style>
+  body { margin: 0; }
+  div { transform: scale(2); transform-origin: 0 0; }
+  svg { display: block; width: 150px; height: 60px; }
+</style>
+<div>
+  <svg>
+    <linearGradient id="gradient" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="50" y2="0">
+      <stop offset="0.5" stop-color="green"/>
+      <stop offset="0.5" stop-color="blue"/>
+    </linearGradient>
+    <pattern id="pattern" patternUnits="userSpaceOnUse" width="10" height="10">
+      <rect width="5" height="10" fill="green"/>
+      <rect x="5" width="5" height="10" fill="blue"/>
+    </pattern>
+    <g transform="scale(2)">
+      <rect x="5" y="5" width="20" height="20" fill="none" stroke="url(#gradient)" stroke-width="5" vector-effect="non-scaling-stroke"/>
+      <rect x="40" y="5" width="20" height="20" fill="none" stroke="url(#pattern)" stroke-width="5" vector-effect="non-scaling-stroke"/>
+    </g>
+  </svg>
+</div>

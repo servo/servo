@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>CSS Custom Functions: Invalidation across nested shadow roots</title>
+<link rel="help" href="https://drafts.csswg.org/css-mixins-1/#using-custom-functions">
+<link rel="help" href="https://drafts.csswg.org/css-shadow-1/#css-tree-scoped-reference">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @function --f() { result: 10px; }
+</style>
+<body>
+<div id="host">
+  <template shadowrootmode="open">
+    <div id="nested-host">
+      <template shadowrootmode="open">
+        <style>#target { width: --f(); }</style>
+        <div id="target"></div>
+      </template>
+    </div>
+  </template>
+</div>
+<script>
+test(t => {
+  const shadow = document.getElementById('host').shadowRoot;
+  const nested = shadow.getElementById('nested-host').shadowRoot;
+  const target = nested.getElementById('target');
+  assert_equals(getComputedStyle(target).width, '10px',
+                'Before appending the sheet');
+
+  const style = document.createElement('style');
+  style.textContent = `
+    @function --f() { result: 30px; }
+    ::part(unused) { color: red; }
+  `;
+  t.add_cleanup(() => style.remove());
+  // The ::part() rule matches no element in this test. The nested target's
+  // width must reflect the updated --f() definition.
+  document.head.append(style);
+  assert_equals(getComputedStyle(target).width, '30px',
+                'After appending the sheet');
+
+  style.remove();
+  assert_equals(getComputedStyle(target).width, '10px',
+                'After removing the sheet');
+}, 'Adding and removing a sheet with ::part() updates nested shadow styles');
+</script>

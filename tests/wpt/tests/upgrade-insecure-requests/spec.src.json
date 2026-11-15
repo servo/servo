@@ -157,6 +157,21 @@
       "expectation": "*"
     },
     {
+      // Mixed content autoupgrade upgrades image requests, so without
+      // upgrade-insecure-requests they are upgraded rather than blocked.
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": null,
+      "redirection": "*",
+      "subresource": [
+        "img-tag"
+      ],
+      "origin": "*",
+      "expectation": "*"
+    },
+    {
       // redirections that upgrade-insecure-requests tests don't care
       "expansion": "*",
       "source_scheme": "*",

@@ -15,7 +15,7 @@ video {
     visibility: visibile;
     text-decoration: none;
     text-shadow: none;
-    background: rgba(0,0,0,0.8);
+    background: rgba(0,0,0,1);
     outline: none;
     font: 9px Ahem, sans-serif; /* Use Ahem because it improves test reliability. */
     white-space: pre-line;

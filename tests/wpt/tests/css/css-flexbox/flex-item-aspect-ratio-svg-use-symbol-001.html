@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Flex item containing an aspect-ratio box with a percentage-sized &lt;svg&gt; referencing a &lt;symbol&gt;</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#intrinsic-sizes">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="match" href="flex-item-aspect-ratio-svg-use-symbol-001-ref.html">
+<meta name="assert" content="The flex item is sized from the aspect-ratio box (height * ratio), not from the default 300px width of the inner &lt;svg&gt; that has no viewBox of its own.">
+<style>
+  body   { font: 19px sans-serif; margin: 0; }
+  .btn   { display: flex; justify-content: center; width: 300px; border: 1px solid #888; }
+  .icons { display: inline-flex; }
+  .box   { display: inline-flex; aspect-ratio: 1 / 1; height: 20px; width: auto; }
+</style>
+
+<svg style="display:none">
+  <symbol id="square-full" viewBox="0 0 512 512"><path d="M512 0V512H0V0H512zM464 48H48V464H464V48z"/></symbol>
+</svg>
+
+<div class="btn">
+  <span class="icons"><span class="box"><svg style="width:100%;height:100%;fill:green"><use href="#square-full"/></svg></span></span>
+  <span>Label</span>
+</div>

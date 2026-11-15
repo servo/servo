@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Render-blocked document with a paused parser</title>
+<link rel="expect" href="#target" blocking="render">
+<body>
+Waiting for the form.
+<script>
+"use strict";
+const params = new URLSearchParams(location.search);
+if (params.get("control") === "true") {
+  document.querySelector("link").remove();
+}
+const blockingURL = params.get("blocking").replaceAll("&", "&amp;");
+// eslint-disable-next-line no-useless-escape -- Keep the HTML parser from ending this script.
+document.write('<script src="' + blockingURL + '"><\/script>');
+parent.documentReady();
+</script>

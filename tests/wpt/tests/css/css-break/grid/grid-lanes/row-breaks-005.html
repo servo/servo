@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>A forced break before a later row does not restart a spanning item</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="match" href="row-breaks-005-ref.html">
+<style>
+  .multicol { columns: 2; column-gap: 0; column-fill: auto; width: 160px; height: 100px; background: lightgray; }
+  .lanes { display: grid-lanes; grid-template-rows: 60px 60px; width: 80px; }
+</style>
+<div class="multicol">
+  <div class="lanes">
+    <div style="grid-row: 1 / span 2; width: 40px; background: orange;"></div>
+    <div style="grid-row: 1; width: 40px; background: teal;"></div>
+    <div style="grid-row: 2; width: 40px; background: purple; break-before: column;"></div>
+  </div>
+</div>

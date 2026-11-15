@@ -1,0 +1,56 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>Element Timing: entries beyond the buffer size are counted as dropped</title>
+<body>
+<style>
+body {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 10px;
+}
+div {
+  width: 20px;
+  height: 12px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  // The element timing buffer holds 150 entries.
+  const kBufferSize = 150;
+
+  promise_test(async t => {
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+
+    // Wait until one more entry than the buffer holds has been dispatched.
+    await new Promise(resolve => {
+      let count = 0;
+      const observer = new PerformanceObserver(list => {
+        count += list.getEntries().length;
+        if (count > kBufferSize) {
+          resolve();
+        }
+      });
+      observer.observe({type: 'element'});
+      t.add_cleanup(() => observer.disconnect());
+      for (let i = 0; i <= kBufferSize; ++i) {
+        const div = document.createElement('div');
+        div.setAttribute('elementtiming', `text_${i}`);
+        div.textContent = 'x';
+        document.body.appendChild(div);
+      }
+    });
+
+    const options = await new Promise(resolve => {
+      const observer = new PerformanceObserver((list, obs, options) => {
+        resolve(options);
+      });
+      observer.observe({type: 'element', buffered: true});
+      t.add_cleanup(() => observer.disconnect());
+    });
+    assert_equals(options.droppedEntriesCount, 1);
+  }, 'Element entries that do not fit in the buffer are counted as dropped.');
+</script>
+</body>

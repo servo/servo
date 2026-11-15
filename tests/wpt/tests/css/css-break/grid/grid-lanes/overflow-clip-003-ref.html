@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>Reference for row overflow clipped within the second column</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<style>
+  .reference {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    margin-bottom: 20px;
+    background: lightgray;
+  }
+  .first { width: 50px; height: 100px; background: green; }
+  .continuation {
+    position: absolute;
+    left: 50px;
+    top: 0;
+    width: 50px;
+    height: 20px;
+    background: green;
+  }
+  .last {
+    position: absolute;
+    left: 50px;
+    top: 20px;
+    width: 50px;
+    height: 60px;
+    background: orange;
+  }
+</style>
+<div class="reference">
+  <div class="first"></div>
+  <div class="continuation"></div>
+  <div class="last"></div>
+</div>
+<div class="reference">
+  <div class="first" style="height: 40px"></div>
+  <div class="last" style="top: 0; height: 80px"></div>
+</div>

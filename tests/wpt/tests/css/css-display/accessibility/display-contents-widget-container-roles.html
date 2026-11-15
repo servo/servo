@@ -1,0 +1,144 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="timeout" content="long">
+  <title>Accessibility of composite widget containers with display: contents</title>
+  <link rel="help" href="https://drafts.csswg.org/css-display-3/#box-generation">
+  <link rel="help" href="https://w3c.github.io/aria/#listbox">
+  <link rel="help" href="https://w3c.github.io/aria/#composite">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+  <p>Setting <code>display: contents</code> removes an element's own box but must not change its semantics. These tests verify that composite widget containers (listbox, menu, tablist, etc.) and their owned elements keep their computed roles and names.</p>
+
+  <h2>Listbox</h2>
+  <!-- 1 -->
+  <div role="listbox" aria-label="Fruits" style="display: contents" data-expectedrole="listbox" data-expectedlabel="Fruits" data-testname="div with role listbox and display: contents has listbox role and is labelled via aria-label" class="ex-role-and-label">
+    <div role="option" data-expectedrole="option" data-expectedlabel="Apple" data-testname="first option within listbox with display: contents has option role and is named from contents" class="ex-role-and-label">Apple</div>
+    <div role="option" data-expectedrole="option" data-expectedlabel="Banana" data-testname="second option within listbox with display: contents has option role and is named from contents" class="ex-role-and-label">Banana</div>
+  </div>
+
+  <!-- 2 -->
+  <div role="listbox" aria-label="Vegetables" style="display: contents" data-expectedrole="listbox" data-expectedlabel="Vegetables" data-testname="listbox with display: contents and display: contents options has listbox role and is labelled via aria-label" class="ex-role-and-label">
+    <div role="option" style="display: contents" data-expectedrole="option" data-expectedlabel="One" data-testname="first option with display: contents in listbox with display: contents has option role and is named from contents" class="ex-role-and-label">One</div>
+    <div role="option" style="display: contents" data-expectedrole="option" data-expectedlabel="Two" data-testname="second option with display: contents in listbox with display: contents has option role and is named from contents" class="ex-role-and-label">Two</div>
+  </div>
+
+  <!-- 3 -->
+  <div role="listbox" aria-label="Letters" data-expectedrole="listbox" data-expectedlabel="Letters" data-testname="listbox with a display: contents option has listbox role and is labelled via aria-label" class="ex-role-and-label">
+    <div role="option">A</div>
+    <div role="option" style="display: contents" data-expectedrole="option" data-expectedlabel="B" data-testname="option with display: contents followed by sibling text is named from its own contents only" class="ex-role-and-label">B</div>
+  </div>
+  <span>should not be in the name</span>
+
+  <!-- 4 -->
+  <div role="listbox" aria-label="Wrapped numbers">
+    <div style="display: contents">
+      <div role="option" data-expectedrole="option" data-expectedlabel="Three" data-testname="option inside generic wrapper with display: contents has option role and is named from contents" class="ex-role-and-label">Three</div>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div role="listbox" aria-label="Presentational numbers">
+    <div role="presentation" style="display: contents">
+      <div role="option" data-expectedrole="option" data-expectedlabel="Three b" data-testname="option inside role presentation wrapper with display: contents has option role and is named from contents" class="ex-role-and-label">Three b</div>
+    </div>
+  </div>
+
+  <!-- 6 -->
+  <div role="listbox" aria-label="Fruit groups">
+    <div role="group" aria-label="Citrus" style="display: contents" data-expectedrole="group" data-expectedlabel="Citrus" data-testname="group with display: contents inside listbox has group role and is labelled via aria-label" class="ex-role-and-label">
+      <div role="option" data-expectedrole="option" data-expectedlabel="Orange" data-testname="option inside group with display: contents has option role and is named from contents" class="ex-role-and-label">Orange</div>
+    </div>
+  </div>
+
+  <!-- 7 -->
+  <input role="combobox" aria-label="Fruit" aria-controls="dc-suggestions" aria-expanded="true" data-expectedrole="combobox" data-expectedlabel="Fruit" data-testname="combobox controlling listbox with display: contents has combobox role and is labelled via aria-label" class="ex-role-and-label">
+  <div id="dc-suggestions" role="listbox" aria-label="Suggestions" style="display: contents" data-expectedrole="listbox" data-expectedlabel="Suggestions" data-testname="listbox with display: contents controlled by a combobox has listbox role and is labelled via aria-label" class="ex-role-and-label">
+    <div role="option" data-expectedrole="option" data-expectedlabel="Cherry" data-testname="option within combobox-controlled listbox with display: contents has option role and is named from contents" class="ex-role-and-label">Cherry</div>
+  </div>
+
+  <!-- 8 -->
+  <span id="dc-fruit-label" style="display: contents">Fruit <b>choices</b></span>
+  <div role="listbox" aria-labelledby="dc-fruit-label" style="display: contents" data-expectedrole="listbox" data-expectedlabel="Fruit choices" data-testname="listbox with display: contents is labelled via aria-labelledby referencing element with display: contents" class="ex-role-and-label">
+    <div role="option">Apple</div>
+  </div>
+
+  <!-- 9 -->
+  <div role="listbox" aria-label="Nested contents">
+    <div role="presentation"><div role="option" data-expectedrole="option" data-expectedlabel="Foo" data-testname="option named from nested display: contents descendants (Foo) has option role and expected name" class="ex-role-and-label"><div style="display: contents"><div><div>Foo</div></div></div></div></div>
+    <div role="presentation"><div role="option" data-expectedrole="option" data-expectedlabel="Bar" data-testname="option named from nested display: contents descendants (Bar) has option role and expected name" class="ex-role-and-label"><div style="display: contents"><div style="display: contents"><div>Bar</div></div></div></div></div>
+    <div role="presentation"><div role="option" data-expectedrole="option" data-expectedlabel="Baz" data-testname="option named from nested display: contents descendants (Baz) has option role and expected name" class="ex-role-and-label"><div style="display: contents"><div><div style="display: contents">Baz</div></div></div></div></div>
+  </div>
+
+  <!-- 10 -->
+  <dc-listbox data-expectedrole="listbox" data-expectedlabel="Custom listbox" data-testname="custom element with ElementInternals listbox role and display: contents host has listbox role and is labelled via elementInternals" class="ex-role-and-label"><div role="option" data-expectedrole="option" data-expectedlabel="Opt" data-testname="option slotted into custom element listbox with display: contents host has option role and is named from contents" class="ex-role-and-label">Opt</div></dc-listbox>
+
+  <!-- 11 -->
+  <dc-shadow-listbox><div role="option" data-expectedrole="option" data-expectedlabel="Slotted" data-testname="option slotted into listbox in a shadow root has option role and is named from contents" class="ex-role-and-label">Slotted</div></dc-shadow-listbox>
+
+  <h2>Other composite widget containers</h2>
+  <div role="menu" aria-label="Edit" style="display: contents" data-expectedrole="menu" data-expectedlabel="Edit" data-testname="div with role menu and display: contents has menu role and is labelled via aria-label" class="ex-role-and-label">
+    <div role="menuitem" data-expectedrole="menuitem" data-expectedlabel="Cut" data-testname="menuitem within menu with display: contents has menuitem role and is named from contents" class="ex-role-and-label">Cut</div>
+    <div role="menuitemcheckbox" aria-checked="true" data-expectedrole="menuitemcheckbox" data-expectedlabel="Bold" data-testname="menuitemcheckbox within menu with display: contents has menuitemcheckbox role and is named from contents" class="ex-role-and-label">Bold</div>
+    <div role="menuitemradio" aria-checked="false" data-expectedrole="menuitemradio" data-expectedlabel="Left" data-testname="menuitemradio within menu with display: contents has menuitemradio role and is named from contents" class="ex-role-and-label">Left</div>
+  </div>
+  <div role="menubar" aria-label="Main" style="display: contents" data-expectedrole="menubar" data-expectedlabel="Main" data-testname="div with role menubar and display: contents has menubar role and is labelled via aria-label" class="ex-role-and-label">
+    <div role="menuitem" data-expectedrole="menuitem" data-expectedlabel="File" data-testname="first menuitem within menubar with display: contents has menuitem role and is named from contents" class="ex-role-and-label">File</div>
+    <div role="menuitem" data-expectedrole="menuitem" data-expectedlabel="View" data-testname="second menuitem within menubar with display: contents has menuitem role and is named from contents" class="ex-role-and-label">View</div>
+  </div>
+  <div role="tablist" aria-label="Sections" style="display: contents" data-expectedrole="tablist" data-expectedlabel="Sections" data-testname="div with role tablist and display: contents has tablist role and is labelled via aria-label" class="ex-role-and-label">
+    <div role="tab" aria-selected="true" data-expectedrole="tab" data-expectedlabel="One" data-testname="first tab within tablist with display: contents has tab role and is named from contents" class="ex-role-and-label">One</div>
+    <div role="tab" aria-selected="false" data-expectedrole="tab" data-expectedlabel="Two" data-testname="second tab within tablist with display: contents has tab role and is named from contents" class="ex-role-and-label">Two</div>
+  </div>
+  <div role="radiogroup" aria-label="Answer" style="display: contents" data-expectedrole="radiogroup" data-expectedlabel="Answer" data-testname="div with role radiogroup and display: contents has radiogroup role and is labelled via aria-label" class="ex-role-and-label">
+    <div role="radio" aria-checked="true" data-expectedrole="radio" data-expectedlabel="Yes" data-testname="first radio within radiogroup with display: contents has radio role and is named from contents" class="ex-role-and-label">Yes</div>
+    <div role="radio" aria-checked="false" data-expectedrole="radio" data-expectedlabel="No" data-testname="second radio within radiogroup with display: contents has radio role and is named from contents" class="ex-role-and-label">No</div>
+  </div>
+  <div role="toolbar" aria-label="Formatting" style="display: contents" data-expectedrole="toolbar" data-expectedlabel="Formatting" data-testname="div with role toolbar and display: contents has toolbar role and is labelled via aria-label" class="ex-role-and-label">
+    <button data-expectedrole="button" data-expectedlabel="Bold" data-testname="first button within toolbar with display: contents has button role and is named from contents" class="ex-role-and-label">Bold</button>
+    <button data-expectedrole="button" data-expectedlabel="Italic" data-testname="second button within toolbar with display: contents has button role and is named from contents" class="ex-role-and-label">Italic</button>
+  </div>
+  <div role="tree" aria-label="Files" style="display: contents" data-expectedrole="tree" data-expectedlabel="Files" data-testname="div with role tree and display: contents has tree role and is labelled via aria-label" class="ex-role-and-label">
+    <div role="treeitem" aria-expanded="false" data-expectedrole="treeitem" data-expectedlabel="Docs" data-testname="expandable treeitem within tree with display: contents has treeitem role and is named from contents" class="ex-role-and-label">Docs</div>
+    <div role="treeitem" data-expectedrole="treeitem" data-expectedlabel="Readme" data-testname="leaf treeitem within tree with display: contents has treeitem role and is named from contents" class="ex-role-and-label">Readme</div>
+  </div>
+  <div role="feed" aria-label="News" style="display: contents" data-expectedrole="feed" data-expectedlabel="News" data-testname="div with role feed and display: contents has feed role and is labelled via aria-label" class="ex-role-and-label">
+    <article aria-label="First" data-expectedrole="article" data-expectedlabel="First" data-testname="first article within feed with display: contents has article role and is labelled via aria-label" class="ex-role-and-label">a</article>
+    <article aria-label="Second" data-expectedrole="article" data-expectedlabel="Second" data-testname="second article within feed with display: contents has article role and is labelled via aria-label" class="ex-role-and-label">b</article>
+  </div>
+  <div role="grid" aria-label="Books" data-expectedrole="grid" data-expectedlabel="Books" data-testname="div with role grid containing a row with display: contents has grid role and is labelled via aria-label" class="ex-role-and-label">
+    <div role="row" style="display: contents" data-expectedrole="row" data-testname="row with display: contents within grid has row role" class="ex-role">
+      <div role="rowheader" data-expectedrole="rowheader" data-testname="rowheader within row with display: contents has rowheader role" class="ex-role">R</div>
+      <div role="gridcell" data-expectedrole="gridcell" data-testname="gridcell within row with display: contents has gridcell role" class="ex-role">C</div>
+    </div>
+  </div>
+
+  <script>
+    customElements.define("dc-listbox", class extends HTMLElement {
+      constructor() {
+        super();
+        const elementInternals = this.attachInternals();
+        elementInternals.role = "listbox";
+        elementInternals.ariaLabel = "Custom listbox";
+        this.attachShadow({mode: "open"}).innerHTML = "<style>:host { display: contents; }</style><slot></slot>";
+      }
+    });
+    customElements.define("dc-shadow-listbox", class extends HTMLElement {
+      constructor() {
+        super();
+        this.attachShadow({mode: "open"}).innerHTML = '<div role="listbox" aria-label="Shadow listbox"><slot></slot></div>';
+      }
+    });
+
+    AriaUtils.verifyRolesAndLabelsBySelector(".ex-role-and-label");
+    AriaUtils.verifyRolesBySelector(".ex-role");
+  </script>
+</body>
+</html>

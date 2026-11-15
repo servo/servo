@@ -598,6 +598,7 @@ promise_test(t => {
 
     const timeAfterReplaceSync = performance.now();
     let link = document.createElement("link");
+    t.add_cleanup(() => link.remove());
     link.rel = "stylesheet";
     link.href = importUrl;
 
@@ -607,7 +608,6 @@ promise_test(t => {
         let entries = window.performance.getEntriesByType('resource').filter(entry => entry.name.includes(importUrl));
         assert_equals(entries.length, 1, "There should be only one entry for the import URL");
         assert_greater_than_equal(entries[0].startTime, timeAfterReplaceSync, "The entry's start time should be after replaceSync threw");
-        link.remove();
         resolve();
       }));
       document.body.appendChild(link);

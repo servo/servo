@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+
+<script>
+
+  // ALL_FEATURES is the upstream list and does not name 'webgpu', which a WebGPU-backed session
+  // requires. xr_session_promise_test is not usable here either: it assigns a baseLayer, which a
+  // WebGPU session does not accept.
+  const WEBGPU_IMMERSIVE_DEVICE = {
+    ...TRACKED_IMMERSIVE_DEVICE,
+    supportedFeatures: [...ALL_FEATURES, 'webgpu']
+  };
+
+  // A session whose renderState has no layers renders no frames, so a test must not wait for a frame
+  // after destroying the only layer without giving the session another one first.
+  function nextFrame(session) {
+    return new Promise((resolve) => session.requestAnimationFrame((time, frame) => resolve(frame)));
+  }
+
+  async function setUpWebGPULayer(t) {
+    assert_implements(navigator.gpu, 'WebGPU is not available.');
+    assert_implements(window.XRGPUBinding, 'XRGPUBinding is not available.');
+
+    await navigator.xr.test.simulateDeviceConnection(WEBGPU_IMMERSIVE_DEVICE);
+
+    const session = await new Promise((resolve, reject) => {
+      navigator.xr.test.simulateUserActivation(() => {
+        navigator.xr.requestSession('immersive-vr', { requiredFeatures: ['layers', 'webgpu', 'local'] })
+          .then(resolve, reject);
+      });
+    });
+    t.add_cleanup(async () => { await session.end().catch(() => {}); });
+
+    const adapter = await navigator.gpu.requestAdapter({ xrCompatible: true });
+    assert_true(!!adapter, 'An xrCompatible GPUAdapter is required.');
+    const device = await adapter.requestDevice();
+
+    const binding = new XRGPUBinding(session, device);
+    const layer = binding.createProjectionLayer({ colorFormat: binding.getPreferredColorFormat() });
+    session.updateRenderState({ layers: [layer] });
+
+    const refSpace = await session.requestReferenceSpace('local');
+    const colorFormat = binding.getPreferredColorFormat();
+    return { session, binding, layer, refSpace, colorFormat };
+  }
+
+  // Before destroy() the call may still fail, for instance because the device has not supplied the
+  // layer's textures yet, but it must not fail for the reason destroy() introduces.
+  function assert_not_invalid_state(func, description) {
+    try {
+      func();
+    } catch (e) {
+      assert_not_equals(e.name, 'InvalidStateError', description);
+    }
+  }
+
+  xr_promise_test("XRGPUBinding.getSubImage() throws InvalidStateError for a destroyed layer", async (t) => {
+    const { session, binding, layer } = await setUpWebGPULayer(t);
+
+    const frame = await nextFrame(session);
+    assert_not_invalid_state(() => binding.getSubImage(layer, frame), "getSubImage() must not reject a layer that has not been destroyed.");
+
+    layer.destroy();
+    assert_throws_dom('InvalidStateError', () => binding.getSubImage(layer, frame), "getSubImage() must reject a destroyed layer.");
+    assert_throws_dom('InvalidStateError', () => binding.getSubImage(layer, frame, 'left'), "getSubImage() must reject a destroyed layer for an explicit eye too.");
+  });
+
+  xr_promise_test("XRGPUBinding.getViewSubImage() throws InvalidStateError for a destroyed layer", async (t) => {
+    const { session, binding, layer, refSpace } = await setUpWebGPULayer(t);
+
+    const frame = await nextFrame(session);
+    const pose = frame.getViewerPose(refSpace);
+    assert_true(!!pose && pose.views.length > 0, 'The simulated device must supply at least one view.');
+    const view = pose.views[0];
+    assert_not_invalid_state(() => binding.getViewSubImage(layer, view), "getViewSubImage() must not reject a layer that has not been destroyed.");
+
+    layer.destroy();
+    assert_throws_dom('InvalidStateError', () => binding.getViewSubImage(layer, view), "getViewSubImage() must reject a destroyed layer.");
+  });
+
+  xr_promise_test("A session keeps rendering with a new WebGPU projection layer after the old one is destroyed", async (t) => {
+    const { session, binding, layer, colorFormat } = await setUpWebGPULayer(t);
+
+    await nextFrame(session);
+    assert_array_equals(session.renderState.layers, [layer], "The layer must be active before destroy().");
+
+    layer.destroy();
+    layer.destroy();
+    assert_throws_dom('InvalidStateError', () => session.updateRenderState({ layers: [layer] }),
+      "updateRenderState() must reject a destroyed layer.");
+
+    // Destroying the layer releases its compositor textures, so the frames that follow must not
+    // depend on them.
+    const replacement = binding.createProjectionLayer({ colorFormat });
+    session.updateRenderState({ layers: [replacement] });
+    await nextFrame(session);
+    assert_array_equals(session.renderState.layers, [replacement], "Only the new layer must be active.");
+
+    await nextFrame(session);
+    assert_array_equals(session.renderState.layers, [replacement], "The new layer must stay active in later frames.");
+  });
+
+</script>

@@ -1,0 +1,38 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<iframe id="initial" src="javascript:'new content'"></iframe>
+<script>
+const windowLoaded = new Promise(resolve => window.onload = resolve);
+
+promise_test(async t => {
+  await windowLoaded;
+
+  const nav = initial.contentWindow.navigation;
+  assert_equals(nav.activation.navigationType, "replace");
+  assert_equals(nav.activation.entry, nav.currentEntry);
+  assert_equals(nav.activation.from, null);
+}, "navigation.activation after navigation from the initial about:blank to a javascript: URL");
+
+promise_test(async t => {
+  await windowLoaded;
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+
+  const before = i.contentWindow.navigation.currentEntry;
+  const beforeKey = before.key;
+  const beforeId = before.id;
+  const beforeUrl = before.url;
+  i.src = "javascript:'new content'";
+  await new Promise(resolve => i.onload = resolve);
+
+  const nav = i.contentWindow.navigation;
+  assert_equals(nav.activation.navigationType, "replace");
+  assert_equals(nav.activation.entry, nav.currentEntry);
+  assert_equals(nav.activation.from.key, beforeKey);
+  assert_equals(nav.activation.from.id, beforeId);
+  assert_equals(nav.activation.from.url, beforeUrl);
+  assert_equals(nav.activation.from.index, -1);
+  assert_not_equals(nav.activation.entry.id, beforeId);
+}, "navigation.activation after navigation to a javascript: URL");
+</script>

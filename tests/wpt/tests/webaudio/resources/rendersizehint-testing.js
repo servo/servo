@@ -86,7 +86,7 @@ function runRenderSizeHintTests(contextType) {
   });
 
   // Out-of-bounds combinations (should throw NotSupportedError)
-  invalidNumericCases.forEach(({ sampleRate, hint }) => {
+  invalidNumericCases.forEach(({sampleRate, hint}) => {
     test(function() {
       assert_throws_dom('NotSupportedError', () => {
         if (isOffline) {
@@ -105,6 +105,35 @@ function runRenderSizeHintTests(contextType) {
   });
 
   if (!isOffline) {
+    // Out-of-bounds renderSizeHint values must throw NotSupportedError even
+    // when sampleRate is omitted, in which case the bound depends on the
+    // sample rate of the output device. -1 wraps to the maximum unsigned long.
+    test(
+        t => {
+          const defaultContext = new AudioContext();
+          t.add_cleanup(() => {
+            defaultContext.close();
+          });
+          const maxDefaultHint = Math.floor(6 * defaultContext.sampleRate);
+
+          for (const invalidHint of [0, -1, maxDefaultHint + 1]) {
+            assert_throws_dom('NotSupportedError', () => {
+              new AudioContext({renderSizeHint: invalidHint});
+            }, `renderSizeHint ${invalidHint} without sampleRate should throw`);
+          }
+
+          assert_throws_dom(
+              'NotSupportedError',
+              () => {
+                new AudioContext(
+                    {latencyHint: 'playback', renderSizeHint: -1, sinkId: ''});
+              },
+              'Negative renderSizeHint with playback latencyHint and default ' +
+                  'sinkId should throw');
+        },
+        'AudioContext [Throws Exception]: omitted sampleRate with invalid ' +
+            'renderSizeHint');
+
     // Verify that changing renderQuantumSize affects baseLatency logically.
     test(t => {
       const audioContext = new AudioContext();

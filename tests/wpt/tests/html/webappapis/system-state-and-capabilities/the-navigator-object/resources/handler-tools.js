@@ -25,7 +25,8 @@ function runTest({ includeNull = false } = {}) {
     if (!noSW) {
       const reg = await service_worker_unregister_and_register(t, "resources/handler-sw.js", "resources/handler/");
       t.add_cleanup(async () => await reg.unregister());
-      await wait_for_state(t, reg.installing, 'activated');
+      await wait_for_state(t, reg.installing || reg.waiting || reg.active,
+                           'activated');
     }
     const a = document.body.appendChild(document.createElement("a"));
     const codePoints = [];

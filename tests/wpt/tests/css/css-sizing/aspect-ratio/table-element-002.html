@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: a table's aspect-ratio gives it its height, which its rows fill</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#computing-the-table-height">
+<meta name="assert" content="aspect-ratio applies to the table element like a height does: the table is as tall as its aspect ratio makes it, its rows are distributed that height, and it is never shorter than its rows.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+table {
+    border-spacing: 0;
+}
+td {
+    padding: 0;
+}
+.content {
+    width: 10px;
+    height: 10px;
+}
+</style>
+<body onload="checkLayout('table')">
+<table style="width: 200px; aspect-ratio: 2" data-expected-width="200" data-expected-height="100"><tr><td><div class="content"></div></td></tr></table>
+<table style="width: 200px; aspect-ratio: 1" data-expected-width="200" data-expected-height="200"><tr><td><div class="content"></div></td></tr></table>
+<table style="aspect-ratio: 1; min-height: 200px" data-expected-width="200" data-expected-height="200"><tr><td><div class="content"></div></td></tr></table>
+<table style="width: 200px; aspect-ratio: 2; border: 10px solid" data-expected-width="200" data-expected-height="100"><tr><td><div class="content"></div></td></tr></table>
+<table style="width: 200px; aspect-ratio: 4" data-expected-width="200" data-expected-height="100"><tr><td><div class="content" style="height: 100px"></div></td></tr></table>
+</body>

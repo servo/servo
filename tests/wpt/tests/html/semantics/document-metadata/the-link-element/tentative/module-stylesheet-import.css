@@ -1,0 +1,5 @@
+/* CSS module scripts create constructed stylesheets, which drop @import rules.
+   The @import below must be ignored (blue never applied, never fetched) while
+   the rest of the sheet still applies. */
+@import "module-stylesheet-blue.css";
+span { color: rgb(255, 0, 0); }

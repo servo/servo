@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>selectedcontent is updated when the adoption agency algorithm removes an option from the stack of open elements</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/parsing.html#remove-an-element-from-the-stack-of-open-elements">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+
+<!-- The </b> end tag runs the adoption agency algorithm with the div as the
+     furthest block. The option sits between the b and the div and is not a
+     formatting element, so it is removed from the stack of open elements
+     without being the current node. The div is then moved out of the option. -->
+<select id=select1>
+  <button><selectedcontent></selectedcontent></button>
+  <b><option>X<div>Y</b>Z</option>
+</select>
+
+<script>
+test(() => {
+  const select = document.getElementById('select1');
+  const option = select.querySelector('option');
+  const selectedcontent = select.querySelector('selectedcontent');
+
+  assert_equals(select.value, 'X', 'The option should be selected.');
+  assert_equals(option.innerHTML, 'X', 'The div should have been moved out of the option.');
+  assert_equals(selectedcontent.innerHTML, 'X<div>Y</div>',
+    'selectedcontent should reflect the option children at the time it left the stack of open elements.');
+}, 'Removing an option from the stack of open elements updates selectedcontent.');
+</script>

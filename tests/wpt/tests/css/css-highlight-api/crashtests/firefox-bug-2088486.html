@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2088486">
+<style>
+  .hl::highlight(h) { text-decoration: underline; }
+</style>
+<div id="a">aaaa</div>
+<div id="b">bbbbbbbb</div>
+<div id="c"></div>
+<script>
+  const ta = a.firstChild;
+  const tb = b.firstChild;
+  CSS.highlights.set("h", new Highlight(
+    new StaticRange({ startContainer: ta, startOffset: 0,
+                      endContainer: ta, endOffset: 4 }),
+    new StaticRange({ startContainer: tb, startOffset: 5,
+                      endContainer: tb, endOffset: 8 })));
+  document.body.getBoundingClientRect();
+
+  c.classList.add("hl");
+  tb.data = "b";
+  document.body.getBoundingClientRect();
+</script>

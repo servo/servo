@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: ideographic space at the end of the last line hangs unconditionally</title>
+<link rel="author" title="Christian Biesinger" href="mailto:cbiesinger@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#hanging">
+<link rel="match" href="reference/trailing-ideographic-space-028-ref.html">
+<meta name="assert" content="With white-space: normal, an ideographic space (U+3000) at the end of the last line of a block hangs unconditionally, so it is not considered when aligning the line, even though the end of the block counts as a forced line break.">
+<style>
+.container {
+  display: inline-block;
+  line-height: 1;
+}
+.test {
+  text-align: right;
+}
+.green {
+  background: green;
+  color: transparent;
+}
+</style>
+
+<p>Test passes if the green rectangle below is flush with the right edge of the three ideographic characters (あああ).
+
+<div class=container>
+  <div class=sizer>あああ</div>
+  <div class=test><span class=green>ああ</span>&#x3000;</div>
+</div>
+<!-- The container is as wide as three ideographic characters.
+  The ideographic space hangs, so "ああ" is aligned to the right edge,
+  and the ideographic space overflows the line.
+  Unlike white-space: pre-wrap, hanging is not conditional with white-space: normal,
+  so the end of the block does not keep the ideographic space from hanging.
+-->

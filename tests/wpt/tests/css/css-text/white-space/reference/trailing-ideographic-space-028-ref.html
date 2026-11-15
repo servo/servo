@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS test reference</title>
+<link rel="author" title="Christian Biesinger" href="mailto:cbiesinger@igalia.com">
+<style>
+.container {
+  display: inline-block;
+  line-height: 1;
+}
+.test {
+  text-align: right;
+}
+.green {
+  background: green;
+  color: transparent;
+}
+</style>
+
+<p>Test passes if the green rectangle below is flush with the right edge of the three ideographic characters (あああ).
+
+<div class=container>
+  <div class=sizer>あああ</div>
+  <div class=test><span class=green>ああ</span></div>
+</div>

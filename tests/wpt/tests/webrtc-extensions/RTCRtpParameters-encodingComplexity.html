@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>RTCRtpEncodingParameters encodingComplexity attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../webrtc/dictionary-helper.js"></script>
+<script src="../webrtc/RTCRtpParameters-helper.js"></script>
+<script>
+'use strict';
+
+const kValidComplexities = ['low', 'normal', 'high', 'very-high', 'maximum'];
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  const {sender} = pc.addTransceiver('video', {sendEncodings: [{}]});
+  const encodings = sender.getParameters().encodings;
+  assert_equals(encodings.length, 1);
+  assert_not_own_property(encodings[0], 'encodingComplexity');
+}, 'encodingComplexity is omitted by default');
+
+for (const complexity of kValidComplexities) {
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const {sender} = pc.addTransceiver('video', {
+      sendEncodings: [{encodingComplexity: complexity}]
+    });
+    assert_equals(
+        sender.getParameters().encodings[0].encodingComplexity, complexity);
+
+    await doOfferAnswerExchange(t, pc);
+    assert_equals(
+        sender.getParameters().encodings[0].encodingComplexity, complexity);
+  }, `addTransceiver('video') preserves encodingComplexity '${complexity}'`);
+}
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  assert_throws_js(TypeError, () => {
+    pc.addTransceiver('video', {
+      sendEncodings: [{encodingComplexity: 'invalid-complexity'}]
+    });
+  });
+}, 'addTransceiver() with invalid encodingComplexity throws TypeError');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  const {sender} = pc.addTransceiver('video');
+  await doOfferAnswerExchange(t, pc);
+
+  let params = sender.getParameters();
+  assert_not_own_property(params.encodings[0], 'encodingComplexity');
+
+  for (const complexity of kValidComplexities) {
+    params = sender.getParameters();
+    params.encodings[0].encodingComplexity = complexity;
+    await sender.setParameters(params);
+
+    const updated = sender.getParameters();
+    assert_equals(updated.encodings[0].encodingComplexity, complexity);
+  }
+
+  // Clearing encodingComplexity restores default behavior (omitted).
+  params = sender.getParameters();
+  delete params.encodings[0].encodingComplexity;
+  await sender.setParameters(params);
+
+  const cleared = sender.getParameters();
+  assert_not_own_property(cleared.encodings[0], 'encodingComplexity');
+}, 'setParameters() can set, update, and clear encodingComplexity on video sender');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  const {sender} = pc.addTransceiver('video');
+  await doOfferAnswerExchange(t, pc);
+
+  const params = sender.getParameters();
+  params.encodings[0].encodingComplexity = 'invalid-complexity';
+  await promise_rejects_js(t, TypeError, sender.setParameters(params));
+}, 'setParameters() with invalid encodingComplexity rejects with TypeError');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  const {sender} = pc.addTransceiver('video', {
+    sendEncodings: [
+      {rid: '0', encodingComplexity: 'low'},
+      {rid: '1'},
+      {rid: '2', encodingComplexity: 'maximum'},
+    ]
+  });
+
+  let params = sender.getParameters();
+  assert_equals(params.encodings.length, 3);
+  assert_equals(params.encodings[0].encodingComplexity, 'low');
+  assert_not_own_property(params.encodings[1], 'encodingComplexity');
+  assert_equals(params.encodings[2].encodingComplexity, 'maximum');
+
+  params.encodings[1].encodingComplexity = 'very-high';
+  delete params.encodings[0].encodingComplexity;
+  await sender.setParameters(params);
+
+  params = sender.getParameters();
+  assert_not_own_property(params.encodings[0], 'encodingComplexity');
+  assert_equals(params.encodings[1].encodingComplexity, 'very-high');
+  assert_equals(params.encodings[2].encodingComplexity, 'maximum');
+}, 'encodingComplexity can be configured independently per simulcast encoding');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  const {sender} = pc.addTransceiver('audio', {
+    sendEncodings: [{encodingComplexity: 'high'}]
+  });
+  let params = sender.getParameters();
+  assert_equals(params.encodings.length, 1);
+  assert_not_own_property(params.encodings[0], 'encodingComplexity');
+
+  params.encodings[0].encodingComplexity = 'maximum';
+  await sender.setParameters(params);
+  params = sender.getParameters();
+  assert_not_own_property(params.encodings[0], 'encodingComplexity');
+}, 'Audio transceiver ignores valid encodingComplexity in addTransceiver and setParameters');
+</script>

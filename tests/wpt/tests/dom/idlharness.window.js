@@ -13,7 +13,8 @@
 idl_test(
   ['dom', 'fullscreen'],
   ['html'],
-  idl_array => {
+  async idl_array => {
+    idl_array.add_untested_idls((await fetch_spec('document-load-promises.tentative')).idl);
     self.xmlDoc = document.implementation.createDocument(null, '', null);
     self.detachedRange = document.createRange();
     detachedRange.detach();

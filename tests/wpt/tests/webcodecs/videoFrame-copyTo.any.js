@@ -68,6 +68,34 @@ promise_test(async t => {
 }, 'Test RGBA frame.');
 
 promise_test(async t => {
+  const data = new Uint8Array(32);
+  for (let i = 0; i < data.length; i++) {
+    data[i] = i + 1;
+  }
+  const frame = new VideoFrame(data, {
+      format: 'RGBA',
+      timestamp: 0,
+      codedWidth: 4,
+      codedHeight: 2,
+  });
+  const options = {
+      rect: {x: 2, y: 0, width: 2, height: 2},
+  };
+  const expectedLayout = [
+      {offset: 0, stride: 8},
+  ];
+  const expectedData = new Uint8Array([
+      9,10,11,12, 13,14,15,16,
+      25,26,27,28, 29,30,31,32,
+  ]);
+  assert_equals(frame.allocationSize(options), expectedData.length, 'allocationSize()');
+  const destination = new Uint8Array(expectedData.length);
+  const layout = await frame.copyTo(destination, options);
+  assert_layout_equals(layout, expectedLayout);
+  assert_buffer_equals(destination, expectedData);
+}, 'Test RGBA left crop.');
+
+promise_test(async t => {
   const frame = makeNV12_4x2();
   const expectedLayout = [
       {offset: 0, stride: 4},

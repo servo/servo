@@ -9,7 +9,7 @@
 </div>
 
 <!-- Async template fetch: should not block main parser -->
-<template for="target" src="../resources/chunked-html.py?delay=300&chunk1=%3Cscript%3Ewindow.c1Ran=true;window.mainScriptRanAfterC1=window.mainScriptRan;%3C/script%3E&chunk2=%3Cscript%3Ewindow.c2Ran=true;window.mainScriptRanAfterC2=window.mainScriptRan;%3C/script%3E" id="tpl"></template>
+<template for="target" sanitize="unsafe" src="../resources/chunked-html.py?delay=300&chunk1=%3Cscript%3Ewindow.c1Ran=true;window.mainScriptRanAfterC1=window.mainScriptRan;%3C/script%3E&chunk2=%3Cscript%3Ewindow.c2Ran=true;window.mainScriptRanAfterC2=window.mainScriptRan;%3C/script%3E" id="tpl"></template>
 
 <script>
 window.mainScriptRan = true;

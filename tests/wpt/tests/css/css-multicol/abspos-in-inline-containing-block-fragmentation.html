@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Multi-column Layout Test: an absolutely positioned box in an inline box containing block fragments at the column boundary</title>
+<link rel="help" href="https://drafts.csswg.org/css-break-3/#breaking-rules">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#def-cb">
+<meta name="assert" content="The lines of an absolutely positioned box whose containing block is a relatively positioned inline box down the first column break at the column boundary, with and without insets.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.multicol { position: relative; columns: 2; column-gap: 0; column-fill: auto; width: 400px; height: 100px; font: 20px/30px Ahem; }
+.abs { position: absolute; left: 0; width: 100px; line-height: 20px; }
+.top { top: 0; }
+</style>
+<div class="multicol">XX<br>XX<br>XX <span style="position: relative">XX<div class="abs top"><div>A</div><div>B</div><div>C</div></div></span></div>
+<div class="multicol">XX<br>XX<br>XX <span style="position: relative">XX<div class="abs"><div>A</div><div>B</div><div>C</div></div></span></div>
+<script>
+function linePositions(multicol)
+{
+    const multicolRect = multicol.getBoundingClientRect();
+    const inlineBoxLeft = multicol.querySelector("span").getBoundingClientRect().left - multicolRect.left;
+    return [...multicol.querySelectorAll(".abs > div")].map(line => {
+        const rect = line.getBoundingClientRect();
+        return { column: rect.left - multicolRect.left - inlineBoxLeft >= 200 ? 2 : 1, top: rect.top - multicolRect.top, height: rect.height };
+    });
+}
+
+const [withInsets, withoutInsets] = document.querySelectorAll(".multicol");
+
+test(() => {
+    // The inline box starts 65px down the first column, so the second line (85px to 105px) does not fit and moves to the top of the second column.
+    assert_object_equals(linePositions(withInsets), [{ column: 1, top: 65, height: 20 }, { column: 2, top: 0, height: 20 }, { column: 2, top: 20, height: 20 }]);
+}, "Lines of an absolutely positioned box with insets in an inline box containing block break at the column boundary");
+
+test(() => {
+    // The static position is below the line with the inline box (90px down the first column), so the first line (90px to 110px) moves to the top of the second column.
+    assert_object_equals(linePositions(withoutInsets), [{ column: 2, top: 0, height: 20 }, { column: 2, top: 20, height: 20 }, { column: 2, top: 40, height: 20 }]);
+}, "Lines of an absolutely positioned box with auto insets in an inline box containing block break at the column boundary");
+</script>

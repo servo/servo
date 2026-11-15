@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Selection anchorNode and focusNode when the selection is in a shadow tree</title>
+<link rel="help" href="https://w3c.github.io/selection-api/#dom-selection-anchornode">
+<link rel="help" href="https://github.com/w3c/selection-api/issues/361">
+<meta name="assert" content="anchorNode and focusNode do not expose nodes in shadow trees. They are rescoped as in getComposedRanges() without shadowRoots: a range start in a shadow tree becomes (parent of host, index of host), and a range end becomes (parent of host, index of host + 1). The host is the shadow host in the document tree.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="light">Light text</div>
+<div id="openHost"><span id="slotted">Slotted text</span></div>
+<div id="closedHost"><span>Not slotted</span></div>
+<div id="outerHost"><span id="outerA" slot="a">Outer A</span><span id="outerB" slot="b">Outer B</span></div>
+<script>
+"use strict";
+
+// This test is for investigation only. The specification does not yet define
+// anchorNode and focusNode for a selection in a shadow tree, and no browser
+// passes all of these tests.
+// See https://github.com/w3c/selection-api/issues/361.
+
+const openRoot = openHost.attachShadow({ mode: "open" });
+openRoot.innerHTML = '<p id="openShadowText">Open shadow text</p><slot></slot>';
+const openShadowText = openRoot.getElementById("openShadowText").firstChild;
+
+const closedRoot = closedHost.attachShadow({ mode: "closed" });
+closedRoot.innerHTML = '<p id="closedShadowText">Closed shadow text</p>';
+const closedShadowText = closedRoot.getElementById("closedShadowText").firstChild;
+
+// The outer shadow tree shows outerB before outerA.
+const outerRoot = outerHost.attachShadow({ mode: "open" });
+outerRoot.innerHTML =
+  '<slot name="b"></slot><slot name="a"></slot>' +
+  '<p id="outerShadowText">Outer shadow text</p>' +
+  '<div id="innerHost"><span id="innerA" slot="a">Inner A</span><span id="innerB" slot="b">Inner B</span></div>';
+const outerShadowText = outerRoot.getElementById("outerShadowText").firstChild;
+const innerHost = outerRoot.getElementById("innerHost");
+const innerAText = outerRoot.getElementById("innerA").firstChild;
+const innerBText = outerRoot.getElementById("innerB").firstChild;
+
+// The inner shadow tree shows innerB before innerA.
+const innerRoot = innerHost.attachShadow({ mode: "open" });
+innerRoot.innerHTML =
+  '<p id="innerShadowText">Inner shadow text</p><slot name="b"></slot><slot name="a"></slot>';
+const innerShadowText = innerRoot.getElementById("innerShadowText").firstChild;
+
+const nodes = {
+  lightText: light.firstChild,
+  slottedText: document.getElementById("slotted").firstChild,
+  outerAText: outerA.firstChild,
+  outerBText: outerB.firstChild,
+  openShadowText, closedShadowText, outerShadowText, innerShadowText, innerAText, innerBText,
+  body: document.body,
+};
+
+function testSelection(where, args, check, expectation) {
+  const description = `${where}, setBaseAndExtent(${args.join(", ")})`;
+  test(t => {
+    t.add_cleanup(() => getSelection().removeAllRanges());
+    const [anchor, anchorOffset, focus, focusOffset] = args;
+    getSelection().setBaseAndExtent(nodes[anchor], anchorOffset, nodes[focus], focusOffset);
+    check(getSelection());
+  }, `${description}: ${expectation}`);
+}
+
+function checkAnchorAndFocus(sel, [anchor, anchorOffset, focus, focusOffset]) {
+  assert_equals(sel.anchorNode, nodes[anchor], "anchorNode");
+  assert_equals(sel.anchorOffset, anchorOffset, "anchorOffset");
+  assert_equals(sel.focusNode, nodes[focus], "focusNode");
+  assert_equals(sel.focusOffset, focusOffset, "focusOffset");
+}
+
+function testNotRescoped(where, args) {
+  const [anchor, anchorOffset, focus, focusOffset] = args;
+  testSelection(where, args, sel => checkAnchorAndFocus(sel, args),
+    `anchor is (${anchor}, ${anchorOffset}), focus is (${focus}, ${focusOffset})`);
+}
+
+function testRescoped(where, args, host, backward = false) {
+  testSelection(where, args, sel => {
+    assert_not_equals(sel.anchorNode, null, "anchorNode");
+    assert_not_equals(sel.focusNode, null, "focusNode");
+    assert_false(sel.anchorNode.getRootNode() instanceof ShadowRoot,
+      `anchorNode ${format_value(sel.anchorNode)} is in a shadow tree`);
+    assert_false(sel.focusNode.getRootNode() instanceof ShadowRoot,
+      `focusNode ${format_value(sel.focusNode)} is in a shadow tree`);
+  }, "anchorNode and focusNode are rescoped out of the shadow tree");
+
+  const hostIndex = Array.prototype.indexOf.call(document.body.childNodes, window[host]);
+  const start = ["body", hostIndex, `index of ${host}`];
+  const end = ["body", hostIndex + 1, `index of ${host} + 1`];
+  const [anchor, focus] = backward ? [end, start] : [start, end];
+  testSelection(where, args,
+    sel => checkAnchorAndFocus(sel, [anchor[0], anchor[1], focus[0], focus[1]]),
+    `anchor is (body, ${anchor[2]}), focus is (body, ${focus[2]})`);
+}
+
+testNotRescoped("Document tree", ["lightText", 1, "lightText", 5]);
+testNotRescoped("Slotted node", ["slottedText", 1, "slottedText", 5]);
+testNotRescoped("Slotted node", ["slottedText", 5, "slottedText", 1]);
+testNotRescoped("Slotted nodes in reverse order", ["outerAText", 1, "outerBText", 3]);
+testNotRescoped("Slotted nodes in reverse order", ["outerBText", 3, "outerAText", 1]);
+
+testRescoped("Open shadow tree", ["openShadowText", 1, "openShadowText", 5], "openHost");
+testRescoped("Open shadow tree", ["openShadowText", 5, "openShadowText", 1], "openHost", true);
+testRescoped("Closed shadow tree", ["closedShadowText", 1, "closedShadowText", 5], "closedHost");
+testRescoped("Nested shadow tree", ["innerShadowText", 1, "innerShadowText", 5], "outerHost");
+testRescoped("Nested shadow tree", ["innerShadowText", 5, "innerShadowText", 1], "outerHost", true);
+testRescoped("Outer shadow tree, into a child of the inner host",
+  ["outerShadowText", 1, "innerAText", 3], "outerHost");
+testRescoped("Outer shadow tree, slotted nodes in reverse order",
+  ["innerAText", 1, "innerBText", 3], "outerHost");
+testRescoped("Outer shadow tree, slotted nodes in reverse order",
+  ["innerBText", 3, "innerAText", 1], "outerHost", true);
+</script>
+</body>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://github.com/whatwg/html/pull/11006">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<div id=unrelated>Unrelated</div>
+<button id=invoker interestfor=tip><span id=a>AAAAAAAA</span><span id=b>BBBBBBBB</span></button>
+<div id=tip popover>Tip</div>
+<style>
+  #invoker {
+    interest-delay-start: 300ms;
+    interest-delay-end: 10000s;
+  }
+</style>
+
+<script>
+const invoker = document.getElementById('invoker');
+const a = document.getElementById('a');
+const b = document.getElementById('b');
+const tip = document.getElementById('tip');
+const delayMs = 300;
+const moveAfterMs = 200;
+const checkAtMs = 400; // > delayMs, but < moveAfterMs + delayMs.
+
+promise_test(async (t) => {
+  assert_true(checkAtMs > delayMs && checkAtMs < moveAfterMs + delayMs);
+  t.add_cleanup(() => tip.hidePopover());
+  await hoverOver(unrelated);
+  assert_false(tip.matches(':popover-open'),'tip should start out closed');
+  const start = performance.now();
+  await mouseOverAndRecord(t,a);
+  await waitForHoverTime(moveAfterMs - (performance.now() - start));
+  const openBeforeMove = tip.matches(':popover-open');
+  if (performance.now() - start >= delayMs) {
+    return; // The test runner was too slow.
+  }
+  assert_false(openBeforeMove,'tip should not be open before the delay elapses');
+  // Move to another descendant of the invoker. This should not restart the
+  // interest-delay-start timer.
+  await mouseOverAndRecord(t,b);
+  await waitForHoverTime(checkAtMs - (performance.now() - start));
+  assert_true(tip.matches(':popover-open'),
+      'tip should be open once the original delay elapses');
+  assert_true(invoker.matches(':interest-source'),'invoker should have interest');
+  await hoverOver(unrelated);
+},'Moving the pointer between descendants of an invoker does not restart interest-delay-start');
+</script>

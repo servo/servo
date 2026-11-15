@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Text test: bidi resolution with unicode-bidi:plaintext</title>
+
+<link rel="match" href="reference/bidi-plaintext-001-ref.html">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1558431">
+
+<style>
+.test {
+  font: 20px Arial, sans-serif;
+  margin: 10px;
+  border: 1px solid gray;
+  width: 10em;
+  unicode-bidi: plaintext;
+}
+</style>
+
+<p>Alignment of text in both boxes should match:</p>
+
+<div class="test">Hello World!<br>שלום עולם!</div>
+
+<div class="test"><span>Hello World!<br>שלום עולם!</span></div>

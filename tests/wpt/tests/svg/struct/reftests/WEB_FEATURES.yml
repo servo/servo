@@ -3,4 +3,4 @@ rules:
 - currentScale*: [svg]
 - gradient-in-symbol.svg: [svg]
 - inner-svg-*: [svg]
-- outer-svg-transform.svg: [svg]
+- outer-svg-*: [svg]

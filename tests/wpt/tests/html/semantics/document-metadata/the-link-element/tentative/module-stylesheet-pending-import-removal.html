@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Removing import cancels a connected module link's pending completion</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/LinkTagModuleImport/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<body>
+<script type="module">
+import {createLink, waitForEvent, createDocumentContainer, controlledModule, recordLinkEvents} from "./module-stylesheet-helpers.js";
+
+for (const success of [true, false]) {
+  promise_test(async t => {
+    const resource = controlledModule(t);
+    if (!success) {
+      await resource.configure(404);
+    }
+    const container = createDocumentContainer(t);
+    const link = createLink(t, /*import=*/resource.url);
+    const events = recordLinkEvents(link);
+    container.append(link);
+    await resource.started();
+    assert_array_equals(events, [], "The module fetch is still pending.");
+
+    // Keep an independent consumer to observe the old fetch finishing.
+    const completed = import(resource.url, {with: {type: "css"}}).then(
+        () => "load", () => "error");
+    link.removeAttribute("import");
+    assert_true(link.isConnected);
+    assert_equals(link.sheet, null);
+    await resource.release();
+    assert_equals(await completed, success ? "load" : "error");
+
+    // Both clients of the original fetch are notified before this barrier.
+    const barrier = createLink(t, /*import=*/"unmapped-import-removal-barrier");
+    const barrierResult = waitForEvent(barrier);
+    container.append(barrier);
+    assert_equals(await barrierResult, "error");
+    assert_array_equals(events, [], "No stale load or error event is fired.");
+    assert_equals(link.sheet, null);
+    assert_equals((await resource.status()).count, 1);
+  }, `Removing import while a connected module link's ${
+      success ? "successful" : "failed"} fetch is pending ignores its completion.`);
+}
+</script>

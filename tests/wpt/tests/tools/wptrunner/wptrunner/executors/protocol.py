@@ -464,6 +464,19 @@ class BidiBluetoothProtocolPart(ProtocolPart):
         pass
 
     @abstractmethod
+    async def simulate_gatt_mtu_change(self,
+                               context: str,
+                               address: str,
+                               mtu: int) -> None:
+        """
+        Simulates an ATT MTU exchange with a simulated bluetooth peripheral.
+        :param context: Browsing context to set the simulated peripheral to.
+        :param address: The address of the simulated bluetooth peripheral.
+        :param mtu: The new ATT MTU in octets.
+        """
+        pass
+
+    @abstractmethod
     async def simulate_service(self,
                                context: str,
                                address: str,

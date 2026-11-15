@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS stretch(): margins in the block axis</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="stretch() in the block axis takes percentage margins, resolved against the containing block's inline size, and negative margins off its argument, ignores box-sizing and margin collapsing, and doesn't shrink the border box below its borders and padding.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .column {
+    float: left;
+    width: 20px;
+    height: 200px;
+  }
+  .test {
+    background: green;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<!-- 200% of the 20px wide containing block. -->
+<div class="column"><div class="test" style="height: stretch(140px); margin-bottom: 200%;"></div></div>
+<div class="column"><div class="test" style="height: stretch(50px); margin-bottom: -50px;"></div></div>
+<div class="column"><div class="test" style="height: stretch(100px); padding-bottom: 20px; box-sizing: border-box;"></div></div>
+<div class="column"><div class="test" style="height: stretch(50px); margin-bottom: 50px; border-top: 100px solid green;"></div></div>
+<!-- The margins between the two collapse to zero, but each box takes its own margin off. -->
+<div class="column">
+  <div class="test" style="height: stretch(100px); margin-bottom: 50px;"></div>
+  <div class="test" style="height: stretch(0px); margin-top: -50px;"></div>
+</div>

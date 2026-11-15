@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Automatic text track selection runs when the adoption agency algorithm removes a media element from the stack of open elements</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/parsing.html#remove-an-element-from-the-stack-of-open-elements">
+<link rel=help href="https://html.spec.whatwg.org/multipage/media.html#honor-user-preferences-for-automatic-text-track-selection">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+
+<!-- In each case the first </b> end tag runs the adoption agency algorithm with
+     the div as the furthest block. The media element sits between the b and the
+     div and is not a formatting element, so it is removed from the stack of open
+     elements without being the current node. The second </b> and the </div>
+     close the b element cloned by the adoption agency algorithm and the div. -->
+<b><video id=video><track kind=metadata src="resources/class.vtt" default><div></b></b></div>
+<b><audio id=audio><track kind=metadata src="resources/class.vtt" default><div></b></b></div>
+
+<!-- Control: a media element that is popped off the stack of open elements. -->
+<video id=control><track kind=metadata src="resources/class.vtt" default></video>
+
+<script>
+for (const id of ['video', 'audio']) {
+  promise_test(async t => {
+    const control = document.getElementById('control').textTracks[0];
+    await t.step_wait(() => control.mode === 'hidden',
+      'The default metadata track of the control should become hidden.');
+
+    const element = document.getElementById(id);
+    assert_equals(element.querySelector('div'), null,
+      'The div should have been moved out of the media element.');
+    assert_equals(element.textTracks.length, 1);
+    assert_equals(element.textTracks[0].mode, 'hidden',
+      'The default metadata track should become hidden.');
+  }, `Removing ${id} from the stack of open elements honors user preferences for automatic text track selection.`);
+}
+</script>

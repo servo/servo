@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>Scroll and view timelines with the same name on the same element matched from outside its hierarchy should not crash</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#timeline-scoping">
+<style>
+  @keyframes anim {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  #source {
+    scroll-timeline-name: --t;
+    view-timeline-name: --t;
+  }
+  #target {
+    animation: anim 1s linear;
+    animation-timeline: --t;
+  }
+</style>
+<div id="source"></div>
+<div id="target"></div>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>referrerPolicy reflection on the SVG image element</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/embedded.html#__svg__SVGImageElement__referrerPolicy">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/urls-and-fetching.html#referrer-policy-attribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg>
+  <image id="img" width="1" height="1"/>
+</svg>
+
+<script>
+const image = document.getElementById("img");
+const policies = [
+  "no-referrer",
+  "no-referrer-when-downgrade",
+  "same-origin",
+  "origin",
+  "strict-origin",
+  "origin-when-cross-origin",
+  "strict-origin-when-cross-origin",
+  "unsafe-url",
+];
+
+for (const policy of policies) {
+  test(() => {
+    image.setAttribute("referrerpolicy", policy.toUpperCase());
+    assert_equals(image.referrerPolicy, policy);
+  }, `${policy} is a known referrer policy`);
+}
+
+test(() => {
+  image.removeAttribute("referrerpolicy");
+  assert_equals(image.referrerPolicy, "");
+}, "missing referrerpolicy reflects as the empty string");
+
+test(() => {
+  image.setAttribute("referrerpolicy", "invalid-policy");
+  assert_equals(image.referrerPolicy, "");
+}, "invalid referrerpolicy reflects as the empty string");
+
+test(() => {
+  image.removeAttribute("referrerpolicy");
+  image.referrerPolicy = "invalid-policy";
+  assert_equals(image.getAttribute("referrerpolicy"), "invalid-policy");
+  assert_equals(image.referrerPolicy, "");
+}, "setting an invalid referrerPolicy preserves the content attribute");
+
+test(() => {
+  const created = document.createElementNS("http://www.w3.org/2000/svg", "image");
+  assert_equals(created.referrerPolicy, "");
+}, "a freshly created image element reflects the empty string");
+</script>

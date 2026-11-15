@@ -1264,6 +1264,117 @@ test(() => {
   document.body.appendChild(holder);
 
   try {
+    const el = document.createElement('div');
+    el.setAttribute('data-y', 'random(property-scoped, 1px, 300000px)');
+    el.setAttribute('data-x', 'attr(data-y type(<length>))');
+    el.style.setProperty('margin-left', 'attr(data-x type(<length>))');
+    el.style.setProperty('margin-right', 'random(ua-early-margin-left, 1px, 300000px)');
+    holder.appendChild(el);
+
+    const style = getComputedStyle(el);
+    test_random_equals(style['margin-left'], style['margin-right']);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `random() shared by property in chained typed attr()`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    const el = document.createElement('div');
+    el.setAttribute('data-x', 'random(property-scoped, 1px, 300000px, 1px)');
+    el.style.setProperty('margin', 'random(property-scoped, 1px, 300000px, 1px) attr(data-x type(<length>))');
+    el.style.setProperty('--random-length-1', 'random(ua-margin, 1px, 300000px, 1px)');
+    el.style.setProperty('--random-length-2', 'random(ua-early-margin, 1px, 300000px, 1px)');
+    holder.appendChild(el);
+
+    const style = getComputedStyle(el);
+    const elComputedMarginTop = style['margin-top'];
+    const elComputedMarginLeft = style['margin-left'];
+    test_random_not_equals(elComputedMarginTop, elComputedMarginLeft);
+
+    const elComputedNonEarly = style.getPropertyValue('--random-length-1');
+    const elComputedEarly = style.getPropertyValue('--random-length-2');
+    test_random_equals(elComputedNonEarly, elComputedMarginTop);
+    test_random_equals(elComputedEarly, elComputedMarginLeft);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `random() shared by property in typed attr() uses a distinct ua-early prefix`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    const el = document.createElement('div');
+    el.setAttribute('data-a', 'random(property-index-scoped, 1px, 300000px, 1px)');
+    el.setAttribute('data-b', 'random(property-index-scoped, 1px, 300000px, 1px)');
+    el.style.setProperty('margin', 'attr(data-a type(<length>)) attr(data-b type(<length>))');
+    el.style.setProperty('--random-length-1', 'random(ua-early-margin-1, 1px, 300000px, 1px)');
+    el.style.setProperty('--random-length-2', 'random(ua-early-margin-2, 1px, 300000px, 1px)');
+    holder.appendChild(el);
+
+    const style = getComputedStyle(el);
+    test_random_not_equals(style['margin-top'], style['margin-left']);
+    test_random_equals(style['margin-top'], style.getPropertyValue('--random-length-1'));
+    test_random_equals(style['margin-left'], style.getPropertyValue('--random-length-2'));
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `random() in typed attr() uses ua-early indices that increase across the declaration`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    const el = document.createElement('div');
+    el.setAttribute('data-a', 'random(property-index-scoped, 1px, 300000px, 1px)');
+    el.style.setProperty('margin', 'random(property-index-scoped, 1px, 300000px, 1px) attr(data-a type(<length>))');
+    el.style.setProperty('--random-length-1', 'random(ua-margin-1, 1px, 300000px, 1px)');
+    el.style.setProperty('--random-length-2', 'random(ua-early-margin-1, 1px, 300000px, 1px)');
+    holder.appendChild(el);
+
+    const style = getComputedStyle(el);
+    test_random_equals(style['margin-top'], style.getPropertyValue('--random-length-1'));
+    test_random_equals(style['margin-left'], style.getPropertyValue('--random-length-2'));
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `random() in typed attr() is indexed separately from the rest of the declaration`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    const el = document.createElement('div');
+    el.setAttribute('data-a', 'random(property-index-scoped, 1px, 300000px, 1px)');
+    el.style.setProperty('margin', 'attr(data-a type(<length>)) random(property-index-scoped, 1px, 300000px, 1px)');
+    // The `random(...)` attribute value is parsed during early substitution in `attr()`, so it parses as
+    // `random(ua-early-margin-1, 1px, 300000px, 1px)`. This is the result of `attr()`, so the final declaration
+    // value before parsing is `margin: random(ua-early-margin-1, ...) random(property-index-scoped, ...)`.
+    // Therefore, the second random function is indexed as `ua-margin-2`.
+    el.style.setProperty('--random-length-1', 'random(ua-early-margin-1, 1px, 300000px, 1px)');
+    el.style.setProperty('--random-length-2', 'random(ua-margin-2, 1px, 300000px, 1px)');
+    holder.appendChild(el);
+
+    const style = getComputedStyle(el);
+    test_random_equals(style['margin-top'], style.getPropertyValue('--random-length-1'));
+    test_random_equals(style['margin-left'], style.getPropertyValue('--random-length-2'));
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `random() in typed attr() is substituted into the final property declaration`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
     const t1 = document.createElement('div');
     t1.style.setProperty('width', 'random(--ident property-scoped, 1px, 300000px)');
     holder.appendChild(t1);

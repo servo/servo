@@ -1,0 +1,47 @@
+<!doctype html>
+
+<head>
+  <title>Test for copying a table in a contenteditable with the selection ending at the end of a row</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="../include/editor-test-utils.js"></script>
+</head>
+
+<body>
+  <div id="editor" contenteditable="true">
+    <table border="1">
+      <tbody>
+        <tr><td>A</td><td>B</td><td>C</td></tr>
+        <tr><td>d</td><td>e</td><td>f</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div id="pasteTarget" contenteditable="true"></div>
+
+  <script>
+    promise_test(async t => {
+      const row = document.querySelector('#editor tr');
+      const range = document.createRange();
+      range.selectNode(row);
+      range.setEnd(row, row.cells.length);
+      getSelection().removeAllRanges();
+      getSelection().addRange(range);
+      await (new EditorTestUtils(row.parentNode)).sendCopyShortcutKey();
+
+      const target = document.querySelector('#pasteTarget');
+      getSelection().collapse(target);
+      await (new EditorTestUtils(target)).sendPasteShortcutKey();
+
+      test(() => {
+        const copiedCells = Array.from(document.querySelectorAll('#pasteTarget tr'),
+                          row => Array.from(row.cells, cell => cell.textContent));
+        assert_array_equals(copiedCells.map(String),
+                            ['A,B,C']);
+      });
+    }, 'Selection ending after a table row in a contenteditable does not copy the next row.');
+  </script>
+</body>

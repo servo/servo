@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+  body { font: 16px/20px monospace; margin: 8px; }
+  .row { margin-bottom: 6px; }
+  .box { height: 20px; background: lightblue; }
+  .ahem { font: 10px/10px Ahem; }
+  .parent { background: #ddd; }
+</style>
+<div class="row" style="overflow:auto"><div class="parent" style="display:inline-block"><div class="box" style="width:20px">aa bb cc dd</div></div></div>
+<div class="row" style="overflow:auto"><div class="parent" style="float:left"><div class="box" style="width:20px">aa bb cc dd</div></div></div>
+<div class="row" style="overflow:auto"><div class="parent" style="width:max-content"><div class="box" style="width:20px">aa bb cc dd</div></div></div>
+<div class="row" style="overflow:auto"><div class="parent" style="display:inline-flex"><div class="box" style="width:20px">aa bb cc dd</div></div></div>
+<div class="row" style="overflow:auto"><div class="parent" style="display:inline-block"><div class="box" style="width:20px;padding:3px;border:2px solid">aa bb cc dd</div></div></div>
+<div class="row" style="overflow:auto"><div class="parent" style="display:inline-block"><div class="box" style="width:20px;overflow:hidden">aa bb cc dd</div></div></div>
+<div class="row" style="overflow:auto"><div class="parent" style="display:inline-block"><div class="box" style="width:60px">aa bb cc dd</div></div></div>
+<div class="row" style="overflow:auto"><div class="parent" style="display:inline-block"><div class="box" style="display:flex;width:20px"><span>aa bb cc dd</span></div></div></div>
+<div class="row" style="display:flex;width:300px"><div class="parent"><div class="box" style="width:20px">aa bb cc dd</div></div><div>Label</div></div>
+<div class="row" style="overflow:auto"><div class="parent" style="display:inline-block"><div class="box ahem" style="width:30px">XXX X</div></div></div>
+<div class="row" style="overflow:auto"><div class="parent" style="display:inline-flex"><div class="box ahem" style="width:30px">XXX X</div></div></div>
+<div class="row" style="overflow:auto"><div class="box" style="width:20px">aa bb cc dd</div></div>
+<div class="row" style="overflow:auto"><div class="box" style="width:20px">aa bb cc dd</div></div>
+<div class="row" style="overflow:auto"><div class="box ahem" style="width:30px">XXX X</div></div>

@@ -9,11 +9,9 @@
   <body>
     <style id=style1>
       @mixin --m1() {
-        @result {
         color: green;
         & {
           --foo: bar;
-        }
         }
       }
     </style>
@@ -23,10 +21,8 @@
         assert_equals(ss.cssRules.length, 1);
         assert_equals(ss.cssRules[0].cssText,
 `@mixin --m1 {
-  @result {
   color: green;
   & { --foo: bar; }
-}
 }`);
        }, 'serialization of @mixin');
     </script>
@@ -50,9 +46,7 @@
 
     <style id=style3>
       @mixin --m2() {
-        @result {
-          @contents
-        }
+        @contents
       }
     </style>
     <script>
@@ -60,9 +54,7 @@
         let ss = style3.sheet;
         assert_equals(ss.cssRules[0].cssText,
 `@mixin --m2 {
-  @result {
   @contents;
-}
 }`);
       }, 'serialization of @mixin with @contents');
     </script>
@@ -100,9 +92,7 @@
 
     <style id=style6>
       @mixin --m3(--arg type(<length>): 1em, --other-arg) {
-        @result {
-          margin-left: var(--arg);
-        }
+        margin-left: var(--arg);
       }
     </style>
     <script>
@@ -110,9 +100,7 @@
         let ss = style6.sheet;
         assert_equals(ss.cssRules[0].cssText,
 `@mixin --m3(--arg <length>: 1em, --other-arg) {
-  @result {
   margin-left: var(--arg);
-}
 }`);
       }, 'serialization of @mixin with parameters');
     </script>
@@ -120,9 +108,7 @@
 
     <style id=style7>
       @mixin --m4 {
-        @result {
-          color: green;
-        }
+        color: green;
       }
     </style>
     <script>
@@ -130,9 +116,7 @@
         let ss = style7.sheet;
         assert_equals(ss.cssRules[0].cssText,
 `@mixin --m4 {
-  @result {
   color: green;
-}
 }`);
       }, 'serialization of @mixin defined without a parameter list');
     </script>
@@ -140,7 +124,7 @@
 
     <style id=style8>
       @mixin --m5() {
-        @result { color: green; }
+        color: green;
       }
       #foo {
         @apply --m5 { }

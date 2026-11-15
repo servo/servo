@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, minimum-scale=1">
+<title>Viewport: No scroll event fired on visualViewport when the layout viewport smooth scrolls to fractional offsets</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1831655">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body {
+    height: 500vh;
+  }
+</style>
+<script>
+// Smooth scrolling to fractional offsets must not make the visual viewport's
+// offset relative to the layout viewport drift by sub-pixel amounts, which
+// would fire scroll events on visualViewport.
+promise_test(async t => {
+  await new Promise(resolve => window.addEventListener("load", resolve, { once: true }));
+
+  assert_equals(window.scrollY, 0, "Must not be scrolled");
+  assert_equals(visualViewport.scale, 1, "Must not be zoomed in");
+
+  let windowScrollEventCount = 0;
+  let visualViewportScrollEventCount = 0;
+  window.addEventListener("scroll", () => windowScrollEventCount++);
+  visualViewport.addEventListener("scroll", () => visualViewportScrollEventCount++);
+
+  for (const y of [100.3, 200.7]) {
+    const scrollendPromise =
+      new Promise(resolve => window.addEventListener("scrollend", resolve, { once: true }));
+    window.scrollTo({ top: y, behavior: "smooth" });
+    await scrollendPromise;
+    assert_equals(visualViewport.offsetTop, 0);
+  }
+
+  assert_greater_than(windowScrollEventCount, 0);
+  assert_equals(visualViewportScrollEventCount, 0);
+}, "Smooth scrolling the layout viewport to fractional offsets does not fire a scroll event on visualViewport");
+</script>

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+@page { size: 5in 3in; margin: 0; }
+:root { print-color-adjust: exact; }
+body { margin: 0; }
+div { width: 100px; height: 48px; background: blue; }
+.page { break-before: page; }
+</style>
+<div style="background: green"></div>
+<div class="page" style="height: 144px"></div>
+<div style="margin: -144px 0 0 100px; height: 288px; background: orange"></div>
+<div class="page" style="background: purple"></div>
+<div></div>

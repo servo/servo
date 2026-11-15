@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Focus delegation on a display: contents shadow host</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#get-the-focusable-area">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1988232">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<label id="label" for="host">Label</label>
+<x-field id="host" style="display: contents"><span id="slotted">slotted</span></x-field>
+
+<script>
+customElements.define("x-field", class extends HTMLElement {
+  static formAssociated = true;
+  constructor() {
+    super();
+    this.attachInternals();
+    this.attachShadow({ mode: "open", delegatesFocus: true }).innerHTML =
+      `<span id="text">text</span><slot></slot><input id="inner">`;
+  }
+});
+
+const host = document.getElementById("host");
+const inner = host.shadowRoot.getElementById("inner");
+const text = host.shadowRoot.getElementById("text");
+const slotted = document.getElementById("slotted");
+
+function resetFocus() {
+  document.activeElement.blur();
+  assert_equals(document.activeElement, document.body);
+}
+
+function clickCenter(element) {
+  const rect = element.getBoundingClientRect();
+  return new test_driver.Actions()
+    .pointerMove(Math.round(rect.x + rect.width / 2),
+                 Math.round(rect.y + rect.height / 2))
+    .pointerDown()
+    .pointerUp()
+    .send();
+}
+
+function assertDelegated() {
+  assert_equals(document.activeElement, host);
+  assert_equals(host.shadowRoot.activeElement, inner);
+  assert_true(host.matches(":focus"), "host matches :focus");
+}
+
+test(() => {
+  resetFocus();
+  host.focus();
+  assertDelegated();
+}, "focus() on a display: contents host with delegatesFocus focuses the delegate");
+
+promise_test(async () => {
+  resetFocus();
+  await test_driver.click(document.getElementById("label"));
+  assertDelegated();
+}, "Clicking a label for a display: contents host with delegatesFocus focuses the delegate");
+
+promise_test(async () => {
+  resetFocus();
+  await clickCenter(text);
+  assertDelegated();
+}, "Clicking non-focusable content in a display: contents host with delegatesFocus focuses the delegate");
+
+promise_test(async () => {
+  resetFocus();
+  await clickCenter(slotted);
+  assertDelegated();
+}, "Clicking slotted content in a display: contents host with delegatesFocus focuses the delegate");
+</script>

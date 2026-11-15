@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en" >
+<meta charset="utf-8">
+<title>CSS Test reference</title>
+<link rel='author' title='Christian Biesinger' href='mailto:cbiesinger@igalia.com'>
+<style>
+div {
+    border: solid;
+    font-family: monospace;
+    margin: 1ch;
+    width: 9.1ch;
+}
+.test {
+    border-color: blue;
+}
+.ref {
+    border-color: orange;
+}
+</style>
+
+<p>Test passes if the box with a blue frame is identical to the orange one.
+
+<div class=test>1 2 3 4<br>5 6 7 8<br>abcdefghi</div>
+
+<div class=ref>1 2 3 4<br>5 6 7 8<br>abcdefghi</div>

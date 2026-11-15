@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: scrollable overflow of an absolutely positioned box whose containing block is an inline box</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#def-cb">
+<meta name="assert" content="An absolutely positioned box whose containing block is a relatively positioned inline box contributes its actual position to the scrollable overflow of the scroll container, including when the inline box is wrapped in an anonymous block.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.scroller {
+    position: relative;
+    overflow: auto;
+    font: 20px/1 Ahem;
+    width: 200px;
+    height: 100px;
+}
+.spacer {
+    height: 500px;
+}
+.abs {
+    position: absolute;
+    width: 10px;
+    height: 1000px;
+}
+.wide {
+    width: 1000px;
+    height: 10px;
+}
+</style>
+<div id="tests"></div>
+<script>
+const configurations = [
+    { description: "inline box in an anonymous block", before: `<div class="spacer"></div>`, after: `<div></div>` },
+    { description: "inline box in the scroll container's inline formatting context", before: "x<br>".repeat(25), after: "" },
+];
+const outOfFlowStyles = [
+    { style: "top: 0", axis: "block" },
+    { style: "top: auto", axis: "block" },
+    { style: "left: 0", axis: "inline", className: "wide" },
+    { style: "left: auto", axis: "inline", className: "wide" },
+];
+const tests = document.getElementById("tests");
+
+for (const configuration of configurations) {
+    for (const outOfFlowStyle of outOfFlowStyles) {
+        const scroller = document.createElement("div");
+        scroller.className = "scroller";
+        scroller.innerHTML = `${configuration.before}xx<span style="position: relative; margin-left: 50px">x<div class="abs ${outOfFlowStyle.className ?? ""}" style="${outOfFlowStyle.style}"></div>x</span>${configuration.after}`;
+        tests.append(scroller);
+        test(() => {
+            const scrollerRect = scroller.getBoundingClientRect();
+            const outOfFlowRect = scroller.querySelector(".abs").getBoundingClientRect();
+            if (outOfFlowStyle.axis == "block")
+                assert_approx_equals(scroller.scrollHeight, outOfFlowRect.bottom - scrollerRect.top, 1, "scrollHeight");
+            else
+                assert_approx_equals(scroller.scrollWidth, outOfFlowRect.right - scrollerRect.left, 1, "scrollWidth");
+        }, `${configuration.description}; absolutely positioned box '${outOfFlowStyle.style}'`);
+    }
+}
+
+tests.remove();
+</script>

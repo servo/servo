@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ManagedMediaSource streaming attribute when detached from its media element</title>
+<link rel="help" href="https://w3c.github.io/media-source/#mediasource-detach">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="mediasource-manager-util.js"></script>
+<body>
+<script>
+function detach(video) {
+  video.removeAttribute('src');
+  video.load();
+}
+
+promise_test(async t => {
+  const { video, source, sourceOpen } = attachManagedMediaSource(t);
+  const startStreaming = waitForEvent(source, 'startstreaming');
+  await sourceOpen;
+  await startStreaming;
+  assert_true(source.streaming, 'streaming before detaching');
+
+  const events = [];
+  const bothFired = new Promise(resolve => {
+    const record = event => {
+      events.push(event);
+      if (events.length == 2)
+        resolve();
+    };
+    source.addEventListener('endstreaming', record, { once: true });
+    source.addEventListener('sourceclose', record, { once: true });
+  });
+  detach(video);
+  assert_false(source.streaming, 'streaming once detached');
+
+  await bothFired;
+  assert_array_equals(events.map(event => event.type), ['endstreaming', 'sourceclose'], 'endstreaming fires before sourceclose');
+  assert_equals(events[0].target, source, 'endstreaming target');
+  assert_equals(source.readyState, 'closed', 'readyState');
+  assert_false(source.streaming, 'streaming after endstreaming');
+}, 'Detaching a streaming ManagedMediaSource sets streaming to false and fires endstreaming before sourceclose');
+
+promise_test(async t => {
+  const { video, source, sourceOpen } = attachManagedMediaSource(t);
+  const startStreaming = waitForEvent(source, 'startstreaming');
+  const [data] = await Promise.all([fetchMediaData(MANAGED_MEDIA.audioOnly.url), sourceOpen]);
+  await startStreaming;
+
+  const sourceBuffer = source.addSourceBuffer(MANAGED_MEDIA.audioOnly.type);
+  await appendBufferAsync(sourceBuffer, data);
+  const endStreaming = waitForEvent(source, 'endstreaming');
+  source.endOfStream();
+  await endStreaming;
+  assert_false(source.streaming, 'streaming before detaching');
+
+  source.addEventListener('endstreaming', t.unreached_func('endstreaming fired after detaching'));
+  source.addEventListener('startstreaming', t.unreached_func('startstreaming fired after detaching'));
+  const sourceClose = waitForEvent(source, 'sourceclose');
+  detach(video);
+  assert_false(source.streaming, 'streaming once detached');
+  await sourceClose;
+  await flushTasks(t);
+  assert_false(source.streaming, 'streaming after sourceclose');
+}, 'Detaching a ManagedMediaSource that is not streaming does not fire endstreaming');
+</script>
+</body>

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Secure context state of documents nested in or opened by a data: URL iframe (secure creator)</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#secure-context">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+test(() => assert_true(isSecureContext), "Test document is a secure context");
+</script>
+<script src="nested-data-url-iframe.js"></script>
+</body>

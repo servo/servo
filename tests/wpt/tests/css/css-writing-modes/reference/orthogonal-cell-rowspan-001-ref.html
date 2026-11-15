@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Writing Modes reference: orthogonal table cell spanning several rows</title>
+
+<style>
+.container {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.item {
+  width: 40px;
+}
+
+.bar {
+  width: 20px;
+  height: 40px;
+  background: green;
+}
+
+.gap {
+  height: 20px;
+}
+</style>
+
+<p>Test passes if there are six identical green shapes below, each made of two 20x40 bars stacked vertically with a 20px gap between them.</p>
+
+<div class="container">
+  <div class="item"><div class="bar"></div><div class="gap"></div><div class="bar"></div></div>
+  <div class="item"><div class="bar"></div><div class="gap"></div><div class="bar"></div></div>
+  <div class="item"><div class="bar"></div><div class="gap"></div><div class="bar"></div></div>
+  <div class="item"><div class="bar"></div><div class="gap"></div><div class="bar"></div></div>
+  <div class="item"><div class="bar"></div><div class="gap"></div><div class="bar"></div></div>
+  <div class="item"><div class="bar"></div><div class="gap"></div><div class="bar"></div></div>
+</div>

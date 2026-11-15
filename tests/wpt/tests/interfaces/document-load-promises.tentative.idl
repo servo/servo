@@ -1,0 +1,7 @@
+// https://github.com/whatwg/html/pull/1936
+
+partial interface Document {
+  [Unscopable] readonly attribute Promise<undefined> parsed;
+  [Unscopable] readonly attribute Promise<undefined> contentLoaded;
+  [Unscopable] readonly attribute Promise<undefined> loaded;
+};

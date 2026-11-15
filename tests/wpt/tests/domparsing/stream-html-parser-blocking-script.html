@@ -23,7 +23,7 @@
     const writer = writable.getWriter();
 
     // Chunk 1: A slow script that pushes 'slow' to events.
-    await writer.write("<script src='resources/slow.js?pipe=trickle(d0.3)&t=1'><" + "/script>");
+    await writer.write("<script src='resources/slow.sub.js?pipe=trickle(d0.3)&t=1'><" + "/script>");
 
     // Chunk 2: An inline script that pushes 'inline' to events and resolves the promise.
     // Because the parser should block on Chunk 1, 'inline' should not be executed until 'slow' is executed.
@@ -48,9 +48,9 @@
     // Script 1 takes 0.3s, Script 2 takes 0.1s.
     // Script 2 must NOT execute before Script 1.
     await writer.write(
-      "<script src='resources/slow.js?pipe=trickle(d0.3)&t=2_1&tag=slow-1'><" + "/script>" +
+      "<script src='resources/slow.sub.js?pipe=trickle(d0.3)&t=2_1&tag=slow-1'><" + "/script>" +
       "<p id='mid'>mid</p>" +
-      "<script src='resources/slow.js?pipe=trickle(d0.1)&t=2_2&tag=slow-2'><" + "/script>" +
+      "<script src='resources/slow.sub.js?pipe=trickle(d0.1)&t=2_2&tag=slow-2'><" + "/script>" +
       "<script>window.events.push('inline'); window.resolvers.resolve();<" + "/script>"
     );
     await failOnTimeout(writer.close());
@@ -87,7 +87,7 @@
     const writer = writable.getWriter();
 
     await writer.write("<script sr");
-    await writer.write("c='resources/slow.js?pipe=trickle(d0.1)&split=1'");
+    await writer.write("c='resources/slow.sub.js?pipe=trickle(d0.1)&split=1'");
     await writer.write("><" + "/");
     await writer.write("script>");
     await writer.write("<script>window.events.push('inline'); window.resolvers.resolve();<" + "/script>");
@@ -164,7 +164,7 @@
     const writable = placeholder.streamHTMLUnsafe({ runScripts: true });
     const writer = writable.getWriter();
 
-    const url = "resources/slow.js?pipe=trickle(d0.2)&abort_test=1";
+    const url = "resources/slow.sub.js?pipe=trickle(d0.2)&abort_test=1";
     const settle = waitForResource(url).then(() => new Promise(r => t.step_timeout(r, 0)));
     await writer.write(
       `<script src='${url}'><` + "/script>" +
@@ -234,16 +234,16 @@
     placeholder.replaceChildren();
     const writer = placeholder.streamHTMLUnsafe({ runScripts: true }).getWriter();
 
-    // slow.js's response is delayed by this much (pipe=trickle(d0.3)).
+    // slow.sub.js's response is delayed by this much (pipe=trickle(d0.3)).
     const slowScriptDelayMs = 300;
     const start = performance.now();
     await writer.write(
-      "<script src='resources/slow.js?pipe=trickle(d0.3)&d1=1'><" + "/script>" +
+      "<script src='resources/slow.sub.js?pipe=trickle(d0.3)&d1=1'><" + "/script>" +
       "<p id='after-blocking'>after</p>" +
       "<script>window.resolvers.resolve();<" + "/script>"
     );
 
-    // Immediately after await writer.write(), slow.js has not finished loading.
+    // Immediately after await writer.write(), slow.sub.js has not finished loading.
     // Only check this if its delay can't have elapsed yet, to avoid flakiness
     // on slow machines.
     if (performance.now() - start < slowScriptDelayMs) {
@@ -272,7 +272,7 @@
     };
     t.add_cleanup(() => { delete window.on_slow; });
 
-    await writer.write(`<span id="before">1</span><script src="resources/slow.js?pipe=trickle(d0.2)&d2=1"><` + `/script><span id="same-chunk">2</span>`);
+    await writer.write(`<span id="before">1</span><script src="resources/slow.sub.js?pipe=trickle(d0.2)&d2=1"><` + `/script><span id="same-chunk">2</span>`);
     await writer.write(`<span id="queued-chunk">3</span>`);
 
     await failOnTimeout(window.resolvers.promise);
@@ -318,7 +318,7 @@
     const deferSrc = "data:text/javascript,window.events.push('defer');window.defer_done.resolve();";
     await writer.write(
       `<script defer src="${deferSrc}"><` + `/script>` +
-      `<script src="resources/slow.js?pipe=trickle(d0.3)&d4=1"><` + `/script>` +
+      `<script src="resources/slow.sub.js?pipe=trickle(d0.3)&d4=1"><` + `/script>` +
       `<p id="d4-after">after</p>` +
       `<script>window.events.push('after-blocking');<` + `/script>`
     );
@@ -367,7 +367,7 @@
       const ref = document.createElement("span");
       placeholder.appendChild(ref);
 
-      const url = `resources/slow.js?pipe=trickle(d0.2)&d6=${rejectKind}`;
+      const url = `resources/slow.sub.js?pipe=trickle(d0.2)&d6=${rejectKind}`;
       const settle = waitForResource(url).then(() => new Promise(r => t.step_timeout(r, 0)));
       const writer = ref.streamBeforeHTMLUnsafe({ runScripts: true }).getWriter();
       await writer.write(
@@ -559,11 +559,11 @@
     const writer2 = target2.streamHTMLUnsafe({ runScripts: true }).getWriter();
 
     await writer1.write(
-      "<script src='resources/slow.js?pipe=trickle(d0.3)&f8=1'><" + "/script>" +
+      "<script src='resources/slow.sub.js?pipe=trickle(d0.3)&f8=1'><" + "/script>" +
       "<script>window.events.push('stream1-after'); window.stream1_done.resolve();<" + "/script>"
     );
 
-    // While writer1 is blocked on slow.js, writer2 should parse and execute its scripts immediately:
+    // While writer1 is blocked on slow.sub.js, writer2 should parse and execute its scripts immediately:
     await writer2.write("<p id='t2-p'>t2</p><script>window.events.push('stream2-inline');<" + "/script>");
     assert_not_equals(target2.querySelector("#t2-p"), null);
     assert_array_equals(window.events, ["stream2-inline"], "Second stream is not blocked by first stream");
@@ -591,13 +591,13 @@
     iframe.contentWindow.notifyParent = () => {
       window.iframe_blocked_ran = true;
     };
-    const controlDone = fetch("resources/slow.js?pipe=trickle(d0.6)&f12_control=1")
+    const controlDone = fetch("resources/slow.sub.js?pipe=trickle(d0.6)&f12_control=1")
       .then(r => r.text())
       .then(() => new Promise(r => t.step_timeout(r, 0)));
     const target = iframe.contentDocument.getElementById("target");
     const writer = target.streamHTMLUnsafe({ runScripts: true }).getWriter();
     await writer.write(
-      "<script src='resources/slow.js?pipe=trickle(d0.2)&f12=1'><" + "/script>" +
+      "<script src='resources/slow.sub.js?pipe=trickle(d0.2)&f12=1'><" + "/script>" +
       "<script>window.notifyParent();<" + "/script>"
     );
 
@@ -625,7 +625,7 @@
       const start = performance.now();
       await writer.write(
         "<p id='before-blocking'>before</p>" +
-        `<script src='resources/slow.js?pipe=trickle(d0.5)&close=${method}'></` + "script>" +
+        `<script src='resources/slow.sub.js?pipe=trickle(d0.5)&close=${method}'></` + "script>" +
         "<p id='after-blocking'>after</p>"
       );
       assert_not_equals(placeholder.querySelector("#before-blocking"), null);
@@ -675,7 +675,7 @@
     await writer.write(
       `<script defer src="${deferSrc}"></` + "script>" +
       "<p id='before-blocking'>before</p>" +
-      "<script src='resources/slow.js?pipe=trickle(d0.5)&close-ref=1'></" + "script>" +
+      "<script src='resources/slow.sub.js?pipe=trickle(d0.5)&close-ref=1'></" + "script>" +
       "<script>document.getElementById('ref').remove();</" + "script>" +
       "<p id='after-removal'>after</p>"
     );

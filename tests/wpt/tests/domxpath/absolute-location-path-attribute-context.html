@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Absolute location paths when the context node is an attribute</title>
+<link rel="help" href="https://www.w3.org/TR/xpath-10/#location-paths">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="context" foo="bar"></div>
+<script>
+function evaluateToArray(expression, contextNode) {
+  const result = document.evaluate(expression, contextNode, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+  const nodes = [];
+  for (let i = 0; i < result.snapshotLength; ++i)
+    nodes.push(result.snapshotItem(i));
+  return nodes;
+}
+
+test(() => {
+  const attr = document.getElementById("context").getAttributeNode("foo");
+  assert_array_equals(evaluateToArray("/", attr), [document]);
+}, "/ selects the document when the context node is an attribute of a connected element");
+
+test(() => {
+  const element = document.getElementById("context");
+  assert_array_equals(evaluateToArray("//div[@foo]", element.getAttributeNode("foo")), [element]);
+}, "// searches the document when the context node is an attribute of a connected element");
+
+test(() => {
+  const root = document.createElement("section");
+  const element = root.appendChild(document.createElement("div"));
+  element.setAttribute("foo", "bar");
+  assert_array_equals(evaluateToArray("/", element), [root], "element");
+  assert_array_equals(evaluateToArray("/", element.getAttributeNode("foo")), [root], "attribute");
+}, "/ selects the same node for an attribute as for its element in a disconnected tree");
+
+test(t => {
+  const host = document.body.appendChild(document.createElement("div"));
+  t.add_cleanup(() => host.remove());
+  const shadowRoot = host.attachShadow({ mode: "open" });
+  const element = shadowRoot.appendChild(document.createElement("div"));
+  element.setAttribute("foo", "bar");
+  assert_array_equals(evaluateToArray("/", element), [shadowRoot], "element");
+  assert_array_equals(evaluateToArray("/", element.getAttributeNode("foo")), [shadowRoot], "attribute");
+}, "/ selects the same node for an attribute as for its element in a shadow tree");
+
+test(() => {
+  assert_array_equals(evaluateToArray("/", document.createAttribute("foo")), []);
+}, "/ selects nothing when the context node is an attribute without an element");
+</script>

@@ -429,7 +429,8 @@ class FirefoxAndroidWdSpecBrowser(FirefoxPytestBrowser):
         self.device_serial = device_serial[self.manager_number]
         # This is just to support the same adb lookup as for other test types
         context = get_app_context("fennec")(adb_path=adb_binary, device_serial=self.device_serial)
-        self.device = context.get_device(context.adb, self.device_serial)
+        self.adb_binary = context.adb
+        self.device = context.get_device(self.adb_binary, self.device_serial)
 
     def start(self, group_metadata, **kwargs):
         for ports in self.config.ports.values():
@@ -455,6 +456,7 @@ class FirefoxAndroidWdSpecBrowser(FirefoxPytestBrowser):
         cls, args = super().executor_browser()
         args["androidPackage"] = self.package_name
         args["androidDeviceSerial"] = self.device_serial
+        args["adb_binary"] = self.adb_binary
         args["env"] = self.env
         args["supports_devtools"] = False
         return cls, args

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS stretch(): absolutely positioned boxes</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#abs-non-replaced-width">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="stretch() fits the margin box of an absolutely positioned box to its argument in both axes, whatever the box-sizing; a percentage argument resolves against the containing block, and percentage margins against its inline size.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .container {
+    position: relative;
+    width: 200px;
+    height: 400px;
+  }
+  .test {
+    position: absolute;
+    background: green;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="container">
+  <div class="test" style="top: 0; left: 0; width: stretch(100px); margin-right: 50px; height: stretch(100px); margin-bottom: 50px;"></div>
+  <!-- 50% of 200px and 25% of 400px. -->
+  <div class="test" style="top: 0; left: 50px; width: stretch(50%); margin-right: 50px; height: stretch(25%); margin-bottom: 50px;"></div>
+  <!-- Both margins are 25% of the 200px inline size, not of the 400px block size. -->
+  <div class="test" style="top: 50px; left: 0; width: stretch(100px); margin-right: 25%; height: stretch(100px); margin-bottom: 25%;"></div>
+  <div class="test" style="top: 50px; left: 50px; width: stretch(50px); padding-right: 20px; box-sizing: border-box; height: stretch(50px); border-bottom: 10px solid green;"></div>
+</div>

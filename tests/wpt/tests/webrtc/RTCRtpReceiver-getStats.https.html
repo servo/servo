@@ -71,13 +71,18 @@ if (rest) {
     await listenToConnected(callee);
     await waitForTrackUnmuted(receiver.track);
     const [transceiver] = callee.getTransceivers();
-    const statsPromiseFirst = receiver.getStats();
+    const statsReportFirst = await receiver.getStats();
     transceiver.stop();
-    const statsReportFirst = await statsPromiseFirst;
+    assert_equals(transceiver.direction, 'stopped');
+    assert_not_equals(transceiver.currentDirection, 'stopped');
     const statsReportSecond = await receiver.getStats();
+    await exchangeOfferAnswer(callee, caller);
+    assert_equals(transceiver.currentDirection, 'stopped');
+    const statsReportThird = await receiver.getStats();
     assert_true(!![...statsReportFirst.values()].find(({type}) => type === 'inbound-rtp'));
-    assert_false(!![...statsReportSecond.values()].find(({type}) => type === 'inbound-rtp'));
-  }, 'receiver.getStats() should work on a stopped transceiver but not have inbound-rtp objects');
+    assert_true(!![...statsReportSecond.values()].find(({type}) => type === 'inbound-rtp'));
+    assert_false(!![...statsReportThird.values()].find(({type}) => type === 'inbound-rtp'));
+  }, 'receiver.getStats() should work on a stopped transceiver but not have inbound-rtp objects after renegotiation');
 } // rest
 
 if (interop2026) {

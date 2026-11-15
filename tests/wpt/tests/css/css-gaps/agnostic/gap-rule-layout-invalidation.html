@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: Layout invalidation when gap rules become visible</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<style>
+  .box {
+    display: flex;
+    width: 100px;
+    height: 25px;
+    gap: 20px;
+    column-rule-width: 20px;
+    column-rule-style: solid;
+    background: red;
+  }
+  .box > div {
+    flex: 1;
+    background: green;
+  }
+  #alpha-zero {
+    rule-color: transparent;
+  }
+  #alpha-nonzero {
+    rule-color: rgba(0, 128, 0, 0.01);
+  }
+  #alpha-zero.active, #alpha-nonzero.active {
+    rule-color: green;
+  }
+  #width-zero {
+    column-rule-width: 0px;
+    column-rule-color: green;
+  }
+  #width-zero.active {
+    column-rule-width: 20px;
+  }
+  #currentcolor-transparent {
+    color: transparent;
+  }
+  #currentcolor-transparent.active {
+    color: green;
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="alpha-zero" class="box"><div></div><div></div></div>
+<div id="alpha-nonzero" class="box"><div></div><div></div></div>
+<div id="width-zero" class="box"><div></div><div></div></div>
+<div id="currentcolor-transparent" class="box"><div></div><div></div></div>
+<script>
+  document.body.offsetTop;
+  document.getElementById("alpha-zero").classList.add("active");
+  document.getElementById("alpha-nonzero").classList.add("active");
+  document.getElementById("width-zero").classList.add("active");
+  document.getElementById("currentcolor-transparent").classList.add("active");
+</script>

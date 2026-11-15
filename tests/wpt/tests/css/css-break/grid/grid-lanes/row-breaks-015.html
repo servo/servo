@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>An oversized avoided row moves its parallel sibling and makes progress after deferral</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="match" href="row-breaks-015-ref.html">
+<style>
+  .multicol { columns: 3; column-gap: 0; column-fill: auto; width: 240px; height: 100px; background: lightgray; }
+  .lanes { display: grid-lanes; grid-template-rows: 40px 140px 20px; width: 80px; }
+</style>
+<div class="multicol">
+  <div class="lanes">
+    <div style="grid-row: 1; width: 80px; background: blue;"></div>
+    <div style="grid-row: 2; width: 40px; background: teal;"></div>
+    <div style="grid-row: 2; width: 40px; height: 140px; background: orange; break-inside: avoid;"></div>
+    <div style="grid-row: 3; width: 80px; background: purple;"></div>
+  </div>
+</div>

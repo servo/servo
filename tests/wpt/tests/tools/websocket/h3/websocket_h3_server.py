@@ -89,6 +89,7 @@ class WebSocketH3Protocol(QuicConnectionProtocol):
         self,
         *args: Any,
         ws_doc_root: str = "",
+        extra_handler_paths: Optional[list[str]] = None,
         router: Any = None,
         h3_server_adapter: Optional[_H3ServerAdapter] = None,
         h3_request_cls: Any = None,
@@ -111,6 +112,7 @@ class WebSocketH3Protocol(QuicConnectionProtocol):
         self._request_slots = asyncio.Semaphore(max_active_requests)
         self._max_unread_websocket_bytes = max_unread_websocket_bytes
         self._ws_doc_root = ws_doc_root
+        self._extra_handler_paths = extra_handler_paths or []
         self._router = router
         self._h3_server_adapter = h3_server_adapter
         self._h3_request_cls = h3_request_cls
@@ -174,6 +176,9 @@ class WebSocketH3Protocol(QuicConnectionProtocol):
         path = h3_headers.get("path", "/")
         ws_dispatcher = dispatch.Dispatcher(  # type: ignore
             self._ws_doc_root, None, False)
+        for handler_path in self._extra_handler_paths:
+            ws_dispatcher._source_handler_files_in_dir(  # type: ignore
+                handler_path, handler_path, False, None)
 
         loop = asyncio.get_running_loop()
         session = _WebSocketH3Session(
@@ -456,6 +461,7 @@ class WebSocketH3Server:
     :param host: Host to bind.
     :param port: UDP port to bind for QUIC.
     :param ws_doc_root: Directory containing WebSocket *_wsh.py handlers.
+    :param extra_handler_paths: Additional directories containing WebSocket handlers.
     :param cert_path: Path to the TLS certificate file.
     :param key_path: Path to the TLS private key file.
     :param doc_root: Directory containing WPT test files and resources.
@@ -483,6 +489,7 @@ class WebSocketH3Server:
         rewrites: Any = None,
         config: Any = None,
         logger: Optional[logging.Logger] = None,
+        extra_handler_paths: Optional[list[str]] = None,
         max_pending_handshakes: int = DEFAULT_MAX_PENDING_HANDSHAKES,
         max_active_requests: int = DEFAULT_MAX_ACTIVE_REQUESTS,
         max_unread_websocket_bytes: int = DEFAULT_MAX_UNREAD_WEBSOCKET_BYTES,
@@ -497,6 +504,7 @@ class WebSocketH3Server:
         self.host = host
         self.port = port
         self.ws_doc_root = ws_doc_root
+        self.extra_handler_paths = extra_handler_paths
         self.cert_path = cert_path
         self.key_path = key_path
         self.doc_root = doc_root
@@ -597,6 +605,8 @@ class WebSocketH3Server:
                     session_ticket_fetcher=ticket_store.pop,
                     session_ticket_handler=ticket_store.add,
                 ))
+            self._logger.info("Starting %s on UDP %s:%d",
+                              SERVER_NAME, self.host, self.port)
             self._startup_complete.set()
             self.loop.run_forever()
         except BaseException as error:
@@ -626,6 +636,7 @@ class WebSocketH3Server:
         return WebSocketH3Protocol(
             *args,
             ws_doc_root=self.ws_doc_root,
+            extra_handler_paths=self.extra_handler_paths,
             router=self._router,
             h3_server_adapter=self._h3_server_adapter,
             h3_request_cls=self._h3_request_cls,

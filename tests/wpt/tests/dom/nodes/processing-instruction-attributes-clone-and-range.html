@@ -1,0 +1,336 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Processing instruction attributes: cloning, ranges and CharacterData methods</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#interface-processinginstruction" />
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-node-clone" />
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-range-extract" />
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-range-clone" />
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-cd-replace" />
+<link rel="help" href="https://github.com/whatwg/dom/pull/1511" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+  const sources = {
+    "html-dom": (target, data) =>
+      document.createProcessingInstruction(target, data),
+    "html-parser": (target, data) => {
+      const div = document.createElement("div");
+      div.innerHTML = `<?${target} ${data}?>`;
+      return div.firstChild;
+    },
+    "xml-dom": (target, data) =>
+      new DOMParser()
+        .parseFromString("<root></root>", "application/xml")
+        .createProcessingInstruction(target, data),
+    "xml-parser": (target, data) =>
+      new DOMParser().parseFromString(
+        `<?${target} ${data}?><root></root>`,
+        "application/xml",
+      ).firstChild,
+  };
+
+  // Asserts that the attribute list of |pi| is exactly |expected|, given as an
+  // array of [name, value] pairs, in order.
+  function assert_pi_attributes(pi, expected, description = "") {
+    const prefix = description ? `${description}: ` : "";
+    assert_equals(pi.nodeType, Node.PROCESSING_INSTRUCTION_NODE,
+                  `${prefix}node is a processing instruction`);
+    assert_array_equals(pi.getAttributeNames(), expected.map(([name]) => name),
+                        `${prefix}attribute names`);
+    assert_equals(pi.hasAttributes(), expected.length > 0,
+                  `${prefix}hasAttributes()`);
+    for (const [name, value] of expected) {
+      assert_true(pi.hasAttribute(name), `${prefix}hasAttribute("${name}")`);
+      assert_equals(pi.getAttribute(name), value,
+                    `${prefix}getAttribute("${name}")`);
+    }
+  }
+
+  // Wraps |pi| in a container element, between two text nodes:
+  // <container>"before" pi "after"</container>
+  function wrap(pi) {
+    const container = pi.ownerDocument.createElement("container");
+    container.append("before", pi, "after");
+    return container;
+  }
+
+  const DATA = 'a="b" x="yy"';
+  //            0123456789012
+  // 'a="b"' is [0, 5), ' ' is [5, 6), 'x="yy"' is [6, 12).
+
+  for (const [source, createProcessingInstruction] of Object.entries(sources)) {
+    // Cloning
+
+    test(() => {
+      const pi = createProcessingInstruction("t", DATA);
+      const clone = pi.cloneNode();
+      assert_equals(clone.target, "t");
+      assert_equals(clone.data, DATA);
+      assert_pi_attributes(clone, [["a", "b"], ["x", "yy"]]);
+    }, `cloneNode() preserves processing instruction attributes (source: ${source})`);
+
+    test(() => {
+      const pi = createProcessingInstruction("t", DATA);
+      const clone = pi.cloneNode();
+
+      clone.setAttribute("x", "zz");
+      clone.setAttribute("c", "d");
+      assert_pi_attributes(clone, [["a", "b"], ["x", "zz"], ["c", "d"]], "clone");
+      assert_pi_attributes(pi, [["a", "b"], ["x", "yy"]], "original");
+
+      pi.removeAttribute("a");
+      assert_pi_attributes(clone, [["a", "b"], ["x", "zz"], ["c", "d"]], "clone");
+      assert_pi_attributes(pi, [["x", "yy"]], "original");
+    }, `Cloned processing instruction has an independent attribute list (source: ${source})`);
+
+    test(() => {
+      const pi = createProcessingInstruction("t", DATA);
+      pi.setAttribute("x", "zz");
+      pi.setAttribute("c", "d");
+      pi.removeAttribute("a");
+      const clone = pi.cloneNode();
+      assert_equals(clone.data, 'x="zz" c="d"');
+      assert_pi_attributes(clone, [["x", "zz"], ["c", "d"]]);
+    }, `cloneNode() reflects attributes modified before cloning (source: ${source})`);
+
+    // setAttribute() serializes value into pi.data with character references
+    // without re-parsing it; cloneNode() copies pi.data and parses those
+    // character references into clone's attribute map.
+    test(() => {
+      const pi = createProcessingInstruction("t", "");
+      const value = `a"b'c<d>e&f`;
+      pi.setAttribute("v", value);
+      const clone = pi.cloneNode();
+      assert_equals(clone.data, pi.data);
+      assert_pi_attributes(clone, [["v", value]]);
+    }, `cloneNode() unescapes character references written by setAttribute() (source: ${source})`);
+
+    test(() => {
+      const unnormalized = 'a = "b"   x = "yy"  ';
+      const pi = createProcessingInstruction("t", unnormalized);
+      const clone = pi.cloneNode();
+      assert_equals(clone.data, unnormalized);
+      assert_pi_attributes(clone, [["a", "b"], ["x", "yy"]]);
+    }, `cloneNode() does not normalize whitespace in data (source: ${source})`);
+
+    test(() => {
+      const pi = createProcessingInstruction("t", "a=b");
+      const clone = pi.cloneNode();
+      assert_equals(clone.data, "a=b");
+      assert_pi_attributes(clone, []);
+    }, `cloneNode() of a processing instruction with unparsable data has no attributes (source: ${source})`);
+
+    test(() => {
+      const pi = createProcessingInstruction("t", DATA);
+      const container = wrap(pi);
+      const containerClone = container.cloneNode(true);
+      const clone = containerClone.childNodes[1];
+      assert_pi_attributes(clone, [["a", "b"], ["x", "yy"]]);
+    }, `Deep cloning a parent preserves processing instruction attributes (source: ${source})`);
+
+    test(() => {
+      const pi = createProcessingInstruction("t", DATA);
+      const otherDocument = pi.ownerDocument === document ?
+          document.implementation.createDocument(null, "root") :
+          document;
+      const imported = otherDocument.importNode(pi);
+      assert_equals(imported.ownerDocument, otherDocument);
+      assert_pi_attributes(imported, [["a", "b"], ["x", "yy"]]);
+    }, `importNode() preserves processing instruction attributes (source: ${source})`);
+
+    // Ranges: cloneContents()/extractContents() produce clones of partially
+    // selected processing instructions, whose attributes are updated from the
+    // substring of the data, and extractContents()/deleteContents() replace the
+    // data of the original processing instruction, whose attributes are updated
+    // as well.
+
+    const range_cases = [
+      {
+        name: "start and end inside the processing instruction",
+        setup: (range, pi) => { range.setStart(pi, 6); range.setEnd(pi, 12); },
+        fragmentPIIndex: 0,
+        fragmentData: 'x="yy"',
+        fragmentAttributes: [["x", "yy"]],
+        remainingData: 'a="b" ',
+        remainingAttributes: [["a", "b"]],
+      },
+      {
+        name: "start inside the processing instruction",
+        setup: (range, pi, container) => {
+          range.setStart(pi, 6);
+          range.setEnd(container, 3);
+        },
+        fragmentPIIndex: 0,
+        fragmentData: 'x="yy"',
+        fragmentAttributes: [["x", "yy"]],
+        remainingData: 'a="b" ',
+        remainingAttributes: [["a", "b"]],
+      },
+      {
+        name: "end inside the processing instruction",
+        setup: (range, pi, container) => {
+          range.setStart(container, 0);
+          range.setEnd(pi, 5);
+        },
+        fragmentPIIndex: 1,
+        fragmentData: 'a="b"',
+        fragmentAttributes: [["a", "b"]],
+        remainingData: ' x="yy"',
+        remainingAttributes: [["x", "yy"]],
+      },
+      {
+        name: "boundaries splitting an attribute value",
+        setup: (range, pi) => { range.setStart(pi, 0); range.setEnd(pi, 3); },
+        fragmentPIIndex: 0,
+        fragmentData: 'a="',
+        fragmentAttributes: [],
+        remainingData: 'b" x="yy"',
+        remainingAttributes: [],
+      },
+    ];
+
+    for (const c of range_cases) {
+      test(() => {
+        const pi = createProcessingInstruction("t", DATA);
+        const container = wrap(pi);
+        const range = pi.ownerDocument.createRange();
+        c.setup(range, pi, container);
+        const fragment = range.cloneContents();
+        const clone = fragment.childNodes[c.fragmentPIIndex];
+        assert_equals(clone.target, "t");
+        assert_equals(clone.data, c.fragmentData);
+        assert_pi_attributes(clone, c.fragmentAttributes);
+      }, `Range cloneContents() with ${c.name} updates the cloned processing instruction's attributes (source: ${source})`);
+
+      test(() => {
+        const pi = createProcessingInstruction("t", DATA);
+        const container = wrap(pi);
+        const range = pi.ownerDocument.createRange();
+        c.setup(range, pi, container);
+        const fragment = range.extractContents();
+        const clone = fragment.childNodes[c.fragmentPIIndex];
+        assert_equals(clone.target, "t");
+        assert_equals(clone.data, c.fragmentData);
+        assert_pi_attributes(clone, c.fragmentAttributes, "clone");
+        assert_equals(pi.parentNode, container);
+        assert_equals(pi.data, c.remainingData);
+        assert_pi_attributes(pi, c.remainingAttributes, "original");
+      }, `Range extractContents() with ${c.name} updates the attributes of both processing instructions (source: ${source})`);
+
+      test(() => {
+        const pi = createProcessingInstruction("t", DATA);
+        const container = wrap(pi);
+        const range = pi.ownerDocument.createRange();
+        c.setup(range, pi, container);
+        range.deleteContents();
+        assert_equals(pi.parentNode, container);
+        assert_equals(pi.data, c.remainingData);
+        assert_pi_attributes(pi, c.remainingAttributes);
+      }, `Range deleteContents() with ${c.name} updates the processing instruction's attributes (source: ${source})`);
+    }
+
+    test(() => {
+      const pi = createProcessingInstruction("t", DATA);
+      wrap(pi);
+      const range = pi.ownerDocument.createRange();
+      range.setStart(pi, 0);
+      range.setEnd(pi, 5);
+      range.deleteContents();
+      assert_equals(pi.data, ' x="yy"');
+      assert_pi_attributes(pi, [["x", "yy"]], "after deleteContents()");
+      pi.setAttribute("a", "c");
+      assert_equals(pi.data, 'x="yy" a="c"');
+      assert_pi_attributes(pi, [["x", "yy"], ["a", "c"]], "after setAttribute()");
+    }, `Attributes can be modified after a range operation changed the processing instruction's data (source: ${source})`);
+
+    // Live ranges with boundary points inside the data of a processing
+    // instruction whose attributes are then modified. Setting attributes
+    // replaces the entire data, so the boundary points are collapsed to 0.
+
+    const attribute_mutations = {
+      "setAttribute() of an existing attribute": pi => pi.setAttribute("x", "zz"),
+      "setAttribute() of a new attribute": pi => pi.setAttribute("c", "d"),
+      "removeAttribute()": pi => pi.removeAttribute("x"),
+      "toggleAttribute()": pi => pi.toggleAttribute("a"),
+    };
+
+    for (const [name, mutate] of Object.entries(attribute_mutations)) {
+      test(() => {
+        const pi = createProcessingInstruction("t", DATA);
+        wrap(pi);
+        const range = pi.ownerDocument.createRange();
+        range.setStart(pi, 6);
+        range.setEnd(pi, 12);
+        mutate(pi);
+        assert_equals(range.startContainer, pi, "startContainer");
+        assert_equals(range.startOffset, 0, "startOffset");
+        assert_equals(range.endContainer, pi, "endContainer");
+        assert_equals(range.endOffset, 0, "endOffset");
+      }, `Live range inside processing instruction data is collapsed by ${name} (source: ${source})`);
+
+      test(() => {
+        const pi = createProcessingInstruction("t", DATA);
+        const container = wrap(pi);
+        const range = pi.ownerDocument.createRange();
+        range.setStart(container, 0);
+        range.setEnd(pi, 5);
+        mutate(pi);
+        assert_equals(range.startContainer, container, "startContainer");
+        assert_equals(range.startOffset, 0, "startOffset");
+        assert_equals(range.endContainer, pi, "endContainer");
+        assert_equals(range.endOffset, 0, "endOffset");
+        const fragment = range.cloneContents();
+        assert_equals(fragment.childNodes.length, 2);
+        assert_equals(fragment.childNodes[1].data, "");
+        assert_pi_attributes(fragment.childNodes[1], []);
+      }, `Live range ending inside processing instruction data is updated by ${name} (source: ${source})`);
+    }
+
+    // CharacterData methods go through "replace data" and update attributes.
+
+    test(() => {
+      const pi = createProcessingInstruction("t", DATA);
+      pi.appendData(' c="d"');
+      assert_equals(pi.data, 'a="b" x="yy" c="d"');
+      assert_pi_attributes(pi, [["a", "b"], ["x", "yy"], ["c", "d"]]);
+    }, `appendData() updates processing instruction attributes (source: ${source})`);
+
+    test(() => {
+      const pi = createProcessingInstruction("t", DATA);
+      pi.insertData(0, 'c="d" ');
+      assert_equals(pi.data, 'c="d" a="b" x="yy"');
+      assert_pi_attributes(pi, [["c", "d"], ["a", "b"], ["x", "yy"]]);
+    }, `insertData() updates processing instruction attributes (source: ${source})`);
+
+    test(() => {
+      const pi = createProcessingInstruction("t", DATA);
+      pi.deleteData(0, 6);
+      assert_equals(pi.data, 'x="yy"');
+      assert_pi_attributes(pi, [["x", "yy"]]);
+    }, `deleteData() updates processing instruction attributes (source: ${source})`);
+
+    test(() => {
+      const pi = createProcessingInstruction("t", DATA);
+      pi.replaceData(9, 2, "zzz");
+      assert_equals(pi.data, 'a="b" x="zzz"');
+      assert_pi_attributes(pi, [["a", "b"], ["x", "zzz"]]);
+      pi.replaceData(6, 1, "y");
+      assert_equals(pi.data, 'a="b" y="zzz"');
+      assert_pi_attributes(pi, [["a", "b"], ["y", "zzz"]]);
+    }, `replaceData() updates processing instruction attributes (source: ${source})`);
+
+    test(() => {
+      const pi = createProcessingInstruction("t", DATA);
+      pi.deleteData(3, 1);
+      assert_equals(pi.data, 'a="" x="yy"');
+      assert_pi_attributes(pi, [["a", ""], ["x", "yy"]], "after deleteData()");
+      pi.deleteData(2, 1);
+      assert_equals(pi.data, 'a=" x="yy"');
+      assert_pi_attributes(pi, [], "after making data unparsable");
+      pi.insertData(2, '"');
+      assert_equals(pi.data, 'a="" x="yy"');
+      assert_pi_attributes(pi, [["a", ""], ["x", "yy"]], "after making data parsable again");
+    }, `CharacterData methods can make processing instruction data unparsable and parsable again (source: ${source})`);
+  }
+</script>

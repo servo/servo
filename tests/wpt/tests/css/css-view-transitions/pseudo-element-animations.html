@@ -136,4 +136,38 @@ promise_test(async t => {
   document.documentElement.style.display = "inline";
 }, "The specified CSS Animations are removed if setting display:none.");
 
+promise_test(async t => {
+  document.documentElement.style.viewTransitionName = "camelCase";
+  t.add_cleanup(() => {
+    document.documentElement.style.viewTransitionName = "none";
+  });
+
+  let viewTransition = document.startViewTransition(() => {});
+  t.add_cleanup(() => {
+    viewTransition.skipTransition();
+  });
+  await viewTransition.ready;
+
+  for (const pseudo of [
+    "::view-transition-group(camelCase)",
+    "::view-transition-image-pair(camelCase)",
+    "::view-transition-old(camelCase)",
+    "::view-transition-new(camelCase)",
+  ]) {
+    let animation = document.documentElement.animate(
+      { transform: ["scale(1)", "scale(2)"] },
+      { duration: 1000, pseudoElement: pseudo }
+    );
+    assert_equals(animation.effect.pseudoElement, pseudo);
+    animation.pause();
+    animation.currentTime = 500;
+    assert_equals(
+      getComputedStyle(document.documentElement, pseudo).transform,
+      "matrix(1.5, 0, 0, 1.5, 0, 0)",
+      `Script animation applies to case-sensitive ${pseudo}`
+    );
+    animation.cancel();
+  }
+}, "Script animations preserve case-sensitive view-transition-name in pseudoElement.");
+
 </script>

@@ -20,6 +20,9 @@
   .clip {
     overflow-y: clip;
   }
+  .hidden {
+    overflow-y: hidden;
+  }
   .scrollable::after {
     content: " ";
     display: block;
@@ -63,6 +66,12 @@
 </div>
 <div class="scroller clip scrollable">
   <span id="t8"></span>
+</div>
+<div class="scroller hidden">
+  <span id="t9"></span>
+</div>
+<div class="scroller hidden scrollable">
+  <span id="t10"></span>
 </div>
 <script>
   setup(() => assert_implements_scroll_state_container_queries());
@@ -115,5 +124,17 @@
     assert_equals(getComputedStyle(t8).getPropertyValue("--bottom"), "no");
     assert_equals(getComputedStyle(t8).getPropertyValue("--none"), "yes");
   }, "overflow:clip, scrollable content - no matches");
+
+  promise_test(async t => {
+    assert_equals(getComputedStyle(t9).getPropertyValue("--top"), "no");
+    assert_equals(getComputedStyle(t9).getPropertyValue("--bottom"), "no");
+    assert_equals(getComputedStyle(t9).getPropertyValue("--none"), "yes");
+  }, "overflow:hidden, no scrollable content - no matches");
+
+  promise_test(async t => {
+    assert_equals(getComputedStyle(t10).getPropertyValue("--top"), "no");
+    assert_equals(getComputedStyle(t10).getPropertyValue("--bottom"), "no");
+    assert_equals(getComputedStyle(t10).getPropertyValue("--none"), "yes");
+  }, "overflow:hidden, scrollable content - no matches");
 
 </script>

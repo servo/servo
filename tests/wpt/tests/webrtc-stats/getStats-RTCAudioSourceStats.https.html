@@ -1,0 +1,234 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCAudioSourceStats audioLevel, totalAudioEnergy and totalSamplesDuration</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../webrtc/RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+// https://w3c.github.io/webrtc-stats/#dom-rtcaudiosourcestats
+
+// A 1 kHz sine has an integer number of periods in any 10 ms frame at common
+// sample rates, so its RMS over a frame is exactly amplitude / sqrt(2).
+const kToneFrequency = 1000;
+const kToneAmplitude = 0.5;
+const kToneRms = kToneAmplitude * Math.SQRT1_2;
+const kToneMeanSquare = kToneAmplitude * kToneAmplitude / 2;
+const kLevelTolerance = 0.1;
+const kRateTolerance = 0.25;
+
+let audioContext;
+
+async function createToneTrack(t, amplitude = kToneAmplitude) {
+  audioContext ??= new AudioContext();
+  if (audioContext.state != 'running') {
+    await audioContext.resume();
+  }
+  const oscillator = new OscillatorNode(audioContext, {frequency: kToneFrequency});
+  const gain = new GainNode(audioContext, {gain: amplitude});
+  const destination = new MediaStreamAudioDestinationNode(audioContext);
+  oscillator.connect(gain).connect(destination);
+  oscillator.start();
+  const [track] = destination.stream.getAudioTracks();
+  t.add_cleanup(() => {
+    oscillator.stop();
+    track.stop();
+  });
+  return track;
+}
+
+// Connects pc1 to pc2 with `track` on one sender plus `extraSenders` audio
+// senders that have no track. Resolves once pc1 is connected.
+async function connectWithTrack(t, track, extraSenders = 0) {
+  const [pc1, pc2] = createPeerConnectionPairWithCleanup(t);
+  const sender = pc1.addTrack(track);
+  const senders = [];
+  for (let i = 0; i < extraSenders; i++) {
+    senders.push(pc1.addTransceiver('audio').sender);
+  }
+  exchangeIceCandidates(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
+  await waitForConnectionStateChange(pc1, ['connected']);
+  return {pc1, pc2, sender};
+}
+
+function getAudioSourceStats(report, track) {
+  return [...report.values()].find(
+      s => s.type == 'media-source' && s.trackIdentifier == track.id);
+}
+
+// Polls getStats() until a media-source stats object for `track` exists and
+// satisfies `predicate`, or kStatsDeadlineMs has elapsed.
+async function waitForAudioSourceStats(t, pc, track, description,
+                                       predicate = () => true) {
+  let stats;
+  for (let i = 0; i < 25; i++) {
+    stats = getAudioSourceStats(await pc.getStats(), track);
+    if (stats && predicate(stats)) {
+      return stats;
+    }
+    await new Promise(r => t.step_timeout(r, 100));
+  };
+  assert_not_equals(stats, undefined,
+                    `media-source stats for track ${track.id} should exist`);
+  assert_true(predicate(stats),
+              `timed out waiting for ${description}: ${JSON.stringify(stats)}`);
+  return stats;
+}
+
+// Waits until `stat` is non-zero and the stats have then aged `ageMs` by their
+// own timestamp, so that a test only depends on the stat it checks.
+const kSettleMs = 500;
+async function waitForStatsToAge(t, pc, track, stats, ageMs = kSettleMs) {
+  const checkAll = (audioSourceStats) => stats.reduce((acc, s) => acc && audioSourceStats[s] > 0, true);
+  const first = await waitForAudioSourceStats(
+      t, pc, track, `${JSON.stringify(stats)} to be non-zero`, checkAll);
+  return waitForAudioSourceStats(
+      t, pc, track, `${JSON.stringify(stats)} to settle`,
+      s => checkAll(s) && s.timestamp - first.timestamp >= ageMs);
+}
+
+promise_test(async (t) => {
+  const track = await createToneTrack(t);
+  const {pc1} = await connectWithTrack(t, track);
+  const stats = await waitForStatsToAge(t, pc1, track, ['audioLevel']);
+  assert_approx_equals(stats.audioLevel, kToneRms, kLevelTolerance,
+                       'audioLevel should be the RMS of the source');
+}, "RTCAudioSourceStats audioLevel reflects the audio level of the source");
+
+promise_test(async (t) => {
+  const track = await createToneTrack(t);
+  const {pc1, sender} =
+      await connectWithTrack(t, track, 1);
+  const otherSender = pc1.getSenders()[1];
+  const before = await waitForStatsToAge(t, pc1, track, ['audioLevel']);
+  // Attach to the new sender before detaching from the old one so that the
+  // track stays attached to at least one sender throughout.
+  await Promise.all([otherSender.replaceTrack(track),
+                     sender.replaceTrack(null)]);
+  // Sample past any getStats() caching and any level averaging interval, so
+  // that a stale pre-switch report or a late reset cannot slip through.
+  for (let i = 0; i < 25; i++) {
+    const after = getAudioSourceStats(await pc1.getStats(), track);
+    assert_not_equals(after, undefined,
+                      'media-source stats should survive the switch');
+    assert_approx_equals(after.audioLevel, before.audioLevel, kLevelTolerance,
+                         'audioLevel should not reset');
+    await new Promise(r => t.step_timeout(r, 20));
+  }
+}, "RTCAudioSourceStats audioLevel does not reset when track is switched between senders");
+
+promise_test(async (t) => {
+  const track = await createToneTrack(t);
+  const {pc1} = await connectWithTrack(t, track);
+  await waitForAudioSourceStats(
+      t, pc1, track, 'audioLevel to be non-zero', s => s.audioLevel > 0);
+  track.enabled = false;
+  const stats = await waitForAudioSourceStats(
+      t, pc1, track, 'audioLevel to drop to 0', s => s.audioLevel == 0);
+  assert_equals(stats.audioLevel, 0);
+}, "RTCAudioSourceStats audioLevel is 0 for a disabled track");
+
+promise_test(async (t) => {
+  const track = await createToneTrack(t);
+  track.enabled = false;
+  const {pc1} = await connectWithTrack(t, track);
+  const before = await waitForAudioSourceStats(t, pc1, track, 'stats');
+  track.enabled = true;
+  const after = await waitForAudioSourceStats(
+      t, pc1, track, 'totalAudioEnergy to increase',
+      s => s.totalAudioEnergy > before.totalAudioEnergy);
+  assert_greater_than(after.totalAudioEnergy, before.totalAudioEnergy, 'totalAudioEnergy should increase after track is enabled');
+  assert_greater_than(after.totalSamplesDuration, before.totalSamplesDuration, 'totalSamplesDuration should increase after track is enabled');
+}, "RTCAudioSourceStats totalAudioEnergy and totalSamplesDuration accumulate after a disabled track is enabled");
+
+promise_test(async (t) => {
+  const track = await createToneTrack(t);
+  const {pc1, sender} = await connectWithTrack(t, track);
+  const before =
+      await waitForStatsToAge(t, pc1, track, ['totalAudioEnergy', 'totalSamplesDuration']);
+  await sender.replaceTrack(track);
+  const after = getAudioSourceStats(await pc1.getStats(), track);
+  assert_not_equals(after, undefined,
+                    'media-source stats should survive replaceTrack');
+  assert_greater_than_equal(after.totalAudioEnergy, before.totalAudioEnergy, 'totalAudioEnergy should not reset when track is replaced with itself');
+  assert_greater_than_equal(after.totalSamplesDuration, before.totalSamplesDuration, 'totalSamplesDuration should not reset when track is replaced with itself');
+}, "RTCAudioSourceStats totalAudioEnergy and totalSamplesDuration do not reset when track is replaced with itself");
+
+promise_test(async (t) => {
+  const track = await createToneTrack(t);
+  const {pc1, sender} = await connectWithTrack(t, track);
+  const before = await waitForAudioSourceStats(
+      t, pc1, track, 'at least 1s of audio',
+      s => s.totalSamplesDuration >= 1);
+  const newTrack = await createToneTrack(t);
+  await sender.replaceTrack(newTrack);
+  const after = await waitForAudioSourceStats(t, pc1, newTrack, s => s.totalSamplesDuration > 0);
+  assert_less_than(after.totalSamplesDuration, before.totalSamplesDuration,
+                   'a new track\'s totalSamplesDuration does not inherit the accumulated value from the previously attached track');
+  assert_less_than(after.totalAudioEnergy, before.totalAudioEnergy,
+                   'a new track\'s totalAudioEnergy does not inherit the accumulated value from the previously attached track');
+}, "RTCAudioSourceStats totalSamplesDuration and totalAudioEnergy on a new track do not inherit the accumulated value from the previously attached track");
+
+// Waits about a second and returns the per-second rate at which `key`
+// accumulated, measured from the stats timestamps.
+async function measureAccumulationRate(t, pc, track, keys) {
+  const first = await waitForStatsToAge(t, pc, track, keys);
+  const second = await waitForAudioSourceStats(
+      t, pc, track, 'another second of audio',
+      s => s.timestamp - first.timestamp >= 1000);
+  const elapsedSeconds = (second.timestamp - first.timestamp) / 1000;
+  return Object.fromEntries(
+        keys.map(k => [k, (second[k] - first[k]) / elapsedSeconds]));;
+}
+
+promise_test(async (t) => {
+  const track = await createToneTrack(t);
+  const {pc1} = await connectWithTrack(t, track);
+  const {totalAudioEnergy: rate} = await measureAccumulationRate(t, pc1, track, ['totalAudioEnergy']);
+  assert_approx_equals(rate, kToneMeanSquare, kToneMeanSquare * kRateTolerance,
+                       'totalAudioEnergy should advance at the mean square of the source');
+}, "RTCAudioSourceStats totalAudioEnergy reflects the energy of the source");
+
+async function assertRateUnaffectedByMultipleSenders(t, keys) {
+  const track = await createToneTrack(t);
+  const {pc1} = await connectWithTrack(t, track, 1);
+  const otherSender = pc1.getSenders()[1];
+  const singleRate = await measureAccumulationRate(t, pc1, track, keys);
+  await otherSender.replaceTrack(track);
+  const doubleRate = await measureAccumulationRate(t, pc1, track, keys);
+  for (const key of keys) {
+    assert_approx_equals(doubleRate[key], singleRate[key], singleRate[key] * kRateTolerance,
+                         `${key} should accumulate at the same rate when attached to two senders`);
+  }
+}
+
+promise_test(async (t) => {
+  await assertRateUnaffectedByMultipleSenders(t, ['totalSamplesDuration', 'totalAudioEnergy']);
+}, "RTCAudioSourceStats totalSamplesDuration and totalAudioEnergy accumulation are not effected by being attached to multiple senders");
+
+promise_test(async (t) => {
+  const track = await createToneTrack(t);
+  const {pc1, sender} = await connectWithTrack(t, track);
+  const before = await waitForAudioSourceStats(t, pc1, track, 'stats');
+  const newTrack = await createToneTrack(t);
+  await sender.replaceTrack(newTrack);
+  const after = await waitForAudioSourceStats(t, pc1, newTrack, 'stats');
+  assert_not_equals(after.id, before.id,
+                    'a new track should get a new media-source stats id');
+}, "RTCAudioSourceStats id not inherited when the track is replaced with a new track");
+
+promise_test(async (t) => {
+  const track = await createToneTrack(t);
+  const {pc1, sender} = await connectWithTrack(t, track);
+  const before = await waitForAudioSourceStats(t, pc1, track, 'stats');
+  await sender.replaceTrack(track);
+  const after = getAudioSourceStats(await pc1.getStats(), track);
+  assert_not_equals(after, undefined,
+                    'media-source stats should survive replaceTrack');
+  assert_equals(after.id, before.id, "RTCAudioSourceStats id does not change when the track is replaced with itself");
+}, "RTCAudioSourceStats id does not change when the track is replaced with itself");
+
+</script>
