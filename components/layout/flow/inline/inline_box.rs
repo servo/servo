@@ -18,6 +18,9 @@ use style::computed_values::box_decoration_break::T as BoxDecorationBreak;
 use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
+use style::restyle_damage::{
+    NeededFragmentationInfo, needed_fragmentation_info_for_correct_break_rendering,
+};
 use style::values::computed::{BaselineShift, LengthPercentage};
 
 use super::{
@@ -29,7 +32,7 @@ use crate::containing_block::ContainingBlock;
 use crate::context::LayoutContext;
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::fragment_tree::BaseFragmentInfo;
-use crate::geom::{SyncPhysicalRectAu, ToLogical};
+use crate::geom::{LogicalVec2, SyncPhysicalRectAu};
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::{ComputedValuesExt, LayoutStyle, PaddingBorderMargin};
 
@@ -87,7 +90,9 @@ impl InlineBox {
     // For the painting of backgrounds and borders on fragmented boxes, each box needs to know what part of the
     // unfragmented whole it is. This determines that for this inline box's fragments.
     pub(crate) fn assign_fragmentation_info(&self) {
-        if !self.base.style.needs_fragmentation_info_for_correct_break_rendering() {
+        let needed_fragmentation_info =
+            needed_fragmentation_info_for_correct_break_rendering(&self.base.style);
+        if needed_fragmentation_info == NeededFragmentationInfo::None {
             return;
         }
 
@@ -99,14 +104,18 @@ impl InlineBox {
 
         let writing_mode = self.base.style.writing_mode;
         let mut total_inline_size = Au::zero();
-        for fragment in fragments.iter() {
-            total_inline_size += fragment
-                .base()
-                .expect("Should always have a base fragment.")
-                .rect()
-                .size
-                .to_logical(writing_mode)
+        if needed_fragmentation_info == NeededFragmentationInfo::SidesAndSize {
+            for fragment in fragments.iter() {
+                total_inline_size += LogicalVec2::from_physical_size(
+                    &fragment
+                        .base()
+                        .expect("Should always have a base fragment.")
+                        .rect()
+                        .size,
+                    writing_mode,
+                )
                 .inline;
+            }
         }
 
         let mut current_inline_offset = Au::zero();
@@ -115,40 +124,48 @@ impl InlineBox {
                 .retrieve_box_fragment()
                 .expect("Should always be a box fragment.")
         }) {
-            let fragment_inline_size = fragment.base.rect().size.to_logical(writing_mode).inline;
-
-            let mut origin = fragment.base.rect().origin;
             if writing_mode.is_horizontal() {
                 fragment.set_is_fragmented_along_left_edge(true);
                 fragment.set_is_fragmented_along_right_edge(true);
-                if writing_mode.is_bidi_ltr() {
-                    origin.x -= current_inline_offset;
-                } else {
-                    origin.x += current_inline_offset;
-                    origin.x -= total_inline_size - fragment_inline_size;
-                }
             } else {
                 fragment.set_is_fragmented_along_top_edge(true);
                 fragment.set_is_fragmented_along_bottom_edge(true);
-                if writing_mode.is_bidi_ltr() {
-                    origin.y -= current_inline_offset;
-                } else {
-                    origin.x += current_inline_offset;
-                    origin.x -= total_inline_size - fragment_inline_size;
-                }
             }
-            fragment.set_unfragmented_rect(SyncPhysicalRectAu::new(Rect::new(
-                origin,
-                LogicalSize::new(
-                    writing_mode,
-                    total_inline_size,
-                    fragment.base.rect().size.to_logical(writing_mode).block,
-                )
-                .to_physical(writing_mode)
-                .cast_unit(),
-            )));
 
-            current_inline_offset += fragment_inline_size;
+            if needed_fragmentation_info == NeededFragmentationInfo::SidesAndSize {
+                let fragment_inline_size =
+                    LogicalVec2::from_physical_size(&fragment.base.rect().size, writing_mode)
+                        .inline;
+                let mut origin = fragment.base.rect().origin;
+                if writing_mode.is_horizontal() {
+                    if writing_mode.is_bidi_ltr() {
+                        origin.x -= current_inline_offset;
+                    } else {
+                        origin.x += current_inline_offset;
+                        origin.x -= total_inline_size - fragment_inline_size;
+                    }
+                } else {
+                    if writing_mode.is_bidi_ltr() {
+                        origin.y -= current_inline_offset;
+                    } else {
+                        origin.x += current_inline_offset;
+                        origin.x -= total_inline_size - fragment_inline_size;
+                    }
+                }
+                fragment.set_unfragmented_rect(SyncPhysicalRectAu::new(Rect::new(
+                    origin,
+                    LogicalSize::new(
+                        writing_mode,
+                        total_inline_size,
+                        LogicalVec2::from_physical_size(&fragment.base.rect().size, writing_mode)
+                            .block,
+                    )
+                    .to_physical(writing_mode)
+                    .cast_unit(),
+                )));
+
+                current_inline_offset += fragment_inline_size;
+            }
         }
         // Fix up the fragmentation at the very beginning and end
         if let Some(first_fragment) = fragments
