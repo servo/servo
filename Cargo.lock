@@ -9209,6 +9209,7 @@ dependencies = [
  "tungstenite",
  "url",
  "uuid",
+ "walkdir",
  "webpki-roots",
  "webrender_api",
 ]

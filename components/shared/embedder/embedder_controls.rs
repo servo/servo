@@ -184,8 +184,10 @@ pub struct SelectedFile {
     pub filename: PathBuf,
     pub modified: SystemTime,
     pub size: u64,
-    // https://w3c.github.io/FileAPI/#dfn-type
+    /// https://w3c.github.io/FileAPI/#dfn-type
     pub type_string: String,
+    /// https://wicg.github.io/entries-api/#dom-file-webkitrelativepath
+    pub relative_path: Option<String>,
 }
 
 /// Request from Servo to the embedder with the details of the simple dialog to be displayed.
