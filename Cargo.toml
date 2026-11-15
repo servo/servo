@@ -215,7 +215,7 @@ read-fonts = "0.46"
 realfft = "3.5.0"
 regex = "1.12"
 resvg = "0.50.0"
-rfd = "0.17.2"
+rfd = "0.18.0"
 rsa = { version = "0.10", features = ["pkcs1v15"] }
 rusqlite = { version = "0.38", features = ["bundled"] }
 rustc-demangle = "0.1"
