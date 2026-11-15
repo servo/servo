@@ -268,12 +268,14 @@ pub(crate) fn decode_static_image(
         dynamic_image.apply_orientation(orientation);
     }
 
+    // Without an alpha channel every pixel is opaque, so premultiplying would change nothing.
+    let has_alpha = dynamic_image.color().has_alpha();
     let mut rgba = dynamic_image.into_rgba8();
 
     // Store pre-multiplied data as that prevents having to do conversions of the data at later
     // times. This does cause an issue with some canvas APIs. See:
     // https://github.com/servo/servo/issues/40257
-    let is_opaque = rgba8_premultiply_inplace(&mut rgba);
+    let is_opaque = !has_alpha || rgba8_premultiply_inplace(&mut rgba);
 
     let frame = ImageFrame {
         delay: None,
