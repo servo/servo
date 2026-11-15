@@ -619,7 +619,7 @@ impl HTMLTextAreaElement {
             element.set_state(no_gc, ElementState::USER_VALID, satisfies_constraints);
             element.set_state(no_gc, ElementState::USER_INVALID, !satisfies_constraints);
         } else {
-            // Avoid computing constrain validation if user validity is false
+            // Avoid computing constraint validation if user validity is false
             let element = self.upcast::<Element>();
             element.set_state(no_gc, ElementState::USER_VALID, false);
             element.set_state(no_gc, ElementState::USER_INVALID, false);
