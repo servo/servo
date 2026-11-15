@@ -752,8 +752,13 @@ impl VelloDrawTarget {
                 log::warn!("VELLO WGPU MAP ASYNC ERROR {error}");
                 return f(None);
             }
-            let data = buf_slice.get_mapped_range();
-            f(Some(&data))
+            match buf_slice.get_mapped_range() {
+                Ok(data) => f(Some(&data)),
+                Err(error) => {
+                    log::warn!("VELLO WGPU GET MAPPED RANGE ERROR {error}");
+                    f(None)
+                },
+            }
         };
         self.rendered_buffer.unmap();
         result
