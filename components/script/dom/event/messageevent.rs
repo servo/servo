@@ -63,7 +63,6 @@ pub(crate) struct MessageEvent {
     source: DomRefCell<Option<SrcObject>>,
     lastEventId: DomRefCell<TracedDOMString>,
     ports: DomRefCell<Vec<Dom<MessagePort>>>,
-    #[ignore_malloc_size_of = "mozjs"]
     frozen_ports: CachedFrozenArray,
 }
 

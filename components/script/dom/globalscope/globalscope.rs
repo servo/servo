@@ -294,7 +294,6 @@ pub(crate) struct GlobalScope {
     gpu_devices: DomRefCell<HashMapTracedValues<WebGPUDevice, WeakRef<GPUDevice>, FxBuildHasher>>,
 
     // https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute
-    #[ignore_malloc_size_of = "mozjs"]
     frozen_supported_performance_entry_types: CachedFrozenArray,
 
     /// The stack of active group labels for the Console APIs.
