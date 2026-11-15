@@ -66,7 +66,7 @@ class HistoryActivity : ComponentActivity() {
                                 onClick = {
                                     historyManager.clearHistory()
                                     historyEntries = historyManager.history
-                                }
+                                },
                             ) {
                                 Icon(
                                     painterResource(R.drawable.delete),
@@ -75,7 +75,7 @@ class HistoryActivity : ComponentActivity() {
                             }
                         },
                     )
-                }
+                },
             ) { innerPadding ->
                 if (historyEntries.isEmpty()) {
                     Column(
@@ -105,7 +105,7 @@ class HistoryActivity : ComponentActivity() {
                                                 item.headerText,
                                                 style = MaterialTheme.typography.titleSmall,
                                             )
-                                        }
+                                        },
                                     )
                                 }
                                 is HistoryEntryItem -> {
