@@ -621,7 +621,7 @@ impl FileManagerStore {
             .ok_or(FileManagerThreadError::FileSystemError(
                 "Invalid filepath".to_string(),
             ))?;
-        let entries = walk_directory(path)?;
+        let entries = walk_directory(path);
         files.reserve(entries.len());
         for (path, relative_path) in entries {
             // A relative path starts from, and includes, the selected directory.
@@ -955,10 +955,16 @@ fn set_blob_response_headers(
 }
 
 /// Returns `(absolute path, path relative to root)` for each regular file under `root`.
-fn walk_directory(root: &Path) -> Result<Vec<(PathBuf, PathBuf)>, FileManagerThreadError> {
+fn walk_directory(root: &Path) -> Vec<(PathBuf, PathBuf)> {
     let mut files = Vec::new();
     for entry in WalkDir::new(root) {
-        let entry = entry.map_err(|e| FileManagerThreadError::FileSystemError(e.to_string()))?;
+        let entry = match entry {
+            Ok(entry) => entry,
+            Err(error) => {
+                warn!("Skipping an unreadable entry while walking a directory: {error}");
+                continue;
+            },
+        };
         if entry.file_type().is_file() {
             let relative_path = entry
                 .path()
@@ -967,5 +973,5 @@ fn walk_directory(root: &Path) -> Result<Vec<(PathBuf, PathBuf)>, FileManagerThr
             files.push((entry.path().to_path_buf(), relative_path.to_path_buf()));
         }
     }
-    Ok(files)
+    files
 }
