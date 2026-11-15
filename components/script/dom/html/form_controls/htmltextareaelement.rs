@@ -167,7 +167,7 @@ impl HTMLTextAreaElement {
 
     fn update_related_validity_states(&self, cx: &mut JSContext) {
         self.validity_state(cx)
-        .perform_validation_and_update(cx, ValidationFlags::all());
+            .perform_validation_and_update(cx, ValidationFlags::all());
         self.update_user_valid_state(cx.no_gc());
     }
 

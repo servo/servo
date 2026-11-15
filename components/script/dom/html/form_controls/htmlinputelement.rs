@@ -22,6 +22,7 @@ use num_traits::ToPrimitive;
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::codegen::GenericBindings::SelectionBinding::SelectionMethods;
 use script_bindings::domstring::{TracedDOMString, parse_floating_point_number};
+use script_bindings::traits::DomEventTrait;
 use servo_base::generic_channel::GenericSender;
 use servo_base::text::{RangeAny, Utf16CodeUnits, Utf32CodeUnits};
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
@@ -2676,7 +2677,7 @@ impl VirtualMethods for HTMLInputElement {
             .handle_event(cx, self, event);
 
         if event.is::<InputEvent>() && self.value_dirty.get() {
-            self.value_changed(cx, true);
+            self.value_changed(cx, event.IsTrusted());
         }
 
         self.fire_value_change_events(cx, value_change_events);

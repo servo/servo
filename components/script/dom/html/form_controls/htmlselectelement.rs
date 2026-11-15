@@ -300,7 +300,7 @@ impl HTMLSelectElement {
 
     fn update_related_validity_states(&self, cx: &mut JSContext) {
         self.validity_state(cx)
-        .perform_validation_and_update(cx, ValidationFlags::VALUE_MISSING);
+            .perform_validation_and_update(cx, ValidationFlags::VALUE_MISSING);
         self.update_user_valid_state(cx.no_gc());
     }
 
@@ -856,7 +856,6 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
         }
 
         self.update_related_validity_states(cx);
-
         self.update_shadow_tree(cx);
     }
 
