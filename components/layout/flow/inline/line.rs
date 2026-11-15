@@ -27,9 +27,9 @@ use crate::flow::inline::text_run::{FontAndScriptInfo, SharedTextRunData};
 use crate::fragment_tree::{
     BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, FragmentAndLogicalRect,
     FragmentChildren, FragmentFlags, TextFragment,
+};
 use crate::geom::{
-    LogicalRect, LogicalSides, LogicalVec2, PhysicalRect, PhysicalSides, PhysicalSize, ToLogical,
-    ToLogicalWithContainingBlock,
+    LogicalRect, LogicalSides, LogicalVec2, PhysicalRect, PhysicalSides, PhysicalSize,
 };
 use crate::positioned::{
     AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, StaticPositionRect,
