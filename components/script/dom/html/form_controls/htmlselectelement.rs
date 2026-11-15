@@ -298,6 +298,12 @@ impl HTMLSelectElement {
         }
     }
 
+    fn update_related_validity_states(&self, cx: &mut JSContext) {
+        self.validity_state(cx)
+        .perform_validation_and_update(cx, ValidationFlags::VALUE_MISSING);
+        self.update_user_valid_state(cx.no_gc());
+    }
+
     pub(crate) fn set_user_validity(&self, no_gc: &NoGC, value: bool) {
         if self.user_validity.get() != value {
             self.user_validity.set(value);
@@ -849,8 +855,7 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
             opt.set_selectedness(cx.no_gc(), false);
         }
 
-        self.validity_state(cx)
-            .perform_validation_and_update(cx, ValidationFlags::VALUE_MISSING);
+        self.update_related_validity_states(cx);
 
         self.update_shadow_tree(cx);
     }
@@ -944,8 +949,7 @@ impl VirtualMethods for HTMLSelectElement {
                 self.multiple_attribute_mutated(cx, mutation);
             },
             local_name!("required") => {
-                self.validity_state(cx)
-                    .perform_validation_and_update(cx, ValidationFlags::VALUE_MISSING);
+                self.update_related_validity_states(cx);
 
                 // https://html.spec.whatwg.org/multipage/#selector-required
                 // > The :required pseudo-class must match any element falling into one of the following categories:
@@ -960,8 +964,7 @@ impl VirtualMethods for HTMLSelectElement {
                 element.set_state(cx.no_gc(), ElementState::OPTIONAL_, !required);
             },
             local_name!("disabled") => {
-                self.validity_state(cx)
-                    .perform_validation_and_update(cx, ValidationFlags::VALUE_MISSING);
+                self.update_related_validity_states(cx);
             },
             local_name!("form") => {
                 self.form_attribute_mutated(cx, mutation);

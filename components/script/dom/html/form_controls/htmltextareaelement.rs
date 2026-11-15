@@ -165,6 +165,12 @@ impl HTMLTextAreaElement {
         !(self.upcast::<Element>().disabled_state() || self.ReadOnly())
     }
 
+    fn update_related_validity_states(&self, cx: &mut JSContext) {
+        self.validity_state(cx)
+        .perform_validation_and_update(cx, ValidationFlags::all());
+        self.update_user_valid_state(cx.no_gc());
+    }
+
     fn handle_focus_event(&self, cx: &mut JSContext, event: &FocusEvent) {
         let event_type = event.upcast::<Event>().type_();
         let document = self.owner_document();
@@ -320,9 +326,7 @@ impl TextControlElement for HTMLTextAreaElement {
     }
 
     fn handle_text_content_changed(&self, cx: &mut JSContext) {
-        self.validity_state(cx)
-            .perform_validation_and_update(cx, ValidationFlags::all());
-        self.update_user_valid_state(cx.no_gc());
+        self.update_related_validity_states(cx);
 
         let placeholder_shown =
             self.text_input.borrow().is_empty() && !self.placeholder.borrow().is_empty();
@@ -734,9 +738,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             _ => {},
         }
 
-        self.validity_state(cx)
-            .perform_validation_and_update(cx, ValidationFlags::all());
-        self.update_user_valid_state(cx.no_gc());
+        self.update_related_validity_states(cx);
     }
 
     fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
@@ -770,9 +772,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             .hide_embedder_control(self.upcast());
 
         self.super_type().unwrap().unbind_from_tree(cx, context);
-        self.validity_state(cx)
-            .perform_validation_and_update(cx, ValidationFlags::all());
-        self.update_user_valid_state(cx.no_gc());
+        self.update_related_validity_states(cx);
     }
 
     // The cloning steps for textarea elements must propagate the raw value
@@ -792,9 +792,7 @@ impl VirtualMethods for HTMLTextAreaElement {
         el.text_input
             .safe_borrow_mut(cx.no_gc())
             .clone_content_from(&self.text_input.borrow());
-        el.validity_state(cx)
-            .perform_validation_and_update(cx, ValidationFlags::all());
-        el.update_user_valid_state(cx.no_gc());
+        el.update_related_validity_states(cx);
     }
 
     fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
