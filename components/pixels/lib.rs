@@ -196,11 +196,25 @@ pub fn rgba8_byte_swap_and_premultiply_inplace(pixels: &mut [u8]) {
 pub fn rgba8_premultiply_inplace(pixels: &mut [u8]) -> bool {
     assert!(pixels.len().is_multiple_of(4));
     let mut is_opaque = true;
-    for rgba in pixels.chunks_mut(4) {
-        rgba[0] = multiply_u8_color(rgba[0], rgba[3]);
-        rgba[1] = multiply_u8_color(rgba[1], rgba[3]);
-        rgba[2] = multiply_u8_color(rgba[2], rgba[3]);
-        is_opaque = is_opaque && rgba[3] == 255;
+    for rgba in pixels.as_chunks_mut::<4>().0 {
+        let [r, g, b, a] = *rgba;
+        // Fast path: full alpha keeps the color and zero alpha clears it.
+        match a {
+            u8::MAX => {},
+            0 => {
+                *rgba = [0; 4];
+                is_opaque = false;
+            },
+            _ => {
+                *rgba = [
+                    multiply_u8_color(r, a),
+                    multiply_u8_color(g, a),
+                    multiply_u8_color(b, a),
+                    a,
+                ];
+                is_opaque = false;
+            },
+        }
     }
     is_opaque
 }
