@@ -148,7 +148,7 @@ pub(super) struct CanvasContextState {
 }
 
 impl CanvasContextState {
-    /// <https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-font>
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-font>
     /// > If the computed values are undefined for a particular case (e.g.
     /// > because the font style source object is not an element or is not being
     /// > rendered), then the relative keywords must be interpreted relative to
@@ -2924,7 +2924,7 @@ fn replace_ascii_whitespace(text: &str) -> String {
 const LARGER_FONT_SIZE_RATIO: f32 = 1.2;
 
 /// Resolves the font to use for a offscreen canvas given a font string.
-/// <https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-font>
+/// <https://html.spec.whatwg.org/multipage/#dom-context-2d-font>
 fn resolve_offscreen_font(base_url: ServoUrl, font: &str) -> Option<ServoArc<Font>> {
     let urlextradata = base_url.into_url().into();
 
