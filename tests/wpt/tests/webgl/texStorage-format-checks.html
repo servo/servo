@@ -1,0 +1,66 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>texStorage rejects disabled compressed formats and 3D depth textures</title>
+<link rel="author" title="Maxim Gorin" href="mailto:code@mxmgorin.dev">
+<link rel="help" href="https://registry.khronos.org/webgl/specs/latest/1.0/#5.14.14">
+<link rel="help" href="https://registry.khronos.org/OpenGL/specs/es/3.0/es_spec_3.0.pdf#nameddest=subsection.3.8.4">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+const S3TC = [0x83F0, 0x83F1, 0x83F2, 0x83F3];
+
+function createContext() {
+    return document.createElement("canvas").getContext("webgl2");
+}
+
+test(function() {
+    const gl = createContext();
+    for (const format of S3TC) {
+        gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+        gl.texStorage2D(gl.TEXTURE_2D, 1, format, 4, 4);
+        assert_equals(gl.getError(), gl.INVALID_ENUM, "0x" + format.toString(16));
+    }
+}, "texStorage2D rejects S3TC formats before the extension is enabled");
+
+test(function() {
+    const gl = createContext();
+    for (const format of S3TC) {
+        gl.bindTexture(gl.TEXTURE_2D_ARRAY, gl.createTexture());
+        gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, format, 4, 4, 1);
+        assert_equals(gl.getError(), gl.INVALID_ENUM, "0x" + format.toString(16));
+    }
+}, "texStorage3D rejects S3TC formats before the extension is enabled");
+
+test(function() {
+    const gl = createContext();
+    assert_implements_optional(gl.getExtension("WEBGL_compressed_texture_s3tc"),
+                               "WEBGL_compressed_texture_s3tc");
+    for (const format of S3TC) {
+        gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+        gl.texStorage2D(gl.TEXTURE_2D, 1, format, 4, 4);
+        assert_equals(gl.getError(), gl.NO_ERROR, "0x" + format.toString(16));
+    }
+}, "texStorage2D accepts S3TC formats once the extension is enabled");
+
+const DEPTH = ["DEPTH_COMPONENT16", "DEPTH_COMPONENT24", "DEPTH_COMPONENT32F", "DEPTH24_STENCIL8", "DEPTH32F_STENCIL8"];
+
+test(function() {
+    const gl = createContext();
+    for (const name of DEPTH) {
+        gl.bindTexture(gl.TEXTURE_3D, gl.createTexture());
+        gl.texStorage3D(gl.TEXTURE_3D, 1, gl[name], 4, 4, 4);
+        assert_equals(gl.getError(), gl.INVALID_OPERATION, name);
+    }
+}, "texStorage3D rejects depth formats for TEXTURE_3D");
+
+test(function() {
+    const gl = createContext();
+    for (const name of DEPTH) {
+        gl.bindTexture(gl.TEXTURE_2D_ARRAY, gl.createTexture());
+        gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl[name], 4, 4, 4);
+        assert_equals(gl.getError(), gl.NO_ERROR, name);
+    }
+}, "texStorage3D accepts depth formats for TEXTURE_2D_ARRAY");
+
+</script>

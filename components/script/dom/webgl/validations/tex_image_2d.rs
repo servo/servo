@@ -783,8 +783,26 @@ impl WebGLValidator for TexStorageValidator<'_> {
             context.webgl_error(InvalidEnum);
             return Err(TexImageValidationError::InvalidTextureFormat);
         }
+        if internal_format.is_compressed() &&
+            context
+                .extension_manager()
+                .get_tex_compression_format(internal_format.as_gl_constant())
+                .is_none()
+        {
+            context.webgl_error(InvalidEnum);
+            return Err(TexImageValidationError::InvalidCompressionFormat);
+        }
         // Compressed formats have no 3D layout, only 2D arrays of compressed images.
         if target == TexImageTarget::Texture3D && internal_format.is_compressed() {
+            context.webgl_error(InvalidOperation);
+            return Err(TexImageValidationError::InvalidTextureFormat);
+        }
+        if target == TexImageTarget::Texture3D &&
+            matches!(
+                internal_format.to_unsized(),
+                TexFormat::DepthComponent | TexFormat::DepthStencil
+            )
+        {
             context.webgl_error(InvalidOperation);
             return Err(TexImageValidationError::InvalidTextureFormat);
         }
