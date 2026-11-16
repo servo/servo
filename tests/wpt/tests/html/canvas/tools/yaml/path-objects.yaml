@@ -902,6 +902,38 @@
     @assert pixel 98,48 == 0,255,0,255;
   expected: green
 
+- name: 2d.path.arc.angle.7
+  desc: arc() draws a full circle when clockwise and end - start is very large
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.beginPath();
+    ctx.moveTo(50, 25);
+    ctx.arc(50, 25, 60, 0, 1e300, false);
+    ctx.fill();
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.path.arc.angle.8
+  desc: arc() draws a full circle when anticlockwise and start - end is very large
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.beginPath();
+    ctx.moveTo(50, 25);
+    ctx.arc(50, 25, 60, 1e300, 0, true);
+    ctx.fill();
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+
 - name: 2d.path.arc.zero.1
   desc: arc() draws nothing when startAngle = endAngle and anticlockwise
   code: |
