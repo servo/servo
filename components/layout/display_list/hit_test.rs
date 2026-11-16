@@ -237,6 +237,7 @@ impl Fragment {
         let mut hit_test_fragment_inner =
             |style: &ComputedValues,
              fragment_rect: PhysicalRect<Au>,
+             fragmentation_clip_rect: Option<PhysicalRect<Au>>,
              border_radius: BorderRadius,
              fragment_flags: FragmentFlags,
              auto_cursor: Cursor| {
@@ -290,6 +291,16 @@ impl Fragment {
                     point_in_spatial_node,
                 ) {
                     return false;
+                } else if let Some(fragmentation_clip_rect) = fragmentation_clip_rect &&
+                    !rounded_rect_contains_point(
+                        fragmentation_clip_rect
+                            .translate(state.origin.to_vector())
+                            .to_webrender(),
+                        &BorderRadius::zero(),
+                        point_in_spatial_node,
+                    )
+                {
+                    return false;
                 }
 
                 let point_in_target = point_in_spatial_node.cast_unit() -
@@ -330,7 +341,8 @@ impl Fragment {
             },
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => hit_test_fragment_inner(
                 &box_fragment.style(),
-                box_fragment.border_rect(),
+                box_fragment.unfragmented_border_rect(),
+                box_fragment.fragmentation_clip_rect(),
                 box_fragment.border_radius(),
                 box_fragment.base.flags,
                 Cursor::Default,
@@ -338,6 +350,8 @@ impl Fragment {
             Fragment::Text(text) => hit_test_fragment_inner(
                 &text.style(),
                 text.base.rect(),
+                // Text currently never fragments in Servo.
+                None,
                 BorderRadius::zero(),
                 FragmentFlags::empty(),
                 Cursor::Text,

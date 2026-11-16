@@ -5,6 +5,7 @@
 use std::vec::IntoIter;
 
 use app_units::Au;
+use euclid::Rect;
 use fonts::FontRef;
 use layout_api::LayoutNode;
 use malloc_size_of_derive::MallocSizeOf;
@@ -15,7 +16,11 @@ use style::computed_values::alignment_baseline::T as AlignmentBaseline;
 use style::computed_values::baseline_source::T as BaselineSource;
 use style::computed_values::box_decoration_break::T as BoxDecorationBreak;
 use style::context::SharedStyleContext;
+use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
+use style::restyle_damage::{
+    NeededFragmentationInfo, needed_fragmentation_info_for_correct_break_rendering,
+};
 use style::values::computed::{BaselineShift, LengthPercentage};
 
 use super::{
@@ -27,6 +32,7 @@ use crate::containing_block::ContainingBlock;
 use crate::context::LayoutContext;
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::fragment_tree::BaseFragmentInfo;
+use crate::geom::{LogicalVec2, SyncPhysicalRectAu};
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::{ComputedValuesExt, LayoutStyle, PaddingBorderMargin};
 
@@ -79,6 +85,114 @@ impl InlineBox {
         self.base.repair_style(new_style);
         *self.shared_inline_styles.style.borrow_mut() = new_style.clone();
         *self.shared_inline_styles.selected.borrow_mut() = node.selected_style(context);
+    }
+
+    // For the painting of backgrounds and borders on fragmented boxes, each box needs to know what part of the
+    // unfragmented whole it is. This determines that for this inline box's fragments.
+    pub(crate) fn assign_fragmentation_info(&self) {
+        let needed_fragmentation_info =
+            needed_fragmentation_info_for_correct_break_rendering(&self.base.style);
+        if needed_fragmentation_info == NeededFragmentationInfo::None {
+            return;
+        }
+
+        let fragments = self.base.fragments.borrow();
+        // Also early exit if there is only one fragment, since a single fragment cannot get sliced.
+        if fragments.len() <= 1 {
+            return;
+        }
+
+        let writing_mode = self.base.style.writing_mode;
+        let mut total_inline_size = Au::zero();
+        if needed_fragmentation_info == NeededFragmentationInfo::SidesAndSize {
+            for fragment in fragments.iter() {
+                total_inline_size += LogicalVec2::from_physical_size(
+                    &fragment
+                        .base()
+                        .expect("Should always have a base fragment.")
+                        .rect()
+                        .size,
+                    writing_mode,
+                )
+                .inline;
+            }
+        }
+
+        let mut current_inline_offset = Au::zero();
+        for fragment in fragments.iter().map(|fragment| {
+            fragment
+                .retrieve_box_fragment()
+                .expect("Should always be a box fragment.")
+        }) {
+            if writing_mode.is_horizontal() {
+                fragment.set_is_fragmented_along_left_edge(true);
+                fragment.set_is_fragmented_along_right_edge(true);
+            } else {
+                fragment.set_is_fragmented_along_top_edge(true);
+                fragment.set_is_fragmented_along_bottom_edge(true);
+            }
+
+            if needed_fragmentation_info == NeededFragmentationInfo::SidesAndSize {
+                let fragment_inline_size =
+                    LogicalVec2::from_physical_size(&fragment.base.rect().size, writing_mode)
+                        .inline;
+                let mut origin = fragment.base.rect().origin;
+                if writing_mode.is_horizontal() {
+                    if writing_mode.is_bidi_ltr() {
+                        origin.x -= current_inline_offset;
+                    } else {
+                        origin.x += current_inline_offset;
+                        origin.x -= total_inline_size - fragment_inline_size;
+                    }
+                } else {
+                    if writing_mode.is_bidi_ltr() {
+                        origin.y -= current_inline_offset;
+                    } else {
+                        origin.x += current_inline_offset;
+                        origin.x -= total_inline_size - fragment_inline_size;
+                    }
+                }
+                fragment.set_unfragmented_rect(SyncPhysicalRectAu::new(Rect::new(
+                    origin,
+                    LogicalSize::new(
+                        writing_mode,
+                        total_inline_size,
+                        LogicalVec2::from_physical_size(&fragment.base.rect().size, writing_mode)
+                            .block,
+                    )
+                    .to_physical(writing_mode)
+                    .cast_unit(),
+                )));
+
+                current_inline_offset += fragment_inline_size;
+            }
+        }
+        // Fix up the fragmentation at the very beginning and end
+        if let Some(first_fragment) = fragments
+            .first()
+            .and_then(|fragment| fragment.retrieve_box_fragment()) &&
+            let Some(last_fragment) = fragments
+                .last()
+                .and_then(|fragment| fragment.retrieve_box_fragment())
+        {
+            if writing_mode.is_horizontal() {
+                if writing_mode.is_bidi_ltr() {
+                    first_fragment.set_is_fragmented_along_left_edge(false);
+                    last_fragment.set_is_fragmented_along_right_edge(false);
+                } else {
+                    first_fragment.set_is_fragmented_along_right_edge(false);
+                    last_fragment.set_is_fragmented_along_left_edge(false);
+                }
+            } else {
+                if writing_mode.is_bidi_ltr() {
+                    first_fragment.set_is_fragmented_along_top_edge(false);
+                    last_fragment.set_is_fragmented_along_bottom_edge(false);
+                } else {
+                    first_fragment.set_is_fragmented_along_bottom_edge(false);
+                    last_fragment.set_is_fragmented_along_top_edge(false);
+                }
+            }
+        }
     }
 }
 
