@@ -1,8 +1,10 @@
----
-name: Mac WPT Tests
+name: macOS WPT Tests
 on:
   workflow_call:
     inputs:
+      arch:
+        required: true
+        type: string
       wpt-args:
         default: ""
         required: false
@@ -10,19 +12,16 @@ on:
       profile:
         required: true
         type: string
-      arm:
-        required: true
-        type: boolean
 
 env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
-  NAME: ${{ inputs.arm && 'macos-arm64' || 'macos' }}
+  NAME: macos-${{ inputs.arch }}
 
 jobs:
-  mac-wpt:
+  macos-wpt:
     name: WPT
-    runs-on: ${{ inputs.arm && 'macos-15' || 'macos-15-intel' }}
+    runs-on: ${{ inputs.arch == 'arm64' && 'macos-15' || 'macos-15-intel' }}
     env:
       max_chunk_id: 5
     strategy:
@@ -75,7 +74,7 @@ jobs:
     name: Process WPT Results
     runs-on: ubuntu-latest
     if: ${{ always() }}
-    needs: mac-wpt
+    needs: macos-wpt
     steps:
       - name: Merge logs (filtered)
         uses: actions/upload-artifact/merge@v7

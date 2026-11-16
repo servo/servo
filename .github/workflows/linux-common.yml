@@ -251,7 +251,7 @@ jobs:
 
   build-libservo:
     if: ${{ inputs.build-libservo }}
-    name: Build libservo and MSRV check (${{ inputs.arch }})
+    name: Build libservo / Check MSRV
     runs-on: ${{ inputs.github-runner-label }}
     steps:
       - uses: servo/ci-runners/actions/checkout@b42c96524cdd72126255602c69c4ad649c750ebf
@@ -293,7 +293,7 @@ jobs:
 
   capi:
     if: ${{ inputs.capi }}
-    name: Build and test Servo's C API (${{ inputs.arch }})
+    name: Build and Test C API
     runs-on: ${{ inputs.github-runner-label }}
     steps:
       - uses: servo/ci-runners/actions/checkout@b42c96524cdd72126255602c69c4ad649c750ebf
