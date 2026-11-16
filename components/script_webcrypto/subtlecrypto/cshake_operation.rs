@@ -6,7 +6,7 @@ use cshake::digest::{ExtendableOutput, Update};
 use cshake::{CShake128, CShake256};
 use script_bindings::error::Error;
 
-use crate::subtlecrypto::{CShakeParams, CryptoAlgorithm};
+use crate::subtlecrypto::{CShakeParams, CryptoAlgorithm, truncate_keccak_bit_string};
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#cshake-operations-digest>
 pub(crate) fn digest(
@@ -16,25 +16,25 @@ pub(crate) fn digest(
     // Step 1. Let outputLength be the outputLength member of normalizedAlgorithm.
     let output_length = normalized_algorithm.output_length;
 
-    // Step 2. Let functionName be the functionName member of normalizedAlgorithm if present or the
-    // empty octet string otherwise.
+    // Step 2. Let functionName be the Keccak decoding of the functionName member of
+    // normalizedAlgorithm if present, or the empty bit string otherwise.
     let function_name = normalized_algorithm.function_name.as_deref().unwrap_or(&[]);
 
-    // Step 3. Let customization be the customization member of normalizedAlgorithm if present or
-    // the empty octet string otherwise.
+    // Step 3. Let customization be the Keccak decoding of the customization member of
+    // normalizedAlgorithm if present, or the empty bit string otherwise.
     let customization = normalized_algorithm.customization.as_deref().unwrap_or(&[]);
 
     // Step 4.
     // If the name member of normalizedAlgorithm is a case-sensitive string match for "cSHAKE128":
     //     Let result be the result of performing the cSHAKE128 function defined in Section 3 of
-    //     [NIST-SP800-185] using message as the X input parameter, length as the L input
-    //     parameter, functionName as the N input parameter, and customization as the S input
-    //     parameter.
+    //     [NIST-SP800-185] using the Keccak decoding of message as the X input parameter,
+    //     outputLength as the L input parameter, functionName as the N input parameter, and
+    //     customization as the S input parameter.
     // If the name member of normalizedAlgorithm is a case-sensitive string match for "cSHAKE256":
     //     Let result be the result of performing the cSHAKE256 function defined in Section 3 of
-    //     [NIST-SP800-185] using message as the X input parameter, length as the L input
-    //     parameter, functionName as the N input parameter, and customization as the S input
-    //     parameter.
+    //     [NIST-SP800-185] using the Keccak decoding of message as the X input parameter,
+    //     outputLength as the L input parameter, functionName as the N input parameter, and
+    //     customization as the S input parameter.
     // Step 5. If performing the operation results in an error, then throw an OperationError.
     let mut result = vec![0u8; output_length.div_ceil(8) as usize];
     match normalized_algorithm.name {
@@ -55,14 +55,8 @@ pub(crate) fn digest(
             ))));
         },
     }
+    truncate_keccak_bit_string(&mut result, output_length as usize);
 
-    // Step 6. Return a byte sequence containing result.
-    if !output_length.is_multiple_of(8) {
-        // Clean excess bits in the last byte of result.
-        let mask = u8::MAX << (8 - output_length % 8);
-        if let Some(last_byte) = result.last_mut() {
-            *last_byte &= mask;
-        }
-    }
+    // Step 6. Return the Keccak encoding of result.
     Ok(result)
 }
