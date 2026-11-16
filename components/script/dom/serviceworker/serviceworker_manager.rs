@@ -222,6 +222,8 @@ impl ServiceWorkerRegistration {
                 self.installing_worker = worker;
             },
         }
+
+        // TODO: queue registration update tasks.
     }
 
     /// <https://w3c.github.io/ServiceWorker/#activate>
@@ -240,9 +242,34 @@ impl ServiceWorkerRegistration {
             update_worker_state(
                 active_worker,
                 ServiceWorkerState::Redundant,
+                constellation_sender.clone(),
+            );
+        }
+
+        // Step 3: Run the Update Registration State algorithm passing registration,
+        // "active"
+        // and registration’s waiting worker as the arguments.
+        let waiting_worker = self.waiting_worker.take();
+        self.update_registration_state(RegistrationUpdateTarget::Active, waiting_worker);
+
+        // Step 4: Run the Update Registration State algorithm passing registration,
+        // "waiting"
+        // and null as the arguments.
+        self.update_registration_state(RegistrationUpdateTarget::Waiting, None);
+
+        // Step 5: Run the Update Worker State algorithm
+        // passing registration’s active worker
+        // and "activating" as the arguments.
+        if let Some(active_worker) = self.active_worker.as_mut() {
+            update_worker_state(
+                active_worker,
+                ServiceWorkerState::Activating,
                 constellation_sender,
             );
         }
+
+        // TODO: rest of algo queues tasks on client event loops,
+        // and will require another constellation managed workflow.
     }
 }
 
