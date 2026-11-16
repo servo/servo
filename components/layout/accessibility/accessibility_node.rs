@@ -115,7 +115,7 @@ impl AccessibilityNode {
     ) -> LocalAccessibilityDamage {
         let mut local_damage = LocalAccessibilityDamage::empty();
 
-        let mut traversal = TraversalState::new(Some(parent_traversal), self);
+        let mut traversal = TraversalState::new(Some(parent_traversal), self, update);
 
         let dom_node = update.take_dom_node(&self.id);
         let damage = update.take_damage(&self.id) | damage_from_parent;
@@ -140,7 +140,6 @@ impl AccessibilityNode {
             }
 
             self.dirty_state -= DirtyState::HasDamage;
-            self.dirty_state -= DirtyState::New;
         }
 
         let layout_damage = damage & AccessibilityDamage::Layout;
@@ -1014,11 +1013,15 @@ pub(super) struct TraversalState {
 }
 
 impl TraversalState {
-    fn new(parent: Option<&mut TraversalState>, node: &AccessibilityNode) -> Self {
+    fn new(
+        parent: Option<&mut TraversalState>,
+        node: &AccessibilityNode,
+        update: &AccessibilityUpdate,
+    ) -> Self {
         let mut subtree_state = parent
             .as_ref()
             .map_or(SubtreeState::empty(), |parent| parent.subtree_state);
-        if node.dirty_state.is_new() {
+        if update.is_new(&node.id()) {
             subtree_state.insert(SubtreeState::New);
         }
 
@@ -1066,17 +1069,10 @@ bitflags! {
         const HasDamage = 0b0010;
         /// This node's data changed, but it hasn't yet been added to the [`AccessibilityUpdate`].
         const Updated = 0b0100;
-        /// This node was added in this update, and any associated local damage in its subtree has
-        /// yet to be resolved.
-        const New = 0b1000;
     }
 }
 
 impl DirtyState {
-    pub(super) fn is_new(&self) -> bool {
-        self.contains(DirtyState::New)
-    }
-
     pub(super) fn updated(&self) -> bool {
         self.contains(DirtyState::Updated)
     }
