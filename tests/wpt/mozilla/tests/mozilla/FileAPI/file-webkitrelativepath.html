@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Selecting a directory sets File.webkitRelativePath</title>
+<link rel=help href="https://wicg.github.io/entries-api/#dom-file-webkitrelativepath">
+<link rel="author" title="Euclid Ye" href="mailto:yezhizhenjiakang@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- TODO: Switch to webkitdirectory later when we support it -->
+<body><input id="file-input" type="file" multiple></body>
+
+<script>
+async_test(function(t) {
+  const fileInput = document.getElementById("file-input");
+  assert_true(fileInput.selectFiles != undefined, "selectFiles is not defined");
+
+  fileInput.addEventListener("change", t.step_func_done(() => {
+    const files = new Map(Array.from(fileInput.files,
+        file => [file.name, file.webkitRelativePath]));
+    assert_equals(files.size, 3);
+    assert_equals(files.get("a.txt"), "relative-path/a.txt");
+    assert_equals(files.get("b.txt"), "relative-path/sub/b.txt");
+    assert_equals(files.get("c.txt"), "relative-path/sub/deep/c.txt");
+  }));
+
+  fileInput.selectFiles(["./tests/wpt/mozilla/tests/mozilla/FileAPI/resource/relative-path"]);
+}, "Select a directory");
+</script>

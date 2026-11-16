@@ -92,6 +92,7 @@ tracing = { workspace = true, optional = true }
 tungstenite = { workspace = true }
 url = { workspace = true }
 uuid = { workspace = true }
+walkdir = { workspace = true }
 webpki-roots = { workspace = true }
 webrender_api = { workspace = true }
 
