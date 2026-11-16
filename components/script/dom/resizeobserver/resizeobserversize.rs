@@ -13,25 +13,8 @@ use crate::dom::window::Window;
 /// Non-DOM implementation backing `ResizeObserverSize`.
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) struct ResizeObserverSizeImpl {
-    inline_size: f64,
-    block_size: f64,
-}
-
-impl ResizeObserverSizeImpl {
-    pub(crate) fn new(inline_size: f64, block_size: f64) -> ResizeObserverSizeImpl {
-        ResizeObserverSizeImpl {
-            inline_size,
-            block_size,
-        }
-    }
-
-    pub(crate) fn inline_size(&self) -> f64 {
-        self.inline_size
-    }
-
-    pub(crate) fn block_size(&self) -> f64 {
-        self.block_size
-    }
+    pub inline_size: f64,
+    pub block_size: f64,
 }
 
 /// <https://drafts.csswg.org/resize-observer/#resizeobserversize>
@@ -62,11 +45,11 @@ impl ResizeObserverSize {
 impl ResizeObserverSizeMethods<crate::DomTypeHolder> for ResizeObserverSize {
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserversize-inlinesize>
     fn InlineSize(&self) -> f64 {
-        self.size_impl.inline_size()
+        self.size_impl.inline_size
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserversize-blocksize>
     fn BlockSize(&self) -> f64 {
-        self.size_impl.block_size()
+        self.size_impl.block_size
     }
 }

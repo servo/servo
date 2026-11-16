@@ -16,7 +16,7 @@ use layout_api::BoxAreaType;
 use script_bindings::callback::{RootedCallback, TracedCallback};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
-use style_traits::CSSPixel;
+use style::logical_geometry::WritingMode;
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::ResizeObserverBinding::{
@@ -209,12 +209,11 @@ fn create_and_populate_a_resizeobserverentry(
     // initialized with one reported size (zero).
     // The spec plans to store multiple reported sizes,
     // but for now there can be only one.
-    let last_size = match observation.observed_box {
+    let last_reported_size = match observation.observed_box {
         ResizeObserverBoxOptions::Content_box => content_box_size,
         ResizeObserverBoxOptions::Border_box => border_box_size,
         ResizeObserverBoxOptions::Device_pixel_content_box => device_pixel_content_box,
     };
-    let last_reported_size = ResizeObserverSizeImpl::new(last_size.width(), last_size.height());
 
     {
         let mut sizes = observation.last_reported_sizes.safe_borrow_mut(cx.no_gc());
@@ -238,6 +237,15 @@ fn create_and_populate_a_resizeobserverentry(
         (Au::zero(), Au::zero())
     };
 
+    let writing_mode = target
+        .style_without_reflow()
+        .map_or_else(WritingMode::empty, |style| style.writing_mode);
+    let (width, height) = if writing_mode.is_horizontal() {
+        (content_box_size.inline_size, content_box_size.block_size)
+    } else {
+        (content_box_size.block_size, content_box_size.inline_size)
+    };
+
     // Step 6. Set this.contentRect to logical this.contentBoxSize given target and observedBox of "content-box".
     let content_rect = DOMRectReadOnly::new(
         cx,
@@ -245,28 +253,13 @@ fn create_and_populate_a_resizeobserverentry(
         None,
         padding_left.to_f64_px(),
         padding_top.to_f64_px(),
-        content_box_size.width(),
-        content_box_size.height(),
+        width,
+        height,
     );
 
-    let border_box_size = ResizeObserverSize::new(
-        cx,
-        window,
-        ResizeObserverSizeImpl::new(border_box_size.width(), border_box_size.height()),
-    );
-    let content_box_size = ResizeObserverSize::new(
-        cx,
-        window,
-        ResizeObserverSizeImpl::new(content_box_size.width(), content_box_size.height()),
-    );
-    let device_pixel_content_box = ResizeObserverSize::new(
-        cx,
-        window,
-        ResizeObserverSizeImpl::new(
-            device_pixel_content_box.width(),
-            device_pixel_content_box.height(),
-        ),
-    );
+    let border_box_size = ResizeObserverSize::new(cx, window, border_box_size);
+    let content_box_size = ResizeObserverSize::new(cx, window, content_box_size);
+    let device_pixel_content_box = ResizeObserverSize::new(cx, window, device_pixel_content_box);
 
     // Step 1. Let this be a new ResizeObserverEntry.
     // Step 2. Set this.target slot to target.
@@ -393,9 +386,7 @@ impl ResizeObservation {
         let Some(last_reported_size) = self.last_reported_sizes.borrow().first().copied() else {
             return true;
         };
-        let box_size = calculate_box_size(cx, target, &self.observed_box);
-        box_size.width() != last_reported_size.inline_size() ||
-            box_size.height() != last_reported_size.block_size()
+        calculate_box_size(cx, target, &self.observed_box) != last_reported_size
     }
 }
 
@@ -410,16 +401,16 @@ fn calculate_depth_for_node(no_gc: &NoGC, target: &Element) -> ResizeObservation
 
 /// <https://drafts.csswg.org/resize-observer/#calculate-box-size>
 ///
-/// The dimensions of the returned `Rect` depend on the type of box being observed.
-/// For `ResizeObserverBoxOptions::Content_box` and `ResizeObserverBoxOptions::Border_box`,
-/// the values will be in `px`. For `ResizeObserverBoxOptions::Device_pixel_content_box` they
-/// will be in integral device pixels.
+/// The dimensions of the returned `ResizeObserverSizeImpl` depend on the type of box being
+/// observed. For `ResizeObserverBoxOptions::Content_box` and
+/// `ResizeObserverBoxOptions::Border_box`, the values will be in `px`. For
+/// `ResizeObserverBoxOptions::Device_pixel_content_box` they will be in integral device pixels.
 fn calculate_box_size(
     cx: &mut JSContext,
     target: &Element,
     observed_box: &ResizeObserverBoxOptions,
-) -> Rect<f64, CSSPixel> {
-    match observed_box {
+) -> ResizeObserverSizeImpl {
+    let physical_rect = match observed_box {
         ResizeObserverBoxOptions::Content_box => {
             // Note: only taking first fragment,
             // but the spec will expand to cover all fragments.
@@ -468,6 +459,20 @@ fn calculate_box_size(
                 ),
             )
         },
+    };
+
+    let writing_mode = target
+        .style_without_reflow()
+        .map_or_else(WritingMode::empty, |style| style.writing_mode);
+    let (inline_size, block_size) = if writing_mode.is_horizontal() {
+        (physical_rect.width(), physical_rect.height())
+    } else {
+        (physical_rect.height(), physical_rect.width())
+    };
+
+    ResizeObserverSizeImpl {
+        inline_size,
+        block_size,
     }
 }
 
