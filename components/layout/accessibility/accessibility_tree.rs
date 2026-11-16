@@ -986,33 +986,42 @@ fn test_accessibility_tree_traversal() {
         // The node IDs are in tree order, so traversing forward from a leaf node should always
         // increase the ID by one, and traversing backwards from a leaf node should always decrease
         // the ID by one.
-        let (mut previous_id, expected_after, expected_before) = if node.child_ids().is_empty() {
-            (node_id, 9 - node_id, node_id)
-        } else if node_id == 0 {
-            // No non-descendant nodes before or after root node
-            (0, 0, 0)
-        } else if node_id == 1 {
-            // Nodes after node_1 start from its next sibling, node_7, so the previous ID is 6.
-            // Only the root node is before node_1.
-            (6, 3, 1)
-        } else if node_id == 3 {
-            // Nodes after node_3 start from its parent's next sibling, node_7, so the previous ID
-            // is 6.
-            // node_2, node_1 and the root node are before node_3
-            (6, 3, 3)
-        } else {
-            // No non-descendant nodes after node_7.
-            // Nodes before node_7 are nodes 6, 5, 4, 3, 2, 1 and the root node.
-            (0, 0, 7)
-        };
+        let (mut previous_id, expected_after_skip_children, expected_before) =
+            if node.child_ids().is_empty() {
+                (node_id, 9 - node_id, node_id)
+            } else if node_id == 0 {
+                // No non-descendant nodes before or after root node
+                (0, 0, 0)
+            } else if node_id == 1 {
+                // Nodes after node_1 start from its next sibling, node_7, so the previous ID is 6.
+                // Only the root node is before node_1.
+                (6, 3, 1)
+            } else if node_id == 3 {
+                // Nodes after node_3 start from its parent's next sibling, node_7, so the previous ID
+                // is 6.
+                // node_2, node_1 and the root node are before node_3
+                (6, 3, 3)
+            } else {
+                // No non-descendant nodes after node_7.
+                // Nodes before node_7 are nodes 6, 5, 4, 3, 2, 1 and the root node.
+                (0, 0, 7)
+            };
 
+        let mut first_id_after = None;
         for node in node.after(None) {
             let node = node.borrow();
             assert!(node.id().0 == previous_id + 1);
             previous_id = node.id().0;
             visited_nodes += 1;
+            if first_id_after.is_none() {
+                first_id_after = Some(previous_id);
+            }
         }
-        assert_eq!(visited_nodes, expected_after, "after {}", node_id);
+        assert_eq!(
+            visited_nodes, expected_after_skip_children,
+            "after {}",
+            node_id
+        );
 
         let mut visited_nodes = 0;
         let mut previous_id = node_id;
@@ -1023,5 +1032,16 @@ fn test_accessibility_tree_traversal() {
             visited_nodes += 1;
         }
         assert_eq!(visited_nodes, expected_before, "before {}", node_id);
+
+        let mut visited_nodes = 0;
+        let mut previous_id = node_id;
+        let expected_within = first_id_after.unwrap_or(10) - node_id - 1;
+        for node in node.within() {
+            let node = node.borrow();
+            assert!(node.id().0 == previous_id + 1);
+            previous_id = node.id().0;
+            visited_nodes += 1;
+        }
+        assert_eq!(visited_nodes, expected_within, "within {}", node_id);
     }
 }

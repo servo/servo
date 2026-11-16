@@ -4,7 +4,7 @@
 
 use std::collections::VecDeque;
 use std::fmt::Debug;
-use std::ops::DerefMut;
+use std::ops::{Deref, DerefMut};
 use std::sync::LazyLock;
 
 use accesskit::{Affine, NodeId, Role};
@@ -220,6 +220,9 @@ impl AccessibilityNode {
         // - calling function calls resolve_local_damage_in_subtree()
         if damage.intersects(LocalAccessibilityDamage::TextChanged) {
             changed_nodes.extend(self.resolve_text_change(update));
+        }
+        if damage.intersects(LocalAccessibilityDamage::New) {
+            changed_nodes.extend(self.resolve_added_node(update));
         }
         changed_nodes
     }
@@ -678,6 +681,59 @@ impl AccessibilityNode {
         changed_nodes
     }
 
+    fn resolve_added_node(&mut self, update: &mut AccessibilityUpdate) -> FxHashSet<NodeId> {
+        let mut changed_nodes = FxHashSet::default();
+
+        let stay_within = self
+            .ancestors()
+            .find(|node| CONTAINER_ROLES.contains(&node.borrow().role()))
+            .map(|container| container.borrow().id());
+        if let Some(first_text_descendant) = self
+            .after(stay_within)
+            .find(|node| node.borrow().role() == Role::TextRun) &&
+            let Some(closest_previous_text) = self
+                .before(stay_within)
+                .find(|node| node.borrow().role() == Role::TextRun)
+        {
+            let mut first_text_descendant = first_text_descendant.borrow_mut();
+            let damage = first_text_descendant
+                .hide_if_irrelevant_whitespace(Some(closest_previous_text.borrow().deref()));
+            if !damage.is_empty() {
+                update.add(&mut first_text_descendant);
+                changed_nodes.insert(first_text_descendant.id());
+            }
+            let damage = first_text_descendant
+                .maybe_unhide_previous_whitespace_only_node(closest_previous_text.clone(), update);
+            if !damage.is_empty() {
+                changed_nodes.insert(closest_previous_text.borrow().id());
+            }
+        }
+
+        if let Some(last_text_descendant) = self
+            .within()
+            .find(|node| node.borrow().role() == Role::TextRun) &&
+            let Some(closest_next_text) = self
+                .after(stay_within)
+                .find(|node| node.borrow().role() == Role::TextRun)
+        {
+            let mut closest_next_text = closest_next_text.borrow_mut();
+            let damage = closest_next_text
+                .hide_if_irrelevant_whitespace(Some(last_text_descendant.borrow().deref()));
+            if !damage.is_empty() {
+                update.add(&mut closest_next_text);
+                changed_nodes.insert(closest_next_text.id());
+            }
+
+            let damage = closest_next_text
+                .maybe_unhide_previous_whitespace_only_node(last_text_descendant.clone(), update);
+            if !damage.is_empty() {
+                changed_nodes.insert(last_text_descendant.borrow().id());
+            }
+        }
+
+        changed_nodes
+    }
+
     fn hide_if_irrelevant_whitespace(
         &mut self,
         closest_previous_text: Option<&AccessibilityNode>,
@@ -811,14 +867,18 @@ impl AccessibilityNode {
         &self,
         stay_within: Option<NodeId>,
     ) -> impl Iterator<Item = ArcRefCell<AccessibilityNode>> {
-        AccessibilityNodeTreeOrderIterator::new(self, stay_within, TreeOrder::Forwards)
+        AccessibilityNodeTreeOrderIterator::new(self, stay_within, true, TreeOrder::Forwards)
     }
 
     pub(super) fn before(
         &self,
         stay_within: Option<NodeId>,
     ) -> impl Iterator<Item = ArcRefCell<AccessibilityNode>> {
-        AccessibilityNodeTreeOrderIterator::new(self, stay_within, TreeOrder::Backwards)
+        AccessibilityNodeTreeOrderIterator::new(self, stay_within, false, TreeOrder::Backwards)
+    }
+
+    pub(super) fn within(&self) -> impl Iterator<Item = ArcRefCell<AccessibilityNode>> {
+        AccessibilityNodeTreeOrderIterator::new(self, Some(self.id()), false, TreeOrder::Forwards)
     }
 
     pub(super) fn child_ids(&self) -> &[NodeId] {
@@ -1149,8 +1209,13 @@ struct AccessibilityNodeTreeOrderIterator {
 }
 
 impl AccessibilityNodeTreeOrderIterator {
-    fn new(start_node: &AccessibilityNode, stay_within: Option<NodeId>, order: TreeOrder) -> Self {
-        let next_value = Self::compute_next_value(start_node, false, &stay_within, order);
+    fn new(
+        start_node: &AccessibilityNode,
+        stay_within: Option<NodeId>,
+        skip_children: bool,
+        order: TreeOrder,
+    ) -> Self {
+        let next_value = Self::compute_next_value(start_node, &stay_within, skip_children, order);
         AccessibilityNodeTreeOrderIterator {
             next_value,
             stay_within,
@@ -1160,14 +1225,18 @@ impl AccessibilityNodeTreeOrderIterator {
 
     fn compute_next_value(
         node: &AccessibilityNode,
-        descend: bool,
         stay_within: &Option<NodeId>,
+        skip_children: bool,
         order: TreeOrder,
     ) -> Option<ArcRefCell<AccessibilityNode>> {
         match order {
             TreeOrder::Forwards => {
-                if descend && let Some(first_child) = node.children().next() {
+                if !skip_children && let Some(first_child) = node.children().next() {
                     return Some(first_child.clone());
+                }
+
+                if stay_within == &Some(node.id()) {
+                    return None;
                 }
 
                 if let Some(next_sibling) = node.next_sibling() {
@@ -1213,7 +1282,7 @@ impl Iterator for AccessibilityNodeTreeOrderIterator {
     fn next(&mut self) -> Option<Self::Item> {
         let current_value = self.next_value.take();
         self.next_value = current_value.as_ref().and_then(|node| {
-            Self::compute_next_value(&node.borrow(), true, &self.stay_within, self.order)
+            Self::compute_next_value(&node.borrow(), &self.stay_within, false, self.order)
         });
         current_value
     }
