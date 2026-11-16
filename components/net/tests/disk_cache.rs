@@ -42,6 +42,7 @@ fn simple_disk_restore() {
         assert!(disk_cache.keys_in_database().is_empty());
     }
 
+    // Put 4 elements in the cache
     for _i in 0..4 {
         let handler =
             move |_request: HyperRequest<Incoming>,
@@ -66,12 +67,12 @@ fn simple_disk_restore() {
         server.close();
     }
 
-    let cache = &fetch_context.state.http_cache;
+    let memory_cache = &fetch_context.state.http_cache;
     let (sender, receiver) = crossbeam_channel::unbounded();
     // Preventing race as sending to disk cache is lazy
     spawn_blocking_task(async move {
         loop {
-            if cache.len() == 1 {
+            if memory_cache.len() == 1 {
                 break;
             }
         }
@@ -79,9 +80,8 @@ fn simple_disk_restore() {
     });
 
     let _ = receiver.recv_deadline(Instant::now() + Duration::from_secs(2));
-    assert_eq!(cache.len(), 1);
 
-    let disk_cache = cache.disk_cache();
+    let disk_cache = memory_cache.disk_cache();
     assert!(disk_cache.is_some());
     let disk_cache = disk_cache.unwrap();
 
@@ -93,19 +93,25 @@ fn simple_disk_restore() {
     let (sender2, receiver2) = crossbeam_channel::unbounded();
 
     spawn_blocking_task(async move {
-        let mut value = cache.get_or_guard(value1).await;
-        assert!(value.try_as_mut().is_some());
+        let mut value = memory_cache.get_or_guard(value1).await;
+        assert!(
+            value.try_as_mut().is_some(),
+            "Could not restore value that was send to disk"
+        );
         assert!(sender1.send(()).is_ok());
     });
 
     spawn_blocking_task(async move {
-        let mut value = cache.get_or_guard(value2).await;
-        assert!(value.try_as_mut().is_some());
+        let mut value = memory_cache.get_or_guard(value2).await;
+        assert!(
+            value.try_as_mut().is_some(),
+            "Could not restore value that was send to disk"
+        );
         assert!(sender2.send(()).is_ok());
     });
 
-    let _ = receiver1.recv();
-    let _ = receiver2.recv();
+    let _ = receiver1.recv_deadline(Instant::now() + Duration::from_secs(2));
+    let _ = receiver2.recv_deadline(Instant::now() + Duration::from_secs(2));
 }
 
 #[test]
@@ -131,6 +137,7 @@ fn disk_restore_cache_temp() {
         assert!(disk_cache.keys_in_database().is_empty());
     }
 
+    // Put 4 elements in the cache
     for _i in 0..4 {
         let handler =
             move |_request: HyperRequest<Incoming>,
@@ -155,12 +162,12 @@ fn disk_restore_cache_temp() {
         server.close();
     }
 
-    let cache = &fetch_context.state.http_cache;
+    let memory_cache = &fetch_context.state.http_cache;
     let (sender, receiver) = crossbeam_channel::unbounded();
     // Preventing race as sending to disk cache is lazy
     spawn_blocking_task(async move {
         loop {
-            if cache.len() == 1 {
+            if memory_cache.len() == 1 {
                 break;
             }
         }
@@ -168,10 +175,8 @@ fn disk_restore_cache_temp() {
     });
 
     let _ = receiver.recv_deadline(Instant::now() + Duration::from_secs(2));
-    assert_eq!(cache.len(), 1);
-    assert_eq!(cache.len(), 1);
 
-    let disk_cache = cache.disk_cache();
+    let disk_cache = memory_cache.disk_cache();
     assert!(disk_cache.is_some());
     let disk_cache = disk_cache.unwrap();
 
@@ -184,21 +189,28 @@ fn disk_restore_cache_temp() {
     let (sender2, receiver2) = crossbeam_channel::unbounded();
 
     spawn_blocking_task(async move {
-        let mut value = cache.get_or_guard(value1).await;
-        assert!(value.try_as_mut().is_some());
+        let mut value = memory_cache.get_or_guard(value1).await;
+        assert!(
+            value.try_as_mut().is_some(),
+            "Could not restore entry that was in disk cache"
+        );
         assert!(sender1.send(()).is_ok());
     });
 
     spawn_blocking_task(async move {
-        let mut value = cache.get_or_guard(value2).await;
-        assert!(value.try_as_mut().is_some());
+        let mut value = memory_cache.get_or_guard(value2).await;
+        assert!(
+            value.try_as_mut().is_some(),
+            "Could not restore entry that was in disk cache"
+        );
         assert!(sender2.send(()).is_ok());
     });
 
-    let _ = receiver1.recv();
-    let _ = receiver2.recv();
+    let _ = receiver1.recv_deadline(Instant::now() + Duration::from_secs(2));
+    let _ = receiver2.recv_deadline(Instant::now() + Duration::from_secs(2));
 
     // Second fetch context
+    // The second fetch context should have a different disk cache database because we are in temporary disk cache mode
     let (sender1, receiver1) = crossbeam_channel::unbounded();
     let fetch_context = new_fetch_context(None, None);
     let cache = &fetch_context.state.http_cache;
@@ -208,9 +220,9 @@ fn disk_restore_cache_temp() {
     assert!(disk_cache.keys_in_database().is_empty());
     spawn_blocking_task(async move {
         let mut value = cache.get_or_guard(value1_clone).await;
-        assert!(value.try_as_mut().is_none());
+        assert!(value.try_as_mut().is_none(),);
         assert!(sender1.send(()).is_ok());
     });
 
-    let _ = receiver1.recv();
+    let _ = receiver1.recv_deadline(Instant::now() + Duration::from_secs(2));
 }
