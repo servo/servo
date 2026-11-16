@@ -329,15 +329,11 @@ unsafe extern "C" fn promise_rejection_tracker(
 
 #[expect(unsafe_code)]
 fn safely_convert_null_to_string(cx: &JSContext, str_: HandleString) -> DOMString {
-    if str_.is_null() {
-        DOMString::default()
-    } else {
-        unsafe {
-            // Non null string is a valid string.
-            DOMString::from_raw_js_string(cx, *str_)
-        }
-        .unwrap_or_default()
+    unsafe {
+        // Non null string is a valid string.
+        DOMString::from_raw_js_string(cx, *str_)
     }
+    .unwrap_or_default()
 }
 
 #[expect(unsafe_code)]
