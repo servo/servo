@@ -8,8 +8,8 @@ use js::rust::MutableHandleValue;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::ResizeObserverEntryBinding::ResizeObserverEntryMethods;
+use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::domrectreadonly::DOMRectReadOnly;
 use crate::dom::element::Element;
 use crate::dom::resizeobserversize::ResizeObserverSize;
@@ -25,10 +25,16 @@ pub(crate) struct ResizeObserverEntry {
     content_rect: Dom<DOMRectReadOnly>,
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-borderboxsize>
     border_box_size: Vec<Dom<ResizeObserverSize>>,
+    /// The [`FrozenArray`] for [`Self::border_box_size`].
+    border_box_size_frozen_array: CachedFrozenArray,
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-contentboxsize>
     content_box_size: Vec<Dom<ResizeObserverSize>>,
+    /// The [`FrozenArray`] for [`Self::content_box_size`].
+    content_box_size_frozen_array: CachedFrozenArray,
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-devicepixelcontentboxsize>
     device_pixel_content_box_size: Vec<Dom<ResizeObserverSize>>,
+    /// The [`FrozenArray`] for [`Self::device_pixel_content_box_size`].
+    device_pixel_content_box_size_frozen_array: CachedFrozenArray,
 }
 
 impl ResizeObserverEntry {
@@ -47,14 +53,17 @@ impl ResizeObserverEntry {
                 .iter()
                 .map(|size| Dom::from_ref(*size))
                 .collect(),
+            border_box_size_frozen_array: Default::default(),
             content_box_size: content_box_size
                 .iter()
                 .map(|size| Dom::from_ref(*size))
                 .collect(),
+            content_box_size_frozen_array: Default::default(),
             device_pixel_content_box_size: device_pixel_content_box_size
                 .iter()
                 .map(|size| Dom::from_ref(*size))
                 .collect(),
+            device_pixel_content_box_size_frozen_array: Default::default(),
         }
     }
 
@@ -91,31 +100,43 @@ impl ResizeObserverEntryMethods<crate::DomTypeHolder> for ResizeObserverEntry {
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-borderboxsize>
     fn BorderBoxSize(&self, cx: &mut JSContext, retval: MutableHandleValue) {
-        let sizes: Vec<DomRoot<ResizeObserverSize>> = self
-            .border_box_size
-            .iter()
-            .map(|size| DomRoot::from_ref(&**size))
-            .collect();
-        to_frozen_array(cx, sizes.as_slice(), retval);
+        self.border_box_size_frozen_array.get_or_init(
+            cx,
+            || {
+                self.border_box_size
+                    .iter()
+                    .map(|size| DomRoot::from_ref(&**size))
+                    .collect()
+            },
+            retval,
+        );
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-contentboxsize>
     fn ContentBoxSize(&self, cx: &mut JSContext, retval: MutableHandleValue) {
-        let sizes: Vec<DomRoot<ResizeObserverSize>> = self
-            .content_box_size
-            .iter()
-            .map(|size| DomRoot::from_ref(&**size))
-            .collect();
-        to_frozen_array(cx, sizes.as_slice(), retval);
+        self.content_box_size_frozen_array.get_or_init(
+            cx,
+            || {
+                self.content_box_size
+                    .iter()
+                    .map(|size| DomRoot::from_ref(&**size))
+                    .collect()
+            },
+            retval,
+        );
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-devicepixelcontentboxsize>
     fn DevicePixelContentBoxSize(&self, cx: &mut JSContext, retval: MutableHandleValue) {
-        let sizes: Vec<DomRoot<ResizeObserverSize>> = self
-            .device_pixel_content_box_size
-            .iter()
-            .map(|size| DomRoot::from_ref(&**size))
-            .collect();
-        to_frozen_array(cx, sizes.as_slice(), retval);
+        self.device_pixel_content_box_size_frozen_array.get_or_init(
+            cx,
+            || {
+                self.device_pixel_content_box_size
+                    .iter()
+                    .map(|size| DomRoot::from_ref(&**size))
+                    .collect()
+            },
+            retval,
+        );
     }
 }

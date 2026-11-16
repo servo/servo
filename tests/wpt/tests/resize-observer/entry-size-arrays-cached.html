@@ -1,0 +1,32 @@
+<!doctype html>
+<link rel="help" href="https://drafts.csswg.org/resize-observer/#create-and-populate-a-resizeobserverentry">
+<link rel="author" href="mailto:mrobinson@igalia.com" title="Martin Robinson">
+<title>ResizeObserver entry arrays are cached</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<div></div>
+<script>
+promise_test(async function() {
+  let { promise, resolve } = Promise.withResolvers();
+  let observer = new ResizeObserver(entries => {
+    resolve(entries);
+  });
+  for (let div of document.querySelectorAll("div")) {
+    observer.observe(div);
+  }
+  let entries = await promise;
+  observer.disconnect();
+
+  assert_equals(entries.length, 1, "Should have one entry");
+  assert_true(entries[0].contentBoxSize == entries[0].contentBoxSize);
+  assert_true(entries[0].borderBoxSize == entries[0].borderBoxSize);
+  assert_true(entries[0].devicePixelContentBoxSize == entries[0].devicePixelContentBoxSize);
+});
+</script>
