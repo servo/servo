@@ -593,8 +593,8 @@ impl FilePicker {
     }
 
     /// Whether or not this file picker selects directories instead of files.
-    pub fn is_directory(&self) -> bool {
-        self.file_picker_request.directory
+    pub fn select_directory(&self) -> bool {
+        self.file_picker_request.select_directory
     }
 
     /// Get the currently selected files in this [`FilePicker`]. This is initially the files that

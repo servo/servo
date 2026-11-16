@@ -85,7 +85,7 @@ impl Dialog {
         // in order to ensure they are called at least one time to trigger the
         // dialog properly.
         // `webkitdirectory` only allows selecting one folder.
-        let future = if file_picker.is_directory() {
+        let future = if file_picker.select_directory() {
             Either::Right(Either::Left(dialog.pick_folder()))
         } else if file_picker.allow_select_multiple() {
             Either::Left(dialog.pick_files())

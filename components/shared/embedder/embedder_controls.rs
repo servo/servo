@@ -160,7 +160,7 @@ pub struct FilePickerRequest {
     pub accept_current_paths_for_testing: bool,
     /// <https://wicg.github.io/entries-api/#html-forms>
     /// To reflect `webkidirectory` flag.
-    pub directory: bool,
+    pub select_directory: bool,
 }
 
 /// Request to the embedder to display a control for a `<select>` element.
