@@ -423,18 +423,32 @@ impl DisplayListBuilder<'_> {
         radii: wr::BorderRadius,
         rect: units::LayoutRect,
         force_clip_creation: bool,
+        fragmentation_clip_rect: Option<units::LayoutRect>,
     ) -> Option<ClipChainId> {
-        if radii.is_zero() && !force_clip_creation {
+        if radii.is_zero() && !force_clip_creation && fragmentation_clip_rect.is_none() {
             return None;
         }
 
-        Some(self.add_clip_to_display_list(&Clip {
-            id: ClipId(self.clip_map.len()),
+        let clip_id = ClipId(self.clip_map.len());
+        let mut clip = self.add_clip_to_display_list(&Clip {
+            id: clip_id,
             radii,
             rect,
             parent_scroll_node_id: state.spatial_id,
             parent_clip_id: state.clip_id,
-        }))
+        });
+
+        if let Some(fragmentation_clip_rect) = fragmentation_clip_rect {
+            clip = self.add_clip_to_display_list(&Clip {
+                id: ClipId(self.clip_map.len()),
+                radii: wr::BorderRadius::default(),
+                rect: fragmentation_clip_rect,
+                parent_scroll_node_id: state.spatial_id,
+                parent_clip_id: clip_id,
+            })
+        }
+
+        Some(clip)
     }
 
     fn push_webrender_stacking_context_for_transform_if_necessary(
@@ -1634,8 +1648,6 @@ struct BuilderForBoxFragment<'a> {
     padding_rect: OnceCell<units::LayoutRect>,
     content_rect: OnceCell<units::LayoutRect>,
     fragmented_border_rect: OnceCell<units::LayoutRect>,
-    fragmented_padding_rect: OnceCell<units::LayoutRect>,
-    fragmented_content_rect: OnceCell<units::LayoutRect>,
     fragmentation_clip_rect: OnceCell<Option<units::LayoutRect>>,
     border_radius: OnceCell<wr::BorderRadius>,
     border_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
@@ -1660,8 +1672,6 @@ impl<'a> BuilderForBoxFragment<'a> {
             padding_rect: OnceCell::new(),
             content_rect: OnceCell::new(),
             fragmented_border_rect: OnceCell::new(),
-            fragmented_padding_rect: OnceCell::new(),
-            fragmented_content_rect: OnceCell::new(),
             fragmentation_clip_rect: OnceCell::new(),
             border_edge_clip_chain_id: RefCell::new(None),
             padding_edge_clip_chain_id: RefCell::new(None),
@@ -1711,24 +1721,6 @@ impl<'a> BuilderForBoxFragment<'a> {
         })
     }
 
-    fn fragmented_padding_rect(&self) -> &units::LayoutRect {
-        self.fragmented_padding_rect.get_or_init(|| {
-            self.fragment
-                .padding_rect()
-                .translate(self.containing_block_origin.to_vector())
-                .to_webrender()
-        })
-    }
-
-    fn fragmented_content_rect(&self) -> &units::LayoutRect {
-        self.fragmented_content_rect.get_or_init(|| {
-            self.fragment
-                .content_rect()
-                .translate(self.containing_block_origin.to_vector())
-                .to_webrender()
-        })
-    }
-
     fn fragmentation_clip_rect(&self) -> &Option<units::LayoutRect> {
         self.fragmentation_clip_rect.get_or_init(|| {
             if let Some(fragmentation_clip_rect) = self.fragment.fragmentation_clip_rect() {
@@ -1757,6 +1749,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             self.border_radius(),
             self.border_rect,
             force_clip_creation,
+            *self.fragmentation_clip_rect(),
         );
         *self.border_edge_clip_chain_id.borrow_mut() = maybe_clip;
         maybe_clip
@@ -1773,8 +1766,13 @@ impl<'a> BuilderForBoxFragment<'a> {
         }
 
         let radii = offset_radii(self.border_radius(), -self.fragment.border.to_webrender());
-        let maybe_clip =
-            builder.maybe_create_clip(state, radii, *self.padding_rect(), force_clip_creation);
+        let maybe_clip = builder.maybe_create_clip(
+            state,
+            radii,
+            *self.padding_rect(),
+            force_clip_creation,
+            *self.fragmentation_clip_rect(),
+        );
         *self.padding_edge_clip_chain_id.borrow_mut() = maybe_clip;
         maybe_clip
     }
@@ -1793,8 +1791,13 @@ impl<'a> BuilderForBoxFragment<'a> {
             self.border_radius(),
             -(self.fragment.border + self.fragment.padding).to_webrender(),
         );
-        let maybe_clip =
-            builder.maybe_create_clip(state, radii, *self.content_rect(), force_clip_creation);
+        let maybe_clip = builder.maybe_create_clip(
+            state,
+            radii,
+            *self.content_rect(),
+            force_clip_creation,
+            *self.fragmentation_clip_rect(),
+        );
         *self.content_edge_clip_chain_id.borrow_mut() = maybe_clip;
         maybe_clip
     }
@@ -1878,6 +1881,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             //  value associated with the bottom-most background image layer.”
             let layer_index = b.background_image.0.len() - 1;
             let bounds = painter.painting_area(self, builder, layer_index);
+
             let common = painter.common_properties(self, builder, state, layer_index, bounds);
             builder
                 .wr()
