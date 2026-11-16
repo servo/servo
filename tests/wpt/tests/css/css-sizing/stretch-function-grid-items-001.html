@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>CSS stretch(): grid items</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-item-sizing">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="stretch() fits the margin box of a grid item to its argument, which resolves against the grid area.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .grid {
+    display: grid;
+    grid-template: 25px / 200px;
+  }
+  .test {
+    background: green;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="grid"><div class="test" style="width: stretch(150px); margin-right: 50px;"></div></div>
+<div class="grid"><div class="test" style="width: stretch(75%); margin-right: 50px;"></div></div>
+<div class="grid"><div class="test" style="width: 100px; height: stretch(75px); margin-bottom: 50px;"></div></div>
+<div class="grid"><div class="test" style="width: 300px; max-width: stretch(150px); margin-right: 50px;"></div></div>

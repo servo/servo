@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Reload during selection drag and drop roundtrip</title>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/dnd.html#drag-and-drop-processing-model">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="support/drag-reload-test.js"></script>
+  <style>
+    body { margin: 20px; }
+  </style>
+  <script>
+    function sourceDragStart(event) {
+      location.reload();
+    }
+
+    function targetDrop(event) {
+      event.preventDefault();
+      const data = event.dataTransfer.getData('text/plain');
+      event.currentTarget.textContent = data === 'Drag me' ? 'PASS' : 'FAIL';
+    }
+  </script>
+</head>
+<body>
+  <span id="source"
+    ondragstart="sourceDragStart(event)" ondragenter="event.preventDefault()"
+    ondragover="event.preventDefault()" ondrop="targetDrop(event)">Drag me</span>
+  <script>
+    window.addEventListener('load', () => {
+      getSelection().selectAllChildren(document.getElementById('source'));
+    });
+    testDragAcrossReload({
+      dataType: 'text/plain',
+      getExpectedData: source => source.textContent,
+      verifyDrop: target => {
+        assert_equals(target.textContent, 'PASS', 'The target receives the selection');
+      },
+    });
+  </script>
+</body>
+</html>

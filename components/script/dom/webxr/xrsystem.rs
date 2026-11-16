@@ -10,11 +10,14 @@ use js::realm::CurrentRealm;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::reflect_dom_object;
+use servo_base::generic_channel::GenericCallback;
 use servo_base::id::PipelineId;
 use servo_config::pref;
+use stylo_atoms::Atom;
 use webxr_api::{Error as XRError, Session, SessionInit, SessionMode};
 
 use crate::conversions::Convert;
+use crate::dom::SimpleEventTask;
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::{
     XRSessionInit, XRSessionMode, XRSystemMethods,
 };
@@ -57,11 +60,33 @@ impl XRSystem {
     }
 
     pub(crate) fn new(cx: &mut JSContext, window: &Window) -> DomRoot<XRSystem> {
-        reflect_dom_object(
+        let this = reflect_dom_object(
             cx,
             Box::new(XRSystem::new_inherited(window.pipeline_id())),
             window,
-        )
+        );
+
+        let task_source = window
+            .task_manager()
+            .dom_manipulation_task_source()
+            .to_sendable();
+        let callback = GenericCallback::new({
+            let this: Trusted<EventTarget> = Trusted::new(this.upcast());
+            move |_| {
+                let this = this.clone();
+                task_source.queue(SimpleEventTask {
+                    target: this,
+                    name: Atom::from("devicechange"),
+                });
+            }
+        })
+        .expect("Could not create XR devicechange callback");
+
+        if let Some(mut registry) = window.webxr_registry() {
+            registry.set_device_change_callback(window.pipeline_id(), callback);
+        }
+
+        this
     }
 
     pub(crate) fn pending_or_active_session(&self) -> bool {
@@ -111,6 +136,13 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
     fn IsSessionSupported(&self, cx: &mut CurrentRealm, mode: XRSessionMode) -> RootedPromise {
         // XXXManishearth this should select an XR device first
         let promise = Promise::new_in_realm(cx);
+
+        // > 2. If mode is "inline", resolve promise with true and return it.
+        if mode == XRSessionMode::Inline {
+            promise.resolve_native(cx, &true);
+            return promise;
+        }
+
         let mut trusted = Some(TrustedPromise::from(&promise));
         let global = self.global();
         let task_source = global
@@ -206,6 +238,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
             required_features,
             optional_features,
             first_person_observer_view: pref!(dom_webxr_first_person_observer_view),
+            painter_id: global.as_window().webview_id().into(),
         };
 
         let mut trusted = Some(TrustedPromise::from(&promise));
@@ -236,6 +269,9 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
         }
         promise
     }
+
+    // <https://immersive-web.github.io/webxr/#dom-xrsystem-ondevicechange>
+    event_handler!(devicechange, GetOndevicechange, SetOndevicechange);
 
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
     fn Test(&self, cx: &mut JSContext) -> DomRoot<XRTest> {

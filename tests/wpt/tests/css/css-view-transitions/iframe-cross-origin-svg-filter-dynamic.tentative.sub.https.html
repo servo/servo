@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View transitions: dynamically resolved SVG filters on ancestor pseudo-elements are not applied to cross-origin frame content</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/#sec">
+<link rel="match" href="iframe-cross-origin-svg-filter-ref.tentative.html">
+<meta name="assert" content="SVG reference filters dynamically resolved in-place on ::view-transition-group() are not applied to cached ::view-transition-old() and ::view-transition-new() subsequences.">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+:root { view-transition-name: none; }
+body { margin: 0; }
+iframe {
+  position: absolute;
+  left: 20px;
+  top: 20px;
+  width: 100px;
+  height: 100px;
+  border: none;
+  view-transition-name: frame;
+}
+::view-transition { background: lightblue; }
+::view-transition-group(frame) {
+  animation-duration: 300s;
+  filter: url(#late) blur(5px);
+}
+::view-transition-old(frame),
+::view-transition-new(frame) {
+  animation: unset;
+}
+</style>
+<svg id="svg" width="0" height="0" display="none"></svg>
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+const frameRendered = new Promise(resolve => {
+  addEventListener("message", e => {
+    if (e.data === "rendered")
+      resolve();
+  });
+});
+
+onload = async () => {
+  await frameRendered;
+  await waitForAtLeastOneFrame();
+  await document.startViewTransition().ready;
+  await waitForAtLeastOneFrame();
+
+  // Populate #late after ::view-transition-old/new(frame) have cached their
+  // subsequences under the group's Filter node.
+  document.getElementById("svg").innerHTML =
+      '<filter id="late"><feGaussianBlur stdDeviation="5"/></filter>';
+  await waitForAtLeastOneFrame();
+  takeScreenshot();
+};
+</script>
+<iframe src="https://{{hosts[alt][]}}:{{ports[https][0]}}/css/css-view-transitions/support/iframe-cross-origin-svg-filter-child.html"></iframe>
+</html>

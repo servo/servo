@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Canvas Test: fillText reorders bidirectional text in a left-to-right paragraph</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#text-preparation-algorithm">
+<link rel="help" href="https://www.unicode.org/reports/tr9/">
+<link rel="match" href="reference/fillText-bidi-ltr-ref.html">
+<meta name="assert" content="Hebrew inside Latin text is displayed right-to-left, and a right-to-left override reverses digits.">
+<style>
+canvas {
+    margin: 10px;
+}
+</style>
+
+<canvas id="canvas" width="400" height="120"></canvas>
+
+<script>
+const context = canvas.getContext("2d");
+context.font = "20px sans-serif";
+context.direction = "ltr";
+context.textAlign = "left";
+
+// Hebrew run between Latin runs.
+context.fillText("abc אבג def", 10, 40);
+// U+202E RIGHT-TO-LEFT OVERRIDE reverses the digits up to U+202C POP DIRECTIONAL FORMATTING.
+context.fillText("abc \u202E123\u202C def", 10, 90);
+</script>

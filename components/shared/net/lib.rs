@@ -727,6 +727,12 @@ impl ResourceThreads {
             .core_thread
             .send(CoreResourceMsg::EmbedderClearSessionCookies(id));
     }
+
+    pub fn store_cache_to_disk(&self, sender: GenericSender<()>) {
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::StoreCacheToDisk(sender));
+    }
 }
 
 impl GenericSend<CoreResourceMsg> for ResourceThreads {
@@ -756,6 +762,8 @@ pub enum MessageData {
 
 #[derive(Debug, Deserialize, Serialize, MallocSizeOf)]
 pub enum WebSocketDomAction {
+    /// Abort connection establishment, even if the network has already connected.
+    Abort,
     SendMessage(MessageData),
     Close(Option<u16>, Option<String>),
 }
@@ -869,6 +877,7 @@ pub enum CoreResourceMsg {
     CollectMemoryReport(ReportsChan),
     RevokeTokenForFile(BlobTokenRevocationRequest),
     RefreshTokenForFile(BlobTokenRefreshRequest),
+    StoreCacheToDisk(GenericSender<()>),
 }
 
 #[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -1253,13 +1262,19 @@ pub enum CookieSource {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CookieChange {
-    changed: Vec<Serde<Cookie<'static>>>,
-    deleted: Vec<Serde<Cookie<'static>>>,
+    pub cookie: Serde<Cookie<'static>>,
+    pub type_: CookieChangeType,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum CookieChangeType {
+    Changed,
+    Deleted,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum CookieData {
-    Change(CookieChange),
+    Change(Vec<CookieChange>),
     Get(Option<Serde<Cookie<'static>>>),
     GetAll(Vec<Serde<Cookie<'static>>>),
     Set(Result<(), ()>),

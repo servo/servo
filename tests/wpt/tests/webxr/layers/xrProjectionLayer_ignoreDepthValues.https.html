@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+
+<script>
+
+  function testIgnoreDepthValues(xrSession, deviceController, t, { gl }) {
+    return new Promise((resolve) => {
+      t.step(() => {
+        const binding = new XRWebGLBinding(xrSession, gl);
+
+        const withoutDepth = binding.createProjectionLayer({ depthFormat: 0 });
+        assert_true(withoutDepth.ignoreDepthValues, "ignoreDepthValues must be true for a layer created without a depthFormat.");
+
+        // The default depthFormat, DEPTH_COMPONENT, needs the WEBGL_depth_texture extension on non WebGL2 contexts.
+        if (gl instanceof WebGL2RenderingContext) {
+          const withDepth = binding.createProjectionLayer();
+          assert_false(withDepth.ignoreDepthValues, "ignoreDepthValues must be false for a layer created with a depthFormat.");
+        }
+      });
+      resolve();
+    });
+  }
+
+  xr_session_promise_test("XRProjectionLayer.ignoreDepthValues reflects whether the layer has a depth buffer",
+    testIgnoreDepthValues, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', { requiredFeatures: ['layers'] });
+
+</script>

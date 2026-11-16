@@ -26,9 +26,6 @@ env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   GST_PLUGIN_FEATURE_RANK: pulsesink:NONE,alsasink:NONE,jacksink:NONE,fakesink:MAX
-  INTERMITTENT_TRACKER_DASHBOARD_SECRET: ${{ !inputs.wpt-sync-from-upstream && secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET || '' }}
-  INTERMITTENT_TRACKER_DASHBOARD_SECRET_PROD: ${{ !inputs.wpt-sync-from-upstream && secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET_PROD || '' }}
-  INTERMITTENT_TRACKER_DASHBOARD_SECRET_STAGING: ${{ !inputs.wpt-sync-from-upstream && secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET_STAGING || '' }}
   WPT_ALWAYS_SUCCEED_ARG: "${{ inputs.wpt-sync-from-upstream && '--always-succeed' || '' }}"
 
 jobs:
@@ -99,6 +96,8 @@ jobs:
           ./mach bootstrap --yes --skip-lints --skip-nextest
           # FIXME #35029
           sudo apt purge -y fonts-droid-fallback
+          sudo apt-get install -y earlyoom
+          sudo systemctl stop earlyoom
       - name: Sync from upstream WPT
         if: ${{ inputs.wpt-sync-from-upstream }}
         run: |
@@ -108,6 +107,12 @@ jobs:
           mkdir -p wpt-filtered-logs/linux
           mkdir -p wpt-full-logs/linux
           nproc=$(nproc)
+          # Early OOM modeled after https://github.com/web-platform-tests/wpt/blob/c0f2b11f490d5849bf4d48c276b68681e894b1fb/tools/ci/run_tc.py#L126-L132
+          sudo earlyoom -p -r 60 \
+            --prefer='^servoshell$' --avoid=python \
+            > wpt-full-logs/linux/earlyoom.log 2>&1 &
+          earlyoom_pid=$!
+          trap 'sudo kill "$earlyoom_pid" 2>/dev/null || true' EXIT
           ./mach test-wpt \
             --bin ${{ inputs.binary-path }} \
             $WPT_ALWAYS_SUCCEED_ARG \
@@ -119,7 +124,7 @@ jobs:
             --filter-intermittents wpt-filtered-logs/linux/${{ matrix.chunk_id }}.json \
             ${{ inputs.wpt-args }}
         env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
+          GH_TOKEN: ${{ secrets.INTERMITTENT_ISSUES_TOKEN || github.token }}
       - name: Archive results (filtered)
         uses: actions/upload-artifact@v7
         if: ${{ always() }}

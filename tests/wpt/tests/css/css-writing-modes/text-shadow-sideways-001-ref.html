@@ -14,16 +14,12 @@ body > div {
   /* test */
   text-decoration: underline;
   text-decoration-color: orange;
-  text-decoration-thickness: 14px;
+  text-decoration-thickness: 4px;
 
   /* reference hacking */
   width: 1em;
   height: 5em;
   white-space: nowrap;
-}
-div > div {
-  /* compensate for WebKit propagation bug */
-  text-decoration-thickness: 4px;
 }
 .lr > div {
   text-shadow: -4px 2px aqua;

@@ -106,18 +106,18 @@
     scrollable.scrollTo(40, 60);
     await waitUntilNextAnimationFrame();
     await waitUntilNextAnimationFrame();
-    assert_scroll_at_40_60_layout_at_initial();
+    assert_scroll_and_layout_at_40_60();
   }, "Scroll to 40,60");
 
   promise_test(async() => {
     // As long as we're within the same animation frame (and therefore haven't
     // run ResizeObserver events), there will be no anchor recalculation point.
     container.style.display = "flow-root";
-    assert_scroll_and_layout_at_initial();
+    assert_scroll_and_layout_at_40_60();
     container.style.display = "none";
     document.body.offsetTop;
     container.style.display = "block";
-    assert_scroll_and_layout_at_initial();
+    assert_scroll_and_layout_at_40_60();
   }, "Reattach at 40,60");
 
   promise_test(async() => {
@@ -136,7 +136,7 @@
     container.style.display = "block";
     await waitUntilNextAnimationFrame();
     await waitUntilNextAnimationFrame();
-    assert_scroll_at_initial_layout_at_40_60();
+    assert_scroll_and_layout_at_initial();
   }, "Scroll to 0,0 and relayout");
 
   promise_test(async() => {

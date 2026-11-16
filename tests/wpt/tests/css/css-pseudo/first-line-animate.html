@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: Animating ::first-line</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-line-styling">
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/">
+<meta name="assert" content="This test checks that ::first-line can be animated with Web Animations, but only the supported properties." />
+<style>
+  /* A ::first-line rule is required for the pseudo-element (and thus its
+     animations) to be resolved; unlike ::marker it is not auto-generated. */
+  #target::first-line { color: black; }
+</style>
+<div id="log"></div>
+<p id="target">first line</p>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const target = document.getElementById("target");
+const cs = getComputedStyle(target, "::first-line");
+const options = {
+  pseudoElement: "::first-line",
+  duration: 2,
+  delay: -1,
+};
+
+// 'color' applies to ::first-line so it should be animatable
+test(function() {
+  const anim = target.animate([
+    {color: "rgb(0, 100, 200)"},
+    {color: "rgb(200, 0, 100)"},
+  ], options);
+  this.add_cleanup(() => anim.cancel());
+  assert_equals(cs.color, "rgb(100, 50, 150)", "color");
+}, "'color' animation");
+
+// 'transform' doesn't apply to ::first-line so it shouldn't be animatable
+test(function() {
+  const anim = target.animate([
+    {transform: "translateX(0px)"},
+    {transform: "translateX(100px)"},
+  ], options);
+  this.add_cleanup(() => anim.cancel());
+  assert_equals(cs.transform, "none", "transform");
+}, "'transform' animation");
+
+// When both 'color' and 'transform' are specified, only the former should be animated.
+test(function() {
+  const anim = target.animate([
+    {
+      color: "rgb(0, 100, 200)",
+      transform: "translateX(0px)",
+    },
+    {
+      color: "rgb(200, 0, 100)",
+      transform: "translateX(100px)",
+    },
+  ], options);
+  this.add_cleanup(() => anim.cancel());
+  assert_equals(cs.color, "rgb(100, 50, 150)", "color");
+  assert_equals(cs.transform, "none", "transform");
+}, "'color' + 'transform' animation");
+</script>

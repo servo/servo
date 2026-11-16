@@ -130,3 +130,21 @@ for (const content_type of content_types) {
       `Import of a JSON module with MIME type ${content_type} should fail`);
   }, `Try importing JSON module with MIME type ${content_type}`);
 }
+
+// { type: "json" } should not load content with JavaScript MIME type as JavaScript.
+const js_content_types = [
+  "application/ecmascript",
+  "application/javascript",
+  "application/x-ecmascript",
+  "application/x-javascript",
+  "text/ecmascript",
+  "text/javascript",
+]
+
+for (const content_type of js_content_types) {
+  promise_test(async test => {
+    await promise_rejects_js(test, TypeError,
+      import(`./should-not-be-loaded.js?pipe=header(Content-Type,${encodeURIComponent(content_type)})`, { with: { type: "json"} }),
+      `Importing JSON module should not load it as JavaScript when its MIME type is ${content_type}`);
+  }, `Try importing JSON module as JavaScript with MIME type ${content_type}`);
+}

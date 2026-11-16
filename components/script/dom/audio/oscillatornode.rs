@@ -99,10 +99,7 @@ impl OscillatorNodeMethods<crate::DomTypeHolder> for OscillatorNode {
             ))));
         }
 
-        let maybe_periodic_wave = options
-            .periodicWave
-            .as_ref()
-            .map(|x| (*x.as_traced()).convert());
+        let maybe_periodic_wave = options.periodicWave.as_deref().map(|x| x.convert());
 
         let options = ServoMediaOscillatorOptions {
             oscillator_type: convert_oscillator_options(oscillator_type, maybe_periodic_wave)?,

@@ -1,4 +1,6 @@
 from math import floor
+import pytest
+from tests.support.image import png_dimensions
 from ... import (
     get_device_pixel_ratio,
     get_document_dimensions,
@@ -74,6 +76,19 @@ async def get_visual_viewport_dimensions(bidi_session, context):
         await_promise=False,
     )
     return remote_mapping_to_dict(result["value"])
+
+
+async def capture_screenshot_and_assert_visual_viewport_dimensions(
+        bidi_session, context):
+    """Capture a viewport screenshot and assert its physical dimensions."""
+    viewport = await get_visual_viewport_dimensions(bidi_session, context)
+    dpr = await get_device_pixel_ratio(bidi_session, context)
+    data = await bidi_session.browsing_context.capture_screenshot(
+        context=context["context"])
+    assert png_dimensions(data) == pytest.approx(
+        (viewport["width"] * dpr, viewport["height"] * dpr), abs=1.0
+    )
+    return data
 
 
 async def get_physical_viewport_dimensions(bidi_session, context):

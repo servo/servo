@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS stylesheet identity shared by modulepreload, module links, and JavaScript import()</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/ShadowDOM/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+
+<body>
+<script type="module">
+import {createLink, waitForEvent, createShadowRoot, controlledModule} from "./module-stylesheet-helpers.js";
+
+// A modulepreload warms the module map; a module stylesheet link and JavaScript
+// import() to the same URL reuse its CSSStyleSheet without another fetch.
+promise_test(async t => {
+  const resource = controlledModule(t);
+  const url = resource.url;
+  await resource.release();
+
+  const preload = createLink(t, /*import=*/undefined, /*href=*/url);
+  preload.rel = "modulepreload";
+  preload.as = "style";
+  const preloadResult = waitForEvent(preload);
+  document.head.append(preload);
+  assert_equals(await preloadResult, "load");
+
+  const root = createShadowRoot(t, "<span>test</span>");
+  const link = createLink(t, /*import=*/url);
+  const linkResult = waitForEvent(link);
+  root.prepend(link);
+
+  // The already-populated module-map object is available synchronously.
+  assert_true(link.sheet instanceof CSSStyleSheet,
+      "modulepreload alone populates the module map, without import()");
+  assert_equals(root.styleSheets[0], link.sheet);
+  assert_equals(await linkResult, "load");
+  assert_equals(getComputedStyle(root.querySelector("span")).color,
+                "rgb(0, 0, 255)");
+  assert_equals((await resource.status()).count, 1);
+  const imported = await import(url, { with: { type: "css" } });
+  assert_equals(link.sheet, imported.default);
+}, "modulepreload as=style, a module stylesheet link, and JavaScript import() share one CSSStyleSheet.");
+</script>

@@ -18,14 +18,13 @@ use style::properties::ComputedValues;
 use style::properties::longhands::backface_visibility::computed_value::T as BackfaceVisiblity;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::longhands::column_span::computed_value::T as ColumnSpan;
-use style::properties::style_structs::Border;
 use style::servo::selector_parser::PseudoElement;
 use style::values::CSSFloat;
 use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::image::Image as ComputedImageLayer;
 use style::values::computed::{
-    BorderSideWidth, BorderStyle, Color, Inset, ItemPlacement, LengthPercentage, Margin,
-    SelfAlignment, TextWrapMode, WhiteSpaceCollapse,
+    BorderSideWidth, BorderStyle, Inset, ItemPlacement, LengthPercentage, Margin, SelfAlignment,
+    TextWrapMode, WhiteSpaceCollapse,
 };
 use style::values::generics::box_::Perspective;
 use style::values::generics::position::{GenericAspectRatio, PreferredRatio};
@@ -36,6 +35,7 @@ use unicode_bidi::Level;
 use webrender_api as wr;
 use webrender_api::units::LayoutTransform;
 
+use crate::containing_block::{ContainingBlock, IndefiniteContainingBlock};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::fragment_tree::FragmentFlags;
 use crate::geom::{
@@ -44,7 +44,6 @@ use crate::geom::{
 };
 use crate::sizing::{Size, Sizes};
 use crate::table::TableLayoutStyle;
-use crate::{ContainingBlock, IndefiniteContainingBlock};
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub(crate) enum Display {
@@ -77,32 +76,37 @@ impl DisplayGeneratingBox {
         contents: &Contents,
         info: &NodeAndStyleInfo,
     ) -> Self {
-        // From <https://www.w3.org/TR/css-display-3/#layout-specific-display>:
-        // > When the display property of a replaced element computes to one of
-        // > the layout-internal values, it is handled as having a used value of
-        // > inline.
-        if matches!(self, Self::LayoutInternal(_)) && contents.is_replaced() {
-            Self::OutsideInside {
+        if matches!(contents, Contents::NonReplaced(_)) {
+            return *self;
+        }
+        // The spec quotes below only mention replaced elements, but browsers agree
+        // that they also apply to widgets.
+        match self {
+            // From <https://www.w3.org/TR/css-display-3/#layout-specific-display>:
+            // > When the `display` property of a replaced element computes to one of
+            // > the layout-internal values, it is handled as having a used value of
+            // > `inline`.
+            // Note that `inline` actually behaves as `inline-block` (see below).
+            Self::LayoutInternal(_) => Self::OutsideInside {
                 outside: DisplayOutside::Inline,
-                inside: DisplayInside::Flow {
+                inside: DisplayInside::FlowRoot {
                     is_list_item: false,
                 },
-            }
-        } else if matches!(contents, Contents::Widget(_)) {
-            // <https://html.spec.whatwg.org/multipage/#form-controls>
-            // Widgets should establish an independent formatting context. Therefore,
-            // replace a `flow` inner display type with `flow-root`, or just use
-            // `flow-root` unconditionally, depending on the element.
+            },
+            // From <https://www.w3.org/TR/css-display-3/#replaced-element>:
+            // > Replaced elements always establish an independent formatting context.
+            // Therefore, replace a `flow` inner display type with `flow-root`,
+            // or just use `flow-root` unconditionally, depending on the element.
             // Also, prevent it from being a list item, like Blink and WebKit, but
-            // unlike Gecko. See https://github.com/w3c/csswg-drafts/issues/14187
-            if let DisplayGeneratingBox::OutsideInside { outside, inside } = self &&
-                (matches!(
+            // unlike Gecko. See <https://github.com/w3c/csswg-drafts/issues/14187>
+            Self::OutsideInside { outside, inside }
+                if matches!(
                     inside,
                     DisplayInside::Flow { .. } | DisplayInside::FlowRoot { .. }
                 ) || info.node.type_id() !=
                     Some(LayoutNodeType::Element(
                         LayoutElementType::HTMLButtonElement,
-                    )))
+                    )) =>
             {
                 DisplayGeneratingBox::OutsideInside {
                     outside: *outside,
@@ -110,11 +114,8 @@ impl DisplayGeneratingBox {
                         is_list_item: false,
                     },
                 }
-            } else {
-                *self
-            }
-        } else {
-            *self
+            },
+            _ => *self,
         }
     }
 }
@@ -263,22 +264,25 @@ impl BorderStyleColor {
         Self { style, color }
     }
 
-    pub(crate) fn from_border(
-        border: &Border,
-        current_color: &AbsoluteColor,
-    ) -> PhysicalSides<Self> {
-        let resolve = |color: &Color| color.resolve_to_absolute(current_color);
+    pub(crate) fn from_style(style: &ComputedValues) -> PhysicalSides<Self> {
+        let border = style.get_border();
         PhysicalSides::<Self>::new(
-            Self::new(border.border_top_style, resolve(&border.border_top_color)),
+            Self::new(
+                border.border_top_style,
+                style.resolve_color(&border.border_top_color),
+            ),
             Self::new(
                 border.border_right_style,
-                resolve(&border.border_right_color),
+                style.resolve_color(&border.border_right_color),
             ),
             Self::new(
                 border.border_bottom_style,
-                resolve(&border.border_bottom_color),
+                style.resolve_color(&border.border_bottom_color),
             ),
-            Self::new(border.border_left_style, resolve(&border.border_left_color)),
+            Self::new(
+                border.border_left_style,
+                style.resolve_color(&border.border_left_color),
+            ),
         )
     }
 
@@ -505,9 +509,8 @@ impl ComputedValuesExt for ComputedValues {
         &self,
         containing_block_writing_mode: WritingMode,
     ) -> LogicalSides<BorderStyleColor> {
-        let current_color = self.get_color();
         LogicalSides::from_physical(
-            &BorderStyleColor::from_border(self.get_border(), current_color),
+            &BorderStyleColor::from_style(self),
             containing_block_writing_mode,
         )
     }
@@ -1211,8 +1214,9 @@ impl LayoutStyle<'_> {
             depends_on_block_constraints(&max_size.block) ||
             style.depends_on_block_constraints_due_to_relative_positioning(writing_mode);
 
-        // If the containing block has a quirky block size, it means that the actual block size
-        // was indefinite, but it was overridden in order to be able to resolve percentages here.
+        // <https://quirks.spec.whatwg.org/#the-percentage-height-calculation-quirk>
+        // In quirks mode, in order to resolve percentages, if the actual containing block had an
+        // indefinite block size, we can instead resolve against some further ancestor.
         // However, the spec says to only apply the quirk if `height` is set to a `<percentage>`.
         // TODO: What to do in a vertical writing mode? Blink and WebKit still apply the quirk
         // to the block axis. Gecko doesn't. See <https://github.com/whatwg/quirks/issues/62>.
@@ -1221,13 +1225,11 @@ impl LayoutStyle<'_> {
         // TODO: Blink and WebKit consider that a `calc()` that contains a percentage fulfills
         // the percentage requirement. See <https://github.com/whatwg/quirks/issues/48>.
         let containing_block_size = LogicalVec2 {
-            inline: containing_block.size.inline,
-            block: if containing_block.has_quirky_block_size() &&
-                box_size.block.to_percentage().is_none()
-            {
-                None
+            inline: containing_block.size.inline_size,
+            block: if box_size.block.to_percentage().is_some() {
+                containing_block.maybe_quirky_block_size()
             } else {
-                containing_block.size.block
+                containing_block.block_size()
             },
         };
 
@@ -1278,7 +1280,7 @@ impl LayoutStyle<'_> {
     ) -> PaddingBorderMargin {
         self.padding_border_margin_with_writing_mode_and_containing_block_inline_size(
             containing_block.style.writing_mode,
-            containing_block.size.inline,
+            containing_block.inline_size(),
         )
     }
 
@@ -1455,5 +1457,19 @@ impl TransformExt for LayoutTransform {
         let pre_translation = Self::translation(x, y, z);
         let post_translation = Self::translation(-x, -y, -z);
         post_translation.then(self).then(&pre_translation)
+    }
+}
+
+pub(crate) trait WritingModeExt {
+    fn is_inline_flipped(&self) -> bool;
+    fn is_block_flipped(&self) -> bool;
+}
+
+impl WritingModeExt for WritingMode {
+    fn is_inline_flipped(&self) -> bool {
+        !self.is_inline_tb()
+    }
+    fn is_block_flipped(&self) -> bool {
+        self.is_vertical() && !self.is_vertical_lr()
     }
 }

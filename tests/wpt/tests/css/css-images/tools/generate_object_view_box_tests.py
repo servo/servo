@@ -18,10 +18,11 @@ def generate_file(source, destination, tag, name, image_source):
 
 
 def generate_for_object_fit(object_fit):
-    names = ['img', 'svg', 'canvas', 'video']
-    tags = ['img', 'img', 'canvas', 'video']
+    names = ['img', 'svg', 'svg-object', 'canvas', 'video']
+    tags = ['img', 'img', 'object', 'canvas', 'video']
     image_sources = [
         'support/exif-orientation-6-ru.jpg',
+        'support/blue-green-red-yellow-50x100.svg',
         'support/blue-green-red-yellow-50x100.svg', '', ''
     ]
 

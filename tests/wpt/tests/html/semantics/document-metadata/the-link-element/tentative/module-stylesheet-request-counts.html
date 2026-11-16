@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Module stylesheet single-flight requests</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#module-map">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<body>
+<script type="module">
+import {createLink, waitForEvent, createShadowRoot, controlledModule, recordLinkEvents} from "./module-stylesheet-helpers.js";
+
+for (const firstKind of ["link", "import"]) {
+  for (const concurrent of [false, true]) {
+    promise_test(async t => {
+      const resource = controlledModule(t);
+      const root = createShadowRoot(t, "<span>test</span>");
+      function consumer(kind) {
+        if (kind === "import") {
+          return import(resource.url, {with: {type: "css"}})
+              .then(module => module.default);
+        }
+        const link = createLink(t, /*import=*/resource.url);
+        const events = recordLinkEvents(link);
+        const result = waitForEvent(link);
+        root.append(link);
+        return result.then(event => {
+          assert_equals(event, "load");
+          assert_array_equals(events, ["load"]);
+          return link.sheet;
+        });
+      }
+      const first = consumer(firstKind);
+      await resource.started();
+      if (!concurrent) {
+        await resource.release();
+        await first;
+      }
+      const second = consumer(firstKind === "link" ? "import" : "link");
+      const third = consumer("link");
+      await resource.release();
+      const sheets = await Promise.all([first, second, third]);
+      assert_equals(sheets[0], sheets[1]);
+      assert_equals(sheets[0], sheets[2]);
+      assert_equals((await resource.status()).count, 1,
+          "no-store prevents HTTP cache hits from hiding duplicate fetches");
+    }, `${firstKind} first, ${concurrent ? "pending" : "cached"} consumers share one request`);
+  }
+}
+
+promise_test(async t => {
+  const resource = controlledModule(t);
+  await resource.release();
+  await fetch(resource.url);
+  await fetch(resource.url);
+  assert_equals((await resource.status()).count, 2,
+      "the counter detects independent requests to the same no-store URL");
+}, "Request counter negative control does not merge ordinary fetches");
+</script>

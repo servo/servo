@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: a replaced element's transferred minimum width and its max-width in its intrinsic width contributions</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-size-transfers">
+<meta name="assert" content="A min-height transferred through a replaced element's aspect ratio is capped by a definite max-width, but not by an indefinite one, in the element's intrinsic width contributions.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.container {
+    float: left;
+    clear: left;
+}
+canvas {
+    min-height: 200px;
+}
+</style>
+<body onload="checkLayout('.container')">
+<div class="container" data-expected-width="50"><canvas width="100" height="100" style="max-width: 50px"></canvas></div>
+<div class="container" data-expected-width="200"><canvas width="100" height="100" style="max-width: min-content"></canvas></div>
+<div class="container" data-expected-width="200"><canvas width="100" height="100" style="max-width: max-content"></canvas></div>
+</body>

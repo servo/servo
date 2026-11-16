@@ -106,6 +106,8 @@ use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg,
 };
+#[cfg(feature = "multiprocess")]
+use embedder_traits::resources::ResourceBytes;
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::user_contents::{UserContentManagerId, UserContents};
 use embedder_traits::{
@@ -114,7 +116,7 @@ use embedder_traits::{
     JavaScriptEvaluationError, JavaScriptEvaluationId, KeyboardEvent, MediaSessionActionType,
     MediaSessionEvent, MediaSessionPlaybackState, MouseButtonAction, MouseButtonEvent,
     NewWebViewDetails, PaintHitTestResult, Theme, ViewportDetails, WakeLockDelegate, WakeLockType,
-    WebDriverCommandMsg, WebDriverLoadStatus, WebDriverScriptCommand,
+    WebDriverCommandMsg, WebDriverLoadStatus, WebDriverLoadStatusMessage, WebDriverScriptCommand,
 };
 use euclid::default::Size2D as UntypedSize2D;
 use fonts::SystemFontServiceProxy;
@@ -125,6 +127,7 @@ use log::{debug, error, info, trace, warn};
 use media::WindowGLContext;
 use net::image_cache::ImageCacheFactoryImpl;
 use net_traits::pub_domains::registered_domain_name;
+use net_traits::request::UpgradeInsecureNavigations;
 use net_traits::{self, AsyncRuntime, FetchThread, ResourceThreads};
 use paint_api::{
     PaintMessage, PaintProxy, PinchZoomInfos, PipelineExitSource, SendableFrameTree,
@@ -148,7 +151,8 @@ use servo_base::generic_channel::{
 use servo_base::id::{
     BrowsingContextId, CONSTELLATION_PIPELINE_NAMESPACE_ID, FIRST_CONTENT_PIPELINE_NAMESPACE_ID,
     HistoryStateId, MessagePortId, MessagePortRouterId, PainterId, PipelineId, PipelineNamespace,
-    PipelineNamespaceId, PipelineNamespaceRequest, ScriptEventLoopId, WebViewId, WorkerId,
+    PipelineNamespaceId, PipelineNamespaceRequest, ScriptEventLoopId, ServiceWorkerId, WebViewId,
+    WorkerId,
 };
 use servo_base::threadboost::{BoostAffinity, ThreadPriority};
 #[cfg(feature = "bluetooth")]
@@ -284,6 +288,13 @@ struct WorkerAnimationFrameProvider {
     tick_pending: bool,
 }
 
+/// Information about service workers that are pending a state update script task,
+/// on which we have to wait at step 21 of <https://w3c.github.io/ServiceWorker/#installation-algorithm>.
+struct ServiceWorkerPendingUpdate {
+    pipelines: HashMap<PipelineId, usize>,
+    origin: ImmutableOrigin,
+}
+
 /// The `Constellation` itself. In the servo browser, there is one
 /// constellation, which maintains all of the browser global data.
 /// In embedded applications, there may be more than one constellation,
@@ -345,6 +356,10 @@ pub struct Constellation<STF, SWF> {
     /// Necessary for algorithms like <https://w3c.github.io/ServiceWorker/#update-state-algorithm>,
     /// which broadcast messages to multiple pipelines.
     sw_manager_sender: GenericSender<ServiceWorkerManagerMsg>,
+
+    /// Service workers waiting for their state update tasks to complete at step 21 of
+    /// <https://w3c.github.io/ServiceWorker/#installation-algorithm>.
+    service_workers_pending_update: HashMap<ServiceWorkerId, ServiceWorkerPendingUpdate>,
 
     /// A factory for creating layouts. This allows customizing the kind
     /// of layout created for a [`Constellation`] and prevents a circular crate
@@ -450,8 +465,12 @@ pub struct Constellation<STF, SWF> {
     /// and the namespaces are allocated by the constellation.
     next_pipeline_namespace_id: Cell<PipelineNamespaceId>,
 
-    /// A [`GenericSender`] to notify navigation events to webdriver.
-    webdriver_load_status_sender: Option<(GenericSender<WebDriverLoadStatus>, PipelineId)>,
+    /// Senders to notify WebDriver of navigation events, keyed by webview.
+    webdriver_load_status_senders: FxHashMap<WebViewId, GenericSender<WebDriverLoadStatusMessage>>,
+
+    /// The top-level browsing contexts with a navigation in progress, as last reported to
+    /// WebDriver.
+    webdriver_navigating_webviews: FxHashSet<WebViewId>,
 
     /// Are we shutting down?
     shutting_down: bool,
@@ -504,7 +523,7 @@ pub struct Constellation<STF, SWF> {
     /// Read during startup and provided to image caches that are created
     /// on an as-needed basis, rather than retrieving it every time.
     #[cfg(feature = "multiprocess")]
-    pub(crate) broken_image_icon_data: Vec<u8>,
+    pub(crate) broken_image_icon_data: ResourceBytes,
 
     /// The process manager.
     #[cfg(feature = "multiprocess")]
@@ -680,6 +699,7 @@ where
                     event_loops: Default::default(),
                     sw_manager_sender,
                     sw_manager_receiver,
+                    service_workers_pending_update: Default::default(),
                     namespace_receiver,
                     namespace_ipc_sender,
                     script_sender: script_ipc_sender,
@@ -718,7 +738,8 @@ where
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan.clone(),
                     phantom: PhantomData,
-                    webdriver_load_status_sender: None,
+                    webdriver_load_status_senders: Default::default(),
+                    webdriver_navigating_webviews: Default::default(),
                     #[cfg(feature = "webgpu")]
                     webrender_wgpu,
                     shutting_down: false,
@@ -1113,6 +1134,7 @@ where
         viewport_details: ViewportDetails,
         is_private: bool,
         inherited_secure_context: Option<bool>,
+        inherited_upgrade_insecure_navigations_set: HashSet<UpgradeInsecureNavigations>,
     ) {
         debug!("{browsing_context_id}: Creating new browsing context");
         let Some(webview) = self.webviews.get_mut(&webview_id) else {
@@ -1132,6 +1154,7 @@ where
             viewport_details,
             is_private,
             inherited_secure_context,
+            inherited_upgrade_insecure_navigations_set,
         );
         self.browsing_contexts
             .insert(browsing_context_id, browsing_context);
@@ -1265,6 +1288,16 @@ where
             } => {
                 // Continuation of <https://w3c.github.io/ServiceWorker/#update-state-algorithm>
                 // Step 4: For each settingsObject of settingsObjects, queue a task on settingsObject’s responsible event loop
+
+                // Note: we need to track queued tasks per worker because of the "Wait for all the tasks queued"
+                // happening at Step 21 of <https://w3c.github.io/ServiceWorker/#installation-algorithm>.
+                let pending_update = self
+                    .service_workers_pending_update
+                    .entry(worker_id)
+                    .or_insert_with(|| ServiceWorkerPendingUpdate {
+                        origin: origin.clone(),
+                        pipelines: Default::default(),
+                    });
                 self.pipelines
                     .values()
                     .filter(|pipeline| pipeline.url.origin() == origin)
@@ -1282,8 +1315,23 @@ where
                                 "Failed to send UpdateServiceWorkerState to pipeline {}",
                                 pipeline.id
                             );
+                        } else {
+                            let entry = pending_update.pipelines.entry(pipeline.id).or_insert(0);
+                            *entry = entry.checked_add(1).unwrap_or(*entry);
                         }
                     });
+                if pending_update.pipelines.is_empty() {
+                    if let Some(manager) = self.sw_managers.get(&origin) {
+                        if manager
+                            .send(ServiceWorkerMsg::FinishInstall(worker_id))
+                            .is_err()
+                        {
+                            error!("Failed to send FinishInstall for worker {}", worker_id);
+                        }
+                    } else {
+                        warn!("Unable to send FinishInstall for worker {}", worker_id);
+                    }
+                }
             },
         }
     }
@@ -1469,6 +1517,9 @@ where
             },
             EmbedderToConstellationMessage::SetNetworkOnlineState(online) => {
                 self.handle_set_network_online_state(online);
+            },
+            EmbedderToConstellationMessage::StoreCacheToDisk(sender) => {
+                self.public_resource_threads.store_cache_to_disk(sender);
             },
         }
     }
@@ -1927,6 +1978,9 @@ where
                     "Document ancestor origin details retrieval after closure",
                 );
             },
+            ScriptToConstellationMessage::ServiceWorkerStateUpdateDone(worker_id, pipeline_id) => {
+                self.handle_service_worker_state_update_done(worker_id, pipeline_id);
+            },
             ScriptToConstellationMessage::ServiceWorkerAlgorithm(algorithm) => {
                 self.handle_serviceworker_algorithm(source_pipeline_id, algorithm);
             },
@@ -2064,6 +2118,31 @@ where
                         warn!("Failed to release screen wake lock: {e}");
                     }
                 },
+            },
+            ScriptToConstellationMessage::AddTupleToUpgradeInsecureNavigationsSet(tuple) => {
+                let browsing_context_id = match self.pipelines.get(&source_pipeline_id) {
+                    Some(pipeline) => pipeline.browsing_context_id,
+                    None => {
+                        warn!(
+                            "{}: AddTupleToUpgradeInsecureNavigationsSet after closure",
+                            source_pipeline_id
+                        );
+                        return;
+                    },
+                };
+                let upgrade_insecure_navigations_set =
+                    match self.browsing_contexts.get_mut(&browsing_context_id) {
+                        Some(ctx) => &mut ctx.upgrade_insecure_navigations_set,
+                        None => {
+                            warn!(
+                                "{}: AddTupleToUpgradeInsecureNavigationsSet in closed {}",
+                                source_pipeline_id, browsing_context_id,
+                            );
+                            return;
+                        },
+                    };
+
+                upgrade_insecure_navigations_set.insert(tuple);
             },
         }
     }
@@ -2517,6 +2596,40 @@ where
         }
     }
 
+    #[servo_tracing::instrument(skip_all)]
+    fn handle_service_worker_state_update_done(
+        &mut self,
+        worker_id: ServiceWorkerId,
+        pipeline_id: PipelineId,
+    ) {
+        let (is_empty, origin) = {
+            let Some(pending) = self.service_workers_pending_update.get_mut(&worker_id) else {
+                return;
+            };
+            if let Some(count) = pending.pipelines.get_mut(&pipeline_id) {
+                *count = count.saturating_sub(1);
+                if *count == 0 {
+                    pending.pipelines.remove(&pipeline_id);
+                }
+            }
+            (pending.pipelines.is_empty(), pending.origin.clone())
+        };
+
+        if is_empty {
+            self.service_workers_pending_update.remove(&worker_id);
+            let Some(manager) = self.sw_managers.get(&origin) else {
+                error!("No service worker manager found for origin {:?}", origin);
+                return;
+            };
+            if manager
+                .send(ServiceWorkerMsg::FinishInstall(worker_id))
+                .is_err()
+            {
+                warn!("Failed to send FinishInstall message to service worker manager");
+            }
+        }
+    }
+
     /// <https://www.w3.org/TR/service-workers/#algorithms>
     /// Algorithms invoked from in-parallel steps run on the service worker mananager,
     /// per origin and routed by the constellation.
@@ -2953,6 +3066,32 @@ where
         self.async_runtime.shutdown();
     }
 
+    /// Stops waiting for all pending service worker state updates for the given pipeline.
+    fn stop_waiting_for_pending_service_worker_state_update(&mut self, pipeline_id: &PipelineId) {
+        // loop over all service_workers_pending_update and remove the pipeline,
+        // message the sw manager if no pipelines are left.
+        self.service_workers_pending_update
+            .retain(|worker_id, pending| {
+                pending.pipelines.remove(pipeline_id);
+                if pending.pipelines.is_empty() {
+                    // message sw manager
+                    if let Some(manager) = self.sw_managers.get(&pending.origin) {
+                        if manager
+                            .send(ServiceWorkerMsg::FinishInstall(*worker_id))
+                            .is_err()
+                        {
+                            error!("Failed to send FinishInstall for worker {}", worker_id);
+                        } else {
+                            warn!("Unable to send FinishInstall for worker {}", worker_id);
+                        }
+                    }
+                    false
+                } else {
+                    true
+                }
+            });
+    }
+
     fn handle_pipeline_exited(&mut self, pipeline_id: PipelineId, exit_source: PipelineExitSource) {
         debug!("{}: Exited", pipeline_id);
         self.remove_worker_animation_frame_providers_for_pipeline(pipeline_id);
@@ -2960,6 +3099,8 @@ where
         let Some(pipeline) = self.pipelines.remove(&pipeline_id) else {
             return;
         };
+
+        self.stop_waiting_for_pending_service_worker_state_update(&pipeline_id);
 
         // Let the embedding layer release resources it is holding on this pipeline's behalf.
         self.constellation_to_embedder_proxy
@@ -3359,6 +3500,7 @@ where
                 parent_pipeline_id: None,
                 is_private,
                 inherited_secure_context: None,
+                upgrade_insecure_navigations_set: HashSet::new(),
             }),
             viewport_details,
         });
@@ -3385,6 +3527,9 @@ where
     /// <https://html.spec.whatwg.org/multipage/#destroy-a-top-level-traversable>
     fn handle_close_top_level_browsing_context(&mut self, webview_id: WebViewId) {
         debug!("{webview_id}: Closing");
+
+        self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStop);
+        self.webdriver_load_status_senders.remove(&webview_id);
 
         // Step 1. Let browsingContext be traversable's active browsing context.
         let browsing_context_id = BrowsingContextId::from(webview_id);
@@ -3616,9 +3761,13 @@ where
                     );
                 },
             };
-        let (is_parent_private, is_parent_secure) =
+        let (is_parent_private, is_parent_secure, parent_upgrade_insecure_navigations_set) =
             match self.browsing_contexts.get(&parent_browsing_context_id) {
-                Some(ctx) => (ctx.is_private, ctx.inherited_secure_context),
+                Some(ctx) => (
+                    ctx.is_private,
+                    ctx.inherited_secure_context,
+                    ctx.upgrade_insecure_navigations_set.clone(),
+                ),
                 None => {
                     return warn!(
                         "{}: New iframe {} loaded in closed parent browsing context",
@@ -3657,6 +3806,7 @@ where
                     parent_pipeline_id: Some(parent_pipeline_id),
                     is_private,
                     inherited_secure_context: is_parent_secure,
+                    upgrade_insecure_navigations_set: parent_upgrade_insecure_navigations_set,
                 }),
                 viewport_details: load_info.viewport_details,
             });
@@ -3715,9 +3865,13 @@ where
                     );
                 },
             };
-        let (is_opener_private, is_opener_secure) =
+        let (is_opener_private, is_opener_secure, opener_upgrade_insecure_navigations_set) =
             match self.browsing_contexts.get(&opener_browsing_context_id) {
-                Some(ctx) => (ctx.is_private, ctx.inherited_secure_context),
+                Some(ctx) => (
+                    ctx.is_private,
+                    ctx.inherited_secure_context,
+                    ctx.upgrade_insecure_navigations_set.clone(),
+                ),
                 None => {
                     return warn!(
                         "{}: New auxiliary {} loaded in closed opener browsing context",
@@ -3773,6 +3927,7 @@ where
                 parent_pipeline_id: None,
                 is_private: is_opener_private,
                 inherited_secure_context: is_opener_secure,
+                upgrade_insecure_navigations_set: opener_upgrade_insecure_navigations_set,
             }),
             viewport_details,
         });
@@ -4138,16 +4293,16 @@ where
                         pending.target_snapshot_params,
                     );
                 } else {
-                    if let Some((sender, id)) = &self.webdriver_load_status_sender &&
-                        pipeline_id == *id
-                    {
-                        let _ = sender.send(WebDriverLoadStatus::NavigationStop);
-                    }
-
                     let pipeline_is_top_level_pipeline = self
                         .browsing_contexts
                         .get(&BrowsingContextId::from(webview_id))
                         .is_some_and(|ctx| ctx.pipeline_id == pipeline_id);
+                    if pipeline_is_top_level_pipeline {
+                        self.send_webdriver_load_status(
+                            webview_id,
+                            WebDriverLoadStatus::NavigationStop,
+                        );
+                    }
                     // If the navigation is refused, and this concerns an iframe,
                     // we need to take it out of it's "delaying-load-events-mode".
                     // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
@@ -4174,7 +4329,7 @@ where
         &mut self,
         webview_id: WebViewId,
         source_id: PipelineId,
-        load_data: LoadData,
+        mut load_data: LoadData,
         history_handling: NavigationHistoryBehavior,
         target_snapshot_params: TargetSnapshotParams,
     ) -> Option<PipelineId> {
@@ -4201,26 +4356,34 @@ where
                 return None;
             },
         };
-        let (viewport_details, pipeline_id, parent_pipeline_id, is_private) =
-            match self.browsing_contexts.get(&browsing_context_id) {
-                Some(ctx) => (
-                    ctx.viewport_details,
-                    ctx.pipeline_id,
-                    ctx.parent_pipeline_id,
-                    ctx.is_private,
-                ),
-                None => {
-                    // This should technically never happen (since `load_url` is
-                    // only called on existing browsing contexts), but we prefer to
-                    // avoid `expect`s or `unwrap`s in `Constellation` to ward
-                    // against future changes that might break things.
-                    warn!(
-                        "{}: Loaded url in closed {}",
-                        source_id, browsing_context_id,
-                    );
-                    return None;
-                },
-            };
+        let (
+            viewport_details,
+            pipeline_id,
+            parent_pipeline_id,
+            is_private,
+            upgrade_insecure_navigations_set,
+        ) = match self.browsing_contexts.get(&browsing_context_id) {
+            Some(ctx) => (
+                ctx.viewport_details,
+                ctx.pipeline_id,
+                ctx.parent_pipeline_id,
+                ctx.is_private,
+                ctx.upgrade_insecure_navigations_set.clone(),
+            ),
+            None => {
+                // This should technically never happen (since `load_url` is
+                // only called on existing browsing contexts), but we prefer to
+                // avoid `expect`s or `unwrap`s in `Constellation` to ward
+                // against future changes that might break things.
+                warn!(
+                    "{}: Loaded url in closed {}",
+                    source_id, browsing_context_id,
+                );
+                return None;
+            },
+        };
+
+        load_data.inherited_upgrade_insecure_navigations_set = upgrade_insecure_navigations_set;
 
         #[cfg(feature = "devtools")]
         if let Some(ref chan) = self.devtools_sender {
@@ -4250,10 +4413,6 @@ where
                 };
                 if let Err(e) = result {
                     self.handle_send_error(parent_pipeline_id, e);
-                } else if let Some((sender, id)) = &self.webdriver_load_status_sender &&
-                    source_id == *id
-                {
-                    let _ = sender.send(WebDriverLoadStatus::NavigationStop);
                 }
 
                 None
@@ -4289,6 +4448,8 @@ where
                 };
 
                 let new_pipeline_id = PipelineId::new();
+                // Report the navigation before creating the pipeline.
+                self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStart);
                 self.new_pipeline(
                     new_pipeline_id,
                     browsing_context_id,
@@ -4323,16 +4484,19 @@ where
 
     #[servo_tracing::instrument(skip_all)]
     fn handle_abort_load_url_msg(&mut self, webview_id: WebViewId, new_pipeline_id: PipelineId) {
-        if self
+        let Some(change) = self
             .webviews
             .get_mut(&webview_id)
             .and_then(|webview| webview.remove_pending_change_for_pipeline(new_pipeline_id))
-            .is_none()
-        {
+        else {
             return;
-        }
+        };
 
         self.close_pipeline(new_pipeline_id, DiscardBrowsingContext::No);
+
+        if change.browsing_context_id == BrowsingContextId::from(webview_id) {
+            self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStop);
+        }
 
         if let Some(webview) = self.webviews.get_mut(&webview_id) {
             webview.send_screenshot_readiness_requests_to_pipelines(
@@ -4361,7 +4525,16 @@ where
             .browsing_contexts
             .get(&BrowsingContextId::from(webview_id))
             .is_some_and(|ctx| ctx.pipeline_id == pipeline_id);
-        if !pipeline_is_top_level_pipeline {
+        if pipeline_is_top_level_pipeline {
+            self.send_webdriver_load_status(
+                webview_id,
+                if aborted {
+                    WebDriverLoadStatus::NavigationStop
+                } else {
+                    WebDriverLoadStatus::Complete
+                },
+            );
+        } else {
             self.handle_subframe_load_finished(pipeline_id, aborted);
         }
     }
@@ -4705,6 +4878,13 @@ where
                     None => None,
                 };
                 let new_pipeline_id = PipelineId::new();
+                if parent_pipeline_id.is_none() {
+                    // Report the navigation before creating the pipeline.
+                    self.send_webdriver_load_status(
+                        webview_id,
+                        WebDriverLoadStatus::NavigationStart,
+                    );
+                }
                 self.new_pipeline(
                     new_pipeline_id,
                     browsing_context_id,
@@ -4912,11 +5092,15 @@ where
                 return warn!("{}: Got reload event after closure", browsing_context_id);
             },
         };
-        self.send_message_to_pipeline(
+
+        self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStart);
+        if !self.send_message_to_pipeline(
             pipeline_id,
             ScriptThreadMessage::Reload(pipeline_id),
             "Got reload event after closure",
-        );
+        ) {
+            self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStop);
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#window-post-message-steps>
@@ -5231,6 +5415,37 @@ where
         }
     }
 
+    /// Report a navigation status to the WebDriver server for `webview_id`, if registered.
+    fn send_webdriver_load_status(&mut self, webview_id: WebViewId, status: WebDriverLoadStatus) {
+        match status {
+            WebDriverLoadStatus::NavigationStart => {
+                self.webdriver_navigating_webviews.insert(webview_id);
+            },
+            _ => {
+                self.webdriver_navigating_webviews.remove(&webview_id);
+            },
+        }
+
+        let Some(sender) = self.webdriver_load_status_senders.get(&webview_id) else {
+            return;
+        };
+        let _ = sender.send(WebDriverLoadStatusMessage { webview_id, status });
+    }
+
+    /// Dispatch a script command to the current pipeline of the browsing context.
+    fn dispatch_webdriver_script_command(
+        &mut self,
+        browsing_context_id: BrowsingContextId,
+        cmd: WebDriverScriptCommand,
+    ) {
+        let Some(browsing_context) = self.browsing_contexts.get(&browsing_context_id) else {
+            return warn!("{}: Browsing context is not ready", browsing_context_id);
+        };
+        let pipeline_id = browsing_context.pipeline_id;
+        let control_msg = ScriptThreadMessage::WebDriverScriptCommand(pipeline_id, cmd);
+        self.send_message_to_pipeline(pipeline_id, control_msg, "ScriptCommand after closure");
+    }
+
     #[servo_tracing::instrument(skip_all)]
     fn handle_webdriver_msg(&mut self, msg: WebDriverCommandMsg) {
         // Find the script channel for the given parent pipeline,
@@ -5246,32 +5461,20 @@ where
                     RemoteFocusOperation::Viewport,
                 );
             },
+            WebDriverCommandMsg::AddLoadStatusSender(webview_id, sender) => {
+                self.webdriver_load_status_senders
+                    .insert(webview_id, sender);
+            },
+            WebDriverCommandMsg::RemoveLoadStatusSender(webview_id) => {
+                self.webdriver_load_status_senders.remove(&webview_id);
+            },
+            WebDriverCommandMsg::IsNavigationInProgress(webview_id, response_sender) => {
+                let in_progress = self.webdriver_navigating_webviews.contains(&webview_id);
+                let _ = response_sender.send(in_progress);
+            },
             // TODO: This should use the ScriptThreadMessage::EvaluateJavaScript command
             WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd) => {
-                let pipeline_id = if let Some(browsing_context) =
-                    self.browsing_contexts.get(&browsing_context_id)
-                {
-                    browsing_context.pipeline_id
-                } else {
-                    return warn!("{}: Browsing context is not ready", browsing_context_id);
-                };
-
-                match &cmd {
-                    WebDriverScriptCommand::AddLoadStatusSender(_, sender) => {
-                        self.webdriver_load_status_sender = Some((sender.clone(), pipeline_id));
-                    },
-                    WebDriverScriptCommand::RemoveLoadStatusSender(_) => {
-                        self.webdriver_load_status_sender = None;
-                    },
-                    _ => {},
-                };
-
-                let control_msg = ScriptThreadMessage::WebDriverScriptCommand(pipeline_id, cmd);
-                self.send_message_to_pipeline(
-                    pipeline_id,
-                    control_msg,
-                    "ScriptCommand after closure",
-                );
+                self.dispatch_webdriver_script_command(browsing_context_id, cmd);
             },
             WebDriverCommandMsg::CloseWebView(..) |
             WebDriverCommandMsg::NewWindow(..) |
@@ -5483,6 +5686,7 @@ where
                     change.viewport_details,
                     new_context_info.is_private,
                     new_context_info.inherited_secure_context,
+                    new_context_info.upgrade_insecure_navigations_set,
                 );
                 self.update_activity(change.new_pipeline_id);
             },

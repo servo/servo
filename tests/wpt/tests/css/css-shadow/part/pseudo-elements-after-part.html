@@ -5,6 +5,7 @@
 <link rel="stylesheet" href="/fonts/ahem.css">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/html/resources/common.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
 
 <body>
@@ -71,13 +72,14 @@ function generate_color(str) {
 }
 
 function test_pseudo_computed_style(pseudo_element, tag, attributes) {
+  const closing_tag = isVoidElement(tag) ? "" : `</${tag}>`;
   promise_test(async (t) => {
     let our_color = generate_color(pseudo_element);
     await run_part_test(t,
                         `::part(mypart)${pseudo_element} {
                            background: ${our_color};
                          }`,
-                        `<${tag} ${attributes} part='mypart'></${tag}>`,
+                        `<${tag} ${attributes} part='mypart'>${closing_tag}`,
                         async (container, part) => {
                           assert_equals(getComputedStyle(part, pseudo_element).backgroundColor, our_color);
                         });

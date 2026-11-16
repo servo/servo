@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://github.com/whatwg/html/pull/11006">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<button id=btn1 interestfor=tip>Button 1</button>
+<button id=btn2 interestfor=tip>Button 2</button>
+<div id=tip popover>Tip</div>
+<style>
+  [interestfor] {
+    interest-delay: 0s;
+  }
+</style>
+
+<script>
+const btn1 = document.getElementById('btn1');
+const btn2 = document.getElementById('btn2');
+const tip = document.getElementById('tip');
+
+promise_test(async (t) => {
+  t.add_cleanup(() => {
+    tip.hidePopover();
+    btn1.setAttribute('interestfor','tip');
+    document.activeElement?.blur();
+  });
+  await focusOn(btn1);
+  assert_true(tip.matches(':popover-open'),'tip should be open');
+  assert_true(btn1.matches(':interest-source'),'btn1 should have interest');
+  assert_true(tip.matches(':interest-target'),'tip should be an interest target');
+
+  const signal = t.get_signal();
+  let events = [];
+  tip.addEventListener('interest',(e) => events.push(`interest ${e.source.id}`),{signal});
+  tip.addEventListener('beforetoggle',(e) => events.push(e.newState),{signal});
+  tip.addEventListener('loseinterest',(e) => {
+    events.push(`loseinterest ${e.source.id}`);
+    if (e.source === btn1) {
+      // This resets the interest state for btn1, so btn1 no longer has tip as
+      // its active interest target. The "lose interest" algorithm should
+      // therefore not go on to hide tip.
+      btn1.removeAttribute('interestfor');
+    }
+  },{signal});
+
+  // Moving focus to btn2 causes btn1 to lose interest, and btn2 to gain it.
+  await focusOn(btn2);
+  assert_array_equals(events,['loseinterest btn1','interest btn2'],
+      'tip should never be hidden');
+  assert_true(tip.matches(':popover-open'),'tip should remain open');
+  assert_true(tip.matches(':interest-target'),'tip should be an interest target');
+  assert_true(btn2.matches(':interest-source'),'btn2 should have interest');
+  assert_false(btn1.matches(':interest-source'),'btn1 should not have interest');
+},'If a loseinterest handler changes the active interest target, the target popover is not hidden');
+</script>

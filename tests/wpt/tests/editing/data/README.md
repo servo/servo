@@ -62,6 +62,15 @@ are run in order, like this:
     document.execCommand("stylewithcss", false, "false");
     document.execCommand("bold", false, "");
 
+Subset filtering applies to assertions, not their prerequisites.  Selected
+assertions run the required command prefix even when earlier return-value
+tests are outside the subset.  Skipped cases still apply `styleWithCSS` and
+`defaultParagraphSeparator` so later cases see the same document settings.
+
+For example, after `insertText("a")` followed by `insertText("b")`, selecting
+only the second return-value assertion must still insert both characters.
+Otherwise the subset tests a different command sequence from the full run.
+
 Most tests have only one command run.  The exceptions are:
 
   1. styleWithCSS.  Tests that involve formatting elements or styles are run

@@ -16,6 +16,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::comment::Comment;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
+use crate::dom::execcommand::commands::insertlinebreak::execute_insert_line_break_command;
 use crate::dom::execcommand::contenteditable::node::{
     NodeOrString, is_allowed_child, node_matches_local_name, split_the_parent, wrap_node_list,
 };
@@ -75,14 +76,14 @@ pub(crate) fn execute_insert_paragraph_command(
     // set container to its parent.
     while !container.is_single_line_container() &&
         let Some(parent) = container.GetParentNode() &&
-        parent.is_editable() &&
+        parent.is_editable(cx) &&
         parent.same_editing_host(&node)
     {
         container = parent;
     }
     // Step 10. If container is an editable single-line container in the same editing host as node,
     // and its local name is "p" or "div":
-    if container.is_editable() &&
+    if container.is_editable(cx) &&
         container.is_single_line_container() &&
         container.same_editing_host(&node) &&
         node_matches_local_name!(container, local_name!("p") | local_name!("div"))
@@ -95,7 +96,7 @@ pub(crate) fn execute_insert_paragraph_command(
             outer_container,
             local_name!("dd") | local_name!("dt") | local_name!("li")
         ) && let Some(parent) = outer_container.GetParentNode() &&
-            parent.is_editable()
+            parent.is_editable(cx)
         {
             outer_container = parent;
         }
@@ -108,7 +109,7 @@ pub(crate) fn execute_insert_paragraph_command(
         }
     }
     // Step 11. If container is not editable or not in the same editing host as node or is not a single-line container:
-    if !container.is_editable() ||
+    if !container.is_editable(cx) ||
         !container.same_editing_host(&node) ||
         !container.is_single_line_container()
     {
@@ -143,7 +144,9 @@ pub(crate) fn execute_insert_paragraph_command(
                     cx.no_gc(),
                 ),
             ) {
-                return true;
+                // Instead of true, browsers actually insert a line break instead:
+                // https://github.com/w3c/editing/issues/552
+                return execute_insert_line_break_command(cx, document, selection);
             }
             // Step 11.5.2. Set container to the result of calling createElement(tag) on the context object.
             let container = document.create_element(cx, tag.str());
@@ -188,7 +191,7 @@ pub(crate) fn execute_insert_paragraph_command(
         container = wrap_node_list(
             cx,
             node_list,
-            |_| false,
+            |_cx, _| false,
             |cx| Some(DomRoot::upcast(document.create_element(cx, tag.str()))),
         )
         .expect("Must always be able to wrap");
@@ -416,10 +419,7 @@ pub(crate) fn execute_insert_paragraph_command(
     // Step 32. If container has no visible children,
     // call createElement("br") on the context object,
     // and append the result as the last child of container.
-    if container
-        .children()
-        .all(|child| child.is_invisible(cx.no_gc()))
-    {
+    if container.children().all(|child| child.is_invisible(cx)) {
         let br = document.create_element(cx, "br");
         if container.AppendChild(cx, br.upcast()).is_err() {
             unreachable!("Must always be able to append");
@@ -430,7 +430,7 @@ pub(crate) fn execute_insert_paragraph_command(
     // and append the result as the last child of new container.
     if new_container_node
         .children()
-        .all(|child| child.is_invisible(cx.no_gc()))
+        .all(|child| child.is_invisible(cx))
     {
         let br = document.create_element(cx, "br");
         if new_container_node.AppendChild(cx, br.upcast()).is_err() {

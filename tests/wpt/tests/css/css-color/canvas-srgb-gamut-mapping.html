@@ -39,6 +39,15 @@ const cases = [
 	{ color: "oklch(90% 0.3 300)", mapped: [228, 213, 255], tolerance: 4, clipped: [255, 160, 255], clipTolerance: 1 },
 	// MINDE [175.12, 229.75, 255.00], EdgeSeeker [190.33, 227.67, 255.00], Ray Trace [190.37, 227.67, 255.00]
 	{ color: "oklch(90% 0.2 240)", mapped: [185, 228, 255], tolerance: 11, clipped: [37, 236, 255], clipTolerance: 1 },
+  // https://github.com/w3c/csswg-drafts/pull/14698
+	{ color: "oklch(1.54% 0.90 275.02)", mapped: [0, 0, 0], tolerance: 6, clipped: [160, 0, 255], clipTolerance: 1 },
+	{ color: "oklch(3.08% 0.30 48.8)", mapped: [0, 0, 0], tolerance: 6, clipped: [27, 8, 0], clipTolerance: 1 },
+	{ color: "oklch(0.0001220703125 0.4 19.75)", mapped: [0, 0, 0], tolerance: 6, clipped: [40, 0, 0], clipTolerance: 1 },
+	{ color: "oklch(0.9999999999990905 0.4 105.5)", mapped: [255, 255, 255], tolerance: 2, clipped: [255, 255, 0], clipTolerance: 1 },
+	// MINDE [255.00, 248.98, 254.37], EdgeSeeker [255.00, 255.00, 255.00], Ray Trace [255.00, 255.00, 255.00]
+	{ color: "oklch(0.99999994 0.05 0)", mapped: [255, 253, 255], tolerance: 6, clipped: [255, 242, 254], clipTolerance: 1 },
+	// MINDE [241.00, 255.00, 255.00], EdgeSeeker [255.00, 255.00, 255.00], Ray Trace [255.00, 255.00, 255.00]
+	{ color: "oklch(0.99999994 0.05 240)", mapped: [250, 255, 255], tolerance: 11, clipped: [226, 255, 255], clipTolerance: 1 },
 ];
 
 // A color inside the gamut, in the canvas's own color space, which neither conversion

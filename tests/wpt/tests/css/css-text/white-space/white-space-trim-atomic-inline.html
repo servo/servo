@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>white-space-trim: discard-before/after next to atomic inlines</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#white-space-trim">
+<link rel="match" href="reference/white-space-trim-atomic-inline-ref.html">
+<meta name="assert" content="Collapsible white space between an atomic inline and a discard-before/after box edge is discarded; and the adjacency walk stops at an atomic inline (white space on its far side is kept).">
+<style>
+  .box { display: inline-block; width: 8px; height: 8px; background: green; vertical-align: baseline; }
+  .db { white-space-trim: discard-before; }
+  .da { white-space-trim: discard-after; }
+</style>
+</head>
+<body>
+<p>Test passes if it matches the reference.</p>
+<!-- 1. space between the atomic inline and the discard-before box is discarded -> a[box]bc -->
+<div>a<span class="box"></span> <span class="db">b</span>c</div>
+<!-- 2. space after the discard-after box (before an atomic inline) is discarded -> ab[box]c -->
+<div>a<span class="da">b</span> <span class="box"></span>c</div>
+<!-- 3. the walk stops at the atomic inline: the space before the atomic is kept -> a [box]bc -->
+<div>a <span class="box"></span><span class="db">b</span>c</div>
+</body>
+</html>

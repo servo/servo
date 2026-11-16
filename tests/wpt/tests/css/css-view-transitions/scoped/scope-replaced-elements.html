@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Scoped view transitions on replaced elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/#scoped-vt">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/#scoped-view-transition-layout">
+<link rel="match" href="scope-replaced-elements-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 120px);
+    gap: 10px;
+  }
+
+  .backing {
+    width: 120px;
+    height: 80px;
+    background: blue;
+  }
+
+  .scope {
+    display: block;
+    width: 120px;
+    height: 80px;
+    border: 0;
+    background: yellow;
+    view-transition-name: target;
+  }
+
+  .scope::view-transition {
+    background: green;
+  }
+
+  .scope::view-transition-group(*) {
+    animation-play-state: paused;
+    opacity: 0;
+  }
+</style>
+
+<!-- Blue backing is exposed if the captured scope's transition overlay is missing. -->
+<div class="grid">
+  <div class="backing">
+    <img class="scope" alt=""
+         src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E">
+  </div>
+  <div class="backing">
+    <canvas class="scope"></canvas>
+  </div>
+  <div class="backing">
+    <video class="scope"
+           poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E"></video>
+  </div>
+  <div class="backing">
+    <iframe class="scope"
+            srcdoc="<style>html,body{margin:0;background:yellow}</style>"></iframe>
+  </div>
+  <div class="backing">
+    <embed class="scope" type="image/svg+xml"
+           src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E">
+  </div>
+  <div class="backing">
+    <audio class="scope" controls></audio>
+  </div>
+</div>
+
+<script>
+  failIfNot(Element.prototype.startViewTransition,
+            "Missing Element.prototype.startViewTransition");
+
+  onload = () => reftestPromise(async () => {
+    await waitForCompositorReady();
+    const transitions = Array.from(document.querySelectorAll(".scope"),
+                                   scope => scope.startViewTransition());
+    await Promise.all(transitions.map(transition => transition.ready));
+    await Promise.all(document.getAnimations().map(animation => animation.ready));
+    takeScreenshot();
+  });
+</script>
+</html>

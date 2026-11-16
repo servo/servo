@@ -15,13 +15,12 @@ use std::io::{Write, stdout};
 use std::ops::{Deref, DerefMut};
 use std::os::raw::c_void;
 use std::ptr::NonNull;
-use std::rc::Weak;
+use std::rc::{Rc, Weak};
 use std::time::Instant;
 use std::{os, ptr};
 
 use background_hang_monitor_api::ScriptHangAnnotation;
 use js::context::JSContext;
-use js::conversions::jsstr_to_string;
 use js::gc::StackGCVector;
 use js::glue::{
     DispatchablePointer, RUST_js_GetErrorMessage, RegisterScriptEnvironmentPreparer,
@@ -31,8 +30,8 @@ use js::glue::{
 use js::jsapi::{
     AsmJSOption, BuildIdCharVector, CompilationType, Dispatchable_MaybeShuttingDown, GCDescription,
     GCOptions, GCProgress, GCReason, Handle as RawHandle, HandleObject, HandleString,
-    HandleValue as RawHandleValue, Heap, JSContext as RawJSContext, JSGCParamKey, JSGCStatus,
-    JSJitCompilerOption, JSObject, JSSecurityCallbacks, JSString, JSTracer, MimeType,
+    HandleValue as RawHandleValue, Heap, JSContext as RawJSContext, JSErrNum, JSGCParamKey,
+    JSGCStatus, JSJitCompilerOption, JSObject, JSSecurityCallbacks, JSString, JSTracer, MimeType,
     MutableHandleString, PromiseRejectionHandlingState, RuntimeCode,
     ScriptEnvironmentPreparer_Closure, SetProcessBuildIdOp, StreamConsumer as JSStreamConsumer,
 };
@@ -92,6 +91,7 @@ use crate::dom::response::Response;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::dom::window::Window;
 use crate::engine::handle::current_js_engine_handle;
+use crate::fetch::body::BodyMixin;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::realms::enter_auto_realm;
 use crate::runtime::job_queue::{JobQueue, job_queue_clear};
@@ -329,10 +329,11 @@ unsafe extern "C" fn promise_rejection_tracker(
 
 #[expect(unsafe_code)]
 fn safely_convert_null_to_string(cx: &JSContext, str_: HandleString) -> DOMString {
-    DOMString::from(match std::ptr::NonNull::new(*str_) {
-        None => String::new(),
-        Some(str_) => unsafe { jsstr_to_string(cx, str_) },
-    })
+    unsafe {
+        // Non null string is a valid string.
+        DOMString::from_raw_js_string(cx, *str_)
+    }
+    .unwrap_or_default()
 }
 
 #[expect(unsafe_code)]
@@ -378,10 +379,8 @@ unsafe extern "C" fn content_security_policy_allows(
         // SpiderMonkey provides null pointer when executing webassembly.
         let mut realm = CurrentRealm::assert(cx);
         let global = GlobalScope::from_current_realm(&mut realm);
-        let csp_list = global.get_csp_list();
-
         // If we don't have any CSP checks to run, short-circuit all logic here
-        allowed = csp_list.is_none() ||
+        allowed = global.call_on_csp_list(|csp_list| csp_list.is_none()) ||
             match runtime_code {
                 RuntimeCode::JS => {
                     let parameter_strings = unsafe { Handle::from_raw(parameter_strings) };
@@ -442,8 +441,7 @@ unsafe extern "C" fn content_security_policy_allows(
                     )
                 },
                 RuntimeCode::WASM => global
-                    .get_csp_list()
-                    .is_wasm_evaluation_allowed(cx, &global),
+                    .call_on_csp_list(|csp_list| csp_list.is_wasm_evaluation_allowed(cx, &global)),
             };
     });
     unsafe { *can_compile_strings = allowed };
@@ -1233,9 +1231,9 @@ impl StreamConsumer {
         }
     }
 
-    pub(crate) fn stream_error(&self, error_code: usize) {
+    pub(crate) fn stream_error(&self, error_code: JSErrNum) {
         unsafe {
-            StreamConsumerStreamError(self.0, error_code);
+            StreamConsumerStreamError(self.0, error_code as usize);
         }
     }
 
@@ -1269,7 +1267,7 @@ unsafe extern "C" fn consume_stream(
     cx: *mut RawJSContext,
     obj: HandleObject,
     _mime_type: MimeType,
-    _consumer: *mut JSStreamConsumer,
+    consumer: *mut JSStreamConsumer,
 ) -> bool {
     let mut cx = unsafe {
         // SAFETY: We are in SM hook
@@ -1338,7 +1336,39 @@ unsafe extern "C" fn consume_stream(
             );
             return false;
         }
-        unwrapped_source.set_stream_consumer(Some(StreamConsumer(_consumer)));
+
+        let consumer1 = StreamConsumer(consumer);
+        let Some(body_stream) = unwrapped_source.body() else {
+            consumer1.stream_end();
+            return true;
+        };
+        let consumer2 = StreamConsumer(consumer);
+        let aborted = Rc::new(Cell::new(false));
+        let aborted2 = aborted.clone();
+        let reader = match body_stream.acquire_default_reader(cx) {
+            Ok(reader) => reader,
+            Err(error) => {
+                throw_dom_exception(cx, &global, error);
+                return false;
+            },
+        };
+
+        reader.read_all_bytes(
+            cx,
+            Rc::new(move |_cx, bytes| {
+                if !consumer1.consume_chunk(&bytes) {
+                    aborted.set(true);
+                } else {
+                    consumer1.stream_end();
+                }
+            }),
+            Rc::new(move |_cx, _v| {
+                if aborted2.get() {
+                    return;
+                }
+                consumer2.stream_error(JSErrNum::JSMSG_WASM_ERROR_CONSUMING_RESPONSE);
+            }),
+        );
     } else {
         // Step 3 Upon rejection of source, return with reason.
         throw_dom_exception(
@@ -1352,10 +1382,25 @@ unsafe extern "C" fn consume_stream(
 }
 
 #[expect(unsafe_code)]
-unsafe extern "C" fn report_stream_error(_cx: *mut RawJSContext, error_code: usize) {
-    error!("Error initializing StreamConsumer: {:?}", unsafe {
+unsafe extern "C" fn report_stream_error(cx: *mut RawJSContext, error_code: usize) {
+    let mut cx = unsafe {
+        // SAFETY: We are in SM hook
+        JSContext::from_ptr(NonNull::new(cx).expect("JSContext should not be null in SM hook"))
+    };
+    let cx = &mut cx;
+
+    let mut realm = CurrentRealm::assert(cx);
+    let global = GlobalScope::from_current_realm(&mut realm);
+
+    warn!("Error streaming to StreamConsumer: {:?}", unsafe {
         RUST_js_GetErrorMessage(ptr::null_mut(), error_code as u32)
     });
+
+    throw_dom_exception(
+        cx,
+        &global,
+        Error::Abort(Some("The operation was aborted.".to_owned())),
+    );
 }
 
 #[expect(unsafe_code)]

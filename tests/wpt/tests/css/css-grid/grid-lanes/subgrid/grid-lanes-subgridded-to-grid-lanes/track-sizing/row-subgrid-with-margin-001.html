@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes Test: Resolving a percentage margin shrinks a nested subgrid's inherited row</title>
+<link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="row-subgrid-with-margin-001-ref.html">
+<style>
+  body { margin: 0; }
+  .root {
+    border: 2px solid black;
+    display: grid-lanes;
+    grid-template-rows: 100px 200px 300px;
+    width: max-content;
+  }
+  .subgrid {
+    display: grid-lanes;
+    grid-template-rows: subgrid;
+  }
+  .outer {
+    border: 2px solid purple;
+    grid-row: 1 / -1;
+  }
+  .middle {
+    border: 2px solid orange;
+    grid-row: 2;
+    /* 20% of the resolved 260px inline size is 52px. The inner row must
+       shrink from 192px to 140px instead of retaining its cached size. */
+    margin-block-start: 20%;
+  }
+  .inner {
+    border: 2px solid cyan;
+    grid-row: 1 / -1;
+  }
+  .leaf {
+    background: green;
+    grid-row: 1;
+    height: 100%;
+    width: 84px;
+  }
+  .leaf:nth-child(2) { background: royalblue; }
+  .leaf:nth-child(3) { background: gold; }
+</style>
+<div class="root">
+  <div class="subgrid outer" id="margin-outer">
+    <div class="subgrid middle" id="margin-middle">
+      <div class="subgrid inner" id="margin-inner">
+        <div class="leaf"></div>
+        <div class="leaf"></div>
+        <div class="leaf"></div>
+      </div>
+    </div>
+  </div>
+</div>

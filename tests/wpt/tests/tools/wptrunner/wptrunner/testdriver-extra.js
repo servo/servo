@@ -301,6 +301,15 @@
         });
     }
 
+    window.test_driver_internal.bidi.bluetooth.simulate_gatt_mtu_change =
+        function(params) {
+        return create_action('bidi.bluetooth.simulate_gatt_mtu_change', {
+            // Default to the current window.
+            context: window,
+            ...params
+        });
+    }
+
     window.test_driver_internal.bidi.bluetooth.simulate_service =
         function(params) {
         return create_action('bidi.bluetooth.simulate_service', {
@@ -469,6 +478,16 @@
         function (params) {
             return create_action(
                 "bidi.emulation.set_scrollbar_type_override", {
+                    // Default to the current window.
+                    contexts: [window],
+                    ...(params ?? {})
+                });
+        }
+
+    window.test_driver_internal.bidi.emulation.set_text_layout_mode_override =
+        function (params) {
+            return create_action(
+                "bidi.emulation.set_text_layout_mode_override", {
                     // Default to the current window.
                     contexts: [window],
                     ...(params ?? {})

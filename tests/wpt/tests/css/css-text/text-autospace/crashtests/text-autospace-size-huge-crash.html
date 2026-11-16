@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/8510#issuecomment-6438888621">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.test {
+  font-family: Ahem;
+  font-size: 40px;
+}
+.normal {
+  text-autospace: normal;
+}
+/* larger-than-realistic values should still work */
+.a {
+  text-autospace-size: 10;
+}
+.b {
+  text-autospace-size: -10;
+}
+/* even extreme values must be handled safely */
+.c {
+  text-autospace-size: 1000000;
+}
+.d {
+  text-autospace-size: -1000000;
+}
+.e {
+  text-autospace-size: 1e40;
+}
+.f {
+  text-autospace-size: -1e40;
+}
+</style>
+<div class="a">
+  <div class="test normal">国国XX国</div>
+  <div dir="rtl" class="test normal">国国XX国</div>
+</div>
+<div class="b">
+  <div class="test normal">国国XX国</div>
+  <div dir="rtl" class="test normal">国国XX国</div>
+</div>
+<div class="c">
+  <div class="test normal">国国XX国</div>
+  <div dir="rtl" class="test normal">国国XX国</div>
+</div>
+<div class="d">
+  <div class="test normal">国国XX国</div>
+  <div dir="rtl" class="test normal">国国XX国</div>
+</div>
+<div class="e">
+  <div class="test normal">国国XX国</div>
+  <div dir="rtl" class="test normal">国国XX国</div>
+</div>
+<div class="f">
+  <div class="test normal">国国XX国</div>
+  <div dir="rtl" class="test normal">国国XX国</div>
+</div>

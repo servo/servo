@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: reference</title>
+<link rel="author" title="Christian Biesinger" href="mailto:cbiesinger@igalia.com">
+<style>
+div {
+  font: 20px/1.2 monospace;
+  border: 1px solid;
+  margin: 4px;
+  width: 3.5ch;
+  white-space: nowrap;
+}
+</style>
+<p>Test passes if each box below shows two accented letters "é" and an ellipsis, with no stray accent.
+<div dir="rtl">e&#x301;e&#x301;&#x2026;</div>
+<div dir="ltr">e&#x301;e&#x301;&#x2026;</div>

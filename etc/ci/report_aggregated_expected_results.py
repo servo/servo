@@ -11,7 +11,7 @@
 
 # This allows using types that are defined later in the file.
 from __future__ import annotations
-from datetime import datetime
+from datetime import datetime, timezone
 
 import json
 import os
@@ -125,7 +125,7 @@ def get_results(unexpected: list[dict], tag: str = "") -> Optional[Item]:
     text = "Test results"
     if tag:
         text += f" for {tag}"
-    text += " from try job"
+    text += f" from {get_job_type()}"
     if run_url:
         text += f" ({run_url})"
     text += ":"
@@ -164,6 +164,13 @@ def get_github_run_url() -> Optional[str]:
     return f"[#{run_id}](https://github.com/{repository}/actions/runs/{run_id})"
 
 
+def get_job_type() -> str:
+    github_context = json.loads(os.environ.get("GITHUB_CONTEXT", "{}"))
+    if github_context.get("event_name") == "merge_group":
+        return "merge queue job"
+    return "try job"
+
+
 def get_pr_number() -> Optional[str]:
     github_context = json.loads(os.environ.get("GITHUB_CONTEXT", "{}"))
     if "event" not in github_context:
@@ -172,8 +179,11 @@ def get_pr_number() -> Optional[str]:
     # If we have a 'merge_group' in the context, this was triggered by
     # the merge queue.
     if "merge_group" in github_context["event"]:
-        commit_title = github_context["event"]["merge_group"]["head_commit"]["message"]
-        match = re.match(r"\(#(\d+)\)$", commit_title)
+        message = github_context["event"]["merge_group"]["head_commit"]["message"]
+        if not message:
+            return None
+        commit_title = message.splitlines()[0]
+        match = re.search(r"\(#(\d+)\)$", commit_title)
         return match.group(1) if match else None
 
     # If we have an 'issue' in the context, this was triggered by a try comment
@@ -224,9 +234,9 @@ def create_github_reports(body: str, tag: str = ""):
         "name": tag,
         "head_sha": get_commit_sha(),
         "status": "completed",
-        "started_at": datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+        "started_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "conclusion": conclusion,
-        "completed_at": datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+        "completed_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "output": {
             "title": f"Aggregated {tag} report",
             "summary": body,

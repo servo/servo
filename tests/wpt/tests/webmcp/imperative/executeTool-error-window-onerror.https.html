@@ -71,6 +71,60 @@ promise_test(async t => {
 
   assert_false(errorFired, 'window.onerror/error event should not be fired');
 }, 'Tool execution returning circular object rejects and does not trigger window.onerror');
+
+// Each case returns a value that can't become a tool result string: either
+// JSON serialization (objects) or string conversion (primitives) throws.
+const unserializableCases = [
+  {
+    name: 'symbol_tool',
+    description: 'a Symbol',
+    execute: () => Symbol('result'),
+  },
+  {
+    name: 'bigint_property_tool',
+    description: 'an object with a BigInt property',
+    execute: () => ({value: 1n}),
+  },
+  {
+    name: 'throwing_tojson_tool',
+    description: 'an object whose toJSON() throws',
+    execute: () => ({toJSON() { throw new Error('toJSON'); }}),
+  },
+  {
+    name: 'throwing_getter_tool',
+    description: 'an object with a throwing getter',
+    execute: () => ({get value() { throw new Error('getter'); }}),
+  },
+];
+
+for (const {name, description, execute} of unserializableCases) {
+  promise_test(async t => {
+    let errorFired = false;
+    const errorHandler = () => {
+      errorFired = true;
+    };
+    window.addEventListener('error', errorHandler);
+    t.add_cleanup(() => {
+      window.removeEventListener('error', errorHandler);
+    });
+
+    await document.modelContext.registerTool({
+      name,
+      description: `A tool that returns ${description}`,
+      execute
+    });
+
+    const tools = await document.modelContext.getTools();
+    const tool = tools.find(t => t.name === name);
+    assert_true(!!tool, 'Should find the registered tool');
+
+    await promise_rejects_dom(t, 'OperationError',
+        document.modelContext.executeTool(tool),
+        `executeTool() rejects when the tool execution returns ${description}`);
+
+    assert_false(errorFired, 'window.onerror/error event should not be fired');
+  }, `Tool execution returning ${description} rejects and does not trigger window.onerror`);
+}
 </script>
 </body>
 </html>

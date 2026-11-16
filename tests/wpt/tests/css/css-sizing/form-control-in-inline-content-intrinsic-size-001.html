@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: a form control on a line keeps its container's max-content inline size in sync when the control's own width changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#widgets">
+<meta name="assert" content="A container sized to its max-content inline size is as wide as the form control on its line plus the text next to it, also after a change that makes the control wider or narrower.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.container {
+    width: max-content;
+    font: 10px/1 Ahem;
+}
+</style>
+
+<!-- The text after each control is a 10px space and three 10px glyphs. -->
+<div class="container"><select id="selectWithAddedOption"><option>xx</option></select> xxx</div>
+<div class="container"><select id="selectWithRemovedOption"><option>xx</option><option>xxxxxxxxxxxx</option></select> xxx</div>
+<div class="container"><select id="selectWithChangedOptionText"><option>xx</option></select> xxx</div>
+<div class="container"><select multiple id="listBoxWithAddedOption"><option>xx</option></select> xxx</div>
+<div class="container"><button id="buttonWithChangedText">xx</button> xxx</div>
+<div class="container"><textarea id="textareaWithChangedCols" cols="5"></textarea> xxx</div>
+<div class="container"><input id="inputWithChangedSize" size="5"> xxx</div>
+<div class="container"><input id="inputWithChangedType"> xxx</div>
+<div class="container"><input type="checkbox" id="checkbox"> xxx</div>
+
+<script>
+const changes = {
+    selectWithAddedOption: control => control.add(new Option("xxxxxxxxxxxx")),
+    selectWithRemovedOption: control => control.remove(1),
+    selectWithChangedOptionText: control => control.options[0].textContent = "xxxxxxxxxxxx",
+    listBoxWithAddedOption: control => control.add(new Option("xxxxxxxxxxxx")),
+    buttonWithChangedText: control => control.textContent = "xxxxxxxxxxxx",
+    textareaWithChangedCols: control => control.cols = 20,
+    inputWithChangedSize: control => control.size = 20,
+    inputWithChangedType: control => control.type = "checkbox",
+    checkbox: control => { },
+};
+
+function marginBoxWidth(element) {
+    const style = getComputedStyle(element);
+    return element.getBoundingClientRect().width + parseFloat(style.marginLeft) + parseFloat(style.marginRight);
+}
+
+// Lay everything out once so the changes below happen to controls that already have a width.
+document.body.offsetWidth;
+
+for (const [id, change] of Object.entries(changes)) {
+    test(() => {
+        const control = document.getElementById(id);
+        change(control);
+        const container = control.parentElement;
+        assert_approx_equals(container.getBoundingClientRect().width, marginBoxWidth(control) + 40, 0.01);
+    }, `The container of a form control is as wide as the control and the text next to it (${id})`);
+}
+</script>

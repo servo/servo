@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: a fixed positioned box moves to its new containing block when the old one stops being a containing block</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#fixed-cb">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-1/#containing-block-for-all-descendants">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#containment-paint">
+<meta name="assert" content="When an element loses the transform, filter or paint containment that made it the containing block of a fixed positioned descendant, the descendant is sized against the next ancestor that establishes a fixed positioning containing block, even when an overflow: hidden, fixed size box sits in between.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.new-containing-block {
+    transform: translateX(0);
+    width: 400px;
+    height: 100px;
+}
+.clip {
+    overflow: hidden;
+    width: 300px;
+    height: 50px;
+}
+.old-containing-block {
+    width: 50px;
+}
+.fixed {
+    position: fixed;
+    width: 100%;
+    height: 10px;
+}
+</style>
+<div id="tests"></div>
+<script>
+const tests = document.getElementById("tests");
+const cases = [
+    { description: "transform removed", markup: `<div class="old-containing-block" style="transform: translateX(0)"><div class="fixed"></div></div>`, property: "transform" },
+    { description: "filter removed", markup: `<div class="old-containing-block" style="filter: blur(0)"><div class="fixed"></div></div>`, property: "filter" },
+    { description: "contain: paint removed", markup: `<div class="old-containing-block" style="contain: paint"><div class="fixed"></div></div>`, property: "contain" },
+    { description: "filter removed from an inline box", markup: `<div class="old-containing-block"><span style="filter: blur(0)">x<div class="fixed"></div></span></div>`, property: "filter" },
+];
+
+for (const testCase of cases) {
+    const container = document.createElement("div");
+    container.className = "new-containing-block";
+    container.innerHTML = `<div class="clip"><div>${testCase.markup}</div></div>`;
+    tests.append(container);
+}
+document.body.offsetHeight;
+
+cases.forEach((testCase, index) => {
+    test(() => {
+        const fixedBox = tests.children[index].querySelector(".fixed");
+        assert_less_than(fixedBox.getBoundingClientRect().width, 100, "width is initially resolved against the old containing block");
+        fixedBox.parentElement.style.setProperty(testCase.property, "none");
+        assert_equals(fixedBox.getBoundingClientRect().width, 400, "width is resolved against the new containing block");
+    }, testCase.description);
+});
+
+tests.remove();
+</script>

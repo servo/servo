@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: row rules extend into alignment space around centered spanners and resume after a final spanner in grid lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#segment-endpoints">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#stacking-self-alignment">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14648#issuecomment-6527732959">
+<link rel="match" href="row-gap-decorations-aligned-spanners-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-rows: repeat(4, 60px);
+    grid-lanes-pack: dense;
+    fit-tolerance: 0;
+    gap: 20px;
+    width: 360px;
+    background: #cdd5e0;
+    column-rule: 4px solid blue;
+    row-rule: 4px solid gold;
+  }
+  .lanes > div { background: #5b8def; }
+  .a { grid-row: 1; width: 40px; }
+  .b { grid-row: 2; width: 40px; }
+  .c { grid-row: 3; width: 60px; }
+  .d { grid-row: 4; width: 200px; }
+  .lanes > .spanner {
+    grid-row: 1 / -1;
+    width: 40px;
+    background: #8a6df0;
+  }
+  .lanes > .centered-spanner {
+    grid-row: 1 / span 2;
+    width: 20px;
+    justify-self: center;
+    background: #1f9d6b;
+  }
+  .lanes > .centered-item {
+    grid-row: 3;
+    width: 40px;
+    justify-self: center;
+    background: #1f9d6b;
+  }
+</style>
+<div class="lanes">
+  <div class="a"></div>
+  <div class="b"></div>
+  <div class="c"></div>
+  <div class="d"></div>
+  <div class="spanner"></div>
+  <div class="centered-spanner"></div>
+  <div class="centered-item"></div>
+</div>

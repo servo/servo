@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Module link: stylesheet collection ordering with classic and shared sheets</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/LinkTagModuleImport/explainer.md">
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-documentorshadowroot-stylesheets">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+
+<body>
+<script type="module">
+import {createLink, waitForEvent, createShadowRoot, createDocumentContainer, controlledModule} from "./module-stylesheet-helpers.js";
+
+for (const scopeName of ["document", "shadowRoot"]) {
+  promise_test(async t => {
+    const parent = scopeName === "document" ?
+        createDocumentContainer(t) : createShadowRoot(t);
+    const scope = scopeName === "document" ? document : parent;
+    const sheets = scope.styleSheets;
+    const initialSheets = Array.from(sheets);
+    const url = `./module-stylesheet-blue.css?ordering-${scopeName}`;
+    const first = createLink(t, /*import=*/url);
+    const classic = createLink(t, /*import=*/undefined,
+        /*href=*/"./module-stylesheet-red.css");
+    const last = createLink(t, /*import=*/url);
+    const results = [first, classic, last].map(waitForEvent);
+    parent.append(first, classic, last);
+    assert_array_equals(await Promise.all(results), ["load", "load", "load"]);
+    const sharedSheet = first.sheet;
+    const classicSheet = classic.sheet;
+    assert_true(sharedSheet instanceof CSSStyleSheet);
+    assert_true(classicSheet instanceof CSSStyleSheet);
+    assert_equals(last.sheet, sharedSheet);
+    assert_not_equals(classicSheet, sharedSheet);
+    assert_array_equals(Array.from(sheets),
+        [...initialSheets, sharedSheet, classicSheet, sharedSheet],
+        "Each link contributes a sheet at its DOM position.");
+
+    const moved = waitForEvent(last);
+    parent.insertBefore(last, classic);
+    assert_equals(await moved, "load");
+    assert_equals(last.sheet, sharedSheet);
+    assert_array_equals(Array.from(sheets),
+        [...initialSheets, sharedSheet, sharedSheet, classicSheet],
+        "Moving a shared-sheet link updates its position.");
+
+    first.remove();
+    assert_array_equals(Array.from(sheets),
+        [...initialSheets, sharedSheet, classicSheet],
+        "Removing one duplicate retains the other entry in DOM order.");
+    last.remove();
+    assert_array_equals(Array.from(sheets), [...initialSheets, classicSheet],
+        "Removing the last module link leaves the classic entry.");
+    classic.remove();
+    assert_array_equals(Array.from(sheets), initialSheets);
+  }, `${scopeName}.styleSheets preserves interleaved shared module and classic entries after moving and removing links.`);
+
+  promise_test(async t => {
+    const parent = scopeName === "document" ?
+        createDocumentContainer(t) : createShadowRoot(t);
+    const scope = scopeName === "document" ? document : parent;
+    const sheets = scope.styleSheets;
+    const initialSheets = Array.from(sheets);
+    const moduleResource = controlledModule(t);
+    const classicResource = controlledModule(t);
+    const first = createLink(t, /*import=*/moduleResource.url);
+    const classic = createLink(t, /*import=*/undefined,
+        /*href=*/classicResource.url);
+    const last = createLink(t, /*import=*/moduleResource.url);
+    const results = [first, classic, last].map(waitForEvent);
+    parent.append(first, classic, last);
+    await Promise.all([moduleResource.started(), classicResource.started()]);
+    assert_array_equals(Array.from(sheets), initialSheets,
+        "Pending links do not contribute collection entries.");
+
+    await classicResource.release();
+    assert_equals(await results[1], "load");
+    const classicSheet = classic.sheet;
+    assert_true(classicSheet instanceof CSSStyleSheet);
+    assert_equals(first.sheet, null);
+    assert_equals(last.sheet, null);
+    assert_array_equals(Array.from(sheets), [...initialSheets, classicSheet],
+        "The middle classic sheet completes before either module link.");
+
+    await moduleResource.release();
+    assert_array_equals(await Promise.all(results), ["load", "load", "load"]);
+    const sharedSheet = first.sheet;
+    assert_true(sharedSheet instanceof CSSStyleSheet);
+    assert_equals(last.sheet, sharedSheet);
+    assert_array_equals(Array.from(sheets),
+        [...initialSheets, sharedSheet, classicSheet, sharedSheet],
+        "Final ordering follows DOM order rather than fetch completion order.");
+  }, `${scopeName}.styleSheets orders shared module links around a classic sheet that finishes fetching first.`);
+}
+</script>

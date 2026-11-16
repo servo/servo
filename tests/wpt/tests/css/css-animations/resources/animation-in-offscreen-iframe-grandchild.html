@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<style>
+@keyframes move {
+  from { transform: translateX(0); }
+  to { transform: translateX(100px); }
+}
+#target {
+  width: 100px;
+  height: 100px;
+  background: green;
+  animation: move 100s linear infinite;
+}
+</style>
+<div id="target"></div>
+<script>
+// Wait for the iframe to be rendered before querying its CSS animation.
+requestAnimationFrame(() => {
+  const animation = document.getElementById('target').getAnimations()[0];
+
+  function animationState(type) {
+    parent.postMessage({
+      type,
+      playState: animation.playState,
+      currentTime: animation.currentTime,
+    }, '*');
+  }
+
+  animation.ready.then(() => animationState('ready'));
+  addEventListener('message', event => {
+    if (event.data === 'report-state') {
+      animationState('state');
+    }
+  });
+});
+</script>

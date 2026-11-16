@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Overflow Test: Text in a fullscreen element over the root scrollbar-gutter is painted completely</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollbar-gutter-property">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/9904">
+<link rel="match" href="scrollbar-gutter-fullscreen-003-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+:root {
+  scrollbar-gutter: stable both-edges;
+}
+#target {
+  background: white;
+}
+.square {
+  position: absolute;
+  top: 0;
+  color: green;
+  font: 50px/1 Ahem;
+}
+</style>
+
+<div id="target">
+  <div class="square" style="left: 0">X</div>
+  <div class="square" style="right: 0">X</div>
+</div>
+
+<script>
+document.addEventListener("fullscreenchange", () => {
+  document.documentElement.classList.remove("reftest-wait");
+});
+test_driver.bless("fullscreen", () => target.requestFullscreen());
+</script>
+</html>

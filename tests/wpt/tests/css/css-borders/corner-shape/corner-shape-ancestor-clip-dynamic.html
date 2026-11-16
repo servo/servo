@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4: changing only corner-shape on a clipping ancestor re-clips a composited descendant</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shape">
+<link rel="match" href="corner-shape-ancestor-clip-dynamic-ref.html">
+<meta name="fuzzy" content="maxDifference=0-100; totalPixels=0-1116">
+<meta name="assert" content="when corner-shape changes and border-radius does not, an overflow clip on an ancestor that is not the descendant's stacking context must follow the new shape, not keep the old one.">
+<style>
+    body {
+        margin: 0;
+        padding: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        overflow: hidden;
+    }
+
+    .clipper {
+        position: relative;
+        width: 240px;
+        height: 270px;
+        border-radius: 80px;
+        overflow: hidden;
+    }
+
+    .clipper > div {
+        position: absolute;
+        left: -20px;
+        top: -20px;
+        width: 280px;
+        height: 310px;
+        background-color: green;
+        will-change: transform;
+    }
+</style>
+<script src="/common/rendering-utils.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<script>
+    window.addEventListener('load', async () => {
+        await waitForAtLeastOneFrame();
+        for (const clipper of document.querySelectorAll('[data-final-shape]'))
+            clipper.style.cornerShape = clipper.dataset.finalShape;
+        await waitForAtLeastOneFrame();
+        takeScreenshot();
+    });
+</script>
+</head>
+<body>
+    <div class="clipper" style="corner-shape: round" data-final-shape="notch"><div></div></div>
+    <div class="clipper" style="corner-shape: round" data-final-shape="scoop"><div></div></div>
+    <div class="clipper" style="corner-shape: square" data-final-shape="bevel"><div></div></div>
+    <div class="clipper" style="corner-shape: notch" data-final-shape="round"><div></div></div>
+    <div class="clipper" style="corner-shape: bevel" data-final-shape="square"><div></div></div>
+</body>
+</html>

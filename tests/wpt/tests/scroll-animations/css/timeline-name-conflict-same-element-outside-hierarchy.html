@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Scroll timeline wins over view timeline with the same name on the same element outside the target's hierarchy</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#timeline-scoping">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @keyframes anim {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  #target {
+    animation: anim 1s linear;
+    animation-timeline: --t;
+  }
+</style>
+<div id="source"></div>
+<div id="target"></div>
+<script>
+  const timeline = () => document.getAnimations()[0].timeline;
+
+  test(t => {
+    t.add_cleanup(() => source.removeAttribute("style"));
+    source.style.scrollTimelineName = "--t";
+    source.style.viewTimelineName = "--t";
+    assert_true(timeline() instanceof ScrollTimeline);
+    assert_false(timeline() instanceof ViewTimeline);
+  }, "scroll-timeline wins when declared along with view-timeline");
+
+  test(t => {
+    t.add_cleanup(() => source.removeAttribute("style"));
+    source.style.viewTimelineName = "--t";
+    assert_true(timeline() instanceof ViewTimeline);
+    source.style.scrollTimelineName = "--t";
+    assert_true(timeline() instanceof ScrollTimeline);
+    assert_false(timeline() instanceof ViewTimeline);
+  }, "scroll-timeline wins when declared after view-timeline");
+</script>

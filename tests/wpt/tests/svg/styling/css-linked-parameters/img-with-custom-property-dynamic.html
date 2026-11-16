@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Link Parameters - dynamic custom property update</title>
+<link rel="help" href="https://drafts.csswg.org/css-link-params/#link-param-prop">
+<link rel="match" href="circle-green-ref.html">
+<style>
+  img {
+    --color: red;
+    link-parameters: param(--color: var(--color));
+  }
+</style>
+<img id="target" src="circle-with-parameters.svg">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<script>
+(async () => {
+  await target.decode();
+  await waitForAtLeastOneFrame();
+  target.style.setProperty("--color", "green");
+  takeScreenshot();
+})();
+</script>
+</html>

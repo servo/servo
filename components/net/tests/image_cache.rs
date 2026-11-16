@@ -6,6 +6,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use crossbeam_channel::{Receiver, Sender, unbounded};
+use embedder_traits::resources::ResourceBytes;
 use malloc_size_of_derive::MallocSizeOf;
 use net::image_cache::ImageCacheFactoryImpl;
 use net_traits::image_cache::{
@@ -55,7 +56,7 @@ fn create_test_image_cache() -> (Arc<dyn ImageCache>, Receiver<PipelineId>) {
     })));
     let dummy_resolver = Arc::new(DummyFontResolver);
 
-    let factory = ImageCacheFactoryImpl::new(vec![]);
+    let factory = ImageCacheFactoryImpl::new(ResourceBytes::from_vec(vec![]));
     let cache = factory.create(
         TEST_WEBVIEW_ID,
         TEST_PIPELINE_ID,

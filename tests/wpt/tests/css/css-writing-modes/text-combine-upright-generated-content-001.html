@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Writing Modes: text-combine-upright applies to generated content</title>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#text-combine-upright">
+<link rel="match" href="reference/text-combine-upright-generated-content-001-ref.html">
+<meta name="assert" content="Text in ::before and ::after pseudo-elements with 'text-combine-upright: all' is combined like other text.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+div { writing-mode: vertical-rl; font: 40px/1 Ahem; }
+span::before { content: "12"; text-combine-upright: all; }
+span::after { content: "34"; text-combine-upright: all; }
+</style>
+<p>Test passes if there is a flat black rectangle between each two black squares.</p>
+<div>X<span>Y</span>X</div>

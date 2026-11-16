@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Module link: failed-fetch retries and module-map reuse by clones</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/ShadowDOM/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+
+<body>
+<script type="module">
+import {createLink, waitForEvent, createShadowRoot, controlledModule, styleSheetsCount} from "./module-stylesheet-helpers.js";
+
+promise_test(async t => {
+  const resource = controlledModule(t);
+  await resource.configure(404);
+  await resource.release();
+  const root = createShadowRoot(t);
+  const first = createLink(t, /*import=*/resource.url);
+  const firstResult = waitForEvent(first);
+  root.append(first);
+  assert_equals(await firstResult, "error");
+
+  await resource.configure(200);
+  const second = createLink(t, /*import=*/resource.url);
+  const secondResult = waitForEvent(second);
+  root.append(second);
+  assert_equals(await secondResult, "load",
+      "failed fetches are retried, as for CSS module import()");
+  assert_not_equals(second.sheet, null);
+  assert_equals((await resource.status()).count, 2);
+}, "A module link retries a failed fetch after the server recovers.");
+
+promise_test(async t => {
+  // A connected clone shares the original link's module-map sheet.
+  const root = createShadowRoot(t, "<span>test</span>");
+  const link = createLink(t, /*import=*/"./module-stylesheet-red.css?clone");
+  const result = waitForEvent(link);
+  root.prepend(link);
+  assert_equals(await result, "load");
+  const sheet = link.sheet;
+
+  const clone = link.cloneNode(true);
+  assert_equals(clone.sheet, null,
+      "a disconnected clone has no active link resource");
+  const cloneResult = waitForEvent(clone);
+  root.append(clone);
+  assert_equals(await cloneResult, "load");
+  assert_equals(clone.sheet, sheet,
+      "a connected clone shares the module-map sheet");
+  assert_equals(styleSheetsCount(root, sheet), 2,
+      "both the original and the clone contribute to styleSheets");
+}, "A connected clone shares the original module link's sheet.");
+</script>

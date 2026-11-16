@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>CSS Images Module Level 3: image-orientation: none / cross-origin / repeating background-image</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#propdef-image-orientation">
+<link rel="match" href="reference/image-orientation-none-cross-origin-background-repeat-ref.html">
+<style>
+div {
+    width: 250px;
+    height: 125px;
+    margin: 10px;
+    background-image: url(http://{{hosts[][]}}:{{ports[http][1]}}/css/css-images/image-orientation/support/exif-orientation-6-ru.jpg);
+    image-orientation: none;
+}
+</style>
+<div style="background-repeat: repeat"></div>
+<div style="background-repeat: round"></div>
+<div style="background-repeat: space"></div>

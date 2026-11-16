@@ -204,31 +204,13 @@ pub trait CacheStorageThreadFactory {
 }
 
 impl CacheStorageThreadFactory for CacheStorageThreadHandle {
-    fn new(config_dir: Option<PathBuf>, temporary_storage: bool) -> CacheStorageThreadHandle {
+    // Current memory-only implementation needs no tempdir or config dir.
+    fn new(_config_dir: Option<PathBuf>, _temporary_storage: bool) -> CacheStorageThreadHandle {
         let (generic_sender, generic_receiver) = generic_channel::channel().unwrap();
-        let mut temp_dir: Option<tempfile::TempDir> = None;
-        let base_dir = config_dir
-            .unwrap_or_else(|| {
-                let tmp_dir = tempfile::tempdir().unwrap();
-                let path = tmp_dir.path().to_path_buf();
-                temp_dir = Some(tmp_dir);
-                path
-            })
-            .join("cachestorage");
-        let storage_dir = if temporary_storage {
-            let unique_id = uuid::Uuid::new_v4().to_string();
-            base_dir.join("temporary").join(unique_id)
-        } else {
-            base_dir.join("default_v1")
-        };
-        std::fs::create_dir_all(&storage_dir)
-            .expect("Failed to create CacheStorage storage directory");
         let sender_clone = generic_sender.clone();
         thread::Builder::new()
             .name("CacheStorageThread".to_owned())
             .spawn(move || {
-                // Keep temp_dir alive while the thread runs.
-                let _ = temp_dir;
                 let engine = MemCacheStorageEngine {
                     name_to_cache_map: Default::default(),
                 };

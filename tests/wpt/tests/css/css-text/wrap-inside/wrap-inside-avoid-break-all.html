@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>wrap-inside: avoid suppresses word-break: break-all opportunities inside the box</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#wrap-inside">
+<link rel="match" href="wrap-inside-avoid-break-all-ref.html">
+<meta name="assert" content="'word-break: break-all' adds soft wrap opportunities within the box, but 'wrap-inside: avoid' suppresses them: the line breaks before the box rather than mid-word, when there is a break opportunity outside the box.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    div { width: 90px; font: 20px/20px Ahem; color: green; }
+</style>
+<!--
+    "XX YYYY" (140px) overflows 90px. 'word-break: break-all' would otherwise break inside the box mid-word as "XX Y" / "YYY".
+    'wrap-inside: avoid' instead breaks at the space outside the box: "XX" / "YYYY".
+-->
+<div>XX <span style="wrap-inside: avoid; word-break: break-all">YYYY</span></div>

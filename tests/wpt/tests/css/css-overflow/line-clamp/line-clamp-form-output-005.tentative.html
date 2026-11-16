@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp and output elements, direct clamping</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-form-output-005-ref.html">
+<meta name="assert" content="A directly clamped block-level output element shows lines before the clamp point followed by the clamp marker, while following lines are hidden.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.clamp {
+  display: block;
+  width: 240px;
+  font: 25px/1 Ahem;
+  line-clamp: 2;
+  background: yellow;
+}
+</style>
+
+<output class="clamp">XX<br>XX<br>XX<br>XX</output>

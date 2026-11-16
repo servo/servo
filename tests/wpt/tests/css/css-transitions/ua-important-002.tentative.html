@@ -1,0 +1,51 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSS transitions don't override UA !important declarations on fullscreen elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade/#cascade-origin">
+<link rel="help" href="https://fullscreen.spec.whatwg.org/#user-agent-level-style-sheet-defaults">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14697">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  #target {
+    transition: font-size 100s;
+    font-size: 10px;
+  }
+  #target.tweak {
+    font-size: 20px;
+  }
+</style>
+<div id="target">target</div>
+<script>
+  promise_test(async t => {
+    t.add_cleanup(() => document.fullscreenElement && document.exitFullscreen());
+    await test_driver.bless("fullscreen", () => target.requestFullscreen());
+    assert_equals(document.fullscreenElement, target);
+
+    const before = getComputedStyle(target);
+    const fullscreenWidth = before.width;
+    const fullscreenHeight = before.height;
+
+    target.getBoundingClientRect();
+    target.classList.add("tweak");
+    const anims = target.getAnimations();
+    assert_equals(anims.length, 1, "font-size transition started");
+    const kf = {
+      width: "200px",
+      height: "150px",
+      transform: "translate(100px, 50px)",
+      color: "rgb(255, 0, 0)",
+    };
+    anims[0].effect.setKeyframes([kf, kf]);
+    anims[0].pause();
+
+    const cs = getComputedStyle(target);
+    assert_equals(cs.color, "rgb(255, 0, 0)",
+                  "Non-!important property is overridden by the transition");
+    assert_equals(cs.width, fullscreenWidth, "width");
+    assert_equals(cs.height, fullscreenHeight, "height");
+    assert_equals(cs.transform, "none", "transform");
+  }, "Transitions can't override UA !important declarations on fullscreen elements");
+</script>

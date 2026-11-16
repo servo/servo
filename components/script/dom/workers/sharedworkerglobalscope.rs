@@ -395,6 +395,8 @@ impl SharedWorkerGlobalScope {
         let origin = current_global.origin().immutable().clone();
         let referrer = current_global.get_referrer();
         let is_secure_context = current_global.is_secure_context();
+        let upgrade_insecure_navigations_set =
+            current_global.upgrade_insecure_navigations_set().clone();
         let current_global_ancestor_trustworthy = current_global.has_trustworthy_ancestor_origin();
         let is_nested_browsing_context = current_global.is_nested_browsing_context();
         let worker_name = worker_name.to_string();
@@ -422,6 +424,7 @@ impl SharedWorkerGlobalScope {
                     origin: Origin::Origin(origin.clone()),
                     is_nested_browsing_context,
                     insecure_requests_policy,
+                    upgrade_insecure_navigations_set,
                     has_trustworthy_ancestor_origin: current_global_ancestor_trustworthy,
                     network_partition_key: None,
                 };
@@ -437,30 +440,28 @@ impl SharedWorkerGlobalScope {
                 // because it will never outlive it (runtime destruction happens at the end of this function)
                 let mut cx = unsafe { runtime.cx() };
                 let cx = &mut cx;
+
                 #[cfg(feature = "devtools")]
-                let debugger_global = DebuggerGlobalScope::new(
-                    pipeline_id,
-                    init.to_devtools_sender.clone(),
-                    init.from_devtools_sender
-                        .clone()
-                        .expect("Guaranteed by SharedWorker::Constructor"),
-                    init.mem_profiler_chan.clone(),
-                    init.time_profiler_chan.clone(),
-                    init.script_to_constellation_chan.clone(),
-                    init.script_to_embedder_chan.clone(),
-                    init.resource_threads.clone(),
-                    init.storage_threads.clone(),
-                    #[cfg(feature = "webgpu")]
-                    gpu_id_hub.clone(),
+                let debugger_global = DebuggerGlobalScope::new_if_needed(
                     cx,
+                    pipeline_id,
+                    &init.to_devtools_sender,
+                    &init.from_devtools_sender,
+                    &init.mem_profiler_chan,
+                    &init.time_profiler_chan,
+                    &init.script_to_constellation_chan,
+                    &init.script_to_embedder_chan,
+                    &init.resource_threads,
+                    &init.storage_threads,
+                    #[cfg(feature = "webgpu")]
+                    &gpu_id_hub,
                 );
 
                 #[cfg(feature = "devtools")]
                 let (devtools_mpsc_port, debugger_global_for_scope, devtools_enabled) = {
-                    debugger_global.execute(cx);
                     (
                         Some(from_devtools_receiver.route_preserving_errors()),
-                        Some(&*debugger_global),
+                        debugger_global.as_deref(),
                         init.to_devtools_sender.is_some(),
                     )
                 };
@@ -524,7 +525,7 @@ impl SharedWorkerGlobalScope {
                 // Step 11.5.2. Let workerIsSecureContext be true if insideSettings is a secure context; otherwise, false.
                 let worker_is_secure_context = global_scope.is_secure_context();
                 #[cfg(feature = "devtools")]
-                if devtools_enabled {
+                if devtools_enabled && let Some(debugger_global) = &debugger_global {
                     debugger_global.fire_add_debuggee(
                         cx,
                         global_scope,

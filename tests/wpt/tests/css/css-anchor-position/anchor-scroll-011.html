@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>Test that scrolling the anchor element's scroll container doesn't change the outer scroller's scroll height</title>
+<title>Test that scrolling the anchor element's scroll container updates the outer scroller's scroll height on scroll end</title>
 <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
 <link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#scroll">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14112">
 <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2072683">
-<meta name="assert" content="The default scroll shift of a positioned element is applied after layout, so scrolling its anchor's scroll container must not change the scrollHeight of the scroll container the positioned element is in.">
+<meta name="assert" content="Once scrolling of an anchor's scroll container stops, the positioned element's layout is consistent with a full relayout at that scroll offset, updating the outer scroll container's scrollHeight.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/rendering-utils.js"></script>
@@ -53,15 +54,15 @@ promise_test(async () => {
   const scroller1 = document.getElementById("scroller1");
   const scroller2 = document.getElementById("scroller2");
 
-  scroller2.scrollTop = 50;
-  await waitForAtLeastOneFrame();
-  const expectedScrollHeight = scroller1.scrollHeight;
-
-  for (const y of [100, 150, 200, 250, 150, 50, 0]) {
+  // #scroller1 has 300px of in-flow content, and #positioned (height 100px) has
+  // its un-scrolled bottom at 100 + 230 + 20 + 100 = 450px. Once scrolling
+  // stops, #positioned relayouts at 450 - y.
+  for (const y of [50, 100, 150, 200, 250, 150, 50, 0]) {
     scroller2.scrollTop = y;
     await waitForAtLeastOneFrame();
+    const expectedScrollHeight = Math.max(300, 450 - y);
     assert_equals(scroller1.scrollHeight, expectedScrollHeight,
-                  `scroller1.scrollHeight shouldn't change (when scroller2.scrollTop=${y})`);
+                  `scroller1.scrollHeight should match relayout (when scroller2.scrollTop=${y})`);
   }
-}, "Scrolling the anchor's scroller doesn't change the positioned element's scroller's scrollHeight");
+}, "Scrolling the anchor's scroller updates the positioned element's scroller's scrollHeight on scroll end");
 </script>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Text Decoration: a negative percentage inset survives an incremental relayout of a later line</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-inset-property">
+<link rel="match" href="text-decoration-inset-percentage-negative-incremental-ref.html">
+<meta name="assert" content="Editing the text of a later line triggers a partial line-layout update. The overhang of a negative percentage inset must be applied exactly once to the relaid-out lines and must not be re-applied to the untouched ones.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+body { margin: 100px; }
+div { width: 100px; will-change: transform; }
+p { font: 20px/2 Ahem; }
+u {
+  text-decoration-line: underline;
+  text-decoration-color: blue;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+  text-decoration-inset: -40%;
+}
+</style>
+
+<!-- Starts as "abcde fghij klmnX", then the trailing X is corrected to o. That damages only the last
+     line, so the earlier lines keep their previously computed ink overflow. -->
+
+<div><p><u id="target">abcde fghij klmnX</u></p></div>
+
+<script>
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  document.getElementById("target").firstChild.data = "abcde fghij klmno";
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.documentElement.classList.remove("reftest-wait");
+  }));
+}));
+</script>
+</html>

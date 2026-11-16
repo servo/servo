@@ -7,7 +7,7 @@
       const mixin = document.createElement("style");
       mixin.textContent = `
         @mixin --frame-mixin() {
-          @result { color: ${color}; }
+          color: ${color};
         }
       `;
       document.head.append(mixin);

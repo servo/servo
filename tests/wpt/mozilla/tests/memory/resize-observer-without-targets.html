@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>A ResizeObserver with no targets is properly garbage collected</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async function() {
+  let resizeObsever = new WeakRef(new ResizeObserver(() => {}));
+  await TestUtils.gc();
+  await TestUtils.gc();
+  assert_equals(resizeObsever.deref(), undefined);
+}, "A ResizeObserver with no targets is properly garbage collected")
+</script>

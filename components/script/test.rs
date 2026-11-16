@@ -104,3 +104,7 @@ pub mod unminify {
     pub use crate::dom::html::htmlscriptelement::substitute_with_local_script;
     pub use crate::unminify::create_output_file;
 }
+
+pub mod console {
+    pub use crate::dom::console::{ConsoleTable, TableRow};
+}

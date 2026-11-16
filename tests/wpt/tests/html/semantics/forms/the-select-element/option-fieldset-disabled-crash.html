@@ -1,0 +1,16 @@
+<script>
+let fieldset_0
+document.addEventListener("DOMContentLoaded", () => {
+  fieldset_0 = document.createElementNS("http://www.w3.org/1999/xhtml", "fieldset")
+  const htmlSelectElement_0 = document.createElementNS("http://www.w3.org/1999/xhtml", "select")
+  htmlSelectElement_0.setAttribute("required", true)
+  htmlSelectElement_0.size = 53
+  const htmlOptionElement_0 = document.createElementNS("http://www.w3.org/1999/xhtml", "option")
+  htmlOptionElement_0.setAttribute("selected", true)
+  const htmlOptionElement_1 = document.createElementNS("http://www.w3.org/1999/xhtml", "option")
+  htmlSelectElement_0.appendChild(htmlOptionElement_0)
+  htmlSelectElement_0.appendChild(htmlOptionElement_1)
+  fieldset_0.appendChild(htmlSelectElement_0)
+  htmlSelectElement_0.appendChild(htmlOptionElement_1)
+})
+</script>

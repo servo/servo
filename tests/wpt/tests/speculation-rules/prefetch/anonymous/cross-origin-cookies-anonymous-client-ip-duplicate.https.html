@@ -2,7 +2,7 @@
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
 <script src='/resources/testdriver-vendor.js'></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/common/utils.js"></script>
@@ -24,7 +24,9 @@
     assert_equals(response_cookies["type"], "navigate");
 
     let nextUrl = agent.getExecutorURL({ executor, hostname: CROSS_ORIGIN_HOST_THAT_WORKS_WITH_ACIWCO, page: 2 });
-    await agent.forceSinglePrefetch(nextUrl, { requires: ["anonymous-client-ip-when-cross-origin"] });
+    await agent.forceSinglePrefetchAndWaitForStatus(
+        nextUrl, { requires: ["anonymous-client-ip-when-cross-origin"] });
+    // A duplicate rule may be coalesced and does not guarantee a fresh event.
     await agent.forceSinglePrefetch(nextUrl);
     await agent.navigate(nextUrl);
 

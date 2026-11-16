@@ -2,6 +2,8 @@
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="/common/utils.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="../resources/utils.js"></script>
@@ -22,7 +24,7 @@ promise_test(async t => {
   // The Documents #2 and #4 are different, but the same RenderFrameHost is
   // used before https://crbug.com/936696 is done.
 
-  await win.forceSinglePrefetch(nextUrl);
+  await win.forceSinglePrefetchAndWaitForStatus(nextUrl);
 
   // Register a SW for `nextUrl` -- this is a trick to make the prefetched
   // result to put in `PrefetchService::prefetches_ready_to_serve_` in

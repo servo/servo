@@ -36,7 +36,7 @@ use crate::dom::bindings::codegen::Bindings::RequestBinding::{
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, DOMString, USVString};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::{Guard, Headers};
@@ -354,7 +354,7 @@ impl Request {
 
         // Step 26. If init["signal"] exists, then set signal to it.
         if let Some(init_signal) = init.signal.as_ref() {
-            signal = init_signal.clone();
+            signal = init_signal.as_ref().map(Dom::as_rooted);
         }
         // Step 27. If init["priority"] exists, then:
         // TODO

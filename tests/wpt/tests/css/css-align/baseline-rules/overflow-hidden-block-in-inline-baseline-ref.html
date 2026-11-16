@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>Reference for inline-block baseline with an overflow: hidden block inside an inline box</title>
+<style>
+.title-bar {
+    width: 200px;
+    height: 52px;
+    padding-top: 8px;
+    background-color: lightgray;
+}
+.green-box {
+    width: 140px;
+    height: 40px;
+    background-color: green;
+}
+</style>
+<p>Test passes if the green box is fully inside the gray box.</p>
+<div class="title-bar">
+    <div class="green-box"></div>
+</div>

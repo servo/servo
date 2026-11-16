@@ -25,6 +25,7 @@ use script_bindings::reflector::{Reflector, reflect_dom_object_with_wrap};
 use script_bindings::root::DomRoot;
 use script_bindings::serializable::Serializable;
 use script_bindings::structuredclone::StructuredData;
+use script_bindings::trace::RootedTraceableBox;
 use servo_base::id::{CryptoKeyId, CryptoKeyIndex};
 use servo_constellation_traits::{SerializableCryptoKey, SerializableCryptoKeyHandle};
 use strum::VariantArray;
@@ -35,7 +36,7 @@ use crate::traits::Equivalence;
 
 pub(crate) enum CryptoKeyOrCryptoKeyPair<D: DomTypes> {
     CryptoKey(DomRoot<CryptoKey<D>>),
-    CryptoKeyPair(CryptoKeyPair<D>),
+    CryptoKeyPair(RootedTraceableBox<CryptoKeyPair<D>>),
 }
 
 /// The underlying cryptographic data this key represents.
@@ -44,8 +45,8 @@ pub(crate) enum CryptoKeyOrCryptoKeyPair<D: DomTypes> {
 /// trait, which signifies that the type will call `Zeroize::zeroize` on `Drop` to securely erase
 /// the secret from memory.
 pub(crate) enum Handle {
-    RsaPrivateKey(rsa::RsaPrivateKey),
-    RsaPublicKey(rsa::RsaPublicKey),
+    RsaPrivateKey(rsa::PrivateKey),
+    RsaPublicKey(rsa::PublicKey),
     P256PrivateKey(p256::SecretKey),
     P384PrivateKey(p384::SecretKey),
     P521PrivateKey(p521::SecretKey),

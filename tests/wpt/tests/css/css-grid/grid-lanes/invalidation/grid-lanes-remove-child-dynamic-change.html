@@ -5,7 +5,7 @@
   <title>CSS Grid Lanes Test: removing child from grid-lanes container triggers relayout</title>
   <link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
   <link rel="help" href="https://drafts.csswg.org/css-grid-3">
-  <meta name="assert" content="This test checks that removing a middle item from a grid-lanes container properly triggers auto-placement recompute, and that a later item fills the resulting gap under grid-lanes-pack: dense.">
+  <meta name="assert" content="This test checks that removing a middle item from a grid-lanes container properly triggers auto-placement recompute, and that a later item fills the resulting gap with dense packing.">
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script src="/resources/check-layout-th.js"></script>
@@ -13,6 +13,7 @@
     .grid-lanes {
       display: grid-lanes;
       grid-template-columns: repeat(2, 50px);
+      grid-auto-flow: dense;
       grid-lanes-pack: dense;
       position: relative;
     }

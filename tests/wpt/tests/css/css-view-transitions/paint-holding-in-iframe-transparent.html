@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View transitions: content of the embedder behind a transparent iframe keeps updating while the iframe holds its old paint</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="match" href="paint-holding-in-iframe-transparent-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+  body {
+    margin: 0;
+    background: white;
+  }
+  iframe {
+    width: 200px;
+    height: 200px;
+    border: none;
+  }
+</style>
+
+<iframe id="inner" srcdoc="
+  <style>
+    body {
+      margin: 0;
+    }
+    #box {
+      margin: 50px;
+      width: 100px;
+      height: 100px;
+      background: yellow;
+    }
+  </style>
+  <div id='box'></div>
+"></iframe>
+<script>
+async function runTest() {
+  await waitForAtLeastOneFrame();
+
+  let contentDocument = inner.contentDocument;
+
+  contentDocument.startViewTransition(async () => {
+    contentDocument.getElementById("box").style.background = "purple";
+    document.body.style.background = "green";
+
+    takeScreenshot();
+    return new Promise((resolve) => {});
+  });
+}
+onload = runTest;
+</script>
+</html>

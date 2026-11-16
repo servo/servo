@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Entries API: FileSystemDirectoryEntry.getFile() with script-created DataTransfer</title>
+<link rel=help href="https://wicg.github.io/entries-api/#dom-filesystemdirectoryentry-getfile">
+<link rel=author title="Euclid Ye" href="mailto:yezhizhenjiakang@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="automated-support.js"></script>
+
+<script>
+promise_test(async () => {
+  const entry = await getFileAsPromise(createRoot(), 'test.txt');
+  assert_true(entry.isFile);
+  assert_false(entry.isDirectory);
+  assert_equals(entry.name, 'test.txt');
+  assert_equals(entry.fullPath, '/test.txt');
+}, 'getFile() resolves a file');
+
+promise_test(async () => {
+  const entry = await getFileAsPromise(createRoot(), '/test.txt');
+  assert_true(entry.isFile);
+  assert_equals(entry.name, 'test.txt');
+  assert_equals(entry.fullPath, '/test.txt');
+}, 'getFile() accepts an absolute path');
+
+promise_test(async () => {
+  const root = createRoot();
+  const first = await getFileAsPromise(root, 'test.txt');
+  const second = await getFileAsPromise(root, 'test.txt');
+  assert_not_equals(first, second, 'each call returns a new entry');
+}, 'getFile() returns a new entry for each call');
+
+for (const path of ['', null, undefined, '/', '.']) {
+  promise_test(
+    t => promise_rejects_dom(t, 'TypeMismatchError',
+                             getFileAsPromise(createRoot(), path)),
+    `getFile() rejects a directory: ${JSON.stringify(path)}`);
+}
+
+promise_test(
+  t => promise_rejects_dom(t, 'NotFoundError',
+                           getFileAsPromise(createRoot(), 'nope')),
+  'getFile() rejects a missing path');
+
+for (const path of ['\x00', '\\']) {
+  promise_test(
+    t => promise_rejects_dom(t, 'TypeMismatchError',
+                             getFileAsPromise(createRoot(), path)),
+    `getFile() rejects an invalid path: ${JSON.stringify(path)}`);
+}
+
+promise_test(
+  t => promise_rejects_dom(
+    t, 'SecurityError',
+    getFileAsPromise(createRoot(), 'test.txt', {create: true})),
+  'getFile() rejects the create option');
+</script>

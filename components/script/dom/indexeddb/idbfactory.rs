@@ -256,6 +256,7 @@ impl IDBFactory {
     /// This covers interacting with the current open request,
     /// as well as with other open connections preventing the request from making progress.
     fn handle_connection_message(&self, cx: &mut JSContext, response: ConnectionMsg) {
+        trace!("got idb response: {:?}", response);
         match response {
             ConnectionMsg::Connection {
                 name,

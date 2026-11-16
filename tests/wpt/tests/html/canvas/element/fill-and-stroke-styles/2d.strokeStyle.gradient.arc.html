@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="match" href="2d.strokeStyle.gradient.arc-ref.html">
+<meta name="fuzzy" content="maxDifference=0-128; totalPixels=0-752">
+<title>Canvas test: 2d.strokeStyle.gradient.arc</title>
+<body>
+  <canvas id="canvas" width="200" height="200"></canvas>
+</body>
+<script>
+  var canvas = document.getElementById('canvas');
+  var ctx = canvas.getContext('2d');
+  ctx.lineWidth = 20;
+  var g = ctx.createLinearGradient(0, 0, 200, 0);
+  g.addColorStop(0, 'red');
+  g.addColorStop(1, 'blue');
+  ctx.strokeStyle = g;
+  ctx.beginPath();
+  ctx.arc(100, 100, 60, 0, 2 * Math.PI);
+  ctx.stroke();
+</script>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: spanning-item collision endpoints outside crossing gutters use cap insets</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#inset">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#stacking-self-alignment">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14648#issuecomment-6527732959">
+<link rel="match" href="column-gap-decorations-spanner-collision-insets-ref.html">
+<style>
+  body { margin: 0; }
+  main { display: flex; gap: 20px; padding: 16px; width: max-content; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: 60px 60px;
+    gap: 20px;
+    width: 140px;
+    height: 240px;
+    background: #cdd5e0;
+    column-rule: 4px solid blue;
+    column-rule-break: normal;
+    column-rule-inset-junction-start: 31px;
+    column-rule-inset-junction-end: 37px;
+  }
+  .spanner {
+    grid-column: 1 / -1;
+    align-self: center;
+    height: 40px;
+    background: purple;
+  }
+  .percentages {
+    column-rule-inset-cap-start: 75%;
+    column-rule-inset-cap-end: 125%;
+  }
+  .lengths {
+    column-rule-inset-cap-start: 8px;
+    column-rule-inset-cap-end: 12px;
+  }
+  .negative {
+    column-rule-inset-cap-start: -6px;
+    column-rule-inset-cap-end: -10px;
+  }
+</style>
+<main>
+  <div class="lanes percentages">
+    <div class="spanner"></div>
+  </div>
+  <div class="lanes lengths">
+    <div class="spanner"></div>
+  </div>
+  <div class="lanes negative">
+    <div class="spanner"></div>
+  </div>
+</main>

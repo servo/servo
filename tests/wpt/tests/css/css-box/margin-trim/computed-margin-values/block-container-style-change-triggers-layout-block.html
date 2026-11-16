@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>margin-trim: changing margin-trim on a block container updates the used margins of its children</title>
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-block">
+<link rel="help" href="https://drafts.csswg.org/cssom/#resolved-values">
+<meta name="assert" content="Adding or removing margin-trim on a block container is reflected in the used margins its children report, without any other layout-forcing access in between">
+<style>
+container {
+    display: block;
+    inline-size: min-content;
+}
+item {
+    display: block;
+    background-color: green;
+    inline-size: 50px;
+    block-size: 50px;
+    margin-block: 10px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<container id="container">
+    <item id="first"></item>
+    <item id="last"></item>
+</container>
+<script>
+const container = document.getElementById("container");
+const first = document.getElementById("first");
+const last = document.getElementById("last");
+
+function usedMargin(element) {
+    const style = getComputedStyle(element);
+    return [style.marginTop, style.marginBottom];
+}
+
+test(() => {
+    assert_array_equals(usedMargin(first), ["10px", "10px"]);
+    assert_array_equals(usedMargin(last), ["10px", "10px"]);
+}, "Margins are untrimmed with margin-trim: none");
+
+test(() => {
+    container.style.marginTrim = "block";
+    assert_array_equals(usedMargin(first), ["0px", "10px"]);
+    assert_array_equals(usedMargin(last), ["10px", "0px"]);
+}, "Adding margin-trim: block trims the adjoining margins");
+
+test(() => {
+    container.style.marginTrim = "block-end";
+    assert_array_equals(usedMargin(first), ["10px", "10px"]);
+    assert_array_equals(usedMargin(last), ["10px", "0px"]);
+}, "Narrowing margin-trim to block-end restores the block-start margin");
+
+test(() => {
+    container.style.marginTrim = "none";
+    assert_array_equals(usedMargin(first), ["10px", "10px"]);
+    assert_array_equals(usedMargin(last), ["10px", "10px"]);
+}, "Removing margin-trim restores all margins");
+</script>
+</body>
+</html>

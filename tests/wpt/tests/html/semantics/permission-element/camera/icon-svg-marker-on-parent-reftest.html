@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>The icon of the camera element should not be spoofed by SVG markers on a parent element</title>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md">
+<link rel="match" href="icon-svg-marker-on-parent-reftest-ref.html">
+
+<!-- 1. Define an invisible SVG in the main document with a <marker> sized to
+        cover the permission icon's 0..960 viewBox coordinate space -->
+<svg width="0" height="0" style="position: absolute;">
+  <defs>
+    <marker id="fake-play-icon"
+            markerUnits="userSpaceOnUse"
+            markerWidth="960" markerHeight="960"
+            refX="480" refY="480"
+            viewBox="0 0 960 960">
+      <!-- Opaque background covering the real camera glyph -->
+      <rect width="960" height="960" fill="#1a73e8" />
+      <!-- Attacker-chosen icon (e.g., a video "Play" triangle or download arrow) -->
+      <polygon points="320,240 320,720 720,480" fill="#ffffff" />
+    </marker>
+  </defs>
+</svg>
+
+<!-- 2. Set marker-start/mid/end on an ordinary parent <div> -->
+<div style="marker-start: url(#fake-play-icon);
+            marker-mid: url(#fake-play-icon);
+            marker-end: url(#fake-play-icon);">
+  <camera></camera>
+</div>

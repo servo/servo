@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/shadow-dom.js"></script>
+<script src="../resources/focus-utils.js"></script>
+
+<div class="test-case" data-expect="c,b,a">
+  <div style="display: flex; flex-direction: row-reverse; reading-flow: flex-visual; position: relative;">
+    <div id="oof" style="position: absolute; top: 0; left: 0;"></div>
+    <button id="a">A</button>
+    <button id="b">B</button>
+    <button id="c">C</button>
+  </div>
+</div>
+
+<script>
+document.body.offsetTop;
+oof.style.left = '10px';
+runFocusTestCases();
+</script>

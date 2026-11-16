@@ -1,0 +1,108 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebRTC Extensions (https://w3c.github.io/webrtc-extensions/)
+
+partial dictionary RTCRtpHeaderExtensionCapability {
+  required RTCRtpTransceiverDirection direction;
+};
+
+partial interface RTCRtpTransceiver {
+  sequence<RTCRtpHeaderExtensionCapability> getHeaderExtensionsToNegotiate();
+  undefined setHeaderExtensionsToNegotiate(
+      sequence<RTCRtpHeaderExtensionCapability> extensions);
+  sequence<RTCRtpHeaderExtensionCapability> getNegotiatedHeaderExtensions();
+};
+
+partial dictionary RTCRtpEncodingParameters {
+    RTCResolutionRestriction scaleResolutionDownTo;
+    unsigned long            ptime;
+    boolean                  adaptivePtime = false;
+};
+
+dictionary RTCResolutionRestriction {
+    unsigned long maxWidth;
+    unsigned long maxHeight;
+};
+
+partial dictionary RTCSetParameterOptions {
+  sequence<RTCEncodingOptions> encodingOptions = [];
+};
+
+dictionary RTCEncodingOptions {
+  boolean keyFrame = false;
+};
+
+partial interface RTCIceTransport {
+  attribute EventHandler onicecandidatepairadd;
+  attribute EventHandler onicecandidatepairremove;
+  attribute EventHandler onicecandidatepairnominate;
+  Promise<undefined> selectCandidatePair(RTCIceCandidatePair candidatePair);
+  Promise<undefined> removeCandidatePair(RTCIceCandidatePair candidatePair);
+};
+
+[Exposed=Window]
+interface RTCIceCandidatePairEvent : Event {
+  constructor(DOMString type, RTCIceCandidatePairEventInit eventInitDict);
+  readonly attribute RTCIceCandidatePair candidatePair;
+};
+
+dictionary RTCIceCandidatePairEventInit : EventInit {
+  required RTCIceCandidatePair candidatePair;
+};
+
+partial dictionary RTCRtpContributingSource {
+  DOMHighResTimeStamp captureTimestamp;
+  DOMHighResTimeStamp senderCaptureTimeOffset;
+};
+
+[Exposed=(Window,Worker), Transferable]
+  partial interface RTCDataChannel {
+};
+
+enum RTCRtpHeaderEncryptionPolicy {
+  "disable",
+  "negotiate",
+  "require"
+};
+
+partial dictionary RTCConfiguration {
+  RTCRtpHeaderEncryptionPolicy rtpHeaderEncryptionPolicy = "negotiate";
+};
+
+partial interface RTCRtpReceiver {
+  attribute EventHandler onssrcchange;
+  attribute EventHandler oncsrcchange;
+};
+
+partial interface RTCRtpReceiver {
+  static undefined disableHardwareDecoding();
+};
+
+partial interface RTCRtpSender {
+  static undefined disableHardwareEncoding();
+};
+
+partial dictionary RTCConfiguration {
+    boolean alwaysNegotiateDataChannels = false;
+};
+
+enum RTCConfigurationTargetLatency {
+  "lowest",
+  "none"
+};
+partial dictionary RTCConfiguration {
+  RTCConfigurationTargetLatency targetLatency = "lowest";
+};
+
+[
+  Exposed=Window
+] partial interface RTCPeerConnection {
+  static DOMString startDiagnosticLogging(optional RTCDiagnosticLoggingOptions options = {});
+  static undefined stopDiagnosticLogging();
+  static undefined cancelDiagnosticLogging();
+};
+
+dictionary RTCDiagnosticLoggingOptions {
+  record<DOMString, DOMString> metadata;
+};

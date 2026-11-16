@@ -13,17 +13,24 @@
   const canvas = document.getElementById("canvas");
   const ctx = canvas.getContext("2d");
   const target = document.getElementById("target");
-  canvas.onpaint = () => {
-    ctx.drawElementImage(target, 0, 0);
-  }
-  canvas.requestPaint();
 
   async function goFullscreen() {
     await test_driver.bless("request fullscreen", () => canvas.requestFullscreen());
     document.documentElement.classList.remove("test-wait");
   }
-  window.onload = () => {
-    requestAnimationFrame(() => requestAnimationFrame(goFullscreen));
-  };
+
+  if (!('requestPaint' in HTMLCanvasElement.prototype)) {
+    // Without html-in-canvas support there is nothing to crash.
+    document.documentElement.classList.remove("test-wait");
+  } else {
+    canvas.onpaint = () => {
+      ctx.drawElementImage(target, 0, 0);
+    }
+    canvas.requestPaint();
+
+    window.onload = () => {
+      requestAnimationFrame(() => requestAnimationFrame(goFullscreen));
+    };
+  }
 </script>
 </html>

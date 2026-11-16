@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Trusted Types violation reporting for the streamHTMLUnsafe methods</title>
+    <link rel="help" href="https://html.spec.whatwg.org/#html-streaming-methods" />
+    <link rel="help" href="https://w3c.github.io/trusted-types/dist/spec/#enforcement-in-sinks" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/trusted-types/support/csp-violations.js"></script>
+  </head>
+  <body>
+    <div id="container"></div>
+    <script>
+      const container = document.getElementById("container");
+
+      function createElementReceiver() {
+        const div = document.createElement("div");
+        container.appendChild(div);
+        return div;
+      }
+
+      function createShadowRootReceiver() {
+        const host = document.createElement("div");
+        container.appendChild(host);
+        return host.attachShadow({ mode: "open" });
+      }
+
+      function createTextReceiver() {
+        const text = document.createTextNode("text");
+        container.appendChild(text);
+        return text;
+      }
+
+      const testCases = [];
+      for (const method of ["streamHTML", "streamAppendHTML", "streamPrependHTML"]) {
+        testCases.push({ sinkInterface: "Element", receiverType: "Element", method, createReceiver: createElementReceiver });
+        testCases.push({ sinkInterface: "ShadowRoot", receiverType: "ShadowRoot", method, createReceiver: createShadowRootReceiver });
+      }
+      for (const method of ["streamBeforeHTML", "streamAfterHTML", "streamReplaceWithHTML"]) {
+        // The positional methods are defined on the NonDocumentTypeChildNode
+        // mixin and use a "Node" sink name, regardless of the receiver.
+        testCases.push({ sinkInterface: "Node", receiverType: "Element", method, createReceiver: createElementReceiver });
+        testCases.push({ sinkInterface: "Node", receiverType: "Text", method, createReceiver: createTextReceiver });
+      }
+
+      for (const { sinkInterface, receiverType, method, createReceiver } of testCases) {
+        const unsafeMethod = `${method}Unsafe`;
+        const expectedSink = `${sinkInterface} ${unsafeMethod}`;
+
+        promise_test(async (t) => {
+          t.add_cleanup(() => container.replaceChildren());
+          const receiver = createReceiver();
+
+          const violation = await trusted_type_violation_for(TypeError, () => {
+            receiver[unsafeMethod]();
+          });
+
+          assert_equals(violation.disposition, "enforce");
+          assert_equals(violation.effectiveDirective, "require-trusted-types-for");
+          assert_equals(violation.violatedDirective, "require-trusted-types-for");
+          assert_equals(violation.blockedURI, "trusted-types-sink");
+          assert_true(
+            violation.sample.startsWith(`${expectedSink}|`),
+            `Expected sample to start with "${expectedSink}|", got "${violation.sample}"`,
+          );
+        }, `${receiverType}.${unsafeMethod} reports a Trusted Types violation with sink "${expectedSink}"`);
+
+        promise_test(async (t) => {
+          t.add_cleanup(() => container.replaceChildren());
+          await no_trusted_type_violation_for(async () => {
+            const receiver = createReceiver();
+            const stream = receiver[method]();
+            assert_true(stream instanceof WritableStream);
+            const writer = stream.getWriter();
+            await writer.write("<p>safe</p>");
+            await writer.close();
+          });
+        }, `${receiverType}.${method} does not report a Trusted Types violation`);
+      }
+    </script>
+  </body>
+</html>

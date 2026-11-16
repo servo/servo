@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Percentage block-size inside a rowspan table cell that is split across pages</title>
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#table-cell-content-relayout">
+<link rel="help" href="https://drafts.csswg.org/css-break/#fragmentation-model">
+<link rel="match" href="table-cell-percent-height-rowspan-fragmented-print-ref.html">
+<meta name="assert" content="A percentage block-size inside a cell spanning rows on two pages resolves against the block-size of all the rows the cell spans.">
+<style>
+@page { size: 5in 2in; margin: 0; }
+:root { print-color-adjust: exact; }
+html, body { margin: 0; }
+table { border-spacing: 0; }
+td { padding: 0; width: 50px; vertical-align: top; }
+td > div { width: 40px; height: 100%; background: green; }
+</style>
+<table>
+  <tbody>
+    <tr><td style="height: 100px"></td><td></td></tr>
+    <tr><td style="height: 50px"><div></div></td><td rowspan="3" style="height: 150px"><div></div></td></tr>
+    <tr><td style="height: 50px"></td></tr>
+    <tr><td style="height: 50px"></td></tr>
+  </tbody>
+</table>

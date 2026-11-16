@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+  body { margin: 0; }
+  .cases { display: flex; gap: 12px; align-items: start; }
+  .case { position: relative; }
+  .lanes {
+    position: relative;
+    width: 140px;
+    height: 200px;
+    background: #cdd5e0;
+  }
+  .lanes > div { position: absolute; }
+  .short {
+    left: 0;
+    top: 0;
+    width: 60px;
+    height: 40px;
+    background: #1f9d6b;
+  }
+  .tall {
+    left: 80px;
+    top: 0;
+    width: 60px;
+    height: 140px;
+    background: #5b8def;
+  }
+  .spanner {
+    left: 0;
+    top: 160px;
+    width: 140px;
+    height: 40px;
+    background: #8a6df0;
+  }
+  .col-rule {
+    position: absolute;
+    left: 68px;
+    top: 0;
+    width: 4px;
+    height: 40px;
+    background: blue;
+  }
+  .row-rule {
+    position: absolute;
+    left: 0;
+    top: 148px;
+    width: 60px;
+    height: 4px;
+    background: gold;
+  }
+  .row-rule.second { left: 80px; }
+  .center .short, .center .col-rule { top: 50px; }
+  .end .short, .end .col-rule { top: 100px; }
+  .vertical .lanes { width: 200px; height: 140px; }
+  .vertical .short { left: 110px; top: 0; width: 40px; height: 60px; }
+  .vertical .tall { left: 60px; top: 80px; width: 140px; height: 60px; }
+  .vertical .spanner { left: 0; top: 0; width: 40px; height: 140px; }
+  .vertical .col-rule { left: 110px; top: 68px; width: 40px; height: 4px; }
+  .vertical .row-rule { left: 48px; top: 0; width: 4px; height: 60px; }
+  .vertical .row-rule.second { top: 80px; }
+</style>
+<div class="cases">
+  <div class="case">
+    <div class="lanes">
+      <div class="short"></div>
+      <div class="tall"></div>
+      <div class="spanner"></div>
+    </div>
+    <div class="col-rule"></div>
+    <div class="row-rule"></div>
+    <div class="row-rule second"></div>
+  </div>
+  <div class="case center">
+    <div class="lanes">
+      <div class="short"></div>
+      <div class="tall"></div>
+      <div class="spanner"></div>
+    </div>
+    <div class="col-rule"></div>
+    <div class="row-rule"></div>
+    <div class="row-rule second"></div>
+  </div>
+  <div class="case end">
+    <div class="lanes">
+      <div class="short"></div>
+      <div class="tall"></div>
+      <div class="spanner"></div>
+    </div>
+    <div class="col-rule"></div>
+    <div class="row-rule"></div>
+    <div class="row-rule second"></div>
+  </div>
+  <div class="case vertical center">
+    <div class="lanes">
+      <div class="short"></div>
+      <div class="tall"></div>
+      <div class="spanner"></div>
+    </div>
+    <div class="col-rule"></div>
+    <div class="row-rule"></div>
+    <div class="row-rule second"></div>
+  </div>
+</div>

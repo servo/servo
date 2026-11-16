@@ -682,7 +682,8 @@ var browserTests = [
     {"forwarddelete":[false,false,"",false,false,""]}],
 ["foo<table><tr><td>bar[]<br></table>baz",
     [["forwarddelete",""]],
-    "foo<table><tbody><tr><td>bar[]</td></tr></tbody></table>baz",
+    // No visible thing is deleted so that the invisible <br> should be preserved.
+    "foo<table><tbody><tr><td>bar<br></td></tr></tbody></table>baz",
     [true],
     {"forwarddelete":[false,false,"",false,false,""]}],
 ["<p>foo[]<br><table><tr><td>bar</table><p>baz",
@@ -692,17 +693,20 @@ var browserTests = [
     {"forwarddelete":[false,false,"",false,false,""]}],
 ["<p>foo<table><tr><td>bar[]<br></table><p>baz",
     [["forwarddelete",""]],
-    "<p>foo</p><table><tbody><tr><td>bar[]</td></tr></tbody></table><p>baz</p>",
+    // No visible thing is deleted so that the invisible <br> should be preserved.
+    "<p>foo</p><table><tbody><tr><td>bar<br></td></tr></tbody></table><p>baz</p>",
     [true],
     {"forwarddelete":[false,false,"",false,false,""]}],
 ["<table><tr><td>foo[]<br><td>bar</table>",
     [["forwarddelete",""]],
-    "<table><tbody><tr><td>foo{}</td><td>bar</td></tr></tbody></table>",
+    // No visible thing is deleted so that the invisible <br> should be preserved.
+    "<table><tbody><tr><td>foo<br></td><td>bar</td></tr></tbody></table>",
     [true],
     {"forwarddelete":[false,false,"",false,false,""]}],
 ["<table><tr><td>foo[]<br><tr><td>bar</table>",
     [["forwarddelete",""]],
-    "<table><tbody><tr><td>foo{}</td></tr><tr><td>bar</td></tr></tbody></table>",
+    // No visible thing is deleted so that the invisible <br> should be preserved.
+    "<table><tbody><tr><td>foo<br></td></tr><tr><td>bar</td></tr></tbody></table>",
     [true],
     {"forwarddelete":[false,false,"",false,false,""]}],
 ["foo<table><tr><td>bar[]</table><br>baz",

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Reference: white-space-trim discard-before/after on an inline-block</title>
+<style>
+  .ib { display: inline-block; }
+  .iflex { display: inline-flex; }
+  img { background: green; }
+</style>
+</head>
+<body>
+<p>This test passes if it renders identically to the reference.</p>
+<div>a<span class="ib">b</span>c</div>
+<div>a<span class="ib">b</span>c</div>
+<div>x<span class="ib">y</span>z</div>
+<div>a <span class="iflex">b</span>c</div>
+<div>a <img width="8" height="8" style="display:inline-block" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==">c</div>
+</body>
+</html>

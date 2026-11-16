@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Forced breaks propagate from a nested child to its grid-lanes row</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="match" href="row-breaks-001-ref.html">
+<style>
+  .multicol { columns: 3; column-gap: 0; column-fill: auto; width: 240px; height: 100px; background: lightgray; }
+  .lanes { display: grid-lanes; grid-template-rows: 60px 60px 20px; width: 80px; }
+  .lanes > div { width: 40px; }
+</style>
+<div class="multicol">
+  <div class="lanes">
+    <div style="grid-row: 1; background: orange;"></div>
+    <div style="grid-row: 1; background: blue;"></div>
+    <div style="grid-row: 2; background: teal;">
+      <div style="height: 10px; break-before: column;"></div>
+    </div>
+    <div style="grid-row: 2; background: purple;"></div>
+    <div style="grid-row: 3; width: 80px; background: yellow;"></div>
+  </div>
+</div>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>white-space-trim: discard-before collapses collapsible white space before an inline box</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#white-space-trim">
+<link rel="match" href="reference/white-space-trim-discard-before-ref.html">
+<meta name="assert" content="'white-space-trim: discard-before' on an inline box collapses the collapsible white space immediately before its start, so 'a &lt;span&gt;b&lt;/span&gt;' renders as 'ab'.">
+<style>
+  span { white-space-trim: discard-before; }
+</style>
+</head>
+<body>
+  <p>Test passes if the letters below read "ab" with no space between them.</p>
+  <div>a <span>b</span></div>
+</body>
+</html>

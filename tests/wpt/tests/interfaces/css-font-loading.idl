@@ -6,7 +6,8 @@
 dictionary FontFaceDescriptors {
   CSSOMString style = "normal";
   CSSOMString weight = "normal";
-  CSSOMString stretch = "normal";
+  CSSOMString width;
+  CSSOMString stretch = "normal"; // alias for width, sets the same attribute
   CSSOMString unicodeRange = "U+0-10FFFF";
   CSSOMString featureSettings = "normal";
   CSSOMString variationSettings = "normal";
@@ -20,19 +21,23 @@ enum FontFaceLoadStatus { "unloaded", "loading", "loaded", "error" };
 
 [Exposed=(Window,Worker)]
 interface FontFace {
-  constructor(CSSOMString family, (CSSOMString or BufferSource) source,
-                optional FontFaceDescriptors descriptors = {});
+  constructor(CSSOMString family,
+              (CSSOMString or BufferSource) source,
+              optional FontFaceDescriptors descriptors = {});
+
   attribute CSSOMString family;
   attribute CSSOMString style;
   attribute CSSOMString weight;
-  attribute CSSOMString stretch;
+  attribute CSSOMString width;
   attribute CSSOMString unicodeRange;
+  attribute CSSOMString variant;
   attribute CSSOMString featureSettings;
   attribute CSSOMString variationSettings;
   attribute CSSOMString display;
   attribute CSSOMString ascentOverride;
   attribute CSSOMString descentOverride;
   attribute CSSOMString lineGapOverride;
+  attribute CSSOMString sizeAdjust;
 
   readonly attribute FontFaceLoadStatus status;
 

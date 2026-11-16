@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Canvas test: 2d.strokeStyle.pattern.arc (reference)</title>
+<body>
+  <canvas id="canvas" width="200" height="200"></canvas>
+</body>
+<script>
+  var canvas = document.getElementById('canvas');
+  var ctx = canvas.getContext('2d');
+  // Create the same checkerboard pattern.
+  var patternCanvas = document.createElement('canvas');
+  patternCanvas.width = 20;
+  patternCanvas.height = 20;
+  var pctx = patternCanvas.getContext('2d');
+  pctx.fillStyle = 'red';
+  pctx.fillRect(0, 0, 10, 10);
+  pctx.fillStyle = 'blue';
+  pctx.fillRect(10, 0, 10, 10);
+  pctx.fillStyle = 'blue';
+  pctx.fillRect(0, 10, 10, 10);
+  pctx.fillStyle = 'red';
+  pctx.fillRect(10, 10, 10, 10);
+  var pattern = ctx.createPattern(patternCanvas, 'repeat');
+  ctx.fillStyle = pattern;
+  // Fill an annulus matching a 20px-wide stroke on a radius-60 arc.
+  ctx.beginPath();
+  ctx.arc(100, 100, 70, 0, 2 * Math.PI);
+  ctx.arc(100, 100, 50, 0, 2 * Math.PI, true);
+  ctx.fill();
+</script>

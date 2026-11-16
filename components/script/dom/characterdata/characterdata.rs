@@ -100,7 +100,7 @@ impl CharacterData {
     // Queue a MutationObserver record before changing the content.
     fn queue_mutation_record(&self, cx: &mut JSContext) {
         let mutation = LazyCell::new(|| Mutation::CharacterData {
-            old_value: self.data.borrow().clone(),
+            old_value: self.data.borrow(),
         });
         MutationObserver::queue_a_mutation_record(cx, self.upcast::<Node>(), mutation);
     }
@@ -109,12 +109,15 @@ impl CharacterData {
     pub(crate) fn set_text_run_selection(
         &self,
         new_range: Option<RangeAny<Utf32CodeUnits>>,
+        new_paints_caret: bool,
     ) -> bool {
         self.upcast::<Node>()
             .layout_data()
             .borrow()
             .as_ref()
-            .is_some_and(|layout_data| layout_data.set_text_run_selection(new_range))
+            .is_some_and(|layout_data| {
+                layout_data.set_text_run_selection(new_range, new_paints_caret)
+            })
     }
 
     /// Returns the rendered text for this [`CharacterData`].

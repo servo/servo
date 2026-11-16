@@ -49,7 +49,7 @@ function observeReports(uuid) {
 function takeReports(uuid) {
   return new RemoteContext(uuid).execute_script(() => {
     self.observedReports.push(...self.reportingObserver.takeRecords());
-    return self.observedReports.map(report => report.toJSON());
+    return self.observedReports;
   });
 }
 
@@ -60,7 +60,7 @@ function fetchAndObserveReports(uuid, url) {
     const reports = [];
     const observed = new Promise(resolve => {
       new ReportingObserver(list => {
-        reports.push(...list.map(report => report.toJSON()));
+        reports.push(...list);
         if (reports.length >= 2)
           resolve();
       }).observe();

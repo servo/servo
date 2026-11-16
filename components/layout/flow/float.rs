@@ -21,14 +21,15 @@ use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::Clear as StyleClear;
 
+use crate::PropagatedBoxTreeData;
+use crate::containing_block::ContainingBlock;
 use crate::context::LayoutContext;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::{BoxFragment, CollapsedMargin};
-use crate::geom::{LogicalRect, LogicalVec2, ToLogical};
+use crate::geom::{LogicalRect, LogicalSides, LogicalVec2};
 use crate::positioned::{PositioningContext, relative_adjustement};
 use crate::style_ext::{DisplayInside, PaddingBorderMargin};
-use crate::{ContainingBlock, PropagatedBoxTreeData};
 
 /// A floating box.
 #[derive(Debug, MallocSizeOf)]
@@ -1071,14 +1072,15 @@ impl SequentialLayoutState {
                 .solve()
     }
 
-    /// This function places a Fragment that has been created for a FloatBox.
+    /// This function places a Fragment that has been created for a FloatBox. Returns the logical
+    /// content rectangle of the float in the containing block.
     pub(crate) fn place_float_fragment(
         &mut self,
         box_fragment: &BoxFragment,
         containing_block: &ContainingBlock,
         margins_collapsing_with_parent_containing_block: CollapsedMargin,
         block_offset_from_containing_block_top: Au,
-    ) {
+    ) -> LogicalRect<Au> {
         let block_start_of_containing_block_in_bfc = self.floats.containing_block_info.block_start +
             self.floats
                 .containing_block_info
@@ -1092,13 +1094,14 @@ impl SequentialLayoutState {
 
         let style = box_fragment.style().clone();
         let container_writing_mode = containing_block.style.writing_mode;
-        let logical_float_size = box_fragment
-            .content_rect()
-            .size
-            .to_logical(container_writing_mode);
-        let pbm_sums = box_fragment
-            .padding_border_margin()
-            .to_logical(container_writing_mode);
+        let logical_float_size = LogicalVec2::from_physical_size(
+            &box_fragment.content_rect().size,
+            container_writing_mode,
+        );
+        let pbm_sums = LogicalSides::from_physical(
+            &box_fragment.padding_border_margin(),
+            container_writing_mode,
+        );
         let margin_box_start_corner = self.floats.add_float(&PlacementInfo {
             size: logical_float_size + pbm_sums.sum(),
             side: FloatSide::from_style_and_container_writing_mode(&style, container_writing_mode)
@@ -1124,15 +1127,16 @@ impl SequentialLayoutState {
             block: new_position_in_bfc.block - block_start_of_containing_block_in_bfc,
         };
 
-        box_fragment.base.set_rect(
-            LogicalRect {
-                start_corner: new_position_in_containing_block,
-                size: box_fragment
-                    .content_rect()
-                    .size
-                    .to_logical(container_writing_mode),
-            }
-            .as_physical(containing_block),
-        );
+        let rect = LogicalRect {
+            start_corner: new_position_in_containing_block,
+            size: LogicalVec2::from_physical_size(
+                &box_fragment.content_rect().size,
+                container_writing_mode,
+            ),
+        };
+        box_fragment
+            .base
+            .set_rect(rect.as_physical_deprecated(containing_block));
+        rect
     }
 }

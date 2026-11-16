@@ -1,0 +1,34 @@
+<!doctype html>
+<title>A javascript: URL navigation discards the nested history of the replaced document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="resources/page-with-iframe.html"></iframe>
+<script>
+// Resolves after the load event so that the next navigation isn't converted to
+// a replace navigation.
+function navigateAndWaitForLoad(t, iframe, navigate) {
+  return new Promise(resolve => {
+    iframe.onload = () => t.step_timeout(resolve, 0);
+    navigate();
+  });
+}
+
+promise_test(async t => {
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  const child = i.contentDocument.getElementById("child");
+  const blank = new URL("resources/blank.html", location.href).href;
+  await navigateAndWaitForLoad(t, child, () => child.contentWindow.location.href = blank + "?navigated");
+  assert_equals(child.contentWindow.location.search, "?navigated");
+
+  await navigateAndWaitForLoad(t, i, () => i.src = "javascript:'<p id=replaced>replaced</p>'");
+  await navigateAndWaitForLoad(t, i, () => i.contentWindow.location.href = blank + "?next");
+
+  await navigateAndWaitForLoad(t, i, () => i.contentWindow.history.back());
+
+  const restoredChild = i.contentDocument.getElementById("child");
+  assert_not_equals(restoredChild, null, "the entry's URL is loaded again");
+  assert_equals(restoredChild.contentWindow.location.search, "?initial",
+                "the child frame loads its src, not the replaced document's nested history");
+}, "Traversing back to an entry created by a javascript: URL navigation doesn't restore the replaced document's nested history");
+</script>

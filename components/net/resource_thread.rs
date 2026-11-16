@@ -15,7 +15,7 @@ use std::thread;
 use cookie::Cookie;
 use embedder_traits::GenericEmbedderProxy;
 use hyper_serde::Serde;
-use log::{debug, trace, warn};
+use log::{debug, trace};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::blob_url_store::{BlobTokenCommunicator, parse_blob_url};
 use net_traits::filemanager_thread::FileTokenCheck;
@@ -23,9 +23,9 @@ use net_traits::pub_domains::public_suffix_list_size_of;
 use net_traits::request::{Destination, PreloadEntry, PreloadId, RequestBuilder, RequestId};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::{
-    AsyncRuntime, CookieAsyncResponse, CookieData, CookieSource, CoreResourceMsg,
-    CoreResourceThread, CustomResponseMediator, DiscardFetch, FetchChannels, FetchTaskTarget,
-    NetworkError, ResourceFetchTiming, ResourceThreads, ResourceTimingType, WebSocketDomAction,
+    AsyncRuntime, CookieData, CookieSource, CoreResourceMsg, CoreResourceThread,
+    CustomResponseMediator, DiscardFetch, FetchChannels, FetchTaskTarget, NetworkError,
+    ResourceFetchTiming, ResourceThreads, ResourceTimingType, WebSocketDomAction,
     WebSocketNetworkEvent,
 };
 use parking_lot::{Mutex, RwLock};
@@ -41,10 +41,9 @@ use rustls_pki_types::CertificateDer;
 use rustls_pki_types::pem::PemObject;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{
-    self, CallbackSetter, GenericCallback, GenericReceiver, GenericReceiverSet,
-    GenericSelectionResult, GenericSender,
+    self, CallbackSetter, GenericReceiver, GenericReceiverSet, GenericSelectionResult,
+    GenericSender,
 };
-use servo_base::id::CookieStoreId;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use tokio::sync::Mutex as TokioMutex;
 
@@ -163,7 +162,6 @@ pub fn new_core_resource_thread(
                 ca_certificates,
                 ignore_certificate_errors,
                 cancellation_listeners: Default::default(),
-                cookie_listeners: Default::default(),
             };
 
             mem_profiler_chan.run_with_memory_reporting(
@@ -193,7 +191,6 @@ struct ResourceChannelManager {
     ca_certificates: CACertificates<'static>,
     ignore_certificate_errors: bool,
     cancellation_listeners: FxHashMap<RequestId, Weak<CancellationListener>>,
-    cookie_listeners: FxHashMap<CookieStoreId, GenericCallback<CookieAsyncResponse>>,
 }
 
 /// This returns a tuple HttpState and a private HttpState.
@@ -277,14 +274,15 @@ impl ResourceChannelManager {
         let refresh_id = rx_set.add(refresh_receiver);
         let mut selector = rx_set.selector();
 
-        loop {
+        'outer: loop {
             for received in selector.select().into_iter() {
-                // Handles case where profiler thread shuts down before resource thread.
                 match received {
+                    // Handles case where profiler thread shuts down before resource thread.
                     GenericSelectionResult::ChannelClosed(_) => continue,
                     GenericSelectionResult::Error(error) => {
                         log::error!("Found selection error: {error}")
                     },
+                    GenericSelectionResult::AllChannelsClosed(_) => break 'outer,
                     GenericSelectionResult::MessageReceived(id, msg) => {
                         if id == revoker_id {
                             let CoreResourceMsg::RevokeTokenForFile(revocation_request) = msg
@@ -336,6 +334,7 @@ impl ResourceChannelManager {
                 }
             }
         }
+        log::info!("Resource thread terminated");
     }
 
     fn process_report(
@@ -385,20 +384,6 @@ impl ResourceChannelManager {
         self.cancellation_listeners
             .insert(request_id, Arc::downgrade(&cancellation_listener));
         cancellation_listener
-    }
-
-    fn send_cookie_response(&self, store_id: CookieStoreId, data: CookieData) {
-        let Some(sender) = self.cookie_listeners.get(&store_id) else {
-            warn!(
-                "Async cookie request made for store id that is non-existent {:?}",
-                store_id
-            );
-            return;
-        };
-        let res = sender.send(CookieAsyncResponse { data });
-        if res.is_err() {
-            warn!("Unable to send cookie response to script thread");
-        }
     }
 
     /// Returns false if the thread should exit.
@@ -523,7 +508,10 @@ impl ResourceChannelManager {
                     source,
                     http_state,
                 );
-                self.send_cookie_response(cookie_store_id, CookieData::Set(Ok(())));
+                http_state
+                    .cookie_jar
+                    .read()
+                    .send_response(cookie_store_id, CookieData::Set(Ok(())));
             },
             CoreResourceMsg::GetCookieStringForUrl(url, consumer, source) => {
                 let mut cookie_jar = http_state.cookie_jar.write();
@@ -547,7 +535,7 @@ impl ResourceChannelManager {
                     .into_iter()
                     .map(Serde)
                     .next();
-                self.send_cookie_response(cookie_store_id, CookieData::Get(cookie));
+                cookie_jar.send_response(cookie_store_id, CookieData::Get(cookie));
             },
             CoreResourceMsg::GetAllCookieDataForUrlAsync(cookie_store_id, url, name) => {
                 let mut cookie_jar = http_state.cookie_jar.write();
@@ -557,7 +545,7 @@ impl ResourceChannelManager {
                     .into_iter()
                     .map(Serde)
                     .collect();
-                self.send_cookie_response(cookie_store_id, CookieData::GetAll(cookies));
+                cookie_jar.send_response(cookie_store_id, CookieData::GetAll(cookies));
             },
             CoreResourceMsg::EmbedderGetCookiesForUrl(operation_id, url, source) => {
                 let mut cookie_jar = http_state.cookie_jar.write();
@@ -600,12 +588,17 @@ impl ResourceChannelManager {
                         operation_id,
                     ));
             },
-            CoreResourceMsg::NewCookieListener(cookie_store_id, callback, _url) => {
-                // TODO: Use the URL for setting up the actual monitoring
-                self.cookie_listeners.insert(cookie_store_id, callback);
+            CoreResourceMsg::NewCookieListener(cookie_store_id, callback, url) => {
+                http_state
+                    .cookie_jar
+                    .write()
+                    .add_listener(cookie_store_id, url, callback);
             },
             CoreResourceMsg::RemoveCookieListener(cookie_store_id) => {
-                self.cookie_listeners.remove(&cookie_store_id);
+                http_state
+                    .cookie_jar
+                    .write()
+                    .remove_listener(cookie_store_id);
             },
             CoreResourceMsg::NetworkMediator(mediator_chan, origin) => {
                 self.resource_manager
@@ -669,6 +662,13 @@ impl ResourceChannelManager {
 
                 let _ = sender.send(());
                 return false;
+            },
+            CoreResourceMsg::StoreCacheToDisk(sender) => {
+                let http_state = http_state.clone();
+                spawn_task(async move {
+                    http_state.http_cache.drain_to_disk().await;
+                    let _ = sender.send(());
+                })
             },
             // Ignore these messages as they are only sent on very specific channels.
             CoreResourceMsg::CollectMemoryReport(_) |

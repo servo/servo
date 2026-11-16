@@ -59,6 +59,16 @@ def domains_are_distinct(a, b):
     return a_parts[slice_index:] != b_parts[slice_index:]
 
 
+class WebSocketH3HttpsHandler(wptserve.Http1WebTestRequestHandler):
+    def finish_handling(self, request, response, handler):
+        params = urllib.parse.parse_qs(request.url_parts.query)
+        if "websocket-h3" in params.get("wpt_flags", []):
+            # A wss: URL does not select H3 by itself. Advertise the paired
+            # UDP server so the browser can discover H3 for this HTTPS origin.
+            response.headers.set("Alt-Svc", f'h3=":{self.server.server_port}"; ma=60')
+        return super().finish_handling(request, response, handler)
+
+
 def inject_script(html, script_tag):
     # Tokenize and find the position of the first content (e.g. after the
     # doctype, html, and head opening tags if present but before any other tags).
@@ -1006,6 +1016,24 @@ def get_route_builder(logger, aliases, config):
     return builder
 
 
+def raise_open_file_limit():
+    if sys.platform != "darwin":
+        return
+
+    # on Darwin, NOFILE starts with a very low limit (256), so bump it up a little
+    # by way of comparison, Debian starts with a limit of 1024, Windows 512
+    import resource  # local, as it only exists on Unix-like systems
+    maxfilesperproc = int(subprocess.check_output(
+        ["sysctl", "-n", "kern.maxfilesperproc"]
+    ).strip())
+    soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    # 2048 is somewhat arbitrary, but gives us some headroom for wptrunner --parallel
+    # note that it's expected that 2048 will be the min here
+    new_soft = min(2048, maxfilesperproc, hard)
+    if soft < new_soft:
+        resource.setrlimit(resource.RLIMIT_NOFILE, (new_soft, hard))
+
+
 class ServerProc:
     def __init__(self, mp_context, scheme=None):
         self.proc = None
@@ -1031,19 +1059,7 @@ class ServerProc:
         os.environ = env
         logger = get_logger(config.logging["level"], log_handlers)
 
-        if sys.platform == "darwin":
-            # on Darwin, NOFILE starts with a very low limit (256), so bump it up a little
-            # by way of comparison, Debian starts with a limit of 1024, Windows 512
-            import resource  # local, as it only exists on Unix-like systems
-            maxfilesperproc = int(subprocess.check_output(
-                ["sysctl", "-n", "kern.maxfilesperproc"]
-            ).strip())
-            soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
-            # 2048 is somewhat arbitrary, but gives us some headroom for wptrunner --parallel
-            # note that it's expected that 2048 will be the min here
-            new_soft = min(2048, maxfilesperproc, hard)
-            if soft < new_soft:
-                resource.setrlimit(resource.RLIMIT_NOFILE, (new_soft, hard))
+        raise_open_file_limit()
         try:
             self.daemon = init_func(logger, host, port, paths, routes, bind_address, config, **kwargs)
         except OSError:
@@ -1167,6 +1183,12 @@ def start_servers(logger, host, ports, paths, routes, bind_address, config,
             logging.warning("WebTransport over HTTP/3 server disabled")
             continue
 
+        if scheme == "websocket-h3" and not kwargs.get("websocket_h3"):
+            logging.warning("WebSocket over HTTP/3 server disabled")
+            continue
+        if scheme == "websocket-h3-https" and not kwargs.get("websocket_h3"):
+            continue
+
         # Skip over DNS unless it is enabled explicitly.
         if scheme == "dns" and not kwargs.get("dns"):
             logging.info("DNS server disabled")
@@ -1187,6 +1209,8 @@ def start_servers(logger, host, ports, paths, routes, bind_address, config,
                 "ws": start_ws_server,
                 "wss": start_wss_server,
                 "webtransport-h3": start_webtransport_h3_server,
+                "websocket-h3": start_websocket_h3_server,
+                "websocket-h3-https": start_websocket_h3_https_server,
                 "dns": start_dns_server,
             }[scheme]
 
@@ -1241,6 +1265,20 @@ def start_https_server(logger, host, port, paths, routes, bind_address, config, 
                                      latency=kwargs.get("latency"))
     except Exception as error:
         logger.critical(f"start_https_server: Caught exception from wptserve.WebTestHttpd: {error}")
+        startup_failed(logger)
+
+
+def start_websocket_h3_https_server(logger, host, port, paths, routes, bind_address, config, **kwargs):
+    try:
+        return wptserve.WebTestHttpd(
+            host=host, port=port, doc_root=paths["doc_root"],
+            routes=routes, rewrites=rewrites, bind_address=bind_address,
+            config=config, use_ssl=True,
+            key_file=config.ssl_config["key_path"],
+            certificate=config.ssl_config["cert_path"],
+            handler_cls=WebSocketH3HttpsHandler)
+    except Exception as error:
+        logger.critical(f"Failed to start WebSocket/H3 HTTPS server: {error}")
         startup_failed(logger)
 
 
@@ -1370,6 +1408,25 @@ def start_webtransport_h3_server(logger, host, port, paths, routes, bind_address
         sys.exit(0)
 
 
+def start_websocket_h3_server(logger, host, port, paths, routes, bind_address, config, **kwargs):
+    try:
+        from websocket.h3.websocket_h3_server import WebSocketH3Server  # type: ignore[import-not-found]
+        return WebSocketH3Server(host=host,
+                                 port=port,
+                                 ws_doc_root=paths["ws_doc_root"],
+                                 cert_path=config.ssl_config["cert_path"],
+                                 key_path=config.ssl_config["key_path"],
+                                 doc_root=paths["doc_root"],
+                                 routes=routes,
+                                 rewrites=rewrites,
+                                 config=config,
+                                 extra_handler_paths=paths["ws_extra"],
+                                 logger=logger)
+    except Exception as error:
+        logger.critical(f"Failed to start WebSocket over HTTP/3 server: {error}")
+        startup_failed(logger)
+
+
 def start_dns_server(logger, host, port, paths, routes, bind_address, config, **kwargs):
     try:
         from .dns import DNSServerDaemon
@@ -1446,6 +1503,7 @@ class ConfigBuilder(config.ConfigBuilder):
             "ws": ["auto"],
             "wss": ["auto"],
             "webtransport-h3": ["auto"],
+            "websocket-h3": ["auto"],
             "dns": [8053],
         },
         "check_subdomains": True,
@@ -1508,6 +1566,15 @@ class ConfigBuilder(config.ConfigBuilder):
         rv["ws_extra"] = data["ws_extra"]
         return rv
 
+    def _get_ports(self, data):
+        ports = super()._get_ports(data)
+        if data["ssl"]["type"] == "none":
+            ports.pop("websocket-h3", None)
+            ports.pop("websocket-h3-https", None)
+        elif ports.get("websocket-h3"):
+            ports["websocket-h3-https"] = list(ports["websocket-h3"])
+        return ports
+
 
 def build_config(logger, override_path=None, config_cls=ConfigBuilder, **kwargs):
     rv = config_cls(logger)
@@ -1566,6 +1633,10 @@ def get_parser():
                         help="Disable the HTTP/2 server")
     parser.add_argument("--webtransport-h3", action="store_true",
                         help="Enable WebTransport over HTTP/3 server")
+    parser.add_argument("--websocket-h3", action="store_true",
+                        help="Enable WebSocket over HTTP/3 server")
+    parser.add_argument("--no-websocket-h3", action="store_false", dest="websocket_h3",
+                        help="Disable WebSocket over HTTP/3 server")
     parser.add_argument("--dns", action="store_true",
                         help="Enable DNS server")
     parser.add_argument("--dns-wildcards", type=int, metavar="N",

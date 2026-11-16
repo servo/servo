@@ -257,6 +257,30 @@
     @assert pixel 50,25 == 0,255,0,255;
   expected: green
 
+- name: 2d.fillStyle.parse.current.stylesheet
+  desc: currentColor should take into account color set by CSS stylesheet
+  canvas_types: ['HtmlCanvas']
+  code: |
+    var styleSheet = document.createElement("style")
+    styleSheet.textContent = "canvas { color: #0f0; }"
+    document.head.appendChild(styleSheet)
+
+    document.body.setAttribute('style', 'color: #f00');
+    ctx.fillStyle = 'currentColor';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.fillStyle.parse.current.inherited
+  desc: currentColor should take into account color inherited from ancestor elements
+  canvas_types: ['HtmlCanvas']
+  code: |
+    document.body.setAttribute('style', 'color: #0f0');
+    ctx.fillStyle = 'currentColor';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
 - name: 2d.fillStyle.parse.current.changed
   desc: currentColor is computed when the attribute is set, not when it is painted
   canvas_types: ['HtmlCanvas']

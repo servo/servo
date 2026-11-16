@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>white-space-trim: discard-inner on a block container trims up to the segment breaks around its content</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#valdef-white-space-trim-discard-inner">
+<link rel="match" href="reference/white-space-trim-discard-inner-block-ref.html">
+<meta name="assert" content="On a block container, 'white-space-trim: discard-inner' discards all white space at the beginning of the element up to and including the last segment break before the first non-white-space character, and all white space at the end starting with the first segment break after the last non-white-space character. The white space on the content side of those segment breaks, such as the first line's indentation, is kept.">
+<style>
+  /* 'white-space' is a shorthand that resets 'white-space-trim', so it comes first. */
+  pre, .pre { white-space: pre; white-space-trim: discard-inner; }
+  .pre-line { white-space: pre-line; white-space-trim: discard-inner; }
+  div, pre { border: 1px solid; margin: 4px 0; font: 16px/1 monospace; }
+  .ib { display: inline-block; }
+  .empty-generated::before, .empty-generated::after { content: ""; }
+</style>
+</head>
+<body>
+<p>This test passes if it renders identically to the reference.</p>
+<!-- 1. The spec example: <pre> (the parser drops the newline right after the start tag) -->
+<pre>
+
+  some
+preformatted
+
+  text
+
+</pre>
+<!-- 2. Several segment breaks on each side -->
+<div class="pre">
+
+
+
+  some text
+
+
+
+</div>
+<!-- 3. Spaces and tabs around the segment breaks being discarded -->
+<div class="pre">  &#9;
+  &#9;
+  some text  &#9;
+  &#9;
+</div>
+<!-- 4. Segment breaks inside inline boxes -->
+<div class="pre"><span>
+  </span><span>
+  some text</span>
+<span>
+</span></div>
+<!-- 5. No segment break before the content or after it: nothing is discarded -->
+<div class="pre">  some text  </div>
+<!-- 6. Nothing but white space -->
+<div class="pre">
+   &#32;
+</div>
+<!-- 7. pre-line -->
+<div class="pre-line">
+
+  some
+  text
+
+</div>
+<!-- 8. An inline-block is a block container too -->
+<div>[<span class="pre ib">
+  some text
+</span>]</div>
+<!-- 9. Empty generated content is an empty inline box, which doesn't end the white space -->
+<div class="pre empty-generated">
+  some text
+</div>
+<!-- 10. The only content left is in one of several children -->
+<div>[<span class="pre ib">text<!---->
+</span>]</div>
+</body>
+</html>

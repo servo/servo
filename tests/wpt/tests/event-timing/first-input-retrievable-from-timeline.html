@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Event Timing: first-input entry is returned by getEntries() and getEntriesByName()</title>
+<link rel="help" href="https://w3c.github.io/timing-entrytypes-registry/#registry">
+<button id='button'>Click me</button>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=resources/event-timing-test-utils.js></script>
+<script>
+promise_test(async () => {
+  assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
+  const firstInputPromise = new Promise(resolve => {
+    new PerformanceObserver(list => resolve(list.getEntries()[0]))
+        .observe({type: 'first-input'});
+  });
+  await click(document.getElementById('button'));
+  const firstInput = await firstInputPromise;
+  assert_equals(firstInput.name, 'pointerdown');
+
+  const [entry] = performance.getEntriesByType('first-input');
+  assert_true(performance.getEntries().includes(entry), 'getEntries()');
+  assert_array_equals(performance.getEntriesByName('pointerdown'), [entry],
+                      'getEntriesByName(name)');
+  assert_array_equals(performance.getEntriesByName('pointerdown', 'first-input'),
+                      [entry], 'getEntriesByName(name, "first-input")');
+  assert_array_equals(performance.getEntriesByName('pointerdown', 'event'), [],
+                      'getEntriesByName(name, "event")');
+}, 'first-input entry is available from the performance timeline');
+</script>

@@ -19,9 +19,10 @@
 .lanes {
   display: grid-lanes;
   grid-template-columns: repeat(4, 80px);
+  grid-auto-flow: dense;
   grid-lanes-pack: dense;
   flow-tolerance: 0;
-  reading-flow: grid-columns;
+  reading-flow: grid-lanes-track;
   width: 320px;
 }
 .lanes > button {

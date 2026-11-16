@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset=utf-8>
+<script>
+'use strict';
+
+Promise.all([
+  navigator.permissions.query({name: 'camera'}),
+  navigator.permissions.query({name: 'camera', panTiltZoom: true}),
+]).then(
+  ([cameraStatus, ptzStatus]) => {
+    window.parent.postMessage({
+      cameraState: cameraStatus.state,
+      ptzState: ptzStatus.state,
+    }, '*');
+  },
+  error => {
+    window.parent.postMessage({ error: error.name + ': ' + error.message }, '*');
+  }
+);
+</script>

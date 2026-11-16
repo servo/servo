@@ -140,6 +140,7 @@ impl TokenSink for PrefetchSink {
                             referrer_policy: self.referrer_policy,
                             integrity_metadata,
                             cryptographic_nonce,
+                            fetch_priority: Default::default(),
                             credentials_mode: CredentialsMode::CredentialsSameOrigin,
                             parser_metadata: ParserMetadata::ParserInserted,
                             render_blocking: false,

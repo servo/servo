@@ -19,9 +19,14 @@ test_invalid_value("mask-position", "bottom 10% top 20%");
 
 test_invalid_value("mask-position", "center left 1px");
 test_invalid_value("mask-position", "center top 2px");
+test_invalid_value("mask-position", "center top 20px");
+test_invalid_value("mask-position", "center left 30px");
 test_invalid_value("mask-position", "right 3% center");
 test_invalid_value("mask-position", "left 4px top");
+test_invalid_value("mask-position", "left 10px center");
+test_invalid_value("mask-position", "left 20% top");
 test_invalid_value("mask-position", "right top 5px");
+test_invalid_value("mask-position", "right top 15px");
 test_invalid_value("mask-position", "bottom 6% center");
 test_invalid_value("mask-position", "bottom 7% left");
 test_invalid_value("mask-position", "bottom right 8%");

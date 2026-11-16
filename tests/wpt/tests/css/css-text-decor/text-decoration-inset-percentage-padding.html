@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration: a percentage inset resolves against the decorating box including its padding</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-inset-property">
+<link rel="match" href="text-decoration-inset-percentage-padding-ref.html">
+<meta name="assert" content="The percentage resolves against the inline size of the decorating box, which includes the box's own padding and every text run inside it - not against the individual text run being painted.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+body { margin: 20px; }
+u {
+  font: 20px/2 Ahem;
+  padding: 0 40px;
+  text-decoration-line: underline;
+  text-decoration-color: blue;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+  text-decoration-inset: 25%;
+}
+b { font-weight: normal; }
+</style>
+
+<!-- The <u> is 40px padding + 4ch + 4ch + 40px = 240px, and its content is split into three text runs
+     by the <b>. 25% of the decorating box is 60px, trimming 60px from each end. Resolving against the
+     painted text run (80px, giving 20px) or against the runs without the padding (160px, giving 40px)
+     would both leave a longer underline. -->
+
+<div><u>aaaa<b>bbbb</b></u></div>

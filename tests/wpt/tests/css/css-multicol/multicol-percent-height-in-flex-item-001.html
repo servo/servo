@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>Percent block-size of children of a multicol container that is an auto-sized flex item in an auto-sized column flex container</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#definite-sizes">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-1/">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2089710">
+<meta name="assert" content="The main size of a flex item with an indefinite flex basis, in a flex container with an indefinite main size, is indefinite. So percent heights on children of a multicol container that is such a flex item should behave as auto.">
+<style>
+.flex {
+  display: flex;
+  flex-direction: column;
+  width: 200px;
+}
+.columns {
+  column-count: 2;
+  column-gap: 0;
+}
+.item {
+  height: 100%;
+  padding: 5px;
+}
+.sized {
+  height: 20px;
+  background: teal;
+}
+</style>
+<div class="flex">
+  <div class="columns" data-expected-height="90">
+    <div class="item" data-expected-height="30"><div class="sized"></div></div>
+    <div class="item" data-expected-height="30"><div class="sized"></div></div>
+    <div class="item" data-expected-height="30"><div class="sized"></div></div>
+    <div class="item" data-expected-height="30"><div class="sized"></div></div>
+    <div class="item" data-expected-height="30"><div class="sized"></div></div>
+    <div class="item" data-expected-height="30"><div class="sized"></div></div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+  checkLayout(".columns");
+</script>

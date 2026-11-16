@@ -1,0 +1,24 @@
+{
+    "url": "mp4/test-a-1s.mp4",
+    "init": {
+        "offset": 0,
+        "size": 942
+    },
+    "media": [
+        {
+            "offset": 942,
+            "size": 4067,
+            "timestamp": 0.0
+        },
+        {
+            "offset": 5009,
+            "size": 3624,
+            "timestamp": 0.5108390022675737
+        },
+        {
+            "offset": 8633,
+            "size": 570,
+            "timestamp": 0.9984580498866213
+        }
+    ]
+}

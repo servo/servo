@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp does not count an outside list marker as a line</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-outside-list-marker-001-ref.html">
+<meta name="assert" content="Only line boxes in the same block formatting context are counted, so the content of an outside list marker does not use up the list item's lines.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+li {
+  font: 20px/1 Ahem;
+  list-style-position: outside;
+  line-clamp: 1;
+}
+</style>
+<p>Test passes if there is a list marker followed by a black rectangle below.</p>
+<ul>
+  <li>XXXX</li>
+</ul>

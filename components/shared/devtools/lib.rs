@@ -584,10 +584,20 @@ pub struct HttpRequest {
 }
 
 #[derive(Debug, PartialEq, MallocSizeOf)]
+pub struct HttpResponseBody {
+    pub data: bytes::Bytes,
+    pub truncated: bool,
+    /// Total number of (decompressed) bytes received from the network,
+    /// including any bytes that were dropped due to the truncation limit.
+    /// When `truncated` is false this equals `data.len()`.
+    pub content_size: usize,
+}
+
+#[derive(Debug, PartialEq, MallocSizeOf)]
 pub struct HttpResponse {
     pub headers: Option<HeaderMap>,
     pub status: HttpStatus,
-    pub body: Option<bytes::Bytes>,
+    pub body: Option<HttpResponseBody>,
     pub from_cache: bool,
     pub pipeline_id: PipelineId,
     pub browsing_context_id: BrowsingContextId,

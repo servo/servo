@@ -1,0 +1,168 @@
+<!doctype html>
+<html>
+  <head>
+    <link rel="help" href="https://html.spec.whatwg.org/#html-streaming-methods" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/trusted-types/support/helper.sub.js"></script>
+
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="require-trusted-types-for 'script';"
+    />
+  </head>
+  <body>
+    <div id="container"></div>
+    <script>
+      const methods = [
+        "streamHTML",
+        "streamHTMLUnsafe",
+        "streamAppendHTML",
+        "streamAppendHTMLUnsafe",
+        "streamPrependHTML",
+        "streamPrependHTMLUnsafe",
+        "streamBeforeHTML",
+        "streamBeforeHTMLUnsafe",
+        "streamAfterHTML",
+        "streamAfterHTMLUnsafe",
+        "streamReplaceWithHTML",
+        "streamReplaceWithHTMLUnsafe"
+      ];
+
+      for (const method of methods) {
+        const safe = !method.endsWith("Unsafe");
+        test((t) => {
+          const container = document.querySelector("#container");
+          let d = document.createElement("div");
+          let child = document.createElement("span");
+          d.appendChild(child);
+          container.appendChild(d);
+          t.add_cleanup(() => d.remove());
+          if (safe) {
+            assert_true(d[method]() instanceof WritableStream);
+          } else {
+            assert_equals(typeof Element.prototype[method], "function", `${method} is supported`);
+            assert_throws_js(TypeError, () => d[method]());
+            assert_equals(d.parentNode, container, "target remains connected when TypeError is thrown");
+            assert_equals(d.firstChild, child, "target children remain intact when TypeError is thrown");
+          }
+        }, `${method} with trusted types and no default policy ${safe ? "returns a WritableStream" : "throws"}.`);
+      }
+
+      for (const method of [
+        "streamHTML",
+        "streamHTMLUnsafe",
+        "streamAppendHTML",
+        "streamAppendHTMLUnsafe",
+        "streamPrependHTML",
+        "streamPrependHTMLUnsafe",
+      ]) {
+        const safe = !method.endsWith("Unsafe");
+        test((t) => {
+          const host = document.createElement("div");
+          const sr = host.attachShadow({ mode: "open" });
+          const child = document.createElement("span");
+          sr.appendChild(child);
+          document.querySelector("#container").appendChild(host);
+          t.add_cleanup(() => host.remove());
+          if (safe) {
+            assert_true(sr[method]() instanceof WritableStream);
+          } else {
+            assert_equals(typeof ShadowRoot.prototype[method], "function", `${method} is supported on ShadowRoot`);
+            assert_throws_js(TypeError, () => sr[method]());
+            assert_equals(sr.firstChild, child, "ShadowRoot children remain intact when TypeError is thrown");
+          }
+        }, `ShadowRoot.${method} with trusted types and no default policy ${safe ? "returns a WritableStream" : "throws"}.`);
+      }
+
+      for (const method of [
+        "streamBeforeHTML",
+        "streamBeforeHTMLUnsafe",
+        "streamAfterHTML",
+        "streamAfterHTMLUnsafe",
+        "streamReplaceWithHTML",
+        "streamReplaceWithHTMLUnsafe",
+      ]) {
+        const safe = !method.endsWith("Unsafe");
+        test((t) => {
+          const parent = document.createElement("div");
+          const text = parent.appendChild(document.createTextNode("hello"));
+          document.querySelector("#container").appendChild(parent);
+          t.add_cleanup(() => parent.remove());
+          if (safe) {
+            assert_true(text[method]() instanceof WritableStream);
+          } else {
+            assert_equals(typeof CharacterData.prototype[method], "function", `${method} is supported on CharacterData`);
+            assert_throws_js(TypeError, () => text[method]());
+            assert_equals(text.parentNode, parent, "CharacterData remains attached when TypeError is thrown");
+          }
+        }, `CharacterData.${method} with trusted types and no default policy ${safe ? "returns a WritableStream" : "throws"}.`);
+      }
+
+      for (const method of [
+        "streamBeforeHTMLUnsafe",
+        "streamAfterHTMLUnsafe",
+        "streamReplaceWithHTMLUnsafe",
+      ]) {
+        test((t) => {
+          const detached = document.createElement("div");
+          assert_equals(typeof Element.prototype[method], "function", `${method} is supported`);
+          assert_throws_js(
+            TypeError,
+            () => detached[method](),
+            "Trusted Types TypeError must be thrown before HierarchyRequestError on a detached node",
+          );
+        }, `${method} on a detached node with no default policy throws TypeError before HierarchyRequestError.`);
+
+        test((t) => {
+          const frag = document.createDocumentFragment();
+          const child = document.createElement("div");
+          frag.appendChild(child);
+          assert_equals(typeof Element.prototype[method], "function", `${method} is supported`);
+          assert_throws_js(
+            TypeError,
+            () => child[method](),
+            "Trusted Types TypeError must be thrown before HierarchyRequestError on a DocumentFragment child",
+          );
+        }, `${method} on a DocumentFragment child with no default policy throws TypeError before HierarchyRequestError.`);
+
+        test((t) => {
+          assert_equals(typeof Element.prototype[method], "function", `${method} is supported`);
+          assert_throws_js(
+            TypeError,
+            () => document.implementation.createHTMLDocument().head[method](),
+            "Trusted Types TypeError must be thrown before HierarchyRequestError when the parent is the html element",
+          );
+        }, `${method} on head (parent is the html element) with no default policy throws TypeError before HierarchyRequestError.`);
+      }
+
+      // The html element cases use an inert document so that a non-conforming
+      // implementation cannot mutate the test page. Trusted Types enforcement
+      // still applies since it's the same global.
+
+      for (const method of ["streamAppendHTMLUnsafe", "streamPrependHTMLUnsafe"]) {
+        test((t) => {
+          assert_equals(typeof Element.prototype[method], "function", `${method} is supported`);
+          assert_throws_js(
+            TypeError,
+            () => document.implementation.createHTMLDocument().documentElement[method](),
+            "Trusted Types TypeError must be thrown before HierarchyRequestError on the html element",
+          );
+        }, `${method} on the html element with no default policy throws TypeError before HierarchyRequestError.`);
+      }
+
+      for (const method of ["streamHTMLUnsafe", "streamAppendHTMLUnsafe", "streamPrependHTMLUnsafe"]) {
+        test((t) => {
+          const script = document.createElement("script");
+          document.querySelector("#container").appendChild(script);
+          assert_equals(typeof Element.prototype[method], "function", `${method} is supported`);
+          assert_throws_js(
+            TypeError,
+            () => script[method](),
+            "Trusted Types TypeError must be thrown before NotSupportedError on a <script> target",
+          );
+        }, `${method} on a <script> with no default policy throws TypeError before NotSupportedError.`);
+      }
+    </script>
+  </body>
+</html>

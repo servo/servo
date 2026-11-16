@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>CSS Gap Decorations: between row rule visibility treats free space after a lane's last item as occupied in grid lanes</title>
+<title>CSS Gap Decorations: between row rules stop at the shorter lane's last item in grid lanes</title>
 <link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
 <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#visibility">
 <link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-model">
@@ -9,7 +9,6 @@
   .lanes {
     display: grid-lanes;
     grid-template-rows: repeat(3, 60px);
-    grid-lanes-direction: row;
     gap: 20px;
     width: max-content;
     background: #cdd5e0;

@@ -38,6 +38,9 @@ test_computed_value("background-image", "radial-gradient(at right 40%, red, blue
 test_computed_value("background-image", "radial-gradient(at right 30% top 60px, red, blue)", "radial-gradient(at 70% 60px, rgb(255, 0, 0), rgb(0, 0, 255))");
 test_computed_value("background-image", "radial-gradient(at top, red, blue)", "radial-gradient(at 50% 0%, rgb(255, 0, 0), rgb(0, 0, 255))");
 test_computed_value("background-image", "radial-gradient(at top center, red, blue)", "radial-gradient(at 50% 0%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "radial-gradient(circle closest-side at top, red, blue)", "radial-gradient(circle closest-side at 50% 0%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "radial-gradient(circle closest-side at top left, red, blue)", "radial-gradient(circle closest-side at 0% 0%, rgb(255, 0, 0), rgb(0, 0, 255))");
+test_computed_value("background-image", "radial-gradient(10px 10px at center, red, blue)", "radial-gradient(10px 10px, rgb(255, 0, 0), rgb(0, 0, 255))");
 
 // Single keyword positions
 test_computed_value("background-image", "conic-gradient(at top, red, blue)", "conic-gradient(at 50% 0%, rgb(255, 0, 0), rgb(0, 0, 255))");

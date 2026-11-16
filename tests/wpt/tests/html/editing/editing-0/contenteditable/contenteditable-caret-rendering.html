@@ -1,0 +1,17 @@
+<!doctype html>
+<title>When a contenteditable element is focused, it draws a text caret.</title>
+<link rel="author" title="Psychpsyo" href="mailto:psychpsyo@gmail.com">
+<link rel="mismatch" href="contenteditable-caret-rendering-ref.html">
+<style>
+  /* We test this by checking that turning the caret invisible leads to a noticeable difference.
+  This means that both the reference and the test case can be contenteditable, so we don't need to
+  worry as much about any difference in focus indicators. */
+  #div {
+    caret-color: transparent;
+  }
+</style>
+<div id="div" contenteditable>Test</div>
+<script>
+  div.focus();
+  document.getSelection().setPosition(div.firstChild, 2);
+</script>

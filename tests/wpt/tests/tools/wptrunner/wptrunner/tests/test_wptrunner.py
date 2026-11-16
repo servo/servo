@@ -7,12 +7,27 @@ from unittest.mock import Mock
 from mozlog.structuredlog import StructuredLogger
 
 from ..testloader import TestQueueBuilder
+from ..testrunner import StopState, TestRunnerManager
 from ..wptcommandline import TestRoot
 from ..wptrunner import get_loader, get_pause_after_test
 from .test_testloader import Subsuite, TestFilter, TestLoader, WPTManifest
 
 TestQueueBuilder.__test__ = None  # type: ignore[attr-defined]
+TestRunnerManager.__test__ = None  # type: ignore[attr-defined]
 TestRoot.__test__ = None  # type: ignore[attr-defined]
+
+
+def test_cleanup_run_loop_without_current_group() -> None:
+    manager = Mock()
+    manager.test_source.current_group = None
+    manager.state = StopState(force_stop=False)
+    manager.browser = None
+
+    TestRunnerManager._cleanup_run_loop(manager)
+
+    manager.stop_runner.assert_called_once_with(force=False)
+    manager.teardown.assert_called_once_with()
+    manager.parent_stop_flag.wait_for_all_managers_done.assert_called_once_with()
 
 
 def test_get_pause_after_test(logger: StructuredLogger) -> None:

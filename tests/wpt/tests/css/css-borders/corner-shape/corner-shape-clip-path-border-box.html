@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4: clip-path with a &lt;shape-box&gt; follows corner-shape</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shape">
+<link rel="help" href="https://drafts.csswg.org/css-masking/#the-clip-path">
+<link rel="match" href="corner-shape-clip-path-border-box-ref.html">
+<meta name="fuzzy" content="maxDifference=0-103; totalPixels=0-562">
+<meta name="assert" content="clip-path: border-box clips to the corner-shape contour, not to the rounded rect, so an overflowing child is cut to the same shape the border box paints.">
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+    }
+
+    .clipper {
+        width: 100px;
+        height: 100px;
+        margin: 10px;
+        float: left;
+        border-radius: 40px;
+        clip-path: border-box;
+    }
+
+    /* Overflows the clipper on every side, so only the clip decides the shape. */
+    .child {
+        width: 200px;
+        height: 200px;
+        background-color: green;
+    }
+
+    .round { corner-shape: round; }
+    .square { corner-shape: square; }
+    .scoop { corner-shape: scoop; }
+    .bevel { corner-shape: bevel; }
+    .notch { corner-shape: notch; }
+    .squircle { corner-shape: superellipse(2); }
+</style>
+</head>
+<body>
+    <div class="clipper round"><div class="child"></div></div>
+    <div class="clipper square"><div class="child"></div></div>
+    <div class="clipper scoop"><div class="child"></div></div>
+    <div class="clipper bevel"><div class="child"></div></div>
+    <div class="clipper notch"><div class="child"></div></div>
+    <div class="clipper squircle"><div class="child"></div></div>
+</body>
+</html>

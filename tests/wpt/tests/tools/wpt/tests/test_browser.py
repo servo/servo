@@ -500,3 +500,32 @@ def test_wpewebkit_minibrowser_find_binary(mocked_os_path_isfile, mocked_os_list
     mocked_os_listdir.side_effect = lambda contents: sorted(['wpewebkit-6.0', 'webkit2gtk-4.0', 'wpe-webkit-2.0', 'wpe-webkit-1.0'])
     mocked_which.side_effect = lambda found: None
     assert wpewebkit_minibrowser.find_binary() == '/usr/libexec/wpe-webkit-2.0/MiniBrowser'
+
+
+@pytest.mark.parametrize("host_cpu,channel,index", [
+    ("x86_64", None, "gecko.v2.mozilla-central.shippable.latest.mobile.android-x86_64-opt"),
+    ("aarch64", None, "gecko.v2.mozilla-central.shippable.latest.mobile.android-aarch64-opt"),
+    ("aarch64", "beta", "gecko.v2.mozilla-beta.shippable.latest.mobile.android-aarch64-opt"),
+])
+@mock.patch("tools.wpt.browser.get_taskcluster_artifact")
+def test_firefox_android_download_arch(mocked_get_artifact, host_cpu, channel, index, tmp_path):
+    mocked_get_artifact.return_value.content = b"apk"
+    firefox_android = browser.FirefoxAndroid(logging.getLogger("FirefoxAndroid"))
+
+    with mock.patch("tools.wpt.android.get_host_cpu", return_value=host_cpu):
+        path = firefox_android.download(dest=str(tmp_path), channel=channel)
+
+    mocked_get_artifact.assert_called_once_with(index, "public/build/geckoview-test_runner.apk")
+    assert path == str(tmp_path / "geckoview-test_runner.apk")
+    assert (tmp_path / "geckoview-test_runner.apk").read_bytes() == b"apk"
+
+
+@mock.patch("tools.wpt.browser.get_taskcluster_artifact")
+def test_firefox_android_download_unsupported_arch(mocked_get_artifact, tmp_path):
+    firefox_android = browser.FirefoxAndroid(logging.getLogger("FirefoxAndroid"))
+
+    with mock.patch("tools.wpt.android.get_host_cpu", return_value="riscv64"):
+        with pytest.raises(NotImplementedError):
+            firefox_android.download(dest=str(tmp_path))
+
+    mocked_get_artifact.assert_not_called()

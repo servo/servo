@@ -94,12 +94,9 @@ async function generateURNFromFledgeRawURL(
   return navigator.runAdAuction(auctionConfig);
 }
 
-// Similar to runSelectURL, but uses FLEDGE instead of Shared Storage as the
-// auctioning tool.
+// Uses FLEDGE as the auctioning tool.
 // Note: this function, unlike generateURL, is asynchronous and needs to be
-// called with an await operator. @param {string} href - The base url of the
-// page being navigated to @param {string list} keylist - The list of key UUIDs
-// to be used. Note that order matters when extracting the keys
+// called with an await operator.
 // @param {string} href - The base url of the page being navigated to
 // @param {string list} keylist - The list of key UUIDs to be used. Note that
 //                                order matters when extracting the keys
@@ -224,12 +221,6 @@ function attachContext(object_constructor, html, headers, origin) {
   return buildRemoteContextForObject(object, uuid, html);
 }
 
-// TODO(crbug.com/1347953): Update this function to also test
-// `sharedStorage.selectURL()` that returns a fenced frame config object.
-// This should be done after fixing the following flaky tests that use this
-// function.
-// 1. crbug.com/1372536: resize-lock-input.https.html
-// 2. crbug.com/1394559: unfenced-top.https.html
 async function attachOpaqueContext(
     generator_api, resolve_to_config, ad_with_size, requested_size,
     register_beacon, object_constructor, html, headers, origin,
@@ -339,11 +330,11 @@ function replaceFrameContext(frame_proxy, {
 // Attach a fenced frame that waits for scripts to execute. Takes as input a(n
 // optional) dictionary of configs:
 // - generator_api: the name of the API that should generate the urn/config.
-//    Supports (case-insensitive) "fledge" and "sharedstorage", or any other
-//    value as a default. If you generate a urn, then you need to await the
-//    result of this function.
+//    Supports (case-insensitive) "fledge", or any other value as a default.
+//    If you generate a urn, then you need to await the result of this
+//    function.
 // - resolve_to_config: whether a config should be used. (currently only works
-//    for FLEDGE and sharedStorage generator_api)
+//    for FLEDGE generator_api)
 // - ad_with_size: whether an ad auction is run with size specified for the ads
 //    and ad components. (currently only works for FLEDGE)
 // - requested_size: A 2-element list with the width and height for

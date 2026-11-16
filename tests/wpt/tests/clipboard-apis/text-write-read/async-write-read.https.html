@@ -36,6 +36,31 @@ async function readWriteTest(textInput) {
   }, 'Verify write and read clipboard given text: ' + textInput);
 }
 
+// Writing a text/plain blob UTF-8 decodes its bytes, so a UTF-8 byte order mark
+// is stripped and a UTF-16 one is decoded as two U+FFFD.
+async function readWriteBytesTest(bytes, expectedText, description) {
+  promise_test(async t => {
+    await tryGrantReadPermission();
+    await tryGrantWritePermission();
+
+    const blobInput = new Blob([new Uint8Array(bytes)], {type: 'text/plain'});
+    const clipboardItemInput = new ClipboardItem({'text/plain': blobInput});
+
+    await waitForUserActivation();
+    await navigator.clipboard.write([clipboardItemInput]);
+    await waitForUserActivation();
+    const clipboardItems = await navigator.clipboard.read();
+    assert_equals(clipboardItems.length, 1);
+    const blobOutput = await clipboardItems[0].getType('text/plain');
+
+    const textOutput = await (new Response(blobOutput)).text();
+    assert_equals(textOutput, expectedText);
+  }, 'Verify write and read clipboard decodes text/plain as UTF-8: ' + description);
+}
+
 readWriteTest('Clipboard write ([text/plain ClipboardItem]) -> read ([text/plain ClipboardItem]) test');
 readWriteTest('non-Latin1 text encoding test データ');
+readWriteBytesTest([0xEF, 0xBB, 0xBF, 0x50, 0x41], 'PA', 'a UTF-8 byte order mark is stripped');
+readWriteBytesTest([0xFF, 0xFE, 0x50, 0x41], '\ufffd\ufffdPA', 'a UTF-16LE byte order mark is not used');
+readWriteBytesTest([0xFE, 0xFF, 0x50, 0x41], '\ufffd\ufffdPA', 'a UTF-16BE byte order mark is not used');
 </script>

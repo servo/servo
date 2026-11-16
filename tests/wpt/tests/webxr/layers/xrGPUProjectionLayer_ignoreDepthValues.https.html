@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+
+<script>
+
+  // ALL_FEATURES is the upstream list and does not name 'webgpu', which a WebGPU-backed session
+  // requires. xr_session_promise_test is not usable here either: it assigns a baseLayer, which a
+  // WebGPU session does not accept.
+  const WEBGPU_IMMERSIVE_DEVICE = {
+    ...TRACKED_IMMERSIVE_DEVICE,
+    supportedFeatures: [...ALL_FEATURES, 'webgpu']
+  };
+
+  async function requestWebGPUSession(t) {
+    await navigator.xr.test.simulateDeviceConnection(WEBGPU_IMMERSIVE_DEVICE);
+
+    const session = await new Promise((resolve, reject) => {
+      navigator.xr.test.simulateUserActivation(() => {
+        navigator.xr.requestSession('immersive-vr', { requiredFeatures: ['layers', 'webgpu'] })
+          .then(resolve, reject);
+      });
+    });
+
+    t.add_cleanup(async () => { await session.end().catch(() => {}); });
+    return session;
+  }
+
+  xr_promise_test("XRGPUBinding projection layers report ignoreDepthValues per layer", async (t) => {
+    assert_implements(navigator.gpu, 'WebGPU is not available.');
+    assert_implements(window.XRGPUBinding, 'XRGPUBinding is not available.');
+
+    const session = await requestWebGPUSession(t);
+
+    const adapter = await navigator.gpu.requestAdapter({ xrCompatible: true });
+    assert_true(!!adapter, 'An xrCompatible GPUAdapter is required.');
+    const device = await adapter.requestDevice();
+
+    const binding = new XRGPUBinding(session, device);
+    const colorFormat = binding.getPreferredColorFormat();
+
+    const withoutDepth = binding.createProjectionLayer({ colorFormat });
+    assert_true(withoutDepth.ignoreDepthValues, "ignoreDepthValues must be true for a layer created without a depthStencilFormat.");
+
+    const withDepth = binding.createProjectionLayer({ colorFormat, depthStencilFormat: 'depth24plus' });
+    assert_false(withDepth.ignoreDepthValues, "ignoreDepthValues must be false for a layer created with a depthStencilFormat.");
+
+    // The format belongs to the layer, not to the binding, so creating a second layer must leave
+    // the first one alone.
+    assert_true(withoutDepth.ignoreDepthValues, "creating a second layer must not change the first layer's ignoreDepthValues.");
+  });
+
+</script>

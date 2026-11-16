@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: absolutely positioned boxes follow dynamic changes of their inline box containing block</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#def-cb">
+<meta name="assert" content="When the inline box that establishes the containing block of an absolutely positioned box moves, changes its content or padding, or starts or stops being the containing block, the absolutely positioned box is laid out against the updated containing block.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.container {
+    position: relative;
+    font: 20px/1 Ahem;
+    width: 300px;
+    height: 100px;
+}
+.abs {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+}
+</style>
+<div id="tests"></div>
+<script>
+const tests = document.getElementById("tests");
+
+function setup(outOfFlowStyle, inlineBoxStyle = "position: relative")
+{
+    const container = document.createElement("div");
+    container.className = "container";
+    container.innerHTML = `XX <span style="${inlineBoxStyle}">XX<i class="abs" style="${outOfFlowStyle}"></i>XX</span> ZZ`;
+    tests.append(container);
+    // Start from a clean layout.
+    container.getBoundingClientRect();
+    return { container, inlineBox: container.querySelector("span"), outOfFlowBox: container.querySelector(".abs") };
+}
+
+// The padding box of a single line inline box.
+function containingBlockEdges(inlineBox)
+{
+    const rect = inlineBox.getClientRects()[0];
+    const style = getComputedStyle(inlineBox);
+    const left = rect.left + parseFloat(style.borderLeftWidth);
+    const top = rect.top + parseFloat(style.borderTopWidth);
+    const right = rect.right - parseFloat(style.borderRightWidth);
+    const bottom = rect.bottom - parseFloat(style.borderBottomWidth);
+    return { left, top, right, bottom, width: right - left, height: bottom - top };
+}
+
+function checkEdges(outOfFlowBox, expected, edges)
+{
+    const rect = outOfFlowBox.getBoundingClientRect();
+    for (const edge of edges)
+        assert_approx_equals(rect[edge], expected[edge], 0.5, edge);
+}
+
+const startCorner = { style: "left: 0; top: 0", edges: ["left", "top"] };
+const endCorner = { style: "right: 0; bottom: 0", edges: ["right", "bottom"] };
+const fullSize = { style: "left: 0; width: 100%; top: 0; height: 100%", edges: ["left", "top", "width", "height"] };
+const mutations = [
+    { description: "text appended to the inline box", mutate: inlineBox => inlineBox.append("YYYY"), checks: [startCorner] },
+    { description: "text removed from the inline box", mutate: inlineBox => inlineBox.lastChild.remove(), checks: [startCorner] },
+    { description: "content inserted before the inline box", mutate: inlineBox => inlineBox.before("WWWW"), checks: [startCorner, endCorner, fullSize] },
+    { description: "inline box padding change", mutate: inlineBox => inlineBox.style.padding = "10px 20px", checks: [startCorner] },
+];
+
+for (const mutation of mutations) {
+    for (const check of mutation.checks) {
+        const { inlineBox, outOfFlowBox } = setup(check.style);
+        mutation.mutate(inlineBox);
+        test(() => {
+            checkEdges(outOfFlowBox, containingBlockEdges(inlineBox), check.edges);
+        }, `${mutation.description}; absolutely positioned box '${check.style}'`);
+    }
+}
+
+test(() => {
+    const { container, inlineBox, outOfFlowBox } = setup("left: 0; top: 0");
+    inlineBox.style.position = "static";
+    const containerRect = container.getBoundingClientRect();
+    checkEdges(outOfFlowBox, { left: containerRect.left, top: containerRect.top }, ["left", "top"]);
+}, "inline box stops being the containing block");
+
+test(() => {
+    const { inlineBox, outOfFlowBox } = setup("left: 0; top: 0", "position: static");
+    inlineBox.style.position = "relative";
+    checkEdges(outOfFlowBox, containingBlockEdges(inlineBox), ["left", "top"]);
+}, "inline box becomes the containing block");
+
+test(() => {
+    const { inlineBox, outOfFlowBox } = setup("left: 0; top: 0", "position: relative; left: 0; top: 0");
+    inlineBox.style.left = "13px";
+    inlineBox.style.top = "17px";
+    checkEdges(outOfFlowBox, containingBlockEdges(inlineBox), ["left", "top"]);
+}, "relatively positioned inline box moves");
+
+tests.remove();
+</script>

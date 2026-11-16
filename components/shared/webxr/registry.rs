@@ -7,6 +7,7 @@ use log::warn;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{self, GenericCallback, GenericReceiver, GenericSender};
+use servo_base::id::PipelineId;
 
 use crate::{
     DiscoveryAPI, Error, GLTypes, LayerGrandManager, MainThreadSession, MockDeviceInit,
@@ -21,6 +22,7 @@ pub struct Registry {
 
 pub struct MainThreadRegistry<GL> {
     discoveries: Vec<Box<dyn DiscoveryAPI<GL>>>,
+    fallback_discoveries: Vec<Box<dyn DiscoveryAPI<GL>>>,
     sessions: Vec<Box<dyn MainThreadSession>>,
     mocks: Vec<Box<dyn MockDiscoveryAPI<GL>>>,
     sender: GenericSender<RegistryMsg>,
@@ -28,6 +30,7 @@ pub struct MainThreadRegistry<GL> {
     waker: MainThreadWakerImpl,
     grand_manager: LayerGrandManager<GL>,
     next_session_id: u32,
+    device_change_callbacks: Vec<(PipelineId, GenericCallback<()>)>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -79,6 +82,24 @@ impl Registry {
             .send(RegistryMsg::SimulateDeviceConnection(init, dest));
         self.waker.wake();
     }
+
+    pub fn set_device_change_callback(
+        &mut self,
+        pipeline_id: PipelineId,
+        callback: GenericCallback<()>,
+    ) {
+        let _ = self
+            .sender
+            .send(RegistryMsg::SetDeviceChangeCallback(pipeline_id, callback));
+        self.waker.wake();
+    }
+
+    pub fn remove_device_change_callbacks(&mut self, pipeline_id: PipelineId) {
+        let _ = self
+            .sender
+            .send(RegistryMsg::RemoveDeviceChangeCallbacks(pipeline_id));
+        self.waker.wake();
+    }
 }
 
 impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
@@ -90,11 +111,13 @@ impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
             return Err(Error::CommunicationError);
         };
         let discoveries = Vec::new();
+        let fallback_discoveries = Vec::new();
         let sessions = Vec::new();
         let mocks = Vec::new();
         let waker = MainThreadWakerImpl::new(waker)?;
         Ok(MainThreadRegistry {
             discoveries,
+            fallback_discoveries,
             sessions,
             mocks,
             sender,
@@ -102,6 +125,7 @@ impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
             waker,
             grand_manager,
             next_session_id: 0,
+            device_change_callbacks: vec![],
         })
     }
 
@@ -112,11 +136,19 @@ impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
         }
     }
 
-    pub fn register<D>(&mut self, discovery: D)
+    pub fn register<D>(&mut self, mut discovery: D)
     where
         D: DiscoveryAPI<GL>,
     {
+        discovery.set_waker(self.waker.callback.clone());
         self.discoveries.push(Box::new(discovery));
+    }
+
+    pub fn register_fallback<D>(&mut self, fallback: D)
+    where
+        D: DiscoveryAPI<GL>,
+    {
+        self.fallback_discoveries.push(Box::new(fallback));
     }
 
     pub fn register_mock<D>(&mut self, discovery: D)
@@ -137,6 +169,17 @@ impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
         while let Ok(msg) = self.receiver.try_recv() {
             self.handle_msg(msg);
         }
+
+        let mut changed = false;
+        for discovery in &mut self.discoveries {
+            changed |= discovery.poll_device_changed();
+        }
+        if changed {
+            for (_, callback) in &self.device_change_callbacks {
+                let _ = callback.send(());
+            }
+        }
+
         for session in &mut self.sessions {
             session.run_one_frame();
         }
@@ -158,6 +201,13 @@ impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
             RegistryMsg::SimulateDeviceConnection(init, dest) => {
                 let _ = dest.send(self.simulate_device_connection(init));
             },
+            RegistryMsg::SetDeviceChangeCallback(pipeline_id, callback) => {
+                self.device_change_callbacks.push((pipeline_id, callback));
+            },
+            RegistryMsg::RemoveDeviceChangeCallbacks(pipeline_id) => {
+                self.device_change_callbacks
+                    .retain(|(id, _)| *id != pipeline_id);
+            },
         }
     }
 
@@ -167,11 +217,20 @@ impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
                 return Ok(());
             }
         }
+        for fallback in &self.fallback_discoveries {
+            if fallback.supports_session(mode) {
+                return Ok(());
+            }
+        }
         Err(Error::NoMatchingDevice)
     }
 
     fn request_session(&mut self, mode: SessionMode, init: SessionInit) -> Result<Session, Error> {
-        for discovery in &mut self.discoveries {
+        for discovery in self
+            .discoveries
+            .iter_mut()
+            .chain(self.fallback_discoveries.iter_mut())
+        {
             if discovery.supports_session(mode) {
                 let id = SessionId(self.next_session_id);
                 self.next_session_id += 1;
@@ -216,4 +275,6 @@ enum RegistryMsg {
         MockDeviceInit,
         ProfileGenericCallback<Result<GenericSender<MockDeviceMsg>, Error>>,
     ),
+    SetDeviceChangeCallback(PipelineId, GenericCallback<()>),
+    RemoveDeviceChangeCallbacks(PipelineId),
 }

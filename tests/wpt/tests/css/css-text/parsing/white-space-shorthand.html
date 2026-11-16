@@ -46,4 +46,47 @@ test_invalid_value("white-space", "collapse balance");
 test_invalid_value("white-space", "balance collapse");
 test_invalid_value("white-space", "preserve balance");
 test_invalid_value("white-space", "balance preserve");
+
+// white-space-trim as a component of the shorthand.
+test_valid_and_computed_value("white-space", "discard-before", "discard-before");
+test_valid_and_computed_value("white-space", "discard-after", "discard-after");
+test_valid_and_computed_value("white-space", "discard-inner", "discard-inner");
+
+test_valid_and_computed_value("white-space", "collapse wrap discard-before", "discard-before");
+test_valid_and_computed_value("white-space", "wrap collapse discard-before", "discard-before");
+test_valid_and_computed_value("white-space", "discard-before collapse wrap", "discard-before");
+
+test_valid_and_computed_value("white-space", "preserve discard-before", "preserve discard-before");
+test_valid_and_computed_value("white-space", "discard-before preserve", "preserve discard-before");
+
+test_valid_and_computed_value("white-space", "nowrap discard-after", "nowrap discard-after");
+test_valid_and_computed_value("white-space", "discard-after nowrap", "nowrap discard-after");
+
+test_valid_and_computed_value("white-space", "preserve nowrap discard-inner", "preserve nowrap discard-inner");
+test_valid_and_computed_value("white-space", "discard-inner nowrap preserve", "preserve nowrap discard-inner");
+test_valid_and_computed_value("white-space", "discard-inner preserve nowrap", "preserve nowrap discard-inner");
+
+// Multiple white-space-trim keywords are normalized to their canonical grammar order.
+test_valid_and_computed_value("white-space", "discard-after discard-before", "discard-before discard-after");
+test_valid_and_computed_value("white-space", "collapse wrap discard-after discard-before", "discard-before discard-after");
+
+// All three white-space-trim keywords together.
+test_valid_and_computed_value("white-space", "discard-before discard-after discard-inner", "discard-before discard-after discard-inner");
+test_valid_and_computed_value("white-space", "discard-inner discard-after discard-before", "discard-before discard-after discard-inner");
+test_valid_and_computed_value("white-space", "discard-after discard-inner discard-before", "discard-before discard-after discard-inner");
+test_valid_and_computed_value("white-space", "collapse wrap discard-before discard-after discard-inner", "discard-before discard-after discard-inner");
+test_valid_and_computed_value("white-space", "discard-inner discard-before discard-after collapse wrap", "discard-before discard-after discard-inner");
+test_valid_and_computed_value("white-space", "preserve nowrap discard-inner discard-before discard-after", "preserve nowrap discard-before discard-after discard-inner");
+test_valid_and_computed_value("white-space", "discard-after discard-inner discard-before preserve nowrap", "preserve nowrap discard-before discard-after discard-inner");
+
+// The pre-defined single-keyword forms don't combine with white-space-trim.
+test_invalid_value("white-space", "normal discard-before");
+test_invalid_value("white-space", "discard-before normal");
+test_invalid_value("white-space", "pre discard-before");
+test_invalid_value("white-space", "pre-wrap discard-before");
+test_invalid_value("white-space", "pre-line discard-before");
+
+// white-space-trim doesn't accept duplicate keywords.
+test_invalid_value("white-space", "discard-before discard-before");
+test_invalid_value("white-space", "discard-before discard-after discard-inner discard-before");
 </script>

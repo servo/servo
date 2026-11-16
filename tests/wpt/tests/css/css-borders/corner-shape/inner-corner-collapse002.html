@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<head>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shape">
+<link rel="match" href="inner-corner-collapse002-ref.html">
+<meta name="fuzzy" content="maxDifference=0-72; totalPixels=0-660">
+<meta name="assert" content="Test that the padding box is still drawn when four scoop corners are just thin enough to leave part of it uncovered.">
+<style>
+    .target {
+        margin: 10px;
+        width: 150px;
+        height: 150px;
+        box-sizing: border-box;
+        border: 20px solid green;
+        border-radius: 50%;
+        corner-shape: scoop;
+    }
+</style>
+</head>
+<div class=target></div>

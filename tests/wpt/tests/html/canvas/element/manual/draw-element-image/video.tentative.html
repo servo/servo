@@ -4,6 +4,7 @@
   <link rel="help" href="https://github.com/WICG/html-in-canvas">
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
 </head>
 <body>
 
@@ -18,7 +19,7 @@
     const ctx = canvas.getContext("2d", {willReadFrequently:true});
     const child = document.getElementById("child");
 
-    promise_test(() => new Promise((resolve, reject) => {
+    promise_test(() => waitForCanvasPaint(canvas).then(() => new Promise((resolve, reject) => {
       // Video color reproduction is not 100% consistent.
       const channelTolerance = 3;
       const approxEquals = (a, b) => Math.abs(a-b) < channelTolerance;
@@ -56,6 +57,6 @@
           resolve("Saw red, green, and blue video frames.");
         }
       };
-    }));
+    })));
   </script>
 </body>

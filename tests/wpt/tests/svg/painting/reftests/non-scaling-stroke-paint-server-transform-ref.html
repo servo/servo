@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reference for non-scaling-stroke painted with a gradient or a pattern inside a CSS transform</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<style>
+  body { margin: 0; }
+  div { transform: scale(2); transform-origin: 0 0; }
+  svg { display: block; width: 150px; height: 60px; }
+</style>
+<div>
+  <svg>
+    <linearGradient id="gradient" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="100" y2="0">
+      <stop offset="0.5" stop-color="green"/>
+      <stop offset="0.5" stop-color="blue"/>
+    </linearGradient>
+    <pattern id="pattern" patternUnits="userSpaceOnUse" width="20" height="20">
+      <rect width="10" height="20" fill="green"/>
+      <rect x="10" width="10" height="20" fill="blue"/>
+    </pattern>
+    <rect x="10" y="10" width="40" height="40" fill="none" stroke="url(#gradient)" stroke-width="5"/>
+    <rect x="80" y="10" width="40" height="40" fill="none" stroke="url(#pattern)" stroke-width="5"/>
+  </svg>
+</div>

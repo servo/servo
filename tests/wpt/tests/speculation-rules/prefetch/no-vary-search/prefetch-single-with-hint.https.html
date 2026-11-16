@@ -93,7 +93,7 @@ No-Vary-Search headers also match during navigation</title>
       {executor:prefetch_nvs_hint_server_page, unblock:"unblock"});
     await remoteAgent.execute_script((unblock_url) => {
       onbeforeunload = (event) => {
-          fetch(unblock_url);
+          fetch(unblock_url, {keepalive: true});
       };
     }, [nvshint_unblock_url]);
 

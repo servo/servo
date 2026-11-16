@@ -1,0 +1,77 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Aborting a streamHTMLUnsafe() writer unblocks rendering on its pending defer script</title>
+<link rel="help" href="https://html.spec.whatwg.org/#abort-a-parser" />
+<link rel="help" href="https://html.spec.whatwg.org/#render-blocking-mechanism" />
+<link rel="help" href="https://html.spec.whatwg.org/#html-streaming-methods" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  // This test must run from <head>, while the document is still loading and
+  // has no <body>, so that a streamed <script defer blocking="render"> blocks
+  // rendering. "Abort a parser" (the fragment case) must unblock rendering on
+  // the pending defer script; otherwise rendering - and requestAnimationFrame()
+  // - would be held until the slow script finishes loading.
+  assert_true(!document.body, "must run from <head>");
+
+  window.events = [];
+
+  function failOnTimeout(promise, ms = 2500) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => step_timeout(() => reject(new Error("timed out")), ms)),
+    ]);
+  }
+
+  function waitForNextInsertedScript(t, deferOnly = false) {
+    return new Promise((resolve) => {
+      const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          for (const node of mutation.addedNodes) {
+            if (node.localName === "script" && (!deferOnly || node.defer)) {
+              observer.disconnect();
+              resolve(node);
+              return;
+            }
+          }
+        }
+      });
+      t.add_cleanup(() => observer.disconnect());
+      observer.observe(document.head, { childList: true });
+    });
+  }
+
+  // A deferred script is in the fragment parser's list of scripts that will
+  // execute when the document has finished parsing.
+  promise_test(async (t) => {
+    const deferScriptInserted = waitForNextInsertedScript(t, true);
+    const writer = document.head
+      .streamAppendHTMLUnsafe({ runScripts: true })
+      .getWriter();
+    await writer.write(
+      "<script defer blocking='render' src='resources/slow.sub.js?pipe=trickle(d3)&render_blocking_abort_defer=1'></" +
+        "script>"
+    );
+    const script = await failOnTimeout(deferScriptInserted);
+    t.add_cleanup(() => script.remove());
+    const loaded = new Promise((resolve) => {
+      script.addEventListener("load", () => resolve("load"));
+      script.addEventListener("error", () => resolve("error"));
+    });
+    const abortTime = performance.now();
+    await writer.abort();
+
+    const frameTime = await failOnTimeout(
+      new Promise((resolve) => requestAnimationFrame(resolve))
+    );
+    assert_less_than(
+      frameTime - abortTime,
+      2000,
+      "requestAnimationFrame() should fire well before the aborted slow defer script finishes loading"
+    );
+    assert_array_equals(window.events, [], "the aborted defer script must not run");
+    loaded.then(() => {});
+  }, "abort() unblocks rendering on a streamed render-blocking defer script");
+</script>
+<body>
+</body>

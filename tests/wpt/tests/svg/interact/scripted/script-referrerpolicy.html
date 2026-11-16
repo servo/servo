@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>The referrerpolicy attribute of the SVG script element sets the referrer of the script request</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/interact.html#ScriptElementReferrerpolicyAttribute">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/urls-and-fetching.html#referrer-policy-attribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+
+<svg id="svg"></svg>
+
+<script>
+// script.py answers with a script that posts the headers of its own request to this window.
+const subresource = "/common/security-features/subresource/script.py";
+
+function referrerOfScriptRequest(t, referrerPolicy) {
+  const id = token();
+  const script = document.createElementNS("http://www.w3.org/2000/svg", "script");
+  if (referrerPolicy !== null)
+    script.setAttribute("referrerpolicy", referrerPolicy);
+  const url = `${subresource}?id=${id}`;
+  const message = new Promise((resolve, reject) => {
+    const onMessage = event => {
+      window.removeEventListener("message", onMessage);
+      resolve(event.data.headers.referer);
+    };
+    window.addEventListener("message", onMessage);
+    script.onerror = () => reject(new Error("the script did not load"));
+  });
+  script.setAttribute("href", url);
+  document.getElementById("svg").appendChild(script);
+  t.add_cleanup(() => script.remove());
+  return message;
+}
+
+promise_test(async t => {
+  assert_equals(await referrerOfScriptRequest(t, null), location.href);
+}, "no referrerpolicy: the same-origin request sends the full URL");
+
+promise_test(async t => {
+  assert_equals(await referrerOfScriptRequest(t, "no-referrer"), undefined);
+}, "referrerpolicy=no-referrer sends no Referer header");
+
+promise_test(async t => {
+  assert_equals(await referrerOfScriptRequest(t, "origin"), location.origin + "/");
+}, "referrerpolicy=origin sends the origin only");
+</script>

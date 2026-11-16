@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>High Resolution Time in AudioWorkletGlobalScope</title>
+<link rel="help" href="https://w3c.github.io/hr-time/#sec-workletperformance">
+<link rel="help" href="https://w3c.github.io/hr-time/#sec-audioworkletglobalscope">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+const MODULE_PATH = 'resources/audioworklet-processor.js';
+let nextRequestId = 1;
+let sharedAudioContext = null;
+let sharedAudioWorkletPromise = null;
+
+async function createProcessorNode(context, options) {
+  await context.audioWorklet.addModule(MODULE_PATH);
+  const node = new AudioWorkletNode(context, 'hr-time-processor', options);
+  node.port.start();
+  return node;
+}
+
+function getSharedAudioWorklet() {
+  if (!sharedAudioWorkletPromise) {
+    sharedAudioContext = new AudioContext();
+    sharedAudioWorkletPromise =
+        createProcessorNode(sharedAudioContext).then((node) => ({
+          node,
+          createdAt: performance.now(),
+        }));
+  }
+  return sharedAudioWorkletPromise;
+}
+
+function closeSharedAudioContext() {
+  if (!sharedAudioContext) {
+    return Promise.resolve();
+  }
+  const context = sharedAudioContext;
+  sharedAudioContext = null;
+  sharedAudioWorkletPromise = null;
+  return context.close();
+}
+
+add_completion_callback(() => {
+  closeSharedAudioContext();
+});
+
+function sendCommand(node, command) {
+  const id = nextRequestId++;
+  return new Promise((resolve, reject) => {
+    function onMessage(event) {
+      if (event.data?.id !== id) {
+        return;
+      }
+      node.port.removeEventListener('message', onMessage);
+      if (event.data.error) {
+        reject(new Error(event.data.error));
+      } else {
+        resolve(event.data);
+      }
+    }
+    node.port.addEventListener('message', onMessage);
+    node.port.postMessage({id, command});
+  });
+}
+
+function waitForProcessComplete(node) {
+  return new Promise((resolve) => {
+    function onMessage(event) {
+      if (event.data?.type !== 'process-complete') {
+        return;
+      }
+      node.port.removeEventListener('message', onMessage);
+      resolve(event.data.processTimestamps);
+    }
+    node.port.addEventListener('message', onMessage);
+  });
+}
+
+test(() => {
+  assert_false(
+      'WorkletPerformance' in globalThis,
+      'WorkletPerformance must not be exposed on Window');
+}, 'WorkletPerformance is not exposed on Window');
+
+promise_test(async () => {
+  const {node} = await getSharedAudioWorklet();
+  const info = await sendCommand(node, 'interface');
+
+  assert_equals(
+      info.typeofWorkletPerformance, 'function',
+      'WorkletPerformance is exposed in AudioWorkletGlobalScope');
+  assert_false(
+      info.hasPerformanceInterface,
+      'Performance must not be exposed in AudioWorkletGlobalScope');
+  assert_equals(
+      info.typeofPerformance, 'object',
+      'globalThis.performance exists and is an object');
+  assert_equals(
+      info.typeofUnqualifiedPerformance, 'object',
+      'performance is accessible as an unqualified global');
+  assert_true(
+      info.isSameObject,
+      'performance getter returns the same WorkletPerformance object');
+  assert_true(
+      info.isInstanceOfWorkletPerformance,
+      'performance is an instance of WorkletPerformance');
+  assert_true(
+      info.prototypeParentIsObjectPrototype,
+      'WorkletPerformance does not inherit from EventTarget');
+  assert_false(
+      info.isInstanceOfEventTarget,
+      'performance is not an EventTarget');
+  assert_false(
+      info.hasAddEventListener,
+      'performance does not have addEventListener');
+  assert_false(
+      info.hasTimeOrigin,
+      'WorkletPerformance does not expose timeOrigin');
+  assert_false(
+      info.hasToJSON,
+      'WorkletPerformance does not expose toJSON');
+  assert_equals(
+      info.typeofNow, 'function',
+      'performance.now is a function');
+  assert_equals(
+      info.typeofNowReturnValue, 'number',
+      'performance.now() returns a number');
+}, 'AudioWorkletGlobalScope exposes WorkletPerformance on performance');
+
+promise_test(async () => {
+  const {node} = await getSharedAudioWorklet();
+  const info = await sendCommand(node, 'replaceable');
+
+  assert_not_equals(
+      info.initialDesc, null,
+      'globalThis has own property performance');
+  assert_equals(
+      info.initialDesc.typeofGet, 'function',
+      'performance property has a getter');
+  assert_equals(
+      info.initialDesc.typeofSet, 'function',
+      'performance property has a [Replaceable] setter');
+  assert_true(
+      info.initialDesc.enumerable,
+      'performance property is enumerable');
+  assert_true(
+      info.initialDesc.configurable,
+      'performance property is configurable');
+  assert_equals(
+      info.afterValue, 'replaced',
+      'Assigning globalThis.performance replaces its value');
+  assert_equals(
+      info.replacedDesc.value, 'replaced',
+      'Replaced performance is a data property');
+  assert_true(info.replacedDesc.writable, 'Replaced property is writable');
+  assert_true(info.replacedDesc.enumerable, 'Replaced property is enumerable');
+  assert_true(
+      info.replacedDesc.configurable, 'Replaced property is configurable');
+}, 'AudioWorkletGlobalScope performance attribute is [Replaceable]');
+
+promise_test(async () => {
+  const offlineContext = new OfflineAudioContext(1, 256, 48000);
+  const node = await createProcessorNode(
+      offlineContext, {processorOptions: {reportProcess: true}});
+  node.connect(offlineContext.destination);
+
+  const result = await sendCommand(node, 'monotonic');
+  assert_equals(
+      typeof result.moduleEvalNow, 'number',
+      'performance.now() returns a number during module evaluation');
+  assert_greater_than(
+      result.moduleEvalNow, 0,
+      'performance.now() returns a positive number during module evaluation');
+  assert_greater_than_equal(
+      result.ctorNow - result.moduleEvalNow, 0,
+      'Processor constructor now() is not earlier than module evaluation now()');
+  assert_greater_than_equal(
+      result.now1 - result.ctorNow, 0,
+      'Message handler now() is not earlier than processor constructor now()');
+  assert_greater_than_equal(
+      result.now2 - result.now1, 0,
+      'performance.now() difference is not negative');
+
+  const processPromise = waitForProcessComplete(node);
+  await offlineContext.startRendering();
+  const processTimestamps = await processPromise;
+
+  assert_equals(processTimestamps.length, 2, 'Recorded two process() quanta');
+  assert_greater_than_equal(
+      processTimestamps[0] - result.now2, 0,
+      'process() now() is not earlier than preceding message handler now()');
+  assert_greater_than_equal(
+      processTimestamps[1] - processTimestamps[0], 0,
+      'process() now() difference across render quanta is not negative');
+}, 'performance.now() returns positive, monotonically non-decreasing values in AudioWorkletGlobalScope');
+
+promise_test(async (t) => {
+  const {node} = await getSharedAudioWorklet();
+
+  const initial = await sendCommand(node, 'now-and-date');
+  assert_equals(
+      typeof initial.hrt, 'number',
+      'performance.now() returns a number');
+
+  await new Promise((resolve) => t.step_timeout(resolve, 200));
+
+  const final = await sendCommand(node, 'now-and-date');
+  assert_greater_than(
+      final.hrt - initial.hrt, 0,
+      'performance.now() advances over time');
+  assert_approx_equals(
+      final.hrt - initial.hrt, final.date - initial.date, 30,
+      'High resolution time value increased by approximately the same amount as time from Date object');
+}, 'High resolution time in AudioWorkletGlobalScope has approximately the right relative magnitude');
+
+promise_test(async (t) => {
+  let context2;
+  t.add_cleanup(() => Promise.all([
+    closeSharedAudioContext(),
+    context2 ? context2.close() : Promise.resolve(),
+  ]));
+
+  const {node: node1, createdAt: context1CreatedAt} =
+      await getSharedAudioWorklet();
+
+  // Delay creating additional contexts if needed so their creation times are
+  // measurably later than both the Window time origin and the first
+  // AudioContext.
+  const elapsed = performance.now() - context1CreatedAt;
+  if (elapsed < 50) {
+    await new Promise((resolve) => t.step_timeout(resolve, 50 - elapsed));
+  }
+
+  context2 = new AudioContext();
+  const offlineContext = new OfflineAudioContext(1, 256, 48000);
+  const [node2, offlineNode] = await Promise.all([
+    createProcessorNode(context2),
+    createProcessorNode(
+        offlineContext, {processorOptions: {reportProcess: true}}),
+  ]);
+  offlineNode.connect(offlineContext.destination);
+
+  const t0 = performance.now();
+  const {now: t1} = await sendCommand(node1, 'now');
+  assert_equals(
+      typeof t1, 'number',
+      'First AudioContext worklet performance.now() returns a number');
+
+  const {now: t2} = await sendCommand(node2, 'now');
+  assert_equals(
+      typeof t2, 'number',
+      'Second AudioContext worklet performance.now() returns a number');
+
+  const {now: t3} = await sendCommand(offlineNode, 'now');
+  assert_equals(
+      typeof t3, 'number',
+      'OfflineAudioContext worklet performance.now() returns a number');
+
+  const processPromise = waitForProcessComplete(offlineNode);
+  await offlineContext.startRendering();
+  const processTimestamps = await processPromise;
+  const t4 = performance.now();
+
+  assert_greater_than_equal(
+      t1 - t0, 0,
+      'First AudioContext worklet now() is not earlier than preceding Window now()');
+  assert_greater_than_equal(
+      t2 - t1, 0,
+      'Second AudioContext worklet now() shares time origin with first AudioContext');
+  assert_greater_than_equal(
+      t3 - t2, 0,
+      'OfflineAudioContext worklet now() shares time origin with AudioContext');
+  assert_equals(processTimestamps.length, 2, 'Recorded two process() quanta');
+  assert_greater_than_equal(
+      processTimestamps[0] - t3, 0,
+      'OfflineAudioContext process() now() is not earlier than pre-render worklet now()');
+  assert_greater_than_equal(
+      processTimestamps[1] - processTimestamps[0], 0,
+      'OfflineAudioContext process() now() is monotonically non-decreasing');
+  assert_greater_than_equal(
+      t4 - processTimestamps[1], 0,
+      'Following Window now() is not earlier than OfflineAudioContext process() now()');
+}, 'Multiple AudioWorklet contexts and Window share the same time origin and monotonic clock');
+</script>

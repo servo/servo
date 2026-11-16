@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Shrink-to-fit parent of a non-replaced aspect-ratio box with a definite height</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-minimum">
+<link rel="match" href="aspect-ratio-nonreplaced-max-content-contribution-001-ref.html">
+<meta name="assert" content="The max-content contribution of a box with a definite height and an aspect-ratio is its ratio-derived width floored by its min-content size, not by the max-content size of its content.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+  body { font: 16px/20px monospace; margin: 8px; }
+  .row { margin-bottom: 6px; }
+  .box { height: 20px; background: lightblue; aspect-ratio: 1 / 1; }
+  .ahem { font: 10px/10px Ahem; }
+  .parent { background: #ddd; }
+</style>
+<div class="row" style="overflow:auto"><div class="parent" style="display:inline-block"><div class="box" style="">aa bb cc dd</div></div></div>
+<div class="row" style="overflow:auto"><div class="parent" style="float:left"><div class="box" style="">aa bb cc dd</div></div></div>
+<div class="row" style="overflow:auto"><div class="parent" style="width:max-content"><div class="box" style="">aa bb cc dd</div></div></div>
+<div class="row" style="overflow:auto"><div class="parent" style="display:inline-flex"><div class="box" style="">aa bb cc dd</div></div></div>
+<div class="row" style="overflow:auto"><div class="parent" style="display:inline-block"><div class="box" style="padding:3px;border:2px solid">aa bb cc dd</div></div></div>
+<div class="row" style="overflow:auto"><div class="parent" style="display:inline-block"><div class="box" style="overflow:hidden">aa bb cc dd</div></div></div>
+<div class="row" style="overflow:auto"><div class="parent" style="display:inline-block"><div class="box" style="aspect-ratio:3/1">aa bb cc dd</div></div></div>
+<div class="row" style="overflow:auto"><div class="parent" style="display:inline-block"><div class="box" style="display:flex"><span>aa bb cc dd</span></div></div></div>
+<div class="row" style="display:flex;width:300px"><div class="parent"><div class="box" style="">aa bb cc dd</div></div><div>Label</div></div>
+<div class="row" style="overflow:auto"><div class="parent" style="display:inline-block"><div class="box ahem">XXX X</div></div></div>
+<div class="row" style="overflow:auto"><div class="parent" style="display:inline-flex"><div class="box ahem">XXX X</div></div></div>
+<div class="row" style="overflow:auto"><div class="box" style="width:fit-content">aa bb cc dd</div></div>
+<div class="row" style="overflow:auto"><div class="box" style="width:max-content">aa bb cc dd</div></div>
+<div class="row" style="overflow:auto"><div class="box ahem" style="width:fit-content">XXX X</div></div>

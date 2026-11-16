@@ -9,6 +9,7 @@ use js::context::JSContext;
 use p256::NistP256;
 use p384::NistP384;
 use p521::NistP521;
+use script_bindings::trace::RootedTraceableBox;
 
 use crate::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::dom::bindings::codegen::GenericBindings::CryptoKeyBinding::{
@@ -40,7 +41,7 @@ pub(crate) fn generate_key<D: Equivalence>(
     normalized_algorithm: &EcKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<CryptoKeyPair<D>, Error> {
+) -> Result<RootedTraceableBox<CryptoKeyPair<D>>, Error> {
     match ec_algorithm {
         EcAlgorithm::Ecdsa => {
             // Step 1. If usages contains a value which is not one of "sign" or "verify", then throw
@@ -178,10 +179,10 @@ pub(crate) fn generate_key<D: Equivalence>(
     // Step 17. Let result be a new CryptoKeyPair dictionary.
     // Step 18. Set the publicKey attribute of result to be publicKey.
     // Step 19. Set the privateKey attribute of result to be privateKey.
-    let result = CryptoKeyPair {
-        publicKey: Some(public_key),
-        privateKey: Some(private_key),
-    };
+    let result = RootedTraceableBox::new(CryptoKeyPair {
+        publicKey: Some(public_key.as_traced()),
+        privateKey: Some(private_key.as_traced()),
+    });
 
     // Step 20. Return result.
     Ok(result)
@@ -1189,7 +1190,7 @@ pub(crate) fn get_public_key<D: Equivalence>(
     // Step 12. Set the [[type]] internal slot of publicKey to "public".
     // Step 13. Set the [[algorithm]] internal slot of publicKey to algorithm.
     // Step 14. Set the [[extractable]] internal slot of publicKey to true.
-    // Step 15. Set the [[usages]] internal slot of publicKey to usages.
+    // Step 15. Set the [[usages]] internal slot of publicKey to the normalized value of usages.
     let public_key_handle = match key.handle() {
         Handle::P256PrivateKey(private_key) => Handle::P256PublicKey(private_key.public_key()),
         Handle::P384PrivateKey(private_key) => Handle::P384PublicKey(private_key.public_key()),
@@ -1206,7 +1207,7 @@ pub(crate) fn get_public_key<D: Equivalence>(
         KeyType::Public,
         true,
         algorithm.clone(),
-        usages,
+        usages.normalized_value(),
         public_key_handle,
     );
 

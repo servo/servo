@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>CSS Sizing: min-width and max-width in intrinsic width contributions honor box-sizing</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-contribution">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#box-sizing">
+<meta name="assert" content="min-width and max-width constrain the content box or the border box of a box's intrinsic width contributions, depending on box-sizing.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.container {
+    float: left;
+    clear: left;
+}
+.box {
+    padding: 0 20px;
+}
+.content {
+    width: 300px;
+    height: 10px;
+}
+</style>
+<body onload="checkLayout('.container')">
+<div class="container" data-expected-width="140"><div class="box" style="max-width: 100px"><div class="content"></div></div></div>
+<div class="container" data-expected-width="100"><div class="box" style="max-width: 100px; box-sizing: border-box"><div class="content"></div></div></div>
+<div class="container" data-expected-width="440"><div class="box" style="min-width: 400px"><div class="content"></div></div></div>
+<div class="container" data-expected-width="400"><div class="box" style="min-width: 400px; box-sizing: border-box"><div class="content"></div></div></div>
+</body>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS stretch(): the cross size a flex item's aspect ratio transfers to its main size</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#algo-main-item">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="A stretch() cross size fits the flex item's margin box to its argument before its preferred aspect ratio transfers it to the main size.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .flex {
+    display: flex;
+    align-items: flex-start;
+    float: left;
+    width: 50px;
+    height: 100px;
+  }
+  .column {
+    flex-direction: column;
+  }
+  .test {
+    flex: none;
+    aspect-ratio: 1 / 2;
+    background: green;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="flex"><div class="test" style="height: stretch(150px); margin-bottom: 50px;"></div></div>
+<div class="flex column"><div class="test" style="width: stretch(100px); margin-right: 50px;"></div></div>

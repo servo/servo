@@ -61,9 +61,9 @@ def main(request, response):
         sig_key_header = request.headers.get(b"Signature-Key")
         client_jwk = extract_client_key(sig_key_header)
 
-        host = request.url_parts.hostname
-        port = request.url_parts.port
-        issuer = f"https://{host}:{port}" if port else f"https://{host}"
+        # The issuer identifier carries no port, whichever port this request
+        # happened to arrive on.
+        issuer = f"https://{request.url_parts.hostname}"
 
         email = "john_doe@idp.example"
         try:

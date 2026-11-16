@@ -23,5 +23,17 @@ test(() => {
     assert_equals(el.customElementRegistry, null,
         'customElementRegistry should remain null after removal from null-registry shadow root');
 }, "An element's null customElementRegistry should not mutate after removal from a declarative shadow root with shadowrootcustomelementregistry.");
+
+test(() => {
+    const sr = document.createElement('div').attachShadow({mode: 'open', customElementRegistry: new CustomElementRegistry});
+    const el = sr.appendChild(document.createElement('x-el', {customElementRegistry: null}));
+    el.remove();
+    assert_equals(el.customElementRegistry, null,
+        'customElementRegistry should remain null after removal from scoped-registry shadow root');
+    const registry = new CustomElementRegistry;
+    registry.initialize(el);
+    assert_equals(el.customElementRegistry, registry,
+        'customElementRegistry should be the initialized registry');
+}, "An element's null customElementRegistry should not mutate after removal from a shadow root with a scoped registry.");
 </script>
 </body>

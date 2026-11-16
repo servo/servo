@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>white-space-trim: discard-before/after with nested inline boxes</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#white-space-trim">
+<link rel="match" href="reference/white-space-trim-nested-ref.html">
+<meta name="assert" content="discard-before/discard-after operate on the collapsible white space adjacent to the element edge, treating empty/zero-width inline box boundaries as transparent, and only at the correct edge for the box that carries the property.">
+<style>
+  .db { white-space-trim: discard-before; }
+  .da { white-space-trim: discard-after; }
+</style>
+</head>
+<body>
+<p>This test passes if it renders identically to the reference.</p>
+<!-- 1. discard-before on inner box; space is inside the outer box -> "ac" --><div><span>a <b class="db">c</b></span></div>
+<!-- 2. discard-after on inner box; space is inside the outer box -> "ac" --><div><span><b class="da">a</b> c</span></div>
+<!-- 3. discard-before on outer box wrapping a nested box -> "xyz" --><div>x <span class="db"><b>y</b></span>z</div>
+<!-- 4. discard-after on outer box wrapping a nested box -> "xyz" --><div>x<span class="da"><b>y</b></span> z</div>
+<!-- 5. discard-before trims across an intervening empty inline box -> "xyz" --><div>x <i></i><span class="db">y</span>z</div>
+<!-- 6. discard-after collapses across an intervening empty inline box -> "xyz" --><div>x<span class="da">y</span><i></i> z</div>
+<!-- 7. discard-after on an INNER box discards space after the (non-discarding) OUTER box -> "pqr" --><div>p<span><b class="da">q</b></span> r</div>
+<!-- 8. discard-before on an INNER box discards space before the (non-discarding) OUTER box -> "pqr" --><div>p <span><b class="db">q</b></span>r</div>
+</body>
+</html>

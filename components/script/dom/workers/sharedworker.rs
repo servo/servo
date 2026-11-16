@@ -17,6 +17,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use net_traits::pub_domains::reg_suffix;
 use net_traits::request::{CredentialsMode, Referrer};
 use script_bindings::reflector::reflect_dom_object_with_proto;
+#[cfg(feature = "devtools")]
 use servo_base::generic_channel;
 use servo_base::id::WorkerId;
 use servo_constellation_traits::{MessagePortImpl, WorkerScriptLoadOrigin};

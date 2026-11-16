@@ -63,7 +63,6 @@ pub(crate) struct MessageEvent {
     source: DomRefCell<Option<SrcObject>>,
     lastEventId: DomRefCell<TracedDOMString>,
     ports: DomRefCell<Vec<Dom<MessagePort>>>,
-    #[ignore_malloc_size_of = "mozjs"]
     frozen_ports: CachedFrozenArray,
 }
 
@@ -237,7 +236,7 @@ impl MessageEvent {
             init.origin.clone(),
             init.source.as_ref(),
             init.lastEventId.clone(),
-            init.ports.clone(),
+            Vec::new(),
         );
         messageevent.upcast::<Event>().fire(cx, target);
     }
@@ -252,6 +251,7 @@ impl MessageEventMethods<crate::DomTypeHolder> for MessageEvent {
         type_: DOMString,
         init: &MessageEventInit,
     ) -> Fallible<DomRoot<MessageEvent>> {
+        let ports = init.ports.iter().map(Dom::as_rooted).collect();
         let ev = MessageEvent::new_with_proto(
             cx,
             global,
@@ -263,7 +263,7 @@ impl MessageEventMethods<crate::DomTypeHolder> for MessageEvent {
             init.origin.clone(),
             init.source.as_ref(),
             init.lastEventId.clone(),
-            init.ports.clone(),
+            ports,
         );
         Ok(ev)
     }

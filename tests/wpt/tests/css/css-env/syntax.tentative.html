@@ -31,14 +31,21 @@
       { style: "background-color: env(test, env(another, blue))", expectedPropertyValue: blueValue },
       { style: "background-color: env(-test)", expectedPropertyValue: envWorkingValue },
       { style: "background-color: env(--test)", expectedPropertyValue: envWorkingValue },
-      { style: "background-color: env(10px)", expectedPropertyValue: pageDefaultValue },
-      { style: "background-color: env(env(test))", expectedPropertyValue: pageDefaultValue },
+      { style: "background-color: env(10px)", expectedPropertyValue: envWorkingValue },
+      { style: "background-color: env(env(test))", expectedPropertyValue: envWorkingValue },
       { style: "background-color: env( test)", expectedPropertyValue: envWorkingValue },
       { style: "background-color: env(test )", expectedPropertyValue: envWorkingValue },
       { style: "background-color: env( test )", expectedPropertyValue: envWorkingValue },
       { style: "background-color: env(test /**/, blue)", expectedPropertyValue: blueValue },
       { style: "background-color: env(test, {})", expectedPropertyValue: envWorkingValue },
       { style: "background-color: env(test, {)", expectedPropertyValue: pageDefaultValue },
+      { style: "background-color: env(--x {--y})", expectedPropertyValue: pageDefaultValue },
+      { style: "background-color: env({--x} --y)", expectedPropertyValue: pageDefaultValue },
+      { style: "background-color: env(--x {--y}, 10px)", expectedPropertyValue: pageDefaultValue },
+      { style: "background-color: env()", expectedPropertyValue: pageDefaultValue },
+      { style: "background-color: env({})", expectedPropertyValue: pageDefaultValue },
+      { style: "background-color: env({}, 10px)", expectedPropertyValue: pageDefaultValue },
+      { style: "background-color: env(, 10px)", expectedPropertyValue: pageDefaultValue },
     ];
 
     testCases.forEach((testcase) => {

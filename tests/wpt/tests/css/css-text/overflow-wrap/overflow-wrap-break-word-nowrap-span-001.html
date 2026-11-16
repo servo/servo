@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>CSS Text: overflow-wrap: break-word between white-space: nowrap inline boxes</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-overflow-wrap-break-word">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#line-break-details">
+<meta name="assert" content="The boundary between two white-space: nowrap inline boxes is controlled by the white-space property of their nearest common ancestor, so overflow-wrap: break-word may break the line there, but it does not affect min-content.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.test {
+    position: relative;
+    font: 10px/1 Ahem;
+    width: 100px;
+    overflow-wrap: break-word;
+}
+.test span {
+    white-space: nowrap;
+}
+</style>
+<body onload="checkLayout('.test')">
+<div class="test" title="breaks between the inline boxes"><span data-offset-y="0">X XX</span><span data-offset-y="0">XX XX</span><span data-offset-y="10">X XXX</span></div>
+<div class="test" style="width: 10px" title="breaks after each overflowing inline box"><span data-offset-y="0">X XX</span><span data-offset-y="10">XX XX</span><span data-offset-y="20">X XXX</span></div>
+<div class="test" style="width: min-content" data-expected-width="140" title="the boundaries are not soft wrap opportunities for min-content"><span data-offset-y="0">X XX</span><span data-offset-y="0">XX XX</span><span data-offset-y="0">X XXX</span></div>
+</body>

@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="../support/selections.js"></script>
+<link rel="stylesheet" href="../support/highlights.css">
+<style>
+    main {
+        font-size: 7em;
+        margin: 0.5em;
+    }
+    main::selection, span::selection {
+        background-color: green;
+    }
+</style>
+<p>Test passes if the text below has a green highlight.
+<main class="highlight_reftest"><span>quick</span></main>
+<script>selectNodeContents(document.querySelector("main"));</script>

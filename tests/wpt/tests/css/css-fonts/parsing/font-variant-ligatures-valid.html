@@ -16,6 +16,8 @@ test_valid_value('font-variant-ligatures', 'none');
 
 // <common-lig-values>        = [ common-ligatures | no-common-ligatures ]
 test_valid_value('font-variant-ligatures', 'common-ligatures');
+test_valid_value('font-variant-ligatures', 'common-ligatures no-contextual');
+test_valid_value('font-variant-ligatures', 'common-ligatures no-discretionary-ligatures historical-ligatures');
 test_valid_value('font-variant-ligatures', 'no-common-ligatures');
 
 // <discretionary-lig-values> = [ discretionary-ligatures | no-discretionary-ligatures ]

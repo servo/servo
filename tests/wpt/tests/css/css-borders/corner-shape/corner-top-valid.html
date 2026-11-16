@@ -10,10 +10,19 @@
 <script src="/css/support/shorthand-testcommon.js"></script>
 
 <script>
-test_valid_value("corner-top", "10px bevel");
-test_valid_value("corner-top", "round 10% / 2rem squircle", "10% round / 2rem squircle");
-test_valid_value("corner-top", "normal");
-test_valid_value("corner-top", "4px 2% round / bevel 1em", "4px 2% round / 1em bevel");
+// Each component alone; the omitted component resets to its initial value.
+test_valid_value("corner-top", "10px");
+test_valid_value("corner-top", "bevel");
+test_valid_value("corner-top", "round", "0px");
+
+// Order independence.
+test_valid_value("corner-top", "10px bevel", "bevel 10px");
+test_valid_value("corner-top", "bevel 10px 20px");
+test_valid_value("corner-top", "4px 2% squircle", "squircle 4px 2%");
+
+// The slash separates horizontal and vertical radii.
+test_valid_value("corner-top", "round 10% / 2rem", "10% / 2rem");
+test_valid_value("corner-top", "10px 20px / 5px bevel scoop", "bevel scoop 10px 20px / 5px");
 
 test_shorthand_value("corner-top", "10px bevel", {
   "border-top-left-radius": "10px",
@@ -21,10 +30,16 @@ test_shorthand_value("corner-top", "10px bevel", {
   "border-top-right-radius": "10px",
   "corner-top-right-shape": "bevel",
 });
-test_shorthand_value("corner-top", "4px 2% round / 1em bevel", {
-  "border-top-left-radius": "4px 2%",
-  "corner-top-left-shape": "round",
-  "border-top-right-radius": "1em",
+test_shorthand_value("corner-top", "bevel", {
+  "border-top-left-radius": "0px",
+  "corner-top-left-shape": "bevel",
+  "border-top-right-radius": "0px",
   "corner-top-right-shape": "bevel",
+});
+test_shorthand_value("corner-top", "10px 20px / 5px bevel scoop", {
+  "border-top-left-radius": "10px 5px",
+  "corner-top-left-shape": "bevel",
+  "border-top-right-radius": "20px 5px",
+  "corner-top-right-shape": "scoop",
 });
 </script>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: reference for select elements, before the clamp point</title>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+body {
+  font: 25px/1 Ahem;
+}
+input, button, select, textarea {
+  font: inherit;
+}
+.clamp {
+  width: 240px;
+  background: yellow;
+}
+select {
+  scrollbar-width: none;
+}
+</style>
+
+<div class="clamp">
+  <select size="3"><option>XX</option><option>XX</option><option>XX</option></select><br>
+  XX…
+</div>

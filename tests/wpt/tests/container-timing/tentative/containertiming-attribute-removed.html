@@ -1,0 +1,68 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Container Timing: removing the containertiming attribute drops the container's paints</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+img {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/container-timing/resources/container-timing-helpers.js"></script>
+<script>
+  promise_test(async t => {
+    assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
+    const collector = observeContainerEntries(t);
+    const div = addContainerRoot(document.body, 'readded_ct');
+    t.add_cleanup(() => div.remove());
+    addSquare100Image(div, {style: 'left: 0px; top: 0px'});
+    let entries = await collector.take();
+    assert_equals(entries.length, 1, 'entry for the initial paint');
+    checkContainerSize(entries[0], 10000);
+
+    div.removeAttribute('containertiming');
+    div.setAttribute('containertiming', 'readded_ct');
+    addSquare100Image(div, {id: 'new_img', style: 'left: 100px; top: 0px'});
+    const beforeRender = performance.now();
+
+    entries = await collector.take();
+    assert_equals(entries.length, 1, 'entry after re-adding the attribute');
+    checkContainerEntry(entries[0], 'readded_ct', 'new_img', beforeRender);
+    checkContainerIntersectionRect(entries[0], [100, 200, 0, 100]);
+    checkContainerSize(entries[0], 10000);
+  }, 'Re-adding the attribute with the same identifier starts the container over.');
+
+  promise_test(async t => {
+    assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
+    const collector = observeContainerEntries(t);
+    const div = addContainerRoot(document.body, 'removed_ct');
+    t.add_cleanup(() => div.remove());
+    addSquare100Image(div, {style: 'left: 0px; top: 0px'});
+    let entries = await collector.take();
+    assert_equals(entries.length, 1, 'entry for the initial paint');
+
+    div.removeAttribute('containertiming');
+    addSquare100Image(div, {style: 'left: 100px; top: 0px'});
+    entries = await collector.take();
+    assert_equals(entries.length, 0, 'no entries once the element is not a container root');
+
+    // Content painted while not a root is not reported.
+    div.setAttribute('containertiming', 'removed_ct');
+    addSquare100Image(div, {id: 'new_img', style: 'left: 200px; top: 0px'});
+    const beforeRender = performance.now();
+
+    entries = await collector.take();
+    assert_equals(entries.length, 1, 'entry after re-adding the attribute');
+    checkContainerEntry(entries[0], 'removed_ct', 'new_img', beforeRender);
+    checkContainerIntersectionRect(entries[0], [200, 300, 0, 100]);
+    checkContainerSize(entries[0], 10000);
+  }, 'Removing the attribute stops reporting, and re-adding it reports only new paints.');
+</script>
+
+</body>

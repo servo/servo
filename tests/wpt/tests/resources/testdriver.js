@@ -269,6 +269,37 @@
                         .simulate_gatt_disconnection(params);
                 },
                 /**
+                 * Simulates an ATT MTU exchange for a given peripheral.
+                 * Matches the `bluetooth.simulateGattMtuChange
+                 * <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulategattmtuchange-command>`_
+                 * WebDriver BiDi command.
+                 *
+                 * @example
+                 * await test_driver.bidi.bluetooth.simulate_gatt_mtu_change({
+                 *     "address": "09:09:09:09:09:09",
+                 *     "mtu": 100,
+                 * });
+                 *
+                 * @param {object} params - Parameters for the command.
+                 * @param {string} params.address - The address of the simulated
+                 * bluetooth peripheral. Matches the
+                 * `bluetooth.SimulateGattMtuChangeParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulategattmtuchange-command>`_
+                 * value.
+                 * @param {number} params.mtu - The ATT MTU in octets negotiated
+                 * with the simulated bluetooth peripheral. Matches the
+                 * `bluetooth.SimulateGattMtuChangeParameters:mtu <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulategattmtuchange-command>`_
+                 * value.
+                 * @param {Context} [params.context] The optional context parameter specifies in
+                 * which browsing context the ATT MTU exchange should be simulated. If not
+                 * provided, the current browsing context is used.
+                 * @returns {Promise} fulfilled after the ATT MTU exchange is
+                 * simulated, or rejected if the operation fails.
+                 */
+                simulate_gatt_mtu_change: function(params) {
+                    return window.test_driver_internal.bidi.bluetooth
+                        .simulate_gatt_mtu_change(params);
+                },
+                /**
                  * Simulates a GATT service.
                  * Matches the `bluetooth.simulateService
                  * <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulateservice-command>`_
@@ -1022,6 +1053,39 @@
                 set_scrollbar_type_override: function (params) {
                     assertBidiIsEnabled();
                     return window.test_driver_internal.bidi.emulation.set_scrollbar_type_override(
+                        params);
+                },
+                /**
+                 * Overrides the text layout mode for the specified browsing
+                 * contexts. The `"mobile"` text layout mode enables text
+                 * autosizing, which makes the browser honor the
+                 * `text-size-adjust` CSS property.
+                 * Matches the `emulation.setTextLayoutModeOverride
+                 * <https://w3c.github.io/webdriver-bidi/#command-emulation-setTextLayoutModeOverride>`_
+                 * WebDriver BiDi command.
+                 *
+                 * @example
+                 * await test_driver.bidi.emulation.set_text_layout_mode_override({
+                 *     textLayoutMode: "mobile"
+                 * });
+                 *
+                 * @param {object} params - Parameters for the command.
+                 * @param {null|"mobile"} [params.textLayoutMode] - The text
+                 * layout mode to emulate. Matches the
+                 * `emulation.TextLayoutMode <https://w3c.github.io/webdriver-bidi/#cddl-type-emulationtextlayoutmode>`_
+                 * type. If `null` or omitted, the override will be removed.
+                 * @param {null|Array.<(Context)>} [params.contexts] The
+                 * optional contexts parameter specifies which browsing contexts
+                 * to set the text layout mode override on. It should be either
+                 * an array of Context objects (window or browsing context id),
+                 * or null. If null or omitted, the override will be set on the
+                 * current browsing context.
+                 * @returns {Promise<void>} Resolves when the text layout mode
+                 * override is successfully set.
+                 */
+                set_text_layout_mode_override: function (params) {
+                    assertBidiIsEnabled();
+                    return window.test_driver_internal.bidi.emulation.set_text_layout_mode_override(
                         params);
                 },
                 /**
@@ -2681,6 +2745,10 @@
                 set_scrollbar_type_override: function (params) {
                     throw new Error(
                         "bidi.emulation.set_scrollbar_type_override is not implemented by testdriver-vendor.js");
+                },
+                set_text_layout_mode_override: function (params) {
+                    throw new Error(
+                        "bidi.emulation.set_text_layout_mode_override is not implemented by testdriver-vendor.js");
                 },
                 set_touch_override: function (params) {
                     throw new Error(

@@ -1,0 +1,34 @@
+<!doctype html>
+<title>img re-selects its image source when the iframe's zoom changes</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#reacting-to-environment-changes">
+<link rel="help" href="https://drafts.csswg.org/css-viewport/#zoom-om">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+const parentDpr = window.devicePixelRatio;
+let nextId = 0;
+
+function imageUrl(label) {
+  return new URL(`/images/green-1x1.png?${label}-${++nextId}`, location.href).href;
+}
+
+promise_test(async t => {
+  const u1 = imageUrl("dyn-zoom-1x");
+  const u2 = imageUrl("dyn-zoom-2x");
+  const iframe = document.createElement("iframe");
+  t.add_cleanup(() => iframe.remove());
+  document.body.appendChild(iframe);
+  await new Promise(resolve => {
+    iframe.addEventListener("load", resolve, { once: true });
+    iframe.srcdoc = `<!doctype html><img srcset="${u1} ${1 * parentDpr}x, ${u2} ${2 * parentDpr}x">`;
+  });
+  const img = iframe.contentDocument.querySelector("img");
+  assert_equals(img.currentSrc, u1);
+
+  iframe.style.zoom = "2";
+  iframe.offsetWidth;
+  assert_equals(iframe.contentWindow.devicePixelRatio, 2 * parentDpr);
+  await t.step_wait(() => img.currentSrc === u2, "img re-selected the 2x candidate", 3000);
+}, "dynamic zoom change on the iframe re-selects the x-descriptor image source");
+</script>

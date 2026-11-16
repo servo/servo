@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSSOM View Test: scrolling to the fragment of a same-origin embedded HTML document scrolls the parent document</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#scroll-a-target-into-view">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#scroll-to-the-fragment-identifier">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#container > * { border: 0; }
+</style>
+<body style="margin:0">
+<div id="container" style="padding-block:3000px"></div>
+<script>
+async function loadEmbeddedDocument(t, tagName, urlAttribute) {
+  const element = document.createElement(tagName);
+  t.add_cleanup(() => { element.remove(); window.scrollTo(0, 0); });
+  const loaded = new Promise(resolve => element.addEventListener("load", resolve, { once: true }));
+  element[urlAttribute] = "support/scroll-to-fragment-target.html#t";
+  document.getElementById("container").append(element);
+  await loaded;
+  return element;
+}
+
+promise_test(async t => {
+  const element = await loadEmbeddedDocument(t, "object", "data");
+  await t.step_wait(() => window.scrollY == element.offsetTop, "parent document scrolled to the <object>");
+}, "Scrolling to the fragment of an HTML document in an <object> scrolls the parent document to the <object>");
+
+promise_test(async t => {
+  const element = await loadEmbeddedDocument(t, "embed", "src");
+  await t.step_wait(() => window.scrollY == element.offsetTop, "parent document scrolled to the <embed>");
+}, "Scrolling to the fragment of an HTML document in an <embed> scrolls the parent document to the <embed>");
+
+promise_test(async t => {
+  const element = await loadEmbeddedDocument(t, "iframe", "src");
+  await t.step_wait(() => window.scrollY == element.offsetTop, "parent document scrolled to the <iframe>");
+}, "Scrolling to the fragment of an HTML document in an <iframe> scrolls the parent document to the <iframe>");
+</script>
+</body>

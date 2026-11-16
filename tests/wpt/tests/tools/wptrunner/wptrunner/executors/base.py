@@ -77,7 +77,7 @@ def strip_server(url):
 
 
 def server_url(server_config, protocol, subdomain=False):
-    scheme = "https" if protocol == "h2" else protocol
+    scheme = "https" if protocol in ("h2", "websocket-h3-https") else protocol
     host = server_config["browser_host"]
     if subdomain:
         # The only supported subdomain filename flag is "www".
@@ -752,8 +752,9 @@ class PytestExecutor(TestExecutor):
 
         return (test.make_result(*data), [])
 
-    def do_pytest(self, path, timeout):
-        session_config = {
+    @property
+    def session_config(self):
+        return {
             "host": self.browser.host,
             "port": self.browser.port,
             "capabilities": self.capabilities,
@@ -769,9 +770,10 @@ class PytestExecutor(TestExecutor):
             "webdriver": {"binary": self.webdriver_binary, "args": self.webdriver_args},
         }
 
+    def do_pytest(self, path, timeout):
         return pytestrunner.run(path,
                                 self.server_config,
-                                session_config,
+                                self.session_config,
                                 timeout=timeout)
 
 

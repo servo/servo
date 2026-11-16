@@ -1,0 +1,41 @@
+<!doctype html>
+<title>animateMotion from/to values with trailing garbage are invalid</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<svg xmlns="http://www.w3.org/2000/svg">
+  <rect id="valid" width="10" height="10">
+    <animateMotion id="animValid" calcMode="discrete" dur="4s" fill="freeze"
+      from="0,0" to="200,100 " />
+  </rect>
+  <rect id="junk" width="10" height="10">
+    <animateMotion id="animJunk" calcMode="discrete" dur="4s" fill="freeze"
+      from="0,0" to="200,100 junk" />
+  </rect>
+</svg>
+
+<script>
+// A point followed by anything other than whitespace is not a valid point,
+// so "200,100 junk" must not be treated as (200, 100).
+const rootSVGElement = document.querySelector("svg");
+
+function sampleValid() {
+    const ctm = document.getElementById("valid").getCTM();
+    assert_equals(ctm.e, 200, "x (trailing whitespace is allowed)");
+    assert_equals(ctm.f, 100, "y (trailing whitespace is allowed)");
+}
+function sampleJunk() {
+    const ctm = document.getElementById("junk").getCTM();
+    assert_not_equals(ctm.e, 200, "x must not use the partially parsed point");
+    assert_not_equals(ctm.f, 100, "y must not use the partially parsed point");
+}
+
+smil_async_test((t) => {
+    runAnimationTest(t, [
+        ["animValid", 3.0, sampleValid],
+        ["animJunk",  3.0, sampleJunk],
+    ]);
+});
+</script>
+</html>

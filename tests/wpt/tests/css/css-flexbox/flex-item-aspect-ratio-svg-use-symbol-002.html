@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Flex item sizing with an aspect-ratio box containing a percentage-sized replaced child (variations)</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#intrinsic-sizes">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="match" href="flex-item-aspect-ratio-svg-use-symbol-002-ref.html">
+<meta name="assert" content="The wrapper is sized from the aspect-ratio box (height * ratio), not from the default 300px width of its percentage-sized replaced child.">
+<style>
+  body   { font: 19px sans-serif; margin: 0; }
+  .btn   { display: flex; justify-content: center; width: 300px; border: 1px solid #888; margin-bottom: 4px; }
+  .icons { display: inline-flex; }
+  .box   { display: inline-flex; height: 20px; aspect-ratio: 1 / 1; width: auto; }
+  .wrap  { border: 1px solid #888; margin-bottom: 4px; }
+  .wrap .box { display: inline-flex; }
+</style>
+
+<svg style="display:none">
+  <symbol id="s" viewBox="0 0 512 512"><path d="M512 0V512H0V0H512zM464 48H48V464H464V48z"/></symbol>
+</svg>
+
+<div class="btn"><span class="icons" style=""><span class="box" style=""><svg style="width:100%;height:100%;fill:green"><path d="M0 0H100V100H0z"/></svg></span></span><span>Label</span></div>
+<div class="btn"><span class="icons" style=""><span class="box" style="display:block"><svg style="width:100%;height:100%;fill:green"><use href="#s"/></svg></span></span><span>Label</span></div>
+<div class="btn"><span class="icons" style=""><span class="box" style="aspect-ratio:2/1"><svg style="width:100%;height:100%;fill:green"><use href="#s"/></svg></span></span><span>Label</span></div>
+<div class="btn"><span class="icons" style=""><span class="box" style="aspect-ratio:1/2"><svg style="width:100%;height:100%;fill:green"><use href="#s"/></svg></span></span><span>Label</span></div>
+<div class="wrap" style="width:max-content"><span class="box" style=""><svg style="width:100%;height:100%;fill:green"><use href="#s"/></svg></span></div>
+<div class="wrap" style="width:min-content"><span class="box" style=""><svg style="width:100%;height:100%;fill:green"><use href="#s"/></svg></span></div>
+<div class="btn"><span class="icons" style=""><span class="box" style=""><img style="width:100%;height:100%" src="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 512 512%27%3E%3Crect width=%27512%27 height=%27512%27 fill=%27green%27/%3E%3C/svg%3E"></span></span><span>Label</span></div>
+<div class="btn" id="dyn"><span class="icons"><span class="box"><svg style="width:100%;height:100%;fill:green"><use href="#s"/></svg></span></span><span>Label</span></div>
+<script>
+document.body.offsetTop;
+document.querySelector("#dyn .box").style.height = "30px";
+</script>

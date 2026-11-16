@@ -88,12 +88,12 @@ impl HTMLElement {
         let element = self.upcast::<Element>();
 
         // Step 2. If element is not editable, return the empty list.
-        if !node.is_editable() {
+        if !node.is_editable(cx) {
             return;
         }
         // Step 3. If element's specified command value for command is null,
         // return the empty list.
-        if element.specified_command_value(command).is_none() {
+        if element.specified_command_value(cx, command).is_none() {
             return;
         }
         // Step 4. If element is a simple modifiable element:
@@ -163,7 +163,7 @@ impl HTMLElement {
         }
         // Step 10. If element's specified command value for command is null,
         // return the empty list.
-        if element.specified_command_value(command).is_none() {
+        if element.specified_command_value(cx, command).is_none() {
             return;
         }
         // Step 11. Set the tag name of element to "span",
@@ -207,12 +207,12 @@ impl HTMLElement {
                 // into account than simply "it has a non-whitespace" character.
                 // Therefore, we need to first check if it is not a whitespace
                 // node and only then can we find what the relevant character is.
-                if !text.is_whitespace_node() {
+                if !text.is_whitespace_node(cx) {
                     // A node with "white-space: pre" set must select its first
                     // character, regardless if that's a whitespace character or not.
                     let is_pre_formatted_text_node = child
                         .GetParentElement()
-                        .and_then(|parent| parent.style())
+                        .and_then(|parent| parent.style(cx))
                         .is_some_and(|style| {
                             style.get_inherited_text().white_space_collapse ==
                                 WhiteSpaceCollapse::Preserve
@@ -257,7 +257,7 @@ impl HTMLElement {
             }
             // We can only select block nodes as eligible nodes for the case of non-conenteditable
             // nodes
-            if child.is_block_node() {
+            if child.is_block_node(cx) {
                 previous_eligible_node = child.clone();
             }
             previous_node = child;

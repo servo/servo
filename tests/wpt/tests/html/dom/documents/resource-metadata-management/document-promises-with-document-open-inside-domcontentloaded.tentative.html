@@ -1,0 +1,158 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>
+  document.parsed, document.contentLoaded, and document.loaded when
+  document.open() happens inside DOMContentLoaded
+</title>
+<link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+<link rel="help" href="https://github.com/whatwg/html/pull/1936" />
+<link
+  rel="help"
+  href="https://html.spec.whatwg.org/multipage/#current-document-readiness"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- This is testing https://github.com/whatwg/html/pull/1936#issuecomment-258952129 -->
+
+<iframe></iframe>
+
+<script>
+  "use strict";
+
+  function delay(t, ms) {
+    return new Promise((resolve) => t.step_timeout(resolve, ms));
+  }
+
+  promise_test(async (t) => {
+    const contentDoc = frames[0].document;
+    contentDoc.open();
+    assert_equals(
+      contentDoc.readyState,
+      "loading",
+      "Precondition: the iframe document is loading",
+    );
+
+    const parsedBefore = contentDoc.parsed;
+    const contentLoadedBefore = contentDoc.contentLoaded;
+    const loadedBefore = contentDoc.loaded;
+
+    const fulfilled1 = [];
+    const fulfilled2 = [];
+
+    parsedBefore.then(() => {
+      fulfilled1.push("parsed");
+    });
+    contentLoadedBefore.then(() => {
+      fulfilled1.push("contentLoaded");
+    });
+    loadedBefore.then(() => {
+      fulfilled1.push("loaded");
+    });
+
+    const domContentLoaded = new Promise((resolve) => {
+      contentDoc.addEventListener(
+        "DOMContentLoaded",
+        t.step_func(() => {
+          assert_equals(
+            contentDoc.readyState,
+            "interactive",
+            "readyState must be interactive when the DOMContentLoaded handler fires",
+          );
+          assert_equals(
+            contentDoc.parsed,
+            parsedBefore,
+            "document.parsed must not have changed by the time a DOMContentLoaded handler fires",
+          );
+          assert_equals(
+            contentDoc.contentLoaded,
+            contentLoadedBefore,
+            "document.contentLoaded must not have changed by the time a DOMContentLoaded handler fires",
+          );
+          assert_equals(
+            contentDoc.loaded,
+            loadedBefore,
+            "document.loaded must not have changed by the time a DOMContentLoaded handler fires",
+          );
+
+          assert_array_equals(
+            fulfilled1,
+            ["parsed"],
+            "Only parsed must have been fulfilled by the time the DOMContentLoaded handler fires",
+          );
+
+          contentDoc.open();
+
+          assert_equals(
+            contentDoc.readyState,
+            "loading",
+            "After document.open(), readyState must be loading",
+          );
+
+          assert_not_equals(
+            contentDoc.parsed,
+            parsedBefore,
+            "document.open() must reset document.parsed",
+          );
+          assert_not_equals(
+            contentDoc.contentLoaded,
+            contentLoadedBefore,
+            "document.open() must reset document.contentLoaded",
+          );
+          assert_not_equals(
+            contentDoc.loaded,
+            loadedBefore,
+            "document.open() must reset document.loaded",
+          );
+
+          contentDoc.parsed.then(() => {
+            fulfilled2.push("parsed");
+          });
+          contentDoc.contentLoaded.then(() => {
+            fulfilled2.push("contentLoaded");
+          });
+          contentDoc.loaded.then(() => {
+            fulfilled2.push("loaded");
+          });
+
+          resolve();
+        }),
+        { once: true },
+      );
+    });
+
+    contentDoc.close();
+    await domContentLoaded;
+    await delay(t, 10);
+
+    assert_array_equals(
+      fulfilled1,
+      ["parsed", "contentLoaded"],
+      "Of the original promises, 10 ms after document.open(), parsed and contentLoaded must have fulfilled",
+    );
+    assert_array_equals(
+      fulfilled2,
+      [],
+      "None of the new promises should be fulfilled 10 ms after document.open()",
+    );
+
+    contentDoc.close();
+
+    await Promise.all([
+      contentDoc.parsed,
+      contentDoc.contentLoaded,
+      contentDoc.loaded,
+    ]);
+
+    assert_array_equals(
+      fulfilled1,
+      ["parsed", "contentLoaded"],
+      "The original loaded promise must never fulfill",
+    );
+    assert_array_equals(
+      fulfilled2,
+      ["parsed", "contentLoaded", "loaded"],
+      "After document.close(), the new promises must fulfill in order",
+    );
+  }, "document.parsed, document.contentLoaded, and document.loaded when document.open() happens inside DOMContentLoaded");
+</script>

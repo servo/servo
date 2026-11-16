@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>white-space-trim: intrinsic width (min-content / max-content) reflects discard-before/after</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#white-space-trim">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  /* monospace so word widths are predictable */
+  span { font: 16px/1 monospace; }
+  .mc { display: inline-block; width: max-content; }
+  .minc { display: inline-block; width: min-content; }
+  .db { white-space-trim: discard-before; }
+  .da { white-space-trim: discard-after; }
+</style>
+</head>
+<body>
+<!-- max-content group -->
+<span id="mcRef" class="mc">a<span>b</span></span>
+<span id="mcControl" class="mc">a <span>b</span></span>
+<span id="mcBefore" class="mc">a <span class="db">b</span></span>
+<span id="mcAfterRef" class="mc"><span>a</span>b</span>
+<span id="mcAfterControl" class="mc"><span>a</span> b</span>
+<span id="mcAfter" class="mc"><span class="da">a</span> b</span>
+
+<!-- min-content group: discarding the space also removes the wrap opportunity,
+     so "X" + word become a single unbreakable unit -->
+<span id="minRef" class="minc">X<span>YYYY</span></span>
+<span id="minControl" class="minc">X <span>YYYY</span></span>
+<span id="minBefore" class="minc">X <span class="db">YYYY</span></span>
+<span id="minAfterRef" class="minc"><span>YYYY</span>X</span>
+<span id="minAfterControl" class="minc"><span>YYYY</span> X</span>
+<span id="minAfter" class="minc"><span class="da">YYYY</span> X</span>
+<script>
+const w = id => document.getElementById(id).offsetWidth;
+
+// --- max-content ---
+test(() => { assert_greater_than(w('mcControl'), w('mcRef')); },
+    'sanity: collapsible space before box adds max-content width');
+test(() => { assert_greater_than(w('mcAfterControl'), w('mcAfterRef')); },
+    'sanity: collapsible space after box adds max-content width');
+test(() => { assert_equals(w('mcBefore'), w('mcRef')); },
+    'discard-before: max-content excludes the collapsed leading space');
+test(() => { assert_equals(w('mcAfter'), w('mcAfterRef')); },
+    'discard-after: max-content excludes the collapsed trailing space');
+
+// --- min-content ---
+// Control: the space is a soft-wrap opportunity, so min-content is just "YYYY".
+// Ref/trimmed: no break, so min-content is the merged "XYYYY" (wider).
+test(() => { assert_greater_than(w('minRef'), w('minControl')); },
+    'sanity: a wrap opportunity at the space lowers min-content');
+test(() => { assert_greater_than(w('minAfterRef'), w('minAfterControl')); },
+    'sanity: a wrap opportunity at the trailing space lowers min-content');
+test(() => { assert_equals(w('minBefore'), w('minRef')); },
+    'discard-before: min-content merges the words (removes the wrap opportunity)');
+test(() => { assert_equals(w('minAfter'), w('minAfterRef')); },
+    'discard-after: min-content merges the words (removes the wrap opportunity)');
+</script>
+</body>
+</html>

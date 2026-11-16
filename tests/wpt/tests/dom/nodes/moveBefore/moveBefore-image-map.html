@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<title>moveBefore() updates image map associations when an img or map changes tree</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-parentnode-movebefore">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/image-maps.html#image-map">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+const loaded = new Promise(resolve => window.addEventListener("load", resolve));
+
+let mapCount = 0;
+function setup(t) {
+  const name = `map${++mapCount}`;
+  const container = document.createElement("div");
+  container.innerHTML = `<img usemap="#${name}" width="100" height="100" style="display: block" src="/images/green.png">`
+      + `<map name="${name}"><area shape="rect" coords="0,0,100,100" href="#${name}"></map>`
+      + `<div></div>`;
+  document.body.appendChild(container);
+  t.add_cleanup(() => container.remove());
+
+  const img = container.querySelector("img");
+  const map = container.querySelector("map");
+  const shadowRoot = container.querySelector("div").attachShadow({ mode: "open" });
+  return { img, map, area: map.querySelector("area"), shadowRoot };
+}
+
+function hitTestCenter(scope, img) {
+  const rect = img.getBoundingClientRect();
+  return scope.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+}
+
+promise_test(async t => {
+  await loaded;
+  const { img, map, area, shadowRoot } = setup(t);
+  assert_equals(hitTestCenter(document, img), area, "the image uses the map before the move");
+
+  shadowRoot.moveBefore(map, null);
+  assert_equals(hitTestCenter(document, img), img, "the map is in another tree, so the image no longer uses it");
+
+  img.parentNode.moveBefore(map, null);
+  assert_equals(hitTestCenter(document, img), area, "the image uses the map again once it is moved back");
+}, "An image stops using a map that is moved into a shadow root");
+
+promise_test(async t => {
+  await loaded;
+  const { img, map, shadowRoot } = setup(t);
+  const shadowMap = map.cloneNode(true);
+  shadowRoot.appendChild(shadowMap);
+
+  shadowRoot.moveBefore(img, null);
+
+  assert_equals(hitTestCenter(shadowRoot, img), shadowMap.querySelector("area"), "the image uses the map in its new tree");
+}, "An image moved into a shadow root uses a map in the shadow root");
+
+promise_test(async t => {
+  await loaded;
+  const { img, area, shadowRoot } = setup(t);
+  area.focus();
+  assert_equals(document.activeElement, area, "the area is focusable while its image is in the same tree");
+  area.blur();
+
+  shadowRoot.moveBefore(img, null);
+  area.focus();
+
+  assert_not_equals(document.activeElement, area, "no image in the area's tree uses its map");
+}, "An area whose image was moved into a shadow root is no longer focusable");
+</script>
+</body>

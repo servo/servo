@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<title>CookieStore usage does not leak document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/leak-helpers.js"></script>
+<body>
+    <script>
+      async function createAndDestroySameOriginIframe(runFn) {
+        const iframe = document.createElement("iframe");
+        iframe.src = "/common/blank.html";
+        document.body.appendChild(iframe);
+        await new Promise((resolve) => { iframe.onload = resolve; });
+
+        await runFn(iframe.contentWindow);
+
+        const weakDocument = new WeakRef(iframe.contentDocument);
+        iframe.remove();
+
+        await TestUtils.gc();
+        await TestUtils.gc();
+
+        return weakDocument.deref() === undefined;
+      }
+
+      const srcdoc_tests = [
+        "<script>window.cookieStore;<\/script>",
+        "<script>window.cookieStore.get('test');<\/script>",
+        "<script>window.cookieStore.getAll('test');<\/script>",
+        "<script>window.cookieStore.set('test', 'value');<\/script>",
+        "<script>window.cookieStore.delete('test');<\/script>",
+        "<script>window.cookieStore.set({name: 'test', value: 'value'});<\/script>",
+        "<script>window.cookieStore.delete({name: 'test', path: '/'});<\/script>",
+        "<script>(async () => { await window.cookieStore.get('test'); })();<\/script>",
+        "<script>(async () => { await window.cookieStore.set('test', 'value'); })();<\/script>",
+      ];
+
+      for (const test of srcdoc_tests) {
+        promise_test(async () => {
+          assert_true(await createAndDestroyIframeWithHTML(test));
+        }, `'${test}' does not leak the document`);
+      }
+
+      const same_origin_tests = [
+        {
+          name: "same-origin iframe with property access",
+          fn: (win) => {
+            win.cookieStore;
+          },
+        },
+        {
+          name: "same-origin iframe with awaited set and get",
+          fn: async (win) => {
+            await win.cookieStore.set("test_key", "test_val");
+            const item = await win.cookieStore.get("test_key");
+            assert_equals(item.value, "test_val");
+          },
+        },
+        {
+          name: "same-origin iframe with awaited delete",
+          fn: async (win) => {
+            await win.cookieStore.set("test_key", "test_val");
+            await win.cookieStore.delete("test_key");
+            const item = await win.cookieStore.get("test_key");
+            assert_equals(item, null);
+          },
+        },
+        {
+          name: "same-origin iframe with matching url option",
+          fn: async (win) => {
+            await win.cookieStore.set({name: "test_key", value: "test_val", url: win.location.href});
+            const item = await win.cookieStore.get({name: "test_key", url: win.location.href});
+            assert_equals(item.value, "test_val");
+          },
+        },
+        {
+          name: "same-origin iframe with in-flight set on removal",
+          fn: (win) => {
+            win.cookieStore.set("in_flight", "val");
+          },
+        },
+        {
+          name: "same-origin iframe with in-flight get on removal",
+          fn: (win) => {
+            win.cookieStore.get("in_flight");
+          },
+        },
+      ];
+
+      for (const {name, fn} of same_origin_tests) {
+        promise_test(async () => {
+          assert_true(await createAndDestroySameOriginIframe(fn));
+        }, `${name} does not leak the document`);
+      }
+    </script>
+</body>

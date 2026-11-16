@@ -1,0 +1,451 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>HTML partial updates - positional streaming methods</title>
+<link rel="help" href="https://html.spec.whatwg.org/#html-streaming-methods" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    async function create_and_stream(method, old_html, new_html, options = {}) {
+      const placeholder = document.createElement("div");
+      const inner = document.createElement("span");
+      inner.innerHTML = old_html;
+      placeholder.appendChild(inner);
+      document.body.appendChild(placeholder);
+      const writable = inner[method](options);
+      assert_true(
+        writable instanceof WritableStream,
+        `node.${method}() returns a writable stream`,
+      );
+      const writer = writable.getWriter();
+      await writer.write(new_html);
+      await writer.close();
+      const result = placeholder.innerHTML;
+      placeholder.remove();
+      return result;
+    }
+
+    function test_stream_result(method, old_html, new_html, options, expected) {
+      promise_test(
+        async (t) => {
+          assert_equals(
+            await create_and_stream(method, old_html, new_html, options),
+            expected,
+          );
+        },
+        `${method}(${JSON.stringify(options)}) with ${old_html} and ${new_html}`,
+      );
+    }
+
+    for (const safe of [true, false]) {
+      test_stream_result(
+        `streamAppendHTML${safe ? "" : "Unsafe"}`,
+        "A",
+        "B",
+        {},
+        "<span>AB</span>",
+      );
+      test_stream_result(
+        `streamAppendHTML${safe ? "" : "Unsafe"}`,
+        "A",
+        "<p>B</p>",
+        {},
+        "<span>A<p>B</p></span>",
+      );
+      test_stream_result(
+        `streamAppendHTML${safe ? "" : "Unsafe"}`,
+        "<p>A</p>",
+        "B",
+        {},
+        "<span><p>A</p>B</span>",
+      );
+      test_stream_result(
+        `streamAppendHTML${safe ? "" : "Unsafe"}`,
+        "<p>A</p>",
+        "<p>B</p>",
+        {},
+        "<span><p>A</p><p>B</p></span>",
+      );
+      test_stream_result(
+        `streamPrependHTML${safe ? "" : "Unsafe"}`,
+        "A",
+        "B",
+        {},
+        "<span>BA</span>",
+      );
+      test_stream_result(
+        `streamPrependHTML${safe ? "" : "Unsafe"}`,
+        "A",
+        "<p>B</p>",
+        {},
+        "<span><p>B</p>A</span>",
+      );
+      test_stream_result(
+        `streamPrependHTML${safe ? "" : "Unsafe"}`,
+        "<p>A</p>",
+        "B",
+        {},
+        "<span>B<p>A</p></span>",
+      );
+      test_stream_result(
+        `streamPrependHTML${safe ? "" : "Unsafe"}`,
+        "<p>A</p>",
+        "<p>B</p>",
+        {},
+        "<span><p>B</p><p>A</p></span>",
+      );
+      test_stream_result(
+        `streamReplaceWithHTML${safe ? "" : "Unsafe"}`,
+        "A",
+        "B",
+        {},
+        "B",
+      );
+      test_stream_result(
+        `streamReplaceWithHTML${safe ? "" : "Unsafe"}`,
+        "A",
+        "<p>B</p>",
+        {},
+        "<p>B</p>",
+      );
+      test_stream_result(
+        `streamReplaceWithHTML${safe ? "" : "Unsafe"}`,
+        "<p>A</p>",
+        "B",
+        {},
+        "B",
+      );
+      test_stream_result(
+        `streamReplaceWithHTML${safe ? "" : "Unsafe"}`,
+        "<p>A</p>",
+        "<p>B</p>",
+        {},
+        "<p>B</p>",
+      );
+      test_stream_result(
+        `streamBeforeHTML${safe ? "" : "Unsafe"}`,
+        "A",
+        "B",
+        {},
+        "B<span>A</span>",
+      );
+      test_stream_result(
+        `streamBeforeHTML${safe ? "" : "Unsafe"}`,
+        "A",
+        "<p>B</p>",
+        {},
+        "<p>B</p><span>A</span>",
+      );
+      test_stream_result(
+        `streamBeforeHTML${safe ? "" : "Unsafe"}`,
+        "<p>A</p>",
+        "B",
+        {},
+        "B<span><p>A</p></span>",
+      );
+      test_stream_result(
+        `streamBeforeHTML${safe ? "" : "Unsafe"}`,
+        "<p>A</p>",
+        "<p>B</p>",
+        {},
+        "<p>B</p><span><p>A</p></span>",
+      );
+      test_stream_result(
+        `streamAfterHTML${safe ? "" : "Unsafe"}`,
+        "A",
+        "B",
+        {},
+        "<span>A</span>B",
+      );
+      test_stream_result(
+        `streamAfterHTML${safe ? "" : "Unsafe"}`,
+        "A",
+        "<p>B</p>",
+        {},
+        "<span>A</span><p>B</p>",
+      );
+      test_stream_result(
+        `streamAfterHTML${safe ? "" : "Unsafe"}`,
+        "<p>A</p>",
+        "B",
+        {},
+        "<span><p>A</p></span>B",
+      );
+      test_stream_result(
+        `streamAfterHTML${safe ? "" : "Unsafe"}`,
+        "<p>A</p>",
+        "<p>B</p>",
+        {},
+        "<span><p>A</p></span><p>B</p>",
+      );
+
+      for (const runScripts of [true, false]) {
+        const should_run_scripts = runScripts && !safe;
+        const options = { runScripts };
+        for (const position of [
+          "After",
+          "Before",
+          "ReplaceWith",
+          "Append",
+          "Prepend",
+        ]) {
+          const method = `stream${position}HTML${safe ? "" : "Unsafe"}`;
+          promise_test(
+            async (t) => {
+              t.add_cleanup(() => { delete window.did_run; });
+              window.did_run = false;
+              await create_and_stream(
+                method,
+                "",
+                "<script>window.did_run = true;</" + "script>",
+                options,
+              );
+              assert_equals(window.did_run, should_run_scripts);
+            },
+            `${method}(${JSON.stringify(options)}) should ${should_run_scripts ? "" : "not "}run scripts`,
+          );
+        }
+      }
+      for (const method of [
+        "streamAfterHTML",
+        "streamBeforeHTML",
+        "streamReplaceWithHTML",
+      ]) {
+        const method_name = `${method}${safe ? "" : "Unsafe"}`;
+        test(() => {
+          const detached = document.createElement("p");
+          assert_throws_dom("HierarchyRequestError", () => {
+            detached[method_name]();
+          });
+        }, `${method_name} throw if node has no parent`);
+
+        test(() => {
+          const detachedText = document.createTextNode("text");
+          assert_throws_dom("HierarchyRequestError", () => {
+            detachedText[method_name]();
+          });
+        }, `${method_name} on detached Text node throw if node has no parent`);
+
+        test(() => {
+          const doc = document.implementation.createHTMLDocument();
+          const comment = doc.appendChild(doc.createComment("ref"));
+          assert_throws_dom("HierarchyRequestError", () => {
+            comment[method_name]();
+          });
+        }, `${method_name} throw if parent is a Document`);
+
+        test(() => {
+          const fragment = document.createDocumentFragment();
+          const span = document.createElement("span");
+          fragment.appendChild(span);
+          assert_throws_dom("HierarchyRequestError", () => {
+            span[method_name]();
+          });
+        }, `${method_name} throw if parent is a DocumentFragment`);
+
+        test(() => {
+          const invalid = { sanitizer: { elements: ["div"], removeElements: ["div"] } };
+          const parented = document.createElement("div").appendChild(document.createElement("p"));
+          assert_equals(typeof parented[method_name], "function", `${method_name} is supported`);
+          assert_throws_js(TypeError, () => {
+            parented[method_name](invalid);
+          }, "sanity check: the sanitizer config is invalid");
+          assert_equals(parented.parentNode.childNodes.length, 1, "the node is not removed");
+
+          const detached = document.createElement("p");
+          assert_throws_dom("HierarchyRequestError", () => {
+            detached[method_name](invalid);
+          }, "no parent");
+
+          const doc = document.implementation.createHTMLDocument();
+          const comment = doc.appendChild(doc.createComment("ref"));
+          assert_throws_dom("HierarchyRequestError", () => {
+            comment[method_name](invalid);
+          }, "Document parent");
+
+          const fragment = document.createDocumentFragment();
+          const span = fragment.appendChild(document.createElement("span"));
+          assert_throws_dom("HierarchyRequestError", () => {
+            span[method_name](invalid);
+          }, "DocumentFragment parent");
+        }, `${method_name} throws HierarchyRequestError before validating the sanitizer config`);
+
+        test(() => {
+          assert_implements(method_name in Element.prototype, `${method_name} is not supported`);
+          const doctype = document.implementation.createDocumentType("html", "", "");
+          assert_false(method_name in doctype);
+          assert_equals(doctype[method_name], undefined);
+        }, `${method_name} is not exposed on DocumentType`);
+      }
+
+      for (const method_name of [
+        `streamHTML${safe ? "" : "Unsafe"}`,
+        `streamAppendHTML${safe ? "" : "Unsafe"}`,
+        `streamPrependHTML${safe ? "" : "Unsafe"}`,
+        `streamBeforeHTML${safe ? "" : "Unsafe"}`,
+        `streamAfterHTML${safe ? "" : "Unsafe"}`,
+        `streamReplaceWithHTML${safe ? "" : "Unsafe"}`,
+      ]) {
+        test(() => {
+          assert_implements(method_name in Element.prototype, `${method_name} is not supported`);
+          const doc = document.implementation.createHTMLDocument();
+          const fragment = document.createDocumentFragment();
+          assert_false(method_name in doc, `${method_name} is not on Document`);
+          assert_false(method_name in fragment, `${method_name} is not on DocumentFragment`);
+        }, `${method_name} is not exposed on Document or DocumentFragment`);
+      }
+
+      for (const method_name of [
+        `streamHTML${safe ? "" : "Unsafe"}`,
+        `streamAppendHTML${safe ? "" : "Unsafe"}`,
+        `streamPrependHTML${safe ? "" : "Unsafe"}`,
+      ]) {
+        test(() => {
+          const el = document.createElement("div");
+          const s1 = el[method_name]();
+          const s2 = el[method_name]();
+          assert_not_equals(s1, s2, "Element method returns a new WritableStream each time");
+
+          const host = document.createElement("div");
+          const sr = host.attachShadow({ mode: "open" });
+          const sr1 = sr[method_name]();
+          const sr2 = sr[method_name]();
+          assert_not_equals(sr1, sr2, "ShadowRoot method returns a new WritableStream each time");
+        }, `${method_name} returns a [NewObject] WritableStream on Element and ShadowRoot`);
+      }
+
+      for (const method_name of [
+        `streamBeforeHTML${safe ? "" : "Unsafe"}`,
+        `streamAfterHTML${safe ? "" : "Unsafe"}`,
+        `streamReplaceWithHTML${safe ? "" : "Unsafe"}`,
+      ]) {
+        test(() => {
+          const parent = document.createElement("div");
+          const el1 = parent.appendChild(document.createElement("span"));
+          const el2 = parent.appendChild(document.createElement("span"));
+          const s1 = el1[method_name]();
+          const s2 = (method_name.startsWith("streamReplaceWith") ? el2 : el1)[method_name]();
+          assert_not_equals(s1, s2, "Element positional method returns a new WritableStream");
+
+          const t1 = parent.appendChild(document.createTextNode("a"));
+          const t2 = parent.appendChild(document.createTextNode("b"));
+          const ts1 = t1[method_name]();
+          const ts2 = (method_name.startsWith("streamReplaceWith") ? t2 : t1)[method_name]();
+          assert_not_equals(ts1, ts2, "CharacterData positional method returns a new WritableStream");
+        }, `${method_name} returns a [NewObject] WritableStream on Element and CharacterData`);
+      }
+
+      for (const [nodeKind, createNode] of [
+        ["Comment", (doc) => doc.createComment("anchor")],
+        ["ProcessingInstruction", (doc) => doc.createProcessingInstruction("pi", "data")],
+      ]) {
+        const suffix = safe ? "" : "Unsafe";
+
+        promise_test(async () => {
+          const parent = document.createElement("div");
+          const node = parent.appendChild(createNode(document));
+          const writer = node[`streamBeforeHTML${suffix}`]().getWriter();
+          await writer.write("<span>before</span>");
+          await writer.close();
+          assert_equals(parent.firstChild.outerHTML, "<span>before</span>");
+          assert_equals(parent.lastChild, node);
+        }, `streamBeforeHTML${suffix} works on ${nodeKind}`);
+
+        promise_test(async () => {
+          const parent = document.createElement("div");
+          const node = parent.appendChild(createNode(document));
+          const writer = node[`streamAfterHTML${suffix}`]().getWriter();
+          await writer.write("<span>after</span>");
+          await writer.close();
+          assert_equals(parent.firstChild, node);
+          assert_equals(parent.lastChild.outerHTML, "<span>after</span>");
+        }, `streamAfterHTML${suffix} works on ${nodeKind}`);
+
+        promise_test(async () => {
+          const parent = document.createElement("div");
+          const node = parent.appendChild(createNode(document));
+          const writer = node[`streamReplaceWithHTML${suffix}`]().getWriter();
+          await writer.write("<span>replaced</span>");
+          await writer.close();
+          assert_equals(node.parentNode, null);
+          assert_equals(parent.innerHTML, "<span>replaced</span>");
+        }, `streamReplaceWithHTML${suffix} works on ${nodeKind}`);
+      }
+    }
+
+
+    for (const safe of [true, false]) {
+      const suffix = safe ? "" : "Unsafe";
+
+      promise_test(async (t) => {
+        const template = document.createElement("template");
+        document.body.append(template);
+        t.add_cleanup(() => template.remove());
+        template.innerHTML = "before;";
+
+        const writer = template[`streamAppendHTML${suffix}`]().getWriter();
+        await writer.write("<span>allowed</span>");
+        await writer.close();
+
+        assert_equals(template.innerHTML, "before;<span>allowed</span>");
+        assert_equals(template.content.textContent, "before;allowed");
+      }, `streamAppendHTML${suffix} on HTMLTemplateElement appends to content`);
+
+      promise_test(async (t) => {
+        const template = document.createElement("template");
+        document.body.append(template);
+        t.add_cleanup(() => template.remove());
+        template.innerHTML = "after;";
+
+        const writer = template[`streamPrependHTML${suffix}`]().getWriter();
+        await writer.write("<span>allowed;</span>");
+        await writer.close();
+
+        assert_equals(template.innerHTML, "<span>allowed;</span>after;");
+        assert_equals(template.content.textContent, "allowed;after;");
+      }, `streamPrependHTML${suffix} on HTMLTemplateElement prepends to content`);
+
+      promise_test(async (t) => {
+        const template = document.createElement("template");
+        document.body.append(template);
+        t.add_cleanup(() => template.remove());
+        template.innerHTML = "before;<span id='child'></span>after;";
+        const child = template.content.querySelector('#child');
+
+        const writer = child[`streamBeforeHTML${suffix}`]().getWriter();
+        await writer.write("<span>allowed;</span>");
+        await writer.close();
+
+        assert_equals(template.innerHTML, "before;<span>allowed;</span><span id=\"child\"></span>after;");
+      }, `streamBeforeHTML${suffix} on child of HTMLTemplateElement content streams before child`);
+
+      promise_test(async (t) => {
+        const template = document.createElement("template");
+        document.body.append(template);
+        t.add_cleanup(() => template.remove());
+        template.innerHTML = "before;<span id='child'></span>after;";
+        const child = template.content.querySelector('#child');
+
+        const writer = child[`streamAfterHTML${suffix}`]().getWriter();
+        await writer.write("<span>allowed;</span>");
+        await writer.close();
+
+        assert_equals(template.innerHTML, "before;<span id=\"child\"></span><span>allowed;</span>after;");
+      }, `streamAfterHTML${suffix} on child of HTMLTemplateElement content streams after child`);
+
+      promise_test(async (t) => {
+        const template = document.createElement("template");
+        document.body.append(template);
+        t.add_cleanup(() => template.remove());
+        template.innerHTML = "before;<span id='child'></span>after;";
+        const child = template.content.querySelector('#child');
+
+        const writer = child[`streamReplaceWithHTML${suffix}`]().getWriter();
+        await writer.write("<span>allowed;</span>");
+        await writer.close();
+
+        assert_equals(template.innerHTML, "before;<span>allowed;</span>after;");
+      }, `streamReplaceWithHTML${suffix} on child of HTMLTemplateElement content replaces child`);
+    }
+</script>
+</body>

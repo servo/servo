@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>gap: shorthand serialization with mixed initial longhands</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#serialize-a-css-value">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-gap">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="target"></div>
+<script>
+const style = document.getElementById('target').style;
+
+test(() => {
+  style.cssText = '';
+  style.rowGap = 'initial';
+  style.columnGap = '20px';
+  // row-gap: initial and column-gap: 20px cannot be represented by a single
+  // valid gap value, so the shorthand must serialize to the empty string
+  // rather than the invalid "initial 20px".
+  assert_equals(style.gap, '');
+}, 'gap serializes as the empty string when one longhand is a CSS-wide keyword and the other is not');
+
+test(() => {
+  style.cssText = '';
+  style.rowGap = 'initial';
+  style.columnGap = 'initial';
+  assert_equals(style.gap, 'initial');
+}, 'gap serializes to "initial" when both longhands are initial');
+
+test(() => {
+  style.cssText = '';
+  style.rowGap = 'normal';
+  style.columnGap = '20px';
+  assert_equals(style.gap, 'normal 20px');
+}, 'gap serializes normal/length longhands as a valid shorthand');
+</script>

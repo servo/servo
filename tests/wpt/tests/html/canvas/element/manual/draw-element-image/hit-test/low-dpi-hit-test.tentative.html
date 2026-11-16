@@ -52,6 +52,8 @@ async function cleanup(controller) {
 }
 
 promise_test((t) => {
+  assert_implements('requestPaint' in HTMLCanvasElement.prototype,
+                    'html-in-canvas is not supported');
   return new Promise(async (resolve, reject) => {
     const controller = new AbortController();
     t.add_cleanup(() => cleanup(controller));
@@ -74,6 +76,8 @@ promise_test((t) => {
 }, "single target");
 
 promise_test((t) => {
+  assert_implements('requestPaint' in HTMLCanvasElement.prototype,
+                    'html-in-canvas is not supported');
   return new Promise(async (resolve, reject) => {
     const controller = new AbortController();
     t.add_cleanup(() => cleanup(controller));
@@ -99,6 +103,8 @@ promise_test((t) => {
 }, "multiple targets, should only hit first");
 
 promise_test((t) => {
+  assert_implements('requestPaint' in HTMLCanvasElement.prototype,
+                    'html-in-canvas is not supported');
   return new Promise(async (resolve, reject) => {
     const controller = new AbortController();
     t.add_cleanup(() => cleanup(controller));

@@ -99,3 +99,26 @@ other object will be.  Thus in the example code above, the harness would test th
 `document.documentElement` correctly implements `HTMLHtmlElement`, `HTMLElement`, `Element`, and
 `Node`; but `document.head` would only be tested for `HTMLHeadElement`, and so on for further
 objects.
+
+### `set_test_filter(filter)`
+
+Sets a predicate controlling which interface and member tests are generated.
+The predicate receives an interface name and, for member tests, a member name.
+It must return `true` to include the tests or `false` to exclude them.
+
+Interface-level and member-level filtering are independent: an interface's
+members can be tested even when its interface-level checks are excluded.
+Constructors are part of the interface-level checks. IDL validation, dependency
+definitions, and structural checks for partial interfaces and mixins are
+unaffected. Already-untested definitions and members are not enabled by a filter.
+
+Call this method in the setup callback passed to `idl_test()`. Filtering is
+applied after merging partial interfaces and mixins, so mixin members are
+filtered using the name of the interface that includes them.
+
+For example, to exclude one operation while keeping the rest of an interface:
+
+```js
+idl_array.set_test_filter((name, memberName) =>
+  !(name === 'Example' && memberName === 'excludedOperation'));
+```

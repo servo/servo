@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: reference for button elements, direct clamping</title>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+body {
+  font: 25px/1 Ahem;
+}
+input, button, select, textarea {
+  font: inherit;
+}
+.clamp {
+  width: 240px;
+  text-align: left;
+}
+div.clamp {
+  background-color: lightblue;
+  border: 1px solid black;
+}
+</style>
+
+<input class="clamp" type="button" value="XX XX XX XX XX XX XX XX XX XX">
+<input class="clamp" type="submit" value="XX XX XX XX XX XX XX XX XX XX">
+<input class="clamp" type="reset" value="XX XX XX XX XX XX XX XX XX XX">
+<input class="clamp" type="image" alt="XX XX XX XX XX XX…">
+<button class="clamp">XX<br>XX…</button>

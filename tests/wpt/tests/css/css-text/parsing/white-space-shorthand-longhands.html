@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<title>CSS Text Module Test: white-space-collapse, text-wrap-mode, and white-space-trim computed values when set via the white-space shorthand</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#propdef-white-space">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#white-space-collapsing">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-wrap-mode">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#white-space-trim">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="target"></div>
+<script>
+function test_longhands_from_shorthand(whiteSpace, expected) {
+  test(() => {
+    const target = document.getElementById('target');
+    target.style.whiteSpace = '';
+    target.style.whiteSpace = whiteSpace;
+    const style = getComputedStyle(target);
+    assert_equals(style.whiteSpaceCollapse, expected.whiteSpaceCollapse, 'white-space-collapse');
+    assert_equals(style.textWrapMode, expected.textWrapMode, 'text-wrap-mode');
+    assert_equals(style.whiteSpaceTrim, expected.whiteSpaceTrim, 'white-space-trim');
+  }, `white-space: ${whiteSpace}`);
+}
+
+// The pre-defined single-keyword forms.
+test_longhands_from_shorthand("normal", { whiteSpaceCollapse: "collapse", textWrapMode: "wrap", whiteSpaceTrim: "none" });
+test_longhands_from_shorthand("pre", { whiteSpaceCollapse: "preserve", textWrapMode: "nowrap", whiteSpaceTrim: "none" });
+test_longhands_from_shorthand("pre-wrap", { whiteSpaceCollapse: "preserve", textWrapMode: "wrap", whiteSpaceTrim: "none" });
+test_longhands_from_shorthand("pre-line", { whiteSpaceCollapse: "preserve-breaks", textWrapMode: "wrap", whiteSpaceTrim: "none" });
+test_longhands_from_shorthand("nowrap", { whiteSpaceCollapse: "collapse", textWrapMode: "nowrap", whiteSpaceTrim: "none" });
+test_longhands_from_shorthand("break-spaces", { whiteSpaceCollapse: "break-spaces", textWrapMode: "wrap", whiteSpaceTrim: "none" });
+
+// The multi-value syntax with a single longhand keyword; the other longhands fall back to their initial value.
+test_longhands_from_shorthand("collapse", { whiteSpaceCollapse: "collapse", textWrapMode: "wrap", whiteSpaceTrim: "none" });
+test_longhands_from_shorthand("preserve", { whiteSpaceCollapse: "preserve", textWrapMode: "wrap", whiteSpaceTrim: "none" });
+test_longhands_from_shorthand("preserve-breaks", { whiteSpaceCollapse: "preserve-breaks", textWrapMode: "wrap", whiteSpaceTrim: "none" });
+test_longhands_from_shorthand("wrap", { whiteSpaceCollapse: "collapse", textWrapMode: "wrap", whiteSpaceTrim: "none" });
+test_longhands_from_shorthand("discard-before", { whiteSpaceCollapse: "collapse", textWrapMode: "wrap", whiteSpaceTrim: "discard-before" });
+test_longhands_from_shorthand("discard-after", { whiteSpaceCollapse: "collapse", textWrapMode: "wrap", whiteSpaceTrim: "discard-after" });
+test_longhands_from_shorthand("discard-inner", { whiteSpaceCollapse: "collapse", textWrapMode: "wrap", whiteSpaceTrim: "discard-inner" });
+
+// The multi-value syntax with all three longhands present, in various orders.
+test_longhands_from_shorthand("preserve nowrap discard-inner", { whiteSpaceCollapse: "preserve", textWrapMode: "nowrap", whiteSpaceTrim: "discard-inner" });
+test_longhands_from_shorthand("discard-before discard-after", { whiteSpaceCollapse: "collapse", textWrapMode: "wrap", whiteSpaceTrim: "discard-before discard-after" });
+test_longhands_from_shorthand("discard-inner discard-after discard-before", { whiteSpaceCollapse: "collapse", textWrapMode: "wrap", whiteSpaceTrim: "discard-before discard-after discard-inner" });
+test_longhands_from_shorthand("collapse wrap discard-before discard-after discard-inner", { whiteSpaceCollapse: "collapse", textWrapMode: "wrap", whiteSpaceTrim: "discard-before discard-after discard-inner" });
+
+// Setting the shorthand overwrites previously-set longhand values, including white-space-trim.
+test(() => {
+  const target = document.getElementById('target');
+  target.style.whiteSpace = '';
+  target.style.whiteSpaceTrim = 'discard-inner';
+  target.style.whiteSpace = 'pre';
+  const style = getComputedStyle(target);
+  assert_equals(style.whiteSpaceCollapse, 'preserve');
+  assert_equals(style.textWrapMode, 'nowrap');
+  assert_equals(style.whiteSpaceTrim, 'none');
+}, "`white-space` should overwrite a previously set `white-space-trim`");
+
+// white-space-trim set after the shorthand is not overwritten by it.
+test(() => {
+  const target = document.getElementById('target');
+  target.style.whiteSpace = '';
+  target.style.whiteSpace = 'pre';
+  target.style.whiteSpaceTrim = 'discard-before';
+  const style = getComputedStyle(target);
+  assert_equals(style.whiteSpaceCollapse, 'preserve');
+  assert_equals(style.textWrapMode, 'nowrap');
+  assert_equals(style.whiteSpaceTrim, 'discard-before');
+}, "`white-space-trim` set after `white-space` should not be overwritten");
+</script>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<link rel="author" href="mailto:jkew@mozilla.com">
+
+<title>Reference: test that metrics overrides can result in smaller-than-normal line height</title>
+
+<style>
+.target1, .target2 {
+  background: green;
+  width: 300px;
+  height: 50px;
+  position: absolute;
+  left: 50px;
+}
+
+.target1 {
+  top: 50px;
+}
+
+.target2 {
+  top: 150px;
+}
+</style>
+
+<div class="target1"></div>
+
+<div class="target2"></div>

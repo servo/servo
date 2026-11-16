@@ -16,10 +16,11 @@ use devtools_traits::{
 use embedder_traits::{ConsoleLogLevel, EmbedderMsg};
 use js::context::JSContext;
 use js::conversions::jsstr_to_string;
-use js::jsapi::{self, ESClass, PropertyDescriptor};
+use js::gc::RootedVec;
+use js::jsapi::{self, ESClass, Heap, PropertyDescriptor};
 #[cfg(feature = "devtools")]
 use js::jsapi::{JS_GetFunctionArity, SavedFrameSelfHosted};
-use js::jsval::{Int32Value, ObjectValue, UndefinedValue};
+use js::jsval::{Int32Value, JSVal, ObjectValue, UndefinedValue};
 #[cfg(feature = "devtools")]
 use js::realm::CurrentRealm;
 #[cfg(feature = "devtools")]
@@ -34,6 +35,8 @@ use js::rust::wrappers2::{
 #[cfg(feature = "devtools")]
 use js::rust::{CapturedJSStack, describe_scripted_caller, for_of};
 use js::rust::{HandleObject, HandleValue, IdVector, ToNumber, ToString};
+#[cfg(feature = "devtools")]
+use script_bindings::codegen::PrototypeList::proto_id_to_name;
 use script_bindings::conversions::get_dom_class;
 use script_bindings::js::{
     GetPropertyKeys, JS_GetOwnPropertyDescriptorById, JS_GetPropertyById, JS_GetPrototype,
@@ -70,7 +73,7 @@ impl Console {
         let prefix = global.current_group_label().unwrap_or_default();
         let formatted_message = format!("{prefix}{message}");
 
-        Self::send_to_embedder(global, level.clone(), formatted_message);
+        Self::send_to_embedder(global, level, formatted_message);
 
         #[cfg(feature = "devtools")]
         {
@@ -82,7 +85,8 @@ impl Console {
         let _ = cx;
     }
 
-    fn method(
+    /// Same as Console::method but sends to devtools instead if enabled.
+    fn method_for_devtools(
         cx: &mut JSContext,
         global: &GlobalScope,
         level: ConsoleLogLevel,
@@ -90,60 +94,59 @@ impl Console {
         include_stacktrace: IncludeStackTrace,
     ) {
         #[cfg(feature = "devtools")]
-        let devtools_arguments: Vec<DebuggerValue>;
+        if global.devtools_chan().is_some() {
+            rooted_vec!(let mut seen);
+            let devtools_arguments = if messages.first().is_none_or(|message| !message.is_string())
+            {
+                messages
+                    .iter()
+                    .map(|msg| devtools::console_argument_from_handle_value(cx, *msg, &mut seen))
+                    .collect()
+            } else {
+                let (formatted, consumed) = apply_sprintf_substitutions(cx, &messages);
+                std::iter::once(DebuggerValue::StringValue(formatted))
+                    .chain(messages.iter().skip(consumed).map(|msg| {
+                        devtools::console_argument_from_handle_value(cx, *msg, &mut seen)
+                    }))
+                    .collect()
+            };
 
+            let stacktrace =
+                (include_stacktrace == IncludeStackTrace::Yes).then_some(get_js_stack(cx));
+            Console::send_to_devtools(
+                global,
+                Self::build_message(cx, level, devtools_arguments, stacktrace),
+            );
+        }
+    }
+
+    fn method(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        level: ConsoleLogLevel,
+        messages: Vec<HandleValue>,
+        include_stacktrace: IncludeStackTrace,
+    ) {
         // If the first argument is a string, apply sprintf-style substitutions per the
         // WHATWG Console spec formatter. The result is a single formatted string followed
         // by any arguments that were not consumed by a substitution specifier.
         let embedder_msg = if !messages.is_empty() && messages[0].is_string() {
             let (formatted, consumed) = apply_sprintf_substitutions(cx, &messages);
-            let remaining = &messages[consumed..];
 
-            #[cfg(feature = "devtools")]
-            {
-                let mut arguments: Vec<DebuggerValue> =
-                    vec![DebuggerValue::StringValue(formatted.clone())];
-                for msg in remaining {
-                    arguments.push(devtools::console_argument_from_handle_value(
-                        cx,
-                        *msg,
-                        &mut Vec::new(),
-                    ));
-                }
-                devtools_arguments = arguments;
-            }
-
-            let embedder_msg = if remaining.is_empty() {
+            let embedder_msg = if messages[consumed..].is_empty() {
                 formatted
             } else {
-                format!("{formatted} {}", stringify_handle_values(cx, remaining))
+                format!(
+                    "{formatted} {}",
+                    stringify_handle_values(cx, &messages[consumed..])
+                )
             };
-
             embedder_msg.into()
         } else {
-            #[cfg(feature = "devtools")]
-            {
-                let arguments: Vec<DebuggerValue> = messages
-                    .iter()
-                    .map(|msg| {
-                        devtools::console_argument_from_handle_value(cx, *msg, &mut Vec::new())
-                    })
-                    .collect();
-                devtools_arguments = arguments;
-            }
-
             stringify_handle_values(cx, &messages)
         };
 
-        #[cfg(feature = "devtools")]
-        {
-            let stacktrace =
-                (include_stacktrace == IncludeStackTrace::Yes).then_some(get_js_stack(cx));
-            Console::send_to_devtools(
-                global,
-                Self::build_message(cx, level.clone(), devtools_arguments, stacktrace),
-            );
-        }
+        Console::method_for_devtools(cx, global, level, messages, include_stacktrace);
 
         let prefix = global.current_group_label().unwrap_or_default();
         let formatted_message = format!("{prefix}{embedder_msg}");
@@ -166,6 +169,14 @@ impl Console {
 
     pub(crate) fn internal_error(cx: &mut JSContext, global: &GlobalScope, message: String) {
         Console::send_string_message(cx, global, ConsoleLogLevel::Error, message);
+    }
+
+    pub(crate) fn error_to_console(global: &GlobalScope, message: String) {
+        global.send_to_embedder(EmbedderMsg::ShowConsoleApiMessage(
+            global.webview_id(),
+            ConsoleLogLevel::Error,
+            message,
+        ));
     }
 }
 
@@ -221,13 +232,13 @@ mod devtools {
     pub(super) fn console_argument_from_handle_value(
         cx: &mut JSContext,
         handle_value: HandleValue,
-        seen: &mut Vec<u64>,
+        seen: &mut RootedVec<'_, Box<Heap<JSVal>>>,
     ) -> DebuggerValue {
         #[expect(unsafe_code)]
         fn inner(
             cx: &mut JSContext,
             handle_value: HandleValue,
-            seen: &mut Vec<u64>,
+            seen: &mut RootedVec<'_, Box<Heap<JSVal>>>,
         ) -> Result<DebuggerValue, ()> {
             if handle_value.is_string() {
                 let js_string = ptr::NonNull::new(handle_value.to_string()).unwrap();
@@ -247,17 +258,25 @@ mod devtools {
 
             if handle_value.is_object() {
                 // JS objects can create circular reference, and we want to avoid recursing infinitely
-                if seen.contains(&handle_value.asBits_) {
+                if seen
+                    .iter()
+                    .any(|seen_value| seen_value.get().asBits_ == handle_value.asBits_)
+                {
                     // FIXME: Handle this properly
                     return Ok(DebuggerValue::StringValue("[circular]".into()));
                 }
 
-                seen.push(handle_value.asBits_);
+                // The values in `seen` are rooted, so they stay correct if a GC moves objects.
+                seen.push(Heap::boxed(handle_value.get()));
                 rooted!(&in(cx) let object = handle_value.to_object());
                 let console_object = console_object_from_handle_value(cx, handle_value, seen);
-                let prototype = object_prototype_debugger_value(cx, object.handle(), seen)?;
-                let js_value = seen.pop();
-                debug_assert_eq!(js_value, Some(handle_value.asBits_));
+                let prototype = object_prototype_debugger_value(cx, object.handle(), seen);
+                debug_assert_eq!(
+                    seen.last().map(|js_value| js_value.get().asBits_),
+                    Some(handle_value.asBits_)
+                );
+                seen.pop();
+                let prototype = prototype?;
 
                 if let Some((class, preview)) = console_object {
                     return Ok(DebuggerValue::ObjectValue {
@@ -291,7 +310,7 @@ mod devtools {
     fn object_prototype_debugger_value(
         cx: &mut JSContext,
         object: HandleObject,
-        seen: &mut Vec<u64>,
+        seen: &mut RootedVec<'_, Box<Heap<JSVal>>>,
     ) -> Result<Option<Box<DebuggerValue>>, ()> {
         rooted!(&in(cx) let mut prototype = ptr::null_mut::<jsapi::JSObject>());
         if !JS_GetPrototype(cx, object, prototype.handle_mut()) {
@@ -328,7 +347,7 @@ mod devtools {
     fn console_map_object_from_handle_value(
         cx: &mut JSContext,
         handle_object: HandleObject,
-        seen: &mut Vec<u64>,
+        seen: &mut RootedVec<'_, Box<Heap<JSVal>>>,
     ) -> Option<(String, ObjectPreview)> {
         rooted!(&in(cx) let mut iterator = UndefinedValue());
         if !unsafe { MapEntries(cx, handle_object, iterator.handle_mut()) } {
@@ -380,14 +399,17 @@ mod devtools {
     fn console_object_from_handle_value(
         cx: &mut JSContext,
         handle_value: HandleValue,
-        seen: &mut Vec<u64>,
+        seen: &mut RootedVec<'_, Box<Heap<JSVal>>>,
     ) -> Option<(String, ObjectPreview)> {
         rooted!(&in(cx) let object = handle_value.to_object());
         let mut object_class = ESClass::Other;
         if !unsafe { GetBuiltinClass(cx, object.handle(), &mut object_class as *mut _) } {
             return None;
         }
-        if object_class != ESClass::Object &&
+
+        let dom_class = unsafe { get_dom_class(object.get()).ok() };
+        if dom_class.is_none() &&
+            object_class != ESClass::Object &&
             object_class != ESClass::Array &&
             object_class != ESClass::Map &&
             object_class != ESClass::Function
@@ -478,6 +500,11 @@ mod devtools {
             });
         }
 
+        let dom_class_name = dom_class.map_or("Object", |dom_class| {
+            let interface_id = dom_class.interface_chain[dom_class.depth as usize];
+            proto_id_to_name(interface_id as u16)
+        });
+
         let (class, kind, function, array_length, items) = match object_class {
             ESClass::Array => {
                 let mut len = 0u32;
@@ -510,9 +537,13 @@ mod devtools {
                 let display_name = ptr::NonNull::new(*display_name)
                     .map(|display_name| unsafe { jsstr_to_string(cx, display_name) });
 
-                // TODO: We should get the actual argument names from the function
-                // It's not trivial since we can't access the debugger API here
-                let parameter_names = (0..arity).map(|i| format!("<arg{i}>")).collect();
+                // The parameter names come from the Debugger API, via the debugger global.
+                // Fall back to placeholders if there is no debugger global to ask.
+                let global = GlobalScope::from_current_realm(&mut CurrentRealm::assert(cx));
+                let parameter_names = global
+                    .debugger_global(cx)
+                    .and_then(|debugger| debugger.function_parameter_names(cx, handle_value))
+                    .unwrap_or_else(|| (0..arity).map(|i| format!("<arg{i}>")).collect());
 
                 let function = Box::new(FunctionPreview {
                     name,
@@ -529,8 +560,7 @@ mod devtools {
                     None,
                 )
             },
-            // TODO: Investigate if this class should be the object class
-            _ => ("Object".into(), "Object".into(), None, None, None),
+            _ => (dom_class_name.into(), "Object".into(), None, None, None),
         };
 
         Some((
@@ -573,121 +603,134 @@ mod devtools {
 }
 
 #[expect(unsafe_code)]
+fn stringify_object_from_handle_value(
+    cx: &mut JSContext,
+    value: HandleValue,
+    parents: &mut RootedVec<'_, Box<Heap<JSVal>>>,
+) -> DOMString {
+    rooted!(&in(cx) let mut obj = value.to_object());
+    let mut object_class = ESClass::Other;
+    if !unsafe { GetBuiltinClass(cx, obj.handle(), &mut object_class as *mut _) } {
+        return DOMString::from_static("/* invalid */");
+    }
+    let mut ids = IdVector::new(cx);
+    if !GetPropertyKeys(
+        cx,
+        obj.handle(),
+        jsapi::JSITER_OWNONLY | jsapi::JSITER_SYMBOLS,
+        ids.handle_mut(),
+    ) {
+        return DOMString::from_static("/* invalid */");
+    }
+    let truncate = ids.len() > MAX_LOG_CHILDREN;
+    if object_class != ESClass::Array && object_class != ESClass::Object {
+        if truncate {
+            return DOMString::from_static("…");
+        } else {
+            return handle_value_to_string(cx, value);
+        }
+    }
+
+    let mut explicit_keys = object_class == ESClass::Object;
+    let mut props = Vec::with_capacity(ids.len());
+    for id in ids.iter().take(MAX_LOG_CHILDREN) {
+        rooted!(&in(cx) let id = *id);
+        rooted!(&in(cx) let mut desc = PropertyDescriptor::default());
+
+        let mut is_none = false;
+        if !JS_GetOwnPropertyDescriptorById(
+            cx,
+            obj.handle(),
+            id.handle(),
+            desc.handle_mut(),
+            &mut is_none,
+        ) {
+            return DOMString::from_static("/* invalid */");
+        }
+
+        rooted!(&in(cx) let mut property = UndefinedValue());
+        if !JS_GetPropertyById(cx, obj.handle(), id.handle(), property.handle_mut()) {
+            return DOMString::from_static("/* invalid */");
+        }
+
+        if !explicit_keys {
+            if id.is_int() {
+                if let Ok(id_int) = usize::try_from(id.to_int()) {
+                    explicit_keys = props.len() != id_int;
+                } else {
+                    explicit_keys = false;
+                }
+            } else {
+                explicit_keys = false;
+            }
+        }
+        let value_string = stringify_handle_value_inner(cx, property.handle(), parents);
+        if explicit_keys {
+            let key = if id.is_string() || id.is_symbol() || id.is_int() {
+                rooted!(&in(cx) let mut key_value = UndefinedValue());
+                if !JS_IdToValue(cx, id.handle().get(), key_value.handle_mut()) {
+                    return DOMString::from_static("/* invalid */");
+                }
+                handle_value_to_string(cx, key_value.handle())
+            } else {
+                return DOMString::from_static("/* invalid */");
+            };
+            props.push(format!("{}: {}", key, value_string,));
+        } else {
+            props.push(String::from(value_string));
+        }
+    }
+    if truncate {
+        props.push("…".to_string());
+    }
+    if object_class == ESClass::Array {
+        DOMString::from(format!("[{}]", itertools::join(props, ", ")))
+    } else {
+        DOMString::from(format!("{{{}}}", itertools::join(props, ", ")))
+    }
+}
+
+fn stringify_handle_value_inner(
+    cx: &mut JSContext,
+    value: HandleValue,
+    parents: &mut RootedVec<'_, Box<Heap<JSVal>>>,
+) -> DOMString {
+    if parents.len() >= MAX_LOG_DEPTH {
+        return DOMString::from_static("...");
+    }
+    if parents
+        .iter()
+        .any(|parent| parent.get().asBits_ == value.asBits_)
+    {
+        return DOMString::from_static("[circular]");
+    }
+    if value.is_undefined() {
+        // This produces a better value than "(void 0)" from JS_ValueToSource.
+        return DOMString::from_static("undefined");
+    } else if !value.is_object() {
+        return handle_value_to_string(cx, value);
+    }
+
+    if let Some(repr) = maybe_stringify_dom_object(cx, value) {
+        return repr;
+    }
+
+    // The values in `parents` are rooted, so they stay correct if a GC moves objects.
+    parents.push(Heap::boxed(value.get()));
+    let result = stringify_object_from_handle_value(cx, value, parents);
+    parents.pop();
+    result
+}
+
+#[expect(unsafe_code)]
 pub(crate) fn stringify_handle_value(cx: &mut JSContext, message: HandleValue) -> DOMString {
     if message.is_string() {
         let jsstr = std::ptr::NonNull::new(message.to_string()).unwrap();
         return unsafe { jsstr_to_string(cx, jsstr) }.into();
     }
-    fn stringify_object_from_handle_value(
-        cx: &mut JSContext,
-        value: HandleValue,
-        parents: Vec<u64>,
-    ) -> DOMString {
-        rooted!(&in(cx) let mut obj = value.to_object());
-        let mut object_class = ESClass::Other;
-        if !unsafe { GetBuiltinClass(cx, obj.handle(), &mut object_class as *mut _) } {
-            return DOMString::from_static("/* invalid */");
-        }
-        let mut ids = IdVector::new(cx);
-        if !GetPropertyKeys(
-            cx,
-            obj.handle(),
-            jsapi::JSITER_OWNONLY | jsapi::JSITER_SYMBOLS,
-            ids.handle_mut(),
-        ) {
-            return DOMString::from_static("/* invalid */");
-        }
-        let truncate = ids.len() > MAX_LOG_CHILDREN;
-        if object_class != ESClass::Array && object_class != ESClass::Object {
-            if truncate {
-                return DOMString::from_static("…");
-            } else {
-                return handle_value_to_string(cx, value);
-            }
-        }
 
-        let mut explicit_keys = object_class == ESClass::Object;
-        let mut props = Vec::with_capacity(ids.len());
-        for id in ids.iter().take(MAX_LOG_CHILDREN) {
-            rooted!(&in(cx) let id = *id);
-            rooted!(&in(cx) let mut desc = PropertyDescriptor::default());
-
-            let mut is_none = false;
-            if !JS_GetOwnPropertyDescriptorById(
-                cx,
-                obj.handle(),
-                id.handle(),
-                desc.handle_mut(),
-                &mut is_none,
-            ) {
-                return DOMString::from_static("/* invalid */");
-            }
-
-            rooted!(&in(cx) let mut property = UndefinedValue());
-            if !JS_GetPropertyById(cx, obj.handle(), id.handle(), property.handle_mut()) {
-                return DOMString::from_static("/* invalid */");
-            }
-
-            if !explicit_keys {
-                if id.is_int() {
-                    if let Ok(id_int) = usize::try_from(id.to_int()) {
-                        explicit_keys = props.len() != id_int;
-                    } else {
-                        explicit_keys = false;
-                    }
-                } else {
-                    explicit_keys = false;
-                }
-            }
-            let value_string = stringify_inner(cx, property.handle(), parents.clone());
-            if explicit_keys {
-                let key = if id.is_string() || id.is_symbol() || id.is_int() {
-                    rooted!(&in(cx) let mut key_value = UndefinedValue());
-                    if !JS_IdToValue(cx, id.handle().get(), key_value.handle_mut()) {
-                        return DOMString::from_static("/* invalid */");
-                    }
-                    handle_value_to_string(cx, key_value.handle())
-                } else {
-                    return DOMString::from_static("/* invalid */");
-                };
-                props.push(format!("{}: {}", key, value_string,));
-            } else {
-                props.push(String::from(value_string));
-            }
-        }
-        if truncate {
-            props.push("…".to_string());
-        }
-        if object_class == ESClass::Array {
-            DOMString::from(format!("[{}]", itertools::join(props, ", ")))
-        } else {
-            DOMString::from(format!("{{{}}}", itertools::join(props, ", ")))
-        }
-    }
-    fn stringify_inner(cx: &mut JSContext, value: HandleValue, mut parents: Vec<u64>) -> DOMString {
-        if parents.len() >= MAX_LOG_DEPTH {
-            return DOMString::from_static("...");
-        }
-        let value_bits = value.asBits_;
-        if parents.contains(&value_bits) {
-            return DOMString::from_static("[circular]");
-        }
-        if value.is_undefined() {
-            // This produces a better value than "(void 0)" from JS_ValueToSource.
-            return DOMString::from_static("undefined");
-        } else if !value.is_object() {
-            return handle_value_to_string(cx, value);
-        }
-        parents.push(value_bits);
-
-        if value.is_object() &&
-            let Some(repr) = maybe_stringify_dom_object(cx, value)
-        {
-            return repr;
-        }
-        stringify_object_from_handle_value(cx, value, parents)
-    }
-    stringify_inner(cx, message, Vec::new())
+    rooted_vec!(let mut parents);
+    stringify_handle_value_inner(cx, message, &mut parents)
 }
 
 #[expect(unsafe_code)]
@@ -758,7 +801,7 @@ fn apply_sprintf_substitutions(cx: &mut JSContext, messages: &[HandleValue]) -> 
     let js_string = ptr::NonNull::new(messages[0].to_string()).unwrap();
     let format_string = unsafe { jsstr_to_string(cx, js_string) };
 
-    let mut result = String::new();
+    let mut result = String::with_capacity(format_string.len());
     let mut arg_index = 1usize;
     let mut chars = format_string.chars().peekable();
 
@@ -768,7 +811,7 @@ fn apply_sprintf_substitutions(cx: &mut JSContext, messages: &[HandleValue]) -> 
             continue;
         }
 
-        match chars.peek().copied() {
+        match chars.peek() {
             Some('s') => {
                 chars.next();
                 if arg_index < messages.len() {
@@ -856,10 +899,7 @@ fn format_float_substitution(result: &mut String, num: Result<f64, ()>) {
 
 fn stringify_handle_values(cx: &mut JSContext, messages: &[HandleValue]) -> DOMString {
     DOMString::from(itertools::join(
-        messages
-            .iter()
-            .copied()
-            .map(|msg| stringify_handle_value(cx, msg)),
+        messages.iter().map(|msg| stringify_handle_value(cx, *msg)),
         " ",
     ))
 }
@@ -929,22 +969,22 @@ fn stringify_debugger_value(value: &DebuggerValue) -> String {
 }
 
 #[derive(Default)]
-struct ConsoleTable {
+pub struct ConsoleTable {
     /// Column names in first-seen order (or the order given by `properties`).
-    columns: Vec<String>,
-    rows: Vec<TableRow>,
+    pub columns: Vec<String>,
+    pub rows: Vec<TableRow>,
 }
 
-struct TableRow {
-    index: String,
+pub struct TableRow {
+    pub index: String,
     /// (column name, cell text)
-    cells: Vec<(String, String)>,
+    pub cells: Vec<(String, String)>,
     /// Set when the row itself is a primitive -> goes in the "Values" column.
-    value: Option<String>,
+    pub value: Option<String>,
 }
 
 impl ConsoleTable {
-    fn render(&self) -> String {
+    pub fn render(&self) -> String {
         let has_values = self.rows.iter().any(|row| row.value.is_some());
 
         let mut headers = vec!["(index)".to_string()];
@@ -974,7 +1014,7 @@ impl ConsoleTable {
             })
             .collect();
 
-        let widths: Vec<usize> = (0..headers.len())
+        let column_widths: Vec<usize> = (0..headers.len())
             .map(|i| {
                 std::iter::once(&headers[i])
                     .chain(grid.iter().map(|row| &row[i]))
@@ -985,14 +1025,18 @@ impl ConsoleTable {
             .collect();
 
         let border = |left: &str, mid: &str, right: &str| {
-            let segments: Vec<String> = widths.iter().map(|w| "─".repeat(w + 2)).collect();
+            let segments: Vec<String> = column_widths.iter().map(|w| "─".repeat(w + 2)).collect();
             format!("{left}{}{right}", segments.join(mid))
         };
         let line = |cells: &[String]| {
             let padded: Vec<String> = cells
                 .iter()
-                .zip(&widths)
-                .map(|(cell, &w)| format!(" {cell:<w$} "))
+                .zip(&column_widths)
+                .map(|(cell, &column_width)| {
+                    // Use manual padding to avoid `format!` panics when width exceeds `u16::MAX`.
+                    let pad_width = column_width.saturating_sub(cell.chars().count());
+                    format!(" {cell}{} ", " ".repeat(pad_width))
+                })
                 .collect();
             format!("│{}│", padded.join("│"))
         };
@@ -1135,8 +1179,8 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
 
         #[cfg(feature = "devtools")]
         {
-            let data =
-                devtools::console_argument_from_handle_value(cx, tabular_data, &mut Vec::new());
+            rooted_vec!(let mut seen);
+            let data = devtools::console_argument_from_handle_value(cx, tabular_data, &mut seen);
 
             // Types we can't preview (e.g. Set today) come back as a string like "<error>".
             // Firefox's frontend also falls back to a plain log for unsupported data.
@@ -1244,7 +1288,8 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         #[cfg(feature = "devtools")]
         {
             // Step 1. Let object be item with generic JavaScript object formatting applied.
-            let argument = devtools::console_argument_from_handle_value(cx, item, &mut Vec::new());
+            rooted_vec!(let mut seen);
+            let argument = devtools::console_argument_from_handle_value(cx, item, &mut seen);
             let prefix = global.current_group_label().unwrap_or_default();
             // Step 2. Perform Printer("dir", « object », options).
             Console::send_to_devtools(
@@ -1267,6 +1312,25 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
                 format!("{prefix}{}", stringify_handle_value(cx, item)),
             );
         }
+    }
+
+    /// <https://console.spec.whatwg.org/#dirxml>
+    fn Dirxml(cx: &mut JSContext, global: &GlobalScope, data: Vec<HandleValue>) {
+        // Step 1. Let finalList be a new list, initially empty.
+        // Step 2. For each item of data:
+        // Step 2.1. Let converted be a DOM tree representation of item if possible; otherwise
+        // let converted be item with optimally useful formatting applied.
+        // TODO: Print DOM nodes as a DOM tree. For now every item gets the same formatting
+        // as `console.log`.
+        // Step 2.2. Append converted to finalList.
+        // Step 3. Perform Logger("dirxml", finalList).
+        Console::method(
+            cx,
+            global,
+            ConsoleLogLevel::Log,
+            data,
+            IncludeStackTrace::No,
+        );
     }
 
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console/assert>

@@ -18,6 +18,7 @@
 <meta name="variant" content="?value=content-width,200,150,,vertical-rl">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
 <div id="log"></div>
 <iframe id="target" frameborder=0>
 </iframe>
@@ -43,9 +44,13 @@ if (content_wm) {
 target.src = `resources/iframe-contents-400x200root.html?${src_params}`;
 
 async_test(t => {
-  window.addEventListener('load', t.step_func_done(() => {
-    assert_array_equals([target.offsetWidth, target.offsetHeight],
-                        [parseInt(width), parseInt(height)]);
+  window.addEventListener('load', t.step_func(async () => {
+    await waitForAtLeastOneFrame();
+    t.step(() => {
+      assert_array_equals([target.offsetWidth, target.offsetHeight],
+                          [parseInt(width), parseInt(height)]);
+    });
+    t.done();
   }));
 }, `Measure target with value=${value} and wm=${writing_mode}`);
 </script>

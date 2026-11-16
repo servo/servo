@@ -5,6 +5,7 @@
 #![cfg_attr(crown, allow(crown::jscontext_first_arg))]
 
 use std::cell::RefCell;
+use std::collections::HashSet;
 
 use devtools_traits::{
     BlackboxCoverage, DebuggerValue, DevtoolScriptControlMsg, EvaluateJSReply,
@@ -14,9 +15,12 @@ use dom_struct::dom_struct;
 use embedder_traits::ScriptToEmbedderChan;
 use embedder_traits::resources::{self, Resource};
 use js::context::JSContext;
+use js::rust::HandleValue;
 use js::rust::wrappers2::JS_DefineDebuggerObject;
 use net_traits::ResourceThreads;
 use profile_traits::{mem, time};
+use script_bindings::callback::{RootedCallback, TracedCallback};
+use script_bindings::cell::DomRefCell;
 use script_bindings::interfaces::HasOrigin;
 use script_bindings::reflector::DomObject;
 use servo_base::generic_channel::{GenericCallback, GenericSender, channel};
@@ -25,8 +29,10 @@ use servo_constellation_traits::ScriptToConstellationSender;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 
+use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::DebuggerGetEnvironmentEventBinding::EnvironmentInfo;
 use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding;
+use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding::GetFunctionParameterNames;
 use crate::dom::bindings::codegen::Bindings::DebuggerInterruptEventBinding::{
     FrameInfo, FrameOffset, PauseReason,
 };
@@ -74,6 +80,8 @@ pub(crate) struct DebuggerGlobalScope {
     get_list_frame_result_sender: RefCell<Option<GenericSender<Vec<String>>>>,
     #[no_trace]
     get_environment_result_sender: RefCell<Option<GenericSender<String>>>,
+    /// Callback registered by debugger.js that returns the parameter names of a debuggee function.
+    get_function_parameter_names: DomRefCell<Option<TracedCallback<GetFunctionParameterNames>>>,
     #[no_trace]
     pipeline_id: PipelineId,
     #[no_trace]
@@ -89,7 +97,7 @@ impl DebuggerGlobalScope {
     /// - in web worker threads, it should be set to the pipeline id of the page that created the thread, because
     ///   those threads can’t generate pipeline ids, and they only contain one debuggee from one pipeline
     #[expect(unsafe_code, clippy::too_many_arguments)]
-    pub(crate) fn new(
+    fn new(
         debugger_pipeline_id: PipelineId,
         script_to_devtools_sender: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
         devtools_to_script_sender: GenericSender<DevtoolScriptControlMsg>,
@@ -117,12 +125,14 @@ impl DebuggerGlobalScope {
                 #[cfg(feature = "webgpu")]
                 gpu_id_hub,
                 None,
+                HashSet::new(),
                 false,
             ),
             devtools_to_script_sender,
             get_possible_breakpoints_result_sender: RefCell::new(None),
             get_list_frame_result_sender: RefCell::new(None),
             get_environment_result_sender: RefCell::new(None),
+            get_function_parameter_names: Default::default(),
             eval_result_sender: RefCell::new(None),
             pipeline_id: debugger_pipeline_id,
             origin: MutableOrigin::new(ImmutableOrigin::new_opaque()),
@@ -141,6 +151,50 @@ impl DebuggerGlobalScope {
         global
     }
 
+    /// Create a new heap-allocated `DebuggerGlobalScope` if the devtools_to_script_sender is not None.
+    /// Otherwise return None.
+    ///
+    /// `debugger_pipeline_id` is the pipeline id to use when creating the debugger’s [`GlobalScope`]:
+    /// - in normal script threads, it should be set to `PipelineId::new()`, because those threads can generate
+    ///   pipeline ids, and they may contain debuggees from more than one pipeline
+    /// - in web worker threads, it should be set to the pipeline id of the page that created the thread, because
+    ///   those threads can’t generate pipeline ids, and they only contain one debuggee from one pipeline
+    #[expect(clippy::too_many_arguments)]
+    pub(crate) fn new_if_needed(
+        cx: &mut JSContext,
+        debugger_pipeline_id: PipelineId,
+        script_to_devtools_sender: &Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
+        devtools_to_script_sender: &Option<GenericSender<DevtoolScriptControlMsg>>,
+        mem_profiler_chan: &mem::ProfilerChan,
+        time_profiler_chan: &time::ProfilerChan,
+        script_to_constellation_sender: &ScriptToConstellationSender,
+        script_to_embedder_chan: &ScriptToEmbedderChan,
+        resource_threads: &ResourceThreads,
+        storage_threads: &StorageThreads,
+        #[cfg(feature = "webgpu")] gpu_id_hub: &std::sync::Arc<IdentityHub>,
+    ) -> Option<DomRoot<Self>> {
+        if let Some(devtools_to_script_sender) = devtools_to_script_sender {
+            let debugger_global = Self::new(
+                debugger_pipeline_id,
+                script_to_devtools_sender.clone(),
+                devtools_to_script_sender.clone(),
+                mem_profiler_chan.clone(),
+                time_profiler_chan.clone(),
+                script_to_constellation_sender.clone(),
+                script_to_embedder_chan.clone(),
+                resource_threads.clone(),
+                storage_threads.clone(),
+                #[cfg(feature = "webgpu")]
+                gpu_id_hub.clone(),
+                cx,
+            );
+            debugger_global.execute(cx);
+            Some(debugger_global)
+        } else {
+            None
+        }
+    }
+
     pub(crate) fn origin(&self) -> MutableOrigin {
         self.origin.clone()
     }
@@ -153,9 +207,12 @@ impl DebuggerGlobalScope {
         let mut realm = enter_auto_realm(cx, self);
         let cx = &mut realm.current_realm();
 
+        let bytes = resources::read_bytes(Resource::DebuggerJS);
         let _ = self.global_scope.evaluate_js_on_global(
             cx,
-            resources::read_string(Resource::DebuggerJS).into(),
+            str::from_utf8(bytes.as_ref())
+                .expect("Should have DebuggerJS resource")
+                .into(),
             "",
             None,
             None,
@@ -399,6 +456,24 @@ impl DebuggerGlobalScope {
 
     pub(crate) fn pipeline_id(&self) -> PipelineId {
         self.pipeline_id
+    }
+
+    /// Get the parameter names of a debuggee function, using the callback registered by debugger.js.
+    /// Returns `None` if no callback has been registered or the callback fails.
+    pub(crate) fn function_parameter_names(
+        &self,
+        cx: &mut JSContext,
+        function: HandleValue,
+    ) -> Option<Vec<String>> {
+        let callback = self
+            .get_function_parameter_names
+            .borrow()
+            .as_ref()
+            .map(|callback| callback.root(cx))?;
+        let names = callback
+            .Call__(cx, function, ExceptionHandling::Report)
+            .ok()?;
+        Some(names.into_iter().map(String::from).collect())
     }
 }
 
@@ -706,6 +781,13 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
         let _ = chan.send(msg);
 
         rx.recv().ok().map(DOMString::from)
+    }
+
+    fn SetGetFunctionParameterNamesCallback(
+        &self,
+        callback: RootedCallback<GetFunctionParameterNames>,
+    ) {
+        *self.get_function_parameter_names.borrow_mut() = Some(callback.to_traced());
     }
 
     fn GetEnvironmentResult(&self, environment_actor_id: DOMString) {

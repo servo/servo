@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>The referrerpolicy attribute of the SVG image element sets the referrer of the image request</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/embedded.html#ImageElementReferrerpolicyAttribute">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/urls-and-fetching.html#referrer-policy-attribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+
+<svg id="svg" width="10" height="10"></svg>
+
+<script>
+// image.py stores the headers of the request with ?id=, and returns them for ?id=&report-headers.
+const subresource = "/common/security-features/subresource/image.py";
+
+async function referrerOfImageRequest(t, referrerPolicy) {
+  const id = token();
+  const image = document.createElementNS("http://www.w3.org/2000/svg", "image");
+  if (referrerPolicy !== null)
+    image.setAttribute("referrerpolicy", referrerPolicy);
+  image.setAttribute("width", "10");
+  image.setAttribute("height", "10");
+  const loaded = new Promise((resolve, reject) => {
+    image.onload = resolve;
+    image.onerror = () => reject(new Error("the image did not load"));
+  });
+  image.setAttribute("href", `${subresource}?id=${id}`);
+  document.getElementById("svg").appendChild(image);
+  t.add_cleanup(() => image.remove());
+  await loaded;
+  const response = await fetch(`${subresource}?id=${id}&report-headers`);
+  const report = await response.json();
+  return report.headers.referer;
+}
+
+promise_test(async t => {
+  assert_equals(await referrerOfImageRequest(t, null), location.href);
+}, "no referrerpolicy: the same-origin request sends the full URL");
+
+promise_test(async t => {
+  assert_equals(await referrerOfImageRequest(t, "no-referrer"), undefined);
+}, "referrerpolicy=no-referrer sends no Referer header");
+
+promise_test(async t => {
+  assert_equals(await referrerOfImageRequest(t, "origin"), location.origin + "/");
+}, "referrerpolicy=origin sends the origin only");
+
+promise_test(async t => {
+  assert_equals(await referrerOfImageRequest(t, "invalid-policy"), location.href);
+}, "an invalid referrerpolicy falls back to the default policy");
+</script>

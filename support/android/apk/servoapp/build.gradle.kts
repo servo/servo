@@ -1,5 +1,3 @@
-import java.util.regex.Pattern
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose)
@@ -24,15 +22,13 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 
-    val signingKeyInfo = getSigningKeyInfo()
-
-    if (signingKeyInfo != null) {
+    System.getenv("APK_SIGNING_KEY_STORE_PATH")?.let { storeFilePath ->
         signingConfigs {
             register("release") {
-                storeFile = signingKeyInfo["storeFile"] as File
-                storePassword = signingKeyInfo["storePassword"] as String
-                keyAlias = signingKeyInfo["keyAlias"] as String
-                keyPassword = signingKeyInfo["keyPassword"] as String
+                storeFile = file(storeFilePath)
+                storePassword = System.getenv("APK_SIGNING_KEY_STORE_PASS")!!
+                keyAlias = System.getenv("APK_SIGNING_KEY_ALIAS")!!
+                keyPassword = System.getenv("APK_SIGNING_KEY_PASS")!!
             }
         }
     }
@@ -41,8 +37,7 @@ android {
         debug {}
 
         release {
-            signingConfig =
-                signingConfigs.getByName(if (signingKeyInfo != null) "release" else "debug")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs["debug"]
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
         }
@@ -92,30 +87,6 @@ androidComponents {
     beforeVariants {
         if (it.buildType == "release" || it.buildType == "debug") {
             it.enable = false
-        }
-    }
-}
-
-project.afterEvaluate {
-    android.applicationVariants.forEach { variant ->
-        val pattern = Pattern.compile("^([\\w\\d]+)(Debug|Release)")
-        val matcher = pattern.matcher(variant.name)
-        if (!matcher.find()) {
-            throw GradleException("Invalid variant name for output: " + variant.name)
-        }
-        val arch = matcher.group(1)
-        val debug = variant.name.contains("Debug")
-        val finalFolder = getTargetDir(debug, arch)
-        val finalFile = File(finalFolder, "servoapp.apk")
-        variant.outputs.forEach { output ->
-            val copyAndRenameAPKTask =
-                project.task<Copy>("copyAndRename${variant.name.capitalize()}APK") {
-                    from(output.outputFile.parent)
-                    into(finalFolder)
-                    include(output.outputFile.name)
-                    rename(output.outputFile.name, finalFile.name)
-                }
-            variant.assembleProvider.get().finalizedBy(copyAndRenameAPKTask)
         }
     }
 }

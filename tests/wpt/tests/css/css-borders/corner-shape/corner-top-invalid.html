@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4 Test: Parsing 'corner-top' with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shorthand">
+<meta name="assert" content="This test checks that 'corner-top' rejects invalid values.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<script>
+test_invalid_value("corner-top", "auto");
+test_invalid_value("corner-top", "normal");
+test_invalid_value("corner-top", "-1px");
+test_invalid_value("corner-top", "10px round / 20px bevel");
+test_invalid_value("corner-top", "round 10% / 2rem squircle");
+test_invalid_value("corner-top", "10px round 5px");
+test_invalid_value("corner-top", "round / 10px");
+test_invalid_value("corner-top", "1px 2px 3px");
+test_invalid_value("corner-top", "bevel scoop round");
+test_invalid_value("corner-top", "10px / 5px / 3px");
+</script>

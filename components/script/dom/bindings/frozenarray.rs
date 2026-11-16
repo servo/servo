@@ -11,9 +11,10 @@ use script_bindings::cell::DomRefCell;
 
 use crate::dom::bindings::utils::to_frozen_array;
 
-#[derive(JSTraceable)]
+#[derive(Default, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct CachedFrozenArray {
+    #[ignore_malloc_size_of = "This is a heap value stored in mozjs"]
     frozen_value: DomRefCell<Option<Heap<JSVal>>>,
 }
 

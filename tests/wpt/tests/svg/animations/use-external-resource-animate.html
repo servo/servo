@@ -1,0 +1,16 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>SMIL animation instanced into a use-element shadow tree from an external SVG</title>
+<link rel="match" href="../struct/reftests/reference/green-100x100.html">
+<link rel="help" href="https://svgwg.org/svg2-draft/struct.html#UseAnimations">
+<script src="/common/reftest-wait.js"></script>
+<svg><use href="resources/use-instance-animations.svg#parent-target"/></svg>
+<script>
+// The external resource delays the load event, so the shadow tree exists here.
+window.onload = () => {
+  const svg = document.querySelector('svg');
+  svg.pauseAnimations();
+  svg.setCurrentTime(1);
+  requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+};
+</script>

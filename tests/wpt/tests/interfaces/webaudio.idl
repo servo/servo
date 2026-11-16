@@ -400,6 +400,10 @@ dictionary DelayOptions : AudioNodeOptions {
     double delayTime = 0;
 };
 
+enum MakeupGainOptions {
+    "automatic"
+};
+
 [Exposed=Window]
 interface DynamicsCompressorNode : AudioNode {
     constructor (BaseAudioContext context,
@@ -410,11 +414,13 @@ interface DynamicsCompressorNode : AudioNode {
     readonly attribute float reduction;
     readonly attribute AudioParam attack;
     readonly attribute AudioParam release;
+    readonly attribute AudioParam makeupGain;
 };
 
 dictionary DynamicsCompressorOptions : AudioNodeOptions {
     float attack = 0.003;
     float knee = 30;
+    (float or MakeupGainOptions) makeupGain = "automatic";
     float ratio = 12;
     float release = 0.25;
     float threshold = -24;

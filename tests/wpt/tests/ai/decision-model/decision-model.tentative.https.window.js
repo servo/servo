@@ -7,7 +7,6 @@
 'use strict';
 
 const kSampleSchema = {
-  context: 'Enterprise customer support ticket router.',
   expectedInputs: [{type: 'text', languages: ['en']}],
   questions: [
     {

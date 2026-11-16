@@ -1,0 +1,138 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <title>A modulepreloaded parser-inserted module script with mismatched integrity is not allowed with `strict-dynamic`.</title>
+    <script src='/resources/testharness.js' nonce='dummy'></script>
+    <script src='/resources/testharnessreport.js' nonce='dummy'></script>
+
+    <!-- CSP served: script-src 'strict-dynamic' 'nonce-dummy' 'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=' 'sha256-Qnq3bhwJtto8DTecKtmSkKCTrezkHSbQGe6cuUreyVc=' -->
+    <link rel="modulepreload" href="simpleSourcedModule.js?unverified-integrity">
+    <link rel="modulepreload" href="simpleSourcedModule.js?dummy-preload-integrity" integrity="dummy">
+    <link rel="modulepreload" href="simpleSourcedModule.js?both-dummy-integrity" integrity="dummy">
+    <link rel="modulepreload" href="simpleSourcedModule.js?dummy-sha256-preload"
+        integrity="sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=">
+    <link rel="modulepreload" href="data:text/javascript,window.postMessage('data-unverified-integrity','*')">
+    <link rel="modulepreload" href="simpleSourcedModule.js?matching-integrity"
+        integrity="sha256-Qnq3bhwJtto8DTecKtmSkKCTrezkHSbQGe6cuUreyVc=">
+</head>
+
+<body>
+    <h1>A modulepreloaded parser-inserted module script with mismatched integrity is not allowed with `strict-dynamic`.</h1>
+    <div id='log'></div>
+
+    <script nonce='dummy'>
+        async_test(function(t) {
+            window.addEventListener('message', t.step_func(function(e) {
+                if (e.data === 'unverified-integrity') {
+                    assert_unreached('A modulepreloaded parser-inserted external module script with unverified integrity must not execute.');
+                }
+            }));
+            window.addEventListener('securitypolicyviolation', t.step_func(function(violation) {
+                if (!violation.blockedURI.includes('simpleSourcedModule.js?unverified-integrity')) {
+                    return;
+                }
+                assert_equals(violation.effectiveDirective, 'script-src-elem');
+                t.done();
+            }));
+        }, 'Parser-inserted external module script with unverified integrity hitting a `modulepreload` entry is blocked with `strict-dynamic`.');
+    </script>
+    <script type="module" src="simpleSourcedModule.js?unverified-integrity"
+        integrity="sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU="
+        crossorigin="use-credentials"></script>
+
+    <script nonce='dummy'>
+        async_test(function(t) {
+            window.addEventListener('message', t.step_func(function(e) {
+                if (e.data === 'dummy-preload-integrity') {
+                    assert_unreached('A modulepreloaded parser-inserted external module script with dummy preload integrity must not execute.');
+                }
+            }));
+            window.addEventListener('securitypolicyviolation', t.step_func(function(violation) {
+                if (!violation.blockedURI.includes('simpleSourcedModule.js?dummy-preload-integrity')) {
+                    return;
+                }
+                assert_equals(violation.effectiveDirective, 'script-src-elem');
+                t.done();
+            }));
+        }, 'Parser-inserted external module script with policy hash hitting a `modulepreload` entry with dummy integrity is blocked with `strict-dynamic`.');
+    </script>
+    <script type="module" src="simpleSourcedModule.js?dummy-preload-integrity"
+        integrity="sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU="
+        crossorigin="use-credentials"></script>
+
+    <script nonce='dummy'>
+        async_test(function(t) {
+            window.addEventListener('message', t.step_func(function(e) {
+                if (e.data === 'both-dummy-integrity') {
+                    assert_unreached('A modulepreloaded parser-inserted external module script with dummy integrity on both preload and script must not execute.');
+                }
+            }));
+            window.addEventListener('securitypolicyviolation', t.step_func(function(violation) {
+                if (!violation.blockedURI.includes('simpleSourcedModule.js?both-dummy-integrity')) {
+                    return;
+                }
+                assert_equals(violation.effectiveDirective, 'script-src-elem');
+                t.done();
+            }));
+        }, 'Parser-inserted external module script with dummy integrity hitting a `modulepreload` entry with dummy integrity is blocked with `strict-dynamic`.');
+    </script>
+    <script type="module" src="simpleSourcedModule.js?both-dummy-integrity"
+        integrity="dummy"></script>
+
+    <script nonce='dummy'>
+        var dummySha256PreloadTest = async_test(function(t) {
+            window.addEventListener('message', t.step_func(function(e) {
+                if (e.data === 'dummy-sha256-preload') {
+                    assert_unreached('A modulepreloaded parser-inserted external module script with mismatched dummy sha256 preload integrity must not execute.');
+                }
+            }));
+        }, 'Parser-inserted external module script hitting a `modulepreload` entry with a dummy sha256 integrity hash fails to load.');
+    </script>
+    <script id="dummy-sha256-script" type="module" src="simpleSourcedModule.js?dummy-sha256-preload"
+        integrity="sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU="></script>
+    <script nonce='dummy'>
+        document.getElementById('dummy-sha256-script').addEventListener(
+            'error', dummySha256PreloadTest.step_func_done());
+    </script>
+
+    <script nonce='dummy'>
+        async_test(function(t) {
+            window.addEventListener('message', t.step_func(function(e) {
+                if (e.data === 'data-unverified-integrity') {
+                    assert_unreached('A modulepreloaded parser-inserted data: module script with unverified integrity must not execute.');
+                }
+            }));
+            window.addEventListener('securitypolicyviolation', t.step_func(function(violation) {
+                if (violation.blockedURI !== 'data') {
+                    return;
+                }
+                assert_equals(violation.effectiveDirective, 'script-src-elem');
+                t.done();
+            }));
+        }, 'Parser-inserted data: module script with unverified integrity hitting a `modulepreload` entry is blocked with `strict-dynamic`.');
+    </script>
+    <script type="module"
+        src="data:text/javascript,window.postMessage('data-unverified-integrity','*')"
+        integrity="sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU="></script>
+
+    <script nonce='dummy'>
+        async_test(function(t) {
+            window.addEventListener('message', t.step_func(function(e) {
+                if (e.data === 'matching-integrity') {
+                    t.done();
+                }
+            }));
+            window.addEventListener('securitypolicyviolation', t.step_func(function(violation) {
+                if (!violation.blockedURI.includes('simpleSourcedModule.js?matching-integrity')) {
+                    return;
+                }
+                assert_unreached('A modulepreloaded parser-inserted module script with matching verified integrity should be allowed.');
+            }));
+        }, 'Parser-inserted external module script with matching verified integrity hitting a `modulepreload` entry is allowed with `strict-dynamic`.');
+    </script>
+    <script type="module" src="simpleSourcedModule.js?matching-integrity"
+        integrity="sha256-Qnq3bhwJtto8DTecKtmSkKCTrezkHSbQGe6cuUreyVc="></script>
+</body>
+
+</html>

@@ -2,6 +2,8 @@
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="/common/utils.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="../resources/utils.js"></script>
@@ -27,7 +29,7 @@ promise_test(async t => {
     pipe: 'header(Cache-Control,private\\,max-age=604800)'
   });
 
-  await initiator.forceSinglePrefetch(url1);
+  await initiator.forceSinglePrefetchAndWaitForStatus(url1);
   initiator.navigate(url2);
   assert_equals(await initiator.getDeliveryType(), '');
   assert_not_prefetched(await initiator.getRequestHeaders(),
@@ -48,7 +50,7 @@ promise_test(async t => {
   }
 
 
-  await initiator.forceSinglePrefetch(url2);
+  await initiator.forceSinglePrefetchAndWaitForStatus(url2);
   initiator.navigate(url2);
   assert_equals(await initiator.getDeliveryType(), 'navigational-prefetch',
     'Navigation should have used the prefetch');

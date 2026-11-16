@@ -1,0 +1,45 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>Container Timing: a buffered observer gets one entry per update painted before it observed</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+img {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/container-timing/resources/container-timing-helpers.js"></script>
+<script>
+  promise_test(async t => {
+    assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
+
+    const div = addContainerRoot(document.body, 'div_ct');
+    addSquare100Image(div, {id: 'first_id', style: 'left: 0px; top: 0px'});
+    const beforeRender = performance.now();
+    await waitWithoutObserving(t);
+
+    // Paint a second image in a later frame, so the container reports two
+    // updates.
+    addSquare100Image(div, {id: 'second_id', style: 'left: 100px; top: 0px'});
+    await waitWithoutObserving(t);
+
+    const entries = await getContainerEntries(t, 2);
+    assert_equals(entries.length, 2);
+    checkContainerEntry(entries[0], 'div_ct', 'first_id', beforeRender);
+    checkContainerIntersectionRect(entries[0], [0, 100, 0, 100]);
+    checkContainerSize(entries[0], 10000);
+    checkContainerEntry(entries[1], 'div_ct', 'second_id', beforeRender);
+    checkContainerIntersectionRect(entries[1], [0, 200, 0, 100]);
+    checkContainerSize(entries[1], 20000);
+    assert_greater_than(entries[1].startTime, entries[0].startTime);
+  }, 'Every update painted before observing is reported if buffering is enabled.');
+</script>
+
+</body>

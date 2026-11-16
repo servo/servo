@@ -16,15 +16,18 @@
     const otherUrl = new URL("./support/add_dynamic_script.js", document.location).toString();
 
     promise_test(async t => {
-      const expectedHash = await sha256ofURL(scriptUrl);
+      const expectedHash = await sha256ofURLForReport(scriptUrl);
 
-      return new Promise(resolve => {
+      return new Promise((resolve, reject) => {
         document.addEventListener("securitypolicyviolation", function (e) {
           if (e.blockedURI === scriptUrl) {
-            // sha256ofURL removes the '=' at the end of the hash, so we need to remove it from urlHash.
-            assert_equals(e.urlHash.replace(/=+$/, ''), `url-sha256-${expectedHash}`);
-            assert_equals(e.evalHash, "");
-            resolve();
+            try {
+              assert_equals(e.urlHash, `url-sha256-${expectedHash}`);
+              assert_equals(e.evalHash, "");
+              resolve();
+            } catch (err) {
+              reject(err);
+            }
           }
         });
 

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reference: table rules attribute after the changes, drawn with CSS</title>
+<style>
+  table { color: black; display: inline-table; vertical-align: top; margin: 0 12px 12px 0;
+          border-collapse: collapse; border-style: hidden; }
+  table.border { border: 1px outset; }
+  table.plain { border-collapse: separate; border-style: none; }
+  td { width: 20px; height: 20px; padding: 0; }
+  .rows td { border-top: 1px solid; border-bottom: 1px solid; }
+  .cols td { border-left: 1px solid; border-right: 1px solid; }
+</style>
+
+<!-- border="1" rules="rows" -->
+<table class="border rows">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<!-- rules="cols" -->
+<table class="cols">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<!-- rules="rows" -->
+<table class="rows">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<br>
+<!-- no rules attribute: an ordinary table -->
+<table class="plain">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<!-- rules="none" -->
+<table>
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>

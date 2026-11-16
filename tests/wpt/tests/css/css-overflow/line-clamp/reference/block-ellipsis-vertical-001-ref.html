@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: reference</title>
+<link rel="author" title="Christian Biesinger" href="mailto:cbiesinger@igalia.com">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+div {
+  font: 20px/1 Ahem;
+  height: 12em;
+  border: 1px solid;
+  margin: 4px;
+  float: left;
+  white-space: pre;
+}
+.rl { writing-mode: vertical-rl; }
+.lr { writing-mode: vertical-lr; }
+.upright { text-orientation: upright; }
+</style>
+<div class="rl">line one<br>line (more)</div>
+<div class="lr">line one<br>line (more)</div>
+<div class="rl upright">line one<br>line (more)</div>
+<div class="lr upright">line one<br>line (more)</div>

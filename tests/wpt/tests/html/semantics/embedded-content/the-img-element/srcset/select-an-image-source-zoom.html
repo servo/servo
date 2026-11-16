@@ -1,0 +1,89 @@
+<!doctype html>
+<title>img and link preload image source selection accounts for zoom in devicePixelRatio</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#select-an-image-source-from-a-source-set">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#determine-the-device-pixel-ratio">
+<link rel="help" href="https://drafts.csswg.org/css-viewport/#zoom-om">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+const parentDpr = window.devicePixelRatio;
+let nextId = 0;
+
+function imageUrl(label) {
+  return new URL(`/images/green-1x1.png?${label}-${++nextId}`, location.href).href;
+}
+
+function createZoomedIframe(t, zoom, srcdoc) {
+  return new Promise(resolve => {
+    const iframe = document.createElement("iframe");
+    t.add_cleanup(() => iframe.remove());
+    iframe.style.zoom = String(zoom);
+    document.body.appendChild(iframe);
+    iframe.offsetWidth;
+    iframe.addEventListener("load", () => resolve(iframe), { once: true });
+    iframe.srcdoc = srcdoc;
+  });
+}
+
+promise_test(async t => {
+  const u1 = imageUrl("zoom2-1x");
+  const u2 = imageUrl("zoom2-2x");
+  const u4 = imageUrl("zoom2-4x");
+  const iframe = await createZoomedIframe(t, 2, `<!doctype html>
+    <img srcset="${u1} ${1 * parentDpr}x, ${u2} ${2 * parentDpr}x, ${u4} ${4 * parentDpr}x">`);
+  assert_equals(iframe.contentWindow.devicePixelRatio, 2 * parentDpr);
+  const img = iframe.contentDocument.querySelector("img");
+  assert_equals(img.currentSrc, u2);
+}, "zoomed-in iframe (zoom: 2) selects x-descriptor matching zoomed devicePixelRatio");
+
+promise_test(async t => {
+  const uHalf = imageUrl("zoom-half-0.5x");
+  const u1 = imageUrl("zoom-half-1x");
+  const u2 = imageUrl("zoom-half-2x");
+  const iframe = await createZoomedIframe(t, 0.5, `<!doctype html>
+    <img srcset="${uHalf} ${0.5 * parentDpr}x, ${u1} ${1 * parentDpr}x, ${u2} ${2 * parentDpr}x">`);
+  assert_equals(iframe.contentWindow.devicePixelRatio, 0.5 * parentDpr);
+  const img = iframe.contentDocument.querySelector("img");
+  assert_equals(img.currentSrc, uHalf);
+}, "zoomed-out iframe (zoom: 0.5) selects x-descriptor matching zoomed devicePixelRatio");
+
+promise_test(async t => {
+  const u1 = imageUrl("preload-zoom2-1x");
+  const u2 = imageUrl("preload-zoom2-2x");
+  const u4 = imageUrl("preload-zoom2-4x");
+  const iframe = await createZoomedIframe(t, 2, `<!doctype html><body></body>`);
+  assert_equals(iframe.contentWindow.devicePixelRatio, 2 * parentDpr);
+
+  const link = iframe.contentDocument.createElement("link");
+  assert_implements(link.relList && link.relList.supports("preload"), "preload not supported");
+  link.rel = "preload";
+  link.as = "image";
+  link.imageSrcset = `${u1} ${1 * parentDpr}x, ${u2} ${2 * parentDpr}x, ${u4} ${4 * parentDpr}x`;
+
+  await new Promise((resolve, reject) => {
+    link.addEventListener("load", resolve, { once: true });
+    link.addEventListener("error", () => reject(new Error("preload error")), { once: true });
+    iframe.contentDocument.body.appendChild(link);
+  });
+
+  const perf = iframe.contentWindow.performance;
+  assert_equals(perf.getEntriesByName(u1).length, 0, "1x candidate not preloaded");
+  assert_equals(perf.getEntriesByName(u2).length, 1, "2x candidate preloaded");
+  assert_equals(perf.getEntriesByName(u4).length, 0, "4x candidate not preloaded");
+}, "link rel=preload imagesrcset in zoomed iframe selects candidate matching zoomed devicePixelRatio");
+
+promise_test(async t => {
+  const w1 = Math.ceil(100 * parentDpr);
+  const w2 = Math.ceil(200 * parentDpr);
+  const w4 = Math.ceil(400 * parentDpr);
+  const u1 = imageUrl("zoom2-w1");
+  const u2 = imageUrl("zoom2-w2");
+  const u4 = imageUrl("zoom2-w4");
+  const iframe = await createZoomedIframe(t, 2, `<!doctype html>
+    <img sizes="100px" srcset="${u4} ${w4}w, ${u1} ${w1}w, ${u2} ${w2}w">`);
+  assert_equals(iframe.contentWindow.devicePixelRatio, 2 * parentDpr);
+  const img = iframe.contentDocument.querySelector("img");
+  assert_equals(img.currentSrc, u2);
+}, "zoomed-in iframe (zoom: 2) with w descriptors and sizes selects normalized density matching zoomed devicePixelRatio");
+</script>

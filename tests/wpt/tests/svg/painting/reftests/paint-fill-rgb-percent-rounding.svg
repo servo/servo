@@ -1,0 +1,21 @@
+<svg id="svg-root"
+  width="480" height="360" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>Paint: CSS Color 4 syntax for 'fill' (rgb-percent-rounding)</title>
+    <html:link rel="author"
+          title="Chris Lilley"
+          href="http://svgees.us" />
+    <html:link rel="help"
+          href="https://w3c.github.io/svgwg/svg2-draft/painting.html#SpecifyingPaint" />
+    <html:link rel="help"
+          href="https://drafts.csswg.org/css-color-4/#color-syntax" />
+    <html:link rel="match" href="paint-fill-rounding-ref.svg" />
+    <html:meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-14400" />
+  </g>
+  <style>
+    #test { fill: rgb(20% 50% 50%); }
+  </style>
+  <rect id="test" width="120" height="120" x="10" y="10"/>
+</svg>

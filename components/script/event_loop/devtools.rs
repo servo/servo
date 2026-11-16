@@ -7,11 +7,16 @@ use std::collections::HashMap;
 use std::fmt::Write as _;
 use std::str;
 
+use cssparser::{
+    AtRuleParser, CowRcStr, DeclarationParser, Delimiter, ParseError, Parser, ParserState,
+    QualifiedRuleParser, RuleBodyItemParser, RuleBodyParser, parse_important,
+};
 use devtools_traits::{
     AncestorData, AttrModification, AutoMargins, ComputedNodeLayout, CssDatabaseProperty,
     EventListenerInfo, GetHTMLType, MatchedRule, NodeInfo, NodeStyle, RuleModification,
     StyleSheetInfo, TimelineMarker, TimelineMarkerType,
 };
+use html5ever::local_name;
 use js::context::JSContext;
 use markup5ever::{LocalName, ns};
 use rustc_hash::FxHashMap;
@@ -21,7 +26,6 @@ use script_bindings::root::Dom;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::PipelineId;
 use servo_config::pref;
-use style::attr::AttrValue;
 use style::stylesheets::Origin;
 
 use crate::conversions::Convert;
@@ -364,8 +368,70 @@ pub(crate) fn handle_get_children(
     reply.send(Some(children)).unwrap();
 }
 
+/// cssparser declaration parser; turns each declaration into `NodeStyle`; value keeps its original text and !important goes into priority
+struct NodeStyleParser;
+
+impl<'i> AtRuleParser<'i> for NodeStyleParser {
+    type Prelude = ();
+    type AtRule = NodeStyle;
+    type Error = ();
+}
+
+impl<'i> QualifiedRuleParser<'i> for NodeStyleParser {
+    type Prelude = ();
+    type QualifiedRule = NodeStyle;
+    type Error = ();
+}
+
+impl<'i> RuleBodyItemParser<'i, NodeStyle, ()> for NodeStyleParser {
+    fn parse_declarations(&self) -> bool {
+        true
+    }
+    fn parse_qualified(&self) -> bool {
+        false
+    }
+}
+
+impl<'i> DeclarationParser<'i> for NodeStyleParser {
+    type Declaration = NodeStyle;
+    type Error = ();
+
+    fn parse_value(
+        &mut self,
+        name: CowRcStr<'i>,
+        input: &mut Parser<'i>,
+        _declaration_start: &ParserState,
+    ) -> Result<NodeStyle, ParseError<()>> {
+        let start = input.position();
+        input.parse_until_before(Delimiter::Bang, |i| {
+            while i.next().is_ok() {}
+            Ok::<(), ParseError<()>>(())
+        })?;
+        let value = input.slice_from(start).trim().to_string();
+
+        let priority = if input.try_parse(parse_important).is_ok() {
+            "important".to_string()
+        } else {
+            String::new()
+        };
+        Ok(NodeStyle {
+            name: name.to_string(),
+            value,
+            priority,
+        })
+    }
+}
+
+/// parses a declaration block text into Rules panel entries.
+fn node_styles_from_css_text(text: &str) -> Vec<NodeStyle> {
+    let mut parser = Parser::new(text);
+    RuleBodyParser::new(&mut parser, &mut NodeStyleParser)
+        .filter_map(Result::ok)
+        .collect()
+}
+
 pub(crate) fn handle_get_attribute_style(
-    cx: &mut JSContext,
+    _cx: &mut JSContext,
     state: &DevtoolsState,
     pipeline: PipelineId,
     node_id: &str,
@@ -381,24 +447,11 @@ pub(crate) fn handle_get_attribute_style(
         reply.send(None).unwrap();
         return;
     };
-    let style = elem.Style(cx);
 
-    let msg = (0..style.Length())
-        .map(|i| {
-            let name = style.Item(i);
-            NodeStyle {
-                // This code has to clone the name values, even though
-                // these function actually would only need to borrow,
-                // but the binding generator forces an owned DOMString
-                // in the signature.
-                // It'd be nice to not have to do this here and in the
-                // similar cases below, but I don't see how.
-                value: String::from(style.GetPropertyValue(name.clone())),
-                priority: String::from(style.GetPropertyPriority(name.clone())),
-                name: String::from(name),
-            }
-        })
-        .collect();
+    let style_text = elem
+        .upcast::<Element>()
+        .get_string_attribute(&local_name!("style"));
+    let msg = node_styles_from_css_text(&style_text.str());
 
     reply.send(Some(msg)).unwrap();
 }
@@ -501,7 +554,7 @@ pub(crate) fn handle_get_selectors(
         }
 
         let mut rules = Vec::new();
-        let computed = elem.style()?;
+        let computed = elem.style(cx)?;
 
         if let Some(rule_node) = computed.rules.as_ref() {
             for rn in rule_node.self_and_ancestors() {
@@ -545,18 +598,7 @@ pub(crate) fn handle_get_stylesheet_style(
         let style_rule = find_rule_by_block_id(cx, &list, matched_rule.block_id)?;
         let declaration = style_rule.Style(cx);
 
-        Some(
-            (0..declaration.Length())
-                .map(|i| {
-                    let name = declaration.Item(i);
-                    NodeStyle {
-                        value: String::from(declaration.GetPropertyValue(name.clone())),
-                        priority: String::from(declaration.GetPropertyPriority(name.clone())),
-                        name: String::from(name),
-                    }
-                })
-                .collect(),
-        )
+        Some(node_styles_from_css_text(&declaration.CssText().str()))
     })();
 
     reply.send(msg).unwrap();
@@ -637,7 +679,7 @@ pub(crate) fn handle_get_layout(
         height,
     };
 
-    let auto_margins = element.determine_auto_margins();
+    let auto_margins = element.determine_auto_margins(cx);
     reply.send(Some((computed_layout, auto_margins))).unwrap();
 }
 
@@ -771,11 +813,9 @@ pub(crate) fn handle_modify_attribute(
     for modification in modifications {
         match modification.new_value {
             Some(string) => {
-                elem.set_attribute(
-                    cx,
-                    &LocalName::from(modification.attribute_name),
-                    AttrValue::String(string),
-                );
+                let name = LocalName::from(modification.attribute_name);
+                let value = elem.parse_attribute(&ns!(), &name, DOMString::from(string));
+                elem.set_attribute(cx, &name, value);
             },
             None => elem.RemoveAttribute(cx, DOMString::from(modification.attribute_name)),
         }
@@ -838,8 +878,8 @@ pub(crate) fn handle_highlight_dom_node(
 }
 
 impl Element {
-    fn determine_auto_margins(&self) -> AutoMargins {
-        let Some(style) = self.style() else {
+    fn determine_auto_margins(&self, cx: &mut JSContext) -> AutoMargins {
+        let Some(style) = self.style(cx) else {
             return AutoMargins::default();
         };
         let margin = style.get_margin();

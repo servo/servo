@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Document objects for added and removed iframes that use workers are collected</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/leak-helpers.js"></script>
+<body>
+    <script>
+      const tests = [
+          [
+              "execute dedicated worker",
+              "<script>w = new Worker('data:application/javascript,postMessage(\"executing\")');w.onmessage = (e) => window.parent.postMessage(e.data); <\/script>",
+          ],
+          [
+              "post message to dedicated worker",
+              "<script>w = new Worker('data:application/javascript,postMessage(\"executing\")');w.onmessage = (e) => {w.postMessage('hello');window.parent.postMessage(e.data);}; <\/script>",
+          ],
+          [
+              "execute shared worker",
+              "<script>w = new SharedWorker('data:application/javascript,onconnect = (e) => e.ports[0].postMessage(\"executing\")');w.port.onmessage = (e) => window.parent.postMessage(e.data); <\/script>",
+          ],
+      ];
+
+      for (const [name, test] of tests) {
+          promise_test(async () => {
+            assert_true(await createAndDestroyIframeWithHTML(test, "executing"));
+          }, `'${name}' does not leak the document`);
+      }
+    </script>
+</body>

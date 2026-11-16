@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Scroll via the mouse wheel in box with border radius should scroll beyond content rectangle</title>
+<link rel="help" href="https://github.com/servo/servo/issues/49659">
+<link rel=author href="mailto:mrobinson@igalia.com" title="Martin Robinson">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+
+<style>
+#scroller {
+  height: 100px;
+  width: 100px;
+  border-radius: 5px;
+  overflow: scroll;
+}
+</style>
+
+<div id="scroller">
+    <div style="width: 100px; height: 1000px"></div>
+</div>
+
+<script>
+promise_test(async () => {
+  await waitForCompositorCommit();
+  let scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
+  await new test_driver.Actions()
+    .scroll(0, 0, 0, 100, {origin: scroller})
+    .send();
+  await scrollEndPromise;
+  assert_equals(scroller.scrollLeft, 0);
+  assert_equals(scroller.scrollTop, 100);
+
+  await waitForCompositorCommit();
+  let scrollEndPromise2 = waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
+  await new test_driver.Actions()
+    .scroll(0, 0, 0, 100, {origin: scroller})
+    .send();
+  await scrollEndPromise2;
+  assert_equals(scroller.scrollLeft, 0);
+  assert_equals(scroller.scrollTop, 200);
+}, "Wheel scrolling inside a box with a rounded border scrolls beyond content rectangle");
+</script>

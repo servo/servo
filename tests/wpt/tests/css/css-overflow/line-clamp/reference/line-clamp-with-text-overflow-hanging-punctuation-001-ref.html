@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: reference</title>
+<link rel="author" title="Christian Biesinger" href="mailto:cbiesinger@igalia.com">
+<style>
+div {
+  font: 20px/1.2 monospace;
+  width: 10ch;
+  border: 1px solid;
+  margin: 4px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+</style>
+<p>Test passes if the first box shows "0123456789”" and the second box shows "012345678…".
+<div>0123456789”</div>
+<div>012345678&#x2026;</div>

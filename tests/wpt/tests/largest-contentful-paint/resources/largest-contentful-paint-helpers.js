@@ -55,7 +55,10 @@ function checkEntry(entry, expectedUrl, expectedID, expectedSize, timeLowerBound
     timeLowerBound = timeLowerBound();
   }
 
-  assert_greater_than_equal(performance.now(), entry.renderTime,
+  // Different coarsening of performance.now() and entry.renderTime may result in rounding errors
+  // which cause performance.now() to be < renderTime.
+  const epsilon = 0.00001;
+  assert_greater_than_equal(performance.now() + epsilon, entry.renderTime,
     'renderTime should occur before the entry is dispatched to the observer.');
   assert_approx_equals(entry.startTime, entry.renderTime, 0.001,
     'startTime should be equal to renderTime to the precision of 1 millisecond.');

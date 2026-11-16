@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/566820671">
+
+<script>
+function runTransform(stylesheetText) {
+  const parser = new DOMParser();
+  const stylesheetDocument = parser.parseFromString(stylesheetText, 'text/xml');
+  const sourceDocument = parser.parseFromString('<source/>', 'text/xml');
+  const processor = new XSLTProcessor();
+  processor.importStylesheet(stylesheetDocument);
+  processor.transformToDocument(sourceDocument);
+  processor.transformToFragment(sourceDocument, document);
+}
+
+// xsl:import and xsl:include elements without an href attribute should not
+// crash.
+runTransform(`
+  <xsl:stylesheet version="1.0"
+      xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+    <xsl:import/>
+    <xsl:template match="/">
+      <result>ok</result>
+    </xsl:template>
+  </xsl:stylesheet>`);
+
+runTransform(`
+  <xsl:stylesheet version="1.0"
+      xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+    <xsl:include/>
+    <xsl:template match="/">
+      <result>ok</result>
+    </xsl:template>
+  </xsl:stylesheet>`);
+</script>

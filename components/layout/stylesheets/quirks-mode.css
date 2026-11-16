@@ -13,6 +13,9 @@ form { margin-bottom: 1em; }
 
 
 table {
+  /* https://quirks.spec.whatwg.org/#the-tables-inherit-color-from-body-quirk */
+  color: -moz-inherit-from-body;
+
   font-weight: initial;
   font-style: initial;
   font-variant: initial;

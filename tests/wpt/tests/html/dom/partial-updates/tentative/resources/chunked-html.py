@@ -23,7 +23,8 @@ def main(request, response):
     content2 = request.GET.first(b"chunk2", b"")
     key = request.GET.first(b"key", None)
 
-    response.headers.set(b"Content-Type", b"text/html")
+    mime_type = request.GET.first(b"mime", b"text/fragment")
+    response.headers.set(b"Content-Type", mime_type)
     if request.GET.first(b"cors", b"0") == b"1":
         response.headers.set(b"Access-Control-Allow-Origin", b"*")
     response.write_status_headers()

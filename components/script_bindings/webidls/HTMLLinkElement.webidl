@@ -30,7 +30,7 @@ interface HTMLLinkElement : HTMLElement {
            attribute DOMString referrerPolicy;
   [SameObject, PutForwards=value] readonly attribute DOMTokenList blocking;
   [CEReactions] attribute boolean disabled;
-  // [CEReactions] attribute DOMString fetchPriority;
+  [CEReactions] attribute DOMString fetchPriority;
 
   // also has obsolete members
 };

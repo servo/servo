@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration: a decoration propagated to a descendant inline box is measured with the originating box's style</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#line-decoration">
+<link rel="match" href="reference/text-decoration-propagated-ink-overflow-ref.html">
+<meta name="assert" content="The text decoration properties are not inherited, so a decoration that propagates to a descendant is drawn with the originating box's style. Its ink overflow must be measured from that same style, or the parts of the decoration that fall outside the text box are clipped.">
+<style>
+body { margin: 30px; }
+div { font: 24px/2 monospace; width: max-content; will-change: transform; }
+.thick { text-decoration: underline; text-decoration-thickness: 24px; }
+.wavy { text-decoration: underline wavy; text-decoration-thickness: 8px; }
+.inset { text-decoration: underline 3px blue; text-underline-offset: 6px; text-decoration-inset: -40px; }
+</style>
+
+<!-- Each decoration originates on the div and propagates to the text inside the span, so the text
+     box's immediate parent is not the box carrying the decoration properties. The composited layer
+     is sized from the ink overflow, so any part measured against the span's initial values - a
+     24px-thick underline, a wavy underline's control points, a negative inset's overhang - is
+     clipped instead of painted. The reference has the same declarations on bare text. -->
+
+<div class="thick"><span>thickness</span></div>
+<div class="wavy"><span>wavyline</span></div>
+<div class="inset"><span>negative inset</span></div>

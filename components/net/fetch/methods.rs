@@ -25,8 +25,8 @@ use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, CredentialsMode, Destination, Initiator,
     InsecureRequestsPolicy, InternalRequest, Origin, ParserMetadata, RedirectMode, Referrer,
-    Request, RequestBody, RequestId, RequestMode, ResponseTainting, is_cors_safelisted_method,
-    is_cors_safelisted_request_header,
+    Request, RequestBody, RequestId, RequestMode, ResponseTainting, UpgradeInsecureNavigations,
+    is_cors_safelisted_method, is_cors_safelisted_request_header,
 };
 use net_traits::response::{Response, ResponseBody, ResponseType, TerminationReason};
 use net_traits::{
@@ -41,11 +41,13 @@ use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::CallbackSetter;
 use servo_base::id::PipelineId;
-use servo_url::{Host, ServoUrl};
+use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use tokio::sync::Mutex as TokioMutex;
 use tokio::sync::mpsc::{UnboundedReceiver as TokioReceiver, UnboundedSender as TokioSender};
 
 use crate::connector::CACertificates;
+#[cfg(feature = "devtools")]
+use crate::devtools::{DevtoolsBodyBuffer, body_for_devtools};
 use crate::devtools::{
     send_early_httprequest_to_devtools, send_response_to_devtools, send_security_info_to_devtools,
 };
@@ -905,9 +907,10 @@ async fn wait_for_response(
 ) {
     if let Some(ref mut ch) = *done_chan {
         #[cfg(feature = "devtools")]
-        let mut devtools_body = context.devtools_chan.as_ref().map(|_| Vec::new());
-        #[cfg(not(feature = "devtools"))]
-        let devtools_body = None;
+        let mut devtools_body = context
+            .devtools_chan
+            .as_ref()
+            .map(|_| DevtoolsBodyBuffer::default());
         loop {
             match ch.1.recv().await {
                 Some(Data::ContentLength(length)) => {
@@ -916,7 +919,7 @@ async fn wait_for_response(
                 Some(Data::Payload(bytes)) => {
                     #[cfg(feature = "devtools")]
                     if let Some(body) = devtools_body.as_mut() {
-                        body.extend(&bytes);
+                        body.append_chunk(&bytes);
                     }
                     target.process_response_chunk(request, bytes);
                 },
@@ -929,7 +932,11 @@ async fn wait_for_response(
                     break;
                 },
                 Some(Data::Done) => {
-                    send_response_to_devtools(request, context, response, devtools_body);
+                    #[cfg(feature = "devtools")]
+                    let devtools_response_body =
+                        devtools_body.map(DevtoolsBodyBuffer::into_response_body);
+                    #[cfg(feature = "devtools")]
+                    send_response_to_devtools(request, context, response, devtools_response_body);
                     break;
                 },
                 Some(Data::Cancelled) => {
@@ -953,7 +960,17 @@ async fn wait_for_response(
                 if context.devtools_chan.is_some() {
                     // Now that we've replayed the entire cached body,
                     // notify the DevTools server with the full Response.
-                    send_response_to_devtools(request, context, response, Some(vec.clone()));
+                    let (data, truncated, content_size) = body_for_devtools(vec);
+                    send_response_to_devtools(
+                        request,
+                        context,
+                        response,
+                        Some(devtools_traits::HttpResponseBody {
+                            data: Bytes::from(data),
+                            truncated,
+                            content_size,
+                        }),
+                    );
                 }
             },
             ResponseBody::Done(_) | ResponseBody::Empty => {},
@@ -1009,7 +1026,8 @@ fn create_about_memory(url: ServoUrl, timing_type: ResourceTimingType) -> Respon
     response
         .headers
         .typed_insert(ContentType::from(mime::TEXT_HTML_UTF_8));
-    *response.body.lock() = ResponseBody::Done(resources::read_bytes(Resource::AboutMemoryHTML));
+    *response.body.lock() =
+        ResponseBody::Done(resources::read_bytes(Resource::AboutMemoryHTML).into_vec());
     response.status = HttpStatus::default();
     response
 }
@@ -1341,8 +1359,25 @@ fn should_upgrade_request_to_potentially_trustworthy(
             return true;
         }
 
-        // Step 2.4
-        // TODO : check for insecure navigation set after its implemention
+        // Step 2.3  Let tuple be a tuple of request’s URL's host and port.
+        let tuple = match request.url().origin() {
+            ImmutableOrigin::Opaque(_) => None,
+            ImmutableOrigin::Tuple(_, host, port) => Some(UpgradeInsecureNavigations {
+                host: host.to_string(),
+                port,
+            }),
+        };
+
+        // Step 2.4 If tuple is contained in client's upgrade insecure navigations set,
+        // then skip the remaining substeps, and continue upgrading request.
+        if let Some(tuple) = tuple &&
+            request
+                .client
+                .as_ref()
+                .is_some_and(|client| client.upgrade_insecure_navigations_set.contains(&tuple))
+        {
+            return true;
+        }
 
         // Step 2.5 Return without further modifying request
         false

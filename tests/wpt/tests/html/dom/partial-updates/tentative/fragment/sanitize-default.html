@@ -1,55 +1,75 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>Declarative Fragment: default safe sanitization</title>
+<title>Declarative Fragment: default safe sanitization for template src</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <body>
-<div id="container-streaming-targeted">
-  <div id="target-streaming" marker="marker-streaming">
-    <?start name="marker-streaming">Original Content<?end>
+<div id="container-default">
+  <div id="target-default">
+    <?start name="marker-default">Original Content<?end>
   </div>
-  <template for="marker-streaming" sanitize>
-    <span id="ok-streaming">Allowed</span>
-    <script id="bad-streaming">window.badStreamingScriptRun = true;</script>
-  </template>
+  <template for="marker-default"
+            src="../resources/chunked-html.py?delay=0&chunk1=%3Cspan%20id%3D%22ok-default%22%20onclick%3D%22window.badClick%3Dtrue%22%20data-test%3D%22kept%22%3EAllowed%3C%2Fspan%3E%3Cscript%20id%3D%22bad-default%22%3Ewindow.badDefaultScriptRun%3Dtrue%3B%3C%2Fscript%3E"></template>
 </div>
 
-<div id="container-buffered-targeted">
-  <div id="target-buffered" marker="marker-buffered">
-    <?start name="marker-buffered">Original Content<?end>
+<div id="container-empty">
+  <div id="target-empty">
+    <?start name="marker-empty">Original Content<?end>
   </div>
-  <template for="marker-buffered" buffer sanitize>
-    <span id="ok-buffered">Allowed</span>
-    <script id="bad-buffered">window.badBufferedScriptRun = true;</script>
-  </template>
+  <template for="marker-empty" sanitize=""
+            src="../resources/chunked-html.py?delay=0&chunk1=%3Cspan%20id%3D%22ok-empty%22%3EAllowed%3C%2Fspan%3E%3Cscript%20id%3D%22bad-empty%22%3Ewindow.badEmptyScriptRun%3Dtrue%3B%3C%2Fscript%3E"></template>
 </div>
 
-<div id="container-in-place">
-  <div id="target-in-place">
-    <template for sanitize>
-      <span id="ok-in-place">Allowed</span>
-      <script id="bad-in-place">window.badInPlaceScriptRun = true;</script>
-    </template>
+<div id="container-invalid">
+  <div id="target-invalid">
+    <?start name="marker-invalid">Original Content<?end>
   </div>
+  <template for="marker-invalid" sanitize="invalid"
+            src="../resources/chunked-html.py?delay=0&chunk1=%3Cspan%20id%3D%22ok-invalid%22%3EAllowed%3C%2Fspan%3E%3Cscript%20id%3D%22bad-invalid%22%3Ewindow.badInvalidScriptRun%3Dtrue%3B%3C%2Fscript%3E"></template>
 </div>
 
 <script>
-test(() => {
-  assert_false(!!window.badStreamingScriptRun, "Script in streaming targeted template should not run");
-  assert_false(!!window.badBufferedScriptRun, "Script in buffered targeted template should not run");
-  assert_false(!!window.badInPlaceScriptRun, "Script in in-place template should not run");
+function waitForElement(container, selector) {
+  return new Promise(resolve => {
+    const existing = container.querySelector(selector);
+    if (existing) {
+      resolve(existing);
+      return;
+    }
+    const observer = new MutationObserver(() => {
+      const found = container.querySelector(selector);
+      if (found) {
+        observer.disconnect();
+        resolve(found);
+      }
+    });
+    observer.observe(container, { childList: true, subtree: true });
+  });
+}
 
-  const targetStreaming = document.getElementById('target-streaming');
-  assert_equals(targetStreaming.querySelector('span').textContent, 'Allowed');
-  assert_equals(targetStreaming.querySelector('script'), null, "Script element should be stripped");
+promise_test(async () => {
+  const targetDefault = document.getElementById('target-default');
+  const targetEmpty = document.getElementById('target-empty');
+  const targetInvalid = document.getElementById('target-invalid');
 
-  const targetBuffered = document.getElementById('target-buffered');
-  assert_equals(targetBuffered.querySelector('span').textContent, 'Allowed');
-  assert_equals(targetBuffered.querySelector('script'), null, "Script element should be stripped");
+  const spanDefault = await waitForElement(targetDefault, '#ok-default');
+  const spanEmpty = await waitForElement(targetEmpty, '#ok-empty');
+  const spanInvalid = await waitForElement(targetInvalid, '#ok-invalid');
 
-  const targetInPlace = document.getElementById('target-in-place');
-  assert_equals(targetInPlace.querySelector('span').textContent, 'Allowed');
-  assert_equals(targetInPlace.querySelector('script'), null, "Script element should be stripped");
-}, "Template with empty sanitize attribute applies default safe sanitization and discards script tags");
+  assert_false(!!window.badDefaultScriptRun, "Script in default-sanitized template src should not run");
+  assert_false(!!window.badEmptyScriptRun, "Script in sanitize=\"\" template src should not run");
+  assert_false(!!window.badInvalidScriptRun, "Script in sanitize=\"invalid\" template src should not run");
+
+  assert_equals(spanDefault.textContent, 'Allowed');
+  assert_equals(spanDefault.getAttribute('onclick'), null, "Inline event handler should be stripped");
+  assert_equals(spanDefault.getAttribute('data-test'), 'kept', "data-* attribute should be preserved");
+  assert_equals(targetDefault.querySelector('script'), null, "Script element should be stripped");
+
+  assert_equals(spanEmpty.textContent, 'Allowed');
+  assert_equals(targetEmpty.querySelector('script'), null, "Script element should be stripped");
+
+  assert_equals(spanInvalid.textContent, 'Allowed');
+  assert_equals(targetInvalid.querySelector('script'), null, "Script element should be stripped");
+}, "Template with src applies default safe sanitization unless sanitize=\"unsafe\" is specified");
 </script>
 </body>

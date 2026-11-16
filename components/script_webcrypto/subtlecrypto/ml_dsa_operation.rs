@@ -16,6 +16,7 @@ use script_bindings::codegen::GenericBindings::SubtleCryptoBinding::{JsonWebKey,
 use script_bindings::error::Error;
 use script_bindings::root::DomRoot;
 use script_bindings::str::DOMString;
+use script_bindings::trace::RootedTraceableBox;
 
 use crate::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::subtlecrypto::{
@@ -54,7 +55,7 @@ pub(crate) fn sign<D: Equivalence>(
     // specified in Section 5.2 of [FIPS-204], with the parameter set indicated by the name member
     // of normalizedAlgorithm, using the ML-DSA private key associated with key as sk, message as M
     // and context as ctx.
-    // Step 5. If the ML-DSA.Sign algorithm returned an error, return an OperationError.
+    // Step 5. If the ML-DSA.Sign algorithm returned an error, throw an OperationError.
     let result = match normalized_algorithm.name {
         CryptoAlgorithm::MlDsa44 => {
             let Handle::MlDsa44PrivateKey(private_key) = key.handle() else {
@@ -135,7 +136,7 @@ pub(crate) fn verify<D: Equivalence>(
     // specified in Section 5.3 of [FIPS-204], with the parameter set indicated by the name member
     // of normalizedAlgorithm, using the ML-DSA public key associated with key as pk, message as M,
     // signature as σ and context as ctx.
-    // Step 5. If the ML-DSA.Verify algorithm returned an error, return an OperationError.
+    // Step 5. If the ML-DSA.Verify algorithm returned an error, throw an OperationError.
     let result = match normalized_algorithm.name {
         CryptoAlgorithm::MlDsa44 => {
             let Handle::MlDsa44PublicKey(public_key) = key.handle() else {
@@ -189,7 +190,7 @@ pub(crate) fn generate_key<D: Equivalence>(
     normalized_algorithm: &Algorithm,
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<CryptoKeyPair<D>, Error> {
+) -> Result<RootedTraceableBox<CryptoKeyPair<D>>, Error> {
     // Step 1. If usages contains a value which is not one of "sign" or "verify", then throw a
     // SyntaxError.
     usages.ensure_only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
@@ -273,10 +274,10 @@ pub(crate) fn generate_key<D: Equivalence>(
     // Step 16. Let result be a new CryptoKeyPair dictionary.
     // Step 17. Set the publicKey attribute of result to be publicKey.
     // Step 18. Set the privateKey attribute of result to be privateKey.
-    let result = CryptoKeyPair {
-        publicKey: Some(public_key),
-        privateKey: Some(private_key),
-    };
+    let result = RootedTraceableBox::new(CryptoKeyPair {
+        publicKey: Some(public_key.as_traced()),
+        privateKey: Some(private_key.as_traced()),
+    });
 
     // Step 19. Return result.
     Ok(result)
@@ -1166,7 +1167,7 @@ pub(crate) fn get_public_key<D: Equivalence>(
     // Step 12. Set the [[type]] internal slot of publicKey to "public".
     // Step 13. Set the [[algorithm]] internal slot of publicKey to algorithm.
     // Step 14. Set the [[extractable]] internal slot of publicKey to true.
-    // Step 15. Set the [[usages]] internal slot of publicKey to usages.
+    // Step 15. Set the [[usages]] internal slot of publicKey to the normalized value of usages.
     let public_key_handle = match key.handle() {
         Handle::MlDsa44PrivateKey(private_key) => {
             Handle::MlDsa44PublicKey(private_key.verifying_key())
@@ -1189,7 +1190,7 @@ pub(crate) fn get_public_key<D: Equivalence>(
         KeyType::Public,
         true,
         algorithm.clone(),
-        usages,
+        usages.normalized_value(),
         public_key_handle,
     );
 

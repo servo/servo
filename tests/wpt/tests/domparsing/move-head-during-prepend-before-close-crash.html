@@ -1,0 +1,32 @@
+<!doctype html>
+<html class="test-wait">
+<meta charset="utf-8" />
+<title>Closing streamHTML on documentElement while head is detached</title>
+<link rel="help" href="https://html.spec.whatwg.org/#html-streaming-methods" />
+<body>
+<script>
+  (async () => {
+    try {
+      if (!("streamHTML" in document.documentElement)) {
+        return;
+      }
+      // Previously a crash repro when streamPrependHTML() was allowed on the
+      // html element and head was removed before close(); now throws
+      // HierarchyRequestError.
+      try {
+        const writer = document.documentElement.streamPrependHTML().getWriter();
+        document.head?.remove();
+        await writer.close();
+      } catch (e) {}
+
+      const writer = document.documentElement.streamHTML().getWriter();
+      await writer.write("<head></head>");
+      document.head?.remove();
+      await writer.close();
+    } finally {
+      document.documentElement.classList.remove("test-wait");
+    }
+  })();
+</script>
+</body>
+</html>

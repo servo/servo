@@ -43,10 +43,8 @@ pub(crate) struct Gamepad {
     connected: Cell<bool>,
     timestamp: Cell<f64>,
     mapping_type: GamepadMappingType,
-    #[ignore_malloc_size_of = "mozjs"]
     frozen_buttons: CachedFrozenArray,
     buttons: Vec<Dom<GamepadButton>>,
-    #[ignore_malloc_size_of = "mozjs"]
     frozen_axes: CachedFrozenArray,
     axes: RefCell<Vec<f64>>,
     pose: Option<Dom<GamepadPose>>,
@@ -133,7 +131,7 @@ impl Gamepad {
                 true,
                 0.,
                 mapping_type,
-                buttons.r(),
+                buttons.as_ref_slice(),
                 None,
                 GamepadHand::_empty,
                 axis_bounds,

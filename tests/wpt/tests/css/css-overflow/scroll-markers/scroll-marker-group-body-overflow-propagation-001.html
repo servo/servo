@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>CSS Overflow Test: The ::scroll-marker moves to the body's group when the root overflow stops the body overflow from propagating to the viewport</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-property">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#overflow-propagation">
+<link rel="match" href="scroll-marker-group-body-overflow-propagation-ref.html">
+<style>
+  html {
+    scroll-marker-group: before;
+  }
+
+  body {
+    scroll-marker-group: before;
+    overflow: hidden;
+    margin: 0;
+  }
+
+  html::scroll-marker-group,
+  body::scroll-marker-group {
+    height: 0;
+    overflow: hidden;
+  }
+
+  body::scroll-marker-group {
+    height: 100px;
+  }
+
+  #item::scroll-marker {
+    content: "";
+    display: block;
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+</style>
+<div id="item"></div>
+<p>Test passes if there is a filled green square.</p>
+<script>
+  document.documentElement.offsetTop;
+  document.documentElement.style.overflow = "clip";
+</script>

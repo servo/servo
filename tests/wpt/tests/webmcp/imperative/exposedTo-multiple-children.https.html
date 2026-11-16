@@ -70,6 +70,7 @@ promise_test(async t => {
     name: 'tool_b_to_c',
     description: 'Tool B exposed to C',
     inputSchema: { type: 'object', properties: { query: { type: 'string' } } },
+    outputSchema: null,
     origin: origin_b
   }), 'Tool details should match');
 

@@ -103,13 +103,16 @@
 <script>
 // The HTML5_LABELABLE_ELEMENTS are defined in https://html.spec.whatwg.org/#category-label
 for(let referenced_element_type of HTML5_LABELABLE_ELEMENTS) {
+  const closing_tag = isVoidElement(referenced_element_type)
+    ? ""
+    : `</${referenced_element_type}>`;
   promise_test(async t => {
     const test_container = document.querySelector("#test-container4");
     test_container.setHTMLUnsafe(`
       <label>
       <fancy-element id="fancy">
         <template shadowrootmode="open" shadowrootreferencetarget="target">
-          <${referenced_element_type} id="target"></${referenced_element_type}>
+          <${referenced_element_type} id="target">${closing_tag}
         </template>
       </fancy-element>
       fancy custom element inside label
@@ -128,7 +131,7 @@ for(let referenced_element_type of HTML5_LABELABLE_ELEMENTS) {
       <label>
       <fancy-element id="fancy">
         <template shadowrootmode="open" shadowrootreferencetarget="target">
-          <${referenced_element_type} id="target"></${referenced_element_type}>
+          <${referenced_element_type} id="target">${closing_tag}
         </template>
       </fancy-element>
       fancy custom element inside label

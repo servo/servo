@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>A button with a layout-internal display value behaves as `inline`</title>
+<link rel="help" href="https://www.w3.org/TR/css-display-3/#layout-specific-display">
+<link rel="help" href="https://github.com/servo/servo/issues/49744">
+<link rel="match" href="display-table-cell-on-button-ref.html">
+<meta name="assert" content="
+  If the tall button became a table cell, `vertical-align: bottom` would align
+  its contents by making `align-content: normal` behave as `align-content: end`.
+
+  Also, both buttons would be cells within the same table row, so the 2nd one
+  would grow to have the same height as the 1st one.
+
+  However, this doesn't happen because the buttons are just atomic inlines:
+  > When the `display` property of a replaced element computes to one of the
+  > layout-internal values, it is handled as having a used value of `inline`.
+
+  This quote only mentions replaced elements, but it includes widgets.
+">
+
+<style>
+button {
+  display: table-cell;
+  vertical-align: bottom;
+  width: 100px;
+}
+</style>
+
+<button style="height: 100px">Tall</button>
+<button>Short</button>

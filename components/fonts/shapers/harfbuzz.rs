@@ -24,7 +24,8 @@ use harfbuzz_sys::{
     hb_font_funcs_set_glyph_h_advance_func, hb_font_funcs_set_nominal_glyph_func, hb_font_funcs_t,
     hb_font_set_funcs, hb_font_set_ppem, hb_font_set_scale, hb_font_set_variations, hb_font_t,
     hb_glyph_info_t, hb_glyph_position_t, hb_language_from_string, hb_ot_layout_get_baseline,
-    hb_position_t, hb_script_from_iso15924_tag, hb_shape, hb_tag_t, hb_variation_t,
+    hb_ot_tag_to_language, hb_position_t, hb_script_from_iso15924_tag, hb_shape, hb_tag_t,
+    hb_variation_t,
 };
 use num_traits::Zero;
 use read_fonts::types::Tag;
@@ -279,11 +280,14 @@ impl Shaper {
                 text.len() as c_int,
             );
 
-            let language = options.language;
-            let hb_language = hb_language_from_string(
-                language.as_str().as_ptr() as *const c_char,
-                language.as_str().len() as c_int,
-            );
+            let hb_language = if let Some(language_override) = options.language_override {
+                hb_ot_tag_to_language(u32::from_be_bytes(language_override.to_be_bytes()))
+            } else if !options.language.is_empty() {
+                let language: &str = &options.language;
+                hb_language_from_string(language.as_ptr() as *const c_char, language.len() as c_int)
+            } else {
+                hb_ot_tag_to_language(HB_OT_TAG_DEFAULT_LANGUAGE)
+            };
             hb_buffer_set_language(hb_buffer, hb_language);
 
             let mut features: Vec<_> = font_features

@@ -27,7 +27,7 @@ use js::rust::HandleObject;
 use keyboard_types::Modifiers;
 use layout_api::{
     AccessibilityDamage, AxesOverflow, BoxAreaType, CSSPixelRectVec, GenericLayoutData,
-    NodeRenderingType, PhysicalSides, TrustedNodeAddress, with_layout_state,
+    NodeRenderingType, PhysicalSides, QueryMsg, TrustedNodeAddress, with_layout_state,
 };
 use libc::{self, uintptr_t};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
@@ -202,7 +202,11 @@ bitflags! {
         /// animating image. This flag is never cleared once it is set.
         const HAS_EVER_ANIMATED = 1 << 3;
 
-        // There are two free bits here.
+        // There is one free bit here.
+
+        /// Whether the style declarations mapped from attributes (presentational hints)
+        /// have been resolved already and are up-to-date.
+        const HAS_RESOLVED_PRESENTATIONAL_HINTS = 1 << 5;
 
         /// Specifies whether the parser has set an associated form owner for
         /// this element. Only applicable for form-associatable elements.
@@ -379,10 +383,26 @@ impl Node {
 
             match operation {
                 MoveOrInsert::Move => {
-                    if (parent_is_in_a_document_tree || parent_in_shadow_tree) &&
-                        let Some(element) = node.downcast::<Element>()
-                    {
-                        element.register_current_id_and_name_attribute(cx);
+                    if let Some(element) = node.downcast::<Element>() {
+                        if parent_is_in_a_document_tree || parent_in_shadow_tree {
+                            element.register_current_id_and_name_attribute(cx);
+                        }
+
+                        // Shadow-including descendants of this node's shadow root were marked as
+                        // disconnected in the first phase of the move, so they have to be marked as
+                        // connected as it finishes. This mirrors what happens in
+                        // `ShadowRoot::bind_to_tree`, but only handling the IS_CONNECTED flag.
+                        if parent_is_connected && let Some(shadow_root) = element.shadow_root() {
+                            for node in shadow_root
+                                .upcast::<Node>()
+                                .traverse_preorder_unrooted(cx.no_gc(), ShadowIncluding::Yes)
+                            {
+                                node.set_flag(NodeFlags::IS_CONNECTED, true);
+                                // This node should never have been marked as dirty, because it
+                                // wasn't flagged as connected.
+                                debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
+                            }
+                        }
                     }
                 },
                 MoveOrInsert::Insert => vtable_for(&node).bind_to_tree(cx, &context),
@@ -497,12 +517,7 @@ impl Node {
         for node in root.traverse_preorder(ShadowIncluding::No) {
             let node_was_in_tree = node.is_in_a_document_tree() || node.is_in_a_shadow_tree();
 
-            // Moving can never change the shadow-including root of a node, so IS_CONNECTED will
-            // maintain the value that it had before the move.
-            node.set_flag(
-                (RESET_FLAGS - NodeFlags::IS_CONNECTED) | NodeFlags::IS_IN_SHADOW_TREE,
-                false,
-            );
+            node.set_flag(RESET_FLAGS | NodeFlags::IS_IN_SHADOW_TREE, false);
             document.clean_up_style_and_layout_data_for_node(&node);
 
             // Unregister the `id` and `name` attributes for this node. Note that they
@@ -529,7 +544,7 @@ impl Node {
                 {
                     // Moving can never change the shadow-including root of a node, so IS_CONNECTED
                     // will maintain the value that it had before the move.
-                    node.set_flag(RESET_FLAGS - NodeFlags::IS_CONNECTED, false);
+                    node.set_flag(RESET_FLAGS, false);
                     document.clean_up_style_and_layout_data_for_node(&node);
                 }
             }
@@ -651,8 +666,8 @@ impl Node {
             0.0,                                // azimuth_angle
             DOMString::new(),                   // pointer_type
             false,                              // is_primary
-            vec![],                             // coalesced_events
-            vec![],                             // predicted_events
+            &[],                                // coalesced_events
+            &[],                                // predicted_events
         );
 
         // Step 4. Set event's composed flag.
@@ -945,8 +960,6 @@ impl Node {
                 // For content changes in text nodes, we should accurately use
                 // [`NodeDamage::ContentOrHeritage`] to mark the parent node, thereby
                 // reducing the scope of incremental box tree construction.
-                // A connected text node has no parent only in the middle of a move (see
-                // `move_fn`), where both the old and new parents are dirtied anyway.
                 if let Some(parent) = self.parent_node.get() {
                     parent.dirty(no_gc, NodeDamage::ContentOrHeritage);
                 }
@@ -1798,10 +1811,12 @@ impl Node {
         )
     }
 
+    /// Use this if you have a Node already as this skips the cast. Otherwise you can use the [`NodeTraits::owner_document`].
     pub(crate) fn owner_doc(&self) -> DomRoot<Document> {
         self.owner_doc.get().unwrap()
     }
 
+    /// See [`owner_doc`]
     pub(crate) fn owner_doc_unrooted<'a>(&self, no_gc: &'a NoGC) -> UnrootedDom<'a, Document> {
         self.owner_doc.get_unrooted(no_gc).unwrap()
     }
@@ -1888,6 +1903,7 @@ impl Node {
     }
 
     /// Returns the node's `unique_id` if it has been computed before and `None` otherwise.
+    #[cfg(feature = "devtools")]
     pub(crate) fn unique_id_if_already_present(&self) -> Option<String> {
         Ref::filter_map(self.rare_data.borrow(), |rare_data| {
             rare_data
@@ -2290,10 +2306,10 @@ impl Node {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#editable>
-    pub(crate) fn is_editable(&self) -> bool {
+    pub(crate) fn is_editable(&self, cx: &mut JSContext) -> bool {
         // https://html.spec.whatwg.org/multipage/#inert
         // When a node is inert: If it is editable, the node behaves as if it were non-editable.
-        if self.is_inert() {
+        if self.is_inert(cx) {
             return false;
         }
 
@@ -2317,17 +2333,23 @@ impl Node {
         html_element.is_some() || (!self.is::<Element>() && parent.is::<HTMLElement>())
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#inert>
-    /// A node (in particular elements and text nodes) can be inert.
-    ///
-    /// Inertness is propagated using the internal `-moz-inert` property.
-    pub(crate) fn is_inert(&self) -> bool {
+    /// Like [`Self::is_inert`], but does not trigger a reflow.
+    pub(crate) fn is_inert_without_reflow(&self) -> bool {
         self.downcast::<Element>()
-            .and_then(Element::style)
+            .and_then(Element::style_without_reflow)
             .is_some_and(|style| {
                 *style.get__moz_inert() == Inert::Inert ||
                     *style.get_interactivity() == Interactivity::Inert
             })
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#inert>
+    /// A node (in particular elements and text nodes) can be inert.
+    ///
+    /// Inertness is propagated using the internal `-moz-inert` property.
+    pub(crate) fn is_inert(&self, cx: &mut JSContext) -> bool {
+        self.owner_window().layout_reflow(cx, QueryMsg::StyleQuery);
+        self.is_inert_without_reflow()
     }
 }
 
@@ -2767,7 +2789,7 @@ impl Node {
                 node.children_unrooted(cx.no_gc())
                     .map(|node| Dom::from_ref(&**node)),
             );
-            new_nodes.r()
+            new_nodes.as_ref_slice()
         } else {
             from_ref(&node)
         };
@@ -3029,7 +3051,7 @@ impl Node {
         let added_nodes = if let Some(node) = node.as_ref() {
             if let NodeTypeId::DocumentFragment(_) = node.type_id() {
                 added_nodes.extend(node.children().map(|child| Dom::from_ref(&*child)));
-                added_nodes.r()
+                added_nodes.as_ref_slice()
             } else {
                 from_ref(node)
             }
@@ -3054,7 +3076,7 @@ impl Node {
         if !removed_nodes.is_empty() || !added_nodes.is_empty() {
             let mutation = LazyCell::new(|| Mutation::ChildList {
                 added: Some(added_nodes),
-                removed: Some(removed_nodes.r()),
+                removed: Some(removed_nodes.as_ref_slice()),
                 prev: None,
                 next: None,
             });
@@ -3996,7 +4018,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             node.type_id() == NodeTypeId::DocumentFragment(DocumentFragmentTypeId::ShadowRoot)
         {
             nodes.extend(node.children().map(|node| Dom::from_ref(&*node)));
-            nodes.r()
+            nodes.as_ref_slice()
         } else {
             from_ref(&node)
         };

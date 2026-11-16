@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="variant" content="?13-18&css=true">
+<meta name="variant" content="?13-18&css=false">
+<meta name="variant" content="?12-18&css=false">
+<meta name="variant" content="?1-18&css=true">
+<title>Editing conformance subsets execute their command prerequisites</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../include/implementation.js"></script>
+<script>var testsJsLibraryOnly = true;</script>
+<script src="../include/tests.js"></script>
+<script src="/common/subset-tests.js"></script>
+<body>
+<div id="log"></div>
+<div id="test-container"></div>
+<script>
+test(() => {
+    const initialCSS = new URLSearchParams(location.search).get("css") === "true";
+    assert_true(document.execCommand("styleWithCSS", false, String(initialCSS)));
+    assert_equals(document.queryCommandState("styleWithCSS"), initialCSS);
+}, "Initialize CSS styling state");
+
+[
+    ["[]x", [["styleWithCSS", "false"]], "[]x", [true],
+        {"styleWithCSS": [false, true, "", false, false, ""]}],
+    ["foo[]bar", [["delete", ""]], "fo[]bar", [true],
+        {"styleWithCSS": [false, false, "", false, false, ""]}],
+].forEach(runConformanceTest);
+document.getElementById("test-container").remove();
+</script>

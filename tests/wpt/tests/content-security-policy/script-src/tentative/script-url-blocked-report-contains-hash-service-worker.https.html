@@ -15,7 +15,7 @@
     const scriptUrl = new URL("./support/externalScript.js", document.location).toString();
 
     promise_test(async t => {
-      const expectedHash = await sha256ofURL(scriptUrl);
+      const expectedHash = await sha256ofURLForReport(scriptUrl);
 
       const SCOPE = './support/does-not-exist.html';
       const SCRIPT = './support/worker-report-hash.js';
@@ -28,7 +28,7 @@
           if (e.data.type === 'violation') {
             try {
               assert_equals(e.data.blockedURI, scriptUrl);
-              assert_equals(e.data.urlHash.replace(/=+$/, ''), `url-sha256-${expectedHash}`);
+              assert_equals(e.data.urlHash, `url-sha256-${expectedHash}`);
               assert_equals(e.data.evalHash, "");
 
               // Clean up
@@ -40,7 +40,7 @@
         });
 
         navigator.serviceWorker.register(SCRIPT, { scope: SCOPE }).catch(err => {
-          // An error will be triggered because the worker can't import externalScript.js.
+          // The result is checked through the violation message above.
         });
       });
     }, "script-specific violation report contains correct urlHash in service worker");

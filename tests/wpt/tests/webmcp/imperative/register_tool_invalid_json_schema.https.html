@@ -8,7 +8,7 @@
 </head>
 <body>
 <script>
-function test_register_tool_schema_error(inputSchema, testName) {
+function testRegisterToolSchemaError(inputSchema, testName) {
   promise_test((t) => {
     return promise_rejects_js(
       t,
@@ -24,12 +24,12 @@ function test_register_tool_schema_error(inputSchema, testName) {
   }, testName);
 }
 
-test_register_tool_schema_error(
+testRegisterToolSchemaError(
   { toJSON: () => undefined },
   'registerTool rejects when inputSchema.toJSON() returns undefined',
 );
 
-test_register_tool_schema_error(
+testRegisterToolSchemaError(
   (() => {
     const circular = {};
     circular.self = circular;
@@ -38,7 +38,7 @@ test_register_tool_schema_error(
   'registerTool rejects when inputSchema contains a circular reference',
 );
 
-test_register_tool_schema_error(
+testRegisterToolSchemaError(
   BigInt(42),
   'registerTool rejects when inputSchema contains non-serializable types (BigInt)',
 );
@@ -69,6 +69,68 @@ promise_test(t => {
     'Should reject with TypeError for circular input schema, before checking if the signal is aborted'
   );
 }, 'registerTool rejects on invalid schema even if an aborted signal was provided');
+
+function testRegisterToolOutputSchemaError(outputSchema, testName) {
+  promise_test((t) => {
+    return promise_rejects_js(
+      t,
+      TypeError,
+      document.modelContext.registerTool({
+        name: 'empty_output',
+        description: 'empty',
+        outputSchema,
+        execute: () => {},
+      }),
+      'Should throw TypeError for invalid output schema',
+    );
+  }, testName);
+}
+
+testRegisterToolOutputSchemaError(
+  { toJSON: () => undefined },
+  'registerTool rejects when outputSchema.toJSON() returns undefined',
+);
+
+testRegisterToolOutputSchemaError(
+  (() => {
+    const circular = {};
+    circular.self = circular;
+    return circular;
+  })(),
+  'registerTool rejects when outputSchema contains a circular reference',
+);
+
+testRegisterToolOutputSchemaError(
+  BigInt(42),
+  'registerTool rejects when outputSchema contains non-serializable types (BigInt)',
+);
+
+promise_test(t => {
+  // Register with invalid outputSchema AND aborted signal. This asserts that output
+  // schema validation happens before checking the aborted signal.
+  const circularSchema = {};
+  circularSchema.self = circularSchema;
+
+  return promise_rejects_js(
+    t,
+    TypeError,
+    document.modelContext.registerTool(
+      {
+        name: 'aborted_invalid_output_schema',
+        description: 'empty',
+        outputSchema: {
+          type: "object",
+          properties: {
+            prop1: circularSchema,
+          }
+        },
+        execute: () => {},
+      },
+      { signal: AbortSignal.abort('aborted') }
+    ),
+    'Should reject with TypeError for circular output schema, before checking if the signal is aborted'
+  );
+}, 'registerTool rejects on invalid output schema even if an aborted signal was provided');
 </script>
 </body>
 </html>

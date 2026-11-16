@@ -21,4 +21,10 @@ let params = new URLSearchParams(location.search);
 if (params.has("scale")) {
   document.body.style.setProperty("--scale", parseFloat(params.get("scale")));
 }
+addEventListener(
+    "load",
+    () => {
+        top.postMessage("leaf_loaded", "*");
+    },
+);
 </script>

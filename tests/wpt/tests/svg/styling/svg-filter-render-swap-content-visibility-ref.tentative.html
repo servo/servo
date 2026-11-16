@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<style type="text/css">
+    iframe {
+        border: none;
+    }
+    .will-change {
+        padding: 1px;
+        will-change: transform;
+    }
+    #container {
+        contain: strict;
+        width: 100px;
+        height: 100px;
+    }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/svg/styling/support/svg-filter-render-util.js"></script>
+<script>
+    onload = async () => {
+        await waitForRender(takeScreenshot);
+    };
+</script>
+</head>
+<body>
+    <div>
+        SVG filter security test: this test passes if there is no svg filter effect applied to the frame after the swap.
+    </div>
+    <br />
+    <div class="will-change">
+        <div id="container">
+            <iframe width="100px" height="100px" src="/svg/styling/support/svg-filter-render-iframe.html"></iframe>
+        </div>
+    </div>
+</body>
+</html>

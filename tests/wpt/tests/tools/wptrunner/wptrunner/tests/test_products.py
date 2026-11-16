@@ -73,6 +73,52 @@ def test_server_start_config(product):
             assert isinstance(config["bind_address"], bool)
 
 
+@pytest.mark.parametrize("enabled", [None, False, True])
+def test_websocket_h3_environment(enabled):
+    parser = wptcommandline.create_parser()
+    assert parser.parse_args([]).enable_websocket_h3 is None
+    assert parser.parse_args(["--enable-websocket-h3"]).enable_websocket_h3 is True
+    assert parser.parse_args(["--no-enable-websocket-h3"]).enable_websocket_h3 is False
+
+    with mock.patch.object(environment.serve, "start") as start:
+        with environment.TestEnvironment(
+                test_paths, 1, False, False, None,
+                {"enable_websocket_h3": True},
+                environment.serve.ConfigBuilder(mock.Mock()).ssl, [],
+                enable_websocket_h3=enabled) as env:
+            assert env.config.ports["websocket-h3"] == [11001]
+            assert env.config.ports["websocket-h3-https"] == [11001]
+            assert start.call_args.kwargs["websocket_h3"] is (enabled is True)
+
+    with mock.patch.object(environment.serve, "start"):
+        with environment.TestEnvironment(
+                test_paths, 1, False, False, None,
+                {}, {"type": "none"}, [],
+                enable_websocket_h3=True) as env:
+            assert not env.config.ports["websocket-h3"]
+            assert not env.config.ports["websocket-h3-https"]
+
+
+def test_websocket_h3_readiness():
+    env = object.__new__(environment.TestEnvironment)
+    server = mock.Mock()
+    server.is_alive.return_value = True
+    env.servers = {"websocket-h3": [(11001, server)]}
+    env.config = {"server_host": "127.0.0.1"}
+    env.test_server_port = True
+
+    with mock.patch.object(environment, "websocket_h3_server_is_running",
+                           return_value=False) as probe, \
+         mock.patch.object(environment.socket, "socket") as tcp_socket:
+        assert env.test_servers() == ([], [("websocket-h3", 11001)])
+        probe.assert_called_once_with("127.0.0.1", 11001, timeout=5)
+        tcp_socket.assert_not_called()
+
+    with mock.patch.object(environment, "websocket_h3_server_is_running",
+                           return_value=True):
+        assert env.test_servers() == ([], [])
+
+
 def test_default_if_none_descriptor_with_none() -> None:
     """Test that _DefaultIfNone descriptor converts None to default"""
     product = products.Product(

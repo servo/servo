@@ -1,0 +1,48 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>getParameter with WebGL2 texture binding constants in WebGL1 context</title>
+<link rel="author" title="Hrishikesh Yadav" href="mailto:rishiicreates@gmail.com">
+<link rel="help" href="https://registry.khronos.org/webgl/specs/latest/1.0/#5.14.3">
+<link rel="help" href="https://github.com/servo/servo/issues/49309">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+    const gl = document.createElement("canvas").getContext("webgl");
+    const TEXTURE_BINDING_2D_ARRAY = 0x8C1D;
+    assert_equals(gl.getParameter(TEXTURE_BINDING_2D_ARRAY), null);
+    assert_equals(gl.getError(), gl.INVALID_ENUM);
+}, "getParameter with TEXTURE_BINDING_2D_ARRAY on webgl1 context returns null and sets INVALID_ENUM");
+
+test(function() {
+    const gl = document.createElement("canvas").getContext("webgl");
+    const TEXTURE_BINDING_3D = 0x806A;
+    assert_equals(gl.getParameter(TEXTURE_BINDING_3D), null);
+    assert_equals(gl.getError(), gl.INVALID_ENUM);
+}, "getParameter with TEXTURE_BINDING_3D on webgl1 context returns null and sets INVALID_ENUM");
+
+test(function() {
+    const gl = document.createElement("canvas").getContext("webgl");
+    assert_equals(gl.getParameter(gl.TEXTURE_BINDING_2D), null);
+    assert_equals(gl.getError(), gl.NO_ERROR);
+    assert_equals(gl.getParameter(gl.TEXTURE_BINDING_CUBE_MAP), null);
+    assert_equals(gl.getError(), gl.NO_ERROR);
+}, "getParameter with valid texture binding targets on webgl1 context returns null and sets NO_ERROR");
+
+test(function() {
+    const gl = document.createElement("canvas").getContext("webgl");
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    assert_equals(gl.getParameter(gl.TEXTURE_BINDING_2D), texture);
+    assert_equals(gl.getError(), gl.NO_ERROR);
+}, "getParameter with TEXTURE_BINDING_2D returns bound texture on webgl1 context");
+
+test(function() {
+    const gl = document.createElement("canvas").getContext("webgl2");
+    if (!gl) return;
+    assert_equals(gl.getParameter(gl.TEXTURE_BINDING_2D_ARRAY), null);
+    assert_equals(gl.getError(), gl.NO_ERROR);
+    assert_equals(gl.getParameter(gl.TEXTURE_BINDING_3D), null);
+    assert_equals(gl.getError(), gl.NO_ERROR);
+}, "getParameter with TEXTURE_BINDING_2D_ARRAY and TEXTURE_BINDING_3D on webgl2 context returns null and sets NO_ERROR");
+</script>

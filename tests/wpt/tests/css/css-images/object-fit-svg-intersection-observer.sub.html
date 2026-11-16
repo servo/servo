@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>IntersectionObserver on an SVG document embedded with object-fit</title>
+<link rel="author" title="Felipe Erias" href="mailto:felipeerias@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#the-object-fit">
+<link rel="help" href="https://svgwg.org/svg2-draft/coords.html#ViewportSpace">
+<link rel="help" href="https://w3c.github.io/IntersectionObserver/#compute-the-intersection">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#overflow-control">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body { margin: 0; }
+  iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 300px;
+    height: 300px;
+    border: 0;
+  }
+</style>
+<body>
+<script>
+const sameOrigin = '';
+const crossOrigin = 'http://{{hosts[alt][]}}:{{ports[http][0]}}';
+
+// An iframe from the given origin, at the top left of the viewport, embeds the
+// 16x8 SVG document in an object with the given style. Resolves with the first
+// intersection entry of the SVG document's root element once it has the given
+// fitted size.
+function fittedEntry(t, origin, style, size) {
+  const iframe = document.createElement('iframe');
+  const entry = new Promise(resolve => {
+    window.addEventListener('message', e => {
+      if (e.source == iframe.contentWindow &&
+          e.data.boundingClientRect.join() == [0, 0, ...size].join()) {
+        resolve(e.data);
+      }
+    }, {signal: t.get_signal()});
+  });
+  iframe.src = origin +
+               '/css/css-images/support/frame-with-fitted-object.html' +
+               '?style=' + encodeURIComponent(style);
+  t.add_cleanup(() => iframe.remove());
+  document.body.appendChild(iframe);
+  return entry;
+}
+
+// The SVG document is fitted to 100x50 at y=25 inside the 100x100 content box.
+// The object starts 70px above the viewport, so only rows 45 to 50 of the SVG
+// document are visible.
+const contain = 'top: -70px; object-fit: contain';
+
+// The SVG document is fitted to 200x100 at x=-50, and the content box clips it,
+// so only columns 50 to 150 of the SVG document are visible.
+const cover = 'top: 0; object-fit: cover; ' +
+              'overflow: clip; overflow-clip-margin: content-box';
+
+promise_test(async t => {
+  const entry = await fittedEntry(t, sameOrigin, contain, [100, 50]);
+  assert_approx_equals(entry.intersectionRect[1], 45, 1, 'visible top');
+  assert_approx_equals(entry.intersectionRect[3], 5, 1, 'visible height');
+}, 'intersectionRect is in the coordinates of the fitted SVG document, ' +
+   'in a same-origin iframe');
+
+promise_test(async t => {
+  const entry = await fittedEntry(t, crossOrigin, contain, [100, 50]);
+  assert_approx_equals(entry.intersectionRatio, 0.1, 0.02);
+}, 'intersectionRatio follows the position of the fitted SVG document, ' +
+   'in a cross-origin iframe');
+
+promise_test(async t => {
+  const entry = await fittedEntry(t, crossOrigin, cover, [200, 100]);
+  assert_approx_equals(entry.intersectionRatio, 0.5, 0.02);
+}, 'intersectionRatio follows the clipping by the content box of the object, ' +
+   'in a cross-origin iframe');
+</script>

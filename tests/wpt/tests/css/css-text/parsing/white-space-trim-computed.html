@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text Module Test: white-space-trim computed values</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#white-space-trim">
+<meta name="assert" content="The computed value of white-space-trim is the specified keyword(s), serialized in canonical order.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("white-space-trim", "none");
+test_computed_value("white-space-trim", "discard-before");
+test_computed_value("white-space-trim", "discard-after");
+test_computed_value("white-space-trim", "discard-inner");
+test_computed_value("white-space-trim", "discard-before discard-after");
+test_computed_value("white-space-trim", "discard-before discard-after discard-inner");
+test_computed_value("white-space-trim", "discard-after discard-before", "discard-before discard-after");
+</script>
+</body>
+</html>

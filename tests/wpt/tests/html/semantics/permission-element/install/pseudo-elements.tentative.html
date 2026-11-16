@@ -8,7 +8,14 @@
   </div>
 
   <style>
-    install::before, install::after { content: "FAIL"; }
+    body {
+      list-style-position: inside;
+      list-style-type: "FAIL";
+    }
+    install {
+      display: inline flow-root list-item;
+    }
+    install::before, install::after, install::marker { content: "FAIL"; }
   </style>
 
   <p>You should not see the word FAIL below.</p>

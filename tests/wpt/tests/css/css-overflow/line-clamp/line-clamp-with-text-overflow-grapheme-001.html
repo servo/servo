@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: text-overflow hides whole grapheme clusters of a block ellipsis</title>
+<link rel="author" title="Christian Biesinger" href="mailto:cbiesinger@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#text-overflow">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-with-text-overflow-grapheme-001-ref.html">
+<meta name="assert" content="When the block ellipsis still overflows the line, text-overflow hides whole characters (grapheme clusters) of it, also when it runs opposite to the line's direction.">
+<style>
+div {
+  font: 20px/1.2 monospace;
+  border: 1px solid;
+  margin: 4px;
+  width: 4.5ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* Each "\301 " is a combining acute accent on the preceding "e". */
+  line-clamp: 1 "e\301 e\301 e\301 e\301 e\301 ";
+}
+</style>
+<p>Test passes if each box below shows three accented letters "é" and an ellipsis, with no stray accent.
+<div>x<br>x</div>
+<div dir="rtl">x<br>x</div>

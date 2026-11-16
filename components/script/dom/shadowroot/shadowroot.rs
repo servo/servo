@@ -241,20 +241,17 @@ impl ShadowRoot {
     }
 
     /// Append a constructed stylesheet to the back of shadow root stylesheet set.
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn append_constructed_stylesheet(&self, cssom_stylesheet: &CSSStyleSheet) {
         debug_assert!(cssom_stylesheet.is_constructed());
 
         let stylesheets = &mut self.author_styles.borrow_mut().stylesheets;
         let sheet = cssom_stylesheet.style_stylesheet().clone();
 
-        let insertion_point = stylesheets.iter().last().cloned();
-
         DocumentOrShadowRoot::add_stylesheet(
             StylesheetSource::Constructed(Dom::from_ref(cssom_stylesheet)),
             StylesheetSetRef::Author(stylesheets),
             sheet,
-            insertion_point,
+            None,
             self.document.style_shared_author_lock(),
         );
     }
@@ -485,13 +482,14 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-shadowroot-gethtml>
     fn GetHTML(&self, cx: &mut JSContext, options: &GetHTMLOptions) -> DOMString {
+        let shadow_roots = options.shadowRoots.iter().map(Dom::as_rooted).collect();
         // > ShadowRoot's getHTML(options) method steps are to return the result of HTML fragment serialization
         // >  algorithm with this, options["serializableShadowRoots"], and options["shadowRoots"].
         self.upcast::<Node>().html_serialize(
             cx,
             TraversalScope::ChildrenOnly(None),
             options.serializableShadowRoots,
-            options.shadowRoots.clone(),
+            shadow_roots,
         )
     }
 
@@ -634,7 +632,7 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     fn GetFullscreenElement(&self) -> Option<DomRoot<Element>> {
         DocumentOrShadowRoot::get_fullscreen_element(
             self.upcast::<Node>(),
-            self.document.fullscreen_element(),
+            self.document.overlay_handler().fullscreen_element(),
         )
     }
 }

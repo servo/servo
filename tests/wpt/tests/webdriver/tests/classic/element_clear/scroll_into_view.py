@@ -22,7 +22,7 @@ def test_scroll_into_view(session, inline):
         </style>
 
         <div class="scroll-container">
-            <input type="text" size="20" value="foo"></input>
+            <input type="text" size="20" value="foo">
         </div>
         """)
 
@@ -33,4 +33,3 @@ def test_scroll_into_view(session, inline):
     assert is_element_in_viewport(session, element)
 
     assert element.property("value") == ""
-

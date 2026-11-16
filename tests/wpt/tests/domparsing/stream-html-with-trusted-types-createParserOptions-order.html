@@ -1,0 +1,183 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>
+  HTML partial updates - stream{|Append|Prepend|Before|After|ReplaceWith}HTMLUnsafe
+  check createParserOptions before hierarchy checks and DOM mutation
+</title>
+<link rel="help" href="https://html.spec.whatwg.org/#html-streaming-methods" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta
+  http-equiv="Content-Security-Policy"
+  content="require-trusted-types-for 'script';"
+/>
+
+<body>
+  <script>
+    let createParserOptions = (options) => options;
+    trustedTypes.createPolicy("default", {
+      createHTML: (html) => html,
+      createParserOptions: (options, type, sink) =>
+        createParserOptions(options, type, sink),
+    });
+
+    const err = new Error("createParserOptions called");
+
+    for (const pos of ["", "Before", "After", "ReplaceWith", "Append", "Prepend"]) {
+      const method_name = `stream${pos}HTMLUnsafe`;
+      const expected_iface =
+        pos === "" || pos === "Append" || pos === "Prepend" ? "Element" : "Node";
+      test((t) => {
+        let recorded_type = null;
+        let recorded_sink = null;
+        createParserOptions = (options, type, sink) => {
+          recorded_type = type;
+          recorded_sink = sink;
+          throw err;
+        };
+        t.add_cleanup(() => {
+          createParserOptions = (options) => options;
+        });
+
+        // Append and Prepend only have a hierarchy check for the html element.
+        const element = document.createElement(
+          pos === "Append" || pos === "Prepend" ? "html" : "div");
+        if (pos === "") {
+          element.appendChild(document.createElement("span"));
+        }
+        assert_throws_exactly(err, () => element[method_name]());
+        assert_equals(recorded_type, "TrustedHTMLParserOptions");
+        assert_equals(recorded_sink, `${expected_iface} ${method_name}`);
+        if (pos === "") {
+          assert_equals(element.childNodes.length, 1);
+        }
+      }, `${method_name} checks createParserOptions before ${pos === "" ? "clearing children" : "hierarchy checks"}`);
+    }
+
+    for (const pos of ["Before", "After", "ReplaceWith"]) {
+      const method_name = `stream${pos}HTMLUnsafe`;
+      test((t) => {
+        let recorded_type = null;
+        let recorded_sink = null;
+        createParserOptions = (options, type, sink) => {
+          recorded_type = type;
+          recorded_sink = sink;
+          throw err;
+        };
+        t.add_cleanup(() => {
+          createParserOptions = (options) => options;
+        });
+
+        const detachedText = document.createTextNode("detached");
+        assert_throws_exactly(err, () => detachedText[method_name]());
+        assert_equals(recorded_type, "TrustedHTMLParserOptions");
+        assert_equals(recorded_sink, `Node ${method_name}`);
+      }, `CharacterData.${method_name} checks createParserOptions before hierarchy checks`);
+    }
+
+    for (const method_name of ["streamHTMLUnsafe", "streamAppendHTMLUnsafe", "streamPrependHTMLUnsafe"]) {
+      test((t) => {
+        let recorded_type = null;
+        let recorded_sink = null;
+        createParserOptions = (options, type, sink) => {
+          recorded_type = type;
+          recorded_sink = sink;
+          throw err;
+        };
+        t.add_cleanup(() => {
+          createParserOptions = (options) => options;
+        });
+
+        const host = document.createElement("div");
+        const sr = host.attachShadow({ mode: "open" });
+        assert_throws_exactly(err, () => sr[method_name]());
+        assert_equals(recorded_type, "TrustedHTMLParserOptions");
+        assert_equals(recorded_sink, `ShadowRoot ${method_name}`);
+      }, `ShadowRoot.${method_name} passes ShadowRoot sink name to createParserOptions`);
+    }
+
+    for (const pos of ["Before", "After", "ReplaceWith"]) {
+      const method_name = `stream${pos}HTMLUnsafe`;
+      test((t) => {
+        const container = document.createElement("div");
+        const target = document.createElement("span");
+        container.appendChild(target);
+
+        let callbackRan = false;
+        createParserOptions = (options) => {
+          callbackRan = true;
+          target.remove();
+          return options;
+        };
+        t.add_cleanup(() => {
+          createParserOptions = (options) => options;
+        });
+
+        assert_throws_dom("HierarchyRequestError", () => {
+          target[method_name]();
+        });
+        assert_true(callbackRan, "createParserOptions ran before parent check");
+      }, `${method_name} evaluates parent after createParserOptions detaches target`);
+    }
+
+    for (const pos of ["After", "ReplaceWith"]) {
+      const method_name = `stream${pos}HTMLUnsafe`;
+      promise_test(async (t) => {
+        const container = document.createElement("div");
+        const target = document.createElement("span");
+        target.textContent = "orig";
+        const tail = document.createElement("em");
+        tail.textContent = "tail";
+        container.append(target, tail);
+
+        createParserOptions = (options) => {
+          const inserted = document.createElement("i");
+          inserted.textContent = "mid";
+          target.after(inserted);
+          return options;
+        };
+        t.add_cleanup(() => {
+          createParserOptions = (options) => options;
+        });
+
+        const writer = target[method_name]().getWriter();
+        await writer.write("<b>new</b>");
+        await writer.close();
+
+        assert_equals(
+          container.innerHTML,
+          pos === "After"
+            ? "<span>orig</span><b>new</b><i>mid</i><em>tail</em>"
+            : "<b>new</b><i>mid</i><em>tail</em>",
+        );
+      }, `${method_name} captures nextSibling after createParserOptions runs`);
+    }
+
+    for (const kind of ["Element", "ShadowRoot"]) {
+      promise_test(async (t) => {
+        const host = document.createElement("div");
+        const root =
+          kind === "ShadowRoot" ? host.attachShadow({ mode: "open" }) : host;
+        const existing = document.createElement("em");
+        existing.textContent = "tail";
+        root.appendChild(existing);
+
+        createParserOptions = (options) => {
+          const inserted = document.createElement("i");
+          inserted.textContent = "first";
+          root.prepend(inserted);
+          return options;
+        };
+        t.add_cleanup(() => {
+          createParserOptions = (options) => options;
+        });
+
+        const writer = root.streamPrependHTMLUnsafe().getWriter();
+        await writer.write("<b>new</b>");
+        await writer.close();
+
+        assert_equals(root.innerHTML, "<b>new</b><i>first</i><em>tail</em>");
+      }, `${kind}.streamPrependHTMLUnsafe captures firstChild after createParserOptions runs`);
+    }
+  </script>
+</body>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>CSS stretch(): minimum and maximum sizes of absolutely positioned boxes</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#abs-non-replaced-width">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="stretch() in the minimum and maximum sizes of an absolutely positioned box fits its margin box to the argument, which resolves against the containing block.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .container {
+    position: relative;
+    width: 200px;
+    height: 400px;
+  }
+  .test {
+    position: absolute;
+    margin-right: 50px;
+    margin-bottom: 50px;
+    background: green;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="container">
+  <div class="test" style="top: 0; left: 0; width: 10px; min-width: stretch(100px); height: 10px; min-height: stretch(100px);"></div>
+  <div class="test" style="top: 0; left: 50px; width: 200px; max-width: stretch(100px); height: 200px; max-height: stretch(100px);"></div>
+  <!-- 50% of 200px and 25% of 400px. -->
+  <div class="test" style="top: 50px; left: 0; width: 10px; min-width: stretch(50%); height: 10px; min-height: stretch(25%);"></div>
+  <div class="test" style="top: 50px; left: 50px; width: 200px; max-width: stretch(50%); height: 200px; max-height: stretch(25%);"></div>
+</div>

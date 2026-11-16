@@ -346,7 +346,7 @@ impl HTMLSlotElement {
                 .assigned_slot()
                 .is_some_and(|assigned_slot| &*assigned_slot == self)
             {
-                slottable.set_assigned_slot(None);
+                slottable.set_assigned_slot(cx.no_gc(), None);
             }
         }
 
@@ -355,7 +355,7 @@ impl HTMLSlotElement {
 
         // Step 4. For each slottable in slottables, set slottable’s assigned slot to slot.
         for slottable in slottables.iter() {
-            slottable.set_assigned_slot(Some(self));
+            slottable.set_assigned_slot(cx.no_gc(), Some(self));
         }
 
         // If the `<slot>` element did not have assigned nodes before, be sure to clear
@@ -465,8 +465,20 @@ impl Slottable {
         self.node().assigned_slot()
     }
 
-    pub(crate) fn set_assigned_slot(&self, assigned_slot: Option<&HTMLSlotElement>) {
-        self.node().set_assigned_slot(assigned_slot);
+    pub(crate) fn set_assigned_slot(&self, no_gc: &NoGC, assigned_slot: Option<&HTMLSlotElement>) {
+        let node = self.node();
+        if let Some(element) = node.downcast::<Element>() {
+            let has_focus_within_state = element.focus_within_state();
+            if has_focus_within_state {
+                element.set_focus_within_state_for_inclusive_ancestors(no_gc, None, false);
+            }
+            node.set_assigned_slot(assigned_slot);
+            if has_focus_within_state {
+                element.set_focus_within_state_for_inclusive_ancestors(no_gc, None, true);
+            }
+        } else {
+            node.set_assigned_slot(assigned_slot);
+        }
     }
 
     pub(crate) fn set_manual_slot_assignment(

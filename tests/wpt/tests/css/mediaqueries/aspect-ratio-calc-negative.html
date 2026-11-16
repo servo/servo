@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Media Queries Test: a negative calc() as a ratio clamps to 0</title>
+<link rel="help" href="https://www.w3.org/TR/css-values-4/#ratios">
+<link rel="help" href="https://www.w3.org/TR/css-values-4/#calc-range">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #container { container-type: size; width: 400px; height: 200px; }
+  #probe { color: rgb(255, 0, 0); }
+</style>
+<div id="container"><div id="probe"></div></div>
+<script>
+// Each number of a <ratio> is a <number [0,inf]>, and a calc() below 0 where
+// such a number is taken is valid and clamps to 0. A <ratio> written as one
+// number is that number over 1.
+const mediaCases = [
+  ["(min-aspect-ratio: calc(1)/2)", true],
+  ["(min-aspect-ratio: 0/2)", true],
+  ["(min-aspect-ratio: calc(-1)/2)", true],
+  ["not (max-aspect-ratio: calc(-1)/2)", true],
+  ["(max-aspect-ratio: 2/calc(-1))", true],
+  ["(aspect-ratio > 0)", true],
+  ["(aspect-ratio > calc(-1))", true],
+  ["not (aspect-ratio < calc(-1))", true],
+  ["(aspect-ratio < calc(-1))", false],
+  // A negative literal is still invalid, so the query is unknown.
+  ["(aspect-ratio > -1)", false],
+  ["not (aspect-ratio > -1)", false],
+];
+for (const [query, expected] of mediaCases) {
+  test(() => {
+    assert_equals(matchMedia(query).matches, expected);
+  }, `@media ${query}`);
+}
+
+const containerCases = [
+  ["(aspect-ratio > calc(1))", true],
+  ["(min-aspect-ratio: calc(-1)/2)", true],
+  ["not (max-aspect-ratio: calc(-1)/2)", true],
+  ["(aspect-ratio > calc(-1))", true],
+  ["not (aspect-ratio < calc(-1))", true],
+  ["(aspect-ratio > -1)", false],
+  ["not (aspect-ratio > -1)", false],
+];
+for (const [query, expected] of containerCases) {
+  test(() => {
+    const style = document.createElement("style");
+    style.textContent = `@container ${query} { #probe { color: rgb(0, 128, 0); } }`;
+    document.head.append(style);
+    const matches = getComputedStyle(document.getElementById("probe")).color === "rgb(0, 128, 0)";
+    style.remove();
+    assert_equals(matches, expected);
+  }, `@container ${query}`);
+}
+</script>

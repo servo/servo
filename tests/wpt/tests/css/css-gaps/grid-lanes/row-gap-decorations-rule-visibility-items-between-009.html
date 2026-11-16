@@ -18,7 +18,6 @@
     display: grid-lanes;
     fit-tolerance: 0;
     gap: 20px;
-    grid-lanes-direction: row;
     grid-template-rows: repeat(2, 60px);
     width: max-content;
   }
@@ -30,7 +29,7 @@
   .lanes > .tall { grid-row: 2; width: 100px; }
   .lanes > .overlap { background: #1f9d6b; margin-left: -30px; }
   .lanes > .spanner { background: #8a6df0; grid-row: 1 / -1; }
-  .dense { grid-lanes-pack: dense; }
+  .dense { grid-auto-flow: dense; grid-lanes-pack: dense; }
   .lanes > .centered {
     justify-self: center;
     background: #1f9d6b;

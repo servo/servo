@@ -14,7 +14,7 @@
     const scriptUrl = new URL("./support/externalScript.js", document.location).toString();
 
     promise_test(async t => {
-      const expectedHash = await sha256ofURL(scriptUrl);
+      const expectedHash = await sha256ofURLForReport(scriptUrl);
 
       return new Promise((resolve, reject) => {
         const w = new Worker("./support/worker-report-hash.js");
@@ -22,7 +22,7 @@
           if (e.data.type === 'violation') {
             try {
               assert_equals(e.data.blockedURI, scriptUrl);
-              assert_equals(e.data.urlHash.replace(/=+$/, ''), `url-sha256-${expectedHash}`);
+              assert_equals(e.data.urlHash, `url-sha256-${expectedHash}`);
               assert_equals(e.data.evalHash, "");
               resolve();
             } catch (err) {
@@ -31,7 +31,7 @@
           }
         };
         w.onerror = (e) => {
-          // An error will be triggered because the worker can't import externalScript.js.
+          // Don't report errors from the worker to the harness.
           e.preventDefault();
         };
       });

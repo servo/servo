@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::marker::PhantomData;
+use std::sync::atomic::Ordering;
 
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use layout_api::{
@@ -20,6 +21,7 @@ use style::selector_parser::PseudoElement;
 use style::values::specified::box_::DisplayOutside as StyloDisplayOutside;
 use web_atoms::{local_name, ns};
 
+use crate::BoxTree;
 use crate::cell::{ArcRefCell, WeakRefCell};
 use crate::context::LayoutContext;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
@@ -92,7 +94,17 @@ impl InnerDOMLayoutData {
 
     fn repair_style(&self, node: &ServoLayoutNode, context: &SharedStyleContext) {
         if let Some(layout_object) = &*self.self_box.borrow() {
-            layout_object.repair_style(context, node, &node.style(context));
+            let new_style = node.style(context);
+            let style = if node.as_element().is_some_and(|element| element.is_root()) {
+                BoxTree::style_with_writing_mode_source_style(
+                    new_style,
+                    &BoxTree::writing_mode_source_style(context, *node),
+                )
+            } else {
+                new_style
+            };
+
+            layout_object.repair_style(context, node, &style);
         }
 
         for pseudo_layout_data in self.pseudo_boxes.iter() {
@@ -396,7 +408,11 @@ impl GenericLayoutDataTrait for DOMLayoutData {
         self
     }
 
-    fn set_text_run_selection(&self, new_range: Option<RangeAny<Utf32CodeUnits>>) -> bool {
+    fn set_text_run_selection(
+        &self,
+        new_range: Option<RangeAny<Utf32CodeUnits>>,
+        new_paints_caret: bool,
+    ) -> bool {
         let inner = self.0.borrow();
         // When `::first-letter` is used, one DOM text node can generate multiple text runs
         // so there isn’t a single place to set the new range
@@ -409,6 +425,11 @@ impl GenericLayoutDataTrait for DOMLayoutData {
         }
         if let Some(LayoutBox::Text(text_run)) = &*inner.self_box.borrow() {
             *text_run.borrow().run_data.selection.borrow_mut() = new_range;
+            text_run
+                .borrow()
+                .run_data
+                .paints_caret
+                .store(new_paints_caret, Ordering::Relaxed);
             true
         } else {
             false

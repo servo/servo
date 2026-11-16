@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>white-space-trim: discard-after and discard-before sharing the same white space</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#white-space-trim">
+<link rel="match" href="reference/white-space-trim-interaction-ref.html">
+<meta name="assert" content="A single collapsible white space that is both immediately after a discard-after box and immediately before a discard-before box is discarded exactly once.">
+<style>
+  .da { white-space-trim: discard-after; }
+  .db { white-space-trim: discard-before; }
+</style>
+</head>
+<body>
+<p>Test passes if the letters below read "ab" with no space between them.</p>
+<div><span class="da">a</span> <span class="db">b</span></div>
+</body>
+</html>

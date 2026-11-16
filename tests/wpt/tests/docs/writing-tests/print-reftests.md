@@ -1,7 +1,7 @@
 # Print Reftests
 
 Print reftests are like ordinary [reftests](reftests), except that the
-output is rendered to pagninated form and then compared page-by-page
+output is rendered to paginated form and then compared page-by-page
 with the reference.
 
 Print reftests are distinguished by the string `-print` in the
@@ -40,7 +40,7 @@ specifier-item = <int> | <int>? "-" <int>?
 ```
 
 For example to specify rendering pages 1 and 2, 4, 6 and 7, and 9 and
-10 of a 10 page page document one could write:
+10 of a 10-page document one could write:
 
 ```
 <meta name=reftest-pages content="-2,4,6,7,9-">

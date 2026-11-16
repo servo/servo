@@ -5,6 +5,7 @@
 use std::sync::Arc;
 
 use glib::prelude::*;
+use gstreamer_video::prelude::*;
 use servo_media_gstreamer_render::Render;
 use servo_media_player::PlayerError;
 use servo_media_player::context::PlayerGLContext;
@@ -82,12 +83,23 @@ mod platform {
 
 struct GStreamerBuffer {
     frame: gstreamer_video::VideoFrame<gstreamer_video::video_frame::Readable>,
+    stride: usize,
+    row_bytes: usize,
 }
 
 impl Buffer for GStreamerBuffer {
     fn to_vec(&self) -> Option<VideoFrameData> {
         let data = self.frame.plane_data(0).ok()?;
-        Some(VideoFrameData::Raw(Arc::new(data.to_vec())))
+        if self.stride == self.row_bytes {
+            return Some(VideoFrameData::Raw(Arc::new(data.to_vec())));
+        }
+        // Whatever consumes VideoFrame expects packed lines, so we discard the
+        // padding at the end of each line.
+        let mut packed = Vec::with_capacity(self.row_bytes * self.frame.height() as usize);
+        for row in data.chunks_exact(self.stride) {
+            packed.extend_from_slice(&row[..self.row_bytes]);
+        }
+        Some(VideoFrameData::Raw(Arc::new(packed)))
     }
 }
 
@@ -118,11 +130,22 @@ impl GStreamerRender {
             let caps = sample.caps()?;
             let info = gstreamer_video::VideoInfo::from_caps(caps).ok()?;
             let frame = gstreamer_video::VideoFrame::from_buffer_readable(buffer, &info).ok()?;
+            let row_bytes = info.width() as usize * 4; // BGRA => 4
+            // This comes from the mapped frame, that respects GstVideoMeta.
+            // Caps understate it when the decoder aligns rows, as VideoToolbox
+            // does on macOS.
+            let stride = usize::try_from(*frame.plane_stride().first()?)
+                .ok()
+                .filter(|stride| *stride >= row_bytes)?;
 
             VideoFrame::new(
                 info.width() as i32,
                 info.height() as i32,
-                Arc::new(GStreamerBuffer { frame }),
+                Arc::new(GStreamerBuffer {
+                    frame,
+                    stride,
+                    row_bytes,
+                }),
             )
         }
     }
@@ -150,5 +173,68 @@ impl GStreamerRender {
         };
 
         Ok(appsink)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample(width: u32, height: u32, stride: usize) -> gstreamer::Sample {
+        let row_bytes = width as usize * 4; // BGRA => 4
+        let mut data = vec![0xEE_u8; stride * height as usize];
+        for (y, row) in data.chunks_exact_mut(stride).enumerate() {
+            row[..row_bytes].fill(y as u8 + 1);
+        }
+        let mut buffer = gstreamer::Buffer::from_mut_slice(data);
+        gstreamer_video::VideoMeta::add_full(
+            buffer.get_mut().unwrap(),
+            gstreamer_video::VideoFrameFlags::empty(),
+            gstreamer_video::VideoFormat::Bgra,
+            width,
+            height,
+            &[0],
+            &[stride as i32],
+        )
+        .unwrap();
+        let caps =
+            gstreamer_video::VideoInfo::builder(gstreamer_video::VideoFormat::Bgra, width, height)
+                .build()
+                .unwrap()
+                .to_caps()
+                .unwrap();
+        gstreamer::Sample::builder()
+            .buffer(&buffer)
+            .caps(&caps)
+            .build()
+    }
+
+    fn frame_data(width: u32, height: u32, stride: usize) -> Arc<Vec<u8>> {
+        gstreamer::init().unwrap();
+        let render = GStreamerRender { render: None };
+        render
+            .get_frame_from_sample(sample(width, height, stride))
+            .unwrap()
+            .get_data()
+    }
+
+    // VideoToolbox aligns rows to 32 bytes, so 854 BGRA pixels end up as 3424 bytes instead of 3416.
+    #[test]
+    fn padded_rows_are_packed() {
+        let data = frame_data(854, 4, 3424);
+        assert_eq!(data.len(), 3416 * 4);
+        for (y, row) in data.chunks_exact(3416).enumerate() {
+            assert!(row.iter().all(|byte| *byte == y as u8 + 1), "row {y}");
+        }
+    }
+
+    // Normal case with no padding, ensure it does not break.
+    #[test]
+    fn packed_rows_are_unchanged() {
+        let data = frame_data(854, 4, 3416);
+        assert_eq!(data.len(), 3416 * 4);
+        for (y, row) in data.chunks_exact(3416).enumerate() {
+            assert!(row.iter().all(|byte| *byte == y as u8 + 1), "row {y}");
+        }
     }
 }

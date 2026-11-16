@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Collapsed selection should not show image as selected</title>
+    <link rel="match" href="document-selection-image-collapsed-ref.html">
+</head>
+
+<style>
+  ::selection {
+    background: rgb(0, 255, 0);
+  }
+</style>
+
+<div id="target">
+    <!-- This data URL is a fully transparent image. -->
+    <img id="image" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="display: block; width: 100px; height: 100px; background: blue;">
+</div>
+
+<script>
+    document.getSelection().collapse(image, 0);
+</script>
+</html>
+

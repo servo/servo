@@ -217,11 +217,13 @@ impl Paint {
 
         // Create the WebXR main thread.
         #[cfg(feature = "webxr")]
-        let webxr_main_thread = webxr::MainThreadRegistry::new(
+        let mut webxr_main_thread = webxr::MainThreadRegistry::new(
             state.event_loop_waker.clone(),
             webxr_layer_grand_manager,
         )
         .expect("Failed to create WebXR device registry");
+        #[cfg(feature = "webxr")]
+        webxr_main_thread.register_fallback(webxr::inline::InlineDiscovery);
 
         #[cfg(feature = "webgl")]
         let webgl_paint = WebGLPaint {
@@ -281,9 +283,8 @@ impl Paint {
             warn!("The rendering context has no surfman connection, WebGL will be unavailable");
             return painter_id;
         };
-        let Ok(adapter) = connection.create_adapter().inspect_err(|error| {
-            warn!("Could not create a surfman adapter, WebGL will be unavailable: {error:?}")
-        }) else {
+        let Some(adapter) = rendering_context.adapter() else {
+            warn!("Could not retrieve surfman adapter, WebGL will be unavailable");
             return painter_id;
         };
 

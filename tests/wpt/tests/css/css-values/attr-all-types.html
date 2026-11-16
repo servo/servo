@@ -180,7 +180,6 @@
 
     test_valid_attr('width', 'attr(data-foo type(invalid))', '0px', '');
     test_valid_attr('width', 'attr(data-foo type(invalid), 10px)', '0px', '10px');
-    test_invalid_attr('width', 'attr(data-foo type(invalid |), 10px)', '0px');
 
     test_valid_attr('background-color', 'attr(data-foo type(<color>)', '#ff0099aa', '#ff0099aa');
     test_valid_attr('background-color', 'attr(data-foo type(invalid | blue)', 'blue', 'blue');
@@ -214,7 +213,6 @@
 
     test_valid_attr('width', 'attr(data-foo xx, 3px)', '10', '3px');
     test_valid_attr('width', 'attr(data-foo xx, 3px)', '10px', '3px');
-    test_invalid_attr('width', 'attr(data-foo &, 3px)', '10');
 
     test_invalid_attr('content', 'attr(data-foo string)', 'abc');
     test_invalid_attr('animation-name', 'attr(data-foo type(string))', 'abc');
@@ -241,7 +239,6 @@
     test_invalid_attr('font-size', 'attr(data-foo type(<percentage>))', 'abc');
     test_invalid_attr('font-size', 'attr(data-foo type(<percentage>))', '10% a');
     test_invalid_attr('font-size', 'attr(data-foo type(<percentage>), 10rad)', 'abc');
-    test_invalid_attr('font-size', 'attr(data-foo type(<number>) | <length>, 30px)', '10');
 
     test_invalid_attr('width', 'attr(data-foo type(<length>))', '10');
     test_invalid_attr('width', 'attr(data-foo type(<length>)+)', '10');

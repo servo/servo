@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Multi-column Layout Test: a size contained absolutely positioned box in an inline box containing block in a balanced multicol container</title>
+<link rel="help" href="https://drafts.csswg.org/css-break-3/#monolithic">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#def-cb">
+<meta name="assert" content="A size contained absolutely positioned box whose containing block is a relatively positioned inline box is monolithic, so it is not split between the columns of a balanced multicol container, with and without insets.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.multicol { position: relative; columns: 2; column-gap: 0; width: 400px; line-height: 20px; }
+.spacer { display: inline-block; width: 30px; height: 10px; }
+.abs { position: absolute; width: 50px; height: 70px; contain: size; }
+.insets { left: 5px; top: 3px; }
+</style>
+<div class="multicol"><span class="spacer"></span><br><span class="spacer"></span><br><span class="spacer"></span><br><span class="spacer"></span> <span style="position: relative"><span class="spacer"></span><span class="abs"></span></span><br><span class="spacer"></span><br><span class="spacer"></span></div>
+<div class="multicol"><span class="spacer"></span><br><span class="spacer"></span><br><span class="spacer"></span><br><span class="spacer"></span> <span style="position: relative"><span class="spacer"></span><span class="abs insets"></span></span><br><span class="spacer"></span><br><span class="spacer"></span></div>
+<script>
+for (const box of document.querySelectorAll(".abs")) {
+    test(() => {
+        const rects = box.getClientRects();
+        assert_equals(rects.length, 1, "number of rects");
+        assert_equals(rects[0].width, 50, "width");
+        assert_equals(rects[0].height, 70, "height");
+    }, `Size contained absolutely positioned box ${box.classList.contains("insets") ? "with" : "without"} insets in an inline box containing block is not split between columns`);
+}
+</script>

@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{audio,video} can be played twice</title>
+    <link rel="author" title="Alicia Boya García" href="mailto:aboya@igalia.com">
+    <meta name="timeout" content="long">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/media.js"></script>
+</head>
+<body>
+<p>Playing audio/video again after previous playback has finished should work.</p>
+<audio id="a" autoplay controls>
+</audio>
+<video id="v" controls>
+</video>
+<div id="log"></div>
+<script>
+    function playTwiceTest(kind, mediaElement, uri)
+    {
+        test(function () {
+            var testPlay1 = async_test(`first ${kind} playback worked`, {timeout: 30000});
+            var testPlay2 = async_test(`second ${kind} playback worked`, {timeout: 30000});
+            mediaElement.addEventListener("error", testPlay1.unreached_func());
+            mediaElement.src = uri + "?" + new Date() + Math.random();
+            mediaElement.currentTime = 4;
+            mediaElement.play();
+            mediaElement.addEventListener("ended", testPlay1.step_func(function () {
+                testPlay1.done();
+                mediaElement.currentTime = 0;
+                mediaElement.play();
+                mediaElement.addEventListener("ended", testPlay2.step_func(function () {
+                    testPlay2.done();
+                }));
+            }), false);
+        }, `start playing ${kind}`);
+    }
+    playTwiceTest("audio", document.getElementById("a"), getAudioURI("/media/sound_5"));
+    playTwiceTest("video", document.getElementById("v"), getVideoURI("/media/movie_5"));
+</script>
+</body>
+</html>

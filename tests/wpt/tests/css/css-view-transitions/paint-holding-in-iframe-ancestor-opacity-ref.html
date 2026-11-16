@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: opacity of an ancestor of an iframe applies once to its old paint (ref)</title>
+<style>
+  body {
+    margin: 0;
+  }
+  #container {
+    opacity: 0.5;
+  }
+  iframe {
+    display: block;
+    width: 200px;
+    height: 200px;
+    border: none;
+  }
+</style>
+
+<div id="container">
+  <iframe srcdoc="
+    <style>
+      body {
+        margin: 0;
+        background: blue;
+      }
+    </style>
+  "></iframe>
+</div>
+</html>

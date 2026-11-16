@@ -22,18 +22,17 @@ use unicode_bidi::{BidiInfo, Level};
 use super::inline_box::{InlineBoxContainerState, InlineBoxIdentifier, InlineBoxTreePathToken};
 use super::{InlineFormattingContextLayout, LineBlockSizes, line_height};
 use crate::cell::ArcRefCell;
+use crate::containing_block::{ContainingBlock, ContainingBlockSize};
 use crate::flow::inline::text_run::{FontAndScriptInfo, SharedTextRunData};
 use crate::fragment_tree::{
-    BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, FragmentFlags, TextFragment,
+    BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, FragmentAndLogicalRect,
+    FragmentChildren, FragmentFlags, TextFragment,
 };
-use crate::geom::{
-    LogicalRect, LogicalSides, LogicalVec2, PhysicalRect, PhysicalSize, ToLogical,
-    ToLogicalWithContainingBlock,
-};
+use crate::geom::{LogicalRect, LogicalSides, LogicalVec2, PhysicalRect, PhysicalSize};
 use crate::positioned::{
-    AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, relative_adjustement,
+    AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, StaticPositionRect,
+    relative_adjustement,
 };
-use crate::{ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize};
 
 pub(super) struct LineMetrics {
     /// The block offset of the line start in the containing
@@ -64,14 +63,9 @@ bitflags! {
 }
 
 struct FragmentAndData {
-    fragment: Fragment,
-
-    /// The logical rectangle of the fragment, relative within the current inline box (or line).
-    /// This logical rectangle will be converted into a physical one, and the Fragment's
-    /// `content_rect` will be updated once the inline box's final size is known in
-    /// [`LineItemLayout::end_inline_box`].
-    logical_rect: LogicalRect<Au>,
-
+    /// The [`FragmentAndLogicalRect`] used to determine this fragment's final physical
+    /// rectangle.
+    fragment_and_rect: FragmentAndLogicalRect,
     /// If the fragment is for an inline box, this is the list of floats which are either
     /// direct children or descendants within other inline boxes. Once the final physical
     /// rect of the fragment is known, the position of these floats needs to be adjusted.
@@ -79,18 +73,16 @@ struct FragmentAndData {
 }
 
 impl FragmentAndData {
-    fn new(fragment: Fragment, logical_rect: LogicalRect<Au>) -> Self {
-        Self::new_with_propagated_floats(fragment, logical_rect, Vec::new())
+    fn new(fragment_and_rect: FragmentAndLogicalRect) -> Self {
+        Self::new_with_propagated_floats(fragment_and_rect, Vec::new())
     }
 
     fn new_with_propagated_floats(
-        fragment: Fragment,
-        logical_rect: LogicalRect<Au>,
+        fragment_and_rect: FragmentAndLogicalRect,
         propagated_floats: Vec<Arc<BoxFragment>>,
     ) -> Self {
         Self {
-            fragment,
-            logical_rect,
+            fragment_and_rect,
             propagated_floats,
         }
     }
@@ -102,16 +94,22 @@ impl FragmentAndData {
     /// This shouldn't be used for floats, since they are anchored to a side of the inline
     /// formatting context, not to their container.
     fn resolve_physical_rect_and_adjust_floats(&self, container: &ContainingBlock) {
-        debug_assert!(!matches!(self.fragment, Fragment::Float(_)));
+        debug_assert!(!matches!(
+            self.fragment_and_rect.fragment,
+            Fragment::Float(_)
+        ));
 
-        let Some(base) = self.fragment.base() else {
+        let Some(base) = self.fragment_and_rect.fragment.base() else {
             return;
         };
 
         // We do not know the actual physical position of a logically laid out inline element, until
         // we know the width of the containing inline block. This step converts the logical rectangle
         // into a physical one based on the inline formatting context width.
-        let rect = self.logical_rect.as_physical(container);
+        let rect = self
+            .fragment_and_rect
+            .logical_rect
+            .as_physical_deprecated(container);
         base.set_rect(rect);
 
         // Floats are anchored to a side of the inline formatting context, but in the box tree
@@ -133,10 +131,13 @@ impl FragmentAndData {
     ) -> Vec<Fragment> {
         let mut fragments = Vec::with_capacity(fragments_and_data.len());
         for fragment_and_data in fragments_and_data {
-            if !matches!(fragment_and_data.fragment, Fragment::Float(_)) {
+            if !matches!(
+                fragment_and_data.fragment_and_rect.fragment,
+                Fragment::Float(_)
+            ) {
                 fragment_and_data.resolve_physical_rect_and_adjust_floats(container)
             }
-            fragments.push(fragment_and_data.fragment);
+            fragments.push(fragment_and_data.fragment_and_rect.fragment);
         }
         fragments
     }
@@ -152,7 +153,7 @@ impl FragmentAndData {
         let mut fragments = Vec::with_capacity(fragments_and_data.len());
         let mut propagated_floats = Vec::new();
         for mut fragment_and_data in fragments_and_data {
-            if let Fragment::Float(ref float) = fragment_and_data.fragment {
+            if let Fragment::Float(ref float) = fragment_and_data.fragment_and_rect.fragment {
                 if relative_adjustement != PhysicalSize::zero() {
                     float.base.translate_rect(relative_adjustement);
                 }
@@ -160,7 +161,7 @@ impl FragmentAndData {
             } else {
                 fragment_and_data.resolve_physical_rect_and_adjust_floats(container)
             }
-            fragments.push(fragment_and_data.fragment);
+            fragments.push(fragment_and_data.fragment_and_rect.fragment);
             propagated_floats.append(&mut fragment_and_data.propagated_floats);
         }
         (fragments, propagated_floats)
@@ -547,7 +548,7 @@ impl LineItemLayout<'_, '_> {
             let relative_adjustement = relative_adjustement(style, containing_block);
             content_rect.start_corner += relative_adjustement;
             relative_adjustement
-                .to_physical_vector(containing_block_writing_mode)
+                .to_physical_offset_deprecated(containing_block_writing_mode)
                 .to_size()
         } else {
             PhysicalSize::zero()
@@ -557,25 +558,22 @@ impl LineItemLayout<'_, '_> {
             FragmentAndData::resolve_physical_rects_and_adjust_and_collect_floats(
                 inner_state.fragments_and_data,
                 &ContainingBlock {
-                    size: ContainingBlockSize {
-                        inline: content_rect.size.inline,
-                        block: Default::default(),
-                        has_quirky_block_size: HasQuirkyBlockSize(false),
-                    },
+                    size: ContainingBlockSize::new(
+                        content_rect.size.inline,
+                        Default::default(), /* block_size */
+                    ),
                     style: containing_block.style,
                 },
                 relative_adjustement,
             );
 
-        // Previously all the fragment's children were positioned relative to the linebox,
-        // but they need to be made relative to this fragment.
-        let physical_content_rect = content_rect.as_physical(containing_block);
-
         let mut fragment = BoxFragment::new(
             inline_box.base.base_fragment_info,
             style.clone(),
-            fragments,
-            physical_content_rect,
+            FragmentChildren::PhysicalDeprecated(fragments),
+            // Previously all the fragment's children were positioned relative to the linebox,
+            // but they need to be made relative to this fragment.
+            content_rect.as_physical_deprecated(containing_block),
             padding.to_physical(containing_block_writing_mode),
             border.to_physical(containing_block_writing_mode),
             margin.to_physical(containing_block_writing_mode),
@@ -585,18 +583,13 @@ impl LineItemLayout<'_, '_> {
             fragment.base.flags.insert(FragmentFlags::DO_NOT_PAINT);
         }
 
-        let offset_from_parent_ifc = LogicalVec2 {
-            inline: pbm_sums.inline_start + self.current_state.inline_advance,
-            block: content_rect.start_corner.block,
-        }
-        .to_physical_vector(containing_block_writing_mode);
-
         match inner_state.positioning_context_or_start_offset_in_parent {
             Either::Left(mut positioning_context) => {
                 positioning_context
                     .layout_collected_children(self.layout.layout_context, &mut fragment);
-                positioning_context.adjust_static_position_of_hoisted_fragments_with_offset(
-                    &offset_from_parent_ifc,
+                positioning_context.adjust_static_position_of_hoisted_fragments(
+                    &content_rect,
+                    containing_block_writing_mode,
                     PositioningContextLength::zero(),
                 );
                 self.current_positioning_context_mut()
@@ -604,8 +597,9 @@ impl LineItemLayout<'_, '_> {
             },
             Either::Right(start_offset) => {
                 self.current_positioning_context_mut()
-                    .adjust_static_position_of_hoisted_fragments_with_offset(
-                        &offset_from_parent_ifc,
+                    .adjust_static_position_of_hoisted_fragments(
+                        &content_rect,
+                        containing_block_writing_mode,
                         start_offset,
                     );
             },
@@ -618,8 +612,7 @@ impl LineItemLayout<'_, '_> {
         self.current_state
             .fragments_and_data
             .push(FragmentAndData::new_with_propagated_floats(
-                fragment,
-                content_rect,
+                FragmentAndLogicalRect::new(fragment, content_rect),
                 propagated_floats,
             ));
     }
@@ -705,7 +698,7 @@ impl LineItemLayout<'_, '_> {
         self.current_state.inline_advance += inline_advance;
         self.current_state
             .fragments_and_data
-            .push(FragmentAndData::new(
+            .push(FragmentAndData::new(FragmentAndLogicalRect::new(
                 Fragment::Text(Arc::new(TextFragment {
                     base: BaseFragment::new(text_item.base_fragment_info, PhysicalRect::zero()),
                     run_data: text_item.text_fragment_run_data,
@@ -717,7 +710,7 @@ impl LineItemLayout<'_, '_> {
                     is_empty_for_text_cursor: text_item.is_empty_for_text_cursor,
                 })),
                 content_rect,
-            ));
+            )));
     }
 
     fn layout_atomic(&mut self, atomic: AtomicLineItem) {
@@ -730,9 +723,10 @@ impl LineItemLayout<'_, '_> {
         let content_rect = {
             let atomic_fragment = &atomic.fragment;
             let block_start = atomic.calculate_block_start(&self.line_metrics);
-            let padding_border_margin_sides = atomic_fragment
-                .padding_border_margin()
-                .to_logical(ifc_writing_mode);
+            let padding_border_margin_sides = LogicalSides::from_physical(
+                &atomic_fragment.padding_border_margin(),
+                ifc_writing_mode,
+            );
 
             let mut atomic_offset = LogicalVec2 {
                 inline: self.current_state.inline_advance +
@@ -750,17 +744,17 @@ impl LineItemLayout<'_, '_> {
             // after the inline box is processed to find a final physical rectangle.
             LogicalRect {
                 start_corner: atomic_offset,
-                size: atomic_fragment
-                    .content_rect()
-                    .size
-                    .to_logical(ifc_writing_mode),
+                size: LogicalVec2::from_physical_size(
+                    &atomic_fragment.content_rect().size,
+                    ifc_writing_mode,
+                ),
             }
         };
 
         if let Some(mut positioning_context) = atomic.positioning_context {
-            let physical_rect_as_if_in_root = content_rect.as_physical(containing_block);
-            positioning_context.adjust_static_position_of_hoisted_fragments_with_offset(
-                &physical_rect_as_if_in_root.origin.to_vector(),
+            positioning_context.adjust_static_position_of_hoisted_fragments(
+                &content_rect,
+                containing_block.style.writing_mode,
                 PositioningContextLength::zero(),
             );
 
@@ -772,10 +766,10 @@ impl LineItemLayout<'_, '_> {
 
         self.current_state
             .fragments_and_data
-            .push(FragmentAndData::new(
+            .push(FragmentAndData::new(FragmentAndLogicalRect::new(
                 Fragment::Box(atomic.fragment),
                 content_rect,
-            ));
+            )));
     }
 
     fn layout_absolute(&mut self, absolute: AbsolutelyPositionedLineItem) {
@@ -820,30 +814,30 @@ impl LineItemLayout<'_, '_> {
         // Since alignment of absolutes in inlines is currently always `start`, the size of
         // of the static position rectangle does not matter.
         let containing_block = self.containing_block();
+        let containing_block_writing_mode = containing_block.style.writing_mode;
         let static_position_rect = LogicalRect {
             start_corner: initial_start_corner,
             size: LogicalVec2::zero(),
-        }
-        .as_physical(containing_block);
+        };
 
         let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
             absolute.absolutely_positioned_box.clone(),
-            static_position_rect,
+            StaticPositionRect::new(static_position_rect, containing_block_writing_mode),
             LogicalVec2 {
                 inline: AlignFlags::START,
                 block: AlignFlags::START,
             },
-            containing_block.style.writing_mode,
+            containing_block_writing_mode,
         );
 
         let hoisted_fragment = hoisted_box.fragment.clone();
         self.current_positioning_context_mut().push(hoisted_box);
         self.current_state
             .fragments_and_data
-            .push(FragmentAndData::new(
+            .push(FragmentAndData::new(FragmentAndLogicalRect::new(
                 Fragment::AbsoluteOrFixedPositionedPlaceholder(hoisted_fragment),
                 LogicalRect::zero(),
-            ));
+            )));
     }
 
     fn layout_float(&mut self, float: FloatLineItem) {
@@ -869,24 +863,25 @@ impl LineItemLayout<'_, '_> {
             .translate_rect(offset.to_physical_size(self.containing_block().style.writing_mode));
         self.current_state
             .fragments_and_data
-            .push(FragmentAndData::new(
+            .push(FragmentAndData::new(FragmentAndLogicalRect::new(
                 Fragment::Float(float.fragment),
                 LogicalRect::zero(),
-            ));
+            )));
     }
 
     fn layout_block_level(&mut self, block_level: Arc<BoxFragment>) {
         let containing_block = self.containing_block();
-        let mut content_rect = block_level.content_rect().to_logical(containing_block);
+        let mut content_rect =
+            LogicalRect::from_physical_deprecated(block_level.content_rect(), containing_block);
         // Block-level boxes are always placed at the logical origin of the line.
         content_rect.start_corner.inline -= self.current_state.parent_offset.inline;
         content_rect.start_corner.block -= self.line_metrics.block_offset;
         self.current_state
             .fragments_and_data
-            .push(FragmentAndData::new(
+            .push(FragmentAndData::new(FragmentAndLogicalRect::new(
                 Fragment::Box(block_level),
                 content_rect,
-            ));
+            )));
     }
 
     #[inline]

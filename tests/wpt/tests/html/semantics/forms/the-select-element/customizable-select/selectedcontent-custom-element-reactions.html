@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Custom element reactions for clones in selectedcontent</title>
+<link rel=help href="https://html.spec.whatwg.org/#clone-an-option-into-a-selectedcontent">
+<link rel=help href="https://html.spec.whatwg.org/#cereactions">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const log = [];
+let onConnected = null;
+
+class LoggingElement extends HTMLElement {
+  constructor() {
+    super();
+    log.push(`constructed ${this.textContent}`);
+  }
+  connectedCallback() {
+    this.inSelectedcontent = !!this.closest("selectedcontent");
+    log.push(`connected ${this.label}`);
+    onConnected?.(this);
+  }
+  disconnectedCallback() {
+    log.push(`disconnected ${this.label}`);
+  }
+  get label() {
+    return this.textContent + (this.inSelectedcontent ? " clone" : "");
+  }
+}
+customElements.define("logging-element", LoggingElement);
+</script>
+
+<select id="parsed">
+  <button><selectedcontent></selectedcontent></button>
+  <option><logging-element>zero</logging-element></option>
+  <option selected><logging-element>one</logging-element></option>
+  <option>last</option>
+</select>
+<script>
+const parsedLog = log.slice();
+</script>
+
+<form id="form"></form>
+<script>
+test(() => {
+  assert_array_equals(parsedLog.filter(entry => entry.endsWith(" clone")), ["connected one clone"]);
+}, "The parser's clone of a custom element is upgraded and connected before the next script runs");
+
+function setup(t, { formOwner = false } = {}) {
+  const container = formOwner ? document.getElementById("form") : document.body;
+  const div = document.createElement("div");
+  div.innerHTML = `<select>
+    <button><selectedcontent></selectedcontent></button>
+    <option><logging-element>zero</logging-element></option>
+    <option><logging-element>one</logging-element></option>
+  </select>`;
+  container.append(div);
+  t.add_cleanup(() => {
+    onConnected = null;
+    div.remove();
+  });
+  const select = div.querySelector("select");
+  assert_equals(select.querySelector("selectedcontent").textContent, "zero", "setup");
+  log.length = 0;
+  return select;
+}
+
+test(t => {
+  const select = setup(t);
+  select.selectedIndex = 1;
+  assert_array_equals(log, ["constructed one", "connected one clone", "disconnected zero clone"]);
+}, "selectedIndex runs the reactions of the new and the old clone before returning");
+
+test(t => {
+  const select = setup(t);
+  select.options[1].setAttribute("selected", "");
+  assert_array_equals(log, ["constructed one", "connected one clone", "disconnected zero clone"]);
+}, "setAttribute() of selected runs the reactions of the new and the old clone before returning");
+
+test(t => {
+  const select = setup(t, { formOwner: true });
+  select.options[1].defaultSelected = true;
+  select.selectedIndex = 0;
+  log.length = 0;
+  select.form.reset();
+  assert_array_equals(log, ["constructed one", "connected one clone", "disconnected zero clone"]);
+}, "reset() runs the reactions of the new and the old clone before returning");
+
+promise_test(async t => {
+  const select = setup(t);
+  select.options[0].remove();
+  assert_array_equals(log, ["disconnected zero"], "during remove()");
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+  assert_array_equals(log, ["disconnected zero", "constructed one", "connected one clone", "disconnected zero clone"], "afterwards");
+}, "Removing the selected option updates selectedcontent and runs the clones' reactions after remove() returns");
+
+test(t => {
+  const select = setup(t);
+  let reentered = false;
+  onConnected = element => {
+    if (reentered || element.label !== "one clone")
+      return;
+    reentered = true;
+    select.selectedIndex = 0;
+    log.push("nested selectedIndex returned");
+  };
+  select.selectedIndex = 1;
+  log.push("outer selectedIndex returned");
+  assert_array_equals(log, [
+    "constructed one",
+    "connected one clone",
+    "constructed zero",
+    "connected zero clone",
+    "disconnected one clone",
+    "nested selectedIndex returned",
+    "disconnected zero clone",
+    "outer selectedIndex returned",
+  ]);
+  assert_equals(select.querySelector("selectedcontent").textContent, "zero");
+}, "Changing the selection from a clone's connectedCallback runs the nested reactions before the nested call returns");
+</script>

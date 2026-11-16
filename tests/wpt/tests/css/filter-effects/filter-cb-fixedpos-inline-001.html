@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Filter Effects Test: a filtered inline box is the containing block of its fixed positioned descendants</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#fixed-cb">
+<meta name="assert" content="A fixed positioned box inside an inline box with filter or backdrop-filter is positioned and sized against the padding box of that inline box, also when the inline box does not start at the start of the line.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.container {
+    font: 20px/1 Ahem;
+    width: 300px;
+}
+.inline-box {
+    border: 5px solid;
+    padding: 2px 3px;
+}
+.fixed {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+}
+</style>
+<div class="container">XX <span class="inline-box" style="filter: blur(0)">XX<i class="fixed"></i>XX</span></div>
+<div class="container">XX <span class="inline-box" style="backdrop-filter: blur(0)">XX<i class="fixed"></i>XX</span></div>
+<script>
+for (const container of document.querySelectorAll(".container")) {
+    const inlineBox = container.querySelector(".inline-box");
+    const fixedBox = container.querySelector(".fixed");
+    const property = inlineBox.style.filter ? "filter" : "backdrop-filter";
+    test(() => {
+        const rect = inlineBox.getBoundingClientRect();
+        const style = getComputedStyle(inlineBox);
+        const border = parseFloat(style.borderLeftWidth);
+        const fixedRect = fixedBox.getBoundingClientRect();
+        assert_approx_equals(fixedRect.left, rect.left + border, 0.5, "left");
+        assert_approx_equals(fixedRect.top, rect.top + border, 0.5, "top");
+        assert_approx_equals(fixedRect.width, rect.width - 2 * border, 0.5, "width");
+        assert_approx_equals(fixedRect.height, rect.height - 2 * border, 0.5, "height");
+    }, `${property}: geometry of the fixed positioned box`);
+    test(() => {
+        const rect = inlineBox.getBoundingClientRect();
+        assert_equals(document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2), fixedBox);
+    }, `${property}: hit testing the fixed positioned box`);
+}
+</script>

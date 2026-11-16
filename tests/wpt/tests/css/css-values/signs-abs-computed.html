@@ -199,10 +199,24 @@ test_math_used('abs(-1rad)', '1rad', {type:'angle', approx:0.001});
 test_math_used('abs(-1turn)', '1turn', {type:'angle', approx:0.001});
 
 // with relative length
-document.getElementById('container').style.fontSize = '10px';
+const container = document.getElementById('container');
+container.style.fontSize = '10px';
 test_length_equals('sign(10px - 1em)', '0', 'fontSize=10px');
 test_length_equals('sign(10px - 2em)', '-1', 'fontSize=10px');
-document.getElementById('container').style.fontSize = '20px';
+container.style.fontSize = '0px';
+test_length_equals('sign(1em)', '0', 'fontSize=0px');
+test_length_equals('sign(-1em)', '0', 'fontSize=0px');
+container.style.fontSize = '20px';
+
+container.style.width = '50px';
+container.style.containerType = 'inline-size';
+test_length_equals('sign(1cqw)', '1', 'width=50px');
+test_length_equals('sign(-1cqw)', '-1', 'width=50px');
+container.style.width = '0px';
+test_length_equals('sign(1cqw)', '0', 'width=0px');
+test_length_equals('sign(-1cqw)', '0', 'width=0px');
+container.style.width = '100px';
+container.style.containerType = '';
 
 test_math_used('calc(sign(10%) * 100px)', '100px');
 

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: atomic inline-level boxes and the min-content and max-content inline sizes of their container</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#atomic-inline">
+<meta name="assert" content="An atomic inline-level box contributes its own min-content size to its container's min-content inline size and its own max-content size to the container's max-content inline size.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.content {
+    font: 10px/1 Ahem;
+}
+.inlineBlock {
+    display: inline-block;
+}
+</style>
+
+<!-- Every x is 10px wide. -->
+<div class="content" id="inlineBlock"
+    data-min-content="40" data-max-content="110"
+    data-description="An inline-block next to text"><span class="inlineBlock">xx xxxx</span> xxx</div>
+
+<div class="content" id="inlineFlex"
+    data-min-content="70" data-max-content="130"
+    data-description="An inline-flex box next to text"><span style="display: inline-flex"><span>xx xxxx</span><span>xxx</span></span> xx</div>
+
+<div class="content" id="inlineBlockWithMinAndMaxWidth"
+    data-min-content="55" data-max-content="105"
+    data-description="An inline-block with min-width and max-width"><span class="inlineBlock" style="min-width: 55px; max-width: 65px">xx xxxx xx</span> xxx</div>
+
+<div class="content" id="inlineBlockWithMinContentWidth"
+    data-min-content="40" data-max-content="80"
+    data-description="An inline-block with width: min-content"><span class="inlineBlock" style="width: min-content">xx xxxx</span> xxx</div>
+
+<!-- A percentage max-width lets a replaced box shrink to nothing under a min-content constraint. -->
+<div class="content" id="replacedWithPercentageMaxWidth"
+    data-min-content="30" data-max-content="140"
+    data-description="A replaced box with a percentage max-width"><canvas width="100" height="10" style="max-width: 50%"></canvas> xxx</div>
+
+<!-- The inline-block's top and bottom margins (1px and 3px) add up to less than its left and right ones (4px and 2px). -->
+<div class="content" id="orthogonalInlineBlock"
+    data-min-content="26" data-max-content="56"
+    data-description="An orthogonal inline-block contributes its block size and its left and right margins"><span class="inlineBlock" style="writing-mode: vertical-lr; height: 40px; margin: 1px 2px 3px 4px">xx xxx</span> xx</div>
+
+<script>
+for (const content of document.querySelectorAll(".content")) {
+    for (const [width, expectedWidth] of [["min-content", content.dataset.minContent], ["max-content", content.dataset.maxContent]]) {
+        test(() => {
+            const container = content.cloneNode(true);
+            container.removeAttribute("id");
+            container.style.width = width;
+            document.body.appendChild(container);
+            assert_equals(container.offsetWidth, Number(expectedWidth));
+            container.remove();
+        }, `${content.dataset.description} (${content.id}, ${width})`);
+    }
+    content.remove();
+}
+</script>

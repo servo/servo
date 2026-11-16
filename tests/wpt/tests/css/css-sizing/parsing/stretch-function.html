@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Box Sizing Test: parsing stretch()</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<meta name="assert" content="The sizing properties accept stretch(<length-percentage [0,∞]>).">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target" style="font-size: 20px"></div>
+<script>
+for (const property of ["width", "height", "min-width", "min-height", "max-width", "max-height", "inline-size", "block-size", "min-inline-size", "min-block-size", "max-inline-size", "max-block-size"]) {
+  test_valid_value(property, "stretch(10px)");
+  test_valid_value(property, "stretch(10%)");
+  test_valid_value(property, "stretch(calc(10% - 0.5em))");
+  test_invalid_value(property, "stretch(-10px)");
+  test_invalid_value(property, "stretch(auto)");
+  test_invalid_value(property, "stretch()");
+  test_invalid_value(property, "stretch(10px, 20px)");
+}
+
+for (const property of ["min-width", "min-height", "max-width", "max-height"]) {
+  test_computed_value(property, "stretch(10px)");
+  test_computed_value(property, "stretch(20%)");
+  test_computed_value(property, "stretch(calc(10% + 40px))");
+  test_computed_value(property, "stretch(calc(10px + 0.5em))", "stretch(20px)");
+}
+</script>
+</body>
+</html>

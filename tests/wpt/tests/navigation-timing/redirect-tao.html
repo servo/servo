@@ -46,5 +46,19 @@ promise_test(async () => {
       {referrerPolicy: "no-referrer"});
   assert_redirect_timing_hidden(entry);
 }, "Hidden for a no-referrer navigation even when the redirect opts in");
+
+// The following two navigations land on a cross-origin destination (distinct
+// from the main frame origin), so they distinguish "opt in to the destination"
+// from "opt in to the main frame origin".
+
+promise_test(async () => {
+  const entry = await cross_origin_destination_navigation_entry(CROSS_ORIGIN_DESTINATION);
+  assert_redirect_timing_exposed(entry, 1);
+}, "Exposed when the redirect opts in to a cross-origin destination origin");
+
+promise_test(async () => {
+  const entry = await cross_origin_destination_navigation_entry(dest);
+  assert_redirect_timing_hidden(entry);
+}, "Hidden when the redirect opts in to the main frame origin but not the destination origin");
 </script>
 </body>

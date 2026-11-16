@@ -23,13 +23,6 @@ android {
         // Default debug and release build types are used as templates
         debug { isJniDebuggable = true }
 
-        release {
-            signingConfig =
-                signingConfigs.getByName("debug") // Change this to sign with a production key
-            isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
-        }
-
         val debug = getByName("debug")
         val release = getByName("release")
 
@@ -113,28 +106,6 @@ project.afterEvaluate {
 
             compileTask.dependsOn(ndkBuildTask)
         }
-
-    android.libraryVariants.forEach { variant ->
-        val pattern = Pattern.compile("^([\\w\\d]+)(Debug|Release)")
-        val matcher = pattern.matcher(variant.name)
-        if (!matcher.find()) {
-            throw GradleException("Invalid variant name for output: " + variant.name)
-        }
-        val arch = matcher.group(1)
-        val debug = variant.name.contains("Debug")
-        val finalFolder = getTargetDir(debug, arch)
-        val finalFile = File(finalFolder, "servoview.aar")
-        variant.outputs.forEach { output ->
-            val copyAndRenameAARTask =
-                project.task<Copy>("copyAndRename${variant.name.capitalize()}AAR") {
-                    from(output.outputFile.parent)
-                    into(finalFolder)
-                    include(output.outputFile.name)
-                    rename(output.outputFile.name, finalFile.name)
-                }
-            variant.assembleProvider.get().finalizedBy(copyAndRenameAARTask)
-        }
-    }
 }
 
 dependencies {

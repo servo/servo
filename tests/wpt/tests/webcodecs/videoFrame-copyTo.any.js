@@ -68,6 +68,34 @@ promise_test(async t => {
 }, 'Test RGBA frame.');
 
 promise_test(async t => {
+  const data = new Uint8Array(32);
+  for (let i = 0; i < data.length; i++) {
+    data[i] = i + 1;
+  }
+  const frame = new VideoFrame(data, {
+      format: 'RGBA',
+      timestamp: 0,
+      codedWidth: 4,
+      codedHeight: 2,
+  });
+  const options = {
+      rect: {x: 2, y: 0, width: 2, height: 2},
+  };
+  const expectedLayout = [
+      {offset: 0, stride: 8},
+  ];
+  const expectedData = new Uint8Array([
+      9,10,11,12, 13,14,15,16,
+      25,26,27,28, 29,30,31,32,
+  ]);
+  assert_equals(frame.allocationSize(options), expectedData.length, 'allocationSize()');
+  const destination = new Uint8Array(expectedData.length);
+  const layout = await frame.copyTo(destination, options);
+  assert_layout_equals(layout, expectedLayout);
+  assert_buffer_equals(destination, expectedData);
+}, 'Test RGBA left crop.');
+
+promise_test(async t => {
   const frame = makeNV12_4x2();
   const expectedLayout = [
       {offset: 0, stride: 4},
@@ -443,3 +471,56 @@ promise_test(async t => {
   assert_buffer_equals(data, expectedData);
   frame.close();
 }, 'Test texture-backed RGBA copyTo does not modify destination stride/offset padding bytes.');
+promise_test(async t => {
+  // A buffer-backed frame is laid out for its coded size; visibleRect only crops
+  // the output. When codedHeight exceeds visibleRect.height (e.g. a macroblock
+  // -rounded decoder output shown without the extra rows), the chroma planes must
+  // still be read from their coded offsets. Reading them from the visible height
+  // offsets instead picks up Y-plane bytes as chroma. Keep x/y at 0 to isolate
+  // the vertical (codedHeight) case.
+  let init = {
+    format: 'I420',
+    timestamp: 1234,
+    codedWidth: 8,
+    codedHeight: 8,
+    visibleRect: {
+      x: 0,
+      y: 0,
+      width: 8,
+      height: 4,
+    },
+    colorSpace: {
+      primaries: 'smpte170m',
+      transfer: 'smpte170m',
+      matrix: 'smpte170m',
+      fullRange: false,
+    }
+  };
+
+  // Define YUV values for BT.601 red.
+  const redY = 76;
+  const redU = 84;
+  const redV = 255;
+
+  const ySize = init.codedWidth * init.codedHeight;
+  const uvSize = ySize / 4;
+  let data = new Uint8Array(ySize + 2 * uvSize);
+  fillYUV(data, init.codedWidth, init.codedHeight, init.visibleRect, redY, redU,
+          redV);
+
+  let frame = new VideoFrame(data, init);
+  assert_equals(frame.codedWidth, init.visibleRect.width);
+  assert_equals(frame.codedHeight, init.visibleRect.height);
+  assert_equals(frame.visibleRect.width, init.visibleRect.width);
+  assert_equals(frame.visibleRect.height, init.visibleRect.height);
+
+  let options = {rect: frame.visibleRect};
+  let copied_data = new Uint8Array(frame.allocationSize(options));
+  await frame.copyTo(copied_data, options);
+
+  let packed_data = new Uint8Array(frame.allocationSize(options));
+  fillYUV(packed_data, frame.codedWidth, frame.codedHeight, frame.visibleRect,
+          redY, redU, redV);
+
+  assert_array_equals(copied_data, packed_data, `Copied frame data incorrect.`);
+}, 'copyTo from byte data with codedHeight larger than visibleRect height');

@@ -10,6 +10,7 @@ use app_units::Au;
 use atomic_refcell::AtomicRef;
 use euclid::{Point2D, Rect, Size2D};
 use fonts::{FontMetrics, ShapedTextSlice};
+use itertools::Either;
 use layout_api::BoxAreaType;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
@@ -19,6 +20,7 @@ use servo_base::print_tree::PrintTree;
 use servo_base::text::Utf32CodeUnits;
 use servo_url::ServoUrl;
 use style::Zero;
+use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style_traits::CSSPixel;
 use webrender_api::{FontInstanceKey, ImageKey};
@@ -28,7 +30,7 @@ use crate::SharedStyle;
 use crate::cell::{ArcRefCell, RefOrAtomicRef};
 use crate::flow::inline::text_run::SharedTextRunData;
 use crate::fragment_tree::FragmentStatus;
-use crate::geom::{LogicalSides, PhysicalPoint, PhysicalRect};
+use crate::geom::{LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect};
 use crate::layout_impl::LayoutThread;
 
 #[derive(Clone, MallocSizeOf)]
@@ -51,6 +53,27 @@ pub(crate) enum Fragment {
     Text(#[conditional_malloc_size_of] Arc<TextFragment>),
     Image(#[conditional_malloc_size_of] Arc<ImageFragment>),
     IFrame(#[conditional_malloc_size_of] Arc<IFrameFragment>),
+}
+
+/// A combination of a [`Fragment`] and its logical rectangle, which is used to keep
+/// a list of fragment children in order to later convert their logical rectangle
+/// into a physical rectangle when the size of the parent fragment is known.
+#[derive(Clone, MallocSizeOf)]
+pub(crate) struct FragmentAndLogicalRect {
+    pub fragment: Fragment,
+    /// The logical rectangle of the fragment relative to its parent's box. This logical rectangle
+    /// will be converted into a physical one, and the Fragment's `content_rect` will be updated
+    /// once the parent box's final size is known.
+    pub logical_rect: LogicalRect<Au>,
+}
+
+impl FragmentAndLogicalRect {
+    pub(crate) fn new(fragment: Fragment, logical_rect: LogicalRect<Au>) -> Self {
+        Self {
+            fragment,
+            logical_rect,
+        }
+    }
 }
 
 #[derive(Clone, MallocSizeOf)]
@@ -236,6 +259,12 @@ impl Fragment {
             Fragment::AbsoluteOrFixedPositionedPlaceholder(_) |
             Fragment::Image(..) |
             Fragment::IFrame(..) => self.base().map(|base| base.rect()).unwrap_or_default(),
+        }
+    }
+
+    fn set_rect(&self, rect: PhysicalRect<Au>) {
+        if let Some(base) = self.base() {
+            base.set_rect(rect);
         }
     }
 
@@ -549,7 +578,7 @@ impl TextFragment {
     }
 
     fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
-        let mut rect = self.base.rect();
+        let rect = self.base.rect();
         let mut hanging_advance = Au::zero();
         for slice in self.glyphs.iter().rev() {
             hanging_advance += slice.hangable_advance();
@@ -558,10 +587,33 @@ impl TextFragment {
             }
         }
 
-        // TODO: This is not correct for vertical and right-to-left writing modes.
-        rect.size.width -= hanging_advance;
+        let writing_mode = self.writing_mode();
+        let size = LogicalVec2::from_physical_size(&rect.size, writing_mode);
+        LogicalRect {
+            start_corner: LogicalVec2::zero(),
+            size: LogicalVec2 {
+                inline: size.inline - hanging_advance,
+                block: size.block,
+            },
+        }
+        .as_physical(writing_mode, size)
+        .translate(rect.origin.to_vector())
+    }
 
-        rect
+    fn writing_mode(&self) -> WritingMode {
+        let mut writing_mode = self.style().writing_mode;
+        let is_rtl = self
+            .glyphs
+            .first()
+            .is_some_and(|shaped_text| shaped_text.is_rtl());
+
+        // If the directionality of the run is different from the parent writing mode then,
+        // invert the RTL-related bits.
+        if is_rtl == writing_mode.is_bidi_ltr() {
+            writing_mode ^= WritingMode::RTL | WritingMode::INLINE_REVERSED;
+        }
+
+        writing_mode
     }
 }
 
@@ -666,5 +718,104 @@ impl CumulativeContentRectCalculation<'_> {
 impl<'a> From<&'a LayoutThread> for CumulativeContentRectCalculation<'a> {
     fn from(layout_thread: &'a LayoutThread) -> Self {
         Self::Lazy { layout_thread }
+    }
+}
+
+/// A temporary data structure to contain fragments that are meant to be
+/// children of another fragment.
+#[derive(Clone, MallocSizeOf)]
+pub(crate) enum FragmentChildren {
+    PhysicalDeprecated(Vec<Fragment>),
+    Logical(Vec<FragmentAndLogicalRect>),
+}
+
+impl Default for FragmentChildren {
+    fn default() -> Self {
+        Self::Logical(Default::default())
+    }
+}
+
+impl FragmentChildren {
+    pub(crate) fn fragments(&self) -> impl Iterator<Item = &Fragment> {
+        match self {
+            FragmentChildren::PhysicalDeprecated(fragments) => Either::Left(fragments.iter()),
+            FragmentChildren::Logical(fragment_and_logical_rects) => Either::Right(
+                fragment_and_logical_rects
+                    .iter()
+                    .map(|fragment_and_logical_rect| &fragment_and_logical_rect.fragment),
+            ),
+        }
+    }
+
+    pub(crate) fn is_empty(&self) -> bool {
+        match self {
+            FragmentChildren::PhysicalDeprecated(fragments) => fragments.is_empty(),
+            FragmentChildren::Logical(fragment_and_logical_rects) => {
+                fragment_and_logical_rects.is_empty()
+            },
+        }
+    }
+
+    pub(crate) fn len(&self) -> usize {
+        match self {
+            FragmentChildren::PhysicalDeprecated(fragments) => fragments.len(),
+            FragmentChildren::Logical(fragment_and_logical_rects) => {
+                fragment_and_logical_rects.len()
+            },
+        }
+    }
+
+    pub(crate) fn into_physical_fragments(
+        self,
+        writing_mode: WritingMode,
+        container_size: LogicalVec2<Au>,
+    ) -> Vec<Fragment> {
+        match self {
+            FragmentChildren::PhysicalDeprecated(fragments) => fragments,
+            FragmentChildren::Logical(fragment_and_logical_rects) => fragment_and_logical_rects
+                .into_iter()
+                .map(|fragment_and_logical_rect| {
+                    fragment_and_logical_rect.fragment.set_rect(
+                        fragment_and_logical_rect
+                            .logical_rect
+                            .as_physical(writing_mode, container_size),
+                    );
+                    fragment_and_logical_rect.fragment
+                })
+                .collect(),
+        }
+    }
+
+    pub(crate) fn append(
+        &mut self,
+        mut other: Self,
+        writing_mode: WritingMode,
+        container_size: LogicalVec2<Au>,
+    ) {
+        match (self, &mut other) {
+            (Self::PhysicalDeprecated(fragments), _) => {
+                fragments.append(&mut other.into_physical_fragments(writing_mode, container_size))
+            },
+            (Self::Logical(fragments), Self::PhysicalDeprecated(other_fragments)) => {
+                // FIXME: This is wrong. The calculated logical rectangle here might be incorrect,
+                // but this is a graceful degradation of behavior until `PhysicalDeprecated` is
+                // removed entirely.
+                fragments.extend(other_fragments.drain(..).map(|fragment| {
+                    let logical_rect = fragment
+                        .base()
+                        .map(|base| {
+                            LogicalRect::from_physical(base.rect(), writing_mode, container_size)
+                        })
+                        .unwrap_or_else(LogicalRect::zero);
+                    FragmentAndLogicalRect {
+                        fragment,
+                        logical_rect,
+                    }
+                }));
+            },
+            (Self::Logical(fragments), Self::Logical(other_fragments)) => {
+                fragments.append(other_fragments)
+            },
+        }
     }
 }

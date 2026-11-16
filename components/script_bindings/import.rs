@@ -23,7 +23,8 @@ pub(crate) mod base {
     pub(crate) use js::realm::{AutoRealm, CurrentRealm};
     pub(crate) use js::rust::wrappers2::{Call, GetArrayLength, JS_GetElement, JS_SetElement};
     pub(crate) use js::rust::{
-        HandleObject, HandleValue, MutableHandle, MutableHandleObject, MutableHandleValue,
+        CustomTrace, HandleObject, HandleValue, MutableHandle, MutableHandleObject,
+        MutableHandleValue,
     };
     pub(crate) use js::typedarray;
     pub(crate) use js::typedarray::{
@@ -46,8 +47,7 @@ pub(crate) mod base {
     pub(crate) use crate::lock::ThreadUnsafeOnceLock;
     pub(crate) use crate::num::Finite;
     pub(crate) use crate::proxyhandler::{CrossOriginProperties, is_platform_object_same_origin};
-    pub(crate) use crate::reflector::DomObject;
-    pub(crate) use crate::root::DomRoot;
+    pub(crate) use crate::root::{Dom, DomRoot};
     pub(crate) use crate::str::{ByteString, DOMString, USVString};
     pub(crate) use crate::trace::RootedTraceableBox;
     pub(crate) use crate::utils::{get_dictionary_property, set_dictionary_property};

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: out-of-flow positioned boxes in inline content and the min-content and max-content inline sizes of their container</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#abspos-layout">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<meta name="assert" content="An absolutely or fixed positioned box in inline content takes no room on the line, so it adds nothing to its container's min-content and max-content inline sizes, and it does not give a line the container's text-indent.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.content {
+    font: 10px/1 Ahem;
+}
+.absolute {
+    position: absolute;
+}
+.fixed {
+    position: fixed;
+}
+.replaced {
+    width: 100px;
+    height: 10px;
+}
+</style>
+
+<!-- Every x is 10px wide. The positioned boxes are wider than the rest of the content. -->
+<div class="content" id="absoluteBetweenWords"
+    data-min-content="40" data-max-content="80"
+    data-description="An absolutely positioned box between words">xxx <span class="absolute">xxxxxxxxxxxx</span> xxxx</div>
+
+<div class="content" id="fixedBetweenWords"
+    data-min-content="40" data-max-content="80"
+    data-description="A fixed positioned box between words">xxx <span class="fixed">xxxxxxxxxxxx</span> xxxx</div>
+
+<div class="content" id="absoluteInsideWord"
+    data-min-content="70" data-max-content="70"
+    data-description="An absolutely positioned box does not split the word around it">xxx<span class="absolute">xxxxxxxxxxxx</span>xxxx</div>
+
+<div class="content" id="absoluteAfterTrailingSpace"
+    data-min-content="30" data-max-content="30"
+    data-description="An absolutely positioned box after the line's trailing space">xxx <span class="absolute">xxxxxxxxxxxx</span></div>
+
+<div class="content" id="absoluteInsideInlineBox"
+    data-min-content="30" data-max-content="30"
+    data-description="An absolutely positioned box inside an inline box with padding">x<span style="padding: 0 5px"><span class="absolute">xxxxxxxxxxxx</span></span>x</div>
+
+<div class="content" id="absoluteReplacedWithBreakAll" style="word-break: break-all"
+    data-min-content="10" data-max-content="20"
+    data-description="An absolutely positioned image in front of text that can break anywhere"><img class="absolute replaced">xx</div>
+
+<div class="content" id="absoluteOnly"
+    data-min-content="0" data-max-content="0"
+    data-description="A container with nothing but an absolutely positioned box"><span class="absolute">xxxxxxxxxxxx</span></div>
+
+<div class="content" id="absoluteOnlyWithTextIndent" style="text-indent: 20px"
+    data-min-content="0" data-max-content="0"
+    data-description="A container with text-indent and nothing but an absolutely positioned box"><span class="absolute">xxxxxxxxxxxx</span></div>
+
+<!-- The positioned box is sized to its own content, not by what its container's intrinsic sizes leave out. -->
+<div style="width: max-content; font: 10px/1 Ahem">xx <span class="absolute" id="positionedBox">xxx xxxxxxxx</span></div>
+
+<script>
+test(() => {
+    assert_equals(document.getElementById("positionedBox").offsetWidth, 120);
+}, "An absolutely positioned box in inline content is as wide as its own content");
+
+for (const content of document.querySelectorAll(".content")) {
+    for (const [width, expectedWidth] of [["min-content", content.dataset.minContent], ["max-content", content.dataset.maxContent]]) {
+        test(() => {
+            const container = content.cloneNode(true);
+            container.removeAttribute("id");
+            container.style.width = width;
+            document.body.appendChild(container);
+            assert_equals(container.offsetWidth, Number(expectedWidth));
+            container.remove();
+        }, `${content.dataset.description} (${content.id}, ${width})`);
+    }
+    content.remove();
+}
+</script>

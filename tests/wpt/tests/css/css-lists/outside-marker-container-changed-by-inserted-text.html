@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Lists: the outside marker follows its first formatted line when text is inserted</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#list-style-position-outside">
+<link rel="match" href="outside-marker-container-changed-by-inserted-text-ref.html">
+<meta name="assert" content="Text inserted into an empty earlier block gives it a line, which becomes the marker's first formatted line.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  ul { margin: 0; padding: 0 0 0 40px; }
+  li { font: 20px/20px Ahem; }
+</style>
+
+<p>The test passes if the bullet is aligned with the first line.</p>
+
+<ul><li><div id="first"></div><div>x</div></li></ul>
+<script>
+  document.body.offsetHeight;
+  document.getElementById("first").appendChild(document.createTextNode("x"));
+  document.body.offsetHeight;
+</script>

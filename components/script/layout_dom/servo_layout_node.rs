@@ -329,6 +329,16 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
             .and_then(|element| element.get_rowspan())
     }
 
+    fn textarea_rows(&self) -> Option<u32> {
+        if self.pseudo_element_chain().is_empty() {
+            self.node
+                .downcast::<Element>()
+                .and_then(|element| element.get_rows())
+        } else {
+            None
+        }
+    }
+
     fn set_uses_content_attribute_with_attr(&self, uses_content_attribute_with_attr: bool) {
         unsafe {
             self.node.set_flag(

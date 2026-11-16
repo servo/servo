@@ -725,35 +725,6 @@ class CGMethodCall(CGThing):
         return self.cgRoot.define()
 
 
-def dictionaryHasSequenceMember(dictionary: IDLDictionary) -> bool:
-    for member in dictionary.members:
-        if typeIsSequenceOrHasSequenceMember(member.type):
-            return True
-
-    if dictionary.parent:
-        # pyrefly: ignore  # bad-argument-type
-        return dictionaryHasSequenceMember(dictionary.parent)
-
-    return False
-
-
-def typeIsSequenceOrHasSequenceMember(type: IDLType) -> bool:
-    if type.nullable():
-        assert isinstance(type, IDLNullableType)
-        type = type.inner
-    if type.isSequence():
-        return True
-    if type.isDictionary():
-        # pyrefly: ignore  # missing-attribute
-        return dictionaryHasSequenceMember(type.inner)
-    if type.isUnion():
-        assert isinstance(type, IDLUnionType)
-        assert type.flatMemberTypes is not None
-        return any(typeIsSequenceOrHasSequenceMember(m.type) for m in
-                   type.flatMemberTypes)
-    return False
-
-
 def union_native_type(t: IDLType) -> str:
     name = t.unroll().name
     generic = "::<D>" if containsDomInterface(t) else ""
@@ -1110,7 +1081,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
 
         # For safety, we want to return types that are already rooted so callers
         # don't have to think about it.
-        require_heap_root = (isMember in ["Union", "Dictionary"] or sourceDescription == "return value")
+        require_heap_root = (isMember == "Union" or sourceDescription == "return value")
 
         if require_heap_root:
             typeName = f"Heap{typeName}"
@@ -3076,6 +3047,8 @@ def DomTypes(descriptors: list[Descriptor],
                 "crate::reflector::MutDomObject",
                 "crate::reflector::DomObject",
                 "crate::reflector::DomGlobalGeneric<Self>",
+                "crate::reflector::PrototypeInitializer",
+                "crate::reflector::HasPrototype",
                 "malloc_size_of::MallocSizeOf",
             ]
 
@@ -3429,7 +3402,6 @@ class CGWrapMethod(CGAbstractMethod):
             proxy_handler = f"Some(RegisterBindings::proxy_handlers::{self.descriptor.interface.identifier.name}.load(std::sync::atomic::Ordering::Acquire))"
         else:
             proxy_handler = "None"
-        prototype_id = f"PrototypeList::ID::{self.descriptor.name}"
         proto_object_fn = "GetProtoObject::<D>"
         if self.descriptor.proxy:
             c = "None"
@@ -3441,7 +3413,6 @@ class CGWrapMethod(CGAbstractMethod):
                     is_maybe_cross_origin_object: {cross_origin},
                     is_proxy: {is_proxy},
                     proxy_handler: {proxy_handler},
-                    prototype_id: {prototype_id},
                     class: {c},
                     proto_object_fn: {proto_object_fn},
                     has_legacy_unforgeable_members: {python_bool_to_rust(self.descriptor.hasLegacyUnforgeableMembers)},
@@ -3477,7 +3448,6 @@ class CGWrapGlobalMethod(CGAbstractMethod):
         members = [f"{function}::<D>(cx, obj.handle(), BindingTables::<D>::{array.variableName()}, obj.handle());"
                    for (function, array) in pairs if array.length() > 0]
         membersStr = "\n".join(members)
-        name = self.descriptor.name
 
         return CGGeneric(f"""
     let raw = unsafe {{ Root::new(MaybeUnreflectedDom::from_box(object)) }};
@@ -3496,7 +3466,6 @@ class CGWrapGlobalMethod(CGAbstractMethod):
     assert!(!obj.is_null());
 
     let root = unsafe {{ raw.reflect_with(obj.get()) }};
-    root.reflector().set_proto_id(PrototypeList::ID::{name} as u16);
 
     let mut cx = AutoRealm::new_from_handle(cx, obj.handle());
     let cx = &mut cx;
@@ -8182,6 +8151,7 @@ impl{self.generic} Default for {self.makeClassName(d)}{self.genericSuffix} {{
         conversion = string.Template(templateBody).substitute(replacements)
 
         memberIsOptional = member.optional and not member.defaultValue
+        memberIsNullable = member.type.nullable()
 
         assert info.declType is not None
         declType = CGTemplatedType("Option", info.declType) if memberIsOptional else info.declType
@@ -8190,7 +8160,12 @@ impl{self.generic} Default for {self.makeClassName(d)}{self.genericSuffix} {{
 
         memberTypeConversion = ""
         if modifier is not None:
-            memberTypeConversion = f".map(|val| val{modifier})" if memberIsOptional else modifier
+            if memberIsOptional and memberIsNullable:
+                memberTypeConversion = f".map(|val| val.map(|val| val{modifier}))"
+            elif memberIsOptional or memberIsNullable:
+                memberTypeConversion = f".map(|val| val{modifier})"
+            else:
+                memberTypeConversion = modifier
 
         assert (member.defaultValue is None) == (default is None)
         if not member.optional:
@@ -8274,6 +8249,9 @@ def getTracingConversion(type: IDLType, resolvedType: str) -> tuple[str, str | N
         tracedType, conversionCode = getTracingConversion(innerContainerType(type), resolvedType)
         if conversionCode is not None:
             return (tracedType, f".into_iter().map(|val| val{conversionCode}).collect()")
+
+    elif type.isGeckoInterface():
+        return (resolvedType.replace("DomRoot", "Dom"), ".as_traced()")
 
     return (resolvedType, None)
 
@@ -8661,7 +8639,12 @@ def type_needs_tracing(t: IDLObject, isMember: Optional[str] = None) -> bool:
 
         if t.isUnion():
             assert isinstance(t, IDLUnionType) and t.flatMemberTypes is not None
-            return any(type_needs_tracing(member, isMember) for member in t.flatMemberTypes)
+            # TODO: Union types can contain rooted types, so they should be ignored when checking
+            # if a dictionary should be traced.
+            if isMember == "Dictionary":
+                return any(type_needs_tracing(member, "Union") for member in t.flatMemberTypes)
+            else:
+                return any(type_needs_tracing(member, isMember) for member in t.flatMemberTypes)
 
         if is_typed_array(t):
             return True
@@ -8682,7 +8665,7 @@ def type_needs_tracing(t: IDLObject, isMember: Optional[str] = None) -> bool:
         return False
 
     if t.isInterface():
-        return False
+        return isMember == "Dictionary"
 
     if t.isEnum():
         return False
@@ -9457,7 +9440,7 @@ def camel_to_upper_snake(s: str) -> str:
 def process_arg(expr: str, arg: IDLArgument | FakeArgument) -> str:
     if arg.type.isGeckoInterface() and not arg.type.unroll().inner.isCallback():
         if arg.variadic or arg.type.isSequence():
-            expr += ".r()"
+            expr += ".as_ref_slice()"
         elif arg.type.nullable() and arg.optional and not arg.defaultValue:
             expr += ".as_ref().map(Option::as_deref)"
         elif arg.type.nullable() or arg.optional and not arg.defaultValue:

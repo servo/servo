@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: paired cascade: UA default highlight colors are not used when a highlight color is inherited from the author origin</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#paired-defaults">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#highlight-cascade">
+<link rel="match" href="highlight-paired-cascade-008-ref.html">
+<meta name="assert" value="This test verifies that a background-color set on main::selection suppresses the UA default highlight colors in a descendant's ::selection, which inherits the background-color through the highlight cascade.">
+<script src="../support/selections.js"></script>
+<link rel="stylesheet" href="../support/highlights.css">
+<style>
+    main {
+        font-size: 7em;
+        margin: 0.5em;
+    }
+    main::selection {
+        background-color: green;
+    }
+    span::selection {
+        --unused: green;
+    }
+</style>
+<p>Test passes if the text below has a green highlight.
+<main class="highlight_reftest"><span>quick</span></main>
+<script>selectNodeContents(document.querySelector("main"));</script>

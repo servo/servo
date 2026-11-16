@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<title>CSS Container Queries Test: style() query with attr() whose name comes from var()</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#style-container">
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#attr-notation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  .target {
+    color: red;
+  }
+
+  @container style(--my-prop: attr(var(--name))) {
+    #unnamed > .target {
+      color: green;
+    }
+  }
+
+  @container outer style(--my-prop: attr(var(--name))) {
+    #named .target {
+      color: green;
+    }
+  }
+
+  .container {
+    --name: myAttr;
+    --my-prop: "correct";
+  }
+
+  #named {
+    container-name: outer;
+  }
+</style>
+<div id="unnamed" class="container" myAttr="wrong" otherAttr="wrong">
+  <div class="target">Should be green</div>
+</div>
+<div id="named" class="container" myAttr="wrong" otherAttr="wrong">
+  <div>
+    <div class="target">Should be green</div>
+  </div>
+</div>
+<script>
+  function reset(container) {
+    container.setAttribute("myAttr", "wrong");
+    container.setAttribute("otherAttr", "wrong");
+    container.style.cssText = "";
+  }
+
+  for (const id of ["unnamed", "named"]) {
+    const container = document.getElementById(id);
+    const target = container.querySelector(".target");
+
+    test(() => {
+      reset(container);
+      assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+    }, `${id}: Initially, container does not match attr(var(--name)). Target is red.`);
+
+    test(() => {
+      reset(container);
+      container.setAttribute("otherAttr", "correct");
+      assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+    }, `${id}: Changing an attribute not named by var(--name) does not match`);
+
+    test(() => {
+      reset(container);
+      container.setAttribute("myAttr", "correct");
+      assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+      container.setAttribute("myAttr", "wrong");
+      assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+    }, `${id}: Changing the attribute named by var(--name) toggles matching`);
+
+    test(() => {
+      reset(container);
+      container.style.setProperty("--name", "otherAttr");
+      assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+      container.setAttribute("otherAttr", "correct");
+      assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+    }, `${id}: Changing the attribute newly named by var(--name) toggles matching`);
+
+    test(() => {
+      reset(container);
+      container.style.setProperty("--name", "otherAttr");
+      assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+      container.style.setProperty("--name", "myAttr");
+      container.setAttribute("myAttr", "correct");
+      assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+    }, `${id}: Changing var(--name) and the newly named attribute without a flush in between`);
+  }
+</script>

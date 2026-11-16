@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>CSS Overflow Test: Changing containment, which changes whether the body overflow propagates to the viewport, does not crash</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-property">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#overflow-propagation">
+<style>
+  html {
+    scroll-marker-group: before;
+  }
+
+  body {
+    scroll-marker-group: before;
+    overflow: auto;
+  }
+
+  #item::scroll-marker {
+    content: "";
+  }
+</style>
+<div id="item"></div>
+<script>
+  const html = document.documentElement;
+  html.offsetTop;
+  // Containment on the root or the body stops propagating the body overflow to
+  // the viewport, which moves #item's ::scroll-marker from the root's group to
+  // the body's group.
+  html.style.contain = "paint";
+  html.offsetTop;
+  html.style.contain = "";
+  html.offsetTop;
+  document.body.style.contain = "paint";
+  html.offsetTop;
+  document.body.style.contain = "";
+</script>

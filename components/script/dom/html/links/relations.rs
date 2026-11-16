@@ -12,7 +12,6 @@ use servo_constellation_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior
 use style::str::HTML_SPACE_CHARACTERS;
 
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::referrer_policy_for_element;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
@@ -183,11 +182,12 @@ impl LinkRelations {
     /// [`<area>`]: https://html.spec.whatwg.org/multipage/#the-area-element
     /// [`<form>`]: https://html.spec.whatwg.org/multipage/#the-form-element
     pub(crate) fn for_element(element: &Element) -> Self {
-        let rel = element.get_attribute_string_value(&local_name!("rel"));
+        let rel = element.get_attribute_string_ref(&local_name!("rel"));
 
         let mut relations = rel
             .map(|attribute| {
                 attribute
+                    .value()
                     .split(HTML_SPACE_CHARACTERS)
                     .map(Self::from_single_keyword)
                     .collect()
@@ -488,6 +488,10 @@ pub(crate) fn follow_hyperlink(
         //          with referrerPolicy set to referrerPolicy, userInvolvement set to
         //          userInvolvement, and sourceElement set to subject.
         let secure = target_window.as_global_scope().is_secure_context();
+        let upgrade_insecure_navigations_set = window
+            .as_global_scope()
+            .upgrade_insecure_navigations_set()
+            .clone();
         let load_data = LoadData::new(
             LoadOrigin::Script(document.origin().snapshot()),
             url,
@@ -497,18 +501,11 @@ pub(crate) fn follow_hyperlink(
             referrer_policy,
             Some(secure),
             Some(document.insecure_requests_policy()),
+            upgrade_insecure_navigations_set,
             document.has_trustworthy_ancestor_origin(),
             document.creation_sandboxing_flag_set_considering_parent_iframe(),
         );
-        let target = Trusted::new(target_window);
-        let task = task!(navigate_follow_hyperlink: move |cx| {
-            debug!("following hyperlink to {}", load_data.url);
-            navigate(cx, &target.root(), history_handling, false, load_data);
-        });
-        target_document
-            .owner_global()
-            .task_manager()
-            .dom_manipulation_task_source()
-            .queue(task);
+        debug!("following hyperlink to {}", load_data.url);
+        navigate(cx, target_window, history_handling, false, load_data);
     };
 }

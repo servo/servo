@@ -62,6 +62,8 @@ pub enum GenericSelectionResult<T> {
     MessageReceived(u64, T),
     /// The channel has been closed for the [GenericReceiver] identified by the `u64` value.
     ChannelClosed(u64),
+    /// The last active channel in the selection has been closed.
+    AllChannelsClosed(u64),
     /// An error occurred decoding the message.
     Error(String),
 }
@@ -158,14 +160,6 @@ impl<T: Serialize + for<'de> Deserialize<'de>> GenericReceiverSet<T> {
         };
         Selector { inner }
     }
-
-    /// One-shot select. Builds a [`Selector`], runs select once and drops it.
-    ///
-    /// For usage in loops consider using [`GenericReceiverSet::selector()`] to build the selector
-    /// once upfront.
-    pub fn select(&mut self) -> SmallVec<[GenericSelectionResult<T>; 2]> {
-        self.selector().select()
-    }
 }
 
 /// Borrows of a [`GenericReceiverSet`] used to drive repeated `select` calls
@@ -211,7 +205,16 @@ impl<'a, T: Serialize + for<'de> Deserialize<'de>> Selector<'a, T> {
                             GenericSelectionResult::MessageReceived(index as u64, value)
                         },
                         Ok(Err(error)) => GenericSelectionResult::Error(error.to_string()),
-                        Err(_) => GenericSelectionResult::ChannelClosed(index as u64),
+                        Err(_) => {
+                            // select on closed channels immediately returns, so we need to
+                            // remove it from our set.
+                            sel.remove(index);
+                            if receivers.len() == 1 {
+                                GenericSelectionResult::AllChannelsClosed(index as u64)
+                            } else {
+                                GenericSelectionResult::ChannelClosed(index as u64)
+                            }
+                        },
                     },
                 };
                 smallvec::smallvec![selection_result]

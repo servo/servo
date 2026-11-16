@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Canvas Reference: fillText reorders bidirectional text in a left-to-right paragraph</title>
+<style>
+canvas {
+    margin: 10px;
+}
+</style>
+
+<canvas id="canvas" width="400" height="120"></canvas>
+
+<script>
+const context = canvas.getContext("2d");
+context.font = "20px sans-serif";
+context.textAlign = "left";
+
+// Draw each directional run on its own, left to right in visual order.
+function drawVisualRuns(runs, y) {
+    let x = 10;
+    for (const run of runs) {
+        context.direction = run.direction;
+        context.fillText(run.text, x, y);
+        x += context.measureText(run.text).width;
+    }
+}
+
+drawVisualRuns([
+    { text: "abc ", direction: "ltr" },
+    { text: "אבג", direction: "rtl" },
+    { text: " def", direction: "ltr" },
+], 40);
+drawVisualRuns([
+    { text: "abc ", direction: "ltr" },
+    { text: "321", direction: "ltr" },
+    { text: " def", direction: "ltr" },
+], 90);
+</script>

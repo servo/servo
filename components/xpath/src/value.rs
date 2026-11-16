@@ -297,8 +297,6 @@ partial_eq_impl!(&str, Value::String(ref v) => v);
 
 #[cfg(test)]
 mod tests {
-    use std::f64;
-
     use crate::dummy_implementation;
 
     type Value = super::Value<dummy_implementation::DummyNode>;

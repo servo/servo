@@ -84,6 +84,7 @@ mod from_embedder {
                 Self::ForwardAccessibilityAction(..) => target!("ForwardAccessibilityAction"),
                 Self::ClearSessionHistory(..) => target!("ClearHistory"),
                 Self::SetNetworkOnlineState(..) => target!("SetNetworkOnlineState"),
+                Self::StoreCacheToDisk(..) => target!("StoreCacheToDisk"),
             }
         }
     }
@@ -123,6 +124,7 @@ mod from_script {
     impl LogTarget for servo_constellation_traits::ScriptToConstellationMessage {
         fn log_target(&self) -> &'static str {
             match self {
+                Self::ServiceWorkerStateUpdateDone(..) => target!("ServiceWorkerStateUpdateDone"),
                 Self::ServiceWorkerAlgorithm(..) => target!("ServiceWorkerAlgorithm"),
                 Self::CompleteMessagePortTransfer(..) => target!("CompleteMessagePortTransfer"),
                 Self::MessagePortTransferResult(..) => target!("MessagePortTransferResult"),
@@ -205,6 +207,9 @@ mod from_script {
                 Self::TriggerGarbageCollection => target!("TriggerGarbageCollection"),
                 Self::AcquireWakeLock(..) => target!("AcquireWakeLock"),
                 Self::ReleaseWakeLock(..) => target!("ReleaseWakeLock"),
+                Self::AddTupleToUpgradeInsecureNavigationsSet(..) => {
+                    target!("AddTupleToUpgradeInsecureNavigationsSet")
+                },
             }
         }
     }

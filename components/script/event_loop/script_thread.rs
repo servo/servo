@@ -77,6 +77,8 @@ use percent_encoding::percent_decode;
 use profile_traits::mem::{ProcessReports, ReportsChan, perform_memory_report};
 use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
+use rand::TryRng;
+use rand::rngs::SysRng;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script_bindings::cell::DomRefCell;
 use script_traits::{
@@ -96,12 +98,15 @@ use servo_base::{Epoch, generic_channel};
 use servo_canvas_traits::webgl::WebGLPipeline;
 use servo_config::opts::{self, DiagnosticsLoggingOption};
 use servo_config::{pref, prefs};
+#[cfg(feature = "devtools")]
 use servo_constellation_traits::{
-    HistoryTraversalSource, LoadData, LoadOrigin, NavigationHistoryBehavior, PaintMetricEvent,
-    RemoteFocusOperation, ScreenshotReadinessResponse, ScriptToConstellationChan,
-    ScriptToConstellationMessage, ScrollStateUpdate, ServiceWorkerState,
-    SessionHistoryTraversalRequest, StructuredSerializedData, TargetSnapshotParams,
-    TraversalDirection, WindowSizeType,
+    HistoryTraversalSource, SessionHistoryTraversalRequest, TraversalDirection,
+};
+use servo_constellation_traits::{
+    LoadData, LoadOrigin, NavigationHistoryBehavior, PaintMetricEvent, RemoteFocusOperation,
+    ScreenshotReadinessResponse, ScriptToConstellationChan, ScriptToConstellationMessage,
+    ScrollStateUpdate, ServiceWorkerState, StructuredSerializedData, TargetSnapshotParams,
+    WindowSizeType,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, OriginSnapshot, ServoUrl};
 use smallvec::SmallVec;
@@ -420,7 +425,7 @@ pub struct ScriptThread {
     needs_rendering_update: Arc<AtomicBool>,
 
     #[cfg(feature = "devtools")]
-    debugger_global: Dom<DebuggerGlobalScope>,
+    debugger_global: Option<Dom<DebuggerGlobalScope>>,
 
     debugger_paused: Cell<bool>,
 
@@ -651,10 +656,14 @@ impl ScriptThread {
 
         // Step 5: If the result of should navigation request of type be blocked by
         // Content Security Policy? given request and cspNavigationType is "Blocked", then return. [CSP]
-        if initiator_global
-            .get_csp_list()
-            .should_navigation_request_be_blocked(cx, initiator_global, load_data, container)
-        {
+        if initiator_global.call_on_csp_list(|csp_list| {
+            csp_list.should_navigation_request_be_blocked(
+                cx,
+                initiator_global,
+                load_data,
+                container,
+            )
+        }) {
             return false;
         }
 
@@ -930,24 +939,28 @@ impl ScriptThread {
         let gpu_id_hub = Arc::new(IdentityHub::default());
 
         #[cfg(feature = "devtools")]
-        let debugger_global = {
-            let debugger_global = DebuggerGlobalScope::new(
-                PipelineId::new(),
-                senders.devtools_server_sender.clone(),
-                senders.devtools_client_to_script_thread_sender.clone(),
-                senders.memory_profiler_sender.clone(),
-                senders.time_profiler_sender.clone(),
-                senders.pipeline_to_constellation_sender.clone(),
-                senders.pipeline_to_embedder_sender.clone(),
-                state.resource_threads.clone(),
-                state.storage_threads.clone(),
-                #[cfg(feature = "webgpu")]
-                gpu_id_hub.clone(),
-                &mut cx,
-            );
-            debugger_global.execute(&mut cx);
-            debugger_global
-        };
+        let devtools_client_to_script_thread_sender = if pref!(devtools_server_enabled) {
+            Some(&senders.devtools_client_to_script_thread_sender)
+        } else {
+            None
+        }
+        .cloned();
+
+        #[cfg(feature = "devtools")]
+        let debugger_global = DebuggerGlobalScope::new_if_needed(
+            &mut cx,
+            PipelineId::new(),
+            &senders.devtools_server_sender,
+            &devtools_client_to_script_thread_sender,
+            &senders.memory_profiler_sender,
+            &senders.time_profiler_sender,
+            &senders.pipeline_to_constellation_sender,
+            &senders.pipeline_to_embedder_sender,
+            &state.resource_threads,
+            &state.storage_threads,
+            #[cfg(feature = "webgpu")]
+            &gpu_id_hub,
+        );
 
         let shared_style_locks = Default::default();
         let user_contents_for_manager_id =
@@ -1005,7 +1018,8 @@ impl ScriptThread {
                     scheduled_update_the_rendering: Default::default(),
                     needs_rendering_update: Arc::new(AtomicBool::new(false)),
                     #[cfg(feature = "devtools")]
-                    debugger_global: debugger_global.as_traced(),
+                    debugger_global: debugger_global
+                        .map(|debugger_global| debugger_global.as_traced()),
                     debugger_paused: Cell::new(false),
                     privileged_urls: state.privileged_urls,
                     this: weak_script_thread.clone(),
@@ -1269,7 +1283,7 @@ impl ScriptThread {
             }
 
             // > 23. For each doc of docs, process top layer removals given doc.
-            document.process_top_layer_removals(cx.no_gc());
+            document.overlay_handler().process_top_layer_removals(cx);
         }
 
         let should_generate_frame = !painters_generating_frames.is_empty();
@@ -2280,56 +2294,74 @@ impl ScriptThread {
                 )
             },
             DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, eager, reply) => {
-                self.debugger_global.fire_eval(
-                    cx,
-                    code.into(),
-                    id,
-                    None,
-                    frame_actor_id,
-                    eager,
-                    reply,
-                );
+                if let Some(debugger_global) = &self.debugger_global {
+                    debugger_global.fire_eval(
+                        cx,
+                        code.into(),
+                        id,
+                        None,
+                        frame_actor_id,
+                        eager,
+                        reply,
+                    );
+                }
             },
             DevtoolScriptControlMsg::GetPossibleBreakpoints(spidermonkey_id, result_sender) => {
-                self.debugger_global.fire_get_possible_breakpoints(
-                    cx,
-                    spidermonkey_id,
-                    result_sender,
-                );
+                if let Some(debugger_global) = &self.debugger_global {
+                    debugger_global.fire_get_possible_breakpoints(
+                        cx,
+                        spidermonkey_id,
+                        result_sender,
+                    );
+                }
             },
             DevtoolScriptControlMsg::SetBreakpoint(spidermonkey_id, script_id, offset) => {
-                self.debugger_global
-                    .fire_set_breakpoint(cx, spidermonkey_id, script_id, offset);
+                if let Some(debugger_global) = &self.debugger_global {
+                    debugger_global.fire_set_breakpoint(cx, spidermonkey_id, script_id, offset);
+                }
             },
             DevtoolScriptControlMsg::ClearBreakpoint(spidermonkey_id, script_id, offset) => {
-                self.debugger_global
-                    .fire_clear_breakpoint(cx, spidermonkey_id, script_id, offset);
+                if let Some(debugger_global) = &self.debugger_global {
+                    debugger_global.fire_clear_breakpoint(cx, spidermonkey_id, script_id, offset);
+                }
             },
             DevtoolScriptControlMsg::Interrupt => {
-                self.debugger_global.fire_interrupt(cx);
+                if let Some(debugger_global) = &self.debugger_global {
+                    debugger_global.fire_interrupt(cx);
+                }
             },
             DevtoolScriptControlMsg::ListFrames(pipeline_id, start, count, result_sender) => {
-                self.debugger_global
-                    .fire_list_frames(cx, pipeline_id, start, count, result_sender);
+                if let Some(debugger_global) = &self.debugger_global {
+                    debugger_global.fire_list_frames(cx, pipeline_id, start, count, result_sender);
+                }
             },
             DevtoolScriptControlMsg::GetEnvironment(request, result_sender) => {
-                self.debugger_global
-                    .fire_get_environment(cx, request, result_sender);
+                if let Some(debugger_global) = &self.debugger_global {
+                    debugger_global.fire_get_environment(cx, request, result_sender);
+                }
             },
             DevtoolScriptControlMsg::Resume(resume_limit_type, frame_actor_id) => {
-                self.debugger_global
-                    .fire_resume(cx, resume_limit_type, frame_actor_id);
-                self.debugger_paused.set(false);
+                if let Some(debugger_global) = &self.debugger_global {
+                    debugger_global.fire_resume(cx, resume_limit_type, frame_actor_id);
+                    self.debugger_paused.set(false);
+                }
             },
             DevtoolScriptControlMsg::Blackbox(spidermonkey_id, coverage) => {
-                self.debugger_global
-                    .fire_blackbox(cx, spidermonkey_id, coverage);
+                if let Some(debugger_global) = &self.debugger_global {
+                    debugger_global.fire_blackbox(cx, spidermonkey_id, coverage);
+                }
             },
             DevtoolScriptControlMsg::Unblackbox(spidermonkey_id, coverage) => {
-                self.debugger_global
-                    .fire_unblackbox(cx, spidermonkey_id, coverage);
+                if let Some(debugger_global) = &self.debugger_global {
+                    debugger_global.fire_unblackbox(cx, spidermonkey_id, coverage);
+                }
             },
         }
+    }
+
+    #[cfg(feature = "devtools")]
+    pub(crate) fn debugger_global(&self) -> Option<DomRoot<DebuggerGlobalScope>> {
+        self.debugger_global.as_ref().map(Dom::as_rooted)
     }
 
     /// Enter a nested event loop for debugger pause.
@@ -2685,16 +2717,6 @@ impl ScriptThread {
                 strict_file_interactability,
                 reply,
             ),
-            WebDriverScriptCommand::AddLoadStatusSender(_, response_sender) => {
-                webdriver_handlers::handle_add_load_status_sender(
-                    &documents,
-                    pipeline_id,
-                    response_sender,
-                )
-            },
-            WebDriverScriptCommand::RemoveLoadStatusSender(_) => {
-                webdriver_handlers::handle_remove_load_status_sender(&documents, pipeline_id)
-            },
             // https://github.com/servo/servo/issues/23535
             // The Script messages need different treatment since the JS script might mutate
             // `self.documents`, which would conflict with the immutable borrow of it that
@@ -2819,7 +2841,7 @@ impl ScriptThread {
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
             let mut realm = enter_auto_realm(cx, &*document);
-            document.exit_fullscreen(&mut realm);
+            document.overlay_handler().exit_fullscreen(&mut realm);
         }
     }
 
@@ -3521,6 +3543,15 @@ impl ScriptThread {
             })
             .unwrap_or_default();
 
+        let mut random_bytes = [0u8; 16];
+        SysRng
+            .try_fill_bytes(&mut random_bytes)
+            .expect("Failed to generate random hasher key");
+        let document_random_hasher_key = (
+            u64::from_ne_bytes(random_bytes[..8].try_into().unwrap()),
+            u64::from_ne_bytes(random_bytes[8..].try_into().unwrap()),
+        );
+
         let layout_config = LayoutConfig {
             id: incomplete.pipeline_id,
             webview_id,
@@ -3535,6 +3566,7 @@ impl ScriptThread {
             user_stylesheets,
             theme: incomplete.webview_state.theme.get(),
             embedder_chan: self.senders.pipeline_to_embedder_sender.clone(),
+            document_random_hasher_key,
         };
 
         // Create the window and document objects.
@@ -3601,18 +3633,18 @@ impl ScriptThread {
                     #[cfg(feature = "webgpu")]
                     self.gpu_id_hub.clone(),
                     incomplete.load_data.inherited_secure_context,
+                    incomplete
+                        .load_data
+                        .inherited_upgrade_insecure_navigations_set,
                     self.this.clone(),
                 )
             },
         };
         #[cfg(feature = "devtools")]
-        if self.senders.devtools_server_sender.is_some() {
-            self.debugger_global.fire_add_debuggee(
-                cx,
-                window.upcast(),
-                incomplete.pipeline_id,
-                None,
-            );
+        if self.senders.devtools_server_sender.is_some() &&
+            let Some(debugger_global) = &self.debugger_global
+        {
+            debugger_global.fire_add_debuggee(cx, window.upcast(), incomplete.pipeline_id, None);
         }
 
         let mut realm = enter_auto_realm(cx, &*window);
@@ -3829,20 +3861,23 @@ impl ScriptThread {
             .unwrap();
 
         // Notify devtools that a new script global exists.
-        let incomplete_browsing_context_id: BrowsingContextId = webview_id.into();
-        let is_top_level_global = incomplete_browsing_context_id == incomplete.browsing_context_id;
         #[cfg(feature = "devtools")]
-        self.notify_devtools(
-            document.Title(),
-            final_url.clone(),
-            is_top_level_global,
-            (
-                incomplete.browsing_context_id,
-                incomplete.pipeline_id,
-                None,
-                webview_id,
-            ),
-        );
+        {
+            let incomplete_browsing_context_id: BrowsingContextId = webview_id.into();
+            let is_top_level_global =
+                incomplete_browsing_context_id == incomplete.browsing_context_id;
+            self.notify_devtools(
+                document.Title(),
+                final_url.clone(),
+                is_top_level_global,
+                (
+                    incomplete.browsing_context_id,
+                    incomplete.pipeline_id,
+                    None,
+                    webview_id,
+                ),
+            );
+        }
 
         if !incomplete.load_data.is_initial_about_blank {
             if is_html_document == IsHTMLDocument::NonHTMLDocument {
@@ -4489,6 +4524,7 @@ impl ScriptThread {
         }
     }
 
+    #[cfg(feature = "devtools")]
     fn handle_navigate_to(&self, pipeline_id: PipelineId, url: ServoUrl) {
         // The constellation only needs to know the WebView ID for navigation,
         // but actors don't keep track of it. Infer WebView ID from pipeline ID instead.
@@ -4508,6 +4544,7 @@ impl ScriptThread {
         }
     }
 
+    #[cfg(feature = "devtools")]
     fn handle_traverse_history(&self, pipeline_id: PipelineId, direction: TraversalDirection) {
         // The constellation only needs to know the WebView ID for navigation,
         // but actors don't keep track of it. Infer WebView ID from pipeline ID instead.

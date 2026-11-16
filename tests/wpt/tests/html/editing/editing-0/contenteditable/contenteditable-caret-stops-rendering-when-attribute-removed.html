@@ -1,0 +1,10 @@
+<!doctype html>
+<title>When contenteditable is removed from an element, the editing caret disappears</title>
+<link rel="author" title="Psychpsyo" href="mailto:psychpsyo@gmail.com">
+<link rel="match" href="contenteditable-caret-stops-rendering-when-attribute-removed-ref.html">
+<div id="div" contenteditable>Hello</div>
+<script>
+  div.focus();
+  document.getSelection().setPosition(div);
+  div.removeAttribute("contenteditable");
+</script>

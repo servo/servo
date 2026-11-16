@@ -8,8 +8,8 @@ use std::rc::Rc;
 
 use euclid::{Scale, Size2D};
 use servo::{
-    InputEvent, RenderingContext, Servo, ServoBuilder, WebView, WebViewBuilder, WheelDelta,
-    WheelEvent, WheelMode, WindowRenderingContext,
+    InputEvent, Modifiers, RenderingContext, Servo, ServoBuilder, WebView, WebViewBuilder,
+    WheelDelta, WheelEvent, WheelMode, WindowRenderingContext,
 };
 use tracing::warn;
 use url::Url;
@@ -149,6 +149,7 @@ impl ApplicationHandler<WakerEvent> for App {
                                 mode,
                             },
                             DevicePoint::default().into(),
+                            Modifiers::default(),
                         )));
                     }
                 }

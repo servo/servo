@@ -644,6 +644,12 @@
     fuzzy_test_computed_color(`color-mix(in srgb, red, green, blue)`, `color(srgb 0.333333 0.16732 0.333333)`);
     fuzzy_test_computed_color(`color-mix(in srgb, red 50%, green 30%, blue 20%)`, `color(srgb 0.5 0.150588 0.2)`);
     fuzzy_test_computed_color(`color-mix(in srgb, red 30%, green 60%, blue 90%)`, `color(srgb 0.166667 0.16732 0.5)`);
+    fuzzy_test_computed_color(`color-mix(in srgb, red 60%, green, blue 50%)`, `color(srgb 0.545455 0 0.454545)`);
+    fuzzy_test_computed_color(`color-mix(in srgb, red 60%, green, white, blue 50%)`, `color(srgb 0.545455 0 0.454545)`);
+    fuzzy_test_computed_color(`color-mix(in srgb, red calc(60%), green, blue 50%)`, `color(srgb 0.545455 0 0.454545)`);
+    fuzzy_test_computed_color(`color-mix(in srgb, red calc(60%), green, white, blue 50%)`, `color(srgb 0.545455 0 0.454545)`);
+    fuzzy_test_computed_color(`color-mix(in srgb, red 60%, green, blue 40%)`, `color(srgb 0.6 0 0.4)`);
+    fuzzy_test_computed_color(`color-mix(in srgb, red calc(60%), green, blue 40%)`, `color(srgb 0.6 0 0.4)`);
     fuzzy_test_computed_color(`color-mix(in srgb, red, green, blue, white)`, `color(srgb 0.5 0.37549 0.5)`);
     fuzzy_test_computed_color(`color-mix(in srgb, red 0%)`, `color(srgb 1 0 0 / 0)`);
     fuzzy_test_computed_color(`color-mix(in srgb, red 0%, green 0%, blue 0%)`, `color(srgb 0.25 0.12549 0.5 / 0)`);

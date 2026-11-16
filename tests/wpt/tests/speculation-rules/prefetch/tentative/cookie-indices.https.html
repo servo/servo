@@ -2,7 +2,7 @@
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
 <script src='/resources/testdriver-vendor.js'></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/common/subset-tests-by-key.js"></script>
@@ -33,7 +33,7 @@ subsetTestByKey("unchanged", promise_test, async t => {
   let agent = await spawnWindow(t);
 
   let nextUrl = agent.getExecutorURL({ executor: "cookies.py", cookieindices: "1" });
-  await agent.forceSinglePrefetch(nextUrl);
+  await agent.forceSinglePrefetchAndWaitForStatus(nextUrl);
   await agent.navigate(nextUrl);
 
   assert_prefetched(await agent.getRequestHeaders());
@@ -52,7 +52,7 @@ subsetTestByKey("changed", promise_test, async t => {
   let agent = await spawnWindow(t);
 
   let nextUrl = agent.getExecutorURL({ executor: "cookies.py", cookieindices: "1" });
-  await agent.forceSinglePrefetch(nextUrl);
+  await agent.forceSinglePrefetchAndWaitForStatus(nextUrl);
   document.cookie = 'vary1=two';
   await agent.navigate(nextUrl);
 
@@ -74,7 +74,7 @@ subsetTestByKey("unchangedWithRedirect", promise_test, async t => {
 
   let finalUrl = agent.getExecutorURL({ executor: "cookies.py", cookieindices: "1" });
   let nextUrl = new URL("/common/redirect.py?location=" + encodeURIComponent(finalUrl), document.baseURI);
-  await agent.forceSinglePrefetch(nextUrl);
+  await agent.forceSinglePrefetchAndWaitForStatus(nextUrl);
   await agent.navigate(nextUrl, {expectedDestinationUrl: finalUrl});
 
   assert_prefetched(await agent.getRequestHeaders());
@@ -95,7 +95,7 @@ subsetTestByKey("changedWithRedirect", promise_test, async t => {
 
   let finalUrl = agent.getExecutorURL({ executor: "cookies.py", cookieindices: "1" });
   let nextUrl = new URL("/common/redirect.py?location=" + encodeURIComponent(finalUrl), document.baseURI);
-  await agent.forceSinglePrefetch(nextUrl);
+  await agent.forceSinglePrefetchAndWaitForStatus(nextUrl);
   document.cookie = 'vary1=two';
   await agent.navigate(nextUrl, {expectedDestinationUrl: finalUrl});
 
@@ -121,7 +121,7 @@ subsetTestByKey("changedWithRedirect2", promise_test, async t => {
   let finalUrl = agent.getExecutorURL({ executor: "cookies.py" });
   let pipe = "header(Cache-Control,no-store)|header(Vary,Cookie)|header(Cookie-Indices,\"vary1\")";
   let nextUrl = new URL(`/common/redirect.py?location=${encodeURIComponent(finalUrl)}&pipe=${encodeURIComponent(pipe)}`, document.baseURI);
-  await agent.forceSinglePrefetch(nextUrl);
+  await agent.forceSinglePrefetchAndWaitForStatus(nextUrl);
   document.cookie = 'vary1=two';
   await agent.navigate(nextUrl, {expectedDestinationUrl: finalUrl});
 
@@ -147,7 +147,7 @@ subsetTestByKey("changedWithRedirect3", promise_test, async t => {
   let finalUrl = agent.getExecutorURL({ executor: "cookies.py" });
   let pipe = "header(Cache-Control,no-store)|header(Vary,Cookie)|header(Cookie-Indices,\"vary1\")";
   let nextUrl = new URL(`resources/random_redirect.py?location=${encodeURIComponent(finalUrl)}&pipe=${encodeURIComponent(pipe)}`, document.baseURI);
-  await agent.forceSinglePrefetch(nextUrl);
+  await agent.forceSinglePrefetchAndWaitForStatus(nextUrl);
   document.cookie = 'vary1=two';
   await agent.navigate(nextUrl, {expectedDestinationUrl: null});
 

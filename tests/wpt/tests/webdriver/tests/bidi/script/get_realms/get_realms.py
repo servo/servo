@@ -184,7 +184,7 @@ async def test_origin(bidi_session, inline, top_context, test_origin):
 async def test_dedicated_worker(
     bidi_session,
     subscribe_events,
-    top_context,
+    new_tab,
     wait_for_bidi_events,
     inline,
 ):
@@ -201,7 +201,7 @@ async def test_dedicated_worker(
     worker_url = inline("console.log('dedicated worker')", doctype="js")
     url = inline(f"<script>const worker = new Worker('{worker_url}');</script>")
     await bidi_session.browsing_context.navigate(
-        url=url, context=top_context["context"], wait="complete"
+        url=url, context=new_tab["context"], wait="complete"
     )
 
     await wait_for_bidi_events(events, 1)
@@ -212,7 +212,10 @@ async def test_dedicated_worker(
     # Check window realms are returned and retrieve them
     assert any(r["type"] == "window" for r in result)
     window_realms = [r for r in result if r["type"] == "window"]
-    assert len(window_realms) == 1
+    assert len(window_realms) == 2
+
+    new_tab_realms = [r for r in window_realms if r["context"] == new_tab["context"]]
+    assert len(new_tab_realms) == 1
 
     assert any(r["type"] == "dedicated-worker" for r in result)
     dedicated_worker_realms = [r for r in result if r["type"] == "dedicated-worker"]
@@ -224,7 +227,7 @@ async def test_dedicated_worker(
                 "type": "dedicated-worker",
                 "realm": any_string,
                 "origin": worker_url,
-                "owners": [window_realms[0]["realm"]],
+                "owners": [new_tab_realms[0]["realm"]],
             }
         ],
         dedicated_worker_realms,
@@ -235,11 +238,10 @@ async def test_dedicated_worker_with_context(
     bidi_session,
     subscribe_events,
     top_context,
+    new_tab,
     wait_for_bidi_events,
     inline,
 ):
-    new_context = await bidi_session.browsing_context.create(type_hint="tab")
-
     await subscribe_events(events=[REALM_CREATED_EVENT])
 
     worker_events = []
@@ -253,18 +255,18 @@ async def test_dedicated_worker_with_context(
     worker_url = inline("console.log('dedicated worker')", doctype="js")
     url = inline(f"<script>const worker = new Worker('{worker_url}');</script>")
     await bidi_session.browsing_context.navigate(
-        url=url, context=top_context["context"], wait="complete"
+        url=url, context=new_tab["context"], wait="complete"
     )
 
     await wait_for_bidi_events(worker_events, 1)
     remove_listener()
 
-    result = await bidi_session.script.get_realms(context=top_context["context"])
+    result = await bidi_session.script.get_realms(context=new_tab["context"])
 
     assert any(r["type"] == "dedicated-worker" for r in result)
 
-    result_new_context = await bidi_session.script.get_realms(
-        context=new_context["context"]
+    result_top_context = await bidi_session.script.get_realms(
+        context=top_context["context"]
     )
 
-    assert not any(r["type"] == "dedicated-worker" for r in result_new_context)
+    assert not any(r["type"] == "dedicated-worker" for r in result_top_context)

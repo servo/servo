@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ManagedMediaSource streaming attribute and startstreaming/endstreaming events</title>
+<link rel="help" href="https://w3c.github.io/media-source/#managedmediasource-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="mediasource-manager-util.js"></script>
+<body>
+<script>
+function assertStreamingEvent(event, source, type) {
+  assert_equals(Object.getPrototypeOf(event), Event.prototype, `${type} is a plain Event`);
+  assert_equals(event.type, type, 'type');
+  assert_equals(event.target, source, 'target');
+  assert_true(event.isTrusted, 'isTrusted');
+  assert_false(event.bubbles, 'bubbles');
+  assert_false(event.cancelable, 'cancelable');
+}
+
+promise_test(async t => {
+  const { source, sourceOpen } = attachManagedMediaSource(t);
+  assert_false(source.streaming, 'streaming before sourceopen');
+
+  let streamingInHandler;
+  const startStreaming = new Promise(resolve => {
+    source.onstartstreaming = event => {
+      streamingInHandler = source.streaming;
+      resolve(event);
+    };
+  });
+  await sourceOpen;
+
+  // Nothing is buffered at the current playback position, so the user agent
+  // cannot play uninterrupted.
+  const event = await startStreaming;
+  assertStreamingEvent(event, source, 'startstreaming');
+  assert_true(streamingInHandler, 'streaming in startstreaming handler');
+  assert_true(source.streaming, 'streaming');
+}, 'startstreaming fires once a ManagedMediaSource with no data is attached');
+
+promise_test(async t => {
+  const { source, sourceOpen } = attachManagedMediaSource(t);
+  const startStreaming = waitForEvent(source, 'startstreaming');
+  const [data] = await Promise.all([fetchMediaData(MANAGED_MEDIA.audioOnly.url), sourceOpen]);
+  await startStreaming;
+  assert_true(source.streaming, 'streaming after startstreaming');
+
+  // The user agent may decide it has enough data as soon as the append
+  // completes, so listen for endstreaming before appending.
+  let streamingInHandler;
+  const endStreaming = new Promise(resolve => {
+    source.onendstreaming = event => {
+      streamingInHandler = source.streaming;
+      resolve(event);
+    };
+  });
+  const sourceBuffer = source.addSourceBuffer(MANAGED_MEDIA.audioOnly.type);
+  await appendBufferAsync(sourceBuffer, data);
+
+  // The whole presentation is now buffered from the current playback position
+  // and no more data can be appended, which is expected to satisfy the user
+  // agent's implementation defined conditions for not needing more data.
+  source.endOfStream();
+  const event = await endStreaming;
+  assertStreamingEvent(event, source, 'endstreaming');
+  assert_false(streamingInHandler, 'streaming in endstreaming handler');
+  assert_false(source.streaming, 'streaming');
+
+  // Removing all buffered data means more data is needed again.
+  const restartStreaming = waitForEvent(source, 'startstreaming');
+  await removeAsync(sourceBuffer, 0, Infinity);
+  const restartEvent = await restartStreaming;
+  assertStreamingEvent(restartEvent, source, 'startstreaming');
+  assert_true(source.streaming, 'streaming after removing all data');
+}, 'endstreaming fires once all data is buffered, and startstreaming once it is removed');
+</script>
+</body>

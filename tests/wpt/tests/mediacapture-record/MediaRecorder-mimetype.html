@@ -416,10 +416,10 @@ promise_test(async t => {
   await new Promise(r => recorder.onstart = r);
   assert_regexp_match(recorder.mimeType, /^audio\//,
     "mimeType has an expected media type");
-  assert_regexp_match(recorder.mimeType, /^[a-z]+\/[a-z]+/,
+  assert_regexp_match(recorder.mimeType, /^[a-z]+\/[a-z0-9]+/,
     "mimeType has a container subtype");
   assert_regexp_match(
-    recorder.mimeType, /^[a-z]+\/[a-z]+;[ ]*codecs=[^,]+$/,
+    recorder.mimeType, /^[a-z]+\/[a-z0-9]+;[ ]*codecs=[^,]+$/,
     "mimeType has one codec a");
 }, "MediaRecorder formats mimeType well after 'start' for audio");
 
@@ -429,10 +429,10 @@ promise_test(async t => {
   await new Promise(r => recorder.onstart = r);
   assert_regexp_match(recorder.mimeType, /^video\//,
     "mimeType has an expected media type");
-  assert_regexp_match(recorder.mimeType, /^[a-z]+\/(x\-[a-z]+|[a-z]+)/,
+  assert_regexp_match(recorder.mimeType, /^[a-z]+\/(x\-[a-z]+|[a-z0-9]+)/,
     "mimeType has a container subtype");
   assert_regexp_match(
-    recorder.mimeType, /^[a-z]+\/(x\-[a-z]+|[a-z]+);[ ]*codecs=[^,]+$/,
+    recorder.mimeType, /^[a-z]+\/(x\-[a-z]+|[a-z0-9]+);[ ]*codecs=[^,]+$/,
     "mimeType has one codec a");
 }, "MediaRecorder formats mimeType well after 'start' for video");
 
@@ -442,10 +442,10 @@ promise_test(async t => {
   await new Promise(r => recorder.onstart = r);
   assert_regexp_match(recorder.mimeType, /^video\//,
     "mimeType has an expected media type");
-  assert_regexp_match(recorder.mimeType, /^[a-z]+\/(x\-[a-z]+|[a-z]+)/,
+  assert_regexp_match(recorder.mimeType, /^[a-z]+\/(x\-[a-z]+|[a-z0-9]+)/,
     "mimeType has a container subtype");
   assert_regexp_match(
-    recorder.mimeType, /^[a-z]+\/(x\-[a-z]+|[a-z]+);[ ]*codecs=[^,]+,[^,]+$/,
+    recorder.mimeType, /^[a-z]+\/(x\-[a-z]+|[a-z0-9]+);[ ]*codecs=[^,]+,[^,]+$/,
     "mimeType has two codecs");
 }, "MediaRecorder formats mimeType well after 'start' for audio/video");
 </script>

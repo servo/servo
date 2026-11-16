@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Filter Effects: changing a filter function list to a reference filter replaces the previous filter</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterElement">
+<link rel="match" href="filter-change-to-reference-filter-ref.html">
+<meta name="assert" content="Replacing a filter function list with a reference to an SVG filter element removes the previous filter, so only the referenced filter is applied.">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+.target {
+    width: 100px;
+    height: 100px;
+    background: green;
+    filter: blur(20px);
+    will-change: filter;
+}
+</style>
+<p>Test passes if there is a sharp-edged green square below, with no blur.</p>
+<svg width="0" height="0" style="position: absolute">
+    <filter id="identity" color-interpolation-filters="sRGB"><feOffset dx="0" dy="0"/></filter>
+</svg>
+<div class="target"></div>
+<script>
+waitForAtLeastOneFrame().then(() => {
+    document.querySelector(".target").style.filter = "url(#identity)";
+    waitForAtLeastOneFrame().then(takeScreenshot);
+});
+</script>

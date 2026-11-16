@@ -9,11 +9,11 @@ async function assertNotRestoredReasonsEquals(remoteContextHelper, url, src, id,
 }
 
 function assertReasonsStructEquals(result, url, src, id, name, reasons,
-                                   children) {
-  assert_equals(result.url, url);
-  assert_equals(result.src, src);
-  assert_equals(result.id, id);
-  assert_equals(result.name, name);
+                                   children, path = 'reasons') {
+  assert_equals(result.url, url, `${path}.url`);
+  assert_equals(result.src, src, `${path}.src`);
+  assert_equals(result.id, id, `${path}.id`);
+  assert_equals(result.name, name, `${path}.name`);
 
   // Reasons should match.
   let expected = new Set(reasons);
@@ -27,7 +27,8 @@ function assertReasonsStructEquals(result, url, src, id, name, reasons,
     for (let j = 0; j < children.length; j++) {
       assertReasonsStructEquals(
           result.children[j], children[j].url, children[j].src, children[j].id,
-          children[j].name, children[j].reasons, children[j].children);
+          children[j].name, children[j].reasons, children[j].children,
+          path + '.children[' + j + ']');
     }
   }
 }

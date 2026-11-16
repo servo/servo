@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration: a negative percentage text-decoration-inset extends the decoration</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-inset-property">
+<link rel="match" href="text-decoration-inset-percentage-negative-ref.html">
+<meta name="assert" content="A negative percentage moves the endpoints outward by that percentage of the decorating box's inline size, and the resulting overhang is painted rather than clipped: '-25%' of a 200px box paints identically to '-50px'.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+body { margin: 80px; }
+u {
+  font: 20px/2 Ahem;
+  text-decoration-line: underline;
+  text-decoration-color: blue;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+}
+</style>
+
+<!-- The <u> is exactly 10ch = 200px wide, so -25% extends each endpoint outward by 50px. -->
+
+<p><u style="text-decoration-inset: -25%">abcdefghij</u></p>

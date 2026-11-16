@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>An absolutely positioned child appended to a positioned listbox select uses the select as its containing block</title>
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=2089757">
+<link rel=match href="select-listbox-abspos-child-dynamic-insertion-ref.html">
+<style>
+  select {
+    position: relative;
+    margin: 100px;
+  }
+  #abspos {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 20px;
+    height: 20px;
+    background: green;
+  }
+</style>
+<select multiple>
+  <option>one</option>
+</select>
+<script>
+  document.documentElement.addEventListener("TestRendered", () => {
+    const abspos = document.createElement("div");
+    abspos.id = "abspos";
+    document.querySelector("select").appendChild(abspos);
+    document.documentElement.classList.remove("reftest-wait");
+  });
+</script>
+</html>

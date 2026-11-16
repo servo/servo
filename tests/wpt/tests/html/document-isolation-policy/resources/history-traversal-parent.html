@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/executor.js" type="module"></script>
+<body>
+<script>
+"use strict";
+// The child frame can be in another agent cluster, so it is asked about itself.
+const frameLoaded = new Promise(resolve => addEventListener("message", function listener(event) {
+  if (event.data !== "loaded")
+    return;
+  removeEventListener("message", listener);
+  resolve();
+}));
+window.askFrame = async () => {
+  await frameLoaded;
+  return new Promise(resolve => {
+    addEventListener("message", function listener(event) {
+      if (event.data === "loaded")
+        return;
+      removeEventListener("message", listener);
+      resolve(JSON.stringify(event.data));
+    });
+    frame.contentWindow.postMessage("ping", "*");
+  });
+};
+
+window.navigateFrame = url => new Promise(resolve => {
+  addEventListener("message", function listener(event) {
+    if (event.data !== "loaded")
+      return;
+    removeEventListener("message", listener);
+    resolve();
+  });
+  frame.src = url;
+});
+
+// Inserted before this document's load event, so that when this document is loaded again from session history, the
+// child frame is too.
+const frame = document.createElement("iframe");
+frame.src = new URLSearchParams(location.search).get("frame");
+
+// The order of the child frame's and this document's load events.
+const loadEvents = [];
+frame.addEventListener("load", () => loadEvents.push("frame"));
+addEventListener("load", () => loadEvents.push("document"));
+window.getLoadEvents = () => loadEvents;
+
+document.body.append(frame);
+</script>

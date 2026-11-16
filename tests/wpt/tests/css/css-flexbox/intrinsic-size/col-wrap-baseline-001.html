@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#intrinsic-cross-sizes">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#algo-cross-line">
+<meta name="assert" content="A column-wrap container's max-content width sums the cross sizes of its lines, and a line's cross size includes how far baseline alignment shifts its items.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.flex {
+  display: flex;
+  flex-flow: column wrap;
+  height: 100px;
+  width: max-content;
+  position: relative;
+}
+.flex > div {
+  width: 10px;
+  min-height: 0;
+}
+</style>
+<!-- The first line's items have their margins on opposite sides, so lining up their baselines makes the line 50px wide,
+     not the 30px of its widest item. -->
+<div class="flex" style="align-items: baseline" data-expected-width="60">
+  <div style="flex: 0 0 40px; margin-left: 20px" data-offset-x="20"></div>
+  <div style="flex: 0 0 40px; margin-right: 20px" data-offset-x="20"></div>
+  <div style="flex: 0 0 100px" data-offset-x="50"></div>
+</div>
+<div class="flex" style="align-items: last baseline" data-expected-width="60">
+  <div style="flex: 0 0 40px; margin-left: 20px" data-offset-x="20"></div>
+  <div style="flex: 0 0 40px; margin-right: 20px" data-offset-x="20"></div>
+  <div style="flex: 0 0 100px" data-offset-x="50"></div>
+</div>
+<!-- Without baseline alignment the lines are as wide as their widest items. -->
+<div class="flex" data-expected-width="40">
+  <div style="flex: 0 0 40px; margin-left: 20px" data-offset-x="20"></div>
+  <div style="flex: 0 0 40px; margin-right: 20px" data-offset-x="0"></div>
+  <div style="flex: 0 0 100px" data-offset-x="30"></div>
+</div>
+<!-- With no height to wrap at, the single line is still widened by baseline alignment. -->
+<div class="flex" style="height: auto; align-items: baseline" data-expected-width="50">
+  <div style="flex: 0 0 40px; margin-left: 20px" data-offset-x="20"></div>
+  <div style="flex: 0 0 40px; margin-right: 20px" data-offset-x="20"></div>
+</div>
+<script>
+checkLayout(".flex");
+</script>

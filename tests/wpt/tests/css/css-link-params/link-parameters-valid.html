@@ -14,13 +14,13 @@
 <script>
     test_valid_value("link-parameters", "none", "none");
 
-    test_valid_value("link-parameters", "param(--a, orange)", 'param(--a, orange)');
-    test_valid_value("link-parameters", "param(--a, orange), param(--b, blue)", "param(--a, orange), param(--b, blue)");
+    test_valid_value("link-parameters", "param(--a: orange)", 'param(--a: orange)');
+    test_valid_value("link-parameters", "param(--a: orange), param(--b: blue)", "param(--a: orange), param(--b: blue)");
 
-    test_valid_value("link-parameters", "param(--a, )", "param(--a, )");
-    test_valid_value("link-parameters", "param(--a, ), param(--b, )", "param(--a, ), param(--b, )");
+    test_valid_value("link-parameters", "param(--a: )", "param(--a: )");
+    test_valid_value("link-parameters", "param(--a: ), param(--b: )", "param(--a: ), param(--b: )");
 
-    test_valid_value("link-parameters", "param(--, --)");
+    test_valid_value("link-parameters", "param(--: --)");
 </script>
 </body>
 </html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>CSS Flexbox: a min-content flex basis of a fixed-width item follows a change in its content</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#algo-main-item">
+<meta name="assert" content="A flex item's min-content flex basis is its min-content size, which follows a change in the width of an inline-block in it, also when the item has a fixed width and its intrinsic widths were already computed for its shrink-to-fit flex container.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.flex {
+    display: inline-flex;
+}
+.item {
+    width: 50px;
+    flex: 0 0 min-content;
+}
+.inline-block {
+    display: inline-block;
+}
+#content {
+    width: 100px;
+    height: 10px;
+    background-color: green;
+}
+</style>
+<div class="flex">
+    <div class="item" data-expected-width="200"><span class="inline-block"><div id="content"></div></span></div>
+</div>
+<script>
+document.body.offsetHeight;
+document.getElementById("content").style.width = "200px";
+checkLayout(".item");
+</script>

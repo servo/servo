@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+  body {
+    margin: 0;
+  }
+
+  ::-webkit-scrollbar {
+    height: 16px;
+    width: 16px;
+  }
+
+  .root {
+    background: lightgrey;
+    border: 2px solid black;
+    display: grid-lanes;
+    grid-template-rows: 100px 200px 300px;
+    width: 80px;
+  }
+
+  .subgrid {
+    display: grid;
+    grid-template-rows: subgrid;
+  }
+
+  .scroller {
+    border: 2px solid orange;
+    grid-row: 2;
+    /* Reserve the expected horizontal scrollbar during track sizing. */
+    overflow: scroll hidden;
+    width: 80px;
+  }
+
+  .outer {
+    border: 2px solid purple;
+    grid-row: 1 / -1;
+    width: 84px;
+  }
+
+  .inner {
+    border: 2px solid cyan;
+    grid-row: 1 / -1;
+    width: max-content;
+  }
+
+  .leaf {
+    aspect-ratio: 1 / 4;
+    background: green;
+    grid-row: 1;
+    min-height: 0;
+    min-width: 0;
+  }
+
+  .marker {
+    background: blue;
+    grid-row: 1;
+    width: 10px;
+  }
+
+  .overflow {
+    grid-row: 1;
+    height: 0;
+    width: 210px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: silver;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: grey;
+  }
+</style>
+<div class="root">
+  <div class="subgrid outer">
+    <div class="subgrid scroller">
+      <div class="subgrid inner">
+        <div class="leaf"></div>
+        <div class="marker"></div>
+        <div class="overflow"></div>
+      </div>
+    </div>
+  </div>
+</div>

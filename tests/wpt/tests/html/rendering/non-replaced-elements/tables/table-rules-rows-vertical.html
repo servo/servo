@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>The table rules=rows lines follow the writing mode</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#tables-2">
+<link rel="match" href="table-rules-rows-vertical-ref.html">
+<meta name="assert" content="rules=rows sets border-block-width and border-block-style on the rows, so in vertical-rl the lines between rows are vertical, and with the border attribute the outer edges at the block sides are solid lines while the inline sides keep the outset table border.">
+<style>
+  table { writing-mode: vertical-rl; color: black; display: inline-table; vertical-align: top; margin: 0 12px 12px 0; }
+  td { width: 20px; height: 20px; padding: 0; }
+</style>
+
+<table rules="rows">
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<table rules="rows" border="1">
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>

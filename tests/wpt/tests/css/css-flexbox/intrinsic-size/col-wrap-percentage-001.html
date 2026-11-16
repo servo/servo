@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#intrinsic-cross-sizes">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#cyclic-percentage-contribution">
+<meta name="assert" content="Percentage margins count as zero in a column-wrap container's max-content width, also when the width is computed again after a layout has resolved them.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.flex {
+  display: flex;
+  flex-flow: column wrap;
+  height: 100px;
+  width: max-content;
+  position: relative;
+}
+.flex > div {
+  width: 10px;
+  min-height: 0;
+}
+</style>
+<div class="flex" id="percentage-margin" style="align-items: baseline" data-expected-width="40">
+  <div style="flex: 0 0 40px; margin-left: 50%" data-offset-x="20"></div>
+  <div style="flex: 0 0 40px; margin-right: 20px" data-offset-x="20"></div>
+  <div style="flex: 0 0 100px" data-offset-x="50"></div>
+</div>
+<script>
+for (const flex of document.querySelectorAll(".flex")) {
+  flex.offsetWidth;
+  flex.style.height = "101px";
+  flex.offsetWidth;
+  flex.style.height = "100px";
+}
+checkLayout(".flex");
+</script>

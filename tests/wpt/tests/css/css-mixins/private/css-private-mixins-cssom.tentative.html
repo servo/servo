@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS @private: mixins, computed style and style sheet changes</title>
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14243">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+    @mixin --hidden() {
+      @private {
+        --size: 10px;
+      }
+      width: var(--size, 1px);
+    }
+
+    #hidden {
+      @apply --hidden;
+    }
+  </style>
+</head>
+<body>
+  <div id="hidden"></div>
+  <script>
+    function addElement(t, id) {
+      const element = document.createElement('div');
+      element.id = id;
+      document.body.append(element);
+      t.add_cleanup(() => element.remove());
+      return element;
+    }
+
+    function addStyle(t, text) {
+      const style = document.createElement('style');
+      style.textContent = text;
+      document.head.append(style);
+      t.add_cleanup(() => style.remove());
+      return style.sheet;
+    }
+
+    test(() => {
+      const computed = getComputedStyle(document.getElementById('hidden'));
+      assert_equals(computed.width, '10px');
+      assert_equals(computed.getPropertyValue('--size'), '');
+      for (let i = 0; i < computed.length; ++i) {
+        assert_false(computed[i].startsWith('--'), computed[i]);
+        assert_false(computed[i].includes('private'), computed[i]);
+      }
+    }, 'A mixin\'s private variables are not exposed in computed style');
+
+    test(t => {
+      const element = addElement(t, 'inserted');
+      const sheet = addStyle(t, `
+        @mixin --inserted() {
+          @private { --size: 10px; }
+          width: var(--size, 1px);
+        }`);
+      assert_not_equals(getComputedStyle(element).width, '10px');
+      sheet.insertRule('#inserted { @apply --inserted; }', 1);
+      assert_equals(getComputedStyle(element).width, '10px');
+    }, 'A rule applying a mixin with @private can be inserted');
+
+    test(t => {
+      const element = addElement(t, 'replaced');
+      const sheet = addStyle(t, `
+        @mixin --replaced() {
+          @private { --size: 10px; }
+          width: var(--size, 1px);
+        }
+        #replaced { @apply --replaced; }`);
+      assert_equals(getComputedStyle(element).width, '10px');
+      sheet.deleteRule(0);
+      sheet.insertRule(`@mixin --replaced() {
+          @private { --size: 30px; }
+          width: var(--size, 1px);
+        }`, 0);
+      assert_equals(getComputedStyle(element).width, '30px');
+    }, 'Replacing a mixin updates the private variables of its users');
+
+    test(t => {
+      const first = addElement(t, 'shared-first');
+      const second = addElement(t, 'shared-second');
+      second.style.fontSize = '20px';
+      addStyle(t, `
+        @mixin --shared() {
+          @private { --size: 1em; }
+          width: var(--size, 999px);
+        }
+        #shared-first, #shared-second { @apply --shared; }`);
+      assert_equals(getComputedStyle(first).width, '16px');
+      assert_equals(getComputedStyle(second).width, '20px');
+    }, 'Elements sharing a rule with a mixin resolve its private variables ' +
+       'separately');
+  </script>
+</body>
+</html>
