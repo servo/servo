@@ -592,6 +592,11 @@ impl FilePicker {
         self.file_picker_request.allow_select_multiple
     }
 
+    /// Whether or not this file picker selects directories instead of files.
+    pub fn select_directory(&self) -> bool {
+        self.file_picker_request.select_directory
+    }
+
     /// Get the currently selected files in this [`FilePicker`]. This is initially the files that
     /// were previously selected before the picker is opened.
     pub fn current_paths(&self) -> &[PathBuf] {
