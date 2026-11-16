@@ -89,19 +89,23 @@ pub(crate) struct NaturalSizes {
 }
 
 impl NaturalSizes {
-    pub(crate) fn from_width_and_height(width: f32, height: f32) -> Self {
+    pub(crate) fn from_width_and_height(width: Option<f32>, height: Option<f32>) -> Self {
         // https://drafts.csswg.org/css-images/#natural-aspect-ratio:
         // "If an object has a degenerate natural aspect ratio (at least one part being
         // zero or infinity), it is treated as having no natural aspect ratio.""
-        let ratio = if width.is_normal() && height.is_normal() {
+        let ratio = if let Some(width) = width &&
+            width.is_normal() &&
+            let Some(height) = height &&
+            height.is_normal()
+        {
             Some(width / height)
         } else {
             None
         };
 
         Self {
-            width: Some(Au::from_f32_px(width)),
-            height: Some(Au::from_f32_px(height)),
+            width: width.map(Au::from_f32_px),
+            height: height.map(Au::from_f32_px),
             ratio,
         }
     }
@@ -113,7 +117,7 @@ impl NaturalSizes {
         let dppx = 1.0;
         let width = natural_size_in_dots.width as f32 / dppx;
         let height = natural_size_in_dots.height as f32 / dppx;
-        Self::from_width_and_height(width, height)
+        Self::from_width_and_height(Some(width), Some(height))
     }
 
     pub(crate) fn empty() -> Self {
@@ -368,11 +372,17 @@ impl ReplacedContents {
                             .handle_animated_image(node.opaque(), image.clone());
                     }
                     let metadata = image.metadata();
-                    (Some(image), metadata.width as f32, metadata.height as f32)
+                    (
+                        Some(image),
+                        metadata.width.map(|width| width as f32),
+                        metadata.height.map(|height| height as f32),
+                    )
                 },
-                ImageOrMetadataAvailable::MetadataAvailable(metadata, _id) => {
-                    (None, metadata.width as f32, metadata.height as f32)
-                },
+                ImageOrMetadataAvailable::MetadataAvailable(metadata, _id) => (
+                    None,
+                    metadata.width.map(|width| width as f32),
+                    metadata.height.map(|height| height as f32),
+                ),
             },
             LayoutImageCacheResult::Pending | LayoutImageCacheResult::LoadError => return None,
         };
@@ -417,7 +427,7 @@ impl ReplacedContents {
             is_content_replacement: false,
             selected: Default::default(),
             selected_style: SharedStyle::new(node.selected_style(&context.style_context)),
-            natural_size: NaturalSizes::from_width_and_height(0., 0.),
+            natural_size: NaturalSizes::from_width_and_height(Some(0.), Some(0.)),
         }
     }
 
@@ -457,8 +467,8 @@ impl ReplacedContents {
         }) = &self.kind
         {
             let size = Size2D::new(
-                Au::from_f32_px(image.metadata.width as f32),
-                Au::from_f32_px(image.metadata.height as f32),
+                Au::from_f32_px(image.metadata.width.unwrap_or(0) as f32),
+                Au::from_f32_px(image.metadata.height.unwrap_or(0) as f32),
             )
             .min(size);
             return (PhysicalSize::zero(), size.into());
@@ -624,16 +634,12 @@ impl ReplacedContents {
                 if !has_viewbox {
                     base.set_rect(
                         PhysicalSize::new(
-                            vector_image
-                                .metadata
-                                .width
-                                .try_into()
-                                .map_or(MAX_AU, Au::from_px),
-                            vector_image
-                                .metadata
-                                .height
-                                .try_into()
-                                .map_or(MAX_AU, Au::from_px),
+                            vector_image.metadata.width.map_or(MAX_AU, |width| {
+                                width.try_into().map_or(MAX_AU, Au::from_px)
+                            }),
+                            vector_image.metadata.height.map_or(MAX_AU, |height| {
+                                height.try_into().map_or(MAX_AU, Au::from_px)
+                            }),
                         )
                         .into(),
                     );

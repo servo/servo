@@ -285,8 +285,8 @@ pub(crate) fn decode_static_image(
     };
     Some(RasterImage {
         metadata: ImageMetadata {
-            width: rgba.width(),
-            height: rgba.height(),
+            width: Some(rgba.width()),
+            height: Some(rgba.height()),
         },
         format: PixelFormat::RGBA8,
         frames: vec![frame],
@@ -369,7 +369,10 @@ where
     }
 
     Some(RasterImage {
-        metadata: ImageMetadata { width, height },
+        metadata: ImageMetadata {
+            width: Some(width),
+            height: Some(height),
+        },
         cors_status,
         load_time: None,
         frames,

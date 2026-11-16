@@ -690,10 +690,15 @@ impl ImageCacheStore {
             },
             LoadResult::LoadedVectorImage(vector_image) => {
                 self.vector_images.insert(key, vector_image.clone());
+                // TODO: resvg doesn't actually give the natural dimensions / intrinsic size here.
+                //       Instead, it falls back to the viewBox if the SVG has no specified `width`
+                //       or `height` attributes on the root <svg> element.
+                //       This causes https://github.com/servo/servo/issues/49973 and probably also
+                //       a couple of other issues.
                 let natural_dimensions = vector_image.svg_tree.size().to_int_size();
                 let metadata = ImageMetadata {
-                    width: natural_dimensions.width(),
-                    height: natural_dimensions.height(),
+                    width: Some(natural_dimensions.width()),
+                    height: Some(natural_dimensions.height()),
                 };
 
                 let vector_image = VectorImage {
@@ -1170,8 +1175,8 @@ impl ImageCache for ImageCacheImpl {
 
                 RasterImage {
                     metadata: ImageMetadata {
-                        width: tinyskia_requested_size.width(),
-                        height: tinyskia_requested_size.height(),
+                        width: Some(tinyskia_requested_size.width()),
+                        height: Some(tinyskia_requested_size.height()),
                     },
                     format: PixelFormat::RGBA8,
                     frames: vec![frame],
@@ -1292,8 +1297,8 @@ impl ImageCache for ImageCacheImpl {
                         let mut reader = std::io::Cursor::new(pending_load.bytes.as_slice());
                         if let Ok(info) = imsz_from_reader(&mut reader) {
                             let img_metadata = ImageMetadata {
-                                width: info.width as u32,
-                                height: info.height as u32,
+                                width: Some(info.width as u32),
+                                height: Some(info.height as u32),
                             };
                             for listener in &pending_load.listeners {
                                 listener.respond(ImageResponse::MetadataLoaded(img_metadata));

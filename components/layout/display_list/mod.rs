@@ -9,7 +9,7 @@ use std::sync::{Arc, LazyLock};
 use app_units::{AU_PER_PX, Au};
 use clip::Clip;
 pub(crate) use clip::ClipId;
-use euclid::{Box2D, Point2D, Rect, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
+use euclid::{Box2D, Length, Point2D, Rect, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
 use fonts::{FontMetrics, ShapedTextSlice};
 use gradient::WebRenderGradient;
 use layout_api::ReflowStatistics;
@@ -43,7 +43,7 @@ use style::values::generics::rect::Rect as StyleRect;
 use style::values::specified::text::TextDecorationLine;
 use style_traits::{CSSPixel as StyloCSSPixel, DevicePixel as StyloDevicePixel};
 use webrender_api::units::{
-    DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint, LayoutRect, LayoutSideOffsets, LayoutSize,
+    DevicePixel, LayoutPixel, LayoutPoint, LayoutRect, LayoutSideOffsets, LayoutSize,
 };
 use webrender_api::{
     self as wr, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, BuiltDisplayList,
@@ -2036,34 +2036,36 @@ impl<'a> BuilderForBoxFragment<'a> {
                         .paint_timing_handler
                         .check_if_paintable(layer.bounds, state.accumulated_opacity);
                 },
-                ResolvedImage::Image { image, size, url } => {
+                ResolvedImage::Image {
+                    image,
+                    width,
+                    height,
+                    url,
+                } => {
                     // FIXME: https://drafts.csswg.org/css-images-4/#the-image-resolution
                     let dppx = 1.0;
-                    let intrinsic =
-                        NaturalSizes::from_width_and_height(size.width / dppx, size.height / dppx);
-                    let layer =
-                        background::layout_layer(self, painter, builder, state, index, intrinsic);
-
-                    let scale = builder.device_pixel_ratio.get();
-                    let default_size: DeviceIntSize =
-                        Size2D::new(size.width * scale, size.height * scale).to_i32();
-                    let preferred_size = layer.as_ref().map(|layer| {
-                        Size2D::new(
+                    let intrinsic = NaturalSizes::from_width_and_height(
+                        width.map(|width| width / dppx),
+                        height.map(|height| height / dppx),
+                    );
+                    if let Some(layer) =
+                        background::layout_layer(self, painter, builder, state, index, intrinsic)
+                    {
+                        let scale = builder.device_pixel_ratio.get();
+                        let preferred_size = Size2D::new(
                             layer.tile_size.width * scale,
                             layer.tile_size.height * scale,
                         )
-                        .to_i32()
-                    });
+                        .to_i32();
 
-                    let Some(image_key) = builder.image_resolver.image_key_from_cached_image(
-                        &image,
-                        preferred_size.unwrap_or(default_size),
-                        node,
-                    ) else {
-                        continue;
-                    };
+                        let Some(image_key) = builder.image_resolver.image_key_from_cached_image(
+                            &image,
+                            preferred_size,
+                            node,
+                        ) else {
+                            continue;
+                        };
 
-                    if let Some(layer) = layer {
                         let needs_blending = layer.blend_mode != BackgroundBlendMode::Normal;
                         if needs_blending {
                             push_stacking_context(builder, layer.blend_mode, Default::default());
@@ -2105,8 +2107,9 @@ impl<'a> BuilderForBoxFragment<'a> {
                             // > background-size has non-zero width and height values.
                             builder.mark_is_contentful();
 
-                            let natural_width = Some(Au::from_f32_px(size.width / dppx));
-                            let natural_height = Some(Au::from_f32_px(size.height / dppx));
+                            let natural_width = width.map(|width| Au::from_f32_px(width / dppx));
+                            let natural_height =
+                                height.map(|height| Au::from_f32_px(height / dppx));
                             builder.collect_image_record(
                                 state,
                                 layer.bounds,
@@ -2302,9 +2305,21 @@ impl<'a> BuilderForBoxFragment<'a> {
             .resolve_image(node, &border.border_image_source)
         {
             Err(_) => return false,
-            Ok(ResolvedImage::Image { image, size, .. }) => {
+            Ok(ResolvedImage::Image {
+                image,
+                width: image_width,
+                height: image_height,
+                ..
+            }) => {
                 let scale = builder.device_pixel_ratio.get();
-                let raster_size = Size2D::new(size.width * scale, size.height * scale).to_i32();
+                let total_border_image_width = border_image_widths.left + border_image_widths.right;
+                let total_border_image_height =
+                    border_image_widths.top + border_image_widths.bottom;
+                let raster_size = Size2D::new(
+                    image_width.unwrap_or(total_border_image_width) * scale,
+                    image_height.unwrap_or(total_border_image_height) * scale,
+                )
+                .to_i32();
                 let Some(key) =
                     builder
                         .image_resolver
@@ -2314,18 +2329,21 @@ impl<'a> BuilderForBoxFragment<'a> {
                 };
 
                 if builder.paint_timing_handler.check_if_paintable(
-                    Box2D::from_size(size.cast_unit()),
+                    Box2D::from_size(Size2D::from_lengths(
+                        Length::new(total_border_image_width),
+                        Length::new(total_border_image_height),
+                    )),
                     state.accumulated_opacity,
                 ) {
                     // From <https://www.w3.org/TR/paint-timing/#contentful>:
                     // An element target is contentful when one or more of the following apply:
-                    // > target has a background-image which is a contentful image,
-                    // > and its used background-size has non-zero width and height values.
+                    // > target has a border-image-source which is a contentful image,
+                    // > and its used border-image-width has non-zero width and height values.
                     builder.mark_is_contentful();
                 }
 
-                width = size.width;
-                height = size.height;
+                width = image_width.unwrap_or(total_border_image_width);
+                height = image_height.unwrap_or(total_border_image_height);
                 let image_rendering = style.get_image_rendering().to_webrender();
                 NinePatchBorderSource::Image(key, image_rendering)
             },

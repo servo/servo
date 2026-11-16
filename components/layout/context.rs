@@ -29,7 +29,7 @@ use style::values::computed::image::{Gradient, Image};
 use style_traits::DevicePixel;
 use uuid::Uuid;
 use webrender_api::ImageKey;
-use webrender_api::units::{DeviceIntSize, DeviceSize};
+use webrender_api::units::DeviceIntSize;
 
 pub(crate) type CachedImageOrError = Result<CachedImage, ResolveImageError>;
 
@@ -85,7 +85,8 @@ pub enum ResolvedImage<'a> {
     // natural resolution which affects the final size for raster images.
     Image {
         image: CachedImage,
-        size: DeviceSize,
+        width: Option<f32>,
+        height: Option<f32>,
         url: ServoUrl,
     },
 }
@@ -329,10 +330,10 @@ impl ImageResolver {
                     InternalRequest::No,
                 )?;
                 let metadata = image.metadata();
-                let size = Size2D::new(metadata.width, metadata.height).to_f32();
                 Ok(ResolvedImage::Image {
                     image,
-                    size,
+                    width: metadata.width.map(|width| width as f32),
+                    height: metadata.height.map(|height| height as f32),
                     url: image_url.clone().into(),
                 })
             },
@@ -356,20 +357,28 @@ impl ImageResolver {
                                     // > resolution, overriding any other source of data that might
                                     // > supply a natural resolution.
                                     let image_metadata = cached_image.metadata();
-                                    let size = if cached_image.as_raster_image().is_some() {
-                                        let scale_factor = image.resolution.dppx();
-                                        Size2D::new(
-                                            image_metadata.width as f32 / scale_factor,
-                                            image_metadata.height as f32 / scale_factor,
-                                        )
-                                    } else {
-                                        Size2D::new(image_metadata.width, image_metadata.height)
-                                            .to_f32()
-                                    };
+                                    let [width, height] =
+                                        if cached_image.as_raster_image().is_some() {
+                                            let scale_factor = image.resolution.dppx();
+                                            [
+                                                image_metadata
+                                                    .width
+                                                    .map(|width| width as f32 / scale_factor),
+                                                image_metadata
+                                                    .height
+                                                    .map(|width| width as f32 / scale_factor),
+                                            ]
+                                        } else {
+                                            [
+                                                image_metadata.width.map(|width| width as f32),
+                                                image_metadata.height.map(|height| height as f32),
+                                            ]
+                                        };
 
                                     ResolvedImage::Image {
                                         image: cached_image,
-                                        size,
+                                        width,
+                                        height,
                                         url,
                                     }
                                 },
