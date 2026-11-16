@@ -25,7 +25,7 @@ use webrender_api::units::LayoutVector2D;
 
 use super::accessibility_node::{AccessibilityNode, DirtyState};
 use crate::ArcRefCell;
-use crate::accessibility::accessibility_node::SubtreeState;
+use crate::accessibility::accessibility_node::TraversalState;
 use crate::accessibility::{AccessibilityContext, AccessibilityDamageMap};
 
 #[derive(Debug, Default)]
@@ -102,9 +102,6 @@ pub(super) struct AccessibilityUpdate<'update> {
     /// Map of [`NodeId`] to the corresponding [`ServoLayoutNode`]. This is populated for nodes
     /// which have damage, including nodes which are newly added to the accessibility tree.
     dom_node_map: RefCell<FxHashMap<NodeId, ServoLayoutNode<'update>>>,
-
-    /// The previous text node in tree order within the same container node.
-    pub(super) closest_previous_text: Option<ArcRefCell<AccessibilityNode>>,
 }
 
 /// Tracks changes to a node's relation to the tree within an update.
@@ -237,10 +234,11 @@ impl AccessibilityTree {
             return;
         };
         let damage_root = self.assert_node_for_id(&damage_root_id);
+        let mut traversal = TraversalState::default();
         let local_damage = damage_root.borrow_mut().update_subtree(
             damage_root.clone(),
             AccessibilityDamage::empty(),
-            SubtreeState::empty(),
+            &mut traversal,
             context,
             self,
             update,
@@ -663,7 +661,6 @@ impl<'update> AccessibilityUpdate<'update> {
             counters: UpdateCounters::default(),
             damage_map,
             dom_node_map: RefCell::new(dom_node_map),
-            closest_previous_text: None,
         }
     }
 
