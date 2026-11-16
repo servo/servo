@@ -150,7 +150,6 @@ use crate::dom::node::{Node, NodeTraits};
 use crate::dom::servoparser::{ParserContext, ServoParser};
 #[cfg(feature = "devtools")]
 use crate::dom::types::DebuggerGlobalScope;
-use crate::dom::types::SharedWorker;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::Window;
@@ -177,6 +176,7 @@ use crate::runtime::script_runtime::{
 };
 use crate::scripting::fetching_options::ScriptFetchOptions;
 use crate::scripting::script_execution::{RethrowErrors, ScriptOptions};
+use crate::sharedworker_host::SharedWorkerThread;
 use crate::tasks::task_queue::TaskQueue;
 
 thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = const { Cell::new(None) });
@@ -310,6 +310,9 @@ pub struct ScriptThread {
     /// child `Pipeline`s.
     #[no_trace]
     image_cache_factory: Arc<dyn ImageCacheFactory>,
+
+    #[no_trace]
+    shared_workers: RefCell<FxHashMap<WorkerId, SharedWorkerThread>>,
 
     /// A [`ScriptThreadReceivers`] holding all of the incoming `Receiver`s for messages
     /// to this [`ScriptThread`].
@@ -505,6 +508,15 @@ impl ScriptThreadFactory for ScriptThread {
             .name(format!("Script#{script_thread_id}"))
             .stack_size(8 * 1024 * 1024) // 8 MiB stack to be consistent with other browsers.
             .spawn(move || {
+                struct HostExit(generic_channel::GenericCallback<()>);
+                impl Drop for HostExit {
+                    fn drop(&mut self) {
+                        if let Err(error) = self.0.send(()) {
+                            warn!("Failed to notify Constellation of script-host exit: {error}");
+                        }
+                    }
+                }
+                let _host_exit = HostExit(state.shared_worker_host_exit.clone());
                 profile_traits::debug_event!(
                     "ScriptThread::spawned",
                     script_thread_id = script_thread_id.to_string()
@@ -986,6 +998,7 @@ impl ScriptThread {
                     senders,
                     receivers,
                     image_cache_factory,
+                    shared_workers: Default::default(),
                     resource_threads: state.resource_threads,
                     storage_threads: state.storage_threads,
                     task_queue,
@@ -1493,6 +1506,23 @@ impl ScriptThread {
         // If we've received the closed signal from the BHM, only handle exit messages.
         if self.closing.load(Ordering::SeqCst) {
             match message {
+                MixedMessage::FromScript(MainThreadScriptMsg::SharedWorkerExited(worker_id)) |
+                MixedMessage::FromConstellation(ScriptThreadMessage::StopSharedWorker(
+                    worker_id,
+                )) => {
+                    self.shared_workers.borrow_mut().remove(&worker_id);
+                    return ControlFlow::Continue(());
+                },
+                MixedMessage::FromConstellation(ScriptThreadMessage::StartSharedWorker(start)) => {
+                    use servo_constellation_traits::SharedWorkerHostEvent;
+                    if let Err(error) = start.events.send(SharedWorkerHostEvent::ScriptLoadFailed) {
+                        warn!("Could not reject SharedWorker startup during shutdown: {error}");
+                    }
+                    if let Err(error) = start.events.send(SharedWorkerHostEvent::Exited) {
+                        warn!("Could not acknowledge SharedWorker shutdown: {error}");
+                    }
+                    return ControlFlow::Continue(());
+                },
                 MixedMessage::FromConstellation(ScriptThreadMessage::ExitScriptThread) => {
                     self.handle_exit_script_thread_msg(cx);
                     return ControlFlow::Break(());
@@ -1785,6 +1815,22 @@ impl ScriptThread {
 
     fn handle_msg_from_constellation(&self, cx: &mut JSContext, msg: ScriptThreadMessage) {
         match msg {
+            ScriptThreadMessage::StartSharedWorker(start) => {
+                self.start_shared_worker(*start);
+            },
+            ScriptThreadMessage::StopSharedWorker(worker_id) => {
+                self.shared_workers.borrow_mut().remove(&worker_id);
+            },
+            ScriptThreadMessage::GetSharedWorkerOrigin(pipeline_id, reply) => {
+                let origin = self
+                    .documents
+                    .borrow()
+                    .find_document(pipeline_id)
+                    .map(|document| document.origin().immutable().clone());
+                if let Err(error) = reply.send(origin) {
+                    warn!("Failed to reply with SharedWorker top-level origin: {error}");
+                }
+            },
             ScriptThreadMessage::UpdateServiceWorkerState {
                 pipeline_id,
                 state,
@@ -2107,6 +2153,9 @@ impl ScriptThread {
 
     fn handle_msg_from_script(&self, cx: &mut JSContext, msg: MainThreadScriptMsg) {
         match msg {
+            MainThreadScriptMsg::SharedWorkerExited(worker_id) => {
+                self.shared_workers.borrow_mut().remove(&worker_id);
+            },
             MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, task, pipeline_id, _)) => {
                 let global_scope =
                     pipeline_id.and_then(|id| self.documents.borrow().find_global(id));
@@ -3364,6 +3413,7 @@ impl ScriptThread {
     /// Handles a request to exit the script thread and shut down layout.
     fn handle_exit_script_thread_msg(&self, cx: &mut JSContext) {
         debug!("Exiting script thread.");
+        self.shared_workers.borrow_mut().clear();
 
         let mut webview_and_pipeline_ids = Vec::new();
         webview_and_pipeline_ids.extend(
@@ -3512,6 +3562,7 @@ impl ScriptThread {
             sender: self.senders.pipeline_to_constellation_sender.clone(),
             webview_id,
             pipeline_id: incomplete.pipeline_id,
+            shared_worker: None,
         };
 
         let final_url = metadata.final_url.clone();
@@ -4621,8 +4672,47 @@ impl ScriptThread {
         for (_, document) in self.documents.borrow().iter() {
             document.queue_online_offline_events(online);
         }
+    }
 
-        SharedWorker::set_network_online_state(online);
+    fn start_shared_worker(&self, start: servo_constellation_traits::SharedWorkerStart) {
+        use servo_constellation_traits::SharedWorkerHostEvent;
+
+        let worker_id = start.creation.init.worker_id;
+        let events = start.events.clone();
+        let font_context = Arc::new(FontContext::new(
+            self.system_font_service.clone(),
+            self.paint_api.clone(),
+            start.creation.init.resource_threads.clone(),
+        ));
+        let font_resolver = Arc::new(SvgFontResolver::new(font_context.clone()));
+        let result = self
+            .image_cache_factory
+            .create_for_worker(start.creation.webview_id, &self.paint_api, font_resolver)
+            .map_err(|error| std::io::Error::other(error.to_string()))
+            .and_then(|image_cache| {
+                SharedWorkerThread::spawn(
+                    start,
+                    self.senders.self_sender.clone(),
+                    image_cache,
+                    font_context,
+                    #[cfg(feature = "webgpu")]
+                    self.gpu_id_hub.clone(),
+                )
+            });
+        match result {
+            Ok(worker) => {
+                self.shared_workers.borrow_mut().insert(worker_id, worker);
+            },
+            Err(error) => {
+                error!("Failed to start SharedWorker {worker_id}: {error}");
+                if let Err(error) = events.send(SharedWorkerHostEvent::ScriptLoadFailed) {
+                    warn!("Failed to report SharedWorker startup failure: {error}");
+                }
+                if let Err(error) = events.send(SharedWorkerHostEvent::Exited) {
+                    warn!("Failed to report SharedWorker failed startup exit: {error}");
+                }
+            },
+        }
     }
 
     pub(crate) fn enqueue_microtask(cx: &js::context::JSContext, job: Box<dyn MicrotaskRunnable>) {

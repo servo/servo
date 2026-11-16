@@ -57,6 +57,9 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
         + DomObject,
 {
     let scope = worker_scope.upcast::<WorkerGlobalScope>();
+    if !scope.wait_until_resumed() {
+        return;
+    }
     let task_queue = worker_scope.task_queue();
 
     #[cfg(feature = "devtools")]
@@ -77,6 +80,8 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
     let devtools_index = select.recv(devtools_receiver);
     let animation_frame_tick_index = select.recv(animation_frame_tick_receiver);
     let timer_index = select.recv(&timer_receiver);
+    let lifetime_receiver = scope.lifetime_wake_receiver();
+    let lifetime_index = select.recv(&lifetime_receiver);
 
     let operation = select.select();
     let event = match operation.index() {
@@ -106,6 +111,13 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
             .recv(&timer_receiver)
             .ok()
             .map(|_| T::from_timer_msg()),
+        index if index == lifetime_index => {
+            if operation.recv(&lifetime_receiver).is_err() {
+                warn!("Worker lifetime notification channel closed");
+                scope.close();
+            }
+            return;
+        },
         _ => unreachable!("selected an unregistered worker event-loop receiver"),
     };
 
@@ -117,6 +129,9 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
         return;
     };
 
+    if !scope.wait_until_resumed() {
+        return;
+    }
     scope.timer_scheduler().dispatch_completed_timers();
 
     let mut sequential = vec![event];
@@ -145,6 +160,9 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
 
     // Step 3
     for event in sequential {
+        if !scope.wait_until_resumed() {
+            return;
+        }
         let mut realm = enter_auto_realm(cx, worker_scope);
         let cx = &mut realm.current_realm();
         let _ar = match worker {

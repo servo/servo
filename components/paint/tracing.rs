@@ -51,6 +51,9 @@ mod from_constellation {
                 Self::CollectMemoryReport(..) => target!("CollectMemoryReport"),
                 Self::Viewport(..) => target!("Viewport"),
                 Self::GenerateImageKeysForPipeline(..) => target!("GenerateImageKeysForPipeline"),
+                Self::GenerateImageKeysForWorker(..) => target!("GenerateImageKeysForWorker"),
+                Self::RetainSharedWorkerPainter(..) => target!("RetainSharedWorkerPainter"),
+                Self::ReleaseSharedWorkerPainter(..) => target!("ReleaseSharedWorkerPainter"),
                 Self::DelayNewFrameForCanvas(..) => target!("DelayFramesForCanvas"),
                 Self::ScreenshotReadinessReponse(..) => target!("ScreenshotReadinessResponse"),
             }

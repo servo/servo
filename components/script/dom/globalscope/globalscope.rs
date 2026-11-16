@@ -1995,6 +1995,9 @@ impl GlobalScope {
                 join_handle: Some(join_handle),
                 control_sender,
                 context,
+                shared_worker_control: self
+                    .downcast::<WorkerGlobalScope>()
+                    .and_then(WorkerGlobalScope::shared_worker_control),
             });
     }
 
@@ -2188,6 +2191,9 @@ impl GlobalScope {
             sender: self.script_to_constellation_sender.clone(),
             webview_id: self.webview_id().unwrap_or(TEST_WEBVIEW_ID),
             pipeline_id: self.pipeline_id(),
+            shared_worker: self
+                .downcast::<WorkerGlobalScope>()
+                .and_then(WorkerGlobalScope::shared_worker_source),
         }
     }
 
