@@ -128,7 +128,7 @@ impl FragmentAndData {
     fn resolve_physical_rects_and_adjust_floats(
         fragments_and_data: Vec<Self>,
         container: &ContainingBlock,
-    ) -> Vec<Fragment> {
+    ) -> Vec<FragmentAndLogicalRect> {
         let mut fragments = Vec::with_capacity(fragments_and_data.len());
         for fragment_and_data in fragments_and_data {
             if !matches!(
@@ -137,7 +137,7 @@ impl FragmentAndData {
             ) {
                 fragment_and_data.resolve_physical_rect_and_adjust_floats(container)
             }
-            fragments.push(fragment_and_data.fragment_and_rect.fragment);
+            fragments.push(fragment_and_data.fragment_and_rect);
         }
         fragments
     }
@@ -149,7 +149,7 @@ impl FragmentAndData {
         fragments_and_data: Vec<Self>,
         container: &ContainingBlock,
         relative_adjustement: PhysicalSize<Au>,
-    ) -> (Vec<Fragment>, Vec<Arc<BoxFragment>>) {
+    ) -> (Vec<FragmentAndLogicalRect>, Vec<Arc<BoxFragment>>) {
         let mut fragments = Vec::with_capacity(fragments_and_data.len());
         let mut propagated_floats = Vec::new();
         for mut fragment_and_data in fragments_and_data {
@@ -161,7 +161,7 @@ impl FragmentAndData {
             } else {
                 fragment_and_data.resolve_physical_rect_and_adjust_floats(container)
             }
-            fragments.push(fragment_and_data.fragment_and_rect.fragment);
+            fragments.push(fragment_and_data.fragment_and_rect);
             propagated_floats.append(&mut fragment_and_data.propagated_floats);
         }
         (fragments, propagated_floats)
@@ -275,7 +275,7 @@ impl LineItemLayout<'_, '_> {
         justification_adjustment: Au,
         is_phantom_line: bool,
         for_block_level: bool,
-    ) -> Vec<Fragment> {
+    ) -> Vec<FragmentAndLogicalRect> {
         let baseline_offset = effective_block_advance.find_baseline_offset();
         LineItemLayout {
             layout,
@@ -382,7 +382,7 @@ impl LineItemLayout<'_, '_> {
         iterator(line_items)
     }
 
-    pub(super) fn layout(&mut self, line_items: Vec<LineItem>) -> Vec<Fragment> {
+    pub(super) fn layout(&mut self, line_items: Vec<LineItem>) -> Vec<FragmentAndLogicalRect> {
         let line_item_iterator = self.reorder_line_items_for_bidi(line_items);
         for item in line_item_iterator.into_iter().by_ref() {
             // When preparing to lay out a new line item, start and end inline boxes, so that the current
@@ -570,7 +570,7 @@ impl LineItemLayout<'_, '_> {
         let mut fragment = BoxFragment::new(
             inline_box.base.base_fragment_info,
             style.clone(),
-            FragmentChildren::PhysicalDeprecated(fragments),
+            FragmentChildren::Logical(fragments),
             // Previously all the fragment's children were positioned relative to the linebox,
             // but they need to be made relative to this fragment.
             content_rect.as_physical_deprecated(containing_block),

@@ -139,7 +139,8 @@ use crate::flow::{
 };
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
-    CollapsedMargin, Fragment, FragmentChildren, FragmentFlags, PositioningFragment,
+    CollapsedMargin, Fragment, FragmentAndLogicalRect, FragmentChildren, FragmentFlags,
+    PositioningFragment,
 };
 use crate::geom::{LogicalRect, LogicalSides1D, LogicalVec2};
 use crate::layout_box_base::LayoutBoxBase;
@@ -1011,7 +1012,7 @@ struct InlineFormattingContextLayout<'layout_data> {
     /// A vector of fragment that are laid out. This includes one [`Fragment::Positioning`]
     /// per line that is currently laid out plus fragments for all floats, which
     /// are currently laid out at the top-level of each [`InlineFormattingContext`].
-    fragments: Vec<Fragment>,
+    fragments: Vec<FragmentAndLogicalRect>,
 
     /// Information about the line currently being laid out into [`LineItem`]s.
     current_line: LineUnderConstruction,
@@ -1407,13 +1408,14 @@ impl InlineFormattingContextLayout<'_> {
                 start_positioning_context_length,
             );
 
+        let fragment = Fragment::Positioning(PositioningFragment::new_anonymous(
+            self.root_nesting_level.style.clone(),
+            physical_line_rect,
+            FragmentChildren::Logical(fragments),
+            true, /* is_line_box */
+        ));
         self.fragments
-            .push(Fragment::Positioning(PositioningFragment::new_anonymous(
-                self.root_nesting_level.style.clone(),
-                physical_line_rect,
-                FragmentChildren::PhysicalDeprecated(fragments),
-                true, /* is_line_box */
-            )));
+            .push(FragmentAndLogicalRect::new(fragment, logical_line_rect));
     }
 
     fn available_line_space(&self) -> Au {
@@ -2384,7 +2386,7 @@ impl InlineFormattingContext {
             layout.placement_state.finish();
 
         IndependentFormattingContextLayoutResult {
-            fragments: FragmentChildren::PhysicalDeprecated(layout.fragments),
+            fragments: FragmentChildren::Logical(layout.fragments),
             content_block_size,
             collapsible_margins_in_children,
             baselines,
