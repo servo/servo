@@ -21,7 +21,6 @@ use std::{os, ptr};
 
 use background_hang_monitor_api::ScriptHangAnnotation;
 use js::context::JSContext;
-use js::conversions::jsstr_to_string;
 use js::gc::StackGCVector;
 use js::glue::{
     DispatchablePointer, RUST_js_GetErrorMessage, RegisterScriptEnvironmentPreparer,
@@ -330,10 +329,11 @@ unsafe extern "C" fn promise_rejection_tracker(
 
 #[expect(unsafe_code)]
 fn safely_convert_null_to_string(cx: &JSContext, str_: HandleString) -> DOMString {
-    DOMString::from(match std::ptr::NonNull::new(*str_) {
-        None => String::new(),
-        Some(str_) => unsafe { jsstr_to_string(cx, str_) },
-    })
+    unsafe {
+        // Non null string is a valid string.
+        DOMString::from_raw_js_string(cx, *str_)
+    }
+    .unwrap_or_default()
 }
 
 #[expect(unsafe_code)]
