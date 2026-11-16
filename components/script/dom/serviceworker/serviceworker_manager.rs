@@ -15,6 +15,7 @@ use std::thread::{self, JoinHandle};
 use crossbeam_channel::{Sender, select, unbounded};
 use fonts::FontContext;
 use net_traits::{CoreResourceMsg, CustomResponseMediator};
+use pixels::ImageCodec;
 use servo_base::generic_channel::{self, GenericCallback, GenericSender, RoutedReceiver};
 use servo_base::id::{PipelineNamespace, ServiceWorkerId, ServiceWorkerRegistrationId};
 use servo_config::pref;
@@ -239,6 +240,8 @@ pub struct ServiceWorkerManager {
     resource_receiver: RoutedReceiver<CustomResponseMediator>,
     /// A shared [`FontContext`] to use for all service workers spawned by this [`ServiceWorkerManager`].
     font_context: Arc<FontContext>,
+    /// The [`ImageCodec`] used
+    image_codec: Arc<dyn ImageCodec>,
 }
 
 impl ServiceWorkerManager {
@@ -248,6 +251,7 @@ impl ServiceWorkerManager {
         from_constellation_receiver: RoutedReceiver<ServiceWorkerMsg>,
         resource_port: RoutedReceiver<CustomResponseMediator>,
         font_context: Arc<FontContext>,
+        image_codec: Arc<dyn ImageCodec>,
     ) -> ServiceWorkerManager {
         // Install a pipeline-namespace in the current thread.
         PipelineNamespace::auto_install();
@@ -259,6 +263,7 @@ impl ServiceWorkerManager {
             own_port: from_constellation_receiver,
             resource_receiver: resource_port,
             font_context,
+            image_codec,
         }
     }
 
@@ -772,6 +777,7 @@ impl ServiceWorkerManager {
                         job.scope_url.clone(),
                         scope_things,
                         self.font_context.clone(),
+                        self.image_codec.clone(),
                     );
 
                 // Since we've just started the worker thread, ensure we can shut it down later.
@@ -798,6 +804,7 @@ fn update_serviceworker(
     scope_url: ServoUrl,
     mut scope_things: ScopeThings,
     font_context: Arc<FontContext>,
+    image_codec: Arc<dyn ImageCodec>,
 ) -> (
     ServiceWorker,
     JoinHandle<()>,
@@ -859,6 +866,7 @@ fn update_serviceworker(
         closing.clone(),
         font_context,
         worker_id,
+        image_codec,
     );
 
     let context = context_receiver
@@ -875,7 +883,11 @@ fn update_serviceworker(
 }
 
 impl ServiceWorkerManagerFactory for ServiceWorkerManager {
-    fn create(sw_senders: SWManagerSenders, origin: ImmutableOrigin) {
+    fn create(
+        sw_senders: SWManagerSenders,
+        origin: ImmutableOrigin,
+        image_codec: Arc<dyn ImageCodec>,
+    ) {
         let (resource_chan, resource_port) = generic_channel::channel().unwrap();
 
         let SWManagerSenders {
@@ -906,6 +918,7 @@ impl ServiceWorkerManagerFactory for ServiceWorkerManager {
                 from_constellation,
                 resource_port,
                 font_context,
+                image_codec,
             )
             .handle_message()
         };

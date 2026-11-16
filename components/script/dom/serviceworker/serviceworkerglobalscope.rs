@@ -23,6 +23,7 @@ use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer, RequestBuilder,
 };
+use pixels::ImageCodec;
 use rand::random;
 use script_bindings::interfaces::HasOrigin;
 use servo_base::generic_channel::{GenericReceiver, GenericSend, GenericSender, RoutedReceiver};
@@ -244,6 +245,7 @@ impl ServiceWorkerGlobalScope {
         closing: Arc<AtomicBool>,
         font_context: Arc<FontContext>,
         worker_id: ServiceWorkerId,
+        image_codec: Arc<dyn ImageCodec>,
     ) -> ServiceWorkerGlobalScope {
         ServiceWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
@@ -260,6 +262,7 @@ impl ServiceWorkerGlobalScope {
                 InsecureRequestsPolicy::DoNotUpgrade,
                 font_context,
                 Some(ScriptEventLoopSender::ServiceWorker(own_sender.clone())),
+                image_codec,
             ),
             task_queue: TaskQueue::new(receiver),
             own_sender,
@@ -288,6 +291,7 @@ impl ServiceWorkerGlobalScope {
         debugger_global: Option<&WorkerDebuggerGlobalScope>,
         worker_id: ServiceWorkerId,
         cx: &mut JSContext,
+        image_codec: Arc<dyn ImageCodec>,
     ) -> DomRoot<ServiceWorkerGlobalScope> {
         let scope = Box::new(ServiceWorkerGlobalScope::new_inherited(
             init,
@@ -303,6 +307,7 @@ impl ServiceWorkerGlobalScope {
             closing,
             font_context,
             worker_id,
+            image_codec,
         ));
         let scope = ServiceWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
             cx,
@@ -332,6 +337,7 @@ impl ServiceWorkerGlobalScope {
         closing: Arc<AtomicBool>,
         font_context: Arc<FontContext>,
         worker_id: ServiceWorkerId,
+        image_codec: Arc<dyn ImageCodec>,
     ) -> JoinHandle<()> {
         let ScopeThings {
             script_url,
@@ -411,6 +417,7 @@ impl ServiceWorkerGlobalScope {
                     debugger_global_for_scope,
                     worker_id,
                     cx,
+                    image_codec,
                 );
 
                 let worker_global_scope = service_worker_global_scope.upcast::<WorkerGlobalScope>();

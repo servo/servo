@@ -293,6 +293,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
             global.insecure_requests_policy(),
             global.policy_container(),
             global.font_context(),
+            global.image_cache().codec(),
         );
 
         let context = context_receiver

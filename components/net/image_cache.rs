@@ -830,6 +830,10 @@ impl ImageCacheFactoryImpl {
             image_decoder,
         }
     }
+
+    pub fn codec(&self) -> Arc<dyn ImageCodec> {
+        self.image_decoder.clone()
+    }
 }
 
 impl ImageCacheFactory for ImageCacheFactoryImpl {
@@ -1421,6 +1425,10 @@ impl ImageCache for ImageCacheImpl {
             return None;
         }
         self.image_codec.decode_image(buffer)
+    }
+
+    fn codec(&self) -> Arc<dyn ImageCodec> {
+        self.image_codec.clone()
     }
 }
 

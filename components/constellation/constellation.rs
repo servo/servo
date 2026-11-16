@@ -2692,7 +2692,7 @@ where
                     }
                 } else {
                     let content = ServiceWorkerUnprivilegedContent::new(sw_senders, origin, None);
-                    content.start::<SWF>();
+                    content.start::<SWF>(self.image_cache_factory.codec());
                 }
                 #[cfg(not(feature = "multiprocess"))]
                 {

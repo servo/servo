@@ -1509,7 +1509,7 @@ pub fn run_content_process(token: String, parameters: ContentProcessParameters) 
             FetchThread::exit();
         },
         UnprivilegedContent::ServiceWorker(content) => {
-            content.start::<ServiceWorkerManager>();
+            content.start::<ServiceWorkerManager>(parameters.image_decoder);
         },
     }
 }

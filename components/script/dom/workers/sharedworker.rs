@@ -657,6 +657,7 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
             global.insecure_requests_policy(),
             global.policy_container(),
             global.font_context(),
+            window.image_cache().codec(),
         ) {
             Ok(join_handle) => join_handle,
             Err(error) => {

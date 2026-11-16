@@ -1851,6 +1851,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             None,
             options,
             realm,
+            move |buffer| self.image_cache().decode_image(buffer),
         )
     }
 
@@ -1874,6 +1875,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             Some(sh),
             options,
             realm,
+            move |buffer| self.image_cache().decode_image(buffer),
         )
     }
 

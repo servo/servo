@@ -32,6 +32,7 @@ use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, RequestBuilder, RequestId,
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
+use pixels::ImageCodec;
 use profile_traits::mem::{ProcessReports, perform_memory_report};
 use script_bindings::callback::RootedCallback;
 use script_bindings::cell::{DomRefCell, Ref};
@@ -407,6 +408,10 @@ pub(crate) struct WorkerGlobalScope {
 
     /// Whether the network is considered to be online as reported by the embedder.
     online: Cell<bool>,
+
+    #[ignore_malloc_size_of = "Image Cache does not support mallocsizeof"]
+    #[no_trace]
+    image_codec: Arc<dyn ImageCodec>,
 }
 
 impl WorkerGlobalScope {
@@ -423,6 +428,7 @@ impl WorkerGlobalScope {
         insecure_requests_policy: InsecureRequestsPolicy,
         font_context: Arc<FontContext>,
         event_loop_sender: Option<ScriptEventLoopSender>,
+        image_codec: Arc<dyn ImageCodec>,
     ) -> Self {
         // Install a pipeline-namespace in the current thread.
         PipelineNamespace::auto_install();
@@ -484,6 +490,7 @@ impl WorkerGlobalScope {
             font_context,
             module_map: Default::default(),
             online: init.online.into(),
+            image_codec,
         }
     }
 
@@ -1072,7 +1079,17 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         image: ImageBitmapSource,
         options: &ImageBitmapOptions,
     ) -> RootedPromise {
-        ImageBitmap::create_image_bitmap(self.upcast(), image, 0, 0, None, None, options, realm)
+        ImageBitmap::create_image_bitmap(
+            self.upcast(),
+            image,
+            0,
+            0,
+            None,
+            None,
+            options,
+            realm,
+            |buffer| self.image_codec.decode_image(buffer),
+        )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
@@ -1095,6 +1112,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             Some(sh),
             options,
             realm,
+            |buffer| self.image_codec.decode_image(buffer),
         )
     }
 

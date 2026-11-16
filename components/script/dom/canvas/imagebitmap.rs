@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
 use js::context::{JSContext, NoGC};
 use js::realm::CurrentRealm;
-use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
+use pixels::{DecodedRasterImage, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
 use script_bindings::cell::DomRefCell;
 use script_bindings::error::{Error, Fallible};
@@ -284,6 +284,7 @@ impl ImageBitmap {
         sh: Option<i32>,
         options: &ImageBitmapOptions,
         realm: &mut CurrentRealm,
+        decode_image: impl Fn(&[u8]) -> Option<DecodedRasterImage>,
     ) -> RootedPromise {
         let p = Promise::new_in_realm(realm);
 
@@ -534,7 +535,7 @@ impl ImageBitmap {
                 // (e.g., a vector graphic with no natural size), then queue
                 // a global task, using the bitmap task source, to reject promise
                 // with an "InvalidStateError" DOMException and abort these steps.
-                let Some(image) = global_scope.image_cache().decode_image(&bytes) else {
+                let Some(image) = decode_image(&bytes) else {
                     reject_promise_on_bitmap_task_source(&p);
                     return p;
                 };
