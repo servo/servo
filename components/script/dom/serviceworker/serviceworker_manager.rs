@@ -223,6 +223,27 @@ impl ServiceWorkerRegistration {
             },
         }
     }
+
+    /// <https://w3c.github.io/ServiceWorker/#activate>
+    fn activate(&mut self, constellation_sender: GenericSender<ServiceWorkerManagerMsg>) {
+        // Step 1: If registration’s waiting worker is null, abort these steps.
+        if self.waiting_worker.is_none() {
+            return;
+        }
+
+        // Step 2: If registration’s active worker is not null, then:
+        if let Some(active_worker) = self.active_worker.as_mut() {
+            // Step 2.1: Terminate registration’s active worker.
+            // TODO: terminate.
+
+            // Step 2.2: Run the Update Worker State algorithm passing registration’s active worker and "redundant" as the arguments.
+            update_worker_state(
+                active_worker,
+                ServiceWorkerState::Redundant,
+                constellation_sender,
+            );
+        }
+    }
 }
 
 /// A structure managing all registrations and workers for a given origin.
@@ -410,7 +431,7 @@ impl ServiceWorkerManager {
 
     /// <https://w3c.github.io/ServiceWorker/#try-activate>
     fn try_activate_registration(&mut self, url: ServoUrl) {
-        if let Some(registration) = self.registrations.get(&url) {
+        if let Some(registration) = self.registrations.get_mut(&url) {
             // Step 1: If registration’s waiting worker is null, return.
             if registration.waiting_worker.is_none() {
                 return;
@@ -420,7 +441,18 @@ impl ServiceWorkerManager {
             if let Some(active_worker) = registration.active_worker.as_ref() &&
                 active_worker.state == ServiceWorkerState::Activating
             {
-                // return;
+                return;
+            }
+
+            // Step 3: Invoke Activate with registration if either of the following is true:
+            // - registration’s active worker is null.
+            // - The result of running Service Worker Has No Pending Events with registration’s active worker is true,
+            // and no service worker client is using registration
+            // or registration’s waiting worker’s skip waiting flag is set.
+            // Note: Has No Pending Events is not implemented yet,
+            // for now only using the first condition.
+            if registration.active_worker.is_none() {
+                registration.activate(self.constellation_sender.clone());
             }
         }
     }
@@ -654,38 +686,17 @@ impl ServiceWorkerManager {
         }
     }
 
-    /// <https://w3c.github.io/ServiceWorker/#update-worker-state>
-    fn update_worker_state(&mut self, worker: &mut ServiceWorker, state: ServiceWorkerState) {
-        // Step 1: Assert: state is not "parsed".
-        debug_assert!(!matches!(state, ServiceWorkerState::Parsed));
-
-        // Step 2: Set worker’s state to state.
-        worker.state = state.clone();
-
-        // Step 3: Let settingsObjects be all environment settings objects whose origin is worker’s script url’s origin.
-        // Step 4: For each settingsObject of settingsObjects, queue a task on settingsObject’s responsible event loop.
-        // Note: task will be queued to all pipelines for the script origin by the constellation.
-        let origin = worker.script_url.origin();
-        if self
-            .constellation_sender
-            .send(ServiceWorkerManagerMsg::UpdateWorkerState {
-                worker_id: worker.id,
-                state,
-                origin,
-            })
-            .is_err()
-        {
-            error!("Failed to send UpdateWorkerState message to constellation.");
-        }
-    }
-
     /// <https://www.w3.org/TR/service-workers/#install>
     fn install(&mut self, job: Job, mut new_worker: ServiceWorker) {
         // Step 5: Run the Update Worker State algorithm
         // passing registration’s installing worker and "installing" as the arguments.
         // Note: running now so that the worker passed to the registration below is in the right state.
         // TODO: review how workers are passed around and mutated in this module.
-        self.update_worker_state(&mut new_worker, ServiceWorkerState::Installing);
+        update_worker_state(
+            &mut new_worker,
+            ServiceWorkerState::Installing,
+            self.constellation_sender.clone(),
+        );
 
         let (registration_id, installing_worker_id, waiting_worker_id, active_worker_id) = {
             let Some(registration) = self.registrations.get_mut(&job.scope_url) else {
@@ -733,7 +744,11 @@ impl ServiceWorkerManager {
         // Step 19: Run the Update Worker State algorithm
         // passing registration’s waiting worker and "installed" as the arguments.
         // Note: running here so the worker passed to the registration below is in the right state.
-        self.update_worker_state(&mut new_worker, ServiceWorkerState::Installed);
+        update_worker_state(
+            &mut new_worker,
+            ServiceWorkerState::Installed,
+            self.constellation_sender.clone(),
+        );
 
         let Some(registration) = self.registrations.get_mut(&job.scope_url) else {
             error!("Registration should exist when installing a worker.");
@@ -801,6 +816,34 @@ impl ServiceWorkerManager {
             };
         // Step 17: Else, invoke Install algorithm with job, worker, and registration as its arguments.
         self.install(job, new_worker);
+    }
+}
+
+/// <https://w3c.github.io/ServiceWorker/#update-worker-state>
+fn update_worker_state(
+    worker: &mut ServiceWorker,
+    state: ServiceWorkerState,
+    constellation_sender: GenericSender<ServiceWorkerManagerMsg>,
+) {
+    // Step 1: Assert: state is not "parsed".
+    debug_assert!(!matches!(state, ServiceWorkerState::Parsed));
+
+    // Step 2: Set worker’s state to state.
+    worker.state = state.clone();
+
+    // Step 3: Let settingsObjects be all environment settings objects whose origin is worker’s script url’s origin.
+    // Step 4: For each settingsObject of settingsObjects, queue a task on settingsObject’s responsible event loop.
+    // Note: task will be queued to all pipelines for the script origin by the constellation.
+    let origin = worker.script_url.origin();
+    if constellation_sender
+        .send(ServiceWorkerManagerMsg::UpdateWorkerState {
+            worker_id: worker.id,
+            state,
+            origin,
+        })
+        .is_err()
+    {
+        error!("Failed to send UpdateWorkerState message to constellation.");
     }
 }
 
