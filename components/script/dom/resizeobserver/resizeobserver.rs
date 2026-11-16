@@ -7,8 +7,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use app_units::Au;
 use dom_struct::dom_struct;
+use euclid::Rect;
 use euclid::num::Zero;
-use euclid::{Rect, Size2D};
 use html5ever::ns;
 use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
@@ -410,7 +410,7 @@ fn calculate_box_size(
     target: &Element,
     observed_box: &ResizeObserverBoxOptions,
 ) -> ResizeObserverSizeImpl {
-    let physical_rect = match observed_box {
+    let (width, height) = match observed_box {
         ResizeObserverBoxOptions::Content_box => {
             // Note: only taking first fragment,
             // but the spec will expand to cover all fragments.
@@ -419,12 +419,9 @@ fn calculate_box_size(
                 .box_area_query(cx, target.upcast(), BoxAreaType::Content, true)
                 .unwrap_or_else(Rect::zero);
 
-            Rect::new(
-                content_box.origin.map(|coordinate| coordinate.to_f64_px()),
-                Size2D::new(
-                    content_box.size.width.to_f64_px(),
-                    content_box.size.height.to_f64_px(),
-                ),
+            (
+                content_box.size.width.to_f64_px(),
+                content_box.size.height.to_f64_px(),
             )
         },
         ResizeObserverBoxOptions::Border_box => {
@@ -434,13 +431,9 @@ fn calculate_box_size(
                 .owner_window()
                 .box_area_query(cx, target.upcast(), BoxAreaType::Border, true)
                 .unwrap_or_else(Rect::zero);
-
-            Rect::new(
-                border_box.origin.map(|coordinate| coordinate.to_f64_px()),
-                Size2D::new(
-                    border_box.size.width.to_f64_px(),
-                    border_box.size.height.to_f64_px(),
-                ),
+            (
+                border_box.size.width.to_f64_px(),
+                border_box.size.height.to_f64_px(),
             )
         },
         ResizeObserverBoxOptions::Device_pixel_content_box => {
@@ -449,15 +442,13 @@ fn calculate_box_size(
                 .owner_window()
                 .box_area_query(cx, target.upcast(), BoxAreaType::Content, true)
                 .unwrap_or_else(Rect::zero);
-
+            // This code is snapping both edges of the rect to device pixels and then calculating
+            // the width. This gives the exact number of device pixels the rectangle takes up on
+            // the screen.
             let to_device_px = |length: Au| (length.to_f64_px() * device_pixel_ratio).round();
-            Rect::new(
-                content_box.origin.map(to_device_px),
-                Size2D::new(
-                    to_device_px(content_box.size.width),
-                    to_device_px(content_box.size.height),
-                ),
-            )
+            let width = to_device_px(content_box.max_x()) - to_device_px(content_box.origin.x);
+            let height = to_device_px(content_box.max_y()) - to_device_px(content_box.origin.y);
+            (width, height)
         },
     };
 
@@ -465,9 +456,9 @@ fn calculate_box_size(
         .style_without_reflow()
         .map_or_else(WritingMode::empty, |style| style.writing_mode);
     let (inline_size, block_size) = if writing_mode.is_horizontal() {
-        (physical_rect.width(), physical_rect.height())
+        (width, height)
     } else {
-        (physical_rect.height(), physical_rect.width())
+        (height, width)
     };
 
     ResizeObserverSizeImpl {
