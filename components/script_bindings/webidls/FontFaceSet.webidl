@@ -2,19 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-/*
+// https://drafts.csswg.org/css-font-loading/#fontfacesetloadevent
 dictionary FontFaceSetLoadEventInit : EventInit {
   sequence<FontFace> fontfaces = [];
 };
 
-[Exposed=(Window,Worker)]
+[Exposed=(Window /*, Worker */), Pref="dom_fontface_enabled"]
 interface FontFaceSetLoadEvent : Event {
   constructor(DOMString type, optional FontFaceSetLoadEventInit eventInitDict = {});
   // WebIDL needs to support FrozenArray & SameObject
   // [SameObject] readonly attribute FrozenArray<FontFace> fontfaces;
   readonly attribute any fontfaces;
 };
-*/
 
 enum FontFaceSetLoadStatus { "loading" , "loaded" };
 
