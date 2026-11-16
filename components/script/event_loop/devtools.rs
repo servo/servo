@@ -26,6 +26,7 @@ use script_bindings::root::Dom;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::PipelineId;
 use servo_config::pref;
+use style::properties::{NonCustomPropertyId, PropertyId};
 use style::stylesheets::Origin;
 
 use crate::conversions::Convert;
@@ -175,7 +176,7 @@ pub(crate) fn handle_get_favicon(
 }
 
 pub(crate) fn handle_get_css_database(reply: GenericSender<HashMap<String, CssDatabaseProperty>>) {
-    let database: HashMap<_, _> = ENABLED_LONGHAND_PROPERTIES
+    let mut database: HashMap<_, _> = ENABLED_LONGHAND_PROPERTIES
         .iter()
         .map(|l| {
             (
@@ -189,6 +190,24 @@ pub(crate) fn handle_get_css_database(reply: GenericSender<HashMap<String, CssDa
             )
         })
         .collect();
+
+    // Firefox treats properties missing from database as unknown, so shorthands are added
+    database.extend(
+        NonCustomPropertyId::iter()
+            .filter(|id| PropertyId::NonCustom(*id).enabled_for_all_content())
+            .filter_map(|id| id.as_shorthand())
+            .map(|shorthand| {
+                (
+                    shorthand.name().into(),
+                    CssDatabaseProperty {
+                        is_inherited: shorthand.longhands().next().is_some_and(|l| l.inherited()),
+                        values: vec![],
+                        supports: vec![],
+                        subproperties: shorthand.longhands().map(|l| l.name().into()).collect(),
+                    },
+                )
+            }),
+    );
     let _ = reply.send(database);
 }
 
