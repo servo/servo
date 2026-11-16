@@ -45,7 +45,7 @@ use crate::dom::messageevent::MessageEvent;
 use crate::dom::sharedworkerglobalscope::SharedWorkerGlobalScope;
 use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
 use crate::dom::window::Window;
-use crate::dom::workerglobalscope::prepare_workerscope_init;
+use crate::dom::workerglobalscope::{WorkerGlobalScope, prepare_workerscope_init};
 use crate::realms::enter_auto_realm;
 use crate::runtime::script_runtime::ThreadSafeJSContext;
 use crate::tasks::task::TaskOnce;
@@ -342,6 +342,13 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
         // Step 1
         if self.closing.swap(true, Ordering::SeqCst) {
             return;
+        }
+        if let Some(control) = self
+            .global()
+            .downcast::<WorkerGlobalScope>()
+            .and_then(WorkerGlobalScope::shared_worker_control)
+        {
+            control.wake_waiters();
         }
 
         // Step 2

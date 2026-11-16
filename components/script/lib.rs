@@ -43,6 +43,7 @@ mod realms;
 mod routed_promise;
 mod runtime;
 mod scripting;
+mod sharedworker_host;
 pub mod test;
 mod unminify;
 mod url;

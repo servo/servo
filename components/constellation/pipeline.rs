@@ -28,6 +28,7 @@ pub struct Pipeline {
 
     /// The ID of the browsing context that contains this Pipeline.
     pub browsing_context_id: BrowsingContextId,
+    pub parent_pipeline_id: Option<PipelineId>,
 
     /// The [`WebViewId`] of the `WebView` that contains this Pipeline.
     pub webview_id: WebViewId,
@@ -103,6 +104,7 @@ impl Pipeline {
         Ok(Self::new_already_spawned(
             new_pipeline_info.new_pipeline_id,
             new_pipeline_info.browsing_context_id,
+            new_pipeline_info.parent_info,
             new_pipeline_info.webview_state.id,
             new_pipeline_info.opener,
             event_loop,
@@ -117,6 +119,7 @@ impl Pipeline {
     pub fn new_already_spawned(
         id: PipelineId,
         browsing_context_id: BrowsingContextId,
+        parent_pipeline_id: Option<PipelineId>,
         webview_id: WebViewId,
         opener: Option<BrowsingContextId>,
         event_loop: Rc<EventLoop>,
@@ -127,6 +130,7 @@ impl Pipeline {
         let pipeline = Self {
             id,
             browsing_context_id,
+            parent_pipeline_id,
             webview_id,
             opener,
             event_loop,
