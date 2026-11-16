@@ -492,7 +492,13 @@ impl FreeTypeFaceTableProviderData {
         let is_variable_font = self
             .font_ref()
             .and_then(|font_ref| font_ref.fvar())
-            .is_ok_and(|table| table.axis_count() > 0);
+            .is_ok_and(|table| {
+                table.axes().is_ok_and(|axes| {
+                    axes.iter().any(|axis| {
+                        axis.axis_tag() == Tag::new(b"slnt") || axis.axis_tag() == Tag::new(b"ital")
+                    })
+                })
+            });
         !face_is_slanted && !is_variable_font && synthetic_italic
     }
 }
