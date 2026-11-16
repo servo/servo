@@ -4216,6 +4216,21 @@ impl ExportedKey {
     }
 }
 
+/// Given a byte sequence containing a bit sequence, truncate the bit sequence, keeping the first
+/// `length` bits.
+///
+/// If `length` is greater or equal to `bit_sequqnce.len() * 8`, this function has no effect.
+fn truncate_bit_sequence(bit_sequence: &mut Vec<u8>, length: usize) {
+    bit_sequence.truncate(length.div_ceil(8));
+
+    // Set the excess bits in the last byte to zero.
+    if length < bit_sequence.len() * 8 &&
+        let Some(last_byte) = bit_sequence.last_mut()
+    {
+        *last_byte &= u8::MAX << (8 - length % 8);
+    }
+}
+
 /// Given a Keccak encoding of a bit string, truncate the bit string, keeping the first `length`
 /// bits.
 ///
