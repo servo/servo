@@ -281,13 +281,21 @@ impl ResizeObserverMethods<crate::DomTypeHolder> for ResizeObserver {
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-observe>
     fn Observe(&self, no_gc: &NoGC, target: &Element, options: &ResizeObserverOptions) {
-        // Step 1. If target is in [[observationTargets]] slot, call unobserve() with argument target.
-        let is_present = self
+        let observed_box = self
             .observation_targets
             .borrow()
             .iter()
-            .any(|(_obs, other)| &**other == target);
-        if is_present {
+            .find(|(_, other)| &**other == target)
+            .map(|(observation, _)| observation.observed_box);
+        // Propoposed specification text from <https://github.com/web-platform-tests/wpt/issues/30708>.
+        // >  If preexistingTarget exists and its observedBox.box equals options.box return
+        // Both Chrome and Firefox do this and likely WebKit too.
+        if observed_box == Some(options.box_) {
+            return;
+        }
+
+        // Step 1. If target is in [[observationTargets]] slot, call unobserve() with argument target.
+        if observed_box.is_some() {
             self.Unobserve(no_gc, target);
         }
 
