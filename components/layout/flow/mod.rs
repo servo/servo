@@ -582,7 +582,7 @@ impl BlockFormattingContext {
             })
             .or_else(|| {
                 preferred_aspect_ratio.map(|ratio| {
-                    ratio.compute_dependent_size(LogicalAxis::Block, containing_block.size.inline)
+                    ratio.compute_dependent_size(LogicalAxis::Block, containing_block.inline_size())
                 })
             })
             .unwrap_or(content_block_size);
@@ -1338,7 +1338,7 @@ impl IndependentFormattingContext {
             layout_style.is_table(),
             compute_ratio_dependent_block_size(
                 preferred_aspect_ratio,
-                containing_block_for_children.size.inline,
+                containing_block_for_children.inline_size(),
             ),
         );
 

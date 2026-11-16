@@ -342,7 +342,7 @@ impl SameFormattingContextBlock {
 
         let ratio_dependent_block_size = compute_ratio_dependent_block_size(
             preferred_aspect_ratio,
-            containing_block_for_children.size.inline,
+            containing_block_for_children.inline_size(),
         );
         let block_size = block_sizes.resolve(
             LogicalAxis::Block,
