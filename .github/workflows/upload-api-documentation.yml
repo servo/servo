@@ -1,8 +1,9 @@
-name: Docs upload
+name: Upload API Documentation
 
 on:
-  push:
-    branches: ["main"]
+  schedule:
+    # This runs the job at 3am UTC every day.
+    - cron: "0 3 * * *"
   workflow_dispatch:
 
 jobs:
@@ -34,11 +35,11 @@ jobs:
           directory: ${{ runner.temp }}/llvm
       - name: Set LIBCLANG_PATH env
         run: echo "LIBCLANG_PATH=${LLVM_PATH}/lib" >> $GITHUB_ENV
-      - name: Compile docs
+      - name: Build
         run: ./mach doc
         env:
           RUSTDOCFLAGS: --document-private-items
-      - name: Upload docs
+      - name: Upload
         run: |
           cd target/doc
           git config --global init.defaultBranch main
