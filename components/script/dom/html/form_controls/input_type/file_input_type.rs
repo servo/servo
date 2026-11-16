@@ -176,6 +176,7 @@ impl SpecificInputType for FileInputType {
                     filter_patterns: filter_from_accept(&input.Accept()),
                     allow_select_multiple: input.Multiple(),
                     accept_current_paths_for_testing,
+                    directory: input.Webkitdirectory(),
                 }),
                 None,
             );

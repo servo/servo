@@ -84,17 +84,20 @@ impl Dialog {
         // We need to call `pick_files` / pick_file` outside of the closure here
         // in order to ensure they are called at least one time to trigger the
         // dialog properly.
-        let allow_select_multiple = file_picker.allow_select_multiple();
-        let future = if allow_select_multiple {
+        // `webkitdirectory` only allows selecting one folder.
+        let future = if file_picker.is_directory() {
+            Either::Right(Either::Left(dialog.pick_folder()))
+        } else if file_picker.allow_select_multiple() {
             Either::Left(dialog.pick_files())
         } else {
-            Either::Right(dialog.pick_file())
+            Either::Right(Either::Right(dialog.pick_file()))
         };
 
         let future = Box::pin(async move {
             let handles = match future {
                 Either::Left(future) => future.await,
-                Either::Right(future) => future.await.map(|file_handle| vec![file_handle]),
+                Either::Right(Either::Left(folder)) => folder.await.map(|handle| vec![handle]),
+                Either::Right(Either::Right(file)) => file.await.map(|handle| vec![handle]),
             };
             handles.map(|handles| {
                 handles

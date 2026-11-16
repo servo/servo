@@ -158,6 +158,9 @@ pub struct FilePickerRequest {
     pub filter_patterns: Vec<FilterPattern>,
     pub allow_select_multiple: bool,
     pub accept_current_paths_for_testing: bool,
+    /// <https://wicg.github.io/entries-api/#html-forms>
+    /// To reflect `webkidirectory` flag.
+    pub directory: bool,
 }
 
 /// Request to the embedder to display a control for a `<select>` element.
