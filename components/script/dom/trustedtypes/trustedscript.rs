@@ -152,7 +152,7 @@ impl TrustedScript {
             }
         };
         global.call_on_csp_list(|csp_list| {
-            csp_list.is_js_evaluation_allowed(cx, global, &source_string.str())
+            csp_list.is_js_evaluation_allowed(cx, global, &source_string)
         })
     }
 }
