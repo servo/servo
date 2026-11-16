@@ -3374,13 +3374,15 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-media-preload
-    // Missing/Invalid values are user-agent defined.
+    // > The attribute's missing value default and invalid value default are both implementation-defined,
+    // though the Metadata state is suggested as a compromise between reducing server load and providing
+    // an optimal user experience.
     make_enumerated_getter!(
         Preload,
         "preload",
         "none" | "metadata" | "auto",
-        missing => "auto",
-        invalid => "auto"
+        missing => "metadata",
+        invalid => "metadata"
     );
 
     // https://html.spec.whatwg.org/multipage/#attr-media-preload
