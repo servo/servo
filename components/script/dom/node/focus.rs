@@ -308,7 +308,7 @@ impl Node {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#autofocus-delegate>
-    fn autofocus_delegate(
+    pub(crate) fn autofocus_delegate(
         &self,
         cx: &mut JSContext,
         focus_trigger: FocusTrigger,

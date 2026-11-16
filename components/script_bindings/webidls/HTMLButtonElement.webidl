@@ -41,3 +41,4 @@ interface HTMLButtonElement : HTMLElement {
 
   readonly attribute NodeList labels;
 };
+HTMLButtonElement includes PopoverTargetAttributes;
