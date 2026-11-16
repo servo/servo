@@ -1513,6 +1513,9 @@ where
             EmbedderToConstellationMessage::SetNetworkOnlineState(online) => {
                 self.handle_set_network_online_state(online);
             },
+            EmbedderToConstellationMessage::StoreCacheToDisk(sender) => {
+                self.public_resource_threads.store_cache_to_disk(sender);
+            },
         }
     }
 
