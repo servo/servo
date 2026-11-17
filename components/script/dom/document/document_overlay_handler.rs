@@ -508,6 +508,9 @@ impl DocumentOverlayHandler {
         );
 
         // Step 3. Let autoEndpoint be endpoint.
+        //
+        // Need to keep the reference to the hint_parent alive such that we
+        // can dereference to obtain its endpoint
         let hint_parent;
         let mut auto_endpoint = endpoint;
 
