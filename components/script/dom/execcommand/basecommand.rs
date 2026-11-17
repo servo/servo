@@ -153,6 +153,7 @@ pub(crate) enum CssPropertyName {
     FontStyle,
     TextDecoration,
     TextDecorationLine,
+    WhiteSpaceCollapse,
 }
 
 impl CssPropertyName {
@@ -251,6 +252,10 @@ impl CssPropertyName {
                     }
                     text_decoration_line.to_css_string()
                 },
+                CssPropertyName::WhiteSpaceCollapse => style
+                    .get_inherited_text()
+                    .white_space_collapse
+                    .to_css_string(),
             }
             .into(),
         )
@@ -282,6 +287,7 @@ impl CssPropertyName {
                 return Some(dest.into());
             },
             CssPropertyName::TextDecorationLine => LonghandId::TextDecorationLine,
+            CssPropertyName::WhiteSpaceCollapse => LonghandId::WhiteSpaceCollapse,
         };
         style
             .get(PropertyDeclarationId::Longhand(longhand_id))
@@ -302,6 +308,9 @@ impl CssPropertyName {
             CssPropertyName::FontStyle => "font-style",
             CssPropertyName::TextDecoration => "text-decoration",
             CssPropertyName::TextDecorationLine => "text-decoration-line",
+            // Confusingly, tests expect to use the "white-space" property when set,
+            // even though the only relevant longhand is "white-space-collapse"
+            CssPropertyName::WhiteSpaceCollapse => "white-space",
         }
         .into()
     }
@@ -365,6 +374,9 @@ pub(crate) enum CommandName {
     Undo,
     Unlink,
     Usecss,
+    // Used to record value of whitespace collapse property of text nodes,
+    // but is not an actual command exposed to the web
+    ServoInternalWhiteSpaceCollapse,
 }
 
 impl CommandName {
@@ -620,6 +632,7 @@ impl CommandName {
             CommandName::ForeColor => CssPropertyName::Color,
             CommandName::HiliteColor => CssPropertyName::BackgroundColor,
             CommandName::Italic => CssPropertyName::FontStyle,
+            CommandName::ServoInternalWhiteSpaceCollapse => CssPropertyName::WhiteSpaceCollapse,
             // > If a command does not have a relevant CSS property specified, it defaults to null.
             _ => return None,
         })

@@ -8,7 +8,6 @@ use script_bindings::codegen::GenericBindings::RangeBinding::RangeMethods;
 use script_bindings::codegen::GenericBindings::SelectionBinding::SelectionMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::str::DOMString;
-use style::values::specified::WhiteSpaceCollapse;
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::root::DomRoot;
@@ -18,7 +17,6 @@ use crate::dom::execcommand::contenteditable::node::{
     NodeOrString, is_allowed_child, move_preserving_ranges,
 };
 use crate::dom::execcommand::contenteditable::selection::SelectionDeletionStripWrappers;
-use crate::dom::html::htmlpreelement::HTMLPreElement;
 use crate::dom::selection::Selection;
 use crate::dom::text::Text;
 
@@ -126,13 +124,7 @@ pub(crate) fn execute_insert_line_break_command(
         .downcast::<Element>()
         // In case the start_container is a text node where we need to insert a "\n"
         .or(start_container.GetParentElement().as_deref())
-        .filter(|element| !element.is::<HTMLPreElement>())
-        .and_then(|element| element.style(cx))
-        .is_some_and(|style| {
-            let white_space_collapse = style.get_inherited_text().white_space_collapse;
-            white_space_collapse == WhiteSpaceCollapse::Preserve ||
-                white_space_collapse == WhiteSpaceCollapse::PreserveBreaks
-        });
+        .is_some_and(|element| element.white_space_preserves_breaks(cx));
 
     let newline_node = if has_preformatted_styling {
         DomRoot::upcast(document.CreateTextNode(cx, DOMString::from_static("\n")))

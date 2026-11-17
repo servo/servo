@@ -580,18 +580,20 @@ impl Selection {
             // Step 32.6. Let children be a list of nodes, initially empty.
             rooted_vec!(let mut children);
             // Step 32.7. Append the first child of end block to children.
+            first_child.maybe_split_text_node_on_newlines(cx, &end_block, context_object);
             children.push(first_child.as_traced());
             // Step 32.8. While children's last member is not a br,
             // and children's last member's nextSibling is an inline node,
             // append children's last member's nextSibling to children.
             while let Some(last) = children.last() {
-                if last.is::<HTMLBRElement>() {
+                if last.is_new_line_node(cx) {
                     break;
                 }
                 let Some(next) = last.GetNextSibling() else {
                     break;
                 };
                 if next.is_inline_node(cx) {
+                    next.maybe_split_text_node_on_newlines(cx, &end_block, context_object);
                     children.push(next.as_traced());
                     continue;
                 }

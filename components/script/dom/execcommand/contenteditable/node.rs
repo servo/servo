@@ -19,6 +19,7 @@ use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterData
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLAnchorElementBinding::HTMLAnchorElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::TextBinding::TextMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::NodeTypeId;
 use crate::dom::bindings::root::{DomRoot, DomSlice, UnrootedDom};
@@ -533,10 +534,10 @@ pub(crate) fn split_the_parent<'a>(cx: &mut JSContext, node_list: &'a [&'a Node]
     // remove the first child of original parent from original parent.
     if node_list
         .last()
-        .is_some_and(|last| last.is_inline_node(cx) && !last.is::<HTMLBRElement>()) &&
+        .is_some_and(|last| last.is_inline_node(cx) && !last.is_new_line_node(cx)) &&
         !original_parent.is_inline_node(cx) &&
         let Some(first_of_original) = original_parent.children().next() &&
-        first_of_original.is::<HTMLBRElement>()
+        first_of_original.is_new_line_node(cx)
     {
         assert!(first_of_original.has_parent());
         first_of_original.remove_self(cx);
@@ -835,6 +836,7 @@ pub(crate) fn record_the_values(
             CommandName::Italic,
             CommandName::Strikethrough,
             CommandName::Underline,
+            CommandName::ServoInternalWhiteSpaceCollapse,
         ] {
             // Step 2.1. Let ancestor equal node.
             let mut ancestor =
@@ -1614,7 +1616,7 @@ impl Node {
                 .map(|node| node.as_rooted())
         };
         child.is_some_and(|child| {
-            child.is_visible(cx) && (child.is_block_node(cx) || child.is::<HTMLBRElement>())
+            child.is_visible(cx) && (child.is_block_node(cx) || child.is_new_line_node(cx))
         })
     }
 
@@ -2252,8 +2254,11 @@ impl Node {
         }
         // Step 5. If ref is an editable extraneous line break, remove it from its parent.
         if ref_.is_editable(cx) &&
-            ref_.downcast::<HTMLBRElement>()
-                .is_some_and(|br| br.is_extraneous_line_break(cx))
+            (ref_
+                .downcast::<HTMLBRElement>()
+                .is_some_and(|br| br.is_extraneous_line_break(cx)) ||
+                self.downcast::<Text>()
+                    .is_some_and(|text| text.is_newline_node(cx)))
         {
             assert!(ref_.has_parent());
             ref_.remove_self(cx);
@@ -2287,8 +2292,11 @@ impl Node {
         }
         // Step 4. If ref is an editable extraneous line break:
         if ref_.is_editable(cx) &&
-            ref_.downcast::<HTMLBRElement>()
-                .is_some_and(|br| br.is_extraneous_line_break(cx))
+            (ref_
+                .downcast::<HTMLBRElement>()
+                .is_some_and(|br| br.is_extraneous_line_break(cx)) ||
+                self.downcast::<Text>()
+                    .is_some_and(|text| text.is_newline_node(cx)))
         {
             // Step 4.1. While ref's parent is editable and invisible, set ref to its parent.
             loop {
@@ -2446,6 +2454,12 @@ impl Node {
         }
     }
 
+    pub(crate) fn is_new_line_node(&self, cx: &mut JSContext) -> bool {
+        self.is::<HTMLBRElement>() ||
+            self.downcast::<Text>()
+                .is_some_and(|text| text.is_newline_node(cx))
+    }
+
     /// <https://w3c.github.io/editing/docs/execCommand/#collapsed-line-break>
     pub(crate) fn is_collapsed_line_break(&self, cx: &mut JSContext) -> bool {
         // > A collapsed line break is a br that begins a line box which has nothing else in it,
@@ -2454,11 +2468,7 @@ impl Node {
         // This also takes into account a newly created text node with the only value "\n", since
         // that's what browsers insert when the white-space CSS property indicates it has pre-formatted
         // content.
-        if !self.is::<HTMLBRElement>() &&
-            !self
-                .downcast::<Text>()
-                .is_some_and(|text| text.data().as_str() == "\n")
-        {
+        if !self.is_new_line_node(cx) {
             return false;
         }
 
@@ -2507,5 +2517,57 @@ impl Node {
         }
 
         true
+    }
+
+    /// Browsers treat newline characters in text nodes in pre-formatted content
+    /// (when white-space-collapse is set to preserve or preserve-breaks) as functionally
+    /// equivalent to `<br>`. However, most of the logic we use in command algorithms
+    /// can only check if a text node has exactly the value `\n`.
+    ///
+    /// Therefore, any text node that has a newline character and some other text is split
+    /// such that these newline characters appear as separate nodes. This makes it possible
+    /// to implement logic depending on those newlines. For example, in `split_the_parent` it
+    /// is used as the cut-off point between two separate sentences.
+    pub(crate) fn maybe_split_text_node_on_newlines(
+        &self,
+        cx: &mut JSContext,
+        parent: &Node,
+        context_object: &Document,
+    ) {
+        let Some(text) = self.downcast::<Text>() else {
+            return;
+        };
+        let Some(newline_index) = ({
+            // This needs to be in a closure to ensure that the borrow on
+            // data is closed before we proceed
+            text.data().find('\n')
+        }) else {
+            return;
+        };
+        // We can't split a text node which only has a "\n" in it, so leave it alone
+        if text.data().len() == 1 {
+            return;
+        }
+        // Splitting is only required if the parent context preserves breaks
+        if parent
+            .downcast::<Element>()
+            .is_none_or(|parent_element| !parent_element.white_space_preserves_breaks(cx))
+        {
+            return;
+        }
+        let new_split_node = text
+            .SplitText(cx, newline_index as u32)
+            .expect("Must always be able to split");
+        // The new node has the `\n` as the first character. Therefore, remove that since
+        // we manually insert a text node with `\n` before it.
+        new_split_node
+            .upcast::<CharacterData>()
+            .DeleteData(cx, 0, 1)
+            .expect("Must always be able to delete first character");
+        let new_text_node =
+            DomRoot::upcast(context_object.CreateTextNode(cx, DOMString::from_static("\n")));
+        parent
+            .InsertBefore(cx, &new_text_node, Some(new_split_node.upcast()))
+            .expect("Must always be able to insert");
     }
 }

@@ -7,8 +7,8 @@ use js::context::JSContext;
 use script_bindings::inheritance::Castable;
 use style::attr::AttrValue;
 use style::properties::{LonghandId, PropertyDeclaration, PropertyDeclarationId, ShorthandId};
-use style::values::specified::TextDecorationLine;
 use style::values::specified::box_::DisplayOutside;
+use style::values::specified::{TextDecorationLine, WhiteSpaceCollapse};
 
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
@@ -20,6 +20,7 @@ use crate::dom::execcommand::commands::fontsize::font_size_to_css_font;
 use crate::dom::execcommand::contenteditable::node::move_preserving_ranges;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlfontelement::HTMLFontElement;
+use crate::dom::html::htmlpreelement::HTMLPreElement;
 use crate::dom::node::node::{Node, NodeTraits};
 
 impl Element {
@@ -490,5 +491,18 @@ impl Element {
         node.remove_self(cx);
         // Step 8. Return replacement element.
         DomRoot::upcast(replacement)
+    }
+
+    pub(crate) fn white_space_preserves_breaks(&self, cx: &mut JSContext) -> bool {
+        if self.is::<HTMLPreElement>() {
+            return false;
+        }
+        let Some(style) = self.style(cx) else {
+            return false;
+        };
+
+        let white_space_collapse = style.get_inherited_text().white_space_collapse;
+        white_space_collapse == WhiteSpaceCollapse::Preserve ||
+            white_space_collapse == WhiteSpaceCollapse::PreserveBreaks
     }
 }

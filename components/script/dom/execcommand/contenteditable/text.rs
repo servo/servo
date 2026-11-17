@@ -161,4 +161,11 @@ impl Text {
             .is_some_and(|c| space_characters.contains(&&c));
         has_preserve_space && has_space_character
     }
+
+    pub(crate) fn is_newline_node(&self, cx: &mut JSContext) -> bool {
+        self.upcast::<Node>()
+            .GetParentElement()
+            .is_some_and(|parent_element| parent_element.white_space_preserves_breaks(cx)) &&
+            self.data().as_str() == "\n"
+    }
 }
