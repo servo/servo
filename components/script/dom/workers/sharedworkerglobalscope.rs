@@ -67,6 +67,10 @@ use crate::scripting::script_module::fetch_a_module_script_graph;
 use crate::sharedworker_host::SharedWorkerThreadControl;
 use crate::tasks::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 
+// Placeholders
+
+
+
 #[derive(MallocSizeOf)]
 pub(crate) enum SharedWorkerScriptMsg {
     CommonWorker(WorkerScriptMsg),
