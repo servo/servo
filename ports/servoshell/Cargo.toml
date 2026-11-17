@@ -73,7 +73,7 @@ profilemozjs = ["servo/profilemozjs"]
 subtlecrypto = ["servo/subtlecrypto"]
 tracing = ["dep:tracing", "dep:tracing-subscriber", "servo/tracing"]
 tracing-hitrace = ["tracing", "dep:hitrace"]
-tracing-perfetto = ["tracing", "dep:tracing-perfetto"]
+tracing-perfetto = ["tracing", "dep:tracing-perfetto-file"]
 vello = ["servo/vello"]
 webgl_backtrace = ["servo/webgl_backtrace"]
 webgl = ["servo/webgl"]
@@ -99,7 +99,7 @@ rustls = { workspace = true, features = ["aws-lc-rs"] }
 servo = { workspace = true, features = ["background_hang_monitor", "bluetooth", "testbinding"], default-features = false }
 tokio = { workspace = true }
 tracing = { workspace = true, optional = true }
-tracing-perfetto = { workspace = true, optional = true }
+tracing-perfetto-file = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, optional = true, features = ["env-filter"] }
 url = { workspace = true }
 webdriver_server = { workspace = true }

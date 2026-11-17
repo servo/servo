@@ -205,7 +205,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
         });
         Ok(())
     })
-    .resolve::<ThrowRuntimeExAndDefault>()
+    .resolve::<ThrowRuntimeExAndDefault>();
 }
 
 #[unsafe(no_mangle)]
