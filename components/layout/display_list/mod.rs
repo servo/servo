@@ -65,7 +65,7 @@ use crate::fragment_tree::{
     IFrameFragment, ImageFragment, PositioningFragment, SpecificLayoutInfo, Tag, TextFragment,
 };
 use crate::geom::{
-    LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize,
+    AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize,
 };
 use crate::replaced::NaturalSizes;
 use crate::style_ext::{BorderStyleColor, ComputedValuesExt};
@@ -1344,8 +1344,7 @@ impl Fragment {
                 TextDecorationLine::UNDERLINE => (
                     text_decoration.color,
                     text_decoration.style,
-                    font_metrics.ascent - font_metrics.underline_offset +
-                        text_decoration.underline_offset,
+                    underline_position(font_metrics, text_decoration.underline_offset),
                     resolve_thickness(&text_decoration.thickness),
                 ),
                 // <https://drafts.csswg.org/css-text-decor-4/#valdef-text-decoration-line-spelling-error>
@@ -2551,6 +2550,21 @@ fn collect_glyphs(
         }
     }
     (largest_advance, entirely_white_space)
+}
+
+/// The position of an underline relative to the top of the text fragment box.
+/// <https://drafts.csswg.org/css-text-decor-4/#text-underline-position-property>
+/// <https://drafts.csswg.org/css-text-decor-4/#underline-offset>
+fn underline_position(font_metrics: &FontMetrics, underline_offset: AuOrAuto) -> Au {
+    // `text-underline-offset` sets the offset of underlines from their "zero position".
+    // TODO: Now we always set the "zero position" at the baseline, this will need refinement
+    // once we support `text-underline-position`.
+    let zero_position = font_metrics.ascent;
+    zero_position +
+        match underline_offset {
+            AuOrAuto::Auto => -font_metrics.underline_offset,
+            AuOrAuto::LengthPercentage(offset) => offset,
+        }
 }
 
 /// Given a set of corner radii for a rectangle, this function returns the corresponding radii
