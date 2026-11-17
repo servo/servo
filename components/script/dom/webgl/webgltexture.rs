@@ -281,7 +281,11 @@ impl WebGLTexture {
             return Err(WebGLError::InvalidOperation);
         }
 
-        if !base_image_info.is_power_of_two() {
+        let Some(context) = self.upcast().context() else {
+            return Err(WebGLError::ContextLost);
+        };
+        // Only WebGL 1 restricts mipmaps to power-of-two sizes.
+        if context.webgl_version() == WebGLVersion::WebGL1 && !base_image_info.is_power_of_two() {
             return Err(WebGLError::InvalidOperation);
         }
 
