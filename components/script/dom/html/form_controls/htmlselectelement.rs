@@ -1031,7 +1031,9 @@ impl VirtualMethods for HTMLSelectElement {
 
         // https://html.spec.whatwg.org/multipage/#select-open-picker
         if event.IsTrusted() &&
-            !self.upcast::<HTMLElement>().is_form_element_disabled(cx.no_gc()) &&
+            !self
+                .upcast::<HTMLElement>()
+                .is_form_element_disabled(cx.no_gc()) &&
             let Some(mouse_event) = event.downcast::<MouseEvent>() &&
             mouse_event.button() == MouseButton::Primary &&
             *event.type_() == *"mousedown"
