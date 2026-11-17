@@ -27,9 +27,9 @@ use crate::flow::CollapsibleWithParentStartMargin;
 use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::{
     BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, Fragment, FragmentChildren,
-    FragmentStatus, SpecificLayoutInfo,
+    FragmentStatus, SpecificLayoutInfo, WithLogicalRect,
 };
-use crate::geom::LogicalSides1D;
+use crate::geom::{LogicalRect, LogicalSides1D};
 use crate::positioned::{PositioningContext, relative_adjustement};
 use crate::sizing::{ComputeInlineContentSizes, InlineContentSizesResult, SizeConstraint};
 use crate::traversal::ElementDamageSet;
@@ -294,7 +294,7 @@ impl LayoutBoxBase {
         collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
         ignore_block_margins_for_stretch: LogicalSides1D<bool>,
         has_inline_parent: bool,
-    ) -> Option<Arc<BoxFragment>> {
+    ) -> Option<WithLogicalRect<Arc<BoxFragment>>> {
         if self.cached_layout_result_dirty.load(Ordering::Relaxed) {
             return None;
         }
@@ -317,17 +317,20 @@ impl LayoutBoxBase {
             return None;
         }
 
-        let fragment = result.result.fragment.clone();
-        {
-            let mut origin = result.result.original_offset;
-            if self.style.get_box().position == Position::Relative {
-                origin += relative_adjustement(&self.style, containing_block)
-                    .to_physical_offset(containing_block.style.writing_mode)
-            }
-            fragment.base.set_rect_origin(origin);
+        let fragment = result.result.box_fragment.clone();
+        let mut logical_rect = result.result.original_logical_rect;
+        let mut physical_origin = result.result.original_physical_offset;
+        if self.style.get_box().position == Position::Relative {
+            let relative_adjustement = relative_adjustement(&self.style, containing_block);
+            logical_rect.start_corner += relative_adjustement;
+            physical_origin +=
+                relative_adjustement.to_physical_offset(containing_block.style.writing_mode)
         }
+        // FIXME: this uses interior mutability through an `Arc` and modifies data
+        // shared with the cache. Multiple cache hits probably overwrite each other here.
+        fragment.base.set_rect_origin(physical_origin);
 
-        Some(fragment)
+        Some(WithLogicalRect::new(fragment, logical_rect))
     }
 
     pub(crate) fn cache_same_formatting_context_block_layout(
@@ -336,15 +339,15 @@ impl LayoutBoxBase {
         collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
         ignore_block_margins_for_stretch: LogicalSides1D<bool>,
         has_inline_parent: bool,
-        fragment: Arc<BoxFragment>,
+        fragment: WithLogicalRect<Arc<BoxFragment>>,
     ) {
-        let mut original_offset;
-        {
-            original_offset = fragment.content_rect().origin;
-            if self.style.get_box().position == Position::Relative {
-                original_offset -= relative_adjustement(&self.style, containing_block)
-                    .to_physical_offset(containing_block.style.writing_mode)
-            }
+        let mut original_logical_rect = fragment.logical_rect;
+        let mut original_physical_offset = fragment.fragment.content_rect().origin;
+        if self.style.get_box().position == Position::Relative {
+            let relative_adjustement = relative_adjustement(&self.style, containing_block);
+            original_logical_rect.start_corner -= relative_adjustement;
+            original_physical_offset -=
+                relative_adjustement.to_physical_offset(containing_block.style.writing_mode)
         }
 
         self.cached_layout_result_dirty
@@ -353,8 +356,9 @@ impl LayoutBoxBase {
             Some(LayoutResultAndInputs::SameFormattingContextBlock(Box::new(
                 SameFormattingContextBlockLayoutResultAndInputs {
                     result: SameFormattingContextBlockLayoutResult {
-                        fragment,
-                        original_offset,
+                        box_fragment: fragment.fragment,
+                        original_logical_rect,
+                        original_physical_offset,
                     },
                     containing_block_size: containing_block.size.clone(),
                     containing_block_writing_mode: containing_block.style.writing_mode,
@@ -476,8 +480,9 @@ impl IndependentFormattingContextLayoutResultAndInputs {
 #[derive(Clone, MallocSizeOf)]
 pub(crate) struct SameFormattingContextBlockLayoutResult {
     #[conditional_malloc_size_of]
-    pub fragment: Arc<BoxFragment>,
-    original_offset: Point2D<Au, CSSPixel>,
+    box_fragment: Arc<BoxFragment>,
+    original_logical_rect: LogicalRect<Au>,
+    original_physical_offset: Point2D<Au, CSSPixel>,
 }
 
 /// A collection of layout inputs and a cached layout result for a SameFormattingContextBlock for

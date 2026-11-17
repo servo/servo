@@ -58,17 +58,19 @@ pub(crate) enum Fragment {
 /// A combination of a [`Fragment`] and its logical rectangle, which is used to keep
 /// a list of fragment children in order to later convert their logical rectangle
 /// into a physical rectangle when the size of the parent fragment is known.
+pub(crate) type FragmentAndLogicalRect = WithLogicalRect<Fragment>;
+
 #[derive(Clone, MallocSizeOf)]
-pub(crate) struct FragmentAndLogicalRect {
-    pub fragment: Fragment,
+pub(crate) struct WithLogicalRect<T> {
+    pub fragment: T,
     /// The logical rectangle of the fragment relative to its parent's box. This logical rectangle
     /// will be converted into a physical one, and the Fragment's `content_rect` will be updated
     /// once the parent box's final size is known.
     pub logical_rect: LogicalRect<Au>,
 }
 
-impl FragmentAndLogicalRect {
-    pub(crate) fn new(fragment: Fragment, logical_rect: LogicalRect<Au>) -> Self {
+impl<T> WithLogicalRect<T> {
+    pub(crate) fn new(fragment: T, logical_rect: LogicalRect<Au>) -> Self {
         Self {
             fragment,
             logical_rect,

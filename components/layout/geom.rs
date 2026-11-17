@@ -238,30 +238,6 @@ impl<T: Clone> LogicalVec2<T> {
 }
 
 impl LogicalVec2<Au> {
-    /// Convert from a physical point in the parent container to a [`LogicalVec2`] point.
-    ///
-    /// TODO: This will eventually need to be passed the parent container size.
-    pub(crate) fn from_physical_point_deprecated(
-        point: &PhysicalPoint<Au>,
-        containing_block: &ContainingBlock,
-    ) -> LogicalVec2<Au> {
-        let writing_mode = containing_block.style.writing_mode;
-        let (inline, block) = if writing_mode.is_horizontal() {
-            (point.x, point.y)
-        } else {
-            (point.y, point.x)
-        };
-
-        let inline = flip(
-            inline,
-            Au::zero(),
-            containing_block.inline_size(),
-            writing_mode.is_inline_flipped(),
-        );
-
-        LogicalVec2 { inline, block }
-    }
-
     /// Convert the vector to an offset in the parent container.
     pub(crate) fn to_physical_offset(self, mode: WritingMode) -> PhysicalVec<Au> {
         let inline = if mode.is_inline_flipped() {
