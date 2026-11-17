@@ -24,9 +24,11 @@ use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
 use style::computed_values::text_decoration_style::T as TextDecorationStyle;
 use style::computed_values::text_decoration_thickness::T as TextDecorationThickness;
+use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
+use style::selector_parser::PseudoElement;
 use style::values::computed::angle::Angle;
-use style::values::computed::{ClipRectOrAuto, Length, TextDecorationLine};
+use style::values::computed::{ClipRectOrAuto, Length, TextDecorationLine, TopLayer};
 use style::values::generics::box_::{OverflowClipMarginBox, Perspective};
 use style::values::generics::transform::{
     self, GenericRotate, GenericScale, GenericTranslate, get_normalized_vector_and_angle,
@@ -230,6 +232,7 @@ impl StackingContextTree {
         pipeline_id: wr::PipelineId,
         first_reflow: bool,
         debug: &DiagnosticsLogging,
+        top_layer: Vec<OpaqueNode>,
     ) -> Self {
         let scrollable_overflow = fragment_tree.scrollable_overflow();
         let scroll_area = scrollable_overflow.union(&fragment_tree.initial_containing_block);
@@ -301,6 +304,44 @@ impl StackingContextTree {
                 &mut root_stacking_context,
                 &StackingContextParentInfo::default(),
             );
+        }
+
+        // https://drafts.csswg.org/css-position-4/#top-styling
+        // Every element rendered in the top layer, as well as its corresponding ::backdrop
+        // pseudo-element, are rendered with the following qualities:
+        // - It generates a new stacking context.
+        // - Its parent stacking context is the root stacking context.
+        // - It is rendered as an atomic unit as if it were a sibling of the document’s root.
+        let mut top_layer_box_fragment = fragment_tree
+            .root_fragments
+            .iter()
+            .filter_map(Fragment::retrieve_box_fragment)
+            .filter(|box_fragment| *box_fragment.style().get__servo_top_layer() == TopLayer::Auto)
+            .filter_map(|box_fragment| {
+                let tag = box_fragment.base.tag?;
+                let is_backdrop = tag.pseudo_element_chain.primary == Some(PseudoElement::Backdrop);
+                Some((
+                    (top_layer.iter().position(|n| *n == tag.node)?, !is_backdrop),
+                    box_fragment,
+                ))
+            })
+            .collect::<Vec<_>>();
+        top_layer_box_fragment.sort_by_key(|(key, _)| *key);
+        let first_top_layer_child = root_stacking_context.children.len();
+        for (_, box_fragment) in top_layer_box_fragment {
+            box_fragment.build_stacking_context_tree(
+                &mut stacking_context_tree,
+                &containing_block_info,
+                &mut root_stacking_context,
+                &StackingContextParentInfo::default(),
+            );
+        }
+
+        // The top layer paints above everything else regardless of `z-index`. Since the sort is
+        // stable and the top layer elements are the added in order to the end of the list are
+        // added last, they keep the correct order.
+        for child in &mut root_stacking_context.children[first_top_layer_child..] {
+            child.z_index = i32::MAX;
         }
 
         root_stacking_context.sort();
@@ -635,6 +676,12 @@ impl Fragment {
                     Some(Fragment::Box(box_fragment)) => box_fragment,
                     _ => unreachable!("Found hoisted box with missing or non-BoxFragment."),
                 };
+
+                // Top layer elements are handled seperately at the stacking tree root, so their
+                // placeholder is ignored.
+                if *box_fragment.style().get__servo_top_layer() == TopLayer::Auto {
+                    return;
+                }
 
                 box_fragment.build_stacking_context_tree(
                     stacking_context_tree,

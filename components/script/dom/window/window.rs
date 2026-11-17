@@ -2883,6 +2883,7 @@ impl Window {
             paint_timing_info: document.paint_timing_info(),
             document_context,
             accessibility,
+            new_top_layer: document.overlay_handler().top_layer_opaque_nodes(),
         };
 
         let Some(reflow_result) = self.layout.borrow_mut().reflow(reflow) else {

@@ -637,6 +637,7 @@ bitflags! {
         const ThemeChanged = 1 << 4;
         const ViewportChanged = 1 << 5;
         const PaintWorkletLoaded = 1 << 6;
+        const TopLayerChanged = 1 << 7;
     }
 }
 
@@ -792,6 +793,8 @@ pub struct ReflowRequest {
     pub document_context: WebFontDocumentContext,
     /// If an accessibility tree update is necessary, all the information needed to do the update.
     pub accessibility: Option<ReflowRequestAccessibility>,
+    /// The nodes in the top layer in painting order.
+    pub new_top_layer: Vec<OpaqueNode>,
 }
 
 impl ReflowRequest {

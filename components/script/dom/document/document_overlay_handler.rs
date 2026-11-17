@@ -9,12 +9,13 @@ use embedder_traits::EmbedderMsg;
 use html5ever::local_name;
 use js::context::{JSContext, NoGC};
 use js::realm::CurrentRealm;
+use layout_api::RestyleReason;
 use script_bindings::cell::DomRefCell;
 use script_bindings::dom::UnrootedDom;
 use style::Atom;
+use style::dom::OpaqueNode;
 use stylo_dom::ElementState;
 
-use crate::dom::RootedPromise;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Error;
@@ -30,6 +31,7 @@ use crate::dom::html::htmlelement::{HTMLElement, PopoverState};
 use crate::dom::html::interactive::htmldialogelement::HTMLDialogElement;
 use crate::dom::node::NodeTraits;
 use crate::dom::promise::Promise;
+use crate::dom::{Node, RootedPromise};
 
 /// The [`DocumentOverlayHandler`] is a structure responsible for overlays for
 /// the [`crate::Document`] and storing data related to overlays. It exists to
@@ -523,6 +525,14 @@ impl DocumentOverlayHandler {
         self.popover_pointerdown_target.set(element);
     }
 
+    pub(crate) fn top_layer_opaque_nodes(&self) -> Vec<OpaqueNode> {
+        self.top_layer
+            .borrow()
+            .iter()
+            .map(|element| element.upcast::<Node>().to_opaque())
+            .collect()
+    }
+
     pub(crate) fn top_layer_contains(&self, element: &Element) -> bool {
         self.top_layer
             .borrow()
@@ -572,6 +582,8 @@ impl DocumentOverlayHandler {
         // containing an overlay: auto declaration.
 
         self.update_topmost_modal(no_gc);
+        self.document
+            .add_restyle_reason(RestyleReason::TopLayerChanged);
     }
 
     /// <https://drafts.csswg.org/css-position-4/#request-an-element-to-be-removed-from-the-top-layer>
@@ -617,6 +629,8 @@ impl DocumentOverlayHandler {
         // TODO: Step 3. Remove the UA !important overlay: auto rule targeting el, if it exists.
 
         self.update_topmost_modal(no_gc);
+        self.document
+            .add_restyle_reason(RestyleReason::TopLayerChanged);
     }
 
     /// <https://drafts.csswg.org/css-position-4/#process-top-layer-removals>
