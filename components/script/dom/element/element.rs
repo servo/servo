@@ -5527,9 +5527,9 @@ impl Element {
     /// `self` is the spec's newPopoverOrTopLayerElement.
     pub(crate) fn topmost_popover_ancestor(
         &self,
+        no_gc: &NoGC,
         source: Option<&HTMLElement>,
         is_popover: bool,
-        no_gc: &NoGC,
     ) -> Option<DomRoot<HTMLElement>> {
         // Step 1. If isPopover is true:
         if is_popover {
@@ -5559,8 +5559,8 @@ impl Element {
 
         // Step 4. Let combinedPopovers be document's showing auto popover list, extended with
         // document's showing hint popover list.
-        let mut combined_popovers = overlay_handler.showing_popover_list(PopoverState::Auto, no_gc);
-        combined_popovers.extend(overlay_handler.showing_popover_list(PopoverState::Hint, no_gc));
+        let mut combined_popovers = overlay_handler.showing_popover_list(no_gc, PopoverState::Auto);
+        combined_popovers.extend(overlay_handler.showing_popover_list(no_gc, PopoverState::Hint));
 
         // Step 5. Let popoverAncestorIndex be the index of the last item in combinedPopovers of
         // which newPopoverOrTopLayerElement is a flat tree descendant, or -1 if there is none.

@@ -439,7 +439,7 @@ impl HTMLElement {
         if matches!(original_type, PopoverState::Auto | PopoverState::Hint) {
             // Step 15.1. Let ancestor be the result of running topmost popover ancestor given
             // element, source, and true.
-            ancestor = element.topmost_popover_ancestor(source, true, cx.no_gc());
+            ancestor = element.topmost_popover_ancestor(cx.no_gc(), source, true);
 
             // Step 15.2. If all of the following are true:
             // - ancestor is not null;
@@ -524,13 +524,13 @@ impl HTMLElement {
             if effective_type == PopoverState::Auto {
                 // Step 15.9.1. Assert: document's showing auto popover list does not contain element.
                 debug_assert!(!overlay_handler.showing_popover_list_contains(
+                    cx.no_gc(),
                     PopoverState::Auto,
-                    self,
-                    cx.no_gc()
+                    self
                 ));
 
                 // Step 15.9.2. Set element's opened in popover mode to "auto".
-                self.set_opened_in_popover_mode(Some(PopoverState::Auto), cx.no_gc());
+                self.set_opened_in_popover_mode(cx.no_gc(), Some(PopoverState::Auto));
             }
             // Otherwise:
             else {
@@ -539,13 +539,13 @@ impl HTMLElement {
 
                 // Step 15.9.2. Assert: document's showing hint popover list does not contain element.
                 debug_assert!(!overlay_handler.showing_popover_list_contains(
+                    cx.no_gc(),
                     PopoverState::Hint,
-                    self,
-                    cx.no_gc()
+                    self
                 ));
 
                 // Step 15.9.3. Set element's opened in popover mode to "hint".
-                self.set_opened_in_popover_mode(Some(PopoverState::Hint), cx.no_gc());
+                self.set_opened_in_popover_mode(cx.no_gc(), Some(PopoverState::Hint));
             }
 
             // Step 15.10. Set element's popover close watcher to the result of establishing a close
@@ -558,7 +558,7 @@ impl HTMLElement {
                 document.window(),
                 &InternalCloseWatcherOwner::Popover(Dom::from_ref(self)),
             );
-            self.set_popover_close_watcher(close_watcher, cx.no_gc());
+            self.set_popover_close_watcher(cx.no_gc(), close_watcher);
         }
 
         // Step 16. Set element's previously focused element to null.
@@ -588,7 +588,7 @@ impl HTMLElement {
         element.set_popover_visibility_state_showing(cx.no_gc(), true);
 
         // Step 21. Set element's popover trigger to source.
-        self.set_popover_trigger(source, cx.no_gc());
+        self.set_popover_trigger(cx.no_gc(), source);
 
         // TODO: Step 22. Set element's implicit anchor element to source.
 
@@ -691,7 +691,7 @@ impl HTMLElement {
         let nested_hide = self.popover_hiding(cx.no_gc());
 
         // Step 5. Set element's popover hiding to true.
-        self.set_popover_hiding(true, cx.no_gc());
+        self.set_popover_hiding(cx.no_gc(), true);
 
         // Step 6. If nestedHide is true, then set fireEvents to false.
         if nested_hide {
@@ -705,7 +705,7 @@ impl HTMLElement {
         let cleanup_steps = |no_gc: &NoGC| {
             // Step 8.1. If nestedHide is false, then set element's popover hiding to false.
             if !nested_hide {
-                self.set_popover_hiding(false, no_gc);
+                self.set_popover_hiding(no_gc, false);
             }
 
             // Step 8.2. Decrement document's hiding popover nesting count.
@@ -715,12 +715,12 @@ impl HTMLElement {
         // Step 9. Let autoPopoverListContainsElement be true if document's showing auto popover
         // list contains element; otherwise false.
         let auto_popover_list_contains_element =
-            overlay_handler.showing_popover_list_contains(PopoverState::Auto, self, cx.no_gc());
+            overlay_handler.showing_popover_list_contains(cx.no_gc(), PopoverState::Auto, self);
 
         // Step 10. Let hintPopoverListContainsElement be true if document's showing hint popover
         // list contains element; otherwise false.
         let hint_popover_list_contains_element =
-            overlay_handler.showing_popover_list_contains(PopoverState::Hint, self, cx.no_gc());
+            overlay_handler.showing_popover_list_contains(cx.no_gc(), PopoverState::Hint, self);
 
         // Step 11. If element's opened in popover mode is "auto" or "hint", then:
         if matches!(
@@ -834,10 +834,10 @@ impl HTMLElement {
         }
 
         // Step 14. Set element's popover trigger to null.
-        self.set_popover_trigger(None, cx.no_gc());
+        self.set_popover_trigger(cx.no_gc(), None);
 
         // Step 15. Set element's opened in popover mode to null.
-        self.set_opened_in_popover_mode(None, cx.no_gc());
+        self.set_opened_in_popover_mode(cx.no_gc(), None);
 
         // Step 16. Set element's popover visibility state to hidden.
         element.set_popover_visibility_state_showing(cx.no_gc(), false);
@@ -846,7 +846,7 @@ impl HTMLElement {
         // list is empty, then set document's hint stack parent to null.
         if overlay_handler.is_hint_stack_parent(self) ||
             overlay_handler
-                .showing_popover_list(PopoverState::Hint, cx.no_gc())
+                .showing_popover_list(cx.no_gc(), PopoverState::Hint)
                 .is_empty()
         {
             overlay_handler.set_hint_stack_parent(None);
@@ -988,7 +988,7 @@ impl HTMLElement {
             .opened_in_popover_mode
     }
 
-    fn set_opened_in_popover_mode(&self, mode: Option<PopoverState>, no_gc: &NoGC) {
+    fn set_opened_in_popover_mode(&self, no_gc: &NoGC, mode: Option<PopoverState>) {
         self.upcast::<Element>()
             .ensure_rare_data(no_gc)
             .opened_in_popover_mode = mode;
@@ -1002,7 +1002,7 @@ impl HTMLElement {
             .get()
     }
 
-    fn set_popover_trigger(&self, trigger: Option<&HTMLElement>, no_gc: &NoGC) {
+    fn set_popover_trigger(&self, no_gc: &NoGC, trigger: Option<&HTMLElement>) {
         self.upcast::<Element>()
             .ensure_rare_data(no_gc)
             .popover_trigger
@@ -1016,13 +1016,13 @@ impl HTMLElement {
             .popover_hiding
     }
 
-    fn set_popover_hiding(&self, value: bool, no_gc: &NoGC) {
+    fn set_popover_hiding(&self, no_gc: &NoGC, value: bool) {
         self.upcast::<Element>()
             .ensure_rare_data(no_gc)
             .popover_hiding = value;
     }
 
-    fn set_popover_close_watcher(&self, close_watcher: Rc<InternalCloseWatcher>, no_gc: &NoGC) {
+    fn set_popover_close_watcher(&self, no_gc: &NoGC, close_watcher: Rc<InternalCloseWatcher>) {
         self.upcast::<Element>()
             .ensure_rare_data(no_gc)
             .popover_close_watcher

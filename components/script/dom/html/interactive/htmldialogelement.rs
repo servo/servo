@@ -203,7 +203,7 @@ impl HTMLDialogElement {
 
         // Step 18. Let hideUntil be the result of running topmost popover ancestor given subject,
         // null, and false.
-        let hide_until = subject.topmost_popover_ancestor(None, false, cx.no_gc());
+        let hide_until = subject.topmost_popover_ancestor(cx.no_gc(), None, false);
 
         // Step 19. Run hide popovers until given document, hideUntil, false, and true.
         document
@@ -774,7 +774,7 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
 
         // Step 9. Let hideUntil be the result of running topmost popover ancestor given this,
         // null, and false.
-        let hide_until = element.topmost_popover_ancestor(None, false, cx.no_gc());
+        let hide_until = element.topmost_popover_ancestor(cx.no_gc(), None, false);
 
         // Step 10. Run hide popovers until given document, hideUntil, false, and true.
         document

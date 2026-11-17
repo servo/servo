@@ -493,7 +493,7 @@ impl DocumentOverlayHandler {
         // Step 1. Let endpointIsHint be true if document's showing hint popover list contains
         // endpoint; otherwise false.
         let endpoint_is_hint = endpoint.is_some_and(|endpoint| {
-            self.showing_popover_list(PopoverState::Hint, cx.no_gc())
+            self.showing_popover_list(cx.no_gc(), PopoverState::Hint)
                 .iter()
                 .any(|popover| &**popover == endpoint)
         });
@@ -541,7 +541,7 @@ impl DocumentOverlayHandler {
     ) {
         // Step 1. Let popoverList be document's showing auto popover list if stackType is Auto,
         // and document's showing hint popover list otherwise.
-        let popover_list = self.showing_popover_list(stack_type, cx.no_gc());
+        let popover_list = self.showing_popover_list(cx.no_gc(), stack_type);
 
         // Step 2. Let lastHideIndex be 0 if popoverList does not contain endpoint; otherwise the
         // index of endpoint in popoverList plus 1.
@@ -567,7 +567,7 @@ impl DocumentOverlayHandler {
 
         // Step 6. Let newPopoverList be document's showing auto popover list if stackType is
         // Auto, and document's showing hint popover list otherwise.
-        let new_popover_list = self.showing_popover_list(stack_type, cx.no_gc());
+        let new_popover_list = self.showing_popover_list(cx.no_gc(), stack_type);
 
         // Step 7. Let toCheck be newPopoverList in reverse order.
         let to_check = new_popover_list.iter().rev();
@@ -595,9 +595,9 @@ impl DocumentOverlayHandler {
         // Step 2. If document's showing auto popover list is not empty, then return its last
         // element.
         // Step 3. Return null.
-        self.showing_popover_list(PopoverState::Hint, no_gc)
+        self.showing_popover_list(no_gc, PopoverState::Hint)
             .pop()
-            .or_else(|| self.showing_popover_list(PopoverState::Auto, no_gc).pop())
+            .or_else(|| self.showing_popover_list(no_gc, PopoverState::Auto).pop())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#showing-auto-popover-list>
@@ -607,8 +607,8 @@ impl DocumentOverlayHandler {
     /// `mode` must be [`PopoverState::Auto`] or [`PopoverState::Hint`].
     pub(crate) fn showing_popover_list(
         &self,
-        mode: PopoverState,
         no_gc: &NoGC,
+        mode: PopoverState,
     ) -> Vec<DomRoot<HTMLElement>> {
         debug_assert!(matches!(mode, PopoverState::Auto | PopoverState::Hint));
 
@@ -636,11 +636,11 @@ impl DocumentOverlayHandler {
 
     pub(crate) fn showing_popover_list_contains(
         &self,
+        no_gc: &NoGC,
         mode: PopoverState,
         element: &HTMLElement,
-        no_gc: &NoGC,
     ) -> bool {
-        self.showing_popover_list(mode, no_gc)
+        self.showing_popover_list(no_gc, mode)
             .iter()
             .any(|popover| &**popover == element)
     }
