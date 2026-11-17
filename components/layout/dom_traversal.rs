@@ -14,6 +14,7 @@ use servo_arc::Arc as ServoArc;
 use style::dom::NodeInfo;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
+use style::values::computed::TopLayer;
 use style::values::generics::counters::{Content, ContentItem};
 use style::values::specified::Quotes;
 
@@ -191,6 +192,27 @@ fn traverse_element<'dom>(
             handler.leave_display_contents();
         },
         Display::GeneratingBox(display) => {
+            // https://drafts.csswg.org/css-position-4/#backdrop
+            // > Each element rendered in the top layer has a ::backdrop pseudo-element, for which
+            // > it is the originating element.
+            // > When its computed content value is not none, ::backdrop pseudo-elements generate
+            // > boxes as if they were siblings of the root element. They’re automatically rendered
+            // > as a separate item in the top layer, below their originating element.
+            if *info.style.get__servo_top_layer() == TopLayer::Auto &&
+                let Some(backdrop_info) =
+                    info.with_pseudo_element(context, PseudoElement::Backdrop) &&
+                !matches!(backdrop_info.style.get_counters().content, Content::None) &&
+                let Display::GeneratingBox(backdrop_display) =
+                    Display::from(backdrop_info.style.get_box().display)
+            {
+                handler.handle_element(
+                    &backdrop_info,
+                    backdrop_display,
+                    Contents::for_pseudo_element(vec![]),
+                    backdrop_info.node.box_slot(),
+                );
+            }
+
             let contents = Contents::for_element(element, context);
             let display = display.used_value_for_contents(&contents, &info);
             let box_slot = element.box_slot();
