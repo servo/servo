@@ -239,8 +239,8 @@ fn test_notify_pending_response_with_metadata_chunk() {
 
     match result {
         ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(metadata, _)) => {
-            assert!(metadata.width > 0);
-            assert!(metadata.height > 0);
+            assert!(metadata.width.is_some_and(|width| width > 0));
+            assert!(metadata.height.is_some_and(|height| height > 0));
         },
         ImageCacheResult::Pending(_) => {},
         _ => panic!("Expected MetadataAvailable or Pending"),
@@ -431,8 +431,8 @@ fn test_image_listener_on_metadata_available() {
 
     match receiver.recv_timeout(std::time::Duration::from_millis(100)) {
         Ok(ImageResponse::MetadataLoaded(metadata)) => {
-            assert!(metadata.width > 0);
-            assert!(metadata.height > 0);
+            assert!(metadata.width.is_some_and(|width| width > 0));
+            assert!(metadata.height.is_some_and(|height| height > 0));
         },
         Ok(_) => {},
         Err(_) => {},
