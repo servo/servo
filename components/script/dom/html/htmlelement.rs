@@ -2214,12 +2214,7 @@ impl VirtualMethods for HTMLElement {
                 // > If element's popover visibility state is in the showing state and oldValue and
                 // > value are in different states, then run the hide popover algorithm given
                 // > element, true, true, false, and null.
-                let old_state = match mutation {
-                    AttributeMutation::Set(old_value) => {
-                        PopoverState::from_attribute_value(old_value.map(|value| value.to_string()))
-                    },
-                    AttributeMutation::Removed => PopoverState::NoPopover,
-                };
+                let old_state = PopoverState::from_attribute_value(mutation.old_value(attr));
                 if element.popover_visibility_state_showing() && old_state != self.popover_state() {
                     let _ = self.hide_popover(cx, true, true, false, None);
                 }

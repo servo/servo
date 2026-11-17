@@ -355,10 +355,9 @@ impl HTMLButtonElement {
         let popover = self.popover_target_element(cx);
 
         // 2. If popover is null, then return.
-        if popover.is_none() {
+        let Some(popover) = popover else {
             return;
-        }
-        let popover = popover.unwrap();
+        };
 
         // 3. If eventTarget is a shadow-including inclusive descendant of popover and popover
         // is a shadow-including descendant of node, then return.

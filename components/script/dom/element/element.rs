@@ -5536,11 +5536,11 @@ impl Element {
             // Step 1.1. Assert: newPopoverOrTopLayerElement is an HTML element.
             // Step 1.2. Assert: newPopoverOrTopLayerElement's popover attribute is not in the
             // No Popover State or the Manual state.
-            debug_assert!(matches!(
+            debug_assert!(!matches!(
                 self.downcast::<HTMLElement>()
                     .expect("newPopoverOrTopLayerElement is expected to be an HTML element")
                     .popover_state(),
-                PopoverState::Auto | PopoverState::Hint
+                PopoverState::NoPopover | PopoverState::Manual
             ));
 
             // Step 1.3. Assert: newPopoverOrTopLayerElement's popover visibility state is not in
