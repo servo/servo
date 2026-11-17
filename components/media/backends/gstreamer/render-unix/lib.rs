@@ -13,13 +13,16 @@
 use std::sync::{Arc, Mutex};
 
 use gstreamer_gl::prelude::*;
+use malloc_size_of_derive::MallocSizeOf;
 use servo_media_gstreamer_render::Render;
 use servo_media_player::PlayerError;
 use servo_media_player::context::{GlApi, GlContext, NativeDisplay, PlayerGLContext};
 use servo_media_player::video::{Buffer, VideoFrame, VideoFrameData};
 
+#[derive(MallocSizeOf)]
 struct GStreamerBuffer {
     is_external_oes: bool,
+    #[ignore_malloc_size_of = "External Type"]
     frame: gstreamer_gl::GLVideoFrame<gstreamer_gl::gl_video_frame::Readable>,
 }
 

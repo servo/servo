@@ -4,6 +4,7 @@
 
 use std::sync::Arc;
 
+use malloc_size_of::MallocSizeOf;
 use malloc_size_of_derive::MallocSizeOf;
 
 #[derive(Clone, MallocSizeOf)]
@@ -13,7 +14,7 @@ pub enum VideoFrameData {
     OESTexture(u32),
 }
 
-pub trait Buffer: Send + Sync {
+pub trait Buffer: Send + Sync + MallocSizeOf {
     fn to_vec(&self) -> Option<VideoFrameData>;
 }
 
@@ -71,6 +72,6 @@ impl VideoFrame {
     }
 }
 
-pub trait VideoFrameRenderer: Send + 'static {
+pub trait VideoFrameRenderer: Send + MallocSizeOf + 'static {
     fn render(&mut self, frame: VideoFrame);
 }

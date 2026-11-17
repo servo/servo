@@ -401,7 +401,6 @@ pub(crate) struct Window {
     #[cfg(feature = "webgl")]
     webgl_chan: Option<WebGLChan>,
 
-    #[ignore_malloc_size_of = "defined in webxr"]
     #[no_trace]
     #[cfg(feature = "webxr")]
     webxr_registry: Option<webxr_api::Registry>,

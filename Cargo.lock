@@ -8956,7 +8956,9 @@ dependencies = [
 name = "servo-media-dummy"
 version = "0.8.0"
 dependencies = [
+ "malloc_size_of_derive",
  "servo-base",
+ "servo-malloc-size-of",
  "servo-media",
  "servo-media-audio",
  "servo-media-player",
@@ -8996,7 +8998,9 @@ dependencies = [
  "gstreamer-video",
  "gstreamer-webrtc",
  "log",
+ "malloc_size_of_derive",
  "servo-base",
+ "servo-malloc-size-of",
  "servo-media",
  "servo-media-audio",
  "servo-media-gstreamer-render",
@@ -9041,6 +9045,8 @@ dependencies = [
  "gstreamer-gl-wayland",
  "gstreamer-gl-x11",
  "gstreamer-video",
+ "malloc_size_of_derive",
+ "servo-malloc-size-of",
  "servo-media-gstreamer-render",
  "servo-media-player",
 ]

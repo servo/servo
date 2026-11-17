@@ -21,6 +21,8 @@ servo-media-player = { workspace = true }
 servo-media-streams = { workspace = true }
 servo-media-traits = { workspace = true }
 servo-media-webrtc = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
 
 [lints]
 workspace = true

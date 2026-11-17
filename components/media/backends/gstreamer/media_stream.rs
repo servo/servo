@@ -8,6 +8,7 @@ use std::sync::{Arc, LazyLock, Mutex};
 use glib::BoolError;
 use gstreamer;
 use gstreamer::prelude::*;
+use malloc_size_of_derive::MallocSizeOf;
 use servo_media_streams::registry::{
     MediaStreamId, get_stream, register_stream, unregister_stream,
 };
@@ -271,7 +272,9 @@ impl MediaOutput for MediaSink {
     }
 }
 
+#[derive(MallocSizeOf)]
 pub struct GstreamerMediaSocket {
+    #[ignore_malloc_size_of = "External Type"]
     proxy_sink: gstreamer::Element,
 }
 

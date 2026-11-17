@@ -116,7 +116,7 @@ impl<J> Finger<J> {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, MallocSizeOf)]
 pub enum FingerJoint {
     Metacarpal,
     PhalanxProximal,
@@ -125,7 +125,7 @@ pub enum FingerJoint {
     PhalanxTip,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, MallocSizeOf)]
 pub enum Joint {
     Wrist,
     ThumbMetacarpal,

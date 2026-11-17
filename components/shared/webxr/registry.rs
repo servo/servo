@@ -4,6 +4,7 @@
 
 use embedder_traits::EventLoopWaker;
 use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{self, GenericCallback, GenericReceiver, GenericSender};
@@ -14,7 +15,7 @@ use crate::{
     MockDeviceMsg, MockDiscoveryAPI, Session, SessionBuilder, SessionId, SessionInit, SessionMode,
 };
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, MallocSizeOf)]
 pub struct Registry {
     sender: GenericSender<RegistryMsg>,
     waker: MainThreadWakerImpl,
@@ -33,7 +34,7 @@ pub struct MainThreadRegistry<GL> {
     device_change_callbacks: Vec<(PipelineId, GenericCallback<()>)>,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, MallocSizeOf)]
 struct MainThreadWakerImpl {
     callback: GenericCallback<()>,
 }
