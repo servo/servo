@@ -749,7 +749,7 @@ impl Debug for AccessibilityNode {
                 ""
             };
             let truncated = truncated.replace("\n", "↵");
-            write!(f, "\"{}{}\"", truncated, ellipsis)
+            write!(f, "\"{truncated}{ellipsis}\"")
         };
 
         if let Some(value) = self.value() {
