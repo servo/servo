@@ -48,37 +48,6 @@ fn scroll_offset_to_affine(layout_vector: LayoutVector2D) -> Affine {
     ))
 }
 
-bitflags! {
-    /// Flags tracking an [`AccessibilityNode`]'s dirty state during an update. All flags which are
-    /// set during the update should be unset by the end of the update.
-    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-    pub(super) struct DirtyState : u16 {
-        /// At least one descendant of this node has unresolved damage from the DOM tree.
-        const DescendantHasDamage = 0b0001;
-        /// This node has unresolved damage from the DOM tree.
-        const HasDamage = 0b0010;
-        /// This node's data changed, but it hasn't yet been added to the [`AccessibilityUpdate`].
-        const Updated = 0b0100;
-    }
-}
-
-bitflags! {
-    /// Damage which was caused by changes to the accessibility tree. These changes can cause other
-    /// properties to need to be re-computed based on the updated values, either on the same node or
-    /// on other nodes.
-    #[derive(Clone, Copy, Default, Debug, Eq, PartialEq)]
-    pub(super) struct LocalAccessibilityDamage: u16 {
-        /// This node's children changed, and/or any node in its subtree changed.
-        const SubtreeChanged = 0b0001;
-        /// This node's computed role changed.
-        const RoleChanged = 0b0010;
-        /// This node's computed label or text value (for a text node) changed.
-        const TextChanged = 0b0100;
-        /// This node's visibility changed.
-        const VisibilityChanged = 0b1000;
-    }
-}
-
 pub(super) struct AccessibilityNode {
     /// The unique ID for the node. This is used both as a key in [`AccessibilityTree`]'s cache of
     /// nodes, and as an identifier in [`accesskit`] datastructures: [`accesskit::Node`]s,
@@ -817,6 +786,36 @@ where
     }
 }
 
+bitflags! {
+    /// Damage which was caused by changes to the accessibility tree. These changes can cause other
+    /// properties to need to be re-computed based on the updated values, either on the same node or
+    /// on other nodes.
+    #[derive(Clone, Copy, Default, Debug, Eq, PartialEq)]
+    pub(super) struct LocalAccessibilityDamage: u16 {
+        /// This node's children changed, and/or any node in its subtree changed.
+        const SubtreeChanged = 1 << 0;
+        /// This node's computed role changed.
+        const RoleChanged = 1 << 1;
+        /// This node's computed label or text value (for a text node) changed.
+        const TextChanged = 1 << 2;
+        /// This node's visibility changed.
+        const VisibilityChanged = 1 << 3;
+    }
+}
+
+bitflags! {
+    /// Flags tracking an [`AccessibilityNode`]'s dirty state during an update. All flags which are
+    /// set during the update should be unset by the end of the update.
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub(super) struct DirtyState : u16 {
+        /// At least one descendant of this node has unresolved damage from the DOM tree.
+        const DescendantHasDamage = 1 << 0;
+        /// This node has unresolved damage from the DOM tree.
+        const HasDamage = 1 << 1;
+        /// This node's data changed, but it hasn't yet been added to the [`AccessibilityUpdate`].
+        const Updated = 1 << 2;
+    }
+}
 impl DirtyState {
     pub(super) fn updated(&self) -> bool {
         self.contains(DirtyState::Updated)
