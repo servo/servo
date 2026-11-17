@@ -4595,6 +4595,9 @@ where
         webview
             .session_history_traversal_request_queue
             .push_back(traversal_request);
+        // Report the traversal as a navigation before applying it: it may have to wait for a
+        // previous traversal to finish, and nothing else reports its start.
+        self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStart);
         self.apply_queued_session_history_traversal_requests(webview_id);
     }
 
@@ -4785,9 +4788,36 @@ where
             .values_mut()
             .find_map(|webview| webview.maybe_finish_ongoing_session_history_traversal_request())
         {
+            let webview_id = traversal_request.webview_id;
             self.notify_embedder_of_completed_session_history_traversal_request(&traversal_request);
-            self.apply_queued_session_history_traversal_requests(traversal_request.webview_id);
+
+            // Apply any queued traversal first, so that a traversal started here is still
+            // considered below.
+            self.apply_queued_session_history_traversal_requests(webview_id);
+
+            // 1. A traversal started above (implies a pipeline is created which has load)
+            // 2. A document that is still loading
+            // will clear theoutstanding status itself.
+            // Otherwise do it manually.
+            if !self.webview_is_navigating(webview_id) {
+                self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStop);
+            }
         }
+    }
+
+    /// Whether a history traversal is still running,
+    /// or the top-level document is still loading.
+    fn webview_is_navigating(&self, webview_id: WebViewId) -> bool {
+        let has_ongoing_traversal = self
+            .webviews
+            .get(&webview_id)
+            .is_some_and(|webview| webview.ongoing_history_traversal_request.is_some());
+        let top_level_is_loading = self
+            .browsing_contexts
+            .get(&BrowsingContextId::from(webview_id))
+            .and_then(|context| self.pipelines.get(&context.pipeline_id))
+            .is_some_and(|pipeline| !pipeline.completely_loaded);
+        has_ongoing_traversal || top_level_is_loading
     }
 
     /// Notify the embedder that the given [`HistoryTraversalRequest`] is complete, if it was
@@ -4827,10 +4857,18 @@ where
     /// traversal history request, apply the next queued request and potentially finish it
     /// until there is either an ongoing history request or no more queued requests.
     fn apply_queued_session_history_traversal_requests(&mut self, webview_id: WebViewId) {
+        let mut completed_any = false;
         while let Some(traversal_request) =
             self.apply_next_queued_session_history_traversal_request(webview_id)
         {
+            completed_any = true;
             self.notify_embedder_of_completed_session_history_traversal_request(&traversal_request);
+        }
+
+        // Everything completed here finished without loading.
+        // A traversal or document still in flight reports its own.
+        if completed_any && !self.webview_is_navigating(webview_id) {
+            self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStop);
         }
     }
 
