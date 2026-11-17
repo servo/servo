@@ -524,12 +524,45 @@ pub(crate) fn default_system_generic_font_family(
 ) -> LowercaseFontFamilyName {
     let default_font = "HarmonyOS Sans".into();
     match generic {
+        GenericFontFamily::Serif => {
+            if let Some(alias) = FONT_LIST.find_alias("serif") {
+                alias.from.clone().into()
+            } else {
+                default_font
+            }
+        },
+        GenericFontFamily::SansSerif => {
+            // Currently default font is already set to HarmonyOS Sans but we want to make this explicit.
+            if let Some(alias) = FONT_LIST.find_alias("sans-serif") {
+                alias.from.clone().into()
+            } else {
+                default_font
+            }
+        },
         GenericFontFamily::Monospace => {
             if let Some(alias) = FONT_LIST.find_alias("monospace") {
                 alias.from.clone().into()
             } else {
                 default_font
             }
+        },
+        GenericFontFamily::Cursive => {
+            if let Some(alias) = FONT_LIST.find_alias("cursive") {
+                alias.from.clone().into()
+            } else {
+                default_font
+            }
+        },
+        GenericFontFamily::Fantasy => {
+            if let Some(alias) = FONT_LIST.find_alias("fantasy") {
+                alias.from.clone().into()
+            } else {
+                default_font
+            }
+        },
+        GenericFontFamily::SystemUi => {
+            // TODO: Properly implement this in the future - perhaps by using OpenHarmony API to obtain the system UI's font.
+            default_font
         },
         _ => default_font,
     }
