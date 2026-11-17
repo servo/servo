@@ -34,6 +34,7 @@ pub struct GStreamerMediaStream {
     type_: MediaStreamType,
     elements: Vec<gstreamer::Element>,
     pipeline: Option<gstreamer::Pipeline>,
+    stopped: bool,
 }
 
 impl MediaStream for GStreamerMediaStream {
@@ -52,6 +53,26 @@ impl MediaStream for GStreamerMediaStream {
     fn ty(&self) -> MediaStreamType {
         self.type_
     }
+
+    fn stop(&mut self) {
+        if self.stopped {
+            return;
+        }
+        self.stopped = true;
+        if let Some(pipeline) = &self.pipeline {
+            let _ = pipeline.set_state(gstreamer::State::Null);
+        }
+        // Keep the downstream elements available to consumers, but remove the
+        // source permanently so that attaching a new consumer cannot reopen it.
+        if self.elements.len() < 2 {
+            return;
+        }
+        let source = self.elements.remove(0);
+        if let Some(pipeline) = &self.pipeline {
+            let _ = pipeline.remove(&source);
+        }
+        let _ = source.set_state(gstreamer::State::Null);
+    }
 }
 
 impl GStreamerMediaStream {
@@ -61,6 +82,7 @@ impl GStreamerMediaStream {
             type_,
             elements,
             pipeline: None,
+            stopped: false,
         }
     }
 
@@ -284,5 +306,42 @@ impl GstreamerMediaSocket {
 impl MediaSocket for GstreamerMediaSocket {
     fn as_any(&self) -> &dyn Any {
         self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn stopping_a_stream_removes_its_source_only_once() {
+        gstreamer::init().unwrap();
+        for attach_before_stopping in [false, true] {
+            let source = gstreamer::ElementFactory::make("fakesrc").build().unwrap();
+            let identity = gstreamer::ElementFactory::make("identity").build().unwrap();
+            let sink = gstreamer::ElementFactory::make("fakesink").build().unwrap();
+            let mut stream = GStreamerMediaStream::new(
+                MediaStreamType::Video,
+                vec![source.clone(), identity.clone(), sink.clone()],
+            );
+            let pipeline = gstreamer::Pipeline::new();
+            if attach_before_stopping {
+                stream.attach_to_pipeline(&pipeline);
+            }
+
+            stream.stop();
+            assert!(source.parent().is_none());
+            assert_eq!(source.current_state(), gstreamer::State::Null);
+            assert_eq!(stream.elements, vec![identity.clone(), sink.clone()]);
+
+            stream.stop();
+            assert_eq!(stream.elements, vec![identity.clone(), sink.clone()]);
+            if !attach_before_stopping {
+                stream.attach_to_pipeline(&pipeline);
+            }
+            assert!(source.parent().is_none());
+            assert_eq!(pipeline.children().len(), 2);
+            pipeline.set_state(gstreamer::State::Null).unwrap();
+        }
     }
 }
