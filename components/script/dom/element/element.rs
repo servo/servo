@@ -365,7 +365,7 @@ impl Element {
         )
     }
 
-    fn rare_data(&self) -> Ref<'_, Option<Box<ElementRareData>>> {
+    pub(crate) fn rare_data(&self) -> Ref<'_, Option<Box<ElementRareData>>> {
         self.rare_data.borrow()
     }
 

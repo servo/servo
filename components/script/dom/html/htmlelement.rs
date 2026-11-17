@@ -368,7 +368,7 @@ impl HTMLElement {
         }
 
         // Step 5. Assert: element's popover trigger is null.
-        assert!(self.popover_trigger(cx.no_gc()).is_none());
+        assert!(self.popover_trigger().is_none());
 
         // Step 6. Assert: element is not in document's top layer.
         assert!(!overlay_handler.is_in_the_top_layer(element));
@@ -447,7 +447,7 @@ impl HTMLElement {
             // - effectiveType is the Auto state,
             // then set effectiveType to the Hint state.
             if ancestor.as_ref().is_some_and(|ancestor| {
-                ancestor.opened_in_popover_mode(cx.no_gc()) == Some(PopoverState::Hint)
+                ancestor.opened_in_popover_mode() == Some(PopoverState::Hint)
             }) && effective_type == PopoverState::Auto
             {
                 effective_type = PopoverState::Hint;
@@ -579,7 +579,7 @@ impl HTMLElement {
         // set document's hint stack parent to ancestor.
         if effective_type == PopoverState::Hint &&
             let Some(ancestor) = &ancestor &&
-            ancestor.opened_in_popover_mode(cx.no_gc()) == Some(PopoverState::Auto)
+            ancestor.opened_in_popover_mode() == Some(PopoverState::Auto)
         {
             overlay_handler.set_hint_stack_parent(Some(ancestor));
         }
@@ -688,7 +688,7 @@ impl HTMLElement {
         let overlay_handler = document.overlay_handler();
 
         // Step 4. Let nestedHide be element's popover hiding.
-        let nested_hide = self.popover_hiding(cx.no_gc());
+        let nested_hide = self.popover_hiding();
 
         // Step 5. Set element's popover hiding to true.
         self.set_popover_hiding(cx.no_gc(), true);
@@ -724,7 +724,7 @@ impl HTMLElement {
 
         // Step 11. If element's opened in popover mode is "auto" or "hint", then:
         if matches!(
-            self.opened_in_popover_mode(cx.no_gc()),
+            self.opened_in_popover_mode(),
             Some(PopoverState::Auto) | Some(PopoverState::Hint)
         ) {
             // Step 11.1. If hintPopoverListContainsElement is true, then run hide popover stack
@@ -981,10 +981,10 @@ impl HTMLElement {
         Ok(true)
     }
 
-    pub(crate) fn opened_in_popover_mode(&self, no_gc: &NoGC) -> Option<PopoverState> {
-        // FIXME: This allocates rare data, while a default value could be returned.
+    pub(crate) fn opened_in_popover_mode(&self) -> Option<PopoverState> {
         self.upcast::<Element>()
-            .ensure_rare_data(no_gc)
+            .rare_data()
+            .as_ref()?
             .opened_in_popover_mode
     }
 
@@ -994,10 +994,10 @@ impl HTMLElement {
             .opened_in_popover_mode = mode;
     }
 
-    fn popover_trigger(&self, no_gc: &NoGC) -> Option<DomRoot<HTMLElement>> {
-        // FIXME: This allocates rare data, while a default value could be returned.
+    fn popover_trigger(&self) -> Option<DomRoot<HTMLElement>> {
         self.upcast::<Element>()
-            .ensure_rare_data(no_gc)
+            .rare_data()
+            .as_ref()?
             .popover_trigger
             .get()
     }
@@ -1009,11 +1009,11 @@ impl HTMLElement {
             .set(trigger);
     }
 
-    fn popover_hiding(&self, no_gc: &NoGC) -> bool {
-        // FIXME: This allocates rare data, while a default value could be returned.
+    fn popover_hiding(&self) -> bool {
         self.upcast::<Element>()
-            .ensure_rare_data(no_gc)
-            .popover_hiding
+            .rare_data()
+            .as_ref()
+            .is_some_and(|rare_data| rare_data.popover_hiding)
     }
 
     fn set_popover_hiding(&self, no_gc: &NoGC, value: bool) {
@@ -1031,9 +1031,9 @@ impl HTMLElement {
     }
 
     fn take_popover_close_watcher(&self, no_gc: &NoGC) -> Option<Rc<InternalCloseWatcher>> {
-        // FIXME: This allocates rare data, while a default value could be returned.
         self.upcast::<Element>()
-            .ensure_rare_data(no_gc)
+            .rare_data()
+            .as_ref()?
             .popover_close_watcher
             .safe_borrow_mut(no_gc)
             .take()
