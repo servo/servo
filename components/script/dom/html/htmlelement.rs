@@ -12,6 +12,7 @@ use layout_api::{QueryMsg, ScrollContainerQueryFlags, ScrollContainerResponse};
 use rustc_hash::FxHashSet;
 use script_bindings::callback::RootedCallback;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
+use script_bindings::codegen::GenericBindings::DocumentFragmentBinding::DocumentFragmentMethods;
 use script_bindings::codegen::GenericBindings::ElementBinding::ScrollLogicalPosition;
 use script_bindings::codegen::GenericBindings::WindowBinding::ScrollBehavior;
 use script_bindings::dom::UnrootedDom;
@@ -29,6 +30,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLOrSVGOrMathMLElementBinding::FocusOptions;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -60,6 +62,7 @@ use crate::dom::element::{
 };
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::html::form_controls::htmlbuttonelement::HTMLButtonElement;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::form_controls::input_type::InputType;
 use crate::dom::html::htmlbodyelement::HTMLBodyElement;
@@ -979,6 +982,141 @@ impl HTMLElement {
 
         // Step 4. Return true.
         Ok(true)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#popover-target-attribute-activation-behavior>
+    pub(crate) fn popover_target_attribute_activation_behavior(
+        &self,
+        cx: &mut JSContext,
+        event_target: &Node,
+    ) {
+        // 1. Let popover be node's popover target element.
+        let popover = self.popover_target_element(cx);
+
+        // 2. If popover is null, then return.
+        let Some(popover) = popover else {
+            return;
+        };
+
+        // 3. If eventTarget is a shadow-including inclusive descendant of popover and popover
+        // is a shadow-including descendant of node, then return.
+        let popover_node = popover.upcast::<Node>();
+        if popover_node.is_shadow_including_inclusive_ancestor_of(event_target) &&
+            self.upcast::<Node>()
+                .is_shadow_including_inclusive_ancestor_of(popover_node)
+        {
+            return;
+        }
+
+        let popover_showing = popover
+            .upcast::<Element>()
+            .popover_visibility_state_showing();
+        let popover_target_action = self
+            .upcast::<Element>()
+            .get_string_attribute(&local_name!("popovertargetaction"))
+            .to_ascii_lowercase();
+
+        // 4. If node's popovertargetaction attribute is in the show state and popover's popover
+        // visibility state is showing, then return.
+        if popover_target_action == "show" && popover_showing {
+            return;
+        }
+
+        // 5. If node's popovertargetaction attribute is in the hide state and popover's popover
+        // visibility state is hidden, then return.
+        if popover_target_action == "hide" && !popover_showing {
+            return;
+        }
+
+        // 6. If popover's popover visibility state is showing, then run the hide popover algorithm
+        // given popover, true, true, false, and node.
+        if popover_showing {
+            popover
+                .hide_popover(cx, true, true, false, Some(self))
+                .expect("This shouldn't fail in this codepath");
+        }
+        // 7. Otherwise:
+        else {
+            // 7.1. Let validity be the result of running check popover validity given popover,
+            // false, and null. If this throws an exception, catch it, and let validity be false.
+            let validity = popover.check_popover_validity(false, None);
+
+            // 7.2. If validity is true, then run show popover given popover, false, and node.
+            if matches!(validity, Ok(true)) {
+                popover
+                    .show_popover(cx, false, Some(self))
+                    .expect("This shouldn't fail in this codepath");
+            }
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#popover-target-element>
+    pub(crate) fn popover_target_element(
+        &self,
+        cx: &mut JSContext,
+    ) -> Option<DomRoot<HTMLElement>> {
+        // 1. If node is not a button, then return null.
+        if !self.is_a_button() {
+            return None;
+        }
+
+        // 2. If node is disabled, then return null.
+        if self.upcast::<Element>().is_actually_disabled() {
+            return None;
+        }
+
+        // 3. If node has a form owner and node is a submit button, then return null.
+        if self
+            .downcast::<HTMLButtonElement>()
+            .is_some_and(|button| button.form_owner().is_some() && button.is_submit_button()) ||
+            self.downcast::<HTMLInputElement>()
+                .is_some_and(|input| input.form_owner().is_some() && input.is_submit_button())
+        {
+            return None;
+        }
+
+        // 4. Let popoverElement be the result of running node's get the popovertarget-associated element.
+        let popover_target_value = self
+            .upcast::<Element>()
+            .get_attribute_string_value(&local_name!("popovertarget"))?
+            .into();
+
+        let root_node = self
+            .upcast::<Node>()
+            .GetRootNode(&GetRootNodeOptions::empty());
+
+        let popover_element = if let Some(document) = root_node.downcast::<Document>() {
+            document.GetElementById(cx, popover_target_value)
+        } else if let Some(document_fragment) = root_node.downcast::<DocumentFragment>() {
+            document_fragment.GetElementById(cx, popover_target_value)
+        } else {
+            unreachable!("Element must be in a document or document fragment")
+        };
+
+        // 5. If popoverElement is null, then return null.
+        let popover_element = DomRoot::downcast::<HTMLElement>(popover_element?)?;
+
+        // 6. If popoverElement's popover attribute is in the No Popover state, then return null.
+        if popover_element.popover_state() == PopoverState::NoPopover {
+            return None;
+        }
+
+        // 7. Return popoverElement.
+        Some(popover_element)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/forms.html#concept-button>
+    fn is_a_button(&self) -> bool {
+        self.is::<HTMLButtonElement>() ||
+            self.downcast::<HTMLInputElement>().is_some_and(|input| {
+                matches!(
+                    *input.input_type(),
+                    InputType::Submit(_) |
+                        InputType::Reset(_) |
+                        InputType::Image(_) |
+                        InputType::Button(_)
+                )
+            })
     }
 
     pub(crate) fn opened_in_popover_mode(&self) -> Option<PopoverState> {

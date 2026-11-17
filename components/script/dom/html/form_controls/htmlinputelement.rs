@@ -1725,6 +1725,18 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     fn SetCustomValidity(&self, cx: &mut JSContext, error: DOMString) {
         self.validity_state(cx).set_custom_error_message(cx, error);
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-popovertargetaction
+    make_enumerated_getter!(
+        PopoverTargetAction,
+        "popovertargetaction",
+        "toggle" | "show" | "hide",
+        missing => "toggle",
+        invalid => "toggle"
+    );
+
+    // https://html.spec.whatwg.org/multipage/#dom-popovertargetaction
+    make_setter!(SetPopoverTargetAction, "popovertargetaction");
 }
 
 impl HTMLInputElement {
@@ -2843,11 +2855,16 @@ impl Activatable for HTMLInputElement {
 
         // Step 3. If element has a form owner and element's type attribute
         // is not in the Button state, then return.
-        // TODO
+        if self.form_owner().is_some() && !matches!(*self.input_type(), InputType::Button(_)) {
+            return;
+        }
 
         // Step 4. Run the popover target attribute activation behavior
         // given element and event's target.
-        // TODO
+        if let Some(target) = target.downcast::<Node>() {
+            self.upcast::<HTMLElement>()
+                .popover_target_attribute_activation_behavior(cx, target);
+        }
     }
 }
 

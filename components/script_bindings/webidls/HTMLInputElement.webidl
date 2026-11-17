@@ -112,6 +112,7 @@ interface HTMLInputElement : HTMLElement {
   [Pref="dom_testing_html_input_element_select_files_enabled"]
   undefined selectFiles(sequence<DOMString> path);
 };
+HTMLInputElement includes PopoverTargetAttributes;
 
 // https://html.spec.whatwg.org/multipage/#HTMLInputElement-partial
 partial interface HTMLInputElement {
