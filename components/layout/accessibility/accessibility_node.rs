@@ -739,11 +739,29 @@ impl Debug for AccessibilityNode {
             write!(f, "[hidden] ")?;
         }
         write!(f, "{:?}: {:?}", self.id, self.role())?;
+
+        let write_truncated = |f: &mut std::fmt::Formatter<'_>, value: &str| {
+            let mut truncated = value.to_string();
+            truncated.truncate(30);
+            let ellipsis = if truncated.len() < value.len() {
+                "…"
+            } else {
+                ""
+            };
+            let truncated = truncated.replace("\n", "↵");
+            write!(f, "\"{}{}\"", truncated, ellipsis)
+        };
+
+        if let Some(value) = self.value() {
+            write!(f, " ")?;
+            write_truncated(f, value)?;
+        }
         if let Some(html_tag) = self.html_tag() {
             write!(f, " (html_tag: {html_tag:?})")?;
         }
         if let Some(label) = self.label() {
-            write!(f, "\nlabel: {label:?}")?;
+            write!(f, "\nlabel: ")?;
+            write_truncated(f, label)?;
         }
         if let Some(bounds) = self.bounds() {
             write!(f, "\nbounds: {bounds:?}")?;
