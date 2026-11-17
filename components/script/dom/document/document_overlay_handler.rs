@@ -10,6 +10,7 @@ use html5ever::{local_name, ns};
 use js::context::{JSContext, NoGC};
 use js::realm::CurrentRealm;
 use script_bindings::cell::DomRefCell;
+use script_bindings::dom::UnrootedDom;
 use servo_config::pref;
 use stylo_dom::ElementState;
 
@@ -493,9 +494,7 @@ impl DocumentOverlayHandler {
         // Step 1. Let endpointIsHint be true if document's showing hint popover list contains
         // endpoint; otherwise false.
         let endpoint_is_hint = endpoint.is_some_and(|endpoint| {
-            self.showing_popover_list(cx.no_gc(), PopoverState::Hint)
-                .iter()
-                .any(|popover| &**popover == endpoint)
+            self.showing_popover_list_contains(cx.no_gc(), PopoverState::Hint, endpoint)
         });
 
         // Step 2. Run hide popover stack until given document, endpoint, Hint,
@@ -541,7 +540,11 @@ impl DocumentOverlayHandler {
     ) {
         // Step 1. Let popoverList be document's showing auto popover list if stackType is Auto,
         // and document's showing hint popover list otherwise.
-        let popover_list = self.showing_popover_list(cx.no_gc(), stack_type);
+        let popover_list: Vec<DomRoot<HTMLElement>> = self
+            .showing_popover_list_unrooted(cx.no_gc(), stack_type)
+            .iter()
+            .map(|popover| popover.as_rooted())
+            .collect();
 
         // Step 2. Let lastHideIndex be 0 if popoverList does not contain endpoint; otherwise the
         // index of endpoint in popoverList plus 1.
@@ -567,7 +570,11 @@ impl DocumentOverlayHandler {
 
         // Step 6. Let newPopoverList be document's showing auto popover list if stackType is
         // Auto, and document's showing hint popover list otherwise.
-        let new_popover_list = self.showing_popover_list(cx.no_gc(), stack_type);
+        let new_popover_list: Vec<DomRoot<HTMLElement>> = self
+            .showing_popover_list_unrooted(cx.no_gc(), stack_type)
+            .iter()
+            .map(|popover| popover.as_rooted())
+            .collect();
 
         // Step 7. Let toCheck be newPopoverList in reverse order.
         let to_check = new_popover_list.iter().rev();
@@ -595,9 +602,13 @@ impl DocumentOverlayHandler {
         // Step 2. If document's showing auto popover list is not empty, then return its last
         // element.
         // Step 3. Return null.
-        self.showing_popover_list(no_gc, PopoverState::Hint)
+        self.showing_popover_list_unrooted(no_gc, PopoverState::Hint)
             .pop()
-            .or_else(|| self.showing_popover_list(no_gc, PopoverState::Auto).pop())
+            .or_else(|| {
+                self.showing_popover_list_unrooted(no_gc, PopoverState::Auto)
+                    .pop()
+            })
+            .map(|popover| popover.as_rooted())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#showing-auto-popover-list>
@@ -605,11 +616,11 @@ impl DocumentOverlayHandler {
     ///
     /// The spec lists these steps twice, once with "auto" and once with "hint" as the mode in step 2.1.
     /// `mode` must be [`PopoverState::Auto`] or [`PopoverState::Hint`].
-    pub(crate) fn showing_popover_list(
+    pub(crate) fn showing_popover_list_unrooted<'a>(
         &self,
-        no_gc: &NoGC,
+        no_gc: &'a NoGC,
         mode: PopoverState,
-    ) -> Vec<DomRoot<HTMLElement>> {
+    ) -> Vec<UnrootedDom<'a, HTMLElement>> {
         debug_assert!(matches!(mode, PopoverState::Auto | PopoverState::Hint));
 
         // Step 1. Let popovers be « ».
@@ -628,9 +639,9 @@ impl DocumentOverlayHandler {
                 element
                     .upcast::<Element>()
                     .popover_visibility_state_showing() &&
-                    element.opened_in_popover_mode(no_gc) == Some(mode)
+                    element.opened_in_popover_mode() == Some(mode)
             })
-            .map(DomRoot::from_ref)
+            .map(|element| UnrootedDom::from_ref(element, no_gc))
             .collect()
     }
 
@@ -640,9 +651,9 @@ impl DocumentOverlayHandler {
         mode: PopoverState,
         element: &HTMLElement,
     ) -> bool {
-        self.showing_popover_list(no_gc, mode)
+        self.showing_popover_list_unrooted(no_gc, mode)
             .iter()
-            .any(|popover| &**popover == element)
+            .any(|popover| ***popover == *element)
     }
 
     pub(crate) fn showing_popover(&self) -> bool {

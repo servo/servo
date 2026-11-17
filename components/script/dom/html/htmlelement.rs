@@ -846,7 +846,7 @@ impl HTMLElement {
         // list is empty, then set document's hint stack parent to null.
         if overlay_handler.is_hint_stack_parent(self) ||
             overlay_handler
-                .showing_popover_list(cx.no_gc(), PopoverState::Hint)
+                .showing_popover_list_unrooted(cx.no_gc(), PopoverState::Hint)
                 .is_empty()
         {
             overlay_handler.set_hint_stack_parent(None);

@@ -5559,8 +5559,10 @@ impl Element {
 
         // Step 4. Let combinedPopovers be document's showing auto popover list, extended with
         // document's showing hint popover list.
-        let mut combined_popovers = overlay_handler.showing_popover_list(no_gc, PopoverState::Auto);
-        combined_popovers.extend(overlay_handler.showing_popover_list(no_gc, PopoverState::Hint));
+        let mut combined_popovers =
+            overlay_handler.showing_popover_list_unrooted(no_gc, PopoverState::Auto);
+        combined_popovers
+            .extend(overlay_handler.showing_popover_list_unrooted(no_gc, PopoverState::Hint));
 
         // Step 5. Let popoverAncestorIndex be the index of the last item in combinedPopovers of
         // which newPopoverOrTopLayerElement is a flat tree descendant, or -1 if there is none.
@@ -5590,7 +5592,7 @@ impl Element {
         // Step 10. Return combinedPopovers[ancestorIndex].
         //
         // We discard combinedPopovers, so this is the fastest operation.
-        Some(combined_popovers.swap_remove(ancestor_index))
+        Some(combined_popovers.swap_remove(ancestor_index).as_rooted())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#popover-visibility-state>
