@@ -7,7 +7,6 @@
 import argparse
 import json
 
-
 parser = argparse.ArgumentParser(description="Diff between two runs of performance tests.")
 parser.add_argument("file1", help="the first output json from runner")
 parser.add_argument("file2", help="the second output json from runner")

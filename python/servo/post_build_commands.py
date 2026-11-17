@@ -11,30 +11,27 @@ import json
 import os
 import os.path as path
 import subprocess
-from subprocess import CompletedProcess
 from shutil import copy2
-from typing import Any, Optional, List
+from subprocess import CompletedProcess
+from typing import Any, List, Optional
 
 import mozdebug
-
 from mach.decorators import (
+    Command,
     CommandArgument,
     CommandProvider,
-    Command,
 )
 
-import servo.util
 import servo.platform
-
+import servo.util
+from python.servo.command_base import BuildType
 from servo.command_base import (
     CommandBase,
     check_call,
-    is_linux,
     is_freebsd,
+    is_linux,
 )
 from servo.platform.build_target import is_android
-
-from python.servo.command_base import BuildType
 
 ANDROID_APP_NAME = "org.servo.servoshell"
 

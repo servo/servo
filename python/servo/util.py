@@ -6,27 +6,26 @@
 # <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
-import pathlib
-import subprocess
-import tempfile
-from os import PathLike
 import hashlib
 import os
 import os.path
+import pathlib
 import shutil
 import stat
+import subprocess
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.request
 import zipfile
-from subprocess import CompletedProcess
-from zipfile import ZipInfo
-from typing import Union, Any, Optional
 from collections.abc import Callable
-
 from io import BufferedIOBase, BytesIO
+from os import PathLike
 from socket import error as socket_error
+from subprocess import CompletedProcess
+from typing import Any, Optional, Union
+from zipfile import ZipInfo
 
 SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
 SERVO_ROOT = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))

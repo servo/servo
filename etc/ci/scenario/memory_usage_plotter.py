@@ -9,25 +9,26 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-from io import TextIOWrapper
 import argparse
+import csv
+import datetime as dt
 import os
+import subprocess
+import sys
 import threading
 import time
-import csv
 from dataclasses import dataclass, field, fields
-import subprocess
-from typing import List, Optional, Self, Type
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-import datetime as dt
+from io import TextIOWrapper
 from pathlib import Path
+from types import TracebackType
+from typing import List, Optional, Self, Type
+
+import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
+from common_function_for_servo_test import HostOptions, create_driver, get_target_os_from_environment
+from hdc_py.hdc import HarmonyDeviceConnector  # type: ignore[import-untyped]
 from selenium import webdriver
 from selenium.webdriver.remote.webdriver import WebDriver
-import sys
-from hdc_py.hdc import HarmonyDeviceConnector  # type: ignore[import-untyped]
-from types import TracebackType
-from common_function_for_servo_test import HostOptions, create_driver, get_target_os_from_environment
 
 PACKAGE_NAME = "org.servo.servo"
 

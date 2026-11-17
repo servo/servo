@@ -9,13 +9,12 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-import time
 import subprocess
+import time
 
-
-import common_function_for_servo_test
 import common_function_for_mossel
-from memory_usage_plotter import NonBlockingMemoryLogging, MemoryLoggingOptions
+import common_function_for_servo_test
+from memory_usage_plotter import MemoryLoggingOptions, NonBlockingMemoryLogging
 
 
 def operator() -> None:

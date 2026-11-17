@@ -12,12 +12,12 @@ import tempfile
 from argparse import ArgumentParser, Namespace
 from typing import Any
 
-from .manifestupdate import ensure_manifests_up_to_date
 from wptrunner import wptcommandline  # noqa: F401
 from wptrunner.update import WPTUpdate, setup_logging  # noqa: F401
 from wptrunner.update.base import exit_unclean  # noqa: F401
 
 from . import WPT_PATH
+from .manifestupdate import ensure_manifests_up_to_date
 
 TEST_ROOT = os.path.join(WPT_PATH, "tests")
 META_ROOT = os.path.join(WPT_PATH, "meta")

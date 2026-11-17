@@ -12,13 +12,12 @@
 from __future__ import annotations
 
 import json
-import sys
-from typing import ClassVar, Optional, Any
-import unittest
 import logging
-
+import sys
+import unittest
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, ClassVar, Optional
 
 
 class Workflow(str, Enum):

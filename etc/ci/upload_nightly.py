@@ -14,13 +14,13 @@ import hashlib
 import io
 import json
 import os
-from os import path
+import sys
 from datetime import datetime, timezone
+from os import path
 from typing import List, Optional
 
-import sys
-from github import Github, Auth  # pyrefly: ignore
 import boto3  # pyrefly: ignore
+from github import Auth, Github  # pyrefly: ignore
 
 
 def get_s3_secret(secret_from_environment: bool) -> tuple:
