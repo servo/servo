@@ -17,7 +17,6 @@ use std::time::Duration;
 
 use atomic_refcell::{AtomicRef, AtomicRefCell};
 use bitflags::bitflags;
-use chrono::Local;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use content_security_policy::{CspList, Policy as CspPolicy, PolicyDisposition};
 use cookie::Cookie;
@@ -33,6 +32,7 @@ use encoding_rs::{Encoding, UTF_8};
 use html5ever::{LocalName, QualName, local_name, ns};
 use hyper_serde::Serde;
 use indexmap::IndexSet;
+use jiff::ZonedDateTime;
 use js::context::{JSContext, NoGC};
 use js::jsapi::JSObject;
 use js::realm::CurrentRealm;
@@ -6483,13 +6483,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-lastmodified>
     fn LastModified(&self) -> DOMString {
-        DOMString::from(self.last_modified.as_ref().cloned().unwrap_or_else(|| {
-            // Ideally this would get the local time using `time`, but `time` always fails to get the local
-            // timezone on Unix unless the application is single threaded unless the library is explicitly
-            // set to "unsound" mode. Maybe that's fine, but it needs more investigation. see
-            // https://nvd.nist.gov/vuln/detail/CVE-2020-26235
-            // When `time` supports a thread-safe way of getting the local time zone we could use it here.
-            Local::now().format("%m/%d/%Y %H:%M:%S").to_string()
+        DOMString::from(self.last_modified.clone().unwrap_or_else(|| {
+            ZonedDateTime::now()
+                .strftime("%m/%d/%Y %H:%M:%S")
+                .to_string()
         }))
     }
 

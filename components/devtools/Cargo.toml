@@ -17,12 +17,12 @@ path = "lib.rs"
 atomic_refcell = { workspace = true }
 parking_lot = { workspace = true }
 base64 = { workspace = true }
-chrono = { workspace = true }
 crossbeam-channel = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
 headers = { workspace = true }
 http = { workspace = true }
+jiff = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
@@ -39,7 +39,7 @@ servo-url = { workspace = true }
 uuid = { workspace = true }
 
 [build-dependencies]
-chrono = { workspace = true }
+jiff = { workspace = true }
 
 [lints]
 workspace = true

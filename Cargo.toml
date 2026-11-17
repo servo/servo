@@ -63,7 +63,6 @@ cc = "1.2"
 cfg-if = "1.0.4"
 chacha20poly1305 = { version = "0.11", features = ["rand_core", "zeroize"] }
 chardetng = "1.0"
-chrono = { version = "0.4", features = ["serde"] }
 content-security-policy = { version = "0.9", features = ["serde"] }
 cookie = { package = "cookie", version = "0.18" }
 criterion = "0.8"
@@ -142,6 +141,7 @@ indexmap = { version = "2.14.0", features = ["std"] }
 inventory = "0.3.24"
 ipc-channel = "0.23"
 itertools = "0.15"
+jiff = "1.0.0"
 jni = "0.22"
 js = { package = "mozjs", version = "=0.27.0", default-features = false, features = ["intl", "libz-sys"] }
 k12 = "0.5"

@@ -28,7 +28,6 @@ async-recursion = { workspace = true }
 async-tungstenite = { workspace = true }
 base64 = { workspace = true }
 bytes = { workspace = true }
-chrono = { workspace = true }
 content-security-policy = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
@@ -50,6 +49,7 @@ hyper_serde = { workspace = true }
 imsz = { workspace = true }
 ipc-channel = { workspace = true }
 itertools = { workspace = true }
+jiff = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
