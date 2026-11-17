@@ -770,6 +770,7 @@ impl Handler {
         Ok(())
     }
 
+    /// Manages [`Self::navigating_webviews`] based on [`WebDriverLoadStatusMessage`].
     fn handle_load_status(&mut self, message: WebDriverLoadStatusMessage) {
         match message.status {
             WebDriverLoadStatus::NavigationStart => {
