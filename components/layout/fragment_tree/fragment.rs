@@ -27,6 +27,7 @@ use webrender_api::{FontInstanceKey, ImageKey};
 use super::{BaseFragment, BoxFragment, HoistedSharedFragment, PositioningFragment, Tag};
 use crate::SharedStyle;
 use crate::cell::{ArcRefCell, RefOrAtomicRef};
+use crate::display_list::DisplayListBuilderToken;
 use crate::flow::inline::text_run::SharedTextRunData;
 use crate::fragment_tree::FragmentStatus;
 use crate::geom::{LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect};
@@ -460,6 +461,14 @@ impl Fragment {
 }
 
 impl TextFragment {
+    pub(crate) fn style_unsafe(
+        &self,
+        _token: &DisplayListBuilderToken,
+    ) -> &ServoArc<ComputedValues> {
+        debug_assert!(self.run_data.inline_styles.style.try_borrow().is_ok());
+        unsafe { self.run_data.inline_styles.style.as_ptr().as_ref().unwrap() }
+    }
+
     pub(crate) fn style<'a>(&'a self) -> AtomicRef<'a, ServoArc<ComputedValues>> {
         self.run_data.inline_styles.style.borrow()
     }
