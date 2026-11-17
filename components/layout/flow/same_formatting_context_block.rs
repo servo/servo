@@ -27,6 +27,7 @@ use crate::flow::{
 };
 use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, CollapsedMargin, FragmentFlags, PhysicalBoxSides,
+    WithLogicalRect,
 };
 use crate::geom::{LogicalRect, LogicalSides1D, LogicalVec2};
 use crate::layout_box_base::LayoutBoxBase;
@@ -94,7 +95,7 @@ impl SameFormattingContextBlock {
         collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
         ignore_block_margins_for_stretch: LogicalSides1D<bool>,
         has_inline_parent: bool,
-    ) -> Arc<BoxFragment> {
+    ) -> WithLogicalRect<Arc<BoxFragment>> {
         let mut allows_caching = sequential_layout_state.is_none();
 
         if allows_caching &&
@@ -111,7 +112,10 @@ impl SameFormattingContextBlock {
         };
 
         let positioning_context_length = positioning_context.len();
-        let fragment = Arc::new(positioning_context.layout_maybe_position_relative_fragment(
+        let WithLogicalRect {
+            fragment,
+            logical_rect,
+        } = positioning_context.layout_maybe_position_relative_fragment(
             layout_context,
             containing_block,
             &self.base,
@@ -126,7 +130,8 @@ impl SameFormattingContextBlock {
                     has_inline_parent,
                 )
             },
-        ));
+        );
+        let fragment = WithLogicalRect::new(Arc::new(fragment), logical_rect);
 
         // We currently do not allow caching `SameFormattingContextBlock` box layout results if they
         // contain absolutely positioned children.
@@ -164,7 +169,7 @@ impl SameFormattingContextBlock {
         collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
         ignore_block_margins_for_stretch: LogicalSides1D<bool>,
         has_inline_parent: bool,
-    ) -> BoxFragment {
+    ) -> WithLogicalRect<BoxFragment> {
         let style = &self.base.style;
         let layout_style = self.contents.layout_style(&self.base);
         let containing_block_writing_mode = containing_block.style.writing_mode;
@@ -434,7 +439,7 @@ impl SameFormattingContextBlock {
             );
         }
 
-        BoxFragment::new(
+        let fragment = BoxFragment::new(
             base_fragment_info,
             style.clone(),
             flow_layout.fragments,
@@ -443,6 +448,7 @@ impl SameFormattingContextBlock {
             flow_layout.specific_layout_info,
         )
         .with_baselines(flow_layout.baselines)
-        .with_block_level_layout_info(block_margins_collapsed_with_children, clearance)
+        .with_block_level_layout_info(block_margins_collapsed_with_children, clearance);
+        WithLogicalRect::new(fragment, content_rect)
     }
 }

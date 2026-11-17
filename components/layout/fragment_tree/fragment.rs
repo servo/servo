@@ -10,7 +10,6 @@ use app_units::Au;
 use atomic_refcell::AtomicRef;
 use euclid::{Point2D, Rect, Size2D};
 use fonts::{FontMetrics, ShapedTextSlice};
-use itertools::Either;
 use layout_api::BoxAreaType;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
@@ -58,17 +57,19 @@ pub(crate) enum Fragment {
 /// A combination of a [`Fragment`] and its logical rectangle, which is used to keep
 /// a list of fragment children in order to later convert their logical rectangle
 /// into a physical rectangle when the size of the parent fragment is known.
+pub(crate) type FragmentAndLogicalRect = WithLogicalRect<Fragment>;
+
 #[derive(Clone, MallocSizeOf)]
-pub(crate) struct FragmentAndLogicalRect {
-    pub fragment: Fragment,
+pub(crate) struct WithLogicalRect<T> {
+    pub fragment: T,
     /// The logical rectangle of the fragment relative to its parent's box. This logical rectangle
     /// will be converted into a physical one, and the Fragment's `content_rect` will be updated
     /// once the parent box's final size is known.
     pub logical_rect: LogicalRect<Au>,
 }
 
-impl FragmentAndLogicalRect {
-    pub(crate) fn new(fragment: Fragment, logical_rect: LogicalRect<Au>) -> Self {
+impl<T> WithLogicalRect<T> {
+    pub(crate) fn new(fragment: T, logical_rect: LogicalRect<Au>) -> Self {
         Self {
             fragment,
             logical_rect,
@@ -715,7 +716,6 @@ impl<'a> From<&'a LayoutThread> for CumulativeContentRectCalculation<'a> {
 /// children of another fragment.
 #[derive(Clone, MallocSizeOf)]
 pub(crate) enum FragmentChildren {
-    PhysicalDeprecated(Vec<Fragment>),
     Logical(Vec<FragmentAndLogicalRect>),
 }
 
@@ -728,18 +728,14 @@ impl Default for FragmentChildren {
 impl FragmentChildren {
     pub(crate) fn fragments(&self) -> impl Iterator<Item = &Fragment> {
         match self {
-            FragmentChildren::PhysicalDeprecated(fragments) => Either::Left(fragments.iter()),
-            FragmentChildren::Logical(fragment_and_logical_rects) => Either::Right(
-                fragment_and_logical_rects
-                    .iter()
-                    .map(|fragment_and_logical_rect| &fragment_and_logical_rect.fragment),
-            ),
+            FragmentChildren::Logical(fragment_and_logical_rects) => fragment_and_logical_rects
+                .iter()
+                .map(|fragment_and_logical_rect| &fragment_and_logical_rect.fragment),
         }
     }
 
     pub(crate) fn is_empty(&self) -> bool {
         match self {
-            FragmentChildren::PhysicalDeprecated(fragments) => fragments.is_empty(),
             FragmentChildren::Logical(fragment_and_logical_rects) => {
                 fragment_and_logical_rects.is_empty()
             },
@@ -748,7 +744,6 @@ impl FragmentChildren {
 
     pub(crate) fn len(&self) -> usize {
         match self {
-            FragmentChildren::PhysicalDeprecated(fragments) => fragments.len(),
             FragmentChildren::Logical(fragment_and_logical_rects) => {
                 fragment_and_logical_rects.len()
             },
@@ -761,7 +756,6 @@ impl FragmentChildren {
         container_size: LogicalVec2<Au>,
     ) -> Vec<Fragment> {
         match self {
-            FragmentChildren::PhysicalDeprecated(fragments) => fragments,
             FragmentChildren::Logical(fragment_and_logical_rects) => fragment_and_logical_rects
                 .into_iter()
                 .map(|fragment_and_logical_rect| {
@@ -776,33 +770,8 @@ impl FragmentChildren {
         }
     }
 
-    pub(crate) fn append(
-        &mut self,
-        mut other: Self,
-        writing_mode: WritingMode,
-        container_size: LogicalVec2<Au>,
-    ) {
+    pub(crate) fn append(&mut self, mut other: Self) {
         match (self, &mut other) {
-            (Self::PhysicalDeprecated(fragments), _) => {
-                fragments.append(&mut other.into_physical_fragments(writing_mode, container_size))
-            },
-            (Self::Logical(fragments), Self::PhysicalDeprecated(other_fragments)) => {
-                // FIXME: This is wrong. The calculated logical rectangle here might be incorrect,
-                // but this is a graceful degradation of behavior until `PhysicalDeprecated` is
-                // removed entirely.
-                fragments.extend(other_fragments.drain(..).map(|fragment| {
-                    let logical_rect = fragment
-                        .base()
-                        .map(|base| {
-                            LogicalRect::from_physical(base.rect(), writing_mode, container_size)
-                        })
-                        .unwrap_or_else(LogicalRect::zero);
-                    FragmentAndLogicalRect {
-                        fragment,
-                        logical_rect,
-                    }
-                }));
-            },
             (Self::Logical(fragments), Self::Logical(other_fragments)) => {
                 fragments.append(other_fragments)
             },
