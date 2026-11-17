@@ -611,7 +611,7 @@ impl DocumentOverlayHandler {
             .map(|popover| popover.as_rooted())
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#showing-auto-popover-list>
+    /// <https://html.spec.whatwg.org/multipage/#auto-popover-list>
     /// <https://html.spec.whatwg.org/multipage/#showing-hint-popover-list>
     ///
     /// The spec lists these steps twice, once with "auto" and once with "hint" as the mode in step 2.1.
