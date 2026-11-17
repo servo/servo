@@ -26,7 +26,7 @@ use crate::containing_block::{ContainingBlock, ContainingBlockSize};
 use crate::flow::inline::text_run::{FontAndScriptInfo, SharedTextRunData};
 use crate::fragment_tree::{
     BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, FragmentAndLogicalRect,
-    FragmentChildren, FragmentFlags, TextFragment,
+    FragmentChildren, FragmentFlags, TextFragment, WithLogicalRect,
 };
 use crate::geom::{LogicalRect, LogicalSides, LogicalVec2, PhysicalRect, PhysicalSize};
 use crate::positioned::{
@@ -869,19 +869,14 @@ impl LineItemLayout<'_, '_> {
             )));
     }
 
-    fn layout_block_level(&mut self, block_level: Arc<BoxFragment>) {
-        let containing_block = self.containing_block();
-        let mut content_rect =
-            LogicalRect::from_physical_deprecated(block_level.content_rect(), containing_block);
+    fn layout_block_level(&mut self, mut block_level: WithLogicalRect<Fragment>) {
+        let content_rect = &mut block_level.logical_rect;
         // Block-level boxes are always placed at the logical origin of the line.
         content_rect.start_corner.inline -= self.current_state.parent_offset.inline;
         content_rect.start_corner.block -= self.line_metrics.block_offset;
         self.current_state
             .fragments_and_data
-            .push(FragmentAndData::new(FragmentAndLogicalRect::new(
-                Fragment::Box(block_level),
-                content_rect,
-            )));
+            .push(FragmentAndData::new(block_level));
     }
 
     #[inline]
@@ -901,7 +896,7 @@ pub(super) enum LineItem {
     Atomic(Option<InlineBoxIdentifier>, AtomicLineItem),
     AbsolutelyPositioned(Option<InlineBoxIdentifier>, AbsolutelyPositionedLineItem),
     Float(Option<InlineBoxIdentifier>, FloatLineItem),
-    BlockLevel(Option<InlineBoxIdentifier>, Arc<BoxFragment>),
+    BlockLevel(Option<InlineBoxIdentifier>, WithLogicalRect<Fragment>),
     Tab {
         inline_box_identifier: Option<InlineBoxIdentifier>,
         advance: Au,

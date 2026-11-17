@@ -140,6 +140,7 @@ use crate::flow::{
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
     CollapsedMargin, Fragment, FragmentChildren, FragmentFlags, PositioningFragment,
+    WithLogicalRect,
 };
 use crate::geom::{LogicalRect, LogicalSides1D, LogicalVec2};
 use crate::layout_box_base::LayoutBoxBase;
@@ -240,19 +241,20 @@ impl BlockLevelBox {
             true, /* has_inline_parent */
         );
 
-        let Some(fragment) = fragment.retrieve_box_fragment() else {
+        let Some(box_fragment) = fragment.fragment.retrieve_box_fragment() else {
             unreachable!("The fragment should be a Fragment::Box()");
         };
 
         // If this Fragment's layout depends on the block size of the containing block,
         // then the entire layout of the inline formatting context does as well.
-        layout.depends_on_block_constraints |= fragment.base.flags.contains(
+        layout.depends_on_block_constraints |= box_fragment.base.flags.contains(
             FragmentFlags::SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM,
         );
+        drop(box_fragment);
 
         layout.push_line_item_to_unbreakable_segment(LineItem::BlockLevel(
             layout.current_inline_box_identifier(),
-            fragment.clone(),
+            fragment,
         ));
 
         layout.commit_current_segment_to_line();
@@ -2794,7 +2796,11 @@ impl IndependentFormattingContext {
         // We need to know the inline size of the atomic before deciding whether to do the line break.
         let mut child_positioning_context = PositioningContext::default();
         let IndependentFloatOrAtomicLayoutResult {
-            mut fragment,
+            fragment:
+                WithLogicalRect {
+                    mut fragment,
+                    logical_rect: _, // TODO: should this be used here?
+                },
             baselines,
             pbm_sums,
         } = self.layout_float_or_atomic_inline(
@@ -2938,11 +2944,15 @@ impl IndependentFormattingContext {
 impl FloatBox {
     fn layout_into_line_items(&self, layout: &mut InlineFormattingContextLayout) {
         let old_len = layout.positioning_context.len();
-        let fragment = Arc::new(self.layout(
+        let WithLogicalRect {
+            fragment,
+            logical_rect: _, // TODO: should this be used here?
+        } = self.layout(
             layout.layout_context,
             layout.positioning_context,
             layout.placement_state.containing_block,
-        ));
+        );
+        let fragment = Arc::new(fragment);
         let new_len = layout.positioning_context.len();
 
         self.contents
