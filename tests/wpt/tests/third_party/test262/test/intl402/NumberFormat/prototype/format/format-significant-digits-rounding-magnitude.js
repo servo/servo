@@ -94,26 +94,38 @@ testNumberFormat(locales, numberingSystems,
 testNumberFormat(locales, numberingSystems,
   { useGrouping: false, maximumSignificantDigits: 3 },
   {
-    "0.0009999": "0.001",
-    "0.09999": "0.1",
-    "0.9999": "1",
-    "-0.9999": "-1",
-    "9.999": "10",
-    "-9.999": "-10",
     "99.99": "100",
     "-99.99": "-100",
     "999.9": "1000",
     "999999.9": "1000000",
   });
 
+// Inputs whose result has trimmed zeros are formatted as Numbers, so that the
+// result does not depend on how many digits the input string spells.
+testNumberFormat(locales, numberingSystems,
+  { useGrouping: false, maximumSignificantDigits: 3 },
+  {
+    "0.0009999": "0.001",
+    "0.09999": "0.1",
+    "0.9999": "1",
+    "-0.9999": "-1",
+    "9.999": "10",
+    "-9.999": "-10",
+  }, { makeInput: Number });
+
 // Lower minimum: step 7 trims at most maxPrecision - minPrecision zeros.
+testNumberFormat(locales, numberingSystems,
+  { useGrouping: false, minimumSignificantDigits: 2, maximumSignificantDigits: 3 },
+  {
+    "99.99": "100",
+  });
+
 testNumberFormat(locales, numberingSystems,
   { useGrouping: false, minimumSignificantDigits: 2, maximumSignificantDigits: 3 },
   {
     "0.9999": "1.0",
     "9.999": "10",
-    "99.99": "100",
-  });
+  }, { makeInput: Number });
 
 // Two significant digits
 testNumberFormat(locales, numberingSystems,

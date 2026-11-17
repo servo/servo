@@ -955,7 +955,7 @@ impl HTMLLinkElement {
             })
             .unwrap_or(Destination::Script);
 
-        let document = self.owner_document();
+        let document = self.owner_document_unrooted(cx.no_gc());
         let global = document.global();
 
         // A module preload destination is "json", "style", "text" or a script-like destination.

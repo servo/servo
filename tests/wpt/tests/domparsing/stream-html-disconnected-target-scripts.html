@@ -29,7 +29,7 @@
       const element = document.createElement("div");
       const writer = element[method]({ runScripts: true }).getWriter();
       await writer.write(
-        `<script src='resources/slow.js?pipe=trickle(d0.3)&disconnected=${method}'></` + "script>" +
+        `<script src='resources/slow.sub.js?pipe=trickle(d0.3)&disconnected=${method}'></` + "script>" +
         "<script src=\"data:text/javascript,window.events.push('fast');window.resolve_fast();\"></" + "script>" +
         "<script>window.events.push('inline');</" + "script>" +
         "<p id='after'>after</p>"

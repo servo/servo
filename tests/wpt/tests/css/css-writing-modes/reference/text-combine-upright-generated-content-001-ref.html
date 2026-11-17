@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Writing Modes Reference: text-combine-upright applies to generated content</title>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+div { writing-mode: vertical-rl; font: 40px/1 Ahem; }
+.tcy { text-combine-upright: all; }
+</style>
+<p>Test passes if there is a flat black rectangle between each two black squares.</p>
+<div>X<span class="tcy">12</span>Y<span class="tcy">34</span>X</div>

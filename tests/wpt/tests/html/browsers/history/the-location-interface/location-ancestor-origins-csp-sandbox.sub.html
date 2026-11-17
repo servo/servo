@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>location.ancestorOrigins with an ancestor sandboxed by its CSP</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/location-ancestor-origins-create-iframe.js"></script>
+
+<body>
+<script>
+function waitForOrigins(name) {
+  return new Promise(resolve => {
+    window.addEventListener("message", function listener(e) {
+      if (e.data.event === "sentOrigins" && e.data.name === name) {
+        window.removeEventListener("message", listener);
+        resolve(e.data.origins);
+      }
+    });
+  });
+}
+
+const path = "/html/browsers/history/the-location-interface/resources/location-ancestor-origins-recursive-iframe.html";
+const B = `http://{{hosts[alt][]}}:{{ports[http][0]}}${path}`;
+const C = `http://{{hosts[][www]}}:{{ports[http][0]}}${path}`;
+
+promise_test(async t => {
+  assert_implements(location.ancestorOrigins, "location.ancestorOrigins not implemented");
+  const iframe = document.createElement("iframe");
+  t.add_cleanup(() => iframe.remove());
+
+  const c1Origins = waitForOrigins("C1");
+  await configAndNavigateIFrame(iframe, { name: "C1", src: `${C}?pipe=header(Content-Security-Policy,sandbox allow-scripts)`, referrerPolicy: "" });
+  assert_array_equals(await c1Origins, [self.origin], "C1");
+
+  // B1 and C2 inherit C1's sandboxing, so their origins are opaque too.
+  const b1Origins = waitForOrigins("B1");
+  iframe.contentWindow.postMessage({ action: Actions.addFrame, request: { name: "B1", src: B, referrerPolicy: "" }, name: "C1" }, "*");
+  assert_array_equals(await b1Origins, ["null", self.origin], "B1");
+
+  const c2Origins = waitForOrigins("C2");
+  iframe.contentWindow.postMessage({ action: Actions.addFrame, request: { name: "C2", src: C, referrerPolicy: "" }, name: "B1" }, "*");
+  assert_array_equals(await c2Origins, ["null", "null", self.origin], "C2");
+}, "A1 -> C1 (sandbox in its CSP) -> B1 -> C2");
+</script>
+</body>

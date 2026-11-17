@@ -55,6 +55,11 @@ def webtranport_h3_server_is_running(host, port, timeout):
     return server_is_running(host, port, timeout)
 
 
+def websocket_h3_server_is_running(host, port, timeout):
+    from websocket.h3.websocket_h3_server import server_is_running  # type: ignore[import-not-found]
+    return server_is_running(host, port, timeout)
+
+
 class TestEnvironmentError(Exception):
     pass
 
@@ -94,7 +99,8 @@ class TestEnvironment:
     def __init__(self, test_paths, testharness_timeout_multipler,
                  pause_after_test, debug_test, debug_info, options, ssl_config, env_extras,
                  enable_webtransport=None, enable_dns=None, mojojs_path=None, inject_script=None,
-                 suppress_handler_traceback=None, ws_extra=None, logger=None):
+                 suppress_handler_traceback=None, ws_extra=None, logger=None,
+                 enable_websocket_h3=None):
 
         self.logger = logger or StructuredLogger("TestEnvironment")
         self.test_paths = test_paths
@@ -122,6 +128,9 @@ class TestEnvironment:
             enable_webtransport
             if enable_webtransport is not None
             else self.options.get("enable_webtransport_h3", False)
+        )
+        self.enable_websocket_h3 = (
+            enable_websocket_h3 if enable_websocket_h3 is not None else False
         )
         self.enable_dns = (
             enable_dns
@@ -160,6 +169,7 @@ class TestEnvironment:
                                    mp_context=mpcontext.get_context(),
                                    log_handlers=[server_log_handler],
                                    webtransport_h3=self.enable_webtransport,
+                                   websocket_h3=self.enable_websocket_h3,
                                    dns=self.enable_dns)
 
         if self.options.get("supports_debugger") and self.debug_info and self.debug_info.interactive:
@@ -207,6 +217,8 @@ class TestEnvironment:
             "wss": [8889],
             "h2": [9000],
             "webtransport-h3": [11000],
+            "websocket-h3": [11001],
+            "websocket-h3-https": [11001],
             "dns": [8053],
         }
         config.ports = ports
@@ -333,10 +345,14 @@ class TestEnvironment:
             # ready by the time they're checked.
             for port, server in self.servers.get("webtransport-h3", []):
                 if not webtranport_h3_server_is_running(host, port, timeout=5):
-                    pending.append((host, port))
+                    pending.append(("webtransport-h3", port))
+
+            for port, server in self.servers.get("websocket-h3", []):
+                if not websocket_h3_server_is_running(host, port, timeout=5):
+                    pending.append(("websocket-h3", port))
 
             for scheme, servers in self.servers.items():
-                if scheme in ("dns", "webtransport-h3"):
+                if scheme in ("dns", "webtransport-h3", "websocket-h3"):
                     continue
                 for port, server in servers:
                     s = socket.socket()

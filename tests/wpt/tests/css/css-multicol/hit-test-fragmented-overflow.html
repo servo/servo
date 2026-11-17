@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<title>CSS Multi-column Layout: Hit-testing overflow from later fragments of a fragmented box</title>
+<link rel="help" href="https://crbug.com/581341594">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+  .multicol-v {
+    position: absolute;
+    left: 200px;
+    top: 0;
+    width: 100px;
+    height: 200px;
+    columns: 2;
+    column-gap: 0;
+  }
+  .multicol-h {
+    position: absolute;
+    left: 200px;
+    top: 500px;
+    width: 200px;
+    height: 100px;
+    columns: 2;
+    column-gap: 0;
+  }
+  .frag {
+    width: 100px;
+    height: 100px;
+    contain: size;
+  }
+  .target {
+    width: 100px;
+    height: 100px;
+  }
+</style>
+
+<!-- vertical-rl: second fragment child overflows to the left -->
+<div class="multicol-v" style="writing-mode: vertical-rl;">
+  <div class="box">
+    <div class="frag" style="break-after: column;"></div>
+    <div class="frag">
+      <div style="width: 10px; height: 100px;"></div>
+      <div class="target" id="target_vrl" style="margin-right: 90px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- sideways-rl: second fragment child overflows to the left -->
+<div class="multicol-v" style="top: 200px; writing-mode: sideways-rl;">
+  <div class="box">
+    <div class="frag" style="break-after: column;"></div>
+    <div class="frag">
+      <div style="width: 10px; height: 100px;"></div>
+      <div class="target" id="target_srl" style="margin-right: 90px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- vertical-lr: second fragment child overflows to the left (negative block direction) -->
+<div class="multicol-v" style="left: 500px; writing-mode: vertical-lr;">
+  <div class="box">
+    <div class="frag" style="break-after: column;"></div>
+    <div class="frag">
+      <div style="width: 10px; height: 100px;"></div>
+      <div class="target" id="target_vlr" style="margin-left: -110px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- horizontal-tb: second fragment child overflows upward (negative block direction) -->
+<div class="multicol-h">
+  <div class="box">
+    <div class="frag" style="break-after: column;"></div>
+    <div class="frag">
+      <div style="width: 100px; height: 10px;"></div>
+      <div class="target" id="target_htb" style="margin-top: -110px;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+test(() => {
+  assert_equals(document.elementFromPoint(150, 150),
+                document.getElementById("target_vrl"));
+}, "Hit-testing block-end overflow in second fragment in vertical-rl");
+
+test(() => {
+  assert_equals(document.elementFromPoint(150, 350),
+                document.getElementById("target_srl"));
+}, "Hit-testing block-end overflow in second fragment in sideways-rl");
+
+test(() => {
+  assert_equals(document.elementFromPoint(450, 150),
+                document.getElementById("target_vlr"));
+}, "Hit-testing block-start overflow in second fragment in vertical-lr");
+
+test(() => {
+  assert_equals(document.elementFromPoint(350, 450),
+                document.getElementById("target_htb"));
+}, "Hit-testing block-start overflow in second fragment in horizontal-tb");
+</script>

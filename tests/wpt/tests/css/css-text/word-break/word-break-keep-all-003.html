@@ -3,23 +3,20 @@
 <head>
 <meta charset="utf-8">
 <title>word-break: keep-all, thai</title>
-<meta name="assert" content="word-break: keep-all means breaking is forbidden within 'words',  except where opportunities exist due to dictionary-based breaking (such as in Thai).">
+<meta name="assert" content="word-break: keep-all means breaking is forbidden within &#39;words&#39;. In Thai, this suppresses dictionary-based breaks, so text breaks only at spaces and explicit opportunities such as U+200B ZERO WIDTH SPACE.">
 <link rel='help' href='https://drafts.csswg.org/css-text-3/#word-break-property'>
 <link rel='match' href='reference/word-break-keep-all-ref-003.html'>
 <link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
 <style type='text/css'>
-.test { word-break: keep-all; }
+.test > div { word-break: keep-all; width: 1ch; }
 /* the CSS below is not part of the test */
-.test, .ref { border: 1px solid orange;  margin: 20px;  padding: 10px; width: 390px; font: 36px/1 sans-serif; }
+.test, .ref { float: left; border: 1px solid orange;  margin: 20px;  padding: 10px; width: 7em; font: 36px/1 sans-serif; }
+.ref > div { white-space: nowrap; }
 </style>
 </head>
 <body>
 <div id='instructions'>Test passes if the two orange boxes are the same.</div>
-<div class="test" lang="th"><div id="testdiv"><span id="testspan">และ และและ</span></div></div>
-<div class="ref" lang="th"><span>และ และ<br/>และ</span></div>
-<script>
-var sentenceWidth = document.getElementById('testspan').offsetWidth
-document.getElementById('testdiv').style.width = String(sentenceWidth - 5)+'px'
-</script>
+<div class="test" lang="th"><div>เขา&#x200B;บอกว่า “ตั๋ว&#x200B;ไปกลับ (ชั้นประหยัด) ราคา ฿1,250.50”</div></div>
+<div class="ref" lang="th"><div>เขา<br/>บอกว่า<br/>“ตั๋ว<br/>ไปกลับ<br/>(ชั้นประหยัด)<br/>ราคา<br/>฿1,250.50”</div></div>
 </body>
 </html>

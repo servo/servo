@@ -1,0 +1,17 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: window.browser (https://w3c.github.io/webextensions/specification/window.browser.html)
+
+[Exposed=(Window,Worker)]
+interface Browser {
+  // Intentionally left blank.
+};
+
+partial interface Window {
+ attribute Browser browser;
+};
+
+partial interface ServiceWorkerGlobalScope {
+  attribute Browser browser;
+};

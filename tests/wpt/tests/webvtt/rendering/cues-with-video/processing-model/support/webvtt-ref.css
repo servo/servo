@@ -30,7 +30,7 @@ body { margin: 0 }
     right: 0;
 }
 .cue-background {
-    background: rgba(0,0,0,0.8);
+    background: rgba(0,0,0,1);
 }
 
 .i {

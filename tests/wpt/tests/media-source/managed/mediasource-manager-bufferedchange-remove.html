@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ManagedSourceBuffer bufferedchange event after remove()</title>
+<link rel="help" href="https://w3c.github.io/media-source/#managedsourcebuffer-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="mediasource-manager-util.js"></script>
+<body>
+<script>
+async function setUpBuffered(t) {
+  const { source, sourceOpen } = attachManagedMediaSource(t);
+  const [data] = await Promise.all([fetchMediaData(MANAGED_MEDIA.muxed.url), sourceOpen]);
+  const sourceBuffer = source.addSourceBuffer(MANAGED_MEDIA.muxed.type);
+  const recorder = new BufferedChangeRecorder(sourceBuffer);
+  await appendBufferAsync(sourceBuffer, data);
+  await recorder.waitForCount(1);
+  await flushTasks(t);
+  assert_greater_than(sourceBuffer.buffered.length, 0, 'media was buffered');
+  return { source, sourceBuffer, recorder, data };
+}
+
+promise_test(async t => {
+  const { sourceBuffer, recorder } = await setUpBuffered(t);
+  const previous = rangesToArray(sourceBuffer.buffered);
+  const end = previous[previous.length - 1][1];
+
+  const nextEvent = recorder.nextEvent();
+  await removeAsync(sourceBuffer, end / 2, Infinity);
+  const current = rangesToArray(sourceBuffer.buffered);
+  assert_less_than(current[current.length - 1][1], end, 'buffered shrank');
+
+  const event = await nextEvent;
+  assertBufferedChangeEvent(event, previous, current, 'partial removal');
+  assert_equals(event.addedRanges.length, 0, 'addedRanges is empty');
+  assert_equals(event.target, sourceBuffer, 'target');
+}, 'remove() of part of the buffered data fires bufferedchange reporting the removed range');
+
+promise_test(async t => {
+  const { sourceBuffer, recorder } = await setUpBuffered(t);
+  const previous = rangesToArray(sourceBuffer.buffered);
+
+  const nextEvent = recorder.nextEvent();
+  await removeAsync(sourceBuffer, 0, Infinity);
+  assert_equals(sourceBuffer.buffered.length, 0, 'buffered is empty');
+
+  assertBufferedChangeEvent(await nextEvent, previous, [], 'full removal');
+}, 'remove() of all buffered data fires bufferedchange reporting all ranges as removed');
+
+promise_test(async t => {
+  const { source, sourceBuffer, recorder } = await setUpBuffered(t);
+  const previous = rangesToArray(sourceBuffer.buffered);
+  const end = previous[previous.length - 1][1];
+  source.duration = end + 10;
+
+  const nextEvent = recorder.nextEvent();
+  // No coded frames exist past the buffered end, so this removes nothing.
+  await removeAsync(sourceBuffer, end + 1, end + 2);
+  assertTimeRangesEqual(sourceBuffer.buffered, previous, 'buffered is unchanged');
+
+  // Remove data that is buffered: the next event received must be for it.
+  await removeAsync(sourceBuffer, 0, Infinity);
+  assertBufferedChangeEvent(await nextEvent, previous, [], 'event following the redundant removal');
+}, 'remove() of an unbuffered range does not fire bufferedchange');
+</script>
+</body>

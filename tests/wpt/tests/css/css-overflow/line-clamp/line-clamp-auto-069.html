@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp: auto does not clamp after a box with no next in-flow sibling</title>
+<link rel="author" title="Christian Biesinger" href="mailto:cbiesinger@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-auto-069-ref.html">
+<meta name="assert" content="A possible clamp point is between two in-flow block-level sibling boxes. The nested box has no next in-flow sibling, so the clamp point is after its parent, and the float that follows the nested box is not hidden.">
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: 2.5lh;
+  width: 300px;
+  font: 16px/20px monospace;
+  background: lightblue;
+}
+#spacer {
+  height: 2lh;
+}
+#float {
+  float: right;
+  margin-top: -2lh;
+}
+p {
+  margin: 0;
+}
+</style>
+<div class="clamp">
+  <div>
+    <div id="spacer"></div>
+    <div id="float">Float</div>
+  </div>
+  <p>Line 1</p>
+</div>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS @private: mixins across style sheets, mixins and groups</title>
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14243">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+    @mixin --remote() {
+      @private {
+        --c: 5px;
+      }
+      width: var(--c, 1px);
+    }
+
+    @mixin --outer-size() {
+      @private {
+        --size: 11px;
+      }
+      width: var(--size, 1px);
+      @apply --inner-size;
+    }
+
+    @mixin --inner-size() {
+      @private {
+        --size: 22px;
+      }
+      height: var(--size, 2px);
+    }
+
+    @mixin --conditional() {
+      @media (width > 0px) {
+        @private {
+          --on: 4px;
+        }
+      }
+      @media (width < 0px) {
+        @private {
+          --off: 6px;
+        }
+      }
+      width: var(--on, 1px);
+      height: var(--off, 8px);
+    }
+
+    @mixin --with-fallback() {
+      @private {
+        --f: 3px;
+      }
+      @contents {
+        @private {
+          --g: 6px;
+        }
+        width: var(--f, 1px);
+        height: var(--g, 2px);
+      }
+    }
+  </style>
+  <style>
+    #cross {
+      @apply --remote;
+      height: var(--c, 9px);
+    }
+
+    #composed {
+      @apply --outer-size;
+    }
+
+    #conditional {
+      @apply --conditional;
+    }
+
+    #fallback {
+      @apply --with-fallback;
+    }
+
+    #not-fallback {
+      @apply --with-fallback {
+        width: var(--f, 41px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="cross"></div>
+  <div id="composed"></div>
+  <div id="conditional"></div>
+  <div id="fallback"></div>
+  <div id="not-fallback"></div>
+  <script>
+    function style(id) {
+      return getComputedStyle(document.getElementById(id));
+    }
+
+    test(() => {
+      assert_equals(style('cross').width, '5px');
+      assert_equals(style('cross').height, '9px');
+    }, 'A mixin from another style sheet keeps its own private variables');
+
+    test(() => {
+      assert_equals(style('composed').width, '11px');
+      assert_equals(style('composed').height, '22px');
+    }, 'Nested mixins with the same private name do not share it');
+
+    test(() => {
+      assert_equals(style('conditional').width, '4px');
+    }, '@private in a matching conditional rule in a mixin');
+
+    test(() => {
+      assert_equals(style('conditional').height, '8px');
+    }, '@private in a non-matching conditional rule in a mixin is not set');
+
+    test(() => {
+      assert_equals(style('fallback').width, '3px');
+      assert_equals(style('fallback').height, '6px');
+    }, 'The fallback @contents block sees the mixin\'s private variables');
+
+    test(() => {
+      assert_equals(style('not-fallback').width, '41px');
+    }, 'The @apply\'s @contents block replaces the fallback and cannot see ' +
+       'the mixin\'s private variables');
+  </script>
+</body>
+</html>

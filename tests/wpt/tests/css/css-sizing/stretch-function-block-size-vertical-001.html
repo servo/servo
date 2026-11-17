@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>CSS stretch(): the argument is the size of the margin box in the block axis, in vertical writing mode</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="In a vertical writing mode, a stretch() percentage in the block axis resolves against the containing block's width while the margins resolve against its height, the containing block's inline size.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .container {
+    writing-mode: vertical-lr;
+    width: 200px;
+    height: 100px;
+  }
+  .test {
+    /* 75% of 200px, less 50% of 100px. */
+    width: stretch(75%);
+    margin-right: 50%;
+    background: green;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="container">
+  <div class="test"></div>
+</div>

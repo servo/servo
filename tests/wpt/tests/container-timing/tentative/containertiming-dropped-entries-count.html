@@ -1,0 +1,45 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>Container Timing: entries beyond the buffer size are counted as dropped</title>
+<body>
+<style>
+body {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 10px;
+}
+div {
+  width: 20px;
+  height: 12px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/container-timing/resources/container-timing-helpers.js"></script>
+<script>
+  // The container timing buffer holds 150 entries.
+  const kBufferSize = 150;
+
+  promise_test(async t => {
+    assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
+
+    // One more root than the buffer holds; each reports a single entry.
+    for (let i = 0; i <= kBufferSize; ++i) {
+      addContainerRoot(document.body, `div_ct_${i}`).textContent = 'x';
+    }
+    await waitWithoutObserving(t);
+
+    const options = await new Promise(resolve => {
+      const observer = new PerformanceObserver((list, obs, options) => {
+        resolve(options);
+      });
+      observer.observe({type: 'container', buffered: true});
+      t.add_cleanup(() => observer.disconnect());
+    });
+    assert_equals(options.droppedEntriesCount, 1);
+  }, 'Container entries that do not fit in the buffer are counted as dropped.');
+</script>
+
+</body>

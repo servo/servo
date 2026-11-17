@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>A forced row break preserves independent fixed-row overflow</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="match" href="row-breaks-004-ref.html">
+<style>
+  .multicol { columns: 3; column-gap: 0; column-fill: auto; width: 240px; height: 100px; background: lightgray; }
+  .lanes { display: grid-lanes; grid-template-rows: 60px 20px 20px; width: 80px; }
+</style>
+<div class="multicol">
+  <div class="lanes">
+    <div style="grid-row: 1; width: 40px; background: orange;">
+      <div style="height: 30px;"></div>
+      <div style="height: 30px; break-before: column; background: blue;"></div>
+    </div>
+    <div style="grid-row: 1; width: 40px; background: teal;"></div>
+    <div style="grid-row: 2; width: 40px; background: purple;"></div>
+    <div style="grid-row: 2; width: 40px; background: yellow;"></div>
+    <div style="grid-row: 3; width: 80px; break-before: column; background: green;"></div>
+  </div>
+</div>

@@ -9,8 +9,9 @@
 </head>
 <body>
 
-<form toolname="opaque_tool" tooldescription="Opaque tool description">
+<form toolautosubmit toolname="opaque_tool" tooldescription="Opaque tool description">
   <input type="text" name="param1">
+  <button type="submit">Submit</button>
 </form>
 
 <script>
@@ -18,44 +19,21 @@ promise_test(async t => {
   // Assert that our CSP header took effect.
   assert_equals(self.origin, 'null');
 
+  const form = document.querySelector('form');
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    e.respondWith(Promise.resolve(`submitted:${form.elements.param1.value}`));
+  }, {once: true});
+
   // Wait for the tool to register (happens synchronously upon parsing, but
   // getTools is async)
   const tool = await waitForTool('opaque_tool');
-  assert_true(!!tool, "Tool should be successfully registered from an opaque origin");
+  assert_true(!!tool, 'Tool should be successfully registered from an opaque origin');
+  assert_equals(tool.origin, 'null');
 
-  await promise_rejects_dom(
-    t,
-    'NotSupportedError',
-    document.modelContext.executeTool(tool, {"param1":"value"}),
-    'executeTool() must reject with NotSupportedError in opaque origin documents'
-  );
-}, 'An opaque origin document can register but not execute its own declarative tools');
-
-promise_test(async t => {
-  const tools = await document.modelContext.getTools();
-  const tool = tools.find(t => t.name === 'opaque_tool');
-
-  let events = [];
-  const p = document.modelContext.executeTool(tool);
-
-  // Since `executeTool()` synchronously rejects the Promise for opaque origins,
-  // the microtask to run the catch reaction is already queued before
-  // `queueMicrotask()` is invoked below.
-  p.catch(() => events.push('rejection'));
-
-  // Queue another microtask immediately after.
-  queueMicrotask(() => events.push('microtask'));
-
-  await promise_rejects_dom(
-    t,
-    'NotSupportedError',
-    document.modelContext.executeTool(tool, {"param1":"value"}),
-    'executeTool() must reject with NotSupportedError in opaque origin documents'
-  );
-
-  assert_array_equals(events, ['rejection', 'microtask'],
-    'returned promise is rejected before custom microtask is queued');
-}, 'executeTool() rejects synchronously for opaque origins');
+  const result = await document.modelContext.executeTool(tool, {param1: 'value'});
+  assert_equals(result, 'submitted:value');
+}, 'An opaque origin document can register and execute its own declarative tools');
 </script>
 </body>
 </html>

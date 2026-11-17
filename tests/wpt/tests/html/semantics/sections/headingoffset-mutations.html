@@ -4,6 +4,7 @@
 <link rel="help" href="https://github.com/whatwg/html/pull/11086" />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/gc.js"></script>
 
 <div>
   <h1 id="testMutation"></h1>
@@ -805,4 +806,19 @@
     container.replaceChildren();
     assertLevel(h1, 1, "h1 returns to level 1 after replaceChildren()");
   }, "replaceChildren() updates removed heading levels");
+
+  promise_test(async () => {
+    let shadow = (() => {
+      const host = document.createElement("div");
+      host.headingOffset = 2;
+      const root = host.attachShadow({ mode: "open" });
+      const h1 = document.createElement("h1");
+      root.appendChild(h1);
+      assertLevel(h1, 3, "shadow heading inherits its host's offset");
+      return root;
+    })();
+    await garbageCollect();
+    shadow = null;
+    await garbageCollect();
+  }, "collecting a shadow root before its host does not crash heading level updates");
 </script>

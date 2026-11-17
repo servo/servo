@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script>
+'use strict';
+
+const params = new URLSearchParams(location.search);
+const type = params.get('type');
+const mode = params.get('mode');
+const token = params.get('token');
+
+if (mode === 'idle') {
+  parent.postMessage({ token, status: 'loaded' }, '*');
+} else if (mode === 'cache') {
+  const first = new window[type]({ highWaterMark: 1 });
+  const second = new window[type]({ highWaterMark: 1 });
+  const size = first.size;
+  parent.postMessage({
+    token,
+    status: 'cached',
+    sameFunctionIdentity: size === second.size,
+    hasRealmFunctionPrototype: Object.getPrototypeOf(size) === Function.prototype,
+    hasRealmFunctionConstructor: size.constructor === Function,
+  }, '*');
+} else if (mode === 'defer') {
+  window.addEventListener('message', event => {
+    if (!event.data || event.data.token !== token ||
+        event.data.command !== 'evaluate') {
+      return;
+    }
+    const first = new window[type]({ highWaterMark: 1 });
+    const second = new window[type]({ highWaterMark: 1 });
+    const size = first.size;
+    parent.postMessage({
+      token,
+      status: 'evaluated',
+      sameFunctionIdentity: size === second.size,
+      hasRealmFunctionPrototype: Object.getPrototypeOf(size) === Function.prototype,
+      hasRealmFunctionConstructor: size.constructor === Function,
+      result: size({ byteLength: 42 }),
+    }, '*');
+  });
+  parent.postMessage({ token, status: 'ready' }, '*');
+}
+</script>

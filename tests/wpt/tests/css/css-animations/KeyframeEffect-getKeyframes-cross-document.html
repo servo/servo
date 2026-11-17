@@ -1,0 +1,188 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>KeyframeEffect.getKeyframes() flushes styles across documents</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#requirements-on-pending-style-changes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+@keyframes anim-currentcolor {
+  to {
+    background-color: currentcolor;
+  }
+}
+</style>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+function addLoadedIframe(t, html, parent = document.body) {
+  const iframe = document.createElement('iframe');
+  iframe.srcdoc = html;
+  parent.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  return new Promise(resolve => {
+    iframe.addEventListener('load', () => resolve(iframe), { once: true });
+  });
+}
+
+promise_test(async t => {
+  const div = addDiv(t);
+  div.style.color = 'rgb(0, 0, 255)';
+  div.style.animation = 'anim-currentcolor 100s';
+  const cssAnim = div.getAnimations()[0];
+
+  const iframe = await addLoadedIframe(
+    t, '<!doctype html><div id="target" style="color: rgb(10, 20, 30)"></div>'
+  );
+  const iframeTarget = iframe.contentDocument.getElementById('target');
+
+  cssAnim.effect.target = iframeTarget;
+  assert_equals(
+    cssAnim.effect.getKeyframes()[1].backgroundColor,
+    'rgb(10, 20, 30)'
+  );
+
+  // Mutate the cross-document target without flushing the iframe document.
+  iframeTarget.style.color = 'rgb(0, 128, 0)';
+  assert_equals(
+    cssAnim.effect.getKeyframes()[1].backgroundColor,
+    'rgb(0, 128, 0)',
+    'getKeyframes() flushes pending style updates in the target document'
+  );
+}, 'CSSAnimation.effect.getKeyframes() flushes style for a cross-document ' +
+   'target in a child iframe');
+
+promise_test(async t => {
+  const iframe1 = await addLoadedIframe(
+    t,
+    '<!doctype html><style>@keyframes a { to { background-color: currentcolor; } }</style>' +
+    '<div id="src" style="color: rgb(0, 0, 255); animation: a 100s"></div>'
+  );
+  const iframe2 = await addLoadedIframe(
+    t,
+    '<!doctype html><div id="dst" style="color: rgb(10, 20, 30)"></div>'
+  );
+
+  const src = iframe1.contentDocument.getElementById('src');
+  const dst = iframe2.contentDocument.getElementById('dst');
+  const cssAnim = src.getAnimations()[0];
+
+  cssAnim.effect.target = dst;
+  assert_equals(
+    cssAnim.effect.getKeyframes()[1].backgroundColor,
+    'rgb(10, 20, 30)'
+  );
+
+  // Mutate the sibling iframe target without flushing iframe2.
+  dst.style.color = 'rgb(0, 128, 0)';
+  assert_equals(
+    cssAnim.effect.getKeyframes()[1].backgroundColor,
+    'rgb(0, 128, 0)',
+    'getKeyframes() flushes pending style updates in a sibling iframe'
+  );
+}, 'CSSAnimation.effect.getKeyframes() flushes style across sibling iframes');
+
+promise_test(async t => {
+  const div = addDiv(t);
+  div.style.color = 'rgb(0, 0, 255)';
+  div.style.animation = 'anim-currentcolor 100s';
+  const cssAnim = div.getAnimations()[0];
+
+  const iframe = await addLoadedIframe(t, '<!doctype html><body></body>');
+  iframe.contentDocument.body.appendChild(div);
+  div.style.color = 'rgb(0, 128, 0)';
+
+  assert_equals(
+    cssAnim.effect.getKeyframes()[1].backgroundColor,
+    'rgb(0, 128, 0)',
+    'getKeyframes() flushes pending style updates after element adoption'
+  );
+}, 'CSSAnimation.effect.getKeyframes() flushes style after owning element is ' +
+   'moved into a child iframe');
+
+promise_test(async t => {
+  const container = addDiv(t);
+  const div = document.createElement('div');
+  div.style.color = 'rgb(0, 0, 255)';
+  div.style.animation = 'anim-currentcolor 100s';
+  container.appendChild(div);
+
+  const cssAnim = div.getAnimations()[0];
+  container.style.contentVisibility = 'hidden';
+  await waitForAnimationFrames(1);
+
+  div.style.color = 'rgb(0, 128, 0)';
+  assert_equals(
+    cssAnim.effect.getKeyframes()[1].backgroundColor,
+    'rgb(0, 128, 0)',
+    'getKeyframes() flushes pending style updates in a display-locked subtree'
+  );
+}, 'CSSAnimation.effect.getKeyframes() flushes style for a target in a ' +
+   'display-locked subtree');
+
+promise_test(async t => {
+  const div = addDiv(t);
+  div.style.color = 'rgb(0, 0, 255)';
+  div.style.animation = 'anim-currentcolor 100s';
+  const cssAnim = div.getAnimations()[0];
+
+  const container = addDiv(t);
+  const iframe = await addLoadedIframe(
+    t,
+    '<!doctype html><div id="target" style="color: rgb(10, 20, 30)"></div>',
+    container
+  );
+  const iframeTarget = iframe.contentDocument.getElementById('target');
+  cssAnim.effect.target = iframeTarget;
+
+  container.style.contentVisibility = 'hidden';
+  await waitForAnimationFrames(1);
+
+  iframeTarget.style.color = 'rgb(0, 128, 0)';
+  assert_equals(
+    cssAnim.effect.getKeyframes()[1].backgroundColor,
+    'rgb(0, 128, 0)',
+    'getKeyframes() flushes pending style updates in a display-locked iframe'
+  );
+}, 'CSSAnimation.effect.getKeyframes() flushes style for a cross-document ' +
+   'target inside a display-locked container');
+
+promise_test(async t => {
+  const div = addDiv(t);
+  div.style.color = 'rgb(0, 0, 255)';
+  div.style.animation = 'anim-currentcolor 100s';
+  const cssAnim = div.getAnimations()[0];
+
+  const iframe = await addLoadedIframe(
+    t,
+    '<!doctype html>' +
+    '<div id="host" style="color: rgb(10, 20, 30)">' +
+    '  <template shadowrootmode="open"><slot name="a"></slot></template>' +
+    '  <div id="target" slot="a"></div>' +
+    '</div>'
+  );
+  const iframeTarget = iframe.contentDocument.getElementById('target');
+  cssAnim.effect.target = iframeTarget;
+  assert_equals(
+    cssAnim.effect.getKeyframes()[1].backgroundColor,
+    'rgb(10, 20, 30)'
+  );
+
+  // Dirty slot assignment in the child iframe so that flushing unslots and
+  // detaches the target before computed keyframes are evaluated.
+  iframeTarget.slot = 'b';
+  assert_frame_lists_equal(cssAnim.effect.getKeyframes(), [
+    {
+      offset: 1,
+      computedOffset: 1,
+      easing: 'ease',
+      composite: 'auto',
+      backgroundColor: 'currentcolor',
+    },
+  ]);
+}, 'CSSAnimation.effect.getKeyframes() flushes pending slot reassignment ' +
+   'for a cross-document target');
+</script>
+</body>

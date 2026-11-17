@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Flexible Box Layout: flex serialization when set through its longhands</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#propdef-flex">
+<link rel="help" href="https://drafts.csswg.org/cssom/#serialize-a-css-declaration-block">
+<meta name="assert" content="The flex shorthand serializes from the current values of flex-grow, flex-shrink and flex-basis.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div style="display: flex">
+  <div id="target"></div>
+</div>
+<script>
+const target = document.getElementById("target");
+
+function test_flex_from_longhands(longhands, expectedSpecified, expectedComputed) {
+  test(() => {
+    target.style.cssText = "";
+    for (const [property, value] of Object.entries(longhands))
+      target.style.setProperty(property, value);
+    assert_equals(target.style.flex, expectedSpecified, "specified value");
+    assert_equals(getComputedStyle(target).flex, expectedComputed, "computed value");
+  }, `flex serializes from longhands ${JSON.stringify(longhands)}`);
+}
+
+test_flex_from_longhands({ }, "", "0 1 auto");
+test_flex_from_longhands({ "flex-grow": "2" }, "", "2 1 auto");
+test_flex_from_longhands({ "flex-grow": "2", "flex-shrink": "3" }, "", "2 3 auto");
+test_flex_from_longhands({ "flex-grow": "2", "flex-shrink": "3", "flex-basis": "0" }, "2 3 0px", "2 3 0px");
+test_flex_from_longhands({ "flex-grow": "2", "flex-shrink": "0", "flex-basis": "50%" }, "2 0 50%", "2 0 50%");
+test_flex_from_longhands({ "flex-grow": "2", "flex-shrink": "0", "flex-basis": "auto" }, "2 0 auto", "2 0 auto");
+
+test(() => {
+  target.style.cssText = "";
+  target.style.flex = "none";
+  assert_equals(target.style.flexGrow, "0");
+  assert_equals(target.style.flexShrink, "0");
+  assert_equals(target.style.flexBasis, "auto");
+  target.style.flexGrow = "1.5";
+  assert_equals(target.style.flex, "1.5 0 auto", "specified value");
+  assert_equals(getComputedStyle(target).flex, "1.5 0 auto", "computed value");
+}, "Setting flex-grow after flex: none updates the flex shorthand");
+
+test(() => {
+  target.style.cssText = "";
+  target.style.flexBasis = "0";
+  assert_equals(target.style.flexBasis, "0px");
+}, "A unitless zero flex-basis serializes as 0px");
+</script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!doctype html>
+<title>A frame's redirect responses don't need a Cross-Origin-Embedder-Policy</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/get-host-info.sub.js></script>
+<script src=/common/utils.js></script>
+<div id=log></div>
+<script>
+const BASE = new URL("resources", location).pathname;
+
+promise_test(async t => {
+  const bc = new BroadcastChannel(token());
+  t.add_cleanup(() => bc.close());
+  const loaded = new Promise(resolve => bc.onmessage = resolve);
+
+  const dest = `${get_host_info().ORIGIN}${BASE}/navigate-require-corp.sub.html?channelName=${bc.name}`;
+  const frame = document.createElement("iframe");
+  t.add_cleanup(() => frame.remove());
+  // Only the final response needs a policy compatible with cross-origin isolation. The redirect is
+  // same-origin, so the cross-origin resource policy check allows it.
+  frame.src = `/common/redirect.py?location=${encodeURIComponent(dest)}`;
+  document.body.append(frame);
+  await loaded;
+}, 'A frame loads through a same-origin redirect without a policy to a document with "require-corp"');
+</script>

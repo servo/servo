@@ -257,6 +257,61 @@ iframeTest(REGISTERED_ROUTE, ROUTER_RULE_KEY_URL_PATTERN_CONSTRUCTED_MATCH_ALL_C
   });
 }, 'Subresource load did not match with the cache and fallback to the network');
 
+// Cross-origin subresources: the router source types are response-derived
+// attributes and must be masked unless the response passes the timing allow
+// check, just like every other TAO-gated attribute.
+// https://fetch.spec.whatwg.org/#create-an-opaque-timing-info
+function getRouterSources(entry) {
+  // FIXME: Remove workerMatchedSourceType and workerFinalSourceType when moved out of tentative.
+  return {
+    matched: "workerMatchedRouterSource" in entry ? entry.workerMatchedRouterSource : entry.workerMatchedSourceType,
+    final: "workerFinalRouterSource" in entry ? entry.workerFinalRouterSource : entry.workerFinalSourceType,
+  };
+}
+
+// Fetches |url| with no-cors mode from |iwin| and resolves with its
+// PerformanceResourceTiming entry once it has been queued.
+async function fetchOpaqueAndGetEntry(iwin, url) {
+  const entryPromise = new Promise(resolve => {
+    new iwin.PerformanceObserver((list, observer) => {
+      const entries = list.getEntriesByName(url);
+      if (entries.length > 0) {
+        observer.disconnect();
+        resolve(entries[0]);
+      }
+    }).observe({type: 'resource', buffered: true});
+  });
+  const response = await iwin.fetch(url, {mode: 'no-cors'});
+  assert_equals(response.type, 'opaque');
+  await response.arrayBuffer();
+  return entryPromise;
+}
+
+iframeTest(REGISTERED_ROUTE, ROUTER_RULE_KEY, async (t, iwin) => {
+  const rnd = randomString();
+  const url = `${host_info['HTTPS_REMOTE_ORIGIN']}${REGISTERED_ROUTE}?nonce=${rnd}`;
+  const entry = await fetchOpaqueAndGetEntry(iwin, url);
+  const sources = getRouterSources(entry);
+  assert_equals(sources.matched, '', 'matched source must be masked without TAO');
+  assert_equals(sources.final, '', 'final source must be masked without TAO');
+  assert_equals(entry.workerRouterEvaluationStart, 0, 'workerRouterEvaluationStart must be masked without TAO');
+  assert_equals(entry.workerCacheLookupStart, 0, 'workerCacheLookupStart must be masked without TAO');
+  assert_greater_than_equal(entry.fetchStart, entry.startTime);
+  const json = entry.toJSON();
+  const jsonSources = getRouterSources(json);
+  assert_equals(jsonSources.matched, '', 'toJSON() matched source must be masked without TAO');
+  assert_equals(jsonSources.final, '', 'toJSON() final source must be masked without TAO');
+}, 'Cross-origin subresource without Timing-Allow-Origin does not expose router source types');
+
+iframeTest(REGISTERED_ROUTE, ROUTER_RULE_KEY, async (t, iwin) => {
+  const rnd = randomString();
+  const url = `${host_info['HTTPS_REMOTE_ORIGIN']}${REGISTERED_ROUTE}?nonce=${rnd}&pipe=header(Timing-Allow-Origin,*)`;
+  const entry = await fetchOpaqueAndGetEntry(iwin, url);
+  const sources = getRouterSources(entry);
+  assert_equals(sources.matched, 'network', 'matched source is exposed with TAO');
+  assert_equals(sources.final, 'network', 'final source is exposed with TAO');
+}, 'Cross-origin subresource with Timing-Allow-Origin exposes router source types');
+
 // Race Tests
 promise_test(async t => {
   const rnd = randomString();

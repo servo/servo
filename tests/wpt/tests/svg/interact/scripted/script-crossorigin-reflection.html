@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>crossOrigin reflection on the SVG script element</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/interact.html#__svg__SVGScriptElement__crossOrigin">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/urls-and-fetching.html#cors-settings-attribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+function createScript() {
+  return document.createElementNS("http://www.w3.org/2000/svg", "script");
+}
+
+test(() => {
+  assert_equals(createScript().crossOrigin, null);
+}, "missing crossorigin reflects as null");
+
+for (const [value, expected] of [["", "anonymous"], ["anonymous", "anonymous"], ["use-credentials", "use-credentials"], ["USE-CREDENTIALS", "use-credentials"], ["invalid", "anonymous"]]) {
+  test(() => {
+    const script = createScript();
+    script.setAttribute("crossorigin", value);
+    assert_equals(script.crossOrigin, expected);
+  }, `crossorigin="${value}" reflects as "${expected}"`);
+}
+
+test(() => {
+  const script = createScript();
+  script.crossOrigin = "use-credentials";
+  assert_equals(script.getAttribute("crossorigin"), "use-credentials");
+}, "setting crossOrigin sets the content attribute");
+
+test(() => {
+  const script = createScript();
+  script.setAttribute("crossorigin", "anonymous");
+  script.crossOrigin = null;
+  assert_false(script.hasAttribute("crossorigin"));
+  assert_equals(script.crossOrigin, null);
+}, "setting crossOrigin to null removes the content attribute");
+</script>

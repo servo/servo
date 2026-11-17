@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>DataTransferItemList of a dragstart DataTransfer is not writable after dispatch</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dnd.html#dom-datatransferitemlist-add">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dnd.html#dom-datatransferitemlist-remove">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dnd.html#the-drag-data-store">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  #source { width: 80px; height: 80px; background: cornflowerblue; }
+  #target { width: 120px; height: 120px; background: lightgreen; }
+</style>
+
+<div id="source" draggable="true">Drag me</div>
+<div id="target">Drop here</div>
+
+<script>
+function centerOf(elem) {
+    const r = elem.getBoundingClientRect();
+    return { x: Math.round(r.left + r.width / 2),
+             y: Math.round(r.top + r.height / 2) };
+}
+
+promise_test(async t => {
+    const source = document.getElementById('source');
+    const target = document.getElementById('target');
+
+    let dragStartDataTransfer;
+    const result = {};
+
+    const afterDispatch = new Promise(resolve => {
+        source.addEventListener('dragstart', e => {
+            assert_equals(e.dataTransfer.items.length, 0);
+            dragStartDataTransfer = e.dataTransfer;
+            t.step_timeout(() => {
+                const items = dragStartDataTransfer.items;
+                try {
+                    result.added = items.add(new File(['a'], 'a.txt', { type: 'text/plain' }));
+                } catch (exception) {
+                    result.addException = exception;
+                }
+                try {
+                    items.remove(0);
+                } catch (exception) {
+                    result.removeException = exception;
+                }
+                resolve();
+            }, 0);
+        });
+    });
+
+    target.addEventListener('dragenter', e => e.preventDefault());
+    target.addEventListener('dragover', e => e.preventDefault());
+    target.addEventListener('drop', e => e.preventDefault());
+
+    const from = centerOf(source);
+    const to = centerOf(target);
+
+    await new test_driver.Actions()
+        .addPointer('mouse', 'mouse')
+        .pointerMove(from.x, from.y)
+        .pointerDown()
+        .pause(200)
+        .pointerMove(to.x, to.y)
+        .pause(50)
+        .pointerMove(to.x, to.y + 1)
+        .pause(50)
+        .pointerUp()
+        .send();
+
+    await afterDispatch;
+
+    assert_not_equals(dragStartDataTransfer, undefined, 'dragstart fired on the source');
+    assert_equals(result.addException, undefined, 'add() after dispatch should not throw');
+    assert_equals(result.added, null, 'add() after dispatch should return null');
+    assert_true(result.removeException instanceof DOMException, 'remove() after dispatch should throw');
+    assert_equals(result.removeException.name, 'InvalidStateError', 'remove() after dispatch should throw InvalidStateError');
+}, 'add() and remove() on a dragstart DataTransfer after the event has been dispatched');
+</script>

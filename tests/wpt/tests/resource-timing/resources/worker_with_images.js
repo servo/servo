@@ -3,7 +3,7 @@ let numComplete = 0;
 function checkDone() {
   ++numComplete;
   if (numComplete == 2) {
-    const numEntries = performance.getEntries().length;
+    const numEntries = performance.getEntriesByType("resource").length;
     postMessage(numEntries);
   }
 }

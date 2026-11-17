@@ -326,7 +326,7 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
         reflect_referrer_policy_attribute(self.upcast::<Element>())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-script-referrerpolicy
+    // https://html.spec.whatwg.org/multipage/#dom-a-referrerpolicy
     make_setter!(SetReferrerPolicy, "referrerpolicy");
 }
 

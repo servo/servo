@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Ruby Test: overflow-wrap: break-word and anywhere with &lt;ruby&gt;</title>
+<link rel="author" title="Gleb Mazovetskiy" href="mailto:glebm@google.com">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#break-within">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#overflow-wrap-property">
+<link rel="help" href="https://crbug.com/580840306">
+<meta name="assert" content="With overflow-wrap: break-word or anywhere, a ruby that doesn't fit at the end of a line wraps at a preceding break opportunity instead of being broken mid-word. A ruby wider than the line is still broken.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.ahem {
+  font: 20px/1 Ahem;
+}
+.ahem rt {
+  font-size: 50%;
+}
+</style>
+
+<!-- Each ruby base is 7 chars (140px), 5 chars (100px), or 6 chars (120px) > 4-char monolithic threshold.
+     Container is 220px: ruby1 (140px) + space (20px) = 160px fits, remaining = 60px.
+     ruby2 (100px) does not fit in 60px, so it must wrap intact to line 2; then ruby2 (100px) + space (20px) = 120px
+     leaves 100px < ruby3 (120px), so ruby3 wraps intact to line 3. -->
+<div id="normal-break-word" class="ahem" style="width: 220px; overflow-wrap: break-word;"><ruby>Offline<rt>xxxxxxx</rt></ruby> <ruby>Input<rt>yyyyy</rt></ruby> <ruby>Source<rt>zzzzzz</rt></ruby></div>
+
+<div id="normal-anywhere" class="ahem" style="width: 220px; overflow-wrap: anywhere;"><ruby>Offline<rt>xxxxxxx</rt></ruby> <ruby>Input<rt>yyyyy</rt></ruby> <ruby>Source<rt>zzzzzz</rt></ruby></div>
+
+<div id="normal-word-break-break-word" class="ahem" style="width: 220px; word-break: break-word;"><ruby>Offline<rt>xxxxxxx</rt></ruby> <ruby>Input<rt>yyyyy</rt></ruby> <ruby>Source<rt>zzzzzz</rt></ruby></div>
+
+<!-- Single ruby (220px) wider than entire 120px container: no prior break point exists,
+     so overflow-wrap: break-word must emergency-break inside the ruby. -->
+<div id="single-wide-ruby" class="ahem" style="width: 120px; overflow-wrap: break-word;"><ruby>OfflineBase<rt>xxxxxxxxxxx</rt></ruby></div>
+
+<!-- overflow-wrap: break-word set directly on <ruby> while container is overflow-wrap: normal. -->
+<div id="style-on-ruby" class="ahem" style="width: 120px; overflow-wrap: normal;"><ruby style="overflow-wrap: break-word;">OfflineBase<rt>xxxxxxxxxxx</rt></ruby></div>
+
+<!-- Container has overflow-wrap: break-word, but <ruby> overrides with overflow-wrap: normal:
+     ruby must NOT emergency-break mid-word. -->
+<div id="normal-on-ruby" class="ahem" style="width: 120px; overflow-wrap: break-word;"><ruby style="overflow-wrap: normal;">OfflineBase<rt>xxxxxxxxxxx</rt></ruby></div>
+
+<!-- Container has overflow-wrap: normal, while an inner <span> inside <ruby> has overflow-wrap: break-word. -->
+<div id="inner-span-break-word-wrap" class="ahem" style="width: 220px; overflow-wrap: normal;"><ruby>Offline<rt>xxxxxxx</rt></ruby> <ruby><span style="overflow-wrap: break-word;">Input</span><rt>yyyyy</rt></ruby></div>
+<div id="inner-span-break-word-split" class="ahem" style="width: 120px; overflow-wrap: normal;"><ruby><span style="overflow-wrap: break-word;">OfflineBase</span><rt>xxxxxxxxxxx</rt></ruby></div>
+
+<!-- Multi-word ruby: "aaaa " (100px) fits in 160px, while "OfflineBase" (220px) does not.
+     Line 1 should break at the space after "aaaa " (width <= 100px), and line 2 should
+     emergency-break "OfflineBase" within 160px. -->
+<div id="multi-word-ruby" class="ahem" style="width: 160px; overflow-wrap: break-word;"><ruby>aaaa OfflineBase<rt>xxxx yyyyyyyyyyy</rt></ruby></div>
+
+<!-- Prohibited line-start punctuation after ruby: "foo " (80px) + <ruby>Input</ruby> (100px) + ")" (20px) = 200px > 190px.
+     Must wrap at "foo " keeping <ruby>Input</ruby>) intact on line 2. -->
+<div id="kinsoku-after-ruby" class="ahem" style="width: 190px; overflow-wrap: break-word;">foo <ruby>Input<rt>yyyyy</rt></ruby>)</div>
+
+<!-- Nested <ruby> (5 base chars > 4) with prior space vs wider than entire line. -->
+<div id="nested-ruby-wrap" class="ahem" style="width: 220px; overflow-wrap: break-word;"><ruby>Offline<rt>xxxxxxx</rt></ruby> <ruby><ruby>In<rt>ii</rt></ruby><ruby>put<rt>pp</rt></ruby><rt>yyyyy</rt></ruby></div>
+<div id="nested-ruby-split" class="ahem" style="width: 80px; overflow-wrap: break-word;"><ruby><ruby>In<rt>ii</rt></ruby><ruby>put<rt>pp</rt></ruby><rt>yyyyy</rt></ruby></div>
+
+<script>
+setup({ explicit_done: true });
+
+function assertWrappedIntactWithoutOverflow(container) {
+  const boxRect = container.getBoundingClientRect();
+  const rubies = container.querySelectorAll('ruby');
+  for (let i = 0; i < rubies.length; i++) {
+    const rects = rubies[i].getClientRects();
+    assert_equals(rects.length, 1,
+        `ruby[${i}] ("${rubies[i].textContent}") should not split mid-word across lines`);
+    assert_less_than_equal(rects[0].right, boxRect.right + 0.5,
+        `ruby[${i}] should not overflow container right edge`);
+    if (i > 0) {
+      const prevRect = rubies[i - 1].getBoundingClientRect();
+      assert_greater_than(rects[0].top, prevRect.top,
+          `ruby[${i}] should wrap onto a new line`);
+    }
+  }
+}
+
+function assertBrokenWithoutOverflow(container, minFragments) {
+  const boxRect = container.getBoundingClientRect();
+  const rects = container.querySelector('ruby').getClientRects();
+  assert_greater_than_equal(rects.length, minFragments,
+      'ruby wider than the line must emergency-break across lines');
+  for (const r of rects) {
+    assert_less_than_equal(r.right, boxRect.right + 0.5,
+        'broken ruby segment must not overflow container right edge');
+  }
+  return rects;
+}
+
+document.fonts.load('20px Ahem').then(() => document.fonts.ready).then(() => {
+  test(() => {
+    const box = document.getElementById('normal-break-word');
+    assert_approx_equals(
+        box.querySelector('ruby').getBoundingClientRect().width, 140, 0.5,
+        'Ahem font must be loaded');
+    assertWrappedIntactWithoutOverflow(box);
+  }, 'overflow-wrap: break-word wraps ruby at prior space instead of breaking mid-word');
+
+  test(() => {
+    assertWrappedIntactWithoutOverflow(
+        document.getElementById('normal-anywhere'));
+  }, 'overflow-wrap: anywhere wraps ruby at prior space instead of breaking mid-word');
+
+  test(() => {
+    assertWrappedIntactWithoutOverflow(
+        document.getElementById('normal-word-break-break-word'));
+  }, 'word-break: break-word wraps ruby at prior space instead of breaking mid-word');
+
+  test(() => {
+    assertBrokenWithoutOverflow(document.getElementById('single-wide-ruby'), 2);
+  }, 'overflow-wrap: break-word emergency-breaks inside a single ruby wider than the line');
+
+  test(() => {
+    assertBrokenWithoutOverflow(document.getElementById('style-on-ruby'), 2);
+  }, 'overflow-wrap: break-word specified directly on <ruby> takes effect when wider than the line');
+
+  test(() => {
+    const box = document.getElementById('normal-on-ruby');
+    const rects = box.querySelector('ruby').getClientRects();
+    assert_equals(rects.length, 1,
+        'ruby with overflow-wrap: normal must not emergency-break even inside overflow-wrap: break-word container');
+  }, 'overflow-wrap: normal on <ruby> overrides container overflow-wrap: break-word');
+
+  test(() => {
+    assertWrappedIntactWithoutOverflow(
+        document.getElementById('inner-span-break-word-wrap'));
+    assertBrokenWithoutOverflow(
+        document.getElementById('inner-span-break-word-split'), 2);
+  }, 'overflow-wrap: break-word on inner span inside <ruby> defers to prior space and breaks when wider than line');
+
+  test(() => {
+    const rects = assertBrokenWithoutOverflow(
+        document.getElementById('multi-word-ruby'), 3);
+    // First segment ("aaaa") is 80px (or 100px with trailing space), well below 160px.
+    assert_less_than_equal(rects[0].width, 100.5,
+        'first line should break at normal space rather than mid-word in second word');
+  }, 'overflow-wrap: break-word inside multi-word ruby prefers normal space break before emergency breaking');
+
+  test(() => {
+    const box = document.getElementById('kinsoku-after-ruby');
+    const boxRect = box.getBoundingClientRect();
+    const rects = box.querySelector('ruby').getClientRects();
+    assert_equals(rects.length, 1,
+        'ruby followed by prohibited line-start punctuation should wrap intact after prior space');
+    assert_greater_than(rects[0].top, boxRect.top + 10,
+        'ruby should be on the second line');
+    assert_less_than_equal(rects[0].right, boxRect.right + 0.5,
+        'ruby should not overflow container');
+  }, 'overflow-wrap: break-word with prohibited line-start punctuation after ruby wraps whole ruby+punctuation at prior space');
+
+  test(() => {
+    const wrapBox = document.getElementById('nested-ruby-wrap');
+    const wrapBoxRect = wrapBox.getBoundingClientRect();
+    const outerRubies = wrapBox.querySelectorAll(':scope > ruby');
+    assert_equals(outerRubies.length, 2);
+    for (let i = 0; i < outerRubies.length; i++) {
+      const rects = outerRubies[i].getClientRects();
+      assert_equals(rects.length, 1,
+          `outer ruby[${i}] should not split across lines when a prior space exists`);
+      assert_less_than_equal(rects[0].right, wrapBoxRect.right + 0.5,
+          `outer ruby[${i}] should not overflow container right edge`);
+    }
+    assert_greater_than(
+        outerRubies[1].getBoundingClientRect().top,
+        outerRubies[0].getBoundingClientRect().top,
+        'nested outer ruby should wrap onto line 2');
+
+    assertBrokenWithoutOverflow(document.getElementById('nested-ruby-split'), 2);
+  }, 'nested ruby with overflow-wrap: break-word wraps intact after space and breaks when wider than line');
+
+  done();
+});
+</script>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>CSS stretch(): the block size of a replaced element</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="stretch() fits the margin box of a replaced element to its argument in the block axis, a percentage argument resolves against the containing block's block size, and percentage margins against its inline size.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .column {
+    float: left;
+    width: 25px;
+    height: 200px;
+  }
+  canvas {
+    display: block;
+    width: 25px;
+    background: green;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="column"><canvas width="10" height="10" style="height: stretch(150px); margin-bottom: 50px;"></canvas></div>
+<div class="column"><canvas width="10" height="10" style="height: stretch(75%); margin-bottom: 50px;"></canvas></div>
+<!-- 200% of the 25px wide containing block. -->
+<div class="column"><canvas width="10" height="10" style="height: stretch(150px); margin-bottom: 200%;"></canvas></div>
+<div class="column"><canvas width="10" height="10" style="height: stretch(100px); padding-bottom: 20px;"></canvas></div>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Module link: basic &lt;link rel="stylesheet" import&gt; support</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/ShadowDOM/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- Use an import map + data: URL so the test is self-contained. -->
+<script type="importmap">
+{
+  "imports": {
+    "basic-blue": "data:text/css,%23target%7Bcolor:blue%7D"
+  }
+}
+</script>
+
+<div id="target">Test content</div>
+
+<script type="module">
+import {createLink, loadResult, appendAndWait} from "./module-stylesheet-helpers.js";
+
+const target = document.getElementById("target");
+
+promise_test(async t => {
+  const {link, event} = await loadResult(t, "basic-blue");
+  assert_equals(event, "load");
+  assert_true(link.sheet instanceof CSSStyleSheet,
+      "link.sheet exposes the shared constructed sheet.");
+  assert_equals(link.sheet.ownerNode, null,
+      "The shared constructed sheet has a null ownerNode.");
+  assert_equals(getComputedStyle(target).color, "rgb(0, 0, 255)",
+      "Module stylesheet styles are applied.");
+}, "A module stylesheet link resolves, connects, and applies styles.");
+
+promise_test(async t => {
+  const {link, event} = await loadResult(t, "basic-blue");
+  assert_equals(event, "load");
+  let inStyleSheets = false;
+  for (const sheet of document.styleSheets) {
+    if (sheet === link.sheet) inStyleSheets = true;
+  }
+  assert_true(inStyleSheets,
+      "The sheet appears in document.styleSheets.");
+  assert_false(document.adoptedStyleSheets.includes(link.sheet),
+      "The sheet is not in document.adoptedStyleSheets.");
+}, "A module stylesheet link is exposed via styleSheets, not adoptedStyleSheets.");
+
+promise_test(async t => {
+  const target = document.createElement("span");
+  target.id = "precedence-target";
+  target.textContent = "Test content";
+  document.body.append(target);
+  t.add_cleanup(() => target.remove());
+  assert_not_equals(getComputedStyle(target).color, "rgb(0, 0, 255)");
+  const {link, event} = await loadResult(
+      t, "data:text/css,%23precedence-target%7Bcolor:blue%7D",
+      "module-stylesheet-red.css");
+  assert_equals(event, "load");
+  assert_equals(getComputedStyle(target).color, "rgb(0, 0, 255)",
+      "The import attribute selects the module stylesheet.");
+  assert_true(link.href.endsWith("/module-stylesheet-red.css"),
+      "The href attribute remains independently reflected.");
+}, "The import attribute takes precedence over href.");
+
+promise_test(async t => {
+  const specifier = "./module-stylesheet-blue.css?fetch-and-cache";
+  const first = createLink(t, /*import=*/specifier);
+  const loaded = appendAndWait(first);
+  assert_equals(first.sheet, null, "A pending fetch has no stylesheet.");
+  assert_equals((await loaded).event, "load");
+  const sheet = first.sheet;
+  assert_true(sheet instanceof CSSStyleSheet);
+  assert_equals(sheet.cssRules.length, 1);
+
+  const second = createLink(t, /*import=*/specifier);
+  const cachedLoaded = appendAndWait(second);
+  assert_equals(second.sheet, sheet,
+      "A cached module exposes the same stylesheet synchronously.");
+  assert_equals((await cachedLoaded).event, "load");
+  assert_equals(second.sheet, sheet,
+      "Asynchronous completion preserves the cached stylesheet identity.");
+}, "Module links expose pending, completed, and cached CSS module fetches.");
+</script>

@@ -79,17 +79,32 @@ promise_test(async (t) => {
   checkPseudos(invoker,target,false,'after hovering away');
 },'Disabling the invoker before hidePopover() clears interest');
 
-promise_test(async (t) => {
-  const {invoker,target} = await setup(t);
-  let loseInterestCount = 0;
-  target.addEventListener('loseinterest',(e) => {
-    ++loseInterestCount;
-    assert_true(e.cancelable,'loseinterest should be cancelable');
-    e.preventDefault();
-  });
-  target.hidePopover();
-  assert_false(target.matches(':popover-open'),'target popover should be closed');
-  assert_equals(loseInterestCount,1,'loseinterest should be fired once');
-  checkPseudos(invoker,target,true,'canceling loseinterest during hidePopover()');
-},'Canceling loseinterest during hidePopover() maintains interest');
+const hideMethods = {
+  'hidePopover()': async (target) => target.hidePopover(),
+  'light dismiss': async (target) => await clickOn(unrelated),
+  'opening another popover': async (target,t) => {
+    const other = document.createElement('div');
+    other.popover = 'auto';
+    other.textContent = 'Other popover';
+    document.body.append(other);
+    t.add_cleanup(() => other.remove());
+    other.showPopover();
+  },
+};
+for (const [description,hideFn] of Object.entries(hideMethods)) {
+  promise_test(async (t) => {
+    const {invoker,target} = await setup(t);
+    let events = [];
+    target.addEventListener('loseinterest',(e) => {
+      e.preventDefault();
+      events.push({cancelable: e.cancelable, defaultPrevented: e.defaultPrevented});
+    });
+    await hideFn(target,t);
+    assert_false(target.matches(':popover-open'),'target popover should be closed');
+    assert_equals(events.length,1,'loseinterest should be fired once');
+    assert_false(events[0].cancelable,'loseinterest should not be cancelable');
+    assert_false(events[0].defaultPrevented,'preventDefault() should have no effect');
+    checkPseudos(invoker,target,false,`canceling loseinterest during ${description}`);
+  },`loseinterest fired due to ${description} is not cancelable, and interest is lost`);
+}
 </script>

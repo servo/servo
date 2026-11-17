@@ -1459,17 +1459,3 @@ impl TransformExt for LayoutTransform {
         post_translation.then(self).then(&pre_translation)
     }
 }
-
-pub(crate) trait WritingModeExt {
-    fn is_inline_flipped(&self) -> bool;
-    fn is_block_flipped(&self) -> bool;
-}
-
-impl WritingModeExt for WritingMode {
-    fn is_inline_flipped(&self) -> bool {
-        !self.is_inline_tb()
-    }
-    fn is_block_flipped(&self) -> bool {
-        self.is_vertical() && !self.is_vertical_lr()
-    }
-}

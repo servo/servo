@@ -33,9 +33,12 @@ pub(crate) struct File {
     blob: Blob,
     name: TracedDOMString,
     modified: SystemTime,
-    // TODO: This depends on the `webkitdirectory` from `HTMLInputElement`.
-    // Then need to change `SelectedFile` in embedder,
-    // and filemanager_thread to recursively walk.
+    // TODO: `HTMLInputElement.webkitdirectory` not implemented yet.
+    // Only set when a directory is selected.
+    // Right now only following can do:
+    // 1. webdriver send keys to <input>.
+    // 2. When dom_testing_html_input_element_select_files_enabled,
+    //    the testing API selectFiles.
     webkit_relative_path: USVString,
 }
 
@@ -110,9 +113,10 @@ impl File {
                 .expect("File name encoding error"),
         );
 
-        File::new(
+        Self::new_with_proto(
             cx,
             window.upcast(),
+            None,
             BlobImpl::new_from_file(
                 selected.id,
                 selected.filename,
@@ -121,6 +125,7 @@ impl File {
             ),
             name,
             Some(selected.modified),
+            USVString::from(selected.relative_path.unwrap_or_default()),
         )
     }
 

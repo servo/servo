@@ -39,5 +39,12 @@ window.navigateFrame = url => new Promise(resolve => {
 // child frame is too.
 const frame = document.createElement("iframe");
 frame.src = new URLSearchParams(location.search).get("frame");
+
+// The order of the child frame's and this document's load events.
+const loadEvents = [];
+frame.addEventListener("load", () => loadEvents.push("frame"));
+addEventListener("load", () => loadEvents.push("document"));
+window.getLoadEvents = () => loadEvents;
+
 document.body.append(frame);
 </script>

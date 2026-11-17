@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: an aligned item end can coincide with a spanning item start in grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#geometry">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#stacking-self-alignment">
+<link rel="match" href="column-gap-decorations-coincident-item-spanner-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: 60px 60px;
+    gap: 20px;
+    width: 140px;
+    column-rule: 4px solid blue;
+    background: lightgray;
+  }
+  .short {
+    grid-column: 1;
+    height: 40px;
+    margin-bottom: -20px;
+    align-self: end;
+    background: seagreen;
+  }
+  .tall {
+    grid-column: 2;
+    height: 100px;
+    background: cornflowerblue;
+  }
+  .span {
+    grid-column: 1 / -1;
+    height: 40px;
+    background: mediumpurple;
+  }
+</style>
+<div class="lanes">
+  <div class="short"></div>
+  <div class="tall"></div>
+  <div class="span"></div>
+</div>

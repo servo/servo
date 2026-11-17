@@ -120,3 +120,8 @@ partial interface HTMLInputElement {
   [CEReactions] attribute unsigned long hspace;
   [CEReactions] attribute unsigned long vspace;
 };
+
+// https://wicg.github.io/entries-api/#html-forms
+partial interface HTMLInputElement {
+  [Pref="dom_entries_api_enabled"] attribute boolean webkitdirectory;
+};

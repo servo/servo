@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS fit-content(): the intrinsic size contribution of a box with a fixed argument</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-fit-content">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-contribution">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="A fixed fit-content() argument is the size of the margin box, so the box contributes it to its container's max-content size margins included.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .container {
+    width: max-content;
+    background: green;
+  }
+  .test {
+    width: fit-content(100px);
+    margin-right: 10px;
+    height: 100px;
+    font-size: 0;
+  }
+  .test > div {
+    display: inline-block;
+    width: 60px;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="container">
+  <div class="test"><div></div><div></div></div>
+</div>

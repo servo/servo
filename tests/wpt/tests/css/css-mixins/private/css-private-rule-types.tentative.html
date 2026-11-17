@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS @private: nested rule types</title>
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14004#issuecomment-5050748895">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+    @layer a, b;
+
+    #outer {
+      --x: red;
+    }
+
+    #media-true {
+      @media (width > 0px) {
+        @private {
+          --x: green;
+        }
+      }
+      color: var(--x, red);
+    }
+
+    #media-false {
+      @media (width < 0px) {
+        @private {
+          --x: red;
+        }
+      }
+      color: var(--x, green);
+    }
+
+    .a {
+      @media screen {
+        @private {
+          --my-color: green;
+        }
+      }
+      color: var(--my-color, red);
+    }
+
+    #supports-true {
+      @supports (color: green) {
+        @private {
+          --x: green;
+        }
+      }
+      color: var(--x, red);
+    }
+
+    #supports-false {
+      @supports (not-a-property: green) {
+        @private {
+          --x: red;
+        }
+      }
+      color: var(--x, green);
+    }
+
+    #container-host {
+      container-type: inline-size;
+    }
+
+    #container-true {
+      @container (width > 0px) {
+        @private {
+          --x: green;
+        }
+      }
+      color: var(--x, red);
+    }
+
+    #container-false {
+      @container (width < 0px) {
+        @private {
+          --x: red;
+        }
+      }
+      color: var(--x, green);
+    }
+
+    #layer-unlayered {
+      @private {
+        --x: green;
+      }
+      @layer a {
+        @private {
+          --x: red;
+        }
+      }
+      color: var(--x, blue);
+    }
+
+    #layer-order {
+      @layer b {
+        @private {
+          --x: green;
+        }
+      }
+      @layer a {
+        @private {
+          --x: red;
+        }
+      }
+      color: var(--x, blue);
+    }
+
+    @scope (#scope-root) {
+      #scope-true {
+        @private {
+          --x: green;
+        }
+        color: var(--x, red);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="outer">
+    <div id="media-true"></div>
+    <div id="media-false"></div>
+    <div id="media-screen" class="a"></div>
+    <div id="supports-true"></div>
+    <div id="supports-false"></div>
+    <div id="container-host">
+      <div id="container-true"></div>
+      <div id="container-false"></div>
+    </div>
+    <div id="layer-unlayered"></div>
+    <div id="layer-order"></div>
+    <div id="scope-root">
+      <div id="scope-true"></div>
+    </div>
+  </div>
+  <script>
+    const green = 'rgb(0, 128, 0)';
+
+    function color(id) {
+      return getComputedStyle(document.getElementById(id)).color;
+    }
+
+    test(() => {
+      assert_equals(color('media-true'), green);
+    }, '@private in a matching @media rule applies');
+
+    test(() => {
+      assert_equals(color('media-false'), green);
+    }, '@private in a non-matching @media rule still shadows an inherited name');
+
+    test(() => {
+      assert_equals(color('media-screen'), green);
+    }, '@private inside @media screen uses the containing style rule selectors');
+
+    test(() => {
+      assert_equals(color('supports-true'), green);
+    }, '@private in a matching @supports rule applies');
+
+    test(() => {
+      assert_equals(color('supports-false'), green);
+    }, '@private in a non-matching @supports rule still shadows an inherited name');
+
+    test(() => {
+      assert_equals(color('container-true'), green);
+    }, '@private in a matching @container rule applies');
+
+    test(() => {
+      assert_equals(color('container-false'), green);
+    }, '@private in a non-matching @container rule still shadows an inherited name');
+
+    test(() => {
+      assert_equals(color('layer-unlayered'), green);
+    }, '@private in a layer loses to an unlayered @private');
+
+    test(() => {
+      assert_equals(color('layer-order'), green);
+    }, '@private in a later layer wins');
+
+    test(() => {
+      assert_equals(color('scope-true'), green);
+    }, '@private in a style rule inside a matching @scope rule applies');
+  </script>
+</body>
+</html>

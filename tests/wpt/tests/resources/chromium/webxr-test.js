@@ -1307,6 +1307,8 @@ class MockRuntime {
                                    xrSessionMojom.XRSessionFeature.LAYERS) ?
                   (16 - 1) / 2 :
                   1,
+              // The mock does not let the page change the frame rate.
+              supportedFrameRates: [],
             },
             enviromentBlendMode: this.enviromentBlendMode_,
             interactionMode: this.interactionMode_

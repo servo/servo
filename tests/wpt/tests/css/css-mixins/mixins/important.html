@@ -12,9 +12,7 @@
     color: red !important;
   }
   @mixin --result-important() {
-    @result {
-      color: green !important;
-    }
+    color: green !important;
   }
   #result {
     @apply --result-important;
@@ -31,9 +29,7 @@
     let sheet = new CSSStyleSheet();
     sheet.replaceSync(`
       @mixin --m(--x: red !important) {
-        @result {
-          color: var(--x);
-        }
+        color: var(--x);
       }
     `);
     assert_equals(sheet.cssRules.length, 0);

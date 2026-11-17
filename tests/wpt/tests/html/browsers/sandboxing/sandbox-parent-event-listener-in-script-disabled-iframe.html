@@ -1,0 +1,60 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Event listeners added by a scripted parent are invoked for nodes in a script-disabled (sandbox="allow-same-origin") iframe</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/iframe-embed-object.html#attr-iframe-sandbox">
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-event-listener-inner-invoke">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// The iframe's document has scripting disabled (no allow-scripts), but the
+// listeners are plain JS callbacks owned by the script-enabled parent, so they
+// must still be invoked, and their preventDefault() must take effect.
+function loadSandboxedFrame(t, markup = "<span id='target'>target</span>") {
+  return new Promise(resolve => {
+    const iframe = document.createElement("iframe");
+    iframe.sandbox = "allow-same-origin";
+    iframe.srcdoc = markup;
+    iframe.onload = () => resolve(iframe);
+    t.add_cleanup(() => iframe.remove());
+    document.body.appendChild(iframe);
+  });
+}
+
+function dispatchCancelableClick(iframe) {
+  const target = iframe.contentDocument.getElementById("target");
+  return target.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+}
+
+function testListenerOn(getListenerTarget, description) {
+  promise_test(async t => {
+    const iframe = await loadSandboxedFrame(t);
+    let calls = 0;
+    getListenerTarget(iframe).addEventListener("click", e => {
+      calls++;
+      e.preventDefault();
+    });
+    const notCancelled = dispatchCancelableClick(iframe);
+    assert_equals(calls, 1, "parent's listener should be invoked once");
+    assert_false(notCancelled, "parent's preventDefault() should cancel the event");
+  }, description);
+}
+
+testListenerOn(iframe => iframe.contentWindow,
+  "Parent listener on contentWindow of a sandbox='allow-same-origin' iframe is invoked and can cancel the event");
+testListenerOn(iframe => iframe.contentDocument,
+  "Parent listener on contentDocument of a sandbox='allow-same-origin' iframe is invoked and can cancel the event");
+testListenerOn(iframe => iframe.contentDocument.getElementById("target"),
+  "Parent listener on an element in a sandbox='allow-same-origin' iframe is invoked and can cancel the event");
+
+// The sandboxed document itself must still not run script, so an inline event
+// handler attribute in it must not be invoked.
+promise_test(async t => {
+  window.inlineHandlerCalls = 0;
+  t.add_cleanup(() => { delete window.inlineHandlerCalls; });
+  const iframe = await loadSandboxedFrame(t, "<span id='target' onclick='parent.inlineHandlerCalls++'>target</span>");
+  dispatchCancelableClick(iframe);
+  assert_equals(window.inlineHandlerCalls, 0, "inline handler of a script-disabled document should not run");
+}, "Inline event handler attribute in a sandbox='allow-same-origin' iframe is not invoked");
+</script>
+</body>

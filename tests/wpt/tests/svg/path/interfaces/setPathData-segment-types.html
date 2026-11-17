@@ -61,9 +61,17 @@ const cases = [
     desc: "A (elliptical arc with flags)",
     input: [
       { type: "M", values: [0, 0] },
-      { type: "A", values: [25, 25, 0, false, true, 50, 50] }
+      { type: "A", values: [25, 25, 0, 0, 1, 50, 50] }
     ],
     output: "M 0 0 A 25 25 0 0 1 50 50"
+  },
+  {
+    desc: "A (elliptical arc with -0 flags)",
+    input: [
+      { type: "M", values: [0, 0] },
+      { type: "A", values: [25, 25, 0, -0, -0, 50, 50] }
+    ],
+    output: "M 0 0 A 25 25 0 0 0 50 50"
   },
   {
     desc: "c/s (relative cubic + smooth cubic)",
@@ -87,17 +95,9 @@ const cases = [
     desc: "a (relative elliptical arc)",
     input: [
       { type: "M", values: [0, 0] },
-      { type: "a", values: [10, 10, 0, true, false, 5, 5] }
+      { type: "a", values: [10, 10, 0, 1, 0, 5, 5] }
     ],
     output: "M 0 0 a 10 10 0 1 0 5 5"
-  },
-  {
-    desc: "A flags follow ToBoolean (non-zero coerces to 1)",
-    input: [
-      { type: "M", values: [0, 0] },
-      { type: "A", values: [25, 25, 0, 2, 5, 50, 50] }
-    ],
-    output: "M 0 0 A 25 25 0 1 1 50 50"
   },
   {
     desc: "single moveto (minimal valid non-empty path)",

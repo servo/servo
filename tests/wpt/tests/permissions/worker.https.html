@@ -49,7 +49,7 @@
 
         const setPermissionPromise = test_driver.set_permission({ name: "geolocation" }, "granted");
         const changePromise = messageFrom(worker, "change");
-        const [{state:changedState}] = await Promise.all([messagePromise, setPermissionPromise]);
+        const [{state:changedState}] = await Promise.all([changePromise, setPermissionPromise]);
         assert_equals(
             changedState,
             "granted",

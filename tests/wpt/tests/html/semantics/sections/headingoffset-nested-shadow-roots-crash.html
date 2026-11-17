@@ -1,0 +1,37 @@
+<!doctype html>
+<html class="test-wait">
+  <meta charset="utf-8" />
+  <title>Collecting nested shadow roots with heading offsets</title>
+  <link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+  <link rel="help" href="https://github.com/whatwg/html/pull/11086" />
+  <script src="/common/gc.js"></script>
+  <script>
+    function createTree(outerFirst) {
+      const firstHost = document.createElement("div");
+      const firstRoot = firstHost.attachShadow({ mode: "open" });
+      const secondHost = document.createElement("div");
+      const secondRoot = secondHost.attachShadow({ mode: "open" });
+      const outerHost = outerFirst ? firstHost : secondHost;
+      const outerRoot = outerFirst ? firstRoot : secondRoot;
+      const innerHost = outerFirst ? secondHost : firstHost;
+      const innerRoot = outerFirst ? secondRoot : firstRoot;
+      outerHost.headingOffset = 2;
+      outerRoot.appendChild(innerHost);
+      const form = document.createElement("form");
+      form.appendChild(document.createElement("h1"));
+      innerRoot.appendChild(form);
+      return firstRoot;
+    }
+
+    async function run() {
+      for (const outerFirst of [true, false]) {
+        let shadow = createTree(outerFirst);
+        await garbageCollect();
+        shadow = null;
+        await garbageCollect();
+      }
+      document.documentElement.classList.remove("test-wait");
+    }
+    run();
+  </script>
+</html>

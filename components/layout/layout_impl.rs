@@ -508,8 +508,14 @@ impl Layout for LayoutThread {
     ) -> Option<ScrollContainerResponse> {
         with_layout_state(|| {
             let node = unsafe { node.as_ref().map(|node| ServoLayoutNode::new(node)) };
-            let viewport_overflow = self.box_tree.borrow().as_ref()?.viewport_overflow;
-            process_scroll_container_query(node, flags, viewport_overflow)
+            let box_tree = self.box_tree.borrow();
+            let box_tree = box_tree.as_ref()?;
+            process_scroll_container_query(
+                node,
+                flags,
+                box_tree.viewport_overflow,
+                box_tree.writing_mode(),
+            )
         })
     }
 

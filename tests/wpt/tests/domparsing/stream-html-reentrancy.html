@@ -60,7 +60,7 @@
 
   let parserBlockingCount = 0;
   function parser_blocking_script(name) {
-    return `<script src='resources/slow.js?pipe=trickle(d0.2)&${name}=${++parserBlockingCount}'></` + "script>";
+    return `<script src='resources/slow.sub.js?pipe=trickle(d0.2)&${name}=${++parserBlockingCount}'></` + "script>";
   }
 
   function after_task(t) {
@@ -148,7 +148,7 @@
     // algorithms synchronously while the parser is running: an abort sets
     // "fragment parser abort requested" so the tokenizer stops after the
     // current token and aborting the parser is deferred until the parser
-    // returns, and written input is consumed by the ongoing run. slow.js calls
+    // returns, and written input is consumed by the ongoing run. slow.sub.js calls
     // window.on_slow(); the parser then resumes synchronously in the same task.
     promise_test(async (t) => {
       const target = document.getElementById("target");
@@ -500,7 +500,7 @@
     const slowRan = new Promise((resolve) => { iframeWin.on_slow = resolve; });
     writer = iframeDoc.documentElement.streamHTMLUnsafe({ runScripts: true }).getWriter();
     await writer.write(
-      "<script src='resources/slow.js?pipe=trickle(d0.2)&abort_body_reprocess=1'></" + "script>" +
+      "<script src='resources/slow.sub.js?pipe=trickle(d0.2)&abort_body_reprocess=1'></" + "script>" +
       "<b><a is='x-abort-table-body'>1</b><table> x<body data-leaked='1'>"
     );
     await failOnTimeout(slowRan);

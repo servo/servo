@@ -28,6 +28,10 @@ test_valid_value('font-feature-settings', '"\\22\\7d\\2f\\2a"', '"\\"}/*"');
 test_valid_value('font-feature-settings', '"\\22\\22\\22\\22"', '"\\"\\"\\"\\""');
 
 test_valid_value('font-feature-settings', '"dlig" 1, "smcp" on, "dlig" 0', '"dlig", "smcp", "dlig" 0');
+test_valid_value('font-feature-settings', '"dlig" 1, "smcp" on, "liga" off', '"dlig", "smcp", "liga" 0');
+test_valid_value('font-feature-settings', '"swsh" 2');
+test_valid_value('font-feature-settings', '"!@#$"');
+test_valid_value('font-feature-settings', '"a bc"');
 </script>
 </body>
 </html>

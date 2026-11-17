@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>CSS stretch(): an orthogonal child of a box sized with stretch() in the block axis</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#orthogonal-auto">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="A box sized with stretch() in the block axis gives an orthogonal child its content box, with its margins taken off, as the child's available inline size.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .container {
+    width: 100px;
+    height: stretch(150px);
+    margin-bottom: 50px;
+  }
+  .test {
+    writing-mode: vertical-lr;
+    width: 100px;
+    height: 100%;
+    background: green;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="container">
+  <div class="test"></div>
+</div>

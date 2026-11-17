@@ -14,7 +14,9 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
-use crate::dom::execcommand::contenteditable::node::{NodeOrString, is_allowed_child};
+use crate::dom::execcommand::contenteditable::node::{
+    NodeOrString, is_allowed_child, move_preserving_ranges,
+};
 use crate::dom::execcommand::contenteditable::selection::SelectionDeletionStripWrappers;
 use crate::dom::html::htmlpreelement::HTMLPreElement;
 use crate::dom::selection::Selection;
@@ -52,7 +54,7 @@ pub(crate) fn execute_insert_line_break_command(
             NodeOrString::from_node(&active_range.start_container(), cx.no_gc()),
         )
     {
-        return false;
+        return true;
     }
 
     // Step 4. If the active range's start node is not an Element, and "br" is not an allowed child
@@ -69,7 +71,7 @@ pub(crate) fn execute_insert_line_break_command(
             ),
         )
     {
-        return false;
+        return true;
     }
 
     // Step 5. If the active range's start node is a Text node and its start offset is zero, call
@@ -119,9 +121,11 @@ pub(crate) fn execute_insert_line_break_command(
     // Browsers use a newline character for insertion when the CSS style for "white-space"
     // preserves whitespace (that's the case for "pre", "pre-line" and "pre-wrap"). However,
     // confusingly they don't do that when the node is exactly a `<pre>`.
-    let has_preformatted_styling = active_range
-        .start_container()
+    let start_container = active_range.start_container();
+    let has_preformatted_styling = start_container
         .downcast::<Element>()
+        // In case the start_container is a text node where we need to insert a "\n"
+        .or(start_container.GetParentElement().as_deref())
         .filter(|element| !element.is::<HTMLPreElement>())
         .and_then(|element| element.style(cx))
         .is_some_and(|style| {
@@ -154,6 +158,10 @@ pub(crate) fn execute_insert_line_break_command(
         unreachable!("Should always be able to collapse the selection.");
     }
 
+    active_range = selection
+        .active_range(cx)
+        .expect("Must always have an active range");
+
     // Step 10. If br is a collapsed line break, call createElement("br") on the context object and
     //          let extra br be the result, then call insertNode(extra br) on the active range.
     if newline_node.is_collapsed_line_break(cx) {
@@ -164,9 +172,9 @@ pub(crate) fn execute_insert_line_break_command(
             DomRoot::upcast(document.create_element(cx, "br"))
         };
 
-        if active_range.InsertNode(cx, &extra_newline_node).is_err() {
-            unreachable!("The node should always be insertable.");
-        }
+        move_preserving_ranges(cx, &extra_newline_node, |cx| {
+            active_range.InsertNode(cx, &extra_newline_node)
+        });
     }
 
     // Step 11. Return true.

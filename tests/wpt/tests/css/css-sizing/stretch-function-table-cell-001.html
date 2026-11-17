@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>CSS stretch(): table cells</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#computing-cell-measures">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="Margins don't apply to table cells, so a stretch() width makes the cell's border box its argument, whatever the box-sizing, in both table layouts.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  table {
+    border-spacing: 0;
+  }
+  td {
+    height: 25px;
+    padding: 0 20px 0 0;
+    background: green;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<table><tr><td style="width: stretch(100px);"></td></tr></table>
+<table><tr><td style="width: stretch(100px); margin: 0 50px;"></td></tr></table>
+<table style="table-layout: fixed; width: 1px;"><tr><td style="width: stretch(100px);"></td></tr></table>
+<table><tr><td style="width: 200px; max-width: stretch(100px);"></td></tr></table>

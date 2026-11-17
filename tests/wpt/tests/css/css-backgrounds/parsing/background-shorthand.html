@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders Module Level 3: background sets longhands</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#background">
+<meta name="assert" content="background sets all of its longhands, and omitted longhands to their initial values.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_shorthand_value('background', 'purple url("https://example.com/") repeat-x top left', {
+  'background-image': 'url("https://example.com/")',
+  'background-position': 'left top',
+  'background-size': 'auto',
+  'background-repeat': 'repeat-x',
+  'background-attachment': 'scroll',
+  'background-origin': 'padding-box',
+  'background-clip': 'border-box',
+  'background-color': 'purple',
+});
+
+test_shorthand_value('background', 'purple url("https://example.com/") repeat-y 50% 50%', {
+  'background-image': 'url("https://example.com/")',
+  'background-position': '50% 50%',
+  'background-size': 'auto',
+  'background-repeat': 'repeat-y',
+  'background-attachment': 'scroll',
+  'background-origin': 'padding-box',
+  'background-clip': 'border-box',
+  'background-color': 'purple',
+});
+
+test_shorthand_value('background', 'purple url("https://example.com/") repeat center', {
+  'background-image': 'url("https://example.com/")',
+  'background-position': 'center center',
+  'background-size': 'auto',
+  'background-repeat': 'repeat',
+  'background-attachment': 'scroll',
+  'background-origin': 'padding-box',
+  'background-clip': 'border-box',
+  'background-color': 'purple',
+});
+
+test_shorthand_value('background', 'purple url("https://example.com/") no-repeat 12px', {
+  'background-image': 'url("https://example.com/")',
+  'background-position': '12px center',
+  'background-size': 'auto',
+  'background-repeat': 'no-repeat',
+  'background-attachment': 'scroll',
+  'background-origin': 'padding-box',
+  'background-clip': 'border-box',
+  'background-color': 'purple',
+});
+
+test_shorthand_value('background', 'purple url("https://example.com/") round left 50px', {
+  'background-image': 'url("https://example.com/")',
+  'background-position': 'left 50px',
+  'background-size': 'auto',
+  'background-repeat': 'round',
+  'background-attachment': 'scroll',
+  'background-origin': 'padding-box',
+  'background-clip': 'border-box',
+  'background-color': 'purple',
+});
+
+test_shorthand_value('background', 'purple url("https://example.com/") space 25px 25px', {
+  'background-image': 'url("https://example.com/")',
+  'background-position': '25px 25px',
+  'background-size': 'auto',
+  'background-repeat': 'space',
+  'background-attachment': 'scroll',
+  'background-origin': 'padding-box',
+  'background-clip': 'border-box',
+  'background-color': 'purple',
+});
+</script>
+</body>
+</html>

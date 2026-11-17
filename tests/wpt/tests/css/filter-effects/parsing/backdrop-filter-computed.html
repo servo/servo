@@ -22,41 +22,87 @@ test_computed_value("backdrop-filter", "none");
 
 test_computed_value("backdrop-filter", "blur(100px)");
 test_computed_value("backdrop-filter", "blur()", "blur(0px)");
+test_computed_value("backdrop-filter", "blur(0)", "blur(0px)");
+test_computed_value("backdrop-filter", "blur(5px)");
 
 test_computed_value("backdrop-filter", "brightness(0)");
 test_computed_value("backdrop-filter", "brightness(300%)", "brightness(3)");
 test_computed_value("backdrop-filter", "brightness()", "brightness(1)");
+test_computed_value("backdrop-filter", "brightness(1)");
+test_computed_value("backdrop-filter", "brightness(1.0)", "brightness(1)");
 
 test_computed_value("backdrop-filter", "contrast(0)");
 test_computed_value("backdrop-filter", "contrast(300%)", "contrast(3)");
 test_computed_value("backdrop-filter", "contrast()", "contrast(1)");
+test_computed_value("backdrop-filter", "contrast(1)");
+test_computed_value("backdrop-filter", "contrast(2)");
+test_computed_value("backdrop-filter", "contrast(1.0)", "contrast(1)");
 
 test_computed_value("backdrop-filter", "drop-shadow(1px 2px)", "drop-shadow(rgb(0, 255, 0) 1px 2px 0px)");
 test_computed_value("backdrop-filter", "drop-shadow(rgb(4, 5, 6) 1px 2px 0px)");
+test_computed_value("backdrop-filter", "drop-shadow(red 1px 2px 3px)", "drop-shadow(rgb(255, 0, 0) 1px 2px 3px)");
+test_computed_value("backdrop-filter", "drop-shadow(1px 2px 3px red)", "drop-shadow(rgb(255, 0, 0) 1px 2px 3px)");
+test_computed_value("backdrop-filter", "drop-shadow(#abc 0 0 0)", "drop-shadow(rgb(170, 187, 204) 0px 0px 0px)");
 
 test_computed_value("backdrop-filter", "grayscale(50%)", "grayscale(0.5)");
 test_computed_value("backdrop-filter", "grayscale()", "grayscale(1)");
+test_computed_value("backdrop-filter", "grayscale(1)");
+test_computed_value("backdrop-filter", "grayscale(1.0)", "grayscale(1)");
+test_computed_value("backdrop-filter", "grayscale(0)");
 
 test_computed_value("backdrop-filter", "hue-rotate(90deg)");
 test_computed_value("backdrop-filter", "hue-rotate()", "hue-rotate(0deg)");
+test_computed_value("backdrop-filter", "hue-rotate(10deg)");
+test_computed_value("backdrop-filter", "hue-rotate(10.0deg)", "hue-rotate(10deg)");
+test_computed_value("backdrop-filter", "hue-rotate(10grad)", "hue-rotate(9deg)");
+test_computed_value("backdrop-filter", "hue-rotate(0.5turn)", "hue-rotate(180deg)");
+test_computed_value("backdrop-filter", "hue-rotate(0)", "hue-rotate(0deg)");
 
 test_computed_value("backdrop-filter", "invert(0)");
 test_computed_value("backdrop-filter", "invert(100%)", "invert(1)");
 test_computed_value("backdrop-filter", "invert()", "invert(1)");
+test_computed_value("backdrop-filter", "invert(1)");
+test_computed_value("backdrop-filter", "invert(1.0)", "invert(1)");
 
 test_computed_value("backdrop-filter", "opacity(0)");
 test_computed_value("backdrop-filter", "opacity(100%)", "opacity(1)");
 test_computed_value("backdrop-filter", "opacity()", "opacity(1)");
+test_computed_value("backdrop-filter", "opacity(1)");
+test_computed_value("backdrop-filter", "opacity(1.0)", "opacity(1)");
 
 test_computed_value("backdrop-filter", "saturate(0)");
 test_computed_value("backdrop-filter", "saturate(300%)", "saturate(3)");
 test_computed_value("backdrop-filter", "saturate()", "saturate(1)");
+test_computed_value("backdrop-filter", "saturate(1)");
+test_computed_value("backdrop-filter", "saturate(1.0)", "saturate(1)");
 
 test_computed_value("backdrop-filter", "sepia(0)");
 test_computed_value("backdrop-filter", "sepia(100%)", "sepia(1)");
 test_computed_value("backdrop-filter", "sepia()", "sepia(1)");
+test_computed_value("backdrop-filter", "sepia(1)");
+test_computed_value("backdrop-filter", "sepia(1.0)", "sepia(1)");
 
+test_computed_value("backdrop-filter", "url(#a)", 'url("#a")');
+test_computed_value("backdrop-filter", "url('#a')", 'url("#a")');
+test_computed_value("backdrop-filter", "url('#a') url('#b')", 'url("#a") url("#b")');
 test_computed_value("backdrop-filter", 'blur(10px) url("https://www.example.com/picture.svg#f") contrast(20) brightness(30)');
+test_computed_value("backdrop-filter", "brightness(0.5) brightness(0.25)");
+test_computed_value("backdrop-filter", "brightness(0.5) grayscale(0.25)");
+test_computed_value("backdrop-filter", "contrast(0.5) contrast(0.25)");
+test_computed_value("backdrop-filter", "contrast(0.5) grayscale(0.25)");
+test_computed_value("backdrop-filter", "grayscale(1) url('#a')", 'grayscale(1) url("#a")');
+test_computed_value("backdrop-filter", "grayscale(0.5) grayscale(0.25)");
+test_computed_value("backdrop-filter", "grayscale(0.5) sepia(0.25) saturate(0.75) hue-rotate(35deg) invert(0.2) opacity(0.9) blur(5px)");
+test_computed_value("backdrop-filter", "grayscale(50%) sepia(25%) saturate(75%) invert(20%) opacity(90%) brightness(60%) contrast(30%)", "grayscale(0.5) sepia(0.25) saturate(0.75) invert(0.2) opacity(0.9) brightness(0.6) contrast(0.3)");
+test_computed_value("backdrop-filter", "hue-rotate(10deg) grayscale(0.25)");
+test_computed_value("backdrop-filter", "invert(0.5) invert(0.25)");
+test_computed_value("backdrop-filter", "invert(0.5) grayscale(0.25)");
+test_computed_value("backdrop-filter", "opacity(0.5) opacity(0.25)");
+test_computed_value("backdrop-filter", "opacity(0.5) grayscale(0.25)");
+test_computed_value("backdrop-filter", "saturate(0.5) saturate(0.25)");
+test_computed_value("backdrop-filter", "saturate(0.5) grayscale(0.25)");
+test_computed_value("backdrop-filter", "sepia(0.5) sepia(0.25)");
+test_computed_value("backdrop-filter", "sepia(0.5) grayscale(0.25)");
 </script>
 </body>
 </html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Clip-path animations with linear() keyframe easing</title>
+<link rel="help" href="https://drafts.csswg.org/css-easing-2/#the-linear-easing-function">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
+<link rel="match" href="clip-path-animation-linear-easing-ref.html">
+<meta name="assert" content="Clip-path animations apply linear() keyframe easing, including non-monotonic and out-of-range output values.">
+<style>
+  html {
+    will-change:contents;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 100px);
+    gap: 10px;
+  }
+
+  .grid > div {
+    width: 100px;
+    height: 100px;
+    background: green;
+    /* Long duration protects test from flakiness */
+    animation: clippath 1000000s -500000s;
+  }
+
+  div.implicit {
+    animation-timing-function: linear(0, 0.25, 0.25, 1);
+  }
+
+  div.explicit {
+    animation-timing-function: linear(0, 0.75 25% 75%, 1);
+  }
+
+  div.overshoot {
+    animation-timing-function: linear(0, 1.5 25% 75%, 1);
+  }
+
+  div.undershoot {
+    animation-timing-function: linear(0, -0.5 25% 75%, 1);
+  }
+
+  div.non-monotonic {
+    animation-timing-function: linear(0, 1 20%, 0.25 40% 60%, 1 80%, 1);
+  }
+
+  div.discontinuous {
+    animation-timing-function: linear(0, 0.25 25% 50%, 0.75 50% 75%, 1);
+  }
+
+  @keyframes clippath {
+    from { clip-path: inset(30%); }
+    to { clip-path: inset(10%); }
+  }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<body>
+<div class="grid">
+  <div class="implicit"></div>
+  <div class="explicit"></div>
+  <div class="overshoot"></div>
+  <div class="undershoot"></div>
+  <div class="non-monotonic"></div>
+  <div class="discontinuous"></div>
+</div>
+<script>
+  Promise.all(document.getAnimations().map(animation => animation.ready))
+    .then(takeScreenshot);
+</script>
+</body>
+</html>

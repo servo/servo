@@ -502,7 +502,7 @@ class TestRunnerManager(threading.Thread):
 
             skipped_tests = []
             current_group = self.test_source.current_group
-            while current_group.test_queue is not None and len(current_group.test_queue) > 0:
+            while current_group is not None and current_group.test_queue is not None and len(current_group.test_queue) > 0:
                 test = current_group.test_queue.popleft()
                 skipped_tests.append(test)
 

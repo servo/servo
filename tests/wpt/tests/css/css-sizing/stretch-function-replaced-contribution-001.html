@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS stretch(): percentage margins in a replaced element's intrinsic size contribution</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-contribution">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="Percentage margins resolve against zero in a replaced element's intrinsic size contribution, so a stretch() contributes its whole argument, also through the aspect ratio, whatever the containing block was before.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .container {
+    display: flow-root;
+    width: 400px;
+    background: green;
+  }
+  canvas {
+    display: block;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="container"><canvas width="10" height="10" style="width: stretch(100px); margin-right: 10%; height: 50px;"></canvas></div>
+<!-- The 2:1 aspect ratio turns the 50px stretch() height into a 100px contribution. -->
+<div class="container"><canvas width="20" height="10" style="width: 50%; height: stretch(50px); margin-bottom: 10%;"></canvas></div>
+<script>
+// Lay the containers out at 400px first, so that resolving the percentage margins against the containing block would show.
+document.body.offsetWidth;
+for (const container of document.querySelectorAll(".container"))
+    container.style.width = "max-content";
+</script>

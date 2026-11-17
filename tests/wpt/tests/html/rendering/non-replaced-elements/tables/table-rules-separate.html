@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>The table rules attribute when the author keeps borders separate</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#tables-2">
+<link rel="help" href="https://www.w3.org/TR/CSS21/tables.html#separated-borders">
+<link rel="match" href="table-rules-separate-ref.html">
+<meta name="assert" content="The rules attribute puts its lines on rows for rules=rows and on row groups and column groups for rules=groups, and on cells only for rules=cols and rules=all. When author CSS sets border-collapse: separate, rows, row groups and column groups cannot have borders, so rules=rows and rules=groups draw nothing, while rules=cols and rules=all still draw the cell borders.">
+<style>
+  /* Author CSS beats the presentational hint border-collapse: collapse. */
+  table { border-collapse: separate; color: black; display: inline-table; vertical-align: top; margin: 0 12px 12px 0; }
+  td { width: 20px; height: 20px; padding: 0; }
+</style>
+
+<table rules="rows">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<table rules="rows" border="1">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<table rules="groups">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<br>
+<table rules="cols">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<table rules="all">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>

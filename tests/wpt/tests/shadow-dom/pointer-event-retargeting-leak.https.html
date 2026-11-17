@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:mustaq@chromium.org">
+<link rel=help href="https://w3c.github.io/pointerevents/#coalesced-and-predicted-events">
+<title>PointerEvent retargeting does not leak closed shadow root nodes to host</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  #host {
+    width: 100px;
+    height: 100px;
+    background: red;
+  }
+</style>
+
+<div id="host">
+  <template shadowrootmode="closed">
+    <div id="closed-inner" style="width: 100%; height: 100%; background: blue;"></div>
+  </template>
+</div>
+
+<script>
+"use strict";
+
+const host = document.getElementById('host');
+
+for (const event_name of ['pointermove', 'pointerrawupdate']) {
+  for (const event_phase of ['capturing', 'bubbling']) {
+    for (const api of ['getCoalescedEvents', 'getPredictedEvents']) {
+      promise_test(async (t) => {
+        const eventTargets = [];
+        const subEventTargets = [];
+
+        const listener = (e) => {
+          eventTargets.push(e.target);
+          for (const subEvent of e[api]()) {
+            subEventTargets.push(subEvent.target);
+          }
+        };
+
+        const listener_options = { capture: event_phase === "capturing" };
+        window.addEventListener(event_name, listener, listener_options);
+        t.add_cleanup(() => {
+          window.removeEventListener(event_name, listener, listener_options);
+        });
+
+        await new test_driver.Actions()
+          .addPointer("mouse_pointer", "mouse")
+          .pointerMove(-20, -20, {origin: host})
+          .pointerDown()
+          .pointerMove(20, 20, {origin: host})
+          .pointerUp()
+          .send();
+
+        assert_greater_than(eventTargets.length, 0,
+              `sanity check: ${event_name} should be fired`);
+        if (api === 'getCoalescedEvents') {
+          assert_greater_than(subEventTargets.length, 0,
+              `sanity check: ${event_name} should have at least one coalesced event`);
+        }
+
+        for (const target of eventTargets) {
+          assert_equals(target, host, `${event_name} target should be retargeted to host`);
+        }
+        for (const target of subEventTargets) {
+          assert_equals(target, host, `${api}() target should be retargeted to host`);
+        }
+      }, `${event_name}.${api}() does not leak closed shadow-dom nodes to host during ${event_phase}`);
+    }
+  }
+}
+</script>

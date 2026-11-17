@@ -4,9 +4,10 @@ def main(request, response):
   response.headers.set(b"Content-Type", b"application/json")
   response.headers.set(b"Access-Control-Allow-Origin", b"*")
 
-  port = request.server.config.ports["https"][0]
+  # The issuer identifier carries no port, and neither do its endpoints: the
+  # PAC file the tests install routes them back to this server.
   hostname = request.url_parts.hostname
-  base_url = f"https://{hostname}:{port}"
+  base_url = f"https://{hostname}"
 
   return json.dumps({
     "issuance_endpoint": f"{base_url}/fedcm/support/delegation-issuance.py",

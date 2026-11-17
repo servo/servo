@@ -1,6 +1,8 @@
 <!doctype html>
 <meta charset="utf-8" />
 <title>Processing instruction attributes</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#interface-processinginstruction" />
+<link rel="help" href="https://www.w3.org/TR/xml-stylesheet/#dt-parsing" />
 <link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -42,6 +44,32 @@
       assert_equals(pi.getAttribute("a"), null);
       assert_equals(pi.getAttribute("x"), null);
     }, "Processing instruction attribute parsing rejects unquoted attributes from " + source);
+
+    // Per the rules for parsing pseudo-attributes from a string, the whole
+    // string has to match PseudoAtts and no name may appear twice. Any
+    // violation is an error, which makes the processing instruction have no
+    // attributes at all (rather than, say, the first or last duplicate winning).
+    for (const data of [
+      'name="p" name="q"',
+      'name="p" junk',
+      'junk name="p"',
+      'name="p"other="q"',
+      'name="p" ="q"',
+      'name="p" other=',
+      'name="p',
+      'name="p" other="q',
+    ]) {
+      test(() => {
+        const pi = createProcessingInstruction("t", data);
+        assert_equals(pi.data, data, "data is preserved verbatim");
+        assert_false(pi.hasAttributes());
+        assert_array_equals(pi.getAttributeNames(), []);
+        assert_false(pi.hasAttribute("name"));
+        assert_equals(pi.getAttribute("name"), null);
+        assert_false(pi.hasAttribute("other"));
+        assert_equals(pi.getAttribute("other"), null);
+      }, `Malformed pseudo-attributes ${JSON.stringify(data)} yield no attributes (source: ${source})`);
+    }
 
     test(() => {
       const pi = createProcessingInstruction("t", 'a="b" x="yy"');
@@ -167,13 +195,16 @@
     function test_attribute_value(value) {
       test(() => {
         const pi = createProcessingInstruction("target", "");
-        const element = pi.ownerDocument.createElement("el");
         pi.setAttribute("attr", value);
-        element.setAttribute("attr", value);
-        assert_equals(pi.getAttribute("attr"), element.getAttribute("attr"));
-        const extracted = element.outerHTML.match(/el\s+([^>]+?)\s*\/?>/);
-        assert_equals(pi.data, extracted[1]);
-      }, `check attribute value: "${value}" (source: "${source}")`);
+        assert_true(pi.hasAttribute("attr"));
+        assert_equals(pi.getAttribute("attr"), value);
+        const escaped = value
+          .replaceAll("&", "&amp;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;");
+        assert_equals(pi.data, `attr="${escaped}"`);
+      }, `check attribute value: ${format_value(value)} (source: "${source}")`);
     }
 
     function test_valid_attribute_name(name) {
@@ -237,12 +268,25 @@
       );
     }
 
+    test_attribute_value("");
+
+    // Escaped in PI https://dom.spec.whatwg.org/#update-data-from-attributes
+    test_attribute_value("&");
+    test_attribute_value('"');
+    test_attribute_value("<");
+    test_attribute_value(">");
+
+    // Escaped in XML attributes but not in PIs
+    test_attribute_value("\t");
+    test_attribute_value("\n");
+    test_attribute_value("\r");
+
+    // Escaped in HTML attributes but not in PIs
+    test_attribute_value("\u00A0");
+
+    // These should not be escaped
     test_attribute_value("=");
-    test_attribute_value('axx"');
-    test_attribute_value("axx>");
-    test_attribute_value("some<>");
-    test_attribute_value("'\"\"'");
-    test_attribute_value('aa"aa"');
+    test_attribute_value("'");
 
     test_invalid_attribute_name("=");
     test_invalid_attribute_name("a=");
@@ -270,6 +314,42 @@
     test_distinct_attribute_name("ABC", "abc");
     test_distinct_attribute_name("abC", "abc");
     test_distinct_attribute_name("x123A", "x123a");
+
+    test(() => {
+      // This data would be normalized to `a="b" c="d"` if it went through
+      // "update data from attributes".
+      const data = `a='b'   c = "d"`;
+      const pi = createProcessingInstruction("t", data);
+      assert_equals(pi.data, data);
+      assert_array_equals(pi.getAttributeNames(), ["a", "c"]);
+      const mutation_observer = new MutationObserver(() => {});
+      // Observe attributes too so the test fails if an implementation
+      // erroneously queues an "attributes" mutation record for PI attributes.
+      mutation_observer.observe(pi, { characterData: true, attributes: true });
+      pi.removeAttribute("x");
+      assert_equals(pi.data, data, "removeAttribute() doesn't change data");
+      assert_false(pi.toggleAttribute("x", false));
+      assert_equals(pi.data, data, "toggleAttribute(name, false) doesn't change data");
+      assert_array_equals(pi.getAttributeNames(), ["a", "c"]);
+      assert_equals(
+        mutation_observer.takeRecords().length,
+        0,
+        "no mutation records",
+      );
+
+      const malformed = "a=b";
+      const malformed_pi = createProcessingInstruction("t", malformed);
+      mutation_observer.observe(malformed_pi, { characterData: true, attributes: true });
+      malformed_pi.removeAttribute("a");
+      assert_equals(malformed_pi.data, malformed, "removeAttribute() doesn't wipe malformed data");
+      assert_false(malformed_pi.toggleAttribute("a", false));
+      assert_equals(malformed_pi.data, malformed, "toggleAttribute(name, false) doesn't wipe malformed data");
+      assert_equals(
+        mutation_observer.takeRecords().length,
+        0,
+        "no mutation records on malformed PI",
+      );
+    }, "Removing a non-existent PI attribute doesn't normalize data from " + source);
 
     // HTML parser ignores xml-stylesheet
     if (source == "html-parser")
@@ -300,5 +380,31 @@
       assert_equals(pi.getAttribute("href"), "style3.css");
       assert_array_equals(pi.getAttributeNames(), ["type", "href"]);
     }, "Processing instruction attributes with xml-stylesheet from " + source);
+  }
+
+  test(() => {
+    const pi = sources["html-parser"]("target", 'name="a\0b"');
+    assert_equals(pi.data, 'name="a\uFFFDb"');
+    assert_true(pi.hasAttributes());
+    assert_array_equals(pi.getAttributeNames(), ["name"]);
+    assert_equals(pi.getAttribute("name"), "a\uFFFDb");
+
+    const pi_name = sources["html-parser"]("target", '\0="c"');
+    assert_equals(pi_name.data, '\uFFFD="c"');
+    assert_true(pi_name.hasAttributes());
+    assert_array_equals(pi_name.getAttributeNames(), ["\uFFFD"]);
+    assert_equals(pi_name.getAttribute("\uFFFD"), "c");
+  }, "U+0000 NULL in processing instruction data is replaced with U+FFFD in HTML parser");
+
+  // "xml-parser" is omitted because U+0000 is not a valid XML Char and
+  // produces a parse error rather than a ProcessingInstruction node.
+  for (const source of ["html-dom", "xml-dom"]) {
+    test(() => {
+      const pi = sources[source]("target", 'name="a\0b"');
+      assert_equals(pi.data, 'name="a\0b"');
+      assert_false(pi.hasAttributes());
+      assert_array_equals(pi.getAttributeNames(), []);
+      assert_equals(pi.getAttribute("name"), null);
+    }, `U+0000 NULL in processing instruction data invalidates pseudo-attributes from ${source}`);
   }
 </script>

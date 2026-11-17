@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<head>
+<title>CSS Borders and Box Decorations 4: 'corner-shape' with different border colors paints each side in its own color</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shaping">
+<link rel="help" href="https://crbug.com/577393733">
+<link rel="match" href="corner-shape-border-side-colors-ref.html">
+<meta name="assert" content="The middle of each border side is painted with that side's color, regardless of corner-shape.">
+<style>
+    body { margin: 0; }
+    .container {
+        position: relative;
+        width: 200px;
+        height: 100px;
+        margin-bottom: 10px;
+    }
+    .target {
+        width: 200px;
+        height: 100px;
+        box-sizing: border-box;
+        border-style: solid;
+        border-width: 10px;
+        border-color: green blue blue blue;
+        border-radius: 20px;
+    }
+    /* Hide the corners and the left and right sides, leaving only the middle
+       of the top and bottom sides visible. */
+    .cover {
+        position: absolute;
+        top: 0;
+        width: 40px;
+        height: 100px;
+        background: white;
+    }
+    .left { left: 0; }
+    .right { right: 0; }
+</style>
+</head>
+<div class="container">
+    <div class="target" style="corner-shape: bevel"></div>
+    <div class="cover left"></div><div class="cover right"></div>
+</div>
+<div class="container">
+    <div class="target" style="corner-shape: superellipse(0.5)"></div>
+    <div class="cover left"></div><div class="cover right"></div>
+</div>
+<div class="container">
+    <div class="target" style="corner-shape: scoop"></div>
+    <div class="cover left"></div><div class="cover right"></div>
+</div>
+<div class="container">
+    <div class="target" style="corner-shape: bevel; border-width: 1px"></div>
+    <div class="cover left"></div><div class="cover right"></div>
+</div>

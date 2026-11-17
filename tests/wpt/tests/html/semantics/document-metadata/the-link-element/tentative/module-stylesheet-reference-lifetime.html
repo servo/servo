@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Module link: CSSOM mutations after mixed link and adoption reference removal</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/LinkTagModuleImport/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script type="module">
+import {createLink, waitForEvent, createShadowRoot} from "./module-stylesheet-helpers.js";
+
+promise_test(async t => {
+  const url = "./module-stylesheet-blue.css?reference-lifetime";
+  const a = createShadowRoot(t, "<span>a</span>");
+  const b = createShadowRoot(t, "<span>b</span>");
+  const c = createShadowRoot(t, "<span>c</span>");
+  const first = createLink(t, /*import=*/url);
+  const second = createLink(t, /*import=*/url);
+  const results = [first, second].map(waitForEvent);
+  a.prepend(first);
+  b.prepend(second);
+  assert_array_equals(await Promise.all(results), ["load", "load"]);
+  const sheet = first.sheet;
+  assert_equals(second.sheet, sheet);
+  b.adoptedStyleSheets = [sheet];
+  c.adoptedStyleSheets = [sheet];
+  function check(color) {
+    for (const root of [a, b, c]) {
+      assert_equals(getComputedStyle(root.querySelector("span")).color, color);
+    }
+  }
+  check("rgb(0, 0, 255)");
+  await sheet.replace("span { color: rgb(255, 0, 0); }");
+  check("rgb(255, 0, 0)");
+  sheet.cssRules[0].style.color = "rgb(0, 128, 0)";
+  check("rgb(0, 128, 0)");
+
+  b.adoptedStyleSheets = [];
+  second.remove();
+  c.adoptedStyleSheets = [];
+  const third = createLink(t, /*import=*/url);
+  const loaded = waitForEvent(third);
+  c.prepend(third);
+  assert_equals(await loaded, "load");
+  assert_equals(third.sheet, sheet);
+  a.adoptedStyleSheets = [sheet];
+  first.remove();
+  sheet.disabled = true;
+  check("rgb(0, 0, 0)");
+  sheet.disabled = false;
+  for (const root of [a, c]) {
+    assert_equals(getComputedStyle(root.querySelector("span")).color,
+        "rgb(0, 128, 0)");
+  }
+  sheet.deleteRule(0);
+  check("rgb(0, 0, 0)");
+  c.host.remove();
+  await sheet.replace("span { color: blue; }");
+  assert_equals(getComputedStyle(a.querySelector("span")).color,
+      "rgb(0, 0, 255)");
+  assert_equals(third.sheet, null, "Removing the host disconnects its module link.");
+}, "Async replace, declaration mutation, deleteRule, and disabled survive mixed reference removal.");
+</script>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: stretch sizing of an absolutely positioned box whose containing block is an inline box</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#stretch-fit-sizing">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#def-cb">
+<meta name="assert" content="An absolutely positioned box with 'stretch' width or height fills its inset-modified containing block, which here is formed by a relatively positioned inline box.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.container {
+    font: 20px/1 Ahem;
+    width: 400px;
+    height: 300px;
+}
+.inline-box {
+    position: relative;
+    padding: 3px 4px;
+}
+.abs {
+    position: absolute;
+    inset: 0;
+}
+</style>
+<div class="container">XX <span class="inline-box">XX<div class="abs" style="width: stretch; height: 5px"></div>XX</span> ZZ</div>
+<div class="container">XX <span class="inline-box">XX<div class="abs" style="height: stretch; width: 5px"></div>XX</span> ZZ</div>
+<script>
+const [widthCase, heightCase] = document.querySelectorAll(".container");
+test(() => {
+    const inlineBox = widthCase.querySelector(".inline-box").getBoundingClientRect();
+    assert_approx_equals(widthCase.querySelector(".abs").getBoundingClientRect().width, inlineBox.width, 0.5);
+}, "'width: stretch' fills the padding box of the inline box");
+test(() => {
+    const inlineBox = heightCase.querySelector(".inline-box").getBoundingClientRect();
+    assert_approx_equals(heightCase.querySelector(".abs").getBoundingClientRect().height, inlineBox.height, 0.5);
+}, "'height: stretch' fills the padding box of the inline box");
+widthCase.remove();
+heightCase.remove();
+</script>

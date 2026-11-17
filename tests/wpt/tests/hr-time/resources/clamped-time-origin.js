@@ -21,7 +21,7 @@ const run_test = isolated => {
       "crossOriginIsolated is properly set");
     let prev = windowOrigin;
     let current;
-    for (let i = 1; i < 100; ++i) {
+    for (let i = 1; i < 50; ++i) {
       current = await create_worker();
       assert_true(current === prev || current - prev > resolution / 1000);
       prev = current;

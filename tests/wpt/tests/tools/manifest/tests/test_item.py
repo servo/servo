@@ -158,3 +158,8 @@ def test_wpt_flags():
     assert m4.subdomain is True
     assert m4.https is True
     assert m4.h2 is False
+
+    m5 = HarnessTest("/foo", "bar", "/", "bar?wpt_flags=websocket-h3")
+    assert m5.websocket_h3 is True
+    assert m5.h2 is False
+    assert HarnessTest("/foo", "bar", "/", "bar?wpt_flags=h3").websocket_h3 is False

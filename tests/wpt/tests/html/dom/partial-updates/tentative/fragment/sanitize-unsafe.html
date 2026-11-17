@@ -1,40 +1,97 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>Declarative Fragment: unsafe sanitization bypass</title>
+<title>Declarative Fragment: sanitize="unsafe" on template src</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <body>
-<div id="container-streaming-targeted">
-  <div id="target-streaming" marker="marker-streaming">
-    <?start name="marker-streaming">Original Content<?end>
+<div id="container-unsafe">
+  <div id="target-unsafe">
+    <?start name="marker-unsafe">Original Content<?end>
   </div>
-  <template for="marker-streaming" sanitize="unsafe">
-    <span id="ok-streaming">Allowed</span>
-    <script id="bad-streaming">window.badStreamingScriptRun = true;</script>
-  </template>
+  <template for="marker-unsafe" sanitize="unsafe"
+            src="../resources/chunked-html.py?delay=0&chunk1=%3Cspan%20id%3D%22ok-unsafe%22%3EAllowed%3C%2Fspan%3E%3Cscript%20id%3D%22script-unsafe%22%3Ewindow.unsafeScriptRun%3Dtrue%3B%3C%2Fscript%3E"></template>
 </div>
 
-<div id="container-in-place">
-  <div id="target-in-place">
-    <template for sanitize="random">
-      <span id="ok-in-place">Allowed</span>
-      <script id="bad-in-place">window.badInPlaceScriptRun = true;</script>
-    </template>
+<div id="container-unsafe-case">
+  <div id="target-unsafe-case">
+    <?start name="marker-unsafe-case">Original Content<?end>
   </div>
+  <template for="marker-unsafe-case" sanitize="UnSaFe"
+            src="../resources/chunked-html.py?delay=0&chunk1=%3Cspan%20id%3D%22ok-unsafe-case%22%3EAllowed%3C%2Fspan%3E%3Cscript%20id%3D%22script-unsafe-case%22%3Ewindow.unsafeCaseScriptRun%3Dtrue%3B%3C%2Fscript%3E"></template>
 </div>
 
 <script>
-test(() => {
-  assert_true(!!window.badStreamingScriptRun, "Script in streaming targeted template with sanitize=unsafe should run");
-  assert_true(!!window.badInPlaceScriptRun, "Script in in-place template with sanitize=random should run");
+function waitForCondition(check) {
+  return new Promise(resolve => {
+    const poll = () => {
+      if (check()) {
+        resolve();
+      } else {
+        step_timeout(poll, 10);
+      }
+    };
+    poll();
+  });
+}
 
-  const targetStreaming = document.getElementById('target-streaming');
-  assert_equals(targetStreaming.querySelector('#ok-streaming').textContent, 'Allowed');
-  assert_not_equals(targetStreaming.querySelector('#bad-streaming'), null, "Script element should not be stripped");
+promise_test(async () => {
+  await waitForCondition(() => window.unsafeScriptRun && window.unsafeCaseScriptRun);
 
-  const targetInPlace = document.getElementById('target-in-place');
-  assert_equals(targetInPlace.querySelector('#ok-in-place').textContent, 'Allowed');
-  assert_not_equals(targetInPlace.querySelector('#bad-in-place'), null, "Script element should not be stripped");
-}, "Template with non-empty sanitize attribute values (unsafe or invalid) bypasses safe sanitization and allows script tags");
+  assert_true(!!window.unsafeScriptRun, "Script in template src with sanitize=unsafe should run");
+  assert_true(!!window.unsafeCaseScriptRun, "Script in template src with case-insensitive sanitize=UnSaFe should run");
+
+  const targetUnsafe = document.getElementById('target-unsafe');
+  assert_equals(targetUnsafe.querySelector('#ok-unsafe').textContent, 'Allowed');
+  assert_not_equals(targetUnsafe.querySelector('#script-unsafe'), null, "Script element should not be stripped");
+
+  const targetUnsafeCase = document.getElementById('target-unsafe-case');
+  assert_equals(targetUnsafeCase.querySelector('#ok-unsafe-case').textContent, 'Allowed');
+  assert_not_equals(targetUnsafeCase.querySelector('#script-unsafe-case'), null, "Script element should not be stripped");
+}, "Template with src and sanitize=\"unsafe\" inherits unsafe parser context and allows scripts");
+
+function waitForElement(container, selector) {
+  return new Promise(resolve => {
+    const existing = container.querySelector(selector);
+    if (existing) {
+      resolve(existing);
+      return;
+    }
+    const observer = new MutationObserver(() => {
+      const found = container.querySelector(selector);
+      if (found) {
+        observer.disconnect();
+        resolve(found);
+      }
+    });
+    observer.observe(container, { childList: true, subtree: true });
+  });
+}
+
+// With sanitize="unsafe" and no enclosing sanitizer, nothing is stripped, but
+// whether scripts *run* still follows the enclosing parser: a fragment parser
+// without runScripts keeps the script element but must not execute it.
+for (const [name, options, expectRun] of [
+  ['streamHTMLUnsafe()', undefined, false],
+  ['streamHTMLUnsafe({runScripts: true})', {runScripts: true}, true],
+]) {
+  promise_test(async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const flag = `unsafeScriptRun_${expectRun ? 'run' : 'norun'}`;
+    const chunk = encodeURIComponent(`<script>window.${flag} = true;<\/script><span class="loaded">Loaded</span>`);
+    const writer = container.streamHTMLUnsafe(options).getWriter();
+    await writer.write(`
+      <div class="target"><?start name="m-${flag}">Original<?end></div>
+      <template for="m-${flag}" sanitize="unsafe" src="../resources/chunked-html.py?delay=0&chunk1=${chunk}"></template>
+    `);
+    await writer.close();
+
+    const target = container.querySelector('.target');
+    const span = await waitForElement(target, '.loaded');
+    assert_equals(span.textContent, 'Loaded');
+    assert_not_equals(target.querySelector('script'), null, "Script element should not be stripped with sanitize=\"unsafe\"");
+    assert_equals(!!window[flag], expectRun, `Script in template src should ${expectRun ? '' : 'not '}run when inserted via ${name}`);
+  }, `template src with sanitize="unsafe" inside ${name} ${expectRun ? 'runs' : 'keeps but does not run'} scripts`);
+}
 </script>
 </body>

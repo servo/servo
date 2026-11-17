@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ManagedSourceBuffer bufferedchange event after endOfStream()</title>
+<link rel="help" href="https://w3c.github.io/media-source/#managedsourcebuffer-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="mediasource-manager-util.js"></script>
+<body>
+<script>
+async function setUp(t, media) {
+  const { source, sourceOpen } = attachManagedMediaSource(t);
+  const [data] = await Promise.all([fetchMediaData(media.url), sourceOpen]);
+  const sourceBuffer = source.addSourceBuffer(media.type);
+  const recorder = new BufferedChangeRecorder(sourceBuffer);
+  await appendBufferAsync(sourceBuffer, data);
+  await recorder.waitForCount(1);
+  await flushTasks(t);
+  assert_greater_than(sourceBuffer.buffered.length, 0, 'media was buffered');
+  return { source, sourceBuffer, recorder };
+}
+
+promise_test(async t => {
+  // The audio track of this media ends before its video track, so the
+  // buffered range grows to the highest track end once the source is ended.
+  const { source, sourceBuffer, recorder } = await setUp(t, MANAGED_MEDIA.unequalTrackEnds);
+  const previous = rangesToArray(sourceBuffer.buffered);
+
+  const nextEvent = recorder.nextEvent();
+  source.endOfStream();
+  assert_equals(source.readyState, 'ended', 'readyState');
+  const current = rangesToArray(sourceBuffer.buffered);
+  assert_greater_than(current[current.length - 1][1], previous[previous.length - 1][1], 'buffered end grew');
+
+  const event = await nextEvent;
+  assertBufferedChangeEvent(event, previous, current, 'endOfStream()');
+  assert_equals(event.removedRanges.length, 0, 'removedRanges is empty');
+}, 'endOfStream() that changes buffered fires bufferedchange');
+
+promise_test(async t => {
+  // A single track SourceBuffer's buffered range is unaffected by endOfStream().
+  const { source, sourceBuffer, recorder } = await setUp(t, MANAGED_MEDIA.audioOnly);
+  const previous = rangesToArray(sourceBuffer.buffered);
+
+  const nextEvent = recorder.nextEvent();
+  source.endOfStream();
+  assert_equals(source.readyState, 'ended', 'readyState');
+  assertTimeRangesEqual(sourceBuffer.buffered, previous, 'buffered is unchanged');
+  await flushTasks(t);
+
+  // Remove data that is buffered: the next event received must be for it.
+  await removeAsync(sourceBuffer, 0, Infinity);
+  assertBufferedChangeEvent(await nextEvent, previous, [], 'event following endOfStream()');
+}, 'endOfStream() that does not change buffered does not fire bufferedchange');
+</script>
+</body>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: insets and percentage sizes of an absolutely positioned box whose containing block is a bordered inline box in vertical writing modes</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#def-cb">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#vertical-intro">
+<meta name="assert" content="The containing block formed by an inline box is the rectangle from the start-most padding edges of its first fragment to the end-most padding edges of its last fragment, also in vertical writing modes and when the inline box has borders and padding.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.container {
+    position: relative;
+    font: 20px/1 Ahem;
+    width: 300px;
+    height: 300px;
+}
+.abs {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+}
+</style>
+<div id="tests"></div>
+<script>
+const decorated = "border: 10px solid; border-inline-start-width: 30px; padding: 5px; padding-inline-end: 7px";
+const configurations = [
+    { writingMode: "vertical-rl", decorations: [decorated] },
+    { writingMode: "vertical-lr", decorations: ["", decorated] },
+];
+const contents = [
+    { description: "single line", before: "XX ", inside: "XXXX" },
+    { description: "two lines", before: "XXXXXX ", inside: "AAAA BBBB CCCC" },
+];
+const tests = document.getElementById("tests");
+
+function physicalSides(writingMode)
+{
+    if (writingMode == "vertical-rl")
+        return { inlineStart: "top", inlineEnd: "bottom", blockStart: "right", blockEnd: "left" };
+    return { inlineStart: "top", inlineEnd: "bottom", blockStart: "left", blockEnd: "right" };
+}
+
+// Start-most padding edges of the first fragment and end-most padding edges of the last fragment (top-to-bottom inline direction).
+function containingBlockEdges(inlineBox, writingMode)
+{
+    const fragments = inlineBox.getClientRects();
+    const first = fragments[0];
+    const last = fragments[fragments.length - 1];
+    const style = getComputedStyle(inlineBox);
+    const border = side => parseFloat(style[`border-${side}-width`]);
+    if (writingMode == "vertical-rl")
+        return { left: last.left + border("left"), right: first.right - border("right"), top: first.top + border("top"), bottom: last.bottom - border("bottom") };
+    return { left: first.left + border("left"), right: last.right - border("right"), top: first.top + border("top"), bottom: last.bottom - border("bottom") };
+}
+
+for (const configuration of configurations) {
+    const sides = physicalSides(configuration.writingMode);
+    const outOfFlowStyles = [
+        { style: `${sides.inlineStart}: 0; ${sides.blockStart}: 0`, edges: [sides.inlineStart, sides.blockStart] },
+        { style: `${sides.inlineEnd}: 0; ${sides.blockEnd}: 0`, edges: [sides.inlineEnd, sides.blockEnd] },
+        { style: "inset: 0; width: auto; height: auto", edges: ["left", "top", "right", "bottom"] },
+        { style: "inset: 0; width: 100%; height: 100%", edges: ["left", "top", "right", "bottom"] },
+    ];
+    for (const decoration of configuration.decorations) {
+        for (const content of contents) {
+            for (const outOfFlowStyle of outOfFlowStyles) {
+                const container = document.createElement("div");
+                container.className = "container";
+                container.style.writingMode = configuration.writingMode;
+                container.innerHTML = `${content.before}<span style="position: relative; ${decoration}">${content.inside.substring(0, 2)}<i class="abs" style="${outOfFlowStyle.style}"></i>${content.inside.substring(2)}</span> ZZ`;
+                tests.append(container);
+                test(() => {
+                    const expected = containingBlockEdges(container.querySelector("span"), configuration.writingMode);
+                    const actual = container.querySelector(".abs").getBoundingClientRect();
+                    for (const edge of outOfFlowStyle.edges)
+                        assert_approx_equals(actual[edge], expected[edge], 0.5, `${edge} edge`);
+                }, `writing-mode: ${configuration.writingMode}; inline box '${decoration || "no decoration"}'; ${content.description}; absolutely positioned box '${outOfFlowStyle.style}'`);
+            }
+        }
+    }
+}
+
+tests.remove();
+</script>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#geometry">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#stacking-self-alignment">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid;
+    grid-template-columns: 60px 60px;
+    grid-template-rows: 100px 40px;
+    gap: 20px;
+    width: 140px;
+    background: lightgray;
+  }
+  .short {
+    grid-column: 1;
+    grid-row: 1;
+    height: 40px;
+    margin-bottom: -20px;
+    align-self: end;
+    background: seagreen;
+  }
+  .tall {
+    grid-column: 2;
+    grid-row: 1;
+    height: 100px;
+    background: cornflowerblue;
+  }
+  .span {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    height: 40px;
+    background: mediumpurple;
+  }
+  .rule {
+    position: absolute;
+    left: 68px;
+    top: 0;
+    width: 4px;
+    height: 100px;
+    background: blue;
+  }
+</style>
+<div class="lanes">
+  <div class="short"></div>
+  <div class="tall"></div>
+  <div class="span"></div>
+</div>
+<div class="rule"></div>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: static position of a fixed positioned box inside an absolutely positioned box whose containing block is an inline box</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#staticpos-rect">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#def-cb">
+<meta name="assert" content="A fixed positioned box with auto insets is at its static position inside an absolutely positioned box whose containing block is a relatively positioned inline box, with and without insets on the absolutely positioned box.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.container {
+    transform: translateX(0);
+    font: 20px/1 Ahem;
+    width: 300px;
+    height: 300px;
+}
+.outer {
+    position: absolute;
+    inline-size: 100px;
+}
+.insets {
+    inset-block-start: 3px;
+    inset-inline-start: 7px;
+}
+.inner {
+    inline-size: 5px;
+    block-size: 5px;
+}
+</style>
+<div id="tests"></div>
+<script>
+const tests = document.getElementById("tests");
+
+function createContainer(writingMode, outerClass, innerStyle)
+{
+    const container = document.createElement("div");
+    container.className = "container";
+    container.style.writingMode = writingMode;
+    container.innerHTML = `XX<br>XX <span style="position: relative">XX<span class="${outerClass}">YY<div class="inner" style="${innerStyle}"></div></span></span>`;
+    tests.append(container);
+    return container;
+}
+
+function offsetInContainer(container)
+{
+    const rect = container.querySelector(".inner").getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    return { left: rect.left - containerRect.left, top: rect.top - containerRect.top };
+}
+
+const configurations = [
+    { writingMode: "horizontal-tb", outerClasses: ["outer", "outer insets"] },
+    { writingMode: "vertical-rl", outerClasses: ["outer", "outer insets"] },
+    { writingMode: "vertical-lr", outerClasses: ["outer", "outer insets"] },
+];
+for (const { writingMode, outerClasses } of configurations) {
+    for (const outerClass of outerClasses) {
+        // The in-flow box is where the fixed positioned box would be if it was not out-of-flow (the container is its containing block).
+        const reference = createContainer(writingMode, outerClass, "");
+        const target = createContainer(writingMode, outerClass, "position: fixed");
+        test(() => {
+            const expected = offsetInContainer(reference);
+            const actual = offsetInContainer(target);
+            assert_equals(actual.left, expected.left, "left");
+            assert_equals(actual.top, expected.top, "top");
+        }, `writing-mode: ${writingMode}; fixed positioned box in an absolutely positioned box ${outerClass.includes("insets") ? "with" : "without"} insets in an inline box containing block`);
+    }
+}
+
+tests.remove();
+</script>

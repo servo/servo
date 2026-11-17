@@ -128,6 +128,15 @@
               assert_equals(mediaSource.activeSourceBuffers.length, 0, "SourceBufferB is not in mediaSource.activeSourceBuffers");
               test.done();
           }, "Test addSourceBuffer() with AAC and H.264 in separate SourceBuffers");
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+              assert_true(sourceBuffer instanceof SourceBuffer, "New SourceBuffer returned");
+              if (self.ManagedSourceBuffer)
+                  assert_false(sourceBuffer instanceof ManagedSourceBuffer, "SourceBuffer is not a ManagedSourceBuffer");
+              test.done();
+          }, "Test addSourceBuffer() does not return a ManagedSourceBuffer");
         </script>
     </body>
 </html>

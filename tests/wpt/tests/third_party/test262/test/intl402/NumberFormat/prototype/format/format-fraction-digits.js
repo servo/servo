@@ -38,18 +38,25 @@ var testData = {
     "-123.44501": "-123.445",
     "0.001234": "000.001",
     "-0.001234": "-000.001",
-    "0.00000000123": "000.0",
-    "-0.00000000123": "-000.0",
-    "0.00000000000000000000000000000123": "000.0",
-    "-0.00000000000000000000000000000123": "-000.0",
     "1.2": "001.2",
     "-1.2": "-001.2",
-    "0.0000000012344501": "000.0",
-    "-0.0000000012344501": "-000.0",
     "123445.01": "123445.01",
     "-123445.01": "-123445.01",
 };
 
-testNumberFormat(locales, numberingSystems,
-    {useGrouping: false, minimumIntegerDigits: 3, minimumFractionDigits: 1, maximumFractionDigits: 3},
-    testData);
+var options = {useGrouping: false, minimumIntegerDigits: 3, minimumFractionDigits: 1, maximumFractionDigits: 3};
+
+testNumberFormat(locales, numberingSystems, options, testData);
+
+// Values that round to zero are formatted as Numbers, so that the result does
+// not depend on how many digits the input string spells.
+var roundsToZero = {
+    "0.00000000123": "000.0",
+    "-0.00000000123": "-000.0",
+    "0.00000000000000000000000000000123": "000.0",
+    "-0.00000000000000000000000000000123": "-000.0",
+    "0.0000000012344501": "000.0",
+    "-0.0000000012344501": "-000.0",
+};
+
+testNumberFormat(locales, numberingSystems, options, roundsToZero, { makeInput: Number });

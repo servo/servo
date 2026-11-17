@@ -87,7 +87,6 @@ pub(crate) struct ExtendableMessageEvent {
     source: Option<MessageSource>,
     /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-ports>
     ports: Vec<Dom<MessagePort>>,
-    #[ignore_malloc_size_of = "mozjs"]
     frozen_ports: CachedFrozenArray,
 }
 

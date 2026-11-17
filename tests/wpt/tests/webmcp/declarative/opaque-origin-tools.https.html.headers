@@ -1,1 +1,1 @@
-Content-Security-Policy: sandbox allow-scripts
+Content-Security-Policy: sandbox allow-scripts allow-forms

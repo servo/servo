@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use app_units::Au;
 use dom_struct::dom_struct;
@@ -15,13 +16,12 @@ use layout_api::BoxAreaType;
 use script_bindings::callback::{RootedCallback, TracedCallback};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
-use style_traits::CSSPixel;
+use style::logical_geometry::WritingMode;
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::ResizeObserverBinding::{
     ResizeObserverBoxOptions, ResizeObserverCallback, ResizeObserverMethods, ResizeObserverOptions,
 };
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::document::RenderingUpdateReason;
@@ -48,6 +48,9 @@ impl ResizeObservationDepth {
 pub(crate) struct ResizeObserver {
     reflector_: Reflector,
 
+    /// The [`Window`] that this [`ResizeObserver`] was created in.
+    window: Dom<Window>,
+
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-callback-slot>
     callback: TracedCallback<ResizeObserverCallback>,
 
@@ -58,16 +61,24 @@ pub(crate) struct ResizeObserver {
     /// and [`[[skippedTargets]]`](https://drafts.csswg.org/resize-observer/#dom-resizeobserver-skippedtargets-slot)
     /// internal slots.
     observation_targets: DomRefCell<Vec<(ResizeObservation, Dom<Element>)>>,
+
+    /// An index that indicates what order this [`ResizeObsever`] was created in. This is used for
+    /// keeping them in sorted order in the `Document`'s collection of observers.
+    creation_order: usize,
 }
 
 impl ResizeObserver {
     pub(crate) fn new_inherited(
+        window: &Window,
         callback: RootedCallback<ResizeObserverCallback>,
     ) -> ResizeObserver {
+        static CREATION_ORDER: AtomicUsize = AtomicUsize::new(0);
         ResizeObserver {
             reflector_: Reflector::new(),
+            window: Dom::from_ref(window),
             callback: callback.to_traced(),
             observation_targets: Default::default(),
+            creation_order: CREATION_ORDER.fetch_add(1, Ordering::Relaxed),
         }
     }
 
@@ -77,7 +88,7 @@ impl ResizeObserver {
         proto: Option<HandleObject>,
         callback: RootedCallback<ResizeObserverCallback>,
     ) -> DomRoot<ResizeObserver> {
-        let observer = Box::new(ResizeObserver::new_inherited(callback));
+        let observer = Box::new(ResizeObserver::new_inherited(window, callback));
         reflect_dom_object_with_proto(cx, observer, window, proto)
     }
 
@@ -168,6 +179,11 @@ impl ResizeObserver {
             .iter()
             .any(|(observation, _)| observation.state.get() == ObservationState::Skipped)
     }
+
+    /// Whether or not the given [`ResizeObserver`] was created after this one.
+    pub(crate) fn created_after(&self, other: &ResizeObserver) -> bool {
+        self.creation_order > other.creation_order
+    }
 }
 
 /// <https://drafts.csswg.org/resize-observer/#create-and-populate-a-resizeobserverentry>
@@ -193,12 +209,11 @@ fn create_and_populate_a_resizeobserverentry(
     // initialized with one reported size (zero).
     // The spec plans to store multiple reported sizes,
     // but for now there can be only one.
-    let last_size = match observation.observed_box {
+    let last_reported_size = match observation.observed_box {
         ResizeObserverBoxOptions::Content_box => content_box_size,
         ResizeObserverBoxOptions::Border_box => border_box_size,
         ResizeObserverBoxOptions::Device_pixel_content_box => device_pixel_content_box,
     };
-    let last_reported_size = ResizeObserverSizeImpl::new(last_size.width(), last_size.height());
 
     {
         let mut sizes = observation.last_reported_sizes.safe_borrow_mut(cx.no_gc());
@@ -222,6 +237,15 @@ fn create_and_populate_a_resizeobserverentry(
         (Au::zero(), Au::zero())
     };
 
+    let writing_mode = target
+        .style_without_reflow()
+        .map_or_else(WritingMode::empty, |style| style.writing_mode);
+    let (width, height) = if writing_mode.is_horizontal() {
+        (content_box_size.inline_size, content_box_size.block_size)
+    } else {
+        (content_box_size.block_size, content_box_size.inline_size)
+    };
+
     // Step 6. Set this.contentRect to logical this.contentBoxSize given target and observedBox of "content-box".
     let content_rect = DOMRectReadOnly::new(
         cx,
@@ -229,28 +253,13 @@ fn create_and_populate_a_resizeobserverentry(
         None,
         padding_left.to_f64_px(),
         padding_top.to_f64_px(),
-        content_box_size.width(),
-        content_box_size.height(),
+        width,
+        height,
     );
 
-    let border_box_size = ResizeObserverSize::new(
-        cx,
-        window,
-        ResizeObserverSizeImpl::new(border_box_size.width(), border_box_size.height()),
-    );
-    let content_box_size = ResizeObserverSize::new(
-        cx,
-        window,
-        ResizeObserverSizeImpl::new(content_box_size.width(), content_box_size.height()),
-    );
-    let device_pixel_content_box = ResizeObserverSize::new(
-        cx,
-        window,
-        ResizeObserverSizeImpl::new(
-            device_pixel_content_box.width(),
-            device_pixel_content_box.height(),
-        ),
-    );
+    let border_box_size = ResizeObserverSize::new(cx, window, border_box_size);
+    let content_box_size = ResizeObserverSize::new(cx, window, content_box_size);
+    let device_pixel_content_box = ResizeObserverSize::new(cx, window, device_pixel_content_box);
 
     // Step 1. Let this be a new ResizeObserverEntry.
     // Step 2. Set this.target slot to target.
@@ -273,21 +282,26 @@ impl ResizeObserverMethods<crate::DomTypeHolder> for ResizeObserver {
         proto: Option<HandleObject>,
         callback: RootedCallback<ResizeObserverCallback>,
     ) -> DomRoot<ResizeObserver> {
-        let rooted_observer = ResizeObserver::new(cx, window, proto, callback);
-        let document = window.Document();
-        document.add_resize_observer(cx, &rooted_observer);
-        rooted_observer
+        ResizeObserver::new(cx, window, proto, callback)
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-observe>
     fn Observe(&self, no_gc: &NoGC, target: &Element, options: &ResizeObserverOptions) {
-        // Step 1. If target is in [[observationTargets]] slot, call unobserve() with argument target.
-        let is_present = self
+        let observed_box = self
             .observation_targets
             .borrow()
             .iter()
-            .any(|(_obs, other)| &**other == target);
-        if is_present {
+            .find(|(_, other)| &**other == target)
+            .map(|(observation, _)| observation.observed_box);
+        // Propoposed specification text from <https://github.com/web-platform-tests/wpt/issues/30708>.
+        // >  If preexistingTarget exists and its observedBox.box equals options.box return
+        // Both Chrome and Firefox do this and likely WebKit too.
+        if observed_box == Some(options.box_) {
+            return;
+        }
+
+        // Step 1. If target is in [[observationTargets]] slot, call unobserve() with argument target.
+        if observed_box.is_some() {
             self.Unobserve(no_gc, target);
         }
 
@@ -299,24 +313,35 @@ impl ResizeObserverMethods<crate::DomTypeHolder> for ResizeObserver {
         self.observation_targets
             .safe_borrow_mut(no_gc)
             .push((resize_observation, Dom::from_ref(target)));
-        target
-            .owner_window()
-            .Document()
-            .add_rendering_update_reason(
-                RenderingUpdateReason::ResizeObserverStartedObservingTarget,
-            );
+
+        let document = self.window.document_unrooted(no_gc);
+        document.add_rendering_update_reason(
+            RenderingUpdateReason::ResizeObserverStartedObservingTarget,
+        );
+
+        // This isn't specified, but this is what Servo does to ensure that ResizeObservers can be
+        // garbage collected properly. `Unobserve` will remove the observer from the Document.
+        document.add_resize_observer(no_gc, self);
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-unobserve>
     fn Unobserve(&self, no_gc: &NoGC, target: &Element) {
         self.observation_targets
             .safe_borrow_mut(no_gc)
-            .retain_mut(|(_obs, other)| !(&**other == target));
+            .retain_mut(|(_, other)| !(&**other == target));
+        if self.observation_targets.borrow().is_empty() {
+            self.window
+                .document_unrooted(no_gc)
+                .remove_resize_observer(no_gc, self);
+        }
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-disconnect>
     fn Disconnect(&self, no_gc: &NoGC) {
         self.observation_targets.safe_borrow_mut(no_gc).clear();
+        self.window
+            .document_unrooted(no_gc)
+            .remove_resize_observer(no_gc, self);
     }
 }
 
@@ -361,9 +386,7 @@ impl ResizeObservation {
         let Some(last_reported_size) = self.last_reported_sizes.borrow().first().copied() else {
             return true;
         };
-        let box_size = calculate_box_size(cx, target, &self.observed_box);
-        box_size.width() != last_reported_size.inline_size() ||
-            box_size.height() != last_reported_size.block_size()
+        calculate_box_size(cx, target, &self.observed_box) != last_reported_size
     }
 }
 
@@ -378,16 +401,16 @@ fn calculate_depth_for_node(no_gc: &NoGC, target: &Element) -> ResizeObservation
 
 /// <https://drafts.csswg.org/resize-observer/#calculate-box-size>
 ///
-/// The dimensions of the returned `Rect` depend on the type of box being observed.
-/// For `ResizeObserverBoxOptions::Content_box` and `ResizeObserverBoxOptions::Border_box`,
-/// the values will be in `px`. For `ResizeObserverBoxOptions::Device_pixel_content_box` they
-/// will be in integral device pixels.
+/// The dimensions of the returned `ResizeObserverSizeImpl` depend on the type of box being
+/// observed. For `ResizeObserverBoxOptions::Content_box` and
+/// `ResizeObserverBoxOptions::Border_box`, the values will be in `px`. For
+/// `ResizeObserverBoxOptions::Device_pixel_content_box` they will be in integral device pixels.
 fn calculate_box_size(
     cx: &mut JSContext,
     target: &Element,
     observed_box: &ResizeObserverBoxOptions,
-) -> Rect<f64, CSSPixel> {
-    match observed_box {
+) -> ResizeObserverSizeImpl {
+    let physical_rect = match observed_box {
         ResizeObserverBoxOptions::Content_box => {
             // Note: only taking first fragment,
             // but the spec will expand to cover all fragments.
@@ -436,6 +459,20 @@ fn calculate_box_size(
                 ),
             )
         },
+    };
+
+    let writing_mode = target
+        .style_without_reflow()
+        .map_or_else(WritingMode::empty, |style| style.writing_mode);
+    let (inline_size, block_size) = if writing_mode.is_horizontal() {
+        (physical_rect.width(), physical_rect.height())
+    } else {
+        (physical_rect.height(), physical_rect.width())
+    };
+
+    ResizeObserverSizeImpl {
+        inline_size,
+        block_size,
     }
 }
 

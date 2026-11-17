@@ -2,6 +2,9 @@ export const manifest_origin = "https://{{host}}:{{ports[https][0]}}";
 export const alt_manifest_origin = 'https://{{hosts[alt][]}}:{{ports[https][0]}}';
 export const same_site_manifest_origin = 'https://{{hosts[][www1]}}:{{ports[https][0]}}';
 export const default_manifest_path = '/fedcm/support/manifest.py';
+// The Email Verification Protocol identifies an issuer by a bare host name, so
+// its origin carries no port. The PAC file routes it to the test server.
+export const evt_issuer_origin = 'https://{{host}}';
 
 export function open_and_wait_for_popup(origin, path) {
   return new Promise(resolve => {
@@ -413,10 +416,10 @@ export function set_well_known_format(format_type) {
 }
 
 // Sets up the IdP session state and cookies for EVT / EVP delegation.
-export async function setup_evt_endpoints(origin = manifest_origin) {
+export async function setup_evt_endpoints(origin = evt_issuer_origin) {
   await mark_signed_in(origin);
   await set_fedcm_cookie(origin);
-  await set_well_known_format('direct');
+  await set_well_known_format('delegation');
   try {
     await fetch('/fedcm/support/delegation-issuance.py?clear_error=1');
   } catch (e) {

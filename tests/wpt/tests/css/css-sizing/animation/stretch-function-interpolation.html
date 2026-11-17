@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>stretch() interpolation</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<meta name="assert" content="stretch() interpolates with stretch() by its argument, and not with a value that sizes another box.">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<body>
+<script>
+test_interpolation({
+  property: 'max-width',
+  from: 'stretch(100px)',
+  to: 'stretch(200px)',
+}, [
+  {at: -0.5, expect: 'stretch(50px)'},
+  {at: 0, expect: 'stretch(100px)'},
+  {at: 0.3, expect: 'stretch(130px)'},
+  {at: 0.6, expect: 'stretch(160px)'},
+  {at: 1, expect: 'stretch(200px)'},
+  {at: 1.5, expect: 'stretch(250px)'},
+]);
+
+test_interpolation({
+  property: 'max-width',
+  from: 'stretch(100px)',
+  to: 'stretch(20%)',
+}, [
+  {at: 0, expect: 'stretch(calc(0% + 100px))'},
+  {at: 0.5, expect: 'stretch(calc(10% + 50px))'},
+  {at: 1, expect: 'stretch(calc(20% + 0px))'},
+]);
+
+test_no_interpolation({
+  property: 'max-width',
+  from: 'stretch(100px)',
+  to: '200px',
+});
+
+test_no_interpolation({
+  property: 'max-width',
+  from: '100px',
+  to: 'stretch(200px)',
+});
+</script>
+</body>

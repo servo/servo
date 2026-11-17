@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Reference for parallel items and a spanning item clipped in column two</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<style>
+  .reference {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    margin-bottom: 20px;
+    background: lightgray;
+  }
+  .reference > div { position: absolute; width: 10px; }
+</style>
+<div class="reference">
+  <div style="left: 0; height: 100px; background: green"></div>
+  <div style="left: 10px; height: 100px; background: teal"></div>
+  <div style="left: 20px; height: 100px; background: blue"></div>
+  <div style="left: 50px; height: 20px; background: green"></div>
+  <div style="left: 60px; height: 20px; background: teal"></div>
+  <div style="left: 70px; height: 80px; background: blue"></div>
+  <div style="left: 80px; top: 20px; height: 60px; background: orange"></div>
+</div>
+<div class="reference">
+  <div style="left: 0; height: 40px; background: green"></div>
+  <div style="left: 50px; height: 40px; background: teal"></div>
+  <div style="left: 60px; height: 40px; background: blue"></div>
+  <div style="left: 70px; height: 80px; background: purple"></div>
+  <div style="left: 80px; top: 40px; height: 40px; background: orange"></div>
+</div>

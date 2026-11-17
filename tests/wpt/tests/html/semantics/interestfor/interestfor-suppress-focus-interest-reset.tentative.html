@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://github.com/whatwg/html/pull/11006">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<button id=other>Other</button>
+<button id=invoker interestfor=pop>Invoker</button>
+<div id=pop popover>Popover <button id=inside>Inside</button></div>
+<style>
+  #invoker {
+    interest-delay: 0s;
+  }
+</style>
+
+<script>
+const other = document.getElementById('other');
+const invoker = document.getElementById('invoker');
+const pop = document.getElementById('pop');
+const inside = document.getElementById('inside');
+
+const makeUnfocusable = {
+  'display:none': {
+    apply: () => invoker.style.display = 'none',
+    revert: () => invoker.style.display = '',
+  },
+  'inert': {
+    apply: () => invoker.inert = true,
+    revert: () => invoker.inert = false,
+  },
+};
+
+for (const [description,{apply,revert}] of Object.entries(makeUnfocusable)) {
+  promise_test(async (t) => {
+    t.add_cleanup(async () => {
+      revert();
+      pop.hidePopover();
+      await focusOn(other);
+    });
+    await focusOn(other);
+    await focusOn(invoker);
+    assert_true(pop.matches(':popover-open'),'focusing the invoker should open the popover');
+    await focusOn(inside);
+    assert_true(pop.matches(':popover-open'),'focusing inside the popover keeps it open');
+
+    apply();
+    pop.hidePopover();
+    assert_false(pop.matches(':popover-open'),'popover should be closed');
+    assert_not_equals(document.activeElement,invoker,
+        'focus should not be restored to the unfocusable invoker');
+    await waitForRender();
+    assert_false(pop.matches(':popover-open'),'popover should stay closed');
+
+    revert();
+    await focusOn(invoker);
+    assert_true(pop.matches(':popover-open'),
+        'focusing the invoker again should open the popover');
+    assert_true(invoker.matches(':interest-source'),'invoker should have interest');
+  },`Focus interest isn't suppressed after focus restoration fails (${description})`);
+}
+</script>

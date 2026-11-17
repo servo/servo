@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Masking Module Level 1: getComputedStyle().maskMode</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-mask-mode">
+<meta name="assert" content="mask-mode computed value is as specified.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("mask-mode", "alpha");
+test_computed_value("mask-mode", "luminance");
+test_computed_value("mask-mode", "match-source");
+</script>
+</body>
+</html>

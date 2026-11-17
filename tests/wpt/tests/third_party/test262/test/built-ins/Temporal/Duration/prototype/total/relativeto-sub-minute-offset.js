@@ -27,3 +27,11 @@ assert.throws(RangeError, () => action(relativeTo), "rounding is not accepted be
 
 relativeTo = "1970-01-01T00:00-00:44:59[-00:44:59]";
 assert.throws(RangeError, () => action(relativeTo), "sub-minute offset not accepted as time zone identifier");
+
+relativeTo = "1970-01-01T00:00-00:45:00[-00:45:00]";
+assert.throws(RangeError, () => action(relativeTo), "offset with zero seconds not accepted as time zone identifier (ISO string)");
+
+for (const timeZone of ["-00:44:59", "-004459", "+00:45:00", "+004500", "+15:59:00", "-170100"]) {
+  relativeTo = { year: 1970, month: 1, day: 1, timeZone };
+  assert.throws(RangeError, () => action(relativeTo), `${timeZone} is not a valid time zone string in property bag`);
+}

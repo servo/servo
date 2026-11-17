@@ -63,12 +63,17 @@
 
     assert_equals(entries.length, 2, 'two keydown entries');
 
-    // Duration should reflect only the processing time (~30ms), not the full
-    // key-hold duration.
-    assert_less_than(entries[0].duration, 60,
-      'duration must not be inflated to the key-hold duration');
-    assert_less_than(entries[1].duration, 60,
-      'duration must not be inflated to the key-hold duration');
+    // Because no repaint occurs, each entry's end time falls back to the end
+    // of event processing (which may be batched up to the last event's
+    // processingEnd, rounded to 8ms granularity) rather than being inflated
+    // to the key-hold duration.
+    const maxEndTime = entries[1].processingEnd + 8;
+    for (const entry of entries) {
+      assert_less_than_equal(
+        entry.startTime + entry.duration,
+        maxEndTime,
+        'duration must not be inflated to the key-hold duration');
+    }
   }, 'keydown timing entry is dispatched without a repaint');
 </script>
 </html>

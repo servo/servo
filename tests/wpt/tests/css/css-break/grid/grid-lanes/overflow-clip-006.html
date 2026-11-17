@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>Clipped row overflow retains parallel items and a spanning continuation</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#overflow-properties">
+<link rel="match" href="overflow-clip-006-ref.html">
+<style>
+  .multicol {
+    columns: 2;
+    column-fill: auto;
+    column-gap: 0;
+    width: 100px;
+    height: 100px;
+    margin-bottom: 20px;
+    background: lightgray;
+  }
+  .lanes {
+    display: grid-lanes;
+    grid-template-rows: 120px 120px;
+    height: 180px;
+    overflow: clip;
+  }
+  .lanes > div { width: 10px; }
+</style>
+<div class="multicol">
+  <div class="lanes">
+    <div style="grid-row: 1; background: green"></div>
+    <div style="grid-row: 1; background: teal"></div>
+    <div style="grid-row: 1 / 3; background: blue"></div>
+    <div style="grid-row: 2; background: orange; break-before: column"></div>
+  </div>
+</div>
+<div class="multicol">
+  <div class="lanes" style="grid-template-rows: 40px 40px 120px">
+    <div style="grid-row: 1; background: green"></div>
+    <div style="grid-row: 2; background: teal; break-before: column"></div>
+    <div style="grid-row: 2; background: blue"></div>
+    <div style="grid-row: 2 / 4; background: purple"></div>
+    <div style="grid-row: 3; background: orange"></div>
+  </div>
+</div>

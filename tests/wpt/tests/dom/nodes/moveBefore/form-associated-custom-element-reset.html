@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<title>Custom control form owners after state-preserving moves</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+customElements.define("form-control", class extends HTMLElement {
+  static formAssociated = true;
+});
+
+test(t => {
+  const container = document.createElement("div");
+  t.add_cleanup(() => container.remove());
+  container.innerHTML = `
+    <span id="moving-owner"></span>
+    <form id="moving-owner"></form>
+    <form-control form="moving-owner"></form-control>
+  `;
+  const blocker = container.querySelector("span");
+  const form = container.querySelector("form");
+  const controlInternals = container.querySelector("form-control").attachInternals();
+  document.body.append(container);
+  assert_equals(controlInternals.form, null);
+
+  container.moveBefore(blocker, null);
+
+  assert_equals(controlInternals.form, form, "The form becomes the first ID match");
+
+  container.moveBefore(blocker, form);
+
+  assert_equals(controlInternals.form, null, "The non-form element becomes the first ID match again");
+}, "Moving a non-form ID match updates custom control form owners in a document");
+
+test(t => {
+  const host = document.createElement("div");
+  t.add_cleanup(() => host.remove());
+  const root = host.attachShadow({ mode: "open" });
+  root.innerHTML = `
+    <span id="moving-owner"></span>
+    <form id="moving-owner"></form>
+    <form-control form="moving-owner"></form-control>
+  `;
+  const blocker = root.querySelector("span");
+  const form = root.querySelector("form");
+  const controlInternals = root.querySelector("form-control").attachInternals();
+  document.body.append(host);
+  assert_equals(controlInternals.form, null);
+
+  root.moveBefore(blocker, null);
+
+  assert_equals(controlInternals.form, form, "The form becomes the first ID match");
+
+  root.moveBefore(blocker, form);
+
+  assert_equals(controlInternals.form, null, "The non-form element becomes the first ID match again");
+}, "Moving a non-form ID match updates custom control form owners in a shadow tree");
+
+test(t => {
+  const container = document.createElement("div");
+  t.add_cleanup(() => container.remove());
+  container.innerHTML = `
+    <div><span id="moving-owner"></span></div>
+    <form id="moving-owner"></form>
+    <form-control form="moving-owner"></form-control>
+  `;
+  const subtree = container.firstElementChild;
+  const documentForm = container.querySelector("form");
+  const documentInternals = container.querySelector("form-control").attachInternals();
+  const host = document.createElement("div");
+  container.append(host);
+  const root = host.attachShadow({ mode: "open" });
+  root.innerHTML = `
+    <form id="moving-owner"></form>
+    <form-control form="moving-owner"></form-control>
+  `;
+  const shadowForm = root.querySelector("form");
+  const shadowInternals = root.querySelector("form-control").attachInternals();
+  document.body.append(container);
+  assert_equals(documentInternals.form, null);
+  assert_equals(shadowInternals.form, shadowForm);
+
+  root.moveBefore(subtree, shadowForm);
+
+  assert_equals(documentInternals.form, documentForm, "The blocker has left the document tree");
+  assert_equals(shadowInternals.form, null, "The blocker has entered the shadow tree");
+
+  container.moveBefore(subtree, documentForm);
+
+  assert_equals(documentInternals.form, null, "The blocker has returned to the document tree");
+  assert_equals(shadowInternals.form, shadowForm, "The blocker has left the shadow tree");
+}, "Moving an ancestor of an ID match across a shadow boundary updates custom control form owners in both trees");
+
+test(t => {
+  const container = document.createElement("div");
+  t.add_cleanup(() => container.remove());
+  container.innerHTML = '<form id="cross-tree-owner"></form><div></div>';
+  const form = container.firstElementChild;
+  const root = container.lastElementChild.attachShadow({ mode: "open" });
+  root.innerHTML = '<form-control form="cross-tree-owner"></form-control>';
+  const control = root.firstElementChild;
+  const controlInternals = control.attachInternals();
+  document.body.append(container);
+  assert_equals(controlInternals.form, null);
+
+  container.moveBefore(control, null);
+
+  assert_equals(controlInternals.form, form, "The previously unassociated control enters the form's tree");
+
+  root.moveBefore(control, null);
+
+  assert_equals(controlInternals.form, null, "The control leaves the form's tree");
+}, "Moving a custom control without an ID across a shadow boundary resets its form owner");
+</script>

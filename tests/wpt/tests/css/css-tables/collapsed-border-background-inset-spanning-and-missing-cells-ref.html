@@ -1,0 +1,24 @@
+<!doctype html>
+<title>CSS Reference: collapsed border cell background inset at the table edge accounts for every cell in the edge column</title>
+<style>
+table {
+    border-collapse: collapse;
+    margin-bottom: 10px;
+}
+td {
+    border: 2px solid transparent;
+    width: 40px;
+    height: 20px;
+    background: green;
+}
+</style>
+<table>
+<tr><td></td><td></td><td style="border-right-width: 20px"></td></tr>
+<tr><td></td><td></td><td></td></tr>
+<tr><td></td><td></td><td></td></tr>
+</table>
+<table>
+<tr><td></td><td></td><td style="border-right-width: 20px"></td></tr>
+<tr><td></td><td></td><td style="background: none"></td></tr>
+<tr><td></td><td></td><td></td></tr>
+</table>

@@ -45,6 +45,7 @@
       <div id="crossOrigin"></div>
     </div>
   </canvas>
+  <div id="lockedContainer" style="content-visibility: hidden"></div>
 
   <script>
     window.onload = () => {
@@ -69,6 +70,22 @@
         assert_array_equals(pixel, [0, 128, 0, 255], "Cross origin box-reflect mask should not mask out left side of reflection");
         pixel = _getPixelFromImageData(imgData, 175, 150);
         assert_array_equals(pixel, [0, 128, 0, 255], "Cross origin box-reflect mask should not mask out right side of reflection");
+
+        // Moving the cross-origin element into a display-locked container
+        // outside the canvas must detach it from the canvas rendering.
+        lockedContainer.moveBefore(crossOrigin, null);
+        await waitForCanvasPaint(canvas);
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.drawElementImage(child, 0, 0);
+        const imgDataAfterMove = context.getImageData(0, 0, canvas.width, canvas.height);
+        pixel = _getPixelFromImageData(imgDataAfterMove, 50, 50);
+        assert_array_equals(pixel, [0, 128, 0, 255], "Same origin div should still draw");
+        pixel = _getPixelFromImageData(imgDataAfterMove, 150, 50);
+        assert_array_equals(pixel, [0, 0, 255, 255], "Moved element should no longer draw inside canvas");
+        pixel = _getPixelFromImageData(imgDataAfterMove, 125, 150);
+        assert_array_equals(pixel, [0, 0, 255, 255], "Moved element reflection should no longer draw inside canvas");
+        pixel = _getPixelFromImageData(imgDataAfterMove, 175, 150);
+        assert_array_equals(pixel, [0, 0, 255, 255], "Moved element reflection right side should no longer draw inside canvas");
       });
     };
   </script>

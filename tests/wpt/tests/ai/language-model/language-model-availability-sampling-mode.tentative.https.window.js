@@ -42,3 +42,18 @@ promise_test(async t => {
       {samplingMode: 'creative', temperature: 0.8, topK: 10});
   assert_true(kValidAvailabilities.includes(result));
 }, 'LanguageModel.availability() accepts a sampling mode and ignores legacy sampling options');
+
+promise_test(async t => {
+  const invalidModes = ['invalid', '', 'Balanced', null, 123];
+  for (const mode of invalidModes) {
+    await promise_rejects_js(
+        t, TypeError, LanguageModel.availability({samplingMode: mode}),
+        `availability() should reject with TypeError for samplingMode=${
+            JSON.stringify(mode)}`);
+  }
+  await promise_rejects_js(
+      t, TypeError,
+      LanguageModel.availability(
+          {samplingMode: 'invalid', temperature: 0.8, topK: 10}),
+      'availability() should reject invalid samplingMode even with legacy options');
+}, 'LanguageModel.availability() rejects with TypeError for invalid sampling modes');

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ManagedSourceBuffer bufferedchange event after appendBuffer()</title>
+<link rel="help" href="https://w3c.github.io/media-source/#managedsourcebuffer-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="mediasource-manager-util.js"></script>
+<body>
+<script>
+async function setUp(t) {
+  const { source, sourceOpen } = attachManagedMediaSource(t);
+  const [data] = await Promise.all([fetchMediaData(MANAGED_MEDIA.muxed.url), sourceOpen]);
+  const sourceBuffer = source.addSourceBuffer(MANAGED_MEDIA.muxed.type);
+  return {
+    sourceBuffer,
+    init: extractSegment(data, MANAGED_MEDIA.muxed.init),
+    media0: extractSegment(data, MANAGED_MEDIA.muxed.media[0]),
+    media1: extractSegment(data, MANAGED_MEDIA.muxed.media[1]),
+  };
+}
+
+promise_test(async t => {
+  const { sourceBuffer, init, media0 } = await setUp(t);
+
+  const handlerEvents = [];
+  sourceBuffer.onbufferedchange = event => handlerEvents.push(event);
+  const recorder = new BufferedChangeRecorder(sourceBuffer);
+
+  await appendBufferAsync(sourceBuffer, init);
+  await appendBufferAsync(sourceBuffer, media0);
+  const buffered = rangesToArray(sourceBuffer.buffered);
+  assert_greater_than(buffered.length, 0, 'media was buffered');
+
+  await recorder.waitForCount(1);
+  const event = recorder.events[0];
+  assertBufferedChangeEvent(event, [], buffered, 'first media segment');
+  assert_equals(event.type, 'bufferedchange', 'type');
+  assert_equals(event.target, sourceBuffer, 'target');
+  assert_true(event.isTrusted, 'isTrusted');
+  assert_false(event.bubbles, 'bubbles');
+  assert_false(event.cancelable, 'cancelable');
+  assert_array_equals(handlerEvents, recorder.events, 'onbufferedchange handler received the same events');
+
+  await flushTasks(t);
+  assert_equals(recorder.events.length, 1, 'a single bufferedchange event was fired');
+}, 'appendBuffer() fires bufferedchange reporting the added ranges');
+
+promise_test(async t => {
+  const { sourceBuffer, init, media0, media1 } = await setUp(t);
+  const recorder = new BufferedChangeRecorder(sourceBuffer);
+
+  await appendBufferAsync(sourceBuffer, init);
+  await appendBufferAsync(sourceBuffer, media0);
+  await recorder.waitForCount(1);
+  await flushTasks(t);
+  const previous = rangesToArray(sourceBuffer.buffered);
+
+  const nextEvent = recorder.nextEvent();
+  await appendBufferAsync(sourceBuffer, media1);
+  const current = rangesToArray(sourceBuffer.buffered);
+  assert_greater_than(current[current.length - 1][1], previous[previous.length - 1][1], 'buffered grew');
+
+  assertBufferedChangeEvent(await nextEvent, previous, current, 'adjacent media segment');
+}, 'appendBuffer() of an adjacent segment reports only the newly added range');
+
+promise_test(async t => {
+  const { sourceBuffer, init, media0, media1 } = await setUp(t);
+  const recorder = new BufferedChangeRecorder(sourceBuffer);
+
+  await appendBufferAsync(sourceBuffer, init);
+  await appendBufferAsync(sourceBuffer, media0);
+  await recorder.waitForCount(1);
+  await flushTasks(t);
+  const previous = rangesToArray(sourceBuffer.buffered);
+
+  const nextEvent = recorder.nextEvent();
+  // Re-appending the same media segment leaves buffered unchanged.
+  await appendBufferAsync(sourceBuffer, media0);
+  assertTimeRangesEqual(sourceBuffer.buffered, previous, 'buffered is unchanged');
+
+  // Append data that changes buffered: the next event received must be for it.
+  await appendBufferAsync(sourceBuffer, media1);
+  const current = rangesToArray(sourceBuffer.buffered);
+  assertBufferedChangeEvent(await nextEvent, previous, current, 'event following the redundant append');
+}, 'appendBuffer() that does not change buffered does not fire bufferedchange');
+
+promise_test(async t => {
+  const { sourceBuffer, init } = await setUp(t);
+  const recorder = new BufferedChangeRecorder(sourceBuffer);
+
+  await appendBufferAsync(sourceBuffer, init);
+  assert_equals(sourceBuffer.buffered.length, 0, 'buffered is empty');
+  await flushTasks(t);
+  assert_equals(recorder.events.length, 0, 'no bufferedchange event');
+}, 'Appending an initialization segment alone does not fire bufferedchange');
+</script>
+</body>

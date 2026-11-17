@@ -15,7 +15,7 @@ import io
 import json
 import os
 from os import path
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 import sys
@@ -35,7 +35,7 @@ def get_s3_secret(secret_from_environment: bool) -> tuple:
 
 def nightly_filename(package: str, timestamp: datetime) -> str:
     return "{}-{}".format(
-        timestamp.isoformat() + "Z",  # The `Z` denotes UTC
+        timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),  # The `Z` denotes UTC
         path.basename(package),
     )
 
@@ -124,7 +124,7 @@ def upload_to_s3(
 def upload_nightly(
     platform: str, secret_from_environment: bool, github_release_id: int | None, packages: List[str]
 ) -> int:
-    timestamp = datetime.utcnow().replace(microsecond=0)
+    timestamp = datetime.now(timezone.utc)
     for package in packages:
         # TODO: This if feels like it should not be necessary. Let's add a warning, and make this an
         # error later.

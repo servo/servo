@@ -14,6 +14,9 @@
       "commandline_flag": {
         "enable_webtransport_h3": [
           "../webtransport/requirements.txt"
+        ],
+        "enable_websocket_h3": [
+          "../websocket/requirements.txt"
         ]
       }
     }

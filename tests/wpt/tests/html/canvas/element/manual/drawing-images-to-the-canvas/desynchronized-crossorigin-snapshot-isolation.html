@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>
+  Desynchronized 2D canvas snapshot isolation across cross-origin taint and
+  mutations
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script>
+const WIDTH = 256;
+const HEIGHT = 256;
+const PROBE_X = 10;
+const PROBE_Y = 10;
+
+let cachedCrossOriginRedImagePromise = null;
+function loadCrossOriginRedImage() {
+  if (!cachedCrossOriginRedImagePromise) {
+    cachedCrossOriginRedImagePromise = new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('Error loading cross-origin image'));
+      img.src = `${get_host_info().REMOTE_ORIGIN}/images/red-100x100.png`;
+    });
+  }
+  return cachedCrossOriginRedImagePromise;
+}
+
+function createDesyncCanvas(alpha) {
+  const canvas = document.createElement('canvas');
+  canvas.width = WIDTH;
+  canvas.height = HEIGHT;
+  const ctx = canvas.getContext('2d', {
+    desynchronized: true,
+    alpha,
+    willReadFrequently: false,
+  });
+  assert_true(!!ctx, '2D context should be created');
+  return {canvas, ctx};
+}
+
+function createReadbackCanvas() {
+  const canvas = document.createElement('canvas');
+  canvas.width = WIDTH;
+  canvas.height = HEIGHT;
+  const ctx = canvas.getContext('2d', {willReadFrequently: true});
+  return {canvas, ctx};
+}
+
+function fillSolidGreen(ctx) {
+  ctx.fillStyle = 'rgb(0, 255, 0)';
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+}
+
+async function fillCrossOriginRed(ctx) {
+  const redImg = await loadCrossOriginRedImage();
+  ctx.drawImage(redImg, 0, 0, WIDTH, HEIGHT);
+
+  // Force synchronous flush of the recorded cross-origin drawImage into the
+  // canvas backing via a 1x1 putImageData far from (PROBE_X, PROBE_Y).
+  const cornerPixel = ctx.createImageData(1, 1);
+  ctx.putImageData(cornerPixel, WIDTH - 1, HEIGHT - 1);
+
+  // Also allow display frame finalization to run.
+  await new Promise(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  });
+
+  // The canvas should be tainted and unreadable.
+  assert_throws_dom(
+      'SecurityError', () => ctx.getImageData(PROBE_X, PROBE_Y, 1, 1),
+      'Desynchronized canvas must be tainted after cross-origin drawImage');
+}
+
+function assertGreenPixel(rgba, label) {
+  assert_array_equals(
+      Array.from(rgba), [0, 255, 0, 255],
+      `${label} must preserve pre-taint green pixels and never leak ` +
+      'cross-origin red pixels');
+}
+
+for (const alpha of [true, false]) {
+  promise_test(async (t) => {
+    const {canvas, ctx} = createDesyncCanvas(alpha);
+    fillSolidGreen(ctx);
+
+    const bitmap = await createImageBitmap(canvas);
+    t.add_cleanup(() => bitmap.close());
+
+    await fillCrossOriginRed(ctx);
+
+    const {ctx: readCtx} = createReadbackCanvas();
+    readCtx.drawImage(bitmap, 0, 0);
+    assertGreenPixel(
+        readCtx.getImageData(PROBE_X, PROBE_Y, 1, 1).data,
+        'ImageBitmap captured before cross-origin taint');
+  }, `createImageBitmap snapshot isolation (alpha=${alpha})`);
+
+  promise_test(async () => {
+    const {canvas, ctx} = createDesyncCanvas(alpha);
+    fillSolidGreen(ctx);
+
+    const {ctx: patternCtx} = createReadbackCanvas();
+    const pattern = patternCtx.createPattern(canvas, 'no-repeat');
+    assert_true(!!pattern, 'createPattern should succeed');
+
+    await fillCrossOriginRed(ctx);
+
+    patternCtx.fillStyle = pattern;
+    patternCtx.fillRect(0, 0, WIDTH, HEIGHT);
+    assertGreenPixel(
+        patternCtx.getImageData(PROBE_X, PROBE_Y, 1, 1).data,
+        'CanvasPattern captured before cross-origin taint');
+  }, `CanvasPattern snapshot isolation (alpha=${alpha})`);
+
+  promise_test(async () => {
+    const {canvas, ctx} = createDesyncCanvas(alpha);
+    fillSolidGreen(ctx);
+
+    const {ctx: otherCtx} = createReadbackCanvas();
+    otherCtx.drawImage(canvas, 0, 0);
+
+    await fillCrossOriginRed(ctx);
+
+    assertGreenPixel(
+        otherCtx.getImageData(PROBE_X, PROBE_Y, 1, 1).data,
+        'drawImage into other canvas recorded before cross-origin taint');
+  }, `drawImage into other canvas snapshot isolation (alpha=${alpha})`);
+
+  promise_test(async (t) => {
+    assert_implements(typeof VideoFrame !== 'undefined',
+                      'VideoFrame not supported');
+    const {canvas, ctx} = createDesyncCanvas(alpha);
+    fillSolidGreen(ctx);
+
+    const frame = new VideoFrame(canvas, {timestamp: 0});
+    t.add_cleanup(() => frame.close());
+
+    await fillCrossOriginRed(ctx);
+
+    const {ctx: readCtx} = createReadbackCanvas();
+    readCtx.drawImage(frame, 0, 0);
+    assertGreenPixel(
+        readCtx.getImageData(PROBE_X, PROBE_Y, 1, 1).data,
+        'VideoFrame drawn after cross-origin taint');
+  }, `WebCodecs VideoFrame drawImage snapshot isolation (alpha=${alpha})`);
+
+  promise_test(async (t) => {
+    const {canvas, ctx} = createDesyncCanvas(alpha);
+    fillSolidGreen(ctx);
+
+    // Capture two cached snapshots of the initial green state. The
+    // implementation may cache and share the rendered texture.
+    const snapshotGreen1 = await createImageBitmap(canvas);
+    const snapshotGreen2 = await createImageBitmap(canvas);
+    t.add_cleanup(() => snapshotGreen1.close());
+    t.add_cleanup(() => snapshotGreen2.close());
+
+    // Mutate via fillRect to pure blue and capture a blue snapshot.
+    ctx.fillStyle = 'rgb(0, 0, 255)';
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    const snapshotBlue = await createImageBitmap(canvas);
+    t.add_cleanup(() => snapshotBlue.close());
+
+    // Directly overwrite the canvas backing texture using putImageData.
+    // The previous snapshots should be left untouched.
+    const redImageData = ctx.createImageData(WIDTH, HEIGHT);
+    for (let i = 0; i + 3 < redImageData.data.length; i += 4) {
+      redImageData.data[i + 0] = 255;
+      redImageData.data[i + 1] = 0;
+      redImageData.data[i + 2] = 0;
+      redImageData.data[i + 3] = 255;
+    }
+    ctx.putImageData(redImageData, 0, 0);
+    const snapshotRed = await createImageBitmap(canvas);
+    t.add_cleanup(() => snapshotRed.close());
+
+    const {ctx: readCtx} = createReadbackCanvas();
+
+    readCtx.drawImage(snapshotGreen1, 0, 0);
+    assertGreenPixel(
+        readCtx.getImageData(PROBE_X, PROBE_Y, 1, 1).data,
+        'First green ImageBitmap');
+
+    readCtx.drawImage(snapshotGreen2, 0, 0);
+    assertGreenPixel(
+        readCtx.getImageData(PROBE_X, PROBE_Y, 1, 1).data,
+        'Second cached green ImageBitmap');
+
+    readCtx.drawImage(snapshotBlue, 0, 0);
+    assert_array_equals(
+        Array.from(readCtx.getImageData(PROBE_X, PROBE_Y, 1, 1).data),
+        [0, 0, 255, 255],
+        'Blue ImageBitmap must stay blue after subsequent putImageData');
+
+    readCtx.drawImage(snapshotRed, 0, 0);
+    assert_array_equals(
+        Array.from(readCtx.getImageData(PROBE_X, PROBE_Y, 1, 1).data),
+        [255, 0, 0, 255],
+        'Red ImageBitmap must reflect putImageData');
+  }, 'Same-origin snapshot immutability across fillRect and putImageData ' +
+     `(alpha=${alpha})`);
+}
+</script>
+</body>

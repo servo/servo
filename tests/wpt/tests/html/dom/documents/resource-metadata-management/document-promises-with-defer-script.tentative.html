@@ -1,0 +1,63 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>
+  document.parsed and document.contentLoaded as seen from a deferred script
+</title>
+<link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+<link rel="help" href="https://github.com/whatwg/html/pull/1936" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-end" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+  "use strict";
+
+  let parsedFulfilled = false;
+  let contentLoadedFulfilled = false;
+  document.parsed.then(() => {
+    parsedFulfilled = true;
+  });
+  document.contentLoaded.then(() => {
+    contentLoadedFulfilled = true;
+  });
+
+  let seenByDeferredScript;
+  window.deferredScriptRan = () => {
+    seenByDeferredScript = {
+      readyState: document.readyState,
+      parsedFulfilled,
+      contentLoadedFulfilled,
+      parsed: document.parsed,
+      contentLoaded: document.contentLoaded,
+    };
+  };
+
+  promise_test(async () => {
+    await document.loaded;
+    assert_not_equals(
+      seenByDeferredScript,
+      undefined,
+      "The deferred script must have run",
+    );
+    assert_equals(seenByDeferredScript.readyState, "interactive");
+    assert_true(
+      seenByDeferredScript.parsedFulfilled,
+      "document.parsed must have fulfilled before deferred scripts run",
+    );
+    assert_false(
+      seenByDeferredScript.contentLoadedFulfilled,
+      "document.contentLoaded must not have fulfilled before deferred scripts run",
+    );
+    assert_equals(
+      seenByDeferredScript.parsed,
+      document.parsed,
+      "document.parsed must be stable",
+    );
+    assert_equals(
+      seenByDeferredScript.contentLoaded,
+      document.contentLoaded,
+      "document.contentLoaded must be stable",
+    );
+  }, "Deferred scripts see document.parsed fulfilled and document.contentLoaded pending");
+</script>
+<script defer src="data:text/javascript,deferredScriptRan()"></script>

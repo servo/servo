@@ -84,6 +84,7 @@ mod from_embedder {
                 Self::ForwardAccessibilityAction(..) => target!("ForwardAccessibilityAction"),
                 Self::ClearSessionHistory(..) => target!("ClearHistory"),
                 Self::SetNetworkOnlineState(..) => target!("SetNetworkOnlineState"),
+                Self::StoreCacheToDisk(..) => target!("StoreCacheToDisk"),
             }
         }
     }

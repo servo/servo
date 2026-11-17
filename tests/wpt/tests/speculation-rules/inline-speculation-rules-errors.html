@@ -1,4 +1,6 @@
 <!DOCTYPE html>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/scripting.html#execute-the-script-element">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#register-speculation-rules">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
@@ -8,29 +10,25 @@ promise_test(async t => {
   const script = document.createElement('script');
   script.type = 'speculationrules';
   script.textContent = 'invalid json';
+  t.add_cleanup(() => script.remove());
 
   const log = [];
-  const elementError = new Promise(resolve => {
-    script.addEventListener('error', e => {
-      assert_equals(e.constructor, Event, 'event should be a simple Event');
-      log.push('element error');
-      resolve();
-    }, { once: true });
-  });
+  script.addEventListener('error', () => log.push('element error'));
 
   const globalError = new Promise(resolve => {
-    window.addEventListener('error', e => {
+    window.addEventListener('error', t.step_func(e => {
       e.preventDefault();
       assert_equals(e.constructor, ErrorEvent, 'global event should be an ErrorEvent');
       assert_equals(e.error.constructor, TypeError, 'e.error should be a TypeError');
       log.push('global error');
       resolve();
-    }, { once: true });
+    }), { once: true });
   });
 
   document.head.appendChild(script);
 
-  await Promise.all([elementError, globalError]);
-  assert_array_equals(log, ['element error', 'global error']);
-}, 'A script with invalid JSON should fire error events on the element and window');
+  await globalError;
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+  assert_array_equals(log, ['global error']);
+}, 'A script with invalid JSON should report an error on the window but not fire an error event on the element');
 </script>

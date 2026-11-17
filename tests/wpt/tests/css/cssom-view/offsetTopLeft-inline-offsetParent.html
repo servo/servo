@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSSOM View Test: offsetLeft/offsetTop when the offsetParent is a relatively positioned inline box</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view-1/#dom-htmlelement-offsetleft">
+<link rel="help" href="https://drafts.csswg.org/cssom-view-1/#dom-htmlelement-offsettop">
+<meta name="assert" content="offsetLeft and offsetTop are relative to the border edge of the first box of an inline offsetParent, for in-flow and absolutely positioned children, also when the inline box has borders and padding, in right-to-left content and in vertical writing modes.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.container {
+    position: relative;
+    font: 20px/1 Ahem;
+    width: 300px;
+    height: 100px;
+}
+.abs {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+}
+.inline-block {
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+}
+</style>
+<div id="tests"></div>
+<script>
+const children = [
+    { description: "in-flow inline-block", markup: `<i class="inline-block"></i>` },
+    { description: "absolutely positioned box at its static position", markup: `<i class="abs"></i>` },
+    { description: "absolutely positioned box with 'left: 0; top: 0'", markup: `<i class="abs" style="left: 0; top: 0"></i>` },
+    { description: "absolutely positioned box with 'right: 0; bottom: 0'", markup: `<i class="abs" style="right: 0; bottom: 0"></i>`, needsContainingBlockSize: true },
+    { description: "absolutely positioned box with 'left: 0'", markup: `<i class="abs" style="left: 0"></i>` },
+    { description: "absolutely positioned box with 'top: 0'", markup: `<i class="abs" style="top: 0"></i>` },
+];
+const configurations = [
+    { direction: "rtl", inlineBoxStyle: "position: relative" },
+    { direction: "rtl", inlineBoxStyle: "position: relative; border: 10px solid; padding: 5px" },
+    { direction: "ltr", inlineBoxStyle: "position: relative; border: 10px solid; padding: 5px" },
+    { direction: "ltr", inlineBoxStyle: "position: relative", onlyIfNeedsContainingBlockSize: true },
+    { direction: "ltr", writingMode: "vertical-rl", inlineBoxStyle: "position: relative" },
+    { direction: "ltr", writingMode: "vertical-rl", inlineBoxStyle: "position: relative; border: 10px solid; padding: 5px" },
+    { direction: "ltr", writingMode: "vertical-lr", inlineBoxStyle: "position: relative; border: 10px solid; padding: 5px" },
+];
+const tests = document.getElementById("tests");
+
+for (const configuration of configurations) {
+    for (const child of children) {
+        if (configuration.onlyIfNeedsContainingBlockSize && !child.needsContainingBlockSize)
+            continue;
+        const container = document.createElement("div");
+        container.className = "container";
+        container.dir = configuration.direction;
+        if (configuration.writingMode)
+            container.style.cssText = `writing-mode: ${configuration.writingMode}; width: 100px; height: 300px`;
+        container.innerHTML = `XX <span style="${configuration.inlineBoxStyle}">XX${child.markup}XX</span> ZZ`;
+        tests.append(container);
+        test(() => {
+            const inlineBox = container.querySelector("span");
+            const element = container.querySelector("i");
+            assert_equals(element.offsetParent, inlineBox, "offsetParent");
+            const inlineBoxRect = inlineBox.getClientRects()[0];
+            const elementRect = element.getClientRects()[0];
+            assert_equals(element.offsetLeft, Math.round(elementRect.left - inlineBoxRect.left), "offsetLeft");
+            assert_equals(element.offsetTop, Math.round(elementRect.top - inlineBoxRect.top), "offsetTop");
+        }, `${configuration.writingMode ? `writing-mode: ${configuration.writingMode}; ` : ""}direction: ${configuration.direction}; inline box '${configuration.inlineBoxStyle}'; ${child.description}`);
+    }
+}
+
+tests.remove();
+</script>
