@@ -60,6 +60,7 @@ pub(crate) struct HTMLTextAreaElement {
     value_dirty: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#user-validity>
     user_validity: Cell<bool>,
+    changed_by_user_while_focused: Cell<bool>,
     form_owner: MutNullableDom<HTMLFormElement>,
     labels_node_list: MutNullableDom<NodeList>,
     validity_state: MutNullableDom<ValidityState>,
@@ -128,6 +129,7 @@ impl HTMLTextAreaElement {
             )),
             value_dirty: Cell::new(false),
             user_validity: Cell::new(false),
+            changed_by_user_while_focused: Cell::new(false),
             form_owner: Default::default(),
             labels_node_list: Default::default(),
             validity_state: Default::default(),
@@ -178,6 +180,7 @@ impl HTMLTextAreaElement {
             document
                 .embedder_controls()
                 .hide_embedder_control(self.upcast());
+            self.set_user_validity(cx.no_gc(), self.changed_by_user_while_focused.get());
         } else if *event_type == *"focus" {
             // If there is a Document selection collapse it. This isn't really specified
             // and there are quite a few open specification issues about the interaction
@@ -345,6 +348,7 @@ impl TextControlElement for HTMLTextAreaElement {
             KeyReaction::TriggerDefaultAction => (),
             KeyReaction::DispatchInput(text, input_type) => {
                 self.queue_input_event(text, input_type);
+                self.changed_by_user_while_focused.set(true);
                 self.value_dirty.set(true);
                 self.handle_text_content_changed(cx);
                 self.maybe_update_shared_selection();
