@@ -968,11 +968,12 @@ mod test {
     fn static_decode_applies_orientation_before_sizing() {
         use super::{CorsStatus, ImageMetadata, load_from_memory_with_target};
         let mut jpeg = vec![];
+        // Keep the source above the small-image bypass threshold to exercise downscaling.
         image::codecs::jpeg::JpegEncoder::new(&mut jpeg)
             .encode(
-                &[255, 0, 0].repeat(80 * 40),
-                80,
-                40,
+                &[255, 0, 0].repeat(800 * 400),
+                800,
+                400,
                 image::ExtendedColorType::Rgb8,
             )
             .unwrap();
@@ -995,8 +996,8 @@ mod test {
         assert_eq!(
             image.metadata,
             ImageMetadata {
-                width: 40,
-                height: 80
+                width: 400,
+                height: 800
             }
         );
         assert_eq!(
