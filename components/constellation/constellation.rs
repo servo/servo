@@ -4808,16 +4808,14 @@ where
     /// Whether a history traversal is still running,
     /// or the top-level document is still loading.
     fn webview_is_navigating(&self, webview_id: WebViewId) -> bool {
-        let has_ongoing_traversal = self
-            .webviews
-            .get(&webview_id)
-            .is_some_and(|webview| webview.ongoing_history_traversal_request.is_some());
-        let top_level_is_loading = self
+        let Some(webview) = self.webviews.get(&webview_id) else {
+            return false;
+        };
+        let top_level_pipeline = self
             .browsing_contexts
             .get(&BrowsingContextId::from(webview_id))
-            .and_then(|context| self.pipelines.get(&context.pipeline_id))
-            .is_some_and(|pipeline| !pipeline.completely_loaded);
-        has_ongoing_traversal || top_level_is_loading
+            .and_then(|context| self.pipelines.get(&context.pipeline_id));
+        webview.is_navigating(top_level_pipeline)
     }
 
     /// Notify the embedder that the given [`HistoryTraversalRequest`] is complete, if it was
