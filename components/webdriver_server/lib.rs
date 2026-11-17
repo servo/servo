@@ -860,17 +860,14 @@ impl Handler {
         let timeout = self.session()?.session_timeouts().page_load;
 
         // Steps 4-5. Wait for the navigation to mature and then for the document to reach
-        // the readiness target associated with the page loading strategy.
-        let mut deadline = timeout.map(|timeout| Instant::now() + Duration::from_millis(timeout));
+        // the readiness target.
+        // TODO: Implement document readiness.
+        let deadline = timeout.map(|timeout| Instant::now() + Duration::from_millis(timeout));
         loop {
             let message = self.receive_load_status(deadline)?;
-            let started_navigation = message.status == WebDriverLoadStatus::NavigationStart;
             self.handle_load_status(message);
             if !self.navigating_webviews.contains(&webview_id) {
                 return Ok(WebDriverResponse::Void);
-            }
-            if started_navigation {
-                deadline = timeout.map(|timeout| Instant::now() + Duration::from_millis(timeout));
             }
         }
     }
