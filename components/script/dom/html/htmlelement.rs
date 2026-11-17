@@ -1105,7 +1105,7 @@ impl HTMLElement {
         Some(popover_element)
     }
 
-    /// <https://html.spec.whatwg.org/multipage/forms.html#concept-button>
+    /// <https://html.spec.whatwg.org/multipage/#concept-button>
     fn is_a_button(&self) -> bool {
         self.is::<HTMLButtonElement>() ||
             self.downcast::<HTMLInputElement>().is_some_and(|input| {
