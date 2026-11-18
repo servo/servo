@@ -10,11 +10,14 @@ use atomic_refcell::{AtomicRef, AtomicRefCell};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
+use skrifa::Font as SkrifaFont;
+use skrifa::font::attribute::Style;
 use style::computed_values::font_style::T as FontStyle;
 use style::computed_values::font_width::T as FontWidth;
 use style::font_face::{ComputedFontStyleRange, ComputedFontWeightRange, ComputedFontWidthRange};
 use style::values::computed::font::FontWeight;
 
+use crate::tag::{WDTH, WGHT};
 use crate::{CSSFontFaceDescriptors, FontDescriptor, FontFaceRuleInfo, FontIdentifier};
 
 /// A reference to a [`FontTemplate`] with shared ownership and mutability.
@@ -53,6 +56,43 @@ impl Default for FontTemplateDescriptor {
 }
 
 impl FontTemplateDescriptor {
+    /// Create a [`FontTemplateDescriptor`] given a [`SkrifaFont`]. This is used during the
+    /// creation of web fonts and is aware of font variations.
+    pub fn from_skrifa_font(font: &SkrifaFont) -> FontTemplateDescriptor {
+        let attributes = font.default_attributes();
+
+        let mut descriptor = Self::new(
+            FontWeight::from_float(attributes.weight.value()),
+            FontWidth::from_percentage(attributes.width.ratio()),
+            match attributes.style {
+                Style::Normal => FontStyle::NORMAL,
+                Style::Oblique(Some(degrees)) => FontStyle::oblique(degrees),
+                Style::Oblique(None) => FontStyle::OBLIQUE,
+                Style::Italic => FontStyle::ITALIC,
+            },
+        );
+
+        for axis in font.axes().iter() {
+            match axis.tag() {
+                WDTH => {
+                    descriptor.width = ComputedFontWidthRange(
+                        FontWidth::from_percentage(axis.min_value() / 100.0),
+                        FontWidth::from_percentage(axis.max_value() / 100.0),
+                    )
+                },
+                WGHT => {
+                    descriptor.weight = ComputedFontWeightRange(
+                        FontWeight::from_float(axis.min_value()),
+                        FontWeight::from_float(axis.max_value()),
+                    )
+                },
+                _ => {},
+            }
+        }
+
+        descriptor
+    }
+
     #[inline]
     pub fn new(weight: FontWeight, width: FontWidth, style: FontStyle) -> Self {
         Self {

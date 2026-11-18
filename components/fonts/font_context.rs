@@ -14,8 +14,8 @@ use app_units::Au;
 use content_security_policy::Violation;
 use fonts_traits::{
     CSSFontFaceDescriptors, FontDescriptor, FontFaceRuleInfo, FontIdentifier, FontTemplate,
-    FontTemplateRef, FontTemplateRefMethods, StylesheetWebFontLoadFinishedCallback,
-    WebFontLoadEvent, WebFontSetDifference,
+    FontTemplateDescriptor, FontTemplateRef, FontTemplateRefMethods,
+    StylesheetWebFontLoadFinishedCallback, WebFontLoadEvent, WebFontSetDifference,
 };
 use log::{debug, trace};
 use malloc_size_of::MallocSizeOf;
@@ -36,6 +36,8 @@ use servo_arc::Arc as ServoArc;
 use servo_base::id::{PainterId, WebViewId};
 use servo_config::pref;
 use servo_url::ServoUrl;
+use skrifa::Font as SkrifaFont;
+use skrifa::font::Blob;
 use style::Atom;
 use style::computed_values::font_variant_caps::T as FontVariantCaps;
 use style::font_face::{
@@ -61,8 +63,7 @@ use crate::font_feature_values::{
     ResolvedFontVariantAlternates,
 };
 use crate::font_store::{CrossThreadFontStore, FontStore};
-use crate::platform::font::PlatformFont;
-use crate::{FontData, LowercaseFontFamilyName, PlatformFontMethods, SystemFontServiceProxy};
+use crate::{FontData, LowercaseFontFamilyName, SystemFontServiceProxy};
 
 static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
 
@@ -76,6 +77,33 @@ pub(crate) struct FontParameters {
 }
 
 pub type FontGroupRef = Arc<FontGroup>;
+
+/// A cache of [`SkrifaFont`] so that all fonts that share an identifier in a [`FontContext`]
+/// can share table data. This explicitly caches [`None`] when font creation fails to avoid
+/// trying to create a font over and over again in failure cases.
+#[derive(Default, MallocSizeOf)]
+pub struct SkrifaFontCache(RwLock<HashMap<FontIdentifier, Option<SkrifaFont>>>);
+
+impl SkrifaFontCache {
+    pub fn get(
+        &self,
+        font_identifier: &FontIdentifier,
+        create_function: impl FnOnce() -> Option<SkrifaFont>,
+    ) -> Option<SkrifaFont> {
+        if let Some(font) = self.0.read().get(font_identifier) {
+            return font.clone();
+        }
+
+        let mut fonts = self.0.write();
+        if let Some(font) = fonts.get(font_identifier) {
+            return font.clone();
+        }
+
+        let skrifa_font = create_function();
+        fonts.insert(font_identifier.clone(), skrifa_font.clone());
+        skrifa_font
+    }
+}
 
 /// The FontContext represents the per-thread/thread state necessary for
 /// working with fonts. It is the public API used by the layout and
@@ -114,6 +142,9 @@ pub struct FontContext {
     /// The data for each web font [`FontIdentifier`]. This data might be used by more than one
     /// [`FontTemplate`] as each identifier refers to a URL.
     font_data: RwLock<HashMap<FontIdentifier, FontData>>,
+
+    /// A cache of `skrifa` `Font`s used to share table data between font instances.
+    skrifa_font_cache: SkrifaFontCache,
 
     have_removed_web_fonts: AtomicBool,
 
@@ -188,6 +219,7 @@ impl FontContext {
             webrender_font_instance_keys: RwLock::default(),
             have_removed_web_fonts: AtomicBool::new(false),
             font_data: RwLock::default(),
+            skrifa_font_cache: Default::default(),
             currently_downloading_fonts: Default::default(),
             known_font_face_rules: Default::default(),
             font_feature_value_map: Default::default(),
@@ -372,6 +404,7 @@ impl FontContext {
             font_descriptor,
             self.get_font_data(&font_template.identifier()),
             synthesized_small_caps,
+            &self.skrifa_font_cache,
         )?)))
     }
 
@@ -567,13 +600,14 @@ impl FontContext {
         );
 
         let identifier = FontIdentifier::Web(url);
-        let Ok(handle) = PlatformFont::new_from_data(identifier.clone(), &font_data, None, false)
-        else {
+        let Some(skrifa_font) = self.skrifa_font_cache().get(&identifier, || {
+            SkrifaFont::new(Blob::Shared(Arc::new(font_data.clone())), 0)
+        }) else {
             return false;
         };
 
         self.font_data.write().insert(identifier.clone(), font_data);
-        let descriptor = handle.descriptor();
+        let descriptor = FontTemplateDescriptor::from_skrifa_font(&skrifa_font);
         for download_state in download_states {
             let mut descriptor = descriptor.clone();
             descriptor.override_values_with_css_font_template_descriptors(
@@ -608,6 +642,10 @@ impl FontContext {
             .values()
             .flat_map(|bucket| bucket.iter())
             .any(|known_web_font| ServoArc::ptr_eq(&known_web_font.font_face_rule_entry, web_font))
+    }
+
+    pub(crate) fn skrifa_font_cache(&self) -> &SkrifaFontCache {
+        &self.skrifa_font_cache
     }
 }
 
@@ -875,6 +913,7 @@ impl FontContext {
         let mut font_data = self.font_data.write();
         let _fonts = self.fonts.write();
         let _font_groups = self.resolved_font_groups.write();
+        let mut skrifa_font_cache = self.skrifa_font_cache.0.write();
         let mut webrender_font_keys = self.webrender_font_keys.write();
         let mut webrender_font_instance_keys = self.webrender_font_instance_keys.write();
 
@@ -887,6 +926,8 @@ impl FontContext {
         }
 
         font_data.retain(|font_identifier, _| !unused_identifiers.contains(font_identifier));
+        skrifa_font_cache
+            .retain(|font_identifier, _| !unused_identifiers.contains(font_identifier));
 
         self.have_removed_web_fonts.store(false, Ordering::Relaxed);
 
@@ -972,11 +1013,12 @@ impl FontContext {
         let font_data = FontData::from_vec(bytes);
 
         let identifier = FontIdentifier::ArrayBuffer(Uuid::new_v4());
-        let handle =
-            PlatformFont::new_from_data(identifier.clone(), &font_data, None, false).ok()?;
+        let skrifa_font = self.skrifa_font_cache().get(&identifier, || {
+            SkrifaFont::new(Blob::Shared(Arc::new(font_data.clone())), 0)
+        })?;
 
-        let new_template = FontTemplate::new(identifier.clone(), handle.descriptor(), None);
-
+        let descriptor = FontTemplateDescriptor::from_skrifa_font(&skrifa_font);
+        let new_template = FontTemplate::new(identifier.clone(), descriptor, None);
         self.font_data.write().insert(identifier, font_data);
 
         Some((descriptors.family_name, new_template))
