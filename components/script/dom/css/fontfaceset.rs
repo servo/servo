@@ -28,7 +28,7 @@ use style::values::specified::font as specified_font;
 use style_traits::ParsingMode;
 use stylo_atoms::Atom;
 
-use crate::css::css::parser_context_for_document;
+use crate::css::css::{parser_context_for_document, parser_context_for_worker};
 use crate::dom::bindings::codegen::Bindings::FontFaceSetBinding::{
     FontFaceSetLoadStatus, FontFaceSetMethods,
 };
@@ -40,7 +40,6 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::css::fontfacesetloadevent::FontFaceSetLoadEvent;
-use crate::dom::document::Document;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::fontface::FontFace;
@@ -98,7 +97,10 @@ impl FontFaceSet {
                 self.switch_to_loading(cx);
             },
             FontFaceLoadStatus::Loaded => {
+                // TODO(#49892): Workers share the page's font context, so fonts loaded in a
+                // worker aren't added to it until workers have their own.
                 let Some(window) = DomRoot::downcast::<Window>(self.global()) else {
+                    self.maybe_switch_worker_set_to_loaded(cx);
                     return;
                 };
 
@@ -110,7 +112,27 @@ impl FontFaceSet {
                     .add_template_to_font_context(family_name, template);
                 window.Document().dirty_all_nodes(cx.no_gc());
             },
+            FontFaceLoadStatus::Error => self.maybe_switch_worker_set_to_loaded(cx),
             _ => {},
+        }
+    }
+
+    /// Workers are never pending on the environment, so their font face set switches to
+    /// loaded as soon as none of its fonts are loading. For documents this is done by
+    /// `Document::maybe_fulfill_font_ready_promise`.
+    ///
+    /// <https://drafts.csswg.org/css-font-loading/#switch-the-fontfaceset-to-loaded>
+    pub(crate) fn maybe_switch_worker_set_to_loaded(&self, cx: &mut JSContext) {
+        if self.global().is::<Window>() {
+            return;
+        }
+        let any_loading = self
+            .set_entries
+            .borrow()
+            .iter()
+            .any(|font_face| font_face.Status() == FontFaceLoadStatus::Loading);
+        if !any_loading {
+            self.fulfill_ready_promise_if_needed(cx);
         }
     }
 
@@ -208,11 +230,6 @@ impl FontFaceSet {
         event_name: Atom,
         font_faces: &[DomRoot<FontFace>],
     ) {
-        // This will need adjustments once FontFaceSet is exposed to workers.
-        let Some(window) = DomRoot::downcast::<Window>(self.global()) else {
-            return;
-        };
-
         // The fontfaces attribute is initialized to the given list of FontFace objects,
         // filtered to only those contained in the FontFaceSet.
         let font_faces: Vec<DomRoot<FontFace>> = font_faces
@@ -221,7 +238,7 @@ impl FontFaceSet {
             .cloned()
             .collect();
 
-        let event = FontFaceSetLoadEvent::new(cx, &window, event_name, &font_faces);
+        let event = FontFaceSetLoadEvent::new(cx, &self.global(), event_name, &font_faces);
         event.upcast::<Event>().fire(cx, self.upcast());
     }
 
@@ -231,7 +248,7 @@ impl FontFaceSet {
         // FIXME: Use a new sort of ReflowGoal that only runs the CSS cascade without
         //        building a new box tree or running any sort of layout really.
         //        We query for the box area here, but we're not interested in the result.
-        // FIXME: Figure out what to do for worker scopes.
+        // Workers have no stylesheets, so there is nothing to flush for them.
         if let Some(window) = DomRoot::downcast::<Window>(self.global()) {
             let document = window.Document();
             if document.stylesheets_changed_since_last_reflow() {
@@ -311,13 +328,13 @@ impl FontFaceSet {
     /// <https://drafts.csswg.org/css-font-loading/#find-the-matching-font-faces>
     fn find_the_matching_font_faces(
         &self,
-        document: &Document,
+        global: &GlobalScope,
         font: &str,
         sample_text: &str,
     ) -> Result<Vec<DomRoot<FontFace>>, FontQuerySyntaxError> {
         // Step 1. (Parse "font") and Step 2. (Unpack font shorthand) are implemented
         // in FontQueryParameters::parse.
-        let parameters = FontQueryParameters::parse(document, font)?;
+        let parameters = FontQueryParameters::parse(global, font)?;
 
         // Step 2. If text was not explicitly provided, let it be a string containing a
         // single space character (U+0020 SPACE).
@@ -472,18 +489,11 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
                 let load_promise = trusted_load_promise.root(cx);
                 let this = trusted_this.root();
 
-                // This will need adjustments once FontFaceSet is exposed to workers.
-                let Some(window) = DomRoot::downcast::<Window>(this.global()) else {
-                    log::error!("FontFaceSet should not be exposed to non-window globals");
-                    return;
-                };
-                let document = window.Document();
-
                 // Step 3. Find the matching font faces from font face set using the font and text
                 // arguments passed to the function, and let font face list be the return value (ignoring
                 // the found faces flag). If a syntax error was returned, reject promise with a SyntaxError
                 // exception and terminate these steps.
-                let Ok(font_face_objects) = this.find_the_matching_font_faces(&document, &font, &text) else {
+                let Ok(font_face_objects) = this.find_the_matching_font_faces(&this.global(), &font, &text) else {
                     load_promise.reject_error(cx, Error::Syntax(Some("Failed to parse font query".into())));
                     return;
                 };
@@ -583,7 +593,7 @@ struct FontQuerySyntaxError;
 
 impl FontQueryParameters {
     /// Implements Steps 1 and 3 of <https://drafts.csswg.org/css-font-loading/#find-the-matching-font-faces>.
-    fn parse(document: &Document, font: &str) -> Result<Self, FontQuerySyntaxError> {
+    fn parse(global: &GlobalScope, font: &str) -> Result<Self, FontQuerySyntaxError> {
         // Step 1. Parse font using the CSS value syntax of the font property.
         // If a syntax error occurs, return a syntax error.
         // If the parsed value is a CSS-wide keyword, return a syntax error.
@@ -593,13 +603,26 @@ impl FontQueryParameters {
         // and font style be the other font style attributes parsed from font.
         let font_family;
 
-        let urlextradata = document.url().into_url().into();
-        let parser_context = parser_context_for_document(
-            document,
-            CssRuleType::FontFace,
-            ParsingMode::DEFAULT,
-            &urlextradata,
-        );
+        let document = global.downcast::<Window>().map(|window| window.Document());
+        let url = match &document {
+            Some(document) => document.url(),
+            None => global.api_base_url(),
+        };
+        let urlextradata = url.into_url().into();
+        let parser_context = match &document {
+            Some(document) => parser_context_for_document(
+                document,
+                CssRuleType::FontFace,
+                ParsingMode::DEFAULT,
+                &urlextradata,
+            ),
+            None => parser_context_for_worker(
+                CssRuleType::FontFace,
+                ParsingMode::DEFAULT,
+                &urlextradata,
+                None,
+            ),
+        };
 
         let mut parser = Parser::new(font);
         let Ok(font_shorthand) =

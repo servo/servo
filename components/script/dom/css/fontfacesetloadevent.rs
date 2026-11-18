@@ -18,7 +18,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::fontface::FontFace;
-use crate::dom::window::Window;
+use crate::dom::globalscope::GlobalScope;
 
 /// <https://drafts.csswg.org/css-font-loading/#fontfacesetloadevent>
 #[dom_struct]
@@ -48,17 +48,17 @@ impl FontFaceSetLoadEvent {
     /// Creates a `FontFaceSetLoadEvent` from Servo's own code (not from JavaScript).
     pub(crate) fn new(
         cx: &mut JSContext,
-        window: &Window,
+        global: &GlobalScope,
         type_: Atom,
         fontfaces: &[DomRoot<FontFace>],
     ) -> DomRoot<FontFaceSetLoadEvent> {
         // Font load events don't bubble and can't be cancelled.
-        Self::new_with_proto(cx, window, None, type_, false, false, fontfaces)
+        Self::new_with_proto(cx, global, None, type_, false, false, fontfaces)
     }
 
     fn new_with_proto(
         cx: &mut JSContext,
-        window: &Window,
+        global: &GlobalScope,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
@@ -68,7 +68,7 @@ impl FontFaceSetLoadEvent {
         let event = reflect_dom_object_with_proto(
             cx,
             Box::new(FontFaceSetLoadEvent::new_inherited(fontfaces)),
-            window,
+            global,
             proto,
         );
         event
@@ -82,7 +82,7 @@ impl FontFaceSetLoadEventMethods<crate::DomTypeHolder> for FontFaceSetLoadEvent 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfacesetloadevent-fontfacesetloadevent>
     fn Constructor(
         cx: &mut JSContext,
-        window: &Window,
+        global: &GlobalScope,
         proto: Option<HandleObject>,
         type_: DOMString,
         init: &FontFaceSetLoadEventInit,
@@ -94,7 +94,7 @@ impl FontFaceSetLoadEventMethods<crate::DomTypeHolder> for FontFaceSetLoadEvent 
             .collect();
         FontFaceSetLoadEvent::new_with_proto(
             cx,
-            window,
+            global,
             proto,
             Atom::from(type_),
             init.parent.bubbles,

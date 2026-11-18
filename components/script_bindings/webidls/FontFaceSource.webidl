@@ -8,4 +8,4 @@ interface mixin FontFaceSource {
 };
 
 Document includes FontFaceSource;
-// WorkerGlobalScope includes FontFaceSource;
+WorkerGlobalScope includes FontFaceSource;

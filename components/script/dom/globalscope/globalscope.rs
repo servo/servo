@@ -23,7 +23,7 @@ use dom_struct::dom_struct;
 use embedder_traits::{
     ConsoleLogLevel, EmbedderMsg, JavaScriptEvaluationError, ScriptToEmbedderChan,
 };
-use fonts::FontContext;
+use fonts::{FontContext, WebFontDocumentContext};
 use js::context::{JSContext, NoGC};
 use js::jsapi::{GetNonCCWObjectGlobal, HandleObject, Heap, JSObject};
 use js::jsval::UndefinedValue;
@@ -142,7 +142,7 @@ use crate::dom::types::{AbortSignal, MessageEvent};
 use crate::dom::webgpu::gpudevice::GPUDevice;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
-use crate::dom::window::Window;
+use crate::dom::window::{FontCspHandler, FontNetworkTimingHandler, Window};
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::event_loop::script_thread::{ScriptThread, with_script_thread};
@@ -490,6 +490,23 @@ impl GlobalScope {
             window.with_timers(f)
         } else {
             unreachable!("Unsupported global type retrieving timers")
+        }
+    }
+
+    /// The context used to load web fonts for this global, for both windows and workers.
+    pub(crate) fn web_font_context(&self, no_gc: &NoGC) -> WebFontDocumentContext {
+        let task_source = self
+            .task_manager()
+            .dom_manipulation_task_source()
+            .to_sendable();
+        WebFontDocumentContext {
+            policy_container: self.policy_container(),
+            request_client: self.request_client(Some(no_gc)),
+            document_url: self.api_base_url(),
+            csp_handler: Box::new(FontCspHandler {
+                task_source: task_source.clone(),
+            }),
+            network_timing_handler: Box::new(FontNetworkTimingHandler { task_source }),
         }
     }
 

@@ -77,6 +77,7 @@ use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::crypto::Crypto;
 use crate::dom::csp::{GlobalCspReporting, Violation, parse_csp_list_from_metadata};
+use crate::dom::css::fontfaceset::FontFaceSet;
 #[cfg(feature = "devtools")]
 use crate::dom::debugger::debuggerglobalscope::DebuggerGlobalScope;
 use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
@@ -332,6 +333,7 @@ pub(crate) struct WorkerGlobalScope {
     location: MutNullableDom<WorkerLocation>,
     navigator: MutNullableDom<WorkerNavigator>,
     crypto: MutNullableDom<Crypto>,
+    fonts: MutNullableDom<FontFaceSet>,
     #[no_trace]
     /// <https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface:policy-container>
     #[conditional_malloc_size_of]
@@ -459,6 +461,7 @@ impl WorkerGlobalScope {
             location: Default::default(),
             navigator: Default::default(),
             crypto: Default::default(),
+            fonts: Default::default(),
             policy_container: Default::default(),
             #[cfg(feature = "devtools")]
             devtools_receiver,
@@ -962,6 +965,16 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#dom-worker-navigator>
     fn Navigator(&self, cx: &mut JSContext) -> DomRoot<WorkerNavigator> {
         self.navigator.or_init(|| WorkerNavigator::new(cx, self))
+    }
+
+    /// <https://drafts.csswg.org/css-font-loading/#font-face-source>
+    fn Fonts(&self, cx: &mut JSContext) -> DomRoot<FontFaceSet> {
+        self.fonts.or_init(|| {
+            let fonts = FontFaceSet::new(cx, self.upcast(), None);
+            // A worker's font source starts out empty, so there is nothing to wait for.
+            fonts.maybe_switch_worker_set_to_loaded(cx);
+            fonts
+        })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dfn-Crypto>
