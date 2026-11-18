@@ -11,21 +11,21 @@ import os
 from typing import Any, TypeVar
 
 from WebIDL import (
-    IDLExternalInterface,
-    IDLSequenceType,
-    IDLWrapperType,
-    WebIDLError,
+    IDLAttribute,
+    IDLCallback,
+    IDLDictionary,
     IDLEnum,
+    IDLExternalInterface,
+    IDLInterfaceMember,
+    IDLInterfaceOrNamespace,
+    IDLMethod,
     IDLObject,
     IDLObjectWithIdentifier,
+    IDLSequenceType,
     IDLType,
     IDLTypedef,
-    IDLInterfaceOrNamespace,
-    IDLDictionary,
-    IDLCallback,
-    IDLAttribute,
-    IDLMethod,
-    IDLInterfaceMember,
+    IDLWrapperType,
+    WebIDLError,
 )
 
 TargetType = TypeVar('TargetType')

@@ -11,9 +11,8 @@
 
 import time
 
-
-import common_function_for_servo_test
 import common_function_for_mossel
+import common_function_for_servo_test
 
 
 def operator():

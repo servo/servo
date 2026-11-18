@@ -17,8 +17,7 @@ from __future__ import annotations
 
 import logging
 import urllib.parse
-
-from typing import Optional, TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 import requests
 

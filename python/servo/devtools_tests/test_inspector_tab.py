@@ -8,9 +8,10 @@
 # except according to those terms.
 
 from __future__ import annotations
-from typing import Optional, Any
-from concurrent.futures import Future
+
 import time
+from concurrent.futures import Future
+from typing import Any, Optional
 
 from geckordp.actors.events import Events
 from geckordp.actors.inspector import InspectorActor

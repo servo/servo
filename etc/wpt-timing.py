@@ -24,10 +24,10 @@
 # tests in the WPT testsuite in order to improve the overall testsuite
 # runtime on CI.
 
-import sys
-import json
 import collections
 import csv
+import json
+import sys
 
 
 def process_log(data):

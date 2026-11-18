@@ -40,7 +40,7 @@ import json
 import signal
 import sys
 from argparse import ArgumentParser
-from subprocess import Popen, PIPE
+from subprocess import PIPE, Popen
 
 try:
     from termcolor import colored

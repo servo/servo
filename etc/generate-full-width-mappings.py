@@ -26,8 +26,8 @@ Generate the mapping for [`text-transform: full-width`]
 [UAX44]: https://www.unicode.org/reports/tr44/
 """
 
-from urllib.request import urlopen
 import re
+from urllib.request import urlopen
 
 README_URL = "https://www.unicode.org/Public/UCD/latest/ReadMe.txt"
 DATA_URL = "https://www.unicode.org/Public/UCD/latest/ucd/UnicodeData.txt"

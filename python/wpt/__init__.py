@@ -7,9 +7,9 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-from argparse import ArgumentParser
 import os
 import sys
+from argparse import ArgumentParser
 
 import mozlog.commandline
 

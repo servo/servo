@@ -14,8 +14,8 @@ import json
 import os
 import subprocess
 import sys
-from typing import Optional
 from collections.abc import Generator
+from typing import Optional
 
 COMPATIBLE_MSVC_VERSIONS = {
     "2019": "16.0",

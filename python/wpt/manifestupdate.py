@@ -8,20 +8,17 @@ import os
 import pathlib
 import subprocess
 import sys
-
 from argparse import ArgumentParser
-from typing import Mapping, Any
-from wptrunner.wptcommandline import TestRoot
-
-from . import SERVO_ROOT, WPT_PATH
-from mozlog import commandline
+from typing import Any, Mapping
 
 # This must happen after importing from "." since it adds WPT
 # tools to the Python system path.
 import manifest as wptmanifest
-
-from wptrunner.wptcommandline import get_test_paths, set_from_config
+from mozlog import commandline
 from wptrunner import wptlogging
+from wptrunner.wptcommandline import TestRoot, get_test_paths, set_from_config
+
+from . import SERVO_ROOT, WPT_PATH
 
 CONFIG_PATH = os.path.join(WPT_PATH, "config.ini")
 MANIFEST_HASH_PATH = os.path.join(SERVO_ROOT, ".wpt", "manifest.sha256")

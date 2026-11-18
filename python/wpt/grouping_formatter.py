@@ -7,13 +7,13 @@ from __future__ import annotations
 
 import os
 import sys
+from collections import defaultdict
+from dataclasses import dataclass, field
+from typing import Literal, NotRequired, Optional, TypedDict, Union
+
 import mozlog
 import mozlog.formatters.base
 import mozlog.reader
-
-from collections import defaultdict
-from dataclasses import dataclass, field
-from typing import Optional, NotRequired, Union, TypedDict, Literal
 
 DEFAULT_MOVE_UP_CODE = "\x1b[A"
 DEFAULT_CLEAR_EOL_CODE = "\x1b[K"
