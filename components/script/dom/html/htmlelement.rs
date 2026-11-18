@@ -14,6 +14,7 @@ use script_bindings::callback::RootedCallback;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::DocumentFragmentBinding::DocumentFragmentMethods;
 use script_bindings::codegen::GenericBindings::ElementBinding::ScrollLogicalPosition;
+use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::ScrollBehavior;
 use script_bindings::dom::UnrootedDom;
 use style::attr::AttrValue;
@@ -82,6 +83,7 @@ use crate::dom::node::{
     BindContext, MoveContext, Node, NodeDamage, NodeTraits, UnbindContext,
     from_untrusted_node_address,
 };
+use crate::dom::pointerevent::PointerEvent;
 use crate::dom::shadowroot::shadowroot::ShadowRoot;
 use crate::dom::text::Text;
 use crate::dom::toggleevent::ToggleEvent;
@@ -1081,6 +1083,93 @@ impl HTMLElement {
 
         // 7. Return popoverElement.
         Some(popover_element)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#light-dismiss-open-popovers>
+    pub(crate) fn light_dismiss_open_popovers(
+        cx: &mut JSContext,
+        pointer_event: &PointerEvent,
+        target: &EventTarget,
+    ) {
+        // Step 1. Assert: event's isTrusted attribute is true.
+        let event = pointer_event.upcast::<Event>();
+        debug_assert!(event.IsTrusted());
+
+        // Step 2. Let target be event's target.
+
+        // Step 3. Let document be target's node document.
+        let Some(target_node) = target.downcast::<Node>() else {
+            return;
+        };
+        let document = target_node.owner_doc();
+
+        // Step 4. If the result of running topmost auto or hint popover given document is null,
+        // then return.
+        if document
+            .overlay_handler()
+            .find_the_topmost_auto_or_hint_popover(cx.no_gc())
+            .is_none()
+        {
+            return;
+        }
+
+        // Step 5. If event's type is "pointerdown": set document's popover pointerdown target to
+        // the result of running topmost clicked popover given target.
+        if event.type_() == *"pointerdown" {
+            document
+                .overlay_handler()
+                .set_popover_pointerdown_target(target_node.topmost_clicked_popover(cx).as_deref());
+        }
+
+        // Step 6. If event's type is "pointerup":
+        if event.type_() == *"pointerup" {
+            // Step 6.1. Let ancestor be the result of running topmost clicked popover given target.
+            let ancestor = target_node.topmost_clicked_popover(cx);
+
+            // Step 6.2. Let sameTarget be true if ancestor is document's popover pointerdown target.
+            let same_target = ancestor == document
+                .overlay_handler().popover_pointerdown_target();
+
+            // Step 6.3. Set document's popover pointerdown target to null.
+            document
+                .overlay_handler()
+                .set_popover_pointerdown_target(None);
+
+            // Step 6.4. If sameTarget is false, then return.
+            if !same_target {
+                return;
+            }
+
+            // Step 6.5. Run hide popovers until given document, ancestor, false, and true.
+            document
+                .overlay_handler()
+                .hide_popovers_until(cx, ancestor.as_deref(), false, true);
+        }
+    }
+
+    pub(crate) fn popover_stack_position(&self, cx: &mut JSContext) -> usize {
+        let document = self.upcast::<Element>().owner_document();
+
+        // Step 1. Let hintList be popover's node document's showing hint popover list.
+        let hint_list = document.overlay_handler().showing_popover_list_unrooted(cx.no_gc(), PopoverState::Hint);
+
+        // Step 2. Let autoList be popover's node document's showing auto popover list.
+        let auto_list = document.overlay_handler().showing_popover_list_unrooted(cx.no_gc(), PopoverState::Auto);
+
+        // Step 3. If popover is in hintList, then return the index of popover in hintList + the
+        // size of autoList + 1.
+        if let Some(hint_list_index) = hint_list.iter().position(|popover| popover == self) {
+            return hint_list_index + auto_list.len() + 1;
+        }
+
+        // Step 4. If popover is in autoList, then return the index of popover in autoList + 1.
+        if let Some(auto_list_index) = auto_list.iter().position(|popover| popover == self) {
+            return auto_list_index + 1;
+        }
+
+
+        // Step 5. Return 0.
+        0
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-button>

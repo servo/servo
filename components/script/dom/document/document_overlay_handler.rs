@@ -54,6 +54,8 @@ pub(crate) struct DocumentOverlayHandler {
     open_dialogs_list: DomRefCell<Vec<Dom<HTMLDialogElement>>>,
     /// <https://html.spec.whatwg.org/multipage/#dialog-pointerdown-target>
     dialog_pointerdown_target: MutNullableDom<HTMLDialogElement>,
+    /// <https://html.spec.whatwg.org/multipage/#popover-pointerdown-target>
+    popover_pointerdown_target: MutNullableDom<HTMLElement>,
     /// <https://html.spec.whatwg.org/multipage/#hiding-popover-nesting-count>
     hiding_popover_nesting_count: Cell<u32>,
     /// <https://html.spec.whatwg.org/multipage/#showing-popover>
@@ -72,6 +74,7 @@ impl DocumentOverlayHandler {
             topmost_modal: Default::default(),
             open_dialogs_list: Default::default(),
             dialog_pointerdown_target: Default::default(),
+            popover_pointerdown_target: Default::default(),
             hiding_popover_nesting_count: Default::default(),
             showing_popover: Default::default(),
             hint_stack_parent: Default::default(),
@@ -328,6 +331,14 @@ impl DocumentOverlayHandler {
 
     pub(crate) fn set_dialog_pointerdown_target(&self, dialog: Option<&HTMLDialogElement>) {
         self.dialog_pointerdown_target.set(dialog);
+    }
+
+    pub(crate) fn popover_pointerdown_target(&self) -> Option<DomRoot<HTMLElement>> {
+        self.popover_pointerdown_target.get()
+    }
+
+    pub(crate) fn set_popover_pointerdown_target(&self, element: Option<&HTMLElement>) {
+        self.popover_pointerdown_target.set(element);
     }
 
     pub(crate) fn top_layer_contains(&self, element: &Element) -> bool {
