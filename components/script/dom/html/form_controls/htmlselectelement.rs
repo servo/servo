@@ -487,8 +487,7 @@ impl HTMLSelectElement {
     pub(crate) fn show_menu(&self, cx: &mut JSContext) {
         // Collect list of optgroups and options
         let mut index = 0;
-        let no_gc = cx.no_gc();
-        let mut embedder_option_from_option = |option: &HTMLOptionElement| {
+        let mut embedder_option_from_option = |no_gc: &NoGC, option: &HTMLOptionElement| {
             let embedder_option = SelectElementOption {
                 id: index,
                 label: option.displayed_label().into(),
@@ -502,7 +501,7 @@ impl HTMLSelectElement {
             .children()
             .flat_map(|child| {
                 if let Some(option) = child.downcast::<HTMLOptionElement>() {
-                    return Some(embedder_option_from_option(option).into());
+                    return Some(embedder_option_from_option(cx.no_gc(), option).into());
                 }
 
                 if let Some(optgroup) = child.downcast::<HTMLOptGroupElement>() {
@@ -510,7 +509,7 @@ impl HTMLSelectElement {
                         .upcast::<Node>()
                         .children()
                         .flat_map(DomRoot::downcast::<HTMLOptionElement>)
-                        .map(|option| embedder_option_from_option(&option))
+                        .map(|option| embedder_option_from_option(cx.no_gc(), &option))
                         .collect();
                     let label = optgroup.Label().into();
 
