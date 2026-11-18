@@ -1442,7 +1442,6 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.2>
     fn BindBuffer(&self, cx: &mut JSContext, target: u32, buffer: Option<&WebGLBuffer>) {
-        let current_vao;
         let slot = match target {
             constants::COPY_READ_BUFFER => &self.bound_copy_read_buffer,
             constants::COPY_WRITE_BUFFER => &self.bound_copy_write_buffer,
@@ -1451,8 +1450,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             constants::TRANSFORM_FEEDBACK_BUFFER => &self.bound_transform_feedback_buffer,
             constants::UNIFORM_BUFFER => &self.bound_uniform_buffer,
             constants::ELEMENT_ARRAY_BUFFER => {
-                current_vao = self.current_vao(cx);
-                current_vao.element_array_buffer()
+                return self
+                    .current_vao(cx)
+                    .bind_element_array_buffer(&self.base, buffer);
             },
             _ => return self.base.BindBuffer(cx, target, buffer),
         };
