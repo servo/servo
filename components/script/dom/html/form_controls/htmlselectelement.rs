@@ -977,6 +977,8 @@ impl VirtualMethods for HTMLSelectElement {
                 self.form_attribute_mutated(cx, mutation);
             },
             local_name!("disabled") => {
+                // Only invalidate when the disabled attribute got added or removed, changing the
+                // value does not affect the disabledness.
                 if !matches!(mutation, AttributeMutation::Set(Some(_))) {
                     // Invalidate optgroup and option elements whose nearest ancestor select
                     // disabledness might have changed

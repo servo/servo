@@ -181,6 +181,8 @@ impl VirtualMethods for HTMLFieldSetElement {
             .attribute_mutated(cx, attr, mutation);
         match *attr.local_name() {
             local_name!("disabled") => {
+                // Only invalidate when the disabled attribute got added or removed, changing the
+                // value does not affect the disabledness.
                 if !matches!(mutation, AttributeMutation::Set(Some(_))) {
                     // The disabledness of descendant optgroup and option elements might have changed.
                     self.upcast::<Element>()
