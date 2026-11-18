@@ -172,11 +172,24 @@ impl DocumentEmbedderControls {
         }
     }
 
-    pub(crate) fn hide_embedder_control(&self, element: &Element) {
+    pub(crate) fn hide_all_embedder_controls(&self) {
+        self.hide_embedder_controls_given(|_| false)
+    }
+
+    pub(crate) fn hide_embedder_control_for_element(&self, element: &Element) {
+        self.hide_embedder_controls_given(|control_element| {
+            control_element.node() != element.upcast()
+        })
+    }
+
+    fn hide_embedder_controls_given<Callback>(&self, callback: Callback)
+    where
+        Callback: Fn(&ControlElement) -> bool,
+    {
         self.visible_elements
             .borrow_mut()
             .retain(|index, control_element| {
-                if control_element.node() != element.upcast() {
+                if callback(control_element) {
                     return true;
                 }
                 let id = EmbedderControlId {

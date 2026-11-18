@@ -229,7 +229,7 @@ impl SpecificInputType for ColorInputType {
         input
             .owner_document()
             .embedder_controls()
-            .hide_embedder_control(input.upcast());
+            .hide_embedder_control_for_element(input.upcast());
     }
 }
 
