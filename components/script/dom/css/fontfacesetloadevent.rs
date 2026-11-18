@@ -45,6 +45,17 @@ impl FontFaceSetLoadEvent {
         }
     }
 
+    /// Creates a `FontFaceSetLoadEvent` from Servo's own code (not from JavaScript).
+    pub(crate) fn new(
+        cx: &mut JSContext,
+        window: &Window,
+        type_: Atom,
+        fontfaces: &[DomRoot<FontFace>],
+    ) -> DomRoot<FontFaceSetLoadEvent> {
+        // Font load events don't bubble and can't be cancelled.
+        Self::new_with_proto(cx, window, None, type_, false, false, fontfaces)
+    }
+
     fn new_with_proto(
         cx: &mut JSContext,
         window: &Window,

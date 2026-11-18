@@ -26,6 +26,7 @@ use style::stylesheets::CssRuleType;
 use style::values::computed::font::{FontFamilyList, SingleFontFamily};
 use style::values::specified::font as specified_font;
 use style_traits::ParsingMode;
+use stylo_atoms::Atom;
 
 use crate::css::css::parser_context_for_document;
 use crate::dom::bindings::codegen::Bindings::FontFaceSetBinding::{
@@ -33,11 +34,14 @@ use crate::dom::bindings::codegen::Bindings::FontFaceSetBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::css::fontfacesetloadevent::FontFaceSetLoadEvent;
 use crate::dom::document::Document;
+use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::fontface::FontFace;
 use crate::dom::globalscope::GlobalScope;
@@ -123,6 +127,30 @@ impl FontFaceSet {
 
         // Step 4. Fulfill font face set’s [[ReadyPromise]] attribute’s value with font face set.
         promise.resolve_native(cx, self);
+
+        // Step 5. Queue a task to perform the following steps synchronously:
+        let trusted_this = Trusted::new(self);
+        self.global()
+            .task_manager()
+            .font_loading_task_source()
+            .queue(task!(fire_font_set_loadingdone_event: move |cx| {
+                let this = trusted_this.root();
+
+                // Step 5.1. Let loaded fonts be the (possibly empty) contents of font face set’s
+                // [[LoadedFonts]] slot.
+                // Step 5.2. Let failed fonts be the (possibly empty) contents of font face set’s
+                // [[FailedFonts]] slot.
+                // Step 5.3. Reset the [[LoadedFonts]] and [[FailedFonts]] slots to empty lists.
+                // TODO: Keep track of [[LoadedFonts]] and [[FailedFonts]].
+
+                // Step 5.4. Fire a font load event named loadingdone at font face set with loaded fonts.
+                this.fire_font_load_event(cx, Atom::from("loadingdone"), &[]);
+
+                // Step 5.5. If font face set’s failed fonts is non-empty, fire a font load event
+                // named loadingerror at font face set with failed fonts.
+                // TODO: This requires keeping track of [[FailedFonts]].
+            }));
+
         true
     }
 
@@ -163,7 +191,38 @@ impl FontFaceSet {
         }
 
         // Step 4. Queue a task to fire a font load event named loading at font face set.
-        // TODO: Implement support for font loading events.
+        let trusted_this = Trusted::new(self);
+        self.global()
+            .task_manager()
+            .font_loading_task_source()
+            .queue(task!(fire_font_set_loading_event: move |cx| {
+                let this = trusted_this.root();
+                this.fire_font_load_event(cx, Atom::from("loading"), &[]);
+            }));
+    }
+
+    /// <https://drafts.csswg.org/css-font-loading/#fire-a-font-load-event>
+    fn fire_font_load_event(
+        &self,
+        cx: &mut JSContext,
+        event_name: Atom,
+        font_faces: &[DomRoot<FontFace>],
+    ) {
+        // This will need adjustments once FontFaceSet is exposed to workers.
+        let Some(window) = DomRoot::downcast::<Window>(self.global()) else {
+            return;
+        };
+
+        // The fontfaces attribute is initialized to the given list of FontFace objects,
+        // filtered to only those contained in the FontFaceSet.
+        let font_faces: Vec<DomRoot<FontFace>> = font_faces
+            .iter()
+            .filter(|font_face| self.contains_face(font_face))
+            .cloned()
+            .collect();
+
+        let event = FontFaceSetLoadEvent::new(cx, &window, event_name, &font_faces);
+        event.upcast::<Event>().fire(cx, self.upcast());
     }
 
     /// Runs the CSS cascade to ensure that new `@font-face` rules have
@@ -305,6 +364,15 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
     fn Status(&self) -> FontFaceSetLoadStatus {
         self.status.get()
     }
+
+    // <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-onloading>
+    event_handler!(loading, GetOnloading, SetOnloading);
+
+    // <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-onloadingdone>
+    event_handler!(loadingdone, GetOnloadingdone, SetOnloadingdone);
+
+    // <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-onloadingerror>
+    event_handler!(loadingerror, GetOnloadingerror, SetOnloadingerror);
 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-add>
     fn Add(&self, cx: &mut JSContext, font_face: &FontFace) -> Fallible<DomRoot<FontFaceSet>> {

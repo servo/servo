@@ -32,9 +32,12 @@ interface FontFaceSet : EventTarget {
   undefined clear();
 
   // events for when loading state changes
-  // attribute EventHandler onloading;
-  // attribute EventHandler onloadingdone;
-  // attribute EventHandler onloadingerror;
+  [Pref="dom_fontface_enabled"]
+  attribute EventHandler onloading;
+  [Pref="dom_fontface_enabled"]
+  attribute EventHandler onloadingdone;
+  [Pref="dom_fontface_enabled"]
+  attribute EventHandler onloadingerror;
 
   // check and start loads if appropriate
   // and fulfill promise when all loads complete
