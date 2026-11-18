@@ -2355,7 +2355,7 @@ impl<'a> RowFragmentLayout<'a> {
             style: containing_block_for_logical_conversion.style,
         };
 
-        let mut row_fragment = BoxFragment::new(
+        let mut row_fragment = BoxFragment::new_with_writing_mode_override(
             self.row.base.base_fragment_info,
             self.row.base.style.clone(),
             FragmentChildren::Logical(self.fragments),
@@ -2365,6 +2365,7 @@ impl<'a> RowFragmentLayout<'a> {
             PhysicalSides::zero(), /* border */
             PhysicalSides::zero(), /* margin */
             None,                  /* specific_layout_info */
+            containing_block_for_logical_conversion.style.writing_mode,
         );
         row_fragment.set_does_not_paint_background();
 
@@ -2427,7 +2428,7 @@ impl RowGroupFragmentLayout {
                 relative_adjustement(&row_group.base.style, containing_block_for_children);
         }
 
-        let mut row_group_fragment = BoxFragment::new(
+        let mut row_group_fragment = BoxFragment::new_with_writing_mode_override(
             row_group.base.base_fragment_info,
             row_group.base.style.clone(),
             FragmentChildren::Logical(self.fragments),
@@ -2437,6 +2438,7 @@ impl RowGroupFragmentLayout {
             PhysicalSides::zero(), /* border */
             PhysicalSides::zero(), /* margin */
             None,                  /* specific_layout_info */
+            containing_block_for_logical_conversion.style.writing_mode,
         );
         row_group_fragment.set_does_not_paint_background();
 
