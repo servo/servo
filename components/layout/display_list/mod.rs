@@ -1192,9 +1192,7 @@ impl Fragment {
         // contain the inked portion of the glyphs. We assume that the descent and
         // ascent are big enough and then just expand the advance-based boundaries by
         // twice the size of the biggest advance in the advance dimention.
-        let glyph_bounds = rect
-            .inflate(largest_advance.scale_by(2.0), Au::zero())
-            .to_webrender();
+        let glyph_bounds = rect.inflate(largest_advance * 2, Au::zero()).to_webrender();
         let common = builder.common_properties(state, glyph_bounds, &parent_style);
 
         // Shadows. According to CSS-BACKGROUNDS, text shadows render in *reverse* order (front to
