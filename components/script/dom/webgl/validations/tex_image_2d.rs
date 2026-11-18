@@ -5,7 +5,7 @@
 use std::{self, fmt};
 
 use servo_canvas_traits::webgl::WebGLError::*;
-use servo_canvas_traits::webgl::{TexDataType, TexFormat};
+use servo_canvas_traits::webgl::{TexDataType, TexFormat, WebGLVersion};
 
 use super::WebGLValidator;
 use super::types::TexImageTarget;
@@ -206,7 +206,11 @@ impl WebGLValidator for CommonTexImage2DValidator<'_> {
 
         // GL_INVALID_VALUE is generated if level is greater than zero and the
         // texture is not power of two.
-        if level > 0 && (!width.is_power_of_two() || !height.is_power_of_two()) {
+        // Only WebGL 1 restricts mipmaps to power-of-two sizes.
+        if self.context.webgl_version() == WebGLVersion::WebGL1 &&
+            level > 0 &&
+            (!width.is_power_of_two() || !height.is_power_of_two())
+        {
             self.context.webgl_error(InvalidValue);
             return Err(TexImageValidationError::NonPotTexture);
         }
