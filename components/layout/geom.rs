@@ -9,6 +9,7 @@ use std::sync::atomic::{AtomicI32, Ordering};
 
 use app_units::Au;
 use euclid::{Point2D, Size2D};
+use layout_api::WritingModeExt;
 use malloc_size_of_derive::MallocSizeOf;
 use style::Zero;
 use style::logical_geometry::{BlockFlowDirection, InlineBaseDirection, WritingMode};
@@ -18,7 +19,6 @@ use style_traits::CSSPixel;
 
 use crate::containing_block::ContainingBlock;
 use crate::sizing::Size;
-use crate::style_ext::WritingModeExt;
 
 pub type PhysicalPoint<U> = euclid::Point2D<U, CSSPixel>;
 pub type PhysicalSize<U> = euclid::Size2D<U, CSSPixel>;

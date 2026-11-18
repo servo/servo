@@ -31,6 +31,7 @@ use style::computed_values::visibility::T as Visibility;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapseValue;
 use style::context::{QuirksMode, SharedStyleContext, StyleContext, ThreadLocalStyleContext};
 use style::dom::{NodeInfo, OpaqueNode};
+use style::logical_geometry::WritingMode;
 use style::properties::style_structs::Font;
 use style::properties::{
     ComputedValues, Importance, LonghandId, PropertyDeclarationBlock, PropertyDeclarationId,
@@ -841,9 +842,13 @@ pub(crate) fn process_scroll_container_query(
     node: Option<ServoLayoutNode<'_>>,
     query_flags: ScrollContainerQueryFlags,
     viewport_overflow: AxesOverflow,
+    viewport_writing_mode: WritingMode,
 ) -> Option<ScrollContainerResponse> {
     let Some(node) = node else {
-        return Some(ScrollContainerResponse::Viewport(viewport_overflow));
+        return Some(ScrollContainerResponse::Viewport(
+            viewport_overflow,
+            viewport_writing_mode,
+        ));
     };
 
     // 1. If any of the following holds true, return null and terminate this algorithm:
@@ -870,6 +875,7 @@ pub(crate) fn process_scroll_container_query(
         return Some(ScrollContainerResponse::Element(
             node.opaque().into(),
             style.effective_overflow(flags),
+            style.writing_mode,
         ));
     }
 
@@ -917,6 +923,7 @@ pub(crate) fn process_scroll_container_query(
             return Some(ScrollContainerResponse::Element(
                 ancestor.opaque().into(),
                 ancestor_style.effective_overflow(ancestor_flags),
+                ancestor_style.writing_mode,
             ));
         }
 
@@ -925,7 +932,10 @@ pub(crate) fn process_scroll_container_query(
 
     match current_position_value {
         Position::Fixed => None,
-        _ => Some(ScrollContainerResponse::Viewport(viewport_overflow)),
+        _ => Some(ScrollContainerResponse::Viewport(
+            viewport_overflow,
+            viewport_writing_mode,
+        )),
     }
 }
 

@@ -21,10 +21,11 @@ import argparse
 import textwrap
 import xml.etree.ElementTree as ElementTree
 
-from typing import List, Optional
-
+from typing import Any, Callable, Optional
 
 SUBTEST_RESULT_TRUNCATION = 10
+
+TestResult = dict[str, Any]
 
 
 class Item:
@@ -34,7 +35,7 @@ class Item:
         self.children = children
 
     @classmethod
-    def from_result(cls, result: dict, title: Optional[str] = None, print_stack=True):
+    def from_result(cls, result: TestResult, title: Optional[str] = None, print_stack: bool = True):
         expected = result["expected"]
         actual = result["actual"]
         title = title if title else f"`{result['path']}`"
@@ -55,7 +56,7 @@ class Item:
 
         subtest_results = result.get("unexpected_subtest_results", [])
         children = [
-            cls.from_result(
+            Item.from_result(
                 subtest_result,
                 f"subtest: `{subtest_result['subtest']}`"
                 + (f" \n```\n{subtest_result['message']}\n```\n" if subtest_result["message"] else ""),
@@ -65,7 +66,7 @@ class Item:
         ]
         return cls(title, body, children)
 
-    def to_string(self, bullet: str = "", indent: str = ""):
+    def to_string(self, bullet: str = "", indent: str = "") -> str:
         output = f"{indent}{bullet}{self.title}\n"
         if self.body:
             output += textwrap.indent(f"{self.body}\n", " " * len(indent + bullet))
@@ -99,22 +100,27 @@ class Item:
         return result
 
 
-def get_results(unexpected: list[dict], tag: str = "") -> Optional[Item]:
-    def is_flaky(result):
-        return result["flaky"]
+def is_flaky(result: TestResult) -> bool:
+    return result["flaky"]
 
-    def is_stable_and_known(result):
-        return not is_flaky(result) and result["issues"]
 
-    def is_stable_and_unexpected(result):
-        return not is_flaky(result) and not result["issues"]
+def is_stable_and_known(result: TestResult) -> bool:
+    return not is_flaky(result) and result["issues"]
 
-    def add_children(children: List[Item], results: List[dict], filter_func, text):
+
+def is_stable_and_unexpected(result: TestResult) -> bool:
+    return not is_flaky(result) and not result["issues"]
+
+
+def get_results(unexpected: list[TestResult], tag: str = "") -> Optional[Item]:
+    def add_children(
+        children: list[Item], results: list[TestResult], filter_func: Callable[[TestResult], bool], text: str
+    ) -> None:
         filtered = [Item.from_result(result) for result in filter(filter_func, results)]
         if filtered:
             children.append(Item(f"{text} ({len(filtered)})", "", filtered))
 
-    children: List[Item] = []
+    children: list[Item] = []
     add_children(children, unexpected, is_flaky, "Flaky unexpected result")
     add_children(
         children, unexpected, is_stable_and_known, "Stable unexpected results that are known to be intermittent"
@@ -125,15 +131,21 @@ def get_results(unexpected: list[dict], tag: str = "") -> Optional[Item]:
     text = "Test results"
     if tag:
         text += f" for {tag}"
-    text += f" from {get_job_type()}"
+
+    job_type = "merge queue job" if is_merge_queue_job() else "try job"
+    text += f" from {job_type}"
+
     if run_url:
         text += f" ({run_url})"
     text += ":"
     return Item(text, "", children) if children else None
 
 
-def get_results_per_subsuite(filenames: list[str], tag: str = "") -> list[tuple[Item, str]]:
-    unexpected = []
+def get_results_per_subsuite(filenames: list[str], tag: str = "") -> list[tuple[Item, str, bool]]:
+    """Returns the Item, tag, and whether the subsuite had any stable unexpected results for each
+    subsuite."""
+
+    unexpected: list[TestResult] = []
     for filename in filenames:
         try:
             with open(filename, encoding="utf-8") as file:
@@ -142,14 +154,14 @@ def get_results_per_subsuite(filenames: list[str], tag: str = "") -> list[tuple[
             print(exception)
     unexpected.sort(key=lambda result: result["path"])
     subsuites = set(result.get("subsuite", "") for result in unexpected)
-    results = []
+    results: list[tuple[Item, str, bool]] = []
     for subsuite in subsuites:
-        tag = f"{tag} {subsuite}" if subsuite else tag
-        subsuite_results = get_results(
-            list(filter(lambda result: result.get("subsuite", "") == subsuite, unexpected)), tag
-        )
+        subsuite_tag = f"{tag} {subsuite}" if subsuite else tag
+        subsuite_unexpected = list(filter(lambda result: result.get("subsuite", "") == subsuite, unexpected))
+        subsuite_results = get_results(subsuite_unexpected, subsuite_tag)
+        had_stable_unexpected_results = any(is_stable_and_unexpected(result) for result in subsuite_unexpected)
         if subsuite_results:
-            results.append((subsuite_results, tag))
+            results.append((subsuite_results, subsuite_tag, had_stable_unexpected_results))
     return results
 
 
@@ -164,11 +176,11 @@ def get_github_run_url() -> Optional[str]:
     return f"[#{run_id}](https://github.com/{repository}/actions/runs/{run_id})"
 
 
-def get_job_type() -> str:
-    github_context = json.loads(os.environ.get("GITHUB_CONTEXT", "{}"))
-    if github_context.get("event_name") == "merge_group":
-        return "merge queue job"
-    return "try job"
+def is_merge_queue_job(github_context: Optional[dict[str, Any]] = None) -> bool:
+    if github_context is None:
+        github_context = json.loads(os.environ.get("GITHUB_CONTEXT", "{}"))
+        assert github_context is not None
+    return github_context.get("event_name") == "merge_group"
 
 
 def get_pr_number() -> Optional[str]:
@@ -178,7 +190,7 @@ def get_pr_number() -> Optional[str]:
 
     # If we have a 'merge_group' in the context, this was triggered by
     # the merge queue.
-    if "merge_group" in github_context["event"]:
+    if is_merge_queue_job(github_context):
         message = github_context["event"]["merge_group"]["head_commit"]["message"]
         if not message:
             return None
@@ -203,7 +215,7 @@ def get_commit_sha() -> str:
     return subprocess.check_output(["git", "log", "-1", "--format=%H"]).decode("utf-8").strip()
 
 
-def create_github_reports(body: str, tag: str = ""):
+def create_github_reports(body: str, tag: str = "") -> None:
     # GitHub will set a special environment variable which points to a file where
     # a job summary can be appended. This is produced in addition to the GitHub
     # check run below, as it has a larger length limit.
@@ -264,7 +276,7 @@ def create_github_reports(body: str, tag: str = ""):
     ).wait()
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--tag", default="wpt", action="store", help="A string tag used to distinguish the results.")
     args, filenames = parser.parse_known_args()
@@ -274,11 +286,15 @@ def main():
         create_github_reports("Did not find any unexpected results.", args.tag)
         return
 
-    for subsuite_results, subsuite_tag in results:
+    for subsuite_results, subsuite_tag, had_stable_unexpected in results:
         print(subsuite_results.to_string())
 
         html_string = ElementTree.tostring(subsuite_results.to_html(), encoding="unicode")
         create_github_reports(html_string, subsuite_tag)
+
+        # Don't make a GitHub comment for a merge queue without stable unexpected results.
+        if not had_stable_unexpected and is_merge_queue_job():
+            continue
 
         pr_number = get_pr_number()
         if pr_number:

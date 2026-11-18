@@ -11,6 +11,7 @@ use paint_api::display_list::AxesScrollSensitivity;
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
 use style::context::SharedStyleContext;
+use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::{Display as StyleDisplay, Overflow};
 use style_traits::CSSPixel;
@@ -148,6 +149,10 @@ impl BoxTree {
             .text_orientation;
         new_style.writing_mode = writing_mode_source_style.writing_mode;
         ServoArc::new(new_style)
+    }
+
+    pub(crate) fn writing_mode(&self) -> WritingMode {
+        self.initial_containing_block_style.writing_mode
     }
 
     fn viewport_overflow(
