@@ -167,10 +167,36 @@ impl BoxFragment {
         margin: PhysicalSides<Au>,
         specific_layout_info: Option<SpecificLayoutInfo>,
     ) -> Self {
+        let writing_mode = style.writing_mode;
+        Self::new_with_writing_mode_override(
+            base_fragment_info,
+            style,
+            children,
+            content_rect,
+            padding,
+            border,
+            margin,
+            specific_layout_info,
+            writing_mode,
+        )
+    }
+
+    #[expect(clippy::too_many_arguments)]
+    pub(crate) fn new_with_writing_mode_override(
+        base_fragment_info: BaseFragmentInfo,
+        style: ServoArc<ComputedValues>,
+        children: FragmentChildren,
+        content_rect: PhysicalRect<Au>,
+        padding: PhysicalSides<Au>,
+        border: PhysicalSides<Au>,
+        margin: PhysicalSides<Au>,
+        specific_layout_info: Option<SpecificLayoutInfo>,
+        writing_mode: WritingMode,
+    ) -> Self {
         let rare_data = BoxFragmentRareData::new(specific_layout_info);
         let children = children.into_physical_fragments(
-            style.writing_mode,
-            LogicalVec2::from_physical_size(&content_rect.size, style.writing_mode),
+            writing_mode,
+            LogicalVec2::from_physical_size(&content_rect.size, writing_mode),
         );
 
         Self {
