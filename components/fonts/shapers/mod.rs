@@ -7,17 +7,17 @@ mod harfbuzz;
 use app_units::Au;
 use euclid::default::Point2D;
 use fonts_traits::FontFaceRuleInfo;
+use fonts_traits::tag::{
+    AFRC, CALT, CLIG, CWSH, DLIG, FRAC, FWID, HIST, HLIG, JP04, JP78, JP83, JP90, KERN, LIGA, LNUM,
+    NALT, ONUM, ORDN, ORNM, PNUM, PWID, RUBY, SALT, SMPL, SUBS, SUPS, SWSH, TNUM, TRAD, ZERO,
+};
 pub(crate) use harfbuzz::Shaper;
 use read_fonts::types::Tag;
 use rustc_hash::FxHashMap;
 use style::computed_values::font_variant_position::T as FontVariantPosition;
 use style::values::computed::{FontVariantEastAsian, FontVariantLigatures, FontVariantNumeric};
 
-use crate::{
-    AFRC, CALT, CLIG, CWSH, DLIG, FRAC, FWID, GlyphId, HIST, HLIG, JP04, JP78, JP83, JP90, KERN,
-    LIGA, LNUM, NALT, ONUM, ORDN, ORNM, PNUM, PWID, RUBY, SALT, SMPL, SUBS, SUPS, SWSH,
-    ShapingFlags, ShapingOptions, TNUM, TRAD, ZERO,
-};
+use crate::{GlyphId, ShapingFlags, ShapingOptions};
 
 /// The highest acceptable value for `styleset` values in `font-variant-alternates`.
 ///

@@ -10,6 +10,7 @@ use std::{char, ptr};
 
 use app_units::Au;
 use euclid::default::Point2D;
+use fonts_traits::tag::BASE;
 // Eventually we would like the shaper to be pluggable, as many operating systems have their own
 // shapers. For now, however, HarfBuzz is a hard dependency.
 use harfbuzz_sys::{
@@ -33,7 +34,7 @@ use read_fonts::types::Tag;
 use super::{GlyphShapingResult, ShapedGlyph, unicode_script_to_iso15924_tag};
 use crate::platform::font::FontTable;
 use crate::{
-    BASE, Font, FontBaseline, FontTableMethods, GlyphId, ShapedText, ShapingFlags, ShapingOptions,
+    Font, FontBaseline, FontTableMethods, GlyphId, ShapedText, ShapingFlags, ShapingOptions,
     fixed_to_float, float_to_fixed,
 };
 

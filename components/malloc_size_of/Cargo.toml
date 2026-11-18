@@ -39,6 +39,7 @@ resvg = { workspace = true }
 serde_core = { workspace = true }
 servo-allocator = { workspace = true }
 servo_arc = { workspace = true }
+skrifa = { workspace = true }
 smallvec = { workspace = true }
 string_cache = { workspace = true }
 stylo = { workspace = true }
