@@ -16,7 +16,6 @@ use layout_api::{
 };
 use log::trace;
 use num_traits::ToPrimitive;
-use regex::Regex;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script::layout_dom::{ServoLayoutElement, ServoLayoutNode};
 use servo_base::print_tree::PrintTree;
@@ -68,8 +67,6 @@ pub(super) struct AccessibilityNode {
     /// This node's scroll offset, if it is a scroll container which has scrolled. This is used to
     /// translate this node's children.
     scroll_offset: Option<LayoutVector2D>,
-    /// Other data which may be used to calculate properties in this or future updates.
-    flags: Flags,
     /// Any dirty state for the current update.
     dirty_state: DirtyState,
 }
@@ -87,7 +84,6 @@ impl AccessibilityNode {
             child_nodes: vec![],
             opaque_node: None,
             scroll_offset: None,
-            flags: Flags::empty(),
             dirty_state: DirtyState::empty(),
         }
     }
@@ -107,7 +103,7 @@ impl AccessibilityNode {
         &mut self,
         ref_self: ArcRefCell<Self>,
         damage_from_parent: AccessibilityDamage,
-        parent_traversal: &mut TraversalState,
+        hidden: bool,
         context: &AccessibilityContext,
         tree: &mut AccessibilityTree,
         update: &mut AccessibilityUpdate<'update>,
@@ -115,26 +111,15 @@ impl AccessibilityNode {
         let mut local_damage = LocalAccessibilityDamage::empty();
 
         let dom_node = update.take_dom_node(&self.id);
-        if let Some(dom_node) = dom_node {
-            local_damage.insert(self.set_role(role_from_dom_node(&dom_node)));
-        }
-        let mut traversal = TraversalState::new(Some(parent_traversal), self, update);
         let damage = update.take_damage(&self.id) | damage_from_parent;
         let mut children_changed = false;
 
         if let Some(dom_node) = dom_node {
-            local_damage |= self.update_properties_and_children_from_dom_node(
-                &ref_self,
-                &dom_node,
-                damage,
-                &mut traversal,
-                tree,
-                update,
-            );
-
-            let hidden = traversal.subtree_state.intersects(SubtreeState::Hidden);
-            local_damage |=
-                self.update_node_from_layout(&dom_node, damage, hidden, context, update);
+            local_damage.insert(self.update_properties_and_children_from_dom_node(
+                &ref_self, &dom_node, damage, tree, update,
+            ));
+            local_damage
+                .insert(self.update_node_from_layout(&dom_node, damage, hidden, context, update));
 
             if local_damage.contains(LocalAccessibilityDamage::SubtreeChanged) {
                 children_changed = true;
@@ -144,7 +129,6 @@ impl AccessibilityNode {
         }
 
         let layout_damage = damage & AccessibilityDamage::Layout;
-        traversal.copy_is_hidden(self);
         if self.dirty_state.descendant_has_damage() || !layout_damage.is_empty() {
             for child_node in self.children() {
                 let child_node_ref = child_node.clone();
@@ -152,7 +136,7 @@ impl AccessibilityNode {
                 let child_local_damage = child_node.update_subtree(
                     child_node_ref,
                     layout_damage,
-                    &mut traversal,
+                    hidden || self.is_hidden(),
                     context,
                     tree,
                     update,
@@ -177,8 +161,6 @@ impl AccessibilityNode {
         if self.dirty_state.updated() {
             update.add(self);
         }
-
-        parent_traversal.consume(traversal);
 
         local_damage
     }
@@ -220,7 +202,6 @@ impl AccessibilityNode {
         ref_self: &ArcRefCell<Self>,
         dom_node: &ServoLayoutNode<'update>,
         dom_damage: AccessibilityDamage,
-        traversal: &mut TraversalState,
         tree: &mut AccessibilityTree,
         update: &mut AccessibilityUpdate<'update>,
     ) -> LocalAccessibilityDamage {
@@ -240,9 +221,7 @@ impl AccessibilityNode {
         update.counters.nodes_updated_from_dom += 1;
 
         if dom_damage.intersects(AccessibilityDamage::Node) {
-            local_damage.insert(
-                self.update_properties_from_dom_node(ref_self, dom_node, traversal, update),
-            );
+            local_damage.insert(self.update_properties_from_dom_node(dom_node));
         }
 
         if dom_damage.intersects(AccessibilityDamage::Children | AccessibilityDamage::Layout) {
@@ -335,10 +314,7 @@ impl AccessibilityNode {
     /// Update this node's properties from its corresponding DOM node.
     fn update_properties_from_dom_node(
         &mut self,
-        ref_self: &ArcRefCell<Self>,
         dom_node: &ServoLayoutNode,
-        traversal: &mut TraversalState,
-        update: &mut AccessibilityUpdate,
     ) -> LocalAccessibilityDamage {
         let mut local_damage = LocalAccessibilityDamage::empty();
         local_damage.insert(self.set_role(role_from_dom_node(dom_node)));
@@ -347,54 +323,7 @@ impl AccessibilityNode {
             trace!("node text content = {text_content:?}");
             // FIXME: this should take into account editing selection units (grapheme clusters?)
             local_damage.insert(self.set_value(&text_content));
-
-            local_damage.insert(self.maybe_hide_irrelevant_whitepace(ref_self, traversal, update));
         }
-
-        local_damage
-    }
-
-    /// While walking a newly added subtree, compute irrelevant whitespace as we go, so we don't
-    /// need to repeatedly walk across the entire subtree.
-    ///
-    /// This method will hide [`self`] if:
-    /// - [`self`] is in a new subtree, and
-    /// - [`self`] is either definitely or possibly irrelevant whitespace, as determined by
-    ///   [`Self::is_irrelevant_whitespace`].
-    ///
-    /// This method may also un-hide the closest previous text node.
-    /// See [`Self::maybe_unhide_previous_whitespace_only_node()`].
-    fn maybe_hide_irrelevant_whitepace(
-        &mut self,
-        ref_self: &ArcRefCell<AccessibilityNode>,
-        traversal: &mut TraversalState,
-        update: &mut AccessibilityUpdate<'_>,
-    ) -> LocalAccessibilityDamage {
-        let mut local_damage = LocalAccessibilityDamage::empty();
-        if !traversal.subtree_state.intersects(SubtreeState::New) {
-            return local_damage;
-        }
-        let closest_previous_text = std::mem::take(&mut traversal.closest_previous_text);
-        let is_irrelevant_whitespace = {
-            let closest_previous_text = closest_previous_text
-                .as_ref()
-                .map(|closest_previous_text| closest_previous_text.borrow());
-            self.is_irrelevant_whitespace(closest_previous_text.as_deref())
-        };
-        let maybe_irrelevant_whitespace = self.flags.contains(Flags::MayBeIrrelevantWhitespace);
-
-        local_damage
-            .insert(self.set_is_hidden(is_irrelevant_whitespace || maybe_irrelevant_whitespace));
-        if let Some(closest_previous_text) = closest_previous_text &&
-            !is_irrelevant_whitespace
-        {
-            // In theory, we should accumulate local damage from this potential change, but
-            // since the entire subtree is new and this change by definition shouldn't
-            // change the computed text of any ancestor nodes (since only _irrelevant_
-            // whitespace is hidden), we can ignore it here.
-            let _ = self.maybe_unhide_previous_whitespace_only_node(closest_previous_text, update);
-        }
-        traversal.closest_previous_text = Some(ref_self.clone());
 
         local_damage
     }
@@ -496,100 +425,6 @@ impl AccessibilityNode {
         }
 
         new_damage
-    }
-
-    /// If this node is a text node containing only whitespace, we need to hide it unless the
-    /// whitespace is significant.
-    ///
-    /// The whitespace is significant if this node is between two other text nodes within the same
-    /// container node, and the two neighbouring text nodes have non-whitespace characters adjacent
-    /// to this node.
-    ///
-    /// For this method, we pass in only the closest previous text node, since we can determine that
-    /// during a tree walk. If the previous text node doesn't provide enough information to
-    /// determine whether this node is irrelevant whitespace, this node is marked as
-    /// [`Flags::MaybeIrrelevantWhitespace`] and this method returns `false`.
-    ///
-    /// [`Self::maybe_unhide_previous_whitespace_only_node()`] will determine whether a node already
-    /// marked as [`Flags::MayBeIrrelevantWhitespace`] should be hidden based on its subsequent text
-    /// node.
-    fn is_irrelevant_whitespace(
-        &mut self,
-        closest_previous_text: Option<&AccessibilityNode>,
-    ) -> bool {
-        static ENDS_WITH_WHITESPACE: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r"\S\s+$").unwrap());
-
-        self.flags -= Flags::MayBeIrrelevantWhitespace;
-
-        let Some(value) = self.value() else {
-            return false;
-        };
-
-        // If this node contains non-whitespace characters, keep it.
-        if !value.trim().is_empty() {
-            return false;
-        }
-
-        // If this node is not in between two other text nodes, ignore it.
-        let Some(closest_previous_text) = closest_previous_text.as_ref() else {
-            return true;
-        };
-
-        if closest_previous_text.is_hidden() {
-            // By the same logic as the previous node.
-            if closest_previous_text
-                .flags
-                .contains(Flags::MayBeIrrelevantWhitespace)
-            {
-                self.flags |= Flags::MayBeIrrelevantWhitespace;
-            }
-            return true;
-        }
-        let previous_value = closest_previous_text
-            .value()
-            .expect("All text nodes should have values");
-        if ENDS_WITH_WHITESPACE.is_match(previous_value) {
-            return true;
-        }
-
-        // We don't know for sure whether this node is irrelevant whitespace until we visit the
-        // subsequent text node or learn that there isn't one in the same container, so mark it as
-        // MayBeIrrelevantWhitespace but return false.
-        self.flags |= Flags::MayBeIrrelevantWhitespace;
-        false
-    }
-
-    /// If this node doesn't begin with a whitespace character, unhide any immediately-preceding
-    /// whitespace-only node, and return any [`LocalAccessibilityDamage`] resulting from the change.
-    fn maybe_unhide_previous_whitespace_only_node(
-        &self,
-        closest_previous_text: ArcRefCell<AccessibilityNode>,
-        update: &mut AccessibilityUpdate,
-    ) -> LocalAccessibilityDamage {
-        static STARTS_WITH_WHITESPACE: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r"^\s+\S").unwrap());
-        let Some(value) = self.value() else {
-            return LocalAccessibilityDamage::empty();
-        };
-
-        // If this node's value starts with whitespace, the previous text node can stay hidden.
-        if STARTS_WITH_WHITESPACE.is_match(value) {
-            return LocalAccessibilityDamage::empty();
-        }
-
-        let mut closest_previous_text = closest_previous_text.borrow_mut();
-        if !closest_previous_text
-            .flags
-            .contains(Flags::MayBeIrrelevantWhitespace)
-        {
-            return LocalAccessibilityDamage::empty();
-        }
-
-        let damage = closest_previous_text.clear_hidden();
-        update.add(&mut closest_previous_text);
-        closest_previous_text.flags -= Flags::MayBeIrrelevantWhitespace;
-        damage
     }
 
     fn label_from_descendants(&self) -> Option<String> {
@@ -773,14 +608,6 @@ impl AccessibilityNode {
 
     fn is_hidden(&self) -> bool {
         self.accesskit_node.is_hidden()
-    }
-
-    fn set_is_hidden(&mut self, is_hidden: bool) -> LocalAccessibilityDamage {
-        if is_hidden {
-            self.set_hidden()
-        } else {
-            self.clear_hidden()
-        }
     }
 
     fn set_hidden(&mut self) -> LocalAccessibilityDamage {
@@ -995,96 +822,6 @@ bitflags! {
 }
 
 bitflags! {
-    /// Flags which may be used in this or future updates to compute serialized properties for a
-    /// given AccessibilityNode.
-    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-    struct Flags: u16 {
-        /// For a text node, whether we couldn't determine whether it's irrelevant whitespace.
-        /// This occurs when a whitespace-only text node is preceded by a text node which ends with
-        /// a non-whitespace character, and we haven't yet encountered the following text node to
-        /// learn whether it begins with a non-whitespace character, making the whitespace relevant,
-        /// or a whitespace character, making the whitespace irrelevant.
-        const MayBeIrrelevantWhitespace = 1 << 0;
-    }
-}
-
-bitflags! {
-    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-    pub(super) struct SubtreeState: u8 {
-        const New = 0b0001;
-        const Hidden = 0b0010;
-    }
-}
-
-impl Default for SubtreeState {
-    fn default() -> Self {
-        Self::empty()
-    }
-}
-
-/// Data about the current state of the update traversal.
-#[derive(Default)]
-pub(super) struct TraversalState {
-    subtree_state: SubtreeState,
-
-    /// Whether the node this [`TraversalState`] was initialized with is a new container for the
-    /// purposes of determining whether a given text node is irrelevant whitespace.
-    ///
-    /// See [`AccessibilityNode::is_irrelevant_whitespace()`].
-    new_whitespace_container: bool,
-
-    /// The previous text node in tree order within the same container node.
-    closest_previous_text: Option<ArcRefCell<AccessibilityNode>>,
-}
-
-impl TraversalState {
-    fn new(
-        parent: Option<&mut TraversalState>,
-        node: &AccessibilityNode,
-        update: &AccessibilityUpdate,
-    ) -> Self {
-        let mut subtree_state = parent
-            .as_ref()
-            .map_or(SubtreeState::empty(), |parent| parent.subtree_state);
-        if update.is_new(&node.id()) {
-            subtree_state.insert(SubtreeState::New);
-        }
-
-        let (new_whitespace_container, closest_previous_text) =
-            if !subtree_state.contains(SubtreeState::New) {
-                (false, None)
-            } else if CONTAINER_ROLES.contains(&node.role()) {
-                (true, None)
-            } else if let Some(parent) = parent {
-                (false, std::mem::take(&mut parent.closest_previous_text))
-            } else {
-                (false, None)
-            };
-
-        Self {
-            subtree_state,
-            new_whitespace_container,
-            closest_previous_text,
-        }
-    }
-
-    fn copy_is_hidden(&mut self, node: &AccessibilityNode) {
-        if node.is_hidden() {
-            self.subtree_state.insert(SubtreeState::Hidden);
-        }
-    }
-
-    fn consume(&mut self, mut child: Self) {
-        if child.new_whitespace_container {
-            // Ensure we clear closest_previous_text when leaving a whitespace container.
-            self.closest_previous_text = None;
-        } else {
-            self.closest_previous_text = std::mem::take(&mut child.closest_previous_text);
-        }
-    }
-}
-
-bitflags! {
     /// Flags tracking an [`AccessibilityNode`]'s dirty state during an update. All flags which are
     /// set during the update should be unset by the end of the update.
     #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -1097,7 +834,6 @@ bitflags! {
         const Updated = 1 << 2;
     }
 }
-
 impl DirtyState {
     pub(super) fn updated(&self) -> bool {
         self.contains(DirtyState::Updated)
@@ -1145,19 +881,3 @@ static HTML_ELEMENT_ROLE_MAPPINGS: LazyLock<FxHashMap<LocalName, Role>> = LazyLo
 /// <https://w3c.github.io/aria/#namefromcontent>
 static NAME_FROM_CONTENTS_ROLES: LazyLock<FxHashSet<Role>> =
     LazyLock::new(|| [(Role::Heading), (Role::Link)].into_iter().collect());
-
-/// This is a subset of <https://www.w3.org/TR/wai-aria/#document_structure_roles>, based on the
-/// heuristic of nodes which are expected to contain inline nodes.
-static CONTAINER_ROLES: LazyLock<FxHashSet<Role>> = LazyLock::new(|| {
-    [
-        (Role::Article),
-        (Role::Banner),
-        (Role::Complementary),
-        (Role::Main),
-        (Role::Navigation),
-        (Role::Paragraph),
-        (Role::RootWebArea),
-    ]
-    .into_iter()
-    .collect()
-});
