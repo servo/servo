@@ -862,6 +862,11 @@ impl ServoInner {
                     webview.process_accessibility_tree_update(tree_update, epoch);
                 }
             },
+            EmbedderMsg::AltText(webview_id, alt_text) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.set_image_alt_text(alt_text);
+                }
+            },
         }
     }
 

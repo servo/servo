@@ -78,6 +78,9 @@ pub struct Gui {
     /// The text to display in the status bar on the bottom of the window.
     status_text: Option<String>,
 
+    /// The text to display in the image alt text field on the bottom of the window.
+    image_alt_text: Option<String>,
+
     /// Whether or not the current `WebView` can navigate backward.
     can_go_back: bool,
 
@@ -274,6 +277,7 @@ impl Gui {
             location_dirty: false,
             load_status: LoadStatus::Complete,
             status_text: None,
+            image_alt_text: None,
             can_go_back: false,
             can_go_forward: false,
             favicon_textures: Default::default(),
@@ -694,6 +698,17 @@ impl Gui {
                 .show(|ui| ui.add(Label::new(status_text.clone()).extend()));
             }
 
+            if let Some(image_alt_text) = &self.image_alt_text {
+                egui::Tooltip::always_open(
+                        ctx.clone(),
+                        LayerId::new(Order::Tooltip, Id::new("image_alt_tooltip")),
+                        "image alt tooltip layer".into(),
+                        pos2(available_rect.max.x, available_rect.max.y),
+                )
+                    .at_pointer()
+                    .show(|ui| ui.add(Label::new(image_alt_text.clone()).extend()));
+            }
+
             window.repaint_webviews();
 
             if let Some(render_to_parent) = rendering_context.render_to_parent_callback() {
@@ -795,6 +810,12 @@ impl Gui {
         old_status != self.status_text
     }
 
+    fn update_image_alt_text(&mut self, window: &ServoShellWindow) -> bool {
+        let image_alt_status = window.active_webview().and_then(|webview| webview.image_alt_text());
+        let old_status = std::mem::replace(&mut self.image_alt_text, image_alt_status);
+        old_status != self.image_alt_text
+    }
+
     fn update_can_go_back_and_forward(&mut self, window: &ServoShellWindow) -> bool {
         let (can_go_back, can_go_forward) = window
             .active_webview()
@@ -815,6 +836,7 @@ impl Gui {
         self.update_load_status(window) |
             self.update_location_in_toolbar(window) |
             self.update_status_text(window) |
+            self.update_image_alt_text(window) |
             self.update_can_go_back_and_forward(window)
     }
 

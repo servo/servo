@@ -572,6 +572,8 @@ pub enum EmbedderMsg {
     InputEventsHandled(WebViewId, Vec<InputEventOutcome>),
     /// Send the embedder an accessibility tree update.
     AccessibilityTreeUpdate(WebViewId, TreeUpdate, Epoch),
+    /// Inform the embeder about the alt text of an image while hovering over it.
+    AltText(WebViewId, Option<String>),
 }
 
 impl Debug for EmbedderMsg {

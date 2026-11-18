@@ -726,6 +726,10 @@ impl WebViewDelegate for RunningAppState {
         self.window_for_webview(&webview).set_needs_update();
     }
 
+    fn notify_image_alt_text_changed(&self, webview: WebView, _alt_text: Option<String>) {
+        self.window_for_webview(&webview).set_needs_update();
+    }
+
     fn notify_history_changed(&self, webview: WebView, _entries: Vec<Url>, _current: usize) {
         self.window_for_webview(&webview).set_needs_update();
     }

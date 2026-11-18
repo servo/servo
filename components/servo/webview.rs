@@ -141,6 +141,8 @@ pub(crate) struct WebViewInner {
 
     /// The current index in the back / forward list.
     back_forward_list_index: usize,
+
+    image_alt_text: Option<String>,
 }
 
 impl Drop for WebViewInner {
@@ -182,6 +184,7 @@ impl WebView {
             hidpi_scale_factor: builder.hidpi_scale_factor,
             load_status: LoadStatus::Started,
             status_text: None,
+            image_alt_text: None,
             page_title: None,
             favicon: None,
             focused: true,
@@ -364,6 +367,18 @@ impl WebView {
         }
         self.inner_mut().status_text = new_value.clone();
         self.delegate().notify_status_text_changed(self, new_value);
+    }
+
+    pub fn image_alt_text(&self) -> Option<String> {
+        self.inner().image_alt_text.clone()
+    }
+
+    pub(crate) fn set_image_alt_text(self, new_value: Option<String>) {
+        if self.inner().image_alt_text == new_value {
+            return;
+        }
+        self.inner_mut().image_alt_text = new_value.clone();
+        self.delegate().notify_image_alt_text_changed(self, new_value);
     }
 
     /// Get the title of the currently active page in this [`WebView`]. Returns `None` if the
