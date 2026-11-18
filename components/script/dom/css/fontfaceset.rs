@@ -22,7 +22,7 @@ use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_arc::Arc as ServoArc;
 use style::font_face::FamilyName;
 use style::properties::shorthands::font;
-use style::stylesheets::CssRuleType;
+use style::stylesheets::{CssRuleType, UrlExtraData};
 use style::values::computed::font::{FontFamilyList, SingleFontFamily};
 use style::values::specified::font as specified_font;
 use style_traits::ParsingMode;
@@ -48,6 +48,7 @@ use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
 use crate::dom::promisenativehandler::Callback;
 use crate::dom::types::PromiseNativeHandler;
 use crate::dom::window::Window;
+use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::realms::enter_auto_realm;
 
 /// <https://drafts.csswg.org/css-font-loading/#FontFaceSet-interface>
@@ -123,7 +124,7 @@ impl FontFaceSet {
     ///
     /// <https://drafts.csswg.org/css-font-loading/#switch-the-fontfaceset-to-loaded>
     pub(crate) fn maybe_switch_worker_set_to_loaded(&self, cx: &mut JSContext) {
-        if self.global().is::<Window>() {
+        if !self.global().is::<WorkerGlobalScope>() {
             return;
         }
         let any_loading = self
@@ -604,11 +605,7 @@ impl FontQueryParameters {
         let font_family;
 
         let document = global.downcast::<Window>().map(|window| window.Document());
-        let url = match &document {
-            Some(document) => document.url(),
-            None => global.api_base_url(),
-        };
-        let urlextradata = url.into_url().into();
+        let urlextradata = UrlExtraData(global.api_base_url().get_arc());
         let parser_context = match &document {
             Some(document) => parser_context_for_document(
                 document,
