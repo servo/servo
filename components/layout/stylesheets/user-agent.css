@@ -1,5 +1,7 @@
 @namespace url(http://www.w3.org/1999/xhtml);
 
+*|mspace { display: inline-block; }
+
 /* https://html.spec.whatwg.org/multipage#hidden-elements */
 area, base, basefont, datalist, head, link, meta, noembed,
 noframes, param, rp, script, style, template, title {

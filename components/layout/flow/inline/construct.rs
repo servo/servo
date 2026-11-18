@@ -414,6 +414,9 @@ impl InlineFormattingContextBuilder {
         info: &NodeAndStyleInfo<'dom>,
         selection: Option<RangeAny<Utf32CodeUnits>>,
     ) {
+        if text.chars().all(char::is_whitespace) && info.node.parent_is_mathml_non_text_element() {
+            return;
+        }
         let mut offset_map = self.offset_map.borrow_mut();
         let original_size_before = offset_map.total_original_size();
 
