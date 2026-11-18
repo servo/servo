@@ -177,9 +177,31 @@ impl FontContext {
         paint_api: CrossProcessPaintApi,
         resource_threads: ResourceThreads,
     ) -> Self {
+        Self::new_with_core_resource_thread(
+            system_font_service_proxy,
+            paint_api,
+            resource_threads.core_thread,
+        )
+    }
+
+    /// Creates an empty `FontContext` that uses the same services as this one. Workers use this
+    /// so that the fonts they load are kept separate from the fonts of the page that created them.
+    pub fn new_for_worker(&self) -> Self {
+        Self::new_with_core_resource_thread(
+            self.system_font_service_proxy.clone(),
+            self.paint_api.lock().clone(),
+            self.resource_threads.lock().clone(),
+        )
+    }
+
+    fn new_with_core_resource_thread(
+        system_font_service_proxy: Arc<SystemFontServiceProxy>,
+        paint_api: CrossProcessPaintApi,
+        core_resource_thread: CoreResourceThread,
+    ) -> Self {
         Self {
             system_font_service_proxy,
-            resource_threads: Mutex::new(resource_threads.core_thread),
+            resource_threads: Mutex::new(core_resource_thread),
             paint_api: Mutex::new(paint_api),
             fonts: Default::default(),
             resolved_font_groups: Default::default(),
@@ -849,6 +871,15 @@ impl FontContextWebFontMethods for Arc<FontContext> {
 }
 
 impl FontContext {
+    /// Removes all of the WebRender font resources that this `FontContext` created. This is for
+    /// owners that don't have a layout thread to do it when they go away, such as workers.
+    pub fn remove_all_webrender_resources(&self, painter_id: PainterId) {
+        let (keys, instance_keys) = self.collect_unused_webrender_resources(true /* all */);
+        self.paint_api
+            .lock()
+            .remove_unused_font_resources(painter_id, keys, instance_keys);
+    }
+
     pub fn collect_unused_webrender_resources(
         &self,
         all: bool,
@@ -998,8 +1029,14 @@ impl FontContext {
             .iter()
             .rev()
             .filter(Self::is_supported_web_font_source)
+            // A script `FontFace` must load even if the same URL was already loaded for this
+            // family, otherwise the load would fail with no sources left.
             .filter(|source| {
-                self.is_local_or_unknown_url_font(&css_font_face_descriptors.family_name, source)
+                matches!(completion_handler, WebFontLoadInitiator::Script(_)) ||
+                    self.is_local_or_unknown_url_font(
+                        &css_font_face_descriptors.family_name,
+                        source,
+                    )
             })
             .cloned()
             .collect();

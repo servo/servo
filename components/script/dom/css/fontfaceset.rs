@@ -98,20 +98,17 @@ impl FontFaceSet {
                 self.switch_to_loading(cx);
             },
             FontFaceLoadStatus::Loaded => {
-                // TODO(#49892): Workers share the page's font context, so fonts loaded in a
-                // worker aren't added to it until workers have their own.
-                let Some(window) = DomRoot::downcast::<Window>(self.global()) else {
-                    self.maybe_switch_worker_set_to_loaded(cx);
-                    return;
-                };
-
                 let (family_name, template) = font_face
                     .template()
                     .expect("A loaded web font should have a template");
-                window
+                let global = self.global();
+                global
                     .font_context()
                     .add_template_to_font_context(family_name, template);
-                window.Document().dirty_all_nodes(cx.no_gc());
+                match global.downcast::<Window>() {
+                    Some(window) => window.Document().dirty_all_nodes(cx.no_gc()),
+                    None => self.maybe_switch_worker_set_to_loaded(cx),
+                }
             },
             FontFaceLoadStatus::Error => self.maybe_switch_worker_set_to_loaded(cx),
             _ => {},

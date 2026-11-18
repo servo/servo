@@ -354,6 +354,15 @@ impl GlobalScope {
             cookie_store.clean_up();
         }
         self.with_module_map(|module_map| std::mem::take(&mut *module_map.borrow_mut()));
+
+        // Dedicated and shared workers have their own font context (service workers share one),
+        // so free the WebRender font resources it created.
+        if (self.is::<DedicatedWorkerGlobalScope>() || self.is::<SharedWorkerGlobalScope>()) &&
+            let Some(webview_id) = self.webview_id()
+        {
+            self.font_context()
+                .remove_all_webrender_resources(webview_id.into());
+        }
     }
 
     /// <https://storage.spec.whatwg.org/#obtain-a-storage-key-for-non-storage-purposes>
