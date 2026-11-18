@@ -4,10 +4,11 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use std::cell::Cell;
+use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{DomObject, reflect_dom_object};
+use script_bindings::reflector::{DomObject, reflect_weak_referenceable_dom_object};
 use script_bindings::weakref::WeakRef;
 use servo_base::generic_channel;
 use servo_canvas_traits::webgl::{
@@ -16,11 +17,11 @@ use servo_canvas_traits::webgl::{
 
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants;
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webgl::webglobject::WebGLObject;
 use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext};
+use crate::script_bindings::inheritance::Castable;
 
 fn target_is_copy_buffer(target: u32) -> bool {
     target == WebGL2RenderingContextConstants::COPY_READ_BUFFER ||
@@ -153,9 +154,9 @@ impl WebGLBuffer {
         context: &WebGLRenderingContext,
         id: WebGLBufferId,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_weak_referenceable_dom_object(
             cx,
-            Box::new(WebGLBuffer::new_inherited(context, id)),
+            Rc::new(WebGLBuffer::new_inherited(context, id)),
             &*context.global(),
         )
     }

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::weakref::WeakRef;
@@ -19,58 +19,37 @@ use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext}
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct VertexArrayObject {
-    context: WeakRef<WebGLRenderingContext>,
-    #[no_trace]
-    id: Option<WebGLVertexArrayId>,
     ever_bound: Cell<bool>,
-    is_deleted: Cell<bool>,
     vertex_attribs: DomRefCell<Box<[VertexAttribData]>>,
     element_array_buffer: MutNullableDom<WebGLBuffer>,
+    droppable: RefCell<DroppableVertexArrayObject>,
 }
 
 impl VertexArrayObject {
     pub(crate) fn new(context: &WebGLRenderingContext, id: Option<WebGLVertexArrayId>) -> Self {
         let max_vertex_attribs = context.limits().max_vertex_attribs as usize;
         Self {
-            context: WeakRef::new(context),
-            id,
             ever_bound: Default::default(),
-            is_deleted: Default::default(),
             vertex_attribs: DomRefCell::new(vec![Default::default(); max_vertex_attribs].into()),
             element_array_buffer: Default::default(),
+            droppable: RefCell::new(DroppableVertexArrayObject::new(
+                context,
+                id,
+                max_vertex_attribs,
+            )),
         }
     }
 
     pub(crate) fn id(&self) -> Option<WebGLVertexArrayId> {
-        self.id
+        self.droppable.borrow().id
     }
 
     pub(crate) fn is_deleted(&self) -> bool {
-        self.is_deleted.get()
+        self.droppable.borrow().is_deleted
     }
 
     pub(crate) fn delete(&self, operation_fallibility: Operation) {
-        assert!(self.id.is_some());
-        if self.is_deleted.get() {
-            return;
-        }
-        self.is_deleted.set(true);
-
-        if let Some(context) = self.context.root() {
-            context.send_with_fallibility(
-                WebGLCommand::DeleteVertexArray(self.id.unwrap()),
-                operation_fallibility,
-            );
-        }
-
-        for attrib_data in &**self.vertex_attribs.borrow() {
-            if let Some(buffer) = attrib_data.buffer() {
-                buffer.decrement_attached_counter(operation_fallibility);
-            }
-        }
-        if let Some(buffer) = self.element_array_buffer.get() {
-            buffer.decrement_attached_counter(operation_fallibility);
-        }
+        self.droppable.borrow_mut().delete(operation_fallibility);
     }
 
     pub(crate) fn ever_bound(&self) -> bool {
@@ -83,6 +62,23 @@ impl VertexArrayObject {
 
     pub(crate) fn element_array_buffer(&self) -> &MutNullableDom<WebGLBuffer> {
         &self.element_array_buffer
+    }
+
+    pub(crate) fn bind_element_array_buffer(
+        &self,
+        context: &WebGLRenderingContext,
+        buffer: Option<&WebGLBuffer>,
+    ) {
+        context.bind_buffer_maybe(
+            &self.element_array_buffer,
+            constants::ELEMENT_ARRAY_BUFFER,
+            buffer,
+        );
+        // The binding may have been rejected, so mirror what the slot now holds.
+        self.droppable.borrow_mut().element_array_buffer = self
+            .element_array_buffer
+            .get()
+            .map(|buffer| WeakRef::new(&*buffer));
     }
 
     pub(crate) fn get_vertex_attrib(&self, index: u32) -> Option<Ref<'_, VertexAttribData>> {
@@ -116,7 +112,7 @@ impl VertexArrayObject {
             return Err(WebGLError::InvalidValue);
         }
 
-        let Some(context) = self.context.root() else {
+        let Some(context) = self.droppable.borrow().context.root() else {
             return Err(WebGLError::ContextLost);
         };
 
@@ -166,6 +162,9 @@ impl VertexArrayObject {
             old.decrement_attached_counter(Operation::Infallible);
         }
 
+        self.droppable.borrow_mut().vertex_attribs[index as usize] = DroppableVertexAttribData {
+            buffer: buffer.as_deref().map(WeakRef::new),
+        };
         *data = VertexAttribData {
             enabled_as_array: data.enabled_as_array,
             size: size as u8,
@@ -190,7 +189,13 @@ impl VertexArrayObject {
     }
 
     pub(crate) fn unbind_buffer(&self, buffer: &WebGLBuffer) {
-        for attrib in &mut **self.vertex_attribs.borrow_mut() {
+        let mut droppable = self.droppable.borrow_mut();
+        for (attrib, droppable_attrib) in self
+            .vertex_attribs
+            .borrow_mut()
+            .iter_mut()
+            .zip(droppable.vertex_attribs.iter_mut())
+        {
             if let Some(b) = attrib.buffer() {
                 if b.id() != buffer.id() {
                     continue;
@@ -198,6 +203,7 @@ impl VertexArrayObject {
                 b.decrement_attached_counter(Operation::Infallible);
             }
             attrib.buffer = None;
+            droppable_attrib.buffer = None;
         }
         if self
             .element_array_buffer
@@ -206,6 +212,7 @@ impl VertexArrayObject {
         {
             buffer.decrement_attached_counter(Operation::Infallible);
             self.element_array_buffer.set(None);
+            droppable.element_array_buffer = None;
         }
     }
 
@@ -260,14 +267,6 @@ impl VertexArrayObject {
     }
 }
 
-impl Drop for VertexArrayObject {
-    fn drop(&mut self) {
-        if self.id.is_some() {
-            self.delete(Operation::Fallible);
-        }
-    }
-}
-
 /// How a `vertexAttrib*Pointer` call delivers attribute values to the shader.
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
 pub(crate) enum VertexAttribPointerKind {
@@ -285,6 +284,78 @@ impl VertexAttribPointerKind {
     pub(crate) fn is_integer(self) -> bool {
         matches!(self, Self::Integer)
     }
+}
+
+/// The part of a [`VertexArrayObject`] needed to release its resources on drop.
+///
+/// Buffers are held weakly because they may already have been collected by the
+/// time this is dropped. `VertexArrayObject` holds the traced references that
+/// keep them alive, and must keep these fields in sync with its own.
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableVertexArrayObject {
+    context: WeakRef<WebGLRenderingContext>,
+    #[no_trace]
+    id: Option<WebGLVertexArrayId>,
+    is_deleted: bool,
+    /// Parallel to `VertexArrayObject::vertex_attribs`.
+    vertex_attribs: Box<[DroppableVertexAttribData]>,
+    element_array_buffer: Option<WeakRef<WebGLBuffer>>,
+}
+
+impl DroppableVertexArrayObject {
+    fn new(
+        context: &WebGLRenderingContext,
+        id: Option<WebGLVertexArrayId>,
+        max_vertex_attribs: usize,
+    ) -> Self {
+        Self {
+            context: WeakRef::new(context),
+            id,
+            is_deleted: false,
+            vertex_attribs: (0..max_vertex_attribs)
+                .map(|_| Default::default())
+                .collect(),
+            element_array_buffer: None,
+        }
+    }
+
+    fn delete(&mut self, operation_fallibility: Operation) {
+        assert!(self.id.is_some());
+        if self.is_deleted {
+            return;
+        }
+        self.is_deleted = true;
+
+        if let Some(context) = self.context.root() {
+            context.send_with_fallibility(
+                WebGLCommand::DeleteVertexArray(self.id.unwrap()),
+                operation_fallibility,
+            );
+        }
+
+        for attrib_data in &self.vertex_attribs {
+            if let Some(buffer) = attrib_data.buffer.as_ref().and_then(WeakRef::root) {
+                buffer.decrement_attached_counter(operation_fallibility);
+            }
+        }
+        if let Some(buffer) = self.element_array_buffer.as_ref().and_then(WeakRef::root) {
+            buffer.decrement_attached_counter(operation_fallibility);
+        }
+    }
+}
+
+impl Drop for DroppableVertexArrayObject {
+    fn drop(&mut self) {
+        if self.id.is_some() {
+            self.delete(Operation::Fallible);
+        }
+    }
+}
+
+/// The part of a [`VertexAttribData`] needed to release its buffer on drop.
+#[derive(Default, JSTraceable, MallocSizeOf)]
+struct DroppableVertexAttribData {
+    buffer: Option<WeakRef<WebGLBuffer>>,
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
