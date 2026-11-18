@@ -47,7 +47,7 @@ pub fn init_crypto() {
         .expect("Error initializing crypto provider");
 }
 
-pub fn init_tracing(filter_directives: Option<&str>) {
+pub(crate) fn init_tracing(filter_directives: Option<&str>) {
     #[cfg(not(feature = "tracing"))]
     {
         if filter_directives.is_some() {
@@ -61,13 +61,35 @@ pub fn init_tracing(filter_directives: Option<&str>) {
 
         #[cfg(feature = "tracing-perfetto")]
         let subscriber = {
-            // Set up a PerfettoLayer for performance tracing.
-            // The servo.pftrace file can be uploaded to https://ui.perfetto.dev for analysis.
-            let file = std::fs::File::create("servo.pftrace").unwrap();
-            let perfetto_layer = tracing_perfetto::PerfettoLayer::new(std::sync::Mutex::new(file))
-                .with_filter_by_marker(|field_name| field_name == "servo_profiling")
-                .with_debug_annotations(true);
-            subscriber.with(perfetto_layer)
+            // Set up a PerfettoLayer for performance tracing. The servo.pftrace file can
+            // be uploaded to https://ui.perfetto.dev for analysis.
+            use std::fs::File;
+            use std::thread;
+            use std::time::Duration;
+
+            use tracing_perfetto_file::{PerfettoLayer, SpanMode};
+            use tracing_subscriber::Layer;
+            use tracing_subscriber::filter::filter_fn;
+
+            let file = File::create("servo.pftrace").unwrap();
+            let (perfetto_layer, perfetto_guard) = PerfettoLayer::builder(file)
+                .span_mode(SpanMode::ThreadTracks)
+                .with_debug_annotations()
+                .build();
+
+            let _ = thread::Builder::new()
+                .name("Perfetto Flush".into())
+                .spawn(move || {
+                    loop {
+                        thread::sleep(Duration::from_millis(100));
+                        let _ = perfetto_guard.flush();
+                    }
+                });
+
+            let filtered_layer = perfetto_layer.with_filter(filter_fn(|metadata| {
+                metadata.fields().field("servo_profiling").is_some()
+            }));
+            subscriber.with(filtered_layer)
         };
 
         #[cfg(all(feature = "tracing-hitrace", target_env = "ohos"))]
@@ -97,12 +119,10 @@ pub fn init_tracing(filter_directives: Option<&str>) {
         tracing::subscriber::set_global_default(subscriber)
             .expect("Failed to set tracing subscriber");
 
-        // Capture a first event, including the explicit wallclock time.
-        // The event itself is useful when investigating startup time.
-        // `wallclock_ns` allows us to ground the time, so we can compare
-        // against an external timestamp from before starting servoshell.
-        // In practice, the perfetto timestamp seems to be the same, but
-        // we shouldn't assume this, since different backends may behave differently.
+        // Capture a first event, including the explicit wallclock time. The event itself
+        // is useful when investigating startup time. `wallclock_ns` allows us to ground
+        // the time, so we can compare against an external timestamp from before starting
+        // servoshell.
         servo::profile_traits::info_event!(
             "servoshell::startup_tracing_initialized",
             wallclock_ns = std::time::SystemTime::now()
