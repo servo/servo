@@ -207,15 +207,13 @@ impl AccessibilityNode {
     ) -> LocalAccessibilityDamage {
         let mut local_damage = LocalAccessibilityDamage::empty();
 
-        if !dom_damage.intersects(
-            AccessibilityDamage::Node | AccessibilityDamage::Children | AccessibilityDamage::Layout,
-        ) {
+        if dom_damage.is_empty() {
             return local_damage;
         }
 
         // We check for layout damage here because we need to walk the DOM children of nodes with
-        // layout damage in order to be able to recompute their bounds. Text nodes have neither
-        // bounds nor child nodes, so if the only damage is layout, we can early return here.
+        // layout damage in order to be able to recompute their bounds. Text nodes don't have
+        // child nodes, so if the only damage is layout, we can early return here.
         if dom_damage == AccessibilityDamage::Layout && dom_node.is_text_node() {
             return local_damage;
         }
@@ -357,6 +355,8 @@ impl AccessibilityNode {
             } else {
                 local_damage.insert(self.clear_hidden());
             }
+        } else if dom_node.is_text_node() {
+            return local_damage;
         }
 
         if self.is_hidden() {
