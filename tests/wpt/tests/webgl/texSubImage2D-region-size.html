@@ -1,0 +1,36 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>texSubImage2D and copyTexSubImage2D accept any region size inside the image</title>
+<link rel="author" title="Maxim Gorin" href="mailto:code@mxmgorin.dev">
+<link rel="help" href="https://registry.khronos.org/OpenGL/specs/es/2.0/es_full_spec_2.0.pdf#nameddest=subsection.3.7.2">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+for (const contextType of ["webgl", "webgl2"]) {
+    test(function() {
+        const gl = document.createElement("canvas").getContext(contextType);
+        gl.bindTexture(gl.TEXTURE_CUBE_MAP, gl.createTexture());
+        const face = gl.TEXTURE_CUBE_MAP_POSITIVE_X;
+        gl.texImage2D(face, 0, gl.RGBA, 16, 16, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        assert_equals(gl.getError(), gl.NO_ERROR, "texImage2D");
+
+        gl.texSubImage2D(face, 0, 0, 0, 8, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(8 * 4));
+        assert_equals(gl.getError(), gl.NO_ERROR, "texSubImage2D");
+        gl.copyTexSubImage2D(face, 0, 0, 0, 0, 0, 8, 1);
+        assert_equals(gl.getError(), gl.NO_ERROR, "copyTexSubImage2D");
+    }, `${contextType}: non-square region of a cube map face`);
+
+    test(function() {
+        const gl = document.createElement("canvas").getContext(contextType);
+        gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 8, 8, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_2D, 1, gl.RGBA, 4, 4, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        assert_equals(gl.getError(), gl.NO_ERROR, "texImage2D");
+
+        gl.texSubImage2D(gl.TEXTURE_2D, 1, 0, 0, 3, 3, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(3 * 3 * 4));
+        assert_equals(gl.getError(), gl.NO_ERROR, "texSubImage2D");
+        gl.copyTexSubImage2D(gl.TEXTURE_2D, 1, 0, 0, 0, 0, 3, 3);
+        assert_equals(gl.getError(), gl.NO_ERROR, "copyTexSubImage2D");
+    }, `${contextType}: non-power-of-two region above level 0`);
+}
+</script>
