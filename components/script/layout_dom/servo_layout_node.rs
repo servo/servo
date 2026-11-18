@@ -8,6 +8,7 @@
 use std::fmt;
 
 use atomic_refcell::AtomicRef;
+use html5ever::{local_name, ns};
 use layout_api::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutDataTrait, LayoutElement, LayoutNode,
     LayoutNodeType, PseudoElementChain, SVGElementData, TrustedNodeAddress,
@@ -63,6 +64,19 @@ unsafe impl Send for ServoLayoutNode<'_> {}
 unsafe impl Sync for ServoLayoutNode<'_> {}
 
 impl<'dom> ServoLayoutNode<'dom> {
+    /// Returns whether this node's DOM parent is a MathML element where
+    /// whitespace text nodes should be ignored, excluding `mtext` and `ms`.
+    pub fn parent_is_mathml_non_text_element(&self) -> bool {
+        let Some(parent) = self.node.parent_node_ref() else {
+            return false;
+        };
+        let Some(element) = parent.downcast::<Element>() else {
+            return false;
+        };
+        *element.namespace() == ns!(mathml) &&
+            element.local_name() != &local_name!("mtext") &&
+            element.local_name() != &local_name!("ms")
+    }
     /// Create a new [`ServoLayoutNode`] for this given [`TrustedNodeAddress`].
     ///
     /// # Safety
