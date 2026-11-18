@@ -141,7 +141,7 @@ use crate::dom::html::htmlareaelement::HTMLAreaElement;
 use crate::dom::html::htmlbodyelement::HTMLBodyElement;
 use crate::dom::html::htmlbuttonelement::HTMLButtonElement;
 use crate::dom::html::htmlcollection::HTMLCollection;
-use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::html::htmlelement::{HTMLElement, PopoverState};
 use crate::dom::html::htmlembedelement::HTMLEmbedElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlfontelement::HTMLFontElement;
@@ -365,7 +365,7 @@ impl Element {
         )
     }
 
-    fn rare_data(&self) -> Ref<'_, Option<Box<ElementRareData>>> {
+    pub(crate) fn rare_data(&self) -> Ref<'_, Option<Box<ElementRareData>>> {
         self.rare_data.borrow()
     }
 
@@ -1112,12 +1112,16 @@ impl Element {
 
     /// <https://fullscreen.spec.whatwg.org/#fullscreen-element-ready-check>
     pub(crate) fn fullscreen_element_ready_check(&self) -> bool {
-        if !self.is_connected() {
-            return false;
-        }
-        self.owner_document()
-            .overlay_handler()
-            .get_allow_fullscreen()
+        // > A fullscreen element ready check for an element element returns true if all of the
+        // > following are true, and false otherwise:
+        // > - element is connected.
+        // > - element’s node document is allowed to use the "fullscreen" feature.
+        // > element namespace is not the HTML namespace, or element's popover visibility state is hidden.
+        self.is_connected() &&
+            self.owner_document()
+                .overlay_handler()
+                .get_allow_fullscreen() &&
+            (*self.namespace() != ns!(html) || !self.popover_visibility_state_showing())
     }
 }
 
@@ -2213,13 +2217,9 @@ impl Element {
         attr.swap_value(&mut value);
         // Step 3. Handle attribute changes for attribute with attribute’s element, oldValue, and value.
         //
-        // Put on a separate line to avoid double borrow
-        self.handle_attribute_changes(
-            cx,
-            AttrRef::Dom(attr),
-            Some(old_value),
-            Some(&*attr.value()),
-        );
+        // Clone: attribute change steps can mutates this attribute again in beforetoggle handler.
+        let new_value = attr.value().clone();
+        self.handle_attribute_changes(cx, AttrRef::Dom(attr), Some(old_value), Some(&new_value));
     }
 
     /// <https://dom.spec.whatwg.org/#concept-element-attributes-append>
@@ -5520,6 +5520,89 @@ impl Element {
 
     pub(crate) fn set_target_state(&self, no_gc: &NoGC, value: bool) {
         self.set_state(no_gc, ElementState::URLTARGET, value)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#topmost-popover-ancestor>
+    ///
+    /// `self` is the spec's newPopoverOrTopLayerElement.
+    pub(crate) fn topmost_popover_ancestor(
+        &self,
+        no_gc: &NoGC,
+        source: Option<&HTMLElement>,
+        is_popover: bool,
+    ) -> Option<DomRoot<HTMLElement>> {
+        // Step 1. If isPopover is true:
+        if is_popover {
+            // Step 1.1. Assert: newPopoverOrTopLayerElement is an HTML element.
+            // Step 1.2. Assert: newPopoverOrTopLayerElement's popover attribute is not in the
+            // No Popover State or the Manual state.
+            debug_assert!(!matches!(
+                self.downcast::<HTMLElement>()
+                    .expect("newPopoverOrTopLayerElement is expected to be an HTML element")
+                    .popover_state(),
+                PopoverState::NoPopover | PopoverState::Manual
+            ));
+
+            // Step 1.3. Assert: newPopoverOrTopLayerElement's popover visibility state is not in
+            // the popover showing state.
+            debug_assert!(!self.popover_visibility_state_showing());
+        }
+        // Step 2. Otherwise:
+        else {
+            // Step 2.1. Assert: source is null.
+            debug_assert!(source.is_none());
+        }
+
+        // Step 3. Let document be newPopoverOrTopLayerElement's node document.
+        let document = self.owner_document();
+        let overlay_handler = document.overlay_handler();
+
+        // Step 4. Let combinedPopovers be document's showing auto popover list, extended with
+        // document's showing hint popover list.
+        let mut combined_popovers =
+            overlay_handler.showing_popover_list_unrooted(no_gc, PopoverState::Auto);
+        combined_popovers
+            .extend(overlay_handler.showing_popover_list_unrooted(no_gc, PopoverState::Hint));
+
+        // Step 5. Let popoverAncestorIndex be the index of the last item in combinedPopovers of
+        // which newPopoverOrTopLayerElement is a flat tree descendant, or -1 if there is none.
+        //
+        // We use None instead of -1. Since None < Some(_), `max` below matches the spec's
+        // maximum with -1.
+        let last_flat_tree_ancestor_index = |node: &Node| {
+            combined_popovers.iter().rposition(|popover| {
+                node.inclusive_ancestors_in_flat_tree_unrooted(no_gc)
+                    .any(|ancestor| **ancestor == *popover.upcast::<Node>())
+            })
+        };
+        let popover_ancestor_index = last_flat_tree_ancestor_index(self.upcast());
+
+        // Step 6. Let sourceAncestorIndex be -1.
+        // Step 7. If source is not null, then set sourceAncestorIndex to the index of the last
+        // item in combinedPopovers of which source is a flat tree descendant, or -1 if there is
+        // none.
+        let source_ancestor_index =
+            source.and_then(|source| last_flat_tree_ancestor_index(source.upcast()));
+
+        // Step 8. Let ancestorIndex be the maximum of popoverAncestorIndex and
+        // sourceAncestorIndex.
+        // Step 9. If ancestorIndex is -1, then return null.
+        let ancestor_index = popover_ancestor_index.max(source_ancestor_index)?;
+
+        // Step 10. Return combinedPopovers[ancestorIndex].
+        //
+        // We discard combinedPopovers, so this is the fastest operation.
+        Some(combined_popovers.swap_remove(ancestor_index).as_rooted())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#popover-visibility-state>
+    pub(crate) fn popover_visibility_state_showing(&self) -> bool {
+        self.state.get().contains(ElementState::POPOVER_OPEN)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#popover-visibility-state>
+    pub(crate) fn set_popover_visibility_state_showing(&self, no_gc: &NoGC, value: bool) {
+        self.set_state(no_gc, ElementState::POPOVER_OPEN, value);
     }
 
     pub(crate) fn set_fullscreen_state(&self, no_gc: &NoGC, value: bool) {
