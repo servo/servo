@@ -891,6 +891,9 @@ impl Document {
             let msg = ScriptToConstellationMessage::DiscardDocument;
             let _ = global_scope.script_to_constellation_chan().send(msg);
         }
+
+        // If any element has requested to open a control, we should hide all of them
+        self.embedder_controls().hide_all_embedder_controls();
     }
 
     pub(crate) fn track_websocket(&self, websocket: &WebSocket) {
@@ -5482,11 +5485,9 @@ impl Document {
             self.origin().immutable().is_potentially_trustworthy()
     }
 
-    /// <https://fetch.spec.whatwg.org/#determine-the-network-partition-key>
-    pub(crate) fn determine_the_network_partition_key(&self) -> Option<Site> {
-        // Step 1. Let topLevelOrigin be environment’s top-level origin.
-        // https://html.spec.whatwg.org/multipage/#concept-environment-top-level-origin
-        let top_level_origin = if self.window().is_top_level() {
+    /// <https://html.spec.whatwg.org/multipage/#concept-environment-top-level-origin>
+    pub(crate) fn top_level_origin(&self) -> Option<ImmutableOrigin> {
+        if self.window().is_top_level() {
             Some(self.origin().immutable().clone())
         } else if let Some(top_level_document) = self.window().top_level_document_if_local() {
             Some(top_level_document.origin().immutable().clone())
@@ -5497,7 +5498,13 @@ impl Document {
                 .and_then(|ancestors| ancestors.last().cloned())
         } else {
             None
-        };
+        }
+    }
+
+    /// <https://fetch.spec.whatwg.org/#determine-the-network-partition-key>
+    pub(crate) fn determine_the_network_partition_key(&self) -> Option<Site> {
+        // Step 1. Let topLevelOrigin be environment’s top-level origin.
+        let top_level_origin = self.top_level_origin();
 
         // Step 2. If topLevelOrigin is null, then set topLevelOrigin to environment’s
         // top-level creation URL’s origin.

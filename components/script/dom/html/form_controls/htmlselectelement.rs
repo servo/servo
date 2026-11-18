@@ -932,7 +932,7 @@ impl VirtualMethods for HTMLSelectElement {
         if could_have_had_embedder_control && !self.may_have_embedder_control() {
             self.owner_document()
                 .embedder_controls()
-                .hide_embedder_control(self.upcast());
+                .hide_embedder_control_for_element(self.upcast());
         }
     }
 
@@ -940,7 +940,7 @@ impl VirtualMethods for HTMLSelectElement {
         self.super_type().unwrap().unbind_from_tree(cx, context);
         self.owner_document_unrooted(cx.no_gc())
             .embedder_controls()
-            .hide_embedder_control(self.upcast());
+            .hide_embedder_control_for_element(self.upcast());
     }
 
     fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
@@ -968,7 +968,7 @@ impl VirtualMethods for HTMLSelectElement {
         {
             self.owner_document()
                 .embedder_controls()
-                .hide_embedder_control(self.upcast());
+                .hide_embedder_control_for_element(self.upcast());
         }
 
         // https://html.spec.whatwg.org/multipage/#select-open-picker
