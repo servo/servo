@@ -605,6 +605,9 @@ impl DocumentOverlayHandler {
         // Step 2. If document's showing auto popover list is not empty, then return its last
         // element.
         // Step 3. Return null.
+        //
+        // We use pop instead of last to take ownership of its last element. The Vec is temporary,
+        // so mutating it is fine.
         self.showing_popover_list_unrooted(no_gc, PopoverState::Hint)
             .pop()
             .or_else(|| {
