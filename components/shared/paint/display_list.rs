@@ -1018,6 +1018,11 @@ pub struct PaintDisplayListInfo {
     /// The WebRender [PipelineId] of this display list.
     pub pipeline_id: PipelineId,
 
+    /// A map of `<iframe>` [`PipelineId`]s to their rectangle and containing [`ScrollTreeNodeId`].
+    /// This can be used to translate from coordinates within an `<iframe>` to root WebView
+    /// coordinates.
+    pub iframes: FxHashMap<PipelineId, (ScrollTreeNodeId, LayoutRect)>,
+
     /// The [`ViewportDetails`] that describe the viewport in the script/layout thread at
     /// the time this display list was created.
     pub viewport_details: ViewportDetails,
@@ -1105,6 +1110,7 @@ impl PaintDisplayListInfo {
 
         PaintDisplayListInfo {
             pipeline_id,
+            iframes: Default::default(),
             viewport_details,
             content_size,
             epoch,

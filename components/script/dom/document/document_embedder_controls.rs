@@ -6,10 +6,11 @@
 
 use std::cell::Cell;
 
+use app_units::Au;
 use embedder_traits::{
     ClipboardAction, ContextMenuAction, ContextMenuElementInformation,
     ContextMenuElementInformationFlags, ContextMenuItem, ContextMenuRequest, EmbedderControlId,
-    EmbedderControlRequest, EmbedderControlResponse, EmbedderMsg,
+    EmbedderControlRequest, EmbedderControlResponse, EmbedderMsg, PipelineRect,
 };
 use euclid::{Point2D, Rect, Size2D};
 use js::context::JSContext;
@@ -26,7 +27,7 @@ use script_bindings::root::{Dom, DomRoot};
 use servo_base::Epoch;
 use servo_base::generic_channel::GenericSend;
 use servo_url::ServoUrl;
-use webrender_api::units::{DeviceIntRect, DevicePoint};
+use style_traits::CSSPixel;
 
 use crate::dom::activation::Activatable;
 use crate::dom::bindings::trace::NoTrace;
@@ -104,32 +105,27 @@ impl DocumentEmbedderControls {
         cx: &mut JSContext,
         element: ControlElement,
         request: EmbedderControlRequest,
-        point: Option<DevicePoint>,
+        point: Option<Point2D<Au, CSSPixel>>,
     ) -> EmbedderControlId {
         let id = self.next_control_id();
         let rect = point
-            .map(|point| DeviceIntRect::from_origin_and_size(point.to_i32(), Size2D::zero()))
+            .map(|point| Rect::new(point, Size2D::zero()))
             .unwrap_or_else(|| {
-                let rect = element
+                element
                     .node()
                     .upcast::<Node>()
                     .border_box(cx)
-                    .unwrap_or_default();
-
-                let rect = Rect::new(
-                    Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
-                    Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
-                );
-
-                // FIXME: This is a CSS pixel rect relative to this frame, we need a DevicePixel rectangle
-                // relative to the entire WebView!
-                DeviceIntRect::from_untyped(&rect.to_box2d())
+                    .unwrap_or_default()
             });
 
         self.visible_elements
             .borrow_mut()
             .insert(id.index.into(), element);
 
+        let rect = PipelineRect {
+            rect,
+            pipeline_id: self.window.pipeline_id(),
+        };
         self.send_embedder_control_request(request, id, rect);
         id
     }
@@ -138,7 +134,7 @@ impl DocumentEmbedderControls {
         &self,
         request: EmbedderControlRequest,
         id: EmbedderControlId,
-        rect: DeviceIntRect,
+        rect: PipelineRect,
     ) {
         match request {
             EmbedderControlRequest::SelectElement(..) |
@@ -397,7 +393,7 @@ impl DocumentEmbedderControls {
                 element_info: info,
                 items,
             }),
-            Some(hit_test_result.point_in_frame.cast_unit()),
+            Some(hit_test_result.point_in_frame.map(Au::from_f32_px)),
         );
     }
 }
