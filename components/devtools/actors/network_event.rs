@@ -6,15 +6,15 @@
 //! Handles interaction with the remote web console on network events (HTTP requests, responses) in Servo.
 
 use std::sync::Arc;
-use std::time::{Duration, UNIX_EPOCH};
+use std::time::Duration;
 
 use atomic_refcell::AtomicRefCell;
 use base64::engine::Engine;
 use base64::engine::general_purpose::STANDARD;
-use chrono::{Local, LocalResult, TimeZone};
 use devtools_traits::{HttpRequest, HttpResponse};
 use headers::{ContentLength, HeaderMapExt};
 use http::HeaderMap;
+use jiff::ZonedDateTime;
 use malloc_size_of_derive::MallocSizeOf;
 use net::cookie::ServoCookie;
 use net_traits::fetch::headers::extract_mime_type_as_dataurl_mime;
@@ -728,17 +728,14 @@ impl ActorEncode<NetworkEventMsg> for NetworkEventActor {
         let request = self.request.borrow();
         let request = &request.as_ref().expect("There should be a request").request;
 
-        let started_datetime_rfc3339 = match Local.timestamp_millis_opt(
-            request
-                .started_date_time
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis() as i64,
-        ) {
-            LocalResult::None => String::new(),
-            LocalResult::Single(date_time) => date_time.to_rfc3339(),
-            LocalResult::Ambiguous(date_time, _) => date_time.to_rfc3339(),
-        };
+        let started_datetime_rfc3339 = ZonedDateTime::try_from(request.started_date_time)
+            .map(|date_time| {
+                date_time
+                    .timestamp()
+                    .display_with_offset(date_time.offset())
+                    .to_string()
+            })
+            .unwrap_or_default();
 
         let browsing_context_actor =
             registry.find::<BrowsingContextActor>(&self.browsing_context_name);

@@ -34,7 +34,6 @@ use background_hang_monitor_api::{
     HangAnnotation, MonitoredComponentId, MonitoredComponentType,
 };
 use bytes::Bytes;
-use chrono::{DateTime, Local};
 use crossbeam_channel::unbounded;
 use data_url::mime::Mime;
 #[cfg(feature = "devtools")]
@@ -53,6 +52,7 @@ use fonts::{FontContext, SystemFontServiceProxy, WebFontLoadEvent};
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
 use http::header::REFRESH;
 use hyper_serde::Serde;
+use jiff::ZonedDateTime;
 use js::context::{JSContext, NoGC};
 use js::glue::GetWindowProxyClass;
 use js::jsapi::{GCReason, JSContext as UnsafeJSContext};
@@ -3658,11 +3658,12 @@ impl ScriptThread {
         // > If the last modification date and time are not known,
         // > the attribute must return the current date and time in the above format.
         let last_modified = metadata.headers.as_ref().and_then(|headers| {
-            headers.typed_get::<LastModified>().map(|tm| {
-                let tm: SystemTime = tm.into();
-                let local_time: DateTime<Local> = tm.into();
-                local_time.format("%m/%d/%Y %H:%M:%S").to_string()
-            })
+            headers
+                .typed_get::<LastModified>()
+                .and_then(|last_modified| {
+                    ZonedDateTime::try_from(SystemTime::from(last_modified)).ok()
+                })
+                .map(|date_time| date_time.strftime("%m/%d/%Y %H:%M:%S").to_string())
         });
 
         let loader = DocumentLoader::new_with_threads(
