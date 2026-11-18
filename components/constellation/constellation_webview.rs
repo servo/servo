@@ -310,13 +310,6 @@ impl ConstellationWebView {
         !self.pending_changes.is_empty()
     }
 
-    /// Whether a navigation is in flight in this [`ConstellationWebView`]:
-    /// a history traversal isrunning, or `top_level_pipeline` has not finished loading.
-    pub(crate) fn is_navigating(&self, top_level_pipeline: Option<&Pipeline>) -> bool {
-        self.ongoing_history_traversal_request.is_some() ||
-            top_level_pipeline.is_some_and(|pipeline| !pipeline.completely_loaded)
-    }
-
     pub(crate) fn pipeline_is_pending(&self, pipeline_id: PipelineId) -> bool {
         self.pending_changes
             .iter()

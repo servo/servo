@@ -468,9 +468,11 @@ pub struct Constellation<STF, SWF> {
     /// Senders to notify WebDriver of navigation events, keyed by webview.
     webdriver_load_status_senders: FxHashMap<WebViewId, GenericSender<WebDriverLoadStatusMessage>>,
 
-    /// The top-level browsing contexts with a navigation in progress, as last reported to
-    /// WebDriver.
-    webdriver_navigating_webviews: FxHashSet<WebViewId>,
+    /// The pipeline whose navigation was last reported to WebDriver as started, per webview.
+    /// A finished status is only reported for that same pipeline.
+    /// `None` case:  a navigation without pipeline yet; to be replaced by the next start,
+    /// or removed by a `NavigationStop` that has no pipeline id.
+    webdriver_navigating_pipelines: FxHashMap<WebViewId, Option<PipelineId>>,
 
     /// Are we shutting down?
     shutting_down: bool,
@@ -739,7 +741,7 @@ where
                     mem_profiler_chan: state.mem_profiler_chan.clone(),
                     phantom: PhantomData,
                     webdriver_load_status_senders: Default::default(),
-                    webdriver_navigating_webviews: Default::default(),
+                    webdriver_navigating_pipelines: Default::default(),
                     #[cfg(feature = "webgpu")]
                     webrender_wgpu,
                     shutting_down: false,
@@ -3528,7 +3530,7 @@ where
     fn handle_close_top_level_browsing_context(&mut self, webview_id: WebViewId) {
         debug!("{webview_id}: Closing");
 
-        self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStop);
+        self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStop, None);
         self.webdriver_load_status_senders.remove(&webview_id);
 
         // Step 1. Let browsingContext be traversable's active browsing context.
@@ -4301,6 +4303,7 @@ where
                         self.send_webdriver_load_status(
                             webview_id,
                             WebDriverLoadStatus::NavigationStop,
+                            Some(pipeline_id),
                         );
                     }
                     // If the navigation is refused, and this concerns an iframe,
@@ -4449,7 +4452,11 @@ where
 
                 let new_pipeline_id = PipelineId::new();
                 // Report the navigation before creating the pipeline.
-                self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStart);
+                self.send_webdriver_load_status(
+                    webview_id,
+                    WebDriverLoadStatus::NavigationStart,
+                    Some(new_pipeline_id),
+                );
                 self.new_pipeline(
                     new_pipeline_id,
                     browsing_context_id,
@@ -4495,7 +4502,11 @@ where
         self.close_pipeline(new_pipeline_id, DiscardBrowsingContext::No);
 
         if change.browsing_context_id == BrowsingContextId::from(webview_id) {
-            self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStop);
+            self.send_webdriver_load_status(
+                webview_id,
+                WebDriverLoadStatus::NavigationStop,
+                Some(new_pipeline_id),
+            );
         }
 
         if let Some(webview) = self.webviews.get_mut(&webview_id) {
@@ -4533,6 +4544,7 @@ where
                 } else {
                     WebDriverLoadStatus::Complete
                 },
+                Some(pipeline_id),
             );
         } else {
             self.handle_subframe_load_finished(pipeline_id, aborted);
@@ -4597,7 +4609,13 @@ where
             .push_back(traversal_request);
         // Report the traversal as a navigation before applying it: it may have to wait for a
         // previous traversal to finish, and nothing else reports its start.
-        self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStart);
+        // If a pipeline has been recorded, that document reports its own end.
+        if !self
+            .webdriver_navigating_pipelines
+            .contains_key(&webview_id)
+        {
+            self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStart, None);
+        }
         self.apply_queued_session_history_traversal_requests(webview_id);
     }
 
@@ -4795,27 +4813,16 @@ where
             // considered below.
             self.apply_queued_session_history_traversal_requests(webview_id);
 
-            // 1. A traversal started above (implies a pipeline is created which has load)
-            // 2. A document that is still loading
-            // will clear theoutstanding status itself.
-            // Otherwise do it manually.
-            if !self.webview_is_navigating(webview_id) {
-                self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStop);
+            // Only an entry with no pipeline yet is this traversal's responsibility.
+            // If a pipeline has been recorded, that document reports its own end.
+            if self.webdriver_navigation_has_no_pipeline(webview_id) {
+                self.send_webdriver_load_status(
+                    webview_id,
+                    WebDriverLoadStatus::NavigationStop,
+                    None,
+                );
             }
         }
-    }
-
-    /// Whether a history traversal is still running,
-    /// or the top-level document is still loading.
-    fn webview_is_navigating(&self, webview_id: WebViewId) -> bool {
-        let Some(webview) = self.webviews.get(&webview_id) else {
-            return false;
-        };
-        let top_level_pipeline = self
-            .browsing_contexts
-            .get(&BrowsingContextId::from(webview_id))
-            .and_then(|context| self.pipelines.get(&context.pipeline_id));
-        webview.is_navigating(top_level_pipeline)
     }
 
     /// Notify the embedder that the given [`HistoryTraversalRequest`] is complete, if it was
@@ -4863,10 +4870,10 @@ where
             self.notify_embedder_of_completed_session_history_traversal_request(&traversal_request);
         }
 
-        // Everything completed here finished without loading.
-        // A traversal or document still in flight reports its own.
-        if completed_any && !self.webview_is_navigating(webview_id) {
-            self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStop);
+        // Everything completed here finished without loading. Only an entry with no pipeline
+        // yet is left for this traversal to finish; a recorded pipeline reports its own end.
+        if completed_any && self.webdriver_navigation_has_no_pipeline(webview_id) {
+            self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStop, None);
         }
     }
 
@@ -4919,6 +4926,7 @@ where
                     self.send_webdriver_load_status(
                         webview_id,
                         WebDriverLoadStatus::NavigationStart,
+                        Some(new_pipeline_id),
                     );
                 }
                 self.new_pipeline(
@@ -5129,13 +5137,21 @@ where
             },
         };
 
-        self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStart);
+        self.send_webdriver_load_status(
+            webview_id,
+            WebDriverLoadStatus::NavigationStart,
+            Some(pipeline_id),
+        );
         if !self.send_message_to_pipeline(
             pipeline_id,
             ScriptThreadMessage::Reload(pipeline_id),
             "Got reload event after closure",
         ) {
-            self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStop);
+            self.send_webdriver_load_status(
+                webview_id,
+                WebDriverLoadStatus::NavigationStop,
+                Some(pipeline_id),
+            );
         }
     }
 
@@ -5452,20 +5468,50 @@ where
     }
 
     /// Report a navigation status to the WebDriver server for `webview_id`, if registered.
-    fn send_webdriver_load_status(&mut self, webview_id: WebViewId, status: WebDriverLoadStatus) {
-        match status {
-            WebDriverLoadStatus::NavigationStart => {
-                self.webdriver_navigating_webviews.insert(webview_id);
-            },
-            _ => {
-                self.webdriver_navigating_webviews.remove(&webview_id);
-            },
+    ///
+    /// `pipeline_id`: the document the status belongs to; a `Complete` or
+    /// `NavigationStop` for any other document is ignored.
+    ///
+    /// `None` means either:
+    /// - for `NavigationStart`: the navigation has no pipeline yet (a queued traversal); the
+    ///   entry is still inserted, so the webview counts as navigating until a later
+    ///   `NavigationStart` replaces it with a pipeline id;
+    /// - for `Complete`/`NavigationStop`: the status is about the webview rather than a
+    ///   document (a traversal finished with no pipeline on record, or the webview closed),
+    ///   so it removes the entry whatever pipeline id the entry has.
+    fn send_webdriver_load_status(
+        &mut self,
+        webview_id: WebViewId,
+        status: WebDriverLoadStatus,
+        pipeline_id: Option<PipelineId>,
+    ) {
+        if status == WebDriverLoadStatus::NavigationStart {
+            self.webdriver_navigating_pipelines
+                .insert(webview_id, pipeline_id);
+        } else if pipeline_id.is_none() ||
+            self.webdriver_navigating_pipelines.get(&webview_id) == Some(&pipeline_id)
+        {
+            self.webdriver_navigating_pipelines.remove(&webview_id);
+        } else {
+            // We get a pipeline id but unmatched, either:
+            // 1. The initial `about:blank` ALWAYS finishes load without a start being reported.
+            // 2. A superseded document may finish after a newer navigation's start.
+            return;
         }
 
         let Some(sender) = self.webdriver_load_status_senders.get(&webview_id) else {
             return;
         };
         let _ = sender.send(WebDriverLoadStatusMessage { webview_id, status });
+    }
+
+    /// Whether the navigation WebDriver is waiting on for `webview_id` without pipeline yet:
+    /// a traversal was accepted but has not created its document.
+    fn webdriver_navigation_has_no_pipeline(&self, webview_id: WebViewId) -> bool {
+        matches!(
+            self.webdriver_navigating_pipelines.get(&webview_id),
+            Some(None)
+        )
     }
 
     /// Dispatch a script command to the current pipeline of the browsing context.
@@ -5505,7 +5551,9 @@ where
                 self.webdriver_load_status_senders.remove(&webview_id);
             },
             WebDriverCommandMsg::IsNavigationInProgress(webview_id, response_sender) => {
-                let in_progress = self.webdriver_navigating_webviews.contains(&webview_id);
+                let in_progress = self
+                    .webdriver_navigating_pipelines
+                    .contains_key(&webview_id);
                 let _ = response_sender.send(in_progress);
             },
             // TODO: This should use the ScriptThreadMessage::EvaluateJavaScript command
