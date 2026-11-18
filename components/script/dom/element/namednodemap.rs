@@ -122,16 +122,16 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
     /// <https://heycam.github.io/webidl/#dfn-supported-property-names>
     fn SupportedPropertyNames(&self, _: &NoGC) -> Vec<DOMString> {
         let mut names = vec![];
-        let mut seen = FxHashSet::default();
+        let mut seen: FxHashSet<&LocalName> = FxHashSet::default();
         let html_element_in_html_document = self.owner.html_element_in_html_document();
         for attr in self.owner.attrs().borrow().iter() {
-            let s = &**attr.name();
-            if html_element_in_html_document && !s.bytes().all(|b| b.to_ascii_lowercase() == b) {
+            let name = attr.name();
+            if html_element_in_html_document && !name.bytes().all(|b| b.to_ascii_lowercase() == b) {
                 continue;
             }
 
-            if seen.insert(s) {
-                names.push(DOMString::from(s));
+            if seen.insert(name) {
+                names.push(DOMString::from(&**name));
             }
         }
         names
