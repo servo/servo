@@ -1038,7 +1038,7 @@ impl HTMLElement {
         }
 
         // 2. If node is disabled, then return null.
-        if self.upcast::<Element>().is_actually_disabled() {
+        if self.is_form_element_disabled(cx.no_gc()) {
             return None;
         }
 
