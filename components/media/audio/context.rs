@@ -8,6 +8,7 @@ use std::sync::{Arc, Mutex};
 use std::thread::Builder;
 
 use malloc_size_of_derive::MallocSizeOf;
+use profile_traits::mem::memory_profiler_chan;
 use servo_media_traits::{BackendMsg, ClientContextId, MediaInstance, MediaInstanceError};
 
 use crate::AudioBackend;
@@ -166,17 +167,30 @@ impl AudioContext {
         let listener = graph.listener_id();
 
         let (init_sender, init_receiver) = mpsc::channel();
+        let reporter_sender = sender.clone();
         Builder::new()
             .name("AudioRenderThread".to_owned())
             .spawn(move || {
-                AudioRenderThread::start::<B>(
-                    receiver,
-                    sender_,
-                    sample_rate,
-                    graph,
-                    options,
-                    init_sender,
-                )
+                let start = || {
+                    AudioRenderThread::start::<B>(
+                        receiver,
+                        sender_,
+                        sample_rate,
+                        graph,
+                        options,
+                        init_sender,
+                    )
+                };
+                if let Some(profiler_chan) = memory_profiler_chan() {
+                    profiler_chan.run_with_memory_reporting(
+                        start,
+                        format!("media-audio-render-{id}"),
+                        reporter_sender,
+                        AudioRenderThreadMsg::CollectorMemoryReport,
+                    )
+                } else {
+                    start();
+                }
             })
             .expect("Failed to spawn AudioRenderThread");
 

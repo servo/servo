@@ -9,6 +9,7 @@ use std::ptr;
 use libc::c_int;
 use profile_traits::mem::{ProcessReports, Report, ReportKind, ReporterRequest};
 use profile_traits::path;
+use servo_media::ServoMedia;
 
 const SYSTEM_HEAP_ALLOCATED_STR: &str = "system-heap-allocated";
 const SYSTEM_HEAP_RESERVED_STR: &str = "system-heap-reserved";
@@ -57,6 +58,11 @@ pub fn collect_reports(request: ReporterRequest) {
         for heap_report in servo_allocator::heap_reports() {
             report(path![heap_report.path], heap_report.size);
         }
+    }
+
+    let media = ServoMedia::try_get();
+    if let Some(media) = media {
+        reports.extend(media.collect_reports());
     }
 
     request.reports_channel.send(ProcessReports::new(reports));

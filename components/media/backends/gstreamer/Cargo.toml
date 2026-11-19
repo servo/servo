@@ -33,6 +33,8 @@ gstreamer-sys = { workspace = true }
 gstreamer-video = { workspace = true }
 gstreamer-webrtc = { workspace = true }
 log = { workspace = true }
+malloc_size_of = { workspace = true }
+profile_traits = { workspace = true }
 servo-base = { workspace = true }
 servo-media = { workspace = true }
 servo-media-audio = { workspace = true }

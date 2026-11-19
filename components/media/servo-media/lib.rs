@@ -18,6 +18,7 @@ use player::audio::AudioRenderer;
 use player::context::PlayerGLContext;
 use player::video::VideoFrameRenderer;
 use player::{Player, PlayerEvent, StreamType};
+use profile_traits::mem::Report;
 use servo_base::generic_channel::GenericCallback;
 use streams::capture::MediaTrackConstraintSet;
 use streams::device_monitor::MediaDeviceMonitor;
@@ -86,6 +87,16 @@ pub trait Backend: Send + Sync {
     fn resume(&self, _id: &ClientContextId) {}
 
     fn get_device_monitor(&self) -> Box<dyn MediaDeviceMonitor>;
+
+    /// Collect memory reports for everything this backend owns.
+    ///
+    /// Implementations must not send anything on a [`ReportsChan`] themselves;
+    /// the returned reports are appended to the reports of the process that
+    /// hosts the backend. The default implementation reports nothing, so
+    /// backends that have nothing to measure need no overrides.
+    fn collect_reports(&self) -> Vec<Report> {
+        Vec::new()
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -109,6 +120,12 @@ impl ServoMedia {
 
     pub fn get() -> Arc<ServoMedia> {
         INSTANCE.wait().clone()
+    }
+
+    /// Like [`Self::get`], but returns `None` instead of blocking when media has
+    /// not been initialized in this process (yet).
+    pub fn try_get() -> Option<Arc<ServoMedia>> {
+        INSTANCE.get().cloned()
     }
 }
 
