@@ -44,9 +44,10 @@
     data-description="An orthogonal inline-block contributes its block size and its left and right margins"><span class="inlineBlock" style="writing-mode: vertical-lr; height: 40px; margin: 1px 2px 3px 4px">xx xxx</span> xx</div>
 
 <script>
+promise_setup(() => document.fonts.ready);
 for (const content of document.querySelectorAll(".content")) {
     for (const [width, expectedWidth] of [["min-content", content.dataset.minContent], ["max-content", content.dataset.maxContent]]) {
-        test(() => {
+        promise_test(async () => {
             const container = content.cloneNode(true);
             container.removeAttribute("id");
             container.style.width = width;
