@@ -14,6 +14,8 @@
 <body>
 <div id="target"></div>
 <script>
+setup({ explicit_done: true });
+
 // Ensure Ahem is loaded so that the 'ch' unit resolves as expected;
 // without this the load may be asynchronous, and the value will initially
 // resolve against the default font instead.
@@ -36,5 +38,5 @@ document.fonts.load("20px Ahem").then(() => {
   test_computed_value("text-decoration-inset", "10px -20%");
   test_computed_value("text-decoration-inset", "calc(10% - 1em) 0", "calc(10% - 20px) 0px");
   test_computed_value("text-decoration-inset", "calc(10% + 1ch) calc(-20%)", "calc(10% + 20px) -20%");
-});
+}).finally(done);
 </script>
