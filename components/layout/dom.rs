@@ -557,6 +557,8 @@ pub(crate) trait NodeExt<'dom> {
 
     /// Run `callback` on the fragments without cloning them. Returns `None` if the node has no box.
     fn with_fragments<T>(&self, callback: impl FnOnce(&[Fragment]) -> T) -> Option<T>;
+    /// The same as above except that it will run the callback on the emptry array if `inner_layout_data` is None.
+    fn with_fragments_or_empty<T>(&self, callback: impl Fn(&[Fragment]) -> T) -> T;
     /// Run `callback` on the `LayoutBoxBase` of this node's box or the box of its pseudo-element.
     /// Returns `None` if there is no such box.
     fn with_layout_box_base<T>(&self, callback: impl FnOnce(&LayoutBoxBase) -> T) -> Option<T>;
@@ -826,6 +828,12 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
 
     fn with_fragments<T>(&self, callback: impl FnOnce(&[Fragment]) -> T) -> Option<T> {
         self.inner_layout_data()?.with_fragments(callback)
+    }
+
+    fn with_fragments_or_empty<T>(&self, callback: impl Fn(&[Fragment]) -> T) -> T {
+        self.inner_layout_data()
+            .and_then(|layout_data| layout_data.with_fragments(&callback))
+            .unwrap_or_else(|| callback(&[]))
     }
 
     fn repair_style(&self, context: &SharedStyleContext) {
