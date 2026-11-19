@@ -1220,8 +1220,8 @@ impl ScriptThread {
                 // > global object as the timestamp [WEBANIMATIONS]
                 document.update_animations_and_send_events(cx);
 
-                // TODO(#31866): Implement "run the fullscreen steps" from
-                // https://fullscreen.spec.whatwg.org/multipage/#run-the-fullscreen-steps.
+                // > 12. For each doc of docs, run the fullscreen steps for doc.
+                document.overlay_handler().run_the_fullscreen_steps(cx);
 
                 // TODO(#31868): Implement the "context lost steps" from
                 // https://html.spec.whatwg.org/multipage/#context-lost-steps.
