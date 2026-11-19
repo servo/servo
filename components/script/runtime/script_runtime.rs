@@ -749,6 +749,8 @@ impl Runtime {
         }
         cx_opts.set_wasmBaseline_(pref!(js_wasm_baseline_enabled));
         cx_opts.set_wasmIon_(pref!(js_wasm_ion_enabled));
+        // Async stacks cost a stack capture per promise.
+        cx_opts.set_asyncStackCaptureDebuggeeOnly_(true);
 
         unsafe {
             let cx = runtime.cx();
