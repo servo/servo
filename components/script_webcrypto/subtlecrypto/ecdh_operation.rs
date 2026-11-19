@@ -24,6 +24,7 @@ use crate::subtlecrypto::ec_common::EcAlgorithm;
 use crate::subtlecrypto::{
     EcKeyGenParams, EcKeyImportParams, EcdhKeyDeriveParams, ExportedKey,
     KeyAlgorithmAndDerivatives, NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521, ec_common,
+    truncate_bit_sequence,
 };
 use crate::traits::Equivalence;
 
@@ -205,13 +206,7 @@ pub(crate) fn derive_bits<D: Equivalence>(
                 )))
             } else {
                 let mut secret = secret[..length.div_ceil(8) as usize].to_vec();
-                if length % 8 != 0 {
-                    // Clean excess bits in last byte of secret.
-                    let mask = u8::MAX << (8 - length % 8);
-                    if let Some(last_byte) = secret.last_mut() {
-                        *last_byte &= mask;
-                    }
-                }
+                truncate_bit_sequence(&mut secret, length as usize);
                 Ok(secret)
             }
         },
