@@ -1095,8 +1095,8 @@ mod test {
         .collect();
         let image = RasterImage {
             metadata: ImageMetadata {
-                width: 100,
-                height: 100,
+                width: Some(100),
+                height: Some(100),
             },
             format: PixelFormat::BGRA8,
             id: None,
@@ -1137,8 +1137,8 @@ mod test {
         .collect();
         let image = RasterImage {
             metadata: ImageMetadata {
-                width: 100,
-                height: 100,
+                width: Some(100),
+                height: Some(100),
             },
             format: PixelFormat::BGRA8,
             id: None,

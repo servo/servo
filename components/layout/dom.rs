@@ -605,8 +605,12 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
 
     fn as_image(&self) -> Option<(ImageInfo, PhysicalSize<f64>)> {
         let (resource, metadata) = self.image_data()?;
-        let width = metadata.map(|metadata| metadata.width).unwrap_or_default();
-        let height = metadata.map(|metadata| metadata.height).unwrap_or_default();
+        let width = metadata
+            .map(|metadata| metadata.width.unwrap_or_default())
+            .unwrap_or_default();
+        let height = metadata
+            .map(|metadata| metadata.height.unwrap_or_default())
+            .unwrap_or_default();
         let (mut width, mut height) = (width as f64, height as f64);
         // Take `image_density` into account for calculating the size in pixels for images.
         if let Some(density) = self.image_density().filter(|density| *density != 1.) {

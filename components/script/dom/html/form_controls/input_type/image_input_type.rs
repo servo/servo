@@ -102,9 +102,14 @@ impl ImageInputType {
             .borrow_for_shadow_tree()
             .as_ref()
             .and_then(|shadow_tree| {
+                // TODO: Actually apply the default sizing algorithm here.
+                //       (see https://drafts.csswg.org/css-images/#default-sizing)
                 shadow_tree.image_element.image_data().map(|image_data| {
                     let metadata = image_data.metadata();
-                    (metadata.width, metadata.height)
+                    (
+                        metadata.width.unwrap_or(300),
+                        metadata.height.unwrap_or(150),
+                    )
                 })
             });
         // Step 4. Return the result of determining the dimensions of input given naturalDimensions.

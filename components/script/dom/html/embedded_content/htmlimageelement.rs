@@ -141,7 +141,7 @@ impl HTMLImageElement {
         // If image has an intrinsic width or intrinsic height (or both) equal to zero, then return bad.
         if let Some(image) = &self.current_request.borrow().image {
             let intrinsic_size = image.metadata();
-            if intrinsic_size.width == 0 || intrinsic_size.height == 0 {
+            if intrinsic_size.width == Some(0) || intrinsic_size.height == Some(0) {
                 return Ok(false);
             }
         }
@@ -1497,11 +1497,21 @@ impl HTMLImageElement {
         // intrinsicHeight, and intrinsicRatio, using a default object size of 300 by 150.
         let intrinsic_width = current_request
             .metadata
-            .map(|metadata| (metadata.width as f64 / density) as u32)
+            .map(|metadata| {
+                metadata
+                    .width
+                    .map(|width| (width as f64 / density) as u32)
+                    .unwrap_or(300)
+            })
             .unwrap_or(300);
         let intrinsic_height = current_request
             .metadata
-            .map(|metadata| (metadata.height as f64 / density) as u32)
+            .map(|metadata| {
+                metadata
+                    .height
+                    .map(|height| (height as f64 / density) as u32)
+                    .unwrap_or(150)
+            })
             .unwrap_or(150);
         (intrinsic_width, intrinsic_height)
     }

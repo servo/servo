@@ -382,7 +382,14 @@ impl RasterImage {
     }
 
     pub fn as_snapshot(&self) -> Snapshot {
-        let size = Size2D::new(self.metadata.width, self.metadata.height);
+        let size = Size2D::new(
+            self.metadata
+                .width
+                .expect("Raster images should always have a width."),
+            self.metadata
+                .height
+                .expect("Raster images should always have a height."),
+        );
         let format = match self.format {
             PixelFormat::BGRA8 => SnapshotPixelFormat::BGRA,
             PixelFormat::RGBA8 => SnapshotPixelFormat::RGBA,
@@ -454,7 +461,14 @@ impl RasterImage {
         let mut flags = ImageDescriptorFlags::ALLOW_MIPMAPS;
         flags.set(ImageDescriptorFlags::IS_OPAQUE, self.is_opaque);
 
-        let size = DeviceIntSize::new(self.metadata.width as i32, self.metadata.height as i32);
+        let size = DeviceIntSize::new(
+            self.metadata
+                .width
+                .expect("Raster images should always have a width.") as i32,
+            self.metadata
+                .height
+                .expect("Raster images should always have a height.") as i32,
+        );
         let descriptor = ImageDescriptor {
             size,
             stride: None,
@@ -486,7 +500,14 @@ impl RasterImage {
         let mut flags = ImageDescriptorFlags::ALLOW_MIPMAPS;
         flags.set(ImageDescriptorFlags::IS_OPAQUE, self.is_opaque);
 
-        let size = DeviceIntSize::new(self.metadata.width as i32, self.metadata.height as i32);
+        let size = DeviceIntSize::new(
+            self.metadata
+                .width
+                .expect("Raster images should always have a width.") as i32,
+            self.metadata
+                .height
+                .expect("Raster images should always have a height.") as i32,
+        );
         let descriptor = ImageDescriptor {
             size,
             stride: None,
@@ -515,15 +536,22 @@ impl fmt::Debug for RasterImage {
         write!(
             f,
             "Image {{ width: {}, height: {}, format: {:?}, ..., id: {:?} }}",
-            self.metadata.width, self.metadata.height, self.format, self.id
+            self.metadata
+                .width
+                .expect("Raster images should always have a width."),
+            self.metadata
+                .height
+                .expect("Raster images should always have a height."),
+            self.format,
+            self.id
         )
     }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub struct ImageMetadata {
-    pub width: u32,
-    pub height: u32,
+    pub width: Option<u32>,
+    pub height: Option<u32>,
 }
 
 // FIXME: Images must not be copied every frame. Instead we should atomically

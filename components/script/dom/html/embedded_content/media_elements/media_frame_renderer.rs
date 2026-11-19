@@ -207,8 +207,16 @@ impl MediaFrameRenderer {
         self.poster_frame = image.and_then(|image| {
             image.id.map(|image_key| MediaFrame {
                 image_key,
-                width: image.metadata.width as i32,
-                height: image.metadata.height as i32,
+                width: image
+                    .metadata
+                    .width
+                    .expect("Raster images should always have a width.")
+                    as i32,
+                height: image
+                    .metadata
+                    .height
+                    .expect("Raster images should always have a height.")
+                    as i32,
             })
         });
     }
