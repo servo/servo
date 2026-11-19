@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use glib::prelude::*;
 use gstreamer_video::prelude::*;
+use malloc_size_of_derive::MallocSizeOf;
 use servo_media_gstreamer_render::Render;
 use servo_media_player::PlayerError;
 use servo_media_player::context::PlayerGLContext;
@@ -81,7 +82,9 @@ mod platform {
     }
 }
 
+#[derive(MallocSizeOf)]
 struct GStreamerBuffer {
+    #[ignore_malloc_size_of = "External Type"]
     frame: gstreamer_video::VideoFrame<gstreamer_video::video_frame::Readable>,
     stride: usize,
     row_bytes: usize,
@@ -103,7 +106,9 @@ impl Buffer for GStreamerBuffer {
     }
 }
 
+#[derive(MallocSizeOf)]
 pub struct GStreamerRender {
+    #[ignore_malloc_size_of = "External Type"]
     render: Option<platform::Render>,
 }
 

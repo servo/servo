@@ -33,7 +33,6 @@ pub struct CookieStorage {
     cookies_map: HashMap<String, Vec<ServoCookie>>,
     max_per_host: usize,
     #[serde(skip)]
-    #[ignore_malloc_size_of = "Channels"]
     listeners: HashMap<CookieStoreId, (ServoUrl, GenericCallback<CookieAsyncResponse>)>,
 }
 

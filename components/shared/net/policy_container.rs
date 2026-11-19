@@ -39,7 +39,6 @@ impl RequestPolicyContainer {
 /// <https://html.spec.whatwg.org/multipage/#policy-containers>
 #[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
 pub struct PolicyContainer {
-    #[ignore_malloc_size_of = "Defined in rust-content-security-policy"]
     /// <https://html.spec.whatwg.org/multipage/#policy-container-csp-list>
     pub csp_list: Option<CspList>,
     /// <https://html.spec.whatwg.org/multipage/#policy-container-embedder-policy>

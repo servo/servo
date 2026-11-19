@@ -217,10 +217,8 @@ pub(crate) struct DedicatedWorkerGlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#animation-frame-callback-identifier>
     animation_frame_ident: Cell<u32>,
     /// Pending animation frame callbacks for a later worker rendering update.
-    #[ignore_malloc_size_of = "closures are hard"]
     animation_frame_list: DomRefCell<VecDeque<(u32, TracedCallback<FrameRequestCallback>)>>,
-    /// Callbacks snapshotted for the current worker rendering update.
-    #[ignore_malloc_size_of = "closures are hard"]
+    /// Callbacks snapshotted for the current worker rendering update.s
     current_animation_frame_list: DomRefCell<VecDeque<(u32, TracedCallback<FrameRequestCallback>)>>,
     /// Whether we're in the process of running animation callbacks.
     running_animation_callbacks: Cell<bool>,

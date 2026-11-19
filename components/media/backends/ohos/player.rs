@@ -9,6 +9,7 @@ use std::time;
 
 use crossbeam_channel::Sender;
 use log::{debug, error, warn};
+use malloc_size_of_derive::MallocSizeOf;
 use ohos_media_sys::avformat::{
     OH_AVFormat, OH_AVFormat_GetFloatValue, OH_AVFormat_GetIntValue, OH_AVFormat_GetLongValue,
 };
@@ -36,15 +37,19 @@ use crate::ohos_media::source::MediaSourceWrapper;
 const FRAME_HEIGHT_MULTIPLE: i32 = 32;
 
 /// This is used to fill the gap between internal AVPlayer state and Player State exposed to Media Element.
+#[derive(MallocSizeOf)]
 pub struct StateManager {
     pub internal_state: InternalState,
     pub player_state: PlayerState,
 }
 
+#[derive(MallocSizeOf)]
 pub struct InternalState {
+    #[ignore_malloc_size_of = "External type"]
     pub state: AVPlayerState,
 }
 
+#[derive(MallocSizeOf)]
 pub struct PlayerState {
     pub paused: bool,
 }
@@ -60,14 +65,21 @@ impl StateManager {
     }
 }
 
+#[derive(MallocSizeOf)]
 pub struct OhosAvPlayer {
     id: usize,
     context_id: ClientContextId,
+    #[conditional_malloc_size_of]
     player_inner: Arc<Mutex<OhosPlayerInner>>,
+    #[conditional_malloc_size_of]
     event_sender: Arc<Mutex<GenericCallback<servo_media::player::PlayerEvent>>>,
+    #[conditional_malloc_size_of]
     video_sink: Option<Arc<Mutex<VideoSink>>>,
+    #[conditional_malloc_size_of]
     backend_chan: Arc<Mutex<mpsc::Sender<BackendMsg>>>,
+    #[ignore_malloc_size_of = "Metadata does not implement copy which is needed for conditional"]
     last_metadata: Arc<Mutex<Cell<Metadata>>>,
+    #[conditional_malloc_size_of]
     state_manager: Arc<Mutex<StateManager>>,
 }
 
@@ -556,11 +568,16 @@ impl Player for OhosAvPlayer {
 
 /// Used when acquiring the decoded Video Frame,
 /// and upload it to Media Frame Renderer in media element.
+#[derive(MallocSizeOf)]
 struct VideoSink {
+    #[ignore_malloc_size_of = "Cannot be measured for now"]
     video_render:
         std::sync::Arc<std::sync::Mutex<dyn servo_media::player::video::VideoFrameRenderer>>,
+    #[conditional_malloc_size_of]
     player_inner: Arc<Mutex<OhosPlayerInner>>,
+    #[conditional_malloc_size_of]
     event_sender: Arc<Mutex<GenericCallback<servo_media::player::PlayerEvent>>>,
+    #[ignore_malloc_size_of = "Sender does not implement copy"]
     thread_send_chan: Cell<Option<Sender<RenderMsg>>>,
 }
 
@@ -729,6 +746,7 @@ impl Drop for VideoSink {
     }
 }
 
+#[derive(MallocSizeOf)]
 struct OhosBuffer {
     data: Vec<u8>,
 }

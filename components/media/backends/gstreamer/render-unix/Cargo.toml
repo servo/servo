@@ -26,6 +26,8 @@ gstreamer-gl-egl = { workspace = true, optional = true }
 gstreamer-gl-wayland = { workspace = true, optional = true }
 gstreamer-gl-x11 = { workspace = true, optional = true }
 gstreamer-video = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
 servo-media-gstreamer-render = { workspace = true }
 servo-media-player = { workspace = true }
 

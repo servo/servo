@@ -13,6 +13,8 @@ pub mod context;
 pub mod metadata;
 pub mod video;
 
+use malloc_size_of::MallocSizeOf;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{self, GenericSender};
 use servo_media_traits::MediaInstance;
@@ -49,7 +51,7 @@ pub enum PlayerError {
 
 pub type SeekLockMsg = (bool, GenericSender<()>);
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub struct SeekLock {
     pub lock_channel: GenericSender<SeekLockMsg>,
 }
@@ -88,7 +90,7 @@ pub enum PlayerEvent {
     StateChanged(PlaybackState),
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize, MallocSizeOf)]
 pub enum StreamType {
     /// No seeking is supported in the stream, such as a live stream.
     Stream,
@@ -96,7 +98,7 @@ pub enum StreamType {
     Seekable,
 }
 
-pub trait Player: Send + MediaInstance {
+pub trait Player: Send + MediaInstance + MallocSizeOf {
     fn play(&self) -> Result<(), PlayerError>;
     fn pause(&self) -> Result<(), PlayerError>;
     fn paused(&self) -> bool;

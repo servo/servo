@@ -42,7 +42,7 @@ pub enum AudioNodeInit {
     GainNode(GainNodeOptions),
     IIRFilterNode(IIRFilterNodeOptions),
     MediaElementSourceNode,
-    MediaStreamDestinationNode(#[ignore_malloc_size_of = "Fn"] Box<dyn MediaSocket>),
+    MediaStreamDestinationNode(Box<dyn MediaSocket>),
     MediaStreamSourceNode(MediaStreamId),
     OscillatorNode(OscillatorNodeOptions),
     PannerNode(PannerNodeOptions),

@@ -4,9 +4,10 @@
 
 use std::time;
 
+use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize, MallocSizeOf)]
 pub struct Metadata {
     pub duration: Option<time::Duration>,
     pub width: u32,

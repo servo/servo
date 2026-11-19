@@ -6,6 +6,7 @@ use core::slice;
 use std::sync::{Arc, Mutex};
 
 use log::debug;
+use malloc_size_of_derive::MallocSizeOf;
 use ohos_media_sys::avbuffer::OH_AVBuffer;
 use ohos_media_sys::avcodec_base::OH_AVDataSourceExt;
 use ohos_media_sys::avplayer::OH_AVPlayer_SetDataSource;
@@ -15,10 +16,14 @@ use crate::ohos_media::source_builder::MediaSourceBuilder;
 
 const DEFAULT_CACHE_SIZE: usize = 8 * 1024 * 1024; // 8MB
 
+#[derive(MallocSizeOf)]
 pub struct MediaSourceWrapper {
+    #[ignore_malloc_size_of = "External Type"]
     pub(crate) data_src: ohos_media_sys::avcodec_base::OH_AVDataSourceExt,
     total_media_source_size: usize,
+    #[ignore_malloc_size_of = "External Type"]
     playback_buffer: Arc<Mutex<PlaybackBuffer>>,
+    #[ignore_malloc_size_of = "Function difficult to measure"]
     closure_handle: *mut Box<dyn Fn(*mut u8, u32, i64) -> i32>,
 }
 
