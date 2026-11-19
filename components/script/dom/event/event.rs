@@ -1040,8 +1040,8 @@ impl EventMethods<crate::DomTypeHolder> for Event {
         }
 
         // Reverse once to achieve step 12.2's prepend.
-        let composed_path = reversed_composed_path.reverse();
-
+        reversed_composed_path.reverse();
+        let composed_path = reversed_composed_path;
         // Step 13. Set currentHiddenLevel and maxHiddenLevel to currentTargetHiddenSubtreeLevel.
         current_hidden_level = current_target_hidden_subtree_level;
         max_hidden_level = current_target_hidden_subtree_level;
