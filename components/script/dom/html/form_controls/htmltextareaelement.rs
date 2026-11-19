@@ -168,7 +168,7 @@ impl HTMLTextAreaElement {
         if *event_type == *"blur" {
             document
                 .embedder_controls()
-                .hide_embedder_control(self.upcast());
+                .hide_embedder_control_for_element(self.upcast());
         } else if *event_type == *"focus" {
             // If there is a Document selection collapse it. This isn't really specified
             // and there are quite a few open specification issues about the interaction
@@ -737,7 +737,7 @@ impl VirtualMethods for HTMLTextAreaElement {
         // Always attempt to hide IME when unbinding input elements from the tree.
         self.owner_document()
             .embedder_controls()
-            .hide_embedder_control(self.upcast());
+            .hide_embedder_control_for_element(self.upcast());
 
         self.super_type().unwrap().unbind_from_tree(cx, context);
         self.validity_state(cx)

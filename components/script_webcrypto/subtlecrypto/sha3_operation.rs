@@ -13,13 +13,13 @@ pub(crate) fn digest(normalized_algorithm: &Algorithm, message: &[u8]) -> Result
     // Step 1.
     // If the name member of normalizedAlgorithm is a case-sensitive string match for "SHA3-256":
     //     Let result be the result of performing the SHA3-256 hash function defined in Section 6.1
-    //     of [FIPS-202] using message as the input message, M.
+    //     of [FIPS-202] using the Keccak decoding of message as the input message, M.
     // If the name member of normalizedAlgorithm is a case-sensitive string match for "SHA3-384":
     //     Let result be the result of performing the SHA3-384 hash function defined in Section 6.1
-    //     of [FIPS-202] using message as the input message, M.
+    //     of [FIPS-202] using the Keccak decoding of message as the input message, M.
     // If the name member of normalizedAlgorithm is a case-sensitive string match for "SHA3-512":
     //     Let result be the result of performing the SHA3-512 hash function defined in Section 6.1
-    //     of [FIPS-202] using message as the input message, M.
+    //     of [FIPS-202] using the Keccak decoding of message as the input message, M.
     // Step 2. If performing the operation results in an error, then throw an OperationError.
     let result = match normalized_algorithm.name {
         CryptoAlgorithm::Sha3_256 => Sha3_256::new_with_prefix(message).finalize().to_vec(),

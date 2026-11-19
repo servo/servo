@@ -4216,6 +4216,21 @@ impl ExportedKey {
     }
 }
 
+/// Given a Keccak encoding of a bit string, truncate the bit string, keeping the first `length`
+/// bits.
+///
+/// If `length` is greater or equal to `bit_string.len() * 8`, this function has no effect.
+fn truncate_keccak_bit_string(bit_string: &mut Vec<u8>, length: usize) {
+    bit_string.truncate(length.div_ceil(8));
+
+    // Set the excess bits in the last byte to zero.
+    if length < bit_string.len() * 8 &&
+        let Some(last_byte) = bit_string.last_mut()
+    {
+        *last_byte &= u8::MAX >> (8 - length % 8);
+    }
+}
+
 /// Union type of KeyAlgorithm and IDL dictionary types derived from it. Note that we actually use
 /// our "subtle" structs of the corresponding IDL dictionary types so that they can be easily
 /// passed to another threads.

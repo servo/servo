@@ -30,10 +30,7 @@ use embedder_traits::{
     SimpleDialogRequest, Theme, UntrustedNodeAddress, ViewportDetails,
 };
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
-use fonts::{
-    CspViolationHandler, FontContext, NetworkTimingHandler, WebFontDocumentContext,
-    WebFontSetDifference,
-};
+use fonts::{CspViolationHandler, FontContext, NetworkTimingHandler, WebFontSetDifference};
 use html5ever::LocalName;
 use js::context::{JSContext, NoGC};
 use js::conversions::ToJSValConvertible;
@@ -1032,24 +1029,6 @@ impl Window {
         self.script_thread().perform_a_microtask_checkpoint(cx);
     }
 
-    pub(crate) fn web_font_context(&self, no_gc: &NoGC) -> WebFontDocumentContext {
-        let global = self.as_global_scope();
-        let task_source = global
-            .task_manager()
-            .dom_manipulation_task_source()
-            .to_sendable();
-        let document = self.document_unrooted(no_gc);
-        WebFontDocumentContext {
-            policy_container: document.policy_container().clone(),
-            request_client: self.request_client(Some(no_gc)),
-            document_url: document.base_url(),
-            csp_handler: Box::new(FontCspHandler {
-                task_source: task_source.clone(),
-            }),
-            network_timing_handler: Box::new(FontNetworkTimingHandler { task_source }),
-        }
-    }
-
     /// Part of <https://fetch.spec.whatwg.org/#populate-request-from-client>
     pub(crate) fn request_client(&self, no_gc: Option<&NoGC>) -> RequestClient {
         // Step 1.2.2. If global is a Window object and global’s navigable is not null,
@@ -1152,8 +1131,8 @@ impl Window {
 }
 
 #[derive(Debug, MallocSizeOf)]
-struct FontCspHandler {
-    task_source: SendableTaskSource,
+pub(crate) struct FontCspHandler {
+    pub(crate) task_source: SendableTaskSource,
 }
 
 impl CspViolationHandler for FontCspHandler {
@@ -1173,8 +1152,8 @@ impl CspViolationHandler for FontCspHandler {
 }
 
 #[derive(Debug, MallocSizeOf)]
-struct FontNetworkTimingHandler {
-    task_source: SendableTaskSource,
+pub(crate) struct FontNetworkTimingHandler {
+    pub(crate) task_source: SendableTaskSource,
 }
 
 impl NetworkTimingHandler for FontNetworkTimingHandler {
@@ -2853,7 +2832,7 @@ impl Window {
         // layout runs, so that the map can gather their elements in DOM order.
         document.id_map().resolve_all(cx.no_gc(), document.upcast());
 
-        let document_context = self.web_font_context(cx.no_gc());
+        let document_context = self.as_global_scope().web_font_context(cx.no_gc());
         let should_update_accessibility_tree = matches!(
             reflow_goal,
             ReflowGoal::UpdateTheRendering | ReflowGoal::LayoutQuery(QueryMsg::AccessKitNodeQuery)

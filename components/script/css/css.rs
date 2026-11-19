@@ -43,6 +43,28 @@ pub(crate) fn parser_context_for_document<'a>(
     )
 }
 
+/// Creates a `ParserContext` for CSS parsed by script in a worker.
+///
+/// Workers have no document, so this uses no-quirks mode.
+pub(crate) fn parser_context_for_worker<'a>(
+    rule_type: CssRuleType,
+    parsing_mode: ParsingMode,
+    url_data: &'a UrlExtraData,
+    error_reporter: Option<&'a dyn ParseErrorReporter>,
+) -> ParserContext<'a> {
+    ParserContext::new(
+        Origin::Author,
+        url_data,
+        Some(rule_type),
+        parsing_mode,
+        QuirksMode::NoQuirks,
+        /* namespaces = */ Default::default(),
+        error_reporter,
+        None,
+        /* attr_taint = */ Default::default(),
+    )
+}
+
 /// Like [`parser_context_for_document`], but with a custom error reporter.
 pub(crate) fn parser_context_for_document_with_reporter<'a>(
     document: &'a Document,

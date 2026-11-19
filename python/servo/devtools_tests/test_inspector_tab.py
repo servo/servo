@@ -50,6 +50,34 @@ class TestInspectorTab:
             assert_event_listeners(span, [{"type": "hover", "capturing": True}], devtools)
             assert_event_listeners(div, None, devtools)
 
+    def test_inspector_css_database_includes_shorthands(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/inspector/demo_dom.html")
+        with Devtools.connect() as devtools:
+            css_properties = devtools.targets[0]["cssPropertiesActor"]
+
+            reply = devtools.client.send_receive(
+                {
+                    "to": css_properties,
+                    "type": "getCSSDatabase",
+                },
+            )
+
+            properties = reply["properties"]
+
+            # Assert that shorthands are present
+            assert "padding" in properties
+
+            # Assert that a shorthand lists its longhands
+            assert properties["padding"]["subproperties"] == [
+                "padding-top",
+                "padding-right",
+                "padding-bottom",
+                "padding-left",
+            ]
+
+            # Assert that longhands are still present
+            assert properties["padding-top"]["subproperties"] == ["padding-top"]
+
     def test_inspector_attribute_modifications_affect_dom(self, run_servoshell, web_server_urls):
         run_servoshell(url=f"{web_server_urls[0]}/inspector/demo_dom.html")
         with Devtools.connect() as devtools:

@@ -26,6 +26,7 @@ use script_bindings::root::Dom;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::PipelineId;
 use servo_config::pref;
+use style::properties::{NonCustomPropertyId, PropertyId};
 use style::stylesheets::Origin;
 
 use crate::conversions::Convert;
@@ -45,7 +46,6 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::NoTrace;
-use crate::dom::css::cssstyledeclaration::ENABLED_LONGHAND_PROPERTIES;
 use crate::dom::css::cssstylerule::CSSStyleRule;
 use crate::dom::document::AnimationFrameCallback;
 use crate::dom::element::Element;
@@ -175,16 +175,23 @@ pub(crate) fn handle_get_favicon(
 }
 
 pub(crate) fn handle_get_css_database(reply: GenericSender<HashMap<String, CssDatabaseProperty>>) {
-    let database: HashMap<_, _> = ENABLED_LONGHAND_PROPERTIES
-        .iter()
-        .map(|l| {
+    let database: HashMap<_, _> = NonCustomPropertyId::iter()
+        .filter(|id| PropertyId::NonCustom(*id).enabled_for_all_content())
+        .map(|id| {
+            let (is_inherited, subproperties) = match id.longhand_or_shorthand() {
+                Ok(longhand) => (longhand.inherited(), vec![longhand.name().into()]),
+                Err(shorthand) => (
+                    shorthand.longhands().next().is_some_and(|l| l.inherited()),
+                    shorthand.longhands().map(|l| l.name().into()).collect(),
+                ),
+            };
             (
-                l.name().into(),
+                id.name().into(),
                 CssDatabaseProperty {
-                    is_inherited: l.inherited(),
+                    is_inherited,
                     values: vec![], // TODO: Get allowed values for each property
                     supports: vec![],
-                    subproperties: vec![l.name().into()],
+                    subproperties,
                 },
             )
         })
