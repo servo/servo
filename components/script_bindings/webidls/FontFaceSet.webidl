@@ -7,7 +7,7 @@ dictionary FontFaceSetLoadEventInit : EventInit {
   sequence<FontFace> fontfaces = [];
 };
 
-[Exposed=(Window /*, Worker */), Pref="dom_fontface_enabled"]
+[Exposed=(Window,Worker), Pref="dom_fontface_enabled"]
 interface FontFaceSetLoadEvent : Event {
   constructor(DOMString type, optional FontFaceSetLoadEventInit eventInitDict = {});
   // WebIDL needs to support FrozenArray & SameObject
@@ -18,7 +18,7 @@ interface FontFaceSetLoadEvent : Event {
 enum FontFaceSetLoadStatus { "loading" , "loaded" };
 
 // https://drafts.csswg.org/css-font-loading/#FontFaceSet-interface
-[Exposed=(Window /*, Worker */)]
+[Exposed=(Window,Worker)]
 interface FontFaceSet : EventTarget {
   // constructor(sequence<FontFace> initialFaces);
 
