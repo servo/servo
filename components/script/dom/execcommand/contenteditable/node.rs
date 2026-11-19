@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cmp::Ordering;
+use std::collections::VecDeque;
 use std::ops::Deref;
 
 use cssparser::color::OPAQUE;
@@ -579,7 +580,7 @@ pub(crate) fn split_the_parent<'a>(cx: &mut JSContext, node_list: &'a [&'a Node]
 /// <https://w3c.github.io/editing/docs/execCommand/#wrap>
 pub(crate) fn wrap_node_list<SiblingCriteria, NewParentInstructions>(
     cx: &mut JSContext,
-    node_list: Vec<DomRoot<Node>>,
+    mut node_list: VecDeque<DomRoot<Node>>,
     mut sibling_criteria: SiblingCriteria,
     new_parent_instructions: NewParentInstructions,
 ) -> Option<DomRoot<Node>>
@@ -595,32 +596,32 @@ where
     {
         return None;
     }
+
     // Step 2. If node list's first member's parent is null, return null and abort these steps.
-    node_list.first().and_then(|first| first.GetParentNode())?;
+    node_list.front().and_then(|first| first.GetParentNode())?;
     // Step 3. If node list's last member is an inline node that's not a br,
     // and node list's last member's nextSibling is a br, append that br to node list.
-    let mut node_list = node_list;
-    if let Some(last) = node_list.last() &&
+    if let Some(last) = node_list.back() &&
         last.is_inline_node(cx) &&
         !last.is::<HTMLBRElement>() &&
         let Some(next_of_last) = last.GetNextSibling() &&
         next_of_last.is::<HTMLBRElement>()
     {
-        node_list.push(next_of_last);
+        node_list.push_back(next_of_last);
     }
     // Step 4. While node list's first member's previousSibling is invisible, prepend it to node list.
-    while let Some(previous_of_first) = node_list.first().and_then(|last| last.GetPreviousSibling())
+    while let Some(previous_of_first) = node_list.front().and_then(|last| last.GetPreviousSibling())
     {
         if previous_of_first.is_invisible(cx) {
-            node_list.insert(0, previous_of_first);
+            node_list.push_front(previous_of_first);
             continue;
         }
         break;
     }
     // Step 5. While node list's last member's nextSibling is invisible, append it to node list.
-    while let Some(next_of_last) = node_list.last().and_then(|last| last.GetNextSibling()) {
+    while let Some(next_of_last) = node_list.back().and_then(|last| last.GetNextSibling()) {
         if next_of_last.is_invisible(cx) {
-            node_list.push(next_of_last);
+            node_list.push_back(next_of_last);
             continue;
         }
         break;
@@ -629,7 +630,7 @@ where
     // and running sibling criteria on it returns true,
     // let new parent be the previousSibling of the first member of node list.
     let new_parent = node_list
-        .first()
+        .front()
         .and_then(|first| first.GetPreviousSibling())
         .filter(|previous_of_first| {
             previous_of_first.is_editable(cx) && sibling_criteria(cx, previous_of_first)
@@ -639,7 +640,7 @@ where
     // let new parent be the nextSibling of the last member of node list.
     let new_parent = new_parent.or_else(|| {
         node_list
-            .last()
+            .back()
             .and_then(|last| last.GetNextSibling())
             .filter(|next_of_last| {
                 next_of_last.is_editable(cx) && sibling_criteria(cx, next_of_last)
@@ -650,7 +651,7 @@ where
     let new_parent = new_parent.or_else(|| new_parent_instructions(cx))?;
     // Step 11. Let original parent be the parent of the first member of node list.
     let first_in_node_list = node_list
-        .first()
+        .front()
         .expect("Must always have at least one node");
     let original_parent = first_in_node_list
         .GetParentNode()
@@ -737,7 +738,7 @@ where
                 .find(|node| node.is_visible(cx))
                 .is_some_and(|node| node.is_inline_node(cx)) &&
             node_list
-                .last()
+                .back()
                 .is_none_or(|last_child| !last_child.is::<HTMLBRElement>())
         {
             let new_br_element = new_parent.owner_document().create_element(cx, "br");
@@ -1185,7 +1186,7 @@ impl Node {
             // and with new parent instructions returning null.
             wrap_node_list(
                 cx,
-                vec![DomRoot::from_ref(self)],
+                VecDeque::from([DomRoot::from_ref(self)]),
                 |cx, sibling| {
                     sibling
                         .downcast::<Element>()
@@ -1677,7 +1678,7 @@ impl Node {
             if node_matches_local_name!(self, local_name!("dd") | local_name!("dt")) {
                 wrap_node_list(
                     cx,
-                    vec![DomRoot::from_ref(self)],
+                    VecDeque::from([DomRoot::from_ref(self)]),
                     |_cx, sibling| {
                         sibling
                             .downcast::<Element>()
