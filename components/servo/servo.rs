@@ -343,6 +343,9 @@ impl ServoInner {
             }
             paint.handle_messages(messages);
         }
+        self.paint
+            .borrow_mut()
+            .finish_shared_worker_painter_actions();
 
         let mut selector = EmbedderMessageSelector::new(
             &self.embedder_receiver,

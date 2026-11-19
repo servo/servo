@@ -32,6 +32,7 @@ use resvg::tiny_skia;
 use resvg::usvg::{self, fontdb};
 use rustc_hash::{FxHashMap, FxHashSet};
 use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_base::generic_channel::{GenericCallback, SendError};
 use servo_base::id::{PipelineId, WebViewId};
 use servo_base::threadpool::ThreadPool;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -526,7 +527,8 @@ struct ImageCacheStore {
     webview_id: WebViewId,
 
     /// The [`PipelineId`] of the `Pipeline` associated with this [`ImageCache`].
-    pipeline_id: PipelineId,
+    pipeline_id: Option<PipelineId>,
+    key_callback: Option<GenericCallback<Option<Vec<WebRenderImageKey>>>>,
 
     /// Main struct to handle the cache of `WebRenderImageKey` and
     /// images that do not have a key yet.
@@ -609,8 +611,17 @@ impl ImageCacheStore {
 
     fn fetch_more_image_keys(&mut self) {
         self.key_cache.cache = KeyCacheState::PendingBatch;
-        self.paint_api
-            .generate_image_key_async(self.webview_id, self.pipeline_id);
+        if let Some(pipeline_id) = self.pipeline_id {
+            self.paint_api
+                .generate_image_key_async(self.webview_id, pipeline_id);
+        } else {
+            self.paint_api.generate_image_keys_for_worker(
+                self.webview_id,
+                self.key_callback
+                    .as_ref()
+                    .expect("Worker image cache must have a reply callback"),
+            );
+        }
     }
 
     /// Insert received keys into the cache and complete the loading of images.
@@ -633,9 +644,7 @@ impl ImageCacheStore {
                 }
                 // It is important to fetch new image keys as we might have missed previous returns.
                 if !self.key_cache.images_pending_keys.is_empty() {
-                    self.paint_api
-                        .generate_image_key_async(self.webview_id, self.pipeline_id);
-                    self.key_cache.cache = KeyCacheState::PendingBatch
+                    self.fetch_more_image_keys();
                 }
             },
             KeyCacheState::PendingBatch | KeyCacheState::Ready(_) => {
@@ -823,16 +832,13 @@ impl ImageCacheFactoryImpl {
             thread_pool: ThreadPool::global(),
         }
     }
-}
-
-impl ImageCacheFactory for ImageCacheFactoryImpl {
-    fn create(
+    fn create_cache(
         &self,
         webview_id: WebViewId,
-        pipeline_id: PipelineId,
+        pipeline_id: Option<PipelineId>,
         paint_api: &CrossProcessPaintApi,
         font_resolver: Arc<dyn FontResolver>,
-    ) -> Arc<dyn ImageCache> {
+    ) -> Arc<ImageCacheImpl> {
         let image_string_href_resolver = Box::new(move |_: &str, _: &usvg::Options| {
             // Do not try to load `href` in <image> as local file path.
             None
@@ -866,6 +872,7 @@ impl ImageCacheFactory for ImageCacheFactoryImpl {
                 broken_image_icon_image: OnceCell::new(),
                 paint_api: paint_api.clone(),
                 pipeline_id,
+                key_callback: None,
                 webview_id,
                 key_cache: KeyCache::new(),
                 svg_rasterization_task_store: SvgRasterizationTaskStore::default(),
@@ -876,6 +883,46 @@ impl ImageCacheFactory for ImageCacheFactoryImpl {
             usvg_options: Arc::new(opt),
             usvg_font_resolver: font_resolver.clone(),
         })
+    }
+}
+
+impl ImageCacheFactory for ImageCacheFactoryImpl {
+    fn create(
+        &self,
+        webview_id: WebViewId,
+        pipeline_id: PipelineId,
+        paint_api: &CrossProcessPaintApi,
+        font_resolver: Arc<dyn FontResolver>,
+    ) -> Arc<dyn ImageCache> {
+        self.create_cache(webview_id, Some(pipeline_id), paint_api, font_resolver)
+    }
+
+    fn create_for_worker(
+        &self,
+        webview_id: WebViewId,
+        paint_api: &CrossProcessPaintApi,
+        font_resolver: Arc<dyn FontResolver>,
+    ) -> Result<Arc<dyn ImageCache>, SendError> {
+        let cache = self.create_cache(webview_id, None, paint_api, font_resolver);
+        let weak_cache = Arc::downgrade(&cache);
+        let callback = GenericCallback::new(move |message| {
+            let Some(cache) = weak_cache.upgrade() else {
+                return;
+            };
+            match message {
+                Ok(Some(keys)) => cache.dispatch_fill_key_cache_with_batch_of_keys(keys),
+                Ok(None) => {
+                    error!("SharedWorker image cache lost its painter");
+                    cache.clear();
+                },
+                Err(error) => {
+                    error!("Failed to receive SharedWorker image keys: {error}");
+                    cache.clear();
+                },
+            }
+        })?;
+        cache.store.lock().key_callback = Some(callback);
+        Ok(cache)
     }
 }
 

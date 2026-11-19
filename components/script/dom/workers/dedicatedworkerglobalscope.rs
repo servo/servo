@@ -403,6 +403,9 @@ impl DedicatedWorkerGlobalScope {
             &scope.origin(),
             scope,
         );
+        scope
+            .upcast::<WorkerGlobalScope>()
+            .register_shared_worker_global();
         #[cfg(feature = "devtools")]
         scope
             .upcast::<WorkerGlobalScope>()
@@ -441,6 +444,9 @@ impl DedicatedWorkerGlobalScope {
         let event_loop_id = ScriptEventLoopId::installed()
             .expect("Should always be in a ScriptThread or in a dedicated worker");
         let current_global = GlobalScope::current().expect("No current global object");
+        let shared_worker_control = current_global
+            .downcast::<WorkerGlobalScope>()
+            .and_then(WorkerGlobalScope::shared_worker_control);
         let origin = current_global.origin().immutable().clone();
         let referrer = current_global.get_referrer();
         let parent = current_global.runtime_handle();
@@ -584,6 +590,12 @@ impl DedicatedWorkerGlobalScope {
                 }
                 let worker_global_scope =
                     dedicated_worker_global_scope.upcast::<WorkerGlobalScope>();
+                if let Some(control) = shared_worker_control {
+                    // <https://html.spec.whatwg.org/multipage/workers.html#active-needed-worker>
+                    // Step 2.2. If owner is a WorkerGlobalScope that is actively
+                    // needed, then return true.
+                    worker_global_scope.set_shared_worker_control(control);
+                }
                 let global_scope = dedicated_worker_global_scope.upcast::<GlobalScope>();
 
                 // Step 12. Obtain script by switching on options["type"]:

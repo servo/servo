@@ -10,6 +10,7 @@ use crossbeam_channel::Sender;
 
 use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerControlMsg;
 use crate::runtime::script_runtime::ThreadSafeJSContext;
+use crate::sharedworker_host::SharedWorkerThreadControl;
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct AutoCloseWorker {
@@ -28,6 +29,9 @@ pub(crate) struct AutoCloseWorker {
     #[ignore_malloc_size_of = "mozjs"]
     #[no_trace]
     pub(super) context: ThreadSafeJSContext,
+    #[no_trace]
+    #[ignore_malloc_size_of = "Shared worker execution control"]
+    pub(super) shared_worker_control: Option<Arc<SharedWorkerThreadControl>>,
 }
 
 impl Drop for AutoCloseWorker {
@@ -35,6 +39,9 @@ impl Drop for AutoCloseWorker {
     fn drop(&mut self) {
         // Step 1. Set the worker's `WorkerGlobalScope` object's closing flag to true.
         self.closing.store(true, Ordering::SeqCst);
+        if let Some(control) = &self.shared_worker_control {
+            control.wake_waiters();
+        }
 
         if self
             .control_sender

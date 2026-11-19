@@ -8,6 +8,7 @@ use crossbeam_channel::{Receiver, Select};
 use log::{debug, warn};
 use profile_traits::mem::{ProfilerChan, ProfilerMsg};
 use servo_base::generic_channel::SendError;
+use servo_base::id::ScriptEventLoopId;
 
 pub enum Process {
     Unsandboxed(Child),
@@ -38,7 +39,7 @@ impl Process {
 type ProcessReceiver = Receiver<Result<(), SendError>>;
 
 pub(crate) struct ProcessManager {
-    processes: Vec<(Process, ProcessReceiver)>,
+    processes: Vec<(Process, ProcessReceiver, Option<ScriptEventLoopId>)>,
     mem_profiler_chan: ProfilerChan,
 }
 
@@ -50,25 +51,30 @@ impl ProcessManager {
         }
     }
 
-    pub fn add(&mut self, receiver: ProcessReceiver, process: Process) {
+    pub fn add(
+        &mut self,
+        receiver: ProcessReceiver,
+        process: Process,
+        host: Option<ScriptEventLoopId>,
+    ) {
         debug!("Adding process pid={}", process.pid());
-        self.processes.push((process, receiver));
+        self.processes.push((process, receiver, host));
     }
 
     pub fn register<'a>(&'a self, select: &mut Select<'a>) {
-        for (_, receiver) in &self.processes {
+        for (_, receiver, _) in &self.processes {
             select.recv(receiver);
         }
     }
 
     pub fn receiver_at(&self, index: usize) -> &ProcessReceiver {
-        let (_, receiver) = &self.processes[index];
+        let (_, receiver, _) = &self.processes[index];
         receiver
     }
 
     #[servo_tracing::instrument(skip_all)]
-    pub fn remove(&mut self, index: usize) {
-        let (mut process, _) = self.processes.swap_remove(index);
+    pub fn remove(&mut self, index: usize) -> Option<ScriptEventLoopId> {
+        let (mut process, _, host) = self.processes.swap_remove(index);
         debug!("Removing process pid={}", process.pid());
         // Unregister this process system memory profiler
         self.mem_profiler_chan
@@ -77,5 +83,6 @@ impl ProcessManager {
                 process.pid()
             )));
         process.wait();
+        host
     }
 }
