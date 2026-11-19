@@ -27,7 +27,7 @@ use webrender_api::units::{LayoutPoint, LayoutRect, LayoutSize, RectExt};
 use crate::display_list::clip::{Clip, ClipId};
 use crate::display_list::paint_traversal::{PaintTraversal, PaintTraversalHandler};
 use crate::display_list::{StackingContext, StackingContextTree, ToWebRender, TraversalState};
-use crate::fragment_tree::{BoxFragmentWithStyle, Fragment, FragmentFlags, TextFragment};
+use crate::fragment_tree::{BoxFragmentWithStyle, Fragment, FragmentFlags, Tag, TextFragment};
 use crate::geom::PhysicalRect;
 
 struct DomPositionCandidate {
@@ -206,7 +206,22 @@ impl PaintTraversalHandler for HitTest<'_> {
     }
 
     fn visit_box(&mut self, state: &TraversalState, fragment: &BoxFragmentWithStyle<'_>) {
-        Fragment::Box(fragment.box_fragment.clone()).hit_test(state, self);
+        if !self.hit_test_clip_id(state.clip_id) {
+            return;
+        }
+        if let Some(tag) = fragment.base.tag {
+            hit_test_fragment_inner(
+                self,
+                state,
+                tag,
+                || Fragment::Box(fragment.box_fragment.clone()),
+                fragment.style(),
+                fragment.border_rect(),
+                fragment.border_radius(),
+                fragment.base.flags,
+                Cursor::Default,
+            );
+        }
     }
 
     fn visit_text(
@@ -215,7 +230,22 @@ impl PaintTraversalHandler for HitTest<'_> {
         _line_box_rect: PhysicalRect<Au>,
         fragment: &Arc<TextFragment>,
     ) {
-        Fragment::Text(fragment.clone()).hit_test(state, self);
+        if !self.hit_test_clip_id(state.clip_id) {
+            return;
+        }
+        if let Some(tag) = fragment.base.tag {
+            hit_test_fragment_inner(
+                self,
+                state,
+                tag,
+                || Fragment::Text(fragment.clone()),
+                &fragment.style(),
+                fragment.base.rect(),
+                BorderRadius::zero(),
+                FragmentFlags::empty(),
+                Cursor::Text,
+            );
+        }
     }
 }
 
@@ -223,6 +253,100 @@ impl Clip {
     fn contains(&self, point: LayoutPoint) -> bool {
         rounded_rect_contains_point(self.rect, &self.radii, point)
     }
+}
+
+#[expect(clippy::too_many_arguments)]
+fn hit_test_fragment_inner(
+    hit_test: &mut HitTest,
+    state: &TraversalState,
+    tag: Tag,
+    fragment: impl Fn() -> Fragment,
+    style: &ComputedValues,
+    fragment_rect: PhysicalRect<Au>,
+    border_radius: BorderRadius,
+    fragment_flags: FragmentFlags,
+    auto_cursor: Cursor,
+) -> bool {
+    let is_root_element = fragment_flags.contains(FragmentFlags::IS_ROOT_ELEMENT);
+
+    if !is_root_element {
+        // <https://drafts.csswg.org/css-ui-4/#inertness>
+        // > Hit-testing must act as if the pointer-events property were set to none.
+        let inherited_ui = style.get_inherited_ui();
+        if inherited_ui.pointer_events == PointerEvents::None ||
+            inherited_ui._moz_inert == Inert::Inert ||
+            inherited_ui.interactivity == Interactivity::Inert
+        {
+            return false;
+        }
+        if style.get_inherited_box().visibility != Visibility::Visible {
+            return false;
+        }
+    }
+
+    let (point_in_spatial_node, transform) =
+        match hit_test.location_in_spatial_node(state.spatial_id) {
+            Some(point) => point,
+            None => return false,
+        };
+
+    if !is_root_element &&
+        style.get_box().backface_visibility == BackfaceVisibility::Hidden &&
+        transform.is_backface_visible()
+    {
+        return false;
+    }
+
+    let fragment_rect = fragment_rect.translate(state.origin.to_vector());
+    if is_root_element {
+        let viewport_size = hit_test
+            .stacking_context_tree
+            .paint_info
+            .viewport_details
+            .size;
+        let viewport_rect =
+            LayoutRect::from_origin_and_size(Default::default(), viewport_size.cast_unit());
+        if !viewport_rect.contains(hit_test.point_to_test) {
+            return false;
+        }
+    } else if !rounded_rect_contains_point(
+        fragment_rect.to_webrender(),
+        &border_radius,
+        point_in_spatial_node,
+    ) {
+        return false;
+    }
+
+    let point_in_target = point_in_spatial_node.cast_unit() -
+        Vector2D::new(
+            fragment_rect.origin.x.to_f32_px(),
+            fragment_rect.origin.y.to_f32_px(),
+        );
+
+    hit_test.items.push(HitTestResultItem {
+        node: tag.node,
+        point_in_target,
+        cursor: cursor(style.get_inherited_ui().cursor.keyword, auto_cursor),
+    });
+
+    // Selection boundaries cannot intersect generated content, which is what
+    // the pseudo_element_chain check does here.
+    if hit_test.flags.intersects(HitTestFlags::IncludeDomPosition) &&
+        tag.pseudo_element_chain.is_empty()
+    {
+        hit_test.dom_position_candidate = Some(DomPositionCandidate {
+            fragment: fragment(),
+            node: tag.node,
+            point_in_target,
+        });
+    }
+
+    // Since there is no reverse PaintTraversal, hit testing always searches
+    // the entire fragment tree (in stacking context order), which is why this
+    // is always returning `false` (keep looking). Once PaintTraversal can
+    // walk backward through fragments, this can return `true` if FindAll
+    // isn't specified.
+    false
 }
 
 impl Fragment {
@@ -234,108 +358,26 @@ impl Fragment {
             return false;
         }
 
-        let mut hit_test_fragment_inner =
-            |style: &ComputedValues,
-             fragment_rect: PhysicalRect<Au>,
-             border_radius: BorderRadius,
-             fragment_flags: FragmentFlags,
-             auto_cursor: Cursor| {
-                let is_root_element = fragment_flags.contains(FragmentFlags::IS_ROOT_ELEMENT);
-
-                if !is_root_element {
-                    // <https://drafts.csswg.org/css-ui-4/#inertness>
-                    // > Hit-testing must act as if the pointer-events property were set to none.
-                    let inherited_ui = style.get_inherited_ui();
-                    if inherited_ui.pointer_events == PointerEvents::None ||
-                        inherited_ui._moz_inert == Inert::Inert ||
-                        inherited_ui.interactivity == Interactivity::Inert
-                    {
-                        return false;
-                    }
-                    if style.get_inherited_box().visibility != Visibility::Visible {
-                        return false;
-                    }
-                }
-
-                let (point_in_spatial_node, transform) =
-                    match hit_test.location_in_spatial_node(state.spatial_id) {
-                        Some(point) => point,
-                        None => return false,
-                    };
-
-                if !is_root_element &&
-                    style.get_box().backface_visibility == BackfaceVisibility::Hidden &&
-                    transform.is_backface_visible()
-                {
-                    return false;
-                }
-
-                let fragment_rect = fragment_rect.translate(state.origin.to_vector());
-                if is_root_element {
-                    let viewport_size = hit_test
-                        .stacking_context_tree
-                        .paint_info
-                        .viewport_details
-                        .size;
-                    let viewport_rect = LayoutRect::from_origin_and_size(
-                        Default::default(),
-                        viewport_size.cast_unit(),
-                    );
-                    if !viewport_rect.contains(hit_test.point_to_test) {
-                        return false;
-                    }
-                } else if !rounded_rect_contains_point(
-                    fragment_rect.to_webrender(),
-                    &border_radius,
-                    point_in_spatial_node,
-                ) {
-                    return false;
-                }
-
-                let point_in_target = point_in_spatial_node.cast_unit() -
-                    Vector2D::new(
-                        fragment_rect.origin.x.to_f32_px(),
-                        fragment_rect.origin.y.to_f32_px(),
-                    );
-
-                hit_test.items.push(HitTestResultItem {
-                    node: tag.node,
-                    point_in_target,
-                    cursor: cursor(style.get_inherited_ui().cursor.keyword, auto_cursor),
-                });
-
-                // Selection boundaries cannot intersect generated content, which is what
-                // the pseudo_element_chain check does here.
-                if hit_test.flags.intersects(HitTestFlags::IncludeDomPosition) &&
-                    tag.pseudo_element_chain.is_empty()
-                {
-                    hit_test.dom_position_candidate = Some(DomPositionCandidate {
-                        fragment: self.clone(),
-                        node: tag.node,
-                        point_in_target,
-                    });
-                }
-
-                // Since there is no reverse PaintTraversal, hit testing always searches
-                // the entire fragment tree (in stacking context order), which is why this
-                // is always returning `false` (keep looking). Once PaintTraversal can
-                // walk backward through fragments, this can return `true` if FindAll
-                // isn't specified.
-                false
-            };
-
         match self {
             Fragment::LayoutRoot(layout_root_fragment) => {
                 layout_root_fragment.inner().hit_test(state, hit_test)
             },
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => hit_test_fragment_inner(
-                &box_fragment.style(),
+                hit_test,
+                state,
+                tag,
+                || self.clone(),
+                box_fragment.style().as_ref(),
                 box_fragment.border_rect(),
                 box_fragment.border_radius(),
                 box_fragment.base.flags,
                 Cursor::Default,
             ),
             Fragment::Text(text) => hit_test_fragment_inner(
+                hit_test,
+                state,
+                tag,
+                || self.clone(),
                 &text.style(),
                 text.base.rect(),
                 BorderRadius::zero(),
