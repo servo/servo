@@ -1018,8 +1018,10 @@ impl EventMethods<crate::DomTypeHolder> for Event {
 
             // Step 12.2 If currentHiddenLevel is less than or equal to maxHiddenLevel,
             // then prepend path[index]'s invocation target to composedPath.
+            //
+            // Note: prepend one by one is slow. Reverse once after loop.
             if current_hidden_level <= max_hidden_level {
-                composed_path.insert(0, element.invocation_target.as_rooted());
+                composed_path.push(element.invocation_target.as_rooted());
             }
 
             // Step 12.3 If path[index]'s slot-in-closed-tree is true:
@@ -1036,6 +1038,9 @@ impl EventMethods<crate::DomTypeHolder> for Event {
 
             // Step 12.4 Decrease index by 1.
         }
+
+        // Reverse once to achieve step 12.2's prepend.
+        composed_path.reverse();
 
         // Step 13. Set currentHiddenLevel and maxHiddenLevel to currentTargetHiddenSubtreeLevel.
         current_hidden_level = current_target_hidden_subtree_level;
