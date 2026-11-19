@@ -10,7 +10,6 @@ import android.content.SharedPreferences
 import android.os.Bundle
 import android.system.ErrnoException
 import android.system.Os
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
@@ -61,8 +60,6 @@ import org.servo.servoview.ServoNavigator
 
 class MainActivity : ComponentActivity(), Servo.Client {
     private val urlTextFieldState = TextFieldState()
-    private var isRefreshing by mutableStateOf(false)
-    private lateinit var historyManager: HistoryManager
     private var currentUrl: String? = null
     private var currentTitle: String? = null
     private var alertMessage by mutableStateOf<String?>(null)
@@ -78,8 +75,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
         val settings = Settings(sharedPreferences)
         val navigator = ServoNavigator()
         var experimentalModeEnabled by mutableStateOf(settings.experimental)
-
-        historyManager = HistoryManager(this)
 
         val historyActivityResultLauncher =
             registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -104,6 +99,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                     .windowSizeClass
                     .isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
 
+            var isRefreshing by remember { mutableStateOf(false) }
             val servoFocusRequester = remember { FocusRequester() }
             Scaffold(
                 topBar = {
@@ -235,10 +231,17 @@ class MainActivity : ComponentActivity(), Servo.Client {
                     initialUrl =
                         if (Intent.ACTION_VIEW == intent.action) intent.data.toString() else null,
                     logStr = intent.getStringExtra("servolog"),
+                    onIsRefreshingChange = { isRefreshing = it },
                     client = this,
                     navigator = navigator,
                     modifier = Modifier.padding(innerPadding).focusRequester(servoFocusRequester),
                 )
+                val historyManager = remember { HistoryManager(this) }
+                if (!isRefreshing) {
+                    currentUrl?.let { currentUrl ->
+                        historyManager.addEntry(currentUrl, currentTitle)
+                    }
+                }
                 LaunchedEffect(servoFocusRequester) { servoFocusRequester.requestFocus() }
                 alertMessage?.let { alertMessage ->
                     AlertDialog(
@@ -293,25 +296,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
         alertMessage = message
     }
 
-    override fun onLoadStarted() {
-        // This doesn’t seem to actually happen when navigating
-        // back to a page that is already cached.
-        Log.i(TAG, "onLoadStarted: ")
-        isRefreshing = true
-    }
-
-    // INFO: This currently gets called multiple times on each load.
-    override fun onLoadEnded() {
-        Log.i(TAG, "onLoadEnded: ")
-        currentUrl?.let { currentUrl ->
-            // HistoryManager has a basic method of preventing clobbering
-            // by the fact that onLoadEnded gets called multiple times
-            // per page.
-            historyManager.addEntry(currentUrl, currentTitle)
-        }
-        isRefreshing = false
-    }
-
     override fun onTitleChanged(title: String) {
         currentTitle = title
     }
@@ -319,10 +303,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
     override fun onUrlChanged(url: String) {
         urlTextFieldState.edit { replace(0, length, url) }
         currentUrl = url
-    }
-
-    companion object {
-        private const val TAG = "MainActivity"
     }
 }
 
