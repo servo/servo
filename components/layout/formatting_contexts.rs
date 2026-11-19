@@ -40,8 +40,10 @@ use crate::{ArcRefCell, PropagatedBoxTreeData};
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct IndependentFormattingContext {
     pub base: LayoutBoxBase,
-    // Private so that code outside of this module cannot match variants.
-    // It should go through methods instead.
+    // Private so that code outside of this module cannot match variants; it should go
+    // through methods instead. This reduces accidental layout-mode-specific behavior,
+    // and avoids the risk of accidentally calling `layout()` on the inner contents,
+    // which would bypass caching and be bad for performance.
     contents: IndependentFormattingContextContents,
     /// Data that was originally propagated down to this [`IndependentFormattingContext`]
     /// during creation. This is used during incremental layout.
