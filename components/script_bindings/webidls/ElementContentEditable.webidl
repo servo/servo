@@ -7,5 +7,7 @@
 interface mixin ElementContentEditable {
   [CEReactions, SetterThrows]
   attribute DOMString contentEditable;
+  [CEReactions]
+  attribute DOMString inputMode;
   readonly attribute boolean isContentEditable;
 };
