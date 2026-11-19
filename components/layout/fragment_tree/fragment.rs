@@ -777,11 +777,15 @@ impl FragmentChildren {
             FragmentChildren::Logical(fragment_and_logical_rects) => fragment_and_logical_rects
                 .into_iter()
                 .map(|fragment_and_logical_rect| {
-                    fragment_and_logical_rect.fragment.set_rect(
-                        fragment_and_logical_rect
-                            .logical_rect
-                            .as_physical(writing_mode, container_size),
-                    );
+                    if let Fragment::Float(_) = &fragment_and_logical_rect.fragment {
+                        // TODO: fix the logical rect for floats
+                    } else {
+                        fragment_and_logical_rect.fragment.set_rect(
+                            fragment_and_logical_rect
+                                .logical_rect
+                                .as_physical(writing_mode, container_size),
+                        );
+                    }
                     fragment_and_logical_rect.fragment
                 })
                 .collect(),
