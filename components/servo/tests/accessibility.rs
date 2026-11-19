@@ -126,7 +126,7 @@ fn test_accessibility_after_navigate_and_back() {
     let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url_1);
     let root_web_area = assert_tree_structure_and_get_root_web_area(&tree);
 
-    let result = find_all_matching_nodes(root_web_area, |node| {
+    let result = find_all_matching_nodes_in_tree_order(root_web_area, |node| {
         node.role() == accesskit::Role::TextRun
     });
     assert_eq!(result.len(), 1);
@@ -141,7 +141,9 @@ fn test_accessibility_after_navigate_and_back() {
     update_tree_after_min_updates(&servo_test, &delegate, &mut tree, 3);
 
     let root_node = tree.state().root();
-    let result = find_all_matching_nodes(root_node, |node| node.role() == accesskit::Role::TextRun);
+    let result = find_all_matching_nodes_in_tree_order(root_node, |node| {
+        node.role() == accesskit::Role::TextRun
+    });
     assert_eq!(result.len(), 1);
     let text_node = result[0];
 
@@ -153,7 +155,9 @@ fn test_accessibility_after_navigate_and_back() {
     update_tree_after_min_updates(&servo_test, &delegate, &mut tree, 3);
 
     let root_node = tree.state().root();
-    let result = find_all_matching_nodes(root_node, |node| node.role() == accesskit::Role::TextRun);
+    let result = find_all_matching_nodes_in_tree_order(root_node, |node| {
+        node.role() == accesskit::Role::TextRun
+    });
     assert_eq!(result.len(), 1);
     let text_node = result[0];
 
@@ -463,15 +467,15 @@ fn test_accessibility_partial_subtree_move_and_delete() {
     assert_eq!(children.len(), 2);
     let header = children[0];
     assert_eq!(header.role(), Role::Banner);
-    let h1 = find_all_matching_nodes(header, |node| node.role() == Role::Heading)[0];
+    let h1 = find_all_matching_nodes_in_tree_order(header, |node| node.role() == Role::Heading)[0];
     assert_eq!(h1.label(), Some("This is an h1".to_owned()));
-    let _p = find_all_matching_nodes(header, |node| node.role() == Role::Paragraph)
+    let _p = find_all_matching_nodes_in_tree_order(header, |node| node.role() == Role::Paragraph)
         .pop()
         .expect("Should be exactly one Paragraph node");
 
     let article = children[1];
     assert_eq!(article.role(), Role::Article);
-    let h2 = find_all_matching_nodes(article, |node| node.role() == Role::Heading)[0];
+    let h2 = find_all_matching_nodes_in_tree_order(article, |node| node.role() == Role::Heading)[0];
     assert_eq!(h2.label(), Some("This is an h2".to_owned()));
 
     let _ = evaluate_javascript(
@@ -570,7 +574,7 @@ fn test_accessibility_descendants_of_heading_change() {
         .expect("Heading should still be in the tree");
     assert_eq!(
         heading.label(),
-        Some("We really really  like owls".to_owned())
+        Some("We really really like owls".to_owned())
     );
 }
 
@@ -707,7 +711,7 @@ fn test_accessibility_bounds_omitted_for_display_none() {
     let (_servo_test, _delegate, _webview, tree) = build_webview_and_tree(url);
 
     let root = assert_tree_structure_and_get_root_web_area(&tree);
-    for node in find_all_matching_nodes(root, |node| {
+    for node in find_all_matching_nodes_in_tree_order(root, |node| {
         node.data().html_tag() == Some("span") || node.role() == Role::TextRun
     }) {
         assert!(
@@ -1094,7 +1098,7 @@ fn test_accessibility_display_none_change() {
     assert_eq!(heading_children.len(), 3);
     let em = heading_children[1];
     assert_eq!(em.is_hidden(), true);
-    assert_eq!(heading.label(), Some("We  love the web".to_owned()));
+    assert_eq!(heading.label(), Some("We love the web".to_owned()));
 
     // Test that making previously-hidden content visible works correctly.
     let _ = evaluate_javascript(
@@ -1131,7 +1135,7 @@ fn test_accessibility_display_none_change() {
     let heading = find_first_matching_node(root, |node| node.role() == Role::Heading)
         .expect("Heading should still be in the tree");
     // Hiding the <em> should change the computed text of the heading
-    assert_eq!(heading.label(), Some("We  love the web".to_owned()));
+    assert_eq!(heading.label(), Some("We love the web".to_owned()));
     let heading_children: Vec<_> = heading.children().collect();
     assert_eq!(heading_children.len(), 3);
     let em = heading_children[1];
@@ -1392,6 +1396,248 @@ fn test_accessibility_focus_moves() {
     );
 }
 
+#[test]
+fn test_accessibility_only_irrelevant_whitespace_hidden_static() {
+    let url = "data:text/html,<!DOCTYPE html>
+               <div><a id='link' href='%23main'>Skip to main content</a></div>
+               <nav>
+                   <a id='news' href='/news'><span>News</span> <span> and updates</span></a>
+                   <a id='services' href='/services'>Services </a>
+                   <a id='contact' href='/contact'>Contact</a>
+                   <a id='about' href='/about'>About</a>
+                   <span></span>
+               </nav>
+               <footer>
+                   <a id='disclaimer' href='/disclaimer'>Disclaimer</a>
+               </footer>
+               ";
+    let (_servo_test, _delegate, _webview, tree) = build_webview_and_tree(url);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let root_children: Vec<accesskit_consumer::Node> = root.children().collect();
+    // <a>, space, <nav>, space, <footer>
+    assert_eq!(root_children.len(), 5);
+    let whitespace = root_children[1];
+    assert_eq!(whitespace.role(), Role::TextRun);
+    assert_eq!(
+        whitespace.is_hidden(),
+        true,
+        "Whitespace before <nav> is irrelevant because <nav> is a container"
+    );
+    let whitespace = root_children[3];
+    assert_eq!(whitespace.role(), Role::TextRun);
+    assert_eq!(
+        whitespace.is_hidden(),
+        true,
+        "Whitespace after <nav> is irrelevant because <nav> is a container"
+    );
+
+    let nav = root_children[2];
+    let all_whitespace = find_all_matching_nodes_in_tree_order(nav, |node| {
+        node.role() == Role::TextRun && node.value().is_none_or(|value| value.trim().is_empty())
+    });
+    assert_eq!(all_whitespace.len(), 7);
+
+    // This may change if we end up being able to check bounds for text nodes and use that as a more
+    // authoritative signal for whether the node should be hidden.
+    // Asserting it here so we can tell when/if it changes based on future work.
+    assert_eq!(
+        all_whitespace[0].is_hidden(),
+        false,
+        "First whitespace should probably be hidden because it precedes any actual text in the\
+         container, but it does have 'rendered' text, so it's not hidden."
+    );
+
+    // This illustrates the difference that using the rendered text for all nodes makes.
+    assert_eq!(
+        all_whitespace[2].is_hidden(),
+        false,
+        "Second whitespace is *relevant*, because \" and updates\" gets normalised to \
+         \"and updates\"."
+    );
+
+    assert_eq!(
+        all_whitespace[2].is_hidden(),
+        false,
+        "Third whitespace is *relevant* because it comes between \" and updates\" and \"Services \"."
+    );
+    assert_eq!(
+        all_whitespace[3].is_hidden(),
+        true,
+        "Fourth whitespace is irrelevant because it comes after \"Services \"."
+    );
+    assert_eq!(
+        all_whitespace[4].is_hidden(),
+        false,
+        "Fifth whitespace is *relevant* because it comes between \"Contact\" and \"About\"."
+    );
+
+    // This also may change if we end up being able to check bounds.
+    assert_eq!(
+        all_whitespace[5].is_hidden(),
+        false,
+        "Sixth whitespace also has rendered text, so it isn't hidden, but it probably doesn't have \
+         bounds."
+    );
+
+    assert_eq!(
+        all_whitespace[6].is_hidden(),
+        true,
+        "Seventh whitespace is irrelevant because it's between a whitespace-only node and the end \
+         of the container."
+    );
+}
+
+#[test]
+fn test_accessibility_only_irrelevant_whitespace_hidden_mutation() {
+    let url = "data:text/html,<!DOCTYPE html>
+               <nav>
+                 <a id='news' href='/news'><span>News </span> <span>and updates</span></a>
+                 <a id='services' href='/services'>Services</a>
+               </nav>
+               <main>
+                 <p id='beginning'>In the beginning,</p>
+               </main>";
+    let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let root_children: Vec<accesskit_consumer::Node> = root.children().collect();
+    // <nav>, space, <main>
+    assert_eq!(root_children.len(), 3);
+    let root_whitespace = root_children[1];
+    assert_eq!(root_whitespace.role(), Role::TextRun);
+    assert_eq!(
+        root_whitespace.is_hidden(),
+        true,
+        "Space between <nav> and <main> should be hidden."
+    );
+
+    let nav = root_children[0];
+    assert_eq!(nav.role(), Role::Navigation);
+    let nav_children: Vec<accesskit_consumer::Node> = nav.children().collect();
+    // space, <a>, space, <a>, space
+    assert_eq!(nav_children.len(), 5);
+
+    let nav_whitespace_1 = nav_children[0];
+    assert_eq!(nav_whitespace_1.role(), Role::TextRun);
+    // This assert is mostly just here to notice if anything changes in future.
+    assert_eq!(
+        nav_whitespace_1.is_hidden(),
+        false,
+        "First whitespace should probably be hidden because it precedes any actual text in the\
+         container, but it does have 'rendered' text, so it's not hidden."
+    );
+
+    let nav_whitespace_2 = nav_children[2];
+    assert_eq!(nav_whitespace_2.role(), Role::TextRun);
+    assert_eq!(
+        nav_whitespace_2.is_hidden(),
+        false,
+        "Space between the two links should not be hidden."
+    );
+
+    let nav_whitespace_3 = nav_children[4];
+    assert_eq!(nav_whitespace_3.role(), Role::TextRun);
+    // This assert is also mostly just here to notice if anything changes in future.
+    assert_eq!(
+        nav_whitespace_3.is_hidden(),
+        false,
+        "Similarly to first whitespace, last whitespace seems like it should be hidden, but it \
+         isn't."
+    );
+
+    let news = nav_children[1];
+    assert_eq!(news.label(), Some("News and updates".to_owned()));
+    let news_children: Vec<accesskit_consumer::Node> = news.children().collect();
+    // <span>, space, <span>
+    assert_eq!(news_children.len(), 3);
+    let news_span = news_children[0];
+    let news_text = news_span
+        .children()
+        .next()
+        .expect("<span>News </span> should have one text child");
+    // For some reason, "News " isn't normalised to "News"
+    assert_eq!(news_text.value(), Some("News ".to_owned()));
+    let news_whitespace = news_children[1];
+    assert_eq!(news_whitespace.role(), Role::TextRun);
+    assert_eq!(
+        news_whitespace.is_hidden(),
+        true,
+        "Whitespace betwen \"News \" and \"and updates\" is hidden, because \"News \" ends with a
+         space."
+    );
+
+    // Remove space at the end of "News "
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "news.firstElementChild.firstChild.deleteData(4, 1);",
+    );
+
+    let update = expect_single_update(&servo_test, delegate.clone());
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+
+    let root_children: Vec<accesskit_consumer::Node> = root.children().collect();
+    let nav = root_children[0];
+    let nav_children: Vec<accesskit_consumer::Node> = nav.children().collect();
+    let news = nav_children[1];
+    assert_eq!(news.label(), Some("News and updates".to_owned()));
+
+    let news_children: Vec<accesskit_consumer::Node> = news.children().collect();
+    assert_eq!(news_children.len(), 3);
+    let news_span = news_children[0];
+    let news_text = news_span
+        .children()
+        .next()
+        .expect("<span>News</span> should have one text child");
+    // For some reason, "News " isn't normalised to "News"
+    assert_eq!(news_text.value(), Some("News".to_owned()));
+
+    let news_whitespace = news_children[1];
+    assert_eq!(news_whitespace.role(), Role::TextRun);
+    assert_eq!(
+        news_whitespace.is_hidden(),
+        false,
+        "Whitespace betwen \"News\" and \"and updates\" is not hidden."
+    );
+
+    // Add a space at the end of "News"
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "news.firstElementChild.firstChild.appendData(' ');",
+    );
+    let update = expect_single_update(&servo_test, delegate);
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+
+    let root_children: Vec<accesskit_consumer::Node> = root.children().collect();
+    let nav = root_children[0];
+    let nav_children: Vec<accesskit_consumer::Node> = nav.children().collect();
+    let news = nav_children[1];
+    assert_eq!(news.label(), Some("News  and updates".to_owned()));
+
+    let news_children: Vec<accesskit_consumer::Node> = news.children().collect();
+    assert_eq!(news_children.len(), 3);
+    let news_span = news_children[0];
+    let news_text = news_span
+        .children()
+        .next()
+        .expect("<span>News </span> should have one text child");
+    assert_eq!(news_text.value(), Some("News ".to_owned()));
+
+    let news_whitespace = news_children[1];
+    assert_eq!(news_whitespace.role(), Role::TextRun);
+
+    // This might be a bug in whitespace collapsing?
+    assert_eq!(
+        news_whitespace.is_hidden(),
+        false,
+        "Whitespace betwen \"News \" and \"and updates\" is not hidden."
+    );
+}
+
 // ************************************************************************************************
 // If you're adding a new test here, consider adding a matching test in
 // tests/wpt/mozilla/tests/accessibility-tree/
@@ -1606,7 +1852,7 @@ fn find_first_matching_node(
     None
 }
 
-fn find_all_matching_nodes(
+fn find_all_matching_nodes_in_tree_order(
     root_node: accesskit_consumer::Node<'_>,
     mut predicate: impl FnMut(&accesskit_consumer::Node) -> bool,
 ) -> Vec<accesskit_consumer::Node<'_>> {
@@ -1617,7 +1863,7 @@ fn find_all_matching_nodes(
             result.push(candidate);
         }
         for child in candidate.children() {
-            children.push_back(child);
+            children.push_front(child);
         }
     }
     result

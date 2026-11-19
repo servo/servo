@@ -19,6 +19,7 @@ use num_traits::ToPrimitive;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script::layout_dom::{ServoLayoutElement, ServoLayoutNode};
 use servo_base::print_tree::PrintTree;
+use servo_base::text::RangeAny;
 use servo_config::pref;
 use style::dom::{NodeInfo, OpaqueNode};
 use style_traits::CSSPixel;
@@ -318,12 +319,6 @@ impl AccessibilityNode {
     ) -> LocalAccessibilityDamage {
         let mut local_damage = LocalAccessibilityDamage::empty();
         local_damage.insert(self.set_role(role_from_dom_node(dom_node)));
-        if dom_node.type_id() == Some(LayoutNodeType::Text) {
-            let text_content = dom_node.text_content();
-            trace!("node text content = {text_content:?}");
-            // FIXME: this should take into account editing selection units (grapheme clusters?)
-            local_damage.insert(self.set_value(&text_content));
-        }
 
         local_damage
     }
@@ -356,6 +351,18 @@ impl AccessibilityNode {
                 local_damage.insert(self.clear_hidden());
             }
         } else if dom_node.is_text_node() {
+            if let Some(layout_data) = dom_node.layout_data() &&
+                let Some(rendered_text) = layout_data.rendered_text(RangeAny::new(None, None)) &&
+                !rendered_text.is_empty()
+            {
+                trace!("node text content = {rendered_text:?}");
+                // FIXME: this should take into account editing selection units (grapheme clusters?)
+                local_damage.insert(self.set_value(rendered_text.as_str()));
+                local_damage.insert(self.clear_hidden());
+            } else {
+                local_damage.insert(self.set_hidden());
+            };
+
             return local_damage;
         }
 
@@ -412,6 +419,7 @@ impl AccessibilityNode {
         if local_damage.is_empty() {
             return new_damage;
         }
+
         update.counters.nodes_updated_from_tree += 1;
 
         if local_damage.contains(LocalAccessibilityDamage::SubtreeChanged) ||
