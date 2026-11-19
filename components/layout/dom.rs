@@ -557,7 +557,7 @@ pub(crate) trait NodeExt<'dom> {
 
     /// Run `callback` on the fragments without cloning them. Returns `None` if the node has no box.
     fn with_fragments<T>(&self, callback: impl FnOnce(&[Fragment]) -> T) -> Option<T>;
-    /// The same as above except that it will run the callback on the emptry array if `inner_layout_data` is None.
+    /// The same as above except that it will run the callback on the empty array if `inner_layout_data` is None.
     fn with_fragments_or_empty<T>(&self, callback: impl Fn(&[Fragment]) -> T) -> T;
     /// Run `callback` on the `LayoutBoxBase` of this node's box or the box of its pseudo-element.
     /// Returns `None` if there is no such box.
