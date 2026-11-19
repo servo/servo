@@ -17,6 +17,8 @@ path = "lib.rs"
 crossbeam-channel = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
 mime = { workspace = true }
 ohos-media-sys = { workspace = true, features = ["api-21"] }
 ohos-sys-opaque-types = { workspace = true }

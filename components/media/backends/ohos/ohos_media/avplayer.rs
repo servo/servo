@@ -5,6 +5,7 @@ use std::ffi::c_void;
 
 use libc::pollfd;
 use log::{debug, warn};
+use malloc_size_of_derive::MallocSizeOf;
 use ohos_media_sys::avformat::OH_AVFormat;
 use ohos_media_sys::avplayer::{
     OH_AVPlayer_Create, OH_AVPlayer_Pause, OH_AVPlayer_Play, OH_AVPlayer_Prepare,
@@ -46,17 +47,25 @@ pub struct FrameInfo {
     native_window_buffer: *mut OHNativeWindowBuffer,
     fence_fd: i32,
 }
+
+#[derive(MallocSizeOf)]
 pub struct OhosPlayer {
+    #[ignore_malloc_size_of = "Raw pointer"]
     native_image: Option<*mut OH_NativeImage>,
+    #[ignore_malloc_size_of = "Raw pointer"]
     ohos_av_player: *mut OH_AVPlayer,
     media_data_source: Option<MediaSourceWrapper>,
+    #[ignore_malloc_size_of = "Raw pointer"]
     event_info_callback_closure: Option<*mut Box<dyn Fn(AVPlayerOnInfoType, *mut OH_AVFormat)>>,
+    #[ignore_malloc_size_of = "Raw pointer"]
     frame_available_callback_closure: Option<*mut Box<dyn Fn()>>,
+    #[ignore_malloc_size_of = "Raw pointer"]
     native_window: Option<*mut OHNativeWindow>,
     has_set_source_size: bool,
     has_set_window: bool,
     volume: f64,
     playback_rate: f64,
+    #[ignore_malloc_size_of = "External Type"]
     state: AVPlayerState,
 }
 

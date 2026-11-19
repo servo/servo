@@ -10,6 +10,7 @@ use std::sync::{Arc, Mutex, Weak};
 use std::thread;
 
 use log::{debug, warn};
+use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use servo_base::generic_channel::GenericCallback;
 use servo_media::player::StreamType;
@@ -261,6 +262,7 @@ impl MediaOutput for OhosMediaOutput {
     }
 }
 
+#[derive(MallocSizeOf)]
 struct OhosMediaSocket;
 
 impl MediaSocket for OhosMediaSocket {

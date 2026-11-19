@@ -1,8 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use malloc_size_of_derive::MallocSizeOf;
+
 use crate::ohos_media::source_builder::MediaSourceBuilder;
 
+#[derive(MallocSizeOf)]
 pub struct MediaSourceWrapper {}
 
 impl MediaSourceWrapper {
