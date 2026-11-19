@@ -42,7 +42,7 @@ use script_bindings::settings_stack::run_a_script;
 
 use crate::DomTypeHolder;
 use crate::dom::bindings::conversions::root_from_object;
-use crate::dom::bindings::error::{Error, ErrorToJsval};
+use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::refcounted::TrustedPromise;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{AsHandleValue, Dom};
@@ -194,10 +194,25 @@ impl Promise {
 
     /// Create a new [RootedPromise] associated with the provided realm.
     pub(crate) fn new_in_realm(current_realm: &mut CurrentRealm) -> RootedPromise {
+        Promise::try_new_in_realm(current_realm).expect("Failed to create a JS promise")
+    }
+
+    /// Like [`Promise::new`], but returns [`Error::JSFailed`] if the JS promise can't be
+    /// created, for example because the stack is nearly exhausted. The JS exception is left
+    /// pending.
+    pub(crate) fn try_new(cx: &mut JSContext, global: &GlobalScope) -> Fallible<RootedPromise> {
+        let mut realm = enter_auto_realm(cx, global);
+        Promise::try_new_in_realm(&mut realm.current_realm())
+    }
+
+    fn try_new_in_realm(current_realm: &mut CurrentRealm) -> Fallible<RootedPromise> {
         let cx = current_realm.deref_mut();
         rooted!(&in(cx) let mut obj = ptr::null_mut::<JSObject>());
         Promise::create_js_promise(cx, obj.handle_mut());
-        Promise::new_with_js_promise(cx, obj.handle())
+        if obj.is_null() {
+            return Err(Error::JSFailed);
+        }
+        Ok(Promise::new_with_js_promise(cx, obj.handle()))
     }
 
     /// Create a new [RootedPromise] wrapping the same underlying [Promise].
@@ -253,7 +268,9 @@ impl Promise {
             rooted!(&in(cx) let do_nothing_obj = JS_GetFunctionObject(do_nothing_func));
             assert!(!do_nothing_obj.is_null());
             obj.set(NewPromiseObject(cx, do_nothing_obj.handle()));
-            assert!(!obj.is_null());
+            if obj.is_null() {
+                return;
+            }
             let is_user_interacting = if ScriptThread::is_user_interacting() {
                 PromiseUserInputEventHandlingState::HadUserInteractionAtCreation
             } else {

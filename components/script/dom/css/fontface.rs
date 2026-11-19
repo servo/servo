@@ -69,7 +69,13 @@ pub struct FontFace {
     urls: DomRefCell<Option<SourceList>>,
 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontface-fontstatuspromise-slot>
-    font_status_promise: TracedPromise,
+    ///
+    /// Like Gecko and Blink, this is only created when `loaded` or `load()` first needs it, so
+    /// that constructing a `FontFace` can't fail.
+    font_status_promise: DomRefCell<Option<TracedPromise>>,
+
+    /// The error to reject [[FontStatusPromise]] with, if loading failed before it was created.
+    font_status_error: DomRefCell<Option<Error>>,
 
     /// The `@font-face` rule that this `FontFace` object is [css-connected] to, if any.
     ///
@@ -247,11 +253,9 @@ impl FontFace {
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<Self> {
-        let font_status_promise = Promise::new(cx, global);
         // If any of them fail to parse correctly, reject font face’s [[FontStatusPromise]] with a
         // DOMException named "SyntaxError"
-        font_status_promise
-            .reject_error(cx, Error::Syntax(Some("Failed to parse font face".into())));
+        let font_status_error = Error::Syntax(Some("Failed to parse font face".into()));
 
         // set font face’s corresponding attributes to the empty string, and set font face’s status
         // attribute to "error"
@@ -260,7 +264,8 @@ impl FontFace {
             Box::new(Self {
                 reflector: Reflector::new(),
                 font_face_set: MutNullableDom::default(),
-                font_status_promise: font_status_promise.to_traced(),
+                font_status_promise: Default::default(),
+                font_status_error: DomRefCell::new(Some(font_status_error)),
                 family_name: DomRefCell::default(),
                 urls: Default::default(),
                 descriptors: DomRefCell::new(FontFaceDescriptors {
@@ -289,7 +294,6 @@ impl FontFace {
         family_name: DOMString,
         urls: Option<SourceList>,
         descriptors: &Descriptors,
-        font_status_promise: &RootedPromise,
     ) -> Self {
         Self {
             reflector: Reflector::new(),
@@ -304,7 +308,8 @@ impl FontFace {
             family_name: DomRefCell::new(family_name.traced()),
             urls: DomRefCell::new(urls),
             template: RefCell::default(),
-            font_status_promise: font_status_promise.to_traced(),
+            font_status_promise: Default::default(),
+            font_status_error: Default::default(),
             css_font_face_rule: Default::default(),
         }
     }
@@ -317,16 +322,10 @@ impl FontFace {
         font_family: DOMString,
         urls: Option<SourceList>,
         descriptors: &Descriptors,
-        font_status_promise: &RootedPromise,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_proto(
             cx,
-            Box::new(Self::new_inherited(
-                font_family,
-                urls,
-                descriptors,
-                font_status_promise,
-            )),
+            Box::new(Self::new_inherited(font_family, urls, descriptors)),
             global,
             proto,
         )
@@ -337,7 +336,6 @@ impl FontFace {
         family_name: DOMString,
         descriptors: FontFaceDescriptors,
         src: Option<SourceList>,
-        font_status_promise: &RootedPromise,
         font_face_rule: ServoArc<FontFaceRuleInfo>,
     ) -> Self {
         Self {
@@ -348,7 +346,8 @@ impl FontFace {
             family_name: DomRefCell::new(family_name.traced()),
             urls: DomRefCell::new(src),
             template: RefCell::default(),
-            font_status_promise: font_status_promise.to_traced(),
+            font_status_promise: Default::default(),
+            font_status_error: Default::default(),
             css_font_face_rule: DomRefCell::new(Some(font_face_rule)),
         }
     }
@@ -375,14 +374,12 @@ impl FontFace {
         // > descriptors in the @font-face rule.
         let descriptors = serialize_parsed_descriptors(&font_face_rule.descriptors);
 
-        let font_status_promise = Promise::new(cx, global);
         Some(reflect_dom_object_with_proto(
             cx,
             Box::new(Self::new_inherited_for_web_font(
                 family_name,
                 descriptors,
                 font_face_rule.descriptors.src.clone(),
-                &font_status_promise,
                 font_face_rule,
             )),
             global,
@@ -419,6 +416,55 @@ impl FontFace {
             .is_some_and(|connected_rule| ServoArc::ptr_eq(connected_rule, target_rule))
     }
 
+    /// Return [[FontStatusPromise]], creating it if this is the first time it's needed. A new
+    /// promise is settled straight away if the font has already loaded or failed.
+    fn font_status_promise(&self, cx: &mut JSContext) -> Fallible<RootedPromise> {
+        if let Some(promise) = self.font_status_promise.borrow().as_ref() {
+            return Ok(promise.root(cx));
+        }
+
+        let promise = Promise::try_new(cx, &self.global())?;
+        *self.font_status_promise.borrow_mut() = Some(promise.to_traced());
+        match self.status.get() {
+            FontFaceLoadStatus::Loaded => promise.resolve_native(cx, self),
+            FontFaceLoadStatus::Error => {
+                let error = self.font_status_error.borrow_mut().take();
+                if let Some(error) = error {
+                    promise.reject_error(cx, error);
+                }
+            },
+            FontFaceLoadStatus::Unloaded | FontFaceLoadStatus::Loading => {},
+        }
+        Ok(promise)
+    }
+
+    /// Fulfill [[FontStatusPromise]] with this font face, if it has been created. Otherwise it
+    /// is fulfilled when it's created.
+    fn resolve_font_status_promise(&self, cx: &mut JSContext) {
+        let promise = self
+            .font_status_promise
+            .borrow()
+            .as_ref()
+            .map(|promise| promise.root(cx));
+        if let Some(promise) = promise {
+            promise.resolve_native(cx, self);
+        }
+    }
+
+    /// Reject [[FontStatusPromise]] with `error`, if it has been created. Otherwise it is
+    /// rejected when it's created.
+    fn reject_font_status_promise(&self, cx: &mut JSContext, error: Error) {
+        let promise = self
+            .font_status_promise
+            .borrow()
+            .as_ref()
+            .map(|promise| promise.root(cx));
+        match promise {
+            Some(promise) => promise.reject_error(cx, error),
+            None => *self.font_status_error.borrow_mut() = Some(error),
+        }
+    }
+
     /// Step 3 of <https://drafts.csswg.org/css-font-loading/#font-face-constructor>
     fn load_from_data(&self, cx: &mut JSContext, global: &GlobalScope, data: Vec<u8>) {
         // Step 3.1 Set font face’s status attribute to "loading".
@@ -444,7 +490,7 @@ impl FontFace {
         if let Some(template) = result {
             // Step 1. If the load was successful, font face now represents the parsed font; fulfill font face’s
             // [[FontStatusPromise]] with font face, and set its status attribute to "loaded".
-            self.font_status_promise.resolve_native(cx, &self);
+            self.resolve_font_status_promise(cx);
             self.status.set(FontFaceLoadStatus::Loaded);
             *self.template.borrow_mut() = Some(template);
 
@@ -459,8 +505,10 @@ impl FontFace {
         } else {
             // Step 2. Otherwise, reject font face’s [[FontStatusPromise]] with a DOMException named "SyntaxError"
             // and set font face’s status attribute to "error".
-            self.font_status_promise
-                .reject_error(cx, Error::Syntax(Some("Failed to parse font data".into())));
+            self.reject_font_status_promise(
+                cx,
+                Error::Syntax(Some("Failed to parse font data".into())),
+            );
             self.status.set(FontFaceLoadStatus::Error);
 
             // For each FontFaceSet font face is in:
@@ -658,15 +706,17 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
     /// load. For fonts constructed from a buffer source, or fonts that are already loading or
     /// loaded, it does nothing.
     /// <https://drafts.csswg.org/css-font-loading/#font-face-load>
-    fn Load(&self, cx: &mut JSContext) -> RootedPromise {
+    fn Load(&self, cx: &mut JSContext) -> Fallible<RootedPromise> {
+        let font_status_promise = self.font_status_promise(cx)?;
+
         // Step 2. If font face’s [[Urls]] slot is null, or its status attribute is anything
         // other than "unloaded", return font face’s [[FontStatusPromise]] and abort these
         // steps.
         let Some(sources) = self.urls.safe_borrow_mut(cx.no_gc()).take() else {
-            return self.font_status_promise.root(cx);
+            return Ok(font_status_promise);
         };
         if self.status.get() != FontFaceLoadStatus::Unloaded {
-            return self.font_status_promise.root(cx);
+            return Ok(font_status_promise);
         }
 
         let global = self.global();
@@ -691,7 +741,7 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
                             // [[FontStatusPromise]] with a DOMException whose name is "NetworkError"
                             // and set font face’s status attribute to "error".
                             font_face.status.set(FontFaceLoadStatus::Error);
-                            font_face.font_status_promise.reject_error(cx, Error::Network(Some("Failed to load font data".into())));
+                            font_face.reject_font_status_promise(cx, Error::Network(Some("Failed to load font data".into())));
                         }
                         Some(template) => {
                             // Step 5.2. Otherwise, font face now represents the loaded font;
@@ -700,7 +750,7 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
                             font_face.status.set(FontFaceLoadStatus::Loaded);
                             let old_template = font_face.template.borrow_mut().replace((family_name, template));
                             debug_assert!(old_template.is_none(), "FontFace's template must be intialized only once");
-                            font_face.font_status_promise.resolve_native(cx, &font_face);
+                            font_face.resolve_font_status_promise(cx);
                         }
                     }
 
@@ -746,12 +796,12 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
             font_face_set.handle_font_face_status_changed(cx, self);
         }
 
-        self.font_status_promise.root(cx)
+        Ok(font_status_promise)
     }
 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontface-loaded>
-    fn Loaded(&self, cx: &JSContext) -> RootedPromise {
-        self.font_status_promise.root(cx)
+    fn GetLoaded(&self, cx: &mut JSContext) -> Fallible<RootedPromise> {
+        self.font_status_promise(cx)
     }
 
     /// <https://drafts.csswg.org/css-font-loading/#font-face-constructor>
@@ -787,7 +837,7 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
         };
 
         // Set its internal [[FontStatusPromise]] slot to a fresh pending Promise object.
-        let font_status_promise = Promise::new(cx, global);
+        // This happens lazily, see `FontFace::font_status_promise`.
 
         let sources = parsed_font_face_rule.descriptors.src.clone();
         // Let font face be a fresh FontFace object.
@@ -798,7 +848,6 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
             family,
             sources,
             &parsed_font_face_rule.descriptors,
-            &font_status_promise,
         );
 
         // If font face’s status is "error", terminate this algorithm;
