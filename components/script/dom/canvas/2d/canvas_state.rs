@@ -2767,7 +2767,7 @@ pub(super) fn parse_color(
             Some(canvas) => {
                 let canvas_element = canvas.upcast::<Element>();
                 match canvas_element.style(cx) {
-                    Some(ref s) if canvas_element.has_css_layout_box(cx) => {
+                    Some(ref s) if canvas_element.has_css_layout_box_deprecated(cx) => {
                         s.get_inherited_text().color
                     },
                     _ => AbsoluteColor::BLACK,

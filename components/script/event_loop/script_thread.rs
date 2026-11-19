@@ -139,9 +139,7 @@ use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
 };
 use crate::dom::document::focus::FocusableArea;
-use crate::dom::document::{
-    AbortReason, Document, HasBrowsingContext, IsHTMLDocument, RenderingUpdateReason,
-};
+use crate::dom::document::{AbortReason, Document, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmliframeelement::{HTMLIFrameElement, IframeContext, ProcessingMode};
@@ -1234,21 +1232,11 @@ impl ScriptThread {
                 document.run_the_animation_frame_callbacks(cx);
             }
 
-            // Run the resize observer steps.
-            let mut depth = Default::default();
-            while document.gather_active_resize_observations_at_depth(cx, &depth) {
-                // Note: this will reflow the doc.
-                depth = document.broadcast_active_resize_observations(cx);
-            }
-
-            if document.has_skipped_resize_observations() {
-                document.deliver_resize_loop_error_notification(cx);
-                // Ensure that another turn of the event loop occurs to process
-                // the skipped observations.
-                document.add_rendering_update_reason(
-                    RenderingUpdateReason::ResizeObserverStartedObservingTarget,
-                );
-            }
+            // Run the resize observer steps. Note that this can cause a reflow
+            // of the Document.
+            // Step 16. For each doc of docs:
+            //  (the resize observer substeps are contained within this step)
+            document.run_the_resize_observer_steps(cx);
 
             // <https://html.spec.whatwg.org/multipage/#focus-fixup-rule>
             // > For each doc of docs, if the focused area of doc is not a focusable area, then run the
