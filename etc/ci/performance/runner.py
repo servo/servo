@@ -13,9 +13,8 @@ import platform
 import subprocess
 from datetime import datetime
 from functools import partial
-from statistics import median, StatisticsError
-from urllib.parse import urlsplit, urlunsplit, urljoin
-
+from statistics import StatisticsError, median
+from urllib.parse import urljoin, urlsplit, urlunsplit
 
 DATE = datetime.now().strftime("%Y-%m-%d")
 MACHINE = platform.machine()

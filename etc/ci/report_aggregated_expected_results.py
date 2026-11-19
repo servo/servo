@@ -11,16 +11,15 @@
 
 # This allows using types that are defined later in the file.
 from __future__ import annotations
-from datetime import datetime, timezone
 
+import argparse
 import json
 import os
 import re
 import subprocess
-import argparse
 import textwrap
 import xml.etree.ElementTree as ElementTree
-
+from datetime import datetime, timezone
 from typing import Any, Callable, Optional
 
 SUBTEST_RESULT_TRUNCATION = 10

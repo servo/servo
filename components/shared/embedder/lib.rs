@@ -25,7 +25,7 @@ use std::sync::Arc;
 use accesskit::TreeUpdate;
 use content_security_policy::Destination;
 use crossbeam_channel::Sender;
-use euclid::{Box2D, Point2D, Scale, Size2D, Vector2D};
+use euclid::{Box2D, Point2D, Rect, Scale, Size2D, Vector2D};
 use http::{HeaderMap, Method, StatusCode};
 use log::warn;
 use malloc_size_of::malloc_size_of_is_0;
@@ -46,7 +46,7 @@ use url::Url;
 use uuid::Uuid;
 use webrender_api::ExternalScrollId;
 use webrender_api::units::{
-    DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, DeviceRect,
+    Au, DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, DeviceRect,
     DeviceVector2D, LayoutPoint, LayoutRect, LayoutSize, LayoutVector2D,
 };
 
@@ -468,6 +468,14 @@ pub struct BluetoothDeviceDescription {
     pub name: String,
 }
 
+/// A rectangle in a pipeline in CSS pixels. This is in the viewport coordinates of the pipeline,
+/// which means that it does not take into account nested frames or the transforms applied to them.
+#[derive(Deserialize, Serialize)]
+pub struct PipelineRect {
+    pub rect: Rect<Au, CSSPixel>,
+    pub pipeline_id: PipelineId,
+}
+
 /// Messages towards the embedder.
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum EmbedderMsg {
@@ -556,7 +564,7 @@ pub enum EmbedderMsg {
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console_API>
     ShowConsoleApiMessage(Option<WebViewId>, ConsoleLogLevel, String),
     /// Request to the embedder to display a user interace control.
-    ShowEmbedderControl(EmbedderControlId, DeviceIntRect, EmbedderControlRequest),
+    ShowEmbedderControl(EmbedderControlId, PipelineRect, EmbedderControlRequest),
     /// Request to the embedder to hide a user interface control.
     HideEmbedderControl(EmbedderControlId),
     /// Inform the embedding layer that a particular `InputEvent` was handled by Servo

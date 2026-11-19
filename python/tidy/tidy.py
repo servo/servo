@@ -17,13 +17,13 @@ import re
 import shutil
 import subprocess
 import sys
-from dataclasses import dataclass
-from typing import Any, TypedDict, LiteralString
-from collections.abc import Iterator, Callable
+import tomllib
 import types
+from collections.abc import Callable, Iterator
+from dataclasses import dataclass
+from typing import Any, LiteralString, TypedDict
 
 import colorama
-import tomllib
 
 from .licenseck import APACHE, COPYRIGHT, MPL, OLD_MPL, licenses_toml
 from .linting_report import GitHubAnnotationManager

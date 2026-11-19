@@ -7,7 +7,6 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-from typing import List, Tuple, TypeGuard
 import json
 import os
 import pathlib
@@ -15,12 +14,12 @@ import platform
 import shutil
 import subprocess
 import sys
-import toml
 from enum import Enum
-
 from os import path
+from typing import Any, List, Optional, Tuple, TypeGuard
+
+import toml
 from packaging.version import parse as parse_version
-from typing import Any, Optional
 
 import servo.platform
 import servo.util as util

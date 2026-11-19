@@ -1,8 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
 use std::default::Default;
+use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
@@ -12,6 +12,7 @@ use layout_api::{QueryMsg, ScrollContainerQueryFlags, ScrollContainerResponse};
 use rustc_hash::FxHashSet;
 use script_bindings::callback::RootedCallback;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
+use script_bindings::codegen::GenericBindings::DocumentFragmentBinding::DocumentFragmentMethods;
 use script_bindings::codegen::GenericBindings::ElementBinding::ScrollLogicalPosition;
 use script_bindings::codegen::GenericBindings::WindowBinding::ScrollBehavior;
 use script_bindings::dom::UnrootedDom;
@@ -24,17 +25,25 @@ use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterData
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::{
     EventHandlerNonNull, OnErrorEventHandlerNonNull,
 };
-use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::{
+    HTMLElementMethods, ShowPopoverOptions,
+};
 use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLOrSVGOrMathMLElementBinding::FocusOptions;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::UnionTypes::TogglePopoverOptionsOrBoolean;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
+use crate::dom::closewatcher::internalclosewatcher::{
+    InternalCloseWatcher, InternalCloseWatcherOwner,
+};
 use crate::dom::css::cssstyledeclaration::{
     CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner,
 };
@@ -51,8 +60,9 @@ use crate::dom::element::{
     AttributeMutation, CustomElementCreationMode, Element, ElementCreator,
     is_element_affected_by_legacy_background_presentational_hint,
 };
-use crate::dom::event::Event;
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::html::form_controls::htmlbuttonelement::HTMLButtonElement;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::form_controls::input_type::InputType;
 use crate::dom::html::htmlbodyelement::HTMLBodyElement;
@@ -62,7 +72,9 @@ use crate::dom::html::htmlframesetelement::HTMLFrameSetElement;
 use crate::dom::html::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::html::htmllabelelement::HTMLLabelElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
+use crate::dom::html::interactive::htmldialogelement::HTMLDialogElement;
 use crate::dom::html::internals::elementinternals::ElementInternals;
+use crate::dom::htmlelement::PopoverState::NoPopover;
 use crate::dom::htmlformelement::FormControlElementHelpers;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::medialist::MediaList;
@@ -74,8 +86,52 @@ use crate::dom::node::{
 };
 use crate::dom::shadowroot::shadowroot::ShadowRoot;
 use crate::dom::text::Text;
+use crate::dom::toggleevent::ToggleEvent;
 use crate::dom::window::scrolling_box::{ScrollAxisState, ScrollRequirement};
 use crate::event_loop::script_thread::ScriptThread;
+
+/// <https://html.spec.whatwg.org/multipage/#attr-popover>
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
+pub(crate) enum PopoverState {
+    Auto,
+    Manual,
+    Hint,
+    NoPopover,
+}
+
+impl PopoverState {
+    /// <https://html.spec.whatwg.org/multipage/#the-popover-attribute:attr-popover-4>
+    fn from_attribute_value(value: Option<String>) -> Self {
+        // > The popover attribute is an enumerated attribute with the following keywords and states:
+        // > - auto: Auto
+        // > - manual: Manual
+        // > - hint: Hint
+        // > The attribute's missing value default is the No Popover state, its invalid value
+        // > default is the Manual state, and its empty value default is the Auto state.
+        let Some(value) = value else {
+            return PopoverState::NoPopover;
+        };
+
+        if value.is_empty() || value.eq_ignore_ascii_case("auto") {
+            PopoverState::Auto
+        } else if value.eq_ignore_ascii_case("hint") {
+            PopoverState::Hint
+        } else {
+            PopoverState::Manual
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-popover>
+    fn reflect_attribute(&self) -> Option<DOMString> {
+        // > The popover IDL attribute must reflect the popover attribute, limited to only known values.
+        match self {
+            PopoverState::Auto => Some(DOMString::from_static("auto")),
+            PopoverState::Manual => Some(DOMString::from_static("manual")),
+            PopoverState::Hint => Some(DOMString::from_static("hint")),
+            PopoverState::NoPopover => None,
+        }
+    }
+}
 
 #[dom_struct]
 pub(crate) struct HTMLElement {
@@ -259,6 +315,866 @@ impl HTMLElement {
         let disabled = element.has_attribute(&local_name!("disabled")) ||
             element.is_disabled_by_ancestor_fieldset(cx.no_gc());
         self.set_disabled_state_and_notify(cx, disabled);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#attr-popover>
+    pub(crate) fn popover_state(&self) -> PopoverState {
+        let attribute_value = self
+            .upcast::<Element>()
+            .get_attribute_string_value(&local_name!("popover"));
+        PopoverState::from_attribute_value(attribute_value)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#show-popover>
+    pub(crate) fn show_popover(
+        &self,
+        cx: &mut JSContext,
+        throw_exceptions: bool,
+        source: Option<&HTMLElement>,
+    ) -> Fallible<()> {
+        let element = self.upcast::<Element>();
+
+        // Step 1. Let document be element's node document.
+        let document = self.owner_document();
+        let overlay_handler = document.overlay_handler();
+
+        // Step 2. If document's showing popover is true or document's hiding popover nesting
+        // count is not 0:
+        if overlay_handler.showing_popover() || overlay_handler.hiding_popover_nesting_count() != 0
+        {
+            // Step 2.1. If throwExceptions is true, then throw a "InvalidStateError" DOMException.
+            if throw_exceptions {
+                return Err(Error::InvalidState(Some(
+                    "Cannot show a popover while another popover is being shown or hidden.".into(),
+                )));
+            }
+
+            // Step 2.2. Return.
+            return Ok(());
+        }
+
+        // Step 3. Let validityResult be the result of running check popover validity given element,
+        // false, and null. If this throws an exception, catch it, and set validityResult to that
+        // exception.
+        let validity_result = self.check_popover_validity(false, None);
+
+        // Step 4. If validityResult is not true:
+        if !matches!(validity_result, Ok(true)) {
+            // Step 4.1. If throwExceptions is true and validityResult is a DOMException, then throw
+            // validityResult.
+            if throw_exceptions && let Err(error) = validity_result {
+                return Err(error);
+            }
+
+            // Step 4.2. Return.
+            return Ok(());
+        }
+
+        // Step 5. Assert: element's popover trigger is null.
+        assert!(self.popover_trigger().is_none());
+
+        // Step 6. Assert: element is not in document's top layer.
+        assert!(!overlay_handler.is_in_the_top_layer(element));
+
+        // Step 7. Set document's showing popover to true.
+        overlay_handler.set_showing_popover(true);
+
+        // Step 8. Let cleanupShowingSteps be the following step:
+        let cleanup_showing_steps = || {
+            // Step 8.1. Set document's showing popover to false.
+            overlay_handler.set_showing_popover(false);
+        };
+
+        // Step 9. If the result of firing an event named beforetoggle, using ToggleEvent, with the
+        // cancelable attribute initialized to true, the oldState attribute initialized to "closed",
+        // the newState attribute initialized to "open", and the source attribute initialized to
+        // source at element is false, then run cleanupShowingSteps and return.
+        let event = ToggleEvent::new(
+            cx,
+            &self.owner_window(),
+            atom!("beforetoggle"),
+            EventBubbles::DoesNotBubble,
+            EventCancelable::Cancelable,
+            DOMString::from_static("closed"),
+            DOMString::from_static("open"),
+            source.map(|source| source.upcast::<Element>()),
+        );
+        if !event
+            .upcast::<Event>()
+            .fire(cx, self.upcast::<EventTarget>())
+        {
+            cleanup_showing_steps();
+            return Ok(());
+        }
+
+        // Step 10. Set validityResult to the result of running check popover validity given
+        // element, false, and document. If this throws an exception, catch it, and set
+        // validityResult to that exception.
+        let validity_result = self.check_popover_validity(false, Some(&document));
+
+        // Step 11. If validityResult is not true:
+        if !matches!(validity_result, Ok(true)) {
+            // Step 11.1. Run cleanupShowingSteps.
+            cleanup_showing_steps();
+
+            // Step 11.2. If throwExceptions is true and validityResult is a DOMException, then
+            // throw validityResult.
+            if throw_exceptions && let Err(error) = validity_result {
+                return Err(error);
+            }
+
+            // Step 11.3. Return.
+            return Ok(());
+        }
+
+        // Step 12. Let shouldRestoreFocus be false.
+        let mut should_restore_focus = false;
+
+        // Step 13. Let originalType be the current state of element's popover attribute.
+        let original_type = self.popover_state();
+
+        // Step 14. Let effectiveType be originalType.
+        let mut effective_type = original_type;
+
+        let mut ancestor = None;
+
+        // Step 15. If originalType is Auto or Hint, then:
+        if matches!(original_type, PopoverState::Auto | PopoverState::Hint) {
+            // Step 15.1. Let ancestor be the result of running topmost popover ancestor given
+            // element, source, and true.
+            ancestor = element.topmost_popover_ancestor(cx.no_gc(), source, true);
+
+            // Step 15.2. If all of the following are true:
+            // - ancestor is not null;
+            // - ancestor's opened in popover mode is "hint"; and
+            // - effectiveType is the Auto state,
+            // then set effectiveType to the Hint state.
+            if ancestor.as_ref().is_some_and(|ancestor| {
+                ancestor.opened_in_popover_mode() == Some(PopoverState::Hint)
+            }) && effective_type == PopoverState::Auto
+            {
+                effective_type = PopoverState::Hint;
+            }
+
+            // Step 15.3. Run hide popover stack until given document, ancestor, Hint,
+            // shouldRestoreFocus, and true.
+            overlay_handler.hide_popover_stack_until(
+                cx,
+                ancestor.as_deref(),
+                PopoverState::Hint,
+                should_restore_focus,
+                true,
+            );
+
+            // Step 15.4. If effectiveType is Auto, then run hide popover stack until given
+            // document, ancestor, Auto, shouldRestoreFocus, and true.
+            if effective_type == PopoverState::Auto {
+                overlay_handler.hide_popover_stack_until(
+                    cx,
+                    ancestor.as_deref(),
+                    PopoverState::Auto,
+                    should_restore_focus,
+                    true,
+                );
+            }
+
+            // Step 15.5. If originalType is not equal to the value of element's popover attribute:
+            if original_type != self.popover_state() {
+                // Step 15.5.1. Run cleanupShowingSteps.
+                cleanup_showing_steps();
+
+                // Step 15.5.2. If throwExceptions is true, then throw an "InvalidStateError" DOMException.
+                if throw_exceptions {
+                    return Err(Error::InvalidState(Some(
+                        "The popover attribute changed while showing the popover.".into(),
+                    )));
+                }
+
+                // Step 15.5.3. Return.
+                return Ok(());
+            }
+
+            // Step 15.6. Set validityResult to the result of running check popover validity given
+            // element, false, and document. If this throws an exception, catch it, and set
+            // validityResult to that exception.
+            let validity_result = self.check_popover_validity(false, Some(&document));
+
+            // Step 15.7. If validityResult is not true:
+            if !matches!(validity_result, Ok(true)) {
+                // Step 15.7.1. Run cleanupShowingSteps.
+                cleanup_showing_steps();
+
+                // Step 15.7.2. If throwExceptions is true and validityResult is a DOMException,
+                // then throw validityResult.
+                if throw_exceptions && let Err(error) = validity_result {
+                    return Err(error);
+                }
+
+                // Step 15.7.3. Return.
+                return Ok(());
+            }
+
+            // Step 15.8. If the result of running topmost auto or hint popover on document is null,
+            // then set shouldRestoreFocus to true.
+            if overlay_handler
+                .find_the_topmost_auto_or_hint_popover(cx.no_gc())
+                .is_none()
+            {
+                should_restore_focus = true;
+            }
+
+            // Step 15.9. If effectiveType is Auto:
+            if effective_type == PopoverState::Auto {
+                // Step 15.9.1. Assert: document's showing auto popover list does not contain element.
+                debug_assert!(!overlay_handler.showing_popover_list_contains(
+                    cx.no_gc(),
+                    PopoverState::Auto,
+                    self
+                ));
+
+                // Step 15.9.2. Set element's opened in popover mode to "auto".
+                self.set_opened_in_popover_mode(cx.no_gc(), Some(PopoverState::Auto));
+            }
+            // Otherwise:
+            else {
+                // Step 15.9.1. Assert: effectiveType is Hint.
+                debug_assert!(effective_type == PopoverState::Hint);
+
+                // Step 15.9.2. Assert: document's showing hint popover list does not contain element.
+                debug_assert!(!overlay_handler.showing_popover_list_contains(
+                    cx.no_gc(),
+                    PopoverState::Hint,
+                    self
+                ));
+
+                // Step 15.9.3. Set element's opened in popover mode to "hint".
+                self.set_opened_in_popover_mode(cx.no_gc(), Some(PopoverState::Hint));
+            }
+
+            // Step 15.10. Set element's popover close watcher to the result of establishing a close
+            // watcher given element's relevant global object, with:
+            // - cancelAction being to return true.
+            // - closeAction being to hide a popover given element, true, true, false, and null.
+            // - getEnabledState being to return true.
+            let close_watcher = InternalCloseWatcher::establish(
+                cx.no_gc(),
+                document.window(),
+                &InternalCloseWatcherOwner::Popover(Dom::from_ref(self)),
+            );
+            self.set_popover_close_watcher(cx.no_gc(), close_watcher);
+        }
+
+        // Step 16. Set element's previously focused element to null.
+        self.set_previously_focused_element(None, cx.no_gc());
+
+        // Step 17. Let originallyFocusedElement be document's focused area of the document's DOM
+        // anchor.
+        let originally_focused_element = document
+            .focus_handler()
+            .focused_area()
+            .element()
+            .map(DomRoot::from_ref);
+
+        // Step 18. Add an element to the top layer given element.
+        overlay_handler.add_an_element_to_the_top_layer(element, cx.no_gc());
+
+        // Step 19. If effectiveType is Hint and ancestor's opened in popover mode is "auto", then
+        // set document's hint stack parent to ancestor.
+        if effective_type == PopoverState::Hint &&
+            let Some(ancestor) = &ancestor &&
+            ancestor.opened_in_popover_mode() == Some(PopoverState::Auto)
+        {
+            overlay_handler.set_hint_stack_parent(Some(ancestor));
+        }
+
+        // Step 20. Set element's popover visibility state to showing.
+        element.set_popover_visibility_state_showing(cx.no_gc(), true);
+
+        // Step 21. Set element's popover trigger to source.
+        self.set_popover_trigger(cx.no_gc(), source);
+
+        // TODO: Step 22. Set element's implicit anchor element to source.
+
+        // Step 23. Run the popover focusing steps given element.
+        self.run_popover_focusing_steps(cx);
+
+        // Step 24. If shouldRestoreFocus is true and element's popover attribute is not in the No
+        // Popover state, then set element's previously focused element to
+        // originallyFocusedElement.
+        if should_restore_focus && self.popover_state() != PopoverState::NoPopover {
+            self.set_previously_focused_element(originally_focused_element.as_deref(), cx.no_gc());
+        }
+
+        // Step 25. Run cleanupShowingSteps.
+        cleanup_showing_steps();
+
+        // Step 26. Queue a popover toggle event task given element, "closed", "open", and source.
+        self.queue_a_popover_toggle_event_task("closed", "open", source);
+        Ok(())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#queue-a-popover-toggle-event-task>
+    fn queue_a_popover_toggle_event_task(
+        &self,
+        old_state: &'static str,
+        new_state: &'static str,
+        source: Option<&HTMLElement>,
+    ) {
+        // TODO: Step 1. If element's popover toggle task tracker is not null, then:
+        // TODO: Step 1.1. Set oldState to element's popover toggle task tracker's old state.
+        // TODO: Step 1.2. Remove element's popover toggle task tracker's task from its task queue.
+        // TODO: Step 1.3. Set element's popover toggle task tracker to null.
+
+        // Step 2. Queue an element task given the DOM manipulation task source and element to run
+        // the following steps:
+        let this = Trusted::new(self);
+        let trusted_source = source.map(|source| Trusted::new(source.upcast::<Element>()));
+        self.owner_global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(fire_popover_toggle_event: move |cx| {
+                let this = this.root();
+                let source = trusted_source.map(|source| source.root());
+
+                // Step 2.1. Fire an event named toggle at element, using ToggleEvent, with the
+                // oldState attribute initialized to oldState, the newState attribute initialized to
+                // newState, and the source attribute initialized to source.
+                let event = ToggleEvent::new(
+                    cx,
+                    &this.owner_window(),
+                    atom!("toggle"),
+                    EventBubbles::DoesNotBubble,
+                    EventCancelable::NotCancelable,
+                    DOMString::from_static(old_state),
+                    DOMString::from_static(new_state),
+                    source.as_deref(),
+                );
+                event.upcast::<Event>().fire(cx, this.upcast::<EventTarget>());
+
+                // TODO: Step 2.2. Set element's popover toggle task tracker to null.
+            }));
+
+        // TODO: Step 3. Set element's popover toggle task tracker to a struct with task set to the
+        // just-queued task and old state set to oldState.
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#hide-popover-algorithm>
+    pub(crate) fn hide_popover(
+        &self,
+        cx: &mut JSContext,
+        focus_previous_element: bool,
+        mut fire_events: bool,
+        throw_exceptions: bool,
+        source: Option<&HTMLElement>,
+    ) -> Fallible<()> {
+        let element = self.upcast::<Element>();
+
+        // Step 1. Let validityResult be the result of running check popover validity given element,
+        // true, and null. If this throws an exception, catch it, and let validityResult be that
+        // exception.
+        let validity_result = self.check_popover_validity(true, None);
+
+        // Step 2. If validityResult is not true:
+        if !matches!(validity_result, Ok(true)) {
+            // Step 2.1. If throwExceptions is true and validityResult is a DOMException, then throw
+            // validityResult.
+            if throw_exceptions && let Err(error) = validity_result {
+                return Err(error);
+            }
+
+            // Step 2.2. Return.
+            return Ok(());
+        }
+
+        // Step 3. Let document be element's node document.
+        let document = self.owner_document();
+        let overlay_handler = document.overlay_handler();
+
+        // Step 4. Let nestedHide be element's popover hiding.
+        let nested_hide = self.popover_hiding();
+
+        // Step 5. Set element's popover hiding to true.
+        self.set_popover_hiding(cx.no_gc(), true);
+
+        // Step 6. If nestedHide is true, then set fireEvents to false.
+        if nested_hide {
+            fire_events = false;
+        }
+
+        // Step 7. Increment document's hiding popover nesting count.
+        overlay_handler.increment_hiding_popover_nesting_count();
+
+        // Step 8. Let cleanupSteps be the following steps:
+        let cleanup_steps = |no_gc: &NoGC| {
+            // Step 8.1. If nestedHide is false, then set element's popover hiding to false.
+            if !nested_hide {
+                self.set_popover_hiding(no_gc, false);
+            }
+
+            // Step 8.2. Decrement document's hiding popover nesting count.
+            overlay_handler.decrement_hiding_popover_nesting_count();
+        };
+
+        // Step 9. Let autoPopoverListContainsElement be true if document's showing auto popover
+        // list contains element; otherwise false.
+        let auto_popover_list_contains_element =
+            overlay_handler.showing_popover_list_contains(cx.no_gc(), PopoverState::Auto, self);
+
+        // Step 10. Let hintPopoverListContainsElement be true if document's showing hint popover
+        // list contains element; otherwise false.
+        let hint_popover_list_contains_element =
+            overlay_handler.showing_popover_list_contains(cx.no_gc(), PopoverState::Hint, self);
+
+        // Step 11. If element's opened in popover mode is "auto" or "hint", then:
+        if matches!(
+            self.opened_in_popover_mode(),
+            Some(PopoverState::Auto) | Some(PopoverState::Hint)
+        ) {
+            // Step 11.1. If hintPopoverListContainsElement is true, then run hide popover stack
+            // until given document, element, Hint, focusPreviousElement, and fireEvents.
+            if hint_popover_list_contains_element {
+                overlay_handler.hide_popover_stack_until(
+                    cx,
+                    Some(self),
+                    PopoverState::Hint,
+                    focus_previous_element,
+                    fire_events,
+                );
+            }
+
+            // Step 11.2. If element is document's hint stack parent, then run hide popover stack
+            // until given document, null, Hint, focusPreviousElement, and fireEvents.
+            if overlay_handler.is_hint_stack_parent(self) {
+                overlay_handler.hide_popover_stack_until(
+                    cx,
+                    None,
+                    PopoverState::Hint,
+                    focus_previous_element,
+                    fire_events,
+                );
+            }
+
+            // Step 11.3. If autoPopoverListContainsElement is true, then run hide popover stack
+            // until given document, element, Auto, focusPreviousElement, and fireEvents.
+            if auto_popover_list_contains_element {
+                overlay_handler.hide_popover_stack_until(
+                    cx,
+                    Some(self),
+                    PopoverState::Auto,
+                    focus_previous_element,
+                    fire_events,
+                );
+            }
+
+            // Step 11.4. Set validityResult to the result of running check popover validity given
+            // element, true, and document. If this throws an exception, catch it, and set
+            // validityResult to that exception.
+            let validity_result = self.check_popover_validity(true, Some(&document));
+
+            // Step 11.5. If validityResult is not true:
+            if !matches!(validity_result, Ok(true)) {
+                // Step 11.5.1. Run cleanupSteps.
+                cleanup_steps(cx);
+
+                // Step 11.5.2. If throwExceptions is true and validityResult is a DOMException,
+                // then throw validityResult.
+                if throw_exceptions && let Err(error) = validity_result {
+                    return Err(error);
+                }
+
+                // Step 11.5.3. Return.
+                return Ok(());
+            }
+        }
+
+        // Step 12. If fireEvents is true:
+        if fire_events {
+            // Step 12.1. Fire an event named beforetoggle, using ToggleEvent, with the oldState
+            // attribute initialized to "open", the newState attribute initialized to "closed", and
+            // the source attribute set to source at element.
+            let event = ToggleEvent::new(
+                cx,
+                &self.owner_window(),
+                atom!("beforetoggle"),
+                EventBubbles::DoesNotBubble,
+                EventCancelable::NotCancelable,
+                DOMString::from_static("open"),
+                DOMString::from_static("closed"),
+                source.map(|source| source.upcast::<Element>()),
+            );
+            event
+                .upcast::<Event>()
+                .fire(cx, self.upcast::<EventTarget>());
+
+            // Step 12.2. Set validityResult to the result of running check popover validity given
+            // element, true, and document, catching any exceptions.
+            let validity_result = self.check_popover_validity(true, Some(&document));
+
+            // Step 12.2. If validityResult is not true:
+            if !matches!(validity_result, Ok(true)) {
+                // Step 12.2.1. Run cleanupSteps.
+                cleanup_steps(cx);
+
+                // Step 12.2.2. If throwExceptions is true and validityResult is a DOMException,
+                // then throw validityResult.
+                if throw_exceptions && let Err(error) = validity_result {
+                    return Err(error);
+                }
+
+                // Step 12.2.3. Return.
+                return Ok(());
+            }
+
+            // Step 12.4. Request an element to be removed from the top layer given element.
+            overlay_handler
+                .request_an_element_to_be_removed_from_the_top_layer(element, cx.no_gc());
+
+            // TODO: Step 12.5. Set element's implicit anchor element to null.
+        }
+        // Step 13. Otherwise, remove an element from the top layer immediately given element.
+        else {
+            overlay_handler.remove_an_element_from_the_top_layer_immediately(element, cx.no_gc());
+        }
+
+        // Step 14. Set element's popover trigger to null.
+        self.set_popover_trigger(cx.no_gc(), None);
+
+        // Step 15. Set element's opened in popover mode to null.
+        self.set_opened_in_popover_mode(cx.no_gc(), None);
+
+        // Step 16. Set element's popover visibility state to hidden.
+        element.set_popover_visibility_state_showing(cx.no_gc(), false);
+
+        // Step 17. If element is document's hint stack parent, or document's showing hint popover
+        // list is empty, then set document's hint stack parent to null.
+        if overlay_handler.is_hint_stack_parent(self) ||
+            overlay_handler
+                .showing_popover_list_unrooted(cx.no_gc(), PopoverState::Hint)
+                .is_empty()
+        {
+            overlay_handler.set_hint_stack_parent(None);
+        }
+
+        // Step 18. If fireEvents is true, then queue a popover toggle event task given element,
+        // "open", "closed", and source.
+        if fire_events {
+            self.queue_a_popover_toggle_event_task("open", "closed", source);
+        }
+
+        // Step 19. Let previouslyFocusedElement be element's previously focused element.
+        // Step 20. If previouslyFocusedElement is not null, then:
+        if let Some(previously_focused_element) = self.previously_focused_element(cx.no_gc()) {
+            // Step 20.1. Set element's previously focused element to null.
+            self.set_previously_focused_element(None, cx.no_gc());
+
+            // Step 20.2. If focusPreviousElement is true and document's focused area of the
+            // document's DOM anchor is a shadow-including inclusive descendant of element, then
+            // run the focusing steps for previouslyFocusedElement; the viewport should not be
+            // scrolled by doing this step.
+            if focus_previous_element &&
+                document
+                    .focus_handler()
+                    .focused_area()
+                    .dom_anchor(&document)
+                    .inclusive_ancestors(ShadowIncluding::Yes)
+                    .any(|node| &*node == self.upcast::<Node>())
+            {
+                previously_focused_element
+                    .upcast::<Node>()
+                    .run_the_focusing_steps(cx, None, FocusTrigger::Script);
+            }
+        }
+
+        // Step 21. If element's popover close watcher is not null:
+        // Step 21.1. Destroy element's popover close watcher.
+        // Step 21.2. Set element's popover close watcher to null.
+        if let Some(close_watcher) = self.take_popover_close_watcher(cx.no_gc()) {
+            close_watcher.destroy(cx.no_gc());
+        }
+
+        // Step 22. Run cleanupSteps.
+        cleanup_steps(cx.no_gc());
+        Ok(())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#popover-focusing-steps>
+    fn run_popover_focusing_steps(&self, cx: &mut JSContext) {
+        // TODO: Step 1. If the allow focus steps given subject's node document return false, then
+        // return.
+
+        // Step 2. If subject is a dialog element, then run the dialog focusing steps given subject
+        // and return.
+        if let Some(dialog) = self.downcast::<HTMLDialogElement>() {
+            dialog.run_dialog_focusing_steps(cx);
+            return;
+        }
+
+        // Step 3. If subject has the autofocus attribute, then let control be subject.
+        let node = self.upcast::<Node>();
+        rooted!(&in(cx) let control = if self.Autofocus() {
+            node.get_the_focusable_area(cx, FocusTrigger::Script)
+        }
+        // Step 4. Otherwise, let control be the autofocus delegate for subject given "other".
+        else {
+            node.autofocus_delegate(cx, FocusTrigger::Script)
+        });
+
+        // Step 5. If control is null, then return.
+        let Some(control) = &*control else {
+            return;
+        };
+
+        // Step 6. Run the focusing steps given control.
+        // FIXME: Use the focusing steps once they support a focusable area as an argument.
+        self.owner_document()
+            .focus_handler()
+            .focus(cx, control, FocusTrigger::Script);
+
+        // TODO: Step 7. Let topDocument be the active document of control's node document's
+        // node navigable's top-level traversable.
+        // TODO: Step 8. If control's node document's origin is not the same as the origin of
+        // topDocument, then return.
+        // TODO: Step 9. Empty topDocument's autofocus candidates.
+        // TODO: Step 10. Set topDocument's autofocus processed flag to true.
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#check-popover-validity>
+    pub(crate) fn check_popover_validity(
+        &self,
+        expected_to_be_showing: bool,
+        expected_document: Option<&Document>,
+    ) -> Fallible<bool> {
+        // Step 1. If element's popover attribute is in the No Popover state, then throw a
+        // "NotSupportedError" DOMException.
+        if self.popover_state() == NoPopover {
+            return Err(Error::NotSupported(Some(
+                "Element does not have a popover attribute.".into(),
+            )));
+        }
+
+        // Step 2. If any of the following are true:
+        // - expectedToBeShowing is true and element's popover visibility state is not showing; or
+        // - expectedToBeShowing is false and element's popover visibility state is not hidden,
+        // then return false.
+        let element = self.upcast::<Element>();
+        if expected_to_be_showing != element.popover_visibility_state_showing() {
+            return Ok(false);
+        }
+
+        // Step 3. If any of the following are true:
+        // - expectedToBeShowing is false and element is not connected;
+        // - expectedToBeShowing is false and element's node document is not fully active;
+        // - expectedDocument is not null and element's node document is not expectedDocument;
+        // - element is a dialog element and its is modal is set to true; or
+        // - element's fullscreen flag is set.
+        // then throw an "InvalidStateError" DOMException.
+        let document = self.owner_document();
+        if (!expected_to_be_showing &&
+            (!self.upcast::<Node>().is_connected() || !document.is_fully_active())) ||
+            expected_document.is_some_and(|expected| *expected != *document) ||
+            (self.is::<HTMLDialogElement>() && element.state().contains(ElementState::MODAL)) ||
+            element.state().contains(ElementState::FULLSCREEN)
+        {
+            return Err(Error::InvalidState(Some(
+                "Element is not in a valid state to show or hide a popover.".into(),
+            )));
+        }
+
+        // Step 4. Return true.
+        Ok(true)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#popover-target-attribute-activation-behavior>
+    pub(crate) fn popover_target_attribute_activation_behavior(
+        &self,
+        cx: &mut JSContext,
+        event_target: &Node,
+    ) {
+        // 1. Let popover be node's popover target element.
+        let popover = self.popover_target_element(cx);
+
+        // 2. If popover is null, then return.
+        let Some(popover) = popover else {
+            return;
+        };
+
+        // 3. If eventTarget is a shadow-including inclusive descendant of popover and popover
+        // is a shadow-including descendant of node, then return.
+        let popover_node = popover.upcast::<Node>();
+        if popover_node.is_shadow_including_inclusive_ancestor_of(event_target) &&
+            self.upcast::<Node>()
+                .is_shadow_including_inclusive_ancestor_of(popover_node)
+        {
+            return;
+        }
+
+        let popover_showing = popover
+            .upcast::<Element>()
+            .popover_visibility_state_showing();
+        let popover_target_action = self
+            .upcast::<Element>()
+            .get_string_attribute(&local_name!("popovertargetaction"))
+            .to_ascii_lowercase();
+
+        // 4. If node's popovertargetaction attribute is in the show state and popover's popover
+        // visibility state is showing, then return.
+        if popover_target_action == "show" && popover_showing {
+            return;
+        }
+
+        // 5. If node's popovertargetaction attribute is in the hide state and popover's popover
+        // visibility state is hidden, then return.
+        if popover_target_action == "hide" && !popover_showing {
+            return;
+        }
+
+        // 6. If popover's popover visibility state is showing, then run the hide popover algorithm
+        // given popover, true, true, false, and node.
+        if popover_showing {
+            popover
+                .hide_popover(cx, true, true, false, Some(self))
+                .expect("This shouldn't fail in this codepath");
+        }
+        // 7. Otherwise:
+        else {
+            // 7.1. Let validity be the result of running check popover validity given popover,
+            // false, and null. If this throws an exception, catch it, and let validity be false.
+            let validity = popover.check_popover_validity(false, None);
+
+            // 7.2. If validity is true, then run show popover given popover, false, and node.
+            if matches!(validity, Ok(true)) {
+                popover
+                    .show_popover(cx, false, Some(self))
+                    .expect("This shouldn't fail in this codepath");
+            }
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#popover-target-element>
+    pub(crate) fn popover_target_element(
+        &self,
+        cx: &mut JSContext,
+    ) -> Option<DomRoot<HTMLElement>> {
+        // 1. If node is not a button, then return null.
+        if !self.is_a_button() {
+            return None;
+        }
+
+        // 2. If node is disabled, then return null.
+        if self.upcast::<Element>().is_actually_disabled() {
+            return None;
+        }
+
+        // 3. If node has a form owner and node is a submit button, then return null.
+        if self
+            .downcast::<HTMLButtonElement>()
+            .is_some_and(|button| button.form_owner().is_some() && button.is_submit_button()) ||
+            self.downcast::<HTMLInputElement>()
+                .is_some_and(|input| input.form_owner().is_some() && input.is_submit_button())
+        {
+            return None;
+        }
+
+        // 4. Let popoverElement be the result of running node's get the popovertarget-associated element.
+        let popover_target_value = self
+            .upcast::<Element>()
+            .get_attribute_string_value(&local_name!("popovertarget"))?
+            .into();
+
+        let root_node = self
+            .upcast::<Node>()
+            .GetRootNode(&GetRootNodeOptions::empty());
+
+        let popover_element = if let Some(document) = root_node.downcast::<Document>() {
+            document.GetElementById(cx, popover_target_value)
+        } else if let Some(document_fragment) = root_node.downcast::<DocumentFragment>() {
+            document_fragment.GetElementById(cx, popover_target_value)
+        } else {
+            unreachable!("Element must be in a document or document fragment")
+        };
+
+        // 5. If popoverElement is null, then return null.
+        let popover_element = DomRoot::downcast::<HTMLElement>(popover_element?)?;
+
+        // 6. If popoverElement's popover attribute is in the No Popover state, then return null.
+        if popover_element.popover_state() == PopoverState::NoPopover {
+            return None;
+        }
+
+        // 7. Return popoverElement.
+        Some(popover_element)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-button>
+    fn is_a_button(&self) -> bool {
+        self.is::<HTMLButtonElement>() ||
+            self.downcast::<HTMLInputElement>().is_some_and(|input| {
+                matches!(
+                    *input.input_type(),
+                    InputType::Submit(_) |
+                        InputType::Reset(_) |
+                        InputType::Image(_) |
+                        InputType::Button(_)
+                )
+            })
+    }
+
+    pub(crate) fn opened_in_popover_mode(&self) -> Option<PopoverState> {
+        self.upcast::<Element>()
+            .rare_data()
+            .as_ref()?
+            .opened_in_popover_mode
+    }
+
+    fn set_opened_in_popover_mode(&self, no_gc: &NoGC, mode: Option<PopoverState>) {
+        self.upcast::<Element>()
+            .ensure_rare_data(no_gc)
+            .opened_in_popover_mode = mode;
+    }
+
+    fn popover_trigger(&self) -> Option<DomRoot<HTMLElement>> {
+        self.upcast::<Element>()
+            .rare_data()
+            .as_ref()?
+            .popover_trigger
+            .get()
+    }
+
+    fn set_popover_trigger(&self, no_gc: &NoGC, trigger: Option<&HTMLElement>) {
+        self.upcast::<Element>()
+            .ensure_rare_data(no_gc)
+            .popover_trigger
+            .set(trigger);
+    }
+
+    fn popover_hiding(&self) -> bool {
+        self.upcast::<Element>()
+            .rare_data()
+            .as_ref()
+            .is_some_and(|rare_data| rare_data.popover_hiding)
+    }
+
+    fn set_popover_hiding(&self, no_gc: &NoGC, value: bool) {
+        self.upcast::<Element>()
+            .ensure_rare_data(no_gc)
+            .popover_hiding = value;
+    }
+
+    fn set_popover_close_watcher(&self, no_gc: &NoGC, close_watcher: Rc<InternalCloseWatcher>) {
+        self.upcast::<Element>()
+            .ensure_rare_data(no_gc)
+            .popover_close_watcher
+            .safe_borrow_mut(no_gc)
+            .replace(close_watcher);
+    }
+
+    fn take_popover_close_watcher(&self, no_gc: &NoGC) -> Option<Rc<InternalCloseWatcher>> {
+        self.upcast::<Element>()
+            .rare_data()
+            .as_ref()?
+            .popover_close_watcher
+            .safe_borrow_mut(no_gc)
+            .take()
     }
 }
 
@@ -889,6 +1805,77 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         Ok(internals)
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-showpopover>
+    fn ShowPopover(&self, cx: &mut JSContext, options: &ShowPopoverOptions) -> Fallible<()> {
+        // Step 1. Let source be options["source"] if it exists; otherwise, null.
+        // Step 2. Run show popover given this, true, and source.
+        self.show_popover(cx, true, options.source.as_deref())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hidepopover>
+    fn HidePopover(&self, cx: &mut JSContext) -> Fallible<()> {
+        // 1. Run the hide popover algorithm given this, true, true, true, and null.
+        self.hide_popover(cx, true, true, true, None)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-togglepopover>
+    fn TogglePopover(
+        &self,
+        cx: &mut JSContext,
+        options: TogglePopoverOptionsOrBoolean,
+    ) -> Fallible<bool> {
+        // Step 1. Let force be null.
+        let (force, source) = match &options {
+            // Step 2. If options is a boolean, set force to options.
+            TogglePopoverOptionsOrBoolean::Boolean(options) => (Some(*options), None),
+            // Step 3. Otherwise, if options["force"] exists, set force to options["force"].
+            // Step 4. Let source be options["source"] if it exists; otherwise, null.
+            TogglePopoverOptionsOrBoolean::TogglePopoverOptions(options) => {
+                (options.force, options.parent.source.as_deref())
+            },
+        };
+
+        // Step 5. If this's popover visibility state is showing, and force is null or false, then
+        // run the hide popover algorithm given this, true, true, true, and null.
+        if self.upcast::<Element>().popover_visibility_state_showing() &&
+            force.is_none_or(|force| !force)
+        {
+            self.hide_popover(cx, true, true, true, None)?
+        }
+        // Step 6. Otherwise, if force is null or true, then run show popover given this, true, and source.
+        else if force.is_none_or(|force| force) {
+            self.show_popover(cx, true, source)?;
+        }
+        // Step 7. Otherwise:
+        else {
+            // Step 7.1. Let expectedToBeShowing be true if this's popover visibility state is
+            // showing; otherwise false.
+            let expected_to_be_showing =
+                self.upcast::<Element>().popover_visibility_state_showing();
+
+            // Step 7.2. Run check popover validity given expectedToBeShowing, true, and null.
+            self.check_popover_validity(expected_to_be_showing, None)?;
+        }
+
+        // Step 8. Return true if this's popover visibility state is showing; otherwise false.
+        Ok(self.upcast::<Element>().popover_visibility_state_showing())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-popover>
+    fn GetPopover(&self) -> Option<DOMString> {
+        self.popover_state().reflect_attribute()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-popover
+    fn SetPopover(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        let element = self.upcast::<Element>();
+        if let Some(value) = value {
+            element.set_string_attribute(cx, &local_name!("popover"), value);
+        } else {
+            element.remove_attribute_by_name(cx, &local_name!("popover"));
+        }
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce>
     fn Nonce(&self) -> DOMString {
         self.as_element().nonce_value().into()
@@ -1360,6 +2347,16 @@ impl VirtualMethods for HTMLElement {
             (&local_name!("accesskey"), ..) => {
                 self.update_assigned_access_key();
             },
+            // https://html.spec.whatwg.org/multipage/#the-popover-attribute
+            (&local_name!("popover"), mutation) => {
+                // > If element's popover visibility state is in the showing state and oldValue and
+                // > value are in different states, then run the hide popover algorithm given
+                // > element, true, true, false, and null.
+                let old_state = PopoverState::from_attribute_value(mutation.old_value(attr));
+                if element.popover_visibility_state_showing() && old_state != self.popover_state() {
+                    let _ = self.hide_popover(cx, true, true, false, None);
+                }
+            },
             // <https://html.spec.whatwg.org/multipage/#the-inert-attribute>
             (&local_name!("inert"), mutation) => {
                 // https://html.spec.whatwg.org/multipage/#blocked-by-a-modal-dialog
@@ -1443,6 +2440,13 @@ impl VirtualMethods for HTMLElement {
             self.owner_document()
                 .event_handler()
                 .unassign_access_key(self);
+        }
+
+        // https://html.spec.whatwg.org/multipage/#dom-trees
+        // > If removedNode's popover attribute is not in the No Popover state, then run the hide
+        // > popover algorithm given removedNode, false, false, false, and null.
+        if self.popover_state() != PopoverState::NoPopover {
+            let _ = self.hide_popover(cx, false, false, false, None);
         }
     }
 

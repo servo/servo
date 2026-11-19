@@ -1625,6 +1625,18 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-usemap
     make_setter!(SetUseMap, "usemap");
 
+    // https://html.spec.whatwg.org/multipage/#dom-popovertargetaction
+    make_enumerated_getter!(
+        PopoverTargetAction,
+        "popovertargetaction",
+        "toggle" | "show" | "hide",
+        missing => "toggle",
+        invalid => "toggle"
+    );
+
+    // https://html.spec.whatwg.org/multipage/#dom-popovertargetaction
+    make_setter!(SetPopoverTargetAction, "popovertargetaction");
+
     /// <https://wicg.github.io/entries-api/#dom-htmlinputelement-webkitdirectory>
     fn Webkitdirectory(&self) -> bool {
         self.upcast::<Element>()
@@ -1786,6 +1798,46 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity>
     fn SetCustomValidity(&self, cx: &mut JSContext, error: DOMString) {
         self.validity_state(cx).set_custom_error_message(cx, error);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-showpicker>
+    fn ShowPicker(&self, cx: &mut JSContext) -> ErrorResult {
+        // Step 1. If this is not mutable, then throw an "InvalidStateError" DOMException.
+        if !self.is_mutable() {
+            return Err(Error::InvalidState(Some(
+                "Input element is not mutable to show picker".into(),
+            )));
+        }
+
+        // Step 2. If this's relevant settings object's origin is not same origin with
+        // this's relevant settings object's top-level origin,
+        // and this is a select element, or this's type attribute is not in
+        // the File Upload state or Color state, then throw a "SecurityError" DOMException.
+        let document = self.owner_document();
+        if Some(document.origin().immutable()) != document.top_level_origin().as_ref() &&
+            !matches!(*self.input_type(), InputType::File(_) | InputType::Color(_))
+        {
+            return Err(Error::Security(Some(
+                "Input element cannot show picker for cross-origin iframe".into(),
+            )));
+        }
+
+        // Step 3. If this's relevant global object does not have transient activation,
+        // then throw a "NotAllowedError" DOMException.
+        if !self.owner_window().has_transient_activation() {
+            return Err(Error::NotAllowed(Some(
+                "Window does not have transient activation".into(),
+            )));
+        }
+
+        // Step 4. If this is a select element, and this is not being rendered,
+        // then throw a "NotSupportedError" DOMException.
+        //
+        // n/a, only applies to select element
+
+        // Step 5. Show the picker, if applicable, for this.
+        self.show_the_picker_if_applicable(cx);
+        Ok(())
     }
 }
 
@@ -2288,14 +2340,31 @@ impl HTMLInputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#show-the-picker,-if-applicable>
     pub(crate) fn show_the_picker_if_applicable(&self, cx: &mut JSContext) {
-        // FIXME: Implement most of this algorithm
+        // Step 1. If element's relevant global object does not have transient activation,
+        // then return.
+        let window = self.owner_window();
+        if !window.has_transient_activation() {
+            return;
+        }
 
         // Step 2. If element is not mutable, then return.
         if !self.is_mutable() {
             return;
         }
 
-        // Step 6. Otherwise, the user agent should show the relevant user interface for selecting a value for element,
+        // Step 3. Consume user activation given element's relevant global object.
+        window.consume_user_activation();
+
+        // Step 4. If element does not support a picker, then return.
+        //
+        // Not applicable, that's handled by `self.input_type().as_specific()`
+
+        // Step 5. If element is an input element and element's type attribute is in the File Upload state,
+        // then run these steps in parallel:
+        // TODO: Implement steps regarding asking for permission
+
+        // Step 6. Otherwise, the user agent should show the relevant
+        // user interface for selecting a value for element,
         // in the way it normally would when the user interacts with the control.
         self.input_type()
             .as_specific()
@@ -2332,7 +2401,7 @@ impl HTMLInputElement {
         if *event_type == *"blur" && !matches!(&*self.input_type(), InputType::File(..)) {
             document
                 .embedder_controls()
-                .hide_embedder_control(self.upcast());
+                .hide_embedder_control_for_element(self.upcast());
         } else if *event_type == *"focus" {
             let input_type = &*self.input_type();
             let Ok(input_method_type) = input_type.try_into() else {
@@ -2611,7 +2680,7 @@ impl VirtualMethods for HTMLInputElement {
         if could_have_had_embedder_control && !self.may_have_embedder_control() {
             self.owner_document()
                 .embedder_controls()
-                .hide_embedder_control(self.upcast());
+                .hide_embedder_control_for_element(self.upcast());
         }
     }
 
@@ -2660,7 +2729,7 @@ impl VirtualMethods for HTMLInputElement {
         // Always attempt to hide IME when unbinding input elements from the tree.
         self.owner_document_unrooted(cx.no_gc())
             .embedder_controls()
-            .hide_embedder_control(self.upcast());
+            .hide_embedder_control_for_element(self.upcast());
 
         let form_owner = self.form_owner();
         self.super_type().unwrap().unbind_from_tree(cx, context);
@@ -2928,11 +2997,16 @@ impl Activatable for HTMLInputElement {
 
         // Step 3. If element has a form owner and element's type attribute
         // is not in the Button state, then return.
-        // TODO
+        if self.form_owner().is_some() && !matches!(*self.input_type(), InputType::Button(_)) {
+            return;
+        }
 
         // Step 4. Run the popover target attribute activation behavior
         // given element and event's target.
-        // TODO
+        if let Some(target) = target.downcast::<Node>() {
+            self.upcast::<HTMLElement>()
+                .popover_target_attribute_activation_behavior(cx, target);
+        }
     }
 }
 

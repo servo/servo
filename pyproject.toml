@@ -39,6 +39,8 @@ select = [
     "F",
     # Type Annotation
     "ANN",
+    # Sort imports
+    "I",
 ]
 ignore = [
     # Trailing whitespace; the standard tidy process will enforce no trailing whitespace

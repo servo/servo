@@ -9,10 +9,7 @@
 
 import json
 
-from .utils import Devtools
-from .utils import collect_network_events
-from .utils import collect_network_response
-from .utils import get_request_headers
+from .utils import Devtools, collect_network_events, collect_network_response, get_request_headers
 
 
 def evaluate_js(devtools, code):

@@ -6,16 +6,19 @@ use std::rc::Rc;
 
 use euclid::Rect;
 use html5ever::LocalName;
+use script_bindings::cell::DomRefCell;
 use style::selector_parser::PseudoElement;
 use style_traits::CSSPixel;
 use stylo_atoms::Atom;
 use uuid::Uuid;
 
 use crate::dom::bindings::root::{Dom, MutNullableDom};
+use crate::dom::closewatcher::internalclosewatcher::InternalCloseWatcher;
 use crate::dom::customelementregistry::{
     CustomElementDefinition, CustomElementReaction, CustomElementRegistry, CustomElementState,
 };
 use crate::dom::domtokenlist::DOMTokenList;
+use crate::dom::html::htmlelement::{HTMLElement, PopoverState};
 use crate::dom::html::htmlslotelement::SlottableData;
 use crate::dom::html::internals::elementinternals::ElementInternals;
 use crate::dom::intersectionobserver::IntersectionObserverRegistration;
@@ -109,4 +112,20 @@ pub(crate) struct ElementRareData {
     /// Only ever set on customized built-in elements, which are very rare.
     #[no_trace]
     pub(crate) is_value: Option<LocalName>,
+
+    /// <https://html.spec.whatwg.org/multipage/#popover-trigger>
+    pub(crate) popover_trigger: MutNullableDom<HTMLElement>,
+
+    /// <https://html.spec.whatwg.org/multipage/#popover-hiding>
+    pub(crate) popover_hiding: bool,
+
+    /// <https://html.spec.whatwg.org/multipage/#popover-close-watcher>
+    #[conditional_malloc_size_of]
+    pub(crate) popover_close_watcher: DomRefCell<Option<Rc<InternalCloseWatcher>>>,
+
+    /// <https://html.spec.whatwg.org/multipage/#opened-in-popover-mode>
+    ///
+    /// Only ever [`PopoverState::Auto`] or [`PopoverState::Hint`].
+    #[no_trace]
+    pub(crate) opened_in_popover_mode: Option<PopoverState>,
 }

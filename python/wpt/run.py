@@ -10,19 +10,16 @@ import os
 import subprocess
 import sys
 import tempfile
-
-from typing import List, cast, Any
 from collections.abc import Callable
+from typing import Any, List, cast
 
 import mozlog
 import mozlog.formatters
+from wptrunner import wptcommandline, wptrunner
 
 from . import SERVO_ROOT, WPT_PATH, WPT_TOOLS_PATH
 from .grouping_formatter import ServoFormatter, ServoHandler, UnexpectedResult
 from .manifestupdate import ensure_manifests_up_to_date
-from wptrunner import wptcommandline
-from wptrunner import wptrunner
-
 
 CERTS_PATH = os.path.join(WPT_TOOLS_PATH, "certs")
 INTERMITTENT_ISSUES_GRAPHQL = """

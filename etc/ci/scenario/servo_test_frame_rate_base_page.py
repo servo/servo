@@ -9,15 +9,14 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-import time
 import subprocess
-
-from selenium.common import NoSuchWindowException, NoSuchElementException
-from selenium.webdriver.support import expected_conditions
-from selenium.webdriver.support.wait import WebDriverWait
+import time
 
 import common_function_for_servo_test
+from selenium.common import NoSuchElementException, NoSuchWindowException
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions
+from selenium.webdriver.support.wait import WebDriverWait
 
 
 def operator() -> None:

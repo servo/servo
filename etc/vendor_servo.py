@@ -13,10 +13,10 @@
 # A simple script to use cargo vendor to vendor the dependencies and then create an archive.
 import argparse
 import os
+import pathlib
 import shutil
 import subprocess
 import tempfile
-import pathlib
 
 
 def vendor():

@@ -9,11 +9,11 @@ import json
 import logging
 import os
 import subprocess
-import time
 import sys
-import urllib.request
+import time
 import urllib.error
-from typing import Dict, Optional, Any
+import urllib.request
+from typing import Any, Dict, Optional
 
 
 class OHOSWebDriverController:
