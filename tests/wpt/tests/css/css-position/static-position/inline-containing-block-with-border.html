@@ -56,13 +56,14 @@ function offsetInContainer(container)
     return { left: rect.left - containerRect.left, top: rect.top - containerRect.top };
 }
 
+promise_setup(() => document.fonts.ready);
 for (const configuration of configurations) {
     for (const border of configuration.borders) {
         for (const outOfFlowBox of outOfFlowBoxes) {
             // The reference inline box does not establish a containing block, the container does.
             const reference = createContainer(configuration.writingMode, border, outOfFlowBox.tag);
             const target = createContainer(configuration.writingMode, `position: relative; ${border}`, outOfFlowBox.tag);
-            test(() => {
+            promise_test(async () => {
                 const expected = offsetInContainer(reference);
                 const actual = offsetInContainer(target);
                 assert_equals(actual.left, expected.left, "left");
