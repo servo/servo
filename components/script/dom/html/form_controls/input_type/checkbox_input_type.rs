@@ -85,7 +85,7 @@ impl SpecificInputActivationType for CheckboxInputActivation {
         &self,
         cx: &mut js::context::JSContext,
         input: &HTMLInputElement,
-        _event: &Event,
+        event: &Event,
         _target: &EventTarget,
     ) {
         // Step 1: If the element is not connected, then return.
@@ -96,7 +96,7 @@ impl SpecificInputActivationType for CheckboxInputActivation {
         // According to the spec, because this input type has its own activation behavior,
         // it shouldn't go through the flow which changes the user validity to true,
         // but other browsers and tests disagree.
-        if _event.IsTrusted() {
+        if event.IsTrusted() {
             input.set_user_validity(cx.no_gc(), true);
         }
 
