@@ -26,6 +26,7 @@ use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, Origin, PreloadedResources, Referrer,
     RequestClient,
 };
+use pixels::ImageCodec;
 use script_bindings::cell::DomRefCell;
 use script_bindings::interfaces::HasOrigin;
 use script_bindings::trace::RootedTraceableBox;
@@ -257,6 +258,7 @@ impl SharedWorkerGlobalScope {
         credentials: CredentialsMode,
         extended_lifetime: bool,
         registration_id: Uuid,
+        image_codec: Arc<dyn ImageCodec>,
     ) -> SharedWorkerGlobalScope {
         SharedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
@@ -272,6 +274,7 @@ impl SharedWorkerGlobalScope {
                 insecure_requests_policy,
                 font_context,
                 Some(ScriptEventLoopSender::SharedWorker(own_sender.clone())),
+                image_codec,
             ),
             webview_id,
             task_queue: TaskQueue::new(receiver),
@@ -323,6 +326,7 @@ impl SharedWorkerGlobalScope {
         extended_lifetime: bool,
         registration_id: Uuid,
         cx: &mut js::context::JSContext,
+        image_codec: Arc<dyn ImageCodec>,
     ) -> DomRoot<SharedWorkerGlobalScope> {
         let scope = Box::new(SharedWorkerGlobalScope::new_inherited(
             init,
@@ -351,6 +355,7 @@ impl SharedWorkerGlobalScope {
             credentials,
             extended_lifetime,
             registration_id,
+            image_codec,
         ));
         SharedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, &scope.origin(), scope)
     }
@@ -388,6 +393,7 @@ impl SharedWorkerGlobalScope {
         insecure_requests_policy: InsecureRequestsPolicy,
         policy_container: Arc<PolicyContainer>,
         font_context: Arc<FontContext>,
+        image_codec: Arc<dyn ImageCodec>,
     ) -> io::Result<JoinHandle<()>> {
         let event_loop_id = ScriptEventLoopId::installed()
             .expect("Should always be in a ScriptThread or in a worker");
@@ -506,6 +512,7 @@ impl SharedWorkerGlobalScope {
                     extended_lifetime,
                     registration_id,
                     cx,
+                    image_codec,
                 );
 
                 /// A data structure that ensures that a panicking SharedWorker will

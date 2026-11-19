@@ -2,8 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
+
 #[cfg(feature = "multiprocess")]
 use ipc_channel::IpcError;
+use pixels::ImageCodec;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::GenericSender;
 #[cfg(feature = "multiprocess")]
@@ -51,11 +54,11 @@ impl ServiceWorkerUnprivilegedContent {
     }
 
     /// Start the agent-cluster.
-    pub fn start<SWF>(self)
+    pub fn start<SWF>(self, image_codec: Arc<dyn ImageCodec>)
     where
         SWF: ServiceWorkerManagerFactory,
     {
-        SWF::create(self.senders, self.origin);
+        SWF::create(self.senders, self.origin, image_codec);
     }
 
     /// Start the agent-cluster in it's own process.

@@ -5,7 +5,9 @@
 use euclid::default::Size2D;
 use image::codecs::png::PngEncoder;
 use image::{ExtendedColorType, ImageEncoder};
-use pixels::{CorsStatus, flip_y_rgba8_image_inplace, load_from_memory, multiply_u8_color};
+use pixels::{
+    CorsStatus, DefaultImageCodec, flip_y_rgba8_image_inplace, load_from_memory, multiply_u8_color,
+};
 
 const RED: [u8; 4] = [255, 0, 0, 255];
 const GREEN: [u8; 4] = [0, 255, 0, 255];
@@ -72,13 +74,14 @@ fn encode_png(pixels: &[u8], width: u32, color_type: ExtendedColorType) -> Vec<u
 #[test]
 fn test_decoded_image_premultiplication() {
     let rgb = encode_png(&[10, 20, 30, 40, 50, 60], 2, ExtendedColorType::Rgb8);
-    let rgb = load_from_memory(&rgb, CorsStatus::Safe).expect("encoded PNG decodes");
+    let codec = DefaultImageCodec::default();
+    let rgb = load_from_memory(&codec, &rgb, CorsStatus::Safe).expect("encoded PNG decodes");
     assert!(rgb.is_opaque, "an image without alpha is opaque");
     assert_eq!(*rgb.bytes, [10, 20, 30, 255, 40, 50, 60, 255]);
 
     let [r, g, b, a] = [200, 100, 50, 128];
     let rgba = encode_png(&[r, g, b, a, 1, 2, 3, 255], 2, ExtendedColorType::Rgba8);
-    let rgba = load_from_memory(&rgba, CorsStatus::Safe).expect("encoded PNG decodes");
+    let rgba = load_from_memory(&codec, &rgba, CorsStatus::Safe).expect("encoded PNG decodes");
     assert!(
         !rgba.is_opaque,
         "an image with a translucent pixel is not opaque"

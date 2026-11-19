@@ -82,6 +82,7 @@ pub use paint::WebRenderDebugOption;
 pub use paint_api::rendering_context::{
     OffscreenRenderingContext, RenderingContext, SoftwareRenderingContext, WindowRenderingContext,
 };
+pub use pixels::{DecodedRasterImage, ImageCodec};
 // Expose our profile traits for servoshell, so we can instrument code there, but don't
 // add it as an official API.
 #[doc(hidden)]
@@ -114,7 +115,7 @@ pub use crate::gamepad_delegate::{
 pub use crate::geolocation_delegate::{GeolocationDelegate, PositionRequest, PositionWatch};
 pub use crate::network_manager::{CacheEntry, NetworkManager};
 #[cfg(feature = "multiprocess")]
-pub use crate::servo::run_content_process;
+pub use crate::servo::{ContentProcessParameters, run_content_process};
 pub use crate::servo::{Servo, ServoBuilder};
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
 pub use crate::site_data_manager::{SiteData, SiteDataManager, StorageType};

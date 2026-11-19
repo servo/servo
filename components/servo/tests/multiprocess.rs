@@ -14,7 +14,7 @@ mod common;
 use std::rc::Rc;
 
 use common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
-use servo::{JSValue, WebViewBuilder, run_content_process};
+use servo::{ContentProcessParameters, JSValue, WebViewBuilder, run_content_process};
 use servo_config::{opts, prefs};
 
 fn test_multiprocess_preference_observer() {
@@ -58,7 +58,7 @@ fn main() {
     }
 
     if let Some(token) = token {
-        return run_content_process(token);
+        return run_content_process(token, ContentProcessParameters::default());
     }
 
     // See nextest custom test harness requirements:

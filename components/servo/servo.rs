@@ -43,6 +43,7 @@ use net_traits::ResourceThreads;
 use paint::{InitialPaintState, Paint};
 pub use paint_api::rendering_context::RenderingContext;
 use paint_api::{CrossProcessPaintApi, PaintMessage, PaintProxy};
+use pixels::{DefaultImageCodec, ImageCodec};
 use profile::{mem as profile_mem, time as profile_time};
 use profile_traits::mem::MemoryReportResult;
 #[cfg(feature = "multiprocess")]
@@ -1112,6 +1113,7 @@ impl Servo {
             async_runtime,
             public_storage_threads.clone(),
             private_storage_threads.clone(),
+            builder.image_decoder,
         );
 
         net::connector::prewarm_tls();
@@ -1337,6 +1339,7 @@ fn create_constellation(
     async_runtime: Box<dyn net_traits::AsyncRuntime>,
     public_storage_threads: StorageThreads,
     private_storage_threads: StorageThreads,
+    image_codec: Arc<dyn ImageCodec>,
 ) {
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
@@ -1382,6 +1385,7 @@ fn create_constellation(
         async_runtime,
         privileged_urls,
         wake_lock_provider: Box::new(DefaultWakeLockDelegate),
+        image_codec,
     };
 
     let layout_factory = Arc::new(LayoutFactoryImpl());
@@ -1433,9 +1437,24 @@ fn set_logger(script_to_constellation_sender: ScriptToConstellationSender) {
     log::set_max_level(filter);
 }
 
+/// Parameters used to initialize a new content process in multiprocess mode.
+#[cfg(feature = "multiprocess")]
+pub struct ContentProcessParameters {
+    pub image_decoder: Arc<dyn ImageCodec>,
+}
+
+#[cfg(feature = "multiprocess")]
+impl Default for ContentProcessParameters {
+    fn default() -> Self {
+        Self {
+            image_decoder: Arc::new(DefaultImageCodec),
+        }
+    }
+}
+
 /// Content process entry point.
 #[cfg(feature = "multiprocess")]
-pub fn run_content_process(token: String) {
+pub fn run_content_process(token: String, parameters: ContentProcessParameters) {
     let (unprivileged_content_sender, unprivileged_content_receiver) =
         ipc::channel::<UnprivilegedContent>().unwrap();
     let connection_bootstrap: IpcSender<IpcSender<UnprivilegedContent>> =
@@ -1480,6 +1499,7 @@ pub fn run_content_process(token: String) {
                 new_event_loop_info.initial_script_state,
                 layout_factory,
                 Arc::new(ImageCacheFactoryImpl::new(
+                    parameters.image_decoder,
                     new_event_loop_info.broken_image_icon_data,
                 )),
                 background_hang_monitor_register,
@@ -1498,7 +1518,7 @@ pub fn run_content_process(token: String) {
             FetchThread::exit();
         },
         UnprivilegedContent::ServiceWorker(content) => {
-            content.start::<ServiceWorkerManager>();
+            content.start::<ServiceWorkerManager>(parameters.image_decoder);
         },
     }
 }
@@ -1550,6 +1570,7 @@ pub struct ServoBuilder {
     preferences: Option<Box<Preferences>>,
     event_loop_waker: Box<dyn EventLoopWaker>,
     protocol_registry: ProtocolRegistry,
+    image_decoder: Arc<dyn ImageCodec>,
 }
 
 impl Default for ServoBuilder {
@@ -1559,6 +1580,7 @@ impl Default for ServoBuilder {
             preferences: Default::default(),
             event_loop_waker: Box::new(DefaultEventLoopWaker),
             protocol_registry: Default::default(),
+            image_decoder: Arc::new(DefaultImageCodec),
         }
     }
 }
@@ -1585,6 +1607,13 @@ impl ServoBuilder {
 
     pub fn protocol_registry(mut self, protocol_registry: ProtocolRegistry) -> Self {
         self.protocol_registry = protocol_registry;
+        self
+    }
+
+    /// Override the default image encoder and decoder used in Servo. Note that in multiprocess
+    /// mode, you must also pass the same encoder in [`ContentProcessParameters`].
+    pub fn image_decoder(mut self, image_decoder: Arc<dyn ImageCodec>) -> Self {
+        self.image_decoder = image_decoder;
         self
     }
 }

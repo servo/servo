@@ -27,6 +27,7 @@ use net_traits::request::{
 };
 use net_traits::{ReferrerPolicy, ResourceThreads};
 use paint_api::CrossProcessPaintApi;
+use pixels::ImageCodec;
 use profile_traits::mem::MemoryReportResult;
 use profile_traits::{mem, time as profile_time};
 use rustc_hash::FxHashMap;
@@ -491,7 +492,11 @@ impl PartialEq for Job {
 /// crate.
 pub trait ServiceWorkerManagerFactory {
     /// Create a `ServiceWorkerManager`.
-    fn create(sw_senders: SWManagerSenders, origin: ImmutableOrigin);
+    fn create(
+        sw_senders: SWManagerSenders,
+        origin: ImmutableOrigin,
+        image_codec: Arc<dyn ImageCodec>,
+    );
 }
 
 /// Specifies the information required to load an auxiliary browsing context.

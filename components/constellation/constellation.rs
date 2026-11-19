@@ -133,6 +133,7 @@ use paint_api::{
     PaintMessage, PaintProxy, PinchZoomInfos, PipelineExitSource, SendableFrameTree,
     WebRenderExternalImageIdManager,
 };
+use pixels::ImageCodec;
 use profile_traits::mem::ProfilerMsg;
 use profile_traits::{mem, time};
 use rand::rngs::SmallRng;
@@ -575,6 +576,9 @@ pub struct InitialConstellationState {
     #[cfg(feature = "bluetooth")]
     pub bluetooth_thread: GenericSender<BluetoothRequest>,
 
+    /// The [`ImageCodec`] to use when creating new image caches.
+    pub image_codec: Arc<dyn ImageCodec>,
+
     /// A proxy to the `SystemFontService` which manages the list of system fonts.
     pub system_font_service: Arc<SystemFontServiceProxy>,
 
@@ -770,6 +774,7 @@ where
                     event_loop_join_handles: Default::default(),
                     privileged_urls: state.privileged_urls,
                     image_cache_factory: Arc::new(ImageCacheFactoryImpl::new(
+                        state.image_codec.clone(),
                         broken_image_icon_data,
                     )),
                     user_contents_for_manager_id: Default::default(),
@@ -2687,7 +2692,7 @@ where
                     }
                 } else {
                     let content = ServiceWorkerUnprivilegedContent::new(sw_senders, origin, None);
-                    content.start::<SWF>();
+                    content.start::<SWF>(self.image_cache_factory.codec());
                 }
                 #[cfg(not(feature = "multiprocess"))]
                 {

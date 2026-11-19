@@ -26,6 +26,7 @@ use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, Origin, ParserMetadata,
     PreloadedResources, Referrer, RequestBuilder, RequestClient, RequestMode,
 };
+use pixels::ImageCodec;
 use script_bindings::cell::DomRefCell;
 use script_bindings::interfaces::HasOrigin;
 use servo_base::generic_channel::{self, GenericReceiver, GenericSender, RoutedReceiver};
@@ -313,6 +314,7 @@ impl DedicatedWorkerGlobalScope {
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         insecure_requests_policy: InsecureRequestsPolicy,
         font_context: Arc<FontContext>,
+        image_codec: Arc<dyn ImageCodec>,
     ) -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
@@ -328,6 +330,7 @@ impl DedicatedWorkerGlobalScope {
                 insecure_requests_policy,
                 font_context,
                 None,
+                image_codec,
             ),
             webview_id,
             task_queue: TaskQueue::new(receiver),
@@ -374,6 +377,7 @@ impl DedicatedWorkerGlobalScope {
         font_context: Arc<FontContext>,
         #[cfg(feature = "devtools")] debugger_global: Option<&DebuggerGlobalScope>,
         cx: &mut js::context::JSContext,
+        image_codec: Arc<dyn ImageCodec>,
     ) -> DomRoot<DedicatedWorkerGlobalScope> {
         let scope = Box::new(DedicatedWorkerGlobalScope::new_inherited(
             init,
@@ -397,6 +401,7 @@ impl DedicatedWorkerGlobalScope {
             control_receiver,
             insecure_requests_policy,
             font_context,
+            image_codec,
         ));
         let scope = DedicatedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
             cx,
@@ -437,6 +442,7 @@ impl DedicatedWorkerGlobalScope {
         insecure_requests_policy: InsecureRequestsPolicy,
         policy_container: Arc<PolicyContainer>,
         font_context: Arc<FontContext>,
+        image_codec: Arc<dyn ImageCodec>,
     ) -> JoinHandle<()> {
         let event_loop_id = ScriptEventLoopId::installed()
             .expect("Should always be in a ScriptThread or in a dedicated worker");
@@ -571,6 +577,7 @@ impl DedicatedWorkerGlobalScope {
                     #[cfg(feature = "devtools")]
                     debugger_global.as_deref(),
                     cx,
+                    image_codec,
                 );
 
                 #[cfg(feature = "devtools")]
