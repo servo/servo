@@ -290,8 +290,6 @@ pub enum WebDriverLoadStatus {
     NavigationStop,
     /// The document's `readyState` is complete.
     Complete,
-    /// The load timed out.
-    Timeout,
     /// The navigation is blocked by a user prompt.
     Blocked,
 }
