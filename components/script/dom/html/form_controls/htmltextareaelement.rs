@@ -58,6 +58,9 @@ pub(crate) struct HTMLTextAreaElement {
     placeholder: RefCell<TracedDOMString>,
     // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty
     value_dirty: Cell<bool>,
+    /// <https://html.spec.whatwg.org/multipage/#user-validity>
+    user_validity: Cell<bool>,
+    changed_by_user_while_focused: Cell<bool>,
     form_owner: MutNullableDom<HTMLFormElement>,
     labels_node_list: MutNullableDom<NodeList>,
     validity_state: MutNullableDom<ValidityState>,
@@ -125,6 +128,8 @@ impl HTMLTextAreaElement {
                 },
             )),
             value_dirty: Cell::new(false),
+            user_validity: Cell::new(false),
+            changed_by_user_while_focused: Cell::new(false),
             form_owner: Default::default(),
             labels_node_list: Default::default(),
             validity_state: Default::default(),
@@ -162,6 +167,12 @@ impl HTMLTextAreaElement {
         !(self.upcast::<Element>().disabled_state() || self.ReadOnly())
     }
 
+    fn update_related_validity_states(&self, cx: &mut JSContext) {
+        self.validity_state(cx)
+            .perform_validation_and_update(cx, ValidationFlags::all());
+        self.update_user_valid_state(cx.no_gc());
+    }
+
     fn handle_focus_event(&self, cx: &mut JSContext, event: &FocusEvent) {
         let event_type = event.upcast::<Event>().type_();
         let document = self.owner_document();
@@ -169,6 +180,7 @@ impl HTMLTextAreaElement {
             document
                 .embedder_controls()
                 .hide_embedder_control_for_element(self.upcast());
+            self.set_user_validity(cx.no_gc(), self.changed_by_user_while_focused.get());
         } else if *event_type == *"focus" {
             // If there is a Document selection collapse it. This isn't really specified
             // and there are quite a few open specification issues about the interaction
@@ -317,8 +329,7 @@ impl TextControlElement for HTMLTextAreaElement {
     }
 
     fn handle_text_content_changed(&self, cx: &mut JSContext) {
-        self.validity_state(cx)
-            .perform_validation_and_update(cx, ValidationFlags::all());
+        self.update_related_validity_states(cx);
 
         let placeholder_shown =
             self.text_input.borrow().is_empty() && !self.placeholder.borrow().is_empty();
@@ -337,6 +348,7 @@ impl TextControlElement for HTMLTextAreaElement {
             KeyReaction::TriggerDefaultAction => (),
             KeyReaction::DispatchInput(text, input_type) => {
                 self.queue_input_event(text, input_type);
+                self.changed_by_user_while_focused.set(true);
                 self.value_dirty.set(true);
                 self.handle_text_content_changed(cx);
                 self.maybe_update_shared_selection();
@@ -594,8 +606,33 @@ impl HTMLTextAreaElement {
         self.text_input.borrow_mut().set_content(DOMString::new());
     }
 
+    pub(crate) fn set_user_validity(&self, no_gc: &NoGC, value: bool) {
+        if self.user_validity.get() != value {
+            self.user_validity.set(value);
+            self.update_user_valid_state(no_gc);
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#selector-user-valid>
+    /// <https://html.spec.whatwg.org/multipage/#selector-user-invalid>
+    pub(crate) fn update_user_valid_state(&self, no_gc: &NoGC) {
+        if self.user_validity.get() {
+            let satisfies_constraints =
+                self.is_instance_validatable(no_gc) && self.satisfies_constraints();
+            let element = self.upcast::<Element>();
+            element.set_state(no_gc, ElementState::USER_VALID, satisfies_constraints);
+            element.set_state(no_gc, ElementState::USER_INVALID, !satisfies_constraints);
+        } else {
+            // Avoid computing constraint validation if user validity is false
+            let element = self.upcast::<Element>();
+            element.set_state(no_gc, ElementState::USER_VALID, false);
+            element.set_state(no_gc, ElementState::USER_INVALID, false);
+        }
+    }
+
     pub(crate) fn reset(&self, cx: &mut JSContext) {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-form-reset-control
+        self.set_user_validity(cx, false);
         self.value_dirty.set(false);
         self.text_input
             .safe_borrow_mut(cx.no_gc())
@@ -705,8 +742,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             _ => {},
         }
 
-        self.validity_state(cx)
-            .perform_validation_and_update(cx, ValidationFlags::all());
+        self.update_related_validity_states(cx);
     }
 
     fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
@@ -740,8 +776,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             .hide_embedder_control_for_element(self.upcast());
 
         self.super_type().unwrap().unbind_from_tree(cx, context);
-        self.validity_state(cx)
-            .perform_validation_and_update(cx, ValidationFlags::all());
+        self.update_related_validity_states(cx);
     }
 
     // The cloning steps for textarea elements must propagate the raw value
@@ -761,8 +796,7 @@ impl VirtualMethods for HTMLTextAreaElement {
         el.text_input
             .safe_borrow_mut(cx.no_gc())
             .clone_content_from(&self.text_input.borrow());
-        el.validity_state(cx)
-            .perform_validation_and_update(cx, ValidationFlags::all());
+        el.update_related_validity_states(cx);
     }
 
     fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
@@ -780,8 +814,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             self.handle_focus_event(cx, event);
         }
 
-        self.validity_state(cx)
-            .perform_validation_and_update(cx, ValidationFlags::all());
+        self.update_related_validity_states(cx);
 
         if let Some(super_type) = self.super_type() {
             super_type.handle_event(cx, event);

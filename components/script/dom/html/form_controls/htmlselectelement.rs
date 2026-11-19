@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
 use std::default::Default;
 use std::iter;
 
@@ -126,6 +127,8 @@ pub(crate) struct HTMLSelectElement {
     selected_options: MutNullableDom<HTMLCollection>,
     form_owner: MutNullableDom<HTMLFormElement>,
     labels_node_list: MutNullableDom<NodeList>,
+    /// <https://html.spec.whatwg.org/multipage/#user-validity>
+    user_validity: Cell<bool>,
     validity_state: MutNullableDom<ValidityState>,
     shadow_tree: DomRefCell<Option<ShadowTree>>,
 }
@@ -202,6 +205,7 @@ impl HTMLSelectElement {
             selected_options: Default::default(),
             form_owner: Default::default(),
             labels_node_list: Default::default(),
+            user_validity: Cell::new(false),
             validity_state: Default::default(),
             shadow_tree: Default::default(),
         }
@@ -294,13 +298,53 @@ impl HTMLSelectElement {
         }
     }
 
+    fn update_related_validity_states(&self, cx: &mut JSContext) {
+        self.validity_state(cx)
+            .perform_validation_and_update(cx, ValidationFlags::VALUE_MISSING);
+        self.update_user_valid_state(cx.no_gc());
+    }
+
+    pub(crate) fn set_user_validity(&self, no_gc: &NoGC, value: bool) {
+        if self.user_validity.get() != value {
+            self.user_validity.set(value);
+            self.update_user_valid_state(no_gc);
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#selector-user-valid>
+    /// <https://html.spec.whatwg.org/multipage/#selector-user-invalid>
+    pub(crate) fn update_user_valid_state(&self, no_gc: &NoGC) {
+        if self.user_validity.get() {
+            let satisfies_constraints =
+                self.is_instance_validatable(no_gc) && self.satisfies_constraints();
+            let element = self.upcast::<Element>();
+            element.set_state(no_gc, ElementState::USER_VALID, satisfies_constraints);
+            element.set_state(no_gc, ElementState::USER_INVALID, !satisfies_constraints);
+        } else {
+            // Avoid computing constraint validation if user validity is false
+            let element = self.upcast::<Element>();
+            element.set_state(no_gc, ElementState::USER_VALID, false);
+            element.set_state(no_gc, ElementState::USER_INVALID, false);
+        }
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#the-select-element:concept-form-reset-control>
-    pub(crate) fn reset(&self, no_gc: &NoGC) {
-        for opt in self.list_of_options(no_gc) {
-            opt.set_selectedness(no_gc, opt.DefaultSelected());
+    pub(crate) fn reset(&self, cx: &mut JSContext) {
+        // Step 1. Set selectElement's user validity to false.
+        self.set_user_validity(cx.no_gc(), false);
+        // Step 2. For each optionElement of selectElement's list of options:
+        for opt in self.list_of_options(cx) {
+            // Step 2.1. If optionElement has a selected attribute, then set
+            // optionElement's selectedness to true; otherwise set it to false.
+            opt.set_selectedness(cx, opt.DefaultSelected());
+            // Step 2.2. Set optionElement's dirtiness to false.
             opt.set_dirtiness(false);
         }
-        self.selectedness_setting_algorithm(no_gc);
+        // Step 3. Run the selectedness setting algorithm given selectElement.
+        self.selectedness_setting_algorithm(cx);
+        // Step 4. Update a select's descendant selectedcontent elements
+        // given selectElement.
+        self.update_a_selects_descendant_selectedcontent_elements(cx);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#selectedness-setting-algorithm>
@@ -565,7 +609,8 @@ impl HTMLSelectElement {
             .queue(task!(send_select_update_notification: move |cx| {
                 let this = this.root();
 
-                // TODO: Step 1. Set the select element's user validity to true.
+                // Step 1. Set the select element's user validity to true.
+                this.set_user_validity(cx.no_gc(), true);
 
                 // Step 2. Fire an event named input at the select element, with the bubbles and composed
                 // attributes initialized to true.
@@ -810,9 +855,7 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
             opt.set_selectedness(cx.no_gc(), false);
         }
 
-        self.validity_state(cx)
-            .perform_validation_and_update(cx, ValidationFlags::VALUE_MISSING);
-
+        self.update_related_validity_states(cx);
         self.update_shadow_tree(cx);
     }
 
@@ -905,8 +948,7 @@ impl VirtualMethods for HTMLSelectElement {
                 self.multiple_attribute_mutated(cx, mutation);
             },
             local_name!("required") => {
-                self.validity_state(cx)
-                    .perform_validation_and_update(cx, ValidationFlags::VALUE_MISSING);
+                self.update_related_validity_states(cx);
 
                 // https://html.spec.whatwg.org/multipage/#selector-required
                 // > The :required pseudo-class must match any element falling into one of the following categories:
@@ -921,8 +963,7 @@ impl VirtualMethods for HTMLSelectElement {
                 element.set_state(cx.no_gc(), ElementState::OPTIONAL_, !required);
             },
             local_name!("disabled") => {
-                self.validity_state(cx)
-                    .perform_validation_and_update(cx, ValidationFlags::VALUE_MISSING);
+                self.update_related_validity_states(cx);
             },
             local_name!("form") => {
                 self.form_attribute_mutated(cx, mutation);

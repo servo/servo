@@ -25,6 +25,7 @@ use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::focusevent::FocusEventType;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
+use crate::dom::input_type::ValueChangeEvents;
 use crate::dom::node::focus::{FocusNavigationScopeOwner, FocusTrigger};
 use crate::dom::types::{Element, EventTarget, FocusEvent, HTMLElement, HTMLIFrameElement, Window};
 use crate::dom::{Document, Event, EventBubbles, EventCancelable, Node, NodeTraits};
@@ -489,9 +490,17 @@ impl DocumentFocusHandler {
             // changed the element's value or its list of selected files while the control was
             // focused without committing that change (such that it is different to what it was
             // when the control was first focused), then:
-            // Step 2.1.1: Set entry's user validity to true.
-            // Step 2.1.2: Fire an event named change at the element, with the bubbles attribute initialized to true.
-            // TODO: Implement this.
+            if let Some(element) = entry.element() &&
+                let Some(input) = element.downcast::<HTMLInputElement>() &&
+                input.does_change_event_apply() &&
+                !input.has_defined_activation_behavior() &&
+                input.changed_by_user_while_focused()
+            {
+                // Step 2.1.1: Set entry's user validity to true.
+                input.set_user_validity(cx.no_gc(), true);
+                // Step 2.1.2: Fire an event named change at the element, with the bubbles attribute initialized to true.
+                input.fire_value_change_events(cx, ValueChangeEvents::Change);
+            }
 
             // Step 2.2:
             // - If entry is an element, let blur event target be entry.
