@@ -136,23 +136,24 @@ pub(crate) fn process_box_areas_request(
     node: ServoLayoutNode<'_>,
     area: BoxAreaType,
 ) -> CSSPixelRectVec {
-    let fragments = node.fragments_for_pseudo(None);
-    let transform =
-        root_transform_for_fragments(&stacking_context_tree.paint_info.scroll_tree, &fragments);
+    node.with_fragments_or_empty(|fragments| {
+        let transform =
+            root_transform_for_fragments(&stacking_context_tree.paint_info.scroll_tree, fragments);
 
-    let rects = fragments
-        .into_iter()
-        .filter_map(move |fragment| fragment.cumulative_box_area_rect(area, layout_thread.into()));
+        let rects = fragments.iter().filter_map(move |fragment| {
+            fragment.cumulative_box_area_rect(area, layout_thread.into())
+        });
 
-    let Some(transform) = transform else {
-        return rects
-            .map(|rect| Rect::new(rect.origin, Size2D::zero()))
-            .collect();
-    };
+        let Some(transform) = transform else {
+            return rects
+                .map(|rect| Rect::new(rect.origin, Size2D::zero()))
+                .collect();
+        };
 
-    rects
-        .filter_map(move |rect| transform_au_rectangle(rect, transform))
-        .collect()
+        rects
+            .filter_map(move |rect| transform_au_rectangle(rect, transform))
+            .collect()
+    })
 }
 
 pub fn process_client_rect_request(node: ServoLayoutNode<'_>) -> Rect<i32, CSSPixel> {
@@ -631,7 +632,9 @@ fn offset_parent_fragments(node: ServoLayoutNode<'_>) -> Option<OffsetParentFrag
     while let Some(parent_node) = maybe_parent_node {
         maybe_parent_node = unsafe { parent_node.dangerous_dom_parent() };
 
-        if let Some(parent_fragment) = parent_node.fragments_for_pseudo(None).first() {
+        if let Some(parent_fragment) =
+            parent_node.with_fragments_or_empty(|fragments| fragments.first().cloned())
+        {
             let Some(parent_fragment) = parent_fragment.retrieve_box_fragment() else {
                 continue;
             };
