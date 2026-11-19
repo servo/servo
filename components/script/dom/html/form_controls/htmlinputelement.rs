@@ -2749,7 +2749,8 @@ impl VirtualMethods for HTMLInputElement {
     /// <https://dom.spec.whatwg.org/#action-versus-occurance>
     fn handle_event(&self, cx: &mut JSContext, event: &Event) {
         if let Some(event) = event.downcast::<FocusEvent>() {
-            self.handle_focus_event(cx, event)
+            self.handle_focus_event(cx, event);
+            self.maybe_update_shared_selection();
         }
 
         let value_change_events = self
@@ -2757,7 +2758,7 @@ impl VirtualMethods for HTMLInputElement {
             .as_specific()
             .handle_event(cx, self, event);
 
-        if event.is::<InputEvent>() && self.value_dirty.get() {
+        if event.is::<InputEvent>() {
             self.value_changed(cx, event.IsTrusted());
         }
 
