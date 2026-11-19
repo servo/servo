@@ -23,7 +23,7 @@ enum FontFaceLoadStatus { "unloaded", "loading", "loaded", "error" };
 // https://drafts.csswg.org/css-font-loading/#fontface-interface
 [Exposed=(Window,Worker), Pref="dom_fontface_enabled"]
 interface FontFace {
-  constructor(CSSOMString family, (CSSOMString or BufferSource) source,
+  [Throws] constructor(CSSOMString family, (CSSOMString or BufferSource) source,
                 optional FontFaceDescriptors descriptors = {});
   [SetterThrows]
   attribute CSSOMString family;
