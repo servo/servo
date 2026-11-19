@@ -778,7 +778,6 @@ impl Handler {
             },
             WebDriverLoadStatus::NavigationStop |
             WebDriverLoadStatus::Complete |
-            WebDriverLoadStatus::Timeout |
             WebDriverLoadStatus::Blocked => {
                 self.navigating_webviews.remove(&message.webview_id);
             },
