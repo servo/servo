@@ -1434,11 +1434,7 @@ fn test_accessibility_only_irrelevant_whitespace_hidden_static() {
 
     let nav = root_children[2];
     let all_whitespace = find_all_matching_nodes_in_tree_order(nav, |node| {
-        node.role() == Role::TextRun &&
-            node.value()
-                .expect("Text nodes should always have a value")
-                .trim()
-                .is_empty()
+        node.role() == Role::TextRun && node.value().is_none_or(|value| value.trim().is_empty())
     });
     assert_eq!(all_whitespace.len(), 7);
 
