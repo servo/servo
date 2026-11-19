@@ -2320,8 +2320,11 @@ impl HTMLMediaElement {
                 self.media_type_id(),
                 HTMLMediaElementTypeId::HTMLVideoElement
             );
-            let should_enable_download_buffering =
-                (is_video || self.Loop()) && self.Preload() == "auto";
+            let should_enable_download_buffering = if is_video {
+                self.Preload() == "auto"
+            } else {
+                self.Loop()
+            };
             if let Err(error) =
                 player_guard.set_download_buffering_enabled(should_enable_download_buffering)
             {
