@@ -1442,11 +1442,23 @@ fn test_accessibility_only_irrelevant_whitespace_hidden_static() {
     });
     assert_eq!(all_whitespace.len(), 7);
 
-    // This seems not to be true in practice:
-    // "First whitespace is irrelevant because it precedes any actual text in the container."
+    // This may change if we end up being able to check bounds for text nodes and use that as a more
+    // authoritative signal for whether the node should be hidden.
+    // Asserting it here so we can tell when/if it changes based on future work.
+    assert_eq!(
+        all_whitespace[0].is_hidden(),
+        false,
+        "First whitespace should probably be hidden because it precedes any actual text in the\
+         container, but it does have 'rendered' text, so it's not hidden."
+    );
 
-    // In practice, " and updates" seems to get normalised to "and updates":
-    // "Second whitespace is irrelevant because it comes before \" and updates\"."
+    // This illustrates the difference that using the rendered text for all nodes makes.
+    assert_eq!(
+        all_whitespace[2].is_hidden(),
+        false,
+        "Second whitespace is *relevant*, because \" and updates\" gets normalised to \
+         \"and updates\"."
+    );
 
     assert_eq!(
         all_whitespace[2].is_hidden(),
@@ -1464,13 +1476,19 @@ fn test_accessibility_only_irrelevant_whitespace_hidden_static() {
         "Fifth whitespace is *relevant* because it comes between \"Contact\" and \"About\"."
     );
 
-    // This seems not to be true in practice:
-    // "Sixth whitespace is irrelevant because it's between \"About\" and a whitespace-only node."
+    // This also may change if we end up being able to check bounds.
+    assert_eq!(
+        all_whitespace[5].is_hidden(),
+        false,
+        "Sixth whitespace also has rendered text, so it isn't hidden, but it probably doesn't have \
+         bounds."
+    );
 
     assert_eq!(
         all_whitespace[6].is_hidden(),
         true,
-        "Seventh whitespace is irrelevant because it's between a whitespace-only node and the end of the container."
+        "Seventh whitespace is irrelevant because it's between a whitespace-only node and the end \
+         of the container."
     );
 }
 
@@ -1478,7 +1496,7 @@ fn test_accessibility_only_irrelevant_whitespace_hidden_static() {
 fn test_accessibility_only_irrelevant_whitespace_hidden_mutation() {
     let url = "data:text/html,<!DOCTYPE html>
                <nav>
-                 <a id='news' href='/news'><span>News</span> <span> and updates</span></a>
+                 <a id='news' href='/news'><span>News </span> <span>and updates</span></a>
                  <a id='services' href='/services'>Services</a>
                </nav>
                <main>
@@ -1506,9 +1524,13 @@ fn test_accessibility_only_irrelevant_whitespace_hidden_mutation() {
 
     let nav_whitespace_1 = nav_children[0];
     assert_eq!(nav_whitespace_1.role(), Role::TextRun);
-
-    // This seems not to be true in practice:
-    // "Space at the beginning of the nav should be hidden."
+    // This assert is mostly just here to notice if anything changes in future.
+    assert_eq!(
+        nav_whitespace_1.is_hidden(),
+        false,
+        "First whitespace should probably be hidden because it precedes any actual text in the\
+         container, but it does have 'rendered' text, so it's not hidden."
+    );
 
     let nav_whitespace_2 = nav_children[2];
     assert_eq!(nav_whitespace_2.role(), Role::TextRun);
@@ -1520,22 +1542,71 @@ fn test_accessibility_only_irrelevant_whitespace_hidden_mutation() {
 
     let nav_whitespace_3 = nav_children[4];
     assert_eq!(nav_whitespace_3.role(), Role::TextRun);
-
-    // This seems not to be true in practice:
-    // "Space at the end of the container should be hidden."
+    // This assert is also mostly just here to notice if anything changes in future.
+    assert_eq!(
+        nav_whitespace_3.is_hidden(),
+        false,
+        "Similarly to first whitespace, last whitespace seems like it should be hidden, but it \
+         isn't."
+    );
 
     let news = nav_children[1];
     assert_eq!(news.label(), Some("News and updates".to_owned()));
     let news_children: Vec<accesskit_consumer::Node> = news.children().collect();
     // <span>, space, <span>
     assert_eq!(news_children.len(), 3);
+    let news_span = news_children[0];
+    let news_text = news_span
+        .children()
+        .next()
+        .expect("<span>News </span> should have one text child");
+    // For some reason, "News " isn't normalised to "News"
+    assert_eq!(news_text.value(), Some("News ".to_owned()));
     let news_whitespace = news_children[1];
     assert_eq!(news_whitespace.role(), Role::TextRun);
+    assert_eq!(
+        news_whitespace.is_hidden(),
+        true,
+        "Whitespace betwen \"News \" and \"and updates\" is hidden, because \"News \" ends with a
+         space."
+    );
 
-    // In practice, the second span's text content is normalised to "and updates":
-    // "Space between two spans should be hidden, since the second span begins with a space."
+    // Remove space at the end of "News "
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "news.firstElementChild.firstChild.deleteData(4, 1);",
+    );
 
-    // Add a space at the end of "News".
+    let update = expect_single_update(&servo_test, delegate.clone());
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+
+    let root_children: Vec<accesskit_consumer::Node> = root.children().collect();
+    let nav = root_children[0];
+    let nav_children: Vec<accesskit_consumer::Node> = nav.children().collect();
+    let news = nav_children[1];
+    assert_eq!(news.label(), Some("News and updates".to_owned()));
+
+    let news_children: Vec<accesskit_consumer::Node> = news.children().collect();
+    assert_eq!(news_children.len(), 3);
+    let news_span = news_children[0];
+    let news_text = news_span
+        .children()
+        .next()
+        .expect("<span>News</span> should have one text child");
+    // For some reason, "News " isn't normalised to "News"
+    assert_eq!(news_text.value(), Some("News".to_owned()));
+
+    let news_whitespace = news_children[1];
+    assert_eq!(news_whitespace.role(), Role::TextRun);
+    assert_eq!(
+        news_whitespace.is_hidden(),
+        false,
+        "Whitespace betwen \"News\" and \"and updates\" is not hidden."
+    );
+
+    // Add a space at the end of "News"
     let _ = evaluate_javascript(
         &servo_test,
         webview.clone(),
@@ -1549,14 +1620,26 @@ fn test_accessibility_only_irrelevant_whitespace_hidden_mutation() {
     let nav = root_children[0];
     let nav_children: Vec<accesskit_consumer::Node> = nav.children().collect();
     let news = nav_children[1];
+    assert_eq!(news.label(), Some("News  and updates".to_owned()));
 
     let news_children: Vec<accesskit_consumer::Node> = news.children().collect();
     assert_eq!(news_children.len(), 3);
+    let news_span = news_children[0];
+    let news_text = news_span
+        .children()
+        .next()
+        .expect("<span>News </span> should have one text child");
+    assert_eq!(news_text.value(), Some("News ".to_owned()));
+
     let news_whitespace = news_children[1];
     assert_eq!(news_whitespace.role(), Role::TextRun);
 
-    // This seems not to be true in practice:
-    // "Space between two spans should be hidden again, since the whitespace is now irrelevant again."
+    // This might be a bug in whitespace collapsing?
+    assert_eq!(
+        news_whitespace.is_hidden(),
+        false,
+        "Whitespace betwen \"News \" and \"and updates\" is not hidden."
+    );
 }
 
 // ************************************************************************************************
