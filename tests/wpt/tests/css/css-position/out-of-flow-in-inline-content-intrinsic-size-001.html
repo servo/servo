@@ -60,13 +60,15 @@
 <div style="width: max-content; font: 10px/1 Ahem">xx <span class="absolute" id="positionedBox">xxx xxxxxxxx</span></div>
 
 <script>
-test(() => {
+promise_setup(() => document.fonts.ready);
+
+promise_test(async () => {
     assert_equals(document.getElementById("positionedBox").offsetWidth, 120);
 }, "An absolutely positioned box in inline content is as wide as its own content");
 
 for (const content of document.querySelectorAll(".content")) {
     for (const [width, expectedWidth] of [["min-content", content.dataset.minContent], ["max-content", content.dataset.maxContent]]) {
-        test(() => {
+        promise_test(async () => {
             const container = content.cloneNode(true);
             container.removeAttribute("id");
             container.style.width = width;
