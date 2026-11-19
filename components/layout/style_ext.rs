@@ -542,7 +542,12 @@ impl ComputedValuesExt for ComputedValues {
     }
 
     fn is_inline_box(&self, fragment_flags: FragmentFlags) -> bool {
-        (self.get_box().display.is_inline_flow() &&
+        let display = self.get_box().display;
+        // Servo doesn't implement math layout yet, so `math` containers are laid out as
+        // flow boxes. They are still inline boxes when their outer display type is inline.
+        let is_inline_math = display.inside() == stylo::DisplayInside::Math &&
+            display.outside() == stylo::DisplayOutside::Inline;
+        ((display.is_inline_flow() || is_inline_math) &&
             !fragment_flags.intersects(
                 FragmentFlags::IS_REPLACED |
                     FragmentFlags::IS_WIDGET |
@@ -1413,6 +1418,11 @@ impl From<stylo::Display> for Display {
             stylo::DisplayInside::Grid => DisplayInside::Grid,
             stylo::DisplayInside::GridLanes => unreachable!("Should be disabled behind a pref"),
             stylo::DisplayInside::Table => DisplayInside::Table,
+            // Servo doesn't implement MathML math layout yet, so lay out `math` containers
+            // as regular flow boxes.
+            stylo::DisplayInside::Math => DisplayInside::Flow {
+                is_list_item: packed.is_list_item(),
+            },
 
             // These should not be values of DisplayInside, but oh well
             stylo::DisplayInside::None => return Display::None,

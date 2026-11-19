@@ -68,6 +68,12 @@ pub fn set(preferences: Preferences) {
         "layout.css.font-variations.enabled",
         preferences.layout_css_font_variations_enabled
     );
+    // The `display: math` CSS value is part of the same experimental MathML feature
+    // as the `MathMLElement` interface, so a single pref enables both.
+    stylo_static_prefs::set_pref!(
+        "layout.css.math-display.enabled",
+        preferences.mathml_core_enabled
+    );
     stylo_static_prefs::set_pref!(
         "layout.css.webkit-text-fill-color.enabled",
         preferences.layout_css_webkit_text_fill_color_enabled

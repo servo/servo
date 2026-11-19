@@ -8,6 +8,7 @@ use std::sync::Arc;
 use app_units::Au;
 use servo_base::id::ScrollTreeNodeId;
 use style::values::computed::TextDecorationLine;
+use style::values::specified::box_::DisplayInside as StyloDisplayInside;
 
 use crate::display_list::{
     ClipId, ContainerTimingRootChain, ContainerTimingRoots, FragmentTextDecoration,
@@ -655,8 +656,13 @@ impl TraversalState {
             // In the following cases this box establishes its own containing block,
             // so use its tag:
             // - Non-inline box
+            // - Math container. Servo doesn't implement math layout yet, so `display: math`
+            //   containers are laid out as inline flow, but math containers still determine
+            //   the containing block of their text.
+            //   <https://w3c.github.io/mathml-core/#the-display-properties>
             // - Style establishes a containing block
             containing_element_tag: if !box_fragment.is_inline_box() ||
+                style.get_box().display.inside() == StyloDisplayInside::Math ||
                 style.establishes_containing_block_for_absolute_descendants(
                     box_fragment.base.flags,
                 ) {
