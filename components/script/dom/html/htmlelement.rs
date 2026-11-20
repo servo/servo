@@ -290,8 +290,9 @@ impl HTMLElement {
         // > specified, and is not a descendant of that fieldset element's first legend element
         // > child, if any.
         let element = self.as_element();
-        (self.is_disableable_form_control() && element.has_attribute(&local_name!("disabled"))) ||
-            element.is_disabled_by_ancestor_fieldset(no_gc)
+        self.is_disableable_form_control() &&
+            (element.has_attribute(&local_name!("disabled")) ||
+                element.is_disabled_by_ancestor_fieldset(no_gc))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#attr-popover>
