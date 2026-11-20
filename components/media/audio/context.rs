@@ -123,6 +123,8 @@ pub struct AudioContext {
     sender: Sender<AudioRenderThreadMsg>,
     /// State of the audio context on the control thread.
     state: Cell<ProcessingState>,
+    /// The last time reported by the rendering thread, returned if that thread has gone away.
+    last_current_time: Cell<f64>,
     /// Number of samples that will be played in one second.
     sample_rate: f32,
     /// The identifier of an AudioDestinationNode with a single input
@@ -189,6 +191,7 @@ impl AudioContext {
             backend_chan,
             sender,
             state: Cell::new(ProcessingState::Suspended),
+            last_current_time: Cell::new(0.),
             sample_rate,
             dest_node,
             listener,
@@ -211,7 +214,12 @@ impl AudioContext {
     pub fn current_time(&self) -> f64 {
         let (tx, rx) = mpsc::channel();
         let _ = self.sender.send(AudioRenderThreadMsg::GetCurrentTime(tx));
-        rx.recv().unwrap()
+        // The rendering thread is gone if the context was closed or the thread panicked.
+        // Keep returning the last time it reported instead of panicking.
+        if let Ok(current_time) = rx.recv() {
+            self.last_current_time.set(current_time);
+        }
+        self.last_current_time.get()
     }
 
     pub fn create_node(&self, node_type: AudioNodeInit, ch: ChannelInfo) -> Option<NodeId> {

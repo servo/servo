@@ -25,7 +25,8 @@ macro_rules! make_state_change(
             self.state.set(ProcessingState::$state);
             let (tx, rx) = mpsc::channel();
             let _ = self.sender.send(AudioRenderThreadMsg::$render_msg(tx));
-            rx.recv().unwrap()
+            // If the rendering thread is gone, report the state change as failed.
+            rx.recv().ok().flatten()
         }
     );
 );
