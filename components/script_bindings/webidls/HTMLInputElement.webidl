@@ -127,4 +127,5 @@ partial interface HTMLInputElement {
 // https://wicg.github.io/entries-api/#html-forms
 partial interface HTMLInputElement {
   [Pref="dom_entries_api_enabled"] attribute boolean webkitdirectory;
+  [Pref="dom_entries_api_enabled"] readonly attribute /* FrozenArray<FileSystemEntry> */ any webkitEntries;
 };
