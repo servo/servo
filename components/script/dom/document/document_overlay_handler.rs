@@ -205,13 +205,12 @@ impl DocumentOverlayHandler {
         for (event_type, element) in pending_events {
             // Step 3.1. Let target be element if element is connected and its node document is
             // document, and otherwise let target be document.
-            let target: DomRoot<EventTarget> = if element.is_connected() &&
-                *element.owner_document() == *self.document
-            {
-                DomRoot::upcast(element)
-            } else {
-                DomRoot::upcast(self.document.as_rooted())
-            };
+            let target: DomRoot<EventTarget> =
+                if element.is_connected() && *element.owner_document() == *self.document {
+                    DomRoot::upcast(element)
+                } else {
+                    DomRoot::upcast(self.document.as_rooted())
+                };
 
             // Step 3.2. Fire an event named type, with its bubbles and composed attributes set to
             // true, at target.
@@ -245,7 +244,10 @@ impl DocumentOverlayHandler {
         // Step 2. While true:
         loop {
             // Step 2.1. Let lastDoc be docs’s last document.
-            let last_doc = docs.last().expect("docs is initialized with an element").clone();
+            let last_doc = docs
+                .last()
+                .expect("docs is initialized with an element")
+                .clone();
 
             // Step 2.2. Assert: lastDoc’s fullscreen element is not null.
             assert!(last_doc.overlay_handler().fullscreen_element().is_some());
