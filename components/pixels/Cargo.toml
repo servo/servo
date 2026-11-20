@@ -35,6 +35,11 @@ path = "benches/load_from_memory.rs"
 harness = false
 
 [[bench]]
+name = "premultiply_inplace"
+path = "benches/premultiply_inplace.rs"
+harness = false
+
+[[bench]]
 name = "unmultiply_inplace"
 path = "benches/unmultiply_inplace.rs"
 harness = false

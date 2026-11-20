@@ -5,7 +5,10 @@
 use euclid::default::Size2D;
 use image::codecs::png::PngEncoder;
 use image::{ExtendedColorType, ImageEncoder};
-use pixels::{CorsStatus, flip_y_rgba8_image_inplace, load_from_memory, multiply_u8_color};
+use pixels::{
+    CorsStatus, flip_y_rgba8_image_inplace, load_from_memory, multiply_u8_color,
+    rgba8_premultiply_inplace,
+};
 
 const RED: [u8; 4] = [255, 0, 0, 255];
 const GREEN: [u8; 4] = [0, 255, 0, 255];
@@ -96,4 +99,36 @@ fn test_decoded_image_premultiplication() {
             255
         ]
     );
+}
+
+#[test]
+fn test_rgba8_premultiply_inplace() {
+    // Every color under every alpha, with distinct channels.
+    let pixels: Vec<u8> = (0..=u8::MAX)
+        .flat_map(|alpha| (0..=u8::MAX).map(move |color| [color, !color, color / 3, alpha]))
+        .flatten()
+        .collect();
+    let expected: Vec<u8> = pixels
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .flat_map(|&[r, g, b, a]| {
+            [
+                multiply_u8_color(r, a),
+                multiply_u8_color(g, a),
+                multiply_u8_color(b, a),
+                a,
+            ]
+        })
+        .collect();
+    let mut premultiplied = pixels;
+    assert!(!rgba8_premultiply_inplace(&mut premultiplied));
+    assert_eq!(premultiplied, expected);
+
+    let opaque: Vec<u8> = (0..=u8::MAX)
+        .flat_map(|color| [color, !color, color / 3, u8::MAX])
+        .collect();
+    let mut premultiplied = opaque.clone();
+    assert!(rgba8_premultiply_inplace(&mut premultiplied));
+    assert_eq!(premultiplied, opaque);
 }
