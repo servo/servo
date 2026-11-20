@@ -1535,7 +1535,9 @@ impl ScriptThread {
         match *msg {
             MixedMessage::FromConstellation(ref inner_msg) => match *inner_msg {
                 ScriptThreadMessage::SendInputEvent(..) => ScriptThreadEventCategory::InputEvent,
-                ScriptThreadMessage::ExitFullScreen(..) => ScriptThreadEventCategory::ExitFullscreen,
+                ScriptThreadMessage::ExitFullScreen(..) => {
+                    ScriptThreadEventCategory::ExitFullscreen
+                },
                 _ => ScriptThreadEventCategory::ConstellationMsg,
             },
             #[cfg(feature = "devtools")]
