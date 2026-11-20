@@ -4498,6 +4498,8 @@ impl JsonWebKeyExt for JsonWebKey {
         // If the key_ops field of jwk is present,
         if let Some(ref key_ops) = self.key_ops {
             // and is invalid according to the requirements of JSON Web Key [JWK]:
+            //
+            // <https://www.rfc-editor.org/info/rfc7517/#section-4.3>
             // 1. Duplicate key operation values MUST NOT be present in the array.
             if key_ops
                 .iter()
