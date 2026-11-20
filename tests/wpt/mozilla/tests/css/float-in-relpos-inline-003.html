@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<head>
+    <link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+    <style>
+        div { width: 100px; height: 100px; background: red; }
+        .float { float: left; width: 100px; height: 100px; background: green; }
+    </style>
+</head>
+
+<body>
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+    <div>
+        <span style="position: relative; left: 100px; top: 100px">
+            <span>
+                <span class="float"></span>
+            </span>
+        </span>
+    </div>
+</body>

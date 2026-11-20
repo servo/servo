@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
 use std::vec::IntoIter;
 
 use app_units::Au;
@@ -228,6 +229,14 @@ pub(super) struct InlineBoxContainerState {
 
     /// The [`PaddingBorderMargin`] of the [`InlineBox`] that this state tracks.
     pub pbm: PaddingBorderMargin,
+
+    /// Whether or not the leading edge (the side facing the start of the line) of
+    /// the inline box is pending during the line layout phase of inline layout.
+    pub leading_edge_on_current_line: Cell<bool>,
+
+    /// True if the writing direction of this inline box is reversed from that of
+    /// the containing inline formatting context.
+    pub writing_direction_reversed: bool,
 }
 
 impl InlineBoxContainerState {
@@ -247,12 +256,16 @@ impl InlineBoxContainerState {
         if inline_container_needs_strut(&style, layout_context, Some(&pbm)) {
             flags.insert(InlineContainerStateFlags::CREATE_STRUT);
         }
+        let writing_direction_reversed =
+            style.writing_mode.is_bidi_ltr() != containing_block.style.writing_mode.is_bidi_ltr();
 
         Self {
             base: InlineContainerState::new(style, flags, Some(parent_container), default_font),
             identifier: inline_box.identifier,
             base_fragment_info: inline_box.base.base_fragment_info,
             pbm,
+            leading_edge_on_current_line: Cell::new(false),
+            writing_direction_reversed,
         }
     }
 
