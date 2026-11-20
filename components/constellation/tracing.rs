@@ -210,6 +210,7 @@ mod from_script {
                 Self::AddTupleToUpgradeInsecureNavigationsSet(..) => {
                     target!("AddTupleToUpgradeInsecureNavigationsSet")
                 },
+                Self::ClearCanvasResources(..) => target!("ClearCanvasResources"),
             }
         }
     }
