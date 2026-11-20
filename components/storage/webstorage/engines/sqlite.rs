@@ -9,9 +9,17 @@ use log::error;
 use rusqlite::Connection;
 use servo_base::threadpool::ThreadPool;
 
-use crate::shared::{DB_IN_MEMORY_INIT_PRAGMAS, DB_IN_MEMORY_PRAGMAS, DB_INIT_PRAGMAS, DB_PRAGMAS};
+use crate::shared::{
+    DB_IN_MEMORY_INIT_PRAGMAS, DB_IN_MEMORY_PRAGMAS, DB_INIT_PRAGMAS, DB_PRAGMAS, run_migrations,
+};
 use crate::webstorage::OriginEntry;
 use crate::webstorage::engines::WebStorageEngine;
+
+/// Schema migrations, see `run_migrations`. The first one uses `IF NOT EXISTS` because
+/// databases created before migrations were tracked already have the table.
+const MIGRATIONS: &[&str] = &[
+    "CREATE TABLE IF NOT EXISTS data (id INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT, value TEXT);",
+];
 
 pub struct SqliteEngine {
     connection: Connection,
@@ -30,7 +38,7 @@ impl SqliteEngine {
     }
 
     pub fn init_db(db_path: Option<&PathBuf>) -> rusqlite::Result<Connection> {
-        let connection = if let Some(path) = db_path {
+        let mut connection = if let Some(path) = db_path {
             if let Some(parent) = path.parent() {
                 let _ = std::fs::create_dir_all(parent);
             }
@@ -55,7 +63,7 @@ impl SqliteEngine {
             }
             conn
         };
-        connection.execute("CREATE TABLE IF NOT EXISTS data (id INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT, value TEXT);", [])?;
+        run_migrations(&mut connection, MIGRATIONS)?;
         Ok(connection)
     }
 }
