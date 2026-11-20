@@ -3228,7 +3228,7 @@ impl DocumentEventHandler {
     /// target is passed explicitly, because it might not be set on event
     fn light_dismiss_activities(cx: &mut JSContext, event: &PointerEvent, target: &EventTarget) {
         // Step 1. Run light dismiss open popovers with event.
-        HTMLElement::light_dismiss_open_popovers(cx, event, target);
+        target.light_dismiss_open_popovers(cx, event);
 
         // Step 2. Run light dismiss open dialogs with event.
         HTMLDialogElement::light_dismiss_open_dialogs(cx, event, target);
