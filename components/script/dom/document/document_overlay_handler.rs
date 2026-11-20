@@ -379,9 +379,7 @@ impl DocumentOverlayHandler {
 
                 // Step 14. For each exitDoc in exitDocs:
                 for exit_doc in exit_docs {
-                    let Some(fullscreen_element) = exit_doc.overlay_handler().fullscreen_element() else {
-                        continue;
-                    };
+                    let fullscreen_element = exit_doc.overlay_handler().fullscreen_element().expect("The document is asserted to have a fullscreen element in collect_documents_to_unfullscreen");
 
                     // Step 14.1. Append (fullscreenchange, exitDoc’s fullscreen element) to
                     // exitDoc’s list of pending fullscreen events.
