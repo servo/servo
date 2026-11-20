@@ -257,6 +257,7 @@ impl DocumentOverlayHandler {
 
             // Step 2.4. Let container be lastDoc’s node navigable’s container.
             // Step 2.5. If container is null, then break.
+            // FIXME: Support cross-origin container
             let window_proxy = last_doc.window().window_proxy();
             let Some(container) = window_proxy.frame_element() else {
                 break;
@@ -305,6 +306,7 @@ impl DocumentOverlayHandler {
 
         // Step 5. Let topLevelDoc be doc’s node navigable’s top-level traversable’s active
         // document.
+        // FIXME: Support cross-origin document
         let top_level_doc = doc.window().top_level_document_if_local();
 
         // Step 6. If topLevelDoc is in docs, and it is a simple fullscreen document, then set doc
