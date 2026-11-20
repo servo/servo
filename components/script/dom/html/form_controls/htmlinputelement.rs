@@ -17,7 +17,7 @@ use js::rust::wrappers2::{
     CheckRegExpSyntax, DateGetMsecSinceEpoch, ExecuteRegExpNoStatics, JS_ClearPendingException,
     NewDateObject, NewUCRegExpObject, ObjectIsDate, ObjectIsRegExp,
 };
-use js::rust::{HandleObject, MutableHandleObject};
+use js::rust::{HandleObject, MutableHandleObject, MutableHandleValue};
 use num_traits::ToPrimitive;
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::codegen::GenericBindings::SelectionBinding::SelectionMethods;
@@ -47,6 +47,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::document::Document;
 use crate::dom::document_embedder_controls::ControlElement;
 use crate::dom::element::attributes::storage::AttrRef;
@@ -55,6 +56,7 @@ use crate::dom::event::Event;
 use crate::dom::event::event::{EventBubbles, EventCancelable, EventComposed};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::filelist::FileList;
+use crate::dom::filesystementry::FileSystemEntry;
 use crate::dom::html::form_controls::input_type::radio_input_type::perform_radio_group_validation;
 use crate::dom::html::form_controls::input_type::{
     InputActivationType, InputType, ValueChangeEvents,
@@ -1647,6 +1649,19 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     fn SetWebkitdirectory(&self, cx: &mut JSContext, value: bool) {
         self.upcast::<Element>()
             .set_bool_attribute(cx, &LocalName::from("webkitdirectory"), value)
+    }
+
+    /// <https://wicg.github.io/entries-api/#dom-htmlinputelement-webkitentries>
+    fn WebkitEntries(&self, cx: &mut JSContext, retval: MutableHandleValue) {
+        // Browsers only populate this from a drag-and-drop operation, and leave
+        // it empty when `webkitdirectory` is set.
+        // Right now we don't have DnD yet.
+        // Above behaviour is now the Baseline 2025, tested with Firefox/Chrome.
+        // https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/webkitEntries
+        // https://wicg.github.io/entries-api/#issue-452f97f6
+        // https://wicg.github.io/entries-api/#issue-4cc238bb
+        let entries: Vec<DomRoot<FileSystemEntry>> = Vec::new();
+        to_frozen_array(cx, &entries, retval);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-input-indeterminate>
