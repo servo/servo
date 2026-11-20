@@ -4394,7 +4394,7 @@ trait JsonWebKeyHelper {
     fn get_usages_from_key_ops(&self) -> Result<Vec<KeyUsage>, Error>;
 
     /// If the key_ops field of jwk is present, and is invalid according to the requirements of
-    /// JSON Web Key [JWK] or does not contain all of the specified usages values, then throw a
+    /// JSON Web Key (JWK) or does not contain all of the specified usages values, then throw a
     /// DataError.
     fn check_key_ops(&self, specified_usages: &[KeyUsage]) -> Result<(), Error>;
 
