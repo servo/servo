@@ -694,7 +694,8 @@ impl TraversalState {
             clip_id: self.clip_id,
             text_decorations: self.text_decorations.clone(),
             accumulated_opacity: self.accumulated_opacity *
-                positioning_fragment.style.borrow().slow_clone_opacity(),
+                unsafe { positioning_fragment.style.as_ptr().as_ref().unwrap() }
+                    .slow_clone_opacity(),
             containing_element_tag: self.containing_element_tag,
             container_timing_roots: self.container_timing_roots.clone(),
         }

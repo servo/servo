@@ -627,7 +627,7 @@ impl Fragment {
                 // `Fragment::AbsoluteOrFixedPositionedPlaceholder` position.
             },
             Fragment::AbsoluteOrFixedPositionedPlaceholder(fragment) => {
-                let shared_fragment = fragment.borrow();
+                let shared_fragment = unsafe { fragment.as_ptr().as_ref().unwrap() };
                 let box_fragment = match shared_fragment.fragment.as_ref() {
                     Some(Fragment::Box(box_fragment)) => box_fragment,
                     _ => unreachable!("Found hoisted box with missing or non-BoxFragment."),
