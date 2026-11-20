@@ -4617,7 +4617,7 @@ impl JsonWebKeyExt for JsonWebKey {
                 self.qi.is_none())
         {
             return Err(Error::Data(Some(
-                "The oth field is present while at least one of p, q, dp, dq, qi is missing, in jwk".to_string()
+                "The oth field is present while at least one of p, q, dp, dq, qi is missing".into()
             )));
         }
 
@@ -4628,13 +4628,13 @@ impl JsonWebKeyExt for JsonWebKey {
                     .as_ref()
                     .ok_or(Error::Data(Some(
                         "The r field is not present in one of the entry of oth field in jwk"
-                            .to_string(),
+                            .into(),
                     )))?
                     .str(),
             )
             .map_err(|_| {
                 Error::Data(Some(
-                    "Fail to decode r field in one of the entry of oth field in jwk".to_string(),
+                    "Fail to decode r field in one of the entry of oth field in jwk".into(),
                 ))
             })?;
             primes.push(Zeroizing::new(r));
@@ -4645,13 +4645,13 @@ impl JsonWebKeyExt for JsonWebKey {
                     .as_ref()
                     .ok_or(Error::Data(Some(
                         "The d field is not present in one of the entry of oth field in jwk"
-                            .to_string(),
+                            .into(),
                     )))?
                     .str(),
             )
             .map_err(|_| {
                 Error::Data(Some(
-                    "Fail to decode d field in one of the entry of oth field in jwk".to_string(),
+                    "Fail to decode d field in one of the entry of oth field in jwk".into(),
                 ))
             })?;
 
@@ -4661,13 +4661,13 @@ impl JsonWebKeyExt for JsonWebKey {
                     .as_ref()
                     .ok_or(Error::Data(Some(
                         "The t field is not present in one of the entry of oth field in jwk"
-                            .to_string(),
+                            .into(),
                     )))?
                     .str(),
             )
             .map_err(|_| {
                 Error::Data(Some(
-                    "Fail to decode t field in one of the entry of oth field in jwk".to_string(),
+                    "Fail to decode t field in one of the entry of oth field in jwk".into(),
                 ))
             })?;
         }
