@@ -42,6 +42,7 @@
 //! [`winit_minimal`]: https://github.com/servo/servo/blob/main/components/servo/examples/winit_minimal.rs
 
 mod clipboard_delegate;
+mod credential_management_delegate;
 #[cfg(feature = "gamepad")]
 mod gamepad_delegate;
 mod geolocation_delegate;
@@ -107,6 +108,7 @@ pub use webrender_api::units::{
 };
 
 pub use crate::clipboard_delegate::{ClipboardDelegate, StringRequest};
+pub use crate::credential_management_delegate::CredentialManagementDelegate;
 #[cfg(feature = "gamepad")]
 pub use crate::gamepad_delegate::{
     GamepadDelegate, GamepadHapticEffectRequest, GamepadHapticEffectRequestType,
