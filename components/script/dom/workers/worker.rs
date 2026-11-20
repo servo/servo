@@ -292,7 +292,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
             context_sender,
             global.insecure_requests_policy(),
             global.policy_container(),
-            global.font_context(),
+            Arc::new(global.font_context().new_for_worker()),
         );
 
         let context = context_receiver
