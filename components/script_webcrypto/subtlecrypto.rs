@@ -4377,20 +4377,53 @@ impl Display for JwkStringField {
 }
 
 trait JsonWebKeyExt {
+    /// <https://w3c.github.io/webcrypto/#concept-parse-a-jwk>
     fn parse(cx: &mut JSContext, data: &[u8]) -> Result<JsonWebKey, Error>;
+
+    /// Convert a JsonWebKey value to DOMString. We first convert the JsonWebKey value to
+    /// JavaScript value, and then serialize it by performing steps in
+    /// <https://infra.spec.whatwg.org/#serialize-a-javascript-value-to-a-json-string>. This acts
+    /// like the opposite of JsonWebKey::parse if you further convert the stringified result to
+    /// bytes.
     fn stringify(&self, cx: &mut JSContext) -> Result<Zeroizing<DOMString>, Error>;
+
+    /// Get key usages from "key_ops" JWK members.
     fn get_usages_from_key_ops(&self) -> Result<Vec<KeyUsage>, Error>;
+
+    /// If the key_ops field of jwk is present, and is invalid according to the requirements of
+    /// JSON Web Key [JWK] or does not contain all of the specified usages values, then throw a
+    /// DataError.
     fn check_key_ops(&self, specified_usages: &[KeyUsage]) -> Result<(), Error>;
+
+    // Set the key_ops attribute of jwk to equal the given usages.
     fn set_key_ops(&mut self, usages: &[KeyUsage]);
+
+    // Encode a byte sequence to a base64url-encoded string, and set the field to the encoded
+    // string.
     fn encode_string_field(&mut self, field: JwkStringField, data: &[u8]);
+
+    // Decode a field from a base64url-encoded string to a byte sequence. If the field is not a
+    // valid base64url-encoded string, then throw a DataError.
     fn decode_optional_string_field(
         &self,
         field: JwkStringField,
     ) -> Result<Option<Zeroizing<Vec<u8>>>, Error>;
+
+    // Decode a field from a base64url-encoded string to a byte sequence. If the field is not
+    // present or it is not a valid base64url-encoded string, then throw a DataError.
     fn decode_required_string_field(
         &self,
         field: JwkStringField,
     ) -> Result<Zeroizing<Vec<u8>>, Error>;
+
+    // Decode the "r", "d" and "t" field of each entry in the "oth" array, from a base64url-encoded
+    // string to a byte sequence, and append the decoded "r" field to the `primes` list, in the
+    // order of presence in the "oth" array.
+    //
+    // If the "oth" field is present and any of the "p", "q", "dp", "dq" or "qi" field is not
+    // present, then throw a DataError. For each entry in the "oth" array, if any of the "r", "d"
+    // and "t" field is not present or it is not a valid base64url-encoded string, then throw a
+    // DataError.
     fn decode_primes_from_oth_field(
         &self,
         primes: &mut Vec<Zeroizing<Vec<u8>>>,
@@ -4442,11 +4475,6 @@ impl JsonWebKeyExt for JsonWebKey {
         Ok(key)
     }
 
-    /// Convert a JsonWebKey value to DOMString. We first convert the JsonWebKey value to
-    /// JavaScript value, and then serialize it by performing steps in
-    /// <https://infra.spec.whatwg.org/#serialize-a-javascript-value-to-a-json-string>. This acts
-    /// like the opposite of JsonWebKey::parse if you further convert the stringified result to
-    /// bytes.
     fn stringify(&self, cx: &mut JSContext) -> Result<Zeroizing<DOMString>, Error> {
         rooted!(&in(cx) let mut data = UndefinedValue());
         self.to_jsval(cx, data.handle_mut());
@@ -4466,9 +4494,6 @@ impl JsonWebKeyExt for JsonWebKey {
         Ok(usages)
     }
 
-    /// If the key_ops field of jwk is present, and is invalid according to the requirements of
-    /// JSON Web Key [JWK] or does not contain all of the specified usages values, then throw a
-    /// DataError.
     fn check_key_ops(&self, specified_usages: &[KeyUsage]) -> Result<(), Error> {
         // If the key_ops field of jwk is present,
         if let Some(ref key_ops) = self.key_ops {
@@ -4509,7 +4534,6 @@ impl JsonWebKeyExt for JsonWebKey {
         Ok(())
     }
 
-    // Set the key_ops attribute of jwk to equal the given usages.
     fn set_key_ops(&mut self, usages: &[KeyUsage]) {
         self.key_ops = Some(
             usages
@@ -4519,8 +4543,6 @@ impl JsonWebKeyExt for JsonWebKey {
         );
     }
 
-    // Encode a byte sequence to a base64url-encoded string, and set the field to the encoded
-    // string.
     fn encode_string_field(&mut self, field: JwkStringField, data: &[u8]) {
         let encoded_data = DOMString::from(Base64UrlUnpadded::encode_string(data));
         match field {
@@ -4540,8 +4562,6 @@ impl JsonWebKeyExt for JsonWebKey {
         }
     }
 
-    // Decode a field from a base64url-encoded string to a byte sequence. If the field is not a
-    // valid base64url-encoded string, then throw a DataError.
     fn decode_optional_string_field(
         &self,
         field: JwkStringField,
@@ -4571,8 +4591,6 @@ impl JsonWebKeyExt for JsonWebKey {
             .map_err(|_| Error::Data(Some(format!("Failed to decode {} field in jwk", field))))
     }
 
-    // Decode a field from a base64url-encoded string to a byte sequence. If the field is not
-    // present or it is not a valid base64url-encoded string, then throw a DataError.
     fn decode_required_string_field(
         &self,
         field: JwkStringField,
@@ -4584,14 +4602,6 @@ impl JsonWebKeyExt for JsonWebKey {
             ))))
     }
 
-    // Decode the "r", "d" and "t" field of each entry in the "oth" array, from a base64url-encoded
-    // string to a byte sequence, and append the decoded "r" field to the `primes` list, in the
-    // order of presence in the "oth" array.
-    //
-    // If the "oth" field is present and any of the "p", "q", "dp", "dq" or "qi" field is not
-    // present, then throw a DataError. For each entry in the "oth" array, if any of the "r", "d"
-    // and "t" field is not present or it is not a valid base64url-encoded string, then throw a
-    // DataError.
     fn decode_primes_from_oth_field(
         &self,
         primes: &mut Vec<Zeroizing<Vec<u8>>>,
