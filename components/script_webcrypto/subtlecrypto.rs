@@ -34,6 +34,7 @@ mod turboshake_operation;
 mod x25519_operation;
 mod x448_operation;
 
+use std::collections::HashSet;
 use std::fmt::Display;
 use std::marker::PhantomData;
 use std::ptr;
@@ -4338,6 +4339,7 @@ impl From<&KeyAlgorithmAndDerivatives> for SerializableKeyAlgorithmAndDerivative
     }
 }
 
+/// [`JsonWebKey`] fields that are [`DOMString`].
 #[derive(Clone, Copy)]
 enum JwkStringField {
     X,
@@ -4376,28 +4378,62 @@ impl Display for JwkStringField {
     }
 }
 
-trait JsonWebKeyExt {
+/// Helper functions for [`JsonWebKey`].
+trait JsonWebKeyHelper {
+    /// <https://w3c.github.io/webcrypto/#concept-parse-a-jwk>
     fn parse(cx: &mut JSContext, data: &[u8]) -> Result<JsonWebKey, Error>;
+
+    /// Convert a JsonWebKey value to DOMString. We first convert the JsonWebKey value to
+    /// JavaScript value, and then serialize it by performing steps in
+    /// <https://infra.spec.whatwg.org/#serialize-a-javascript-value-to-a-json-string>. This acts
+    /// like the opposite of JsonWebKey::parse if you further convert the stringified result to
+    /// bytes.
     fn stringify(&self, cx: &mut JSContext) -> Result<Zeroizing<DOMString>, Error>;
+
+    /// Get key usages from "key_ops" JWK members.
     fn get_usages_from_key_ops(&self) -> Result<Vec<KeyUsage>, Error>;
+
+    /// If the key_ops field of jwk is present, and is invalid according to the requirements of
+    /// JSON Web Key (JWK) or does not contain all of the specified usages values, then throw a
+    /// `DataError`.
     fn check_key_ops(&self, specified_usages: &[KeyUsage]) -> Result<(), Error>;
+
+    /// Set the key_ops attribute of jwk to equal the given usages.
     fn set_key_ops(&mut self, usages: &[KeyUsage]);
+
+    /// Encode a byte sequence to a Base64URL-encoded string, and set the field to the encoded
+    /// string.
     fn encode_string_field(&mut self, field: JwkStringField, data: &[u8]);
+
+    /// Decode a field from a Base64URL-encoded string to a byte sequence. If the field is not a
+    /// valid base64url-encoded string, then throw a `DataError`.
     fn decode_optional_string_field(
         &self,
         field: JwkStringField,
     ) -> Result<Option<Zeroizing<Vec<u8>>>, Error>;
+
+    /// Decode a field from a Base64URL-encoded string to a byte sequence. If the field is not
+    /// present or it is not a valid Base64URL-encoded string, then throw a `DataError`.
     fn decode_required_string_field(
         &self,
         field: JwkStringField,
     ) -> Result<Zeroizing<Vec<u8>>, Error>;
+
+    /// Decode the "r", "d" and "t" field of each entry in the "oth" array, from a Base64URL-encoded
+    /// string to a byte sequence, and append the decoded "r" field to the `primes` list, in the
+    /// order of presence in the "oth" array.
+    ///
+    /// If the "oth" field is present and any of the "p", "q", "dp", "dq" or "qi" field is not
+    /// present, then throw a `DataError`. For each entry in the "oth" array, if any of the "r", "d"
+    /// and "t" field is not present or it is not a valid Base64URL-encoded string, then throw a
+    /// `DataError`.
     fn decode_primes_from_oth_field(
         &self,
         primes: &mut Vec<Zeroizing<Vec<u8>>>,
     ) -> Result<(), Error>;
 }
 
-impl JsonWebKeyExt for JsonWebKey {
+impl JsonWebKeyHelper for JsonWebKey {
     /// <https://w3c.github.io/webcrypto/#concept-parse-a-jwk>
     #[expect(unsafe_code)]
     fn parse(cx: &mut JSContext, data: &[u8]) -> Result<JsonWebKey, Error> {
@@ -4442,11 +4478,6 @@ impl JsonWebKeyExt for JsonWebKey {
         Ok(key)
     }
 
-    /// Convert a JsonWebKey value to DOMString. We first convert the JsonWebKey value to
-    /// JavaScript value, and then serialize it by performing steps in
-    /// <https://infra.spec.whatwg.org/#serialize-a-javascript-value-to-a-json-string>. This acts
-    /// like the opposite of JsonWebKey::parse if you further convert the stringified result to
-    /// bytes.
     fn stringify(&self, cx: &mut JSContext) -> Result<Zeroizing<DOMString>, Error> {
         rooted!(&in(cx) let mut data = UndefinedValue());
         self.to_jsval(cx, data.handle_mut());
@@ -4466,20 +4497,14 @@ impl JsonWebKeyExt for JsonWebKey {
         Ok(usages)
     }
 
-    /// If the key_ops field of jwk is present, and is invalid according to the requirements of
-    /// JSON Web Key [JWK] or does not contain all of the specified usages values, then throw a
-    /// DataError.
     fn check_key_ops(&self, specified_usages: &[KeyUsage]) -> Result<(), Error> {
         // If the key_ops field of jwk is present,
         if let Some(ref key_ops) = self.key_ops {
             // and is invalid according to the requirements of JSON Web Key [JWK]:
+            //
+            // <https://www.rfc-editor.org/info/rfc7517/#section-4.3>
             // 1. Duplicate key operation values MUST NOT be present in the array.
-            if key_ops
-                .iter()
-                .collect::<std::collections::HashSet<_>>()
-                .len() <
-                key_ops.len()
-            {
+            if key_ops.iter().collect::<HashSet<_>>().len() < key_ops.len() {
                 return Err(Error::Data(Some(
                     "Duplicate key operation values are present in array".into(),
                 )));
@@ -4509,7 +4534,6 @@ impl JsonWebKeyExt for JsonWebKey {
         Ok(())
     }
 
-    // Set the key_ops attribute of jwk to equal the given usages.
     fn set_key_ops(&mut self, usages: &[KeyUsage]) {
         self.key_ops = Some(
             usages
@@ -4519,8 +4543,6 @@ impl JsonWebKeyExt for JsonWebKey {
         );
     }
 
-    // Encode a byte sequence to a base64url-encoded string, and set the field to the encoded
-    // string.
     fn encode_string_field(&mut self, field: JwkStringField, data: &[u8]) {
         let encoded_data = DOMString::from(Base64UrlUnpadded::encode_string(data));
         match field {
@@ -4540,8 +4562,6 @@ impl JsonWebKeyExt for JsonWebKey {
         }
     }
 
-    // Decode a field from a base64url-encoded string to a byte sequence. If the field is not a
-    // valid base64url-encoded string, then throw a DataError.
     fn decode_optional_string_field(
         &self,
         field: JwkStringField,
@@ -4571,8 +4591,6 @@ impl JsonWebKeyExt for JsonWebKey {
             .map_err(|_| Error::Data(Some(format!("Failed to decode {} field in jwk", field))))
     }
 
-    // Decode a field from a base64url-encoded string to a byte sequence. If the field is not
-    // present or it is not a valid base64url-encoded string, then throw a DataError.
     fn decode_required_string_field(
         &self,
         field: JwkStringField,
@@ -4584,14 +4602,6 @@ impl JsonWebKeyExt for JsonWebKey {
             ))))
     }
 
-    // Decode the "r", "d" and "t" field of each entry in the "oth" array, from a base64url-encoded
-    // string to a byte sequence, and append the decoded "r" field to the `primes` list, in the
-    // order of presence in the "oth" array.
-    //
-    // If the "oth" field is present and any of the "p", "q", "dp", "dq" or "qi" field is not
-    // present, then throw a DataError. For each entry in the "oth" array, if any of the "r", "d"
-    // and "t" field is not present or it is not a valid base64url-encoded string, then throw a
-    // DataError.
     fn decode_primes_from_oth_field(
         &self,
         primes: &mut Vec<Zeroizing<Vec<u8>>>,
@@ -4604,7 +4614,7 @@ impl JsonWebKeyExt for JsonWebKey {
                 self.qi.is_none())
         {
             return Err(Error::Data(Some(
-                "The oth field is present while at least one of p, q, dp, dq, qi is missing, in jwk".to_string()
+                "The oth field is present while at least one of p, q, dp, dq, qi is missing".into(),
             )));
         }
 
@@ -4614,14 +4624,13 @@ impl JsonWebKeyExt for JsonWebKey {
                     .r
                     .as_ref()
                     .ok_or(Error::Data(Some(
-                        "The r field is not present in one of the entry of oth field in jwk"
-                            .to_string(),
+                        "The r field is not present in one of the entry of oth field in jwk".into(),
                     )))?
                     .str(),
             )
             .map_err(|_| {
                 Error::Data(Some(
-                    "Fail to decode r field in one of the entry of oth field in jwk".to_string(),
+                    "Fail to decode r field in one of the entry of oth field in jwk".into(),
                 ))
             })?;
             primes.push(Zeroizing::new(r));
@@ -4631,14 +4640,13 @@ impl JsonWebKeyExt for JsonWebKey {
                     .d
                     .as_ref()
                     .ok_or(Error::Data(Some(
-                        "The d field is not present in one of the entry of oth field in jwk"
-                            .to_string(),
+                        "The d field is not present in one of the entry of oth field in jwk".into(),
                     )))?
                     .str(),
             )
             .map_err(|_| {
                 Error::Data(Some(
-                    "Fail to decode d field in one of the entry of oth field in jwk".to_string(),
+                    "Fail to decode d field in one of the entry of oth field in jwk".into(),
                 ))
             })?;
 
@@ -4647,14 +4655,13 @@ impl JsonWebKeyExt for JsonWebKey {
                     .t
                     .as_ref()
                     .ok_or(Error::Data(Some(
-                        "The t field is not present in one of the entry of oth field in jwk"
-                            .to_string(),
+                        "The t field is not present in one of the entry of oth field in jwk".into(),
                     )))?
                     .str(),
             )
             .map_err(|_| {
                 Error::Data(Some(
-                    "Fail to decode t field in one of the entry of oth field in jwk".to_string(),
+                    "Fail to decode t field in one of the entry of oth field in jwk".into(),
                 ))
             })?;
         }
