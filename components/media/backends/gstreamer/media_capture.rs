@@ -65,7 +65,7 @@ impl AddToCaps for Constrain<f64> {
     ) -> Option<gstreamer::caps::Builder<NoFeature>> {
         match self {
             Constrain::Value(v) => {
-                Some(builder.field("name", gstreamer::Fraction::approximate_f64(*v)?))
+                Some(builder.field(name, gstreamer::Fraction::approximate_f64(*v)?))
             },
             Constrain::Range(r) => {
                 let min = r
@@ -169,4 +169,35 @@ pub fn create_audioinput_stream(constraint_set: MediaTrackConstraintSet) -> Opti
 
 pub fn create_videoinput_stream(constraint_set: MediaTrackConstraintSet) -> Option<MediaStreamId> {
     create_input_stream(MediaStreamType::Video, constraint_set)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fractional_constraints_use_the_requested_caps_fields() {
+        gstreamer::init().unwrap();
+        let caps = into_caps(
+            MediaTrackConstraintSet {
+                frame_rate: Some(Constrain::Value(30.0)),
+                aspect: Some(Constrain::Value(1.5)),
+                ..Default::default()
+            },
+            "video/x-raw",
+        )
+        .unwrap();
+        let structure = caps.structure(0).unwrap();
+        assert_eq!(
+            structure.get::<gstreamer::Fraction>("framerate").unwrap(),
+            gstreamer::Fraction::new(30, 1)
+        );
+        assert_eq!(
+            structure
+                .get::<gstreamer::Fraction>("pixel-aspect-ratio")
+                .unwrap(),
+            gstreamer::Fraction::new(3, 2)
+        );
+        assert!(!structure.has_field("name"));
+    }
 }
