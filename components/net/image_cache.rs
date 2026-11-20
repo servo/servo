@@ -1915,24 +1915,10 @@ fn start_demand_decode(
     };
     let next_pool = pool.clone();
     pool.spawn(move || {
-        // The cache already fitted both dimensions. Use only the dominant axis
-        // to avoid magnifying rounding of the shorter dimension on a second fit.
-        let decode_target =
-            if encoded_image_source.metadata.width >= encoded_image_source.metadata.height {
-                ImageMetadata {
-                    width: target.width,
-                    height: 0,
-                }
-            } else {
-                ImageMetadata {
-                    width: 0,
-                    height: target.height,
-                }
-            };
-        let decoded = pixels::load_from_memory_with_target(
+        let decoded = pixels::load_from_memory_at_size(
             &encoded_image_source.bytes,
             encoded_image_source.cors_status,
-            Some(decode_target),
+            target,
         );
         store
             .lock()

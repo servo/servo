@@ -257,7 +257,7 @@ impl<'a> ServoImageDecoder<'a> for DefaultImageDecoder<'a> {
 pub(crate) fn decode_static_image(
     cors_status: CorsStatus,
     mut image_decoder: impl ImageDecoder,
-    target: Option<ImageMetadata>,
+    target: Option<crate::DecodeTarget>,
 ) -> Option<RasterImage> {
     let orientation = image_decoder.orientation();
 
@@ -276,7 +276,20 @@ pub(crate) fn decode_static_image(
         width: dynamic_image.width(),
         height: dynamic_image.height(),
     };
-    let decoded_resolution = target.map_or(metadata, |target| metadata.fit_decode_size(target));
+    let decoded_resolution = match target {
+        None => metadata,
+        Some(crate::DecodeTarget::Fit(size)) => metadata.fit_decode_size(size),
+        Some(crate::DecodeTarget::Exact(size)) => {
+            if size.width == 0 ||
+                size.height == 0 ||
+                size.width > metadata.width ||
+                size.height > metadata.height
+            {
+                return None;
+            }
+            size
+        },
+    };
     let mut rgba = dynamic_image.into_rgba8();
     // Store pre-multiplied data to avoid conversions later. Premultiplying before
     // resizing also prevents colors in transparent texels from bleeding into edges.

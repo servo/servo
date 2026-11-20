@@ -614,6 +614,29 @@ pub fn load_from_memory_with_target(
     cors_status: CorsStatus,
     target: Option<ImageMetadata>,
 ) -> Option<RasterImage> {
+    decode_from_memory(buffer, cors_status, target.map(DecodeTarget::Fit))
+}
+
+/// Decode a static image at a size already fitted to its oriented dimensions.
+/// Do not fit the size again: rounding can change one of its dimensions.
+pub fn load_from_memory_at_size(
+    buffer: &[u8],
+    cors_status: CorsStatus,
+    size: ImageMetadata,
+) -> Option<RasterImage> {
+    decode_from_memory(buffer, cors_status, Some(DecodeTarget::Exact(size)))
+}
+
+enum DecodeTarget {
+    Fit(ImageMetadata),
+    Exact(ImageMetadata),
+}
+
+fn decode_from_memory(
+    buffer: &[u8],
+    cors_status: CorsStatus,
+    target: Option<DecodeTarget>,
+) -> Option<RasterImage> {
     if buffer.is_empty() {
         return None;
     }
@@ -903,6 +926,35 @@ mod test {
 
     #[test]
     /// Test to check if we address lanczos's ringing that non valid "pre-multiplied alpha" images
+    fn static_decode_preserves_exact_fitted_size() {
+        use super::{CorsStatus, ImageMetadata, load_from_memory_at_size};
+
+        let natural = ImageMetadata {
+            width: 2496,
+            height: 1508,
+        };
+        let target = natural.fit_decode_size(ImageMetadata {
+            width: 320,
+            height: 194,
+        });
+        assert_eq!(
+            target,
+            ImageMetadata {
+                width: 322,
+                height: 194
+            }
+        );
+        let bytes = png_bytes(natural.width, natural.height, [0, 128, 0, 255]);
+        let decoded = load_from_memory_at_size(&bytes, CorsStatus::Safe, target).unwrap();
+        assert_eq!(decoded.metadata, natural);
+        assert_eq!(decoded.decoded_resolution, target);
+        assert_eq!(
+            (decoded.frames[0].width, decoded.frames[0].height),
+            (322, 194)
+        );
+    }
+
+    #[test]
     fn static_decode_clamps_lanczos_ringing_to_alpha() {
         use image::ImageEncoder;
 
