@@ -598,8 +598,9 @@ pub fn detect_image_format(buffer: &[u8]) -> Result<ImageFormat, &str> {
 }
 
 pub fn unmultiply_inplace<const SWAP_RB: bool>(pixels: &mut [u8]) {
-    assert!(pixels.len().is_multiple_of(4));
-    for rgba in pixels.as_chunks_mut::<4>().0 {
+    let (chunks, remainder) = pixels.as_chunks_mut::<4>();
+    debug_assert!(remainder.is_empty());
+    for rgba in chunks {
         let a = rgba[3];
         let mut b = rgba[2];
         let mut g = rgba[1];
@@ -658,8 +659,9 @@ pub fn generic_transform_inplace<
 >(
     pixels: &mut [u8],
 ) {
-    assert!(pixels.len().is_multiple_of(4));
-    for rgba in pixels.as_chunks_mut::<4>().0 {
+    let (chunks, remainder) = pixels.as_chunks_mut::<4>();
+    debug_assert!(remainder.is_empty());
+    for rgba in chunks {
         match MULTIPLY {
             1 => {
                 let a = rgba[3];
