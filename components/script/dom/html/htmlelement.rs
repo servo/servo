@@ -1088,10 +1088,14 @@ impl HTMLElement {
         let document = self.upcast::<Element>().owner_document();
 
         // Step 1. Let hintList be popover's node document's showing hint popover list.
-        let hint_list = document.overlay_handler().showing_popover_list_unrooted(cx.no_gc(), PopoverState::Hint);
+        let hint_list = document
+            .overlay_handler()
+            .showing_popover_list_unrooted(cx.no_gc(), PopoverState::Hint);
 
         // Step 2. Let autoList be popover's node document's showing auto popover list.
-        let auto_list = document.overlay_handler().showing_popover_list_unrooted(cx.no_gc(), PopoverState::Auto);
+        let auto_list = document
+            .overlay_handler()
+            .showing_popover_list_unrooted(cx.no_gc(), PopoverState::Auto);
 
         // Step 3. If popover is in hintList, then return the index of popover in hintList + the
         // size of autoList + 1.
@@ -1103,7 +1107,6 @@ impl HTMLElement {
         if let Some(auto_list_index) = auto_list.iter().position(|popover| popover == self) {
             return auto_list_index + 1;
         }
-
 
         // Step 5. Return 0.
         0

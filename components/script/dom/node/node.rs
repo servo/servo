@@ -97,12 +97,10 @@ use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventFlags};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::html::htmlbuttonelement::{ButtonType, CommandState, HTMLButtonElement};
 use crate::dom::html::htmlcollection::HTMLCollection;
-use crate::dom::html::htmlbuttonelement::{
-    ButtonType, CommandState, HTMLButtonElement,
-};
-use crate::dom::html::htmlformelement::FormControl;
 use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::html::htmlformelement::FormControl;
 use crate::dom::html::htmllinkelement::HTMLLinkElement;
 use crate::dom::html::htmlslotelement::{HTMLSlotElement, Slottable};
 use crate::dom::html::htmlstyleelement::HTMLStyleElement;
@@ -2372,19 +2370,22 @@ impl Node {
                 current_node
                     .downcast::<HTMLElement>()
                     .filter(|html_element| {
-                (matches!(
-                    html_element.opened_in_popover_mode(),
-                    Some(PopoverState::Auto | PopoverState::Hint)
-                ) && html_element
-                    .upcast::<Element>()
-                    .popover_visibility_state_showing())
+                        (matches!(
+                            html_element.opened_in_popover_mode(),
+                            Some(PopoverState::Auto | PopoverState::Hint)
+                        ) && html_element
+                            .upcast::<Element>()
+                            .popover_visibility_state_showing())
                     })
                     .map(DomRoot::from_ref)
             })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#topmost-clicked-popover>
-    pub(crate) fn topmost_clicked_popover(&self, cx: &mut JSContext) -> Option<DomRoot<HTMLElement>> {
+    pub(crate) fn topmost_clicked_popover(
+        &self,
+        cx: &mut JSContext,
+    ) -> Option<DomRoot<HTMLElement>> {
         // Step 1. Let clickedPopover be the result of running nearest inclusive open popover given node.
         let clicked_popover = self.nearest_inclusive_open_popover(cx);
 
@@ -2471,8 +2472,7 @@ impl Node {
 
             // Step 5.2. If element's type attribute is in the Reset Button state, then return null.
             // Step 5.3. If element's type attribute is in the Auto state, then return null.
-            if matches!(button.button_type(), ButtonType::Reset | ButtonType::Auto)
-            {
+            if matches!(button.button_type(), ButtonType::Reset | ButtonType::Auto) {
                 return None;
             }
         }
