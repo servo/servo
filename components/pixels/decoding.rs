@@ -291,6 +291,15 @@ pub(crate) fn decode_static_image(
             decoded_resolution.height,
             FilterType::Lanczos3,
         );
+        // Lanczos can produce RGBA values that are not valid as "pre-multiplied" due to ringing
+        // This hacky "clipping" makes values valid
+        // can cause micro visual differences in color, but seem to pass all WPT
+        for pixel in rgba.pixels_mut() {
+            let alpha = pixel[3];
+            for channel in &mut pixel.0[..3] {
+                *channel = (*channel).min(alpha);
+            }
+        }
     }
 
     let frame = ImageFrame {

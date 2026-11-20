@@ -902,6 +902,39 @@ mod test {
     }
 
     #[test]
+    /// Test to check if we address lanczos's ringing that non valid "pre-multiplied alpha" images
+    fn static_decode_clamps_lanczos_ringing_to_alpha() {
+        use image::ImageEncoder;
+
+        use super::{CorsStatus, ImageMetadata, load_from_memory_with_target};
+
+        // A stripy test that forces Lanczos's ringing
+        let source = image::RgbaImage::from_fn(999, 999, |x, _| match (x / 2) % 4 {
+            0 => image::Rgba([255, 255, 255, 255]),
+            2 => image::Rgba([0, 0, 0, 255]),
+            _ => image::Rgba([0, 0, 0, 0]),
+        });
+        let mut bytes = vec![];
+        image::codecs::png::PngEncoder::new(&mut bytes)
+            .write_image(&source, 999, 999, image::ExtendedColorType::Rgba8)
+            .unwrap();
+        let target = ImageMetadata {
+            width: 400,
+            height: 400,
+        };
+        let decoded = load_from_memory_with_target(&bytes, CorsStatus::Safe, Some(target)).unwrap();
+        assert_eq!(decoded.decoded_resolution, target);
+        assert!(!decoded.is_opaque);
+        assert!(
+            decoded
+                .bytes
+                .chunks_exact(4)
+                .all(|pixel| pixel[..3].iter().all(|&channel| channel <= pixel[3])),
+            "resized premultiplied colour channels must not exceed alpha"
+        );
+    }
+
+    #[test]
     fn target_size_preserves_ratio_and_caps_at_natural_size() {
         use super::ImageMetadata;
         let natural = ImageMetadata {
