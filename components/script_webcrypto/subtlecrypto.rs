@@ -4395,7 +4395,7 @@ trait JsonWebKeyHelper {
 
     /// If the key_ops field of jwk is present, and is invalid according to the requirements of
     /// JSON Web Key (JWK) or does not contain all of the specified usages values, then throw a
-    /// DataError.
+    /// `DataError`.
     fn check_key_ops(&self, specified_usages: &[KeyUsage]) -> Result<(), Error>;
 
     // Set the key_ops attribute of jwk to equal the given usages.
@@ -4406,14 +4406,14 @@ trait JsonWebKeyHelper {
     fn encode_string_field(&mut self, field: JwkStringField, data: &[u8]);
 
     // Decode a field from a Base64URL-encoded string to a byte sequence. If the field is not a
-    // valid base64url-encoded string, then throw a DataError.
+    // valid base64url-encoded string, then throw a `DataError`.
     fn decode_optional_string_field(
         &self,
         field: JwkStringField,
     ) -> Result<Option<Zeroizing<Vec<u8>>>, Error>;
 
     // Decode a field from a Base64URL-encoded string to a byte sequence. If the field is not
-    // present or it is not a valid Base64URL-encoded string, then throw a DataError.
+    // present or it is not a valid Base64URL-encoded string, then throw a `DataError`.
     fn decode_required_string_field(
         &self,
         field: JwkStringField,
@@ -4424,9 +4424,9 @@ trait JsonWebKeyHelper {
     // order of presence in the "oth" array.
     //
     // If the "oth" field is present and any of the "p", "q", "dp", "dq" or "qi" field is not
-    // present, then throw a DataError. For each entry in the "oth" array, if any of the "r", "d"
+    // present, then throw a `DataError`. For each entry in the "oth" array, if any of the "r", "d"
     // and "t" field is not present or it is not a valid Base64URL-encoded string, then throw a
-    // DataError.
+    // `DataError`.
     fn decode_primes_from_oth_field(
         &self,
         primes: &mut Vec<Zeroizing<Vec<u8>>>,
