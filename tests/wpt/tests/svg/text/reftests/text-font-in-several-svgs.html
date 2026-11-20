@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>SVG text: a font draws the text of every SVG that uses it</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/text.html#TextElement">
+<link rel="match" href="text-font-in-several-svgs-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+  svg {
+    display: block;
+    font: 20px Ahem;
+  }
+</style>
+<p>There should be three black bars below, of different lengths.</p>
+<div id="container"></div>
+<script>
+  // The SVGs are added once the font has loaded, so that each is drawn with it from the start.
+  document.fonts.load("20px Ahem").then(() => {
+    container.innerHTML = [1, 2, 3]
+      .map(length => `<svg width="100" height="20"><text y="16">${"X".repeat(length)}</text></svg>`)
+      .join("");
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      document.documentElement.classList.remove("reftest-wait");
+    }));
+  });
+</script>
+</html>
