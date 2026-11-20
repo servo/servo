@@ -514,6 +514,8 @@ def run_cargo_deny_lints() -> Iterator[tuple[str, int, str]]:
         error_severity = error_fields.get("severity", "unknown")
         message = error_fields.get("message", "")
         labels = error_fields.get("labels", [])
+        advisory = error_fields.get("advisory")
+        advisory_id = advisory.get("id") if isinstance(advisory, dict) else None
 
         span = ""
         line = 1
@@ -540,6 +542,8 @@ def run_cargo_deny_lints() -> Iterator[tuple[str, int, str]]:
         # This detects any other problem, typically caused by an unnecessary exception
         # in the deny.toml file.
         elif error_severity in ["warning", "error"]:
+            if advisory_id:
+                message = f"{advisory_id}: {message}"
             errors.append((CARGO_DENY_CONFIG_FILE, line, f"{message}: {span}"))
 
     # If there are no known errors but cargo-deny still failed, ensure test-tidy also fails.
