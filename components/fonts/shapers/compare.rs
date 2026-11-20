@@ -48,6 +48,11 @@ impl Shaper {
         options: &ShapingOptions,
         font_features: &[(Tag, u32)],
     ) -> ShapedGlyphData {
+        // Ensure glyph cache is warm before running either shaper, otherwise
+        // the first shaper pays a significant penalty.
+        self.buzz
+            .shaped_glyph_data(font, text, options, font_features);
+
         let (buzz, ns) = with_time(move || {
             self.buzz
                 .shaped_glyph_data(font, text, options, font_features)
