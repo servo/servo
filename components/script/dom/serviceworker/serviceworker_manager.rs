@@ -86,8 +86,9 @@ impl ServiceWorker {
     }
 }
 
-/// When updating a registration, which worker are we targetting?
-#[expect(dead_code)]
+/// <https://w3c.github.io/ServiceWorker/#update-registration-state-algorithm>
+/// target, a string (one of "installing", "waiting", and "active").
+#[derive(Debug)]
 enum RegistrationUpdateTarget {
     Installing,
     Waiting,
@@ -264,12 +265,39 @@ impl ServiceWorkerRegistration {
             update_worker_state(
                 active_worker,
                 ServiceWorkerState::Activating,
-                constellation_sender,
+                constellation_sender.clone(),
             );
         }
 
-        // TODO: rest of algo queues tasks on client event loops,
-        // and will require another constellation managed workflow.
+        // Step 6: Let matchedClients be a list of service worker clients
+        // whose creation URL matches registration’s storage key
+        // and registration’s scope url.
+        // TODO.
+
+        // Step 7: For each client of matchedClients,
+        // queue a task on client’s responsible event loop,
+        // using the DOM manipulation task source,
+        // to run the following substeps:
+        // TODO.
+
+        // Step 8: For each service worker client client who is using registration:
+        // TODO.
+
+        // Step 9: Let activeWorker be registration’s active worker.
+        // TODO.
+
+        // Step 10: If the result of running the Should Skip Event algorithm with activeWorker
+        // and "activate" is false, then:
+        // TODO.
+
+        // Step 11: Run the Update Worker State algorithm passing registration’s active worker and "activated" as the arguments.
+        if let Some(active_worker) = self.active_worker.as_mut() {
+            update_worker_state(
+                active_worker,
+                ServiceWorkerState::Activated,
+                constellation_sender,
+            );
+        }
     }
 }
 
@@ -670,7 +698,9 @@ impl ServiceWorkerManager {
             let newest_worker = registration.get_newest_worker();
 
             // step 5.2: If newestWorker is not null, job’s script url equals newestWorker’s script url, job’s worker type equals newestWorker’s type, and job’s update via cache mode’s value equals registration’s update via cache mode, then:
-            if newest_worker.is_some() {
+            if newest_worker.is_some() &&
+                newest_worker.as_ref().unwrap().script_url == job.script_url
+            {
                 // TODO: the various checks of job versus worker.
 
                 // Step 5.2.1: Invoke Resolve Job Promise with job and registration.
@@ -706,11 +736,10 @@ impl ServiceWorkerManager {
             let new_registration = ServiceWorkerRegistration::new(job.client.clone());
             self.registrations
                 .insert(job.scope_url.clone(), new_registration);
-
-            // Step 7: Invoke Update algorithm passing job as the argument.
-            job.job_type = JobType::Update;
-            self.handle_update_job(job);
         }
+        // Step 7: Invoke Update algorithm passing job as the argument.
+        job.job_type = JobType::Update;
+        self.handle_update_job(job);
     }
 
     /// <https://www.w3.org/TR/service-workers/#install>
