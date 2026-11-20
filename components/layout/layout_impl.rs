@@ -68,7 +68,9 @@ use style::invalidation::stylesheets::StylesheetInvalidationSet;
 use style::media_queries::{MediaList, MediaType};
 use style::properties::style_structs::Font;
 use style::properties::{ComputedValues, LonghandId, NonCustomPropertyId, PropertyId, ShorthandId};
-use style::queries::values::PrefersColorScheme;
+use style::queries::values::{
+    PrefersColorScheme, PrefersContrast, PrefersReducedMotion, PrefersReducedTransparency,
+};
 use style::selector_parser::{PseudoElement, SnapshotMap};
 use style::servo::media_features::PointerCapabilities;
 use style::shared_lock::{SharedRwLock, StylesheetGuards};
@@ -886,6 +888,10 @@ impl LayoutThread {
                 prefers_color_scheme: config.theme.into(),
                 primary_pointer_capabilities: PointerCapabilities::default(),
                 all_pointer_capabilities: PointerCapabilities::default(),
+                // TODO: Obtain these from the embedder via a delegate or preferences.
+                prefers_contrast: PrefersContrast::NoPreference,
+                prefers_reduced_motion: PrefersReducedMotion::NoPreference,
+                prefers_reduced_transparency: PrefersReducedTransparency::NoPreference,
             },
         );
 
