@@ -4339,6 +4339,7 @@ impl From<&KeyAlgorithmAndDerivatives> for SerializableKeyAlgorithmAndDerivative
     }
 }
 
+/// [`JsonWebKey`] fields that are [`DOMString`].
 #[derive(Clone, Copy)]
 enum JwkStringField {
     X,
