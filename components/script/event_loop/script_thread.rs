@@ -2021,8 +2021,8 @@ impl ScriptThread {
             ScriptThreadMessage::ForwardAccessibilityAction(pipeline_id, action_request) => {
                 self.forward_accessibility_action(pipeline_id, action_request);
             },
-            ScriptThreadMessage::TriggerGarbageCollection => unsafe {
-                JS_GC(cx, GCReason::API);
+            ScriptThreadMessage::TriggerGarbageCollection => {
+                self.run_gc_with_reason(cx, GCReason::API);
             },
             ScriptThreadMessage::SetNetworkOnlineState(online) => {
                 self.handle_set_network_online_state(online);
@@ -4751,6 +4751,10 @@ impl ScriptThread {
 
     pub(crate) fn online() -> bool {
         with_script_thread(|script_thread| script_thread.online.get())
+    }
+    pub(crate) fn run_gc_with_reason(&self, cx: &mut js::context::JSContext, reason: GCReason) {
+        info!("Running GC with reason {:?}", reason);
+        unsafe { JS_GC(cx, reason) }
     }
 }
 
