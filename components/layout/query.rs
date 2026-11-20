@@ -73,14 +73,15 @@ fn root_transform_for_fragments(
 }
 
 pub(crate) fn process_padding_request(node: ServoLayoutNode<'_>) -> Option<PhysicalSides<Au>> {
-    let fragments = node.fragments_for_pseudo(None);
-    let fragment = fragments.first()?;
-    Some(
-        fragment
-            .retrieve_box_fragment()
-            .map(|box_fragment| box_fragment.padding)
-            .unwrap_or_default(),
-    )
+    node.with_fragments_or_empty(|fragments| {
+        let fragment = fragments.first()?;
+        Some(
+            fragment
+                .retrieve_box_fragment()
+                .map(|box_fragment| box_fragment.padding)
+                .unwrap_or_default(),
+        )
+    })
 }
 
 bitflags! {
@@ -135,30 +136,33 @@ pub(crate) fn process_box_areas_request(
     node: ServoLayoutNode<'_>,
     area: BoxAreaType,
 ) -> CSSPixelRectVec {
-    let fragments = node.fragments_for_pseudo(None);
-    let transform =
-        root_transform_for_fragments(&stacking_context_tree.paint_info.scroll_tree, &fragments);
+    node.with_fragments_or_empty(|fragments| {
+        let transform =
+            root_transform_for_fragments(&stacking_context_tree.paint_info.scroll_tree, fragments);
 
-    let rects = fragments
-        .into_iter()
-        .filter_map(move |fragment| fragment.cumulative_box_area_rect(area, layout_thread.into()));
+        let rects = fragments.iter().filter_map(move |fragment| {
+            fragment.cumulative_box_area_rect(area, layout_thread.into())
+        });
 
-    let Some(transform) = transform else {
-        return rects
-            .map(|rect| Rect::new(rect.origin, Size2D::zero()))
-            .collect();
-    };
+        let Some(transform) = transform else {
+            return rects
+                .map(|rect| Rect::new(rect.origin, Size2D::zero()))
+                .collect();
+        };
 
-    rects
-        .filter_map(move |rect| transform_au_rectangle(rect, transform))
-        .collect()
+        rects
+            .filter_map(move |rect| transform_au_rectangle(rect, transform))
+            .collect()
+    })
 }
 
 pub fn process_client_rect_request(node: ServoLayoutNode<'_>) -> Rect<i32, CSSPixel> {
-    node.fragments_for_pseudo(None)
-        .first()
-        .map(Fragment::client_rect)
-        .unwrap_or_default()
+    node.with_fragments_or_empty(|fragments| {
+        fragments
+            .first()
+            .map(Fragment::client_rect)
+            .unwrap_or_default()
+    })
 }
 
 /// Process a query for the current CSS zoom of an element.
@@ -191,11 +195,12 @@ pub fn process_node_scroll_area_request(
     };
 
     let rect = match requested_node {
-        Some(node) => node
-            .fragments_for_pseudo(None)
-            .first()
-            .map(|fragment| fragment.scrolling_area(layout_thread))
-            .unwrap_or_default(),
+        Some(node) => node.with_fragments_or_empty(|fragments| {
+            fragments
+                .first()
+                .map(|fragment| fragment.scrolling_area(layout_thread))
+                .unwrap_or_default()
+        }),
         None => tree
             .scrollable_overflow()
             .union(&tree.initial_containing_block),
@@ -602,7 +607,7 @@ fn offset_parent_fragments(node: ServoLayoutNode<'_>) -> Option<OffsetParentFrag
     //  * The element is the root element.
     //  * The element is the HTML body element.
     //  * The element’s computed value of the position property is fixed.
-    let fragment = node.fragments_for_pseudo(None).first().cloned()?;
+    let fragment = node.with_fragments_or_empty(|fragments| fragments.first().cloned())?;
     let flags = fragment.base()?.flags;
     if flags.intersects(
         FragmentFlags::IS_ROOT_ELEMENT | FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT,
@@ -627,13 +632,16 @@ fn offset_parent_fragments(node: ServoLayoutNode<'_>) -> Option<OffsetParentFrag
     while let Some(parent_node) = maybe_parent_node {
         maybe_parent_node = unsafe { parent_node.dangerous_dom_parent() };
 
-        if let Some(parent_fragment) = parent_node.fragments_for_pseudo(None).first() {
+        if let Some(parent_fragment) =
+            parent_node.with_fragments_or_empty(|fragments| fragments.first().cloned())
+        {
             let Some(parent_fragment) = parent_fragment.retrieve_box_fragment() else {
                 continue;
             };
 
-            let grandparent_fragment =
-                maybe_parent_node.and_then(|node| node.fragments_for_pseudo(None).first().cloned());
+            let grandparent_fragment = maybe_parent_node.and_then(|node| {
+                node.with_fragments_or_empty(|fragments| fragments.first().cloned())
+            });
 
             if parent_fragment.style().get_box().position != Position::Static {
                 return Some(OffsetParentFragments {
@@ -680,7 +688,7 @@ pub fn process_offset_parent_query(
     // [1]: https://github.com/w3c/csswg-drafts/issues/4541
     // > 1. If the element is the HTML body element or does not have any associated CSS
     //      layout box return zero and terminate this algorithm.
-    let fragment = node.fragments_for_pseudo(None).first().cloned()?;
+    let fragment = node.with_fragments_or_empty(|fragments| fragments.first().cloned())?;
     let mut border_box =
         fragment.cumulative_box_area_rect(BoxAreaType::Border, layout_thread.into())?;
     let cumulative_sticky_offsets = fragment.spatial_tree_node().map(|node_id| {
@@ -1554,14 +1562,15 @@ pub(crate) fn transform_f32_rectangle(
 }
 
 pub(crate) fn process_effective_overflow_query(node: ServoLayoutNode<'_>) -> Option<AxesOverflow> {
-    let fragments = node.fragments_for_pseudo(None);
-    let box_fragment = fragments.first()?.retrieve_box_fragment()?;
+    node.with_fragments_or_empty(|fragments| {
+        let box_fragment = fragments.first()?.retrieve_box_fragment()?;
 
-    Some(
-        box_fragment
-            .style()
-            .effective_overflow(box_fragment.base.flags),
-    )
+        Some(
+            box_fragment
+                .style()
+                .effective_overflow(box_fragment.base.flags),
+        )
+    })
 }
 
 impl BoxFragment {
