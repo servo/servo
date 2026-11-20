@@ -5,6 +5,7 @@
 use std::ffi::c_long;
 use std::fmt::Debug;
 use std::ptr;
+use std::sync::Arc;
 
 use app_units::Au;
 use fonts_traits::FontData;
@@ -16,7 +17,6 @@ use freetype_sys::{
     FT_Select_Size, FT_Set_Char_Size, FT_Set_Var_Design_Coordinates, FTErrorMethods,
 };
 use memmap2::Mmap;
-use servo_arc::Arc;
 use webrender_api::{FontHinting, FontVariation};
 
 use crate::platform::freetype::library_handle::FreeTypeLibraryHandle;

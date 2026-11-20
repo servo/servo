@@ -1321,6 +1321,9 @@ malloc_size_of_is_0!(resvg::usvg::fontdb::Style);
 malloc_size_of_is_0!(resvg::usvg::fontdb::Weight);
 malloc_size_of_is_0!(resvg::usvg::fontdb::Stretch);
 malloc_size_of_is_0!(resvg::usvg::fontdb::Language);
+// The Skrifa font type isn't zero-sized, but it's opaque to us, so
+// we cannot effectively measure it.
+malloc_size_of_is_0!(skrifa::Font);
 malloc_size_of_is_0!(std::num::NonZeroU16);
 malloc_size_of_is_0!(std::num::NonZeroU32);
 malloc_size_of_is_0!(std::num::NonZeroU64);

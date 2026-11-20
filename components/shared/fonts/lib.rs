@@ -8,6 +8,7 @@ mod font_descriptor;
 mod font_identifier;
 mod font_template;
 mod system_font_service_proxy;
+pub mod tag;
 
 use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
@@ -17,6 +18,7 @@ pub use font_identifier::*;
 pub use font_template::*;
 use malloc_size_of_derive::MallocSizeOf;
 pub use memmap2::Mmap;
+use read_fonts::{FontRef, ReadError};
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_base::generic_channel::GenericSharedMemory;
@@ -58,7 +60,7 @@ impl From<SerializableFontData> for FontData {
 /// A data structure to store data for fonts. Data is stored internally in an
 /// [`GenericSharedMemory`] handle, so that it can be sent without serialization
 /// across IPC channels.
-#[derive(Clone, Deserialize, Serialize, MallocSizeOf)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 #[serde(from = "SerializableFontData", into = "SerializableFontData")]
 pub enum FontData {
     MemoryMapped(#[conditional_malloc_size_of] Arc<Mmap>),
@@ -99,13 +101,20 @@ impl AsRef<[u8]> for FontData {
 /// Raw font data and an index
 ///
 /// If the font data is of a TTC (TrueType collection) file, then the index of a specific font within
-/// the collection. If the font data is for is single font then the index will always be 0.
-#[derive(Deserialize, Clone, Serialize, MallocSizeOf)]
+/// the collection. If the font data is for a single font then the index will always be 0.
+#[derive(Debug, Deserialize, Clone, Serialize, MallocSizeOf)]
 pub struct FontDataAndIndex {
     /// The raw font file data (.ttf, .otf, .ttc, etc)
     pub data: FontData,
-    /// The index of the font within the file (0 if the file is not a ttc)
+    /// The index of the font within the file. This will always be zero if the file is not
+    /// a TTC file.
     pub index: u32,
+}
+
+impl FontDataAndIndex {
+    pub fn font_ref(&self) -> Result<FontRef<'_>, ReadError> {
+        FontRef::from_index(self.data.as_ref(), self.index)
+    }
 }
 
 #[derive(Copy, Clone, PartialEq)]

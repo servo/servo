@@ -38,7 +38,6 @@ type CachedCTFont = HashMap<CoreTextFontCacheKey, PlatformFont>;
 #[derive(Eq, Hash, PartialEq)]
 struct CoreTextFontCacheKey {
     size: Au,
-    synthetic_bold: bool,
     variations: Vec<FontVariation>,
 }
 
@@ -47,7 +46,6 @@ impl CoreTextFontCache {
         font_identifier: FontIdentifier,
         data: Option<&FontData>,
         pt_size: f64,
-        synthetic_bold: bool,
     ) -> Option<PlatformFont> {
         // If you pass a zero font size to one of the Core Text APIs, it'll replace it with
         // 12.0. We don't want that! (Issue #10492.)
@@ -56,7 +54,6 @@ impl CoreTextFontCache {
 
         let key = CoreTextFontCacheKey {
             size: au_size,
-            synthetic_bold,
             variations: Vec::new(),
         };
 
@@ -81,12 +78,8 @@ impl CoreTextFontCache {
             return Some(platform_font.clone());
         }
 
-        let platform_font = Self::create_font_without_variations(
-            font_identifier,
-            data,
-            clamped_pt_size,
-            synthetic_bold,
-        )?;
+        let platform_font =
+            Self::create_font_without_variations(font_identifier, data, clamped_pt_size)?;
         identifier_cache.insert(key, platform_font.clone());
         Some(platform_font)
     }
@@ -95,7 +88,6 @@ impl CoreTextFontCache {
         font_identifier: FontIdentifier,
         data: Option<&FontData>,
         clamped_pt_size: f64,
-        synthetic_bold: bool,
     ) -> Option<PlatformFont> {
         let descriptor = match font_identifier {
             FontIdentifier::Local(local_font_identifier) => {
@@ -129,7 +121,7 @@ impl CoreTextFontCache {
         let ctfont = unsafe {
             CTFont::with_font_descriptor(&descriptor, clamped_pt_size as CGFloat, std::ptr::null())
         };
-        Some(PlatformFont::new_with_ctfont(ctfont, synthetic_bold))
+        Some(PlatformFont::new_with_ctfont(ctfont))
     }
 
     pub(crate) fn add_variations_to_font(
@@ -142,10 +134,8 @@ impl CoreTextFontCache {
         }
 
         let pt_size = unsafe { platform_font.ctfont.size() };
-        let synthetic_bold = platform_font.synthetic_bold;
         let key = CoreTextFontCacheKey {
             size: Au::from_f64_px(pt_size),
-            synthetic_bold,
             variations: specified_variations.to_owned(),
         };
 
@@ -236,8 +226,7 @@ impl CoreTextFontCache {
         let ctfont = unsafe {
             CTFont::with_font_descriptor(&descriptor_with_variations, pt_size, std::ptr::null())
         };
-        let platform_font =
-            PlatformFont::new_with_ctfont_and_variations(ctfont, variations, synthetic_bold);
+        let platform_font = PlatformFont::new_with_ctfont_and_variations(ctfont, variations);
 
         entry.insert(key, platform_font.clone());
         platform_font
