@@ -523,15 +523,21 @@ pub(crate) fn default_system_generic_font_family(
     generic: GenericFontFamily,
 ) -> LowercaseFontFamilyName {
     let default_font = "HarmonyOS Sans".into();
-    match generic {
-        GenericFontFamily::Monospace => {
-            if let Some(alias) = FONT_LIST.find_alias("monospace") {
-                alias.from.clone().into()
-            } else {
-                default_font
-            }
-        },
-        _ => default_font,
+
+    // TODO: This enum matching is not exhaustive as there are some generic families (such as Math) that are still feature gated in stylo.
+    // In the future, when their feature gates have been removed, add those generic families here.
+    let name = match generic {
+        GenericFontFamily::Serif => "serif",
+        GenericFontFamily::SansSerif => "sans-serif",
+        GenericFontFamily::Monospace => "monospace",
+        GenericFontFamily::Cursive => "cursive",
+        GenericFontFamily::Fantasy => "fantasy",
+        _ => return default_font,
+    };
+    if FONT_LIST.find_alias(name).is_some() {
+        name.into()
+    } else {
+        default_font
     }
 }
 
