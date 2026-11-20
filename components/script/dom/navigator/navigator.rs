@@ -599,7 +599,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         // Step 7.1. Let req be a new request, initialized as follows:
         let request = RequestBuilder::new(
             None,
-            UrlWithBlobClaim::from_url_without_having_claimed_blob(url.clone()),
+            UrlWithBlobClaim::for_url(url.clone()).expect("blob URLs were checked earlier"),
             global.get_referrer(),
         )
         .mode(cors_mode)
