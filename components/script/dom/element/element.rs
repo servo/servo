@@ -4418,6 +4418,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
                     // Step 12.2. Let container be last’s node navigable’s container.
                     // Step 12.3. If container is null, then break.
+                    // FIXME: Support cross-origin container
                     let Some(container) = last
                         .owner_document()
                         .window()
