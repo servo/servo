@@ -146,7 +146,7 @@ pub trait PlatformFontMethods: Sized {
 // Used to abstract over the shaper's choice of fixed int representation.
 pub(crate) type FractionalPixel = f64;
 
-#[cfg_attr(not(feature = "harfbuzz"), expect(unused))]
+#[allow(unused)]
 pub(crate) trait FontTableMethods {
     fn buffer(&self) -> &[u8];
 }

@@ -126,7 +126,12 @@ impl Shaper {
 
         let script_tag = Tag::from_u32(unicode_script_to_iso15924_tag(options.script));
         buffer.set_script(Script::from_iso15924_tag(script_tag));
-        buffer.set_language(options.language.as_str().parse::<Language>().ok());
+
+        let language = match options.language_override {
+            Some(language_override) => Language::from_tag(language_override),
+            None => options.language.as_str().parse::<Language>().ok(),
+        };
+        buffer.set_language(language);
 
         buffer.push_str(text);
 
