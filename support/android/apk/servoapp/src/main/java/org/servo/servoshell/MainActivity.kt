@@ -55,6 +55,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.preference.PreferenceManager
 import androidx.window.core.layout.WindowSizeClass
 import kotlinx.coroutines.launch
+import org.servo.servoview.LoadingState
 import org.servo.servoview.Servo
 import org.servo.servoview.ServoNavigator
 
@@ -99,7 +100,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                     .windowSizeClass
                     .isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
 
-            var isRefreshing by remember { mutableStateOf(false) }
+            var loadingState by remember { mutableStateOf(LoadingState.Loading) }
             val servoFocusRequester = remember { FocusRequester() }
             Scaffold(
                 topBar = {
@@ -125,20 +126,23 @@ class MainActivity : ComponentActivity(), Servo.Client {
                             }
                             IconButton(
                                 onClick = {
-                                    if (isRefreshing) onCancelMenuItemClicked(navigator)
-                                    else onRefreshMenuItemClicked(navigator)
+                                    when (loadingState) {
+                                        LoadingState.Loading -> onCancelMenuItemClicked(navigator)
+                                        LoadingState.Finished -> onRefreshMenuItemClicked(navigator)
+                                    }
                                 },
                             ) {
-                                if (isRefreshing) {
-                                    Icon(
-                                        painterResource(R.drawable.cancel),
-                                        stringResource(R.string.cancel),
-                                    )
-                                } else {
-                                    Icon(
-                                        painterResource(R.drawable.refresh),
-                                        stringResource(R.string.refresh),
-                                    )
+                                when (loadingState) {
+                                    LoadingState.Loading ->
+                                        Icon(
+                                            painterResource(R.drawable.cancel),
+                                            stringResource(R.string.cancel),
+                                        )
+                                    LoadingState.Finished ->
+                                        Icon(
+                                            painterResource(R.drawable.refresh),
+                                            stringResource(R.string.refresh),
+                                        )
                                 }
                             }
                         }
@@ -150,7 +154,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                             },
                             modifier = Modifier.weight(1f).padding(end = 10.dp),
                         )
-                        if (isRefreshing) {
+                        if (loadingState == LoadingState.Loading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.padding(end = 10.dp).size(20.dp),
                             )
@@ -192,20 +196,21 @@ class MainActivity : ComponentActivity(), Servo.Client {
                                 icon = { Icon(painterResource(R.drawable.arrow_forward), null) },
                                 label = { Text(stringResource(R.string.history_forward)) },
                             )
-                            if (isRefreshing) {
-                                NavigationBarItem(
-                                    selected = false,
-                                    onClick = { onCancelMenuItemClicked(navigator) },
-                                    icon = { Icon(painterResource(R.drawable.cancel), null) },
-                                    label = { Text(stringResource(R.string.cancel)) },
-                                )
-                            } else {
-                                NavigationBarItem(
-                                    selected = false,
-                                    onClick = { onRefreshMenuItemClicked(navigator) },
-                                    icon = { Icon(painterResource(R.drawable.refresh), null) },
-                                    label = { Text(stringResource(R.string.refresh)) },
-                                )
+                            when (loadingState) {
+                                LoadingState.Loading ->
+                                    NavigationBarItem(
+                                        selected = false,
+                                        onClick = { onCancelMenuItemClicked(navigator) },
+                                        icon = { Icon(painterResource(R.drawable.cancel), null) },
+                                        label = { Text(stringResource(R.string.cancel)) },
+                                    )
+                                LoadingState.Finished ->
+                                    NavigationBarItem(
+                                        selected = false,
+                                        onClick = { onRefreshMenuItemClicked(navigator) },
+                                        icon = { Icon(painterResource(R.drawable.refresh), null) },
+                                        label = { Text(stringResource(R.string.refresh)) },
+                                    )
                             }
                             NavigationBarItem(
                                 selected = false,
@@ -231,13 +236,13 @@ class MainActivity : ComponentActivity(), Servo.Client {
                     initialUrl =
                         if (Intent.ACTION_VIEW == intent.action) intent.data.toString() else null,
                     logStr = intent.getStringExtra("servolog"),
-                    onIsRefreshingChange = { isRefreshing = it },
+                    onLoadingStateChange = { loadingState = it },
                     client = this,
                     navigator = navigator,
                     modifier = Modifier.padding(innerPadding).focusRequester(servoFocusRequester),
                 )
                 val historyManager = remember { HistoryManager(this) }
-                if (!isRefreshing) {
+                if (loadingState == LoadingState.Finished) {
                     currentUrl?.let { currentUrl ->
                         historyManager.addEntry(currentUrl, currentTitle)
                     }
