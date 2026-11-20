@@ -216,6 +216,14 @@ where
 
         let callback = promise.callback_promise_dom_manipulation_task_source(self);
         let mut required_features = Features::empty();
+        // Waiting for https://github.com/gfx-rs/wgpu/issues/11035
+        if self
+            .features
+            .wgpu_features()
+            .contains(Features::CORE_FEATURES_AND_LIMITS)
+        {
+            required_features.insert(Features::CORE_FEATURES_AND_LIMITS);
+        }
         for &ext in descriptor.requiredFeatures.iter() {
             if let Some(feature) = gpu_to_wgt_feature(ext) {
                 required_features.insert(feature);
