@@ -653,7 +653,7 @@ impl EditingContext {
     pub(crate) fn pasting_enabled(&self) -> bool {
         match self {
             EditingContext::TextControl(element) => {
-                !element.text_control_element().read_only_or_disabled()
+                !element.text_control_element().is_read_only_or_disabled()
             },
             EditingContext::Document(..) => {
                 // TODO(mrobinson): Add support for integration with contenteditable.

@@ -48,7 +48,7 @@ pub(crate) trait TextControlElement {
     }
     fn placeholder_text<'a>(&'a self) -> Ref<'a, TracedDOMString>;
     fn value_text(&self) -> DOMString;
-    fn read_only_or_disabled(&self) -> bool;
+    fn is_read_only_or_disabled(&self) -> bool;
     fn handle_text_content_changed(&self, cx: &mut JSContext);
     fn handle_key_reaction(&self, cx: &mut JSContext, action: KeyReaction);
 
