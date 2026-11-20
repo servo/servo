@@ -63,8 +63,8 @@ class MainActivity : ComponentActivity(), Servo.Client {
     private val urlTextFieldState = TextFieldState()
     private var isRefreshing by mutableStateOf(false)
     private lateinit var historyManager: HistoryManager
-    private var currentUrl = ""
-    private var currentTitle = ""
+    private var currentUrl: String? = null
+    private var currentTitle: String? = null
     private var alertMessage by mutableStateOf<String?>(null)
 
     private class Settings(preferences: SharedPreferences) {
@@ -303,7 +303,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
     // INFO: This currently gets called multiple times on each load.
     override fun onLoadEnded() {
         Log.i(TAG, "onLoadEnded: ")
-        if (currentUrl.isNotEmpty()) {
+        currentUrl?.let { currentUrl ->
             // HistoryManager has a basic method of preventing clobbering
             // by the fact that onLoadEnded gets called multiple times
             // per page.
