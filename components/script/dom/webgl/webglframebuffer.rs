@@ -316,19 +316,31 @@ impl WebGLFramebuffer {
         if self.check_status() != constants::FRAMEBUFFER_COMPLETE {
             return Err(WebGLError::InvalidFramebufferOperation);
         }
-        let color = match self.attachment(constants::COLOR_ATTACHMENT0) {
-            Some(WebGLFramebufferAttachmentRoot::Renderbuffer(rb)) => Some(rb.internal_format()),
-            _ => None,
-        };
-        let depth = match self.attachment(constants::DEPTH_ATTACHMENT) {
-            Some(WebGLFramebufferAttachmentRoot::Renderbuffer(rb)) => Some(rb.internal_format()),
-            _ => None,
-        };
-        let stencil = match self.attachment(constants::STENCIL_ATTACHMENT) {
-            Some(WebGLFramebufferAttachmentRoot::Renderbuffer(rb)) => Some(rb.internal_format()),
-            _ => None,
-        };
-        Ok((color, depth, stencil))
+        Ok((
+            self.attachment_gl_format(self.read_buffer()),
+            self.attachment_gl_format(constants::DEPTH_ATTACHMENT),
+            self.attachment_gl_format(constants::STENCIL_ATTACHMENT),
+        ))
+    }
+
+    pub(crate) fn color_draw_buffer_formats(&self) -> Vec<u32> {
+        self.color_draw_buffers
+            .borrow()
+            .iter()
+            .filter_map(|&buffer| self.attachment_gl_format(buffer))
+            .collect()
+    }
+
+    pub(crate) fn color_read_buffer_is_texture(&self) -> bool {
+        matches!(
+            self.attachment(self.read_buffer()),
+            Some(WebGLFramebufferAttachmentRoot::Texture(_))
+        )
+    }
+
+    fn attachment_gl_format(&self, attachment: u32) -> Option<u32> {
+        self.attachment_effective_format(attachment)
+            .map(|format| format.as_gl_constant())
     }
 
     fn check_attachment_constraints<'a>(
