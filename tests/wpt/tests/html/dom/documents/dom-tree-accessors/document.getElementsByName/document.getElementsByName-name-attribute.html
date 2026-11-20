@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Document.getElementsByName: name attribute changes update live list</title>
+<link rel="author" title="pylbrecht" href="mailto:pylbrecht@mailbox.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-document-getelementsbyname">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<div id="test">
+<div id="a" name="target"></div>
+<div id="b" name="other"></div>
+<div id="c" name="target"></div>
+</div>
+<script>
+test(function() {
+  let a = document.getElementById("a");
+  let b = document.getElementById("b");
+  let c = document.getElementById("c");
+
+  let nodelist = document.getElementsByName("target");
+  assert_equals(nodelist.length, 2);
+  assert_equals(nodelist.item(1), c);
+
+  a.setAttribute("name", "other");
+  b.setAttribute("name", "target");
+
+  assert_equals(nodelist.length, 2);
+  assert_equals(nodelist.item(0), b);
+  assert_equals(nodelist.item(1), c);
+});
+</script>
