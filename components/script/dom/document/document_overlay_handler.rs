@@ -147,13 +147,13 @@ impl DocumentOverlayHandler {
     pub(crate) fn unfullscreen_a_document(&self, no_gc: &NoGC) {
         // > To unfullscreen a document, unfullscreen all elements, within document’s top layer,
         // > whose fullscreen flag is set.
-        let fullscreened_elements: Vec<DomRoot<Element>> = self
+        let fullscreened_elements = self
             .top_layer
             .borrow()
             .iter()
             .filter(|element| element.fullscreen_flag())
-            .map(|element| element.as_rooted())
-            .collect();
+            .map(|element| element.as_unrooted(no_gc))
+            .collect::<Vec<_>>();
         for element in fullscreened_elements {
             self.unfullscreen_an_element(no_gc, &element);
         }
@@ -168,13 +168,13 @@ impl DocumentOverlayHandler {
 
         // Step 2. Unfullscreen elements whose fullscreen flag is set, within document’s top
         // layer, except for document’s fullscreen element.
-        let elements: Vec<DomRoot<Element>> = self
+        let elements = self
             .top_layer
             .borrow()
             .iter()
             .filter(|element| element.fullscreen_flag() && ***element != *fullscreen_element)
-            .map(|element| element.as_rooted())
-            .collect();
+            .map(|element| element.as_unrooted(cx.no_gc()))
+            .collect::<Vec<_>>();
         for element in elements {
             self.unfullscreen_an_element(cx.no_gc(), &element);
         }
@@ -206,7 +206,7 @@ impl DocumentOverlayHandler {
             // Step 3.1. Let target be element if element is connected and its node document is
             // document, and otherwise let target be document.
             let target: DomRoot<EventTarget> = if element.is_connected() &&
-                element.owner_document() == self.document.as_rooted()
+                *element.owner_document() == *self.document
             {
                 DomRoot::upcast(element)
             } else {
