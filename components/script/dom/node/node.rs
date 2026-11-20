@@ -2365,23 +2365,22 @@ impl Node {
         // Step 1. Let currentNode be node.
         // Step 2. While currentNode is not null:
         // Step 2.2. Set currentNode to currentNode's parent in the flat tree.
-        for current_node in self.inclusive_ancestors_in_flat_tree_unrooted(cx.no_gc()) {
-            // Step 2.1. If currentNode's opened in popover mode is "auto" or "hint", and currentNode's popover visibility state is showing, then return currentNode.
-            if let Some(html_element) = current_node.downcast::<HTMLElement>() &&
-                matches!(
-                    html_element.opened_in_popover_mode(),
-                    Some(PopoverState::Auto) | Some(PopoverState::Hint)
-                ) &&
-                html_element
-                    .upcast::<Element>()
-                    .popover_visibility_state_showing()
-            {
-                return Some(DomRoot::from_ref(html_element));
-            }
-        }
-
         // Step 3. Return null.
-        return None;
+        self.inclusive_ancestors_in_flat_tree_unrooted(cx.no_gc())
+            .find_map(|current_node| {
+                // Step 2.1. If currentNode's opened in popover mode is "auto" or "hint", and currentNode's popover visibility state is showing, then return currentNode.
+                current_node
+                    .downcast::<HTMLElement>()
+                    .filter(|html_element| {
+                (matches!(
+                    html_element.opened_in_popover_mode(),
+                    Some(PopoverState::Auto | PopoverState::Hint)
+                ) && html_element
+                    .upcast::<Element>()
+                    .popover_visibility_state_showing())
+                    })
+                    .map(DomRoot::from_ref)
+            })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#topmost-clicked-popover>
@@ -2409,7 +2408,7 @@ impl Node {
         }
 
         // Step 4. Return targetPopover.
-        return Some(target_popover);
+        Some(target_popover)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#nearest-inclusive-target-popover>
@@ -2424,28 +2423,20 @@ impl Node {
             .inclusive_ancestors_in_flat_tree_unrooted(cx.no_gc())
             .map(|node| DomRoot::from_ref(&**node))
             .collect();
-        for current_node in ancestors {
+        ancestors.into_iter().find_map(|current_node| {
             // Step 2.1. Let targetPopover be currentNode's target popover.
-            let target_popover = current_node.target_popover(cx);
-
             // Step 2.2. If targetPopover is not null and targetPopover's popover attribute is in
             // the Auto state or the Hint state, and targetPopover's popover visibility state is
             // showing, then return targetPopover.
-            if target_popover.as_ref().is_some_and(|target_popover|
+            current_node.target_popover(cx).filter(|target_popover| {
                 matches!(
                     target_popover.opened_in_popover_mode(),
-                    Some(PopoverState::Auto) | Some(PopoverState::Hint)
-                ) &&
-                target_popover
+                    Some(PopoverState::Auto | PopoverState::Hint)
+                ) && target_popover
                     .upcast::<Element>()
-                    .popover_visibility_state_showing())
-            {
-                return target_popover;
-            }
-        }
-
-        // Seems like the spec is missing a return step.
-        return None;
+                    .popover_visibility_state_showing()
+            })
+        })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#target-popover>
