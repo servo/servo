@@ -697,11 +697,14 @@ impl ServiceWorkerManager {
             // Step 5.1: Let newestWorker be the result of running the Get Newest Worker algorithm passing registration as the argument.
             let newest_worker = registration.get_newest_worker();
 
-            // step 5.2: If newestWorker is not null, job’s script url equals newestWorker’s script url, job’s worker type equals newestWorker’s type, and job’s update via cache mode’s value equals registration’s update via cache mode, then:
+            // step 5.2: If newestWorker is not null,
+            // job’s script url equals newestWorker’s script url, 
+            // job’s worker type equals newestWorker’s type, 
+            // and job’s update via cache mode’s value equals registration’s update via cache mode, then:
             if newest_worker.is_some() &&
                 newest_worker.as_ref().unwrap().script_url == job.script_url
             {
-                // TODO: the various checks of job versus worker.
+                // TODO: Check worker type and cache mode.
 
                 // Step 5.2.1: Invoke Resolve Job Promise with job and registration.
                 // Step 5.2.2: Invoke Finish Job with job and abort these steps.
