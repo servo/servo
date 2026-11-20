@@ -44,8 +44,9 @@ impl FilterToWebRender for ComputedFilter {
                 offset: units::LayoutVector2D::new(shadow.horizontal.px(), shadow.vertical.px()),
                 color: super::rgba(style.resolve_color(&shadow.color)),
             }),
-            // Statically check that Url is impossible.
-            ComputedFilter::Url(ref url) => match *url {},
+            // TODO: Support SVG filter references. These are only parsed behind the
+            // `layout.css.filter-urls.enabled` Stylo pref which Servo does not yet enable.
+            ComputedFilter::Url(_) => FilterOp::Identity,
         }
     }
 }
