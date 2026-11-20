@@ -4338,14 +4338,15 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // > - This’s relevant global object has transient activation or the algorithm is triggered
         // > - by a user generated orientation change.
         //
+        // This is the same as not all of the conditions being true.
         // FIXME: Triggered by a user generated orientation change.
-        if !(*self.namespace() == ns!(html) ||
+        if !((*self.namespace() == ns!(html) ||
             (*self.namespace() == ns!(svg) && *self.local_name() == local_name!("svg")) ||
-            (*self.namespace() == ns!(mathml) && *self.local_name() == local_name!("math"))) ||
-            self.is::<HTMLDialogElement>() ||
-            !self.fullscreen_element_ready_check() ||
-            !pending_doc.overlay_handler().fullscreen_is_supported() ||
-            !self.owner_window().has_transient_activation()
+            (*self.namespace() == ns!(mathml) && *self.local_name() == local_name!("math"))) &&
+            !self.is::<HTMLDialogElement>() &&
+            self.fullscreen_element_ready_check() &&
+            pending_doc.overlay_handler().fullscreen_is_supported() &&
+            self.owner_window().has_transient_activation())
         {
             error = true;
         }
