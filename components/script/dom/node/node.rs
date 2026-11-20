@@ -97,11 +97,14 @@ use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventFlags};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::html::htmlbuttonelement::{ButtonType, CommandState, HTMLButtonElement};
 use crate::dom::html::htmlcollection::HTMLCollection;
 use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::html::htmlformelement::FormControl;
 use crate::dom::html::htmllinkelement::HTMLLinkElement;
 use crate::dom::html::htmlslotelement::{HTMLSlotElement, Slottable};
 use crate::dom::html::htmlstyleelement::HTMLStyleElement;
+use crate::dom::htmlelement::PopoverState;
 use crate::dom::iterators::{
     ShadowIncluding, UnrootedAncestorIterator, UnrootedFollowingFlatTreeNodesTraversal,
     UnrootedFollowingNodeIterator, UnrootedPrecedingNodeIterator,
@@ -2350,6 +2353,151 @@ impl Node {
     pub(crate) fn is_inert(&self, cx: &mut JSContext) -> bool {
         self.owner_window().layout_reflow(cx, QueryMsg::StyleQuery);
         self.is_inert_without_reflow()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#nearest-inclusive-open-popover>
+    pub(crate) fn nearest_inclusive_open_popover(
+        &self,
+        cx: &mut JSContext,
+    ) -> Option<DomRoot<HTMLElement>> {
+        // Step 1. Let currentNode be node.
+        // Step 2. While currentNode is not null:
+        // Step 2.2. Set currentNode to currentNode's parent in the flat tree.
+        // Step 3. Return null.
+        self.inclusive_ancestors_in_flat_tree_unrooted(cx.no_gc())
+            .find_map(|current_node| {
+                // Step 2.1. If currentNode's opened in popover mode is "auto" or "hint", and currentNode's popover visibility state is showing, then return currentNode.
+                current_node
+                    .downcast::<HTMLElement>()
+                    .filter(|html_element| {
+                        (matches!(
+                            html_element.opened_in_popover_mode(),
+                            Some(PopoverState::Auto | PopoverState::Hint)
+                        ) && html_element
+                            .upcast::<Element>()
+                            .popover_visibility_state_showing())
+                    })
+                    .map(DomRoot::from_ref)
+            })
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#topmost-clicked-popover>
+    pub(crate) fn topmost_clicked_popover(
+        &self,
+        cx: &mut JSContext,
+    ) -> Option<DomRoot<HTMLElement>> {
+        // Step 1. Let clickedPopover be the result of running nearest inclusive open popover given node.
+        let clicked_popover = self.nearest_inclusive_open_popover(cx);
+
+        // Step 2. Let targetPopover be the result of running nearest inclusive target popover given node.
+        let target_popover = self.nearest_inclusive_target_popover(cx);
+
+        // The spec does not handle the case where one of the popovers is null, so in that case we
+        // return the other one or none.
+        let Some(clicked_popover) = clicked_popover else {
+            return target_popover;
+        };
+        let Some(target_popover) = target_popover else {
+            return Some(clicked_popover);
+        };
+
+        // Step 3. If the result of getting the popover stack position given clickedPopover is
+        // greater than the result of getting the popover stack position given targetPopover, then
+        // return clickedPopover.
+        if clicked_popover.popover_stack_position(cx) > target_popover.popover_stack_position(cx) {
+            return Some(clicked_popover);
+        }
+
+        // Step 4. Return targetPopover.
+        Some(target_popover)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#nearest-inclusive-target-popover>
+    pub(crate) fn nearest_inclusive_target_popover(
+        &self,
+        cx: &mut JSContext,
+    ) -> Option<DomRoot<HTMLElement>> {
+        // Step 1. Let currentNode be node.
+        // Step 2. While currentNode is not null:
+        // Step 2.3. Set currentNode to currentNode's parent in the flat tree.
+        let ancestors: Vec<DomRoot<Node>> = self
+            .inclusive_ancestors_in_flat_tree_unrooted(cx.no_gc())
+            .map(|node| DomRoot::from_ref(&**node))
+            .collect();
+        ancestors.into_iter().find_map(|current_node| {
+            // Step 2.1. Let targetPopover be currentNode's target popover.
+            // Step 2.2. If targetPopover is not null and targetPopover's popover attribute is in
+            // the Auto state or the Hint state, and targetPopover's popover visibility state is
+            // showing, then return targetPopover.
+            current_node.target_popover(cx).filter(|target_popover| {
+                matches!(
+                    target_popover.opened_in_popover_mode(),
+                    Some(PopoverState::Auto | PopoverState::Hint)
+                ) && target_popover
+                    .upcast::<Element>()
+                    .popover_visibility_state_showing()
+            })
+        })
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#target-popover>
+    fn target_popover(&self, cx: &mut JSContext) -> Option<DomRoot<HTMLElement>> {
+        // Step 1. If node is not a button element, then return node's popover target element.
+        let Some(button) = self.downcast::<HTMLButtonElement>() else {
+            return self
+                .downcast::<HTMLElement>()
+                .and_then(|element| element.popover_target_element(cx));
+        };
+
+        // Step 2. If node is disabled, then return null.
+        if button
+            .upcast::<HTMLElement>()
+            .is_form_element_disabled(cx.no_gc())
+        {
+            return None;
+        }
+
+        // Step 3. Let target be the result of running node's get the commandfor-associated element.
+        let target = button.command_for_element(cx);
+
+        // Step 4. If target is null, then return node's popover target element.
+        let Some(target) = target else {
+            return button.upcast::<HTMLElement>().popover_target_element(cx);
+        };
+
+        // Step 5. If node has a form owner:
+        if button.form_owner().is_some() {
+            // Step 5.1. If element is a submit button, then return null.
+            if button.is_submit_button() {
+                return None;
+            }
+
+            // Step 5.2. If element's type attribute is in the Reset Button state, then return null.
+            // Step 5.3. If element's type attribute is in the Auto state, then return null.
+            if matches!(button.button_type(), ButtonType::Reset | ButtonType::Auto) {
+                return None;
+            }
+        }
+
+        // Step 6. Let command be node's command attribute.
+        let command = button.command_state();
+
+        // Step 7. If command is not in the Toggle Popover, Hide Popover, or Show Popover states, then return null.
+        if !matches!(
+            command,
+            CommandState::TogglePopover | CommandState::HidePopover | CommandState::ShowPopover
+        ) {
+            return None;
+        }
+
+        // Step 8. If target's popover attribute is in the No Popover state, then return null.
+        let target = DomRoot::downcast::<HTMLElement>(target)?;
+        if target.popover_state() == PopoverState::NoPopover {
+            return None;
+        }
+
+        // Step 9. Return target.
+        Some(target)
     }
 }
 

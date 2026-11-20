@@ -41,7 +41,7 @@ use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
-enum ButtonType {
+pub(crate) enum ButtonType {
     Submit,
     Reset,
     Button,
@@ -92,6 +92,10 @@ impl HTMLButtonElement {
             document,
             proto,
         )
+    }
+
+    pub(crate) fn button_type(&self) -> ButtonType {
+        self.button_type.get()
     }
 
     pub(crate) fn is_submit_button(&self) -> bool {
@@ -327,7 +331,7 @@ impl HTMLButtonElement {
         }
     }
 
-    fn command_for_element(&self, cx: &mut JSContext) -> Option<DomRoot<Element>> {
+    pub(crate) fn command_for_element(&self, cx: &mut JSContext) -> Option<DomRoot<Element>> {
         let command_for_value = self
             .upcast::<Element>()
             .get_attribute_string_value(&local_name!("commandfor"))?
@@ -345,7 +349,7 @@ impl HTMLButtonElement {
         unreachable!("Button element must be in a document or document fragment");
     }
 
-    fn command_state(&self) -> CommandState {
+    pub(crate) fn command_state(&self) -> CommandState {
         let command = self
             .upcast::<Element>()
             .get_string_attribute(&local_name!("command"));
