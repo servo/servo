@@ -2660,7 +2660,7 @@ impl Document {
                 document.completely_finish_loading();
 
                 // Step 9.13. Queue the navigation timing entry for the Document.
-                // TODO
+                document.global().performance(cx).queue_navigation_entry();
 
                 if let Some(fragment) = document.url().fragment() {
                     document.scroll_to_the_fragment(cx, fragment);

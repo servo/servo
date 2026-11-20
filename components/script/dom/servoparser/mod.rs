@@ -976,7 +976,7 @@ pub(crate) struct ParserContext {
     pipeline_id: PipelineId,
     /// The URL for this document.
     url: ServoUrl,
-    /// pushed entry index
+    /// The buffer index of the navigation timing entry.
     pushed_entry_index: Option<usize>,
     /// params required in document load algorithms
     navigation_params: NavigationParams,
@@ -1345,7 +1345,7 @@ impl ParserContext {
         parser.parse_sync(cx);
     }
 
-    /// Store a PerformanceNavigationTiming entry in the globalscope's Performance buffer
+    /// Add a PerformanceNavigationTiming entry to the globalscope's Performance buffer.
     fn submit_resource_timing(&mut self, cx: &mut JSContext) {
         let Some(parser) = self.parser.as_ref() else {
             return;
@@ -1358,10 +1358,12 @@ impl ParserContext {
         let document = &parser.document;
 
         let performance_entry = PerformanceNavigationTiming::new(cx, &document.global(), document);
-        self.pushed_entry_index = document
-            .global()
-            .performance(cx)
-            .queue_entry(performance_entry.upcast::<PerformanceEntry>());
+        self.pushed_entry_index = Some(
+            document
+                .global()
+                .performance(cx)
+                .add_navigation_entry(performance_entry.upcast::<PerformanceEntry>()),
+        );
     }
 
     fn finish_synchronous_load_for_initial_about_blank(
@@ -1709,13 +1711,6 @@ impl ParserContext {
             document.set_resource_fetch_timing(full_timing_info);
         }
 
-        if let Some(parser) = parser {
-            parser.last_chunk_received.set(true);
-            if !parser.suspended.get() {
-                parser.parse_sync(cx);
-            }
-        }
-
         // TODO: Only update if this is the current document resource.
         if let Some(pushed_index) = self.pushed_entry_index {
             let performance_entry =
@@ -1724,6 +1719,13 @@ impl ParserContext {
                 .global()
                 .performance(cx)
                 .update_entry(pushed_index, performance_entry.upcast::<PerformanceEntry>());
+        }
+
+        if let Some(parser) = parser {
+            parser.last_chunk_received.set(true);
+            if !parser.suspended.get() {
+                parser.parse_sync(cx);
+            }
         }
 
         if document.is_initial_about_blank() {
