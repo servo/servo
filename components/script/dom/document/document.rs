@@ -2429,7 +2429,11 @@ impl Document {
             let (chan, port) = generic_channel::channel().expect("Failed to create IPC channel!");
             let msg = EmbedderMsg::AllowUnload(self.webview_id(), chan);
             self.send_to_embedder(msg);
-            can_unload = port.recv().unwrap() == AllowOrDeny::Allow;
+            // This can be Err when the window is closing as a result of exiting a pipeline.
+            can_unload = port
+                .recv()
+                .ok()
+                .is_none_or(|allowed| allowed == AllowOrDeny::Allow);
         }
         // Step 9
         if !recursive_flag {
