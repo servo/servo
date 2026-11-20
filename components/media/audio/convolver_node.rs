@@ -196,6 +196,10 @@ impl AudioNodeEngine for ConvolverNode {
 
         let input_block = &inputs.blocks[0];
 
+        if input_block.is_silence() {
+            return Chunk::explicit_silence();
+        }
+
         // <https://webaudio.github.io/web-audio-api/#Convolution-channel-configurations>
         let convolution_output = match (input_block.chan_count(), buffer.chans()) {
             // If we have a mono impulse response, we need to calculate convolution for the
