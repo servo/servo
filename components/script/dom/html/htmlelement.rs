@@ -1534,6 +1534,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     fn ScrollParent(&self, cx: &mut JSContext) -> Option<DomRoot<Element>> {
         self.owner_window()
             .scroll_container_query(
+                cx,
                 Some(self.upcast()),
                 ScrollContainerQueryFlags::ForScrollParent,
             )

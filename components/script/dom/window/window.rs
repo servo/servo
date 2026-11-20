@@ -3345,10 +3345,11 @@ impl Window {
 
     pub(crate) fn scroll_container_query(
         &self,
+        cx: &mut JSContext,
         node: Option<&Node>,
         flags: ScrollContainerQueryFlags,
     ) -> Option<ScrollContainerResponse> {
-        self.layout_reflow_deprecated(QueryMsg::ScrollParentQuery);
+        self.layout_reflow(cx, QueryMsg::ScrollParentQuery);
         self.layout
             .borrow()
             .query_scroll_container(node.map(Node::to_trusted_node_address), flags)
@@ -3357,10 +3358,11 @@ impl Window {
     #[expect(unsafe_code)]
     pub(crate) fn scrolling_box_query(
         &self,
+        cx: &mut JSContext,
         node: Option<&Node>,
         flags: ScrollContainerQueryFlags,
     ) -> Option<ScrollingBox> {
-        self.scroll_container_query(node, flags)
+        self.scroll_container_query(cx, node, flags)
             .and_then(|response| {
                 Some(match response {
                     ScrollContainerResponse::Viewport(overflow, writing_mode) => (

@@ -906,9 +906,13 @@ impl Element {
 
     /// Get the [`ScrollingBox`] that contains this element, if one does. `position:
     /// fixed` elements do not have a containing [`ScrollingBox`].
-    pub(crate) fn scrolling_box(&self, flags: ScrollContainerQueryFlags) -> Option<ScrollingBox> {
+    pub(crate) fn scrolling_box(
+        &self,
+        cx: &mut JSContext,
+        flags: ScrollContainerQueryFlags,
+    ) -> Option<ScrollingBox> {
         self.owner_window()
-            .scrolling_box_query(Some(self.upcast()), flags)
+            .scrolling_box_query(cx, Some(self.upcast()), flags)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#scroll-a-target-into-view>
@@ -934,9 +938,9 @@ impl Element {
 
         // Step 1: For each ancestor element or viewport that establishes a scrolling box `scrolling
         // box`, in order of innermost to outermost scrolling box, run these substeps:
-        let mut parent_scrolling_box = self.scrolling_box(ScrollContainerQueryFlags::empty());
+        let mut parent_scrolling_box = self.scrolling_box(cx, ScrollContainerQueryFlags::empty());
         while let Some(scrolling_box) = parent_scrolling_box {
-            parent_scrolling_box = scrolling_box.parent();
+            parent_scrolling_box = scrolling_box.parent(cx);
 
             // Step 1.1: If the Document associated with `target` is not same origin with the
             // Document associated with the element or viewport associated with `scrolling box`,
