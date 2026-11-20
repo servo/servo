@@ -2450,7 +2450,10 @@ impl Node {
         };
 
         // Step 2. If node is disabled, then return null.
-        if button.upcast::<HTMLElement>().is_form_element_disabled(cx.no_gc()) {
+        if button
+            .upcast::<HTMLElement>()
+            .is_form_element_disabled(cx.no_gc())
+        {
             return None;
         }
 
