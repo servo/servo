@@ -405,6 +405,26 @@ impl HTMLInputElement {
         )
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#concept-input-apply>
+    /// These values are taken from the table listed for the "readonly" attribute.
+    fn does_readonly_apply(&self) -> bool {
+        matches!(
+            *self.input_type(),
+            InputType::Text(_) |
+                InputType::Search(_) |
+                InputType::Tel(_) |
+                InputType::Url(_) |
+                InputType::Email(_) |
+                InputType::Password(_) |
+                InputType::Date(_) |
+                InputType::Month(_) |
+                InputType::Week(_) |
+                InputType::Time(_) |
+                InputType::DatetimeLocal(_) |
+                InputType::Number(_)
+        )
+    }
+
     pub(crate) fn has_defined_activation_behavior(&self) -> bool {
         InputActivationType::new_from_input_type(&self.input_type()).is_some()
     }
@@ -1224,7 +1244,7 @@ impl TextControlElement for HTMLInputElement {
     }
 
     fn read_only_or_disabled(&self) -> bool {
-        self.ReadOnly() || self.Disabled()
+        self.is_readonly() || self.is_form_element_disabled()
     }
 
     fn handle_text_content_changed(&self, cx: &mut JSContext) {
@@ -2117,7 +2137,13 @@ impl HTMLInputElement {
     pub(crate) fn is_mutable(&self) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-input-element:concept-fe-mutable
         // https://html.spec.whatwg.org/multipage/#the-readonly-attribute:concept-fe-mutable
-        !(self.is_form_element_disabled() || self.ReadOnly())
+        !self.read_only_or_disabled()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-input-apply>
+    /// readonly should only apply to specific input types.
+    fn is_readonly(&self) -> bool {
+        self.does_readonly_apply() && self.ReadOnly()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-input-element:concept-form-reset-control>:
@@ -2459,7 +2485,7 @@ impl HTMLInputElement {
 
     pub(crate) fn disabled_state_changed(&self, cx: &mut JSContext) {
         if self.input_type().is_textual() {
-            let read_write = !(self.ReadOnly() || self.is_form_element_disabled());
+            let read_write = !self.read_only_or_disabled();
             self.upcast::<Element>()
                 .set_read_write_state(cx.no_gc(), read_write);
         }
@@ -2534,7 +2560,7 @@ impl VirtualMethods for HTMLInputElement {
                             .set(self.input_type().is_textual_or_password());
 
                         if self.input_type().is_textual() {
-                            let read_write = !(self.ReadOnly() || self.is_form_element_disabled());
+                            let read_write = !self.read_only_or_disabled();
                             element.set_read_write_state(cx.no_gc(), read_write);
                         } else {
                             element.set_read_write_state(cx.no_gc(), false);
@@ -2607,7 +2633,7 @@ impl VirtualMethods for HTMLInputElement {
                             .set(self.input_type().is_textual_or_password());
 
                         let element = self.upcast::<Element>();
-                        let read_write = !(self.ReadOnly() || self.is_form_element_disabled());
+                        let read_write = !self.read_only_or_disabled();
                         element.set_read_write_state(cx.no_gc(), read_write);
                     },
                 }
@@ -2886,8 +2912,10 @@ impl Validatable for HTMLInputElement {
         match *self.input_type() {
             InputType::Hidden(_) | InputType::Button(_) | InputType::Reset(_) => false,
             _ => {
-                !(self.is_form_element_disabled() ||
-                    self.ReadOnly() ||
+                // See https://github.com/whatwg/html/issues/8133 why we should
+                // not check whether readonly applies
+                !(self.ReadOnly() ||
+                    self.is_form_element_disabled() ||
                     is_barred_by_datalist_ancestor(no_gc, self.upcast()))
             },
         }
