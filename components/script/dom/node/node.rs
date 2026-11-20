@@ -2450,8 +2450,7 @@ impl Node {
         };
 
         // Step 2. If node is disabled, then return null.
-        // FIXME: Use form element disabled
-        if button.upcast::<Element>().is_actually_disabled() {
+        if button.upcast::<HTMLElement>().is_form_element_disabled(cx.no_gc()) {
             return None;
         }
 
