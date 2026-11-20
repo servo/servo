@@ -284,7 +284,7 @@ pub(crate) fn execute_outdent_command(
         type DomRootNode = DomRoot<Node>;
         if !node_list
             .last()
-            .is_some_and(|last: &DomRootNode| last.is_ancestor_of(&node)) &&
+            .is_some_and(|last: &DomRootNode| last.is_ancestor_of(cx.no_gc(), &node)) &&
             node.is_editable(cx) &&
             (!node
                 .traverse_preorder(ShadowIncluding::No)

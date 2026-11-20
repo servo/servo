@@ -291,20 +291,6 @@ impl<T: DomObject> MutNullableDom<T> {
     pub fn clear(&self) {
         self.set(None)
     }
-
-    /// Runs the given callback on the object if it's not null.
-    pub fn if_is_some<F, R>(&self, cb: F) -> Option<&R>
-    where
-        F: FnOnce(&T) -> &R,
-    {
-        unsafe {
-            if let Some(ref value) = *self.ptr.get() {
-                Some(cb(value))
-            } else {
-                None
-            }
-        }
-    }
 }
 
 impl<T: DomObject> PartialEq for MutNullableDom<T> {
