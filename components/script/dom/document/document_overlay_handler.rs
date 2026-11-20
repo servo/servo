@@ -339,6 +339,21 @@ impl DocumentOverlayHandler {
         }
 
         // Step 8. Return promise, and run the remaining steps in parallel.
+
+        // FIXME: Step 9. Run the fully unlock the screen orientation steps with doc.
+
+        // Step 10. If resize is true, resize doc’s viewport to its "normal" dimensions.
+        //
+        // This is sent right away instead of from the queued task below, as the task never runs
+        // when the document is being unloaded. The screen would then be stuck in fullscreen. The
+        // message is processed in parallel, so this aligns with the spec.
+        if resize {
+            doc.send_to_embedder(EmbedderMsg::NotifyFullscreenStateChanged(
+                doc.webview_id(),
+                false,
+            ));
+        }
+
         let trusted_doc = Trusted::new(&*doc);
         let trusted_promise = TrustedPromise::from(&promise);
         doc.owner_global()
@@ -347,16 +362,6 @@ impl DocumentOverlayHandler {
             .queue(task!(exit_fullscreen_steps: move |cx| {
                 let doc = trusted_doc.root();
                 let promise = trusted_promise.root(cx);
-
-                // FIXME: Step 9. Run the fully unlock the screen orientation steps with doc.
-
-                // Step 10. If resize is true, resize doc’s viewport to its "normal" dimensions.
-                if resize {
-                    doc.send_to_embedder(EmbedderMsg::NotifyFullscreenStateChanged(
-                        doc.webview_id(),
-                        false,
-                    ));
-                }
 
                 // Step 11. If doc’s fullscreen element is null, then resolve promise with undefined
                 // and terminate these steps.
