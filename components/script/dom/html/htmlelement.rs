@@ -1147,6 +1147,7 @@ impl HTMLElement {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#get-the-popover-stack-position>
     pub(crate) fn popover_stack_position(&self, cx: &mut JSContext) -> usize {
         let document = self.upcast::<Element>().owner_document();
 

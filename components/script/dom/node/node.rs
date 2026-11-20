@@ -2364,6 +2364,7 @@ impl Node {
     ) -> Option<DomRoot<HTMLElement>> {
         // Step 1. Let currentNode be node.
         // Step 2. While currentNode is not null:
+        // Step 2.2. Set currentNode to currentNode's parent in the flat tree.
         for current_node in self.inclusive_ancestors_in_flat_tree_unrooted(cx.no_gc()) {
             // Step 2.1. If currentNode's opened in popover mode is "auto" or "hint", and currentNode's popover visibility state is showing, then return currentNode.
             if let Some(html_element) = current_node.downcast::<HTMLElement>() &&
@@ -2377,8 +2378,6 @@ impl Node {
             {
                 return Some(DomRoot::from_ref(html_element));
             }
-
-            // Step 2.2. Set currentNode to currentNode's parent in the flat tree.
         }
 
         // Step 3. Return null.
@@ -2420,6 +2419,7 @@ impl Node {
     ) -> Option<DomRoot<HTMLElement>> {
         // Step 1. Let currentNode be node.
         // Step 2. While currentNode is not null:
+        // Step 2.3. Set currentNode to currentNode's parent in the flat tree.
         let ancestors: Vec<DomRoot<Node>> = self
             .inclusive_ancestors_in_flat_tree_unrooted(cx.no_gc())
             .map(|node| DomRoot::from_ref(&**node))
@@ -2442,8 +2442,6 @@ impl Node {
             {
                 return target_popover;
             }
-
-            // Step 2.3. Set currentNode to currentNode's parent in the flat tree.
         }
 
         // Seems like the spec is missing a return step.
