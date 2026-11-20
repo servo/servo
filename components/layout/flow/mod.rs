@@ -49,10 +49,11 @@ use crate::positioned::{
 };
 use crate::sizing::{
     self, ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, LazySize, Size,
-    SizeConstraint, Sizes,
+    SizeConstraint, Sizes, compute_ratio_dependent_block_size,
 };
-use crate::style_ext::{AspectRatio, ContentBoxSizesAndPBM, LayoutStyle, PaddingBorderMargin};
-
+use crate::style_ext::{
+    AspectRatio, ComputedValuesExt, ContentBoxSizesAndPBM, LayoutStyle, PaddingBorderMargin,
+};
 mod construct;
 pub mod float;
 pub mod inline;
@@ -341,7 +342,8 @@ impl BlockLevelBox {
             Au::zero,
             inline_stretch_size,
             get_inline_content_sizes,
-            false, /* is_table */
+            false,   /* is_table */
+            || None, /* ratio_dependent_block_size */
         );
 
         let containing_block_for_children = ContainingBlock {
@@ -529,6 +531,7 @@ impl BlockFormattingContext {
         containing_block: &ContainingBlock,
         lazy_block_size: &LazySize,
         base: Option<&LayoutBoxBase>,
+        preferred_aspect_ratio: Option<AspectRatio>,
     ) -> IndependentFormattingContextLayoutResult {
         let mut sequential_layout_state =
             if self.contains_floats || !layout_context.allow_parallel_layout {
@@ -576,6 +579,11 @@ impl BlockFormattingContext {
             .as_ref()
             .and_then(|textarea_size| {
                 textarea_size.effective_block_size(&base?.style, &layout_context.font_context)
+            })
+            .or_else(|| {
+                preferred_aspect_ratio.map(|ratio| {
+                    ratio.compute_dependent_size(LogicalAxis::Block, containing_block.inline_size())
+                })
             })
             .unwrap_or(content_block_size);
 
@@ -1328,6 +1336,10 @@ impl IndependentFormattingContext {
             Au::zero,
             block_stretch_size,
             layout_style.is_table(),
+            compute_ratio_dependent_block_size(
+                preferred_aspect_ratio,
+                containing_block_for_children.inline_size(),
+            ),
         );
 
         let layout = self.layout(
@@ -1526,10 +1538,11 @@ impl IndependentFormattingContext {
                 stretch_size,
                 || get_inline_content_sizes(cache),
                 is_table,
+                || None, /* ratio_dependent_block_size */
             )
         };
 
-        let get_lazy_block_size = || {
+        let get_lazy_block_size = |inline_size: Au| {
             LazySize::new(
                 &content_box_sizes.block,
                 LogicalAxis::Block,
@@ -1537,6 +1550,7 @@ impl IndependentFormattingContext {
                 Au::zero,
                 block_stretch_size,
                 is_table,
+                compute_ratio_dependent_block_size(preferred_aspect_ratio, inline_size),
             )
         };
 
@@ -1555,7 +1569,7 @@ impl IndependentFormattingContext {
             // compute it with an available inline space of zero. Then, after layout we can
             // compute the block size, and finally place among floats.
             let inline_size = inline_size_with_no_available_space;
-            let lazy_block_size = get_lazy_block_size();
+            let lazy_block_size = get_lazy_block_size(inline_size);
             layout = self.layout(
                 layout_context,
                 positioning_context,
@@ -1636,7 +1650,7 @@ impl IndependentFormattingContext {
                 // Later we'll check to see if the resulting block size is compatible with the
                 // placement.
                 let positioning_context_length = positioning_context.len();
-                let lazy_block_size = get_lazy_block_size();
+                let lazy_block_size = get_lazy_block_size(proposed_inline_size);
                 layout = self.layout(
                     layout_context,
                     positioning_context,
@@ -1847,10 +1861,12 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     let block_stretch_size = containing_block.block_stretch_size(pbm_sums.block);
     let automatic_block_size = automatic_block_size(layout_context, base);
 
-    // TODO: support preferred aspect ratios on boxes that don't establish an independent
-    // formatting context.
-    let preferred_aspect_ratio =
-        context.and_then(|context| context.preferred_aspect_ratio(&pbm.padding_border_sums));
+    let preferred_aspect_ratio = match context {
+        Some(context) => context.preferred_aspect_ratio(&pbm.padding_border_sums),
+        // `SameFormattingContextBlock` has no `IndependentFormattingContext`,
+        // so resolve the ratio directly from its style.
+        None => style.preferred_aspect_ratio_for_non_replaced(&pbm.padding_border_sums),
+    };
     let is_table = layout_style.is_table();
 
     // https://drafts.csswg.org/css2/#the-height-property
@@ -1866,6 +1882,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
             block_stretch_size,
             || block_content_size,
             is_table,
+            || None, /* ratio_dependent_block_size */
         ))
     } else {
         content_box_sizes.block.resolve_extrinsic(
@@ -1899,7 +1916,23 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         inline_stretch_size,
         get_inline_content_sizes,
         is_table,
+        || None, /* ratio_dependent_block_size */
     );
+
+    // Make the block size definite so children can resolve block percentages against it.
+    if let Some(ratio_dependent_block_size) =
+        compute_ratio_dependent_block_size(preferred_aspect_ratio, inline_size)
+    {
+        block_size_for_children = SizeConstraint::Definite(content_box_sizes.block.resolve(
+            LogicalAxis::Block,
+            automatic_block_size,
+            Au::zero,
+            block_stretch_size,
+            ContentSizes::default,
+            is_table,
+            || Some(ratio_dependent_block_size),
+        ));
+    }
 
     let containing_block_for_children = ContainingBlock {
         size: if has_quirky_block_size {
@@ -2452,6 +2485,7 @@ impl IndependentFormattingContext {
                     block_stretch_size,
                     || block_content_size,
                     is_table,
+                    || None, /* ratio_dependent_block_size */
                 ))
             } else {
                 content_box_sizes_and_pbm
@@ -2483,6 +2517,7 @@ impl IndependentFormattingContext {
             inline_stretch_size,
             get_content_size,
             is_table,
+            || None, /* ratio_dependent_block_size */
         );
 
         let containing_block_for_children = ContainingBlock {
@@ -2503,6 +2538,7 @@ impl IndependentFormattingContext {
             Au::zero,
             block_stretch_size,
             is_table,
+            compute_ratio_dependent_block_size(preferred_aspect_ratio, inline_size),
         );
 
         let IndependentFormattingContextLayoutResult {

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>aspect-ratio applies to a button with display: table-cell</title>
+<link rel="author" title="Euclid Ye" href="mailto:yezhizhenjiakang@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<button id="target" style="display: table-cell; width: 100px; aspect-ratio: 1 / 1; padding: 0; border: 0">X</button>
+<script>
+test(function() {
+  const rect = document.getElementById("target").getBoundingClientRect();
+  assert_equals(rect.width, 100);
+  assert_equals(rect.height, 100);
+}, "aspect-ratio applies to a button with display: table-cell");
+</script>
