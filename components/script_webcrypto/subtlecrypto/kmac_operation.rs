@@ -18,7 +18,7 @@ use zeroize::Zeroizing;
 
 use crate::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::subtlecrypto::{
-    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
+    CryptoAlgorithm, ExportedKey, JsonWebKeyHelper, JwkStringField, KeyAlgorithmAndDerivatives,
     KmacImportParams, KmacKeyAlgorithm, KmacKeyGenParams, KmacParams, truncate_keccak_bit_string,
 };
 use crate::traits::Equivalence;

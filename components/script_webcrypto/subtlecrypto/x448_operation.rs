@@ -20,8 +20,8 @@ use zeroize::Zeroizing;
 
 use crate::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::subtlecrypto::{
-    CryptoAlgorithm, EcdhKeyDeriveParams, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithm,
-    KeyAlgorithmAndDerivatives, truncate_bit_sequence,
+    CryptoAlgorithm, EcdhKeyDeriveParams, ExportedKey, JsonWebKeyHelper, JwkStringField,
+    KeyAlgorithm, KeyAlgorithmAndDerivatives, truncate_bit_sequence,
 };
 use crate::traits::Equivalence;
 

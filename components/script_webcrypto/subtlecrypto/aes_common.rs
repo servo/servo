@@ -17,7 +17,7 @@ use zeroize::Zeroizing;
 use crate::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::subtlecrypto::{
     AesDerivedKeyParams, AesKeyAlgorithm, AesKeyGenParams, CryptoAlgorithm, ExportedKey,
-    JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
+    JsonWebKeyHelper, JwkStringField, KeyAlgorithmAndDerivatives,
 };
 use crate::traits::Equivalence;
 

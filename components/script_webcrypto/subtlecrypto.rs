@@ -4378,7 +4378,8 @@ impl Display for JwkStringField {
     }
 }
 
-trait JsonWebKeyExt {
+/// Helper functions for [`JsonWebKey`].
+trait JsonWebKeyHelper {
     /// <https://w3c.github.io/webcrypto/#concept-parse-a-jwk>
     fn parse(cx: &mut JSContext, data: &[u8]) -> Result<JsonWebKey, Error>;
 
@@ -4432,7 +4433,7 @@ trait JsonWebKeyExt {
     ) -> Result<(), Error>;
 }
 
-impl JsonWebKeyExt for JsonWebKey {
+impl JsonWebKeyHelper for JsonWebKey {
     /// <https://w3c.github.io/webcrypto/#concept-parse-a-jwk>
     #[expect(unsafe_code)]
     fn parse(cx: &mut JSContext, data: &[u8]) -> Result<JsonWebKey, Error> {
@@ -4503,12 +4504,7 @@ impl JsonWebKeyExt for JsonWebKey {
             //
             // <https://www.rfc-editor.org/info/rfc7517/#section-4.3>
             // 1. Duplicate key operation values MUST NOT be present in the array.
-            if key_ops
-                .iter()
-                .collect::<HashSet<_>>()
-                .len() <
-                key_ops.len()
-            {
+            if key_ops.iter().collect::<HashSet<_>>().len() < key_ops.len() {
                 return Err(Error::Data(Some(
                     "Duplicate key operation values are present in array".into(),
                 )));
@@ -4618,7 +4614,7 @@ impl JsonWebKeyExt for JsonWebKey {
                 self.qi.is_none())
         {
             return Err(Error::Data(Some(
-                "The oth field is present while at least one of p, q, dp, dq, qi is missing".into()
+                "The oth field is present while at least one of p, q, dp, dq, qi is missing".into(),
             )));
         }
 
@@ -4628,8 +4624,7 @@ impl JsonWebKeyExt for JsonWebKey {
                     .r
                     .as_ref()
                     .ok_or(Error::Data(Some(
-                        "The r field is not present in one of the entry of oth field in jwk"
-                            .into(),
+                        "The r field is not present in one of the entry of oth field in jwk".into(),
                     )))?
                     .str(),
             )
@@ -4645,8 +4640,7 @@ impl JsonWebKeyExt for JsonWebKey {
                     .d
                     .as_ref()
                     .ok_or(Error::Data(Some(
-                        "The d field is not present in one of the entry of oth field in jwk"
-                            .into(),
+                        "The d field is not present in one of the entry of oth field in jwk".into(),
                     )))?
                     .str(),
             )
@@ -4661,8 +4655,7 @@ impl JsonWebKeyExt for JsonWebKey {
                     .t
                     .as_ref()
                     .ok_or(Error::Data(Some(
-                        "The t field is not present in one of the entry of oth field in jwk"
-                            .into(),
+                        "The t field is not present in one of the entry of oth field in jwk".into(),
                     )))?
                     .str(),
             )
