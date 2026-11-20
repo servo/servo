@@ -30,7 +30,7 @@ default_web_features = [
     "subtlecrypto",
     "webgpu",
     "webgl",
-    "webxr"
+    "webxr",
 ]
 default_tooling = ["devtools"]
 

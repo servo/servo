@@ -29,11 +29,12 @@ use style::values::computed::FontWeight;
 use webrender_api::{FontInstanceFlags, FontVariation};
 
 use super::core_text_font_cache::CoreTextFontCache;
+use crate::font::{FontTableMethods, FractionalPixel, map_platform_values_to_style_values};
 use crate::font_context::SkrifaFontCache;
 use crate::platform::font_list::font_template_for_local_font_descriptor;
 use crate::{
-    FallbackFontSelectionOptions, Font, FontData, FontMetrics, FontRef, FontTableMethods,
-    FractionalPixel, GlyphId, PlatformFontMethods, map_platform_values_to_style_values,
+    FallbackFontSelectionOptions, Font, FontData, FontMetrics, FontRef, GlyphId,
+    PlatformFontMethods,
 };
 
 const KERN_PAIR_LEN: usize = 6;

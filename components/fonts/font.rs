@@ -14,7 +14,7 @@ use atomic_refcell::AtomicRef;
 use bitflags::bitflags;
 use euclid::default::{Point2D, Rect};
 use euclid::num::Zero;
-use font_types::NameId;
+use font_types::{BigEndian, NameId};
 use fonts_traits::FontDescriptor;
 use fonts_traits::tag::{CBDT, COLR, GPOS, GSUB, ITAL, KERN, SBIX, SLNT, WDTH, WGHT};
 use icu_locale_core::subtags::Language;
@@ -22,6 +22,7 @@ use icu_properties::props::{EnumeratedProperty, GeneralCategory};
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
+use read_fonts::TableProvider;
 use read_fonts::collections::int_set::Domain;
 use read_fonts::types::Tag;
 use rustc_hash::FxHashMap;
@@ -145,6 +146,7 @@ pub trait PlatformFontMethods: Sized {
 // Used to abstract over the shaper's choice of fixed int representation.
 pub(crate) type FractionalPixel = f64;
 
+#[cfg_attr(not(feature = "harfbuzz"), expect(unused))]
 pub(crate) trait FontTableMethods {
     fn buffer(&self) -> &[u8];
 }
@@ -356,6 +358,11 @@ impl Font {
         self.metrics.get_or_init(|| Arc::new(self.handle.metrics()))
     }
 
+    /// Return a reference to the [`SkrifaFont`] for this [`Font`].
+    pub(crate) fn skrifa_font(&self) -> &SkrifaFont {
+        &self.skrifa_font
+    }
+
     pub(crate) fn webrender_font_instance_flags(&self) -> FontInstanceFlags {
         self.handle.webrender_font_instance_flags()
     }
@@ -500,6 +507,7 @@ impl Font {
         } else {
             debug!("shape_text: Using Harfbuzz.");
             self.shaper.get_or_init(|| Shaper::new(self)).shape_text(
+                self,
                 text,
                 options,
                 &lookup_key.font_features,
@@ -637,7 +645,67 @@ impl Font {
 
     /// Get the [`FontBaseline`] for this font.
     pub fn baseline(&self) -> Option<FontBaseline> {
-        self.shaper.get_or_init(|| Shaper::new(self)).baseline()
+        // Load the horizontal axis of the BASE table
+        let base_table = self.skrifa_font().tables().base().ok()?;
+        let horiz_axis = base_table.horiz_axis()?.ok()?;
+
+        // Get the index of each baseline tag in the tag list
+        let tag_list = horiz_axis.base_tag_list()?.ok()?;
+        let baseline_tags = tag_list.baseline_tags();
+        let romn_tag_idx = baseline_tags
+            .binary_search(&BigEndian::from(Tag::new(b"romn")))
+            .ok();
+        let hang_tag_idx = baseline_tags
+            .binary_search(&BigEndian::from(Tag::new(b"hang")))
+            .ok();
+        let ideo_tag_idx = baseline_tags
+            .binary_search(&BigEndian::from(Tag::new(b"ideo")))
+            .ok();
+
+        // Bail early if none of the baseline tags exist in the tag list
+        if romn_tag_idx.is_none() && hang_tag_idx.is_none() && ideo_tag_idx.is_none() {
+            return None;
+        }
+
+        // Find the DFLT (default) script record
+        let script_list = horiz_axis.base_script_list().ok()?;
+        let script_records = script_list.base_script_records();
+        let default_script_record_idx = script_records
+            .binary_search_by_key(&Tag::from_be_bytes(*b"DFLT"), |record| {
+                record.base_script_tag()
+            })
+            .ok()?;
+        let default_script_record = &script_records[default_script_record_idx];
+
+        // Lookup the baseline coordinates DFLT script record
+        let base_script = default_script_record
+            .base_script(script_list.offset_data())
+            .ok()?;
+        let base_script_values = base_script.base_values()?.ok()?;
+        let base_coords = base_script_values.base_coords();
+
+        // Search for the baseline corresponding to a given baseline index. BASE table
+        // coordinates are whole numbers in font design units, so they need to be scaled
+        // to the font size in pixels.
+        let units_per_em = self.skrifa_font().units_per_em();
+
+        // Avoid division by 0 on broken fonts.
+        if units_per_em == 0 {
+            return None;
+        }
+        let scale = self.descriptor.pt_size.to_f64_px() / units_per_em as f64;
+        let get_coord = |idx: usize| {
+            base_coords
+                .get(idx)
+                .ok()
+                .map(|coord| (coord.coordinate() as f64 * scale) as f32)
+        };
+
+        Some(FontBaseline {
+            ideographic_baseline: ideo_tag_idx.and_then(get_coord).unwrap_or(0.0),
+            alphabetic_baseline: romn_tag_idx.and_then(get_coord).unwrap_or(0.0),
+            hanging_baseline: hang_tag_idx.and_then(get_coord).unwrap_or(0.0),
+        })
     }
 
     #[cfg(not(target_os = "macos"))]
@@ -650,7 +718,7 @@ impl Font {
     }
 
     fn family_name_from_font_data(&self) -> Result<Atom, NoUsableFamilyName> {
-        self.skrifa_font
+        self.skrifa_font()
             .names()
             .get(NameId::FAMILY_NAME)
             .and_then(|family_name| family_name.english_or_first())
@@ -1035,21 +1103,11 @@ impl FontFamilyDescriptor {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct FontBaseline {
     pub ideographic_baseline: f32,
     pub alphabetic_baseline: f32,
     pub hanging_baseline: f32,
-}
-
-impl std::fmt::Debug for FontBaseline {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{} {} {}",
-            self.ideographic_baseline, self.alphabetic_baseline, self.hanging_baseline
-        )
-    }
 }
 
 /// Given a mapping array `mapping` and a value, map that value onto

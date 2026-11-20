@@ -11,7 +11,7 @@ use skrifa::Tag;
 use super::harfbuzz::HarfbuzzGlyphShapingResult;
 use super::harfrust::HarfrustGlyphShapingResult;
 use super::{GlyphShapingResult, HarfBuzzShaper, HarfRustShaper};
-use crate::{Font, FontBaseline, ShapedText, ShapingOptions};
+use crate::{Font, ShapedText, ShapingOptions};
 
 static BUZZ_NS: AtomicU64 = AtomicU64::new(0);
 static RUST_NS: AtomicU64 = AtomicU64::new(0);
@@ -43,16 +43,21 @@ impl Shaper {
 
     pub(crate) fn shaped_glyph_data(
         &self,
+        font: &Font,
         text: &str,
         options: &ShapingOptions,
         font_features: &[(Tag, u32)],
     ) -> ShapedGlyphData {
-        let (buzz, ns) =
-            with_time(move || self.buzz.shaped_glyph_data(text, options, font_features));
+        let (buzz, ns) = with_time(move || {
+            self.buzz
+                .shaped_glyph_data(font, text, options, font_features)
+        });
         BUZZ_NS.fetch_add(ns, std::sync::atomic::Ordering::Relaxed);
 
-        let (rust, ns) =
-            with_time(move || self.rust.shaped_glyph_data(text, options, font_features));
+        let (rust, ns) = with_time(move || {
+            self.rust
+                .shaped_glyph_data(font, text, options, font_features)
+        });
         RUST_NS.fetch_add(ns, std::sync::atomic::Ordering::Relaxed);
 
         ShapedGlyphData { buzz, rust }
@@ -60,11 +65,12 @@ impl Shaper {
 
     pub fn shape_text(
         &self,
+        font: &Font,
         text: &str,
         options: &ShapingOptions,
         font_features: &[(Tag, u32)],
     ) -> ShapedText {
-        let glyph_data = self.shaped_glyph_data(text, options, font_features);
+        let glyph_data = self.shaped_glyph_data(font, text, options, font_features);
         let equal = shape_data_eq(&glyph_data.buzz, &glyph_data.rust);
         if !equal {
             println!("SHAPING DATA DIFFERENT:");
@@ -90,21 +96,6 @@ impl Shaper {
         );
 
         ShapedText::with_shaped_glyph_data(text, options, &glyph_data.rust)
-    }
-
-    pub fn baseline(&self) -> Option<FontBaseline> {
-        let buzz_baseline = self.buzz.baseline();
-        let rust_baseline = self.rust.baseline();
-
-        // Debug log
-        let equal = buzz_baseline == rust_baseline;
-        let eq_word = if equal { "same" } else { "diff" };
-        println!(
-            "BL ({eq_word}) C: {:?} | R: {:?}",
-            buzz_baseline, rust_baseline
-        );
-
-        rust_baseline
     }
 }
 

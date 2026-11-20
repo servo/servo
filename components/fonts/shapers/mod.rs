@@ -46,7 +46,7 @@ pub(crate) use dynamic::DynShaper as Shaper;
 #[cfg(all(feature = "harfbuzz", feature = "harfrust"))]
 mod dynamic {
     use super::Tag;
-    use crate::{Font, FontBaseline, ShapedText, ShapingOptions};
+    use crate::{Font, ShapedText, ShapingOptions};
 
     pub(crate) enum DynShaper {
         HarfRust(super::HarfRustShaper),
@@ -69,22 +69,15 @@ mod dynamic {
 
         pub fn shape_text(
             &self,
+            font: &Font,
             text: &str,
             options: &ShapingOptions,
             font_features: &[(Tag, u32)],
         ) -> ShapedText {
             match self {
-                Self::HarfRust(shaper) => shaper.shape_text(text, options, font_features),
-                Self::HarfBuzz(shaper) => shaper.shape_text(text, options, font_features),
-                Self::Compare(shaper) => shaper.shape_text(text, options, font_features),
-            }
-        }
-
-        pub fn baseline(&self) -> Option<FontBaseline> {
-            match self {
-                Self::HarfRust(shaper) => shaper.baseline(),
-                Self::HarfBuzz(shaper) => shaper.baseline(),
-                Self::Compare(shaper) => shaper.baseline(),
+                Self::HarfRust(shaper) => shaper.shape_text(font, text, options, font_features),
+                Self::HarfBuzz(shaper) => shaper.shape_text(font, text, options, font_features),
+                Self::Compare(shaper) => shaper.shape_text(font, text, options, font_features),
             }
         }
     }

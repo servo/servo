@@ -2,26 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::Arc;
-
 use app_units::Au;
 use euclid::default::Point2D;
-use harfrust::font::{Blob, Font as HarfRustFont, Variation};
 use harfrust::{Buffer, ClusterLevel, Feature, Language, Script, ShapeOptions, ShaperFont, Tag};
 use num_traits::Zero as _;
-use read_fonts::TableProvider;
-use read_fonts::types::{BigEndian, GlyphId};
+use read_fonts::types::GlyphId;
+use skrifa::Font as SkrifaFont;
 
 use super::{GlyphShapingResult, unicode_script_to_iso15924_tag};
 use crate::{
-    Font, FontBaseline, FontData, ShapedGlyph, ShapedText, ShapingFlags, ShapingOptions,
-    fixed_to_float, float_to_fixed,
+    Font, ShapedGlyph, ShapedText, ShapingFlags, ShapingOptions, fixed_to_float, float_to_fixed,
 };
-
-/// Convert a `webrender_api::FontVariation` to a `harfrust::Variation`
-fn wr_variation_to_hr_varation(wr_variation: webrender_api::FontVariation) -> Variation {
-    Variation::new(Tag::from_u32(wr_variation.tag), wr_variation.value)
-}
 
 pub(crate) struct HarfrustGlyphShapingResult {
     data: Buffer,
@@ -100,58 +91,18 @@ impl GlyphShapingResult for HarfrustGlyphShapingResult {
 }
 
 pub(crate) struct Shaper {
-    font: *const Font,
-    /// The raw byte data of the font
-    font_data: FontData,
-    /// The index of a font in it's collection (.ttc)
-    /// If the font file is not a collection then this is 0
-    font_index: u32,
-    // Point-per-em (i.e. the font size)
+    /// The `skrifa::Font` instance to use for this [`Shaper`].
+    skrifa_font: SkrifaFont,
+    /// Point per em (i.e. the font size).
     ppem: f64,
-
-    /// The HarfRust font instance (with variations applied, if any). This also owns
-    /// HarfRust's cached shaping data for the font.
-    hr_font: HarfRustFont,
 }
-
-// `Font` and `FontData` are both threadsafe, so we can make the data structures here as thread-safe as well.
-#[allow(unsafe_code)]
-unsafe impl Sync for Shaper {}
-#[allow(unsafe_code)]
-unsafe impl Send for Shaper {}
 
 impl Shaper {
     pub(crate) fn new(font: &Font) -> Self {
-        let raw_font = font
-            .font_data_and_index()
-            .expect("Error creating shaper for font");
-        let font_data = raw_font.data.clone();
-        let font_index = raw_font.index;
-
-        // Set points-per-em. if zero, performs no hinting in that direction
-        let ppem = font.descriptor.pt_size.to_f64_px();
-
-        // Create the HarfRust font
-        let blob = Blob::Shared(Arc::new(font_data.clone()));
-        let mut hr_font =
-            HarfRustFont::new(blob, font_index).expect("Error creating HarfRust font");
-
-        // If variable fonts are enabled and the font has variations, create an instance with those variations applied.
-        let variations = font.variations();
-        if servo_config::pref!(layout_variable_fonts_enabled) && !variations.is_empty() {
-            let variations_iter = variations.iter().copied().map(wr_variation_to_hr_varation);
-            hr_font = hr_font
-                .instance_builder()
-                .variations(variations_iter)
-                .build();
-        }
-
         Self {
-            font: font as *const Font,
-            font_data,
-            font_index,
-            ppem,
-            hr_font,
+            // Set points-per-em. If zero, performs no hinting in that direction.
+            ppem: font.descriptor.pt_size.to_f64_px(),
+            skrifa_font: font.skrifa_font().clone(),
         }
     }
 }
@@ -159,30 +110,24 @@ impl Shaper {
 impl Shaper {
     pub(crate) fn shaped_glyph_data(
         &self,
+        font: &Font,
         text: &str,
         options: &crate::ShapingOptions,
         font_features: &[(Tag, u32)],
     ) -> HarfrustGlyphShapingResult {
         let mut buffer = Buffer::new();
 
-        // Set cluster level
         buffer.set_cluster_level(ClusterLevel::MonotoneCharacters);
-
-        // Set direction
         buffer.set_direction(if options.flags.contains(ShapingFlags::RTL_FLAG) {
             harfrust::Direction::RightToLeft
         } else {
             harfrust::Direction::LeftToRight
         });
 
-        // Set script
         let script_tag = Tag::from_u32(unicode_script_to_iso15924_tag(options.script));
         buffer.set_script(Script::from_iso15924_tag(script_tag));
-
-        // Set language
         buffer.set_language(options.language.as_str().parse::<Language>().ok());
 
-        // Push text
         buffer.push_str(text);
 
         let features: Vec<_> = font_features
@@ -190,8 +135,8 @@ impl Shaper {
             .map(|(tag, value)| Feature::new(*tag, *value, ..))
             .collect();
 
-        let font_funcs = self.font_funcs();
-        let shaper_font = ShaperFont::new(&self.hr_font)
+        let font_funcs = FontFuncs { font };
+        let shaper_font = ShaperFont::new(&self.skrifa_font)
             .with_scale(Shaper::float_to_fixed(self.ppem))
             .with_font_funcs(Some(&font_funcs));
 
@@ -205,20 +150,10 @@ impl Shaper {
         HarfrustGlyphShapingResult { data: buffer }
     }
 
-    fn font_funcs(&self) -> FontFuncs<'_> {
-        FontFuncs { font: self.font() }
-    }
-
-    #[allow(unsafe_code)]
-    pub(crate) fn font(&self) -> &Font {
-        // SAFETY: the font actually owns this shaper so it cannot have been dropped
-        assert!(!self.font.is_null());
-        unsafe { &(*self.font) }
-    }
-
     #[allow(dead_code)]
     pub(crate) fn shape_text(
         &self,
+        font: &Font,
         text: &str,
         options: &ShapingOptions,
         font_features: &[(Tag, u32)],
@@ -226,66 +161,8 @@ impl Shaper {
         ShapedText::with_shaped_glyph_data(
             text,
             options,
-            &self.shaped_glyph_data(text, options, font_features),
+            &self.shaped_glyph_data(font, text, options, font_features),
         )
-    }
-
-    pub(crate) fn baseline(&self) -> Option<crate::FontBaseline> {
-        let font_ref =
-            read_fonts::FontRef::from_index(self.font_data.as_ref(), self.font_index).unwrap();
-
-        // Load the horizontal axis of the BASE table
-        let base_table = font_ref.base().ok()?;
-        let horiz_axis = base_table.horiz_axis()?.ok()?;
-
-        // Get the index of each baseline tag in the tag list
-        let tag_list = horiz_axis.base_tag_list()?.ok()?;
-        let baseline_tags = tag_list.baseline_tags();
-        let romn_tag_idx = baseline_tags
-            .binary_search(&BigEndian::from(Tag::new(b"romn")))
-            .ok();
-        let hang_tag_idx = baseline_tags
-            .binary_search(&BigEndian::from(Tag::new(b"hang")))
-            .ok();
-        let ideo_tag_idx = baseline_tags
-            .binary_search(&BigEndian::from(Tag::new(b"ideo")))
-            .ok();
-
-        // Bail early if none of the baseline tags exist in the tag list
-        if romn_tag_idx.is_none() && hang_tag_idx.is_none() && ideo_tag_idx.is_none() {
-            return None;
-        }
-
-        // Find the DFLT (default) script record
-        let script_list = horiz_axis.base_script_list().ok()?;
-        let script_records = script_list.base_script_records();
-        let default_script_record_idx = script_records
-            .binary_search_by_key(&Tag::from_be_bytes(*b"DFLT"), |record| {
-                record.base_script_tag()
-            })
-            .ok()?;
-        let default_script_record = &script_records[default_script_record_idx];
-
-        // Lookup the baseline coordinates DFLT script record
-        let base_script = default_script_record
-            .base_script(script_list.offset_data())
-            .ok()?;
-        let base_script_values = base_script.base_values()?.ok()?;
-        let base_coords = base_script_values.base_coords();
-
-        // Search for the baseline corresponding to a given baseline index
-        let get_coord = |idx: usize| -> Option<f32> {
-            base_coords
-                .get(idx)
-                .ok()
-                .map(|coord| fixed_to_float(8, coord.coordinate() as i32) as f32)
-        };
-
-        Some(FontBaseline {
-            ideographic_baseline: ideo_tag_idx.and_then(get_coord).unwrap_or(0.0),
-            alphabetic_baseline: romn_tag_idx.and_then(get_coord).unwrap_or(0.0),
-            hanging_baseline: hang_tag_idx.and_then(get_coord).unwrap_or(0.0),
-        })
     }
 
     fn float_to_fixed(f: f64) -> i32 {
@@ -304,9 +181,7 @@ struct FontFuncs<'a> {
 impl harfrust::FontFuncs for FontFuncs<'_> {
     /// Nominal character-to-glyph mapping callback.
     fn nominal_glyph(&self, _font: &ShaperFont, c: u32) -> Option<GlyphId> {
-        self.font
-            .glyph_index(char::from_u32(c).unwrap())
-            .map(GlyphId::new)
+        self.font.glyph_index(char::from_u32(c)?).map(GlyphId::new)
     }
 
     /// Horizontal advance callback.
