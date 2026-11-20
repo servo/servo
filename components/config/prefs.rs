@@ -200,8 +200,6 @@ pub struct Preferences {
     // feature: Permissions API | #31235 | Web/API/Permissions_API
     pub dom_permissions_enabled: bool,
     pub dom_permissions_testing_allowed_in_nonsecure_contexts: bool,
-    // feature: ResizeObserver | #39790 | Web/API/ResizeObserver
-    pub dom_resize_observer_enabled: bool,
     // feature: Sanitizer API | #43948 | Web/API/HTML_Sanitizer_API
     pub dom_sanitizer_enabled: bool,
     pub dom_script_asynch: bool,
@@ -480,7 +478,6 @@ impl Preferences {
             dom_offscreen_canvas_enabled: false,
             dom_permissions_enabled: false,
             dom_permissions_testing_allowed_in_nonsecure_contexts: false,
-            dom_resize_observer_enabled: true,
             dom_sanitizer_enabled: false,
             dom_script_asynch: false,
             dom_storage_manager_api_enabled: false,

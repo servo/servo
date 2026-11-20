@@ -4,7 +4,7 @@
 
 // https://drafts.csswg.org/resize-observer/#resizeobserversize
 
-[Pref="dom_resize_observer_enabled", Exposed=Window]
+[Exposed=Window]
 interface ResizeObserverSize {
     readonly attribute unrestricted double inlineSize;
     readonly attribute unrestricted double blockSize;
