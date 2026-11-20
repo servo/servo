@@ -10,7 +10,6 @@ import android.content.SharedPreferences
 import android.os.Bundle
 import android.system.ErrnoException
 import android.system.Os
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
@@ -56,13 +55,12 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.preference.PreferenceManager
 import androidx.window.core.layout.WindowSizeClass
 import kotlinx.coroutines.launch
+import org.servo.servoview.LoadingState
 import org.servo.servoview.Servo
 import org.servo.servoview.ServoNavigator
 
 class MainActivity : ComponentActivity(), Servo.Client {
     private val urlTextFieldState = TextFieldState()
-    private var isRefreshing by mutableStateOf(false)
-    private lateinit var historyManager: HistoryManager
     private var currentUrl: String? = null
     private var currentTitle: String? = null
     private var alertMessage by mutableStateOf<String?>(null)
@@ -78,8 +76,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
         val settings = Settings(sharedPreferences)
         val navigator = ServoNavigator()
         var experimentalModeEnabled by mutableStateOf(settings.experimental)
-
-        historyManager = HistoryManager(this)
 
         val historyActivityResultLauncher =
             registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -104,6 +100,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                     .windowSizeClass
                     .isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
 
+            var loadingState by remember { mutableStateOf(LoadingState.Loading) }
             val servoFocusRequester = remember { FocusRequester() }
             Scaffold(
                 topBar = {
@@ -129,20 +126,23 @@ class MainActivity : ComponentActivity(), Servo.Client {
                             }
                             IconButton(
                                 onClick = {
-                                    if (isRefreshing) onCancelMenuItemClicked(navigator)
-                                    else onRefreshMenuItemClicked(navigator)
+                                    when (loadingState) {
+                                        LoadingState.Loading -> onCancelMenuItemClicked(navigator)
+                                        LoadingState.Finished -> onRefreshMenuItemClicked(navigator)
+                                    }
                                 },
                             ) {
-                                if (isRefreshing) {
-                                    Icon(
-                                        painterResource(R.drawable.cancel),
-                                        stringResource(R.string.cancel),
-                                    )
-                                } else {
-                                    Icon(
-                                        painterResource(R.drawable.refresh),
-                                        stringResource(R.string.refresh),
-                                    )
+                                when (loadingState) {
+                                    LoadingState.Loading ->
+                                        Icon(
+                                            painterResource(R.drawable.cancel),
+                                            stringResource(R.string.cancel),
+                                        )
+                                    LoadingState.Finished ->
+                                        Icon(
+                                            painterResource(R.drawable.refresh),
+                                            stringResource(R.string.refresh),
+                                        )
                                 }
                             }
                         }
@@ -154,7 +154,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                             },
                             modifier = Modifier.weight(1f).padding(end = 10.dp),
                         )
-                        if (isRefreshing) {
+                        if (loadingState == LoadingState.Loading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.padding(end = 10.dp).size(20.dp),
                             )
@@ -196,20 +196,21 @@ class MainActivity : ComponentActivity(), Servo.Client {
                                 icon = { Icon(painterResource(R.drawable.arrow_forward), null) },
                                 label = { Text(stringResource(R.string.history_forward)) },
                             )
-                            if (isRefreshing) {
-                                NavigationBarItem(
-                                    selected = false,
-                                    onClick = { onCancelMenuItemClicked(navigator) },
-                                    icon = { Icon(painterResource(R.drawable.cancel), null) },
-                                    label = { Text(stringResource(R.string.cancel)) },
-                                )
-                            } else {
-                                NavigationBarItem(
-                                    selected = false,
-                                    onClick = { onRefreshMenuItemClicked(navigator) },
-                                    icon = { Icon(painterResource(R.drawable.refresh), null) },
-                                    label = { Text(stringResource(R.string.refresh)) },
-                                )
+                            when (loadingState) {
+                                LoadingState.Loading ->
+                                    NavigationBarItem(
+                                        selected = false,
+                                        onClick = { onCancelMenuItemClicked(navigator) },
+                                        icon = { Icon(painterResource(R.drawable.cancel), null) },
+                                        label = { Text(stringResource(R.string.cancel)) },
+                                    )
+                                LoadingState.Finished ->
+                                    NavigationBarItem(
+                                        selected = false,
+                                        onClick = { onRefreshMenuItemClicked(navigator) },
+                                        icon = { Icon(painterResource(R.drawable.refresh), null) },
+                                        label = { Text(stringResource(R.string.refresh)) },
+                                    )
                             }
                             NavigationBarItem(
                                 selected = false,
@@ -235,10 +236,17 @@ class MainActivity : ComponentActivity(), Servo.Client {
                     initialUrl =
                         if (Intent.ACTION_VIEW == intent.action) intent.data.toString() else null,
                     logStr = intent.getStringExtra("servolog"),
+                    onLoadingStateChange = { loadingState = it },
                     client = this,
                     navigator = navigator,
                     modifier = Modifier.padding(innerPadding).focusRequester(servoFocusRequester),
                 )
+                val historyManager = remember { HistoryManager(this) }
+                if (loadingState == LoadingState.Finished) {
+                    currentUrl?.let { currentUrl ->
+                        historyManager.addEntry(currentUrl, currentTitle)
+                    }
+                }
                 LaunchedEffect(servoFocusRequester) { servoFocusRequester.requestFocus() }
                 alertMessage?.let { alertMessage ->
                     AlertDialog(
@@ -293,25 +301,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
         alertMessage = message
     }
 
-    override fun onLoadStarted() {
-        // This doesn’t seem to actually happen when navigating
-        // back to a page that is already cached.
-        Log.i(TAG, "onLoadStarted: ")
-        isRefreshing = true
-    }
-
-    // INFO: This currently gets called multiple times on each load.
-    override fun onLoadEnded() {
-        Log.i(TAG, "onLoadEnded: ")
-        currentUrl?.let { currentUrl ->
-            // HistoryManager has a basic method of preventing clobbering
-            // by the fact that onLoadEnded gets called multiple times
-            // per page.
-            historyManager.addEntry(currentUrl, currentTitle)
-        }
-        isRefreshing = false
-    }
-
     override fun onTitleChanged(title: String) {
         currentTitle = title
     }
@@ -319,10 +308,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
     override fun onUrlChanged(url: String) {
         urlTextFieldState.edit { replace(0, length, url) }
         currentUrl = url
-    }
-
-    companion object {
-        private const val TAG = "MainActivity"
     }
 }
 
