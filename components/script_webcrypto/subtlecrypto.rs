@@ -34,6 +34,7 @@ mod turboshake_operation;
 mod x25519_operation;
 mod x448_operation;
 
+use std::collections::HashSet;
 use std::fmt::Display;
 use std::marker::PhantomData;
 use std::ptr;
@@ -4503,7 +4504,7 @@ impl JsonWebKeyExt for JsonWebKey {
             // 1. Duplicate key operation values MUST NOT be present in the array.
             if key_ops
                 .iter()
-                .collect::<std::collections::HashSet<_>>()
+                .collect::<HashSet<_>>()
                 .len() <
                 key_ops.len()
             {
