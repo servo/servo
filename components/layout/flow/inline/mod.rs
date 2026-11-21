@@ -1998,6 +1998,10 @@ impl InlineFormattingContextLayout<'_> {
 
             removal_start -= 1;
 
+            if !state.writing_direction_reversed {
+                state.leading_edge_on_current_line.set(false);
+            }
+
             let inline_start = state.pbm_inline_start();
             self.current_line.inline_position -= inline_start;
             self.current_line_segment.inline_size += inline_start;
@@ -2087,6 +2091,16 @@ impl InlineFormattingContextLayout<'_> {
         for item in segment_items.iter_mut() {
             if let LineItem::Float(_, float_item) = item {
                 self.place_float_line_item_for_commit_to_line(float_item, potential_line_length);
+            }
+            if let LineItem::InlineStartBoxPaddingBorderMargin(state) = item &&
+                !state.writing_direction_reversed
+            {
+                state.leading_edge_on_current_line.set(true);
+            }
+            if let LineItem::InlineEndBoxPaddingBorderMargin(state) = item &&
+                state.writing_direction_reversed
+            {
+                state.leading_edge_on_current_line.set(true);
             }
         }
 
