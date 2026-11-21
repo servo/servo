@@ -3520,6 +3520,7 @@ impl Window {
         assert!(document.window() == self);
         self.document.set(Some(document));
         self.update_jsprincipals_from_document(document);
+        self.layout_mut().set_quirks_mode(document.quirks_mode());
     }
 
     /// The `JSPrincipals` object inside a [`Window`] stores a mutable origin used for
