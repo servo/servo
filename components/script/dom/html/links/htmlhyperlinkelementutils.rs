@@ -5,33 +5,20 @@
 use html5ever::{local_name, ns};
 use js::context::{JSContext, NoGC};
 use net_traits::blob_url_store::UrlWithBlobClaim;
-use num_traits::ToPrimitive;
 use script_bindings::cell::DomRefCell;
 use servo_url::ServoUrl;
 
-use crate::dom::activation::Activatable;
-use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use crate::dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
-use crate::dom::event::Event;
-use crate::dom::eventtarget::EventTarget;
-use crate::dom::html::htmlimageelement::HTMLImageElement;
-use crate::dom::html::links::relations::follow_hyperlink;
-use crate::dom::html::textual::htmlanchorelement::HTMLAnchorElement;
-use crate::dom::links::relations::LinkRelations;
-use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::{Node, NodeTraits};
-use crate::dom::svg::svgaelement::SVGAElement;
+use crate::dom::node::NodeTraits;
 use crate::dom::urlhelper::UrlHelper;
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 pub(crate) trait HyperlinkElement {
     fn get_url(&self) -> &DomRefCell<Option<UrlWithBlobClaim>>;
-    fn relations(&self) -> LinkRelations;
 }
 
 /// <https://html.spec.whatwg.org/multipage/#htmlhyperlinkelementutils>
@@ -566,83 +553,5 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
             .base_url()
             .join(href.value().as_ref())
             .ok()
-    }
-}
-
-impl<T: HyperlinkElement + DerivedFrom<Element> + Castable> Activatable for T {
-    fn as_element(&self) -> &Element {
-        self.upcast::<Element>()
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#links-created-by-a-and-area-elements%3Aactivation-behaviour>
-    fn is_instance_activatable(&self) -> bool {
-        // Step 1. If element has no href attribute, then return.
-        self.as_element().has_attribute(&local_name!("href"))
-            // This is not specified, but is what browsers do. They disable any anchor
-            // interaction if it is marked as contenteditable
-            && !self.as_element().has_attribute(&local_name!("contenteditable"))
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#links-created-by-a-and-area-elements:activation-behaviour>
-    fn activation_behavior(
-        &self,
-        cx: &mut js::context::JSContext,
-        event: &Event,
-        target: &EventTarget,
-    ) {
-        let element = self.as_element();
-
-        // Step 3. If element is an a element, and event's target is an img
-        // with an ismap attribute specified:
-        let hyperlink_suffix = if (element.is::<HTMLAnchorElement>() || element.is::<SVGAElement>()) &&
-            let Some(target_element) = target.downcast::<Element>() &&
-            target.is::<HTMLImageElement>() &&
-            target_element.has_attribute(&local_name!("ismap"))
-        {
-            // Step 3.2. If event's isTrusted attribute is initialized to true,
-            // then set x to the distance in CSS pixels from the left edge of the image
-            // to the location of the click, and set y to the distance in CSS pixels
-            // from the top edge of the image to the location of the click.
-            let (x, y) = if event.IsTrusted() {
-                let target_node = target_element.upcast::<Node>();
-                let rect = target_node.border_box(cx).unwrap_or_default();
-                let mouse_event = event.downcast::<MouseEvent>().unwrap();
-
-                (
-                    // Step 3.3. If x is negative, set x to 0.
-                    (mouse_event.ClientX().to_f32().unwrap() - rect.origin.x.to_f32_px()).max(0.0),
-                    // Step 3.4. If y is negative, set y to 0.
-                    (mouse_event.ClientY().to_f32().unwrap() - rect.origin.y.to_f32_px()).max(0.0),
-                )
-            } else {
-                // Step 3.1. Let x and y be 0.
-                Default::default()
-            };
-
-            // Step 3.5. Set hyperlinkSuffix to the concatenation of U+003F (?),
-            // the value of x expressed as a base-ten integer using ASCII digits, U+002C (,),
-            // and the value of y expressed as a base-ten integer using ASCII digits.
-            Some(format!("?{},{}", x, y))
-        } else {
-            // Step 2. Let hyperlinkSuffix be null.
-            None
-        };
-
-        // Step 4. Let userInvolvement be event's user navigation involvement.
-        // TODO
-
-        // Step 5. If the user has expressed a preference to download the hyperlink,
-        // then set userInvolvement to "browser UI".
-        // TODO
-
-        // Step 6. If element has a download attribute,
-        // or if the user has expressed a preference to download the hyperlink,
-        // then download the hyperlink created by element with hyperlinkSuffix set
-        // to hyperlinkSuffix and userInvolvement set to userInvolvement.
-        // TODO
-
-        // Step 7. Otherwise, follow the hyperlink created by element with hyperlinkSuffix
-        // set to hyperlinkSuffix and userInvolvement set to userInvolvement.
-        follow_hyperlink(cx, element, self.relations(), hyperlink_suffix);
     }
 }

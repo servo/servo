@@ -10,12 +10,15 @@ use html5ever::{LocalName, Prefix, local_name};
 use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use net_traits::blob_url_store::UrlWithBlobClaim;
+use num_traits::ToPrimitive;
 use script_bindings::cell::DomRefCell;
 use style::attr::AttrValue;
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
 
+use crate::dom::activation::Activatable;
 use crate::dom::bindings::codegen::Bindings::HTMLAnchorElementBinding::HTMLAnchorElementMethods;
+use crate::dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
@@ -24,11 +27,15 @@ use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element, reflect_referrer_policy_attribute};
+use crate::dom::event::Event;
+use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::html::links::htmlhyperlinkelementutils::{
     HyperlinkElement, HyperlinkElementTraits,
 };
-use crate::dom::html::links::relations::LinkRelations;
+use crate::dom::html::links::relations::{LinkRelations, follow_hyperlink};
+use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::Node;
 use crate::dom::node::virtualmethods::VirtualMethods;
 
@@ -77,10 +84,6 @@ impl HTMLAnchorElement {
 impl HyperlinkElement for HTMLAnchorElement {
     fn get_url(&self) -> &DomRefCell<Option<UrlWithBlobClaim>> {
         &self.url
-    }
-
-    fn relations(&self) -> LinkRelations {
-        self.relations.get()
     }
 }
 
@@ -325,4 +328,53 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-a-referrerpolicy
     make_setter!(SetReferrerPolicy, "referrerpolicy");
+}
+
+impl Activatable for HTMLAnchorElement {
+    fn as_element(&self) -> &Element {
+        self.upcast::<Element>()
+    }
+
+    fn is_instance_activatable(&self) -> bool {
+        // https://html.spec.whatwg.org/multipage/#hyperlink
+        // "a [...] element[s] with an href attribute [...] must [..] create a
+        // hyperlink"
+        // https://html.spec.whatwg.org/multipage/#the-a-element
+        // "The activation behaviour of a elements *that create hyperlinks*"
+        self.as_element().has_attribute(&local_name!("href"))
+            // This is not specified, but is what browsers do. They disable any anchor
+            // interaction if it is marked as contenteditable
+            && !self.as_element().has_attribute(&local_name!("contenteditable"))
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#links-created-by-a-and-area-elements:activation-behaviour>
+    fn activation_behavior(
+        &self,
+        cx: &mut js::context::JSContext,
+        event: &Event,
+        target: &EventTarget,
+    ) {
+        let element = self.as_element();
+        let mouse_event = event.downcast::<MouseEvent>().unwrap();
+        let mut ismap_suffix = None;
+
+        // Step 1: If the target of the click event is an img element with an ismap attribute
+        // specified, then server-side image map processing must be performed.
+        if let Some(element) = target.downcast::<Element>() &&
+            target.is::<HTMLImageElement>() &&
+            element.has_attribute(&local_name!("ismap"))
+        {
+            let target_node = element.upcast::<Node>();
+            let rect = target_node.border_box(cx).unwrap_or_default();
+            ismap_suffix = Some(format!(
+                "?{},{}",
+                mouse_event.ClientX().to_f32().unwrap() - rect.origin.x.to_f32_px(),
+                mouse_event.ClientY().to_f32().unwrap() - rect.origin.y.to_f32_px()
+            ))
+        }
+
+        // Step 2.
+        // TODO: Download the link is `download` attribute is set.
+        follow_hyperlink(cx, element, self.relations.get(), ismap_suffix);
+    }
 }
