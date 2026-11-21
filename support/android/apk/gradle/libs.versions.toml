@@ -15,7 +15,7 @@ androidx-compose-foundation = { module = "androidx.compose.foundation:foundation
 androidx-material3-compose = { module = "androidx.compose.material3:material3", version = "1.4.0" }
 androidx-material3-compose-adaptive = { module = "androidx.compose.material3.adaptive:adaptive", version = "1.2.0" }
 androidx-preference = { module = "androidx.preference:preference-ktx", version = "1.2.1" }
-kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version = "1.12.0" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version = "1.13.0" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "android-gradle-plugin" }
