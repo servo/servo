@@ -17,7 +17,7 @@ use servo::{
     MouseButtonEvent, MouseMoveEvent, Preferences, Servo, ServoBuilder, SimpleDialog, WebView,
     WebViewDelegate,
 };
-use webrender_api::units::{DevicePoint, DeviceRect};
+use webrender_api::units::DevicePoint;
 
 pub struct ServoTest {
     pub servo: Servo,
@@ -132,7 +132,7 @@ impl WebViewDelegateImpl {
                 },
                 EmbedderControl::SimpleDialog(..) => Default::default(),
                 EmbedderControl::ContextMenu(context_menu) => context_menu.position(),
-                EmbedderControl::Tooltip(..) => Default::default()
+                EmbedderControl::Tooltip(..) => Default::default(),
             })
             .unwrap_or_default()
     }
