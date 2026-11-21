@@ -3310,6 +3310,13 @@ impl ScriptThread {
                     self.window_proxies.remove(browsing_context_id);
                 }
 
+                // https://html.spec.whatwg.org/multipage/#nav-traversal-ui:close-a-top-level-traversable
+                // > Browser user agents should offer users the ability to arbitrarily close
+                // > any top-level traversable in their top-level traversable set.
+                if window.is_top_level() {
+                    window.close(cx);
+                }
+
                 // Clear the image cache now, instead of waiting for the Window to be
                 // garbage collected. See servo/servo#45239.
                 window.image_cache().clear();
