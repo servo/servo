@@ -2839,12 +2839,10 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
     fn BindBuffer(&self, cx: &mut JSContext, target: u32, buffer: Option<&WebGLBuffer>) {
-        let current_vao;
         let slot = match target {
             constants::ARRAY_BUFFER => &self.bound_buffer_array,
             constants::ELEMENT_ARRAY_BUFFER => {
-                current_vao = self.current_vao(cx);
-                current_vao.element_array_buffer()
+                return self.current_vao(cx).bind_element_array_buffer(self, buffer);
             },
             _ => return self.webgl_error(InvalidEnum),
         };
