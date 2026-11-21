@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Inline SVG text renders after mutating attributes on SVG element</title>
+<link rel="match" href="svg-attribute-change-text-ref.html">
+<svg id="target" width="200" height="100">
+  <rect width="200" height="100" fill="cyan"/>
+  <text x="20" y="50" font-size="50">test</text>
+</svg>
+<script>
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  target.setAttribute('width', '300');
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.documentElement.classList.remove('reftest-wait');
+  }));
+}));
+</script>
+</html>
