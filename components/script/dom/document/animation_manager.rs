@@ -518,9 +518,11 @@ impl AnimationManager {
     fn unroot_unused_nodes(&self, sets: &style::FxHashMap<AnimationSetKey, ElementAnimationSet>) {
         let pending_events = self.pending_events.borrow();
         let nodes: style::FxHashSet<OpaqueNode> = sets.keys().map(|key| key.node).collect();
-        self.rooted_animation_nodes.borrow_mut().retain(|node, _| {
-            nodes.contains(&node.0) || pending_events.iter().any(|event| event.node == node.0)
-        });
+        let pending_nodes: style::FxHashSet<OpaqueNode> =
+            pending_events.iter().map(|event| event.node).collect();
+        self.rooted_animation_nodes
+            .borrow_mut()
+            .retain(|node, _| nodes.contains(&node.0) || pending_nodes.contains(&node.0));
     }
 
     fn add_transition_event(
