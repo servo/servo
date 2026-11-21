@@ -1200,6 +1200,17 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         })
     }
 
+    // https://html.spec.whatwg.org/multipage/#attr-inputmode
+    make_enumerated_getter!(
+        InputMode,
+        "inputmode",
+        "none" | "text" | "tel" | "url" | "email" | "numeric" | "decimal" | "search",
+        missing => "",
+        invalid => ""
+    );
+
+    // https://html.spec.whatwg.org/multipage/#attr-inputmode
+    make_setter!(SetInputMode, "inputmode");
     // https://html.spec.whatwg.org/multipage/#attr-title
     make_getter!(Title, "title");
     // https://html.spec.whatwg.org/multipage/#attr-title
