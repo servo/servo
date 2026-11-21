@@ -44,8 +44,8 @@ background_hang_monitor = ["servo-background-hang-monitor/sampler"]
 brotli-compression-stream = ["script/brotli-compression-stream"]
 
 # Shaping backends
-harfrust = ["servo-fonts/harfrust"]
-harfbuzz = ["servo-fonts/harfbuzz"]
+harfrust = ["fonts/harfrust"]
+harfbuzz = ["fonts/harfbuzz"]
 
 # This is slightly magical, but this will also work on ohos, where `servo-default-resource` is not added,
 # which makes `baked-in-resources a no-op (as intended) on ohos (and perhaps other platforms in the future).
@@ -175,7 +175,6 @@ servo-canvas-traits = { workspace = true }
 servo-config = { workspace = true }
 servo-constellation = { workspace = true }
 servo-constellation-traits = { workspace = true }
-servo-fonts = { workspace = true }
 servo-geometry = { workspace = true }
 servo-media = { workspace = true }
 servo-media-dummy = { workspace = true }
