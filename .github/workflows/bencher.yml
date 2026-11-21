@@ -180,3 +180,44 @@ jobs:
       profile: ${{ inputs.profile }}
       # Reuse the servoshell built with `tracing-perfetto` instead of building again.
       servo-binary-artifact: ${{ inputs.profile }}-binary-linux-tracing
+
+  # Publishes the perf-analysis results to Bencher. This is kept separate from
+  # the measurement job so that a Bencher outage cannot fail the benchmark run.
+  bencher-perf-analysis:
+    needs:
+      - perf-analysis
+    if: ${{ inputs.perf-analysis }}
+    name: Bencher perf analysis
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: servo/ci-runners/actions/checkout@b42c96524cdd72126255602c69c4ad649c750ebf
+      - name: Download Bencher metrics
+        uses: actions/download-artifact@v8
+        with:
+          name: perf-analysis-bmf
+      - name: Install Bencher
+        id: bencher
+        uses: bencherdev/bencher@main
+        continue-on-error: true
+      - name: Warn if Bencher install failed
+        if: steps.bencher.outcome != 'success'
+        run: echo "::warning::Failed to install Bencher; skipping perf-analysis publication"
+      - name: Set bencher opts
+        if: steps.bencher.outcome == 'success'
+        uses: ./.github/actions/bencher-options
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Send results
+        id: send
+        if: steps.bencher.outcome == 'success'
+        continue-on-error: true
+        run: |
+          bencher run --adapter json --file perf-analysis.json \
+            --project ${{ env.BENCHER_PROJECT }} --token ${{ secrets.BENCHER_API_TOKEN }} \
+            --testbed "${{ needs.perf-analysis.outputs.testbed }}" \
+            --ci-id perf-analysis \
+            $RUN_BENCHER_OPTIONS
+      - name: Warn if publishing failed
+        if: steps.bencher.outcome == 'success' && steps.send.outcome != 'success'
+        run: echo "::warning::Failed to publish perf-analysis results to Bencher"
