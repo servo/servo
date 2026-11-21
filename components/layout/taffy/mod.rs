@@ -217,7 +217,7 @@ impl SpecificTaffyGridInfo {
         };
 
         // Convert padding box to Taffy type
-        let containing_block_border = containing_block_fragment.border;
+        let containing_block_border = containing_block_fragment.border();
         let border_left = containing_block_border.left.to_f32_px();
         let border_top = containing_block_border.top.to_f32_px();
 
@@ -238,7 +238,7 @@ impl SpecificTaffyGridInfo {
         );
 
         // Convert grid area into a PhysicalRect, and adjust it to be relative to the content box.
-        let containing_block_padding = containing_block_fragment.padding;
+        let containing_block_padding = containing_block_fragment.padding();
         PhysicalRect::new(
             PhysicalPoint::new(
                 Au::from_f32_px(area.left) -

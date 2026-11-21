@@ -1114,10 +1114,10 @@ impl BoxFragmentWithStyle<'_> {
                     let mut offsets_from_border = SideOffsets2D::new_all_same(clip_margin_offset);
                     match overflow_clip_margin.visual_box {
                         OverflowClipMarginBox::ContentBox => {
-                            offsets_from_border -= (self.border + self.padding).to_webrender();
+                            offsets_from_border -= (self.border() + self.padding()).to_webrender();
                         },
                         OverflowClipMarginBox::PaddingBox => {
-                            offsets_from_border -= self.border.to_webrender();
+                            offsets_from_border -= self.border().to_webrender();
                         },
                         OverflowClipMarginBox::BorderBox => {},
                     };
@@ -1329,24 +1329,24 @@ impl BoxFragment {
         let vertical_offset_bounds = wr::StickyOffsetBounds::new(
             -offset_bound(
                 distance_from_border_box_to_cb.top,
-                self.margin.top,
+                self.margin().top,
                 computed_margin.top,
             ),
             offset_bound(
                 distance_from_border_box_to_cb.bottom,
-                self.margin.bottom,
+                self.margin().bottom,
                 computed_margin.bottom,
             ),
         );
         let horizontal_offset_bounds = wr::StickyOffsetBounds::new(
             -offset_bound(
                 distance_from_border_box_to_cb.left,
-                self.margin.left,
+                self.margin().left,
                 computed_margin.left,
             ),
             offset_bound(
                 distance_from_border_box_to_cb.right,
-                self.margin.right,
+                self.margin().right,
                 computed_margin.right,
             ),
         );

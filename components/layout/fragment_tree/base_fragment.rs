@@ -20,6 +20,7 @@ use web_atoms::{LocalName, local_name, ns};
 
 use crate::dom::NodeExt;
 use crate::dom_traversal::NodeAndStyleInfo;
+use crate::fragment_tree::debug::PrintableRect;
 use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSize, SyncPhysicalRectAu};
 
 /// The Container Timing attributes aren't static atoms, so intern them once.
@@ -67,15 +68,14 @@ pub(crate) struct BaseFragment {
 
 impl std::fmt::Debug for BaseFragment {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut formatter = f.debug_struct("BaseFragment");
-        let mut formatter = formatter.field("tag", &self.tag);
-        if !self.flags.is_empty() {
-            formatter = formatter.field("flags", &self.flags);
-        }
-        formatter
-            .field("rect", &self.rect())
-            .field("status", &self.status())
-            .finish()
+        let node = self
+            .tag
+            .map(|tag| format!("{:?}", tag.node))
+            .unwrap_or_else(|| String::from("Anonymous"));
+        let mut flags = String::new();
+        bitflags::parser::to_writer(&self.flags, &mut flags)?;
+        let rect = PrintableRect(self.rect());
+        write!(f, "{rect:?} {node} {:?} {flags}", self.status())
     }
 }
 

@@ -26,7 +26,7 @@ use crate::containing_block::{ContainingBlock, ContainingBlockSize};
 use crate::flow::inline::text_run::{FontAndScriptInfo, SharedTextRunData};
 use crate::fragment_tree::{
     BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, FragmentAndLogicalRect,
-    FragmentChildren, FragmentFlags, TextFragment,
+    FragmentChildren, FragmentFlags, PhysicalBoxSides, TextFragment,
 };
 use crate::geom::{LogicalRect, LogicalSides, LogicalVec2, PhysicalRect, PhysicalSize};
 use crate::positioned::{
@@ -574,9 +574,7 @@ impl LineItemLayout<'_, '_> {
             // Previously all the fragment's children were positioned relative to the linebox,
             // but they need to be made relative to this fragment.
             content_rect.as_physical_deprecated(containing_block),
-            padding.to_physical(containing_block_writing_mode),
-            border.to_physical(containing_block_writing_mode),
-            margin.to_physical(containing_block_writing_mode),
+            PhysicalBoxSides::from_logical(padding, border, margin, containing_block_writing_mode),
             None, /* specific_layout_info */
         );
         if self.for_block_level {
