@@ -708,7 +708,7 @@ impl Gui {
                     ctx.clone(),
                     LayerId::new(Order::Tooltip, Id::new("embedder_tooltip")),
                     "embedder tooltip layer".into(),
-                    pos2(available_rect.max.x, available_rect.max.y),
+                    webview_rect.right_bottom(),
                 )
                 .at_pointer()
                 .show(|ui| ui.add(Label::new(tooltip.text.clone()).extend()));

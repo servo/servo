@@ -564,7 +564,7 @@ pub enum EmbedderMsg {
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console_API>
     ShowConsoleApiMessage(Option<WebViewId>, ConsoleLogLevel, String),
     /// Request to the embedder to display a user interface control.
-    ShowEmbedderControl(EmbedderControlId, DeviceIntRect, EmbedderControlRequest),
+    ShowEmbedderControl(EmbedderControlId, PipelineRect, EmbedderControlRequest),
     /// Request to the embedder to hide a user interface control.
     HideEmbedderControl(EmbedderControlId),
     /// Inform the embedding layer that a particular `InputEvent` was handled by Servo

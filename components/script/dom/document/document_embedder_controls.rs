@@ -436,16 +436,16 @@ impl DocumentEmbedderControls {
         &self,
         cx: &mut JSContext,
         text: String,
-        element: Dom<HTMLElement>,
-        point_in_frame: DevicePoint,
+        element: &HTMLElement,
+        point_in_frame: Point2D<f32, CSSPixel>,
     ) {
         self.hide_tooltip();
 
         self.show_embedder_control(
             cx,
-            ControlElement::Tooltip(element),
+            ControlElement::Tooltip(Dom::from_ref(element)),
             EmbedderControlRequest::Tooltip(TooltipRequest { text }),
-            Some(point_in_frame),
+            Some(point_in_frame.map(Au::from_f32_px)),
         );
     }
 }

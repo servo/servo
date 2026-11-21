@@ -957,7 +957,7 @@ impl DocumentEventHandler {
         embedder_controls.show_tooltip(
             cx,
             alt_text,
-            Dom::from_ref(image_element.upcast::<HTMLElement>()),
+            image_element.upcast::<HTMLElement>(),
             point.cast_unit(),
         );
     }
