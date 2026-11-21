@@ -543,9 +543,21 @@ impl Element {
         }
     }
 
-    // https://drafts.csswg.org/cssom-view/#css-layout-box
-    pub(crate) fn has_css_layout_box(&self, cx: &mut JSContext) -> bool {
+    /// <https://drafts.csswg.org/css-display-4/#box>
+    ///
+    /// This version is deprecated because it's not specification compliant. It only checks whether
+    /// the element is styled and isn't `display: none`. Callers should be examined to see if they
+    /// should really be calling `Self::has_css_layout_box` instead.
+    pub(crate) fn has_css_layout_box_deprecated(&self, cx: &mut JSContext) -> bool {
         self.style(cx).is_some_and(|s| !s.get_display().is_none())
+    }
+
+    /// <https://drafts.csswg.org/css-display-4/#box>
+    pub(crate) fn has_css_layout_box(&self) -> bool {
+        // TODO: This isn't always the same. For example, SVG elements are rendered
+        // but do not necessarily have a CSS layout box. Later, when we fully support
+        // SVG, this needs to be re-examined.
+        self.upcast::<Node>().is_being_rendered(None)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#potentially-scrollable>
@@ -576,7 +588,7 @@ impl Element {
         // "An element body (which will be the body element) is potentially
         // scrollable if all of the following conditions are true:
         //  - body has an associated box."
-        if !self.has_css_layout_box(cx) {
+        if !self.has_css_layout_box_deprecated(cx) {
             return false;
         }
 
@@ -644,7 +656,7 @@ impl Element {
     ///  2. The style specifies that overflow should be scrollable (`auto`, `hidden` or `scroll`).
     ///  3. The fragment actually has content that overflows the box.
     fn has_scrolling_box(&self, cx: &mut JSContext) -> bool {
-        self.has_css_layout_box(cx) &&
+        self.has_css_layout_box_deprecated(cx) &&
             self.establishes_scroll_container(cx) &&
             self.has_overflow(cx)
     }
@@ -3665,7 +3677,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // Step 8. If the element does not have any associated box, return zero and
         // terminate these steps.
-        if !self.has_css_layout_box(cx) {
+        if !self.has_css_layout_box_deprecated(cx) {
             return 0.0;
         }
 
@@ -3782,7 +3794,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // Step 8. If the element does not have any associated box, return zero and
         // terminate these steps.
-        if !self.has_css_layout_box(cx) {
+        if !self.has_css_layout_box_deprecated(cx) {
             return 0.0;
         }
 
@@ -3891,7 +3903,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // Step 7: If the element does not have any associated box, or is not
         //         available to user-agent features, then return.
-        if !self.has_css_layout_box(cx) {
+        if !self.has_css_layout_box_deprecated(cx) {
             return;
         }
 

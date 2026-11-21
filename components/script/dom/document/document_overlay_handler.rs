@@ -449,7 +449,7 @@ impl DocumentOverlayHandler {
             .map(|element| DomRoot::from_ref(&**element))
             .collect();
         for element in pending_removals {
-            if !element.has_css_layout_box(cx) {
+            if !element.has_css_layout_box_deprecated(cx) {
                 self.remove_an_element_from_the_top_layer_immediately(&element, cx)
             }
         }
