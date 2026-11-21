@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Percentage sizing of an image with an SVG intrinsic aspect ratio</title>
+<link rel="help" href="https://www.w3.org/TR/CSS2/visudet.html#inline-replaced-height">
+<link rel="help" href="https://quirks.spec.whatwg.org/#the-percentage-height-calculation-quirk">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+for (const [height, imageWidth, imageHeight, expectedHeight, description] of [
+  ["250px", "20%", "20%", 50, "Percentages in a definite containing block"],
+  ["auto", "20%", "20%", 125, "Percentage height in an indefinite containing block"],
+  ["auto", "100px", "50px", 50, "Explicit lengths in an indefinite containing block"],
+  ["250px", "20%", "auto", 125, "Automatic height with a definite containing block"],
+]) {
+  promise_test(async t => {
+    const container = document.createElement("div");
+    container.style.cssText = `width: 500px; height: ${height}`;
+    const image = new Image();
+    image.style.cssText = `width: ${imageWidth}; height: ${imageHeight}`;
+    image.src = "support/viewbox-only-4x5.svg";
+    container.append(image);
+    document.body.append(container);
+    t.add_cleanup(() => container.remove());
+    await image.decode();
+    assert_equals(image.getBoundingClientRect().width, 100);
+    assert_equals(image.getBoundingClientRect().height, expectedHeight);
+  }, description);
+}
+
+promise_test(async t => {
+  const frame = document.createElement("iframe");
+  frame.style.cssText = "width: 516px; height: 516px; border: 0";
+  frame.src = "support/svg-img-percentage-size-quirks.html";
+  const loaded = new Promise(resolve => frame.onload = resolve);
+  document.body.append(frame);
+  t.add_cleanup(() => frame.remove());
+  await loaded;
+  assert_equals(frame.contentDocument.compatMode, "BackCompat");
+  const image = frame.contentDocument.querySelector("img");
+  assert_equals(image.getBoundingClientRect().width, 100);
+  assert_equals(image.getBoundingClientRect().height, 100);
+}, "Quirks mode resolves the supplied example's percentage height");
+</script>
