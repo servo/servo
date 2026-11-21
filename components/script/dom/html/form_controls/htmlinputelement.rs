@@ -2025,7 +2025,12 @@ impl HTMLInputElement {
             .as_specific()
             .update_checkedness(cx, self, checked, previously_checked);
 
-        self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
+        // Calling dirty() here would make a live collection start over after every toggle.
+        // https://github.com/servo/servo/issues/50089
+        if self.upcast::<Node>().is_connected() {
+            self.upcast::<Element>()
+                .restyle(cx.no_gc(), NodeDamage::Other);
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#selector-checked>
