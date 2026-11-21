@@ -112,7 +112,8 @@ class Base:
         if not force and shutil.which("cargo-binstall") is not None:
             return False
         print(" * Installing cargo-binstall...")
-        if subprocess.call(["cargo", "install", "cargo-binstall", "--locked"]) != 0:
+        # cargo-binstall@1.28.0 requires rust 1.100
+        if subprocess.call(["cargo", "install", "cargo-binstall@1.27.0", "--locked"]) != 0:
             raise EnvironmentError("Installation of cargo-binstall failed.")
         return True
 
