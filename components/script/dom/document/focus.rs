@@ -346,15 +346,15 @@ impl DocumentFocusHandler {
         self.focused_area().focus_chain()
     }
 
-    /// Whether this [`Document`] is known to have the focus of its top-level traversable.
+    /// Whether this [`Document`] definitely has the top-level focus in its WebView. When this
+    /// question cannot be answered cheaply (trees that span multiple ScriptThreads), it returns
+    /// `false`.
     ///
     /// A `Document` updates its focus state right away when it runs the focusing steps, but the
-    /// other `Document`s of the top-level traversable only learn about it later from the
-    /// constellation. So the focus state of a `Document` is only known to be current when the
-    /// `Document`s of the top-level traversable are all in this thread and agree with it: its
-    /// ancestors have the navigable containers leading to it as their focused areas, and no other
-    /// `Document` has focus.
-    pub(crate) fn focus_is_known_to_be_current(&self) -> bool {
+    /// other `Document`s in the WebView only learn about it asynchronously from the Constellation.
+    /// The question can only answered definitely if all of the `Document`s are in the same
+    /// ScriptThread and agree.
+    pub(crate) fn definitely_has_top_level_focus(&self) -> bool {
         fn no_other_document_has_focus(
             document: &Document,
             documents_with_focus: &[DomRoot<Document>],

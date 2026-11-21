@@ -354,9 +354,8 @@ impl Node {
     /// that match the specification. That is why the arguments to this method do not match the
     /// specification yet.
     ///
-    /// Return `true` if anything was focused or `false` otherwise. When this node already has the
-    /// focus, return `false`, so that `focus()` doesn't scroll it into view, unless the focus may
-    /// have moved to another `Document`.
+    /// Return `true` if anything was focused or `false` if nothing was focused or the node already
+    /// had focus.
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn run_the_focusing_steps(
         &self,
@@ -367,23 +366,17 @@ impl Node {
         // > 5. If new focus target is the currently focused area of a top-level traversable, then
         // >    return.
         //
-        // This step is checked first as an optimization, to avoid a layout flush.
-        //
-        // The focus state of the document may be stale (see `DocumentFocusHandler::focus_is_known_to_be_current`),
-        // so focus this node again, which lets the constellation know. Scrolling it into view would need a layout
-        // flush too, so don't do it when the focus is known to have stayed in this document (same behavior as Gecko).
+        // This step is checked first as an optimization, to avoid a style and layout flush.
         let document = self.owner_document();
         let focus_handler = document.focus_handler();
         if fallback_target.is_none() &&
             matches!(
                 &*focus_handler.focused_area(),
                 FocusableArea::Node { node, .. } if **node == *self
-            )
+            ) &&
+            focus_handler.definitely_has_top_level_focus()
         {
-            let focus_is_known_to_be_current = focus_handler.focus_is_known_to_be_current();
-            rooted!(&in(cx) let focused_area = focus_handler.focused_area().clone());
-            focus_handler.focus(cx, &focused_area, focus_trigger);
-            return !focus_is_known_to_be_current;
+            return false;
         }
 
         // > 1. If new focus target is not a focusable area, then set new focus target to the result
