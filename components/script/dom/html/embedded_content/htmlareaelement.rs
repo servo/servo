@@ -18,7 +18,6 @@ use style::attr::AttrValue;
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
 
-use crate::dom::activation::Activatable;
 use crate::dom::bindings::codegen::Bindings::HTMLAreaElementBinding::HTMLAreaElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
@@ -27,13 +26,11 @@ use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element, reflect_referrer_policy_attribute};
-use crate::dom::event::Event;
-use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::links::htmlhyperlinkelementutils::{
     HyperlinkElement, HyperlinkElementTraits,
 };
-use crate::dom::html::links::relations::{LinkRelations, follow_hyperlink};
+use crate::dom::html::links::relations::LinkRelations;
 use crate::dom::node::Node;
 use crate::dom::node::virtualmethods::VirtualMethods;
 
@@ -328,6 +325,10 @@ impl HyperlinkElement for HTMLAreaElement {
     fn get_url(&self) -> &DomRefCell<Option<UrlWithBlobClaim>> {
         &self.url
     }
+
+    fn relations(&self) -> LinkRelations {
+        self.relations.get()
+    }
 }
 
 impl VirtualMethods for HTMLAreaElement {
@@ -524,24 +525,4 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-area-nohref
     make_bool_setter!(SetNoHref, "nohref");
-}
-
-impl Activatable for HTMLAreaElement {
-    /// <https://html.spec.whatwg.org/multipage/#the-area-element:activation-behaviour>
-    fn as_element(&self) -> &Element {
-        self.upcast::<Element>()
-    }
-
-    fn is_instance_activatable(&self) -> bool {
-        self.as_element().has_attribute(&local_name!("href"))
-    }
-
-    fn activation_behavior(
-        &self,
-        cx: &mut js::context::JSContext,
-        _event: &Event,
-        _target: &EventTarget,
-    ) {
-        follow_hyperlink(cx, self.as_element(), self.relations.get(), None);
-    }
 }
