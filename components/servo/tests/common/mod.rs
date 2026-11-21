@@ -132,6 +132,7 @@ impl WebViewDelegateImpl {
                 },
                 EmbedderControl::SimpleDialog(..) => Default::default(),
                 EmbedderControl::ContextMenu(context_menu) => context_menu.position(),
+                EmbedderControl::Tooltip(..) => Default::default()
             })
             .unwrap_or_default()
     }
