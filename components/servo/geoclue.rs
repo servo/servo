@@ -20,6 +20,7 @@ use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender, unbounded};
 use futures::{FutureExt, StreamExt, select};
 use log::{debug, error};
 use net::async_runtime;
+use servo_config::pref;
 use zbus::proxy::CacheProperties;
 use zbus::zvariant::OwnedObjectPath;
 use zbus::{Connection, proxy};
@@ -436,7 +437,8 @@ impl GeoclueTaskState {
 
         // This is supposed to match the name of a .desktop file to bypass
         // the need for interactive agent authorization.
-        client.set_desktop_id("servo").await?;
+        let desktop_id = pref!(embedder_name);
+        client.set_desktop_id(&desktop_id).await?;
 
         client.set_requested_accuracy_level(accuracy as u32).await?;
         client.start().await?;
