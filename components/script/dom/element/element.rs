@@ -114,10 +114,7 @@ use crate::dom::bindings::domname::{
     self, is_valid_attribute_local_name, namespace_from_domstring,
 };
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::inheritance::{
-    Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId, SVGElementTypeId,
-    SVGGraphicsElementTypeId,
-};
+use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::DOMString;
@@ -189,7 +186,6 @@ use crate::dom::raredata::ElementRareData;
 use crate::dom::sanitizer::Sanitizer;
 use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::shadowroot::{IsUserAgentWidget, ShadowRoot};
-use crate::dom::svg::svgaelement::SVGAElement;
 use crate::dom::svg::svgelement::SVGElement;
 use crate::dom::text::Text;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
@@ -5432,12 +5428,6 @@ impl Element {
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLElement)) => {
                 let element = self.downcast::<HTMLElement>().unwrap();
-                Some(element as &dyn Activatable)
-            },
-            NodeTypeId::Element(ElementTypeId::SVGElement(
-                SVGElementTypeId::SVGGraphicsElement(SVGGraphicsElementTypeId::SVGAElement),
-            )) => {
-                let element = self.downcast::<SVGAElement>().unwrap();
                 Some(element as &dyn Activatable)
             },
             _ => None,
