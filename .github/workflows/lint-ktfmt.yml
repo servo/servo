@@ -1,9 +1,12 @@
 name: Lint ktfmt
 on:
   push:
+    branches:
+      - 'gh-readonly-queue/**'
     paths:
       - 'support/android/apk/**'
   pull_request:
+    branches: ["main"]
     paths:
       - 'support/android/apk/**'
 
