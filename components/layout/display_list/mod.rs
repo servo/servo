@@ -65,7 +65,7 @@ use crate::fragment_tree::{
     IFrameFragment, ImageFragment, PositioningFragment, SpecificLayoutInfo, Tag, TextFragment,
 };
 use crate::geom::{
-    LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize,
+    AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize,
 };
 use crate::replaced::NaturalSizes;
 use crate::style_ext::{BorderStyleColor, ComputedValuesExt};
@@ -1363,8 +1363,7 @@ impl Fragment {
                 TextDecorationLine::UNDERLINE => (
                     text_decoration.color,
                     text_decoration.style,
-                    font_metrics.ascent - font_metrics.underline_offset +
-                        text_decoration.underline_offset,
+                    underline_position(font_metrics, text_decoration.underline_offset),
                     resolve_thickness(&text_decoration.thickness),
                 ),
                 // <https://drafts.csswg.org/css-text-decor-4/#valdef-text-decoration-line-spelling-error>
@@ -2567,6 +2566,20 @@ fn collect_glyphs(
         }
     }
     (largest_advance, entirely_white_space)
+}
+
+/// The position of an underline relative to the top of the text fragment box.
+///
+/// Explicit offsets are measured from the alphabetic baseline, while `auto`
+/// uses font metrics placed at or under the baseline.
+/// <https://drafts.csswg.org/css-text-decor-4/#underline-offset>
+fn underline_position(font_metrics: &FontMetrics, underline_offset: AuOrAuto) -> Au {
+    let baseline = font_metrics.ascent;
+
+    match underline_offset {
+        AuOrAuto::Auto => (baseline - font_metrics.underline_offset).max(baseline),
+        AuOrAuto::LengthPercentage(offset) => baseline + offset,
+    }
 }
 
 /// Given a set of corner radii for a rectangle, this function returns the corresponding radii
