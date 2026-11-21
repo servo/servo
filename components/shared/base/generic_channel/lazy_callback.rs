@@ -74,7 +74,11 @@ where
                     cb.send(value)
                 } else {
                     // Init callback
-                    if let Ok(cb) = callback_receiver.borrow_mut().take().unwrap().recv() {
+                    let Some(receiver) = callback_receiver.borrow_mut().take() else {
+                        log::error!("Could not get callback. Callback_receiver already taken");
+                        return Err(SendError::Disconnected);
+                    };
+                    if let Ok(cb) = receiver.recv() {
                         let _ = callback.set(cb);
                         callback.get().unwrap().send(value)
                     } else {
@@ -281,7 +285,7 @@ where
 #[cfg(test)]
 mod single_process_callback_test {
     use crate::generic_channel::lazy_callback::{lazy_callback_inprocess, lazy_callback_ipc};
-    use crate::generic_channel::{CallbackSetter, LazyCallback};
+    use crate::generic_channel::{CallbackSetter, LazyCallback, SendError};
     fn test_lazy_callback(callback: LazyCallback<bool>, callback_setter: CallbackSetter<bool>) {
         let t1 = std::thread::spawn(move || {
             callback.send(true).expect("Could not send");
@@ -298,6 +302,15 @@ mod single_process_callback_test {
         t1.join().expect("error joining thread");
         t2.join().expect("error joining thread");
         assert_eq!(receiver.recv().unwrap().unwrap(), true);
+    }
+
+    #[test]
+    fn lazy_callback_already_taken_receiver_returns_disconnected() {
+        let (callback, callback_setter) = lazy_callback_inprocess::<bool>();
+        drop(callback_setter);
+
+        assert!(matches!(callback.send(true), Err(SendError::Disconnected)));
+        assert!(matches!(callback.send(true), Err(SendError::Disconnected)));
     }
 
     #[test]
