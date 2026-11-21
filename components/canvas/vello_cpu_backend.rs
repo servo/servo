@@ -220,28 +220,20 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         source: Rect<i32>,
         destination: Point2D<i32>,
     ) {
-        self.ensure_drawing();
-        let destination: kurbo::Point = destination.cast::<f64>().into();
-        let rect = kurbo::Rect::from_origin_size(destination, source.size.cast());
-        self.ctx.set_transform(kurbo::Affine::IDENTITY);
-        self.ignore_clips(|self_| {
-            // Clipped blending does not work correctly:
-            // https://github.com/linebender/vello/issues/1119
-            // self_.push_layer(Some(rect.to_path(0.1)), Some(peniko::Compose::Copy.into()), None, None);
-
-            self_.ctx.set_paint(vello_cpu::Image {
-                image: vello_cpu::ImageSource::Pixmap(surface),
-                sampler: peniko::ImageSampler {
-                    x_extend: peniko::Extend::Pad,
-                    y_extend: peniko::Extend::Pad,
-                    quality: peniko::ImageQuality::Low,
-                    alpha: 1.0,
-                },
-            });
-            self_.ctx.fill_rect(&rect);
-
-            // self_.ctx.pop_layer();
-        });
+        let canvas = Rect::from_size(self.size().to_i32());
+        let Some(dest) = Rect::new(destination, source.size).intersection(&canvas) else {
+            return;
+        };
+        let source_origin = source.origin + (dest.origin - destination);
+        self.pixmap(); // sync pixmap
+        pixels::copy_rgba8_image(
+            Size2D::new(surface.width(), surface.height()).cast(),
+            Rect::new(source_origin, dest.size).to_u32(),
+            surface.data_as_u8_slice(),
+            self.size(),
+            dest.to_u32(),
+            self.pixmap.data_as_u8_slice_mut(),
+        );
     }
 
     fn create_similar_draw_target(&self, size: &Size2D<i32>) -> Self {
