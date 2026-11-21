@@ -18,9 +18,8 @@ use serde_core::Serialize;
 use servo_base::generic_channel::GenericCallback;
 use servo_url::MutableOrigin;
 use webgpu_traits::{
-    BufferAccessError, Mapping, ShaderCompilationInfo, WebGPUAdapterResponse,
-    WebGPUComputePipelineResponse, WebGPUDeviceResponse, WebGPUPoppedErrorScopeResponse,
-    WebGPURenderPipelineResponse,
+    BufferMapError, CompilationInfo, Mapping, WebGPUAdapterResponse, WebGPUComputePipelineResponse,
+    WebGPUDeviceResponse, WebGPUPoppedErrorScopeResponse, WebGPURenderPipelineResponse,
 };
 
 use crate::gpu::GPU;
@@ -127,12 +126,12 @@ pub trait Equivalence = DomTypes<
     pub trait WebGPUPromise<D: DomTypes> =
         WebGPUPromiseCallbackTrait<D, GPU<D>, WebGPUAdapterResponse>
         + WebGPUPromiseCallbackTrait<D, GPUAdapter<D>, WebGPUDeviceResponse>
-        + WebGPUPromiseCallbackTrait<D, GPUBuffer<D>, Result<Mapping, BufferAccessError>>
+        + WebGPUPromiseCallbackTrait<D, GPUBuffer<D>, Result<Mapping, BufferMapError>>
         + WebGPUPromiseCallbackTrait<D, GPUDevice<D>, WebGPUPoppedErrorScopeResponse>
         + WebGPUPromiseCallbackTrait<D, GPUDevice<D>, WebGPUComputePipelineResponse>
         + WebGPUPromiseCallbackTrait<D, GPUDevice<D>, WebGPURenderPipelineResponse>
         + WebGPUPromiseCallbackTrait<D, GPUQueue<D>, ()>
-        + WebGPUPromiseCallbackTrait<D, GPUShaderModule<D>, Option<ShaderCompilationInfo>>
+        + WebGPUPromiseCallbackTrait<D, GPUShaderModule<D>, CompilationInfo>
 ;
 }
 

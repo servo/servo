@@ -289,8 +289,10 @@ webdriver = "0.54.0"
 webpki-roots = "1.0"
 webrender = { version = "0.70.1", features = ["serde"] }
 webrender_api = "0.70"
-wgpu-core = "30"
-wgpu-types = "30"
+wgpu-core = { git = "https://github.com/gfx-rs/wgpu", branch = "trunk" }
+wgpu-core-remote = { git = "https://github.com/gfx-rs/wgpu", branch = "trunk" }
+wgpu-core-remote-types = { git = "https://github.com/gfx-rs/wgpu", branch = "trunk" }
+wgpu-types = { git = "https://github.com/gfx-rs/wgpu", branch = "trunk" }
 winapi = "0.3"
 windows-sys = "0.61"
 winit = "0.30.13"

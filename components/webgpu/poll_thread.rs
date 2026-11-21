@@ -6,12 +6,12 @@
 //!
 //! This is roughly based on <https://github.com/LucentFlux/wgpu-async/blob/1322c7e3fcdfc1865a472c7bbbf0e2e06dcf4da8/src/wgpu_future.rs>
 
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread::JoinHandle;
 
 use log::warn;
-use wgpu_core::global::Global;
+use wgpu_core::instance::Instance;
 
 /// Polls devices while there is something to poll.
 ///
@@ -39,21 +39,11 @@ pub(crate) struct Poller {
     is_done: Arc<AtomicBool>,
     /// Handle to the WGPU poller thread (to be used for unparking the thread)
     handle: Option<JoinHandle<()>>,
-    /// Lock for device maintain calls (in poll_all_devices and queue_submit)
-    ///
-    /// This is workaround for wgpu deadlocks: <https://github.com/gfx-rs/wgpu/issues/5572>
-    lock: Arc<Mutex<()>>,
 }
 
 #[inline]
-fn poll_all_devices(
-    global: &Arc<Global>,
-    more_work: &mut bool,
-    force_wait: bool,
-    lock: &Mutex<()>,
-) {
-    let _guard = lock.lock().unwrap();
-    match global.poll_all_devices(force_wait) {
+fn poll_all_devices(instance: &Arc<Instance>, more_work: &mut bool, force_wait: bool) {
+    match instance.poll_all_devices(force_wait) {
         Ok(all_queue_empty) => *more_work = !all_queue_empty,
         Err(e) => warn!("Poller thread got `{e}` on poll_all_devices."),
     }
@@ -61,16 +51,14 @@ fn poll_all_devices(
 }
 
 impl Poller {
-    pub(crate) fn new(global: Arc<Global>) -> Self {
+    pub(crate) fn new(instance: Arc<Instance>) -> Self {
         let work_count = Arc::new(AtomicUsize::new(0));
         let is_done = Arc::new(AtomicBool::new(false));
         let work = work_count.clone();
         let done = is_done.clone();
-        let lock = Arc::new(Mutex::new(()));
         Self {
             work_count,
             is_done,
-            lock: Arc::clone(&lock),
             handle: Some(
                 std::thread::Builder::new()
                     .name("WGPU poller".into())
@@ -81,9 +69,9 @@ impl Poller {
                             // so every `ẁake` (even spurious) will do at least one poll.
                             // this is mostly useful for stuff that is deferred
                             // to maintain calls in wgpu (device resource destruction)
-                            poll_all_devices(&global, &mut more_work, false, &lock);
+                            poll_all_devices(&instance, &mut more_work, false);
                             while more_work || work.load(Ordering::Acquire) != 0 {
-                                poll_all_devices(&global, &mut more_work, true, &lock);
+                                poll_all_devices(&instance, &mut more_work, true);
                             }
                             std::thread::park(); // TODO: should we use timeout here
                         }
@@ -112,11 +100,6 @@ impl Poller {
             .expect("Poller thread does not exist!")
             .thread()
             .unpark();
-    }
-
-    /// Lock for device maintain calls (in poll_all_devices and queue_submit)
-    pub(crate) fn lock(&self) -> MutexGuard<'_, ()> {
-        self.lock.lock().unwrap()
     }
 }
 

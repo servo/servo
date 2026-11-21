@@ -17,7 +17,7 @@ path = "lib.rs"
 bluetooth = []
 subtlecrypto = []
 devtools = ["dep:devtools_traits"]
-webgpu = ["dep:webgpu_traits", "dep:wgpu-core"]
+webgpu = ["dep:webgpu_traits"]
 webgl = []
 
 [dependencies]
@@ -49,7 +49,6 @@ strum = { workspace = true }
 uuid = { workspace = true }
 webgpu_traits = { workspace = true, optional = true }
 webrender_api = { workspace = true }
-wgpu-core = { workspace = true, optional = true }
 zeroize = { workspace = true }
 
 [lints]

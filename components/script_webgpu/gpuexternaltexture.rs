@@ -14,19 +14,19 @@ use malloc_size_of_derive::MallocSizeOf;
 use pixels::Snapshot;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
-    GPUDeviceMethods, GPUExternalTextureDescriptor, GPUExternalTextureMethods,
-    GPUExternalTextureWrap,
+    GPUExternalTextureDescriptor, GPUExternalTextureMethods, GPUExternalTextureWrap,
 };
-use script_bindings::error::{Error, Fallible};
+use script_bindings::error::Fallible;
 use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use script_bindings::{DomTypes, task};
 use webgpu_traits::{
-    Features, WebGPU, WebGPUDevice, WebGPUExternalTexture, WebGPUQueue, WebGPURequest,
-    WebGPUTexture, WebGPUTextureView,
+    WebGPU, WebGPUDevice, WebGPUExternalTexture, WebGPUQueue, WebGPURequest, WebGPUTexture,
+    WebGPUTextureView,
 };
 
 use crate::JSTraceable;
+use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
@@ -239,11 +239,7 @@ where
         device: &GPUDevice<D>,
         descriptor: &GPUExternalTextureDescriptor<D>,
     ) -> Fallible<DomRoot<GPUExternalTexture<D>>> {
-        let (size, planar_texture) = if device
-            .Features()
-            .wgpu_features()
-            .contains(Features::EXTERNAL_TEXTURE)
-        {
+        let (size, planar_texture) = if device.external_texture_supported() {
             // 2.1 - 2.4 inside the method
             descriptor.source.planar_video_for_webgpu(device)?
         } else {

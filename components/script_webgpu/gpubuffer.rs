@@ -24,8 +24,9 @@ use script_bindings::routed_promise::RoutedPromiseListener;
 use script_bindings::trace::RootedTraceableBox;
 use servo_base::generic_channel::GenericSharedMemory;
 use webgpu_traits::{
-    BufferAccessError, BufferAddress, BufferDescriptor, BufferUpdate, BufferUsages,
-    COPY_BUFFER_ALIGNMENT, HostMap, MAP_ALIGNMENT, Mapping, WebGPU, WebGPUBuffer, WebGPURequest,
+    BufferAddress, BufferDescriptor, BufferMapError, BufferUpdate, BufferUsages,
+    COPY_BUFFER_ALIGNMENT, HostMap, MAP_ALIGNMENT, MapMode, Mapping, WebGPU, WebGPUBuffer,
+    WebGPURequest,
 };
 
 use crate::datablock::DataBlock;
@@ -326,19 +327,6 @@ where
         // Step 4: Set this.[[pending_map]] to p.
         *self.pending_map.safe_borrow_mut(cx) = Some(p.to_traced());
         // Step 5: Issue the validation steps on the Device timeline of this.[[device]].
-        let host_map = match mode {
-            GPUMapModeConstants::READ => HostMap::Read,
-            GPUMapModeConstants::WRITE => HostMap::Write,
-            _ => {
-                self.device
-                    .dispatch_error(webgpu_traits::Error::Validation(String::from(
-                        "Invalid MapModeFlags",
-                    )));
-                self.map_failure(cx, &p);
-                return p;
-            },
-        };
-
         let callback = p.callback_promise_dom_manipulation_task_source(self);
         if let Err(e) = self
             .droppable
@@ -348,7 +336,7 @@ where
                 callback,
                 buffer_id: self.droppable.buffer.0,
                 device_id: self.device.id().0,
-                host_map,
+                mode: MapMode::from_bits_retain(mode),
                 offset,
                 size,
                 buffer_size: self.size,
@@ -558,11 +546,11 @@ where
     }
 }
 
-impl<D: Equivalence> RoutedPromiseListener<D, Result<Mapping, BufferAccessError>> for GPUBuffer<D> {
+impl<D: Equivalence> RoutedPromiseListener<D, Result<Mapping, BufferMapError>> for GPUBuffer<D> {
     fn handle_response(
         &self,
         cx: &mut js::context::JSContext,
-        response: Result<Mapping, BufferAccessError>,
+        response: Result<Mapping, BufferMapError>,
         promise: &<D::Promise as PromiseHelpers<D>>::StackRoot,
     ) {
         match response {

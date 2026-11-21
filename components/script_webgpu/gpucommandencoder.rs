@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
+
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use log::warn;
@@ -17,10 +19,10 @@ use script_bindings::codegen::GenericUnionTypes::RangeEnforcedUnsignedLongSequen
 use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use webgpu_traits::{
-    CommandBufferDescriptor, CommandEncoderCommand, CommandEncoderDescriptor, DebugCommand,
-    PassChannel, RenderPassColorAttachment, RenderPassDepthStencilAttachment, WebGPU,
-    WebGPUCommandBuffer, WebGPUCommandEncoder, WebGPUComputePass, WebGPUDevice, WebGPURenderPass,
-    WebGPURequest,
+    CommandBufferDescriptor, CommandEncoderCommand, CommandEncoderDescriptor,
+    ComputePassDescriptor, DebugCommand, PassChannel, RenderPassColorAttachment,
+    RenderPassDepthStencilAttachment, RenderPassDescriptor, WebGPU, WebGPUCommandBuffer,
+    WebGPUCommandEncoder, WebGPUComputePass, WebGPUDevice, WebGPURenderPass, WebGPURequest,
 };
 
 use crate::JSTraceable;
@@ -104,10 +106,6 @@ where
     D: Equivalence,
     <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
 {
-    pub(crate) fn id(&self) -> WebGPUCommandEncoder {
-        self.droppable.encoder
-    }
-
     pub(crate) fn device_id(&self) -> WebGPUDevice {
         self.device.id()
     }
@@ -146,7 +144,7 @@ where
         )
     }
 
-    fn send_command(&self, command: CommandEncoderCommand) {
+    fn send_command(&self, command: CommandEncoderCommand<'static>) {
         if let Err(error) = self
             .droppable
             .channel
@@ -183,35 +181,28 @@ where
         cx: &mut JSContext,
         descriptor: &GPUComputePassDescriptor<D>,
     ) -> DomRoot<GPUComputePassEncoder<D>> {
-        let compute_pass_id = self
+        let compute_pass_encoder_id = self
             .global_from_reflector()
             .global_wgpu_id_hub()
             .create_compute_pass_id();
 
-        if let Err(error) = self
-            .droppable
-            .channel
-            .0
-            .send(WebGPURequest::BeginComputePass {
-                command_encoder_id: self.id().0,
-                compute_pass_id,
+        self.send_command(CommandEncoderCommand::BeginComputePass {
+            desc: ComputePassDescriptor {
                 label: (&descriptor.parent).convert(),
                 timestamp_writes: descriptor
                     .timestampWrites
                     .as_ref()
                     .map(WebGPUConvert::convert),
-                device_id: self.device.id().0,
-            })
-        {
-            warn!("Failed to send WebGPURequest::BeginComputePass {error:?}");
-        }
+            },
+            compute_pass_encoder_id,
+        });
 
         GPUComputePassEncoder::new(
             cx,
             &*self.global_from_reflector(),
             self.droppable.channel.clone(),
             self,
-            WebGPUComputePass(compute_pass_id),
+            WebGPUComputePass(compute_pass_encoder_id),
             descriptor.parent.label.clone(),
         )
     }
@@ -231,16 +222,26 @@ where
                         load_op: ds
                             .depthLoadOp
                             .as_ref()
-                            .map(|l| convert_load_op(l, ds.depthClearValue.map(|v| *v))),
-                        store_op: ds.depthStoreOp.as_ref().map(WebGPUConvert::convert),
+                            .map(|l| convert_load_op(l, ds.depthClearValue.map(|v| *v).convert()))
+                            .convert(),
+                        store_op: ds
+                            .depthStoreOp
+                            .as_ref()
+                            .map(WebGPUConvert::convert)
+                            .convert(),
                         read_only: ds.depthReadOnly,
                     },
                     stencil: PassChannel {
                         load_op: ds
                             .stencilLoadOp
                             .as_ref()
-                            .map(|l| convert_load_op(l, Some(ds.stencilClearValue))),
-                        store_op: ds.stencilStoreOp.as_ref().map(WebGPUConvert::convert),
+                            .map(|l| convert_load_op(l, Some(ds.stencilClearValue).convert()))
+                            .convert(),
+                        store_op: ds
+                            .stencilStoreOp
+                            .as_ref()
+                            .map(WebGPUConvert::convert)
+                            .convert(),
                         read_only: ds.stencilReadOnly,
                     },
                     view: convert_texture_for_wgpu_with_cx(cx, &ds.view).0,
@@ -266,40 +267,34 @@ where
                     ),
                     store_op: color.storeOp.convert(),
                     view: convert_texture_for_wgpu_with_cx(cx, &color.view).0,
-                    depth_slice: None,
+                    depth_slice: None.convert(),
                 }))
             })
             .collect::<Fallible<Vec<_>>>()?;
-        let render_pass_id = self
+        let render_pass_encoder_id = self
             .global_from_reflector()
             .global_wgpu_id_hub()
             .create_render_pass_id();
 
-        if let Err(error) = self
-            .droppable
-            .channel
-            .0
-            .send(WebGPURequest::BeginRenderPass {
-                command_encoder_id: self.id().0,
-                render_pass_id,
+        self.send_command(CommandEncoderCommand::BeginRenderPass {
+            desc: RenderPassDescriptor {
                 label: (&descriptor.parent).convert(),
                 depth_stencil_attachment,
-                color_attachments,
+                color_attachments: Cow::Owned(color_attachments),
                 timestamp_writes: descriptor
                     .timestampWrites
                     .as_ref()
                     .map(WebGPUConvert::convert),
-                device_id: self.device.id().0,
-            })
-        {
-            warn!("Failed to send WebGPURequest::BeginRenderPass {error:?}");
-        }
+                occlusion_query_set: None,
+            },
+            render_pass_encoder_id,
+        });
 
         Ok(GPURenderPassEncoder::new(
             cx,
             &*self.global_from_reflector(),
             self.droppable.channel.clone(),
-            WebGPURenderPass(render_pass_id),
+            WebGPURenderPass(render_pass_encoder_id),
             self,
             descriptor.parent.label.clone(),
         ))
@@ -312,14 +307,14 @@ where
         source_offset: GPUSize64,
         destination: &GPUBuffer<D>,
         destination_offset: GPUSize64,
-        size: GPUSize64,
+        size: Option<GPUSize64>,
     ) {
         self.send_command(CommandEncoderCommand::CopyBufferToBuffer {
             source: source.id().0,
             source_offset,
             destination: destination.id().0,
             destination_offset,
-            size: Some(size),
+            size,
         });
     }
 
@@ -381,18 +376,12 @@ where
             .global_from_reflector()
             .global_wgpu_id_hub()
             .create_command_buffer_id();
-        self.droppable
-            .channel
-            .0
-            .send(WebGPURequest::CommandEncoderFinish {
-                command_encoder_id: self.droppable.encoder.0,
-                device_id: self.device.id().0,
-                desc: CommandBufferDescriptor {
-                    label: (&descriptor.parent).convert(),
-                },
-                command_buffer_id,
-            })
-            .expect("Failed to send Finish");
+        self.send_command(CommandEncoderCommand::Finish {
+            desc: CommandBufferDescriptor {
+                label: (&descriptor.parent).convert(),
+            },
+            command_buffer_id,
+        });
 
         let buffer = WebGPUCommandBuffer(command_buffer_id);
         GPUCommandBuffer::new(

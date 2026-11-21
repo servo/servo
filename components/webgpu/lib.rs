@@ -9,11 +9,8 @@ use servo_base::generic_channel::{self, GenericReceiver};
 use webgpu_traits::{WebGPU, WebGPUMsg};
 use wgpu_thread::WGPU;
 
-mod encoders;
 mod poll_thread;
 mod wgpu_thread;
-
-use std::borrow::Cow;
 
 use paint_api::{CrossProcessPaintApi, WebRenderExternalImageIdManager};
 use servo_config::pref;

@@ -6,7 +6,6 @@ use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use arrayvec::ArrayVec;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use pixels::Snapshot;
@@ -18,10 +17,7 @@ use script_bindings::reflector::{Reflector, reflect_weak_referenceable_dom_objec
 use script_bindings::trace::RootedTraceableBox;
 use script_webgpu::gpuconvert::convert_texture_descriptor;
 use servo_base::{Epoch, generic_channel};
-use webgpu_traits::{
-    ContextConfiguration, PRESENTATION_BUFFER_COUNT, PendingTexture, WebGPU, WebGPUContextId,
-    WebGPURequest, id,
-};
+use webgpu_traits::{ContextConfiguration, PendingTexture, WebGPU, WebGPUContextId, WebGPURequest};
 use webrender_api::{ImageFormat, ImageKey};
 
 use super::gputexture::GPUTexture;
@@ -33,7 +29,6 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
 };
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
@@ -88,22 +83,13 @@ pub(crate) struct GPUCanvasContext {
 
 impl GPUCanvasContext {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    fn new_inherited(
-        global: &GlobalScope,
-        canvas: HTMLCanvasElementOrOffscreenCanvas,
-        channel: WebGPU,
-    ) -> Self {
+    fn new_inherited(canvas: HTMLCanvasElementOrOffscreenCanvas, channel: WebGPU) -> Self {
         let (sender, receiver) = generic_channel::channel().unwrap();
         let size = canvas.size().cast().cast_unit();
-        let mut buffer_ids = ArrayVec::<id::BufferId, PRESENTATION_BUFFER_COUNT>::new();
-        for _ in 0..PRESENTATION_BUFFER_COUNT {
-            buffer_ids.push(global.wgpu_id_hub().create_buffer_id());
-        }
-        if let Err(error) = channel.0.send(WebGPURequest::CreateContext {
-            buffer_ids,
-            size,
-            sender,
-        }) {
+        if let Err(error) = channel
+            .0
+            .send(WebGPURequest::CreateContext { size, sender })
+        {
             warn!("Failed to send CreateContext ({error:?})");
         }
         let context_id = receiver.recv().unwrap();
@@ -131,7 +117,6 @@ impl GPUCanvasContext {
         reflect_weak_referenceable_dom_object(
             cx,
             Rc::new(GPUCanvasContext::new_inherited(
-                global,
                 HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(Dom::from_ref(canvas)),
                 channel,
             )),
@@ -243,8 +228,8 @@ impl GPUCanvasContext {
         let configuration = self.configuration.borrow();
         let configuration = configuration.as_ref()?;
         Some(ContextConfiguration {
-            device_id: configuration.device.id().0,
-            queue_id: configuration.device.queue_id().0,
+            device: configuration.device.id().0,
+            queue: configuration.device.queue_id().0,
             format: match configuration.format {
                 GPUTextureFormat::Bgra8unorm => ImageFormat::BGRA8,
                 GPUTextureFormat::Rgba8unorm => ImageFormat::RGBA8,
@@ -257,9 +242,7 @@ impl GPUCanvasContext {
 
     fn pending_texture(&self) -> Option<PendingTexture> {
         self.current_texture.get().map(|texture| PendingTexture {
-            texture_id: texture.id().0,
-            encoder_id: self.global().wgpu_id_hub().create_command_encoder_id(),
-            command_buffer_id: self.global().wgpu_id_hub().create_command_buffer_id(),
+            texture: texture.id().0,
             configuration: self
                 .context_configuration()
                 .expect("Context should be configured if there is a texture."),
@@ -372,13 +355,11 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
 
         // 10. Issue the subsequent steps on the Device timeline of device.
         // 10.1. Validate texture descriptor
-        let texture_id = self.global().wgpu_id_hub().create_texture_id();
         self.droppable
             .channel
             .0
             .send(WebGPURequest::ValidateTextureDescriptor {
                 device_id: device.id().0,
-                texture_id,
                 descriptor: wgpu_descriptor,
             })
             .expect("Failed to create WebGPU SwapChain");

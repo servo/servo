@@ -25,7 +25,10 @@ servo-config = { workspace = true }
 webgpu_traits = { workspace = true }
 webrender_api = { workspace = true }
 wgpu-core = { workspace = true, features = ["serde", "wgsl"] }
+wgpu-core-remote = { workspace = true }
+wgpu-core-remote-types = { workspace = true }
 wgpu-types = { workspace = true }
+
 
 # We want the wgpu-core Metal backend on macOS and iOS.
 [target.'cfg(any(target_os = "ios", target_os = "macos"))'.dependencies]

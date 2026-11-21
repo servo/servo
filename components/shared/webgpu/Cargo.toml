@@ -21,7 +21,7 @@ pixels = { workspace = true }
 serde = { workspace = true }
 servo-base = { workspace = true }
 webrender_api = { workspace = true }
-wgpu-core = { workspace = true, features = ["serde", "wgsl"] }
+wgpu-core-remote-types = { workspace = true }
 wgpu-types = { workspace = true }
 
 [lints]

@@ -16,8 +16,8 @@ use script_bindings::dom::MutNullableDom;
 use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use webgpu_traits::{
-    Extent3d, ImageSubresourceRange, TextureAspect, TextureDescriptor, TextureUsages,
-    TextureViewDescriptor, WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView,
+    Extent3d, ImageSubresourceRange, TextureAspect, TextureComponentSwizzle, TextureDescriptor,
+    TextureUsages, TextureViewDescriptor, WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView,
 };
 
 use crate::JSTraceable;
@@ -151,6 +151,7 @@ where
             format: self.format.convert(),
             usage: TextureUsages::from_bits_retain(self.texture_usage),
             view_formats: vec![],
+            texture_binding_view_dimension: None,
         }
     }
 
@@ -224,8 +225,6 @@ where
         cx: &mut JSContext,
         descriptor: &GPUTextureViewDescriptor,
     ) -> Fallible<DomRoot<GPUTextureView<D>>> {
-        // Invalid descriptors (e.g. a zero mip level or array layer count) are validated by wgpu,
-        // which then still registers the view id as invalid so that later uses don't panic.
         let desc = TextureViewDescriptor {
             label: (&descriptor.parent).convert(),
             format: descriptor
@@ -245,6 +244,7 @@ where
                 base_array_layer: descriptor.baseArrayLayer,
                 array_layer_count: descriptor.arrayLayerCount,
             },
+            swizzle: TextureComponentSwizzle::default(),
         };
 
         let texture_view_id = self

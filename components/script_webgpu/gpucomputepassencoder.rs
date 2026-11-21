@@ -146,17 +146,7 @@ where
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-endpass>
     fn End(&self) {
-        if let Err(e) = self
-            .droppable
-            .channel
-            .0
-            .send(WebGPURequest::EndComputePass {
-                compute_pass_id: self.droppable.compute_pass.0,
-                device_id: self.command_encoder.device_id().0,
-            })
-        {
-            warn!("Failed to send WebGPURequest::EndComputePass: {e:?}");
-        }
+        self.send_command(ComputePassEncoderCommand::End);
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuprogrammablepassencoder-setbindgroup>

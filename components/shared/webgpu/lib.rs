@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-pub mod encoders;
 pub mod error;
 pub mod ids;
 pub mod messages;
@@ -15,7 +14,7 @@ use servo_base::generic_channel::{GenericOneshotSender, GenericSender, GenericSh
 use webrender_api::euclid::default::Size2D;
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat};
 pub mod markers {
-    pub use wgpu_core::id::markers::{
+    pub use wgpu_core_remote_types::id::markers::{
         Adapter, BindGroup, BindGroupLayout, Buffer, CommandBuffer, CommandEncoder,
         ComputePassEncoder, ComputePipeline, Device, ExternalTexture, PipelineLayout, QuerySet,
         Queue, RenderBundle, RenderBundleEncoder, RenderPassEncoder, RenderPipeline, Sampler,
@@ -23,55 +22,59 @@ pub mod markers {
     };
 }
 pub mod id {
-    pub use wgpu_core::id::{
+    pub use wgpu_core_remote_types::id::{
         AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, CommandEncoderId,
         ComputePassEncoderId, ComputePipelineId, DeviceId, ExternalTextureId, PipelineLayoutId,
         QuerySetId, QueueId, RenderBundleEncoderId, RenderBundleId, RenderPassEncoderId,
         RenderPipelineId, SamplerId, ShaderModuleId, TextureId, TextureViewId,
     };
 }
-pub use wgpu_core::Label;
-pub use wgpu_core::binding_model::{
-    BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor, BindingResource, BufferBinding,
-    PipelineLayoutDescriptor,
+pub use wgpu_core_remote_types::binding_model::{
+    BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
+    BindingResource, BufferBinding, BufferBindingLayout, SamplerBindingLayout,
+    StorageTextureBindingLayout, TextureBindingLayout,
 };
-pub use wgpu_core::command::{
+pub use wgpu_core_remote_types::encoders::{
     ComputePassDescriptor, LoadOp, PassChannel, PassTimestampWrites, RenderBundleDescriptor,
     RenderBundleEncoderDescriptor, RenderPassColorAttachment, RenderPassDepthStencilAttachment,
-    RenderPassDescriptor, StoreOp, TexelCopyBufferInfo, TexelCopyTextureInfo,
+    RenderPassDescriptor, TexelCopyBufferInfo, TexelCopyTextureInfo, *,
 };
-pub use wgpu_core::device::HostMap;
-use wgpu_core::id::{ComputePipelineId, DeviceId, QueueId, RenderPipelineId};
-pub use wgpu_core::identity::IdentityManager;
-pub use wgpu_core::instance::RequestAdapterOptions;
-use wgpu_core::limits::FailedLimit;
-pub use wgpu_core::naga::front::wgsl::ImplementedLanguageExtension;
-use wgpu_core::pipeline::CreateShaderModuleError;
-pub use wgpu_core::pipeline::{
+pub use wgpu_core_remote_types::ffi::*;
+use wgpu_core_remote_types::id::{ComputePipelineId, DeviceId, QueueId, RenderPipelineId};
+pub use wgpu_core_remote_types::identity::IdentityManager;
+pub use wgpu_core_remote_types::pipelines::{
     ComputePipelineDescriptor, FragmentState, ProgrammableStageDescriptor,
-    RenderPipelineDescriptor, ShaderModuleDescriptor, VertexBufferLayout, VertexState,
+    RenderPipelineDescriptor, VertexBufferLayout, VertexState,
 };
-pub use wgpu_core::resource::{
-    BufferAccessError, BufferDescriptor, QuerySetDescriptor, SamplerDescriptor, TextureDescriptor,
-    TextureViewDescriptor,
+pub use wgpu_core_remote_types::{
+    BufferDescriptor, BufferMapError, DeviceDescriptor, ImplementedLanguageExtension, Label,
+    MapMode, PipelineError, PipelineLayoutDescriptor, QuerySetDescriptor, QueueDescriptor,
+    RequestAdapterOptions, RequestDeviceError, SamplerDescriptor, ShaderModuleDescriptor,
+    TextureDescriptor, TextureViewDescriptor,
 };
 use wgpu_types::COPY_BYTES_PER_ROW_ALIGNMENT;
+pub type CompilationInfo = wgpu_types::CompilationInfo<Utf16SourceLocation>;
+pub type CompilationMessage = wgpu_types::CompilationMessage<Utf16SourceLocation>;
 pub use wgpu_types::{
-    AdapterInfo, AddressMode, AstcBlock, AstcChannel, BindGroupLayoutEntry, BindingType,
-    BlendComponent, BlendFactor, BlendOperation, BlendState, BufferAddress, BufferBindingType,
-    BufferSize, BufferUsages, COPY_BUFFER_ALIGNMENT, Color, ColorTargetState, ColorWrites,
-    CommandBufferDescriptor, CommandEncoderDescriptor, CompareFunction, DepthBiasState,
-    DepthStencilState, DeviceDescriptor, DeviceType, ExperimentalFeatures, Extent3d, Face,
-    Features, FilterMode, FrontFace, ImageSubresourceRange, IndexFormat, Limits, MAP_ALIGNMENT,
-    MemoryHints, MipmapFilterMode, MultisampleState, Origin2d, Origin3d, PowerPreference,
-    PredefinedColorSpace, PrimitiveState, PrimitiveTopology, QueryType, RenderBundleDepthStencil,
-    SamplerBindingType, ShaderStages, StencilFaceState, StencilOperation, StencilState,
-    StorageTextureAccess, TexelCopyBufferLayout, TextureAspect, TextureDimension, TextureFormat,
-    TextureSampleType, TextureUsages, TextureViewDimension, Trace, VertexAttribute, VertexFormat,
-    VertexStepMode,
+    AdapterInfo, AddressMode, AstcBlock, AstcChannel, BlendComponent, BlendFactor, BlendOperation,
+    BlendState, BufferAddress, BufferBindingType, BufferSize, BufferUsagesWebGPU as BufferUsages,
+    COPY_BUFFER_ALIGNMENT, Color, ColorTargetState, ColorWrites, CommandBufferDescriptor,
+    CommandEncoderDescriptor, CompareFunction, CompilationMessageType, DepthBiasState,
+    DepthStencilState, DeviceLostReason, DeviceType, ExperimentalFeatures, Extent3d, Face,
+    Features as FullFeatures, FeaturesWebGPU as Features, FilterMode, FrontFace,
+    ImageSubresourceRange, IndexFormat, Limits, MAP_ALIGNMENT, MapMode as HostMap, MemoryHints,
+    MipmapFilterMode, MultisampleState, Origin2d, Origin3d, PowerPreference, PredefinedColorSpace,
+    PrimitiveState, PrimitiveTopology, QueryType, RenderBundleDepthStencil, SamplerBindingType,
+    ShaderStagesWebGPU as ShaderStages, StencilFaceState, StencilOperation, StencilState,
+    StorageTextureAccess, StoreOp, TexelCopyBufferLayout, TextureAspect, TextureComponentSwizzle,
+    TextureDimension, TextureFormat, TextureSampleType, TextureUsages, TextureViewDimension, Trace,
+    Utf16SourceLocation, VertexAttribute, VertexFormat, VertexStepMode,
 };
 
-pub use crate::encoders::*;
+pub fn full_features(features: Features) -> FullFeatures {
+    FullFeatures::from_internal_flags(wgpu_types::FeaturesWGPU::empty(), features)
+}
+
 pub use crate::error::*;
 pub use crate::ids::*;
 pub use crate::messages::*;
@@ -79,9 +82,9 @@ pub use crate::messages::*;
 pub const PRESENTATION_BUFFER_COUNT: usize = 10;
 
 pub type WebGPUAdapterResponse = Option<Result<Adapter, String>>;
-pub type WebGPUComputePipelineResponse = Result<Pipeline<ComputePipelineId>, Error>;
-pub type WebGPUPoppedErrorScopeResponse = Result<Option<Error>, PopError>;
-pub type WebGPURenderPipelineResponse = Result<Pipeline<RenderPipelineId>, Error>;
+pub type WebGPUComputePipelineResponse = Result<Pipeline<ComputePipelineId>, PipelineError>;
+pub type WebGPUPoppedErrorScopeResponse = Result<Option<Error>, ()>;
+pub type WebGPURenderPipelineResponse = Result<Pipeline<RenderPipelineId>, PipelineError>;
 
 #[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub struct WebGPU(pub GenericSender<WebGPURequest>);
@@ -104,15 +107,15 @@ pub struct Adapter {
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-pub struct ContextConfiguration {
-    pub device_id: DeviceId,
-    pub queue_id: QueueId,
+pub struct ContextConfiguration<D = DeviceId, Q = QueueId> {
+    pub device: D,
+    pub queue: Q,
     pub format: ImageFormat,
     pub is_opaque: bool,
     pub size: Size2D<u32>,
 }
 
-impl ContextConfiguration {
+impl<D, Q> ContextConfiguration<D, Q> {
     pub fn stride(&self) -> u32 {
         (self.size.width * self.format.bytes_per_pixel() as u32)
             .next_multiple_of(COPY_BYTES_PER_ROW_ALIGNMENT)
@@ -123,8 +126,8 @@ impl ContextConfiguration {
     }
 }
 
-impl From<ContextConfiguration> for ImageDescriptor {
-    fn from(config: ContextConfiguration) -> Self {
+impl<D, Q> From<ContextConfiguration<D, Q>> for ImageDescriptor {
+    fn from(config: ContextConfiguration<D, Q>) -> Self {
         ImageDescriptor {
             format: config.format,
             size: config.size.cast().cast_unit(),
@@ -135,55 +138,6 @@ impl From<ContextConfiguration> for ImageDescriptor {
             } else {
                 ImageDescriptorFlags::empty()
             },
-        }
-    }
-}
-
-/// <https://gpuweb.github.io/gpuweb/#enumdef-gpudevicelostreason>
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-pub enum DeviceLostReason {
-    Unknown,
-    Destroyed,
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct ShaderCompilationInfo {
-    pub line_number: u64,
-    pub line_pos: u64,
-    pub offset: u64,
-    pub length: u64,
-    pub message: String,
-}
-
-impl ShaderCompilationInfo {
-    pub fn from(error: &CreateShaderModuleError, source: &str) -> Self {
-        let location = match error {
-            CreateShaderModuleError::Parsing(e) => e.inner.location(source),
-            CreateShaderModuleError::Validation(e) => e.inner.location(source),
-            _ => None,
-        };
-
-        if let Some(location) = location {
-            // Naga reports locations in UTF-8 code units, but spec requires location in UTF-16 code units
-            // Based on https://searchfox.org/mozilla-central/rev/5b037d9c6ecdb0729f39ad519f0b867d80a92aad/gfx/wgpu_bindings/src/server.rs#353
-            fn len_utf16(s: &str) -> u64 {
-                s.chars().map(|c| c.len_utf16() as u64).sum()
-            }
-            let start = location.offset as usize;
-            let end = start + location.length as usize;
-            let line_start = source[0..start].rfind('\n').map(|pos| pos + 1).unwrap_or(0);
-            Self {
-                line_number: location.line_number as u64,
-                line_pos: len_utf16(&source[line_start..start]) + 1,
-                offset: len_utf16(&source[0..start]),
-                length: len_utf16(&source[start..end]),
-                message: error.to_string(),
-            }
-        } else {
-            Self {
-                message: error.to_string(),
-                ..Default::default()
-            }
         }
     }
 }
@@ -204,29 +158,8 @@ pub struct Mapping {
 pub type WebGPUDeviceResponse = (
     WebGPUDevice,
     WebGPUQueue,
-    Result<DeviceDescriptor<Option<String>>, RequestDeviceError>,
+    Result<(DeviceDescriptor<'static>, bool), RequestDeviceError>,
 );
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum RequestDeviceError {
-    LimitsExceeded(FailedLimit),
-    UnsupportedFeature(Features),
-    Other(String),
-}
-
-impl From<wgpu_core::instance::RequestDeviceError> for RequestDeviceError {
-    fn from(value: wgpu_core::instance::RequestDeviceError) -> Self {
-        match value {
-            wgpu_core::instance::RequestDeviceError::LimitsExceeded(failed_limit) => {
-                RequestDeviceError::LimitsExceeded(failed_limit)
-            },
-            wgpu_core::instance::RequestDeviceError::UnsupportedFeature(features) => {
-                RequestDeviceError::UnsupportedFeature(features)
-            },
-            e => RequestDeviceError::Other(e.to_string()),
-        }
-    }
-}
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum BufferUpdate {

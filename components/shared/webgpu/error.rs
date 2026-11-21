@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use wgpu_types::error::{ErrorType, WebGpuError};
 
 /// <https://www.w3.org/TR/webgpu/#gpu-error-scope>
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ErrorScope {
     pub errors: Vec<Error>,
     pub filter: ErrorFilter,
@@ -25,13 +25,7 @@ impl ErrorScope {
     }
 }
 
-/// <https://www.w3.org/TR/webgpu/#enumdef-gpuerrorfilter>
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-pub enum ErrorFilter {
-    Validation,
-    OutOfMemory,
-    Internal,
-}
+pub use wgpu_types::error::ErrorFilter;
 
 /// <https://www.w3.org/TR/webgpu/#gpuerror>
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
@@ -50,6 +44,27 @@ impl std::error::Error for Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.message())
+    }
+}
+
+impl From<wgpu_types::error::Error> for Error {
+    fn from(error: wgpu_types::error::Error) -> Self {
+        match error.webgpu_error_type() {
+            ErrorType::Internal => Error::Internal(error.to_string()),
+            ErrorType::OutOfMemory => Error::OutOfMemory(error.to_string()),
+            ErrorType::Validation => Error::Validation(error.to_string()),
+            ErrorType::DeviceLost => unreachable!(),
+        }
+    }
+}
+
+impl WebGpuError for Error {
+    fn webgpu_error_type(&self) -> ErrorType {
+        match self {
+            Error::Validation(_) => ErrorType::Validation,
+            Error::OutOfMemory(_) => ErrorType::OutOfMemory,
+            Error::Internal(_) => ErrorType::Internal,
+        }
     }
 }
 
@@ -81,10 +96,4 @@ impl Error {
             ErrorType::DeviceLost => None,
         }
     }
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-pub enum PopError {
-    Lost,
-    Empty,
 }

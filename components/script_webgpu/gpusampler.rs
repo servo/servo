@@ -131,7 +131,6 @@ where
             lod_max_clamp: *descriptor.lodMaxClamp,
             compare: descriptor.compare.map(WebGPUConvert::convert),
             anisotropy_clamp: 1,
-            border_color: None,
         };
 
         device

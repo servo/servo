@@ -12,12 +12,12 @@ use script_bindings::DomTypes;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUIndexFormat, GPURenderBundleDescriptor, GPURenderBundleEncoderDescriptor,
-    GPURenderBundleEncoderMethods, GPURenderBundleEncoderWrap,
+    GPURenderBundleEncoderMethods, GPURenderBundleEncoderWrap, GPUSize64,
 };
 use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use webgpu_traits::{
-    BindingCommand, BufferSize, DebugCommand, RenderBundleDepthStencil, RenderBundleDescriptor,
+    BindingCommand, DebugCommand, RenderBundleDepthStencil, RenderBundleDescriptor,
     RenderBundleEncoderCommand, RenderBundleEncoderDescriptor, RenderCommand, WebGPU,
     WebGPURenderBundle, WebGPURenderBundleEncoder, WebGPURequest,
 };
@@ -144,7 +144,6 @@ where
                 })
                 .transpose()?,
             sample_count: descriptor.parent.sampleCount,
-            multiview: None,
         };
 
         let id = device
@@ -248,7 +247,7 @@ where
         buffer: &D::GPUBuffer,
         index_format: GPUIndexFormat,
         offset: u64,
-        size: u64,
+        size: Option<GPUSize64>,
     ) {
         if let Err(error) =
             self.droppable
@@ -261,7 +260,7 @@ where
                             buffer: buffer.id().0,
                             index_format: index_format.convert(),
                             offset,
-                            size: BufferSize::new(size),
+                            size,
                         },
                     ),
                     device_id: self.device.id().0,
@@ -275,7 +274,13 @@ where
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setvertexbuffer>
-    fn SetVertexBuffer(&self, slot: u32, buffer: Option<&GPUBuffer<D>>, offset: u64, size: u64) {
+    fn SetVertexBuffer(
+        &self,
+        slot: u32,
+        buffer: Option<&GPUBuffer<D>>,
+        offset: u64,
+        size: Option<GPUSize64>,
+    ) {
         if let Err(error) =
             self.droppable
                 .channel
@@ -287,7 +292,7 @@ where
                             slot,
                             buffer: buffer.map(|b| b.id().0),
                             offset,
-                            size: BufferSize::new(size),
+                            size,
                         },
                     ),
                     device_id: self.device.id().0,
@@ -489,11 +494,13 @@ where
             self.droppable
                 .channel
                 .0
-                .send(WebGPURequest::RenderBundleEncoderFinish {
-                    render_bundle_encoder_id: self.id().0,
-                    descriptor: desc,
-                    render_bundle_id,
+                .send(WebGPURequest::RenderBundleEncoderCommand {
                     device_id: self.device.id().0,
+                    render_bundle_encoder_id: self.id().0,
+                    render_command: RenderBundleEncoderCommand::Finish {
+                        render_bundle_id,
+                        desc,
+                    },
                 })
         {
             warn!(

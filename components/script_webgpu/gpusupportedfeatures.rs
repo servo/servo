@@ -47,8 +47,9 @@ impl<D: Equivalence> GPUSupportedFeatures<D> {
         features: Features,
     ) -> DomRoot<GPUSupportedFeatures<D>> {
         let mut set = IndexSet::new();
-        // everything that wgpu currently does is considered as part of "core"
-        set.insert(GPUFeatureName::Core_features_and_limits);
+        if features.contains(Features::CORE_FEATURES_AND_LIMITS) {
+            set.insert(GPUFeatureName::Core_features_and_limits);
+        }
         if features.contains(Features::DEPTH_CLIP_CONTROL) {
             set.insert(GPUFeatureName::Depth_clip_control);
         }
@@ -138,8 +139,7 @@ impl<D: DomTypes> GPUSupportedFeaturesMethods<D> for GPUSupportedFeatures<D> {
 
 pub(crate) fn gpu_to_wgt_feature(feature: GPUFeatureName) -> Option<Features> {
     match feature {
-        // everything that wgpu currently does is considered as part of "core"
-        GPUFeatureName::Core_features_and_limits => Some(Features::empty()),
+        GPUFeatureName::Core_features_and_limits => Some(Features::CORE_FEATURES_AND_LIMITS),
         GPUFeatureName::Depth_clip_control => Some(Features::DEPTH_CLIP_CONTROL),
         GPUFeatureName::Depth32float_stencil8 => Some(Features::DEPTH32FLOAT_STENCIL8),
         GPUFeatureName::Texture_compression_bc => Some(Features::TEXTURE_COMPRESSION_BC),
