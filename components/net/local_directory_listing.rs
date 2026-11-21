@@ -7,7 +7,7 @@ use std::fs::Metadata;
 use std::path::PathBuf;
 
 use chrono::{DateTime, Local};
-use embedder_traits::resources::{Resource, read_string};
+use embedder_traits::resources::{Resource, read_bytes};
 use headers::{ContentType, HeaderMapExt};
 use net_traits::request::Request;
 use net_traits::response::{Response, ResponseBody};
@@ -73,7 +73,8 @@ pub(crate) async fn build_html_directory_listing(
         parent_url.as_str().clone_into(&mut parent_url_string);
     }
 
-    page_html.push_str(&read_string(Resource::DirectoryListingHTML));
+    page_html
+        .push_str(str::from_utf8(read_bytes(Resource::DirectoryListingHTML).as_ref()).unwrap());
 
     page_html.push_str("<script>\n");
     write!(

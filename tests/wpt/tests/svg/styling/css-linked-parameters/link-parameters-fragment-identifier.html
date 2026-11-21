@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>link-parameters: a fragment directive does not hide the fragment before it</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://drafts.csswg.org/css-link-params/#url-frag">
+<link rel="help" href="https://wicg.github.io/scroll-to-text-fragment/#the-fragment-directive">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14656">
+<link rel="match" href="link-parameters-fragment-identifier-ref.html">
+<meta name="assert" content="An image URL whose fragment has both an element id and a link parameter directive targets that element and passes the parameter.">
+<style>
+  body { margin: 0; }
+  img { display: block; width: 100px; height: 100px; }
+</style>
+<img src="resources/target.svg#box:~:param(--bg, green)">

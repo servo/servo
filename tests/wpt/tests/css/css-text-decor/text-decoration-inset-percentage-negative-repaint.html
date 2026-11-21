@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Text Decoration: a negative percentage inset repaints its overhang on a dynamic change</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-inset-property">
+<link rel="match" href="text-decoration-inset-percentage-negative-repaint-ref.html">
+<meta name="assert" content="Turning on a negative percentage text-decoration-inset after the first paint repaints the newly extended part of the underline; the overhang must not be left clipped to the un-inset ink overflow.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+body { margin: 80px; }
+u {
+  font: 20px/2 Ahem;
+  text-decoration-line: underline;
+  text-decoration-color: blue;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+}
+</style>
+
+<!-- The <u> is 10ch = 200px wide, so -25% extends each endpoint outward by 50px. Applying it after
+     the initial layout/paint exercises the repaint path rather than the first-paint path. -->
+
+<p><u id="target">abcdefghij</u></p>
+
+<script>
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  document.getElementById("target").style.textDecorationInset = "-25%";
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.documentElement.classList.remove("reftest-wait");
+  }));
+}));
+</script>
+</html>

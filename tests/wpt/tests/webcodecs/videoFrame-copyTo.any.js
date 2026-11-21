@@ -443,3 +443,56 @@ promise_test(async t => {
   assert_buffer_equals(data, expectedData);
   frame.close();
 }, 'Test texture-backed RGBA copyTo does not modify destination stride/offset padding bytes.');
+promise_test(async t => {
+  // A buffer-backed frame is laid out for its coded size; visibleRect only crops
+  // the output. When codedHeight exceeds visibleRect.height (e.g. a macroblock
+  // -rounded decoder output shown without the extra rows), the chroma planes must
+  // still be read from their coded offsets. Reading them from the visible height
+  // offsets instead picks up Y-plane bytes as chroma. Keep x/y at 0 to isolate
+  // the vertical (codedHeight) case.
+  let init = {
+    format: 'I420',
+    timestamp: 1234,
+    codedWidth: 8,
+    codedHeight: 8,
+    visibleRect: {
+      x: 0,
+      y: 0,
+      width: 8,
+      height: 4,
+    },
+    colorSpace: {
+      primaries: 'smpte170m',
+      transfer: 'smpte170m',
+      matrix: 'smpte170m',
+      fullRange: false,
+    }
+  };
+
+  // Define YUV values for BT.601 red.
+  const redY = 76;
+  const redU = 84;
+  const redV = 255;
+
+  const ySize = init.codedWidth * init.codedHeight;
+  const uvSize = ySize / 4;
+  let data = new Uint8Array(ySize + 2 * uvSize);
+  fillYUV(data, init.codedWidth, init.codedHeight, init.visibleRect, redY, redU,
+          redV);
+
+  let frame = new VideoFrame(data, init);
+  assert_equals(frame.codedWidth, init.visibleRect.width);
+  assert_equals(frame.codedHeight, init.visibleRect.height);
+  assert_equals(frame.visibleRect.width, init.visibleRect.width);
+  assert_equals(frame.visibleRect.height, init.visibleRect.height);
+
+  let options = {rect: frame.visibleRect};
+  let copied_data = new Uint8Array(frame.allocationSize(options));
+  await frame.copyTo(copied_data, options);
+
+  let packed_data = new Uint8Array(frame.allocationSize(options));
+  fillYUV(packed_data, frame.codedWidth, frame.codedHeight, frame.visibleRect,
+          redY, redU, redV);
+
+  assert_array_equals(copied_data, packed_data, `Copied frame data incorrect.`);
+}, 'copyTo from byte data with codedHeight larger than visibleRect height');

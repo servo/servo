@@ -17,7 +17,7 @@ async function waitReports(frame) {
   return await new Promise((resolve) => {
     const observer = new frame.contentWindow.ReportingObserver((reports) => {
       observer.disconnect();
-      resolve(reports.map(r => r.toJSON()));
+      resolve(reports);
     });
     observer.observe();
 

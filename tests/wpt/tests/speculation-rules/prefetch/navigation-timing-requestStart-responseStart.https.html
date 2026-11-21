@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/common/utils.js"></script>
 <script src="../resources/utils.js"></script>
@@ -40,7 +42,7 @@ subsetTestByKey('noPrefetch', promise_test, async t => {
 subsetTestByKey('afterResponse', promise_test, async t => {
   const agent = await spawnWindow(t);
   const landingUrl = agent.getExecutorURL({page: 2});
-  await agent.forceSinglePrefetch(landingUrl);
+  await agent.forceSinglePrefetchAndWaitForStatus(landingUrl);
 
   await agent.navigate(landingUrl);
   assert_prefetched(await agent.getRequestHeaders(), `${landingUrl} should have been prefetched.`);

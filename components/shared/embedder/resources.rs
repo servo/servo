@@ -5,8 +5,11 @@
 use std::path::PathBuf;
 use std::sync::LazyLock;
 
+use bytes::Bytes;
 #[doc(hidden)]
 pub use inventory as _inventory;
+use malloc_size_of::MallocSizeOf;
+use serde::{Deserialize, Serialize};
 
 /// A static reference to a ResourceReader
 ///
@@ -77,12 +80,13 @@ static RESOURCE_READER: LazyLock<ResourceReader> = {
     })
 };
 
-pub fn read_bytes(res: Resource) -> Vec<u8> {
+pub fn read_bytes(res: Resource) -> ResourceBytes {
     RESOURCE_READER.read(res)
 }
 
+/// Consider using [`read_bytes`] with `str::from_utf8` if you can use a `&str`.
 pub fn read_string(res: Resource) -> String {
-    String::from_utf8(read_bytes(res)).unwrap()
+    String::from_utf8(read_bytes(res).into_vec()).unwrap()
 }
 
 pub fn sandbox_access_files() -> Vec<PathBuf> {
@@ -160,11 +164,58 @@ impl Resource {
     }
 }
 
+/// Struct for efficiently referencing bytes from [`ResourceReaderMethods`].
+/// Can be treated as `&[u8]`.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ResourceBytes {
+    bytes: Bytes,
+}
+
+impl AsRef<[u8]> for ResourceBytes {
+    fn as_ref(&self) -> &[u8] {
+        &self.bytes
+    }
+}
+
+impl MallocSizeOf for ResourceBytes {
+    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        self.bytes.size_of(ops)
+    }
+}
+
+impl ResourceBytes {
+    /// Construct from static. Does not allocate.
+    pub fn from_static(bytes: &'static [u8]) -> Self {
+        ResourceBytes {
+            bytes: Bytes::from_static(bytes),
+        }
+    }
+
+    /// Construct from vec. Takes the allocation
+    pub fn from_vec(bytes: Vec<u8>) -> Self {
+        ResourceBytes {
+            bytes: bytes.into(),
+        }
+    }
+
+    /// Construct from owner. Useful for mmap'ed files or similar. Takes the owner.
+    pub fn from_owner<T: AsRef<[u8]> + Send + Sync + 'static>(owner: T) -> Self {
+        ResourceBytes {
+            bytes: Bytes::from_owner(owner),
+        }
+    }
+
+    /// Returns the constructed bytes. This might involve a copy
+    pub fn into_vec(self) -> Vec<u8> {
+        self.bytes.into()
+    }
+}
+
 pub trait ResourceReaderMethods {
     /// Read a named [`Resource`].
     ///
     /// The implementation must be functional in all Servo processes.
-    fn read(&self, res: Resource) -> Vec<u8>;
+    fn read(&self, res: Resource) -> ResourceBytes;
     /// Files that should remain accessible after sandboxing the content process.
     ///
     /// If the resources are shipped as files, then the files should be listed here,

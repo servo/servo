@@ -194,6 +194,7 @@ class ProfileCreator(FirefoxProfileCreator):
                 "places.history.enabled": False,
             }
         )
+        prefs.update(self._get_address_space_override_prefs())
 
         if self.package_name == "org.mozilla.geckoview.test_runner":
             # Bug 1879324: The TestRunner doesn't support "beforeunload" prompts yet

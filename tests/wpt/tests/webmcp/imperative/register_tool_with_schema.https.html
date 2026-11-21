@@ -45,6 +45,41 @@ promise_test(async () => {
     execute: () => {},
   });
 }, "registerTool succeeds when inputSchema.toJSON() returns 'undefined'");
+
+promise_test(async () => {
+  const tool = {
+    name: 'output_tool',
+    description: 'tool with output schema',
+    outputSchema: {
+      type: 'object',
+      properties: {
+        text: {
+          description: 'Value to return',
+          type: 'string',
+        },
+      },
+      required: ['text'],
+    },
+    execute: () => ({ text: 'hello' }),
+  };
+
+  const controller = new AbortController();
+  await document.modelContext.registerTool(tool, { signal: controller.signal });
+  controller.abort();
+}, 'register and unregister script tool with outputSchema');
+
+promise_test(async () => {
+  await document.modelContext.registerTool({
+    name: 'empty_output_undefined_string',
+    description: 'empty',
+    outputSchema: {
+      toJSON: () => {
+        return 'undefined';
+      },
+    },
+    execute: () => {},
+  });
+}, "registerTool succeeds when outputSchema.toJSON() returns 'undefined'");
 </script>
 </body>
 </html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Images Test: conic-gradient color stops with math functions resolving percentages</title>
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#conic-gradients">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#typedef-angle-percentage">
+<link rel="match" href="conic-gradient-math-function-percentage-ref.html">
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+    margin-bottom: 10px;
+    background-color: red;
+  }
+  .test1 {
+    background-image: conic-gradient(lime max(0%, 25%), blue 25%);
+  }
+  .test2 {
+    background-image: conic-gradient(lime min(50%, 25%), blue 25%);
+  }
+  .test3 {
+    background-image: conic-gradient(lime calc(45deg + 12.5%), blue 25%);
+  }
+  .test4 {
+    background-image: conic-gradient(lime clamp(0%, 25%, 100%), blue 25%);
+  }
+</style>
+<div class="test1"></div>
+<div class="test2"></div>
+<div class="test3"></div>
+<div class="test4"></div>

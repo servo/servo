@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Helper: calls waitForToolsUntil() on request</title>
+</head>
+<body>
+<script>
+// Calls `document.modelContext.waitForToolsUntil()` when asked to, and reports
+// back the name of the exception it threw, or 'ok' if it didn't throw.
+window.addEventListener('message', e => {
+  if (e.data !== 'waitForToolsUntil') {
+    return;
+  }
+  let result = 'ok';
+  try {
+    document.modelContext.waitForToolsUntil(Promise.resolve());
+  } catch (error) {
+    result = error.name;
+  }
+  e.source.postMessage(result, '*');
+});
+</script>
+</body>
+</html>

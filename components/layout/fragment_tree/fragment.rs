@@ -19,6 +19,7 @@ use servo_base::print_tree::PrintTree;
 use servo_base::text::Utf32CodeUnits;
 use servo_url::ServoUrl;
 use style::Zero;
+use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style_traits::CSSPixel;
 use webrender_api::{FontInstanceKey, ImageKey};
@@ -28,7 +29,7 @@ use crate::SharedStyle;
 use crate::cell::{ArcRefCell, RefOrAtomicRef};
 use crate::flow::inline::text_run::SharedTextRunData;
 use crate::fragment_tree::FragmentStatus;
-use crate::geom::{LogicalSides, PhysicalPoint, PhysicalRect};
+use crate::geom::{LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect};
 use crate::layout_impl::LayoutThread;
 
 #[derive(Clone, MallocSizeOf)]
@@ -51,6 +52,26 @@ pub(crate) enum Fragment {
     Text(#[conditional_malloc_size_of] Arc<TextFragment>),
     Image(#[conditional_malloc_size_of] Arc<ImageFragment>),
     IFrame(#[conditional_malloc_size_of] Arc<IFrameFragment>),
+}
+
+/// A combination of a [`Fragment`] and its logical rectangle, which is used to keep
+/// a list of fragment children in order to later convert their logical rectangle
+/// into a physical rectangle when the size of the parent fragment is known.
+pub(crate) struct FragmentAndLogicalRect {
+    pub fragment: Fragment,
+    /// The logical rectangle of the fragment relative to its parent's box. This logical rectangle
+    /// will be converted into a physical one, and the Fragment's `content_rect` will be updated
+    /// once the parent box's final size is known.
+    pub logical_rect: LogicalRect<Au>,
+}
+
+impl FragmentAndLogicalRect {
+    pub(crate) fn new(fragment: Fragment, logical_rect: LogicalRect<Au>) -> Self {
+        Self {
+            fragment,
+            logical_rect,
+        }
+    }
 }
 
 #[derive(Clone, MallocSizeOf)]
@@ -549,7 +570,7 @@ impl TextFragment {
     }
 
     fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
-        let mut rect = self.base.rect();
+        let rect = self.base.rect();
         let mut hanging_advance = Au::zero();
         for slice in self.glyphs.iter().rev() {
             hanging_advance += slice.hangable_advance();
@@ -558,10 +579,33 @@ impl TextFragment {
             }
         }
 
-        // TODO: This is not correct for vertical and right-to-left writing modes.
-        rect.size.width -= hanging_advance;
+        let writing_mode = self.writing_mode();
+        let size = LogicalVec2::from_physical_size(&rect.size, writing_mode);
+        LogicalRect {
+            start_corner: LogicalVec2::zero(),
+            size: LogicalVec2 {
+                inline: size.inline - hanging_advance,
+                block: size.block,
+            },
+        }
+        .as_physical(writing_mode, size)
+        .translate(rect.origin.to_vector())
+    }
 
-        rect
+    fn writing_mode(&self) -> WritingMode {
+        let mut writing_mode = self.style().writing_mode;
+        let is_rtl = self
+            .glyphs
+            .first()
+            .is_some_and(|shaped_text| shaped_text.is_rtl());
+
+        // If the directionality of the run is different from the parent writing mode then,
+        // invert the RTL-related bits.
+        if is_rtl == writing_mode.is_bidi_ltr() {
+            writing_mode ^= WritingMode::RTL | WritingMode::INLINE_REVERSED;
+        }
+
+        writing_mode
     }
 }
 

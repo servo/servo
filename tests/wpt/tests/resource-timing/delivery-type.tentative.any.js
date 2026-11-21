@@ -88,3 +88,19 @@ promise_test(() => {
     .then(accumulateEntries)
     .then(checkDeliveryType);
 }, 'PerformanceResourceTiming deliveryType test, cross origin, TAO fails.');
+
+promise_test(() => {
+  const cacheAndValidatedURL = load.cache_bust(
+    cacheAndValidatedBase + '&timing_allow_origin=*');
+  const redirectURL = redirectBase
+    + `?allow_origin=${encodeURIComponent(ORIGIN)}`
+    + `&location=${encodeURIComponent(cacheAndValidatedURL)}`;
+  const checkDeliveryType =
+    list => checkDeliveryTypeBase(list, redirectURL, "");
+  return fetchAndEatBody(redirectURL, {})                      // 200.
+    .then(() => fetchAndEatBody(redirectURL, {}))              // Cached.
+    .then(() => fetchAndEatBody(redirectURL, mustRevalidate))  // 304.
+    .then(accumulateEntries)
+    .then(checkDeliveryType);
+}, 'PerformanceResourceTiming deliveryType test, cross origin, TAO passes ' +
+   'on the final response but fails on the redirect.');

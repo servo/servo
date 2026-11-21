@@ -1,0 +1,45 @@
+<!doctype html>
+<title>CSS Selectors: forgiving selector lists only split on top-level commas</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#typedef-forgiving-selector-list">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#matches">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="container">
+  <div id="target" class="b c"></div>
+</div>
+<script>
+  const target = document.getElementById("target");
+  const container = document.getElementById("container");
+
+  for (const pseudo of ["is", "where"]) {
+    for (const invalid of [
+      ":unknown-pseudo(1, .b, .c)",
+      ":unknown-pseudo(.b, .c, .b)",
+      ":unknown-pseudo(.b, .c) .b",
+      ".x[a, .b, .c]",
+    ]) {
+      const selector = `:${pseudo}(${invalid})`;
+
+      test(() => {
+        assert_false(target.matches(selector));
+      }, `${selector} does not match via matches()`);
+
+      test(() => {
+        assert_equals(container.querySelector(selector), null);
+      }, `${selector} does not match via querySelector()`);
+    }
+
+    test(() => {
+      assert_true(target.matches(`:${pseudo}(:unknown-pseudo(1, .x), .b)`));
+    }, `:${pseudo}() still matches a valid selector after an invalid one containing a comma`);
+  }
+
+  test(() => {
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync(":is(:unknown-pseudo(1, .b, .c)) { color: red; }");
+    document.adoptedStyleSheets = [sheet];
+    const color = getComputedStyle(target).color;
+    document.adoptedStyleSheets = [];
+    assert_not_equals(color, "rgb(255, 0, 0)");
+  }, "Style rules do not apply via a comma inside an invalid functional pseudo-class");
+</script>

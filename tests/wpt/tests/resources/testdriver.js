@@ -1025,6 +1025,39 @@
                         params);
                 },
                 /**
+                 * Overrides the text layout mode for the specified browsing
+                 * contexts. The `"mobile"` text layout mode enables text
+                 * autosizing, which makes the browser honor the
+                 * `text-size-adjust` CSS property.
+                 * Matches the `emulation.setTextLayoutModeOverride
+                 * <https://w3c.github.io/webdriver-bidi/#command-emulation-setTextLayoutModeOverride>`_
+                 * WebDriver BiDi command.
+                 *
+                 * @example
+                 * await test_driver.bidi.emulation.set_text_layout_mode_override({
+                 *     textLayoutMode: "mobile"
+                 * });
+                 *
+                 * @param {object} params - Parameters for the command.
+                 * @param {null|"mobile"} [params.textLayoutMode] - The text
+                 * layout mode to emulate. Matches the
+                 * `emulation.TextLayoutMode <https://w3c.github.io/webdriver-bidi/#cddl-type-emulationtextlayoutmode>`_
+                 * type. If `null` or omitted, the override will be removed.
+                 * @param {null|Array.<(Context)>} [params.contexts] The
+                 * optional contexts parameter specifies which browsing contexts
+                 * to set the text layout mode override on. It should be either
+                 * an array of Context objects (window or browsing context id),
+                 * or null. If null or omitted, the override will be set on the
+                 * current browsing context.
+                 * @returns {Promise<void>} Resolves when the text layout mode
+                 * override is successfully set.
+                 */
+                set_text_layout_mode_override: function (params) {
+                    assertBidiIsEnabled();
+                    return window.test_driver_internal.bidi.emulation.set_text_layout_mode_override(
+                        params);
+                },
+                /**
                  * Overrides the touch configuration for the specified browsing
                  * contexts.
                  * Matches the `emulation.setTouchOverride
@@ -2681,6 +2714,10 @@
                 set_scrollbar_type_override: function (params) {
                     throw new Error(
                         "bidi.emulation.set_scrollbar_type_override is not implemented by testdriver-vendor.js");
+                },
+                set_text_layout_mode_override: function (params) {
+                    throw new Error(
+                        "bidi.emulation.set_text_layout_mode_override is not implemented by testdriver-vendor.js");
                 },
                 set_touch_override: function (params) {
                     throw new Error(

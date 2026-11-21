@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>modify iframe scrolling attr to no</title>
+<link rel="help" href="https://html.spec.whatwg.org/#attr-iframe-scrolling">
+<link rel="match" href="iframe-modify-scrolling-attr-to-no-ref.html">
+
+<p>Test passes if you cannot see any scrollbars on the iframe displayed below.</p>
+<iframe src="support/iframe-which-content-height-equals-400px.html" scrolling="yes" width="200px" height="100px">
+</iframe>
+
+<script>
+    let iframe = document.querySelector("iframe");
+    iframe.onload = function () {
+        iframe.scrolling = 'no';
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            document.documentElement.classList.remove("reftest-wait");
+        }));
+    };
+</script>
+</html>

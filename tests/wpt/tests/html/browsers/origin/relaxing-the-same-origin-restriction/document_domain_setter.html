@@ -42,8 +42,10 @@
           assert_throws_dom("SecurityError", function() { iframe.contentWindow.location.hash; });
           assert_throws_dom("SecurityError", function() { iframe.contentWindow.location.search; });
           assert_throws_dom("SecurityError", function() { iframe.contentWindow.location.toString(); });
-          // Set document.domain
-          document.domain = ORIGINAL_HOST;
+          // Set document.domain. Use an uppercase version of the host, to make
+          // sure the setter canonicalizes its input.
+          document.domain = ORIGINAL_HOST.toUpperCase();
+          assert_equals(document.domain, ORIGINAL_HOST);
           // After setting document.domain, the iframe is
           // same-origin-domain, so security checks pass.
           assert_equals(iframe.contentDocument.domain, document.domain);

@@ -1,8 +1,7 @@
 // META: timeout=long
 // META: variant=?document
 // META: variant=?dedicated_worker
-// META: variant=?shared_worker
-// META: variant=?service_worker
+// META: variant=?document_with_service_worker
 // META: script=/common/get-host-info.sub.js
 // META: script=/common/utils.js
 // META: script=/common/dispatcher/dispatcher.js

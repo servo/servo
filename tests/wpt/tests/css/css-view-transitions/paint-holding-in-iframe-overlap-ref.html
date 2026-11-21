@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: content of the embedder over an iframe keeps updating while the iframe holds its old paint (ref)</title>
+<style>
+  body {
+    margin: 0;
+  }
+  iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 200px;
+    height: 200px;
+    border: none;
+  }
+  #overlay {
+    position: absolute;
+    top: 50px;
+    left: 50px;
+    width: 100px;
+    height: 100px;
+    background: rgba(255, 255, 0, 0.5);
+  }
+</style>
+
+<iframe srcdoc="
+  <style>
+    body {
+      margin: 0;
+      background: blue;
+    }
+  </style>
+"></iframe>
+<div id="overlay"></div>
+</html>

@@ -142,7 +142,7 @@ impl FontFaceSet {
         // promise, replace it with a fresh pending promise.
         if self.promise.borrow().is_fulfilled() {
             let promise = Promise::new(cx, &self.global());
-            *self.promise.borrow_mut() = promise.to_traced()
+            *self.promise.safe_borrow_mut(cx.no_gc()) = promise.to_traced()
         }
 
         // Step 4. Queue a task to fire a font load event named loading at font face set.
@@ -301,7 +301,9 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
         }
 
         // Step 3. Add the font argument to the FontFaceSet’s set entries.
-        self.set_entries.borrow_mut().push(Dom::from_ref(font_face));
+        self.set_entries
+            .safe_borrow_mut(cx.no_gc())
+            .push(Dom::from_ref(font_face));
         font_face.set_associated_font_face_set(self);
 
         // Step 4. If font’s status attribute is "loading":
@@ -334,7 +336,7 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
 
         // Step 1. Remove all non-CSS-connected items from the FontFaceSet’s set entries,
         // its [[LoadedFonts]] list, and its [[FailedFonts]] list.
-        self.set_entries.borrow_mut().clear();
+        self.set_entries.safe_borrow_mut(cx.no_gc()).clear();
 
         // TODO Step 2. If the FontFaceSet’s [[LoadingFonts]] list is non-empty, remove all items from it,
         // then switch the FontFaceSet to loaded.
@@ -452,8 +454,10 @@ impl Setlike for FontFaceSet {
     }
 
     #[inline(always)]
-    fn add(&self, _cx: &mut JSContext, face: Self::Key) {
-        self.set_entries.borrow_mut().push(face.as_traced());
+    fn add(&self, cx: &mut JSContext, face: Self::Key) {
+        self.set_entries
+            .safe_borrow_mut(cx.no_gc())
+            .push(face.as_traced());
     }
 
     #[inline(always)]
@@ -465,7 +469,7 @@ impl Setlike for FontFaceSet {
     #[inline(always)]
     fn clear(&self, cx: &mut JSContext) {
         self.flush_author_font_set(cx);
-        self.set_entries.borrow_mut().clear();
+        self.set_entries.safe_borrow_mut(cx.no_gc()).clear();
     }
 
     #[inline(always)]

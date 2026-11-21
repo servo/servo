@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration: a negative percentage inset extends a decoration that propagates to a descendant (reference)</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+body { margin: 120px 200px; }
+div {
+  font: 20px/2 Ahem;
+  width: max-content;
+  will-change: transform;
+  text-decoration-line: underline;
+  text-decoration-color: blue;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+  text-decoration-inset: -100px;
+}
+</style>
+
+<!-- Bare text, so the reference does not depend on the propagated-decoration path being correct. -->
+<div>abcdefghij</div>

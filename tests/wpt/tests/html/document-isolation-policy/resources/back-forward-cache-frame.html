@@ -8,5 +8,5 @@ addEventListener("pageshow", event => {
   if (!event.persisted)
     parent.postMessage("loaded", "*");
 });
-addEventListener("message", event => event.source.postMessage({ id, pageshows, crossOriginIsolated }, "*"));
+addEventListener("message", event => event.source.postMessage({ id, pageshows, crossOriginIsolated, url: location.href }, "*"));
 </script>

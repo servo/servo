@@ -43,4 +43,25 @@ async_test(t => {
     t.unreached_func('file() should not invoke the error callback')
   );
 }, 'FileSystemFileEntry.file() invokes callback with a File');
+
+promise_test(async () => {
+  const names = ['a.txt', 'b.txt', 'c.txt'];
+  const dt = new DataTransfer();
+  for (const name of names)
+    dt.items.add(new File(['hello'], name));
+
+  const entries = names.map((_, i) => dt.items[i].webkitGetAsEntry());
+  for (let i = 0; i < entries.length; i++) {
+    assert_true(entries[i].isFile, 'item ' + i + ' should yield a file entry');
+    assert_equals(entries[i].name, names[i]);
+    assert_equals(entries[i].fullPath, '/' + names[i]);
+  }
+
+  assert_not_equals(dt.items[0].webkitGetAsEntry(), entries[0],
+                    'each call returns a new entry object');
+
+  const children = await readAll(entries[0].filesystem.root.createReader());
+  assert_equals(children.length, names.length);
+  assert_array_equals(children.map(entry => entry.name), names);
+}, 'webkitGetAsEntry() places every file item under the drag data store root');
 </script>

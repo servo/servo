@@ -17,6 +17,7 @@ pub trait GraphicsProviderMethods<G: Graphics> {
     fn create_session(
         instance: &Instance,
         system: SystemId,
+        device: &SurfmanDevice,
     ) -> Result<(Session<G>, FrameWaiter, FrameStream<G>), Error>;
     fn surface_texture_from_swapchain_texture(
         image: <G as Graphics>::SwapchainImage,

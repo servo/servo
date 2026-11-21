@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Link Parameters - dynamically clear link parameters</title>
+<link rel="help" href="https://drafts.csswg.org/css-link-params/#link-param-prop">
+<link rel="match" href="circle-black-ref.html">
+<style>
+  img {
+    link-parameters: param(--color: green);
+  }
+</style>
+<img id="target" src="circle-with-parameters.svg">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<script>
+(async () => {
+  await target.decode();
+  await waitForAtLeastOneFrame();
+  target.style.setProperty("link-parameters", "none");
+  takeScreenshot();
+})();
+</script>
+</html>

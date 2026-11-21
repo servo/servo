@@ -121,7 +121,9 @@ use unicode_bidi::{BidiInfo, Level};
 
 use super::float::{Clear, PlacementAmongFloats};
 use super::{IndependentFloatOrAtomicLayoutResult, IndependentFormattingContextLayoutResult};
+use crate::SharedStyle;
 use crate::cell::{ArcRefCell, WeakRefCell};
+use crate::containing_block::{ConstraintSpace, ContainingBlock, IndefiniteContainingBlock};
 use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
 use crate::dom_traversal::NodeAndStyleInfo;
@@ -137,12 +139,11 @@ use crate::flow::{
 };
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{CollapsedMargin, Fragment, FragmentFlags, PositioningFragment};
-use crate::geom::{LogicalRect, LogicalSides1D, LogicalVec2, ToLogical};
+use crate::geom::{LogicalRect, LogicalSides1D, LogicalVec2};
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
-use crate::{ConstraintSpace, ContainingBlock, IndefiniteContainingBlock, SharedStyle};
 
 // From gfxFontConstants.h in Firefox.
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;
@@ -926,7 +927,7 @@ impl UnbreakableSegmentUnderConstruction {
 }
 
 bitflags! {
-    struct InlineContainerStateFlags: u8 {
+    pub(super) struct InlineContainerStateFlags: u8 {
         const CREATE_STRUT = 0b0001;
         const IS_SINGLE_LINE_TEXT_INPUT = 0b0010;
     }
@@ -1389,7 +1390,7 @@ impl InlineFormattingContextLayout<'_> {
         };
 
         let logical_origin_in_physical_coordinates =
-            start_corner.to_physical_vector(self.containing_block().style.writing_mode);
+            start_corner.to_physical_offset_deprecated(self.containing_block().style.writing_mode);
         self.positioning_context
             .adjust_static_position_of_hoisted_fragments_with_offset(
                 &logical_origin_in_physical_coordinates,
@@ -1400,11 +1401,11 @@ impl InlineFormattingContextLayout<'_> {
         let physical_line_rect = LogicalRect {
             start_corner,
             size: LogicalVec2 {
-                inline: containing_block.size.inline,
+                inline: containing_block.inline_size(),
                 block: effective_block_advance.resolve(),
             },
         }
-        .as_physical(containing_block);
+        .as_physical_deprecated(containing_block);
         self.fragments
             .push(Fragment::Positioning(PositioningFragment::new_anonymous(
                 self.root_nesting_level.style.clone(),
@@ -1417,7 +1418,7 @@ impl InlineFormattingContextLayout<'_> {
     fn available_line_space(&self) -> Au {
         match self.current_line.placement_among_floats.get() {
             Some(placement_among_floats) => placement_among_floats.size.inline,
-            None => self.containing_block().size.inline,
+            None => self.containing_block().inline_size(),
         }
     }
 
@@ -1562,15 +1563,15 @@ impl InlineFormattingContextLayout<'_> {
     ) {
         let containing_block = self.containing_block();
         let float_fragment = &float_item.fragment;
-        let logical_margin_rect_size = float_fragment
-            .margin_rect()
-            .size
-            .to_logical(containing_block.style.writing_mode);
+        let logical_margin_rect_size = LogicalVec2::from_physical_size(
+            &float_fragment.margin_rect().size,
+            containing_block.style.writing_mode,
+        );
         let inline_size = logical_margin_rect_size.inline.max(Au::zero());
 
         let available_inline_size = match self.current_line.placement_among_floats.get() {
             Some(placement_among_floats) => placement_among_floats.size.inline,
-            None => containing_block.size.inline,
+            None => containing_block.inline_size(),
         } - potential_line_length;
 
         // If this float doesn't fit on the current line or a previous float didn't fit on
@@ -1654,7 +1655,7 @@ impl InlineFormattingContextLayout<'_> {
                 .size
         } else {
             LogicalVec2 {
-                inline: containing_block.size.inline,
+                inline: containing_block.inline_size(),
                 block: MAX_AU,
             }
         };
@@ -1687,7 +1688,7 @@ impl InlineFormattingContextLayout<'_> {
 
         // If the potential line is larger than the containing block we do not even need to consider
         // floats. We definitely have to do a linebreak.
-        if potential_line_size.inline > containing_block.size.inline {
+        if potential_line_size.inline > containing_block.inline_size() {
             return true;
         }
 
@@ -2179,7 +2180,7 @@ impl InlineFormattingContext {
 
         // Enable Chinese/Japanese line breaking behavior when this inline formatting context
         // has a Japanese or Chinese language set.
-        let content_locale = lang.0.parse::<LanguageIdentifier>().ok();
+        let content_locale = LanguageIdentifier::try_from_locale_bytes(lang.0.as_bytes()).ok();
         options.content_locale = content_locale.as_ref();
 
         let mut shaping_queue = ShapingQueue::new(&text_content, options);
@@ -2274,7 +2275,7 @@ impl InlineFormattingContext {
             .get_inherited_text()
             .text_indent
             .length
-            .to_used_value(containing_block.size.inline.unwrap_or_default())
+            .to_used_value(containing_block.size.inline_size.unwrap_or_default())
     }
 
     pub(super) fn layout(
@@ -2839,7 +2840,8 @@ impl IndependentFormattingContext {
             layout.process_soft_wrap_opportunity();
         }
 
-        let size = pbm_sums.sum() + fragment.base.rect().size.to_logical(container_writing_mode);
+        let size = pbm_sums.sum() +
+            LogicalVec2::from_physical_size(&fragment.base.rect().size, container_writing_mode);
         let baseline_offset = self
             .pick_baseline(&fragment.baselines(container_writing_mode))
             .map(|baseline| pbm_sums.block_start + baseline)
@@ -2965,7 +2967,7 @@ fn place_pending_floats(ifc: &mut InlineFormattingContextLayout, line_items: &[L
     }
 }
 
-fn line_height(
+pub(super) fn line_height(
     parent_style: &ComputedValues,
     font_metrics: &FontMetrics,
     flags: &InlineContainerStateFlags,

@@ -26,7 +26,8 @@ use crate::display_list::{ClipId, ToWebRender};
 use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::CumulativeContentRectCalculation;
 use crate::geom::{
-    AuOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, SyncPhysicalRectAu, ToLogical,
+    AuOrAuto, LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides,
+    SyncPhysicalRectAu,
 };
 use crate::style_ext::ComputedValuesExt;
 use crate::table::SpecificTableGridInfo;
@@ -223,10 +224,11 @@ impl BoxFragment {
         // This applies even if there is no baseline set, so we unconditionally set the value here
         // and ignore anything that is set via [`Self::with_baselines`].
         if style.establishes_scroll_container(self.base.flags) {
-            let content_rect_size = self.content_rect().size.to_logical(writing_mode);
-            let padding = self.padding.to_logical(writing_mode);
-            let border = self.border.to_logical(writing_mode);
-            let margin = self.margin.to_logical(writing_mode);
+            let content_rect_size =
+                LogicalVec2::from_physical_size(&self.content_rect().size, writing_mode);
+            let padding = LogicalSides::from_physical(&self.padding, writing_mode);
+            let border = LogicalSides::from_physical(&self.border, writing_mode);
+            let margin = LogicalSides::from_physical(&self.margin, writing_mode);
             baselines.last = Some(
                 content_rect_size.block + padding.block_end + border.block_end + margin.block_end,
             )

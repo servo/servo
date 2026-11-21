@@ -11,6 +11,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
+use servo_base::id::PainterId;
 
 use crate::{
     ContextId, DeviceAPI, Error, Event, Floor, Frame, FrameUpdateEvent, HitTestId, HitTestSource,
@@ -37,6 +38,7 @@ pub struct SessionInit {
     /// but for performance reasons we also ask users to enable this pref
     /// for now.
     pub first_person_observer_view: bool,
+    pub painter_id: PainterId,
 }
 
 impl SessionInit {

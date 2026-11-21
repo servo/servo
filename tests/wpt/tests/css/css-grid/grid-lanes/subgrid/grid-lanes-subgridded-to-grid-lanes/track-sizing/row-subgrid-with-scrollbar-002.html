@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes Test: Scrollbar changes update nested rows with differing borders, padding, and gaps</title>
+<link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body { margin: 0; }
+  ::-webkit-scrollbar { height: 16px; width: 16px; }
+  .root {
+    border: 2px solid black;
+    display: grid-lanes;
+    grid-template-rows: 100px 200px 300px;
+    row-gap: 10px;
+    width: 80px;
+  }
+  .subgrid {
+    display: grid-lanes;
+    grid-template-rows: subgrid;
+  }
+  .outer {
+    border: 4px solid purple;
+    grid-row: 1 / -1;
+    padding: 3px;
+    row-gap: 18px;
+  }
+  .middle {
+    border: 3px solid orange;
+    grid-row: 2;
+    overflow: auto;
+    padding: 5px;
+    row-gap: 6px;
+    width: 80px;
+  }
+  .inner {
+    border: 1px solid cyan;
+    grid-row: 1 / -1;
+    padding: 2px;
+    row-gap: 12px;
+  }
+  .leaf {
+    aspect-ratio: 1 / 4;
+    background: green;
+    grid-row: 1;
+    min-height: 0;
+    min-width: 0;
+  }
+  .marker {
+    background: blue;
+    grid-row: 1;
+    width: 10px;
+  }
+  .overflow {
+    grid-row: 1;
+    height: 0;
+    width: 210px;
+  }
+</style>
+<div class="root">
+  <div class="subgrid outer">
+    <div class="subgrid middle">
+      <div class="subgrid inner">
+        <div class="leaf"></div>
+        <div class="marker"></div>
+        <div class="overflow"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  test(() => {
+    const scroller = document.querySelector(".middle");
+    const leaf = document.querySelector(".leaf");
+    const overflow = document.querySelector(".overflow");
+    for (const [width, scrollbar] of [[210, 16], [0, 0], [210, 16]]) {
+      overflow.style.width = `${width}px`;
+      assert_equals(scroller.getBoundingClientRect().height, 192);
+      assert_equals(scroller.offsetHeight - scroller.clientHeight - 6, scrollbar);
+      const expectedHeight = 192 - 16 - scrollbar - 6;
+      assert_equals(leaf.getBoundingClientRect().height, expectedHeight);
+      assert_equals(leaf.getBoundingClientRect().width, expectedHeight / 4);
+    }
+  }, "Adding and removing a scrollbar updates explicit nested subgrids");
+
+  test(() => {
+    for (const element of document.querySelectorAll(".root, .subgrid")) {
+      element.style.border = "0";
+      element.style.padding = "0";
+      element.style.rowGap = "normal";
+    }
+    const scroller = document.querySelector(".middle");
+    const leaf = document.querySelector(".leaf");
+    const overflow = document.querySelector(".overflow");
+    for (const [width, scrollbar] of [[210, 16], [0, 0], [210, 16]]) {
+      overflow.style.width = `${width}px`;
+      assert_equals(scroller.getBoundingClientRect().height, 200);
+      assert_equals(scroller.offsetHeight - scroller.clientHeight, scrollbar);
+      assert_equals(leaf.getBoundingClientRect().height, 200 - scrollbar);
+      assert_equals(leaf.getBoundingClientRect().width, (200 - scrollbar) / 4);
+    }
+  }, "Inherited rows refresh when scrollbar-only BSP changes back to zero");
+</script>

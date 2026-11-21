@@ -1,0 +1,27 @@
+<meta charset="utf-8">
+<title>CSS Display: text in a display: contents element is content of the parent box in quirks mode</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#valdef-display-contents">
+<link rel="help" href="https://quirks.spec.whatwg.org/#the-line-height-calculation-quirk">
+<meta name="assert" content="The line-height calculation quirk does not apply to the parent box of text in a display: contents element, because the text is its content.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.test { font: 20px Ahem; }
+.contents { display: contents; }
+</style>
+<div class="test" id="short" style="line-height: 60px"><span class="contents" style="line-height: 4px">X</span></div>
+<div class="test" id="short-reference" style="line-height: 60px">X</div>
+<div class="test" id="small" style="font-size: 40px"><span class="contents" style="font-size: 8px">X</span></div>
+<div class="test" id="small-reference" style="font-size: 40px">X</div>
+<script>
+test(() => {
+    assert_equals(document.compatMode, "BackCompat");
+}, "The document is in quirks mode");
+
+for (const [id, description] of [["short", "A short line-height on a display: contents element"], ["small", "A small font on a display: contents element"]]) {
+    test(() => {
+        assert_equals(document.getElementById(id).offsetHeight, document.getElementById(id + "-reference").offsetHeight);
+    }, `${description} does not remove the line height of the parent box`);
+}
+</script>

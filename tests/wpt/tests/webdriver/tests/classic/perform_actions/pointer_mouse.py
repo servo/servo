@@ -46,7 +46,7 @@ def test_down_closes_browsing_context(
     # for the script to be able to close it.
     new_window = session.execute_script(f"return window.open()")
     session.window_handle = new_window.id
-    session.url = inline("""<input onmousedown="window.close()">close</input>""")
+    session.url = inline("""<input onmousedown="window.close()">close""")
 
     origin = session.find.css("input", all=False)
 

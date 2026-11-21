@@ -3,22 +3,22 @@
 
 /*---
 esid: sec-get-dataview.prototype.byteoffset
-description: Throws a TypeError if the instance has a detached buffer
+description: Returns 0 if the instance has a detached buffer
 info: |
-  24.2.4.3 get DataView.prototype.byteOffset
+  get DataView.prototype.byteOffset
 
-  ...
-  5. Let buffer be the value of O's [[ViewedArrayBuffer]] internal slot.
-  6. If IsDetachedBuffer(buffer) is true, throw a TypeError exception.
-  ...
+  5. If IsViewOutOfBounds(viewRecord) is true, return +0𝔽.
+
+  IsViewOutOfBounds ( viewRecord )
+
+  3. If IsDetachedBuffer(view.[[ViewedArrayBuffer]]) is true, then
+    b. Return true.
 includes: [detachArrayBuffer.js]
 ---*/
 
-var buffer = new ArrayBuffer(1);
-var sample = new DataView(buffer, 0);
+var buffer = new ArrayBuffer(128);
+var sample = new DataView(buffer, 8, 1);
 
 $DETACHBUFFER(buffer);
 
-assert.throws(TypeError, function() {
-  sample.byteOffset;
-});
+assert.sameValue(sample.byteOffset, 0);

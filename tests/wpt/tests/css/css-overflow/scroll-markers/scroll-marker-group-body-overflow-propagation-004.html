@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>CSS Overflow Test: The ::scroll-marker moves to the root's group when removing containment lets the body overflow propagate to the viewport</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-property">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#overflow-propagation">
+<link rel="match" href="scroll-marker-group-body-overflow-propagation-ref.html">
+<style>
+  html {
+    scroll-marker-group: before;
+  }
+
+  body {
+    scroll-marker-group: before;
+    overflow: hidden;
+    margin: 0;
+  }
+
+  html::scroll-marker-group,
+  body::scroll-marker-group {
+    height: 0;
+    overflow: hidden;
+  }
+
+  html::scroll-marker-group {
+    height: 100px;
+  }
+
+  #item::scroll-marker {
+    content: "";
+    display: block;
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+</style>
+<body style="contain: paint">
+<div id="item"></div>
+<p>Test passes if there is a filled green square.</p>
+<script>
+  document.documentElement.offsetTop;
+  document.body.style.contain = "";
+</script>

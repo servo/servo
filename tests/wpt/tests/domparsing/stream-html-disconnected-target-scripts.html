@@ -1,0 +1,70 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Scripts streamed into a disconnected element run once it is connected, with external scripts running async</title>
+<link rel="help" href="https://html.spec.whatwg.org/#html-streaming-methods" />
+<link rel="help" href="https://html.spec.whatwg.org/#prepare-the-script-element" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  // Fails instead of stalling the rest of the file if the promise never settles.
+  function failOnTimeout(promise, ms = 3000) {
+    return Promise.race([promise, new Promise((resolve, reject) => step_timeout(() => reject(new Error("timed out")), ms))]);
+  }
+
+  // A script element created by a fragment parser that runs scripts is
+  // prepared when its end tag is seen, which clears its parser document and
+  // sets its force async to true before returning early because the element is
+  // not connected (without marking it "already started"). Once the element is
+  // connected, the scripts are prepared again: inline scripts run
+  // synchronously, and external scripts without async execute asynchronously.
+
+  for (const method of ["streamHTMLUnsafe", "streamAppendHTMLUnsafe"]) {
+    promise_test(async (t) => {
+      window.events = [];
+      const slowRan = new Promise((resolve) => { window.on_slow = resolve; });
+      const fastRan = new Promise((resolve) => { window.resolve_fast = resolve; });
+      t.add_cleanup(() => { delete window.on_slow; delete window.resolve_fast; });
+
+      const element = document.createElement("div");
+      const writer = element[method]({ runScripts: true }).getWriter();
+      await writer.write(
+        `<script src='resources/slow.js?pipe=trickle(d0.3)&disconnected=${method}'></` + "script>" +
+        "<script src=\"data:text/javascript,window.events.push('fast');window.resolve_fast();\"></" + "script>" +
+        "<script>window.events.push('inline');</" + "script>" +
+        "<p id='after'>after</p>"
+      );
+      await writer.close();
+      assert_array_equals(window.events, [], "scripts don't run while the target is disconnected");
+      assert_not_equals(element.querySelector("#after"), null, "external scripts don't block the parser when disconnected");
+      for (const script of element.querySelectorAll("script")) {
+        assert_true(script.async, "script.async is true while disconnected");
+      }
+
+      document.body.append(element);
+      t.add_cleanup(() => element.remove());
+      assert_array_equals(window.events, ["inline"], "the inline script runs synchronously when connected");
+      await failOnTimeout(Promise.all([slowRan, fastRan]));
+      assert_array_equals(window.events, ["inline", "fast", "slow"],
+                          "external scripts without async execute as async");
+    }, `${method} with runScripts: true into a disconnected element: external scripts run async once connected`);
+
+    promise_test(async (t) => {
+      window.events = [];
+      const element = document.createElement("div");
+      const writer = element[method]({ runScripts: false }).getWriter();
+      await writer.write(
+        "<script src=\"data:text/javascript,window.events.push('external');\"></" + "script>" +
+        "<script>window.events.push('inline');</" + "script>"
+      );
+      await writer.close();
+
+      document.body.append(element);
+      t.add_cleanup(() => element.remove());
+      assert_equals(element.querySelectorAll("script").length, 2);
+      await new Promise((resolve) => t.step_timeout(resolve, 100));
+      assert_array_equals(window.events, [], "scripts are marked already started and never run");
+    }, `${method} with runScripts: false into a disconnected element: scripts never run`);
+  }
+</script>
+</body>

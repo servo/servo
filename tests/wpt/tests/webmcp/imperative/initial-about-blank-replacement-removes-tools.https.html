@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: tools after about:blank replaces the initial about:blank document</title>
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<!-- This iframe is far outside the viewport, so lazy loading defers its
+     navigation and it stays on its initial about:blank document [1].
+
+     [1]: https://html.spec.whatwg.org/#is-initial-about:blank -->
+<iframe id="iframe" loading="lazy" src="/common/blank.html"
+        style="position: absolute; top: 10000px"></iframe>
+<script>
+async function toolNames() {
+  const tools = await document.modelContext.getTools();
+  return tools.map(t => t.name);
+}
+
+promise_test(async () => {
+  const iframe = document.getElementById('iframe');
+  const initialDocument = iframe.contentDocument;
+  assert_equals(initialDocument.URL, 'about:blank');
+  await initialDocument.modelContext.registerTool({
+    name: 'initial_tool',
+    description: 'Tool registered by the initial about:blank document',
+    execute: async () => {},
+  });
+  assert_array_equals(await toolNames(), ['initial_tool']);
+
+  // Navigating to about:blank replaces the initial about:blank document.
+  iframe.src = 'about:blank';
+  assert_not_equals(iframe.contentDocument, initialDocument);
+  assert_equals(iframe.contentDocument.URL, 'about:blank');
+
+  // The new document doesn't use `modelContext`, but the tool of the document
+  // it replaced must still go away.
+  assert_array_equals(await toolNames(), []);
+}, 'Tools registered by the initial about:blank document are removed when ' +
+   'about:blank replaces it');
+</script>
+</body>

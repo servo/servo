@@ -6,6 +6,7 @@
 
 use euclid::{Point2D, RigidTransform3D};
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
+use servo_base::generic_channel::GenericCallback;
 
 use crate::{
     ContextId, EnvironmentBlendMode, Error, Event, Floor, Frame, HitTestId, HitTestSource,
@@ -22,6 +23,10 @@ pub trait DiscoveryAPI<GL>: 'static {
         xr: SessionBuilder<GL>,
     ) -> Result<Session, Error>;
     fn supports_session(&self, mode: SessionMode) -> bool;
+    fn poll_device_changed(&mut self) -> bool {
+        false
+    }
+    fn set_waker(&mut self, _waker: GenericCallback<()>) {}
 }
 
 /// A trait for using an XR device
@@ -97,5 +102,13 @@ impl<GL: 'static> DiscoveryAPI<GL> for Box<dyn DiscoveryAPI<GL>> {
 
     fn supports_session(&self, mode: SessionMode) -> bool {
         (**self).supports_session(mode)
+    }
+
+    fn poll_device_changed(&mut self) -> bool {
+        (**self).poll_device_changed()
+    }
+
+    fn set_waker(&mut self, waker: GenericCallback<()>) {
+        (**self).set_waker(waker);
     }
 }

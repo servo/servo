@@ -1893,11 +1893,11 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
 
     /// <https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms>
     fn unbind_form_control_from_tree(&self, cx: &mut JSContext) {
-        let elem = self.to_element();
-        let has_form_attr = elem.has_attribute(&local_name!("form"));
+        let element = self.to_element();
+        let has_form_attr = element.has_attribute(&local_name!("form"));
         let same_subtree = self
             .form_owner()
-            .is_none_or(|form| elem.is_in_same_home_subtree(&*form));
+            .is_none_or(|form| element.is_in_same_home_subtree(&*form));
 
         self.unregister_if_necessary();
 
@@ -1909,6 +1909,12 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
         if !same_subtree || (self.is_listed() && has_form_attr) {
             self.reset_form_owner(cx);
         }
+
+        // Unbinding from a tree might enable a form control, if a fieldset ancestor is the only
+        // reason it was disabled. The fact that it's enabled doesn't do much while it's
+        // disconnected, but it is an observable fact to keep track of.
+        self.to_html_element()
+            .maybe_update_form_control_disabled(cx);
     }
 
     fn get_form_attribute<InputFn, OwnerFn>(

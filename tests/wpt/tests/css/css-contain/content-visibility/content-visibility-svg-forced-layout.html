@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>CSS Content Visibility: forced layout does not leak SVG resources from content-visibility: hidden subtree</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="/css/reference/blank.html">
+<div style="content-visibility: hidden">
+  <svg width="100" height="100">
+    <path id="p" d="M 50 50 L 150 50"/>
+    <rect id="locked_rect" width="50" height="50" fill="red" style="offset-path: url(#p)"/>
+    <text id="locked_text" fill="red"><textPath href="#p">FAIL</textPath></text>
+  </svg>
+</div>
+<svg width="100" height="100">
+  <rect x="-50" y="-50" width="50" height="50" fill="red" style="offset-path: url(#p)"/>
+  <text fill="red"><textPath href="#p">FAIL</textPath></text>
+</svg>
+<script>
+  p.getBBox();
+  locked_rect.getBBox();
+  locked_text.getBBox();
+</script>

@@ -1,0 +1,899 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>HTML partial updates - stream insertion logic</title>
+<link rel="help" href="https://html.spec.whatwg.org/#html-streaming-methods" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    function get_method_name(method, safe) {
+      return `stream${method}HTML${safe ? "" : "Unsafe"}`;
+    }
+
+    // Regardless of the method, the insertion point is going to be before the ref_node.
+    function create_stream(method, safe, parent, ref_node) {
+      const method_name = get_method_name(method, safe);
+      switch (method) {
+        case "Before":
+          return ref_node[method_name]();
+        case "After":
+          if (!ref_node.previousSibling) {
+            const prev = document.createElement("i");
+            parent.insertBefore(prev, ref_node);
+          }
+          return ref_node.previousSibling[method_name]();
+        case "ReplaceWith":
+          const placeholder = document.createElement("div");
+          parent.insertBefore(placeholder, ref_node);
+          return placeholder[method_name]();
+        case "Append":
+        case "Prepend":
+          return parent[method_name]();
+      }
+    }
+
+    async function stream_insert_before(
+      method,
+      safe,
+      parent,
+      ref_node,
+      new_html,
+    ) {
+      const writable = create_stream(method, safe, parent, ref_node);
+      assert_true(
+        writable instanceof WritableStream,
+        `node.streamInsertBefore() returns a writable stream`,
+      );
+      const writer = writable.getWriter();
+      await writer.write(new_html);
+      await writer.close();
+      return true;
+    }
+
+    for (const safe of [true, false]) {
+      for (const method of ["Append", "Prepend"]) {
+        promise_test(
+          async (t) => {
+            const parent = document.createElement("div");
+            await stream_insert_before(method, safe, parent, null, "A");
+            assert_equals(parent.innerHTML, "A");
+          },
+          `${get_method_name(method, safe)} without a ref node`,
+        );
+      }
+
+      for (const method of ["Before", "ReplaceWith", "After"]) {
+        promise_test(
+          async (t) => {
+            const parent = document.createElement("div");
+            parent.innerHTML = "<p>X</p>";
+            const ref_node = document.createElement("span");
+            parent.appendChild(ref_node);
+            await stream_insert_before(method, safe, parent, ref_node, "A");
+            assert_equals(parent.innerHTML, "<p>X</p>A<span></span>");
+          },
+          `${get_method_name(method, safe)} with a ref_node at end`,
+        );
+        promise_test(
+          async (t) => {
+            const parent = document.createElement("div");
+            parent.innerHTML = "<p>a</p><p>b</p><p>c</p>";
+            const ref_node = parent.firstChild.nextSibling;
+            await stream_insert_before(
+              method,
+              safe,
+              parent,
+              ref_node,
+              "<p>X</p>",
+            );
+            assert_equals(parent.innerHTML, "<p>a</p><p>X</p><p>b</p><p>c</p>");
+          },
+          `${get_method_name(method, safe)} with a ref_node in the middle`,
+        );
+      }
+      for (const method of ["Before", "ReplaceWith", "Prepend"]) {
+        promise_test(
+          async (t) => {
+            const parent = document.createElement("div");
+            const ref_node = document.createElement("span");
+            parent.appendChild(ref_node);
+            await stream_insert_before(method, safe, parent, ref_node, "A");
+            assert_equals(parent.innerHTML, "A<span></span>");
+          },
+          `${get_method_name(method, safe)} with a ref_node at start`,
+        );
+
+        promise_test(
+          async (t) => {
+            const parent = document.createElement("div");
+            const ref_node = document.createComment("ref");
+            parent.appendChild(ref_node);
+            await stream_insert_before(method, safe, parent, ref_node, "A");
+            assert_equals(parent.innerHTML, "A<!--ref-->");
+          },
+          `${get_method_name(method, safe)} with a comment ref_node`,
+        );
+
+        promise_test(
+          async (t) => {
+            const parent = document.createElement("div");
+            const ref_node = document.createTextNode("ref");
+            parent.appendChild(ref_node);
+            await stream_insert_before(method, safe, parent, ref_node, "A");
+            assert_equals(parent.firstChild.data, "A");
+            assert_equals(parent.lastChild.data, "ref");
+            assert_equals(parent.textContent, "Aref");
+          },
+          `${get_method_name(method, safe)} with a text ref_node`,
+        );
+        promise_test(
+          async (t) => {
+            const parent = document.createElement("div");
+            const shadow = parent.attachShadow({ mode: "open" });
+            const ref_node = document.createElement("span");
+            shadow.appendChild(ref_node);
+            await stream_insert_before(method, safe, shadow, ref_node, "A");
+            assert_equals(shadow.innerHTML, "A<span></span>");
+          },
+          `${get_method_name(method, safe)} in a ShadowRoot`,
+        );
+      }
+
+      for (const method of ["Before", "ReplaceWith", "Prepend", "After"]) {
+        promise_test(
+          async (t) => {
+            const parent = document.createElement("div");
+            const ref_node = document.createElement("span");
+            parent.appendChild(ref_node);
+            const stream = create_stream(method, safe, parent, ref_node);
+            const writer = stream.getWriter();
+            await writer.write("A");
+            ref_node.remove();
+            await promise_rejects_dom(
+              t,
+              "HierarchyRequestError",
+              writer.write("<p>B</p>"),
+            );
+          },
+          `${get_method_name(method, safe)} should reject if ref node is removed`,
+        );
+
+        promise_test(
+          async (t) => {
+            const parent = document.createElement("div");
+            const ref_node = document.createElement("span");
+            parent.appendChild(ref_node);
+            const stream = create_stream(method, safe, parent, ref_node);
+            const writer = stream.getWriter();
+            await writer.write("A");
+            document.body.append(ref_node);
+            t.add_cleanup(() => ref_node.remove());
+            await promise_rejects_dom(
+              t,
+              "HierarchyRequestError",
+              writer.write("<p>B</p>"),
+            );
+          },
+          `${get_method_name(method, safe)} should reject if ref node is no longer child of the same parent`,
+        );
+
+        promise_test(
+          async (t) => {
+            const host = document.createElement("div");
+            const shadow = host.attachShadow({ mode: "open" });
+            const ref_node = document.createElement("span");
+            shadow.appendChild(ref_node);
+            const stream = create_stream(method, safe, shadow, ref_node);
+            const writer = stream.getWriter();
+            await writer.write("A");
+            ref_node.remove();
+            await promise_rejects_dom(
+              t,
+              "HierarchyRequestError",
+              writer.write("<p>B</p>"),
+            );
+          },
+          `${get_method_name(method, safe)} in a ShadowRoot should reject if ref node is removed`,
+        );
+
+        // B6: toString that removes the ref makes the write reject with HierarchyRequestError
+        promise_test(
+          async (t) => {
+            const parent = document.createElement("div");
+            const ref_node = document.createElement("span");
+            parent.appendChild(ref_node);
+            const stream = create_stream(method, safe, parent, ref_node);
+            const writer = stream.getWriter();
+            await writer.write("<p>A</p>");
+            await promise_rejects_dom(
+              t,
+              "HierarchyRequestError",
+              writer.write({
+                toString() {
+                  ref_node.remove();
+                  return "<p>B</p>";
+                },
+              }),
+            );
+            assert_equals(
+              parent.innerHTML,
+              `${method === "After" ? "<i></i>" : ""}<p>A</p>`,
+            );
+          },
+          `${get_method_name(method, safe)}: chunk toString() removing ref_node rejects with HierarchyRequestError`,
+        );
+      }
+    }
+
+    let ceCounter = 0;
+    function defineLoggedCE() {
+      const log = [];
+      const name = `displaced-ce-${++ceCounter}`;
+      customElements.define(name, class extends HTMLElement {
+        constructor() {
+          super();
+          log.push("constructed");
+        }
+        connectedCallback() {
+          log.push("connected");
+        }
+      });
+      return { name, log };
+    }
+
+    // An element that the sanitizer replaces with its children records where it
+    // would have been inserted. If that's before a foster-parenting table that a
+    // script then moves, the element's later children are dropped, but the stream
+    // isn't errored, since its own insertion point is still valid.
+    async function stream_into_replaced_element_after_table_moves(t, create_stream) {
+      const parent = document.body.appendChild(document.createElement("div"));
+      t.add_cleanup(() => parent.remove());
+      const ref_node = parent.appendChild(document.createElement("span"));
+      const elsewhere = document.createElement("div");
+      window.move_table = () => elsewhere.append(parent.querySelector("table"));
+      t.add_cleanup(() => { delete window.move_table; });
+
+      const writer = create_stream(parent, ref_node, {
+        runScripts: true,
+        sanitizer: { replaceWithChildrenElements: ["span"] },
+      }).getWriter();
+      await writer.write(
+        "<table><span><script>window.move_table();<" + "/script>text<b>bold</b></span></table>after"
+      );
+      await writer.close();
+
+      assert_equals(elsewhere.innerHTML, "<table></table>", "the table was moved");
+      return parent;
+    }
+
+    // E1, E2, E3: Reference child displaced mid-chunk and target removed mid-stream
+    for (const method of ["Before", "ReplaceWith", "Prepend", "After"]) {
+      const method_name = `stream${method}HTMLUnsafe`;
+      const prefix = method === "After" ? "<i></i>" : "";
+
+      function create_unsafe_stream(parent, ref_node, options = { runScripts: true }) {
+        switch (method) {
+          case "Before":
+            return ref_node[method_name](options);
+          case "After": {
+            const prev = document.createElement("i");
+            parent.insertBefore(prev, ref_node);
+            return prev[method_name](options);
+          }
+          case "ReplaceWith": {
+            const placeholder = document.createElement("div");
+            parent.insertBefore(placeholder, ref_node);
+            return placeholder[method_name](options);
+          }
+          case "Prepend":
+            return parent[method_name](options);
+        }
+      }
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        document.body.appendChild(parent);
+        t.add_cleanup(() => parent.remove());
+        const ref_node = document.createElement("span");
+        ref_node.id = "displaced-ref";
+        parent.appendChild(ref_node);
+
+        const other_parent = document.createElement("div");
+        const other_text = document.createTextNode("unrelated");
+        other_parent.appendChild(other_text);
+
+        window.displace_ref = () => {
+          // Move ref_node right after other_text in other_parent to verify
+          // FlushPendingText does not merge into an unrelated Text sibling.
+          other_parent.appendChild(ref_node);
+        };
+        t.add_cleanup(() => { delete window.displace_ref; });
+
+        const writer = create_unsafe_stream(parent, ref_node).getWriter();
+        await promise_rejects_dom(
+          t,
+          "HierarchyRequestError",
+          writer.write(
+            "before<script>window.displace_ref();<" + "/script><p><b>x</b></p>t<!--c-->"
+          ),
+          "Write that attempts to insert after ref_node displacement must reject with HierarchyRequestError",
+        );
+        await promise_rejects_dom(
+          t,
+          "HierarchyRequestError",
+          writer.closed,
+          "Stream must be errored with HierarchyRequestError",
+        );
+
+        assert_equals(parent.querySelector("p"), null, "Dropped element must not be in parent");
+        assert_equals(parent.querySelector("b"), null, "Dropped subtree must not be in parent");
+        assert_equals(other_parent.querySelector("p"), null, "Dropped element must not be in other_parent");
+        assert_equals(other_text.data, "unrelated", "Pending text must not merge into unrelated Text node");
+        assert_equals(parent.innerHTML, `${prefix}before<script>window.displace_ref();<` + "/script>");
+      }, `${method_name}: displacing ref_node mid-chunk drops subsequent nodes/subtrees/text/comments and errors the stream`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        document.body.appendChild(parent);
+        t.add_cleanup(() => parent.remove());
+        const ref_node = document.createElement("span");
+        parent.appendChild(ref_node);
+
+        window.remove_ref = () => ref_node.remove();
+        t.add_cleanup(() => { delete window.remove_ref; });
+
+        const writer = create_unsafe_stream(parent, ref_node, {
+          runScripts: true,
+          sanitizer: {
+            removeElements: ["i"],
+            replaceWithChildrenElements: ["section"],
+          },
+        }).getWriter();
+        await promise_rejects_dom(
+          t,
+          "HierarchyRequestError",
+          writer.write(
+            "before<section><em>kept</em><script>window.remove_ref();<" + "/script><p><b>x</b></p>t<!--c--></section><p>after</p>"
+          ),
+          "Write that attempts to insert after ref_node displacement inside replaceWithChildrenElements must reject with HierarchyRequestError",
+        );
+        assert_equals(parent.querySelector("p"), null, "Sanitizer path must drop (not append) when ref_node is displaced, including inside replaceWithChildrenElements");
+        assert_equals(parent.innerHTML, `${prefix}before<em>kept</em><script>window.remove_ref();<` + "/script>");
+
+        await promise_rejects_dom(
+          t,
+          "HierarchyRequestError",
+          writer.write("<p>next</p>"),
+          "Subsequent write after ref_node displacement must reject with HierarchyRequestError",
+        );
+      }, `${method_name}: displacing ref_node mid-chunk with sanitizer and replaceWithChildrenElements drops nodes and errors the stream`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        document.body.appendChild(parent);
+        t.add_cleanup(() => parent.remove());
+        const ref_node = document.createElement("span");
+        parent.appendChild(ref_node);
+
+        const { name: ceName, log: ceLog } = defineLoggedCE();
+        window.remove_ref = () => ref_node.remove();
+        t.add_cleanup(() => { delete window.remove_ref; });
+
+        const writer = create_unsafe_stream(parent, ref_node, {
+          runScripts: true,
+          sanitizer: {
+            removeElements: ["div"],
+          },
+        }).getWriter();
+        await promise_rejects_dom(
+          t,
+          "HierarchyRequestError",
+          writer.write(
+            `before<script>window.remove_ref();<` + `/script><div id="removed"><${ceName}></${ceName}></div>`
+          ),
+          "Write that creates a removed element after ref_node displacement must reject with HierarchyRequestError",
+        );
+        await promise_rejects_dom(
+          t,
+          "HierarchyRequestError",
+          writer.closed,
+          "Stream must be errored with HierarchyRequestError",
+        );
+
+        assert_equals(parent.querySelector("#removed"), null, "Removed element must not be in parent");
+        assert_equals(parent.querySelector(ceName), null, "Child inside removed element must not be in parent");
+        assert_array_equals(ceLog, [], "Custom element inside sanitized removed element after ref_node displacement must not be constructed");
+      }, `${method_name}: displacing ref_node mid-chunk before a removeElements subtree errors the stream and suppresses custom element construction`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        document.body.appendChild(parent);
+        t.add_cleanup(() => parent.remove());
+        const ref_node = document.createElement("span");
+        parent.appendChild(ref_node);
+
+        const { name: topCeName, log: topCeLog } = defineLoggedCE();
+        window.remove_ref = () => ref_node.remove();
+        t.add_cleanup(() => { delete window.remove_ref; });
+
+        const writer = create_unsafe_stream(parent, ref_node).getWriter();
+        await promise_rejects_dom(
+          t,
+          "HierarchyRequestError",
+          writer.write(
+            `before<script>window.remove_ref();<` + `/script><${topCeName}></${topCeName}>`
+          ),
+        );
+
+        assert_array_equals(topCeLog, [], "Custom element parsed as first token after ref_node displacement must not be constructed");
+      }, `${method_name}: custom element as first token after ref_node displacement is created in an inert document with null custom element registry`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        document.body.appendChild(parent);
+        t.add_cleanup(() => parent.remove());
+        const ref_node = document.createElement("span");
+        parent.appendChild(ref_node);
+
+        let imgLoadedOrErrored = false;
+        window.on_dropped_img_event = () => {
+          imgLoadedOrErrored = true;
+        };
+        window.remove_ref = () => ref_node.remove();
+        t.add_cleanup(() => {
+          delete window.on_dropped_img_event;
+          delete window.remove_ref;
+        });
+
+        const imgSrc = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+        const writer = create_unsafe_stream(parent, ref_node).getWriter();
+        await promise_rejects_dom(
+          t,
+          "HierarchyRequestError",
+          writer.write(
+            `before<script>window.remove_ref();<` + `/script>` +
+            `<img src="${imgSrc}" onload="window.on_dropped_img_event?.()" onerror="window.on_dropped_img_event?.()">`
+          ),
+        );
+        // A live <img> with the same src would have loaded by the time a control image has.
+        await new Promise((resolve) => {
+          const control = new Image();
+          control.onload = control.onerror = () => t.step_timeout(resolve, 0);
+          control.src = imgSrc;
+        });
+
+        assert_false(imgLoadedOrErrored, "Image parsed as first token after ref_node displacement must not load in the active document");
+      }, `${method_name}: <img> as first token after ref_node displacement is created in an inert document`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        document.body.appendChild(parent);
+        t.add_cleanup(() => parent.remove());
+        const ref_node = document.createElement("span");
+        parent.appendChild(ref_node);
+
+        const { name: nestedCeName, log: nestedCeLog } = defineLoggedCE();
+        window.remove_ref = () => ref_node.remove();
+        t.add_cleanup(() => { delete window.remove_ref; });
+
+        const writer = create_unsafe_stream(parent, ref_node, {
+          runScripts: true,
+          sanitizer: {
+            replaceWithChildrenElements: ["section"],
+          },
+        }).getWriter();
+        await promise_rejects_dom(
+          t,
+          "HierarchyRequestError",
+          writer.write(
+            `before<section><script>window.remove_ref();<` + `/script><${nestedCeName}></${nestedCeName}></section>`
+          ),
+        );
+
+        assert_array_equals(nestedCeLog, [], "Custom element child of replaceWithChildrenElements after ref_node displacement must not be constructed");
+      }, `${method_name}: child of replaceWithChildrenElements as first token after ref_node displacement is created in an inert document`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        document.body.appendChild(parent);
+        t.add_cleanup(() => parent.remove());
+        const ref_node = document.createElement("span");
+        parent.appendChild(ref_node);
+
+        window.remove_ref = () => ref_node.remove();
+        t.add_cleanup(() => { delete window.remove_ref; });
+
+        const writer = create_unsafe_stream(parent, ref_node).getWriter();
+        await writer.write("<b><p>x");
+        await promise_rejects_dom(
+          t,
+          "HierarchyRequestError",
+          writer.write("<script>window.remove_ref();<" + "/script></b>"),
+          "Adoption agency at the root after ref_node displacement must reject with HierarchyRequestError",
+        );
+
+        const p = parent.querySelector("p");
+        assert_not_equals(p, null, "<p> inserted before displacement must remain in parent");
+        assert_equals(p.firstChild.data, "x");
+      }, `${method_name}: adoption agency at the root after ref_node displacement keeps existing nodes and errors the stream`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        parent.innerHTML = '<?start name="m"?>old<?end?>';
+        document.body.appendChild(parent);
+        t.add_cleanup(() => parent.remove());
+        const ref_node = document.createElement("span");
+        parent.prepend(ref_node);
+
+        window.remove_ref = () => ref_node.remove();
+        t.add_cleanup(() => { delete window.remove_ref; });
+
+        const writer = create_unsafe_stream(parent, ref_node).getWriter();
+        await promise_rejects_dom(
+          t,
+          "HierarchyRequestError",
+          writer.write('A<script>window.remove_ref();<' + '/script><template for="m">new</template>'),
+          "<template for> after ref_node displacement must reject with HierarchyRequestError",
+        );
+
+        assert_true(parent.textContent.includes("old"), "Marker range must not be updated after ref_node displacement");
+        assert_false(parent.textContent.includes("new"), "New <template for> content must not be applied after ref_node displacement");
+      }, `${method_name}: <template for> after ref_node displacement does not apply and errors the stream`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        document.body.appendChild(parent);
+        t.add_cleanup(() => parent.remove());
+        const ref_node = document.createElement("span");
+        parent.appendChild(ref_node);
+
+        let table = null;
+        window.detach = () => {
+          table = parent.querySelector("table");
+          table.remove();
+          ref_node.remove();
+        };
+        t.add_cleanup(() => { delete window.detach; });
+
+        const writer = create_unsafe_stream(parent, ref_node).getWriter();
+        await promise_rejects_dom(
+          t,
+          "HierarchyRequestError",
+          writer.write(
+            '<table><?start name="m"?><tbody id="old"></tbody><?end?>' +
+            '<script>window.detach();<' + '/script> x<template for="m"></template>',
+          ),
+          "Foster-parented character after ref_node displacement in table text must reject with HierarchyRequestError",
+        );
+        await promise_rejects_dom(
+          t,
+          "HierarchyRequestError",
+          writer.closed,
+          "Stream must be errored with HierarchyRequestError",
+        );
+
+        assert_not_equals(table, null, "Streamed <table> was captured before detaching");
+        assert_not_equals(table.querySelector("#old"), null, "Reprocessed <template for> must not patch detached table after table-text error");
+        assert_equals(parent.innerHTML, prefix, "Foster-parented table text after displacement must be dropped");
+      }, `${method_name}: ref_node displacement during table-text foster parenting errors the stream without applying <template for>`);
+
+      for (const [label, chunk] of [["whitespace", "   \n\t  "], ["a comment", "<!--comment-->"]]) {
+        promise_test(async (t) => {
+          const parent = document.createElement("div");
+          document.body.appendChild(parent);
+          t.add_cleanup(() => parent.remove());
+          const ref_node = document.createElement("span");
+          parent.appendChild(ref_node);
+
+          const other_parent = document.createElement("div");
+          other_parent.appendChild(document.createTextNode("unrelated"));
+          window.displace_ref = () => other_parent.appendChild(ref_node);
+          t.add_cleanup(() => { delete window.displace_ref; });
+
+          const writer = create_unsafe_stream(parent, ref_node).getWriter();
+          await promise_rejects_dom(
+            t,
+            "HierarchyRequestError",
+            writer.write("A<script>window.displace_ref();<" + "/script>" + chunk),
+            `${label} as the only token after displacement must error the stream`,
+          );
+          await promise_rejects_dom(
+            t,
+            "HierarchyRequestError",
+            writer.closed,
+          );
+          assert_equals(other_parent.innerHTML, "unrelated<span></span>", `${label} must not be inserted before the displaced ref_node`);
+          assert_equals(parent.innerHTML, `${prefix}A<script>window.displace_ref();<` + "/script>");
+        }, `${method_name}: ${label} as the only token after mid-chunk displacement errors the stream and is dropped`);
+      }
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        document.body.appendChild(parent);
+        t.add_cleanup(() => parent.remove());
+        const ref_node = document.createElement("span");
+        parent.appendChild(ref_node);
+
+        const writer = create_unsafe_stream(parent, ref_node).getWriter();
+        await writer.write("A");
+        ref_node.remove();
+        await writer.close();
+        assert_equals(parent.innerHTML, `${prefix}A`);
+      }, `${method_name}: close() after ref_node displacement with no further write resolves`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        document.body.appendChild(parent);
+        t.add_cleanup(() => parent.remove());
+        const ref_node = document.createElement("span");
+        parent.appendChild(ref_node);
+
+        window.remove_ref = () => ref_node.remove();
+        t.add_cleanup(() => { delete window.remove_ref; });
+
+        const writer = create_unsafe_stream(parent, ref_node).getWriter();
+        await promise_rejects_dom(
+          t,
+          "HierarchyRequestError",
+          writer.write("A<script>window.remove_ref();<" + "/script><p>dropped</p>"),
+          "Write that attempts to insert after ref_node displacement must reject with HierarchyRequestError",
+        );
+        assert_equals(parent.querySelector("p"), null);
+
+        // Moving ref_node back into parent after the stream has errored does not un-error the stream.
+        parent.appendChild(ref_node);
+        await promise_rejects_dom(
+          t,
+          "HierarchyRequestError",
+          writer.write("<p>still rejected</p>"),
+          "Subsequent write must still reject with HierarchyRequestError after stream errored",
+        );
+        await promise_rejects_js(
+          t,
+          TypeError,
+          writer.close(),
+          "close() must reject with TypeError after stream errored",
+        );
+        await promise_rejects_dom(t, "HierarchyRequestError", writer.closed);
+        assert_equals(parent.querySelector("p"), null);
+      }, `${method_name}: moving ref_node back into parent after mid-chunk displacement does not recover the errored stream`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        document.body.appendChild(parent);
+        t.add_cleanup(() => parent.remove());
+        const ref_node = document.createElement("span");
+        parent.appendChild(ref_node);
+
+        window.remove_ref = () => ref_node.remove();
+        t.add_cleanup(() => { delete window.remove_ref; });
+
+        const writer = create_unsafe_stream(parent, ref_node).getWriter();
+        // No tokens follow the script end tag, so invalid reference child steps do not run during this write.
+        await writer.write("A<script>window.remove_ref();<" + "/script>");
+
+        // Moving ref_node back into parent before the next write allows the stream to continue.
+        parent.appendChild(ref_node);
+        await writer.write("<p>kept</p>");
+        await writer.close();
+
+        assert_not_equals(parent.querySelector("p"), null);
+        assert_equals(parent.querySelector("p").textContent, "kept");
+        assert_equals(parent.lastChild, ref_node);
+      }, `${method_name}: moving ref_node back into parent before next write when no node was inserted after displacement allows stream to continue`);
+
+      promise_test(async (t) => {
+        const parent = await stream_into_replaced_element_after_table_moves(t, create_unsafe_stream);
+        assert_equals(parent.innerHTML, `${prefix}<script>window.move_table();<` + `/script>after<span></span>`);
+      }, `${method_name}: children of a replaceWithChildrenElements element are dropped, without erroring the stream, when the table it was foster parented before is moved`);
+
+      promise_test(async (t) => {
+        const parent = document.body.appendChild(document.createElement("div"));
+        t.add_cleanup(() => parent.remove());
+        const ref_node = parent.appendChild(document.createElement("span"));
+        const elsewhere = document.createElement("div");
+        window.move_table_and_ref = () => {
+          elsewhere.append(parent.querySelector("table"));
+          ref_node.remove();
+        };
+        window.restore_ref = () => parent.append(ref_node);
+        t.add_cleanup(() => {
+          delete window.move_table_and_ref;
+          delete window.restore_ref;
+        });
+
+        const writer = create_unsafe_stream(parent, ref_node, {
+          runScripts: true,
+          sanitizer: { replaceWithChildrenElements: ["span"] },
+        }).getWriter();
+        await writer.write(
+          "<section><table><span>" +
+          "<script>window.move_table_and_ref();<" + "/script>" +
+          "text<b>bold</b>" +
+          "</span></table>" +
+          "<script>window.restore_ref();<" + "/script>" +
+          "<em>kept</em></section>after"
+        );
+        await writer.close();
+
+        assert_equals(elsewhere.innerHTML, "<table></table>");
+        assert_equals(parent.querySelector("section").querySelector("b"), null);
+        assert_equals(parent.querySelector("em").textContent, "kept");
+        assert_equals(parent.lastChild, ref_node);
+      }, `${method_name}: displaced foster-parenting table for a replaceWithChildrenElements element does not error the stream even while ref_node is temporarily displaced`);
+    }
+
+    promise_test(async (t) => {
+      const parent = await stream_into_replaced_element_after_table_moves(
+        t, (parent, ref_node, options) => parent.streamAppendHTMLUnsafe(options));
+      assert_equals(parent.innerHTML, `<span></span><script>window.move_table();<` + `/script>after`);
+    }, "streamAppendHTMLUnsafe: children of a replaceWithChildrenElements element are dropped, without erroring the stream, when the table it was foster parented before is moved");
+
+    // If a script makes the foster parenting table the document element, a later
+    // element that the sanitizer replaces with its children is not inserted, like
+    // any other element whose insertion location is a Document with an element
+    // child, so its children are dropped too.
+    promise_test(async (t) => {
+      const iframe = await load_iframe(t);
+      const doc = iframe.contentDocument;
+      const target = doc.body.appendChild(doc.createElement("div"));
+      const script = "document.replaceChild(document.getElementById('t'), document.documentElement);";
+      const writer = target.streamHTMLUnsafe({
+        runScripts: true,
+        sanitizer: { replaceWithChildrenElements: ["span"] },
+      }).getWriter();
+      await writer.write(`<table id="t"><script>${script}<` + `/script><span>x<b>y</b></span></table>after`);
+      await writer.close();
+      assert_equals(doc.documentElement.outerHTML, `<table id="t"><script>${script}<` + `/script></table>`);
+      assert_equals(target.innerHTML, "after");
+    }, "streamHTMLUnsafe: a replaceWithChildrenElements element foster parented before a table that became the document element is dropped with its children");
+
+    // E3: Target removed with runScripts: nodes still go into target; scripts don't run
+    for (const method of ["streamHTMLUnsafe", "streamAppendHTMLUnsafe", "streamPrependHTMLUnsafe"]) {
+      promise_test(async (t) => {
+        const target = document.createElement("div");
+        document.body.appendChild(target);
+        t.add_cleanup(() => target.remove());
+
+        window.remove_target = () => target.remove();
+        window.script_after_remove_ran = false;
+        t.add_cleanup(() => {
+          delete window.remove_target;
+          delete window.script_after_remove_ran;
+        });
+
+        const writer = target[method]({ runScripts: true }).getWriter();
+        await writer.write(
+          "<script>window.remove_target();<" + "/script>" +
+          "<p id='inserted-after-remove'>still inserted</p>" +
+          "<script>window.script_after_remove_ran = true;<" + "/script>"
+        );
+        await writer.write("<em id='second-write'>more</em>");
+        await writer.close();
+
+        assert_false(target.isConnected);
+        assert_not_equals(target.querySelector("#inserted-after-remove"), null);
+        assert_equals(target.querySelector("#inserted-after-remove").textContent, "still inserted");
+        assert_not_equals(target.querySelector("#second-write"), null);
+        assert_false(window.script_after_remove_ran, "Scripts must not run after target is disconnected");
+      }, `${method}: disconnecting target mid-stream continues inserting nodes into target without running scripts`);
+    }
+
+    // referenceChild is captured when the method is called. If there is none
+    // (empty target for prepend, last child for after), the streamed content
+    // is appended, so children added later by other means end up before it.
+    for (const safe of [true, false]) {
+      const suffix = safe ? "" : "Unsafe";
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const writer = parent[`streamPrependHTML${suffix}`]().getWriter();
+        const later = parent.appendChild(document.createElement("span"));
+        later.id = "later";
+        await writer.write("<p>A</p>");
+        await writer.close();
+        assert_equals(parent.innerHTML, '<span id="later"></span><p>A</p>');
+      }, `streamPrependHTML${suffix} on an empty target appends after children added later by other means`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const first = parent.appendChild(document.createElement("b"));
+        const writer = parent[`streamPrependHTML${suffix}`]().getWriter();
+        parent.insertBefore(document.createElement("i"), first);
+        await writer.write("<p>A</p>");
+        await writer.close();
+        assert_equals(parent.innerHTML, '<i></i><p>A</p><b></b>', "streamed content is inserted before the first child at call time");
+      }, `streamPrependHTML${suffix} inserts before the first child at call time, not the current first child`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const ref_node = parent.appendChild(document.createElement("b"));
+        const writer = ref_node[`streamAfterHTML${suffix}`]().getWriter();
+        parent.appendChild(document.createElement("i"));
+        await writer.write("<p>A</p>");
+        await writer.close();
+        assert_equals(parent.innerHTML, '<b></b><i></i><p>A</p>');
+      }, `streamAfterHTML${suffix} on a last child appends after children added later by other means`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const ref_node = parent.appendChild(document.createElement("b"));
+        const writer = ref_node[`streamReplaceWithHTML${suffix}`]().getWriter();
+        assert_equals(ref_node.parentNode, null, "the node is removed when the method is called");
+        parent.appendChild(document.createElement("i"));
+        await writer.write("<p>A</p>");
+        await writer.close();
+        assert_equals(parent.innerHTML, '<i></i><p>A</p>');
+      }, `streamReplaceWithHTML${suffix} on a last child appends after children added later by other means`);
+    }
+
+    // The target is adopted into another document mid-stream: nodes keep being
+    // inserted into the target (and are created in its new node document), but
+    // streamed scripts no longer execute because their intended document is
+    // not their node document.
+    function load_iframe(t) {
+      return new Promise((resolve) => {
+        const iframe = document.createElement("iframe");
+        iframe.srcdoc = "<!doctype html><body></body>";
+        iframe.onload = () => resolve(iframe);
+        t.add_cleanup(() => iframe.remove());
+        document.body.appendChild(iframe);
+      });
+    }
+
+    for (const method of ["streamHTMLUnsafe", "streamAppendHTMLUnsafe", "streamPrependHTMLUnsafe"]) {
+      promise_test(async (t) => {
+        const iframe = await load_iframe(t);
+        const otherDocument = iframe.contentDocument;
+        const target = document.createElement("div");
+        document.body.appendChild(target);
+        t.add_cleanup(() => target.remove());
+
+        window.adopt_target = () => otherDocument.body.appendChild(target);
+        window.script_after_adopt_ran = false;
+        iframe.contentWindow.script_after_adopt_ran = false;
+        t.add_cleanup(() => {
+          delete window.adopt_target;
+          delete window.script_after_adopt_ran;
+        });
+
+        const writer = target[method]({ runScripts: true }).getWriter();
+        await writer.write(
+          "<p id='before-adopt'>before</p>" +
+          "<script>window.adopt_target();</" + "script>" +
+          "<p id='after-adopt'>after</p>" +
+          "<script>window.script_after_adopt_ran = true;</" + "script>"
+        );
+        await writer.write("<em id='second-write'>more</em>");
+        await writer.close();
+
+        assert_equals(target.ownerDocument, otherDocument);
+        assert_true(target.isConnected, "the target is connected in the other document");
+        assert_equals(target.querySelector("#before-adopt").ownerDocument, otherDocument, "earlier nodes were adopted along with the target");
+        assert_not_equals(target.querySelector("#after-adopt"), null, "the rest of the chunk is inserted into the target");
+        assert_equals(target.querySelector("#after-adopt").ownerDocument, otherDocument, "nodes are created in the target's new node document");
+        assert_not_equals(target.querySelector("#second-write"), null);
+        assert_equals(target.querySelector("#second-write").ownerDocument, otherDocument);
+        assert_false(window.script_after_adopt_ran, "streamed scripts must not run in the original document after the target was adopted");
+        assert_false(iframe.contentWindow.script_after_adopt_ran, "streamed scripts must not run in the new document either");
+      }, `${method}: adopting the target into another document mid-stream continues inserting nodes without running scripts`);
+    }
+
+    promise_test(async (t) => {
+      const iframe = await load_iframe(t);
+      const otherWin = iframe.contentWindow;
+      const otherDoc = iframe.contentDocument;
+      const parent = otherDoc.body.appendChild(otherDoc.createElement("div"));
+      const ref_node = parent.appendChild(otherDoc.createElement("span"));
+
+      const stream = Element.prototype.streamBeforeHTMLUnsafe.call(ref_node);
+      assert_true(stream instanceof otherWin.WritableStream, "WritableStream is created in this's relevant realm");
+
+      ref_node.remove();
+      const writer = stream.getWriter();
+      await promise_rejects_dom(t, "HierarchyRequestError", otherWin.DOMException,
+          writer.write("<p>after removal</p>"),
+          "HierarchyRequestError is created in this's relevant realm");
+    }, "Cross-realm streamBeforeHTMLUnsafe creates WritableStream and HierarchyRequestError in this's relevant realm");
+  </script>
+</body>

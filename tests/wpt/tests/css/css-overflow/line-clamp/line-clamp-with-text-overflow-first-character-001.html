@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: text-overflow clips the first character of a block ellipsis that starts the line</title>
+<link rel="author" title="Christian Biesinger" href="mailto:cbiesinger@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#text-overflow">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-with-text-overflow-first-character-001-ref.html">
+<meta name="assert" content="When the block ellipsis displaces all of the line's content and still overflows, text-overflow treats it like content: its first character is clipped rather than ellipsed.">
+<style>
+div {
+  font: 20px/1.2 monospace;
+  border: 1px solid;
+  margin: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-clamp: 1 "wxyz";
+}
+.narrow { width: 1.5ch; }
+.wide { width: 3ch; }
+</style>
+<!-- The content of the first line is all displaced by the block ellipsis, so the block ellipsis starts the line. -->
+<div class="narrow">xyz<br>y</div>
+<div class="narrow" dir="rtl">xyz<br>y</div>
+<div class="wide">xyz<br>y</div>
+<div class="wide" dir="rtl">xyz<br>y</div>

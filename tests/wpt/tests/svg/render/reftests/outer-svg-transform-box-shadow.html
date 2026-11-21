@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>The box shadow of a transformed outermost svg element is not clipped by its viewport</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://svgwg.org/svg2-draft/render.html#OverflowAndClipProperties">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#overflow-properties">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#shadow-shape">
+<link rel="match" href="outer-svg-transform-box-shadow-ref.html">
+<meta name="assert" content="The viewport clip of an outermost svg element only clips its content, not its box shadow.">
+<style>
+body {
+  margin: 0;
+}
+svg {
+  display: block;
+  position: absolute;
+  left: 50px;
+  top: 50px;
+  width: 100px;
+  height: 100px;
+  overflow: hidden;
+  transform: translate(10px, 10px);
+  box-shadow: 30px 30px 0 20px green;
+}
+</style>
+<svg>
+  <rect width="100" height="100" fill="green"/>
+</svg>

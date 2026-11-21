@@ -57,6 +57,15 @@ impl FileSystemDirectoryEntry {
         self.children.borrow_mut().push(Dom::from_ref(child));
     }
 
+    /// Returns the member of this directory named `name`, if any.
+    pub(crate) fn child(&self, name: &str) -> Option<DomRoot<FileSystemEntry>> {
+        self.children
+            .borrow()
+            .iter()
+            .find(|child| child.name() == name)
+            .map(|child| DomRoot::from_ref(&**child))
+    }
+
     /// Returns up to `max` children starting at index `start`.
     pub(crate) fn children_batch(&self, start: usize, max: usize) -> Vec<DomRoot<FileSystemEntry>> {
         self.children

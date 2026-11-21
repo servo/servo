@@ -25,7 +25,7 @@
     <div id="target-inner" marker="inner-marker">
       <?start name="inner-marker">Original Inner<?end>
     </div>
-    <template id="inner" for="inner-marker" buffer sanitize>
+    <template id="inner" for="inner-marker" sanitize>
       <span id="ok">Inner Allowed</span>
     </template>
   </template>
@@ -35,9 +35,8 @@
 test(() => {
   observer.disconnect();
 
-  // We expect "target-inner", "inner", and "SPAN" to be added.
+  // We expect "target-inner" and "SPAN" to be added.
   assert_true(window.addedNodes.includes("target-inner"), "target-inner should be added, got: " + JSON.stringify(window.addedNodes));
-  assert_true(window.addedNodes.includes("inner"), "inner template element should be added, got: " + JSON.stringify(window.addedNodes));
   assert_true(window.addedNodes.includes("SPAN"), "inner span should be added, got: " + JSON.stringify(window.addedNodes));
 }, "Template with sanitize attribute should not strip itself when nested");
 </script>

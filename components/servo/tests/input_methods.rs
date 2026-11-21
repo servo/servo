@@ -275,3 +275,26 @@ fn test_ime_multiline_for_textarea() {
     assert_eq!(ime.input_method_type(), InputMethodType::Text);
     assert!(ime.multiline());
 }
+
+#[test]
+fn test_commit_without_composition() {
+    let test = InputMethodTest::new(
+        "<!DOCTYPE html> \
+        <input id=\"my-input\" />",
+    );
+    test.install_event_listeners("my-input");
+    test.focus("my-input");
+    test.send_input_event(InputEvent::Ime(ImeEvent::Commit("hello".to_owned())));
+    assert_eq!(test.get_text_control_value("my-input"), "hello");
+    test.send_input_event(InputEvent::Ime(ImeEvent::Commit("世界".to_owned())));
+    assert_eq!(test.get_text_control_value("my-input"), "hello世界");
+    assert_eq!(
+        test.drain_received_events().as_slice(),
+        &[
+            InputMethodEvent::BeforeInput("insertText".to_owned(), Some("hello".to_owned())),
+            InputMethodEvent::Input("insertText".to_owned(), Some("hello".to_owned())),
+            InputMethodEvent::BeforeInput("insertText".to_owned(), Some("世界".to_owned())),
+            InputMethodEvent::Input("insertText".to_owned(), Some("世界".to_owned())),
+        ]
+    );
+}

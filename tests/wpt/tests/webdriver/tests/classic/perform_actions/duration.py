@@ -40,11 +40,13 @@ def setup_event_recorder(session, inline):
     return _setup_event_recorder
 
 
-def test_mouse_move_dispatches_multiple_events(session, setup_event_recorder, mouse_chain):
+def test_mouse_move_dispatches_multiple_events(
+    session, configuration, setup_event_recorder, mouse_chain
+):
     setup_event_recorder("mousemove")
 
     mouse_chain \
-        .pointer_move(100, 200, duration=DURATION) \
+        .pointer_move(100, 200, duration=DURATION * configuration["timeout_multiplier"]) \
         .perform()
 
     events = wait_for_events(session, min_count=2)
@@ -56,12 +58,14 @@ def test_mouse_move_dispatches_multiple_events(session, setup_event_recorder, mo
     assert events[-1]["clientY"] == pytest.approx(200, abs=1.0)
 
 
-def test_touch_move_dispatches_multiple_events(session, setup_event_recorder, touch_chain):
+def test_touch_move_dispatches_multiple_events(
+    session, configuration, setup_event_recorder, touch_chain
+):
     setup_event_recorder("pointermove")
 
     touch_chain \
         .pointer_down() \
-        .pointer_move(200, 100, duration=DURATION) \
+        .pointer_move(200, 100, duration=DURATION * configuration["timeout_multiplier"]) \
         .pointer_up() \
         .perform()
 
@@ -74,10 +78,14 @@ def test_touch_move_dispatches_multiple_events(session, setup_event_recorder, to
     assert events[-1]["clientY"] == pytest.approx(100, abs=1.0)
 
 
-def test_wheel_scroll_dispatches_multiple_events(session, setup_event_recorder, wheel_chain):
+def test_wheel_scroll_dispatches_multiple_events(
+    session, configuration, setup_event_recorder, wheel_chain
+):
     setup_event_recorder("wheel")
 
-    wheel_chain.scroll(0, 0, 30, 60, duration=DURATION).perform()
+    wheel_chain \
+        .scroll(0, 0, 30, 60, duration=DURATION * configuration["timeout_multiplier"]) \
+        .perform()
 
     events = wait_for_events(session, min_count=2)
     assert len(events) > 1

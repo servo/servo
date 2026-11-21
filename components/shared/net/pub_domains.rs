@@ -137,7 +137,8 @@ impl PubDomainRules {
 }
 
 fn load_pub_domains() -> PubDomainRules {
-    PubDomainRules::parse(&resources::read_string(Resource::DomainList))
+    let bytes = resources::read_bytes(Resource::DomainList);
+    PubDomainRules::parse(str::from_utf8(bytes.as_ref()).expect("Could not read pub domain rules"))
 }
 
 pub fn pub_suffix(domain: &str) -> &str {

@@ -14,7 +14,7 @@ def switch_to_frame(session, frame):
 
 
 def frameset(inline, *docs):
-    frames = list(map(lambda doc: "<frame src='{}'></frame>".format(inline(doc)), docs))
+    frames = list(map(lambda doc: "<frame src='{}'>".format(inline(doc)), docs))
     return "<frameset rows='{}'>\n{}</frameset>".format(len(frames) * "*,", "\n".join(frames))
 
 

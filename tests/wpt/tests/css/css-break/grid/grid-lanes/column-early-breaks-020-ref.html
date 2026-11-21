@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>Reference for densely packed column items honoring widows and orphans</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<style>
+  .reference {
+    background: lightgray;
+    position: relative;
+    width: 100px;
+    height: 100px;
+  }
+  .reference > div {
+    background: green;
+    position: absolute;
+  }
+</style>
+<p>The green rectangles on the gray background must match the reference.</p>
+<div class="reference">
+  <div style="width: 25px; height: 100px;"></div>
+  <div style="left: 25px; width: 25px; height: 40px;"></div>
+  <div style="left: 50px; width: 25px; height: 30px;"></div>
+  <div style="left: 75px; width: 25px; height: 70px;"></div>
+  <div style="left: 50px; top: 70px; width: 50px; height: 30px;"></div>
+  <div style="left: 100px; width: 50px; height: 40px;"></div>
+</div>

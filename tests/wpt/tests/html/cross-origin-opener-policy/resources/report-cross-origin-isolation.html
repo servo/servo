@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script>
+const uuid = new URLSearchParams(location.search).get("uuid");
+let sharedMemoryCloning;
+try {
+  const buffer = new WebAssembly.Memory({ shared: true, initial: 1, maximum: 1 }).buffer;
+  new MessageChannel().port1.postMessage(buffer);
+  sharedMemoryCloning = "allowed";
+} catch (e) {
+  sharedMemoryCloning = e.name;
+}
+send(uuid, JSON.stringify({
+  crossOriginIsolated: self.crossOriginIsolated,
+  sharedArrayBuffer: typeof SharedArrayBuffer,
+  sharedMemoryCloning,
+})).then(() => window.close());
+</script>

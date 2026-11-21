@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Overflow: interaction between margin collapsing in line-clamp auto</title>
+<link rel="author" title="Seva Alipov" href="mailto:salipov@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-auto-066-ref.html">
+<meta name="assert" content="When using line-clamp: auto, the height that gets measured against the height constraints is the automatic height after clamping. This test verifies that that holds for margins and padding.">
+
+<style>
+  #clamp {
+    font: 16px / 32px serif;
+    background-color: yellow;
+    line-clamp: auto;
+    max-height: 5lh;
+  }
+</style>
+
+<div id="clamp">
+  <div style="margin-bottom: 2lh;">
+    <div style="border-bottom: 1lh solid;">
+      <div style="margin-bottom: 1lh;">
+        Line 1<br>
+        Fail
+      </div>
+    </div>
+  </div>
+</div>

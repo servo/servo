@@ -9,3 +9,4 @@ pub(crate) mod filesystemdirectoryentry;
 pub(crate) mod filesystemdirectoryreader;
 pub(crate) mod filesystementry;
 pub(crate) mod filesystemfileentry;
+pub(crate) mod path;

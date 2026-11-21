@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<style>
+@view-transition { navigation: auto; }
+.target {
+    view-transition-name: target;
+    width: 480px;
+    height: 270px;
+    transform: rotate(7deg);
+    background: red;
+}
+</style>
+<div class="target">SENSITIVE</div>
+<script>
+onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+    location.replace("csp-sandbox-new.html");
+}));
+</script>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Scoped view transitions on replaced elements reference</title>
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 120px);
+    gap: 10px;
+  }
+
+  .expected {
+    width: 120px;
+    height: 80px;
+    background: green;
+  }
+</style>
+
+<div class="grid">
+  <div class="expected"></div>
+  <div class="expected"></div>
+  <div class="expected"></div>
+  <div class="expected"></div>
+  <div class="expected"></div>
+  <div class="expected"></div>
+</div>

@@ -17,7 +17,11 @@ use style::logical_geometry::{LogicalAxis, PhysicalSide, WritingMode};
 use style::properties::ComputedValues;
 use style::values::specified::align::AlignFlags;
 
+use crate::PropagatedBoxTreeData;
 use crate::cell::{ArcRefCell, RefOrAtomicRef};
+use crate::containing_block::{
+    ConstraintSpace, ContainingBlock, ContainingBlockSize, DefiniteContainingBlock,
+};
 use crate::context::LayoutContext;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::formatting_contexts::IndependentFormattingContext;
@@ -26,15 +30,11 @@ use crate::fragment_tree::{
 };
 use crate::geom::{
     AuOrAuto, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect,
-    PhysicalSize, PhysicalVec, ToLogical, ToLogicalWithContainingBlock,
+    PhysicalSize, PhysicalVec,
 };
 use crate::layout_box_base::{IndependentFormattingContextLayoutResult, LayoutBoxBase};
 use crate::sizing::{LazySize, Size, SizeConstraint, Sizes};
 use crate::style_ext::{Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, DisplayInside};
-use crate::{
-    ConstraintSpace, ContainingBlock, ContainingBlockSize, DefiniteContainingBlock,
-    HasQuirkyBlockSize, PropagatedBoxTreeData,
-};
 
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct AbsolutelyPositionedBox {
@@ -217,7 +217,7 @@ impl PositioningContext {
         if base.style.get_box().position == Position::Relative {
             new_fragment.base.translate_rect(
                 relative_adjustement(&base.style, containing_block)
-                    .to_physical_vector(containing_block.style.writing_mode)
+                    .to_physical_offset(containing_block.style.writing_mode)
                     .into(),
             );
         }
@@ -469,9 +469,10 @@ impl HoistedAbsolutelyPositionedBox {
             absolute_containing_block.rect_for_item(independent_formatting_context.style());
         let containing_block_style = absolute_containing_block.style();
         let containing_block = DefiniteContainingBlock {
-            size: containing_block_rect
-                .size
-                .to_logical(containing_block_style.writing_mode),
+            size: LogicalVec2::from_physical_size(
+                &containing_block_rect.size,
+                containing_block_style.writing_mode,
+            ),
             style: &containing_block_style,
         };
 
@@ -487,7 +488,7 @@ impl HoistedAbsolutelyPositionedBox {
                 .static_position_rect()
                 .translate(-containing_block_origin);
             static_position_rect.size = static_position_rect.size.max(PhysicalSize::zero());
-            static_position_rect.to_logical(&(&containing_block).into())
+            LogicalRect::from_physical_deprecated(static_position_rect, &(&containing_block).into())
         };
 
         let (box_fragment, mut positioning_context) = independent_formatting_context
@@ -655,14 +656,9 @@ impl IndependentFormattingContext {
 
         // The inline axis can be fully resolved, computing intrinsic sizes using the
         // extrinsic block size.
-        let has_quirky_block_size = HasQuirkyBlockSize(false);
         let get_inline_content_size = || {
-            let constraint_space = ConstraintSpace::new(
-                tentative_block_size,
-                has_quirky_block_size,
-                &style,
-                preferred_aspect_ratio,
-            );
+            let constraint_space =
+                ConstraintSpace::new(tentative_block_size, &style, preferred_aspect_ratio);
             self.inline_content_sizes(layout_context, &constraint_space)
                 .sizes
         };
@@ -676,11 +672,7 @@ impl IndependentFormattingContext {
         );
 
         let containing_block_for_children = ContainingBlock {
-            size: ContainingBlockSize {
-                inline: inline_size,
-                block: tentative_block_size,
-                has_quirky_block_size,
-            },
+            size: ContainingBlockSize::new(inline_size, tentative_block_size),
             style: &style,
         };
         // TODO: https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
@@ -750,7 +742,7 @@ impl IndependentFormattingContext {
             },
             size: content_size,
         }
-        .as_physical(containing_block)
+        .as_physical_deprecated(containing_block)
         .translate(containing_block_origin);
 
         if is_cached &&
@@ -1059,16 +1051,8 @@ pub(crate) fn relative_adjustement(
     // It's not completely clear what to do with indefinite percentages
     // (https://github.com/w3c/csswg-drafts/issues/9353), so we match
     // other browsers and treat them as 'auto' offsets.
-    let cbis = containing_block.size.inline;
-    let cbbs = if containing_block.has_quirky_block_size() {
-        // The actual block size of the containing block is indefinite,
-        // but the value was overridden in order to resolve percentages
-        // for the purpose of calculating the size of the element.
-        // However, now we are resolving the position instead of the size.
-        None
-    } else {
-        containing_block.size.block.to_definite()
-    };
+    let cbis = containing_block.inline_size();
+    let cbbs = containing_block.block_size();
     let box_offsets = style
         .box_offsets(containing_block.style.writing_mode)
         .map_inline_and_block_axes(

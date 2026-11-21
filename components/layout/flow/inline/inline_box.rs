@@ -22,8 +22,8 @@ use super::{
     InlineContainerState, InlineContainerStateFlags, SharedInlineStyles,
     inline_container_needs_strut,
 };
-use crate::ContainingBlock;
 use crate::cell::ArcRefCell;
+use crate::containing_block::ContainingBlock;
 use crate::context::LayoutContext;
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::fragment_tree::BaseFragmentInfo;

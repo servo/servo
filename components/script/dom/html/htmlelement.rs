@@ -18,6 +18,7 @@ use script_bindings::dom::UnrootedDom;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
 
+use crate::dom::NodeFlags;
 use crate::dom::activation::Activatable;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterData_Binding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::{
@@ -142,7 +143,7 @@ impl HTMLElement {
         let element = self.as_element();
 
         // Step 1.
-        let element_not_rendered = !node.is_connected() || !element.has_css_layout_box();
+        let element_not_rendered = !node.is_connected() || !element.has_css_layout_box(cx);
         if element_not_rendered {
             return node.GetTextContent().unwrap();
         }
@@ -312,7 +313,8 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-dataset>
     fn Dataset(&self, cx: &mut JSContext) -> DomRoot<DOMStringMap> {
-        self.dataset.or_init(|| DOMStringMap::new(cx, self))
+        self.dataset
+            .or_init(|| DOMStringMap::new(cx, self.upcast()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onerror>
@@ -613,14 +615,16 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
 
     /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-scrollparent>
     #[expect(unsafe_code)]
-    fn ScrollParent(&self) -> Option<DomRoot<Element>> {
+    fn ScrollParent(&self, cx: &mut JSContext) -> Option<DomRoot<Element>> {
         self.owner_window()
             .scroll_container_query(
                 Some(self.upcast()),
                 ScrollContainerQueryFlags::ForScrollParent,
             )
             .and_then(|response| match response {
-                ScrollContainerResponse::Viewport(_) => self.owner_document().GetScrollingElement(),
+                ScrollContainerResponse::Viewport(_) => {
+                    self.owner_document().GetScrollingElement(cx)
+                },
                 ScrollContainerResponse::Element(parent_node_address, _) => {
                     let node = unsafe { from_untrusted_node_address(parent_node_address) };
                     DomRoot::downcast(node)
@@ -1373,6 +1377,16 @@ impl VirtualMethods for HTMLElement {
             (&local_name!("form"), mutation) if self.is_form_associated_custom_element() => {
                 self.form_attribute_mutated(cx, mutation);
             },
+            // Adding or removing a "contenteditable" attribute might make a 0-size selection
+            // render its caret or not.
+            (&local_name!("contenteditable"), ..) => {
+                if let Some(selection) = self.owner_document().selection() &&
+                    self.upcast::<Node>()
+                        .get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION)
+                {
+                    selection.set_visible_selection_dirty();
+                }
+            },
             // Adding or removing a "disabled" attribute may disable or enable a disableable
             // form control.
             (&local_name!("disabled"), _) => {
@@ -1417,55 +1431,12 @@ impl VirtualMethods for HTMLElement {
         }
     }
 
-    /// <https://html.spec.whatwg.org/multipage#dom-trees:concept-node-remove-ext>
-    ///
-    /// TODO: These are the node removal steps, so this should be done for all Nodes.
     fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
-        // 1. Let document be removedNode's node document.
-        let document = self.owner_document_unrooted(cx.no_gc());
-
-        // 2. If document's focused area is removedNode, then set document's focused area to
-        // document's viewport, and set document's relevant global object's navigation API's focus
-        // changed during ongoing navigation to false.
-        //
-        // We are not calling the focusing steps on purpose here. There is a note about this in
-        // the specification that reads:
-        //
-        // > This does not perform the unfocusing steps, focusing steps, or focus update steps, and
-        // > thus no blur or change events are fired.
-        let element = self.as_element();
-        if document
-            .focus_handler()
-            .focused_area()
-            .element()
-            .is_some_and(|focused_element| focused_element == element)
-        {
-            document
-                .focus_handler()
-                .set_focused_area(cx.no_gc(), FocusableArea::Viewport);
-        }
-
-        // 3. If removedNode is an element whose namespace is the HTML namespace, and this standard
-        // defines HTML element removing steps for removedNode's local name, then run the
-        // corresponding HTML element removing steps given removedNode, isSubtreeRoot, and
-        // oldAncestor.
         if let Some(super_type) = self.super_type() {
             super_type.unbind_from_tree(cx, context);
         }
 
-        // 4. If removedNode is a form-associated element with a non-null form owner and removedNode
-        // and its form owner are no longer in the same tree, then reset the form owner of
-        // removedNode.
-        //
-        // Unbinding from a tree might enable a form control, if a
-        // fieldset ancestor is the only reason it was disabled.
-        // (The fact that it's enabled doesn't do much while it's
-        // disconnected, but it is an observable fact to keep track of.)
-        //
-        // TODO: This should likely just call reset on form owner.
-        self.maybe_update_form_control_disabled(cx);
-
-        if element.has_attribute(&local_name!("accesskey")) {
+        if self.as_element().has_attribute(&local_name!("accesskey")) {
             self.owner_document()
                 .event_handler()
                 .unassign_access_key(self);

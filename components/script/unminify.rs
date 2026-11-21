@@ -9,6 +9,7 @@ use std::io::{Error, ErrorKind, Read, Seek, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use servo_config::opts;
 use servo_url::ServoUrl;
 use tempfile::NamedTempFile;
 use uuid::Uuid;
@@ -65,7 +66,12 @@ pub fn create_output_file(
     url: &ServoUrl,
     external: Option<bool>,
 ) -> Result<File, Error> {
-    let path = PathBuf::from(unminified_dir);
+    let (path, _tmp_dir) = if opts::get().temporary_storage {
+        let tempfile = tempfile::tempdir()?;
+        (tempfile.path().to_owned(), Some(tempfile))
+    } else {
+        (PathBuf::from(unminified_dir), None)
+    };
 
     if url.scheme() == "data" {
         return Err(Error::new(

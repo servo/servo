@@ -29,10 +29,6 @@ ignore = [
     "RUSTSEC-2025-0098",
     # The crate `unic-ucd-ident` is unmaintained.
     "RUSTSEC-2025-0100",
-    # The crate `rsa` is vulnerable to Marvin Attack that leaks
-    # cryptographic secret via side channel. Wait for a patch in stable
-    # release version from upstream.
-    "RUSTSEC-2023-0071",
     # The crate `bincode` is unmaintained. This crate is now pinned in Servo.
     # See the comment above `bincode` entry in Cargo.toml.
     "RUSTSEC-2025-0141",
@@ -49,6 +45,10 @@ ignore = [
     # The crate `zvariant_derive` is unmaintained. Wait for `atspi-common` to start
     # using `zbus`.
     "RUSTSEC-2026-0372",
+
+    # rusqlite can not be independently updated as sea-query-rusqlite needs update.
+    "RUSTSEC-2026-0459",
+
 ]
 
 # This section is considered when running `cargo deny check licenses`

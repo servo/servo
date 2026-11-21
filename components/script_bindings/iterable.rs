@@ -18,11 +18,15 @@ use js::rust::{HandleObject, HandleValue, MutableHandleObject};
 use crate::codegen::GenericBindings::IterableIteratorBinding::{
     IterableKeyAndValueResult, IterableKeyOrValueResult,
 };
+use crate::codegen::PrototypeList;
 use crate::conversions::IDLInterface;
 use crate::error::Fallible;
 use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
 use crate::js::JS_NewObject;
-use crate::reflector::{DomGlobalGeneric, DomObjectIteratorWrap, DomObjectWrap, Reflector};
+use crate::reflector::{
+    DomGlobalGeneric, DomObjectIteratorWrap, DomObjectWrap, HasPrototype, PrototypeInitializer,
+    Reflector,
+};
 use crate::root::{Dom, DomRoot, Root};
 use crate::trace::NoTrace;
 use crate::utils::DOMClass;
@@ -73,6 +77,28 @@ pub struct IterableIterator<
     type_: IteratorType,
     index: Cell<u32>,
     _marker: NoTrace<PhantomData<D>>,
+}
+
+impl<D, T> HasPrototype for IterableIterator<D, T>
+where
+    D: DomTypes,
+    T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlobalGeneric<D> + HasPrototype,
+{
+    const PROTOTYPE_ID: PrototypeList::ID = T::PROTOTYPE_ID;
+}
+
+impl<D, T> PrototypeInitializer for IterableIterator<D, T>
+where
+    D: DomTypes,
+    T: DomObjectIteratorWrap<D>
+        + JSTraceable
+        + Iterable
+        + DomGlobalGeneric<D>
+        + PrototypeInitializer,
+{
+    fn set_proto_id(&mut self, id: PrototypeList::ID) {
+        self.reflector.set_proto_id(id);
+    }
 }
 
 impl<

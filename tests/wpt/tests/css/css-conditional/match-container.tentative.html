@@ -41,10 +41,21 @@ test(() => {
     </div>
   `);
   let target = container.querySelector("#target");
-  let invalidContainerQuery = target.matchContainer("(invalid-feature)");
-  assert_false(invalidContainerQuery.matches,
-    "matchContainer with invalid query should not match.");
-}, "Element.matchContainer handles an invalid query.");
+  assert_throws_dom("SyntaxError", () => target.matchContainer("???"),
+    "Syntax error throws.");
+  assert_throws_dom("SyntaxError", () => target.matchContainer(""),
+    "Empty string throws.");
+  assert_throws_dom("SyntaxError",
+    () => target.matchContainer("foo bar, (max-width: 300px)"),
+    "Invalid query in a list throws.");
+  assert_throws_dom("SyntaxError",
+    () => target.matchContainer("(width > 100px),"),
+    "Trailing comma in the list throws.");
+  assert_throws_dom("SyntaxError",
+    () => target.matchContainer(",(width > 100px)"),
+    "Leading comma in the list throws.");
+}, "Element.matchContainer throws SyntaxError for unparsable queries.");
+
 test(() => {
   let container = createTestElement(`
     <div class="size-container" style="width: 200px">
@@ -52,13 +63,14 @@ test(() => {
     </div>
   `);
   let target = container.querySelector("#target");
-  let syntaxError = target.matchContainer("???");
-  assert_false(syntaxError.matches,
-    "matchContainer with syntax error should not match.");
-  let emptyQuery = target.matchContainer("");
-  assert_false(emptyQuery.matches,
-    "matchContainer with empty string should not match.");
-}, "Element.matchContainer handles syntax errors and empty queries.");
+  let unknown = target.matchContainer("(invalid-feature)");
+  assert_false(unknown.matches, "An unknown feature evaluates to false.");
+  let mixed = target.matchContainer("(hiedg: 10px), (max-width: 300px)");
+  assert_equals(mixed.query, "(hiedg: 10px), (max-width: 300px)",
+    "Unknown feature inside parens parses and serializes.");
+  assert_true(mixed.matches,
+    "The known query in the list matches.");
+}, "Element.matchContainer keeps unknown features and evaluates them to false.");
 
 test(() => {
   let container = createTestElement(`
@@ -243,23 +255,6 @@ for (const [input, expected] of serializationCases) {
     assert_equals(target.matchContainer(input).query, expected);
   }, `Element.matchContainer .query serializes ${JSON.stringify(input)}`);
 }
-
-test(() => {
-  let container = createTestElement(`
-    <div class="size-container" style="width: 200px">
-      <div id="target"></div>
-    </div>
-  `);
-  let target = container.querySelector("#target");
-  assert_equals(target.matchContainer("???").query, "",
-    "query is empty for a syntax error.");
-  assert_equals(target.matchContainer("").query, "",
-    "query is empty for an empty query.");
-  assert_equals(target.matchContainer("(width > 100px),").query, "",
-    "query is empty for a trailing comma in the list.");
-  assert_equals(target.matchContainer(",(width > 100px)").query, "",
-    "query is empty for a leading comma in the list.");
-}, "Element.matchContainer .query is empty for invalid queries.");
 
 promise_test(async () => {
   let frame = document.getElementById("frame");

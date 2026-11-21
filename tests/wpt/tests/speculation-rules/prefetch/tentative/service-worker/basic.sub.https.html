@@ -2,6 +2,8 @@
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="/common/utils.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="../../../resources/utils.js"></script>
@@ -57,6 +59,9 @@ if (originalSwOption === 'race-fetch-handler-to-fallback') {
 }
 
 promise_test(async t => {
+  const targetStatus =
+      (originOption === 'same-site' || swOption === 'no-controller') ?
+          PRELOADING_STATUS.READY : PRELOADING_STATUS.FAILURE;
   const hostname = originOption === 'cross-site' ? '{{hosts[alt][www]}}'
                                                  : undefined;
   const win = await spawnWindow(t, { protocol: 'https', hostname: hostname });
@@ -91,7 +96,7 @@ promise_test(async t => {
   }
 
   // Start speculation rules prefetch and navigate to the URL.
-  await win.forceSinglePrefetch(nextUrl);
+  await win.forceSinglePrefetchAndWaitForStatus(nextUrl, {}, targetStatus);
 
   await win.navigate(nextUrl);
 

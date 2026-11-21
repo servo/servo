@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>Column grid-lanes spanner overflow continuations preserve independent lane adjustments</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="help" href="https://drafts.csswg.org/css-break/#breaking-rules">
+<link rel="match" href="column-early-breaks-019-ref.html">
+<style>
+  .multicol {
+    background: green;
+    columns: 3;
+    column-fill: auto;
+    column-gap: 0;
+    width: 120px;
+    height: 100px;
+  }
+  .grid-lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(2, 20px);
+    width: 40px;
+  }
+</style>
+<p>The colored rectangles on the green background must match the reference.</p>
+<div class="multicol">
+  <div class="grid-lanes">
+    <div style="grid-column: span 2; height: 20px; background: teal;">
+      <div style="width: 5px; height: 250px; margin-left: 35px; background: blue;"></div>
+    </div>
+    <div style="grid-column: 1; height: 90px; background: orange; break-inside: avoid;"></div>
+    <div style="grid-column: 1; height: 20px; background: purple; break-inside: avoid;"></div>
+    <div style="grid-column: 2; height: 20px; background: yellow;"></div>
+    <div style="grid-column: 2; height: 90px; background: cyan; break-inside: avoid;"></div>
+    <div style="grid-column: 2; height: 20px; background: pink; break-inside: avoid;"></div>
+  </div>
+</div>

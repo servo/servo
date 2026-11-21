@@ -21,22 +21,20 @@ use servo_url::ServoUrl;
 use style::Zero;
 use style::attr::AttrValue;
 use style::computed_values::object_fit::T as ObjectFit;
-use style::context::TreeCountingCaches;
-use style::dom::DummyElementContext;
 use style::logical_geometry::{LogicalAxis, WritingMode};
-use style::properties::{ComputedValues, StyleBuilder};
-use style::rule_cache::RuleCacheConditions;
-use style::rule_tree::RuleCascadeFlags;
-use style::stylesheets::container_rule::ContainerSizeQuery;
+use style::properties::ComputedValues;
 use style::url::ComputedUrl;
 use style::values::CSSFloat;
+use style::values::computed::Content;
 use style::values::computed::image::Image as ComputedImage;
-use style::values::computed::{Content, Context, ToComputedValue};
 use style::values::generics::counters::{GenericContentItem, GenericContentItems};
+use style::values::specified::length::LengthPercentage;
 use url::Url;
 use web_atoms::local_name;
 use webrender_api::ImageKey;
 
+use crate::SharedStyle;
+use crate::containing_block::{ConstraintSpace, ContainingBlock};
 use crate::context::{LayoutContext, LayoutImageCacheResult};
 use crate::dom::NodeExt;
 use crate::fragment_tree::{
@@ -48,7 +46,6 @@ use crate::sizing::{
     ComputeInlineContentSizes, InlineContentSizesResult, LazySize, SizeConstraint,
 };
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, LayoutStyle};
-use crate::{ConstraintSpace, ContainingBlock, SharedStyle};
 
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct ReplacedContents {
@@ -242,41 +239,20 @@ impl ReplacedContents {
         context: &LayoutContext,
         node: ServoLayoutNode<'_>,
     ) -> (ReplacedContentKind, NaturalSizes) {
-        let rule_cache_conditions = &mut RuleCacheConditions::default();
-        let mut tree_counting_caches = TreeCountingCaches::default();
-
-        let parent_style = node.style(&context.style_context);
-        let style_builder = StyleBuilder::new(
-            context.style_context.stylist.device(),
-            Some(context.style_context.stylist),
-            Some(&parent_style),
-            None,
-            None,
-            false,
-        );
-
-        // TODO: use the correct element context in order to properly resolve
-        // `sibling-index()`, like Blink. Or maybe do it like Gecko, and only
-        // accept literals, see https://github.com/w3c/csswg-drafts/issues/14117
-        let element_context = &DummyElementContext;
-
-        let to_computed_context = Context::new(
-            style_builder,
-            context.style_context.quirks_mode(),
-            rule_cache_conditions,
-            ContainerSizeQuery::none(),
-            RuleCascadeFlags::empty(),
-            element_context,
-            &mut tree_counting_caches,
-        );
-
         let attr_to_computed = |attr_val: &AttrValue| {
-            if let AttrValue::LengthPercentage(_, length_percentage) = attr_val {
-                length_percentage
-                    .to_computed_value(&to_computed_context)?
-                    .to_length()
-            } else {
-                None
+            // See <https://github.com/w3c/csswg-drafts/issues/14117>:
+            // > width and height only affect natural size if they're literal number-tokens,
+            // > or dimension-tokens for an absolute length unit
+            //
+            // Note that numbers have already been converted into a length with px units.
+            // The logic below avoids percentages, calc(), and non-absolute units.
+            // Also requires a non-negative amount.
+            match attr_val {
+                AttrValue::LengthPercentage(_, Some(LengthPercentage::Length(length))) => length
+                    .to_computed_pixel_length_without_context()
+                    .ok()
+                    .filter(|size| *size >= 0.),
+                _ => None,
             }
         };
         let width = svg_data.width.and_then(attr_to_computed);
@@ -284,14 +260,14 @@ impl ReplacedContents {
 
         let ratio = match (width, height) {
             (Some(width), Some(height)) if !width.is_zero() && !height.is_zero() => {
-                Some(width.px() / height.px())
+                Some(width / height)
             },
-            _ => svg_data.ratio_from_view_box(),
+            _ => svg_data.view_box_ratio,
         };
 
         let natural_size = NaturalSizes {
-            width: width.map(|w| Au::from_f32_px(w.px())),
-            height: height.map(|h| Au::from_f32_px(h.px())),
+            width: width.map(Au::from_f32_px),
+            height: height.map(Au::from_f32_px),
             ratio,
         };
 
@@ -332,7 +308,7 @@ impl ReplacedContents {
         (
             ReplacedContentKind::SVGElement {
                 vector_image,
-                has_viewbox: svg_data.view_box.is_some(),
+                has_viewbox: svg_data.view_box_ratio.is_some(),
             },
             natural_size,
         )
@@ -767,7 +743,7 @@ impl ReplacedContents {
         lazy_block_size: &LazySize,
     ) -> IndependentFormattingContextLayoutResult {
         let writing_mode = base.style.writing_mode;
-        let inline_size = containing_block_for_children.size.inline;
+        let inline_size = containing_block_for_children.inline_size();
         let content_block_size = self.content_size(
             LogicalAxis::Block,
             preferred_aspect_ratio,
@@ -811,10 +787,11 @@ impl ComputeInlineContentSizes for ReplacedContents {
         _: &LayoutContext,
         constraint_space: &ConstraintSpace,
     ) -> InlineContentSizesResult {
+        debug_assert!(!constraint_space.has_quirky_block_size.0);
         let inline_content_size = self.content_size(
             LogicalAxis::Inline,
             constraint_space.preferred_aspect_ratio,
-            &|| constraint_space.block_size,
+            &|| constraint_space.maybe_quirky_block_size,
             &|| self.fallback_inline_size(constraint_space.style.writing_mode),
         );
         InlineContentSizesResult {

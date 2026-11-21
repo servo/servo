@@ -46,6 +46,8 @@ use tokio::sync::Mutex as TokioMutex;
 use tokio::sync::mpsc::{UnboundedReceiver as TokioReceiver, UnboundedSender as TokioSender};
 
 use crate::connector::CACertificates;
+#[cfg(feature = "devtools")]
+use crate::devtools::{DevtoolsBodyBuffer, body_for_devtools};
 use crate::devtools::{
     send_early_httprequest_to_devtools, send_response_to_devtools, send_security_info_to_devtools,
 };
@@ -905,9 +907,10 @@ async fn wait_for_response(
 ) {
     if let Some(ref mut ch) = *done_chan {
         #[cfg(feature = "devtools")]
-        let mut devtools_body = context.devtools_chan.as_ref().map(|_| Vec::new());
-        #[cfg(not(feature = "devtools"))]
-        let devtools_body = None;
+        let mut devtools_body = context
+            .devtools_chan
+            .as_ref()
+            .map(|_| DevtoolsBodyBuffer::default());
         loop {
             match ch.1.recv().await {
                 Some(Data::ContentLength(length)) => {
@@ -916,7 +919,7 @@ async fn wait_for_response(
                 Some(Data::Payload(bytes)) => {
                     #[cfg(feature = "devtools")]
                     if let Some(body) = devtools_body.as_mut() {
-                        body.extend(&bytes);
+                        body.append_chunk(&bytes);
                     }
                     target.process_response_chunk(request, bytes);
                 },
@@ -929,7 +932,11 @@ async fn wait_for_response(
                     break;
                 },
                 Some(Data::Done) => {
-                    send_response_to_devtools(request, context, response, devtools_body);
+                    #[cfg(feature = "devtools")]
+                    let devtools_response_body =
+                        devtools_body.map(DevtoolsBodyBuffer::into_response_body);
+                    #[cfg(feature = "devtools")]
+                    send_response_to_devtools(request, context, response, devtools_response_body);
                     break;
                 },
                 Some(Data::Cancelled) => {
@@ -953,7 +960,17 @@ async fn wait_for_response(
                 if context.devtools_chan.is_some() {
                     // Now that we've replayed the entire cached body,
                     // notify the DevTools server with the full Response.
-                    send_response_to_devtools(request, context, response, Some(vec.clone()));
+                    let (data, truncated, content_size) = body_for_devtools(vec);
+                    send_response_to_devtools(
+                        request,
+                        context,
+                        response,
+                        Some(devtools_traits::HttpResponseBody {
+                            data: Bytes::from(data),
+                            truncated,
+                            content_size,
+                        }),
+                    );
                 }
             },
             ResponseBody::Done(_) | ResponseBody::Empty => {},
@@ -1009,7 +1026,8 @@ fn create_about_memory(url: ServoUrl, timing_type: ResourceTimingType) -> Respon
     response
         .headers
         .typed_insert(ContentType::from(mime::TEXT_HTML_UTF_8));
-    *response.body.lock() = ResponseBody::Done(resources::read_bytes(Resource::AboutMemoryHTML));
+    *response.body.lock() =
+        ResponseBody::Done(resources::read_bytes(Resource::AboutMemoryHTML).into_vec());
     response.status = HttpStatus::default();
     response
 }

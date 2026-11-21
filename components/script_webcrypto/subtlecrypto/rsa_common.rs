@@ -8,7 +8,7 @@ use js::context::JSContext;
 use rsa::pkcs8::spki::{DecodePublicKey, EncodePublicKey};
 use rsa::pkcs8::{DecodePrivateKey, EncodePrivateKey};
 use rsa::traits::{PrivateKeyParts, PublicKeyParts};
-use rsa::{BoxedUint, RsaPrivateKey, RsaPublicKey};
+use rsa::{BoxedUint, PrivateKey, PublicKey};
 use script_bindings::codegen::GenericBindings::CryptoKeyBinding::{
     CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
 };
@@ -18,6 +18,7 @@ use script_bindings::codegen::GenericBindings::SubtleCryptoBinding::{
 use script_bindings::error::Error;
 use script_bindings::root::DomRoot;
 use script_bindings::str::DOMString;
+use script_bindings::trace::RootedTraceableBox;
 
 use crate::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::subtlecrypto::{
@@ -43,7 +44,7 @@ pub(crate) fn generate_key<D: Equivalence>(
     normalized_algorithm: &RsaHashedKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<CryptoKeyPair<D>, Error> {
+) -> Result<RootedTraceableBox<CryptoKeyPair<D>>, Error> {
     match rsa_algorithm {
         RsaAlgorithm::RsassaPkcs1v1_5 | RsaAlgorithm::RsaPss => {
             // Step 1. If usages contains an entry which is not "sign" or "verify", then throw a
@@ -73,7 +74,7 @@ pub(crate) fn generate_key<D: Equivalence>(
     let mut rng = rand::rng();
     let modulus_length = normalized_algorithm.modulus_length as usize;
     let public_exponent = BoxedUint::from_be_slice_vartime(&normalized_algorithm.public_exponent);
-    let private_key = RsaPrivateKey::new_with_exp(&mut rng, modulus_length, public_exponent)
+    let private_key = PrivateKey::new_with_exp(&mut rng, modulus_length, public_exponent)
         .map_err(|_| Error::Operation(Some("Failed to generate RSA private key".into())))?;
     let public_key = private_key.to_public_key();
 
@@ -154,10 +155,10 @@ pub(crate) fn generate_key<D: Equivalence>(
     // Step 20. Let result be a new CryptoKeyPair dictionary.
     // Step 21. Set the publicKey attribute of result to be publicKey.
     // Step 22. Set the privateKey attribute of result to be privateKey.
-    let result = CryptoKeyPair {
-        publicKey: Some(public_key),
-        privateKey: Some(private_key),
-    };
+    let result = RootedTraceableBox::new(CryptoKeyPair {
+        publicKey: Some(public_key.as_traced()),
+        privateKey: Some(private_key.as_traced()),
+    });
 
     // Step 23. Return result.
     Ok(result)
@@ -215,7 +216,7 @@ pub(crate) fn import_key<D: Equivalence>(
             // true.
             // Step 2.6. If an error occurred while parsing, or it can be determined that publicKey
             // is not a valid public key according to [RFC3447], then throw a DataError.
-            let public_key = RsaPublicKey::from_public_key_der(key_data).map_err(|_| {
+            let public_key = PublicKey::from_public_key_der(key_data).map_err(|_| {
                 Error::Data(Some(
                     "Failed to import RSA public key in SPKI format".into(),
                 ))
@@ -259,7 +260,7 @@ pub(crate) fn import_key<D: Equivalence>(
             // to true.
             // Step 2.6. If an error occurred while parsing, or if rsaPrivateKey is not a valid RSA
             // private key according to [RFC3447], then throw a DataError.
-            let rsa_private_key = RsaPrivateKey::from_pkcs8_der(key_data).map_err(|_| {
+            let rsa_private_key = PrivateKey::from_pkcs8_der(key_data).map_err(|_| {
                 Error::Data(Some(
                     "Failed to import RSA private key in PKCS#8 format".into(),
                 ))
@@ -493,7 +494,7 @@ pub(crate) fn import_key<D: Equivalence>(
                 // interpreting jwk according to Section 6.3.2 of JSON Web Algorithms [JWA].
                 // Step 2.9.3. If privateKey is not a valid RSA private key according to [RFC3447],
                 // then throw a DataError.
-                let private_key = RsaPrivateKey::from_components(
+                let private_key = PrivateKey::from_components(
                     BoxedUint::from_be_slice_vartime(&n),
                     BoxedUint::from_be_slice_vartime(&e),
                     BoxedUint::from_be_slice_vartime(&d),
@@ -526,7 +527,7 @@ pub(crate) fn import_key<D: Equivalence>(
                 // interpreting jwk according to Section 6.3.1 of JSON Web Algorithms [JWA].
                 // Step 2.9.3. If publicKey can be determined to not be a valid RSA public key
                 // according to [RFC3447], then throw a DataError.
-                let public_key = RsaPublicKey::new(
+                let public_key = PublicKey::new(
                     BoxedUint::from_be_slice_vartime(&n),
                     BoxedUint::from_be_slice_vartime(&e),
                 )
@@ -866,7 +867,7 @@ pub(crate) fn export_key<D: Equivalence>(
                             .expect("Prime numbers must be greater than one"),
                     );
                     let non_zero_pi =
-                        NonZero::new(p_i.clone()).expect("Prime numbers must be non-zero");
+                        NonZero::new(p_i.clone().get()).expect("Prime numbers must be non-zero");
                     let t_i = primes
                         .iter()
                         .take(i - 1)

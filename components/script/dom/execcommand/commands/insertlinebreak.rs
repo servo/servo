@@ -130,7 +130,12 @@ pub(crate) fn execute_insert_line_break_command(
 
     // Step 10. If br is a collapsed line break, call createElement("br") on the context object and
     //          let extra br be the result, then call insertNode(extra br) on the active range.
-    // TODO: Implement this.
+    if br_node.is_collapsed_line_break(cx) {
+        let extra_br = document.create_element(cx, "br");
+        if active_range.InsertNode(cx, extra_br.upcast()).is_err() {
+            unreachable!("The node should always be insertable.");
+        }
+    }
 
     // Step 11. Return true.
     true

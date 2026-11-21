@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HTML MSE test: video is shown</title>
+    <link rel="author" title="Alicia Boya García" href="mailto:aboya@igalia.com">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: white;
+        }
+        body {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+        #video {
+            width: 320px;
+            height: 240px;
+            background: blue;
+        }
+        #explanation {
+            position: absolute;
+            top: 260px;
+        }
+    </style>
+</head>
+<body>
+<div id="video"></div>
+<div id="explanation">A video containing a blue static image should be visible above.</div>
+</body>
+</html>

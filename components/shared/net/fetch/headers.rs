@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::fmt::Write as _;
 use std::iter::Peekable;
 use std::str::{Chars, FromStr};
 
@@ -263,11 +262,7 @@ pub fn extract_mime_type(headers: &HeaderMap) -> Option<Vec<u8>> {
 pub fn extract_mime_type_as_mime(headers: &HeaderMap) -> Option<mime::Mime> {
     extract_mime_type_as_dataurl_mime(headers).and_then(|mime: DataUrlMime| {
         // Try to transform a data-url::mime::Mime into a mime::Mime
-        let mut mime_as_str = format!("{}/{}", mime.type_, mime.subtype);
-        for p in mime.parameters {
-            write!(mime_as_str, "; {}={}", p.0, p.1).unwrap();
-        }
-        mime_as_str.parse().ok()
+        mime.to_string().parse().ok()
     })
 }
 

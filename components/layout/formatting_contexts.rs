@@ -13,6 +13,9 @@ use style::logical_geometry::LogicalAxis;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 
+use crate::containing_block::{
+    ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock,
+};
 use crate::context::LayoutContext;
 use crate::dom::{LayoutBox, NodeExt, WeakLayoutBox};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents};
@@ -20,6 +23,7 @@ use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
 use crate::flow::inline::InlineFormattingContext;
 use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags};
+use crate::geom::LogicalVec2;
 use crate::layout_box_base::{IndependentFormattingContextLayoutResult, LayoutBoxBase};
 use crate::positioned::{LayoutRootLayoutInputs, PositioningContext};
 use crate::replaced::ReplacedContents;
@@ -30,10 +34,7 @@ use crate::sizing::{
 use crate::style_ext::{AspectRatio, Display, DisplayInside, LayoutStyle};
 use crate::table::Table;
 use crate::taffy::TaffyContainer;
-use crate::{
-    ArcRefCell, ConstraintSpace, ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize,
-    IndefiniteContainingBlock, LogicalVec2, PropagatedBoxTreeData,
-};
+use crate::{ArcRefCell, PropagatedBoxTreeData};
 
 /// <https://drafts.csswg.org/css-display/#independent-formatting-context>
 #[derive(Debug, MallocSizeOf)]
@@ -215,6 +216,7 @@ impl IndependentFormattingContext {
                     non_replaced_contents,
                     propagated_data,
                     is_list_item,
+                    false, /* is_table_cell */
                 ))
             },
             DisplayInside::Grid => {
@@ -271,6 +273,7 @@ impl IndependentFormattingContext {
                 NonReplacedContents::OfElement,
                 propagated_data,
                 false, /* is_list_item */
+                false, /* is_table_cell */
             ));
 
         let box_slot = widget_info.node.box_slot();
@@ -464,11 +467,10 @@ impl IndependentFormattingContext {
                 let resolved_block_size =
                     lazy_block_size.resolve(|| replaced_layout.content_block_size);
                 let widget_cb = ContainingBlock {
-                    size: ContainingBlockSize {
-                        inline: containing_block_for_children.size.inline,
-                        block: SizeConstraint::Definite(resolved_block_size),
-                        has_quirky_block_size: HasQuirkyBlockSize(false),
-                    },
+                    size: ContainingBlockSize::new(
+                        containing_block_for_children.inline_size(),
+                        SizeConstraint::Definite(resolved_block_size),
+                    ),
                     style: &self.base.style,
                 };
                 if let Some(widget) = widget {
@@ -596,11 +598,10 @@ impl IndependentFormattingContext {
             layout_context,
             positioning_context,
             &ContainingBlock {
-                size: ContainingBlockSize {
-                    inline: inline_size,
-                    block: SizeConstraint::default(),
-                    has_quirky_block_size: HasQuirkyBlockSize(false),
-                },
+                size: ContainingBlockSize::new(
+                    inline_size,
+                    SizeConstraint::default(), /* block_size */
+                ),
                 style: self.style(),
             },
             containing_block,

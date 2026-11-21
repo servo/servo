@@ -2,7 +2,7 @@
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
 <script src='/resources/testdriver-vendor.js'></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/common/subset-tests.js"></script>
@@ -30,7 +30,7 @@
     assert_equals(response_cookies["type"], "navigate");
 
     let nextUrl = agent.getExecutorURL({ executor, page: 2 });
-    await agent.forceSinglePrefetch(nextUrl);
+    await agent.forceSinglePrefetchAndWaitForStatus(nextUrl);
     await agent.navigate(nextUrl);
 
     response_cookies = await agent.getResponseCookies();
@@ -59,7 +59,7 @@
     await agent.setReferrerPolicy("no-referrer");
 
     let nextUrl = agent.getExecutorURL({ executor, page: 2 });
-    await agent.forceSinglePrefetch(nextUrl);
+    await agent.forceSinglePrefetchAndWaitForStatus(nextUrl);
     await agent.navigate(nextUrl);
 
     response_cookies = await agent.getResponseCookies();

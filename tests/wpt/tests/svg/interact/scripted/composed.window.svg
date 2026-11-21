@@ -12,18 +12,18 @@
     async_test(t => {
         const anchor = document.getElementById("a1");
         let happened = false;
-        anchor.onfocus = t.step_func(e => {
-            happened = true;
-            assert_equals(e.type, "focus");
-            assert_true(e.composed);
-        });
-        anchor.focus();
         anchor.onblur = t.step_func_done(e => {
             assert_true(happened);
             assert_equals(e.type, "blur");
             assert_true(e.composed);
         });
-        anchor.blur();
+        anchor.onfocus = t.step_func(e => {
+            happened = true;
+            assert_equals(e.type, "focus");
+            assert_true(e.composed);
+            anchor.blur();
+        });
+        anchor.focus();
     }, "Focus events are composed");
     ]]></script>
 </svg>

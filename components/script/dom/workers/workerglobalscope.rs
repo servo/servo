@@ -21,12 +21,12 @@ use encoding_rs::UTF_8;
 use fonts::FontContext;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use js::context::JSContext;
+#[cfg(feature = "devtools")]
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSContext as RawJSContext, Value};
 use js::realm::CurrentRealm;
 use js::rust::{HandleValue, MutableHandleValue, ParentRuntime};
 use mime::Mime;
-use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, RequestBuilder, RequestId,
@@ -35,9 +35,12 @@ use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, Resource
 use profile_traits::mem::{ProcessReports, perform_memory_report};
 use script_bindings::callback::RootedCallback;
 use script_bindings::cell::{DomRefCell, Ref};
+#[cfg(feature = "devtools")]
 use script_bindings::conversions::root_from_handlevalue;
 use script_bindings::domstring::TracedDOMString;
+#[cfg(feature = "devtools")]
 use script_bindings::reflector::DomObject;
+#[cfg(feature = "devtools")]
 use script_bindings::root::rooted_heap_handle;
 use script_bindings::trace::CustomTraceable;
 use servo_base::cross_process_instant::CrossProcessInstant;
@@ -111,6 +114,7 @@ use crate::scripting::script_execution::{RethrowErrors, ScriptOptions};
 use crate::scripting::script_module::{ModuleRequest, ModuleStatus};
 use crate::tasks::task::TaskCanceller;
 use crate::tasks::task_manager::TaskManager;
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 #[cfg(feature = "devtools")]
 pub(crate) type WorkerDevtoolsControlMsg = DevtoolScriptControlMsg;
@@ -816,31 +820,30 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             // Step 3: Append the result of invoking the Get Trusted Type compliant string algorithm
             // with TrustedScriptURL, this's relevant global object, url, "WorkerGlobalScope importScripts",
             // and "script" to urlStrings.
+            let global_scope = self.upcast::<GlobalScope>();
             let url = TrustedScriptURL::get_trusted_type_compliant_string(
                 cx,
-                self.upcast::<GlobalScope>(),
+                global_scope,
                 url,
                 "WorkerGlobalScope importScripts",
             )?;
             let url = self.worker_url.borrow().join(&url.str());
-            match url {
-                Ok(url) => urls.push(url),
+            let url = match url {
+                Ok(url) => ensure_blob_referenced_by_url_is_kept_alive(global_scope, url),
                 Err(_) => return Err(Error::Syntax(None)),
             };
+            urls.push(url);
         }
 
         for url in urls {
             let global_scope = self.upcast::<GlobalScope>();
-            let request = RequestBuilder::new(
-                global_scope.webview_id(),
-                UrlWithBlobClaim::from_url_without_having_claimed_blob(url.clone()),
-                global_scope.get_referrer(),
-            )
-            .destination(Destination::Script)
-            .credentials_mode(CredentialsMode::Include)
-            .parser_metadata(ParserMetadata::NotParserInserted)
-            .use_url_credentials(true)
-            .with_global_scope(global_scope);
+            let request =
+                RequestBuilder::new(global_scope.webview_id(), url, global_scope.get_referrer())
+                    .destination(Destination::Script)
+                    .credentials_mode(CredentialsMode::Include)
+                    .parser_metadata(ParserMetadata::NotParserInserted)
+                    .use_url_credentials(true)
+                    .with_global_scope(global_scope);
 
             // https://html.spec.whatwg.org/multipage/#fetch-a-classic-worker-imported-script
             let (url, bytes, muted_errors) = match load_whole_resource(
@@ -861,8 +864,8 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
 
                     // Step 7: Check if the MIME type is not a JavaScript MIME type
                     let not_a_javascript_mime_type =
-                        !metadata.content_type.clone().is_some_and(|ct| {
-                            let mime: Mime = ct.into_inner().into();
+                        !metadata.content_type.is_some_and(|content_type| {
+                            let mime: Mime = content_type.into_inner().into();
                             SCRIPT_JS_MIMES.contains(&mime.essence_str())
                         });
                     if not_a_javascript_mime_type {

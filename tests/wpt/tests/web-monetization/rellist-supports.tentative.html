@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>relList.supports() and the monetization link type</title>
+<link rel="help" href="https://webmonetization.org/specification/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(() => {
+  assert_true(document.createElement('link').relList.supports('monetization'));
+}, '<link> supports the monetization link type');
+
+test(() => {
+  const relList = document.createElement('link').relList;
+  assert_true(relList.supports('MONETIZATION'), 'all caps');
+  assert_true(relList.supports('Monetization'), 'mixed case');
+}, 'The monetization link type is matched ASCII case-insensitively');
+
+for (const tagName of ['a', 'area', 'form']) {
+  test(() => {
+    assert_false(
+        document.createElement(tagName).relList.supports('monetization'));
+  }, `<${tagName}> does not support the monetization link type`);
+}
+</script>

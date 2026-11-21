@@ -11,8 +11,8 @@ use openxr::{
     ExtensionSet, FormFactor, FrameStream, FrameWaiter, Graphics, Instance, Session, SystemId,
 };
 use surfman::{
-    Adapter as SurfmanAdapter, Connection as SurfmanConnection, Context as SurfmanContext,
-    Device as SurfmanDevice, Error as SurfmanError, SurfaceTexture,
+    Adapter as SurfmanAdapter, Context as SurfmanContext, Device as SurfmanDevice,
+    Error as SurfmanError, SurfaceTexture,
 };
 use webxr_api::Error;
 use winapi::Interface;
@@ -52,15 +52,15 @@ impl GraphicsProviderMethods<D3D11> for GraphicsProvider {
     fn create_session(
         instance: &Instance,
         system: SystemId,
+        device: &SurfmanDevice,
     ) -> Result<(Session<D3D11>, FrameWaiter, FrameStream<D3D11>), Error> {
         // FIXME: We should ensure that the OpenXR runtime's texture will be shareable with
         // surfman's surfaces by validating the requirements of the XR runtime and ensuring that
         // the WebGL context can use the same device when `makeXRCompatible` is called.
-        let adapter = create_surfman_adapter(instance).ok_or(Error::NoMatchingDevice)?;
-        let connection = SurfmanConnection::new().map_err(|_| Error::NoMatchingDevice)?;
-        let device = connection
-            .create_device(&adapter)
-            .map_err(|_| Error::NoMatchingDevice)?;
+
+        // While not used, this runs the Requirements check (OpenXR will throw validation error otherwise)
+        // and will exit early if the adapter somehow can't be found.
+        let _ = create_surfman_adapter(instance).ok_or(Error::NoMatchingDevice)?;
         let native_device = device.native_device();
         let d3d_device = native_device.d3d11_device;
 

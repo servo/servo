@@ -8,6 +8,7 @@ use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, MutableHandleValue};
 use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::root::DomSlice;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
@@ -52,8 +53,8 @@ impl XRInputSourcesChangeEvent {
         bubbles: bool,
         cancelable: bool,
         session: &XRSession,
-        added: &[DomRoot<XRInputSource>],
-        removed: &[DomRoot<XRInputSource>],
+        added: &[&XRInputSource],
+        removed: &[&XRInputSource],
     ) -> DomRoot<XRInputSourcesChangeEvent> {
         Self::new_with_proto(
             cx, window, None, type_, bubbles, cancelable, session, added, removed,
@@ -69,8 +70,8 @@ impl XRInputSourcesChangeEvent {
         bubbles: bool,
         cancelable: bool,
         session: &XRSession,
-        added: &[DomRoot<XRInputSource>],
-        removed: &[DomRoot<XRInputSource>],
+        added: &[&XRInputSource],
+        removed: &[&XRInputSource],
     ) -> DomRoot<XRInputSourcesChangeEvent> {
         let changeevent = reflect_dom_object_with_proto(
             cx,
@@ -110,8 +111,8 @@ impl XRInputSourcesChangeEventMethods<crate::DomTypeHolder> for XRInputSourcesCh
             init.parent.bubbles,
             init.parent.cancelable,
             &init.session,
-            &init.added,
-            &init.removed,
+            init.added.as_ref_slice(),
+            init.removed.as_ref_slice(),
         )
     }
 

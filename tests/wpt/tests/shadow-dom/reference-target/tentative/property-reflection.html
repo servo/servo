@@ -14,10 +14,13 @@
   <div id="host-container"></div>
   <script>
     function append_test_declaratively(host_container, referenced_element_type) {
+      const closing_tag = isVoidElement(referenced_element_type)
+        ? ""
+        : `</${referenced_element_type}>`;
       host_container.setHTMLUnsafe(`
       <div id="host-id">
         <template shadowrootmode="open" shadowrootreferencetarget="target">
-          <${referenced_element_type} id="target"></${referenced_element_type}>
+          <${referenced_element_type} id="target">${closing_tag}
         </template>
       </div>`);
       const host = host_container.firstElementChild;
@@ -28,10 +31,13 @@
 
     // Test that the corresponding properties return null when the reference target has invalid ID.
     function append_test_declaratively_with_invalid_id(host_container, referenced_element_type) {
+      const closing_tag = isVoidElement(referenced_element_type)
+        ? ""
+        : `</${referenced_element_type}>`;
       host_container.setHTMLUnsafe(`
       <div id="host-id">
         <template shadowrootmode="open" shadowrootreferencetarget="invalid-id">
-          <${referenced_element_type} id="target"></${referenced_element_type}>
+          <${referenced_element_type} id="target">${closing_tag}
         </template>
       </div>`);
       const host = host_container.firstElementChild;

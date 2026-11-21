@@ -49,7 +49,7 @@ use crate::desktop::accelerated_gl_media::setup_gl_accelerated_media;
 use crate::desktop::dialog::Dialog;
 use crate::desktop::event_loop::{AppEvent, RepaintEventLoopWaker};
 use crate::desktop::gui::Gui;
-use crate::desktop::keyutils::CMD_OR_CONTROL;
+use crate::desktop::keyutils::{CMD_OR_CONTROL, keyboard_modifiers_from_winit_modifiers};
 use crate::prefs::ServoShellPreferences;
 use crate::running_app_state::{RunningAppState, UserInterfaceCommand};
 use crate::window::{
@@ -264,6 +264,11 @@ impl HeadedWindow {
         let webview_rect: Rect<_, _> = webview.size().into();
         if !webview_rect.contains(point) {
             return;
+        }
+
+        // A primary or secondary mouse button event moves keyboard focus to the webview.
+        if button == MouseButton::Left || button == MouseButton::Right {
+            self.gui.borrow_mut().set_webview_widget_focused(true);
         }
 
         if self
@@ -593,16 +598,28 @@ impl HeadedWindow {
                 window.queue_user_interface_command(UserInterfaceCommand::Back);
                 consumed = true;
             },
-            WindowEvent::MouseWheel { .. } | WindowEvent::MouseInput { .. }
-                if !should_forward_mouse_event_to_egui() =>
-            {
-                self.gui.borrow().surrender_focus();
-            },
-            WindowEvent::KeyboardInput { .. } if !self.gui.borrow().has_keyboard_focus() => {
+            WindowEvent::KeyboardInput { .. } if self.gui.borrow().webview_widget_focused() => {
                 // Keyboard events should go to the WebView unless some other GUI
                 // component has keyboard focus.
+                //
+                // TODO: Release focus from the webview if keyboard focus moves past the beginning
+                // or end of the web contents.
             },
             ref event => {
+                if let WindowEvent::Focused(focused) = event {
+                    state.set_window_has_focus(window.clone(), *focused);
+
+                    if !focused {
+                        // If the window lost focus, update the gui so that if focus is in web
+                        // contents the webview widget can surrender focus to avoid a crash in
+                        // accesskit when on_window_event() is called below.
+                        //
+                        // If the window gained focus, we still need to wait a tick before
+                        // requesting focus on the webview widget, so skip it here.
+                        self.gui.borrow_mut().update(&state, &window, self);
+                    }
+                }
+
                 let response = self
                     .gui
                     .borrow_mut()
@@ -610,10 +627,6 @@ impl HeadedWindow {
 
                 if response.repaint && *event != WindowEvent::RedrawRequested {
                     self.winit_window.request_redraw();
-                }
-
-                if let WindowEvent::Focused(focused) = event {
-                    state.set_window_has_focus(window.clone(), *focused);
                 }
 
                 // All CursorMoved events, even when forwarded to the WebView, are also
@@ -625,8 +638,6 @@ impl HeadedWindow {
                 {
                     consumed = false;
                 } else {
-                    // TODO how do we handle the tab key? (see doc for consumed)
-                    // Note that servo doesn’t yet support tabbing through links and inputs
                     consumed = response.consumed;
                 }
             },
@@ -677,6 +688,7 @@ impl HeadedWindow {
                     webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(
                         delta,
                         point.into(),
+                        keyboard_modifiers_from_winit_modifiers(self.modifiers_state.get()),
                     )));
                 },
                 WindowEvent::Touch(touch) => {

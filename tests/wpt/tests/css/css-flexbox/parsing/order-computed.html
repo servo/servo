@@ -15,6 +15,12 @@
 test_computed_value("order", "0");
 test_computed_value("order", "123");
 test_computed_value("order", "-45");
+// Large integers must serialize as plain decimal, not in scientific notation
+// (<integer> is exempt from the <number> 6-significant-figure/scinot rules).
+test_computed_value("order", "1234567");
+test_computed_value("order", "999999999");
+test_computed_value("order", "2147483647");
+test_computed_value("order", "-1234567");
 </script>
 </body>
 </html>

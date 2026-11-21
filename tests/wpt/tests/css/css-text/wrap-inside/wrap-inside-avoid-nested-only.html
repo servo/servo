@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>wrap-inside: nested avoid boxes with no break outside them break in the outer box first</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#wrap-inside">
+<link rel="match" href="wrap-inside-avoid-nested-only-ref.html">
+<meta name="assert" content="When every break opportunity on the line is inside a wrap-inside: avoid box, a break in an outer box must be used before a break within an inner box: the line breaks before the inner box rather than inside it.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    div { width: 110px; font: 20px/20px Ahem; color: green; }
+</style>
+<!--
+    "WW XX" (100px) fits within 110px, so breaking inside the inner box would give "WW XX" / "YY". But there is a break
+    opportunity in the outer box (after "WW"), which is outside the inner box, so the inner box is kept together and the
+    line breaks there instead: "WW" / "XX YY".
+-->
+<div><span style="wrap-inside: avoid">WW <span style="wrap-inside: avoid">XX YY</span></span></div>

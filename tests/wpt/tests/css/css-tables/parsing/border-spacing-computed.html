@@ -19,6 +19,10 @@
 <script>
 test_computed_value("border-spacing", "10px 20px");
 
+// Fractional values must be preserved, not truncated to integer pixels.
+test_computed_value("border-spacing", "0.5px", "0.5px");
+test_computed_value("border-spacing", "1.5px 2.25px");
+
 // This should be "0px" and not "0px 0px" due to the shortest serialization principle:
 // https://drafts.csswg.org/cssom/#serializing-css-values
 // > If component values can be omitted or replaced with a shorter

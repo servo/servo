@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Clipped block containing fragmented OOF in nested multicol</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/40267498">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:2; gap:0; column-fill:auto; column-rule:solid red; width:100px; height:100px; background:red;">
+  <div style="columns:2; column-fill:auto; gap:0;">
+    <div style="position:relative; overflow:clip; height:400px;">
+      <div style="position:absolute; width:100%;">
+        <div style="height:400px; background:green;"></div>
+        <div style="height:200px; background:red;"></div>
+        <div style="break-before:column; height:4000px; background:red;"></div>
+      </div>
+    </div>
+  </div>
+</div>

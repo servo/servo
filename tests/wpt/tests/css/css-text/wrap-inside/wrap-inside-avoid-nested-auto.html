@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>wrap-inside: a nested wrap-inside: auto box inside an avoid box is still avoided</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#wrap-inside">
+<link rel="match" href="wrap-inside-avoid-nested-auto-ref.html">
+<meta name="assert" content="wrap-inside: auto on a box nested inside a wrap-inside: avoid box does not re-enable breaking: the whole outer box is kept together, so the line breaks before it.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    div { width: 110px; font: 20px/20px Ahem; color: green; }
+</style>
+<!--
+    The inner box is 'wrap-inside: auto', but it is inside a 'wrap-inside: avoid' box, so breaks within it are still avoided.
+    The whole outer box is kept together and the line breaks before it: "X" / "Y Z W".
+-->
+<div>X <span style="wrap-inside: avoid">Y <span style="wrap-inside: auto">Z W</span></span></div>

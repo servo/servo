@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: between column rules follow start, center, and end aligned items in horizontal and vertical grid lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#visibility">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#stacking-self-alignment">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14489#issuecomment-6528510262">
+<link rel="match" href="column-gap-decorations-rule-visibility-items-between-self-alignment-ref.html">
+<style>
+  body { margin: 0; }
+  .cases { display: flex; gap: 12px; align-items: start; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(2, 60px);
+    gap: 20px;
+    inline-size: 140px;
+    block-size: 200px;
+    background: #cdd5e0;
+    column-rule: 4px solid blue;
+    column-rule-visibility-items: between;
+    column-rule-break: normal;
+    row-rule: 4px solid gold;
+  }
+  .short {
+    grid-column: 1;
+    block-size: 40px;
+    align-self: start;
+    background: #1f9d6b;
+  }
+  .tall {
+    grid-column: 2;
+    block-size: 140px;
+    background: #5b8def;
+  }
+  .spanner {
+    grid-column: 1 / -1;
+    block-size: 40px;
+    background: #8a6df0;
+  }
+  .center .short { align-self: center; }
+  .end .short { align-self: end; }
+  .vertical {
+    writing-mode: vertical-rl;
+    column-rule-break: intersection;
+  }
+</style>
+<div class="cases">
+  <div class="lanes">
+    <div class="short"></div>
+    <div class="tall"></div>
+    <div class="spanner"></div>
+  </div>
+  <div class="lanes center">
+    <div class="short"></div>
+    <div class="tall"></div>
+    <div class="spanner"></div>
+  </div>
+  <div class="lanes end">
+    <div class="short"></div>
+    <div class="tall"></div>
+    <div class="spanner"></div>
+  </div>
+  <div class="lanes vertical center">
+    <div class="short"></div>
+    <div class="tall"></div>
+    <div class="spanner"></div>
+  </div>
+</div>

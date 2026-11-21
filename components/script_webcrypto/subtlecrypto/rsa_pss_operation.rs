@@ -11,6 +11,7 @@ use script_bindings::codegen::GenericBindings::CryptoKeyBinding::{
 use script_bindings::codegen::GenericBindings::SubtleCryptoBinding::KeyFormat;
 use script_bindings::error::Error;
 use script_bindings::root::DomRoot;
+use script_bindings::trace::RootedTraceableBox;
 use sha1::Sha1;
 use sha2::{Sha256, Sha384, Sha512};
 
@@ -173,7 +174,7 @@ pub(crate) fn generate_key<D: Equivalence>(
     normalized_algorithm: &RsaHashedKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<CryptoKeyPair<D>, Error> {
+) -> Result<RootedTraceableBox<CryptoKeyPair<D>>, Error> {
     rsa_common::generate_key(
         cx,
         global,

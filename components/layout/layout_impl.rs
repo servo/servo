@@ -42,6 +42,7 @@ use profile_traits::time::{
 };
 use profile_traits::{path, time_profile};
 use rustc_hash::FxHashMap;
+use script::HTML_INPUT_TYPE_SUBMIT_DEFAULT_VALUE;
 use script::layout_dom::{
     ServoDangerousStyleDocument, ServoDangerousStyleElement, ServoLayoutElement, ServoLayoutNode,
 };
@@ -868,6 +869,7 @@ impl LayoutThread {
         let device = Device::new(
             ComputedValues::initial_values_with_font_override(font),
             Box::new(LayoutFontMetricsProvider(config.font_context.clone())),
+            Box::from(HTML_INPUT_TYPE_SUBMIT_DEFAULT_VALUE),
             MediaData {
                 media_type: MediaType::screen(),
                 quirks_mode: QuirksMode::NoQuirks,

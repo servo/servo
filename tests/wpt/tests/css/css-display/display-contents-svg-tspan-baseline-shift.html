@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Display: text in a display: contents tspan is shifted with the content of the parent tspan</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#unbox-svg">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#propdef-baseline-shift">
+<link rel="match" href="display-contents-svg-tspan-baseline-shift-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<svg width="400" height="100" font-family="Ahem" font-size="20">
+    <text x="10" y="60">X<tspan baseline-shift="20">X<tspan style="display: contents">XX</tspan>X</tspan>X</text>
+</svg>

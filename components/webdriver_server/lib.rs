@@ -36,7 +36,7 @@ use euclid::{Point2D, Rect, Size2D};
 use http::method::Method;
 use image::{DynamicImage, ImageFormat};
 use keyboard_types::webdriver::{Event as DispatchStringEvent, KeyInputState, send_keys};
-use keyboard_types::{Code, Key, KeyState, KeyboardEvent, Location, NamedKey};
+use keyboard_types::{Code, Key, KeyState, KeyboardEvent, Location, Modifiers, NamedKey};
 use log::{debug, error, info};
 use serde::de::{Deserializer, MapAccess, Visitor};
 use serde::ser::Serializer;
@@ -2217,9 +2217,13 @@ impl Handler {
         let id = Uuid::new_v4().to_string();
 
         // Step 12. Add an input source
-        self.session_mut()?
-            .input_state_table
-            .insert(id.clone(), InputSourceState::Key(KeyInputState::new()));
+        self.session_mut()?.input_state_table.insert(
+            id.clone(),
+            InputSourceState::Key {
+                state: KeyInputState::new(),
+                modifiers: Modifiers::default(),
+            },
+        );
 
         // Step 13. dispatch actions for a string
         // https://w3c.github.io/webdriver/#dfn-dispatch-actions-for-a-string

@@ -620,6 +620,12 @@ impl ShapedTextSlice {
         self.total_word_separators
     }
 
+    /// Whether or not this [`ShapedTextSlice`] has right-to-left text, which has implications about
+    /// the order of the glyphs in the store.
+    pub fn is_rtl(&self) -> bool {
+        self.shaped_text.is_rtl
+    }
+
     /// The number of word separators in the hanging and removable portion of this [`ShapedTextSlice`].
     pub fn hanging_and_removable_word_separators(&self) -> usize {
         let discard_glyph_count =

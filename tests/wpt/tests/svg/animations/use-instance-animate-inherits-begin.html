@@ -1,0 +1,26 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>A use-element instance generated after beginElement() inherits the begun animation</title>
+<link rel="match" href="../struct/reftests/reference/green-100x100.html">
+<link rel="help" href="https://svgwg.org/svg2-draft/struct.html#UseAnimations">
+<script src="/common/reftest-wait.js"></script>
+<svg width="100" height="100">
+  <symbol id="animated-symbol">
+    <rect width="100" height="100" fill="red">
+      <set id="anim" attributeName="fill" to="green" begin="indefinite"/>
+    </rect>
+  </symbol>
+</svg>
+<script>
+window.onload = () => {
+  const svg = document.querySelector('svg');
+  svg.pauseAnimations();
+  document.getElementById('anim').beginElement();
+  requestAnimationFrame(() => {
+    const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+    use.setAttribute('href', '#animated-symbol');
+    svg.appendChild(use);
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+  });
+};
+</script>

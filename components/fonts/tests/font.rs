@@ -12,7 +12,6 @@ use fonts::{
     Font, FontData, FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef,
     PlatformFontMethods, ShapingFlags, ShapingOptions,
 };
-use icu_locale_core::subtags::Language;
 use servo_url::ServoUrl;
 use style::Zero;
 use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
@@ -22,6 +21,7 @@ use style::values::computed::{
     FontFeatureSettings, FontStyle, FontSynthesis, FontVariantEastAsian, FontVariantLigatures,
     FontVariantNumeric, FontWeight, FontWidth,
 };
+use stylo_atoms::atom;
 use unicode_script::Script;
 
 fn make_font(path: PathBuf) -> Font {
@@ -83,7 +83,8 @@ fn test_font_can_do_fast_shaping() {
         letter_spacing: Au::zero(),
         word_spacing: Au::zero(),
         script: Script::Latin,
-        language: Language::UNKNOWN,
+        language: atom!(""),
+        language_override: None,
         flags: ShapingFlags::empty(),
         ligatures: FontVariantLigatures::NORMAL,
         numeric: FontVariantNumeric::NORMAL,
@@ -100,7 +101,8 @@ fn test_font_can_do_fast_shaping() {
         letter_spacing: Au::zero(),
         word_spacing: Au::zero(),
         script: Script::Cherokee,
-        language: Language::UNKNOWN,
+        language: atom!(""),
+        language_override: None,
         flags: ShapingFlags::empty(),
         ligatures: FontVariantLigatures::NORMAL,
         numeric: FontVariantNumeric::NORMAL,
@@ -117,7 +119,8 @@ fn test_font_can_do_fast_shaping() {
         letter_spacing: Au::zero(),
         word_spacing: Au::zero(),
         script: Script::Latin,
-        language: Language::UNKNOWN,
+        language: atom!(""),
+        language_override: None,
         flags: ShapingFlags::RTL_FLAG,
         ligatures: FontVariantLigatures::NORMAL,
         numeric: FontVariantNumeric::NORMAL,

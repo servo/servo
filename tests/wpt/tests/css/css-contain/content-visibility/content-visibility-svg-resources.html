@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Content Visibility: SVG resources in content-visibility: hidden subtree are not painted</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="/css/reference/blank.html">
+<script src="/common/reftest-wait.js"></script>
+<style>body { margin: 0 }</style>
+<svg width="20" height="20" style="display: block">
+  <g id="fo_group">
+    <foreignObject width="20" height="20">
+      <div id="foreign_locked">
+        <div style="width: 20px; height: 20px; background: red"></div>
+      </div>
+    </foreignObject>
+  </g>
+</svg>
+<div id="locked" style="color: red">
+  <svg width="0" height="0">
+    <linearGradient id="lg_locked">
+      <stop stop-color="currentColor"/>
+    </linearGradient>
+    <radialGradient id="rg_locked">
+      <stop stop-color="currentColor"/>
+    </radialGradient>
+    <pattern id="pat_locked" width="1" height="1">
+      <rect width="20" height="20" fill="currentColor"/>
+    </pattern>
+    <filter id="filter_locked" x="0" y="0" width="1" height="1">
+      <feFlood flood-color="currentColor"/>
+    </filter>
+    <marker id="marker_locked" markerWidth="20" markerHeight="20">
+      <rect width="20" height="20" fill="currentColor"/>
+    </marker>
+    <mask id="mask_locked">
+      <rect width="200" height="100" fill="white"/>
+    </mask>
+    <path id="offset_locked" d="M 100 100 L 100 100"/>
+    <rect id="feimage_target" width="20" height="20" fill="currentColor"/>
+  </svg>
+</div>
+<div id="shadow_host">
+  <template shadowrootmode="open">
+    <div id="shadow_locked">
+      <slot></slot>
+    </div>
+  </template>
+  <svg width="0" height="0">
+    <linearGradient id="slotted_lg">
+      <stop stop-color="red"/>
+    </linearGradient>
+  </svg>
+</div>
+<svg width="200" height="100">
+  <defs>
+    <linearGradient id="lg_chain" href="#lg_locked"/>
+    <radialGradient id="rg_chain" href="#rg_locked"/>
+    <pattern id="pat_chain" href="#pat_locked"/>
+    <filter id="feimage_foreign_filter" x="0" y="0" width="1" height="1">
+      <feImage href="#fo_group"/>
+    </filter>
+    <filter id="feimage_filter" x="0" y="0" width="1" height="1">
+      <feImage href="#feimage_target"/>
+    </filter>
+    <filter id="feimage_svg_filter" x="0" y="0" width="1" height="1">
+      <feImage href="#locked_svg"/>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="20" height="20" fill="url(#lg_chain)"/>
+  <rect x="20" y="0" width="20" height="20" fill="url(#rg_chain)"/>
+  <rect x="40" y="0" width="20" height="20" fill="url(#pat_locked)"/>
+  <rect x="60" y="0" width="20" height="20" fill="url(#pat_chain)"/>
+  <rect x="80" y="0" width="20" height="20" fill="none" filter="url(#filter_locked)"/>
+  <rect x="100" y="0" width="20" height="20" fill="none" filter="url(#feimage_filter)"/>
+  <path d="M 130 10 L 135 10" marker-start="url(#marker_locked)"/>
+  <rect x="140" y="0" width="20" height="20" fill="url(#slotted_lg)"/>
+  <rect x="160" y="0" width="20" height="20" fill="none" filter="url(#feimage_svg_filter)"/>
+  <rect id="feimage_foreign_rect" x="180" y="0" width="20" height="20" fill="none"/>
+  <rect x="-50" y="-50" width="20" height="20" fill="red" style="offset-path: url(#offset_locked)"/>
+</svg>
+<svg style="display: none">
+  <filter id="feimage_foreign_hidden_filter" x="0" y="0" width="1" height="1">
+    <feImage href="#fo_group"/>
+  </filter>
+</svg>
+<div id="feimage_foreign_div" style="width: 20px; height: 20px; background: white"></div>
+<div style="width: 20px; height: 20px; background: red; mask-image: url(#mask_locked)"></div>
+<svg id="locked_svg" width="20" height="20">
+  <rect width="20" height="20" fill="red"/>
+</svg>
+<script>
+  onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+    feimage_foreign_rect.setAttribute('filter', 'url(#feimage_foreign_filter)');
+    feimage_foreign_div.style.filter = 'url(#feimage_foreign_hidden_filter)';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      locked.style.contentVisibility = 'hidden';
+      locked_svg.style.contentVisibility = 'hidden';
+      foreign_locked.style.contentVisibility = 'hidden';
+      shadow_host.shadowRoot.getElementById('shadow_locked').style.contentVisibility = 'hidden';
+      takeScreenshot();
+    }));
+  }));
+</script>
+</html>

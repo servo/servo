@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#intrinsic-cross-sizes">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#algo-overview">
+<meta name="assert" content="A column-wrap grid item's items keep their flexed sizes when the grid computes the item's max-content width again after laying it out.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<div style="display: grid">
+  <div class="flex" style="display: flex; flex-flow: column wrap; height: 100px; align-items: baseline">
+    <div></div>
+    <div style="flex-grow: 1" data-expected-height="100"></div>
+  </div>
+</div>
+<script>
+checkLayout(".flex");
+</script>

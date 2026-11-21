@@ -344,6 +344,11 @@ impl GlobalScope {
     pub(crate) fn tear_down(&self) {
         self.fetch_group_mut().terminate(self);
         self.close_event_sources();
+        if let Some(window) = self.downcast::<Window>() &&
+            let Some(cookie_store) = window.cookie_store()
+        {
+            cookie_store.clean_up();
+        }
         self.with_module_map(|module_map| std::mem::take(&mut *module_map.borrow_mut()));
     }
 
@@ -535,6 +540,18 @@ impl GlobalScope {
         new_registration
     }
 
+    fn send_service_worker_state_update_done(&self, worker_id: ServiceWorkerId) {
+        let res = self.script_to_constellation_chan().send(
+            ScriptToConstellationMessage::ServiceWorkerStateUpdateDone(
+                worker_id,
+                self.pipeline_id(),
+            ),
+        );
+        if res.is_err() {
+            error!("Sending ServiceWorkerStateUpdateDone failed");
+        }
+    }
+
     /// <https://w3c.github.io/ServiceWorker/#update-state-algorithm>
     pub(crate) fn update_service_worker_state(
         &self,
@@ -548,6 +565,7 @@ impl GlobalScope {
         // Step 4.3: Let workerObj be objectMap[worker].
         let Some(worker) = object_map.get(&worker_id) else {
             // Step 4.2: If objectMap[worker] does not exist, then abort these steps.
+            self.send_service_worker_state_update_done(worker_id);
             return;
         };
 
@@ -556,6 +574,8 @@ impl GlobalScope {
 
         // Step 4.5: Fire an event named statechange at workerObj.
         worker.upcast().fire_event(cx, atom!("statechange"));
+
+        self.send_service_worker_state_update_done(worker_id);
     }
 
     /// <https://w3c.github.io/ServiceWorker/#get-the-service-worker-object>
@@ -3056,6 +3076,20 @@ impl GlobalScope {
             request_builder,
             NetworkListener::new(context, task_source),
             None, /* state */
+        );
+    }
+
+    pub(crate) fn fetch_favicon<Listener: FetchResponseListener>(
+        &self,
+        request_builder: RequestBuilder,
+        context: Listener,
+        task_source: SendableTaskSource,
+    ) {
+        self.fetch_group_mut().fetch_with_options(
+            request_builder,
+            NetworkListener::new(context, task_source),
+            None, /* state */
+            false,
         );
     }
 

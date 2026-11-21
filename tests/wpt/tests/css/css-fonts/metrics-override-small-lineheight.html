@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<link rel="author" href="mailto:jkew@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-metrics-override-desc">
+<link rel="match" href="metrics-override-small-lineheight-ref.html">
+
+<title>Test that metrics overrides can result in smaller-than-normal line height</title>
+
+<style>
+@font-face {
+  font-family: OverriddenMetrics;
+  src: url(/fonts/Ahem.ttf);
+  /* With these overrides, 'normal' line-height will be 0.5em. */
+  ascent-override: 25%;
+  descent-override: 12.5%;
+  line-gap-override: 12.5%;
+}
+
+div {
+  font: 100px/normal OverriddenMetrics;
+}
+
+.target1, .target2 {
+  color: green;
+}
+
+.target1 {
+  position: absolute;
+  top: 50px;
+  left: 50px;
+  overflow: hidden;
+}
+
+.wrapper {
+  position: absolute;
+  top: 150px;
+  left: 50px;
+  overflow: hidden;
+}
+</style>
+
+<div class="target1">
+  ABC <!-- 3 chars will be a total of 300px wide -->
+</div>
+
+<div class="wrapper">
+  <span class="target2">ABC</span>
+</div>

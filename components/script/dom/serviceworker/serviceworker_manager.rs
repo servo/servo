@@ -323,6 +323,25 @@ impl ServiceWorkerManager {
                     }
                 }
             },
+            ServiceWorkerMsg::FinishInstall(worker_id) => {
+                // Find the relevant worker in the registration map.
+                let mut url = None;
+                for (scope_url, registration) in self.registrations.iter() {
+                    if let Some(worker) = &registration.installing_worker &&
+                        worker.id == worker_id
+                    {
+                        url = Some(scope_url.clone());
+                        break;
+                    }
+                }
+                if let Some(url) = url {
+                    // <https://w3c.github.io/ServiceWorker/#install>
+                    // Now that the waiting condition of step 21 has been met,
+                    // we can continue.
+                    // Step 22: Invoke Try Activate with registration.
+                    self.try_activate_registration(url);
+                }
+            },
             ServiceWorkerMsg::ForwardWorkerMessage {
                 data,
                 url,
@@ -387,6 +406,11 @@ impl ServiceWorkerManager {
             },
         }
         true
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#try-activate>
+    fn try_activate_registration(&mut self, _url: ServoUrl) {
+        // TODO: implement.
     }
 
     /// <https://w3c.github.io/ServiceWorker/#unregister>
@@ -714,11 +738,7 @@ impl ServiceWorkerManager {
         // probably because we are still lacking functionality elsewhere.
 
         // Step 21: Wait for all the tasks queued by Update Worker State invoked in this algorithm to have executed.
-        // TODO: wait for the tasks queued to fire the "statechange" events
-        // to return control to the engine and for script to message back here.
-
-        // Step 22: Invoke Try Activate with registration.
-        // TODO.
+        // Note: the algorithm will continue in the handler for the ServiceWorkerMsg::FinishInstall message.
     }
 
     /// <https://w3c.github.io/ServiceWorker/#update>

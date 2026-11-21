@@ -200,11 +200,13 @@ pub fn process_node_scroll_area_request(
             .union(&tree.initial_containing_block),
     };
 
+    // Note that with `Rect::round()`, the resulting size would depend on
+    // the position (and change when both the origin and size are not whole
+    // integers). To avoid that, round origin and size separately.
     Rect::new(
-        rect.origin.map(Au::to_f32_px),
-        rect.size.to_vector().map(Au::to_f32_px).to_size(),
+        rect.origin.map(Au::to_f32_px).round(),
+        rect.size.to_vector().map(Au::to_f32_px).to_size().round(),
     )
-    .round()
     .to_i32()
 }
 
@@ -1052,12 +1054,17 @@ fn rendered_text_collection_steps(
                         if let Some(grandparent_node) =
                             unsafe { parent_node.dangerous_dom_parent() }
                         {
-                            if !matches!(
-                                grandparent_node.type_id(),
-                                Some(LayoutNodeType::Element(
-                                    LayoutElementType::HTMLSelectElement
-                                ))
-                            ) {
+                            // The grandparent might not be an element (for example a `Document`
+                            // or a shadow root), and layout can't represent those node types,
+                            // so check for an element before asking for its type.
+                            let grandparent_is_select = grandparent_node.as_element().is_some() &&
+                                matches!(
+                                    grandparent_node.type_id(),
+                                    Some(LayoutNodeType::Element(
+                                        LayoutElementType::HTMLSelectElement
+                                    ))
+                                );
+                            if !grandparent_is_select {
                                 return items;
                             }
                         } else {

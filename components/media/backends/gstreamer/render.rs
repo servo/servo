@@ -5,6 +5,7 @@
 use std::sync::Arc;
 
 use glib::prelude::*;
+use gstreamer_video::prelude::*;
 use servo_media_gstreamer_render::Render;
 use servo_media_player::PlayerError;
 use servo_media_player::context::PlayerGLContext;
@@ -82,12 +83,23 @@ mod platform {
 
 struct GStreamerBuffer {
     frame: gstreamer_video::VideoFrame<gstreamer_video::video_frame::Readable>,
+    stride: usize,
+    row_bytes: usize,
 }
 
 impl Buffer for GStreamerBuffer {
     fn to_vec(&self) -> Option<VideoFrameData> {
         let data = self.frame.plane_data(0).ok()?;
-        Some(VideoFrameData::Raw(Arc::new(data.to_vec())))
+        if self.stride == self.row_bytes {
+            return Some(VideoFrameData::Raw(Arc::new(data.to_vec())));
+        }
+        // Whatever consumes VideoFrame expects packed lines, so we discard the
+        // padding at the end of each line.
+        let mut packed = Vec::with_capacity(self.row_bytes * self.frame.height() as usize);
+        for row in data.chunks_exact(self.stride) {
+            packed.extend_from_slice(&row[..self.row_bytes]);
+        }
+        Some(VideoFrameData::Raw(Arc::new(packed)))
     }
 }
 
@@ -118,11 +130,22 @@ impl GStreamerRender {
             let caps = sample.caps()?;
             let info = gstreamer_video::VideoInfo::from_caps(caps).ok()?;
             let frame = gstreamer_video::VideoFrame::from_buffer_readable(buffer, &info).ok()?;
+            let row_bytes = info.width() as usize * 4; // BGRA => 4
+            // This comes from the mapped frame, that respects GstVideoMeta.
+            // Caps understate it when the decoder aligns rows, as VideoToolbox
+            // does on macOS.
+            let stride = usize::try_from(*frame.plane_stride().first()?)
+                .ok()
+                .filter(|stride| *stride >= row_bytes)?;
 
             VideoFrame::new(
                 info.width() as i32,
                 info.height() as i32,
-                Arc::new(GStreamerBuffer { frame }),
+                Arc::new(GStreamerBuffer {
+                    frame,
+                    stride,
+                    row_bytes,
+                }),
             )
         }
     }

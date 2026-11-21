@@ -174,7 +174,7 @@ promise_test(async t => {
 //////////////////////
 promise_test(async t => {
   let audioContext = new frame.contentWindow.AudioContext();
-  await audioContext.audioWorklet.addModule("dummy?dest=audioworklet");
+  await audioContext.audioWorklet.addModule("dummy.js?dest=audioworklet");
 }, 'AudioWorklet module fetches with a "audioworklet" Request.destination');
 
 // Style destination

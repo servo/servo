@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<head>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shape">
+<link rel="match" href="inner-corner-intersection004-ref.html">
+<meta name="fuzzy" content="maxDifference=0-20; totalPixels=0-360">
+<meta name="assert" content="Test for rendering correctness when the inner edge of a notch corner intersects the inner edge of the adjacent corner.">
+<style>
+    .target {
+        margin: 20px;
+        width: 400px;
+        height: 400px;
+        box-sizing: border-box;
+        border: 60px solid green;
+
+        border-top-left-radius: 275px;
+        corner-top-left-shape: notch;
+
+        border-top-right-radius: 275px;
+        corner-top-right-shape: bevel;
+    }
+</style>
+</head>
+<div class=target></div>

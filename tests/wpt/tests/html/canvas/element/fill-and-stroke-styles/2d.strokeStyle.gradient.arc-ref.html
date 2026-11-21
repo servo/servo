@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>Canvas test: 2d.strokeStyle.gradient.arc (reference)</title>
+<body>
+  <canvas id="canvas" width="200" height="200"></canvas>
+</body>
+<script>
+  var canvas = document.getElementById('canvas');
+  var ctx = canvas.getContext('2d');
+  var g = ctx.createLinearGradient(0, 0, 200, 0);
+  g.addColorStop(0, 'red');
+  g.addColorStop(1, 'blue');
+  ctx.fillStyle = g;
+  // Fill an annulus matching a 20px-wide stroke on a radius-60 arc.
+  ctx.beginPath();
+  ctx.arc(100, 100, 70, 0, 2 * Math.PI);
+  ctx.arc(100, 100, 50, 0, 2 * Math.PI, true);
+  ctx.fill();
+</script>

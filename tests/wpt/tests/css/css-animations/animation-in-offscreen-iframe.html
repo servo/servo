@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>An animation in an offscreen iframe subtree continues when it returns onscreen</title>
+<link rel="author" title="Hoch Hochkeppel" href="mailto:mhochk@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<body>
+<script>
+function waitForMessage(frame, type) {
+  return new Promise(resolve => {
+    addEventListener('message', function listener(event) {
+      if (event.source !== frame.contentWindow || event.data.type !== type) {
+        return;
+      }
+      removeEventListener('message', listener);
+      resolve(event.data);
+    });
+  });
+}
+
+function requestAnimationState(frame) {
+  const state = waitForMessage(frame, 'state');
+  frame.contentWindow.postMessage('report-state', '*');
+  return state;
+}
+
+promise_test(async t => {
+  const frame = document.createElement('iframe');
+  frame.sandbox = 'allow-scripts';
+  frame.src = 'resources/animation-in-offscreen-iframe-child.html';
+  const ready = waitForMessage(frame, 'ready');
+  document.body.append(frame);
+  t.add_cleanup(() => frame.remove());
+
+  const initialState = await ready;
+  assert_equals(initialState.playState, 'running');
+
+  await waitForAnimationFramesWithDelay(200);
+  const beforeThrottleState = await requestAnimationState(frame);
+  assert_equals(beforeThrottleState.playState, 'running');
+  assert_greater_than(beforeThrottleState.currentTime, initialState.currentTime);
+
+  // The animation is in a nested frame so throttling the outer frame excludes
+  // its document before the nested animation can update.
+  await runAndWaitForFrameUpdate(() => {
+    frame.style.transform = 'translateY(10000px)';
+  });
+  await waitForAnimationFramesWithDelay(200);
+  const throttledState = await requestAnimationState(frame);
+  assert_equals(throttledState.playState, 'running');
+  assert_greater_than(
+      throttledState.currentTime - beforeThrottleState.currentTime, 100,
+      'The animation timeline should continue while the frame is offscreen');
+
+  // Two frame updates allow the child to unthrottle and repaint.
+  await runAndWaitForFrameUpdate(() => {
+    frame.style.transform = '';
+  });
+  await waitForNextFrame();
+
+  const afterThrottleState = await requestAnimationState(frame);
+  assert_equals(afterThrottleState.playState, 'running');
+  assert_greater_than_equal(
+      afterThrottleState.currentTime, throttledState.currentTime,
+      'The animation should not restart when the frame returns onscreen');
+}, 'An animation continues after its iframe subtree moves offscreen and back onscreen');
+</script>
+</body>

@@ -67,7 +67,7 @@ impl Kind {
         matches!(self, Kind::Text { type_, .. } if type_.eq(text_type))
     }
 
-    fn is_file(&self) -> bool {
+    pub(crate) fn is_file(&self) -> bool {
         matches!(self, Kind::File { .. })
     }
 }
@@ -268,8 +268,10 @@ impl DragDataStore {
         self.item_list.get(id)
     }
 
-    pub(crate) fn remove(&mut self, index: usize) {
-        self.item_list.shift_remove_index(index);
+    pub(crate) fn remove(&mut self, index: usize) -> Option<Kind> {
+        self.item_list
+            .shift_remove_index(index)
+            .map(|(_, kind)| kind)
     }
 
     pub(crate) fn clear_list(&mut self) {

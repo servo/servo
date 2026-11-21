@@ -23,17 +23,22 @@ use crate::dom::html::htmlfontelement::HTMLFontElement;
 use crate::dom::node::node::{Node, NodeTraits};
 
 impl Element {
-    pub(crate) fn resolved_display_value(&self) -> Option<DisplayOutside> {
-        self.style().map(|style| style.get_box().display.outside())
+    pub(crate) fn resolved_display_value(&self, cx: &mut JSContext) -> Option<DisplayOutside> {
+        self.style(cx)
+            .map(|style| style.get_box().display.outside())
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#specified-command-value>
-    pub(crate) fn specified_command_value(&self, command: &CommandName) -> Option<DOMString> {
+    pub(crate) fn specified_command_value(
+        &self,
+        cx: &mut JSContext,
+        command: &CommandName,
+    ) -> Option<DOMString> {
         match command {
             // Step 1. If command is "backColor" or "hiliteColor" and the Element's display property does not have resolved value "inline", return null.
             CommandName::BackColor | CommandName::HiliteColor
                 if self
-                    .resolved_display_value()
+                    .resolved_display_value(cx)
                     .is_none_or(|display| display != DisplayOutside::Inline) =>
             {
                 return None;

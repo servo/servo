@@ -1,0 +1,351 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>idlharness: Test filter</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/WebIDLParser.js"></script>
+  <script src="/resources/idlharness.js"></script>
+</head>
+<body>
+<p>Verify the series of sub-tests that are executed when a test filter is set
+with set_test_filter().</p>
+<script>
+"use strict";
+
+// Excluding one member keeps the interface and its other members
+(() => {
+  Object.defineProperty(window, "A", {
+    enumerable: false,
+    writable: true,
+    configurable: true,
+    value: function A() {
+      throw new TypeError("Illegal constructor");
+    }
+  });
+  A.prototype.keep = function keep() {
+    throw new TypeError("Illegal invocation");
+  };
+  Object.defineProperty(A, "prototype", { writable: false });
+
+  const idlArray = new IdlArray();
+  idlArray.add_idls(`
+    [Exposed=Window] interface A {
+      undefined keep();
+      undefined exclude();
+    };`);
+  idlArray.set_test_filter((name, member) => member !== "exclude");
+  idlArray.test();
+})();
+
+// A member can be included without its interface's checks
+(() => {
+  Object.defineProperty(window, "B", {
+    enumerable: false,
+    writable: true,
+    configurable: true,
+    value: function B() {
+      throw new TypeError("Illegal constructor");
+    }
+  });
+  B.prototype.keep = function keep() {
+    throw new TypeError("Illegal invocation");
+  };
+  Object.defineProperty(B, "prototype", { writable: false });
+
+  const idlArray = new IdlArray();
+  idlArray.add_idls(`
+    [Exposed=Window] interface B {
+      undefined keep();
+      undefined exclude();
+    };
+    [Exposed=Window] interface C {
+      undefined exclude();
+    };`);
+  idlArray.set_test_filter((name, member) => name === "B" && member === "keep");
+  idlArray.test();
+})();
+
+// Members added by partial interfaces and mixins are filtered
+(() => {
+  Object.defineProperty(window, "D", {
+    enumerable: false,
+    writable: true,
+    configurable: true,
+    value: function D() {
+      throw new TypeError("Illegal constructor");
+    }
+  });
+  D.prototype.keep = function keep() {
+    throw new TypeError("Illegal invocation");
+  };
+  Object.defineProperty(D, "prototype", { writable: false });
+
+  const idlArray = new IdlArray();
+  idlArray.add_idls(`
+    [Exposed=Window] interface D { undefined keep(); };
+    partial interface D { undefined partialMember(); };
+    interface mixin M { undefined mixinMember(); };
+    D includes M;`);
+  idlArray.set_test_filter((name, member) =>
+    member !== "partialMember" && member !== "mixinMember");
+  idlArray.test();
+})();
+
+// Including everything doesn't enable untested dependencies
+(() => {
+  Object.defineProperty(window, "E", {
+    enumerable: false,
+    writable: true,
+    configurable: true,
+    value: function E() {
+      throw new TypeError("Illegal constructor");
+    }
+  });
+  Object.defineProperty(window, "F", {
+    enumerable: false,
+    writable: true,
+    configurable: true,
+    value: function F() {
+      throw new TypeError("Illegal constructor");
+    }
+  });
+  Object.setPrototypeOf(F, E);
+  Object.setPrototypeOf(F.prototype, E.prototype);
+  F.prototype.child = function child() {
+    throw new TypeError("Illegal invocation");
+  };
+  Object.defineProperty(E, "prototype", { writable: false });
+  Object.defineProperty(F, "prototype", { writable: false });
+
+  const idlArray = new IdlArray();
+  idlArray.add_untested_idls(`
+    [Exposed=Window] interface E { undefined parent(); };`);
+  idlArray.add_idls(`
+    [Exposed=Window] interface F : E { undefined child(); };`);
+  idlArray.set_test_filter(() => true);
+  idlArray.test();
+})();
+
+// Excluding members doesn't change the keys expected from the default toJSON
+(() => {
+  Object.defineProperty(window, "Foo", {
+    enumerable: false,
+    writable: true,
+    configurable: true,
+    value: function Foo() {}
+  });
+  Foo.prototype.toJSON = function toJSON() {
+    if (!(this instanceof Foo)) {
+      throw new TypeError("Illegal invocation");
+    }
+    return { b: 1 };
+  };
+  Object.defineProperty(Foo, "prototype", { writable: false });
+
+  const idlArray = new IdlArray();
+  idlArray.add_idls(`
+    [Exposed=Window] interface FooParent {
+      [Default] object toJSON();
+      attribute long a;
+    };
+    [Exposed=Window] interface Foo : FooParent {
+      [Default] object toJSON();
+      attribute long b;
+    };`);
+  idlArray.add_objects({ Foo: ["new Foo()"] });
+  // should fail (the output lacks the filtered attribute "a", which is still expected)
+  idlArray.set_test_filter((name, member) => name === "Foo" && member === "toJSON");
+  idlArray.test();
+})();
+
+// An excluded interface isn't checked for being absent where it isn't exposed
+(() => {
+  const idlArray = new IdlArray();
+  idlArray.add_idls(`[Exposed=Worker] interface G {};`);
+  idlArray.set_test_filter(() => false);
+  idlArray.test();
+})();
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null
+  },
+  "summarized_tests": [
+    {
+      "name": "A interface object length",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "A interface object name",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "A interface: existence and properties of interface object",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "A interface: existence and properties of interface prototype object",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "A interface: existence and properties of interface prototype object's \"constructor\" property",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "A interface: existence and properties of interface prototype object's @@unscopables property",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "A interface: operation keep()",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "B interface: operation keep()",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "D includes M: member names are unique",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "D interface object length",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "D interface object name",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "D interface: existence and properties of interface object",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "D interface: existence and properties of interface prototype object",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "D interface: existence and properties of interface prototype object's \"constructor\" property",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "D interface: existence and properties of interface prototype object's @@unscopables property",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "D interface: operation keep()",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "F interface object length",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "F interface object name",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "F interface: existence and properties of interface object",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "F interface: existence and properties of interface prototype object",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "F interface: existence and properties of interface prototype object's \"constructor\" property",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "F interface: existence and properties of interface prototype object's @@unscopables property",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "F interface: operation child()",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Foo interface: default toJSON operation on new Foo()",
+      "status_string": "FAIL",
+      "properties": {},
+      "message": "assert_true: property \"a\" should be present in the output of Foo.prototype.toJSON() expected true got false"
+    },
+    {
+      "name": "Foo interface: new Foo() must inherit property \"toJSON()\" with the proper type",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Foo interface: operation toJSON()",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial interface D: member names are unique",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial interface D: original interface defined",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>
+</html>

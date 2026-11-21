@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>CSS Content Visibility: getBBox() with SVG resource references in content-visibility: hidden subtree</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div style="content-visibility: hidden">
+  <svg width="400" height="200">
+    <path id="path" d="M 100 50 L 300 50"/>
+    <text id="text"><textPath href="#path">Hello</textPath></text>
+    <g id="group">
+      <rect width="20" height="20" style="offset-path: url(#path); offset-distance: 0%; offset-anchor: 0% 0%"/>
+    </g>
+  </svg>
+</div>
+
+<script>
+  test(() => {
+    assert_equals(text.getBBox().x, 100);
+  }, 'getBBox() computes layout for <textPath> referencing <path> in a content-visibility: hidden subtree');
+
+  test(() => {
+    assert_equals(group.getBBox().x, 100);
+  }, 'getBBox() computes layout for offset-path referencing <path> in a content-visibility: hidden subtree');
+</script>

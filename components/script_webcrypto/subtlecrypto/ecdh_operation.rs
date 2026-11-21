@@ -17,6 +17,7 @@ use script_bindings::codegen::GenericBindings::CryptoKeyBinding::{
 use script_bindings::codegen::GenericBindings::SubtleCryptoBinding::KeyFormat;
 use script_bindings::error::Error;
 use script_bindings::root::DomRoot;
+use script_bindings::trace::RootedTraceableBox;
 
 use crate::cryptokey::{CryptoKey, Handle};
 use crate::subtlecrypto::ec_common::EcAlgorithm;
@@ -33,7 +34,7 @@ pub(crate) fn generate_key<D: Equivalence>(
     normalized_algorithm: &EcKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<CryptoKeyPair<D>, Error> {
+) -> Result<RootedTraceableBox<CryptoKeyPair<D>>, Error> {
     ec_common::generate_key(
         cx,
         global,

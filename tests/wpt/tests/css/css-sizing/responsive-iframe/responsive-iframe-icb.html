@@ -15,15 +15,18 @@ iframe {
 <script>
 async_test(t => {
   const target = document.getElementById('target');
-  window.addEventListener('load', t.step_func(e => {
-    // On load, the IFRAME is resized to the content size.
-    assert_equals(target.offsetHeight, 300 + 2);
+  window.addEventListener('load', t.step_func(async e => {
+    // On load, the IFRAME is resized to the content size on the rendering frame.
+    await waitForAtLeastOneFrame();
+    t.step(() => {
+      assert_equals(target.offsetHeight, 300 + 2);
 
-    // Resize the non-responsive axis (`width`) and set the content `height` to
-    // `100vw`.
-    target.style.width = '400px';
-    assert_equals(target.offsetWidth, 400 + 2);
-    target.contentWindow.postMessage({ name: 'height100vw' }, '*');
+      // Resize the non-responsive axis (`width`) and set the content `height`
+      // to `100vw`.
+      target.style.width = '400px';
+      assert_equals(target.offsetWidth, 400 + 2);
+      target.contentWindow.postMessage({ name: 'height100vw' }, '*');
+    });
   }));
   window.addEventListener('message', t.step_func(async (e) => {
     switch (e.data.name) {

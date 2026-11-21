@@ -186,10 +186,10 @@ impl ElementInternals {
         }
     }
 
-    pub(crate) fn is_invalid(&self, cx: &mut JSContext) -> bool {
+    pub(crate) fn is_invalid(&self, no_gc: &NoGC) -> bool {
         self.is_target_form_associated() &&
-            self.is_instance_validatable(cx.no_gc()) &&
-            !self.satisfies_constraints(cx)
+            self.is_instance_validatable(no_gc) &&
+            !self.satisfies_constraints()
     }
 
     pub(crate) fn custom_states_for_layout<'a>(&'a self) -> Option<LayoutDom<'a, CustomStateSet>> {
@@ -421,6 +421,13 @@ impl Validatable for ElementInternals {
                 self.target_element.upcast(),
             )
         })
+    }
+
+    fn satisfies_constraints(&self) -> bool {
+        let Some(validity_state) = self.validity_state.get() else {
+            return true;
+        };
+        validity_state.invalid_flags().is_empty()
     }
 
     /// <https://html.spec.whatwg.org/multipage#candidate-for-constraint-validation>

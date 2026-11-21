@@ -78,7 +78,9 @@ use script_bindings::principals::ServoJSPrincipals;
 use script_bindings::reflector::DomObject;
 use script_bindings::root::Root;
 use script_traits::{ConstellationInputEvent, ScriptThreadMessage, WebViewState};
+use selectors::Parser;
 use selectors::attr::CaseSensitivity;
+use selectors::parser::is_css2_pseudo_element;
 use servo_arc::Arc as ServoArc;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::{self, GenericCallback, GenericSender};
@@ -101,9 +103,9 @@ use style::dom::OpaqueNode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::properties::PropertyId;
 use style::properties::style_structs::Font;
-use style::selector_parser::PseudoElement;
+use style::selector_parser::{PseudoElement, SelectorParser};
 use style::str::HTML_SPACE_CHARACTERS;
-use style::stylesheets::UrlExtraData;
+use style::stylesheets::{Origin as StyleOrigin, UrlExtraData};
 use style_traits::CSSPixel;
 use stylo_atoms::Atom;
 use time::Duration as TimeDuration;
@@ -155,7 +157,7 @@ use crate::dom::css::cssstyledeclaration::{
 use crate::dom::customelementregistry::CustomElementRegistry;
 use crate::dom::document::focus::FocusableArea;
 use crate::dom::document::{
-    AbortReason, AnimationFrameCallback, Document, SameOriginDescendantNavigablesIterator,
+    AbortReason, AnimationFrameCallback, Document, LocalDescendantNavigablesIterator,
 };
 use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -541,6 +543,10 @@ impl Window {
         self.upcast::<GlobalScope>()
     }
 
+    pub(crate) fn cookie_store(&self) -> Option<DomRoot<CookieStore>> {
+        self.cookie_store.get()
+    }
+
     /// <https://www.w3.org/TR/largest-contentful-paint/#has-dispatched-scroll-event>
     pub(crate) fn mark_has_dispatched_scroll_event(&self) {
         self.has_dispatched_scroll_event.set(true);
@@ -614,6 +620,13 @@ impl Window {
         self.as_global_scope()
             .task_manager()
             .cancel_all_tasks_and_ignore_future_tasks();
+
+        // Remove any devicechange callbacks from the WebXR registry
+        // so we don't hold any references to XRSystem
+        #[cfg(feature = "webxr")]
+        if let Some(mut registry) = self.webxr_registry() {
+            registry.remove_device_change_callbacks(self.pipeline_id());
+        }
     }
 
     /// Get a sender to the time profiler thread.
@@ -1096,6 +1109,44 @@ impl Window {
     pub(crate) fn with_timers<T>(&self, f: impl FnOnce(&OneshotTimers) -> T) -> T {
         let document = self.Document();
         f(document.timers())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#process-close-watchers>
+    pub(crate) fn process_close_watchers(&self, cx: &mut JSContext) -> bool {
+        // Step 1. Let processedACloseWatcher be false.
+        let mut processed_a_close_watcher = false;
+
+        // Step 2. If window's close watcher manager's groups is not empty:
+        // Step 2.1. Let group be the last item in window's close watcher manager's groups.
+        //
+        // We need to clone the group as request_to_close can modify the groups.
+        let close_watcher_manager = self.close_watcher_manager();
+        let group = close_watcher_manager.groups().last().cloned();
+        if let Some(group) = group {
+            // Step 2.2. For each closeWatcher of group, in reverse order:
+            for close_watcher in group.iter().rev() {
+                // Step 2.2.1. If the result of running closeWatcher's get enabled state is true, set processedACloseWatcher to true.
+                if close_watcher.get_enabled_state() {
+                    processed_a_close_watcher = true;
+                }
+
+                // Step 2.2.2. Let shouldProceed be the result of requesting to close closeWatcher with true.
+                let should_proceed = close_watcher.request_to_close(cx, true);
+
+                // Step 2.2.3. If shouldProceed is false, then break.
+                if !should_proceed {
+                    break;
+                }
+            }
+        }
+
+        // Step 3. If window's close watcher manager's allowed number of groups is greater than 1, decrement it by 1.
+        if close_watcher_manager.allowed_number_of_groups() > 1 {
+            close_watcher_manager.decrement_allowed_number_of_groups();
+        }
+
+        // Step 4. Return processedACloseWatcher.
+        processed_a_close_watcher
     }
 }
 
@@ -2029,32 +2080,33 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         let mut is_null = false;
 
         // Step 3: If pseudoElt is provided, is not the empty string, and starts with a colon, then:
-        // Step 3.1: Parse pseudoElt as a <pseudo-element-selector>, and let type be the result.
-        // TODO(#43095): This is quite hacky and it would be better to have a parsing function that
-        // is integrated with stylo `PseudoElement` itself. Comparing with stylo, we are now currently
-        // missing `::backdrop`, `::color-swatch`, and `::details-content`.
-        let pseudo = pseudo.map(|mut s| {
-            s.make_ascii_lowercase();
-            s
-        });
-        let pseudo = match pseudo {
-            Some(ref pseudo) if pseudo == ":before" || pseudo == "::before" => {
-                Some(PseudoElement::Before)
-            },
-            Some(ref pseudo) if pseudo == ":after" || pseudo == "::after" => {
-                Some(PseudoElement::After)
-            },
-            Some(ref pseudo) if pseudo == "::selection" => Some(PseudoElement::Selection),
-            Some(ref pseudo) if pseudo == "::marker" => Some(PseudoElement::Marker),
-            Some(ref pseudo) if pseudo == "::placeholder" => Some(PseudoElement::Placeholder),
-            Some(ref pseudo) if pseudo.starts_with(':') => {
+        let pseudo = pseudo
+            .filter(|pseudo| pseudo.starts_with(':'))
+            .and_then(|pseudo| {
+                // Step 3.1: Parse pseudoElt as a <pseudo-element-selector>, and let type be the result.
+                let pseudo = pseudo.str();
+                let pseudo = pseudo
+                    .strip_prefix("::")
+                    .or_else(|| {
+                        pseudo
+                            .strip_prefix(":")
+                            .filter(|pseudo_name| is_css2_pseudo_element(pseudo_name))
+                    })
+                    .and_then(|pseudo_name| {
+                        SelectorParser {
+                            stylesheet_origin: StyleOrigin::Author,
+                            namespaces: &Default::default(),
+                            url_data: &UrlExtraData(self.Document().url().get_arc()),
+                            for_supports_rule: false,
+                        }
+                        .parse_pseudo_element(pseudo_name)
+                        .ok()
+                    });
                 // Step 3.2: If type is failure, or is a ::slotted() or ::part()
                 // pseudo-element, let obj be null.
-                is_null = true;
-                None
-            },
-            _ => None,
-        };
+                is_null = pseudo.is_none();
+                pseudo
+            });
 
         // Step 4. Let decls be an empty list of CSS declarations.
         // Step 5: If obj is not null, and elt is connected, part of the flat tree, and
@@ -4087,7 +4139,7 @@ impl Window {
         top_level_document
             .window()
             .consume_last_activation_timestamp();
-        for document in SameOriginDescendantNavigablesIterator::new(&top_level_document) {
+        for document in LocalDescendantNavigablesIterator::new(&top_level_document) {
             document.window().consume_last_activation_timestamp();
         }
     }
@@ -4116,7 +4168,7 @@ impl Window {
             .set_last_history_action_activation_timestamp(
                 top_level_document.window().last_activation_timestamp.get(),
             );
-        for document in SameOriginDescendantNavigablesIterator::new(&top_level_document) {
+        for document in LocalDescendantNavigablesIterator::new(&top_level_document) {
             document
                 .window()
                 .set_last_history_action_activation_timestamp(
@@ -4280,10 +4332,12 @@ impl Window {
         self.Document().pipeline_id()
     }
 
+    #[cfg(feature = "devtools")]
     pub(crate) fn live_devtools_updates(&self) -> bool {
         self.devtools_wants_updates.get()
     }
 
+    #[cfg(feature = "devtools")]
     pub(crate) fn set_devtools_wants_updates(&self, value: bool) {
         self.devtools_wants_updates.set(value);
     }

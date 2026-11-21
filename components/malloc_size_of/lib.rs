@@ -1295,6 +1295,7 @@ malloc_size_of_is_0!(content_security_policy::PolicyDisposition);
 malloc_size_of_is_0!(content_security_policy::PolicySource);
 malloc_size_of_is_0!(content_security_policy::sandboxing_directive::SandboxingFlagSet);
 malloc_size_of_is_0!(encoding_rs::Decoder);
+malloc_size_of_is_0!(font_types::Tag);
 malloc_size_of_is_0!(http::StatusCode);
 malloc_size_of_is_0!(http::Method);
 malloc_size_of_is_0!(icu_locale_core::subtags::Language);

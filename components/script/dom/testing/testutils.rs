@@ -2,10 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsapi::{GCReason, JS_GC};
-use script_bindings::reflector::Reflector;
 
 use crate::dom::RootedPromise;
 use crate::dom::bindings::codegen::Bindings::TestUtilsBinding::TestUtilsMethods;
@@ -13,10 +11,7 @@ use crate::dom::bindings::refcounted::TrustedPromise;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 
-#[dom_struct]
-pub(crate) struct TestUtils {
-    reflector_: Reflector,
-}
+pub(crate) struct TestUtils;
 
 impl TestUtilsMethods<crate::DomTypeHolder> for TestUtils {
     /// <https://testutils.spec.whatwg.org/#dom-testutils-gc>

@@ -188,12 +188,54 @@ impl WebSocket {
         self.url.origin()
     }
 
+    /// <https://datatracker.ietf.org/doc/html/rfc6455#section-7.1.7>
+    fn fail_the_websocket_connection(&self) {
+        let _ = self.callback.send(WebSocketDomAction::Abort);
+
+        // Once studown starts, another cleanup call can not restart it, this make the WS teardown
+        // idempotent prevents duplicate shutdown actions and tasks.
+        self.ready_state.set(WebSocketRequestState::Closing);
+
+        fail_the_websocket_connection(
+            Trusted::new(self),
+            &self
+                .global()
+                .task_manager()
+                .websocket_task_source()
+                .to_sendable(),
+        );
+    }
+
+    /// <https://datatracker.ietf.org/doc/html/rfc6455#section-7.1.2>
+    fn start_the_websocket_closing_handshake(&self, code: Option<u16>, reason: Option<String>) {
+        let _ = self.callback.send(WebSocketDomAction::Close(code, reason));
+        // Once studown starts, another cleanup call can not restart it, this make the WS teardown
+        // idempotent prevents duplicate shutdown actions and tasks.
+        self.ready_state.set(WebSocketRequestState::Closing);
+    }
+
     /// <https://websockets.spec.whatwg.org/#make-disappear>
     /// Returns true if any action was taken.
     pub(crate) fn make_disappear(&self) -> bool {
-        let result = self.ready_state.get() != WebSocketRequestState::Closed;
-        let _ = self.Close(Some(1001), None);
-        result
+        match self.ready_state.get() {
+            WebSocketRequestState::Connecting => {
+                // If the WebSocket connection is not yet established: Fail the WebSocket connection.
+                self.fail_the_websocket_connection();
+                // Prevent an already queued open task from reopening the failed connection.
+                true
+            },
+            WebSocketRequestState::Open => {
+                // If the WebSocket closing handshake has not yet been started: Start the
+                // WebSocket closing handshake, with the status code to use in the WebSocket
+                // Close message being 1001.
+                self.start_the_websocket_closing_handshake(Some(close_code::GOING_AWAY), None);
+                true
+            },
+            WebSocketRequestState::Closing | WebSocketRequestState::Closed => {
+                // Otherwise: Do nothing.
+                false
+            },
+        }
     }
 }
 
@@ -465,31 +507,20 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
 
         // Step 3. Run the first matching steps from the following list:
         match self.ready_state.get() {
-            WebSocketRequestState::Closing | WebSocketRequestState::Closed => {}, // Do nothing
+            // If this's ready state is CLOSING (2) or CLOSED (3): Do nothing.
+            WebSocketRequestState::Closing | WebSocketRequestState::Closed => {},
             WebSocketRequestState::Connecting => {
-                // If the WebSocket connection is not yet established [WSP] Fail the WebSocket connection and set this’s ready state to CLOSING (2).
-                self.ready_state.set(WebSocketRequestState::Closing);
-
-                fail_the_websocket_connection(
-                    Trusted::new(self),
-                    &self
-                        .global()
-                        .task_manager()
-                        .websocket_task_source()
-                        .to_sendable(),
-                );
+                // If the WebSocket connection is not yet established: Fail the WebSocket
+                // connection and set this's ready state to CLOSING (2).
+                self.fail_the_websocket_connection();
             },
             WebSocketRequestState::Open => {
-                // If the WebSocket closing handshake has not yet been started [WSP] Start the WebSocket closing handshake and set this’s ready state to CLOSING (2). [WSP]
-                self.ready_state.set(WebSocketRequestState::Closing);
-
-                // Kick off _Start the WebSocket Closing Handshake_
-                // https://tools.ietf.org/html/rfc6455#section-7.1.2
-                let reason = reason.map(|reason| reason.0);
-                let _ = self.callback.send(WebSocketDomAction::Close(code, reason));
+                // If the WebSocket closing handshake has not yet been started: Start the
+                // WebSocket closing handshake and set this's ready state to CLOSING (2).
+                self.start_the_websocket_closing_handshake(code, reason.map(|reason| reason.0));
             },
         }
-        Ok(()) // Return Ok
+        Ok(())
     }
 }
 
@@ -516,6 +547,10 @@ impl TaskOnce for ConnectionEstablishedTask {
     /// <https://html.spec.whatwg.org/multipage/#feedback-from-the-protocol:concept-websocket-established>
     fn run_once(self, cx: &mut JSContext) {
         let ws = self.address.root();
+
+        if ws.ready_state.get() != WebSocketRequestState::Connecting {
+            return;
+        }
 
         // Step 1.
         ws.ready_state.set(WebSocketRequestState::Open);

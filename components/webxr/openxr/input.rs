@@ -324,10 +324,10 @@ impl OpenXRInput {
         );
 
         for profile in INTERACTION_PROFILES {
-            if let Some(extension_name) = profile.required_extension {
-                if !supported_interaction_profiles.contains(&ext_string!(extension_name)) {
-                    continue;
-                }
+            if let Some(extension_name) = profile.required_extension &&
+                !supported_interaction_profiles.contains(&ext_string!(extension_name))
+            {
+                continue;
             }
 
             if profile.path.is_empty() {
@@ -337,17 +337,14 @@ impl OpenXRInput {
             let select = profile.standard_buttons[0];
             let squeeze = Option::from(profile.standard_buttons[1]).filter(|&s| !s.is_empty());
             let mut bindings = right_hand.get_bindings(instance, select, squeeze, &profile);
-            bindings.extend(
-                left_hand
-                    .get_bindings(instance, select, squeeze, &profile)
-                    .into_iter(),
-            );
+            bindings.extend(left_hand.get_bindings(instance, select, squeeze, &profile));
 
             let path_controller = instance
                 .string_to_path(profile.path)
-                .expect(format!("Invalid interaction profile path: {}", profile.path).as_str());
-            if let Err(_) =
-                instance.suggest_interaction_profile_bindings(path_controller, &bindings)
+                .unwrap_or_else(|_| panic!("Invalid interaction profile path: {}", profile.path));
+            if instance
+                .suggest_interaction_profile_bindings(path_controller, &bindings)
+                .is_err()
             {
                 debug!(
                     "Interaction profile path not available for this runtime: {:?}",
@@ -371,34 +368,42 @@ impl OpenXRInput {
         let hand = hand_str(self.handedness);
         let path_aim_pose = instance
             .string_to_path(&format!("/user/hand/{}/input/aim/pose", hand))
-            .expect(&format!(
-                "Failed to create path for /user/hand/{}/input/aim/pose",
-                hand
-            ));
+            .unwrap_or_else(|_| {
+                panic!(
+                    "Failed to create path for /user/hand/{}/input/aim/pose",
+                    hand
+                )
+            });
         let binding_aim_pose = Binding::new(&self.action_aim_pose, path_aim_pose);
         let path_grip_pose = instance
             .string_to_path(&format!("/user/hand/{}/input/grip/pose", hand))
-            .expect(&format!(
-                "Failed to create path for /user/hand/{}/input/grip/pose",
-                hand
-            ));
+            .unwrap_or_else(|_| {
+                panic!(
+                    "Failed to create path for /user/hand/{}/input/grip/pose",
+                    hand
+                )
+            });
         let binding_grip_pose = Binding::new(&self.action_grip_pose, path_grip_pose);
         let path_click = instance
             .string_to_path(&format!("/user/hand/{}/input/{}", hand, select_name))
-            .expect(&format!(
-                "Failed to create path for /user/hand/{}/input/{}",
-                hand, select_name
-            ));
+            .unwrap_or_else(|_| {
+                panic!(
+                    "Failed to create path for /user/hand/{}/input/{}",
+                    hand, select_name
+                )
+            });
         let binding_click = Binding::new(&self.action_click, path_click);
 
         let mut ret = vec![binding_aim_pose, binding_grip_pose, binding_click];
         if let Some(squeeze_name) = squeeze_name {
             let path_squeeze = instance
                 .string_to_path(&format!("/user/hand/{}/input/{}", hand, squeeze_name))
-                .expect(&format!(
-                    "Failed to create path for /user/hand/{}/input/{}",
-                    hand, squeeze_name
-                ));
+                .unwrap_or_else(|_| {
+                    panic!(
+                        "Failed to create path for /user/hand/{}/input/{}",
+                        hand, squeeze_name
+                    )
+                });
             let binding_squeeze = Binding::new(&self.action_squeeze, path_squeeze);
             ret.push(binding_squeeze);
         }

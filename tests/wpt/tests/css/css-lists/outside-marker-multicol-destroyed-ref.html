@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Lists: the outside marker keeps its first formatted line when the multi-column context is destroyed (reference)</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  ul { margin: 0; padding: 0 0 0 40px; }
+  li { font: 20px/20px Ahem; width: 200px; }
+</style>
+
+<p>The test passes if the bullet is aligned with the "first" text.</p>
+
+<ul><li><div>first</div><div>second</div></li></ul>

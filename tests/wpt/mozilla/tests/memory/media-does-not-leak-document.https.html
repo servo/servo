@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>Document objects for added and removed iframes that use media elements are collected</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/leak-helpers.js"></script>
+<body>
+    <script>
+      const tests = [
+          `<audio autoplay src='/media/sine440.mp3' onplaying='window.parent.postMessage("playing")'>`,
+          `<video autoplay src='/media/A4.webm' onplaying='window.parent.postMessage("playing")'>`,
+      ];
+
+      for (const test of tests) {
+          promise_test(async () => {
+            assert_true(await createAndDestroyIframeWithHTML(test, "playing"));
+          }, `'${test}' does not leak the document`);
+      }
+    </script>
+</body>

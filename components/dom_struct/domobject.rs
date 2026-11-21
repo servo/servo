@@ -6,7 +6,10 @@ use quote::{TokenStreamExt, quote};
 
 /// First field of DomObject must be either reflector or another dom_struct,
 /// all other fields must not implement DomObject
-pub(crate) fn expand_dom_object(input: syn::ItemStruct) -> proc_macro2::TokenStream {
+pub(crate) fn expand_dom_object(
+    input: syn::ItemStruct,
+    no_has_parent: bool,
+) -> proc_macro2::TokenStream {
     let fields = input.fields.iter().collect::<Vec<&syn::Field>>();
     let (first_field, fields) = fields
         .split_first()
@@ -29,6 +32,23 @@ pub(crate) fn expand_dom_object(input: syn::ItemStruct) -> proc_macro2::TokenStr
 
     let name = &input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+
+    let prototype_initializer = if no_has_parent {
+        quote! {}
+    } else {
+        quote! {
+            impl #impl_generics script_bindings::reflector::HasPrototype for #name #ty_generics #where_clause {
+                const PROTOTYPE_ID: script_bindings::codegen::PrototypeList::ID = script_bindings::codegen::PrototypeList::ID::#name;
+            }
+
+            impl #impl_generics script_bindings::reflector::PrototypeInitializer for #name #ty_generics #where_clause {
+                fn set_proto_id(&mut self, id: script_bindings::codegen::PrototypeList::ID) {
+                    self.#first_field_name.set_proto_id(id);
+                }
+            }
+        }
+    };
+
     let items = quote! {
         impl #impl_generics ::js::conversions::ToJSValConvertible for #name #ty_generics #where_clause {
             fn to_jsval(&self, cx: &mut js::context::JSContext, rval: js::rust::MutableHandleValue) {
@@ -36,6 +56,8 @@ pub(crate) fn expand_dom_object(input: syn::ItemStruct) -> proc_macro2::TokenStr
                 object.to_jsval(cx, rval);
             }
         }
+
+        #prototype_initializer
 
         impl #impl_generics crate::DomObject for #name #ty_generics #where_clause {
             type ReflectorType = <#first_field_ty as crate::DomObject>::ReflectorType;

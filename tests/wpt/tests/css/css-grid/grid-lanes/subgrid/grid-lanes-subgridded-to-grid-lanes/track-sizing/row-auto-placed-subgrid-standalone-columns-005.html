@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes Test: Nested standalone columns use resolved intrinsic rows</title>
+<link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="row-auto-placed-subgrid-standalone-columns-005-ref.html">
+<style>
+  body {
+    margin: 0;
+  }
+
+  .root {
+    background: lightgrey;
+    border: 2px solid black;
+    display: grid-lanes;
+    fit-tolerance: 0;
+    grid-template-rows: min-content minmax(100px, max-content) 150px;
+    width: max-content;
+  }
+
+  .subgrid {
+    display: grid-lanes;
+    fit-tolerance: 0;
+    grid-template-rows: subgrid;
+  }
+
+  .outer {
+    border: 2px solid purple;
+    grid-row: 1 / -1;
+  }
+
+  .root-blocker {
+    background: dimgray;
+    grid-row: 1;
+    height: 8px;
+    width: 40px;
+  }
+
+  .outer-blocker {
+    background: steelblue;
+    grid-row: 1;
+    height: 8px;
+    width: 20px;
+  }
+
+  .inner {
+    border: 2px solid cyan;
+    display: grid;
+    grid-row: 1 / -1;
+    grid-template-columns: auto 10px;
+  }
+
+  .leaf {
+    aspect-ratio: 1;
+    background: green;
+    grid-column: 1;
+    grid-row: 1;
+    min-height: 60px;
+    min-width: 0;
+  }
+
+  .marker {
+    background: blue;
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .middle {
+    border: 2px solid orange;
+  }
+</style>
+<div class="root">
+  <div class="root-blocker"></div>
+  <div class="subgrid outer">
+    <div class="outer-blocker"></div>
+    <div class="subgrid middle">
+      <div class="subgrid inner">
+        <div class="leaf"></div>
+        <div class="marker"></div>
+      </div>
+    </div>
+  </div>
+</div>

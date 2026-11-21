@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Canvas root font relative units resolve against the root element</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-font">
+<link rel="help" href="https://drafts.csswg.org/css-values/#font-relative-lengths">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+html {
+    font-size: 5px;
+}
+#container {
+    font-size: 10px;
+}
+</style>
+<div id="log"></div>
+<div id="container">
+    <canvas id="canvas" style="font-size: 20px"></canvas>
+</div>
+<script>
+const canvas = document.getElementById('canvas');
+const container = document.getElementById('container');
+const ctx = canvas.getContext('2d');
+
+function reset()
+{
+    document.documentElement.style.fontSize = '';
+    container.style.fontSize = '10px';
+    canvas.style.fontSize = '20px';
+    ctx.font = '10px sans-serif';
+}
+
+test(function(t) {
+    t.add_cleanup(reset);
+
+    ctx.font = '2rem sans-serif';
+    assert_equals(ctx.font, '10px sans-serif', '2rem is 2 x the 5px root font-size');
+}, 'font: rem resolves against the root element, not the canvas element');
+
+test(function(t) {
+    t.add_cleanup(reset);
+
+    ctx.font = '2em sans-serif';
+    assert_equals(ctx.font, '40px sans-serif', '2em is 2 x the 20px canvas font-size');
+}, 'font: em still resolves against the canvas element');
+
+test(function(t) {
+    t.add_cleanup(reset);
+
+    document.documentElement.style.fontSize = '8px';
+    ctx.font = '3rem sans-serif';
+    assert_equals(ctx.font, '24px sans-serif', '3rem tracks the updated root font-size');
+}, 'font: rem tracks a change to the root font-size');
+
+test(function(t) {
+    t.add_cleanup(reset);
+
+    ctx.font = '2rem sans-serif';
+    assert_equals(ctx.font, '10px sans-serif', 'resolved against the initial root font-size');
+
+    document.documentElement.style.fontSize = '8px';
+    ctx.font = '2rem sans-serif';
+    assert_equals(ctx.font, '16px sans-serif', 're-resolved against the updated root font-size');
+}, 'font: re-setting the same rem font string picks up the new root font-size');
+
+test(function(t) {
+    t.add_cleanup(reset);
+
+    document.documentElement.style.fontSize = '8px';
+    ctx.font = '4rem sans-serif';
+    assert_equals(ctx.font, '32px sans-serif', '4rem uses the pending root font-size');
+}, 'font: rem picks up a pending root font-size change');
+
+test(function(t) {
+    t.add_cleanup(reset);
+
+    ctx.font = '2rem sans-serif';
+    assert_equals(ctx.font, '10px sans-serif', 'resolved against the root');
+
+    canvas.style.fontSize = '100px';
+    ctx.font = '2rem sans-serif';
+    assert_equals(ctx.font, '10px sans-serif', 'still resolved against the root');
+}, 'font: rem is unaffected by the canvas element font-size');
+
+test(function(t) {
+    t.add_cleanup(reset);
+
+    ctx.font = '2rem sans-serif';
+    ctx.save();
+
+    document.documentElement.style.fontSize = '8px';
+    ctx.font = '2rem sans-serif';
+    assert_equals(ctx.font, '16px sans-serif', 're-resolved against the updated root font-size');
+
+    ctx.restore();
+    assert_equals(ctx.font, '10px sans-serif', 'restored to the font resolved before the root changed');
+}, 'font: save and restore keep the root-resolved font of each saved state');
+
+function testRootFontUnit(unit)
+{
+    test(function(t) {
+        t.add_cleanup(reset);
+
+        ctx.font = `10${unit} sans-serif`;
+        const rootRelative = ctx.font;
+        assert_not_equals(rootRelative, '10px sans-serif', `10${unit} was resolved`);
+
+        canvas.style.fontSize = '40px';
+        ctx.font = `10${unit} sans-serif`;
+        assert_equals(ctx.font, rootRelative, `${unit} ignores the canvas element font-size`);
+
+        document.documentElement.style.fontSize = '10px';
+        ctx.font = `10${unit} sans-serif`;
+        assert_not_equals(ctx.font, rootRelative, `${unit} tracks the root font-size`);
+    }, `font: ${unit} resolves against the root element`);
+}
+
+testRootFontUnit('rex');
+testRootFontUnit('rch');
+testRootFontUnit('rcap');
+testRootFontUnit('ric');
+</script>

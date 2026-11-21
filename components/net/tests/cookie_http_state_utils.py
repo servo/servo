@@ -23,16 +23,10 @@ SHOULD_PANIC = "\n#[should_panic] // Look at cookie_http_state_utils.py if this 
 
 # Those tests should PASS. But until fixes land in servo, keep them failing
 FAILING_TESTS = [
-    "0003",           # Waiting for a way to clean expired cookies
-    "0006",           # Waiting for a way to clean expired cookies
-    "mozilla0001",    # Waiting for a way to clean expired cookies
-    "mozilla0002",    # Waiting for a way to clean expired cookies
-    "mozilla0003",    # Waiting for a way to clean expired cookies
-    "mozilla0005",    # Waiting for a way to clean expired cookies
-    "mozilla0007",    # Waiting for a way to clean expired cookies
-    "mozilla0009",    # Waiting for a way to clean expired cookies
-    "mozilla0010",    # Waiting for a way to clean expired cookies
-    "mozilla0013",    # Waiting for a way to clean expired cookies
+    "0002",           # The test's expiry date is now in the past
+    "0003",           # The test's expiry date is now in the past
+    "comma0006",      # The test's expiry date is now in the past
+    "comma0007",      # The test's expiry date is now in the past
 ]
 
 

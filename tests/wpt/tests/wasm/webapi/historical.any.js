@@ -13,6 +13,7 @@ promise_test(async t => {
 
   const db = await new Promise((resolve, reject) => {
     const open_request = indexedDB.open(db_name);
+    t.add_cleanup(() => open_request.result.close());
     open_request.onupgradeneeded = function() {
       open_request.result.createObjectStore(obj_store);
     };

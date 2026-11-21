@@ -1,0 +1,16 @@
+<!doctype html>
+<script>
+customElements.define('x-frame', class extends HTMLIFrameElement {
+  constructor() {
+    super();
+    document.body.append(this);
+    this.contentDocument.open();
+    this.contentDocument.close();
+    this.contentWindow.onbeforeunload = () => { this.id = 'first'; };
+  }
+}, {extends: 'iframe'});
+</script>
+<iframe is="x-frame" srcdoc="" id="stale"></iframe>
+<script>
+document.querySelector('iframe').remove();
+</script>

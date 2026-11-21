@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
@@ -11,13 +11,19 @@ use js::rust::MutableHandleValue;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::DataTransferItemListBinding::DataTransferItemListMethods;
+use crate::dom::bindings::codegen::Bindings::FileBinding::FileMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::datatransferitem::DataTransferItem;
 use crate::dom::file::File;
+use crate::dom::filesystem::FileSystem;
+use crate::dom::filesystemdirectoryentry::FileSystemDirectoryEntry;
+use crate::dom::filesystementry::FileSystemEntry;
+use crate::dom::filesystemfileentry::FileSystemFileEntry;
 use crate::dom::window::Window;
 use crate::drag::drag_data_store::{DragDataStore, Kind, Mode};
 
@@ -29,6 +35,10 @@ pub(crate) struct DataTransferItemList {
     data_store: Rc<RefCell<Option<DragDataStore>>>,
     #[ignore_malloc_size_of = "mozjs"]
     frozen_types: CachedFrozenArray,
+    /// The entries-api file system for the drag data store, built lazily by
+    /// `webkitGetAsEntry()` and shared by all of the store's items.
+    /// Must be cleared whenever the store's File items change.
+    filesystem: MutNullableDom<FileSystem>,
 }
 
 impl DataTransferItemList {
@@ -37,6 +47,7 @@ impl DataTransferItemList {
             reflector_: Reflector::new(),
             frozen_types: CachedFrozenArray::new(),
             data_store,
+            filesystem: MutNullableDom::new(None),
         }
     }
 
@@ -68,6 +79,56 @@ impl DataTransferItemList {
     pub(crate) fn invalidate_frozen_types(&self) {
         self.frozen_types.clear();
     }
+
+    /// Return the drag data store backing this list, if it is still associated.
+    pub(crate) fn data_store(&self) -> Option<Ref<'_, DragDataStore>> {
+        Ref::filter_map(self.data_store.borrow(), |data_store| data_store.as_ref()).ok()
+    }
+
+    /// Return the entries-api `FileSystem` for the drag data store, building it
+    /// from the File items on first use.
+    ///
+    /// <https://wicg.github.io/entries-api/#html-data>
+    /// "During a drag-and-drop operation, file and directory items are associated
+    ///  with entries. Each entry is a member of a root directory unique to the
+    ///  drag data store."
+    pub(crate) fn filesystem(&self, cx: &mut JSContext) -> DomRoot<FileSystem> {
+        self.filesystem.or_init(|| self.create_filesystem(cx))
+    }
+
+    fn create_filesystem(&self, cx: &mut JSContext) -> DomRoot<FileSystem> {
+        let global = self.global();
+        let root = FileSystemDirectoryEntry::new(
+            cx,
+            &global,
+            USVString::default(),
+            USVString::from(String::from("/")),
+        );
+        let filesystem = FileSystem::new(
+            cx,
+            &global,
+            USVString::from(String::from("filesystem")),
+            &root,
+        );
+        root.set_filesystem(&filesystem);
+
+        if let Some(store) = self.data_store.borrow().as_ref() {
+            for kind in store.iter_item_list() {
+                // Non-File items are not represented in the entries tree.
+                let Some(file) = kind.as_file(cx, &global) else {
+                    continue;
+                };
+                let name = file.Name().to_string();
+                let full_path = USVString::from(format!("/{}", name));
+                let entry =
+                    FileSystemFileEntry::new(cx, &global, USVString::from(name), full_path, &file);
+                entry.set_filesystem(&filesystem);
+                root.push_child(entry.upcast::<FileSystemEntry>());
+            }
+        }
+
+        filesystem
+    }
 }
 
 impl DataTransferItemListMethods<crate::DomTypeHolder> for DataTransferItemList {
@@ -95,9 +156,9 @@ impl DataTransferItemListMethods<crate::DomTypeHolder> for DataTransferItemList 
         };
 
         // Step 2
-        data_store.get_by_index(index as usize).map(|(id, _)| {
-            DataTransferItem::new(cx, &self.global(), Rc::clone(&self.data_store), *id)
-        })
+        data_store
+            .get_by_index(index as usize)
+            .map(|(id, _)| DataTransferItem::new(cx, &self.global(), self, *id))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-add>
@@ -127,12 +188,7 @@ impl DataTransferItemListMethods<crate::DomTypeHolder> for DataTransferItemList 
 
             // Step 3 Determine the value of the indexed property corresponding to the newly added item,
             // and return that value (a newly created DataTransferItem object).
-            Some(DataTransferItem::new(
-                cx,
-                &self.global(),
-                Rc::clone(&self.data_store),
-                id,
-            ))
+            Some(DataTransferItem::new(cx, &self.global(), self, id))
         })
     }
 
@@ -161,15 +217,12 @@ impl DataTransferItemListMethods<crate::DomTypeHolder> for DataTransferItemList 
         };
         index.map(|id| {
             self.frozen_types.clear();
+            // The entries root no longer matches the drag data store item list.
+            self.filesystem.set(None);
 
             // Step 3 Determine the value of the indexed property corresponding to the newly added item,
             // and return that value (a newly created DataTransferItem object).
-            Some(DataTransferItem::new(
-                cx,
-                &self.global(),
-                Rc::clone(&self.data_store),
-                id,
-            ))
+            Some(DataTransferItem::new(cx, &self.global(), self, id))
         })
     }
 
@@ -188,7 +241,10 @@ impl DataTransferItemListMethods<crate::DomTypeHolder> for DataTransferItemList 
         // Step 2 If the drag data store does not contain an indexth item, then return.
         if index < data_store.list_len() {
             // Step 3 Remove the indexth item from the drag data store.
-            data_store.remove(index);
+            // The entries root no longer matches the item list if a File was removed.
+            if data_store.remove(index).is_some_and(|item| item.is_file()) {
+                self.filesystem.set(None);
+            }
             self.frozen_types.clear();
         }
 
@@ -208,6 +264,8 @@ impl DataTransferItemListMethods<crate::DomTypeHolder> for DataTransferItemList 
         // If the item list is empty we don't clear it.
         if data_store.list_len() > 0 {
             data_store.clear_list();
+            // The entries root no longer matches the drag data store item list.
+            self.filesystem.set(None);
             self.frozen_types.clear();
         }
     }

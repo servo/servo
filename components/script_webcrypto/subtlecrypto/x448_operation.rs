@@ -14,6 +14,7 @@ use script_bindings::codegen::GenericBindings::SubtleCryptoBinding::{JsonWebKey,
 use script_bindings::error::Error;
 use script_bindings::root::DomRoot;
 use script_bindings::str::DOMString;
+use script_bindings::trace::RootedTraceableBox;
 use x448::{PublicKey, StaticSecret};
 use zeroize::Zeroizing;
 
@@ -116,7 +117,7 @@ pub(crate) fn generate_key<D: Equivalence>(
     global: &D::GlobalScope,
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<CryptoKeyPair<D>, Error> {
+) -> Result<RootedTraceableBox<CryptoKeyPair<D>>, Error> {
     // Step 1. If usages contains an entry which is not "deriveKey" or "deriveBits" then throw a
     // SyntaxError.
     usages.ensure_only_contain_entries_from(&[KeyUsage::DeriveKey, KeyUsage::DeriveBits])?;
@@ -169,10 +170,10 @@ pub(crate) fn generate_key<D: Equivalence>(
     // Step 15. Let result be a new CryptoKeyPair dictionary.
     // Step 16. Set the publicKey attribute of result to be publicKey.
     // Step 17. Set the privateKey attribute of result to be privateKey.
-    let result = CryptoKeyPair {
-        publicKey: Some(public_key),
-        privateKey: Some(private_key),
-    };
+    let result = RootedTraceableBox::new(CryptoKeyPair {
+        publicKey: Some(public_key.as_traced()),
+        privateKey: Some(private_key.as_traced()),
+    });
 
     // Step 18. Return the result of converting result to an ECMAScript Object, as defined by
     // [WebIDL].

@@ -1,6 +1,7 @@
 <!doctype html>
 <meta charset="utf-8" />
 <title>Re-entrant stream operations from streamed scripts and custom element reactions</title>
+<meta name="timeout" content="long">
 <link rel="help" href="https://html.spec.whatwg.org/#html-streaming-methods" />
 <link rel="help" href="https://html.spec.whatwg.org/#run-a-fragment-parser" />
 <link rel="help" href="https://html.spec.whatwg.org/#abort-a-fragment-parser" />
@@ -9,6 +10,11 @@
 <body>
 <div id="target"></div>
 <script>
+  // Fails instead of stalling the rest of the file if the promise never settles.
+  function failOnTimeout(promise, ms = 3000) {
+    return Promise.race([promise, new Promise((resolve, reject) => step_timeout(() => reject(new Error("timed out")), ms))]);
+  }
+
   // An abort requested while the parser is running (from a streamed inline
   // script or from a custom element reaction) is deferred until the parser
   // returns: the rest of the current chunk is still parsed, nothing after it
@@ -29,12 +35,32 @@
     }
   });
 
+  // Globals set by streamed scripts, deleted after each test so a later test
+  // can't pass on values left by an earlier one.
+  function delete_script_globals() {
+    for (const name of [
+      "ids_at_script",
+      "ids_at_rest",
+      "abort_promise",
+      "write_promise",
+      "close_promise",
+      "resolve_abort",
+      "reaction_log",
+      "rest_parsed",
+      "close_settled",
+      "close_settled_at_rest",
+    ]) {
+      delete window[name];
+    }
+  }
+
   function ids(target) {
     return Array.from(target.querySelectorAll("[id]"), (e) => e.id);
   }
 
+  let parserBlockingCount = 0;
   function parser_blocking_script(name) {
-    return `<script src='resources/slow.js?pipe=trickle(d0.2)&${name}=1'></` + "script>";
+    return `<script src='resources/slow.js?pipe=trickle(d0.2)&${name}=${++parserBlockingCount}'></` + "script>";
   }
 
   function after_task(t) {
@@ -47,7 +73,7 @@
       target.replaceChildren();
       const writer = target[method]({ runScripts: true }).getWriter();
       window.current_writer = writer;
-      t.add_cleanup(() => { delete window.current_writer; });
+      t.add_cleanup(() => { delete window.current_writer; delete_script_globals(); });
 
       const abortPromise = new Promise((resolve) => { window.resolve_abort = resolve; });
       await writer.write(
@@ -56,7 +82,7 @@
         "window.resolve_abort();</" + "script>" +
         "<p id='b'>b</p><div id='c'><p id='d'>d</p>"
       );
-      await abortPromise;
+      await failOnTimeout(abortPromise);
       assert_array_equals(ids(target), ["a", "b", "c", "d"], "the rest of the chunk is parsed before the deferred abort takes effect");
       await window.abort_promise;
       await promise_rejects_exactly(t, "aborted-from-script", writer.write("<p id='e'>e</p>"), "subsequent writes reject with the abort reason");
@@ -70,7 +96,7 @@
       const writer = target[method]().getWriter();
       window.current_writer = writer;
       window.reaction_log = [];
-      t.add_cleanup(() => { delete window.current_writer; });
+      t.add_cleanup(() => { delete window.current_writer; delete_script_globals(); });
 
       await writer.write(
         "<p id='a'>a</p><abort-on-connect id='ce'></abort-on-connect><p id='b'>b</p>"
@@ -87,7 +113,7 @@
       target.replaceChildren();
       const writer = target[method]({ runScripts: true }).getWriter();
       window.current_writer = writer;
-      t.add_cleanup(() => { delete window.current_writer; });
+      t.add_cleanup(() => { delete window.current_writer; delete_script_globals(); });
 
       await writer.write(
         "<p id='a'>a</p>" +
@@ -96,7 +122,7 @@
         "<p id='b'>b</p>"
       );
       assert_array_equals(window.ids_at_script, ["a"], "the re-entrant write is not parsed while the script runs");
-      await writer.closed;
+      await failOnTimeout(writer.closed);
       assert_array_equals(ids(target), ["a", "b", "c"], "the queued write is parsed after the current chunk, then the stream is closed");
       await promise_rejects_js(t, TypeError, writer.write("<p id='d'>d</p>"), "the stream is closed");
     }, `${method}: write() and close() from a streamed inline script are processed after the current chunk`);
@@ -107,7 +133,7 @@
       const writer = target[method]().getWriter();
       window.current_writer = writer;
       window.reaction_log = [];
-      t.add_cleanup(() => { delete window.current_writer; });
+      t.add_cleanup(() => { delete window.current_writer; delete_script_globals(); });
 
       await writer.write(
         "<p id='a'>a</p><write-on-connect id='ce'></write-on-connect><p id='b'>b</p>"
@@ -119,11 +145,11 @@
 
     // After a parser-blocking external script, the parser resumes from a task.
     // There is no write in progress then, so the stream invokes the sink's
-    // algorithms synchronously while the parser is running: an abort is
-    // deferred until the parser returns ("fragment parser abort requested"),
-    // and written input is consumed by the ongoing run. slow.js calls
-    // window.on_slow(); the parser then resumes synchronously in the same task,
-    // so the rest of the chunk has been parsed by the time a timeout fires.
+    // algorithms synchronously while the parser is running: an abort sets
+    // "fragment parser abort requested" so the tokenizer stops after the
+    // current token and aborting the parser is deferred until the parser
+    // returns, and written input is consumed by the ongoing run. slow.js calls
+    // window.on_slow(); the parser then resumes synchronously in the same task.
     promise_test(async (t) => {
       const target = document.getElementById("target");
       target.replaceChildren();
@@ -132,7 +158,7 @@
       window.events = [];
       window.rest_parsed = false;
       const slowRan = new Promise((resolve) => { window.on_slow = resolve; });
-      t.add_cleanup(() => { delete window.current_writer; delete window.on_slow; });
+      t.add_cleanup(() => { delete window.current_writer; delete_script_globals(); delete window.on_slow; });
 
       await writer.write(
         "<p id='a'>a</p>" +
@@ -143,17 +169,247 @@
         "<script>window.rest_parsed = true;</" + "script>"
       );
       assert_array_equals(ids(target), ["a"], "the write promise does not wait for the parser-blocking script");
-      await slowRan;
+      await failOnTimeout(slowRan);
       await after_task(t);
       assert_array_equals(window.events, ["slow"]);
       assert_array_equals(window.ids_at_script, ["a"]);
-      assert_array_equals(ids(target), ["a", "b"], "the rest of the chunk is parsed before the deferred abort takes effect");
-      assert_true(window.rest_parsed, "scripts in the rest of the chunk still run");
-      await window.abort_promise;
+      assert_array_equals(ids(target), ["a"], "parsing stops after the current token when abort() is called from a task");
+      assert_false(window.rest_parsed, "scripts in the rest of the chunk do not run");
+      await failOnTimeout(window.abort_promise);
       await promise_rejects_exactly(t, "aborted-from-task", writer.closed);
       await promise_rejects_exactly(t, "aborted-from-task", writer.write("<p id='c'>c</p>"), "subsequent writes reject with the abort reason");
-      assert_array_equals(ids(target), ["a", "b"]);
-    }, `${method}: abort() from a streamed inline script after a parser-blocking script is deferred until the current chunk is parsed`);
+      assert_array_equals(ids(target), ["a"]);
+    }, `${method}: abort() from a streamed inline script after a parser-blocking script stops parsing after the current token`);
+
+    // A script end tag performs a microtask checkpoint before the script is
+    // prepared. An abort from a microtask there (here, a mutation observer
+    // callback) is deferred while the parser runs, but the script doesn't run.
+    promise_test(async (t) => {
+      const target = document.getElementById("target");
+      target.replaceChildren();
+      const writer = target[method]({ runScripts: true }).getWriter();
+      window.events = [];
+      window.ran_after_abort = false;
+      const slowRan = new Promise((resolve) => { window.on_slow = resolve; });
+      let abortPromise = null;
+      // Abort only once the inline script and its text have been inserted, so
+      // that the abort happens at that script's end tag.
+      const observer = new MutationObserver(() => {
+        const script = target.querySelector("#late");
+        if (!abortPromise && script && script.text.includes("ran_after_abort")) {
+          abortPromise = writer.abort("aborted-from-microtask");
+        }
+      });
+      observer.observe(target, { childList: true, subtree: true });
+      t.add_cleanup(() => { observer.disconnect(); delete window.on_slow; delete window.ran_after_abort; });
+
+      await writer.write(
+        parser_blocking_script("abort_from_microtask") +
+        "<p>before</p>" +
+        "<script id='late'>window.ran_after_abort = true;</" + "script>"
+      );
+      await failOnTimeout(slowRan);
+      await after_task(t);
+      assert_array_equals(window.events, ["slow"]);
+      assert_not_equals(abortPromise, null, "the mutation observer aborted the stream");
+      assert_not_equals(target.querySelector("#late"), null, "the inline script was inserted");
+      assert_false(window.ran_after_abort, "the script whose end tag was being processed does not run");
+      await failOnTimeout(abortPromise);
+      await promise_rejects_exactly(t, "aborted-from-microtask", writer.closed);
+    }, `${method}: abort() from a microtask before a streamed script is prepared prevents that script from running`);
+
+    // Reconstructing the active formatting elements for the "2" character token
+    // inserts a new <b>, whose connectedCallback aborts the stream. The "2" is
+    // then not inserted, like nodes from later tokens. A formatting element is
+    // needed, so this uses a customized built-in element.
+    promise_test(async (t) => {
+      const target = document.getElementById("target");
+      target.replaceChildren();
+      const name = `x-abort-b-${method.toLowerCase()}`;
+      let connections = 0;
+      let abortPromise = null;
+      let writer = null;
+      customElements.define(name, class extends HTMLElement {
+        connectedCallback() {
+          if (++connections === 2) {
+            abortPromise = writer.abort("aborted-from-reaction");
+          }
+        }
+      }, { extends: "b" });
+      writer = target[method]({ runScripts: true }).getWriter();
+      window.events = [];
+      const slowRan = new Promise((resolve) => { window.on_slow = resolve; });
+      t.add_cleanup(() => { delete window.on_slow; });
+
+      await writer.write(parser_blocking_script("abort_before_text") + `<p><b is="${name}">1</p>2`);
+      await failOnTimeout(slowRan);
+      await after_task(t);
+      assert_array_equals(window.events, ["slow"]);
+      assert_equals(connections, 2, "the reconstructed <b> was inserted");
+      assert_equals(target.innerHTML.replace(/<script[^]*<\/script>/, ""),
+                    `<p><b is="${name}">1</b></p><b is="${name}"></b>`,
+                    "the text after the abort is not inserted");
+      await failOnTimeout(abortPromise);
+      await promise_rejects_exactly(t, "aborted-from-reaction", writer.closed);
+    }, `${method}: abort() from a custom element reaction drops text that the current token would insert`);
+
+    // As above, but a second formatting element is reconstructed after the <b>
+    // that aborts. It's created without a custom element registry and not inserted.
+    promise_test(async (t) => {
+      const target = document.getElementById("target");
+      target.replaceChildren();
+      const abort_name = `x-abort-b2-${method.toLowerCase()}`;
+      const log_name = `x-log-i-${method.toLowerCase()}`;
+      let connections = 0;
+      let constructions = 0;
+      let abortPromise = null;
+      let writer = null;
+      customElements.define(abort_name, class extends HTMLElement {
+        connectedCallback() {
+          if (++connections === 2) {
+            abortPromise = writer.abort("aborted-from-reaction");
+          }
+        }
+      }, { extends: "b" });
+      customElements.define(log_name, class extends HTMLElement {
+        constructor() {
+          super();
+          constructions++;
+        }
+      }, { extends: "i" });
+      writer = target[method]({ runScripts: true }).getWriter();
+      window.events = [];
+      const slowRan = new Promise((resolve) => { window.on_slow = resolve; });
+      t.add_cleanup(() => { delete window.on_slow; });
+
+      await writer.write(parser_blocking_script("abort_before_element") +
+                         `<p><b is="${abort_name}">1<i is="${log_name}">2</p>3`);
+      await failOnTimeout(slowRan);
+      await after_task(t);
+      assert_array_equals(window.events, ["slow"]);
+      assert_equals(connections, 2, "the reconstructed <b> was inserted");
+      assert_equals(constructions, 1, "the reconstructed <i> is not constructed");
+      assert_equals(target.innerHTML.replace(/<script[^]*<\/script>/, ""),
+                    `<p><b is="${abort_name}">1<i is="${log_name}">2</i></b></p><b is="${abort_name}"></b>`,
+                    "the reconstructed <i> and the text after the abort are not inserted");
+      await failOnTimeout(abortPromise);
+      await promise_rejects_exactly(t, "aborted-from-reaction", writer.closed);
+    }, `${method}: abort() from a custom element reaction drops elements that the current token would insert`);
+
+    promise_test(async (t) => {
+      const target = document.getElementById("target");
+      target.replaceChildren();
+      const abort_name = `x-abort-dsd-${method.toLowerCase()}`;
+      let abortPromise = null;
+      let shadowRootAttachedAtUpgrade = false;
+      let writer = null;
+      customElements.define(abort_name, class extends HTMLTemplateElement {
+        constructor() {
+          super();
+          shadowRootAttachedAtUpgrade = target.querySelector("#host")?.shadowRoot !== null;
+          abortPromise = writer.abort("aborted-from-template-ctor");
+        }
+      }, { extends: "template" });
+      writer = target[method]({ runScripts: true }).getWriter();
+      window.events = [];
+      const slowRan = new Promise((resolve) => { window.on_slow = resolve; });
+      t.add_cleanup(() => { delete window.on_slow; });
+
+      await writer.write(
+        parser_blocking_script("abort_in_dsd_template") +
+        `<div id="host"><template is="${abort_name}" shadowrootmode="open"><span>shadow</span></template></div>`
+      );
+      await failOnTimeout(slowRan);
+      await after_task(t);
+      assert_array_equals(window.events, ["slow"]);
+      assert_not_equals(abortPromise, null, "customized built-in template constructor ran at microtask checkpoint");
+      assert_true(shadowRootAttachedAtUpgrade,
+                  "shadow root was attached before backup element queue upgraded the template");
+      assert_not_equals(target.querySelector("#host").shadowRoot, null,
+                        "shadow root remains attached");
+      await failOnTimeout(abortPromise);
+      await promise_rejects_exactly(t, "aborted-from-template-ctor", writer.closed);
+    }, `${method}: customized built-in <template shadowrootmode> upgrades at microtask checkpoint after attaching shadow root`);
+
+    promise_test(async (t) => {
+      const target = document.getElementById("target");
+      target.replaceChildren();
+      const abort_name = `x-abort-for-${method.toLowerCase()}`;
+      let abortPromise = null;
+      let patchedTextAtUpgrade = null;
+      let writer = null;
+      customElements.define(abort_name, class extends HTMLTemplateElement {
+        constructor() {
+          super();
+          patchedTextAtUpgrade = target.querySelector("#patched")?.textContent;
+          abortPromise = writer.abort("aborted-from-template-for-ctor");
+        }
+      }, { extends: "template" });
+      writer = target[method]({ runScripts: true }).getWriter();
+      window.events = [];
+      const slowRan = new Promise((resolve) => { window.on_slow = resolve; });
+      t.add_cleanup(() => { delete window.on_slow; });
+
+      await writer.write(
+        parser_blocking_script("abort_in_for_template") +
+        `<div id="patched"><?start name="m">Old<?end></div>` +
+        `<template is="${abort_name}" for="m">New</template>`
+      );
+      await failOnTimeout(slowRan);
+      await after_task(t);
+      assert_array_equals(window.events, ["slow"]);
+      assert_not_equals(abortPromise, null, "customized built-in template constructor ran at microtask checkpoint");
+      assert_equals(patchedTextAtUpgrade, "New",
+                    "marker was patched before backup element queue upgraded the template");
+      assert_equals(target.querySelector("#patched").textContent, "New");
+      assert_equals(target.querySelector("template"), null,
+                    "<template for> is not inserted into target");
+      await failOnTimeout(abortPromise);
+      await promise_rejects_exactly(t, "aborted-from-template-for-ctor", writer.closed);
+    }, `${method}: customized built-in <template for> upgrades at microtask checkpoint after patching`);
+
+    promise_test(async (t) => {
+      const target = document.getElementById("target");
+      target.replaceChildren();
+      const abort_name = `x-abort-table-tpl-${method.toLowerCase()}`;
+      let connections = 0;
+      let abortPromise = null;
+      let writer = null;
+      customElements.define(abort_name, class extends HTMLAnchorElement {
+        connectedCallback() {
+          if (++connections === 2) {
+            abortPromise = writer.abort("aborted-in-table-text");
+          }
+        }
+      }, { extends: "a" });
+      writer = target[method]({ runScripts: true }).getWriter();
+      window.events = [];
+      const slowRan = new Promise((resolve) => { window.on_slow = resolve; });
+      t.add_cleanup(() => { delete window.on_slow; });
+
+      await writer.write(
+        parser_blocking_script("abort_in_table_text_tpl") +
+        `<div id="patched"><?start name="m">Old<?end></div>` +
+        `<template for="m"><b><a is="${abort_name}">1</b><table> x</template>`
+      );
+      await failOnTimeout(slowRan);
+      await after_task(t);
+      assert_array_equals(window.events, ["slow"]);
+      assert_equals(connections, 2, "foster-parented formatting element connectedCallback ran");
+      const markers = Array.from(target.querySelector("#patched").childNodes)
+        .filter((n) => n.nodeType === Node.PROCESSING_INSTRUCTION_NODE)
+        .map((n) => `${n.target}:${n.data}`);
+      assert_array_equals(markers, ['start:name="m"', "end:"],
+                          "</template> must not remove patch markers after abort in table text");
+      // The old content was removed when the <template for> start tag was processed. The
+      // content streamed before the abort stays; the foster-parented text after it doesn't.
+      assert_array_equals(
+        Array.from(target.querySelector("#patched").childNodes, (n) => n.nodeName),
+        ["start", "B", "A", "TABLE", "end"]);
+      assert_equals(target.querySelector("#patched").textContent, "1");
+      await failOnTimeout(abortPromise);
+      await promise_rejects_exactly(t, "aborted-in-table-text", writer.closed);
+    }, `${method}: abort() from a foster-parented custom element reaction in table text keeps patch markers at </template>`);
 
     promise_test(async (t) => {
       const target = document.getElementById("target");
@@ -162,7 +418,7 @@
       window.current_writer = writer;
       window.events = [];
       const slowRan = new Promise((resolve) => { window.on_slow = resolve; });
-      t.add_cleanup(() => { delete window.current_writer; delete window.on_slow; });
+      t.add_cleanup(() => { delete window.current_writer; delete_script_globals(); delete window.on_slow; });
 
       await writer.write(
         "<p id='a'>a</p>" +
@@ -173,13 +429,13 @@
         "<script>window.ids_at_rest = ids(document.getElementById('target'));</" + "script>"
       );
       assert_array_equals(ids(target), ["a"], "the write promise does not wait for the parser-blocking script");
-      await slowRan;
+      await failOnTimeout(slowRan);
       await after_task(t);
       assert_array_equals(window.events, ["slow"]);
       assert_array_equals(window.ids_at_script, ["a"], "the re-entrant write is not parsed while the script runs");
       assert_array_equals(window.ids_at_rest, ["a", "b"], "the re-entrant write is parsed after the rest of the chunk");
       assert_array_equals(ids(target), ["a", "b", "c"], "the re-entrant write is consumed by the ongoing run of the parser");
-      await window.write_promise;
+      await failOnTimeout(window.write_promise);
       await writer.close();
       assert_array_equals(ids(target), ["a", "b", "c"]);
     }, `${method}: write() from a streamed inline script after a parser-blocking script is parsed after the current chunk`);
@@ -191,27 +447,69 @@
       window.current_writer = writer;
       window.events = [];
       window.rest_parsed = false;
+      window.close_settled_at_rest = false;
       const slowRan = new Promise((resolve) => { window.on_slow = resolve; });
-      t.add_cleanup(() => { delete window.current_writer; delete window.on_slow; });
+      t.add_cleanup(() => { delete window.current_writer; delete_script_globals(); delete window.on_slow; });
 
       await writer.write(
         "<p id='a'>a</p>" +
         parser_blocking_script("close_from_task") +
-        "<script>window.close_promise = window.current_writer.close();</" + "script>" +
+        "<script>window.close_settled = false;" +
+        "window.close_promise = window.current_writer.close().then(() => { window.close_settled = true; });</" + "script>" +
         "<p id='b'>b</p>" +
-        "<script>window.rest_parsed = true;</" + "script>"
+        "<script>window.rest_parsed = true;" +
+        "Promise.resolve().then(() => { window.close_settled_at_rest = window.close_settled; });</" + "script>"
       );
       assert_array_equals(ids(target), ["a"], "the write promise does not wait for the parser-blocking script");
-      await slowRan;
+      await failOnTimeout(slowRan);
       await after_task(t);
       assert_array_equals(window.events, ["slow"]);
       assert_array_equals(ids(target), ["a", "b"], "the rest of the chunk is parsed before the stream is closed");
       assert_true(window.rest_parsed, "scripts in the rest of the chunk still run");
-      await window.close_promise;
-      await writer.closed;
+      assert_false(window.close_settled_at_rest, "the close promise does not resolve before the rest of the chunk is parsed");
+      await failOnTimeout(window.close_promise);
+      await failOnTimeout(writer.closed);
       await promise_rejects_js(t, TypeError, writer.write("<p id='c'>c</p>"), "the stream is closed");
       assert_array_equals(ids(target), ["a", "b"]);
     }, `${method}: close() from a streamed inline script after a parser-blocking script closes the stream after the current chunk`);
   }
+
+  promise_test(async (t) => {
+    const iframe = document.createElement("iframe");
+    iframe.srcdoc = "<!doctype html><html><body></body></html>";
+    await new Promise((resolve) => {
+      iframe.addEventListener("load", resolve, { once: true });
+      document.body.appendChild(iframe);
+    });
+    t.add_cleanup(() => iframe.remove());
+
+    const iframeWin = iframe.contentWindow;
+    const iframeDoc = iframe.contentDocument;
+    let connections = 0;
+    let abortPromise = null;
+    let writer = null;
+    iframeWin.customElements.define("x-abort-table-body", class extends iframeWin.HTMLAnchorElement {
+      connectedCallback() {
+        if (++connections === 2) {
+          abortPromise = writer.abort("aborted-before-body-reprocess");
+        }
+      }
+    }, { extends: "a" });
+
+    iframeWin.events = [];
+    const slowRan = new Promise((resolve) => { iframeWin.on_slow = resolve; });
+    writer = iframeDoc.documentElement.streamHTMLUnsafe({ runScripts: true }).getWriter();
+    await writer.write(
+      "<script src='resources/slow.js?pipe=trickle(d0.2)&abort_body_reprocess=1'></" + "script>" +
+      "<b><a is='x-abort-table-body'>1</b><table> x<body data-leaked='1'>"
+    );
+    await failOnTimeout(slowRan);
+    await after_task(t);
+    assert_equals(connections, 2, "foster-parented formatting element connectedCallback ran");
+    assert_false(iframeDoc.body.hasAttribute("data-leaked"),
+                 "<body> attributes must not be merged after abort in table text");
+    await failOnTimeout(abortPromise);
+    await promise_rejects_exactly(t, "aborted-before-body-reprocess", writer.closed);
+  }, "documentElement.streamHTMLUnsafe: abort() from a foster-parented custom element reaction in table text does not merge <body> attributes");
 </script>
 </body>

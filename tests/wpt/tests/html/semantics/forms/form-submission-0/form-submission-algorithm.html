@@ -153,6 +153,23 @@ promise_test(async () => {
   assert_true(iframe.contentWindow.location.search.indexOf('n1=v1') == -1);
 }, 'Cannot navigate (after constructing the entry list)');
 
+promise_test(async (t) => {
+  const frame = document.createElement('iframe');
+  frame.srcdoc = '<form action="/common/blank.html"><input name="n1" value="v1"></form>';
+  document.body.appendChild(frame);
+  t.add_cleanup(() => frame.remove());
+  await new Promise(resolve => { frame.onload = resolve; });
+
+  const form = frame.contentDocument.querySelector('form');
+  let formdataFired = false;
+  form.addEventListener('formdata', () => {
+    formdataFired = true;
+    frame.remove();
+  });
+  form.requestSubmit();
+  assert_true(formdataFired);
+}, 'Cannot navigate when formdata event listener detaches the submitting iframe');
+
 promise_test(async () => {
   let form = populateForm('<input type=submit>');
   let iframe = form.previousSibling;

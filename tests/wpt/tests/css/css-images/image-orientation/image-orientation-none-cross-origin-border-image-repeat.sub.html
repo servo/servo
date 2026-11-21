@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>CSS Images Module Level 3: image-orientation: none / cross-origin / repeating border-image</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#propdef-image-orientation">
+<link rel="match" href="reference/image-orientation-none-cross-origin-border-image-repeat-ref.html">
+<style>
+div {
+    width: 200px;
+    height: 75px;
+    margin: 10px;
+    border: 10px solid;
+    border-image-source: url(http://{{hosts[][]}}:{{ports[http][1]}}/css/css-images/image-orientation/support/exif-orientation-6-ru.jpg);
+    border-image-slice: 10 fill;
+    image-orientation: none;
+}
+</style>
+<div style="border-image-repeat: repeat"></div>
+<div style="border-image-repeat: round"></div>
+<div style="border-image-repeat: space"></div>

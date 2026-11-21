@@ -52,8 +52,10 @@ jobs:
             --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw wpt-full-logs/${{ env.NAME }}/${{ matrix.chunk_id }}.log \
             --log-raw-stable-unexpected wpt-filtered-logs/${{ env.NAME }}/${{ matrix.chunk_id }}.log \
-            --filter-intermittents wpt-filtered-logs/${{ env.NAME }}/${{ matrix.chunk_id }}.json
+            --filter-intermittents wpt-filtered-logs/${{ env.NAME }}/${{ matrix.chunk_id }}.json \
             ${{ inputs.wpt-args }}
+        env:
+          GH_TOKEN: ${{ secrets.INTERMITTENT_ISSUES_TOKEN || github.token }}
       - name: Archive results (filtered)
         uses: actions/upload-artifact@v7
         if: ${{ always() }}

@@ -1037,6 +1037,76 @@
   </style>
 </template>
 
+<template data-name="Local variable with initial keyword, typed">
+  <style>
+    @function --f(--x <length>: 10px) {
+      --x: 20px;
+      --x: initial;
+      result: var(--x);
+    }
+    #target {
+      --actual: --f(5px);
+      --expected: 5px;
+    }
+  </style>
+</template>
+
+<template data-name="Local variable with initial keyword, typed, defaulted">
+  <style>
+    @function --f(--x <length>: 10px) {
+      --x: 20px;
+      --x: initial;
+      result: var(--x);
+    }
+    #target {
+      --actual: --f();
+      --expected: 10px;
+    }
+  </style>
+</template>
+
+<template data-name="Local variable with initial keyword, typed, invalid argument">
+  <style>
+    @function --f(--x <length>: 10px) {
+      --x: 20px;
+      --x: initial;
+      result: var(--x);
+    }
+    #target {
+      --actual: --f(red);
+      --expected: 10px;
+    }
+  </style>
+</template>
+
+<template data-name="Local variable with initial keyword, typed, no value via IACVT-capture">
+  <style>
+    @function --f(--x <length>) {
+      --x: 20px;
+      --x: initial;
+      result: var(--x, PASS);
+    }
+    #target {
+      --actual: --f(var(--unknown));
+      --expected: PASS;
+    }
+  </style>
+</template>
+
+<template data-name="Local variable with initial keyword, complex typed">
+  <style>
+    @function --f(--x type(<length> | auto): auto) {
+      --x: 20px;
+      --x: initial;
+      result: var(--x);
+    }
+    #target {
+      --actual: --f(5px);
+      --expected: 5px;
+    }
+  </style>
+</template>
+
 <!-- inherit -->
 
 <template data-name="Local variable with inherit keyword">

@@ -40,7 +40,7 @@
         });
 
         navigator.serviceWorker.register(SCRIPT, { scope: SCOPE }).catch(err => {
-          // An error will be triggered because the worker can't import externalScript.js.
+          // The result is checked through the violation message above.
         });
       });
     }, "script-specific violation report contains correct urlHash in service worker");

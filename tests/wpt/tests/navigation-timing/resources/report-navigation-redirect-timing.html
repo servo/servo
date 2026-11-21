@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reports its navigation redirect timing to the parent</title>
+<script>
+// Landing page for a redirected cross-origin iframe navigation. It reads its own
+// PerformanceNavigationTiming entry and posts the redirect-timing fields to the
+// parent, which is cross-origin and so cannot read them directly.
+addEventListener("load", () => {
+  const entry = performance.getEntriesByType("navigation")[0];
+  parent.postMessage({
+    type: entry.type,
+    redirectCount: entry.redirectCount,
+    redirectStart: entry.redirectStart,
+    redirectEnd: entry.redirectEnd,
+  }, "*");
+});
+</script>

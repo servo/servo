@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<head>
+<title>CSS Borders and Box Decorations 4: scoop corners leaving part of the padding box uncovered &mdash; reference</title>
+<style>
+    /* The border box is four quarter circles of radius 75 centered on the corners of the box; the
+       padding box is what's left of the box once the same circles, grown by the 20px border, are
+       taken out of it. */
+    .target {
+        margin: 10px;
+        width: 150px;
+        height: 150px;
+        background: green;
+        clip-path: path(evenodd, "M 75 0 A 75 75 0 0 0 150 75 A 75 75 0 0 0 75 150 A 75 75 0 0 0 0 75 A 75 75 0 0 0 75 0 Z M 75 58.31 A 95 95 0 0 0 91.69 75 A 95 95 0 0 0 75 91.69 A 95 95 0 0 0 58.31 75 A 95 95 0 0 0 75 58.31 Z");
+    }
+</style>
+</head>
+<div class=target></div>

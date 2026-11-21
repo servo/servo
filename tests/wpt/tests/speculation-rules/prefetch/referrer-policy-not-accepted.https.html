@@ -2,6 +2,8 @@
 <title>Prefetch attempts with an unacceptable referrer policy</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/common/subset-tests.js"></script>
 <script src="/common/utils.js"></script>
@@ -25,7 +27,7 @@ subsetTest(promise_test, async t => {
   const expectedReferrer = agent.getExecutorURL().href;
 
   const nextURL = agent.getExecutorURL({ page: 2 });
-  await agent.forceSinglePrefetch(nextURL);
+  await agent.forceSinglePrefetchAndWaitForStatus(nextURL);
   await agent.navigate(nextURL);
 
   const headers = await agent.getRequestHeaders();

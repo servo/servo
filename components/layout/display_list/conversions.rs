@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use style::color::AbsoluteColor;
 use style::computed_values::image_rendering::T as ComputedImageRendering;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
 use style::computed_values::transform_style::T as ComputedTransformStyle;
+use style::properties::ComputedValues;
 use style::values::computed::Filter as ComputedFilter;
 use style::values::specified::border::BorderImageRepeatKeyword;
 use webrender_api::{
@@ -23,12 +23,12 @@ pub trait ToWebRender {
 
 pub trait FilterToWebRender {
     type Type;
-    fn to_webrender(&self, current_color: &AbsoluteColor) -> Self::Type;
+    fn to_webrender(&self, style: &ComputedValues) -> Self::Type;
 }
 
 impl FilterToWebRender for ComputedFilter {
     type Type = FilterOp;
-    fn to_webrender(&self, current_color: &AbsoluteColor) -> Self::Type {
+    fn to_webrender(&self, style: &ComputedValues) -> Self::Type {
         match *self {
             ComputedFilter::Blur(radius) => FilterOp::Blur(radius.px(), radius.px()),
             ComputedFilter::Brightness(amount) => FilterOp::Brightness(amount.0),
@@ -42,7 +42,7 @@ impl FilterToWebRender for ComputedFilter {
             ComputedFilter::DropShadow(ref shadow) => FilterOp::DropShadow(Shadow {
                 blur_radius: shadow.blur.px(),
                 offset: units::LayoutVector2D::new(shadow.horizontal.px(), shadow.vertical.px()),
-                color: super::rgba(shadow.color.clone().resolve_to_absolute(current_color)),
+                color: super::rgba(style.resolve_color(&shadow.color)),
             }),
             // Statically check that Url is impossible.
             ComputedFilter::Url(ref url) => match *url {},

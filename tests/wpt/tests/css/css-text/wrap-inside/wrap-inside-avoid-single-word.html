@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>wrap-inside: avoid does not introduce break opportunities</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#wrap-inside">
+<link rel="match" href="wrap-inside-avoid-single-word-ref.html">
+<meta name="assert" content="'wrap-inside: avoid' only removes/deprioritizes existing soft wrap opportunities; it never creates them. A single unbreakable word overflows exactly as without the property.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    div { width: 60px; font: 20px/20px Ahem; color: green; }
+</style>
+<div><span style="wrap-inside: avoid">AAAA</span></div>

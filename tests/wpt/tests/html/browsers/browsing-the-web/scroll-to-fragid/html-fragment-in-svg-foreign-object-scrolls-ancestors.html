@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Scrolling to the fragment of an HTML document in a foreignObject of an embedded SVG document scrolls every ancestor document</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#scroll-to-the-fragment-identifier">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#scroll-a-target-into-view">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body style="margin:0">
+<div style="padding-block:2000px"><iframe id="frame" width="400" height="300" style="border:0"></iframe></div>
+<script>
+promise_test(async t => {
+  const frame = document.getElementById("frame");
+  const loaded = new Promise(resolve => frame.addEventListener("load", resolve, { once: true }));
+  frame.src = "resources/foreign-object-html-frame.svg";
+  await loaded;
+  const svgDocument = frame.contentDocument;
+  const inner = svgDocument.getElementById("inner");
+  const target = inner.contentDocument.getElementById("t");
+  const foreignObjectY = svgDocument.getElementById("fo").y.baseVal.value;
+  await t.step_wait(() => inner.contentWindow.scrollY == target.offsetTop, "HTML document scrolled to the target");
+  await t.step_wait(() => frame.contentWindow.scrollY == foreignObjectY, "SVG document scrolled to the foreignObject");
+  await t.step_wait(() => window.scrollY == frame.offsetTop, "top-level document scrolled to the iframe");
+}, "Scrolling to the fragment of an HTML document in a foreignObject of an SVG document in an <iframe> scrolls every ancestor document");
+</script>
+</body>

@@ -425,7 +425,7 @@ impl WebGLThread {
         false
     }
 
-    fn get_or_create_device_for_painter(
+    pub(crate) fn get_or_create_device_for_painter(
         &mut self,
         painter_id: PainterId,
     ) -> Result<Rc<Device>, String> {

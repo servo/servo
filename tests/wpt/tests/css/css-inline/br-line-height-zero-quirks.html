@@ -1,0 +1,27 @@
+<!-- Quirks mode (no doctype) -->
+<html>
+<head>
+  <title>CSS Test: BR with line-height: 0 collapses line in quirks mode</title>
+  <link rel="help" href="https://quirks.spec.whatwg.org/#the-line-height-calculation-quirk">
+  <link rel="match" href="br-line-height-zero-quirks-ref.html">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <style>
+  body {
+      margin: 0;
+  }
+  div {
+      font: 20px/1 Ahem;
+  }
+  br {
+      line-height: 0;
+  }
+  </style>
+</head>
+<body>
+  <!-- The BR with line-height: 0 should collapse its line to 0 height.
+       "A" and "B" should be adjacent with no gap. -->
+  <div>A</div>
+  <div><br></div>
+  <div>B</div>
+</body>
+</html>

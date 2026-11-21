@@ -1,0 +1,315 @@
+<!doctype html>
+<title>img select an image source: optional preference for already-available higher-density image</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#select-an-image-source-from-a-source-set">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#reacting-to-environment-changes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+const dpr = window.devicePixelRatio;
+const dataGif = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+let nextId = 0;
+
+function imageUrl(label) {
+  return new URL(`/images/green-1x1.png?${label}-${++nextId}`, location.href).href;
+}
+
+async function loadImg(t, attrs) {
+  const img = document.createElement("img");
+  t.add_cleanup(() => img.remove());
+  const loaded = new Promise((resolve, reject) => {
+    img.addEventListener("load", resolve, { once: true });
+    img.addEventListener("error", () => reject(new Error("img load error")), { once: true });
+  });
+  for (const [name, value] of Object.entries(attrs)) {
+    img.setAttribute(name, value);
+  }
+  document.body.appendChild(img);
+  await loaded;
+  return img;
+}
+
+promise_test(async t => {
+  const uncachedMatch = imageUrl("uncached-1x");
+  const cachedHigh = imageUrl("cached-2x");
+
+  await loadImg(t, { src: cachedHigh });
+
+  const img = await loadImg(t, {
+    srcset: `${uncachedMatch} ${1 * dpr}x, ${cachedHigh} ${2 * dpr}x`,
+  });
+  assert_equals(img.currentSrc, cachedHigh);
+  assert_equals(performance.getEntriesByName(uncachedMatch).length, 0);
+}, "prefers already-loaded higher-density candidate over uncached DPR-matching candidate");
+
+promise_test(async t => {
+  const uncachedMatch = imageUrl("uncached-1x-multi");
+  const cachedMid = imageUrl("cached-2x-multi");
+  const uncachedTop = imageUrl("uncached-3x-multi");
+
+  await loadImg(t, { src: cachedMid });
+
+  const img = await loadImg(t, {
+    srcset: `${uncachedMatch} ${1 * dpr}x, ${cachedMid} ${2 * dpr}x, ${uncachedTop} ${3 * dpr}x`,
+  });
+  assert_equals(img.currentSrc, cachedMid);
+  assert_equals(performance.getEntriesByName(uncachedMatch).length, 0);
+  assert_equals(performance.getEntriesByName(uncachedTop).length, 0);
+}, "prefers already-loaded higher-density candidate without fetching even higher uncached candidate");
+
+promise_test(async t => {
+  const uncachedMatch = imageUrl("uncached-1x-data");
+  const img = await loadImg(t, {
+    srcset: `${uncachedMatch} ${1 * dpr}x, ${dataGif} ${2 * dpr}x`,
+  });
+  assert_equals(img.currentSrc, dataGif);
+  assert_equals(performance.getEntriesByName(uncachedMatch).length, 0);
+}, "prefers higher-density data: URL candidate over uncached DPR-matching candidate");
+
+promise_test(async t => {
+  const uncached100w = imageUrl("uncached-100w");
+  const cached200w = imageUrl("cached-200w");
+  const w1 = Math.ceil(100 * dpr);
+  const w2 = Math.ceil(200 * dpr);
+
+  await loadImg(t, { src: cached200w });
+
+  const img = await loadImg(t, {
+    sizes: "100px",
+    srcset: `${uncached100w} ${w1}w, ${cached200w} ${w2}w`,
+  });
+  assert_equals(img.currentSrc, cached200w);
+  assert_equals(performance.getEntriesByName(uncached100w).length, 0);
+}, "w descriptors: prefers already-loaded higher-density candidate over uncached DPR-matching candidate");
+
+promise_test(async t => {
+  const uncachedMatch = imageUrl("uncached-1x-two-cached");
+  const cached2x = imageUrl("cached-2x-two-cached");
+  const cached3x = imageUrl("cached-3x-two-cached");
+  const uncached4x = imageUrl("uncached-4x-two-cached");
+
+  await loadImg(t, { src: cached2x });
+  await loadImg(t, { src: cached3x });
+
+  const img = await loadImg(t, {
+    srcset: `${uncachedMatch} ${1 * dpr}x, ${cached2x} ${2 * dpr}x, ${cached3x} ${3 * dpr}x, ${uncached4x} ${4 * dpr}x`,
+  });
+  assert_in_array(img.currentSrc, [cached2x, cached3x]);
+  assert_equals(performance.getEntriesByName(uncachedMatch).length, 0);
+  assert_equals(performance.getEntriesByName(uncached4x).length, 0);
+}, "prefers already-loaded higher-density candidate when multiple higher-density candidates are cached");
+
+promise_test(async t => {
+  const uncachedMatch = imageUrl("uncached-1x-picture");
+  const cachedHigh = imageUrl("cached-2x-picture");
+  const uncachedFallback = imageUrl("uncached-fallback-picture");
+
+  await loadImg(t, { src: cachedHigh });
+
+  const picture = document.createElement("picture");
+  t.add_cleanup(() => picture.remove());
+  const source = document.createElement("source");
+  source.srcset = `${uncachedMatch} ${1 * dpr}x, ${cachedHigh} ${2 * dpr}x`;
+  const img = document.createElement("img");
+  const loaded = new Promise((resolve, reject) => {
+    img.addEventListener("load", resolve, { once: true });
+    img.addEventListener("error", () => reject(new Error("img load error")), { once: true });
+  });
+  img.src = uncachedFallback;
+  picture.append(source, img);
+  document.body.appendChild(picture);
+  await loaded;
+
+  assert_equals(img.currentSrc, cachedHigh);
+  assert_equals(performance.getEntriesByName(uncachedMatch).length, 0);
+  assert_equals(performance.getEntriesByName(uncachedFallback).length, 0);
+}, "picture: prefers already-loaded higher-density source candidate over uncached DPR-matching candidate");
+
+promise_test(async t => {
+  const uncachedMatch = imageUrl("uncached-1x-preload");
+  const preloadedHigh = imageUrl("preloaded-2x");
+
+  const link = document.createElement("link");
+  t.add_cleanup(() => link.remove());
+  link.rel = "preload";
+  link.as = "image";
+  link.href = preloadedHigh;
+  const linkLoaded = new Promise((resolve, reject) => {
+    link.addEventListener("load", resolve, { once: true });
+    link.addEventListener("error", () => reject(new Error("preload error")), { once: true });
+  });
+  document.head.appendChild(link);
+  await linkLoaded;
+
+  const img = await loadImg(t, {
+    srcset: `${uncachedMatch} ${1 * dpr}x, ${preloadedHigh} ${2 * dpr}x`,
+  });
+  assert_equals(img.currentSrc, preloadedHigh);
+  assert_equals(performance.getEntriesByName(uncachedMatch).length, 0);
+}, "prefers higher-density candidate preloaded via <link rel=preload as=image>");
+
+promise_test(async t => {
+  const uncachedMatch = imageUrl("uncached-1x-keep-src");
+  const initialSrc = imageUrl("initial-src-2x");
+
+  const img = await loadImg(t, { src: initialSrc });
+  assert_equals(img.currentSrc, initialSrc);
+
+  img.srcset = `${uncachedMatch} ${1 * dpr}x, ${initialSrc} ${2 * dpr}x`;
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+
+  assert_true(img.complete);
+  assert_equals(img.currentSrc, initialSrc);
+  assert_equals(performance.getEntriesByName(uncachedMatch).length, 0);
+}, "keeps element's already-loaded src when srcset is added with that URL at higher density");
+
+promise_test(async t => {
+  const uncachedHalf = imageUrl("uncached-half-keep-default-src");
+  const initialSrc = imageUrl("initial-default-src-1x");
+
+  const iframe = document.createElement("iframe");
+  t.add_cleanup(() => iframe.remove());
+  iframe.style.zoom = String(0.5 / dpr);
+  document.body.appendChild(iframe);
+  iframe.offsetWidth;
+  const iframeLoaded = new Promise(resolve => {
+    iframe.addEventListener("load", resolve, { once: true });
+  });
+  iframe.srcdoc = "<!doctype html><body></body>";
+  await iframeLoaded;
+  assert_equals(iframe.contentWindow.devicePixelRatio, 0.5);
+
+  const doc = iframe.contentDocument;
+  const img = doc.createElement("img");
+  const loaded = new Promise((resolve, reject) => {
+    img.addEventListener("load", resolve, { once: true });
+    img.addEventListener("error", () => reject(new Error("img load error")), { once: true });
+  });
+  img.src = initialSrc;
+  doc.body.appendChild(img);
+  await loaded;
+  assert_equals(img.currentSrc, initialSrc);
+
+  // In a zoom = 0.5 / dpr iframe, devicePixelRatio is 0.5. Setting srcset="... 0.5x"
+  // leaves the existing src attribute in the source set as the 1x default source (> 0.5x).
+  img.srcset = `${uncachedHalf} 0.5x`;
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+
+  assert_true(img.complete);
+  assert_equals(img.currentSrc, initialSrc);
+  assert_equals(iframe.contentWindow.performance.getEntriesByName(uncachedHalf).length, 0);
+}, "keeps element's already-loaded default src (1x) when srcset adds an uncached sub-1x candidate matching zoomed-out DPR");
+
+promise_test(async t => {
+  const uncachedMatch = imageUrl("uncached-1x-keep-srcset");
+  const initial2x = imageUrl("initial-srcset-2x");
+
+  const img = await loadImg(t, {
+    srcset: `${initial2x} ${2 * dpr}x`,
+  });
+  assert_equals(img.currentSrc, initial2x);
+
+  img.srcset = `${uncachedMatch} ${1 * dpr}x, ${initial2x} ${2 * dpr}x`;
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+
+  assert_true(img.complete);
+  assert_equals(img.currentSrc, initial2x);
+  assert_equals(performance.getEntriesByName(uncachedMatch).length, 0);
+}, "keeps element's already-loaded higher-density srcset candidate when an uncached 1x candidate is added");
+
+promise_test(async t => {
+  const uncachedDefaultSrc = imageUrl("uncached-default-src-1x");
+  const initial2x = imageUrl("initial-srcset-2x-before-src");
+
+  const iframe = document.createElement("iframe");
+  t.add_cleanup(() => iframe.remove());
+  iframe.style.zoom = String(1 / dpr);
+  document.body.appendChild(iframe);
+  iframe.offsetWidth;
+  const iframeLoaded = new Promise(resolve => {
+    iframe.addEventListener("load", resolve, { once: true });
+  });
+  iframe.srcdoc = "<!doctype html><body></body>";
+  await iframeLoaded;
+  assert_equals(iframe.contentWindow.devicePixelRatio, 1);
+
+  const doc = iframe.contentDocument;
+  const img = doc.createElement("img");
+  const loaded = new Promise((resolve, reject) => {
+    img.addEventListener("load", resolve, { once: true });
+    img.addEventListener("error", () => reject(new Error("img load error")), { once: true });
+  });
+  img.srcset = `${initial2x} 2x`;
+  doc.body.appendChild(img);
+  await loaded;
+  assert_equals(img.currentSrc, initial2x);
+
+  // Setting src adds a 1x default candidate to the source set, while initial2x (2x) is already loaded.
+  img.src = uncachedDefaultSrc;
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+
+  assert_true(img.complete);
+  assert_equals(img.currentSrc, initial2x);
+  assert_equals(iframe.contentWindow.performance.getEntriesByName(uncachedDefaultSrc).length, 0);
+}, "keeps element's already-loaded 2x srcset candidate when an uncached src (1x default source) is set");
+
+promise_test(async t => {
+  const uncached100w = imageUrl("uncached-100w-resize");
+  const loaded200w = imageUrl("loaded-200w-resize");
+  const w1 = Math.ceil(100 * dpr);
+  const w2 = Math.ceil(200 * dpr);
+
+  // At sizes=200px, w1 is 0.5*dpr (< dpr) and w2 is 1*dpr (>= dpr), so w2 is normatively selected.
+  const img = await loadImg(t, {
+    sizes: "200px",
+    srcset: `${uncached100w} ${w1}w, ${loaded200w} ${w2}w`,
+  });
+  assert_equals(img.currentSrc, loaded200w);
+  assert_equals(performance.getEntriesByName(uncached100w).length, 0);
+
+  // Shrinking sizes to 100px makes w1 = 1*dpr and w2 = 2*dpr; w2 is already loaded and kept.
+  img.sizes = "100px";
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+
+  assert_true(img.complete);
+  assert_equals(img.currentSrc, loaded200w);
+  assert_equals(performance.getEntriesByName(uncached100w).length, 0);
+}, "keeps element's already-loaded wider w-descriptor candidate when sizes shrinks");
+
+promise_test(async t => {
+  const uncached1x = imageUrl("uncached-1x-zoom-out");
+  const loaded2x = imageUrl("loaded-2x-zoom-out");
+
+  const iframe = document.createElement("iframe");
+  t.add_cleanup(() => iframe.remove());
+  iframe.style.zoom = "2";
+  document.body.appendChild(iframe);
+  iframe.offsetWidth;
+  const iframeLoaded = new Promise(resolve => {
+    iframe.addEventListener("load", resolve, { once: true });
+  });
+  iframe.srcdoc = "<!doctype html><body></body>";
+  await iframeLoaded;
+  assert_equals(iframe.contentWindow.devicePixelRatio, 2 * dpr);
+
+  const doc = iframe.contentDocument;
+  const img = doc.createElement("img");
+  const loaded = new Promise((resolve, reject) => {
+    img.addEventListener("load", resolve, { once: true });
+    img.addEventListener("error", () => reject(new Error("img load error")), { once: true });
+  });
+  img.srcset = `${uncached1x} ${1 * dpr}x, ${loaded2x} ${2 * dpr}x`;
+  doc.body.appendChild(img);
+  await loaded;
+  assert_equals(img.currentSrc, loaded2x);
+  assert_equals(iframe.contentWindow.performance.getEntriesByName(uncached1x).length, 0);
+
+  iframe.style.zoom = "1";
+  iframe.offsetWidth;
+  assert_equals(iframe.contentWindow.devicePixelRatio, 1 * dpr);
+  await new Promise(resolve => t.step_timeout(resolve, 50));
+
+  assert_equals(img.currentSrc, loaded2x);
+  assert_equals(iframe.contentWindow.performance.getEntriesByName(uncached1x).length, 0);
+}, "keeps element's already-loaded 2x candidate when iframe zoom decreases from 2 to 1");
+</script>

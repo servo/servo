@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<style>
+@view-transition { navigation: auto; }
+.target { view-transition-name: target; width: 10px; height: 10px; background: transparent; }
+</style>
+<div class="target"></div>
+<script>
+addEventListener("pagereveal", event => {
+    const hasViewTransition = !!(event && event.viewTransition);
+    function report() {
+        const keyframes = [];
+        for (const animation of document.getAnimations()) {
+            if (animation.effect && typeof animation.effect.getKeyframes === "function") {
+                const animationKeyframes = animation.effect.getKeyframes();
+                if (animationKeyframes.length > 0)
+                    keyframes.push({ pseudo: animation.effect.pseudoElement || null, frames: animationKeyframes });
+            }
+        }
+        if (window.opener)
+            window.opener.postMessage({ hasViewTransition, keyframes }, "*");
+    }
+    if (hasViewTransition)
+        event.viewTransition.ready.then(report).catch(report);
+    else
+        report();
+});
+</script>

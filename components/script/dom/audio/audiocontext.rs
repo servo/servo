@@ -17,6 +17,7 @@ use script_bindings::codegen::GenericBindings::MediaStreamTrackAudioSourceNodeBi
     MediaStreamTrackAudioSourceNodeMethods, MediaStreamTrackAudioSourceOptions,
 };
 use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::trace::RootedTraceableBox;
 use servo_base::id::PipelineId;
 use servo_media::audio::context::{LatencyCategory, ProcessingState, RealTimeAudioContextOptions};
 
@@ -38,7 +39,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::html::htmlmediaelement::HTMLMediaElement;
 use crate::dom::mediastream::MediaStream;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
@@ -274,9 +275,9 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
     ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
         let global = self.global();
         let window = global.as_window();
-        let options = MediaElementAudioSourceOptions {
-            mediaElement: DomRoot::from_ref(media_element),
-        };
+        let options = RootedTraceableBox::new(MediaElementAudioSourceOptions {
+            mediaElement: Dom::from_ref(media_element),
+        });
         MediaElementAudioSourceNode::Constructor(cx, window, None, self, &options)
     }
 
@@ -288,9 +289,9 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
     ) -> Fallible<DomRoot<MediaStreamAudioSourceNode>> {
         let global = self.global();
         let window = global.as_window();
-        let options = MediaStreamAudioSourceOptions {
-            mediaStream: DomRoot::from_ref(stream),
-        };
+        let options = RootedTraceableBox::new(MediaStreamAudioSourceOptions {
+            mediaStream: Dom::from_ref(stream),
+        });
         MediaStreamAudioSourceNode::Constructor(cx, window, None, self, &options)
     }
 
@@ -302,9 +303,9 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
     ) -> Fallible<DomRoot<MediaStreamTrackAudioSourceNode>> {
         let global = self.global();
         let window = global.as_window();
-        let options = MediaStreamTrackAudioSourceOptions {
-            mediaStreamTrack: DomRoot::from_ref(track),
-        };
+        let options = RootedTraceableBox::new(MediaStreamTrackAudioSourceOptions {
+            mediaStreamTrack: Dom::from_ref(track),
+        });
         MediaStreamTrackAudioSourceNode::Constructor(cx, window, None, self, &options)
     }
 

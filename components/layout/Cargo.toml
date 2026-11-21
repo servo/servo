@@ -28,6 +28,7 @@ data-url = { workspace = true }
 embedder_traits = { workspace = true }
 encoding_rs = { workspace = true }
 euclid = { workspace = true }
+font-types = { workspace = true }
 fonts = { workspace = true }
 fonts_traits = { workspace = true }
 icu_casemap = { workspace = true }

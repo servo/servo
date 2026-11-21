@@ -49,6 +49,10 @@ promise_test(async function(t) {
     frameEvents.push(type);
   }
 
+  iframe.contentWindow.addEventListener("resize", () => {
+    recordFrameEvent("resize0");
+  }, { once: true });
+
   mql.addEventListener("change", () => {
     recordFrameEvent("mqlchange");
   }, { once: true });
@@ -74,7 +78,7 @@ promise_test(async function(t) {
   // Trigger scroll0
   scrollers[0].scrollTop = 10;
 
-  // Trigger mqlchange
+  // Trigger resize0 and mqlchange
   iframe.width = "400";
 
   // Trigger transitionrun
@@ -85,9 +89,15 @@ promise_test(async function(t) {
   await new Promise(resolve => {
     iframe.contentWindow.requestAnimationFrame(() => {
       recordFrameEvent("raf0");
-      t.step_timeout(() => {
-        recordFrameEvent("timeout0");
-      });
+      // Resize the iframe and flush layout so that the resize steps of the
+      // next rendering update fire a resize event right before its scroll
+      // steps. This tells apart events dispatched at the next rendering update
+      // from those dispatched at the current rendering update.
+      iframe.contentWindow.addEventListener("resize", () => {
+        recordFrameEvent("resize1");
+      }, { once: true });
+      iframe.width = "500";
+      iframe.getBoundingClientRect();
       iframe.contentWindow.requestAnimationFrame(() => {
         recordFrameEvent("raf1");
         resolve();
@@ -98,19 +108,21 @@ promise_test(async function(t) {
   // The order as per https://html.spec.whatwg.org/#event-loop-processing-model
   // should be:
   //
+  //  * resize0 (frame 0, run the resize steps)
   //  * scroll0 (frame 0, run the scroll steps)
   //  * mqlchange (frame 0, evaluate media queries and report changes)
   //  * transitionrun (frame 0, update animations and send events)
   //  * raf0 (frame 0, run the animation frame callbacks)
-  //  * timeout0 (in between frames)
+  //  * resize1 (frame 1, run the resize steps)
   //  * scroll1 (frame 1, run the scroll steps)
   //  * raf1 (frame 1, run the animation frame callbacks)
   assert_array_equals(frameEvents, [
+    "resize0",
     "scroll0",
     "mqlchange",
     "transitionrun",
     "raf0",
-    "timeout0",
+    "resize1",
     "scroll1",
     "raf1",
   ]);

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>Table's cellspacing attribute changing dynamically within display:none</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#tables-2">
+<meta name="assert" content="
+  Within an non-rendered subtree, the computed style of a table cell should be updated
+  when the `cellspacing` attribute on the `<table>` changes.
+">
+<div style="display: none">
+  <table cellspacing="10">
+    <td></td>
+  </table>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  const table = document.querySelector("table");
+  const cell = document.querySelector("td");
+  const cs = getComputedStyle(cell);
+
+  // Since this is inside a `display:none` subtree, the browser may have skipped
+  // resolving the styles. But in that case, `getComputedStyle()` should force
+  // style computation.
+  // Use it on the cell, it should resolve the presentational hints on the table,
+  // so that the cell inherits the correct `border-spacing`.
+  assert_equals(cs.borderSpacing, "10px", "border-spacing (before)");
+
+  // Change the attribute on the table. The cell should inherit the change.
+  table.setAttribute("cellspacing", "20");
+  assert_equals(cs.borderSpacing, "20px", "border-spacing (after)");
+});
+</script>

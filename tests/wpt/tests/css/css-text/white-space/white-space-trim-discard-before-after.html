@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>white-space-trim: discard-before and discard-after on the same box</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#white-space-trim">
+<link rel="match" href="reference/white-space-trim-discard-before-after-ref.html">
+<meta name="assert" content="A single box carrying both 'discard-before' and 'discard-after' collapses the collapsible white space immediately before its start and immediately after its end; both edges are trimmed independently.">
+<style>
+  .dba { white-space-trim: discard-before discard-after; }
+</style>
+</head>
+<body>
+<p>Test passes if the letters below read "xyz" with no spaces between them.</p>
+<div>x <span class="dba">y</span> z</div>
+</body>
+</html>

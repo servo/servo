@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>Column grid-lanes dense items move before a spanner to honor widows and orphans</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="help" href="https://drafts.csswg.org/css-break/#widows-orphans">
+<link rel="match" href="column-early-breaks-020-ref.html">
+<style>
+  .multicol {
+    background: lightgray;
+    columns: 2;
+    column-fill: auto;
+    column-gap: 0;
+    width: 100px;
+    height: 100px;
+  }
+  .grid-lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(2, 25px);
+    width: 50px;
+    fit-tolerance: 0;
+    grid-auto-flow: dense;
+    grid-lanes-pack: dense;
+  }
+</style>
+<p>The green rectangles on the gray background must match the reference.</p>
+<div class="multicol">
+  <div class="grid-lanes">
+    <div style="height: 110px; position: relative; background: green;">
+      <div style="position: absolute; top: 110px; width: 25px; height: 20px; background: green;"></div>
+    </div>
+    <div style="height: 40px; background: green;"></div>
+    <div style="grid-column: span 2; height: 70px; background: green;"></div>
+    <div style="grid-column: 2; line-height: 0; orphans: 2; widows: 2; background: green;">
+      <div style="display: inline-block; width: 25px; height: 40px;"></div>
+      <div style="display: inline-block; width: 25px; height: 30px;"></div>
+    </div>
+  </div>
+</div>

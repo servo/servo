@@ -180,6 +180,7 @@ impl CSSStyleSheet {
         self.upcast::<StyleSheet>().GetTitle().unwrap_or_default()
     }
 
+    #[cfg(feature = "devtools")]
     pub(crate) fn get_rule_count(&self) -> u32 {
         let sheet = self.style_stylesheet.borrow();
         let guard = sheet.shared_lock.read();

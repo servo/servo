@@ -9,6 +9,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use euclid::{Rect, Size2D};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+use servo_base::id::PainterId;
 
 use crate::{Error, Viewport, Viewports};
 
@@ -23,6 +24,9 @@ pub trait GLTypes {
 
 pub trait GLContexts<GL: GLTypes> {
     fn device(&self, context_id: ContextId) -> Option<GL::Device>;
+    /// An XRSession can technically be requested before a WebGL context exists,
+    /// so initial acquisition of the SurfmanDevice needs to be done by PainterId.
+    fn device_for_painter(&mut self, painter_id: PainterId) -> Option<GL::Device>;
     fn bindings(&mut self, context_id: ContextId) -> Option<&GL::Bindings>;
     fn context(&mut self, context_id: ContextId) -> Option<&mut GL::Context>;
 }
@@ -35,6 +39,10 @@ impl GLTypes for () {
 
 impl GLContexts<()> for () {
     fn device(&self, _: ContextId) -> Option<()> {
+        Some(())
+    }
+
+    fn device_for_painter(&mut self, _: PainterId) -> Option<()> {
         Some(())
     }
 

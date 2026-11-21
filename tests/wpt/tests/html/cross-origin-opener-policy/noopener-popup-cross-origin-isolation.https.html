@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>A noopener popup opened from a cross-origin isolated page is only cross-origin isolated through its own policies</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script>
+const { HTTPS_ORIGIN, HTTPS_REMOTE_ORIGIN, HTTPS_NOTSAMESITE_ORIGIN } = get_host_info();
+const COOP_COEP_PIPE = "header(Cross-Origin-Opener-Policy,same-origin)|header(Cross-Origin-Embedder-Policy,require-corp)";
+
+function noopenerPopupTest(origin, popupIsIsolated, description) {
+  promise_test(async () => {
+    assert_true(self.crossOriginIsolated, "the opener is cross-origin isolated");
+    const uuid = token();
+    let url = `${origin}/html/cross-origin-opener-policy/resources/report-cross-origin-isolation.html?uuid=${uuid}`;
+    if (popupIsIsolated)
+      url += `&pipe=${COOP_COEP_PIPE}`;
+    assert_equals(window.open(url, "_blank", "noopener"), null, "window.open() return value");
+    const result = JSON.parse(await receive(uuid));
+    assert_equals(result.crossOriginIsolated, popupIsIsolated, "crossOriginIsolated");
+    assert_equals(result.sharedArrayBuffer, popupIsIsolated ? "function" : "undefined", "typeof SharedArrayBuffer");
+    assert_equals(result.sharedMemoryCloning, popupIsIsolated ? "allowed" : "DataCloneError", "cloning shared memory");
+  }, description);
+}
+
+noopenerPopupTest(HTTPS_ORIGIN, false, "Same-origin popup without COOP and COEP");
+noopenerPopupTest(HTTPS_REMOTE_ORIGIN, false, "Same-site popup without COOP and COEP");
+noopenerPopupTest(HTTPS_NOTSAMESITE_ORIGIN, false, "Cross-site popup without COOP and COEP");
+noopenerPopupTest(HTTPS_ORIGIN, true, "Same-origin popup with COOP and COEP");
+</script>

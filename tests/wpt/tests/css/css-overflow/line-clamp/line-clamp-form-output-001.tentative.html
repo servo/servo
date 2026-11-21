@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp and output elements, direct clamping</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-form-output-001-ref.html">
+<meta name="assert" content="Applying line-clamp directly to inline output, meter, and progress elements leaves their contents unchanged.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+body {
+  font: 25px/1 Ahem;
+}
+.clamp {
+  line-clamp: 2;
+  width: 240px;
+}
+</style>
+
+<output class="clamp">XX<br>XX<br>XX<br>XX</output>
+<meter class="clamp" value="0.5">XX XX XX XX</meter>
+<progress class="clamp" value="0.5">XX XX XX XX</progress>

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>wrap-inside: avoid does not break when line breaking is prohibited by white-space: nowrap</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#wrap-inside">
+<link rel="match" href="wrap-inside-avoid-nowrap-ref.html">
+<meta name="assert" content="When 'white-space: nowrap' prohibits line breaking within the box, 'wrap-inside: avoid' cannot break it even as a last resort; the box overflows on a single line.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    div { width: 70px; font: 20px/20px Ahem; color: green; }
+</style>
+<!-- The box does not fit within 70px, but nowrap forbids any break, so it overflows rather than breaking. -->
+<div><span style="wrap-inside: avoid; white-space: nowrap">YY ZZ</span></div>

@@ -11,6 +11,8 @@ use std::rc::Rc;
 
 use background_hang_monitor_api::{BackgroundHangMonitorControlMsg, HangAlert};
 use embedder_traits::ScriptToEmbedderChan;
+#[cfg(feature = "multiprocess")]
+use embedder_traits::resources::ResourceBytes;
 use layout_api::ScriptThreadFactory;
 use log::error;
 use media::WindowGLContext;
@@ -213,5 +215,5 @@ pub struct NewScriptEventLoopProcessInfo {
     pub opts: Opts,
     pub prefs: Box<Preferences>,
     /// The broken image icon data that is used to create an image to show in place of broken images.
-    pub broken_image_icon_data: Vec<u8>,
+    pub broken_image_icon_data: ResourceBytes,
 }

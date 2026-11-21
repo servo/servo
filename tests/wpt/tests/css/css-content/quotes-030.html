@@ -9,7 +9,9 @@ based on the parent language (not the language of the element itself)">
 <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5478#issuecomment-701507076">
 <link rel=match href="reference/quotes-030-ref.html">
 <style>
-body { font: 32px Arial, Helvetica, Noto Sans, DejaVu Sans, FreeSans, sans-serif; quotes: auto; }
+body { font: 32px Arial, Helvetica, Noto Sans, DejaVu Sans, FreeSans, sans-serif; }
+q { quotes: auto; }
+q q { quotes: auto; } /* potentially overriding quotes:match-parent from UA sheet */
 </style>
 <body>
 <p>Test passes if the quote marks in both lines match:

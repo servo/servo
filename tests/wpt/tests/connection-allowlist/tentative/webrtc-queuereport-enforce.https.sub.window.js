@@ -24,8 +24,7 @@ promise_test(async (t) => {
   await report_promise;
 
   assert_equals(local_reports.length, 2);
-  // Convert Report objects to JSON before comparing them.
-  assert_object_equals(local_reports[0].toJSON(), local_reports[1].toJSON());
+  assert_object_equals(local_reports[0], local_reports[1]);
   assert_equals(local_reports[0]['type'], 'connection-allowlist');
   assert_equals(local_reports[0]['url'], location.href);
 

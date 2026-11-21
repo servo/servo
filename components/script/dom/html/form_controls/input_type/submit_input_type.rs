@@ -14,7 +14,7 @@ use crate::dom::htmlformelement::{FormControl, FormSubmitterElement, SubmittedFr
 use crate::dom::input_type::text_input_widget::TextInputWidget;
 use crate::dom::node::NodeTraits;
 
-const DEFAULT_SUBMIT_VALUE: &str = "Submit";
+pub const DEFAULT_SUBMIT_VALUE: &str = "Submit";
 
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/8510#issuecomment-6438888621">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<link rel="match" href="text-autospace-size-001-ref.html">
+<style>
+.test {
+  font-family: Ahem;
+  font-size: 40px;
+}
+.normal {
+  text-autospace: normal;
+}
+.a {
+  text-autospace-size: 0.25;
+}
+.b {
+  text-autospace-size: 0.5;
+}
+.c {
+  text-autospace-size: -0.25;
+}
+</style>
+<div class="a">
+  <div class="test normal">国国XX国</div>
+  <div class="test normal">国。XX国</div>
+  <div dir="rtl" class="test normal">国国XX国</div>
+  <div dir="rtl" class="test normal">国。XX国</div>
+</div>
+<div class="b">
+  <div class="test normal">国国XX国</div>
+  <div class="test normal">国。XX国</div>
+  <div dir="rtl" class="test normal">国国XX国</div>
+  <div dir="rtl" class="test normal">国。XX国</div>
+</div>
+<div class="c">
+  <div class="test normal">国国XX国</div>
+  <div class="test normal">国。XX国</div>
+  <div dir="rtl" class="test normal">国国XX国</div>
+  <div dir="rtl" class="test normal">国。XX国</div>
+</div>

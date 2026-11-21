@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Reference for dense-packed items above an early break</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<style>
+  .reference {
+    background: green;
+    display: flex;
+    width: 80px;
+    height: 100px;
+  }
+  .column {
+    flex: 0 0 40px;
+  }
+  .lane {
+    width: 20px;
+  }
+</style>
+<p>The colored rectangles on the green background must match the reference.</p>
+<div class="reference">
+  <div class="column">
+    <div class="lane" style="height: 20px; margin-left: 20px; background: purple;"></div>
+  </div>
+  <div class="column">
+    <div style="height: 40px; background: blue;"></div>
+    <div class="lane" style="height: 60px; background: orange;"></div>
+  </div>
+</div>

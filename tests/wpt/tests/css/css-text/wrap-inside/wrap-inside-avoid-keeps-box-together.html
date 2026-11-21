@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>wrap-inside: avoid keeps an inline box together by breaking before it</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#wrap-inside">
+<link rel="match" href="wrap-inside-avoid-keeps-box-together-ref.html">
+<meta name="assert" content="With 'wrap-inside: avoid' the line breaks before the box rather than inside it, when there is a break opportunity outside the box.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    div { width: 110px; font: 20px/20px Ahem; color: green; }
+</style>
+<!--
+    "XX YY" (100px) fits within 110px, so normal wrapping would break inside the box as "XX YY" / "ZZ".
+    'wrap-inside: avoid' instead breaks before the box: "XX" / "YY ZZ".
+-->
+<div>XX <span style="wrap-inside: avoid">YY ZZ</span></div>

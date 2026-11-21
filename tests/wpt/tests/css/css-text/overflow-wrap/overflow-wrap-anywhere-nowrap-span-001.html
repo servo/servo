@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>CSS Text: overflow-wrap: anywhere between white-space: nowrap inline boxes</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-overflow-wrap-anywhere">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#line-break-details">
+<meta name="assert" content="The boundary between two white-space: nowrap inline boxes is controlled by the white-space property of their nearest common ancestor, so overflow-wrap: anywhere may break the line there.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.test {
+    position: relative;
+    font: 10px/1 Ahem;
+    width: 100px;
+    overflow-wrap: anywhere;
+}
+.test span {
+    white-space: nowrap;
+}
+</style>
+<body onload="checkLayout('.test')">
+<div class="test" title="breaks between the inline boxes"><span data-offset-y="0">X XX</span><span data-offset-y="0">XX XX</span><span data-offset-y="10">X XXX</span></div>
+<div class="test" title="breaks between nested inline boxes"><b><span data-offset-y="0">X XX</span></b><i><span data-offset-y="0">XX XX</span><span data-offset-y="10">X XXX</span></i></div>
+<div class="test" title="breaks between display: contents content and an inline box"><b style="display: contents; white-space: nowrap">X XX</b><span data-offset-y="10">XXX XXX</span></div>
+<div class="test" title="breaks between the inline boxes when an out-of-flow box is at the boundary"><span data-offset-y="0">X XX</span><span data-offset-y="0">XX XX<b style="position: absolute"></b></span><span data-offset-y="10">X XXX</span></div>
+<div class="test" title="breaks at the last boundary that fits after breakable text">XX<span data-offset-y="0">XXX</span><span data-offset-y="10">XXXXXX</span></div>
+<div class="test" style="width: 10px" title="breaks after each overflowing inline box"><span data-offset-y="0">X XX</span><span data-offset-y="10">XX XX</span><span data-offset-y="20">X XXX</span></div>
+<div class="test" style="width: min-content" data-expected-width="50" title="the boundaries are soft wrap opportunities for min-content"><span data-offset-y="0">X XX</span><span data-offset-y="10">XX XX</span><span data-offset-y="20">X XXX</span></div>
+<div class="test" title="wraps at the earlier wrap opportunity before breaking between the inline boxes">XX <span data-offset-y="10">X XX</span><span data-offset-y="10">XX XX</span><span data-offset-y="20">X XXX</span></div>
+<div class="test" title="does not break after a white space inside a white-space: nowrap inline box"><span data-offset-y="0">XXXXX </span><span data-offset-y="0">XXXXX</span></div>
+<div class="test" title="does not break inside a white-space: nowrap inline box"><span data-offset-y="0"><span data-offset-y="0">X XX</span><span data-offset-y="0">XXX XXX</span></span><span data-offset-y="10">XXX</span></div>
+<div class="test" style="white-space: nowrap" title="does not break in a white-space: nowrap container"><span data-offset-y="0">X XX</span><span data-offset-y="0">XX XX</span><span data-offset-y="0">X XXX</span></div>
+</body>

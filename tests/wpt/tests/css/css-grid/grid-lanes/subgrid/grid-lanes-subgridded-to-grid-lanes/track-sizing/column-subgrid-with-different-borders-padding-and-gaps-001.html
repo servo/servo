@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes Test: Nested standalone rows use differing inherited borders, padding, and gaps</title>
+<link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="column-subgrid-with-different-borders-padding-and-gaps-001-ref.html">
+<style>
+  body { margin: 0; }
+  .root {
+    border: 2px solid black;
+    column-gap: 10px;
+    display: grid-lanes;
+    fit-tolerance: 0;
+    grid-template-columns: 100px 200px 300px;
+    padding: 6px;
+    width: 620px;
+  }
+  .subgrid {
+    display: grid-lanes;
+    fit-tolerance: 0;
+    grid-template-columns: subgrid;
+  }
+  .outer {
+    border: 4px solid purple;
+    column-gap: 18px;
+    grid-column: 1 / -1;
+    padding: 3px;
+  }
+  .root-blocker {
+    background: dimgray;
+    grid-column: 1;
+    height: 40px;
+    width: 8px;
+  }
+  .outer-blocker {
+    background: steelblue;
+    grid-column: 1;
+    height: 20px;
+    width: 8px;
+  }
+  .middle {
+    border: 3px solid orange;
+    column-gap: 6px;
+    grid-column: span 2;
+    padding: 5px;
+  }
+  .inner {
+    border: 1px solid cyan;
+    column-gap: 12px;
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-rows: auto 10px;
+    padding: 2px;
+  }
+  .leaf {
+    aspect-ratio: 1;
+    background: green;
+    grid-column: 2;
+    grid-row: 1;
+    min-height: 0;
+    min-width: 0;
+  }
+  .marker {
+    background: blue;
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+</style>
+<div class="root">
+  <div class="root-blocker"></div>
+  <div class="subgrid outer">
+    <div class="outer-blocker"></div>
+    <div class="subgrid middle">
+      <div class="subgrid inner">
+        <div class="leaf"></div>
+        <div class="marker"></div>
+      </div>
+    </div>
+  </div>
+</div>

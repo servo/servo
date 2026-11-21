@@ -8,13 +8,13 @@ interface SVGAElement : SVGGraphicsElement {
   //[SameObject] readonly attribute SVGAnimatedString target;
   //attribute DOMString download;
   //attribute USVString ping;
-  //attribute DOMString rel;
-  //[SameObject, PutForwards=value] readonly attribute DOMTokenList relList;
-  //attribute DOMString hreflang;
-  //attribute DOMString type;
+  attribute DOMString rel;
+  [SameObject, PutForwards=value] readonly attribute DOMTokenList relList;
+  attribute DOMString hreflang;
+  attribute DOMString type;
 
-  //attribute DOMString referrerPolicy;
+  attribute DOMString referrerPolicy;
 };
 
 // SVGAElement includes SVGURIReference;
-// SVGAElement includes HTMLHyperlinkElementUtils;
+SVGAElement includes HTMLHyperlinkElementUtils;

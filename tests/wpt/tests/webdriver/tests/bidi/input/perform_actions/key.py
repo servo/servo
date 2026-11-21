@@ -26,7 +26,7 @@ async def test_key_down_closes_browsing_context(
     wait_for_event
 ):
     url = inline("""
-        <input onkeydown="window.close()">close</input>
+        <input onkeydown="window.close()">close
         <script>document.querySelector("input").focus();</script>
         """)
 

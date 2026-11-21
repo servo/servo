@@ -4,6 +4,7 @@
 <link rel="help" href="https://github.com/WICG/html-in-canvas">
 <link rel="help" href="https://crbug.com/490343465">
 <script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
 <style>
   #target {
     width: 100px;
@@ -41,6 +42,6 @@
     ctx.drawElementImage(target, 0, 0);
     takeScreenshot();
   }
-  canvas.requestPaint();
+  waitForCanvasPaint(canvas);
 </script>
 </html>

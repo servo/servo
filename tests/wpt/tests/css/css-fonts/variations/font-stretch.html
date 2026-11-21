@@ -19,7 +19,7 @@
             { stretch: "10%",               expectedComputedStretch: "10%",     expectedIsSupported: true,  message: "legal percentage" },
             { stretch: "100%",              expectedComputedStretch: "100%",    expectedIsSupported: true,  message: "legal percentage" },
             { stretch: "1000%",             expectedComputedStretch: "1000%",   expectedIsSupported: true,  message: "legal percentage" },
-            { stretch: "1e9%",              expectedComputedStretch: "1e+009%", expectedIsSupported: true,  message: "huge legal percentage" },
+            { stretch: "1e9%",                                                  expectedIsSupported: true,  message: "huge legal percentage" },
             { stretch: "ultra-condensed",   expectedComputedStretch: "50%",     expectedIsSupported: true,  message: "legal enum" },
             { stretch: "extra-condensed",   expectedComputedStretch: "62.5%",   expectedIsSupported: true,  message: "legal enum" },
             { stretch: "condensed",         expectedComputedStretch: "75%",     expectedIsSupported: true,  message: "legal enum" },
@@ -46,8 +46,9 @@
         testStretchValues.forEach(function (element) {
             test(() => { assert_equals(window.CSS.supports("font-stretch", element.stretch), element.expectedIsSupported, element.message); }, "@supports: " + element.stretch + " - " + element.message);
 
-            // If supported, verify the computed style.
-            if (element.expectedIsSupported)
+            // Verify exact computed values only where implementation limits do not apply.
+            // https://drafts.csswg.org/css-values-4/#numeric-types
+            if (element.expectedIsSupported && "expectedComputedStretch" in element)
             {
                 var testSpan = document.getElementById("computedStyleTest");
                 testSpan.style.fontStretch = element.stretch;

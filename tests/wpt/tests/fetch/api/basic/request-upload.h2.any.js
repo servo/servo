@@ -186,10 +186,11 @@ promise_test(async (t) => {
 
 promise_test(async (t) => {
   const abortMessage = 'foo abort';
-  let streamCancelPromise = new Promise(async res => {
+  let streamCancelPromise = new Promise(async (resolve, reject) => {
+    t.step_timeout(() => reject("streamCancelPromise timed out"), 1000);
     var stream = new ReadableStream({
       cancel: function(reason) {
-        res(reason);
+        resolve(reason);
       }
     });
     let abortController = new AbortController();

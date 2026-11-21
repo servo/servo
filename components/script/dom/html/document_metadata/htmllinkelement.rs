@@ -7,30 +7,24 @@ use std::cell::Cell;
 use std::default::Default;
 use std::str::FromStr;
 
-use bytes::{Bytes, BytesMut};
+use bytes::BytesMut;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
 use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use net_traits::image_cache::{
-    Image, ImageCache, ImageCacheResponseCallback, ImageCacheResult, ImageLoadListener,
-    ImageOrMetadataAvailable, ImageResponse, PendingImageId, RasterizationResult,
+    ImageCacheResponseCallback, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable,
+    ImageResponse, PendingImageId,
 };
-use net_traits::request::{Destination, Initiator, ParserMetadata, RequestBuilder, RequestId};
-use net_traits::{
-    FetchMetadata, FetchResponseMsg, NetworkError, ReferrerPolicy, ResourceFetchTiming,
-};
-use pixels::PixelFormat;
+use net_traits::request::{Destination, Initiator, ParserMetadata, RequestBuilder};
+use net_traits::{NetworkError, ReferrerPolicy};
 use script_bindings::cell::DomRefCell;
 use script_bindings::root::Dom;
 use servo_arc::Arc;
-use servo_base::generic_channel::GenericSharedMemory;
-use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use style::media_queries::MediaList as StyleMediaList;
 use style::stylesheets::Stylesheet;
 use stylo_atoms::Atom;
-use webrender_api::units::DeviceIntSize;
 
 use crate::css::stylesheet_loader::{
     ElementStylesheetLoader, StylesheetContextSource, StylesheetOwner,
@@ -42,10 +36,10 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::css::cssstylesheet::CSSStyleSheet;
 use crate::dom::css::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::document::Document;
+use crate::dom::document::favicon::FaviconFetchContext;
 use crate::dom::documentorshadowroot::StylesheetSource;
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::attributes::storage::AttrRef;
@@ -62,12 +56,8 @@ use crate::dom::html::links::relations::LinkRelations;
 use crate::dom::medialist::MediaList;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
-use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::srcset::SourceSet;
-use crate::dom::types::{EventTarget, GlobalScope};
-use crate::fetch::network_listener::{
-    FetchResponseListener, ResourceTimingListener, submit_timing,
-};
+use crate::dom::types::EventTarget;
 use crate::scripting::fetching_options::ScriptFetchOptions;
 use crate::scripting::script_module::fetch_a_modulepreload_module;
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
@@ -310,6 +300,10 @@ impl VirtualMethods for HTMLLinkElement {
                 if self.relations.get().contains(LinkRelations::MODULE_PRELOAD) {
                     self.fetch_and_process_modulepreload(cx);
                 }
+
+                if self.relations.get().contains(LinkRelations::ICON) {
+                    self.owner_document().set_ever_had_favicon_link(true);
+                }
             },
             local_name!("href") => {
                 // https://html.spec.whatwg.org/multipage/#attr-link-href
@@ -473,6 +467,10 @@ impl VirtualMethods for HTMLLinkElement {
         let element = self.upcast::<Element>();
         let href = element.get_attribute_string_value(&local_name!("href"));
 
+        if context.tree_connected && self.relations.get().contains(LinkRelations::ICON) {
+            self.owner_document().set_ever_had_favicon_link(true);
+        }
+
         if context.tree_connected &&
             (href.as_ref().is_some_and(|x| !x.is_empty()) ||
                 element.has_attribute(&local_name!("imagesrcset")))
@@ -554,6 +552,12 @@ impl HTMLLinkElement {
             origin: document.borrow().origin().immutable().to_owned(),
             request_client: global.request_client(None),
             referrer: global.get_referrer(),
+            fetch_priority: element
+                .get_attribute_string_ref(&local_name!("fetchpriority"))
+                .unwrap_or_default()
+                .value()
+                .as_ref()
+                .into(),
         };
 
         // Step 3. If el has an href attribute, then set options's href to the value of el's href attribute.
@@ -712,7 +716,7 @@ impl HTMLLinkElement {
         // https://html.spec.whatwg.org/multipage/#link-type-stylesheet
         // > The default type for resources given by the stylesheet keyword is text/css.
         let type_ = element.get_string_attribute(&local_name!("type"));
-        if !type_.is_empty() && type_ != "text/css" {
+        if !type_.is_empty() && !type_.eq_ignore_ascii_case("text/css") {
             return;
         }
 
@@ -790,7 +794,7 @@ impl HTMLLinkElement {
 
         // Use the document's encoding to parse the URL, as the favicon URL is not necessarily UTF-8.
         let document = self.upcast::<Node>().owner_doc();
-        let Ok(href) = document.encoding_parse_a_url(&self.Href()) else {
+        let Ok(favicon_url) = document.encoding_parse_a_url(&self.Href()) else {
             return;
         };
 
@@ -799,7 +803,7 @@ impl HTMLLinkElement {
             .set(self.request_generation_id.get().increment());
 
         let cache_result = window.image_cache().get_cached_image_status(
-            href,
+            favicon_url.clone(),
             window.origin().immutable(),
             cors_setting_for_element(self.upcast()),
         );
@@ -808,7 +812,7 @@ impl HTMLLinkElement {
             ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable {
                 image, ..
             }) => {
-                self.process_favicon_response(image);
+                self.owner_document().process_favicon_image(image, false);
             },
             ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(_, id)) |
             ImageCacheResult::Pending(id) => {
@@ -831,13 +835,9 @@ impl HTMLLinkElement {
                     id,
                 ));
 
-                let document = self.upcast::<Node>().owner_doc();
-                let fetch_context = FaviconFetchContext {
-                    url: self.owner_document().base_url(),
-                    image_cache: window.image_cache(),
-                    id,
-                };
-                document.fetch_background(request, fetch_context);
+                let fetch_context =
+                    FaviconFetchContext::new(window.image_cache(), id, favicon_url, false);
+                document.fetch_favicon(request, fetch_context);
             },
             ImageCacheResult::FailedToLoadOrDecode => {},
         };
@@ -874,68 +874,9 @@ impl HTMLLinkElement {
                         return;
                     };
 
-                    element.process_favicon_response(image);
+                    element.owner_document().process_favicon_image(image, false);
                 }));
         })
-    }
-
-    /// Rasterizes a loaded favicon file if necessary and notifies the embedder about it.
-    fn process_favicon_response(&self, image: Image) {
-        // TODO: Include the size attribute here
-        let window = self.owner_window();
-        let document = self.owner_document();
-
-        let send_rasterized_favicon_to_embedder = |raster_image: &pixels::RasterImage| {
-            // Let's not worry about animated favicons...
-            let frame = raster_image.first_frame();
-
-            let format = match raster_image.format {
-                PixelFormat::K8 => embedder_traits::PixelFormat::K8,
-                PixelFormat::KA8 => embedder_traits::PixelFormat::KA8,
-                PixelFormat::RGB8 => embedder_traits::PixelFormat::RGB8,
-                PixelFormat::RGBA8 => embedder_traits::PixelFormat::RGBA8,
-                PixelFormat::BGRA8 => embedder_traits::PixelFormat::BGRA8,
-            };
-
-            let embedder_image = embedder_traits::Image::new(
-                frame.width,
-                frame.height,
-                std::sync::Arc::new(GenericSharedMemory::from_arc_vec(
-                    raster_image.bytes.clone(),
-                )),
-                raster_image.frames[0].byte_range.clone(),
-                format,
-            );
-            document.set_favicon(embedder_image);
-        };
-
-        match image {
-            Image::Raster(raster_image) => send_rasterized_favicon_to_embedder(&raster_image),
-            Image::Vector(vector_image) => {
-                // This size is completely arbitrary.
-                let size = DeviceIntSize::new(250, 250);
-
-                let image_cache = window.image_cache();
-                match image_cache.rasterize_vector_image(vector_image.id, size, None) {
-                    RasterizationResult::Image(raster_image) => {
-                        send_rasterized_favicon_to_embedder(&raster_image);
-                    },
-                    RasterizationResult::PendingRasterization => {
-                        // The rasterization callback will end up calling "process_favicon_response" again,
-                        // but this time with a raster image.
-                        let image_cache_sender =
-                            self.register_image_cache_callback(vector_image.id);
-                        image_cache.add_rasterization_complete_listener(
-                            window.pipeline_id(),
-                            vector_image.id,
-                            size,
-                            image_cache_sender,
-                        );
-                    },
-                    RasterizationResult::InvalidSvgParameters => {},
-                }
-            },
-        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#link-type-preload:fetch-and-process-the-linked-resource-2>
@@ -1064,7 +1005,8 @@ impl HTMLLinkElement {
         // Step 11. Let referrer policy be the current state of el's referrerpolicy attribute.
         let referrer_policy = referrer_policy_for_element(el);
 
-        // TODO Step 12. Let fetch priority be the current state of el's fetchpriority attribute.
+        // Step 12. Let fetch priority be the current state of el's fetchpriority attribute.
+        let fetch_priority = self.FetchPriority().into();
 
         // Step 13. Let options be a script fetch options whose cryptographic nonce is cryptographic nonce,
         // integrity metadata is integrity metadata, parser metadata is "not-parser-inserted",
@@ -1076,6 +1018,7 @@ impl HTMLLinkElement {
             credentials_mode,
             referrer_policy,
             render_blocking: false,
+            fetch_priority,
         };
 
         let link = DomRoot::from_ref(self);
@@ -1312,80 +1255,15 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
     fn GetSheet(&self, cx: &mut JSContext) -> Option<DomRoot<DOMStyleSheet>> {
         self.get_cssom_stylesheet(cx).map(DomRoot::upcast)
     }
-}
 
-struct FaviconFetchContext {
-    image_cache: std::sync::Arc<dyn ImageCache>,
-    id: PendingImageId,
-
-    /// The base url of the document that the `<link>` element belongs to.
-    url: ServoUrl,
-}
-
-impl FetchResponseListener for FaviconFetchContext {
-    fn process_request_body(&mut self, _: &GlobalScope, _: RequestId) {}
-
-    fn process_response(
-        &mut self,
-        _: &mut js::context::JSContext,
-        _: &GlobalScope,
-        request_id: RequestId,
-        metadata: Result<FetchMetadata, NetworkError>,
-    ) {
-        self.image_cache.notify_pending_response(
-            self.id,
-            FetchResponseMsg::ProcessResponse(request_id, metadata),
-        );
-    }
-
-    fn process_response_chunk(
-        &mut self,
-        _: &mut js::context::JSContext,
-        _: &GlobalScope,
-        request_id: RequestId,
-        chunk: Bytes,
-    ) {
-        self.image_cache.notify_pending_response(
-            self.id,
-            FetchResponseMsg::ProcessResponseChunk(request_id, chunk),
-        );
-    }
-
-    fn process_response_eof(
-        self,
-        cx: &mut js::context::JSContext,
-        global: &GlobalScope,
-        request_id: RequestId,
-        response: Result<(), NetworkError>,
-        timing: ResourceFetchTiming,
-    ) {
-        self.image_cache.notify_pending_response(
-            self.id,
-            FetchResponseMsg::ProcessResponseEOF(request_id, response.clone(), timing.clone()),
-        );
-        submit_timing(cx, global, &self, &response, &timing);
-    }
-
-    fn process_csp_violations(
-        &mut self,
-        cx: &mut js::context::JSContext,
-        global: &GlobalScope,
-        _request_id: RequestId,
-        violations: Vec<Violation>,
-    ) {
-        global.report_csp_violations(cx, violations, None, None);
-    }
-
-    fn process_content_length(&mut self, request_id: RequestId, size: usize) {
-        self.image_cache.notify_pending_response(
-            self.id,
-            FetchResponseMsg::ProcessContentLength(request_id, size),
-        )
-    }
-}
-
-impl ResourceTimingListener for FaviconFetchContext {
-    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
-        (InitiatorType::LocalName("link".into()), self.url.clone())
-    }
+    // <https://html.spec.whatwg.org/multipage/#dom-link-fetchpriority>
+    make_enumerated_getter!(
+        FetchPriority,
+        "fetchpriority",
+        "high" | "low" | "auto",
+        missing => "auto",
+        invalid => "auto"
+    );
+    // https://html.spec.whatwg.org/multipage/#dom-link-fetchpriority
+    make_setter!(SetFetchPriority, "fetchpriority");
 }

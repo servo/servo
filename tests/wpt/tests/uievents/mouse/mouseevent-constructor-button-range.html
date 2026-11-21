@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>MouseEvent constructor preserves every short value of button</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const buttons = [-32768, -3, -2, -1, 0, 1, 2, 3, 4, 5, 32767];
+const interfaces = ["MouseEvent", "PointerEvent", "WheelEvent", "DragEvent"];
+
+for (const button of buttons) {
+    for (const name of interfaces) {
+        test(() => {
+            assert_equals(new window[name]("test", { button }).button, button);
+        }, `new ${name}() with button ${button}`);
+    }
+
+    test(() => {
+        const event = document.createEvent("MouseEvent");
+        event.initMouseEvent("mousedown", true, true, window, 0, 0, 0, 0, 0, false, false, false, false, button, null);
+        assert_equals(event.button, button);
+    }, `initMouseEvent() with button ${button}`);
+}
+
+for (const name of interfaces) {
+    test(() => {
+        assert_equals(new window[name]("test").button, 0);
+    }, `new ${name}() without button defaults to 0`);
+}
+</script>

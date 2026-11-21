@@ -12,6 +12,7 @@ use js::jsapi::{AddAssociatedMemory, Heap, JSObject, MemoryUse, RemoveAssociated
 use js::rust::HandleObject;
 use malloc_size_of_derive::MallocSizeOf;
 
+use crate::codegen::PrototypeList;
 use crate::conversions::DerivedFrom;
 use crate::interfaces::GlobalScopeHelpers;
 use crate::iterable::{Iterable, IterableIterator};
@@ -48,7 +49,7 @@ pub struct Reflector<T = ()> {
     /// Associated memory size (of rust side). Used for memory reporting to SM.
     size: T,
     /// Cached prototype ID for fast type checks.
-    proto_id: Cell<u16>,
+    proto_id: u16,
 }
 
 unsafe impl<T> js::gc::Traceable for Reflector<T> {
@@ -76,13 +77,7 @@ impl<T> Reflector<T> {
     /// Get the cached prototype ID.
     #[inline]
     pub fn proto_id(&self) -> u16 {
-        self.proto_id.get()
-    }
-
-    /// Set the cached prototype ID.
-    #[inline]
-    pub fn set_proto_id(&self, id: u16) {
-        self.proto_id.set(id);
+        self.proto_id
     }
 
     /// Initialize the reflector. (May be called only once.)
@@ -111,7 +106,7 @@ impl<T: AssociatedMemorySize> Reflector<T> {
     pub fn new() -> Reflector<T> {
         Reflector {
             object: Heap::default(),
-            proto_id: Cell::new(u16::MAX),
+            proto_id: u16::MAX,
             size: T::default(),
         }
     }
@@ -139,6 +134,21 @@ impl Reflector<AssociatedMemory> {
             self.size.0.set(new_size);
             AddAssociatedMemory(self.object.get(), self.rust_size(d), MemoryUse::DOMBinding);
         }
+    }
+}
+
+pub trait HasPrototype {
+    const PROTOTYPE_ID: PrototypeList::ID;
+}
+
+pub trait PrototypeInitializer {
+    fn set_proto_id(&mut self, id: PrototypeList::ID);
+}
+
+impl<T: AssociatedMemorySize> PrototypeInitializer for Reflector<T> {
+    #[inline]
+    fn set_proto_id(&mut self, id: PrototypeList::ID) {
+        self.proto_id = id as u16;
     }
 }
 

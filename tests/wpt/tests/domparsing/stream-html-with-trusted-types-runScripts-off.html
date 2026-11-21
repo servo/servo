@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+  <head>
+    <link rel="help" href="https://html.spec.whatwg.org/#html-streaming-methods" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/trusted-types/support/helper.sub.js"></script>
+
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="require-trusted-types-for 'script';"
+    />
+  </head>
+  <body>
+    <div id="container"></div>
+    <script>
+      var container = document.querySelector("#container");
+      const cleanupPolicy = trustedTypes.createPolicy("cleanup", {
+        createHTML: (_) => "",
+      });
+      trustedTypes.createPolicy("default", {
+        createHTML: (_) => "",
+        createScript: (s) => s,
+        createParserOptions: ({sanitizer}) => ({
+          runScripts: false,
+          sanitizer
+        }),
+      });
+      function cleanup() {
+        container.innerHTML = cleanupPolicy.createHTML("");
+      }
+
+      const methods = [
+        "streamHTMLUnsafe",
+        "streamAppendHTMLUnsafe",
+        "streamPrependHTMLUnsafe",
+        "streamBeforeHTMLUnsafe",
+        "streamAfterHTMLUnsafe",
+        "streamReplaceWithHTMLUnsafe",
+      ];
+
+      for (const method of methods) {
+        promise_test(async (t) => {
+          t.add_cleanup(cleanup);
+          let d = document.createElement("div");
+          document.querySelector("#container").appendChild(d);
+          t.add_cleanup(() => d.remove());
+          const writer = d[method]({ runScripts: true, sanitizer: {removeElements: ["p"]} }).getWriter();
+          window.did_run = false;
+          await writer.write("<script>window.did_run = true;</" + "script>");
+          await writer.close();
+          assert_false(window.did_run);
+        }, `The default TT policy can turn runScripts off for ${method}`);
+      }
+
+      for (const method of ["streamHTMLUnsafe", "streamAppendHTMLUnsafe", "streamPrependHTMLUnsafe"]) {
+        promise_test(async (t) => {
+          t.add_cleanup(cleanup);
+          t.add_cleanup(() => { delete window.did_run; });
+          const host = document.createElement("div");
+          const sr = host.attachShadow({ mode: "open" });
+          container.appendChild(host);
+          t.add_cleanup(() => host.remove());
+          const writer = sr[method]({ runScripts: true, sanitizer: { removeElements: ["p"] } }).getWriter();
+          window.did_run = false;
+          await writer.write("<script>window.did_run = true;</" + "script>");
+          await writer.close();
+          assert_false(window.did_run);
+        }, `The default TT policy can turn runScripts off for ShadowRoot.${method}`);
+      }
+
+      for (const method of ["streamBeforeHTMLUnsafe", "streamAfterHTMLUnsafe", "streamReplaceWithHTMLUnsafe"]) {
+        promise_test(async (t) => {
+          t.add_cleanup(cleanup);
+          t.add_cleanup(() => { delete window.did_run; });
+          const parent = document.createElement("div");
+          const text = parent.appendChild(document.createTextNode("anchor"));
+          container.appendChild(parent);
+          t.add_cleanup(() => parent.remove());
+          const writer = text[method]({ runScripts: true, sanitizer: { removeElements: ["p"] } }).getWriter();
+          window.did_run = false;
+          await writer.write("<script>window.did_run = true;</" + "script>");
+          await writer.close();
+          assert_false(window.did_run);
+        }, `The default TT policy can turn runScripts off for CharacterData.${method}`);
+      }
+    </script>
+  </body>
+</html>

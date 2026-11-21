@@ -431,7 +431,7 @@ impl Image {
 }
 
 /// The severity level of a message logged by page content.
-#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, MallocSizeOf)]
 #[serde(rename_all = "lowercase")]
 pub enum ConsoleLogLevel {
     Log,
@@ -499,8 +499,9 @@ pub enum EmbedderMsg {
     SetClipboardText(WebViewId, String),
     /// Changes the cursor.
     SetCursor(WebViewId, Cursor),
-    /// A favicon was detected
-    NewFavicon(WebViewId, Image),
+    /// Inform the embedder that a new favicon was set for the current top-level frame. In the case
+    /// that there is no favicon, `None` is sent.
+    SetFavicon(WebViewId, Option<Image>),
     /// Get the device independent window rectangle.
     GetWindowRect(WebViewId, GenericSender<DeviceIndependentIntRect>),
     /// Get the device independent screen size and available size.

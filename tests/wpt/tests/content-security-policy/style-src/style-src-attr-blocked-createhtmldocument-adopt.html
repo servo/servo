@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Security-Policy" content="style-src-attr 'none'">
+    <title>A style attribute parsed in a createHTMLDocument() document is blocked after adoptNode</title>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+</head>
+
+<body>
+    <div id='log'></div>
+    <script>
+        var t = async_test("A security policy violation is reported for the adopted style attribute");
+
+        window.addEventListener('securitypolicyviolation', t.step_func_done(function(e) {
+            assert_equals(e.violatedDirective, 'style-src-attr');
+            assert_equals(e.blockedURI, 'inline');
+        }));
+
+        var created = document.implementation.createHTMLDocument('');
+        created.body.innerHTML = '<div id="probe" style="background-color: green"></div>';
+        var probe = document.adoptNode(created.querySelector('#probe'));
+        document.body.append(probe);
+
+        test(function() {
+            assert_equals(probe.style.length, 0);
+        }, "The style attribute is not applied once the element is adopted into the document");
+    </script>
+</body>
+
+</html>

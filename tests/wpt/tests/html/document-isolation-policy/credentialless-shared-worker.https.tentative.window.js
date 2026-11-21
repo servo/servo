@@ -14,6 +14,8 @@
 
 // Test description:
 //   Request a resource from a SharedWorker. Check the request's cookies.
+//   Document-Isolation-Policy does not apply to a SharedWorker, so neither the
+//   Window's nor the SharedWorker's policy affects them.
 //
 // Variant:
 //   - The Window DIP policy: none or credentialless.
@@ -37,14 +39,8 @@ const request_origin = variants.get('request_origin') == 'same_origin'
   ? same_origin
   : cross_origin;
 
-// When using DIP:credentialless: cross-origin no-cors request do not include
-// credentials. Note: This must not depend on the window's DIP policy.
 const worker_expected_cookie =
-  request_origin == same_origin
-  ? cookie_same_origin
-  : (worker_dip == dip_credentialless
-    ? undefined
-    : cookie_cross_origin);
+  request_origin == same_origin ? cookie_same_origin : cookie_cross_origin;
 
 // From a JSON representing the `response` HTTP headers key-values, return the
 // cookie corresponding to the `cookie_key`.

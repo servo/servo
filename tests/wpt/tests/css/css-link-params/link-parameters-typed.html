@@ -12,29 +12,29 @@
 <div id="target"></div>
 
 <script>
-test_valid_value("link-parameters", "param(--a <color>, orange)");
-test_valid_value("link-parameters", "param(--a <length>, 10px)");
-test_valid_value("link-parameters", "param(--a <color>, currentcolor)");
+test_valid_value("link-parameters", "param(--a <color>: orange)");
+test_valid_value("link-parameters", "param(--a <length>: 10px)");
+test_valid_value("link-parameters", "param(--a <color>: currentcolor)");
 
 // <css-type> = <syntax-component> | <type()>, and a single component serializes bare.
-test_valid_value("link-parameters", "param(--a type(<color>), orange)", "param(--a <color>, orange)");
+test_valid_value("link-parameters", "param(--a type(<color>): orange)", "param(--a <color>: orange)");
 
 // <type()> is required when the syntax has more than one component.
-test_valid_value("link-parameters", "param(--a type(<color> | <length>), orange)");
+test_valid_value("link-parameters", "param(--a type(<color> | <length>): orange)");
 
 // A type applies to the parameter it follows, not to the whole list.
-test_valid_value("link-parameters", "param(--a <color>, orange), param(--b, blue)");
+test_valid_value("link-parameters", "param(--a <color>: orange), param(--b: blue)");
 
 // <param-spec> also accepts the color and accent-color keywords.
-test_valid_value("link-parameters", "param(color, blue)");
-test_valid_value("link-parameters", "param(accent-color, blue)");
+test_valid_value("link-parameters", "param(color: blue)");
+test_valid_value("link-parameters", "param(accent-color: blue)");
 
-test_invalid_value("link-parameters", "param(--a <notatype>, orange)");
-test_invalid_value("link-parameters", "param(--a <color> <length>, orange)");
-test_invalid_value("link-parameters", "param(<color>, orange)");
-test_invalid_value("link-parameters", "param(--a, orange) <color>");
+test_invalid_value("link-parameters", "param(--a <notatype>: orange)");
+test_invalid_value("link-parameters", "param(--a <color> <length>: orange)");
+test_invalid_value("link-parameters", "param(<color>: orange)");
+test_invalid_value("link-parameters", "param(--a: orange) <color>");
 
-test_computed_value("link-parameters", "param(--a <color>, orange)");
-test_computed_value("link-parameters", "param(--a <color>, currentcolor)");
-test_computed_value("link-parameters", "param(--a <color>, orange), param(--b, blue)");
+test_computed_value("link-parameters", "param(--a <color>: orange)");
+test_computed_value("link-parameters", "param(--a <color>: currentcolor)");
+test_computed_value("link-parameters", "param(--a <color>: orange), param(--b: blue)");
 </script>

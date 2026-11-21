@@ -1,0 +1,22 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>SMIL animation with an explicit href target instanced into a use-element
+shadow tree resolves its target within that tree</title>
+<link rel="match" href="../struct/reftests/reference/green-100x100.html">
+<link rel="help" href="https://svgwg.org/svg2-draft/struct.html#UseAnimations">
+<script src="/common/reftest-wait.js"></script>
+<!-- The transparent rect shares the id that the instanced animation targets;
+     the animation must only affect the instance's own in-tree target. -->
+<svg>
+  <rect id="target" width="100" height="100" fill="transparent"/>
+  <use href="resources/use-instance-animations.svg#href-target"/>
+</svg>
+<script>
+// The external resource delays the load event, so the shadow tree exists here.
+window.onload = () => {
+  const svg = document.querySelector('svg');
+  svg.pauseAnimations();
+  svg.setCurrentTime(1);
+  requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+};
+</script>

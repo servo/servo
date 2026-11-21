@@ -58,8 +58,8 @@ pub(crate) fn execute_delete_command(
         // remove node's previousSibling from its parent.
         if offset == 0 &&
             let Some(sibling) = node.GetPreviousSibling() &&
-            sibling.is_editable() &&
-            sibling.is_invisible(cx.no_gc())
+            sibling.is_editable(cx) &&
+            sibling.is_invisible(cx)
         {
             sibling.remove_self(cx);
             continue;
@@ -72,8 +72,8 @@ pub(crate) fn execute_delete_command(
                 .nth(offset as usize - 1)
                 .map(|node| node.as_rooted());
             if let Some(child) = child &&
-                child.is_editable() &&
-                child.is_invisible(cx.no_gc())
+                child.is_editable(cx) &&
+                child.is_invisible(cx)
             {
                 child.remove_self(cx);
                 offset -= 1;
@@ -82,7 +82,7 @@ pub(crate) fn execute_delete_command(
         }
         // Step 4.3. Otherwise, if offset is zero and node is an inline node, or if node is an invisible node,
         // set offset to the index of node, then set node to its parent.
-        if (offset == 0 && node.is_inline_node()) || node.is_invisible(cx.no_gc()) {
+        if (offset == 0 && node.is_inline_node(cx)) || node.is_invisible(cx) {
             offset = node.index();
             node = node.GetParentNode().expect("Must always have a parent");
             continue;
@@ -95,13 +95,13 @@ pub(crate) fn execute_delete_command(
             if let Some(child) = child {
                 // Step 4.4. Otherwise, if node has a child with index offset − 1 and that child is an editable a,
                 // remove that child from node, preserving its descendants. Then return true.
-                if child.is_editable() && child.is::<HTMLAnchorElement>() {
+                if child.is_editable(cx) && child.is::<HTMLAnchorElement>() {
                     child.remove_preserving_its_descendants(cx);
                     return true;
                 }
                 // Step 4.5. Otherwise, if node has a child with index offset − 1 and that child is not a block node or a br or an img,
                 // set node to that child, then set offset to the length of node.
-                if !(child.is_block_node() ||
+                if !(child.is_block_node(cx) ||
                     child.is::<HTMLBRElement>() ||
                     child.is::<HTMLImageElement>())
                 {
@@ -119,7 +119,7 @@ pub(crate) fn execute_delete_command(
     // a block node that has a child with index offset − 1 and that child is a br or hr or img:
     if (node.is::<Text>() && offset != 0) ||
         (offset > 0 &&
-            node.is_block_node() &&
+            node.is_block_node(cx) &&
             node.children_unrooted(cx.no_gc())
                 .nth(offset as usize - 1)
                 .is_some_and(|child| {
@@ -145,7 +145,7 @@ pub(crate) fn execute_delete_command(
     }
 
     // Step 6. If node is an inline node, return true.
-    if node.is_inline_node() {
+    if node.is_inline_node(cx) {
         return true;
     }
 
@@ -168,7 +168,7 @@ pub(crate) fn execute_delete_command(
             item.normalize_sublists(cx);
         }
         // Step 7.3. Record the values of the one-node list consisting of node, and let values be the result.
-        let values = record_the_values(vec![node.clone()]);
+        let values = record_the_values(cx, vec![node.clone()]);
         // Step 7.4. Split the parent of the one-node list consisting of node.
         split_the_parent(cx, &[&node]);
         // Step 7.5. Restore the values from values.
@@ -222,8 +222,8 @@ pub(crate) fn execute_delete_command(
             .nth(start_offset as usize - 1)
             .map(|node| node.as_rooted());
         if let Some(child) = child &&
-            child.is_editable() &&
-            child.is_invisible(cx.no_gc())
+            child.is_editable(cx) &&
+            child.is_invisible(cx)
         {
             child.remove_self(cx);
             start_offset -= 1;
@@ -264,35 +264,35 @@ pub(crate) fn execute_delete_command(
 
     // Step 13. If offset is zero; and either the child of start node with index start offset
     // minus one is an hr, or the child is a br whose previousSibling is either a br or not an inline node:
-    if offset == 0 &&
-        (start_offset > 0 &&
-            start_node
-                .children_unrooted(cx.no_gc())
-                .nth(start_offset as usize - 1)
-                .is_some_and(|child| {
-                    child.is::<HTMLHRElement>() ||
-                        (child.is::<HTMLBRElement>() &&
-                            child.GetPreviousSibling().is_some_and(|previous| {
-                                previous.is::<HTMLBRElement>() || !previous.is_inline_node()
-                            }))
-                }))
-    {
-        // Step 13.1. Call collapse(start node, start offset − 1) on the context object's selection.
-        let _ = selection.Collapse(cx, Some(&start_node), start_offset - 1);
-        // Step 13.2. Call extend(start node, start offset) on the context object's selection.
-        let _ = selection.Extend(cx, &start_node, start_offset);
-        // Step 13.3. Delete the selection.
-        selection.delete_the_selection(
-            cx,
-            document,
-            Default::default(),
-            Default::default(),
-            Default::default(),
-        );
-        // Step 13.4. Call collapse(node, offset) on the selection.
-        let _ = selection.Collapse(cx, Some(&node), offset);
-        // Step 13.5. Return true.
-        return true;
+    if offset == 0 && start_offset > 0 {
+        let child = start_node
+            .children_unrooted(cx.no_gc())
+            .nth(start_offset as usize - 1)
+            .map(|node| node.as_rooted());
+        if child.is_some_and(|child| {
+            child.is::<HTMLHRElement>() ||
+                (child.is::<HTMLBRElement>() &&
+                    child.GetPreviousSibling().is_some_and(|previous| {
+                        previous.is::<HTMLBRElement>() || !previous.is_inline_node(cx)
+                    }))
+        }) {
+            // Step 13.1. Call collapse(start node, start offset − 1) on the context object's selection.
+            let _ = selection.Collapse(cx, Some(&start_node), start_offset - 1);
+            // Step 13.2. Call extend(start node, start offset) on the context object's selection.
+            let _ = selection.Extend(cx, &start_node, start_offset);
+            // Step 13.3. Delete the selection.
+            selection.delete_the_selection(
+                cx,
+                document,
+                Default::default(),
+                Default::default(),
+                Default::default(),
+            );
+            // Step 13.4. Call collapse(node, offset) on the selection.
+            let _ = selection.Collapse(cx, Some(&node), offset);
+            // Step 13.5. Return true.
+            return true;
+        }
     }
 
     // Step 14. If the child of start node with index start offset is an li or dt or dd, and
@@ -317,7 +317,7 @@ pub(crate) fn execute_delete_command(
         };
         // Step 16.1. If start node's child with index start offset minus one
         // is editable and invisible, remove it from start node, then subtract one from start offset.
-        if child.is_editable() && child.is_invisible(cx.no_gc()) {
+        if child.is_editable(cx) && child.is_invisible(cx) {
             child.remove_self(cx);
             start_offset -= 1;
         } else {

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="timeout" content="long">
-<title>CSS Grid Lanes: grid-columns reading flow with reversals and auto height</title>
+<title>CSS Grid Lanes: grid-lanes-track reading flow with reversals and auto height</title>
 <link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
 <link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-layout">
 <script src="/resources/testharness.js"></script>
@@ -17,7 +17,7 @@
   display: grid-lanes;
   grid-template-columns: repeat(3, 90px);
   flow-tolerance: 0;
-  reading-flow: grid-columns;
+  reading-flow: grid-lanes-track;
   width: 270px;
 }
 .lanes > button {
@@ -27,7 +27,7 @@
 </style>
 
 <div class="test-case" data-expect="k,o,n,l,m"
-     data-description="Grid-columns reads fill-reverse columns from top-to-bottom">
+     data-description="Grid-lanes-track reads fill-reverse columns from top-to-bottom">
   <div class="lanes"
        style="grid-lanes-direction: column fill-reverse; height: auto">
     <button id="k" style="height: 210px">K</button>

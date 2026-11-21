@@ -9,18 +9,16 @@ use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::DOMStringMapBinding::DOMStringMapMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::xmlname::matches_name_production;
 use crate::dom::element::Element;
-use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::NodeTraits;
 
 #[dom_struct]
 pub(crate) struct DOMStringMap {
     reflector_: Reflector,
-    element: Dom<HTMLElement>,
+    element: Dom<Element>,
 }
 
 static DATA_PREFIX: &str = "data-";
@@ -115,14 +113,14 @@ fn to_snake_case(name: &DOMString, should_throw: bool) -> Option<String> {
 }
 
 impl DOMStringMap {
-    fn new_inherited(element: &HTMLElement) -> DOMStringMap {
+    fn new_inherited(element: &Element) -> DOMStringMap {
         DOMStringMap {
             reflector_: Reflector::new(),
             element: Dom::from_ref(element),
         }
     }
 
-    pub(crate) fn new(cx: &mut JSContext, element: &HTMLElement) -> DomRoot<DOMStringMap> {
+    pub(crate) fn new(cx: &mut JSContext, element: &Element) -> DomRoot<DOMStringMap> {
         reflect_dom_object(
             cx,
             Box::new(DOMStringMap::new_inherited(element)),
@@ -131,7 +129,7 @@ impl DOMStringMap {
     }
 
     fn as_element(&self) -> &Element {
-        self.element.upcast::<Element>()
+        &self.element
     }
 }
 

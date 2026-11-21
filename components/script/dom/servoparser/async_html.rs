@@ -837,10 +837,9 @@ impl TreeSink for Sink {
         {
             let mut node_data = self.get_parse_node_data_mut(&node.id);
             node_data.is_integration_point = html_attrs.iter().any(|attr| {
-                let attr_value = &String::from(attr.value.clone());
                 (attr.name.local == local_name!("encoding") && attr.name.ns == ns!()) &&
-                    (attr_value.eq_ignore_ascii_case("text/html") ||
-                        attr_value.eq_ignore_ascii_case("application/xhtml+xml"))
+                    (attr.value.eq_ignore_ascii_case("text/html") ||
+                        attr.value.eq_ignore_ascii_case("application/xhtml+xml"))
             });
         }
         let attrs = html_attrs
@@ -1022,7 +1021,7 @@ impl TreeSink for Sink {
             .iter()
             .map(|attribute| Attribute {
                 name: attribute.name.clone(),
-                value: String::from(attribute.value.clone()),
+                value: String::from(&attribute.value),
             })
             .collect();
 

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<title>Column grid-lanes forced breaks are not repeated after overflow continuations</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="help" href="https://drafts.csswg.org/css-break/#forced-breaks">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .multicol {
+    columns: 2;
+    column-fill: auto;
+    column-gap: 0;
+    width: 80px;
+    height: 100px;
+  }
+  .grid-lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(2, 20px);
+    width: 40px;
+  }
+  .overflow {
+    grid-column: 1;
+    height: 20px;
+  }
+  .overflow > div {
+    height: 250px;
+    width: 5px;
+  }
+  .following, .last {
+    grid-column: 1;
+    height: 20px;
+  }
+</style>
+<div id="log"></div>
+<script>
+for (const span of [1, 2]) {
+  for (const forced of ["before", "after"]) {
+    test(t => {
+      const multicol = document.createElement("div");
+      multicol.className = "multicol";
+      multicol.innerHTML = `
+        <div class="grid-lanes">
+          <div class="overflow" style="grid-column:1 / span ${span};
+              ${forced === "after" ? "break-after:column" : ""}"><div></div></div>
+          <div class="following" style="${forced === "before" ? "break-before:column" : ""}"></div>
+          <div class="last"></div>
+        </div>`;
+      document.body.appendChild(multicol);
+      t.add_cleanup(() => multicol.remove());
+      const origin = multicol.getBoundingClientRect();
+      const following = multicol.querySelector(".following").getClientRects();
+      const last = multicol.querySelector(".last").getClientRects();
+      assert_equals(following.length, 1, "The following item is not repeated");
+      assert_equals(following[0].left - origin.left, 40, "The following item starts in column 2");
+      assert_equals(following[0].top - origin.top, 0, "The following item starts at the column top");
+      assert_equals(last.length, 1, "The last item is not repeated");
+      assert_equals(last[0].left - origin.left, 40, "The last item remains in column 2");
+      assert_equals(last[0].top - origin.top, 20, "The last item follows without extra breaks");
+    }, `break-${forced}: column after a ${span}-lane overflow continuation`);
+  }
+}
+</script>

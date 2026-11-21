@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View transitions: a transformed iframe holds its old paint in place while its rendering is suppressed</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="match" href="paint-holding-in-iframe-transformed-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+  iframe {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    border: none;
+  }
+  #identity {
+    top: 30px;
+    left: 40px;
+    transform: translate(0);
+  }
+  #translated {
+    top: 30px;
+    left: 200px;
+    transform: translate(30px, 50px);
+  }
+</style>
+
+<iframe id="identity"></iframe>
+<iframe id="translated"></iframe>
+<script>
+const kOldContent = `
+  <style>
+    body {
+      margin: 0;
+      background: blue;
+    }
+    div {
+      position: absolute;
+      top: 20px;
+      left: 10px;
+      width: 30px;
+      height: 40px;
+      background: yellow;
+    }
+  </style>
+  <div></div>
+`;
+
+function startTransition(iframe) {
+  let doc = iframe.contentDocument;
+  return new Promise((resolve) => {
+    doc.startViewTransition(async () => {
+      doc.body.style.background = "green";
+      doc.querySelector("div").remove();
+      resolve();
+      return new Promise(() => {});
+    });
+  });
+}
+
+async function runTest() {
+  for (const iframe of [identity, translated]) {
+    iframe.contentDocument.open();
+    iframe.contentDocument.write(kOldContent);
+    iframe.contentDocument.close();
+  }
+  await waitForAtLeastOneFrame();
+  await Promise.all([startTransition(identity), startTransition(translated)]);
+  takeScreenshot();
+}
+onload = runTest;
+</script>
+</html>

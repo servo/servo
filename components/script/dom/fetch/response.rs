@@ -37,7 +37,6 @@ use crate::fetch::body::{
     BodyMixin, BodyType, Extractable, ExtractedBody, body_text_stream,
     clone_body_stream_for_dom_body, consume_body,
 };
-use crate::runtime::script_runtime::StreamConsumer;
 
 #[dom_struct]
 pub(crate) struct Response {
@@ -58,8 +57,6 @@ pub(crate) struct Response {
     /// The stream that receives network delivered bytes for Fetch responses.
     /// This must remain stable even if `body_stream` is replaced by `tee()` branches during `clone()`.
     fetch_body_stream: MutNullableDom<ReadableStream>,
-    #[ignore_malloc_size_of = "StreamConsumer"]
-    stream_consumer: DomRefCell<Option<StreamConsumer>>,
     /// FIXME: This should be removed.
     redirected: Cell<bool>,
 }
@@ -75,7 +72,6 @@ impl Response {
             url_list: DomRefCell::new(vec![]),
             body_stream: MutNullableDom::new(body_stream),
             fetch_body_stream: MutNullableDom::new(body_stream),
-            stream_consumer: DomRefCell::new(None),
             redirected: Cell::new(false),
         }
     }
@@ -99,7 +95,10 @@ impl Response {
         cx: &mut js::context::JSContext,
         global: &GlobalScope,
     ) -> DomRoot<Response> {
-        let stream = ReadableStream::new_with_external_underlying_source(
+        // Step 14. of https://fetch.spec.whatwg.org/#concept-http-network-fetch
+        // Set up stream with byte reading support with pullAlgorithm set to
+        // pullAlgorithm, cancelAlgorithm set to cancelAlgorithm.
+        let stream = ReadableStream::new_with_external_underlying_byte_source(
             cx,
             global,
             UnderlyingSourceType::FetchResponse,
@@ -545,15 +544,8 @@ impl Response {
         }
     }
 
-    pub(crate) fn set_stream_consumer(&self, sc: Option<StreamConsumer>) {
-        *self.stream_consumer.borrow_mut() = sc;
-    }
-
     pub(crate) fn stream_chunk(&self, cx: &mut js::context::JSContext, chunk: Bytes) {
-        // Note, are these two actually mutually exclusive?
-        if let Some(stream_consumer) = self.stream_consumer.borrow().as_ref() {
-            stream_consumer.consume_chunk(&chunk);
-        } else if let Some(body) = self.fetch_body_stream.get() {
+        if let Some(body) = self.fetch_body_stream.get() {
             body.enqueue_native(cx, chunk.to_vec());
         }
     }
@@ -561,10 +553,6 @@ impl Response {
     pub(crate) fn finish(&self, cx: &mut js::context::JSContext) {
         if let Some(body) = self.fetch_body_stream.get() {
             body.controller_close_native(cx);
-        }
-        let stream_consumer = self.stream_consumer.borrow_mut().take();
-        if let Some(stream_consumer) = stream_consumer {
-            stream_consumer.stream_end();
         }
     }
 }

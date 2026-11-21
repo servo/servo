@@ -15,7 +15,6 @@ use js::rust::wrappers2::{
 };
 use js::rust::{Handle, get_context_realm, get_object_class, get_object_realm};
 
-use crate::codegen::PrototypeList;
 use crate::conversions::DOM_OBJECT_SLOT;
 use crate::import::module::JS_GetReservedSlot;
 use crate::js::JS_NewObjectWithGivenProto;
@@ -31,7 +30,6 @@ pub(crate) struct WrapConfig {
     pub(crate) is_maybe_cross_origin_object: bool,
     pub(crate) is_proxy: bool,
     pub(crate) proxy_handler: Option<*const c_void>,
-    pub(crate) prototype_id: PrototypeList::ID,
     pub(crate) class: Option<&'static JSClass>,
     // this function has to be more general because we do not have the correct type for globalscope.
     pub(crate) proto_object_fn: ProtoObjectFn,
@@ -56,9 +54,7 @@ pub(crate) unsafe fn wrap<T: MutDomObject, D: DomTypes>(
             &config,
             obj.handle_mut(),
         );
-        let root = raw.reflect_with(obj.get());
-        root.reflector().set_proto_id(config.prototype_id as u16);
-        root
+        raw.reflect_with(obj.get())
     }
 }
 

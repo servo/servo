@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+  body {
+    margin: 0;
+  }
+
+  .root {
+    background: lightgrey;
+    border: 2px solid black;
+    display: grid-lanes;
+    grid-template-columns: 100px 200px 300px;
+    width: 600px;
+  }
+
+  .subgrid {
+    display: grid;
+    grid-template-columns: subgrid;
+  }
+
+  .outer {
+    align-items: start;
+    border: 2px solid purple;
+    grid-column: 1 / -1;
+  }
+
+  .blocker {
+    background: dimgray;
+    grid-column: 1;
+    height: 20px;
+    width: 8px;
+  }
+
+  .leaf {
+    aspect-ratio: 1;
+    background: green;
+    grid-column: 1;
+    min-height: 0;
+    min-width: 0;
+  }
+
+  .moving {
+    grid-column: 2;
+  }
+
+  .stable {
+    grid-column: 3;
+  }
+
+  .deep {
+    border: 2px solid cyan;
+    grid-column: 1 / -1;
+  }
+
+  .moving, .stable {
+    border: 2px solid orange;
+  }
+</style>
+<div class="root">
+  <div class="subgrid outer">
+    <div class="blocker"></div>
+    <div class="subgrid moving">
+      <div class="subgrid deep"><div class="leaf"></div></div>
+    </div>
+    <div class="subgrid stable">
+      <div class="subgrid deep"><div class="leaf"></div></div>
+    </div>
+  </div>
+</div>

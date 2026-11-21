@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en-US">
+<meta charset=utf-8>
+<title>quotes: match-parent</title>
+
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-content-3/#quotes-property">
+<link rel=match href="reference/quotes-match-parent-001-ref.html">
+<meta name="assert" content="quotes:match-parent generates the expected quote characters">
+
+<style>
+/* Explicitly set for testing, although the UA stylesheet should provide this. */
+q::before { content: open-quote; }
+q::after { content: close-quote; }
+q { quotes: auto; }
+q q { quotes: match-parent; }
+
+/* Color the different levels of quoting just for clarity; what is actually being tested
+   is whether the correct open-/close-quote characters are generated. */
+q { color: green; }
+q q { color: blue; }
+q q q { color: magenta; }
+q q q q { color: cyan; }
+</style>
+
+<p>All levels below should use «French»-style quote marks:</p>
+
+<div lang="fr">
+foo
+  <q lang="de">first,
+    <q lang="sv">second,
+      <q lang="nl">third,
+        <q lang="en">and fourth</q>
+      level</q>
+    of</q>
+  quotes</q>
+bar
+</div>

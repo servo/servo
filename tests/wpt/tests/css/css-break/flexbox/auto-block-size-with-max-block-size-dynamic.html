@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Incremental reflow of fragmented flex containers with auto block-size and max-block-size</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.multicol {
+  column-count: 1;
+  column-fill: auto;
+  column-gap: 0;
+  width: 180px;
+  height: 100px;
+}
+.fixed-block {
+  box-sizing: border-box;
+  height: 65px;
+  padding-top: 1px;
+}
+.flex {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  margin-top: -1001px;
+}
+.first {
+  flex: none;
+  width: 160px;
+  height: 20px;
+  break-after: always;
+  break-after: column;
+}
+.tall {
+  flex: none;
+  width: 160px;
+  height: 755px;
+}
+.spacer { height: 174px; }
+.overflow { height: 60px; }
+.block { height: 20px; break-inside: avoid; }
+.inner-flex { display: flex; height: 155px; }
+.short { flex: none; width: 15px; height: 121px; }
+.long { flex: none; width: 40px; height: 470px; }
+.row { height: 22px; break-inside: avoid; }
+</style>
+<body>
+<template id="template">
+  <div class="multicol">
+    <div class="fixed-block">
+      <div class="flex">
+        <div class="first"></div>
+        <div class="tall">
+          <div class="spacer"></div>
+          <div class="overflow">
+            <div class="inner-flex">
+              <div class="short"></div>
+              <div class="long"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+<script>
+function createMulticol(t, maxBlockSize) {
+  const template = document.getElementById("template");
+  const multicol = template.content.firstElementChild.cloneNode(true);
+  t.add_cleanup(() => multicol.remove());
+  multicol.querySelector(".flex").style.maxBlockSize = maxBlockSize;
+  const innerFlex = multicol.querySelector(".inner-flex");
+  for (let i = 0; i < 6; ++i) {
+    const block = document.createElement("div");
+    block.className = "block";
+    innerFlex.before(block);
+  }
+  const long = multicol.querySelector(".long");
+  for (let i = 0; i < 17; ++i) {
+    const row = document.createElement("div");
+    row.className = "row";
+    long.append(row);
+  }
+  document.body.append(multicol);
+  multicol.offsetHeight;
+  return multicol;
+}
+
+for (const maxBlockSize of ["none", "1100px", "2700px"]) {
+  test(t => {
+    const multicol = createMulticol(t, maxBlockSize);
+    const blocks = multicol.querySelectorAll(".block");
+    blocks[2].style.height = "42px";
+    assert_greater_than(blocks[4].getBoundingClientRect().left,
+                        blocks[3].getBoundingClientRect().left,
+                        "The following block must move to the next column");
+  }, `max-block-size: ${maxBlockSize}: resizing a descendant reflows later columns`);
+
+  test(t => {
+    const multicol = createMulticol(t, maxBlockSize);
+    multicol.querySelectorAll(".block")[2].style.height = "42px";
+    multicol.offsetHeight;
+
+    // Insert into a later fragment after the preceding incremental reflow.
+    multicol.querySelector(".long").before(document.createElement("i"));
+    for (const [i, row] of multicol.querySelectorAll(".row").entries()) {
+      assert_equals(row.getClientRects().length, 1, `Row ${i} must retain its box`);
+      assert_equals(row.getBoundingClientRect().height, 22, `Row ${i} block-size`);
+    }
+  }, `max-block-size: ${maxBlockSize}: insertion preserves later descendants`);
+}
+</script>

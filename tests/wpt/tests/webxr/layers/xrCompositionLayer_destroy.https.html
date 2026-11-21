@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+
+<script>
+
+  const SESSION_INIT = { requiredFeatures: ['layers', 'local'] };
+
+  function nextFrame(session) {
+    return new Promise((resolve) => session.requestAnimationFrame((time, frame) => resolve(frame)));
+  }
+
+  async function setUpLayers(session, gl, layerCount = 1) {
+    const refSpace = await session.requestReferenceSpace('local');
+    const binding = new XRWebGLBinding(session, gl);
+    const projectionLayer = binding.createProjectionLayer({ depthFormat: 0 });
+    const compositionLayers = [];
+    for (let i = 0; i < layerCount; i++)
+      compositionLayers.push(binding.createQuadLayer({ space: refSpace, viewPixelWidth: 32, viewPixelHeight: 32, isStatic: true }));
+    session.updateRenderState({ layers: [projectionLayer, ...compositionLayers] });
+    return { binding, projectionLayer, compositionLayers };
+  }
+
+  xr_session_promise_test("XRCompositionLayer.destroy() does not generate a WebGL error and can be called more than once",
+    async (session, controller, t, { gl }) => {
+      const { compositionLayers: [layer] } = await setUpLayers(session, gl);
+      await nextFrame(session);
+
+      assert_equals(layer.destroy(), undefined, "destroy() must return undefined.");
+      assert_equals(gl.getError(), gl.NO_ERROR, "destroy() must not generate a WebGL error.");
+      layer.destroy();
+      assert_equals(gl.getError(), gl.NO_ERROR, "A second destroy() call must not generate a WebGL error.");
+    }, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', SESSION_INIT);
+
+  xr_session_promise_test("XRCompositionLayer.destroy() can be called on a layer that was never rendered to",
+    async (session, controller, t, { gl }) => {
+      const { compositionLayers: [layer] } = await setUpLayers(session, gl);
+      layer.destroy();
+      layer.destroy();
+    }, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', SESSION_INIT);
+
+  xr_session_promise_test("XRWebGLBinding.getSubImage() throws InvalidStateError for a destroyed layer",
+    async (session, controller, t, { gl }) => {
+      const { binding, compositionLayers: [layer] } = await setUpLayers(session, gl);
+      const frame = await nextFrame(session);
+
+      layer.destroy();
+      assert_throws_dom('InvalidStateError', () => binding.getSubImage(layer, frame), "getSubImage() must reject a destroyed layer.");
+
+      const nextFrameObject = await nextFrame(session);
+      assert_throws_dom('InvalidStateError', () => binding.getSubImage(layer, nextFrameObject), "getSubImage() must keep rejecting a destroyed layer in later frames.");
+    }, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', SESSION_INIT);
+
+  xr_session_promise_test("XRSession.updateRenderState() throws InvalidStateError when given a destroyed layer",
+    async (session, controller, t, { gl }) => {
+      const { projectionLayer, compositionLayers: [layer] } = await setUpLayers(session, gl);
+      await nextFrame(session);
+
+      layer.destroy();
+      assert_throws_dom('InvalidStateError', () => session.updateRenderState({ layers: [projectionLayer, layer] }),
+        "updateRenderState() must reject a destroyed layer.");
+      assert_throws_dom('InvalidStateError', () => session.updateRenderState({ layers: [layer] }),
+        "updateRenderState() must reject a destroyed layer, even when it is the only one.");
+    }, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', SESSION_INIT);
+
+  xr_session_promise_test("A destroyed layer is removed from renderState.layers on the next frame",
+    async (session, controller, t, { gl }) => {
+      const { projectionLayer, compositionLayers: [layer] } = await setUpLayers(session, gl);
+      await nextFrame(session);
+      assert_array_equals(session.renderState.layers, [projectionLayer, layer], "Both layers must be active before destroy().");
+
+      layer.destroy();
+      await nextFrame(session);
+      assert_array_equals(session.renderState.layers, [projectionLayer], "Only the projection layer must remain after destroy().");
+    }, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', SESSION_INIT);
+
+  xr_session_promise_test("Destroying a layer does not affect the other layers of the session",
+    async (session, controller, t, { gl }) => {
+      const { projectionLayer, compositionLayers: [destroyedLayer, survivingLayer] } = await setUpLayers(session, gl, 2);
+      await nextFrame(session);
+
+      destroyedLayer.destroy();
+      await nextFrame(session);
+
+      assert_array_equals(session.renderState.layers, [projectionLayer, survivingLayer], "The other layers must stay in renderState.layers.");
+      session.updateRenderState({ layers: [projectionLayer, survivingLayer] });
+    }, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', SESSION_INIT);
+
+  xr_session_promise_test("A destroyed layer is removed from a pending render state that has not been applied yet",
+    async (session, controller, t, { gl }) => {
+      const { projectionLayer, compositionLayers: [layer] } = await setUpLayers(session, gl);
+
+      layer.destroy();
+      await nextFrame(session);
+      assert_array_equals(session.renderState.layers, [projectionLayer], "A layer destroyed before the first frame must never become active.");
+    }, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', SESSION_INIT);
+
+  xr_session_promise_test("A layer destroyed synchronously inside the animation frame callback is removed from renderState.layers",
+    async (session, controller, t, { gl }) => {
+      const { projectionLayer, compositionLayers: [layer] } = await setUpLayers(session, gl);
+      await nextFrame(session);
+
+      await new Promise((resolve) => session.requestAnimationFrame(() => {
+        t.step(() => {
+          layer.destroy();
+          assert_array_equals(session.renderState.layers, [projectionLayer, layer], "The active render state must keep the layer until the next frame.");
+        });
+        resolve();
+      }));
+      await nextFrame(session);
+      assert_array_equals(session.renderState.layers, [projectionLayer], "Only the projection layer must remain after the frame in which destroy() was called.");
+    }, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', SESSION_INIT);
+
+</script>

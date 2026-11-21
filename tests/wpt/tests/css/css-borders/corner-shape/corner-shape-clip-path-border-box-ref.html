@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4: clip-path with a &lt;shape-box&gt; follows corner-shape &mdash; reference</title>
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+    }
+
+    .box {
+        width: 100px;
+        height: 100px;
+        margin: 10px;
+        float: left;
+        background-color: green;
+        border-radius: 40px;
+    }
+
+    .round { corner-shape: round; }
+    .square { corner-shape: square; }
+    .scoop { corner-shape: scoop; }
+    .bevel { corner-shape: bevel; }
+    .notch { corner-shape: notch; }
+    .squircle { corner-shape: superellipse(2); }
+</style>
+</head>
+<body>
+    <div class="box round"></div>
+    <div class="box square"></div>
+    <div class="box scoop"></div>
+    <div class="box bevel"></div>
+    <div class="box notch"></div>
+    <div class="box squircle"></div>
+</body>
+</html>

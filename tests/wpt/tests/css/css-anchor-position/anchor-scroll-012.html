@@ -5,6 +5,7 @@
 <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
 <link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#scroll">
 <link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-recalculation-point">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14112">
 <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2072683">
 <meta name="assert" content="Changing position fallbacks is an anchor recalculation point, so the scroll container's scrollHeight should reflect the positioned element's position right after the switch, without waiting for another reflow.">
 <script src="/resources/testharness.js"></script>
@@ -72,14 +73,14 @@ promise_test(async () => {
   await waitForAtLeastOneFrame();
   const initialScrollHeight = scroller1.scrollHeight;
 
-  // The base position still fits.
+  // The base position still fits, and relayouts once scrolling stops.
   scroller2.scrollTop = 150;
   await waitForAtLeastOneFrame();
   assert_equals(positioned.getBoundingClientRect().bottom,
                 anchor.getBoundingClientRect().top,
                 "#positioned should use the base position");
-  assert_equals(scroller1.scrollHeight, initialScrollHeight,
-                "scroller1.scrollHeight shouldn't change before the switch");
+  assert_equals(scroller1.scrollHeight, initialScrollHeight - 150,
+                "scroller1.scrollHeight updates on scroll end before the switch");
 
   // The base position no longer fits, so switch to the --below fallback.
   scroller2.scrollTop = 200;

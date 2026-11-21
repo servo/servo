@@ -1,0 +1,144 @@
+<!doctype html>
+<html>
+  <head>
+    <link rel="help" href="https://html.spec.whatwg.org/#html-streaming-methods" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/trusted-types/support/helper.sub.js"></script>
+
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="require-trusted-types-for 'script';"
+    />
+  </head>
+  <body>
+    <div id="container"></div>
+    <script>
+      var container = document.querySelector("#container");
+      let createParserOptions = (options) => options;
+      const cleanupPolicy = trustedTypes.createPolicy("cleanup", {
+        createHTML: (_) => "",
+      });
+      trustedTypes.createPolicy("default", {
+        createHTML: (_) => "",
+        createScript: (s) => s,
+        createParserOptions: (o) => createParserOptions(o),
+      });
+      const withScripts = trustedTypes.createPolicy("withScripts", {
+        createHTML: (_) => "",
+        createScript: (s) => s,
+        createParserOptions: (o) => o,
+      });
+      function cleanup() {
+        container.innerHTML = cleanupPolicy.createHTML("");
+      }
+
+      const methods = [
+        "streamHTMLUnsafe",
+        "streamAppendHTMLUnsafe",
+        "streamPrependHTMLUnsafe",
+        "streamBeforeHTMLUnsafe",
+        "streamAfterHTMLUnsafe",
+        "streamReplaceWithHTMLUnsafe",
+      ];
+
+      for (const method of methods) {
+        promise_test(
+          async (t) => {
+            t.add_cleanup(cleanup);
+            let d = document.createElement("div");
+            const container = document.querySelector("#container");
+            container.appendChild(d);
+            t.add_cleanup(() => d.remove());
+            createParserOptions = (options) => ({
+              ...options,
+              runScripts: false,
+            });
+            const trusted_options = withScripts.createParserOptions({
+              runScripts: true,
+            });
+            assert_true(trusted_options instanceof TrustedHTMLParserOptions);
+            const writer = d[method](trusted_options).getWriter();
+            window.did_run = false;
+            await writer.write("<script>window.did_run = true;<" + "/script>");
+            await writer.close();
+            assert_equals(container.querySelectorAll("script").length, 1);
+            assert_equals(window.did_run, true);
+          },
+          `A given TrustedHTMLParserOptions can override default policy's runScript/safety for ${method}`,
+        );
+      }
+
+      for (const method of methods) {
+        promise_test(async (t) => {
+          t.add_cleanup(cleanup);
+          let d = document.createElement("div");
+          document.querySelector("#container").appendChild(d);
+          t.add_cleanup(() => d.remove());
+          createParserOptions = (options) => ({
+            ...options,
+            sanitizer: { removeElements: ["div"] },
+          });
+          const trusted_options = withScripts.createParserOptions({
+            sanitizer: { removeElements: ["span"] },
+          });
+          assert_true(trusted_options instanceof TrustedHTMLParserOptions);
+          const writer = d[method](trusted_options).getWriter();
+          window.did_run = false;
+          await writer.write(
+            "<div id=allowed><span id=forbidden></span></div>",
+          );
+          await writer.close();
+          assert_equals(
+            container.querySelector("#forbidden"),
+            null,
+            "span should be removed",
+          );
+          assert_not_equals(
+            container.querySelector("#allowed"),
+            null,
+            "div should be present",
+          );
+        }, `A given TrustedHTMLParserOptions can override default policy's sanitizer for ${method}`);
+      }
+
+      for (const method of ["streamHTMLUnsafe", "streamAppendHTMLUnsafe", "streamPrependHTMLUnsafe"]) {
+        promise_test(async (t) => {
+          t.add_cleanup(cleanup);
+          t.add_cleanup(() => { delete window.did_run; });
+          const host = document.createElement("div");
+          const sr = host.attachShadow({ mode: "open" });
+          container.appendChild(host);
+          t.add_cleanup(() => host.remove());
+          createParserOptions = (options) => ({ ...options, runScripts: false });
+          const trusted_options = withScripts.createParserOptions({ runScripts: true });
+          const writer = sr[method](trusted_options).getWriter();
+          window.did_run = false;
+          await writer.write("<script>window.did_run = true;<" + "/script>");
+          await writer.close();
+          assert_equals(sr.querySelectorAll("script").length, 1);
+          assert_equals(window.did_run, true);
+        }, `A given TrustedHTMLParserOptions can override default policy's runScripts for ShadowRoot.${method}`);
+      }
+
+      for (const method of ["streamBeforeHTMLUnsafe", "streamAfterHTMLUnsafe", "streamReplaceWithHTMLUnsafe"]) {
+        promise_test(async (t) => {
+          t.add_cleanup(cleanup);
+          t.add_cleanup(() => { delete window.did_run; });
+          const parent = document.createElement("div");
+          const text = parent.appendChild(document.createTextNode("anchor"));
+          container.appendChild(parent);
+          t.add_cleanup(() => parent.remove());
+          createParserOptions = (options) => ({ ...options, runScripts: false });
+          const trusted_options = withScripts.createParserOptions({ runScripts: true });
+          const writer = text[method](trusted_options).getWriter();
+          window.did_run = false;
+          await writer.write("<script>window.did_run = true;<" + "/script>");
+          await writer.close();
+          assert_equals(parent.querySelectorAll("script").length, 1);
+          assert_equals(window.did_run, true);
+        }, `A given TrustedHTMLParserOptions can override default policy's runScripts for CharacterData.${method}`);
+      }
+    </script>
+  </body>
+</html>

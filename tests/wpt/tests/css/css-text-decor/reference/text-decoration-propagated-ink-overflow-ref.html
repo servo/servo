@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration: a decoration propagated to a descendant inline box is measured with the originating box's style (reference)</title>
+<style>
+body { margin: 30px; }
+div { font: 24px/2 monospace; width: max-content; will-change: transform; }
+.thick { text-decoration: underline; text-decoration-thickness: 24px; }
+.wavy { text-decoration: underline wavy; text-decoration-thickness: 8px; }
+.inset { text-decoration: underline 3px blue; text-underline-offset: 6px; text-decoration-inset: -40px; }
+</style>
+
+<!-- Bare text, so the text box's parent is the box that originates the decoration. -->
+
+<div class="thick">thickness</div>
+<div class="wavy">wavyline</div>
+<div class="inset">negative inset</div>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: the margin after a block level box on a line survives a relayout</title>
+<link rel="help" href="https://www.w3.org/TR/CSS22/box.html#collapsing-margins">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#inline-formatting">
+<meta name="assert" content="A block level box in inline content contributes its margin-after to the position of the content following it. That holds however layout was reached, so a layout performed while the containing block is still being parsed must not lose it.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+body { margin: 0; font: 20px/20px Ahem; }
+#block { margin: 0 0 20px 0; }
+#probe { display: inline-block; width: 50px; height: 30px; }
+</style>
+<span><p id="block">block</p></span><span id="probe"></span>
+<script>
+// Force a layout mid-parse.
+document.body.offsetHeight;
+</script>
+<script>
+test(() => {
+    const block = document.getElementById("block").getBoundingClientRect();
+    const probe = document.getElementById("probe").getBoundingClientRect();
+    assert_equals(probe.top - block.bottom, 20,
+        "the probe is separated from the block by the block's margin-after");
+}, "The margin after a block level box nested in an inline box survives an incremental layout");
+</script>

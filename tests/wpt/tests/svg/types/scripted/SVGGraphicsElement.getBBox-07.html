@@ -254,9 +254,17 @@ test_bbox("use_zero_ref", 0, 0, 0, 0,
   "use element referencing zero-dimension rect returns zero bbox");
 
 // ========================================================================
-// F. Non-rendered elements — getBBox must NOT throw (issue #1018)
-// Per resolution: remove throwing for invalid getBBox(), return 0 values
-// for x, y, width, height instead of throwing InvalidStateError.
+// F. Non-rendered ANCESTRY: getBBox must not throw, and returns the
+// rectangle the element would have if it were rendered.
+//
+// coords.html #BoundingBoxes: "Even if an element is not in the rendering
+// tree [...] it still has a bounding box. A call to getBBox on the element
+// will return the same rectangle as if the element were rendered."
+//
+// svgwg issue #1018 is a different rule and does not reach these cases. It
+// covers an element whose OWN geometric attributes are missing or invalid;
+// see none_neg_w further down for that case. Every element below has valid
+// geometry and is non-rendered only because of where it sits.
 // ========================================================================
 
 test(function() {
@@ -265,47 +273,47 @@ test(function() {
   // Must not throw an InvalidStateError.
   assert_not_equals(el, null, "element exists");
   bbox = el.getBBox();
-  assert_equals(bbox.x, 0, "x");
-  assert_equals(bbox.y, 0, "y");
-  assert_equals(bbox.width, 0, "width");
-  assert_equals(bbox.height, 0, "height");
-}, "getBBox on rect inside defs does not throw and returns zero bbox");
+  assert_equals(bbox.x, 10, "x");
+  assert_equals(bbox.y, 20, "y");
+  assert_equals(bbox.width, 100, "width");
+  assert_equals(bbox.height, 50, "height");
+}, "getBBox on rect inside defs returns the rect it would have if rendered");
 
 test(function() {
   var el = document.getElementById("defs_circle");
   var bbox = el.getBBox();
-  assert_equals(bbox.x, 0, "x");
-  assert_equals(bbox.y, 0, "y");
-  assert_equals(bbox.width, 0, "width");
-  assert_equals(bbox.height, 0, "height");
-}, "getBBox on circle inside defs does not throw and returns zero bbox");
+  assert_equals(bbox.x, 25, "x");
+  assert_equals(bbox.y, 25, "y");
+  assert_equals(bbox.width, 50, "width");
+  assert_equals(bbox.height, 50, "height");
+}, "getBBox on circle inside defs returns the circle it would have if rendered");
 
 test(function() {
   var el = document.getElementById("defs_g_rect");
   var bbox = el.getBBox();
   assert_equals(bbox.x, 0, "x");
   assert_equals(bbox.y, 0, "y");
-  assert_equals(bbox.width, 0, "width");
-  assert_equals(bbox.height, 0, "height");
-}, "getBBox on rect inside group inside defs does not throw and returns zero bbox");
+  assert_equals(bbox.width, 30, "width");
+  assert_equals(bbox.height, 30, "height");
+}, "getBBox on rect inside group inside defs returns the rect it would have if rendered");
 
 test(function() {
   var el = document.getElementById("clip_rect");
   var bbox = el.getBBox();
   assert_equals(bbox.x, 0, "x");
   assert_equals(bbox.y, 0, "y");
-  assert_equals(bbox.width, 0, "width");
-  assert_equals(bbox.height, 0, "height");
-}, "getBBox on rect inside clipPath does not throw and returns zero bbox");
+  assert_equals(bbox.width, 80, "width");
+  assert_equals(bbox.height, 80, "height");
+}, "getBBox on rect inside clipPath returns the rect it would have if rendered");
 
 test(function() {
   var el = document.getElementById("mask_rect");
   var bbox = el.getBBox();
   assert_equals(bbox.x, 0, "x");
   assert_equals(bbox.y, 0, "y");
-  assert_equals(bbox.width, 0, "width");
-  assert_equals(bbox.height, 0, "height");
-}, "getBBox on rect inside mask does not throw and returns zero bbox");
+  assert_equals(bbox.width, 60, "width");
+  assert_equals(bbox.height, 60, "height");
+}, "getBBox on rect inside mask returns the rect it would have if rendered");
 
 // Non-rendered element with invalid dimensions: should not throw,
 // should return zero bbox per resolution.

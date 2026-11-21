@@ -773,7 +773,8 @@ impl HTMLScriptElement {
         // Step 26. Let referrer policy be the current state of el's referrerpolicy content attribute.
         let referrer_policy = referrer_policy_for_element(element);
 
-        // TODO: Step 27. Fetch priority.
+        // Step 27. Let fetch priority be the current state of el's fetchpriority content attribute.
+        let fetch_priority = self.FetchPriority().into();
 
         // Step 28. Let parser metadata be "parser-inserted" if el is parser-inserted,
         // and "not-parser-inserted" otherwise.
@@ -783,12 +784,19 @@ impl HTMLScriptElement {
             ParserMetadata::NotParserInserted
         };
 
-        // Step 29. Fetch options.
+        // Step 29. Let options be a script fetch options whose
+        // cryptographic nonce is cryptographic nonce,
+        // integrity metadata is integrity metadata,
+        // parser metadata is parser metadata,
+        // credentials mode is module script credentials mode,
+        // referrer policy is referrer policy,
+        // and fetch priority is fetch priority.
         let mut script_fetch_options = ScriptFetchOptions {
             cryptographic_nonce,
             integrity_metadata,
             parser_metadata,
             referrer_policy,
+            fetch_priority,
             credentials_mode: module_credentials_mode,
             render_blocking: false,
         };
@@ -1340,6 +1348,17 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     make_getter!(HtmlFor, "for");
     // https://html.spec.whatwg.org/multipage/#dom-script-htmlfor
     make_setter!(SetHtmlFor, "for");
+
+    // <https://html.spec.whatwg.org/multipage/#attr-script-fetchpriority>
+    make_enumerated_getter!(
+        FetchPriority,
+        "fetchpriority",
+        "high" | "low" | "auto",
+        missing => "auto",
+        invalid => "auto"
+    );
+    // https://html.spec.whatwg.org/multipage/#attr-script-fetchpriority
+    make_setter!(SetFetchPriority, "fetchpriority");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-script-crossorigin>
     fn GetCrossOrigin(&self) -> Option<DOMString> {

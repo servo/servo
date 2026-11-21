@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: the min-content and max-content inline sizes of a container whose inline content has floats</title>
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#floats">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<meta name="assert" content="Under a min-content constraint a float that does not fit next to the content goes below it, so the container is as wide as its widest float or word. Under a max-content constraint the floats on a line sit next to its content, until one clears the floats before it: from that float on, the floats go below those.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.content {
+    font: 10px/1 Ahem;
+}
+.left {
+    float: left;
+}
+.right {
+    float: right;
+}
+.clearLeft {
+    clear: left;
+}
+.empty {
+    height: 20px;
+}
+.orthogonal {
+    writing-mode: vertical-lr;
+    width: 40px;
+    margin: 1px 2px 3px 4px;
+}
+</style>
+
+<!-- Every x is 10px wide. -->
+<div class="content" id="emptyFloatAndText"
+    data-min-content="70" data-max-content="160"
+    data-description="An empty float next to text"><div class="left empty" style="width: 50px"></div>xxx xxxxxxx</div>
+
+<div class="content" id="floatWithText"
+    data-min-content="80" data-max-content="140"
+    data-description="A float takes its own min-content width under a min-content constraint and its own max-content width under a max-content one"><div class="left">xx xxxxxxxx</div>xxx</div>
+
+<div class="content" id="leftAndRightFloats"
+    data-min-content="50" data-max-content="120"
+    data-description="A left and a right float on the same line as text"><div class="left empty" style="width: 50px"></div><div class="right empty" style="width: 30px"></div>xxxx</div>
+
+<div class="content" id="floatsOnly"
+    data-min-content="50" data-max-content="80"
+    data-description="A container with nothing but floats"><div class="left empty" style="width: 50px"></div><div class="right empty" style="width: 30px"></div></div>
+
+<!-- A float sits at the start of the line, not after the text-indent. -->
+<div class="content" id="floatsOnlyWithTextIndent" style="text-indent: 20px"
+    data-min-content="50" data-max-content="80"
+    data-description="A container with text-indent and nothing but floats"><div class="left empty" style="width: 50px"></div><div class="right empty" style="width: 30px"></div></div>
+
+<div class="content" id="clearingFloatsOnly"
+    data-min-content="50" data-max-content="50"
+    data-description="A float that clears the float before it goes below it"><div class="left empty" style="width: 50px"></div><div class="left empty clearLeft" style="width: 30px"></div></div>
+
+<!-- The text sits on the first line, next to the first float. The second float clears the first one, so it goes below it. -->
+<div class="content" id="textNextToFirstFloat"
+    data-min-content="50" data-max-content="90"
+    data-description="Text sits next to the floats that come before the clearing float"><div class="left empty" style="width: 50px"></div><div class="left empty clearLeft" style="width: 30px"></div>xxxx</div>
+
+<!-- The float's top and bottom margins (1px and 3px) add up to less than its left and right ones (4px and 2px). -->
+<div class="content" id="orthogonalFloat"
+    data-min-content="46" data-max-content="46"
+    data-description="An orthogonal float contributes its block size and its left and right margins"><div class="left orthogonal">x</div></div>
+
+<script>
+for (const content of document.querySelectorAll(".content")) {
+    for (const [width, expectedWidth] of [["min-content", content.dataset.minContent], ["max-content", content.dataset.maxContent]]) {
+        test(() => {
+            const container = content.cloneNode(true);
+            container.removeAttribute("id");
+            container.style.width = width;
+            document.body.appendChild(container);
+            assert_equals(container.offsetWidth, Number(expectedWidth));
+            container.remove();
+        }, `${content.dataset.description} (${content.id}, ${width})`);
+    }
+    content.remove();
+}
+</script>

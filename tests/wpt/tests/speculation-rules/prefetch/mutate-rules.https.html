@@ -3,6 +3,8 @@
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/common/utils.js"></script>
 <script src="../resources/utils.js"></script>
@@ -18,7 +20,7 @@ promise_test(async t => {
   const nextURL = win.getExecutorURL({ executor: "counting-executor.py", page: 2 });
 
   // Prefetch the URL which will count whether or not we're prefetched.
-  await win.forceSinglePrefetch(nextURL);
+  await win.forceSinglePrefetchAndWaitForStatus(nextURL);
 
   // Check that the server was indeed hit with a prefetch request.
   const requestCount = await (await fetch(nextURL + "&check")).json();
@@ -40,7 +42,7 @@ promise_test(async t => {
   const nextURL = win.getExecutorURL({ executor: "counting-executor.py", page: 2 });
 
   // Prefetch the URL which will count whether or not we're prefetched.
-  await win.forceSinglePrefetch(nextURL);
+  await win.forceSinglePrefetchAndWaitForStatus(nextURL);
 
   // Check that the server was indeed hit with a prefetch request.
   const requestCount = await (await fetch(nextURL + "&check")).json();

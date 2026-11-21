@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration: a negative percentage inset repaints its overhang on a dynamic change (reference)</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+body { margin: 80px; }
+u {
+  font: 20px/2 Ahem;
+  text-decoration-line: underline;
+  text-decoration-color: blue;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+}
+</style>
+
+<p><u style="text-decoration-inset: -50px">abcdefghij</u></p>

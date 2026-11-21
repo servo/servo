@@ -38,7 +38,7 @@ def test_pointer_down_closes_browsing_context(
     session, configuration, new_tab_classic, inline, touch_chain
 ):
     session.url = inline(
-        """<input onpointerdown="window.close()">close</input>""")
+        """<input onpointerdown="window.close()">close""")
     origin = session.find.css("input", all=False)
 
     with pytest.raises(NoSuchWindowException):

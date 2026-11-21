@@ -22,7 +22,7 @@ const observeReports = async (frame) => {
   const reports = [];
 
   const observer = new frame.contentWindow.ReportingObserver(
-    rs => reports.push(...rs.map(r => r.toJSON()))
+    rs => reports.push(...rs)
   );
   observer.observe();
 

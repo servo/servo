@@ -65,6 +65,41 @@ class PrefetchAgent extends RemoteContext {
     return new Promise(resolve => this.t.step_timeout(resolve, 2000));
   }
 
+  // Hook-based counterpart of `forceSinglePrefetch()`. Instead of waiting a
+  // fixed 2s (which is unreliable), this awaits the prefetch for `url` reaching
+  // `targetStatus` (default 'ready') via the
+  // `speculation.prefetchStatusUpdated` WebDriver BiDi test hook. See
+  // `waitForPrefetchStatus()` for requirements.
+  async forceSinglePrefetchAndWaitForStatus(
+      url, extra = {}, targetStatus = PRELOADING_STATUS.READY) {
+    return this.forceSpeculationRulesAndWaitForStatus(
+        {prefetch: [{source: 'list', urls: [url], ...extra}]}, url,
+        targetStatus);
+  }
+
+  // Hook-based counterpart of `forceSpeculationRules()`. Inserts `rules` in
+  // this (remote) context and resolves once the prefetch for `awaitedUrl`
+  // reaches `targetStatus` (default 'ready'). The event listener is registered
+  // before the rules are inserted, so early events are not missed.
+  //
+  // Requires testdriver.js imported with `?feature=bidi`.
+  async forceSpeculationRulesAndWaitForStatus(
+      rules, awaitedUrl, targetStatus = PRELOADING_STATUS.READY) {
+    const unsubscribe = await subscribePrefetchStatusUpdated();
+    if (unsubscribe === null) {
+      return this.forceSpeculationRules(rules);
+    }
+    try {
+      const statusReached = waitForPrefetchStatus(awaitedUrl, targetStatus);
+      await this.execute_script((rules) => {
+        insertSpeculationRules(rules);
+      }, [rules]);
+      return await statusReached;
+    } finally {
+      await unsubscribe();
+    }
+  }
+
   // `url` is the URL to navigate.
   //
   // `expectedDestinationUrl` is the expected URL after navigation.
@@ -183,6 +218,93 @@ function insertSpeculationRules(body) {
   script.type = 'speculationrules';
   script.textContent = JSON.stringify(body);
   document.head.appendChild(script);
+}
+
+// -----------------------------------------------------------------------------
+// Utilities for awaiting prefetch completion via the WebDriver BiDi
+// `speculation.prefetchStatusUpdated` test hook, instead of a fixed timeout.
+//
+// These are the hook-based counterparts of `forceSpeculationRules()` /
+// `forceSinglePrefetch()` (which wait a fixed 2s). Using the test hook makes
+// prefetch tests faster and less flaky. The timeout-based helpers remain for
+// call sites where no matching event is emitted or where navigation must start
+// before the prefetch completes. Hook-based helpers also fall back to the
+// timeout when the browser doesn't implement BiDi event subscriptions.
+//
+// To use these helpers a test must:
+//   1. Import testdriver with the bidi feature plus the vendor shim:
+//        <script src="/resources/testdriver.js?feature=bidi"></script>
+//        <script src="/resources/testdriver-vendor.js"></script>
+//   2. For custom rule insertion, subscribe via
+//      `subscribePrefetchStatusUpdated()` before calling
+//      `waitForPrefetchStatus()`. The force helpers manage their own
+//      subscriptions. If subscribing returns null, insert the rules and use the
+//      existing timeout instead.
+// -----------------------------------------------------------------------------
+
+// `speculation.PreloadingStatus` has known issues:
+// https://github.com/WICG/nav-speculation/issues/437
+// For now, only use `ready` and `failure` to wait for simple prefetch success
+// or failure.
+const PRELOADING_STATUS = {
+  READY: 'ready',
+  FAILURE: 'failure',
+};
+
+// Subscribes globally to `speculation.prefetchStatusUpdated` for the entire
+// BiDi session (`contexts: null`). This includes spawned windows and cross-site
+// or cross-process contexts, where prefetches are typically initiated.
+//
+// Returns the unsubscribe function from testdriver, or null if the browser
+// doesn't implement BiDi event subscriptions. Call the function (e.g. in a
+// `t.add_cleanup`) once the events are no longer needed.
+async function subscribePrefetchStatusUpdated() {
+  try {
+    return await test_driver.bidi.speculation.prefetch_status_updated.subscribe(
+        {contexts: null});
+  } catch (error) {
+    if (error === 'error: Action bidi.session.subscribe not implemented') {
+      return null;
+    }
+    throw error;
+  }
+}
+
+// Returns a Promise that resolves with the matching event once a prefetch for
+// `url` reaches `targetStatus` (default 'ready'). The listener is registered
+// synchronously, so call this *before* inserting the speculation rules to avoid
+// missing early events.
+//
+// `url` is matched against the event's prefetch URL (the URL from the
+// speculation rule, which is stable across redirects). If `url` is null the
+// first event reaching `targetStatus` for any URL resolves the promise (useful
+// when a test initiates exactly one prefetch).
+//
+// Unless `targetStatus` is 'failure', an intervening 'failure' event for the
+// matched URL rejects the promise so tests fail fast rather than time out.
+//
+// Requires an active subscription (see `subscribePrefetchStatusUpdated()`) and
+// testdriver.js imported with `?feature=bidi`.
+function waitForPrefetchStatus(url, targetStatus = PRELOADING_STATUS.READY) {
+  const targetHref = url == null ? null : new URL(url, location.href).href;
+  return new Promise((resolve, reject) => {
+    const removeHandler =
+        test_driver.bidi.speculation.prefetch_status_updated.on(event => {
+          if (targetHref !== null && event.url !== targetHref) {
+            return;
+          }
+          if (event.status === targetStatus) {
+            removeHandler();
+            resolve(event);
+          } else if (event.status === PRELOADING_STATUS.FAILURE &&
+                     targetStatus !== PRELOADING_STATUS.FAILURE) {
+            removeHandler();
+            reject(new Error(
+                `Prefetch for ${event.url} reported 'failure' while waiting ` +
+                `for '${targetStatus}'.`));
+          }
+        });
+  });
 }
 
 // Creates and appends <a href=|href|> to |insertion point|. If

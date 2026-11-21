@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>white-space-trim: line wrapping around a discard-before inline box</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#white-space-trim">
+<link rel="match" href="reference/white-space-trim-wrap-ref.html">
+<meta name="assert" content="discard-before collapses the space before the box, which also removes the soft wrap opportunity there; 'X &lt;span&gt;YYYYYYYY&lt;/span&gt;' becomes the single unbreakable unit 'XYYYYYYYY' and must not leave the box start stranded on its own line.">
+<style>
+  div { width: 4ch; font: 16px/1 monospace; }
+  .db { white-space-trim: discard-before; }
+</style>
+</head>
+<body>
+<p>Test passes if the box below renders as a single overflowing line "XYYYYYYYY" (no blank/short first line, no orphaned box).</p>
+<div>X <span class="db">YYYYYYYY</span></div>
+</body>
+</html>

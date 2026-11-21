@@ -1,0 +1,24 @@
+// This file was procedurally generated from the following sources:
+// - src/class-elements/escaped-accessor-field-asi-before-private-field.case
+// - src/class-elements/default/cls-expr.template
+/*---
+description: ASI separates escaped accessor instance and static fields from following private fields (field definitions in a class expression)
+esid: prod-FieldDefinition
+features: [class-fields-public, class-static-fields-public, class-fields-private, class]
+flags: [generated]
+includes: [compareArray.js]
+---*/
+
+
+var C = class {
+  \u{61}ccessor
+  #a = 1;
+  static \u{61}ccessor
+  #b = 2;
+  check() { return [this.#a, this.#b]; }
+}
+
+var c = new C();
+assert.compareArray(Object.keys(c), ["accessor"]);
+assert.compareArray(Object.keys(C), ["accessor"]);
+assert.compareArray(c.check(), [1, 2]);

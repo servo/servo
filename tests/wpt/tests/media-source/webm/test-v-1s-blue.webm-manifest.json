@@ -1,0 +1,14 @@
+{
+    "url": "webm/test-v-1s-blue.webm",
+    "init": {
+        "offset": 0,
+        "size": 580
+    },
+    "media": [
+        {
+            "offset": 580,
+            "size": 766,
+            "timestamp": 0.0
+        }
+    ]
+}

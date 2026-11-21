@@ -417,6 +417,10 @@ class WebDriverBidiEmulationProtocolPart(BidiEmulationProtocolPart):
         return await self.webdriver.bidi_session.emulation.set_scrollbar_type_override(
             scrollbar_type=scrollbar_type, contexts=contexts)
 
+    async def set_text_layout_mode_override(self, text_layout_mode, contexts):
+        return await self.webdriver.bidi_session.emulation.set_text_layout_mode_override(
+            text_layout_mode=text_layout_mode, contexts=contexts)
+
     async def set_touch_override(self, max_touch_points, contexts):
         return await self.webdriver.bidi_session.emulation.set_touch_override(
             max_touch_points=max_touch_points, contexts=contexts)

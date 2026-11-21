@@ -32,7 +32,7 @@ class CanvasWidget extends HTMLElement {
       this.ctx.drawElementImage(child, 20, 30);
       this.dispatchEvent(customEvent);
     });
-    this.canvas.requestPaint();
+    waitForCanvasPaint(this.canvas);
   }
 }
 

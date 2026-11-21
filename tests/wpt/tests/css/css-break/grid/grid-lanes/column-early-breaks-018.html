@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Column grid-lanes empty lanes do not push a resumed spanner by a gap</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="help" href="https://drafts.csswg.org/css-break/#breaking-rules">
+<link rel="match" href="column-early-breaks-018-ref.html">
+<style>
+  .multicol {
+    background: green;
+    columns: 2;
+    column-fill: auto;
+    column-gap: 0;
+    width: 120px;
+    height: 100px;
+  }
+  .grid-lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(3, 20px);
+    row-gap: 10px;
+    width: 60px;
+  }
+</style>
+<p>The colored rectangles on the green background must match the reference.</p>
+<div class="multicol">
+  <div class="grid-lanes">
+    <div style="grid-column: 1; height: 90px; background: orange;"></div>
+    <div style="grid-column: span 3; height: 20px; background: teal;"></div>
+    <div style="grid-column: 3; height: 20px; background: purple;"></div>
+  </div>
+</div>

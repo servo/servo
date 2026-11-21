@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp and button elements, before clamp point</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-form-button-002-ref.html">
+<meta name="assert" content="A button element starting before an ancestor's clamp point remains fully visible.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+body {
+  font: 25px/1 Ahem;
+}
+input, button, select, textarea {
+  font: inherit;
+}
+.clamp {
+  line-clamp: 2;
+  width: 240px;
+  background: yellow;
+}
+</style>
+
+<div class="clamp">
+  <button>XX<br>XX<br>XX</button><br>
+  XX<br>
+  XX<br>
+  XX
+</div>

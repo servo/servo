@@ -1,0 +1,20 @@
+<template>
+<my-elem>
+<button>
+</my-elem>
+</button>
+</body>
+<slot></slot>
+</template>
+<script>
+const template = document.querySelector('template').content
+class MyElement extends HTMLElement {
+  connectedCallback() {
+    var shadowRoot = this.attachShadow({ mode: "open" })
+    shadowRoot.appendChild(document.importNode(template, true))
+  }
+}
+customElements.define('my-elem', MyElement);
+</script>
+<html>
+<my-elem></my-elem>

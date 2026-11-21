@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; }
+  .root {
+    border: 2px solid black;
+    column-gap: 10px;
+    display: grid-lanes;
+    fit-tolerance: 0;
+    grid-template-columns: 100px 200px 300px;
+    padding: 6px;
+    width: 620px;
+  }
+  .subgrid {
+    display: grid;
+    grid-template-columns: subgrid;
+  }
+  .outer {
+    align-items: start;
+    border: 4px solid purple;
+    column-gap: 18px;
+    grid-column: 1 / -1;
+    padding: 3px;
+  }
+  .root-blocker {
+    background: dimgray;
+    grid-column: 1;
+    height: 40px;
+    width: 8px;
+  }
+  .outer-blocker {
+    background: steelblue;
+    grid-column: 1;
+    height: 20px;
+    width: 8px;
+  }
+  .middle {
+    border: 3px solid orange;
+    column-gap: 6px;
+    grid-column: 2 / span 2;
+    padding: 5px;
+  }
+  .inner {
+    border: 1px solid cyan;
+    column-gap: 12px;
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-rows: auto 10px;
+    padding: 2px;
+  }
+  .leaf {
+    aspect-ratio: 1;
+    background: green;
+    grid-column: 2;
+    grid-row: 1;
+    min-height: 0;
+    min-width: 0;
+  }
+  .marker {
+    background: blue;
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+</style>
+<div class="root">
+  <div class="root-blocker"></div>
+  <div class="subgrid outer">
+    <div class="outer-blocker"></div>
+    <div class="subgrid middle">
+      <div class="subgrid inner">
+        <div class="leaf"></div>
+        <div class="marker"></div>
+      </div>
+    </div>
+  </div>
+</div>

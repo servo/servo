@@ -1,0 +1,101 @@
+<!doctype html>
+<html>
+  <head>
+    <link rel="help" href="https://html.spec.whatwg.org/#html-streaming-methods" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/trusted-types/support/helper.sub.js"></script>
+
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="require-trusted-types-for 'script';"
+    />
+  </head>
+  <body>
+    <div id="container"></div>
+    <script>
+      const container = document.querySelector("#container");
+      const err = new Error("oops");
+
+      const policy = trustedTypes.createPolicy("default", {
+        createHTML: (_) => "",
+        createParserOptions: (options) => {
+          throw err;
+        },
+      });
+
+      const methods = [
+        "streamHTMLUnsafe",
+        "streamAppendHTMLUnsafe",
+        "streamPrependHTMLUnsafe",
+        "streamBeforeHTMLUnsafe",
+        "streamAfterHTMLUnsafe",
+        "streamReplaceWithHTMLUnsafe"
+      ];
+
+      for (const method of methods) {
+        promise_test(async (t) => {
+          let d = document.createElement("div");
+          let child = document.createElement("span");
+          d.appendChild(child);
+          document.querySelector("#container").appendChild(d);
+          t.add_cleanup(() => d.remove());
+          assert_throws_exactly(
+            err,
+            () => d[method]().getWriter(),
+            "error in createParserOptions is rethrown",
+          );
+          assert_equals(d.parentNode, container, "target remains connected if createParserOptions throws");
+          assert_equals(d.firstChild, child, "target children remain intact if createParserOptions throws");
+        }, `error in createParserOptions is rethrown from default policy for ${method}`);
+      }
+
+      for (const method of [
+        "streamHTMLUnsafe",
+        "streamAppendHTMLUnsafe",
+        "streamPrependHTMLUnsafe",
+      ]) {
+        promise_test(async (t) => {
+          const host = document.createElement("div");
+          const sr = host.attachShadow({ mode: "open" });
+          const child = sr.appendChild(document.createElement("span"));
+          container.appendChild(host);
+          t.add_cleanup(() => host.remove());
+          assert_throws_exactly(
+            err,
+            () => sr[method]().getWriter(),
+            "error in createParserOptions is rethrown",
+          );
+          assert_equals(sr.firstChild, child, "ShadowRoot children remain intact if createParserOptions throws");
+        }, `error in createParserOptions is rethrown from default policy for ShadowRoot.${method}`);
+      }
+
+      for (const method of [
+        "streamBeforeHTMLUnsafe",
+        "streamAfterHTMLUnsafe",
+        "streamReplaceWithHTMLUnsafe",
+      ]) {
+        promise_test(async (t) => {
+          const parent = document.createElement("div");
+          const text = parent.appendChild(document.createTextNode("anchor"));
+          container.appendChild(parent);
+          t.add_cleanup(() => parent.remove());
+          assert_throws_exactly(
+            err,
+            () => text[method]().getWriter(),
+            "error in createParserOptions is rethrown",
+          );
+          assert_equals(text.parentNode, parent, "CharacterData remains connected if createParserOptions throws");
+        }, `error in createParserOptions is rethrown from default policy for CharacterData.${method}`);
+      }
+
+      promise_test(async (t) => {
+        assert_throws_exactly(
+          err,
+          () => policy.createParserOptions({ runScripts: true }),
+          "error in createParserOptions is rethrown",
+        );
+      }, "error in createParserOptions is rethrown from named policy");
+    </script>
+  </body>
+</html>

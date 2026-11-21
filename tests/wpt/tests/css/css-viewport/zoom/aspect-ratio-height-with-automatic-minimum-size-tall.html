@@ -1,0 +1,22 @@
+<html>
+<head>
+<link rel="help" href="https://drafts.csswg.org/css-viewport/#zoom-property">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-minimum">
+<link rel="match" href="aspect-ratio-height-with-automatic-minimum-size-tall-ref.html">
+<style>
+.zoomed-container {
+  width: 50px;
+  zoom: 2;
+}
+.aspect-ratio {
+  aspect-ratio: 1/1;
+  background-color: green;
+}
+</style>
+<body>
+<p>PASSES if tall green box is shown.</p>
+<div class="zoomed-container">
+  <div class="aspect-ratio"><div style="height: 100px"></div>
+</div>
+</body>
+</html>

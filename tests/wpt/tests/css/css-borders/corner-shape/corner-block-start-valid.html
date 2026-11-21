@@ -10,10 +10,19 @@
 <script src="/css/support/shorthand-testcommon.js"></script>
 
 <script>
-test_valid_value("corner-block-start", "10px bevel");
-test_valid_value("corner-block-start", "round 10% / 2rem squircle", "10% round / 2rem squircle");
-test_valid_value("corner-block-start", "normal");
-test_valid_value("corner-block-start", "4px 2% round / bevel 1em", "4px 2% round / 1em bevel");
+// Each component alone; the omitted component resets to its initial value.
+test_valid_value("corner-block-start", "10px");
+test_valid_value("corner-block-start", "bevel");
+test_valid_value("corner-block-start", "round", "0px");
+
+// Order independence.
+test_valid_value("corner-block-start", "10px bevel", "bevel 10px");
+test_valid_value("corner-block-start", "bevel 10px 20px");
+test_valid_value("corner-block-start", "4px 2% squircle", "squircle 4px 2%");
+
+// The slash separates horizontal and vertical radii.
+test_valid_value("corner-block-start", "round 10% / 2rem", "10% / 2rem");
+test_valid_value("corner-block-start", "10px 20px / 5px bevel scoop", "bevel scoop 10px 20px / 5px");
 
 test_shorthand_value("corner-block-start", "10px bevel", {
   "border-start-start-radius": "10px",
@@ -21,10 +30,16 @@ test_shorthand_value("corner-block-start", "10px bevel", {
   "border-start-end-radius": "10px",
   "corner-start-end-shape": "bevel",
 });
-test_shorthand_value("corner-block-start", "4px 2% round / 1em bevel", {
-  "border-start-start-radius": "4px 2%",
-  "corner-start-start-shape": "round",
-  "border-start-end-radius": "1em",
+test_shorthand_value("corner-block-start", "bevel", {
+  "border-start-start-radius": "0px",
+  "corner-start-start-shape": "bevel",
+  "border-start-end-radius": "0px",
   "corner-start-end-shape": "bevel",
+});
+test_shorthand_value("corner-block-start", "10px 20px / 5px bevel scoop", {
+  "border-start-start-radius": "10px 5px",
+  "corner-start-start-shape": "bevel",
+  "border-start-end-radius": "20px 5px",
+  "corner-start-end-shape": "scoop",
 });
 </script>

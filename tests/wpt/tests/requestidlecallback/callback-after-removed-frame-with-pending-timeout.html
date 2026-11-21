@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>requestIdleCallback is still invoked after removing an iframe that had a pending timer</title>
+<link rel="help" href="https://w3c.github.io/requestidlecallback/#start-an-idle-period-algorithm">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<body>
+<script>
+  function waitWithoutTimers(ms) {
+    return new Promise(resolve => {
+      const start = performance.now();
+      function tick() {
+        if (performance.now() - start >= ms)
+          resolve();
+        else
+          requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    });
+  }
+
+  promise_test(async t => {
+    assert_false(document.hidden, "document.hidden must exist and be false to run this test properly");
+
+    const frame = document.createElement("iframe");
+    document.body.appendChild(frame);
+    frame.contentWindow.setTimeout(() => { }, 100);
+
+    await new Promise(resolve => requestIdleCallback(resolve));
+    frame.remove();
+
+    await waitWithoutTimers(300);
+
+    let deadline = null;
+    requestIdleCallback(d => { deadline = d; });
+    const start = performance.now();
+    while (!deadline && performance.now() - start < 2000)
+      await new Promise(resolve => requestAnimationFrame(resolve));
+
+    assert_not_equals(deadline, null, "requestIdleCallback callback should have been invoked");
+    assert_false(deadline.didTimeout);
+  }, "requestIdleCallback callback is invoked after removing an iframe that had a pending setTimeout");
+</script>

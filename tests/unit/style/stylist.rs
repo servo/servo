@@ -251,6 +251,7 @@ fn mock_stylist() -> Stylist {
     let device = Device::new(
         initial_style,
         Box::new(DummyMetricsProvider),
+        Box::from("Submit"),
         MediaData {
             media_type: MediaType::screen(),
             quirks_mode: QuirksMode::NoQuirks,

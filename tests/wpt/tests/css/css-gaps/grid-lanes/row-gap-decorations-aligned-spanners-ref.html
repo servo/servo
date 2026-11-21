@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+  body { margin: 0; }
+  .lanes {
+    position: relative;
+    width: 360px;
+    height: 300px;
+    background: #cdd5e0;
+  }
+  .lanes > div { position: absolute; background: #5b8def; }
+  .a { left: 0; top: 0; width: 40px; height: 60px; }
+  .b { left: 0; top: 80px; width: 40px; height: 60px; }
+  .c { left: 0; top: 160px; width: 60px; height: 60px; }
+  .d { left: 0; top: 240px; width: 200px; height: 60px; }
+  .lanes > .spanner {
+    left: 220px; top: 0; width: 40px; height: 300px;
+    background: #8a6df0;
+  }
+  .lanes > .centered-spanner {
+    left: 120px; top: 0; width: 20px; height: 140px;
+    background: #1f9d6b;
+  }
+  .lanes > .centered-item {
+    left: 120px; top: 160px; width: 40px; height: 60px;
+    background: #1f9d6b;
+  }
+  .col-rule { position: absolute; width: 0; border-left: 4px solid blue; }
+  .row-rule { position: absolute; height: 0; border-top: 4px solid gold; }
+</style>
+<div class="lanes">
+  <div class="a"></div>
+  <div class="b"></div>
+  <div class="c"></div>
+  <div class="d"></div>
+  <div class="spanner"></div>
+  <div class="centered-spanner"></div>
+  <div class="centered-item"></div>
+</div>
+<div class="col-rule" style="left: 48px; top: 0; height: 60px;"></div>
+<div class="col-rule" style="left: 48px; top: 80px; height: 60px;"></div>
+<div class="col-rule" style="left: 68px; top: 160px; height: 60px;"></div>
+<div class="col-rule" style="left: 208px; top: 0; height: 60px;"></div>
+<div class="col-rule" style="left: 208px; top: 80px; height: 60px;"></div>
+<div class="col-rule" style="left: 208px; top: 160px; height: 60px;"></div>
+<div class="col-rule" style="left: 208px; top: 240px; height: 60px;"></div>
+<div class="row-rule" style="left: 0; top: 68px; width: 100px;"></div>
+<div class="row-rule" style="left: 160px; top: 68px; width: 40px;"></div>
+<div class="row-rule" style="left: 280px; top: 68px; width: 80px;"></div>
+<div class="row-rule" style="left: 0; top: 148px; width: 200px;"></div>
+<div class="row-rule" style="left: 280px; top: 148px; width: 80px;"></div>
+<div class="row-rule" style="left: 0; top: 228px; width: 200px;"></div>
+<div class="row-rule" style="left: 280px; top: 228px; width: 80px;"></div>

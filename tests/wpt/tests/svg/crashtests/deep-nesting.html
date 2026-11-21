@@ -1,0 +1,15 @@
+<!doctype html>
+<p>This test should not crash.</p>
+<div></div>
+<script>
+  const svgNS = "http://www.w3.org/2000/svg";
+  let parent = document.querySelector('div');
+  let svg = document.createElementNS(svgNS, 'svg');
+  let last = svg;
+  for(let i = 0; i < 1024; i++) {
+      let g = document.createElementNS(svgNS, 'g');
+      last.appendChild(g);
+      last = g;
+  }
+  parent.appendChild(svg);
+</script>

@@ -2,6 +2,8 @@
 <title>Prefetch with the referrer policy specified in speculation rules</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/common/subset-tests.js"></script>
 <script src="/common/utils.js"></script>
@@ -30,7 +32,8 @@ subsetTest(promise_test, async t => {
   const expectedReferrer = agent.getExecutorURL().origin + "/";
 
   const nextURL = agent.getExecutorURL({ page: 2 });
-  await agent.forceSinglePrefetch(nextURL, { referrer_policy: "strict-origin" });
+  await agent.forceSinglePrefetchAndWaitForStatus(
+      nextURL, { referrer_policy: "strict-origin" });
   await agent.navigate(nextURL);
 
   const headers = await agent.getRequestHeaders();
@@ -39,14 +42,23 @@ subsetTest(promise_test, async t => {
 }, 'with "strict-origin" referrer policy in rule set overriding "strict-origin-when-cross-origin" of referring page');
 
 subsetTest(promise_test, async t => {
+  const unsubscribe = await subscribePrefetchStatusUpdated();
+  if (unsubscribe) {
+    t.add_cleanup(() => unsubscribe());
+  }
   const agent = await spawnWindow(t);
   const next_url = agent.getExecutorURL({ page: 2 });
+  const statusReached = unsubscribe ? waitForPrefetchStatus(next_url) : null;
   await agent.execute_script((url) => {
     const a = addLink(url);
     a.referrerPolicy = 'no-referrer';
     insertDocumentRule(undefined, { referrer_policy: 'strict-origin' });
   }, [next_url]);
-  await new Promise(resolve => t.step_timeout(resolve, 2000));
+  if (statusReached) {
+    await statusReached;
+  } else {
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+  }
   await agent.navigate(next_url);
 
   const headers = await agent.getRequestHeaders();
@@ -60,7 +72,8 @@ subsetTest(promise_test, async t => {
   await agent.setReferrerPolicy("unsafe-url");
 
   const nextURL = agent.getExecutorURL({ hostname: get_host_info().NOTSAMESITE_HOST, page: 2 });
-  await agent.forceSinglePrefetch(nextURL, { referrer_policy: "no-referrer" });
+  await agent.forceSinglePrefetchAndWaitForStatus(
+      nextURL, { referrer_policy: "no-referrer" });
   await agent.navigate(nextURL);
 
   // This referring page's referrer policy would not be eligible for
@@ -84,17 +97,26 @@ subsetTest(promise_test, async t => {
 }, 'unrecognized policies invalidate the rule');
 
 subsetTest(promise_test, async t => {
+  const unsubscribe = await subscribePrefetchStatusUpdated();
+  if (unsubscribe) {
+    t.add_cleanup(() => unsubscribe());
+  }
   const agent = await spawnWindow(t);
   await agent.setReferrerPolicy("strict-origin");
   const expectedReferrer = agent.getExecutorURL().origin + "/";
 
   const nextURL = agent.getExecutorURL({ page: 2 });
+  const statusReached = unsubscribe ? waitForPrefetchStatus(nextURL) : null;
   await agent.execute_script((url) => {
     const a = addLink(url);
     a.referrerPolicy = 'no-referrrrrrrer';
     insertDocumentRule();
   }, [nextURL]);
-  await new Promise(resolve => t.step_timeout(resolve, 2000));
+  if (statusReached) {
+    await statusReached;
+  } else {
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+  }
   await agent.navigate(nextURL);
 
   const headers = await agent.getRequestHeaders();
@@ -139,7 +161,8 @@ subsetTest(promise_test, async t => {
   const nextURL = agent.getExecutorURL({ page: 2 });
   // The empty string is a valid value for "referrer_policy" and will be
   // treated as if the key were omitted.
-  await agent.forceSinglePrefetch(nextURL, { referrer_policy: "" });
+  await agent.forceSinglePrefetchAndWaitForStatus(
+      nextURL, { referrer_policy: "" });
   await agent.navigate(nextURL);
 
   const headers = await agent.getRequestHeaders();

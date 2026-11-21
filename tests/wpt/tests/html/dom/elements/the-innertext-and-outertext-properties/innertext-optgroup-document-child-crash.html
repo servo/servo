@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel=help href="https://html.spec.whatwg.org/multipage/dom.html#the-innertext-idl-attribute">
+
+<optgroup>x</optgroup>
+
+<script>
+  const optgroup = document.querySelector("optgroup");
+  document.replaceChildren();
+  document.append(optgroup);
+  optgroup.innerText;
+</script>

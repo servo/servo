@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: `line-clamp: auto` places the ellipsis before a block with a min-height that would not fit</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-auto-065-ref.html">
+<meta name="assert" content="A block is at least as tall as its min-height whatever its content, so no clamp point inside it fits when its min-height does not fit, and the ellipsis goes on the last line before it.">
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: 6lh;
+  font: 16px / 32px serif;
+  white-space: pre;
+}
+.min-height {
+  min-height: 3lh;
+}
+</style>
+<div class="clamp">Line 1
+Line 2
+Line 3
+Line 4
+<div class="min-height">Line 5
+Line 6</div>
+Line 7</div>

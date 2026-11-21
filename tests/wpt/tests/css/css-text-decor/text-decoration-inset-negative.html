@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration: negative text-decoration-inset extends the underline</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-inset-property">
+<link rel="mismatch" href="text-decoration-inset-negative-notref.html">
+<meta name="assert" content="A negative text-decoration-inset moves the endpoints outward, extending the underline beyond the text, so it differs from an un-inset one.">
+<style>body { margin: 20px; font: 40px/1.5 monospace; }</style>
+<p><u style="text-decoration-inset: -10px">abcdef</u></p>

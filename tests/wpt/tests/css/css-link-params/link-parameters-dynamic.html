@@ -10,12 +10,12 @@
 test(() => {
   const target = document.getElementById("target");
   target.style.setProperty("--dynamic", "1");
-  target.style.setProperty("link-parameters", "param(--a, var(--dynamic))");
+  target.style.setProperty("link-parameters", "param(--a: var(--dynamic))");
   assert_equals(getComputedStyle(target).getPropertyValue("link-parameters"),
-                "param(--a, 1)");
+                "param(--a: 1)");
 
   target.style.setProperty("--dynamic", "2");
   assert_equals(getComputedStyle(target).getPropertyValue("link-parameters"),
-                "param(--a, 2)");
+                "param(--a: 2)");
 }, "link-parameters updates when a referenced custom property changes");
 </script>

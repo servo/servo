@@ -7,6 +7,7 @@
 <link rel="author" title="Google" href="http://www.google.com/">
 <link href="reference/iframe-zoom-nested-ref.html" rel="match">
 <link rel="help" href="https://drafts.csswg.org/css-viewport/">
+<script src="/common/reftest-wait.js"></script>
 
 <style>
 body {
@@ -26,24 +27,22 @@ iframe {
 </head>
 
 <body>
+<script>
+let loadedCount = 0;
 
+// Register message listener immediately (not inside load handler) to avoid
+// missing leaf_loaded messages that arrive before the window load event.
+addEventListener("message", ({ data }) => {
+  // We need to wait for the nested iframe (leaf.html) to load, in addition
+  // to the top-level iframe (nested-iframe.html).
+  if (data != "leaf_loaded") return;
+  loadedCount += 1;
+  if (loadedCount == document.querySelectorAll('iframe').length) {
+    takeScreenshot();
+  }
+});
+</script>
 <iframe id="baseline" src="resources/nested-iframe.html" scrolling="no"></iframe>
 <iframe id="zoom-child" src="resources/nested-iframe.html?zoom=2" scrolling="no"></iframe>
 <iframe id="zoom-top" class="zoom" src="resources/nested-iframe.html" scrolling="no"></iframe>
 <iframe id="zoom-top-child" class="zoom" src="resources/nested-iframe.html?zoom=2" scrolling="no"></iframe>
-
-<script>
-// Wait for all iframes to load before allowing the screenshot
-let loadedCount = 0;
-const iframes = document.querySelectorAll('iframe');
-const totalFrames = iframes.length;
-
-iframes.forEach(iframe => {
-  iframe.onload = function() {
-    loadedCount++;
-    if (loadedCount === totalFrames) {
-      document.documentElement.classList.remove("reftest-wait");
-    }
-  };
-});
-</script>

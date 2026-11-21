@@ -21,7 +21,6 @@ use script_bindings::root::Dom;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::PipelineId;
 use servo_config::pref;
-use style::attr::AttrValue;
 use style::stylesheets::Origin;
 
 use crate::conversions::Convert;
@@ -501,7 +500,7 @@ pub(crate) fn handle_get_selectors(
         }
 
         let mut rules = Vec::new();
-        let computed = elem.style()?;
+        let computed = elem.style(cx)?;
 
         if let Some(rule_node) = computed.rules.as_ref() {
             for rn in rule_node.self_and_ancestors() {
@@ -637,7 +636,7 @@ pub(crate) fn handle_get_layout(
         height,
     };
 
-    let auto_margins = element.determine_auto_margins();
+    let auto_margins = element.determine_auto_margins(cx);
     reply.send(Some((computed_layout, auto_margins))).unwrap();
 }
 
@@ -771,11 +770,9 @@ pub(crate) fn handle_modify_attribute(
     for modification in modifications {
         match modification.new_value {
             Some(string) => {
-                elem.set_attribute(
-                    cx,
-                    &LocalName::from(modification.attribute_name),
-                    AttrValue::String(string),
-                );
+                let name = LocalName::from(modification.attribute_name);
+                let value = elem.parse_attribute(&ns!(), &name, DOMString::from(string));
+                elem.set_attribute(cx, &name, value);
             },
             None => elem.RemoveAttribute(cx, DOMString::from(modification.attribute_name)),
         }
@@ -838,8 +835,8 @@ pub(crate) fn handle_highlight_dom_node(
 }
 
 impl Element {
-    fn determine_auto_margins(&self) -> AutoMargins {
-        let Some(style) = self.style() else {
+    fn determine_auto_margins(&self, cx: &mut JSContext) -> AutoMargins {
+        let Some(style) = self.style(cx) else {
             return AutoMargins::default();
         };
         let margin = style.get_margin();

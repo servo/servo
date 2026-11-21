@@ -12,7 +12,7 @@
 
 #![cfg_attr(crown, allow(crown::jscontext_first_arg))]
 
-use std::cell::{self, Cell, RefCell, RefMut};
+use std::cell::{self, Cell, RefMut};
 use std::cmp::max;
 use std::collections::hash_map;
 use std::rc::Rc;
@@ -30,6 +30,7 @@ use malloc_size_of::malloc_size_of_is_0;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{Destination, Origin, PreloadedResources, RequestClient};
 use rustc_hash::FxHashMap;
+use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::id::PipelineId;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -785,7 +786,7 @@ impl WorkletThread {
 
         // `fetch_a_module_script_graph` requires the `on_complete` closure to be cloneable
         // therefore, we wrap the TrustedPromise in an Rc to make it cloneable and RefCell allows calling `reject_task` and `resolve_task`
-        let promise_task = Rc::new(RefCell::new(Some(promise)));
+        let promise_task = Rc::new(DomRefCell::new(Some(promise)));
         let script_thread_sender = self.global_init.to_script_thread_sender.clone();
         let rooted_global = DomRoot::from_ref(global);
         let script_url = ensure_blob_referenced_by_url_is_kept_alive(global, script_url);
@@ -813,7 +814,7 @@ impl WorkletThread {
 
                         reject_promise(
                             &pending_tasks_struct,
-                            promise_task.borrow_mut(),
+                            promise_task.safe_borrow_mut(cx.no_gc()),
                             script_thread_sender.clone(),
                         );
                     },
@@ -829,7 +830,7 @@ impl WorkletThread {
                             // Step 6.4.2.1. and its substeps are handled by `reject_promise` function
                             reject_promise(
                                 &pending_tasks_struct,
-                                promise_task.borrow_mut(),
+                                promise_task.safe_borrow_mut(cx.no_gc()),
                                 script_thread_sender.clone(),
                             );
 
@@ -855,7 +856,7 @@ impl WorkletThread {
                                 .expect("Worklet thread outlived script thread.");
 
                             let task = promise_task
-                                .borrow_mut()
+                                .safe_borrow_mut(cx.no_gc())
                                 .take()
                                 .expect("promise_task must be consumed exactly once")
                                 .resolve_task(());

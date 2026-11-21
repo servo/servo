@@ -12,6 +12,7 @@ use rustc_hash::FxHashMap;
 use script_bindings::callback::{OwnerWindow, RootedCallback, TracedCallback};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use style::attr::AttrValue;
 
 use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserver_Binding::MutationObserverMethods;
 use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::{
@@ -39,10 +40,10 @@ pub(crate) enum Mutation<'a> {
     Attribute {
         name: LocalName,
         namespace: Namespace,
-        old_value: Option<DOMString>,
+        old_value: Option<&'a AttrValue>,
     },
     CharacterData {
-        old_value: String,
+        old_value: atomic_refcell::AtomicRef<'a, String>,
     },
     ChildList {
         added: Option<&'a [&'a Node]>,
@@ -159,7 +160,10 @@ impl MutationObserver {
                         // 3.2.2 If interestedObservers[mo] does not exist, then set interestedObservers[mo] to null.
                         if registered.options.attribute_old_value {
                             // 3.2.3 ... type is "attributes" and options["attributeOldValue"] is true ...
-                            interested_observers.insert(mo, old_value.clone());
+                            interested_observers.insert(
+                                mo,
+                                old_value.map(|attr_value| DOMString::from(&**attr_value)),
+                            );
                         } else {
                             // 3.2.2 If interestedObservers[mo] does not exist, then set interestedObservers[mo] to null.
                             interested_observers.entry(mo).or_insert(None);
@@ -176,7 +180,7 @@ impl MutationObserver {
                         if registered.options.character_data_old_value {
                             // 3.2.3 ... type is "characterData" and options["characterDataOldValue"] is true
                             interested_observers
-                                .insert(mo, Some(DOMString::from(old_value.clone())));
+                                .insert(mo, Some(DOMString::from(old_value.as_str())));
                         } else {
                             // 3.2.2 If interestedObservers[mo] does not exist, then set interestedObservers[mo] to null.
                             interested_observers.entry(mo).or_insert(None);

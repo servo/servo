@@ -15,7 +15,7 @@ dictionary FocusOptions {
 };
 
 interface mixin HTMLOrSVGOrMathMLElement {
-  // [SameObject] readonly attribute DOMStringMap dataset;
+  [SameObject] readonly attribute DOMStringMap dataset;
   attribute DOMString nonce; // intentionally no [CEReactions]
 
   [CEReactions] attribute boolean autofocus;

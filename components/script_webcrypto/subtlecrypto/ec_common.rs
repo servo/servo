@@ -9,6 +9,7 @@ use js::context::JSContext;
 use p256::NistP256;
 use p384::NistP384;
 use p521::NistP521;
+use script_bindings::trace::RootedTraceableBox;
 
 use crate::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::dom::bindings::codegen::GenericBindings::CryptoKeyBinding::{
@@ -40,7 +41,7 @@ pub(crate) fn generate_key<D: Equivalence>(
     normalized_algorithm: &EcKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<CryptoKeyPair<D>, Error> {
+) -> Result<RootedTraceableBox<CryptoKeyPair<D>>, Error> {
     match ec_algorithm {
         EcAlgorithm::Ecdsa => {
             // Step 1. If usages contains a value which is not one of "sign" or "verify", then throw
@@ -178,10 +179,10 @@ pub(crate) fn generate_key<D: Equivalence>(
     // Step 17. Let result be a new CryptoKeyPair dictionary.
     // Step 18. Set the publicKey attribute of result to be publicKey.
     // Step 19. Set the privateKey attribute of result to be privateKey.
-    let result = CryptoKeyPair {
-        publicKey: Some(public_key),
-        privateKey: Some(private_key),
-    };
+    let result = RootedTraceableBox::new(CryptoKeyPair {
+        publicKey: Some(public_key.as_traced()),
+        privateKey: Some(private_key.as_traced()),
+    });
 
     // Step 20. Return result.
     Ok(result)

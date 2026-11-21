@@ -7,7 +7,7 @@ use std::str::FromStr;
 
 use embedder_traits::{EmbedderControlRequest, FilePickerRequest, FilterPattern, SelectedFile};
 use html5ever::local_name;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::FileListBinding::FileListMethods;
 use script_bindings::codegen::GenericBindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
@@ -110,7 +110,12 @@ impl SpecificInputType for FileInputType {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file):suffering-from-being-missing>
-    fn suffers_from_being_missing(&self, input: &HTMLInputElement, _value: &DOMString) -> bool {
+    fn suffers_from_being_missing(
+        &self,
+        _no_gc: &NoGC,
+        input: &HTMLInputElement,
+        _value: &DOMString,
+    ) -> bool {
         input.Required() && self.filelist.get().is_none_or(|files| files.Length() == 0)
     }
 

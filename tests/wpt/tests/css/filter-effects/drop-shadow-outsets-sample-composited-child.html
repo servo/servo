@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Filter Effects: a drop-shadow samples a descendant that is clipped out of view</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="match" href="drop-shadow-outsets-sample-composited-child-ref.html">
+<meta name="assert" content="A drop-shadow samples the whole painted content of the filtered element, including a descendant that an ancestor clip moves out of view, and including a descendant that is promoted to its own compositing layer.">
+<style>
+.clip {
+    position: relative;
+    overflow: hidden;
+    width: 100px;
+    height: 100px;
+}
+.filtered {
+    position: absolute;
+    top: 0;
+    left: -100px;
+    width: 200px;
+    height: 100px;
+    filter: drop-shadow(100px 0 0 green);
+}
+.box {
+    width: 0;
+    height: 0;
+    border: 50px solid green;
+    will-change: transform;
+}
+</style>
+<p>Test passes if there is a filled green square below.</p>
+<div class="clip">
+    <div class="filtered">
+        <div class="box"></div>
+    </div>
+</div>

@@ -9,10 +9,9 @@
   <body>
     <script>
       let invalidValues = [
-          "env(test1 test2, green)",
-          "env(test1 10 20 test2, green)",
-          "env(test 0.1, green)",
-          "env(test -1, green)",
+          "env(test {0})",
+          "env({test} 0)",
+          "env(test {0}, 10px)",
       ];
       invalidValues.forEach(val => {
         test(() => {
@@ -26,6 +25,12 @@
           "env(test 0,)",
           "env(test 0)",
           "env(test 0 1 2 3 4, green)",
+          // Although these are invalid at substitution time, these are valid <declaration-value>
+          // arguments per env()'s argument grammar. Accordingly, these are valid at parse time.
+          "env(test1 test2, green)",
+          "env(test1 10 20 test2, green)",
+          "env(test 0.1, green)",
+          "env(test -1, green)",
       ];
       validValues.forEach(val => {
         test(() => {

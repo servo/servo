@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Display: the line-height of the parent box applies to text in a display: contents element</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#valdef-display-contents">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#line-height-property">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#inline-height">
+<link rel="match" href="display-contents-text-line-height-ref.html">
+<meta name="assert" content="Text in a display: contents element has no box of its own. Its font and its own line-height do not stretch a line whose parent box has a fixed line-height.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+div { font: 20px/30px Ahem; margin: 10px; width: 400px; }
+.contents { display: contents; }
+.big { font-size: 40px; }
+.tall { line-height: 80px; }
+</style>
+<div>before <span class="contents big">big</span> after</div>
+<div>before <span class="contents tall">tall</span> after</div>
+<div>before <span class="contents big tall">both</span> after</div>
+<div>before <span class="contents" id="changed">changed</span> after</div>
+<div>before <span class="contents big" id="unchanged">unchanged</span> after</div>
+<div><span class="contents big">single text child</span></div>
+<div style="width: 300px"><span class="contents" style="white-space: nowrap">no wrap in here</span> wraps</div>
+<script>
+document.body.offsetHeight;
+document.getElementById("changed").classList.add("big");
+document.getElementById("unchanged").classList.remove("big");
+</script>

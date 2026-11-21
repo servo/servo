@@ -6,7 +6,12 @@ requires-python = ">=3.11"
 dynamic = ["dependencies"]
 
 [tool.setuptools.dynamic.dependencies]
-file = ["python/requirements.txt", "tests/wpt/tests/tools/requirements_tests.txt", "tests/wpt/tests/tools/wptrunner/requirements.txt", "tests/wpt/tests/tools/requirements_flake8.txt"]
+file = [
+    "python/requirements.txt",
+    "tests/wpt/tests/tools/requirements_tests.txt",
+    "tests/wpt/tests/tools/wptrunner/requirements.txt",
+    "tests/wpt/tests/tools/requirements_flake8.txt",
+]
 
 [tool.setuptools.packages.find]
 exclude = ["config*"]
@@ -83,3 +88,10 @@ project-excludes = [
 
 [tool.uv]
 system-certs = true
+cache-keys = [
+    { file = "pyproject.toml" },
+    { file = "python/requirements.txt" },
+    { file = "tests/wpt/tests/tools/requirements_tests.txt" },
+    { file = "tests/wpt/tests/tools/wptrunner/requirements.txt" },
+    { file = "tests/wpt/tests/tools/requirements_flake8.txt" },
+]

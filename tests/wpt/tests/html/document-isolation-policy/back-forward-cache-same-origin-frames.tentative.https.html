@@ -1,0 +1,125 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Document-Isolation-Policy: child frames of documents on either side of a same-origin navigation across policies</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/helper.sub.js"></script>
+<script>
+"use strict";
+
+const dip = "&pipe=header(Document-Isolation-Policy,isolate-and-require-corp)";
+
+// Has the document of page append a same-origin child frame with policy, and resolves with whether that frame is
+// cross-origin isolated once it has loaded. The child frame can be in another agent cluster, so it is asked about itself.
+function appendChildFrame(page, policy) {
+  const url = originSameOrigin + "/html/document-isolation-policy/resources/back-forward-cache-frame.html" + policy.replace("&", "?");
+  return page.execute_script(async url => {
+    const frame = document.createElement("iframe");
+    const loaded = new Promise(resolve => addEventListener("message", function listener(event) {
+      if (event.source !== frame.contentWindow || event.data !== "loaded")
+        return;
+      removeEventListener("message", listener);
+      resolve();
+    }));
+    frame.src = url;
+    document.body.append(frame);
+    await loaded;
+    return new Promise(resolve => {
+      addEventListener("message", function listener(event) {
+        if (event.source !== frame.contentWindow || event.data === "loaded")
+          return;
+        removeEventListener("message", listener);
+        resolve(event.data.crossOriginIsolated);
+      });
+      frame.contentWindow.postMessage("ping", "*");
+    });
+  }, [url]);
+}
+
+// Has the document of from navigate to url, the document of to.
+async function navigateTo(from, to, url) {
+  await from.execute_script(url => {
+    prepareNavigation(() => { location.href = url; });
+  }, [url]);
+  await to.execute_script(waitForPageShow);
+}
+
+// Has the document of from go delta entries through history, to the document of to.
+async function traverseHistory(from, to, delta) {
+  await from.execute_script(delta => {
+    prepareNavigation(() => { history.go(delta); });
+  }, [delta]);
+  await to.execute_script(waitForPageShow);
+}
+
+function openPage(policy) {
+  const page = new RemoteContext(token());
+  page.url = originSameOrigin + executorPath + page.context_id + policy;
+  return page;
+}
+
+// Opens a document with fromPolicy in a new top-level traversable and navigates it to a same-origin document with
+// toPolicy, so that the two documents are in different processes. After the navigation, after going back, and after
+// going forward, the document that is shown appends a same-origin child frame with the policy of the other document,
+// which can be in the back/forward cache.
+// TODO: Also assert_bfcached() after each traversal, once WebKit can keep a document in the back/forward cache while
+// the next one is in its browsing context group.
+function runTest({ fromPolicy, toPolicy }, description) {
+  promise_test(async t => {
+    const pageA = openPage(fromPolicy);
+    const pageB = openPage(toPolicy);
+    window.open(pageA.url, "_blank", "noopener");
+    await pageA.execute_script(waitForPageShow);
+
+    await navigateTo(pageA, pageB, pageB.url);
+    assert_equals(await appendChildFrame(pageB, fromPolicy), fromPolicy !== "", "child frame after navigating");
+
+    await traverseHistory(pageB, pageA, -1);
+    assert_equals(await appendChildFrame(pageA, toPolicy), toPolicy !== "", "child frame after going back");
+
+    await traverseHistory(pageA, pageB, 1);
+    assert_equals(await appendChildFrame(pageB, fromPolicy), fromPolicy !== "", "child frame after going forward");
+  }, description);
+}
+
+runTest({ fromPolicy: "", toPolicy: dip },
+  "A document without a policy and a same-origin document with one that replaces it can each have a same-origin child frame with the other's policy");
+runTest({ fromPolicy: dip, toPolicy: "" },
+  "A document with a policy and a same-origin document without one that replaces it can each have a same-origin child frame with the other's policy");
+
+// The document with a policy goes into the back/forward cache too when its successor is on another site, and going
+// back past it to the first document has to keep it apart from that one as well.
+// TODO: Also assert_bfcached(pageA) after going back, as above.
+promise_test(async t => {
+  const pageA = openPage("");
+  const pageB = openPage(dip);
+  const pageC = new RemoteContext(token());
+  window.open(pageA.url, "_blank", "noopener");
+  await pageA.execute_script(waitForPageShow);
+
+  await navigateTo(pageA, pageB, pageB.url);
+  await navigateTo(pageB, pageC, originCrossSite + executorPath + pageC.context_id);
+  await traverseHistory(pageC, pageA, -2);
+  assert_true(await appendChildFrame(pageA, dip), "child frame with a policy");
+}, "A document without a policy can have a same-origin child frame with a policy after going back past a same-origin document with one and a document of another site");
+
+// A popup of the document with a policy shares the browsing context group with the first document once that's shown
+// again, whether or not it comes from the back/forward cache.
+promise_test(async t => {
+  const pageA = openPage("");
+  const pageB = openPage(dip);
+  const popup = openPage("");
+  window.open(pageA.url, "_blank", "noopener");
+  await pageA.execute_script(waitForPageShow);
+
+  await navigateTo(pageA, pageB, pageB.url);
+  await pageB.execute_script(url => { window.open(url); }, [popup.url]);
+  await popup.execute_script(waitForPageShow);
+  await traverseHistory(pageB, pageA, -1);
+  assert_equals(await popup.execute_script(() => opener.document.URL), pageA.url, "the popup's opener document");
+  assert_true(await appendChildFrame(pageA, dip), "child frame with a policy");
+}, "A document without a policy can have a same-origin child frame with a policy after going back from a same-origin document with one that opened a popup");
+</script>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>WebMCP: Settling waitForToolsUntil() promises after the frame is removed</title>
+<body>
+<script>
+// Promises passed to an iframe's `waitForToolsUntil()` can settle after the
+// iframe is removed. This must not crash, whether they fulfill or reject.
+window.onload = async () => {
+  const iframe = document.createElement('iframe');
+  const loaded = new Promise(resolve => iframe.onload = resolve);
+  document.body.append(iframe);
+  await loaded;
+
+  const fulfilled = Promise.withResolvers();
+  const rejected = Promise.withResolvers();
+  const modelContext = iframe.contentDocument.modelContext;
+  modelContext.waitForToolsUntil(fulfilled.promise);
+  modelContext.waitForToolsUntil(rejected.promise);
+
+  iframe.remove();
+  fulfilled.resolve();
+  rejected.reject(new Error('nope'));
+
+  // The iframe's reactions were added first, so they've run by the time these
+  // continue.
+  await fulfilled.promise;
+  await rejected.promise.catch(() => {});
+  document.documentElement.classList.remove('test-wait');
+};
+</script>
+</body>
+</html>
