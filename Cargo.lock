@@ -9912,6 +9912,7 @@ dependencies = [
  "openxr",
  "raw-window-handle",
  "servo-base",
+ "servo-embedder-traits",
  "servo-profile-traits",
  "servo-webxr-api",
  "surfman",

@@ -1148,3 +1148,295 @@ impl GraphicsProviderMethods<Vulkan> for GraphicsProvider {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use surfman::{
+        Connection as SurfmanConnection, ContextAttributeFlags, ContextAttributes, GLApi, GLVersion,
+    };
+
+    use super::*;
+
+    #[test]
+    fn format_selection_and_flags() {
+        let rgba_srgb = vk::Format::R8G8B8A8_SRGB.as_raw() as u32;
+        let bgra_srgb = vk::Format::B8G8R8A8_SRGB.as_raw() as u32;
+        let rgba_unorm = vk::Format::R8G8B8A8_UNORM.as_raw() as u32;
+        let bgra_unorm = vk::Format::B8G8R8A8_UNORM.as_raw() as u32;
+        let other = vk::Format::R16G16B16A16_SFLOAT.as_raw() as u32;
+
+        assert_eq!(
+            GraphicsProvider::try_pick_format(&[
+                other, bgra_unorm, rgba_unorm, bgra_srgb, rgba_srgb
+            ])
+            .unwrap(),
+            rgba_srgb
+        );
+        assert_eq!(
+            GraphicsProvider::try_pick_format(&[other, rgba_unorm, bgra_srgb]).unwrap(),
+            bgra_srgb
+        );
+        assert_eq!(
+            GraphicsProvider::try_pick_format(&[other, bgra_unorm, rgba_unorm]).unwrap(),
+            rgba_unorm
+        );
+        assert_eq!(
+            GraphicsProvider::try_pick_format(&[other, bgra_unorm]).unwrap(),
+            bgra_unorm
+        );
+        assert_eq!(GraphicsProvider::try_pick_format(&[other]).unwrap(), other);
+        assert!(GraphicsProvider::try_pick_format(&[]).is_err());
+
+        assert_eq!(staging_vk_format(rgba_srgb), vk::Format::R8G8B8A8_SRGB);
+        assert_eq!(staging_vk_format(bgra_srgb), vk::Format::R8G8B8A8_SRGB);
+        assert_eq!(staging_vk_format(rgba_unorm), vk::Format::R8G8B8A8_UNORM);
+        assert_eq!(staging_vk_format(other), vk::Format::R8G8B8A8_UNORM);
+
+        assert!(!<GraphicsProvider as GraphicsProviderMethods<Vulkan>>::needs_y_flip());
+        let usage = <GraphicsProvider as GraphicsProviderMethods<Vulkan>>::swapchain_usage_flags();
+        assert!(usage.contains(SwapchainUsageFlags::COLOR_ATTACHMENT));
+        assert!(usage.contains(SwapchainUsageFlags::TRANSFER_DST));
+    }
+
+    #[test]
+    fn enable_graphics_extensions_requires_vulkan_enable2() {
+        let mut supported = ExtensionSet::default();
+        let mut exts = ExtensionSet::default();
+        assert!(GraphicsProvider::enable_graphics_extensions_for(&supported, &mut exts).is_err());
+
+        supported.khr_vulkan_enable2 = true;
+        assert!(GraphicsProvider::enable_graphics_extensions_for(&supported, &mut exts).is_ok());
+        assert!(exts.khr_vulkan_enable2);
+    }
+
+    #[test]
+    fn vulkan_dmabuf_egl_interop_and_y_flip_blit() {
+        let Ok(connection) = SurfmanConnection::new() else {
+            return;
+        };
+        let Ok(adapter) = connection.create_adapter() else {
+            return;
+        };
+        let Ok(device) = connection.create_device(&adapter) else {
+            return;
+        };
+        let version = match device.gl_api() {
+            GLApi::GL => GLVersion::new(3, 2),
+            GLApi::GLES => GLVersion::new(3, 0),
+        };
+        let Ok(desc) = device.create_context_descriptor(&ContextAttributes {
+            version,
+            flags: ContextAttributeFlags::ALPHA | ContextAttributeFlags::DEPTH,
+        }) else {
+            return;
+        };
+        let Ok(mut ctx) = device.create_context(&desc, None) else {
+            return;
+        };
+        device.make_context_current(&ctx).unwrap();
+        let gl = unsafe {
+            gl::Context::from_loader_function(|name| device.get_proc_address(&ctx, name))
+        };
+
+        let Ok(entry) = (unsafe { ash::Entry::load() }) else {
+            device.destroy_context(&mut ctx).unwrap();
+            return;
+        };
+        let app_info = vk::ApplicationInfo::default().api_version(vk::API_VERSION_1_1);
+        let Ok(instance) = (unsafe {
+            entry.create_instance(
+                &vk::InstanceCreateInfo::default().application_info(&app_info),
+                None,
+            )
+        }) else {
+            device.destroy_context(&mut ctx).unwrap();
+            return;
+        };
+
+        let phys_devices = unsafe { instance.enumerate_physical_devices() }.unwrap_or_default();
+        let Some((physical_device, queue_family_index, enable_drm_mod)) =
+            phys_devices.into_iter().find_map(|pd| {
+                let props = unsafe { instance.get_physical_device_properties(pd) };
+                if props.api_version < vk::API_VERSION_1_1 {
+                    return None;
+                }
+                let qfi = unsafe { instance.get_physical_device_queue_family_properties(pd) }
+                    .into_iter()
+                    .enumerate()
+                    .find_map(|(i, q)| {
+                        q.queue_flags
+                            .contains(vk::QueueFlags::GRAPHICS)
+                            .then_some(i as u32)
+                    })?;
+                let exts = unsafe { instance.enumerate_device_extension_properties(pd) }.ok()?;
+                let has = |n: &CStr| {
+                    exts.iter()
+                        .any(|p| unsafe { CStr::from_ptr(p.extension_name.as_ptr()) } == n)
+                };
+                if !has(ash::khr::external_memory_fd::NAME) ||
+                    !has(ash::ext::external_memory_dma_buf::NAME)
+                {
+                    return None;
+                }
+                let drm_mod = has(ash::ext::image_drm_format_modifier::NAME) &&
+                    has(ash::khr::image_format_list::NAME);
+                Some((pd, qfi, drm_mod))
+            })
+        else {
+            unsafe { instance.destroy_instance(None) };
+            device.destroy_context(&mut ctx).unwrap();
+            return;
+        };
+
+        let mut ext_ptrs = vec![
+            ash::khr::external_memory_fd::NAME.as_ptr(),
+            ash::ext::external_memory_dma_buf::NAME.as_ptr(),
+        ];
+        if enable_drm_mod {
+            ext_ptrs.push(ash::ext::image_drm_format_modifier::NAME.as_ptr());
+            ext_ptrs.push(ash::khr::image_format_list::NAME.as_ptr());
+        }
+        let priorities = [1.0f32];
+        let queue_infos = [vk::DeviceQueueCreateInfo::default()
+            .queue_family_index(queue_family_index)
+            .queue_priorities(&priorities)];
+        let vk_device = unsafe {
+            instance.create_device(
+                physical_device,
+                &vk::DeviceCreateInfo::default()
+                    .queue_create_infos(&queue_infos)
+                    .enabled_extension_names(&ext_ptrs),
+                None,
+            )
+        }
+        .unwrap();
+        let vulkan = VulkanContext::from_handles(
+            entry,
+            instance,
+            physical_device,
+            vk_device,
+            queue_family_index,
+            enable_drm_mod,
+        )
+        .unwrap();
+
+        let size = Size2D::new(16, 16);
+        let fmt = vk::Format::R8G8B8A8_UNORM.as_raw() as u32;
+        let staging = VulkanStagingImage::new(vulkan.clone(), &gl, size, fmt).unwrap();
+
+        // Render RED to top half (GL y=8..16) and GREEN to bottom half (GL y=0..8).
+        unsafe {
+            let fbo = gl.create_framebuffer().unwrap();
+            gl.bind_framebuffer(gl::FRAMEBUFFER, Some(fbo));
+            gl.framebuffer_texture_2d(
+                gl::FRAMEBUFFER,
+                gl::COLOR_ATTACHMENT0,
+                gl::TEXTURE_2D,
+                Some(staging.gl_texture),
+                0,
+            );
+            assert_eq!(
+                gl.check_framebuffer_status(gl::FRAMEBUFFER),
+                gl::FRAMEBUFFER_COMPLETE
+            );
+            gl.enable(gl::SCISSOR_TEST);
+            gl.scissor(0, 8, 16, 8);
+            gl.clear_color(1.0, 0.0, 0.0, 1.0);
+            gl.clear(gl::COLOR_BUFFER_BIT);
+            gl.scissor(0, 0, 16, 8);
+            gl.clear_color(0.0, 1.0, 0.0, 1.0);
+            gl.clear(gl::COLOR_BUFFER_BIT);
+            gl.disable(gl::SCISSOR_TEST);
+            gl.bind_framebuffer(gl::FRAMEBUFFER, None);
+            gl.delete_framebuffer(fbo);
+        }
+
+        // Create a linear host-visible Vulkan destination image to verify Y-flipped blit output.
+        let dst_img = unsafe {
+            vulkan.device.create_image(
+                &vk::ImageCreateInfo::default()
+                    .image_type(vk::ImageType::TYPE_2D)
+                    .format(vk::Format::R8G8B8A8_UNORM)
+                    .extent(vk::Extent3D {
+                        width: 16,
+                        height: 16,
+                        depth: 1,
+                    })
+                    .mip_levels(1)
+                    .array_layers(1)
+                    .samples(vk::SampleCountFlags::TYPE_1)
+                    .tiling(vk::ImageTiling::LINEAR)
+                    .usage(vk::ImageUsageFlags::TRANSFER_DST)
+                    .sharing_mode(vk::SharingMode::EXCLUSIVE)
+                    .initial_layout(vk::ImageLayout::UNDEFINED),
+                None,
+            )
+        }
+        .unwrap();
+        let reqs = unsafe { vulkan.device.get_image_memory_requirements(dst_img) };
+        let mem_type = vulkan
+            .find_memory_type(
+                reqs.memory_type_bits,
+                vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+            )
+            .unwrap();
+        let dst_mem = unsafe {
+            vulkan.device.allocate_memory(
+                &vk::MemoryAllocateInfo::default()
+                    .allocation_size(reqs.size)
+                    .memory_type_index(mem_type),
+                None,
+            )
+        }
+        .unwrap();
+        unsafe { vulkan.device.bind_image_memory(dst_img, dst_mem, 0) }.unwrap();
+
+        staging
+            .blit_to_swapchain_image(dst_img.as_raw(), &gl)
+            .unwrap();
+
+        let layout = unsafe {
+            vulkan.device.get_image_subresource_layout(
+                dst_img,
+                vk::ImageSubresource {
+                    aspect_mask: vk::ImageAspectFlags::COLOR,
+                    mip_level: 0,
+                    array_layer: 0,
+                },
+            )
+        };
+        let mapped = unsafe {
+            vulkan
+                .device
+                .map_memory(dst_mem, 0, reqs.size, vk::MemoryMapFlags::empty())
+        }
+        .unwrap() as *const u8;
+
+        // In Vulkan top-left coordinates: row 2 should be RED, row 13 should be GREEN.
+        let pixel_at = |x: usize, y: usize| -> [u8; 4] {
+            let off = layout.offset as usize + y * layout.row_pitch as usize + x * 4;
+            unsafe {
+                [
+                    *mapped.add(off),
+                    *mapped.add(off + 1),
+                    *mapped.add(off + 2),
+                    *mapped.add(off + 3),
+                ]
+            }
+        };
+        assert_eq!(pixel_at(8, 2), [255, 0, 0, 255], "top row should be RED");
+        assert_eq!(
+            pixel_at(8, 13),
+            [0, 255, 0, 255],
+            "bottom row should be GREEN"
+        );
+
+        unsafe {
+            vulkan.device.unmap_memory(dst_mem);
+            vulkan.device.destroy_image(dst_img, None);
+            vulkan.device.free_memory(dst_mem, None);
+        }
+        staging.destroy(Some(&gl));
+        device.destroy_context(&mut ctx).unwrap();
+    }
+}

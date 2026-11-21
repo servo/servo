@@ -444,3 +444,43 @@ pub(super) fn get_supported_interaction_profiles(
     }
     extensions
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn get_profiles_from_path_maps_known_and_unknown_paths() {
+        assert_eq!(
+            get_profiles_from_path("/interaction_profiles/khr/simple_controller".to_string()),
+            &["generic-trigger"]
+        );
+        assert!(
+            get_profiles_from_path("/interaction_profiles/valve/index_controller".to_string())
+                .contains(&"valve-index")
+        );
+        assert!(
+            get_profiles_from_path("/interaction_profiles/oculus/touch_controller".to_string())
+                .contains(&"oculus-touch")
+        );
+        assert!(
+            get_profiles_from_path("/interaction_profiles/unknown/controller".to_string())
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn get_supported_interaction_profiles_enables_only_advertised_extensions() {
+        let mut supported = ExtensionSet::default();
+        supported.ext_hand_interaction = true;
+        supported.fb_touch_controller_pro = true;
+
+        let mut enabled = ExtensionSet::default();
+        let list = get_supported_interaction_profiles(&supported, &mut enabled);
+        assert!(enabled.ext_hand_interaction);
+        assert!(enabled.fb_touch_controller_pro);
+        assert!(!enabled.bd_controller_interaction);
+        assert!(!enabled.meta_touch_controller_plus);
+        assert_eq!(list.len(), 2);
+    }
+}

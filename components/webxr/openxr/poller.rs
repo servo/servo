@@ -132,3 +132,34 @@ fn openxr_device_check(app_info: &AppInfo) -> PollOutcome {
         properties.system_name,
     )))
 }
+
+#[cfg(test)]
+mod tests {
+    use std::time::Instant;
+
+    use super::*;
+    use crate::openxr::ActiveSessionGuard;
+
+    #[test]
+    fn poller_skips_probe_while_session_instance_is_active() {
+        let _guard = {
+            let _lock = INSTANCE_LOCK.lock().unwrap();
+            ActiveSessionGuard::acquire()
+        };
+        let app_info = AppInfo::new("Test", 0, "Servo", 0);
+        assert_eq!(openxr_device_check(&app_info), PollOutcome::Busy);
+    }
+
+    #[test]
+    fn poller_drop_exits_promptly() {
+        let start = Instant::now();
+        {
+            let poller = OpenXRDevicePoller::new();
+            assert_eq!(poller.try_recv(), None);
+        }
+        assert!(
+            start.elapsed() < Duration::from_secs(2),
+            "OpenXRDevicePoller::drop should wake shutdown channel immediately"
+        );
+    }
+}

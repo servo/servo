@@ -45,6 +45,8 @@ openxr = { workspace = true, features = ["static"], optional = true }
 winapi = { workspace = true, features = ["d3d11", "dxgi", "winerror"], optional = true }
 wio = { workspace = true, optional = true }
 
+[dev-dependencies]
+embedder_traits = { workspace = true }
 
 [lints]
 workspace = true

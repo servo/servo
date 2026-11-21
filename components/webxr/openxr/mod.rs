@@ -1774,3 +1774,111 @@ fn fov_to_projection_matrix<T, U>(fov: &Fovf, clip_planes: ClipPlanes) -> Transf
         clip_planes,
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn active_session_guard_tracks_clones_and_resets() {
+        let _lock = INSTANCE_LOCK.lock().unwrap();
+        let baseline = ACTIVE_SESSION_INSTANCES.load(Ordering::SeqCst);
+        let guard_device = ActiveSessionGuard::acquire();
+        let guard_layer_mgr = guard_device.clone();
+        assert_eq!(
+            ACTIVE_SESSION_INSTANCES.load(Ordering::SeqCst),
+            baseline + 1
+        );
+
+        drop(guard_device);
+        assert_eq!(
+            ACTIVE_SESSION_INSTANCES.load(Ordering::SeqCst),
+            baseline + 1
+        );
+
+        drop(guard_layer_mgr);
+        assert_eq!(ACTIVE_SESSION_INSTANCES.load(Ordering::SeqCst), baseline);
+    }
+
+    #[test]
+    fn pose_transform_image_rect_and_stereo_viewports() {
+        let identity = transform::<(), ()>(&IDENTITY_POSE);
+        assert_eq!(identity.translation, Vector3D::zero());
+
+        let translated = Posef {
+            orientation: Quaternionf {
+                x: 0.0,
+                y: 0.0,
+                z: 0.0,
+                w: 1.0,
+            },
+            position: Vector3f {
+                x: 1.5,
+                y: -2.0,
+                z: 3.25,
+            },
+        };
+        let t = transform::<(), ()>(&translated);
+        assert_eq!(t.translation, Vector3D::new(1.5, -2.0, 3.25));
+
+        let rect = image_rect(Rect::new(Point2D::new(896, 0), Size2D::new(896, 1007)));
+        assert_eq!(rect.offset.x, 896);
+        assert_eq!(rect.offset.y, 0);
+        assert_eq!(rect.extent.width, 896);
+        assert_eq!(rect.extent.height, 1007);
+
+        let left = Extent2Di {
+            width: 896,
+            height: 1007,
+        };
+        let right = Extent2Di {
+            width: 896,
+            height: 1007,
+        };
+        let stereo = stereo_viewports(left, right, None);
+        assert_eq!(stereo.viewports.len(), 2);
+        assert_eq!(
+            stereo.viewports[0],
+            Rect::new(Point2D::new(0, 0), Size2D::new(896, 1007))
+        );
+        assert_eq!(
+            stereo.viewports[1],
+            Rect::new(Point2D::new(896, 0), Size2D::new(896, 1007))
+        );
+
+        let with_secondary = stereo_viewports(
+            left,
+            right,
+            Some(Extent2Di {
+                width: 1280,
+                height: 720,
+            }),
+        );
+        assert_eq!(with_secondary.viewports.len(), 3);
+        assert_eq!(
+            with_secondary.viewports[2],
+            Rect::new(Point2D::new(1792, 0), Size2D::new(640, 360))
+        );
+    }
+
+    #[test]
+    fn fov_projection_stays_upright_without_y_flip() {
+        let mut clip = ClipPlanes::default();
+        clip.update(0.1, 1000.0);
+        let fov = Fovf {
+            angle_left: -0.78,
+            angle_right: 0.78,
+            angle_up: 0.78,
+            angle_down: -0.78,
+        };
+        let proj = fov_to_projection_matrix::<LeftEye, Display>(&fov, clip);
+        assert!(proj.m11 > 0.0);
+        assert!(proj.m22 > 0.0);
+    }
+
+    #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
+    #[test]
+    fn load_entry_succeeds_with_static_linux_loader() {
+        assert!(load_entry().is_ok());
+    }
+}
