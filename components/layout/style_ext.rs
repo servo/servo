@@ -982,6 +982,13 @@ impl ComputedValuesExt for ComputedValues {
             return true;
         }
 
+        // This ensures that widget descendants elements cannot escape a replaced ancestors. Widget
+        // contents are outside of the CSS formatting model and should never be positioned with
+        // ancestors as their containing blocks.
+        if fragment_flags.contains(FragmentFlags::IS_REPLACED) {
+            return true;
+        }
+
         // TODO: We need to handle CSS Contain here.
         false
     }

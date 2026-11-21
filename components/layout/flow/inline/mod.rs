@@ -2821,18 +2821,13 @@ impl IndependentFormattingContext {
 
         // Lay out absolutely positioned children if this new atomic establishes a containing block
         // for absolutes.
-        let positioning_context = if self.is_replaced() {
-            None
-        } else {
-            if fragment
-                .style()
-                .establishes_containing_block_for_absolute_descendants(fragment.base.flags)
-            {
-                child_positioning_context
-                    .layout_collected_children(layout.layout_context, &mut fragment);
-            }
-            Some(child_positioning_context)
-        };
+        if fragment
+            .style()
+            .establishes_containing_block_for_absolute_descendants(fragment.base.flags)
+        {
+            child_positioning_context
+                .layout_collected_children(layout.layout_context, &mut fragment);
+        }
 
         if layout.text_wrap_mode == TextWrapMode::Wrap &&
             !layout
@@ -2868,7 +2863,7 @@ impl IndependentFormattingContext {
             AtomicLineItem {
                 fragment,
                 size,
-                positioning_context,
+                positioning_context: child_positioning_context,
                 baseline_offset_in_parent,
                 baseline_offset_in_item: baseline_offset,
                 bidi_level,

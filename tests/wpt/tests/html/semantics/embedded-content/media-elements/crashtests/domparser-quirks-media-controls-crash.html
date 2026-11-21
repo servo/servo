@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/servo/servo/issues/49997">
+<style>
+:root { animation: k 300ms }
+@keyframes k {}
+</style>
+<script>
+function main() {
+  new DOMParser().parseFromString("A", "text/html");
+}
+</script>
+<body onload="main()">
+<audio controls>
