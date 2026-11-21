@@ -268,8 +268,4 @@ impl HyperlinkElement for SVGAElement {
     fn get_url(&self) -> &DomRefCell<Option<UrlWithBlobClaim>> {
         &self.url
     }
-
-    fn relations(&self) -> LinkRelations {
-        self.relations.get()
-    }
 }
