@@ -26,9 +26,9 @@ use crate::containing_block::{ContainingBlock, ContainingBlockSize};
 use crate::flow::inline::text_run::{FontAndScriptInfo, SharedTextRunData};
 use crate::fragment_tree::{
     BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, FragmentAndLogicalRect,
-    FragmentChildren, FragmentFlags, TextFragment,
+    FragmentChildren, FragmentFlags, TextFragment, WithLogicalRect,
 };
-use crate::geom::{LogicalRect, LogicalSides, LogicalVec2, PhysicalRect, PhysicalSize};
+use crate::geom::{LogicalRect, LogicalSides, LogicalVec2, PhysicalRect};
 use crate::positioned::{
     AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, StaticPositionRect,
     relative_adjustement,
@@ -128,7 +128,7 @@ impl FragmentAndData {
     fn resolve_physical_rects_and_adjust_floats(
         fragments_and_data: Vec<Self>,
         container: &ContainingBlock,
-    ) -> Vec<Fragment> {
+    ) -> Vec<WithLogicalRect<Fragment>> {
         let mut fragments = Vec::with_capacity(fragments_and_data.len());
         for fragment_and_data in fragments_and_data {
             if !matches!(
@@ -137,7 +137,7 @@ impl FragmentAndData {
             ) {
                 fragment_and_data.resolve_physical_rect_and_adjust_floats(container)
             }
-            fragments.push(fragment_and_data.fragment_and_rect.fragment);
+            fragments.push(fragment_and_data.fragment_and_rect);
         }
         fragments
     }
@@ -148,20 +148,28 @@ impl FragmentAndData {
     fn resolve_physical_rects_and_adjust_and_collect_floats(
         fragments_and_data: Vec<Self>,
         container: &ContainingBlock,
-        relative_adjustement: PhysicalSize<Au>,
-    ) -> (Vec<Fragment>, Vec<Arc<BoxFragment>>) {
+        relative_adjustement: LogicalVec2<Au>,
+    ) -> (Vec<FragmentAndLogicalRect>, Vec<Arc<BoxFragment>>) {
         let mut fragments = Vec::with_capacity(fragments_and_data.len());
         let mut propagated_floats = Vec::new();
         for mut fragment_and_data in fragments_and_data {
             if let Fragment::Float(ref float) = fragment_and_data.fragment_and_rect.fragment {
-                if relative_adjustement != PhysicalSize::zero() {
-                    float.base.translate_rect(relative_adjustement);
+                fragment_and_data
+                    .fragment_and_rect
+                    .logical_rect
+                    .start_corner += relative_adjustement;
+                if relative_adjustement != LogicalVec2::zero() {
+                    float.base.translate_rect(
+                        relative_adjustement
+                            .to_physical_offset_deprecated(container.style.writing_mode)
+                            .to_size(),
+                    );
                 }
                 propagated_floats.push(float.clone());
             } else {
                 fragment_and_data.resolve_physical_rect_and_adjust_floats(container)
             }
-            fragments.push(fragment_and_data.fragment_and_rect.fragment);
+            fragments.push(fragment_and_data.fragment_and_rect);
             propagated_floats.append(&mut fragment_and_data.propagated_floats);
         }
         (fragments, propagated_floats)
@@ -275,7 +283,7 @@ impl LineItemLayout<'_, '_> {
         justification_adjustment: Au,
         is_phantom_line: bool,
         for_block_level: bool,
-    ) -> Vec<Fragment> {
+    ) -> Vec<WithLogicalRect<Fragment>> {
         let baseline_offset = effective_block_advance.find_baseline_offset();
         LineItemLayout {
             layout,
@@ -382,7 +390,7 @@ impl LineItemLayout<'_, '_> {
         iterator(line_items)
     }
 
-    pub(super) fn layout(&mut self, line_items: Vec<LineItem>) -> Vec<Fragment> {
+    pub(super) fn layout(&mut self, line_items: Vec<LineItem>) -> Vec<WithLogicalRect<Fragment>> {
         let line_item_iterator = self.reorder_line_items_for_bidi(line_items);
         for item in line_item_iterator.into_iter().by_ref() {
             // When preparing to lay out a new line item, start and end inline boxes, so that the current
@@ -548,10 +556,8 @@ impl LineItemLayout<'_, '_> {
             let relative_adjustement = relative_adjustement(style, containing_block);
             content_rect.start_corner += relative_adjustement;
             relative_adjustement
-                .to_physical_offset_deprecated(containing_block_writing_mode)
-                .to_size()
         } else {
-            PhysicalSize::zero()
+            LogicalVec2::zero()
         };
 
         let (fragments, propagated_floats) =
@@ -567,10 +573,10 @@ impl LineItemLayout<'_, '_> {
                 relative_adjustement,
             );
 
-        let mut fragment = BoxFragment::new(
+        let mut fragment = BoxFragment::new_with_writing_mode_override(
             inline_box.base.base_fragment_info,
             style.clone(),
-            FragmentChildren::PhysicalDeprecated(fragments),
+            FragmentChildren::Logical(fragments),
             // Previously all the fragment's children were positioned relative to the linebox,
             // but they need to be made relative to this fragment.
             content_rect.as_physical_deprecated(containing_block),
@@ -578,6 +584,7 @@ impl LineItemLayout<'_, '_> {
             border.to_physical(containing_block_writing_mode),
             margin.to_physical(containing_block_writing_mode),
             None, /* specific_layout_info */
+            containing_block_writing_mode,
         );
         if self.for_block_level {
             fragment.base.flags.insert(FragmentFlags::DO_NOT_PAINT);
@@ -857,31 +864,30 @@ impl LineItemLayout<'_, '_> {
             inline: Au::zero(),
             block: -self.line_metrics.block_offset,
         };
-        float
-            .fragment
+        let WithLogicalRect {
+            fragment,
+            mut logical_rect,
+        } = float.fragment;
+        logical_rect.start_corner += offset;
+        fragment
             .base
             .translate_rect(offset.to_physical_size(self.containing_block().style.writing_mode));
         self.current_state
             .fragments_and_data
-            .push(FragmentAndData::new(FragmentAndLogicalRect::new(
-                Fragment::Float(float.fragment),
-                LogicalRect::zero(),
+            .push(FragmentAndData::new(WithLogicalRect::new(
+                Fragment::Float(fragment),
+                logical_rect,
             )));
     }
 
-    fn layout_block_level(&mut self, block_level: Arc<BoxFragment>) {
-        let containing_block = self.containing_block();
-        let mut content_rect =
-            LogicalRect::from_physical_deprecated(block_level.content_rect(), containing_block);
+    fn layout_block_level(&mut self, mut block_level: WithLogicalRect<Fragment>) {
+        let content_rect = &mut block_level.logical_rect;
         // Block-level boxes are always placed at the logical origin of the line.
         content_rect.start_corner.inline -= self.current_state.parent_offset.inline;
         content_rect.start_corner.block -= self.line_metrics.block_offset;
         self.current_state
             .fragments_and_data
-            .push(FragmentAndData::new(FragmentAndLogicalRect::new(
-                Fragment::Box(block_level),
-                content_rect,
-            )));
+            .push(FragmentAndData::new(block_level));
     }
 
     #[inline]
@@ -901,7 +907,7 @@ pub(super) enum LineItem {
     Atomic(Option<InlineBoxIdentifier>, AtomicLineItem),
     AbsolutelyPositioned(Option<InlineBoxIdentifier>, AbsolutelyPositionedLineItem),
     Float(Option<InlineBoxIdentifier>, FloatLineItem),
-    BlockLevel(Option<InlineBoxIdentifier>, Arc<BoxFragment>),
+    BlockLevel(Option<InlineBoxIdentifier>, WithLogicalRect<Fragment>),
     Tab {
         inline_box_identifier: Option<InlineBoxIdentifier>,
         advance: Au,
@@ -1071,7 +1077,7 @@ pub(super) struct AbsolutelyPositionedLineItem {
 }
 
 pub(super) struct FloatLineItem {
-    pub fragment: Arc<BoxFragment>,
+    pub fragment: WithLogicalRect<Arc<BoxFragment>>,
     /// Whether or not this float Fragment has been placed yet. Fragments that
     /// do not fit on a line need to be placed after the hypothetical block start
     /// of the next line.

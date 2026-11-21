@@ -26,7 +26,7 @@ use crate::containing_block::ContainingBlock;
 use crate::context::LayoutContext;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragment_tree::{BoxFragment, CollapsedMargin};
+use crate::fragment_tree::{BoxFragment, CollapsedMargin, WithLogicalRect};
 use crate::geom::{LogicalRect, LogicalSides, LogicalVec2};
 use crate::positioned::{PositioningContext, relative_adjustement};
 use crate::style_ext::{DisplayInside, PaddingBorderMargin};
@@ -902,7 +902,7 @@ impl FloatBox {
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
-    ) -> BoxFragment {
+    ) -> WithLogicalRect<BoxFragment> {
         positioning_context.layout_maybe_position_relative_fragment(
             layout_context,
             containing_block,

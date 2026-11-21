@@ -27,6 +27,7 @@ use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::{
     BoxFragment, Fragment, FragmentFlags, HoistedSharedFragment, LayoutRootFragment,
+    WithLogicalRect,
 };
 use crate::geom::{
     AuOrAuto, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect,
@@ -256,8 +257,8 @@ impl PositioningContext {
         layout_context: &LayoutContext,
         containing_block: &ContainingBlock,
         base: &LayoutBoxBase,
-        fragment_layout_fn: impl FnOnce(&mut Self) -> BoxFragment,
-    ) -> BoxFragment {
+        fragment_layout_fn: impl FnOnce(&mut Self) -> WithLogicalRect<BoxFragment>,
+    ) -> WithLogicalRect<BoxFragment> {
         // If a new `PositioningContext` isn't necessary, simply create the fragment using
         // the given closure and the current `PositioningContext`.
         let establishes_containing_block_for_absolutes = base
@@ -272,12 +273,14 @@ impl PositioningContext {
 
         // Lay out all of the absolutely positioned children for this fragment, and, if it
         // isn't a containing block for fixed elements, then pass those up to the parent.
-        new_context.layout_collected_children(layout_context, &mut new_fragment);
+        new_context.layout_collected_children(layout_context, &mut new_fragment.fragment);
         self.append(new_context);
 
         if base.style.get_box().position == Position::Relative {
-            new_fragment.base.translate_rect(
-                relative_adjustement(&base.style, containing_block)
+            let relative_adjustement = relative_adjustement(&base.style, containing_block);
+            new_fragment.logical_rect.start_corner += relative_adjustement;
+            new_fragment.fragment.base.translate_rect(
+                relative_adjustement
                     .to_physical_offset(containing_block.style.writing_mode)
                     .into(),
             );

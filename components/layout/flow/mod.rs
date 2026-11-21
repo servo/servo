@@ -5,6 +5,8 @@
 
 //! Flow layout, also known as block-and-inline layout.
 
+use std::sync::Arc;
+
 use app_units::{Au, MAX_AU};
 use fonts::FontContext;
 use inline::InlineFormattingContext;
@@ -37,7 +39,7 @@ use crate::flow::same_formatting_context_block::SameFormattingContextBlock;
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
     BaseFragmentInfo, BlockLevelLayoutInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin,
-    Fragment, FragmentChildren, FragmentFlags, PositioningFragment,
+    Fragment, FragmentChildren, FragmentFlags, PositioningFragment, WithLogicalRect,
 };
 use crate::geom::{
     AuOrAuto, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect,
@@ -397,7 +399,7 @@ impl OutsideMarker {
         layout_context: &LayoutContext<'_>,
         containing_block: &ContainingBlock<'_>,
         positioning_context: &mut PositioningContext,
-    ) -> Fragment {
+    ) -> WithLogicalRect<Fragment> {
         let style = &self.context.base.style;
         let preferred_aspect_ratio = self.context.preferred_aspect_ratio(&LogicalVec2::zero());
         let constraint_space =
@@ -467,19 +469,17 @@ impl OutsideMarker {
         let mut base_fragment_info = BaseFragmentInfo::anonymous();
         base_fragment_info.flags |= FragmentFlags::IS_OUTSIDE_LIST_ITEM_MARKER;
 
-        Fragment::Box(
-            BoxFragment::new(
-                base_fragment_info,
-                style.clone(),
-                layout.fragments,
-                content_rect.as_physical_deprecated(containing_block),
-                PhysicalSides::zero(),
-                PhysicalSides::zero(),
-                PhysicalSides::zero(),
-                layout.specific_layout_info,
-            )
-            .into(),
-        )
+        let fragment = Fragment::Box(Arc::new(BoxFragment::new(
+            base_fragment_info,
+            style.clone(),
+            layout.fragments,
+            content_rect.as_physical_deprecated(containing_block),
+            PhysicalSides::zero(),
+            PhysicalSides::zero(),
+            PhysicalSides::zero(),
+            layout.specific_layout_info,
+        )));
+        WithLogicalRect::new(fragment, content_rect)
     }
 
     fn repair_style(
@@ -636,8 +636,10 @@ impl BlockFormattingContext {
                 std::mem::take(&mut flow_layout.fragments),
                 false, /* is_line_box */
             );
-            flow_layout.fragments =
-                FragmentChildren::PhysicalDeprecated(vec![Fragment::Positioning(align_fragment)]);
+            flow_layout.fragments = FragmentChildren::Logical(vec![WithLogicalRect::new(
+                Fragment::Positioning(align_fragment),
+                align_fragment_rect,
+            )]);
         };
         apply_align_content();
 
@@ -1056,7 +1058,7 @@ fn layout_block_level_children_maybe_in_parallel(
     placement_state: &mut PlacementState,
     ignore_block_margins_for_stretch: LogicalSides1D<bool>,
 ) -> FragmentChildren {
-    let mut layout_results: Vec<(Fragment, PositioningContext)> =
+    let mut layout_results: Vec<(WithLogicalRect<Fragment>, PositioningContext)> =
         Vec::with_capacity(child_boxes.len());
 
     let layout = |child_box: &ArcRefCell<BlockLevelBox>| {
@@ -1090,19 +1092,17 @@ fn layout_block_level_children_maybe_in_parallel(
         .map(|(mut fragment, mut child_positioning_context)| {
             placement_state.place_fragment_and_update_baseline(&mut fragment, None);
 
-            if let Some(rect) = fragment.base().map(|base| base.rect()) {
-                child_positioning_context.adjust_static_position_of_hoisted_fragments(
-                    &LogicalRect::from_physical_deprecated(rect, placement_state.containing_block),
-                    placement_state.containing_block.style.writing_mode,
-                    PositioningContextLength::zero(),
-                );
-            }
+            child_positioning_context.adjust_static_position_of_hoisted_fragments(
+                &fragment.logical_rect,
+                placement_state.containing_block.style.writing_mode,
+                PositioningContextLength::zero(),
+            );
 
             positioning_context.append(child_positioning_context);
             fragment
         })
         .collect();
-    FragmentChildren::PhysicalDeprecated(fragments)
+    FragmentChildren::Logical(fragments)
 }
 
 fn layout_block_level_children_sequentially(
@@ -1130,7 +1130,7 @@ fn layout_block_level_children_sequentially(
             )
         })
         .collect();
-    FragmentChildren::PhysicalDeprecated(fragments)
+    FragmentChildren::Logical(fragments)
 }
 
 fn layout_block_level_child(
@@ -1141,7 +1141,7 @@ fn layout_block_level_child(
     placement_state: &mut PlacementState,
     ignore_block_margins_for_stretch: LogicalSides1D<bool>,
     has_inline_parent: bool,
-) -> Fragment {
+) -> WithLogicalRect<Fragment> {
     let positioning_context_length_before_layout = positioning_context.len();
     let mut fragment = child_box.layout(
         layout_context,
@@ -1156,13 +1156,11 @@ fn layout_block_level_child(
     );
 
     placement_state.place_fragment_and_update_baseline(&mut fragment, sequential_layout_state);
-    if let Some(rect) = fragment.base().map(|base| base.rect()) {
-        positioning_context.adjust_static_position_of_hoisted_fragments(
-            &LogicalRect::from_physical_deprecated(rect, placement_state.containing_block),
-            placement_state.containing_block.style.writing_mode,
-            positioning_context_length_before_layout,
-        );
-    }
+    positioning_context.adjust_static_position_of_hoisted_fragments(
+        &fragment.logical_rect,
+        placement_state.containing_block.style.writing_mode,
+        positioning_context_length_before_layout,
+    );
 
     fragment
 }
@@ -1178,40 +1176,44 @@ impl BlockLevelBox {
         collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
         ignore_block_margins_for_stretch: LogicalSides1D<bool>,
         has_inline_parent: bool,
-    ) -> Fragment {
+    ) -> WithLogicalRect<Fragment> {
         let fragment = match self {
             BlockLevelBox::SameFormattingContextBlock(same_formatting_context_block) => {
-                Fragment::Box(
-                    same_formatting_context_block.layout_in_flow_non_replaced_block_level_cached(
-                        layout_context,
-                        positioning_context,
-                        containing_block,
-                        sequential_layout_state,
-                        collapsible_with_parent_start_margin,
-                        ignore_block_margins_for_stretch,
-                        has_inline_parent,
-                    ),
-                )
+                let WithLogicalRect {
+                    fragment,
+                    logical_rect,
+                } = same_formatting_context_block.layout_in_flow_non_replaced_block_level_cached(
+                    layout_context,
+                    positioning_context,
+                    containing_block,
+                    sequential_layout_state,
+                    collapsible_with_parent_start_margin,
+                    ignore_block_margins_for_stretch,
+                    has_inline_parent,
+                );
+                WithLogicalRect::new(Fragment::Box(fragment), logical_rect)
             },
-            BlockLevelBox::Independent(independent) => Fragment::Box(
-                positioning_context
-                    .layout_maybe_position_relative_fragment(
-                        layout_context,
-                        containing_block,
-                        &independent.base,
-                        |positioning_context| {
-                            independent.layout_in_flow_block_level(
-                                layout_context,
-                                positioning_context,
-                                containing_block,
-                                sequential_layout_state,
-                                ignore_block_margins_for_stretch,
-                                has_inline_parent,
-                            )
-                        },
-                    )
-                    .into(),
-            ),
+            BlockLevelBox::Independent(independent) => {
+                let WithLogicalRect {
+                    fragment,
+                    logical_rect,
+                } = positioning_context.layout_maybe_position_relative_fragment(
+                    layout_context,
+                    containing_block,
+                    &independent.base,
+                    |positioning_context| {
+                        independent.layout_in_flow_block_level(
+                            layout_context,
+                            positioning_context,
+                            containing_block,
+                            sequential_layout_state,
+                            ignore_block_margins_for_stretch,
+                            has_inline_parent,
+                        )
+                    },
+                );
+                WithLogicalRect::new(Fragment::Box(Arc::new(fragment)), logical_rect)
+            },
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
                 // The static position of zero here is incorrect, however we do not know
                 // the correct positioning until later, in place_block_level_fragment, and
@@ -1230,19 +1232,29 @@ impl BlockLevelBox {
                 );
                 let hoisted_fragment = hoisted_box.fragment.clone();
                 positioning_context.push(hoisted_box);
-                Fragment::AbsoluteOrFixedPositionedPlaceholder(hoisted_fragment)
+
+                // unused for `AbsoluteOrFixedPositionedPlaceholder` because `Fragment::base()`
+                // returns `None`:
+                let logical_rect = Default::default();
+
+                WithLogicalRect::new(
+                    Fragment::AbsoluteOrFixedPositionedPlaceholder(hoisted_fragment),
+                    logical_rect,
+                )
             },
-            BlockLevelBox::OutOfFlowFloatBox(float_box) => Fragment::Float(
-                float_box
-                    .layout(layout_context, positioning_context, containing_block)
-                    .into(),
-            ),
+            BlockLevelBox::OutOfFlowFloatBox(float_box) => {
+                let WithLogicalRect {
+                    fragment,
+                    logical_rect,
+                } = float_box.layout(layout_context, positioning_context, containing_block);
+                WithLogicalRect::new(Fragment::Float(Arc::new(fragment)), logical_rect)
+            },
             BlockLevelBox::OutsideMarker(outside_marker) => {
                 outside_marker.layout(layout_context, containing_block, positioning_context)
             },
         };
 
-        self.with_base(|base| base.set_fragment(fragment.clone()));
+        self.with_base(|base| base.set_fragment(fragment.fragment.clone()));
 
         fragment
     }
@@ -1282,7 +1294,7 @@ impl IndependentFormattingContext {
         sequential_layout_state: Option<&mut SequentialLayoutState>,
         ignore_block_margins_for_stretch: LogicalSides1D<bool>,
         has_inline_parent: bool,
-    ) -> BoxFragment {
+    ) -> WithLogicalRect<BoxFragment> {
         if let Some(sequential_layout_state) = sequential_layout_state {
             return self.layout_in_flow_block_level_sequentially(
                 layout_context,
@@ -1371,7 +1383,7 @@ impl IndependentFormattingContext {
                 FragmentFlags::SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM,
             );
         }
-        BoxFragment::new(
+        let fragment = BoxFragment::new(
             base_fragment_info,
             self.base.style.clone(),
             layout.fragments,
@@ -1382,7 +1394,8 @@ impl IndependentFormattingContext {
             layout.specific_layout_info,
         )
         .with_baselines(layout.baselines)
-        .with_block_level_layout_info(block_margins_collapsed_with_children, None)
+        .with_block_level_layout_info(block_margins_collapsed_with_children, None);
+        WithLogicalRect::new(fragment, content_rect)
     }
 
     /// Lay out a normal in flow non-replaced block that establishes an independent
@@ -1398,7 +1411,7 @@ impl IndependentFormattingContext {
         ignore_block_margins_for_stretch: LogicalSides1D<bool>,
         has_inline_parent: bool,
         context: &IndependentFormattingContext,
-    ) -> BoxFragment {
+    ) -> WithLogicalRect<BoxFragment> {
         let style = &self.base.style;
         let containing_block_writing_mode = containing_block.style.writing_mode;
         let ContentBoxSizesAndPBM {
@@ -1751,7 +1764,7 @@ impl IndependentFormattingContext {
             );
         }
 
-        BoxFragment::new(
+        let fragment = BoxFragment::new(
             base_fragment_info,
             style.clone(),
             layout.fragments,
@@ -1762,7 +1775,8 @@ impl IndependentFormattingContext {
             layout.specific_layout_info,
         )
         .with_baselines(layout.baselines)
-        .with_block_level_layout_info(CollapsedBlockMargins::from_margin(&margin), clearance)
+        .with_block_level_layout_info(CollapsedBlockMargins::from_margin(&margin), clearance);
+        WithLogicalRect::new(fragment, content_rect)
     }
 }
 
@@ -2212,13 +2226,14 @@ impl<'container> PlacementState<'container> {
 
     fn place_fragment_and_update_baseline(
         &mut self,
-        fragment: &mut Fragment,
+        fragment: &mut WithLogicalRect<Fragment>,
         sequential_layout_state: Option<&mut SequentialLayoutState>,
     ) {
         self.place_fragment(fragment, sequential_layout_state);
 
-        let box_fragment = match fragment {
+        let box_fragment = match &fragment.fragment {
             Fragment::LayoutRoot(..) | Fragment::Box(..) => fragment
+                .fragment
                 .retrieve_box_fragment()
                 .expect("Should be guaranteed by surrounding check"),
             _ => return,
@@ -2232,11 +2247,7 @@ impl<'container> PlacementState<'container> {
             return;
         }
 
-        let box_block_offset = LogicalVec2::from_physical_point_deprecated(
-            &box_fragment.content_rect().origin,
-            self.containing_block,
-        )
-        .block;
+        let box_block_offset = fragment.logical_rect.start_corner.block;
         let box_fragment_baselines =
             box_fragment.baselines(self.containing_block.style.writing_mode);
         if let (None, Some(first)) = (self.inflow_baselines.first, box_fragment_baselines.first) {
@@ -2251,12 +2262,13 @@ impl<'container> PlacementState<'container> {
     /// information gathered from the [Fragment] itself.
     fn place_fragment(
         &mut self,
-        fragment: &mut Fragment,
+        fragment: &mut WithLogicalRect<Fragment>,
         sequential_layout_state: Option<&mut SequentialLayoutState>,
     ) {
-        match fragment {
+        match &fragment.fragment {
             Fragment::LayoutRoot(..) | Fragment::Box(..) => {
-                let fragment = fragment
+                let box_fragment = fragment
+                    .fragment
                     .retrieve_box_fragment()
                     .expect("Should be guaranteed by surrounding condition");
 
@@ -2268,34 +2280,24 @@ impl<'container> PlacementState<'container> {
                 // between the marker and the item. For instance the marker should be positioned at
                 // the baseline of list item content and the first line of the item content should
                 // be at least as tall as the marker -- not the entire list item itself.
-                let is_outside_marker = fragment
+                let is_outside_marker = box_fragment
                     .base
                     .flags
                     .contains(FragmentFlags::IS_OUTSIDE_LIST_ITEM_MARKER);
                 if is_outside_marker {
                     assert!(self.marker_block_size.is_none());
-                    self.marker_block_size = Some(
-                        LogicalVec2::from_physical_size(
-                            &fragment.content_rect().size,
-                            self.containing_block.style.writing_mode,
-                        )
-                        .block,
-                    );
+                    self.marker_block_size = Some(fragment.logical_rect.start_corner.block);
                     return;
                 }
 
                 let BlockLevelLayoutInfo {
                     clearance,
                     block_margins_collapsed_with_children: fragment_block_margins,
-                } = *fragment
+                } = *box_fragment
                     .block_level_layout_info
                     .clone()
                     .expect("A block-level fragment should have a BlockLevelLayoutInfo.");
-                let mut fragment_block_size = LogicalVec2::from_physical_size(
-                    &fragment.border_rect().size,
-                    self.containing_block.style.writing_mode,
-                )
-                .block;
+                let mut fragment_block_size = fragment.logical_rect.size.block;
 
                 // We use `last_in_flow_margin_collapses_with_parent_end_margin` to implement
                 // this quote from https://drafts.csswg.org/css2/#collapsing-margins
@@ -2332,12 +2334,13 @@ impl<'container> PlacementState<'container> {
                         .adjoin_assign(&fragment_block_margins.start);
                 }
 
-                fragment.base.translate_rect(
-                    LogicalVec2 {
-                        inline: Au::zero(),
-                        block: self.current_margin.solve() + self.current_block_direction_position,
-                    }
-                    .to_physical_size(self.containing_block.style.writing_mode),
+                let offset = LogicalVec2 {
+                    inline: Au::zero(),
+                    block: self.current_margin.solve() + self.current_block_direction_position,
+                };
+                fragment.logical_rect.start_corner += offset;
+                box_fragment.base.translate_rect(
+                    offset.to_physical_size(self.containing_block.style.writing_mode),
                 );
 
                 if fragment_block_margins.collapsed_through {
@@ -2371,7 +2374,7 @@ impl<'container> PlacementState<'container> {
                     .expect("Found float fragment without SequentialLayoutState");
                 let block_offset_from_containing_block_top =
                     self.current_block_direction_position + self.current_margin.solve();
-                sequential_layout_state.place_float_fragment(
+                fragment.logical_rect = sequential_layout_state.place_float_fragment(
                     box_fragment,
                     self.containing_block,
                     self.start_margin,
@@ -2414,7 +2417,7 @@ impl<'container> PlacementState<'container> {
 }
 
 pub(crate) struct IndependentFloatOrAtomicLayoutResult {
-    pub fragment: BoxFragment,
+    pub fragment: WithLogicalRect<BoxFragment>,
     pub baselines: Baselines,
     pub pbm_sums: LogicalSides<Au>,
 }
@@ -2521,12 +2524,16 @@ impl IndependentFormattingContext {
             &lazy_block_size,
         );
 
-        let content_size = LogicalVec2 {
+        let logical_content_size = LogicalVec2 {
             inline: content_inline_size_for_table.unwrap_or(inline_size),
             block: lazy_block_size.resolve(|| content_block_size),
-        }
-        .to_physical_size(container_writing_mode);
-        let content_rect = PhysicalRect::new(PhysicalPoint::zero(), content_size);
+        };
+        let logical_rect = LogicalRect {
+            start_corner: LogicalVec2::zero(),
+            size: logical_content_size,
+        };
+        let content_size = logical_content_size.to_physical_size(container_writing_mode);
+        let physical_content_rect = PhysicalRect::new(PhysicalPoint::zero(), content_size);
 
         let mut base_fragment_info = self.base_fragment_info();
         if content_box_sizes_and_pbm.depends_on_block_constraints {
@@ -2542,7 +2549,7 @@ impl IndependentFormattingContext {
             base_fragment_info,
             style.clone(),
             fragments,
-            content_rect,
+            physical_content_rect,
             pbm.padding.to_physical(container_writing_mode),
             pbm.border.to_physical(container_writing_mode),
             margin.to_physical(container_writing_mode),
@@ -2550,7 +2557,7 @@ impl IndependentFormattingContext {
         );
 
         IndependentFloatOrAtomicLayoutResult {
-            fragment,
+            fragment: WithLogicalRect::new(fragment, logical_rect),
             baselines,
             pbm_sums,
         }
