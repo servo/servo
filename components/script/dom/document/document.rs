@@ -3572,19 +3572,66 @@ impl Document {
     /// <https://drafts.csswg.org/resize-observer/#has-active-resize-observations>
     pub(crate) fn gather_active_resize_observations_at_depth(
         &self,
-        cx: &mut JSContext,
+        no_gc: &NoGC,
         depth: &ResizeObservationDepth,
     ) -> bool {
-        // This does not trigger a creation of ResizeObserver, hence, we can take a simple borrow.
+        // This does not trigger a creation of ResizeObservers, so we can take a simple borrow.
         let mut has_active_resize_observations = false;
         for observer in self.resize_observers.borrow().iter() {
             observer.gather_active_resize_observations_at_depth(
-                cx,
+                no_gc,
                 depth,
                 &mut has_active_resize_observations,
             );
         }
         has_active_resize_observations
+    }
+
+    /// Step 16 from
+    /// <https://html.spec.whatwg.org/multipage/#update-the-rendering>
+    pub(crate) fn run_the_resize_observer_steps(&self, cx: &mut JSContext) {
+        // Not specified, but allows us to skip work when it isn't necessary.
+        if self.resize_observers.borrow().is_empty() {
+            return;
+        }
+
+        // Step 16.1. Let resizeObserverDepth be 0.
+        let mut resize_observer_depth = Default::default();
+        // Step 16.2. While true:
+        loop {
+            // Step 16.2.1. Recalculate styles and update layout for doc.
+            self.window()
+                .reflow_for_non_flushing_update_the_rendering_queries(cx);
+
+            // Step 16.2.2. Let hadInitialVisibleContentVisibilityDetermination be false.
+            // Step 16.2.3. For each element element with 'auto' used value of 'content-visibility':
+            // Step 16.2.4. If hadInitialVisibleContentVisibilityDetermination is true, then continue.
+            // TODO: Implement content-visibility
+
+            // Step 16.2.5. Gather active resize observations at depth resizeObserverDepth for doc.
+            let has_active_resize_observers =
+                self.gather_active_resize_observations_at_depth(cx.no_gc(), &resize_observer_depth);
+            // Step 16.2.6. If doc has active resize observations:
+            if has_active_resize_observers {
+                // Step 16.2.6.1. Set resizeObserverDepth to the result of broadcasting active resize
+                // observations given doc.
+                resize_observer_depth = self.broadcast_active_resize_observations(cx);
+                continue;
+            }
+            // Step 16.2.7. Otherwise, break.
+            break;
+        }
+
+        // Step 16.3. If doc has skipped resize observations, then deliver resize loop error given
+        // doc.
+        if self.has_skipped_resize_observations() {
+            self.deliver_resize_loop_error_notification(cx);
+            // Ensure that another turn of the event loop occurs to process
+            // the skipped observations.
+            self.add_rendering_update_reason(
+                RenderingUpdateReason::ResizeObserverStartedObservingTarget,
+            );
+        }
     }
 
     /// <https://drafts.csswg.org/resize-observer/#broadcast-active-resize-observations>
