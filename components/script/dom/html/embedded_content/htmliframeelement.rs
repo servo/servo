@@ -111,9 +111,21 @@ pub(crate) struct HTMLIFrameElement {
     /// on the initial creation of the iframe contents. If the iframe
     /// itself changes the `window.name`, that takes precedence.
     frozen_name: DomRefCell<Option<String>>,
+    /// <https://fullscreen.spec.whatwg.org/#iframe-fullscreen-flag>
+    iframe_fullscreen_flag: Cell<bool>,
 }
 
 impl HTMLIFrameElement {
+    /// <https://fullscreen.spec.whatwg.org/#iframe-fullscreen-flag>
+    pub(crate) fn iframe_fullscreen_flag(&self) -> bool {
+        self.iframe_fullscreen_flag.get()
+    }
+
+    /// <https://fullscreen.spec.whatwg.org/#iframe-fullscreen-flag>
+    pub(crate) fn set_iframe_fullscreen_flag(&self, value: bool) {
+        self.iframe_fullscreen_flag.set(value);
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#lazy-load-resumption-steps>
     pub(crate) fn has_lazy_load_resumption_steps(&self) -> bool {
         !matches!(
@@ -725,6 +737,7 @@ impl HTMLIFrameElement {
             current_navigation_was_lazy_loaded: Default::default(),
             lazy_load_resumption_steps: Default::default(),
             pending_navigation: Default::default(),
+            iframe_fullscreen_flag: Default::default(),
             frozen_name: Default::default(),
         }
     }

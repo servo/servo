@@ -150,8 +150,26 @@ enum ScrollLogicalPosition { "start", "center", "end", "nearest" };
 enum ScrollIntoViewContainer { "all", "nearest" };
 
 // https://fullscreen.spec.whatwg.org/#api
+enum FullscreenNavigationUI {
+  "auto",
+  "show",
+  "hide"
+};
+
+enum FullscreenKeyboardLock {
+  "browser",
+  "none"
+};
+
+dictionary FullscreenOptions {
+  FullscreenKeyboardLock keyboardLock = "none";
+  FullscreenNavigationUI navigationUI = "auto";
+};
+
 partial interface Element {
-  Promise<undefined> requestFullscreen();
+  Promise<undefined> requestFullscreen(optional FullscreenOptions options = {});
+  attribute EventHandler onfullscreenchange;
+  attribute EventHandler onfullscreenerror;
 };
 
 // https://w3c.github.io/pointerevents/#extensions-to-the-element-interface
