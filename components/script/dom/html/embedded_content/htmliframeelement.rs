@@ -218,7 +218,7 @@ impl HTMLIFrameElement {
             // document; the new navigation will continue blocking it.
             LoadBlocker::terminate(cx, load_blocker);
 
-            *load_blocker.borrow_mut() = Some(LoadBlocker::new(
+            *load_blocker.safe_borrow_mut(cx.no_gc()) = Some(LoadBlocker::new(
                 &document,
                 LoadType::Subframe(load_data.url.clone()),
             ));
@@ -607,7 +607,7 @@ impl HTMLIFrameElement {
         // Step 4. Let targetName be null.
         // Step 5. If element has a name content attribute,
         // then set targetName to the value of that attribute.
-        *self.frozen_name.borrow_mut() = self
+        *self.frozen_name.safe_borrow_mut(cx.no_gc()) = self
             .upcast::<Element>()
             .get_name()
             .map(|name| name.to_string());
