@@ -73,7 +73,7 @@ For more detailed build instructions, see the Servo Book under [Getting the Code
    "emulator" \
    "ndk;29.0.14206865" \
    "platform-tools" \
-   "platforms;android-37" \
+   "platforms;android-37.2" \
    "system-images;android-37;google_apis;x86_64"
   ```
 - Follow the instructions above for the platform you are building on
