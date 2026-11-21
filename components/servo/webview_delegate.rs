@@ -356,6 +356,8 @@ pub enum EmbedderControl {
     /// The menu that is actually shown the user may be customized, but custom menu entries
     /// must be handled by the embedder.
     ContextMenu(ContextMenu),
+    /// HTML elements' attributes that are represented as tooltips.
+    Tooltip(TooltipControl),
 }
 
 impl EmbedderControl {
@@ -368,8 +370,14 @@ impl EmbedderControl {
             EmbedderControl::InputMethod(input_method) => input_method.id,
             EmbedderControl::SimpleDialog(simple_dialog) => simple_dialog.id(),
             EmbedderControl::ContextMenu(context_menu) => context_menu.id,
+            EmbedderControl::Tooltip(tooltip) => tooltip.id,
         }
     }
+}
+
+pub struct TooltipControl {
+    pub id: EmbedderControlId,
+    pub text: String,
 }
 
 /// Represents a context menu opened on web content.
@@ -936,6 +944,8 @@ pub trait WebViewDelegate {
     /// The status text of the currently loaded page in this [`WebView`] has changed. The new
     /// status text can accessed via [`WebView::status_text`].
     fn notify_status_text_changed(&self, _webview: WebView, _status: Option<String>) {}
+    /// The alt text of hovered image at the currently loaded page in this [`WebView`] has changed.
+    fn notify_image_alt_text_changed(&self, _webview: WebView, _alt_text: Option<String>) {}
     /// This [`WebView`] has either started to animate or stopped animating. When a
     /// [`WebView`] is animating, it is up to the embedding application ensure that
     /// `Servo::spin_event_loop` is called at regular intervals in order to update the

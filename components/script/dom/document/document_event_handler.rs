@@ -20,6 +20,7 @@ use embedder_traits::{
     GamepadEvent as EmbedderGamepadEvent, GamepadSupportedHapticEffects, GamepadUpdateType,
 };
 use euclid::{Point2D, Vector2D};
+use html5ever::local_name;
 use js::context::{JSContext, NoGC};
 use keyboard_types::{
     Code, CompositionState, Key, KeyState, KeyboardEvent as KeyboardTypesEvent, Modifiers, NamedKey,
@@ -79,7 +80,8 @@ use crate::dom::node::{self, Node, NodeTraits};
 use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::types::{
     CompositionEvent, Element, Event, EventTarget, GlobalScope, HTMLAnchorElement, HTMLAreaElement,
-    HTMLElement, HTMLLabelElement, MouseEvent, Touch, TouchEvent, TouchList, WheelEvent, Window,
+    HTMLElement, HTMLImageElement, HTMLLabelElement, MouseEvent, Touch, TouchEvent, TouchList,
+    WheelEvent, Window,
 };
 use crate::dom::window::scrolling_box::{ScrollAxisState, ScrollRequirement, ScrollingBoxAxis};
 use crate::dom::window::windowproxy::WindowOpenType;
@@ -567,6 +569,9 @@ impl DocumentEventHandler {
             // then clear it.
             self.window
                 .send_to_embedder(EmbedderMsg::Status(self.window.webview_id(), None));
+
+            self.window.Document().embedder_controls().hide_tooltip();
+
             self.set_cursor(None);
         } else {
             self.current_cursor.set(None);
@@ -865,10 +870,14 @@ impl DocumentEventHandler {
         // Send mousemove event. Routed to the capture target when capture is active.
         mouse_event.upcast::<Event>().fire(cx, &pointer_target);
 
-        self.update_current_hover_target_and_status(Some(new_target));
+        self.update_current_hover_target_and_status(cx, Some(new_target));
     }
 
-    fn update_current_hover_target_and_status(&self, new_hover_target: Option<DomRoot<Element>>) {
+    fn update_current_hover_target_and_status(
+        &self,
+        cx: &mut JSContext,
+        new_hover_target: Option<DomRoot<Element>>,
+    ) {
         let current_hover_target = self.current_hover_target.get();
         if current_hover_target == new_hover_target {
             return;
@@ -876,6 +885,12 @@ impl DocumentEventHandler {
 
         let previous_hover_target = self.current_hover_target.get();
         self.current_hover_target.set(new_hover_target.as_deref());
+
+        self.update_image_alt_text(
+            cx,
+            previous_hover_target.as_deref(),
+            new_hover_target.as_deref(),
+        );
 
         // If the new hover target is an anchor with a status value, inform the embedder
         // of the new value.
@@ -906,6 +921,45 @@ impl DocumentEventHandler {
             self.window
                 .send_to_embedder(EmbedderMsg::Status(self.window.webview_id(), None));
         }
+    }
+
+    /// Notify the embedder about the current image alt text, if found.
+    fn update_image_alt_text(
+        &self,
+        cx: &mut JSContext,
+        previous: Option<&Element>,
+        current: Option<&Element>,
+    ) {
+        let alt_text_of = |element: Option<&Element>| {
+            element
+                .filter(|element| element.is::<HTMLImageElement>())
+                .map(|image| image.get_string_attribute(&local_name!("alt")).to_string())
+                .filter(|alt| !alt.is_empty())
+        };
+
+        let new_alt_text = alt_text_of(current);
+        if alt_text_of(previous) == new_alt_text {
+            return;
+        }
+
+        let document = self.window.Document();
+        let embedder_controls = document.embedder_controls();
+
+        let (Some(alt_text), Some(image_element), Some(point)) = (
+            new_alt_text,
+            current.and_then(|element| element.downcast::<HTMLImageElement>()),
+            self.most_recent_mousemove_point.get(),
+        ) else {
+            embedder_controls.hide_tooltip();
+            return;
+        };
+
+        embedder_controls.show_tooltip(
+            cx,
+            alt_text,
+            image_element.upcast::<HTMLElement>(),
+            point.cast_unit(),
+        );
     }
 
     pub(crate) fn handle_refresh_cursor(&self, cx: &mut JSContext) {

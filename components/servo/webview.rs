@@ -42,7 +42,9 @@ use crate::gamepad_delegate::{DefaultGamepadDelegate, GamepadDelegate};
 use crate::geolocation_delegate::{DefaultGeolocationDelegate, GeolocationDelegate};
 use crate::responders::AutomaticResponder;
 use crate::servo::PendingHandledInputEvent;
-use crate::webview_delegate::{CreateNewWebViewRequest, DefaultWebViewDelegate, WebViewDelegate};
+use crate::webview_delegate::{
+    CreateNewWebViewRequest, DefaultWebViewDelegate, TooltipControl, WebViewDelegate,
+};
 use crate::{
     ColorPicker, ContextMenu, EmbedderControl, InputMethodControl, SelectElement, Servo,
     UserContentManager, WebRenderDebugOption,
@@ -867,6 +869,12 @@ impl WebView {
             },
             EmbedderControlRequest::FilePicker { .. } => {
                 unreachable!("This message should be routed through the FileManagerThread")
+            },
+            EmbedderControlRequest::Tooltip(tooltip_request) => {
+                EmbedderControl::Tooltip(TooltipControl {
+                    id: control_id,
+                    text: tooltip_request.text,
+                })
             },
         };
 

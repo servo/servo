@@ -563,7 +563,7 @@ pub enum EmbedderMsg {
     /// Let the embedder process a DOM Console API message.
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console_API>
     ShowConsoleApiMessage(Option<WebViewId>, ConsoleLogLevel, String),
-    /// Request to the embedder to display a user interace control.
+    /// Request to the embedder to display a user interface control.
     ShowEmbedderControl(EmbedderControlId, PipelineRect, EmbedderControlRequest),
     /// Request to the embedder to hide a user interface control.
     HideEmbedderControl(EmbedderControlId),
