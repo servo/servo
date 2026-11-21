@@ -246,8 +246,8 @@ impl FontFace {
         cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-    ) -> DomRoot<Self> {
-        let font_status_promise = Promise::new(cx, global);
+    ) -> Fallible<DomRoot<Self>> {
+        let font_status_promise = Promise::try_new(cx, global)?;
         // If any of them fail to parse correctly, reject font face’s [[FontStatusPromise]] with a
         // DOMException named "SyntaxError"
         font_status_promise
@@ -255,7 +255,7 @@ impl FontFace {
 
         // set font face’s corresponding attributes to the empty string, and set font face’s status
         // attribute to "error"
-        reflect_dom_object_with_proto(
+        Ok(reflect_dom_object_with_proto(
             cx,
             Box::new(Self {
                 reflector: Reflector::new(),
@@ -281,7 +281,7 @@ impl FontFace {
             }),
             global,
             proto,
-        )
+        ))
     }
 
     /// <https://drafts.csswg.org/css-font-loading/#font-face-constructor>
@@ -762,7 +762,7 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
         family: DOMString,
         source: UnionTypes::StringOrArrayBufferViewOrArrayBuffer,
         descriptors: &FontFaceInputDescriptors,
-    ) -> DomRoot<FontFace> {
+    ) -> Fallible<DomRoot<FontFace>> {
         // Step 2. If the source argument was a CSSOMString, set font face’s internal [[Urls]] slot to the string.
         let url_source = if let StringOrArrayBufferViewOrArrayBuffer::String(source) = &source {
             Some(source)
@@ -787,7 +787,7 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
         };
 
         // Set its internal [[FontStatusPromise]] slot to a fresh pending Promise object.
-        let font_status_promise = Promise::new(cx, global);
+        let font_status_promise = Promise::try_new(cx, global)?;
 
         let sources = parsed_font_face_rule.descriptors.src.clone();
         // Let font face be a fresh FontFace object.
@@ -804,7 +804,7 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
         // If font face’s status is "error", terminate this algorithm;
         // otherwise, complete the rest of these steps asynchronously.
         if font_face.Status() == FontFaceLoadStatus::Error {
-            return font_face;
+            return Ok(font_face);
         }
 
         // Step 2. If the source argument was a BufferSource, set font face’s internal
@@ -814,7 +814,7 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
         let font_face_bytes = match &source {
             StringOrArrayBufferViewOrArrayBuffer::String(_) => {
                 // Return font face.
-                return font_face;
+                return Ok(font_face);
             },
             StringOrArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => {
                 get_buffer_source_copy(view.into())
@@ -838,6 +838,6 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
             ));
 
         // Return font face.
-        font_face
+        Ok(font_face)
     }
 }
