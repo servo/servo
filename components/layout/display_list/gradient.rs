@@ -16,14 +16,15 @@ use style::values::generics::image::{
 };
 use webrender_api::units::LayoutPixel;
 use webrender_api::{
-    self as wr, ConicGradient as WebRenderConicGradient, ExtendMode,
-    Gradient as WebRenderLinearGradient, RadialGradient as WebRenderRadialGradient, units,
+    self as wr, AlphaMode, ConicGradient as WebRenderConicGradient, ExtendMode,
+    Gradient as WebRenderLinearGradient, GradientStop, RadialGradient as WebRenderRadialGradient,
+    units,
 };
 
 pub(super) enum WebRenderGradient {
-    Linear(WebRenderLinearGradient),
-    Radial(WebRenderRadialGradient),
-    Conic(WebRenderConicGradient),
+    Linear(WebRenderLinearGradient, Vec<GradientStop>),
+    Radial(WebRenderRadialGradient, Vec<GradientStop>),
+    Conic(WebRenderConicGradient, Vec<GradientStop>),
 }
 
 pub(super) fn build(
@@ -181,12 +182,14 @@ pub(super) fn build_linear(
         gradient_items_to_color_stops(style, items, Au::from_f32_px(gradient_line_length));
     let stops = create_webrender_stops(&mut color_stops, color_interpolation_method, extend_mode);
 
-    WebRenderGradient::Linear(builder.wr().create_gradient(
-        start_point,
-        end_point,
+    let (gradient, stops) = builder.wr().create_gradient(
+        start_point.to_vector(),
+        end_point.to_vector(),
         stops,
         extend_mode,
-    ))
+        AlphaMode::Premultiplied,
+    );
+    WebRenderGradient::Linear(gradient, stops)
 }
 
 /// <https://drafts.csswg.org/css-images-3/#radial-gradients>
@@ -287,12 +290,14 @@ pub(super) fn build_radial(
         gradient_items_to_color_stops(style, items, Au::from_f32_px(gradient_line_length));
     let stops = create_webrender_stops(&mut color_stops, color_interpolation_method, extend_mode);
 
-    WebRenderGradient::Radial(builder.wr().create_radial_gradient(
-        center,
+    let (gradient, stops) = builder.wr().create_radial_gradient(
+        center.to_vector(),
         radii,
         stops,
         extend_mode,
-    ))
+        AlphaMode::Premultiplied,
+    );
+    WebRenderGradient::Radial(gradient, stops)
 }
 
 /// <https://drafts.csswg.org/css-images-4/#conic-gradients>
@@ -327,12 +332,14 @@ fn build_conic(
     let mut color_stops = conic_gradient_items_to_color_stops(style, items);
     let stops = create_webrender_stops(&mut color_stops, color_interpolation_method, extend_mode);
 
-    WebRenderGradient::Conic(builder.wr().create_conic_gradient(
-        center,
+    let (gradient, stops) = builder.wr().create_conic_gradient(
+        center.to_vector(),
         angle.radians(),
         stops,
         extend_mode,
-    ))
+        AlphaMode::Premultiplied,
+    );
+    WebRenderGradient::Conic(gradient, stops)
 }
 
 fn conic_gradient_items_to_color_stops(

@@ -13,6 +13,7 @@ use servo_canvas_traits::webgl::{WebGLContextId, WebGLThreads};
 use surfman::chains::{SwapChainAPI, SwapChains, SwapChainsAPI};
 use surfman::{Device, SurfaceTexture};
 use webgl::webgl_thread::WebGLContextBusyMap;
+use webrender_api::ExternalTextureHandle;
 
 /// Bridge between the webrender::ExternalImage callbacks and the WebGLThreads.
 pub struct WebGLExternalImages {
@@ -82,7 +83,10 @@ impl WebGLExternalImages {
 impl WebRenderExternalImageApi for WebGLExternalImages {
     fn lock(&mut self, id: u64) -> (ExternalImageSource<'_>, Size2D<i32>) {
         let (texture_id, size) = self.lock_swap_chain(WebGLContextId(id)).unwrap_or_default();
-        (ExternalImageSource::NativeTexture(texture_id), size)
+        (
+            ExternalImageSource::NativeTexture(ExternalTextureHandle(texture_id.into())),
+            size,
+        )
     }
 
     fn unlock(&mut self, id: u64) {

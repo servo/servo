@@ -209,12 +209,15 @@ pub struct CompositionPipeline {
 /// A serializable version of `DisplayListPayload`.
 #[derive(Serialize, Deserialize)]
 pub struct SerializableDisplayListPayload {
-    /// Serde encoded bytes of the display list' `DisplayItems` and their supporting data.
+    /// Serde encoded bytes of the display list's `DisplayItems` and their supporting data.
     #[serde(with = "serde_bytes")]
     pub items_data: Vec<u8>,
-
+    /// Serde encoded bytes of the display list's spatial tree.
     #[serde(with = "serde_bytes")]
     pub spatial_tree: Vec<u8>,
+    /// Serde encoded bytes of the display list's interner data.
+    #[serde(with = "serde_bytes")]
+    pub interner_delta: Vec<u8>,
 }
 
 /// A mechanism to send messages from ScriptThread to the parent process' WebRender instance.
@@ -354,6 +357,7 @@ impl CrossProcessPaintApi {
         let display_list_data = SerializableDisplayListPayload {
             items_data: display_list_data.items_data,
             spatial_tree: display_list_data.spatial_tree,
+            interner_delta: display_list_data.interner_delta,
         };
 
         if let Err(error) = display_list_data_sender.send(display_list_data) {
