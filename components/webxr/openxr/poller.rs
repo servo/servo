@@ -2,17 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::Duration;
 
 use log::warn;
-use openxr::{ApplicationInfo, Entry, ExtensionSet, FormFactor};
+use openxr::{ApplicationInfo, ExtensionSet, FormFactor, sys};
 use servo_base::generic_channel::{
     self, GenericCallback, GenericReceiver, GenericSender, TryReceiveError,
 };
 
-use crate::openxr::{AppInfo, OPENXR_VERSION};
+use crate::openxr::{ACTIVE_SESSION_INSTANCES, AppInfo, INSTANCE_LOCK, OPENXR_VERSION, load_entry};
+
+#[derive(Debug, PartialEq)]
+enum PollOutcome {
+    Device(Option<(u64, String)>),
+    Busy,
+}
 
 pub struct OpenXRDevicePoller {
     handle: Option<JoinHandle<()>>,
@@ -39,12 +46,13 @@ impl OpenXRDevicePoller {
                 match shutdown_receiver.try_recv_timeout(Duration::from_secs(5)) {
                     Ok(()) => break,
                     Err(TryReceiveError::Empty) => {
-                        let device = openxr_device_check(&app_info);
-                        let _ = device_sender.send(device);
+                        if let PollOutcome::Device(device) = openxr_device_check(&app_info) {
+                            let _ = device_sender.send(device);
 
-                        let waker = thread_waker.lock().expect("Lock poisoned").clone();
-                        if let Some(waker) = waker {
-                            let _ = waker.send(());
+                            let waker = thread_waker.lock().expect("Lock poisoned").clone();
+                            if let Some(waker) = waker {
+                                let _ = waker.send(());
+                            }
                         }
                     },
                     Err(TryReceiveError::ReceiveError(e)) => {
@@ -92,8 +100,15 @@ impl Drop for OpenXRDevicePoller {
     }
 }
 
-fn openxr_device_check(app_info: &AppInfo) -> Option<(u64, String)> {
-    let entry = unsafe { Entry::load().ok()? };
+fn openxr_device_check(app_info: &AppInfo) -> PollOutcome {
+    let _lock = INSTANCE_LOCK.lock().unwrap();
+    if ACTIVE_SESSION_INSTANCES.load(Ordering::SeqCst) > 0 {
+        return PollOutcome::Busy;
+    }
+
+    let Ok(entry) = load_entry() else {
+        return PollOutcome::Device(None);
+    };
     let app_info = ApplicationInfo {
         application_name: &app_info.application_name,
         application_version: app_info.application_version,
@@ -101,10 +116,19 @@ fn openxr_device_check(app_info: &AppInfo) -> Option<(u64, String)> {
         engine_version: app_info.engine_version,
         api_version: OPENXR_VERSION,
     };
-    let instance = entry
-        .create_instance(&app_info, &ExtensionSet::default(), &[])
-        .ok()?;
-    let system = instance.system(FormFactor::HEAD_MOUNTED_DISPLAY).ok()?;
-    let properties = instance.system_properties(system).ok()?;
-    Some((properties.system_id.into_raw(), properties.system_name))
+    let instance = match entry.create_instance(&app_info, &ExtensionSet::default(), &[]) {
+        Ok(instance) => instance,
+        Err(sys::Result::ERROR_LIMIT_REACHED) => return PollOutcome::Busy,
+        Err(_) => return PollOutcome::Device(None),
+    };
+    let Ok(system) = instance.system(FormFactor::HEAD_MOUNTED_DISPLAY) else {
+        return PollOutcome::Device(None);
+    };
+    let Ok(properties) = instance.system_properties(system) else {
+        return PollOutcome::Device(None);
+    };
+    PollOutcome::Device(Some((
+        properties.system_id.into_raw(),
+        properties.system_name,
+    )))
 }

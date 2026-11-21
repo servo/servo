@@ -4,29 +4,29 @@
 
 use std::collections::HashMap;
 use std::ops::Deref;
+use std::rc::Rc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use euclid::{Point2D, Rect, RigidTransform3D, Rotation3D, Size2D, Transform3D, Vector3D};
 use glow::{self as gl, HasContext, PixelUnpackData};
 use interaction_profiles::{get_profiles_from_path, get_supported_interaction_profiles};
-use log::{error, warn};
+use log::{debug, error, warn};
 use openxr::sys::CompositionLayerPassthroughFB;
 use openxr::{
     self, ActionSet, ActiveActionSet, ApplicationInfo, CompositionLayerBase, CompositionLayerFlags,
     CompositionLayerProjection, Entry, EnvironmentBlendMode, ExtensionSet, Extent2Di, FormFactor,
     Fovf, FrameState, FrameStream, FrameWaiter, Graphics, Instance, Passthrough,
-    PassthroughFlagsFB, PassthroughLayerFB, PassthroughLayerPurposeFB, Posef, Quaternionf,
+    PassthroughFlagsFB, PassthroughLayerFB, PassthroughLayerPurposeFB, Path, Posef, Quaternionf,
     ReferenceSpaceType, SecondaryEndInfo, Session, Space, Swapchain, SwapchainCreateFlags,
-    SwapchainCreateInfo, SwapchainUsageFlags, SystemId, Vector3f, Version, ViewConfigurationType,
+    SwapchainCreateInfo, SystemId, Vector3f, Version, ViewConfigurationType,
 };
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use servo_base::generic_channel::GenericCallback;
 use servo_base::id::PainterId;
-use surfman::{
-    Context as SurfmanContext, Device as SurfmanDevice, Error as SurfmanError, SurfaceTexture,
-};
+use surfman::{Context as SurfmanContext, Device as SurfmanDevice, Error as SurfmanError};
 use webxr_api::util::{self, ClipPlanes};
 use webxr_api::{
     self, BaseSpace, Capture, ContextId, DeviceAPI, DiscoveryAPI, Display, Error, Event,
@@ -43,7 +43,9 @@ mod input;
 use input::OpenXRInput;
 mod graphics;
 mod interaction_profiles;
-use graphics::{GraphicsProvider, GraphicsProviderMethods};
+use graphics::{
+    GraphicsProvider, GraphicsProviderMethods, LayerGraphics, SessionGraphics, SwapchainTexture,
+};
 mod poller;
 use poller::OpenXRDevicePoller;
 
@@ -51,6 +53,31 @@ use poller::OpenXRDevicePoller;
 mod graphics_d3d11;
 #[cfg(target_os = "windows")]
 use graphics_d3d11::Backend;
+
+pub(super) fn load_entry() -> Result<Entry, String> {
+    unsafe { Entry::load().map_err(|e| format!("Entry::load {:?}", e)) }
+}
+
+/// Khronos' OpenXR loader only permits a single live `XrInstance` per process at a time.
+/// Serialize transient probes (`supports_session`, `OpenXRDevicePoller`) and track active
+/// session instances so polling never races with or interrupts a live session.
+pub(super) static INSTANCE_LOCK: Mutex<()> = Mutex::new(());
+pub(super) static ACTIVE_SESSION_INSTANCES: AtomicUsize = AtomicUsize::new(0);
+
+pub(super) struct ActiveSessionGuard;
+
+impl ActiveSessionGuard {
+    fn acquire() -> Arc<Self> {
+        ACTIVE_SESSION_INSTANCES.fetch_add(1, Ordering::SeqCst);
+        Arc::new(Self)
+    }
+}
+
+impl Drop for ActiveSessionGuard {
+    fn drop(&mut self) {
+        ACTIVE_SESSION_INSTANCES.fetch_sub(1, Ordering::SeqCst);
+    }
+}
 
 const OPENXR_VERSION: Version = Version::new(1, 0, 36);
 
@@ -206,7 +233,7 @@ fn create_instance(
     needs_passthrough: bool,
     app_info: &AppInfo,
 ) -> Result<CreatedInstance, String> {
-    let entry = unsafe { Entry::load().map_err(|e| format!("Entry::load {:?}", e))? };
+    let entry = load_entry()?;
     let supported = entry
         .enumerate_extensions()
         .map_err(|e| format!("Entry::enumerate_extensions {:?}", e))?;
@@ -227,7 +254,7 @@ fn create_instance(
     };
 
     let mut exts = ExtensionSet::default();
-    GraphicsProvider::enable_graphics_extensions(&mut exts);
+    GraphicsProvider::enable_graphics_extensions_for(&supported, &mut exts)?;
     if supports_hands {
         exts.ext_hand_tracking = true;
     }
@@ -255,7 +282,7 @@ fn create_instance(
         .map_err(|e| format!("Instance::system {:?}", e))?;
 
     if supports_hands {
-        supports_hands |= instance
+        supports_hands &= instance
             .supports_hand_tracking(system)
             .map_err(|e| format!("Instance::supports_hand_tracking {:?}", e))?;
     }
@@ -268,7 +295,7 @@ fn create_instance(
         // composition layer is seemingly no longer sufficient. As long as windows sessions are
         // solely backed by D3D11, we'll need to apply the same inverted view + reversed winding
         // fix for SteamVR as well as Oculus.
-        properties.fov_mutable && !cfg!(target_os = "windows")
+        properties.fov_mutable && !GraphicsProvider::needs_y_flip()
     };
 
     Ok(CreatedInstance {
@@ -283,51 +310,11 @@ fn create_instance(
     })
 }
 
-impl DiscoveryAPI<SurfmanGL> for OpenXrDiscovery {
-    fn request_session(
-        &mut self,
-        mode: SessionMode,
-        init: &SessionInit,
-        xr: SessionBuilder<SurfmanGL>,
-    ) -> Result<WebXrSession, Error> {
-        if self.supports_session(mode) {
-            let needs_hands = init.feature_requested("hand-tracking");
-            let needs_secondary =
-                init.feature_requested("secondary-views") && init.first_person_observer_view;
-            let needs_passthrough = mode == SessionMode::ImmersiveAR;
-            let instance = create_instance(
-                needs_hands,
-                needs_secondary,
-                needs_passthrough,
-                &self.app_info,
-            )
-            .map_err(Error::BackendSpecific)?;
-
-            let mut supported_features = vec!["local-floor".into(), "bounded-floor".into()];
-            if instance.supports_hands {
-                supported_features.push("hand-tracking".into());
-            }
-            if instance.supports_secondary && init.first_person_observer_view {
-                supported_features.push("secondary-views".into());
-            }
-            let granted_features = init.validate(mode, &supported_features)?;
-            let context_menu_provider = self.context_menu_provider.take();
-            let painter_id = init.painter_id;
-            xr.spawn(move |grand_manager| {
-                OpenXrDevice::new(
-                    instance,
-                    granted_features,
-                    context_menu_provider,
-                    grand_manager,
-                    painter_id,
-                )
-            })
-        } else {
-            Err(Error::NoMatchingDevice)
+impl OpenXrDiscovery {
+    fn supports_session_locked(&self, mode: SessionMode) -> bool {
+        if ACTIVE_SESSION_INSTANCES.load(Ordering::SeqCst) > 0 {
+            return mode == SessionMode::ImmersiveVR;
         }
-    }
-
-    fn supports_session(&self, mode: SessionMode) -> bool {
         let mut supports = false;
         // Determining AR support requires enumerating environment blend modes,
         // but this requires an already created XrInstance and SystemId.
@@ -351,6 +338,60 @@ impl DiscoveryAPI<SurfmanGL> for OpenXrDiscovery {
         }
         supports
     }
+}
+
+impl DiscoveryAPI<SurfmanGL> for OpenXrDiscovery {
+    fn request_session(
+        &mut self,
+        mode: SessionMode,
+        init: &SessionInit,
+        xr: SessionBuilder<SurfmanGL>,
+    ) -> Result<WebXrSession, Error> {
+        let _lock = INSTANCE_LOCK.lock().unwrap();
+        if self.supports_session_locked(mode) {
+            let needs_hands = init.feature_requested("hand-tracking");
+            let needs_secondary =
+                init.feature_requested("secondary-views") && init.first_person_observer_view;
+            let needs_passthrough = mode == SessionMode::ImmersiveAR;
+            let instance = create_instance(
+                needs_hands,
+                needs_secondary,
+                needs_passthrough,
+                &self.app_info,
+            )
+            .map_err(Error::BackendSpecific)?;
+            let session_guard = ActiveSessionGuard::acquire();
+            drop(_lock);
+
+            let mut supported_features = vec!["local-floor".into(), "bounded-floor".into()];
+            if instance.supports_hands {
+                supported_features.push("hand-tracking".into());
+            }
+            if instance.supports_secondary && init.first_person_observer_view {
+                supported_features.push("secondary-views".into());
+            }
+            let granted_features = init.validate(mode, &supported_features)?;
+            let context_menu_provider = self.context_menu_provider.take();
+            let painter_id = init.painter_id;
+            xr.spawn(move |grand_manager| {
+                OpenXrDevice::new(
+                    instance,
+                    session_guard,
+                    granted_features,
+                    context_menu_provider,
+                    grand_manager,
+                    painter_id,
+                )
+            })
+        } else {
+            Err(Error::NoMatchingDevice)
+        }
+    }
+
+    fn supports_session(&self, mode: SessionMode) -> bool {
+        let _lock = INSTANCE_LOCK.lock().unwrap();
+        self.supports_session_locked(mode)
+    }
 
     fn poll_device_changed(&mut self) -> bool {
         let latest = self.poller.try_recv();
@@ -373,25 +414,26 @@ impl DiscoveryAPI<SurfmanGL> for OpenXrDiscovery {
 }
 
 struct OpenXrDevice {
-    session: Arc<Session<Backend>>,
-    instance: Instance,
-    events: EventBuffer,
-    frame_waiter: FrameWaiter,
-    layer_manager: LayerManager,
+    // Drop actions/spaces/session/layer_manager before `instance` and `_session_guard`
+    // so `ACTIVE_SESSION_INSTANCES` is only decremented once OpenXR handles are released.
+    action_set: ActionSet,
+    right_hand: OpenXRInput,
+    left_hand: OpenXRInput,
     viewer_space: Space,
     shared_data: Arc<Mutex<Option<SharedData>>>,
+    frame_waiter: FrameWaiter,
+    session: Arc<Session<Backend>>,
+    layer_manager: LayerManager,
+    instance: Instance,
+    events: EventBuffer,
     clip_planes: ClipPlanes,
     supports_secondary: bool,
     supports_mutable_fov: bool,
     supports_updating_framerate: bool,
-
-    // input
-    action_set: ActionSet,
-    right_hand: OpenXRInput,
-    left_hand: OpenXRInput,
     granted_features: Vec<String>,
     context_menu_provider: Option<Box<dyn ContextMenuProvider>>,
     context_menu_future: Option<Box<dyn ContextMenuFuture>>,
+    _session_guard: Arc<ActiveSessionGuard>,
 }
 
 /// Data that is shared between the openxr thread and the
@@ -409,14 +451,19 @@ struct SharedData {
 }
 
 struct OpenXrLayerManager {
+    openxr_layers: HashMap<LayerId, OpenXrLayer>,
+    passthrough_layer: Option<PassthroughLayerFB>,
+    _passthrough: Option<Passthrough>,
+    frame_stream: FrameStream<Backend>,
     session: Arc<Session<Backend>>,
     shared_data: Arc<Mutex<Option<SharedData>>>,
-    frame_stream: FrameStream<Backend>,
     layers: Vec<(ContextId, LayerId)>,
-    openxr_layers: HashMap<LayerId, OpenXrLayer>,
     clearer: GlClearer,
-    _passthrough: Option<Passthrough>,
-    passthrough_layer: Option<PassthroughLayerFB>,
+    graphics: SessionGraphics,
+    _session_guard: Arc<ActiveSessionGuard>,
+    // Keep the SurfmanDevice alive until after all OpenXR swapchains, frame streams,
+    // and session handles owned by this layer manager are dropped.
+    _device: Rc<SurfmanDevice>,
 }
 
 struct OpenXrLayer {
@@ -424,11 +471,14 @@ struct OpenXrLayer {
     depth_stencil_texture: Option<gl::NativeTexture>,
     size: Size2D<i32, Viewport>,
     images: Vec<<Backend as Graphics>::SwapchainImage>,
-    surface_textures: Vec<Option<SurfaceTexture>>,
+    swapchain_textures: Vec<Option<SwapchainTexture>>,
+    graphics: LayerGraphics,
+    acquired_image: Option<usize>,
     waited: bool,
 }
 
 impl OpenXrLayerManager {
+    #[allow(clippy::too_many_arguments)]
     fn new(
         session: Arc<Session<Backend>>,
         shared_data: Arc<Mutex<Option<SharedData>>>,
@@ -436,19 +486,25 @@ impl OpenXrLayerManager {
         should_reverse_winding: bool,
         _passthrough: Option<Passthrough>,
         passthrough_layer: Option<PassthroughLayerFB>,
+        graphics: SessionGraphics,
+        _session_guard: Arc<ActiveSessionGuard>,
+        _device: Rc<SurfmanDevice>,
     ) -> OpenXrLayerManager {
         let layers = Vec::new();
         let openxr_layers = HashMap::new();
         let clearer = GlClearer::new(should_reverse_winding);
         OpenXrLayerManager {
+            openxr_layers,
+            passthrough_layer,
+            _passthrough,
+            frame_stream,
             session,
             shared_data,
-            frame_stream,
             layers,
-            openxr_layers,
             clearer,
-            _passthrough,
-            passthrough_layer,
+            graphics,
+            _session_guard,
+            _device,
         }
     }
 }
@@ -458,43 +514,47 @@ impl OpenXrLayer {
         swapchain: Swapchain<Backend>,
         depth_stencil_texture: Option<gl::NativeTexture>,
         size: Size2D<i32, Viewport>,
+        graphics: LayerGraphics,
     ) -> Result<OpenXrLayer, Error> {
         let images = swapchain
             .enumerate_images()
             .map_err(|e| Error::BackendSpecific(format!("Session::enumerate_images {:?}", e)))?;
         let waited = false;
-        let mut surface_textures = Vec::new();
-        surface_textures.resize_with(images.len(), || None);
+        let mut swapchain_textures = Vec::new();
+        swapchain_textures.resize_with(images.len(), || None);
         Ok(OpenXrLayer {
             swapchain,
             depth_stencil_texture,
             size,
             images,
-            surface_textures,
+            swapchain_textures,
+            graphics,
+            acquired_image: None,
             waited,
         })
     }
 
-    fn get_surface_texture(
+    fn get_swapchain_texture(
         &mut self,
         device: &SurfmanDevice,
         context: &mut SurfmanContext,
         index: usize,
-    ) -> Result<&SurfaceTexture, SurfmanError> {
+    ) -> Result<&SwapchainTexture, SurfmanError> {
         let result = self
-            .surface_textures
+            .swapchain_textures
             .get_mut(index)
             .ok_or(SurfmanError::Failed)?;
         if let Some(result) = result {
             return Ok(result);
         }
-        let surface_texture = GraphicsProvider::surface_texture_from_swapchain_texture(
+        let swapchain_texture = GraphicsProvider::create_swapchain_texture(
             self.images[index],
             device,
             context,
             &self.size.to_untyped(),
+            &self.graphics,
         )?;
-        *result = Some(surface_texture);
+        *result = Some(swapchain_texture);
         result.as_ref().ok_or(SurfmanError::Failed)
     }
 }
@@ -507,18 +567,18 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
         init: LayerInit,
     ) -> Result<LayerId, Error> {
         let guard = self.shared_data.lock().unwrap();
-        let data = guard.as_ref().unwrap();
+        let data = guard.as_ref().ok_or(Error::NoMatchingDevice)?;
 
         // XXXManishearth should we be doing this, or letting Servo set the format?
         let formats = self.session.enumerate_swapchain_formats().map_err(|e| {
             Error::BackendSpecific(format!("Session::enumerate_swapchain_formats {:?}", e))
         })?;
-        let format = GraphicsProvider::pick_format(&formats);
+        let format = GraphicsProvider::try_pick_format(&formats)?;
         let texture_size = init.texture_size(&data.viewports());
         let sample_count = data.swapchain_sample_count;
         let swapchain_create_info = SwapchainCreateInfo {
             create_flags: SwapchainCreateFlags::EMPTY,
-            usage_flags: SwapchainUsageFlags::COLOR_ATTACHMENT | SwapchainUsageFlags::SAMPLED,
+            usage_flags: GraphicsProvider::swapchain_usage_flags(),
             width: texture_size.width as u32,
             height: texture_size.height as u32,
             format,
@@ -538,11 +598,18 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
             LayerInit::WebGLLayer { stencil, depth, .. } => stencil | depth,
             LayerInit::ProjectionLayer { stencil, depth, .. } => stencil | depth,
         };
+        let gl = contexts
+            .bindings(context_id)
+            .ok_or(Error::NoMatchingDevice)?;
+        let layer_graphics = GraphicsProvider::create_layer_graphics(
+            &self.graphics,
+            gl,
+            &texture_size.to_untyped(),
+            format,
+        )?;
         let depth_stencil_texture = if has_depth_stencil {
-            let gl = contexts
-                .bindings(context_id)
-                .ok_or(Error::NoMatchingDevice)?;
             unsafe {
+                let previous_texture = gl.get_parameter_texture(gl::TEXTURE_BINDING_2D);
                 let depth_stencil_texture = gl.create_texture().ok();
                 gl.bind_texture(gl::TEXTURE_2D, depth_stencil_texture);
                 gl.tex_image_2d(
@@ -556,6 +623,8 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
                     gl::UNSIGNED_INT_24_8,
                     PixelUnpackData::Slice(None),
                 );
+                gl.bind_texture(gl::TEXTURE_2D, previous_texture);
+                debug_assert_eq!(gl.get_error(), gl::NO_ERROR);
                 depth_stencil_texture
             }
         } else {
@@ -563,7 +632,12 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
         };
 
         let layer_id = LayerId::default();
-        let openxr_layer = OpenXrLayer::new(swapchain, depth_stencil_texture, texture_size)?;
+        let openxr_layer = OpenXrLayer::new(
+            swapchain,
+            depth_stencil_texture,
+            texture_size,
+            layer_graphics,
+        )?;
         self.layers.push((context_id, layer_id));
         self.openxr_layers.insert(layer_id, openxr_layer);
         Ok(layer_id)
@@ -578,22 +652,20 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
         self.clearer.destroy_layer(contexts, context_id, layer_id);
         self.layers.retain(|&ids| ids != (context_id, layer_id));
         if let Some(mut layer) = self.openxr_layers.remove(&layer_id) {
-            if let Some(depth_stencil_texture) = layer.depth_stencil_texture {
-                let gl = contexts.bindings(context_id).unwrap();
+            let gl = contexts.bindings(context_id);
+            if let (Some(depth_stencil_texture), Some(gl)) = (layer.depth_stencil_texture, gl) {
                 unsafe { gl.delete_texture(depth_stencil_texture) };
             }
-            let device = contexts
-                .device(context_id)
-                .expect("missing device for context");
-            let context = contexts.context(context_id).expect("missing GL context");
-            for surface_texture in std::mem::take(&mut layer.surface_textures)
-                .into_iter()
-                .flatten()
+            layer.graphics.destroy(gl);
+            if let (Some(device), Some(context)) =
+                (contexts.device(context_id), contexts.context(context_id))
             {
-                let mut surface = device
-                    .destroy_surface_texture(context, surface_texture)
-                    .unwrap();
-                device.destroy_surface(context, &mut surface).unwrap();
+                for swapchain_texture in std::mem::take(&mut layer.swapchain_textures)
+                    .into_iter()
+                    .flatten()
+                {
+                    swapchain_texture.destroy(&device, context);
+                }
             }
         }
     }
@@ -604,20 +676,48 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
 
     fn end_frame(
         &mut self,
-        _contexts: &mut dyn GLContexts<SurfmanGL>,
+        contexts: &mut dyn GLContexts<SurfmanGL>,
         layers: &[(ContextId, LayerId)],
     ) -> Result<(), Error> {
         let guard = self.shared_data.lock().unwrap();
-        let data = guard.as_ref().unwrap();
+        let Some(data) = guard.as_ref() else {
+            return Ok(());
+        };
+        let Some(frame_state) = data.frame_state.as_ref() else {
+            return Ok(());
+        };
 
-        // At this point the frame contents have been rendered, so we can release access to the texture
-        // in preparation for displaying it.
+        // Present rendered WebGL contents into each acquired OpenXR swapchain image
+        // before releasing access to the swapchains.
+        for &(context_id, layer_id) in layers {
+            if let Some(openxr_layer) = self.openxr_layers.get_mut(&layer_id) &&
+                openxr_layer.waited
+            {
+                if let (Some(index), Some(gl)) =
+                    (openxr_layer.acquired_image, contexts.bindings(context_id))
+                {
+                    GraphicsProvider::present_layer(
+                        &openxr_layer.graphics,
+                        openxr_layer.images[index],
+                        gl,
+                    )?;
+                }
+                openxr_layer.swapchain.release_image().map_err(|e| {
+                    Error::BackendSpecific(format!("Session::release_image {:?}", e))
+                })?;
+                openxr_layer.waited = false;
+                openxr_layer.acquired_image = None;
+            }
+        }
+
+        // Release any remaining waited swapchain layers not listed in `layers`.
         for openxr_layer in self.openxr_layers.values_mut() {
             if openxr_layer.waited {
                 openxr_layer.swapchain.release_image().map_err(|e| {
                     Error::BackendSpecific(format!("Session::release_image {:?}", e))
                 })?;
                 openxr_layer.waited = false;
+                openxr_layer.acquired_image = None;
             }
         }
 
@@ -625,10 +725,10 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
 
         // Invert the up/down angles so that openxr flips the texture in the y axis.
         // Additionally, swap between the L/R views to compensate for inverted up/down FOVs.
-        // This has no effect in runtimes that don't support fovMutable
+        // This has no effect in runtimes that don't support fovMutable.
         let mut l_fov = data.left.view.fov;
         let mut r_fov = data.right.view.fov;
-        if cfg!(target_os = "windows") {
+        if GraphicsProvider::needs_y_flip() {
             std::mem::swap(&mut l_fov.angle_up, &mut r_fov.angle_down);
             std::mem::swap(&mut r_fov.angle_up, &mut l_fov.angle_down);
         }
@@ -676,15 +776,17 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
             .map(|layer| layer.deref())
             .collect::<Vec<_>>();
 
-        if let Some(passthrough_layer) = &self.passthrough_layer {
-            let clp = CompositionLayerPassthroughFB {
+        let passthrough_clp = self.passthrough_layer.as_ref().map(|passthrough_layer| {
+            CompositionLayerPassthroughFB {
                 ty: CompositionLayerPassthroughFB::TYPE,
                 next: std::ptr::null(),
                 flags: CompositionLayerFlags::BLEND_TEXTURE_SOURCE_ALPHA,
                 space: openxr::sys::Space::default(),
                 layer_handle: *passthrough_layer.inner(),
-            };
-            let passthrough_base = &clp as *const _ as *const CompositionLayerBase<Backend>;
+            }
+        });
+        if let Some(ref clp) = passthrough_clp {
+            let passthrough_base = clp as *const _ as *const CompositionLayerBase<Backend>;
             unsafe {
                 primary_layers.insert(0, &*passthrough_base);
             }
@@ -692,7 +794,9 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
 
         if let (Some(secondary), true) = (data.secondary.as_ref(), data.secondary_active) {
             let mut s_fov = secondary.view.fov;
-            std::mem::swap(&mut s_fov.angle_up, &mut s_fov.angle_down);
+            if GraphicsProvider::needs_y_flip() {
+                std::mem::swap(&mut s_fov.angle_up, &mut s_fov.angle_down);
+            }
             let secondary_views = layers
                 .iter()
                 .filter_map(|&(_, layer_id)| {
@@ -726,7 +830,7 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
 
             self.frame_stream
                 .end_secondary(
-                    data.frame_state.as_ref().unwrap().predicted_display_time,
+                    frame_state.predicted_display_time,
                     data.primary_blend_mode,
                     &primary_layers[..],
                     SecondaryEndInfo {
@@ -745,7 +849,7 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
         } else {
             self.frame_stream
                 .end(
-                    data.frame_state.as_ref().unwrap().predicted_display_time,
+                    frame_state.predicted_display_time,
                     data.primary_blend_mode,
                     &primary_layers[..],
                 )
@@ -760,7 +864,7 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
         layers: &[(ContextId, LayerId)],
     ) -> Result<Vec<SubImages>, Error> {
         let data_guard = self.shared_data.lock().unwrap();
-        let data = data_guard.as_ref().unwrap();
+        let data = data_guard.as_ref().ok_or(Error::NoMatchingDevice)?;
         let openxr_layers = &mut self.openxr_layers;
         let clearer = &mut self.clearer;
         self.frame_stream
@@ -787,14 +891,15 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
                         Error::BackendSpecific(format!("Swapchain::wait_image {:?}", e))
                     })?;
                 openxr_layer.waited = true;
+                openxr_layer.acquired_image = Some(image as usize);
 
-                let color_surface_texture = openxr_layer
-                    .get_surface_texture(&device, context, image as usize)
+                let color_swapchain_texture = openxr_layer
+                    .get_swapchain_texture(&device, context, image as usize)
                     .map_err(|e| {
-                        Error::BackendSpecific(format!("Layer::get_surface_texture {:?}", e))
+                        Error::BackendSpecific(format!("Layer::get_swapchain_texture {:?}", e))
                     })?;
-                let color_texture = device.surface_texture_object(color_surface_texture);
-                let color_target = device.surface_gl_texture_target();
+                let color_texture = color_swapchain_texture.gl_texture(&device);
+                let color_target = color_swapchain_texture.gl_texture_target(&device);
                 let depth_stencil_texture = openxr_layer.depth_stencil_texture;
                 let texture_array_index = None;
                 let origin = Point2D::new(0, 0);
@@ -850,6 +955,7 @@ fn image_rect(viewport: Rect<i32, Viewport>) -> openxr::Rect2Di {
 impl OpenXrDevice {
     fn new(
         instance: CreatedInstance,
+        session_guard: Arc<ActiveSessionGuard>,
         granted_features: Vec<String>,
         context_menu_provider: Option<Box<dyn ContextMenuProvider>>,
         grand_manager: LayerGrandManager<SurfmanGL>,
@@ -869,6 +975,7 @@ impl OpenXrDevice {
         let (init_tx, init_rx) = crossbeam_channel::unbounded();
 
         let instance_clone = instance.clone();
+        let session_guard_clone = session_guard.clone();
         let shared_data = Arc::new(Mutex::new(None));
         let shared_data_clone = shared_data.clone();
         let mut data = shared_data.lock().unwrap();
@@ -877,8 +984,8 @@ impl OpenXrDevice {
             let device = contexts
                 .device_for_painter(painter_id)
                 .ok_or(Error::NoMatchingDevice)?;
-            let (session, frame_waiter, frame_stream) =
-                GraphicsProvider::create_session(&instance_clone, system, &device)?;
+            let (session, frame_waiter, frame_stream, graphics) =
+                GraphicsProvider::create_session_with_graphics(&instance_clone, system, &device)?;
             let (passthrough, passthrough_layer) = if supports_passthrough {
                 let flags = PassthroughFlagsFB::IS_RUNNING_AT_CREATION;
                 let purpose = PassthroughLayerPurposeFB::RECONSTRUCTION;
@@ -900,15 +1007,56 @@ impl OpenXrDevice {
                 session,
                 shared_data_clone,
                 frame_stream,
-                !supports_mutable_fov,
+                GraphicsProvider::needs_y_flip() && !supports_mutable_fov,
                 passthrough,
                 passthrough_layer,
+                graphics,
+                session_guard_clone,
+                device,
             ))
         })?;
 
         let (session, frame_waiter) = init_rx.recv().map_err(|_| Error::CommunicationError)?;
 
-        // XXXPaul initialisation should happen on SessionStateChanged(Ready)?
+        // Wait for the OpenXR runtime to transition the newly created session to READY
+        // before calling xrBeginSession (required by the OpenXR specification).
+        let ready_deadline = Instant::now() + Duration::from_secs(5);
+        loop {
+            let mut buffer = openxr::EventDataBuffer::new();
+            match instance.poll_event(&mut buffer) {
+                Ok(Some(openxr::Event::SessionStateChanged(change))) => match change.state() {
+                    openxr::SessionState::READY => break,
+                    openxr::SessionState::EXITING | openxr::SessionState::LOSS_PENDING => {
+                        return Err(Error::BackendSpecific(format!(
+                            "OpenXR session ended before READY: {:?}",
+                            change.state()
+                        )));
+                    },
+                    state => {
+                        debug!("Waiting for OpenXR READY state; saw {state:?}");
+                    },
+                },
+                Ok(Some(openxr::Event::InstanceLossPending(_))) => {
+                    return Err(Error::BackendSpecific(
+                        "OpenXR instance loss pending before READY".into(),
+                    ));
+                },
+                Ok(Some(_)) => {},
+                Ok(None) => {
+                    if Instant::now() >= ready_deadline {
+                        return Err(Error::BackendSpecific(
+                            "Timed out waiting for OpenXR session READY state".into(),
+                        ));
+                    }
+                    thread::sleep(Duration::from_millis(5));
+                },
+                Err(e) => {
+                    return Err(Error::BackendSpecific(format!(
+                        "Error polling OpenXR events while waiting for READY: {e:?}"
+                    )));
+                },
+            }
+        }
 
         if supports_secondary {
             session
@@ -1064,24 +1212,24 @@ impl OpenXrDevice {
         );
 
         Ok(OpenXrDevice {
+            action_set,
+            right_hand,
+            left_hand,
+            viewer_space,
+            shared_data,
+            frame_waiter,
+            session,
+            layer_manager,
             instance,
             events: Default::default(),
-            session,
-            frame_waiter,
-            viewer_space,
             clip_planes: Default::default(),
             supports_secondary,
             supports_mutable_fov,
             supports_updating_framerate,
-            layer_manager,
-            shared_data,
-
-            action_set,
-            right_hand,
-            left_hand,
             granted_features,
             context_menu_provider,
             context_menu_future: None,
+            _session_guard: session_guard,
         })
     }
 
@@ -1136,30 +1284,44 @@ impl OpenXrDevice {
                     return false;
                 },
                 Some(InteractionProfileChanged(_)) => {
-                    let path = self.instance.string_to_path("/user/hand/right").unwrap();
-                    let profile_path = self.session.current_interaction_profile(path).unwrap();
-                    let profile = self.instance.path_to_string(profile_path);
+                    if let Ok(path) = self.instance.string_to_path("/user/hand/right") {
+                        match self.session.current_interaction_profile(path) {
+                            Ok(Path::NULL) => {
+                                let mut new_left = self.left_hand.input_source();
+                                new_left.profiles.clear();
+                                self.events
+                                    .callback(Event::UpdateInput(new_left.id, new_left));
 
-                    match profile {
-                        Ok(profile) => {
-                            let profiles = get_profiles_from_path(profile)
-                                .iter()
-                                .map(|s| s.to_string())
-                                .collect();
+                                let mut new_right = self.right_hand.input_source();
+                                new_right.profiles.clear();
+                                self.events
+                                    .callback(Event::UpdateInput(new_right.id, new_right));
+                            },
+                            Ok(profile_path) => match self.instance.path_to_string(profile_path) {
+                                Ok(profile) => {
+                                    let profiles = get_profiles_from_path(profile)
+                                        .iter()
+                                        .map(|s| s.to_string())
+                                        .collect();
 
-                            let mut new_left = self.left_hand.input_source();
-                            new_left.profiles.clone_from(&profiles);
-                            self.events
-                                .callback(Event::UpdateInput(new_left.id, new_left));
+                                    let mut new_left = self.left_hand.input_source();
+                                    new_left.profiles.clone_from(&profiles);
+                                    self.events
+                                        .callback(Event::UpdateInput(new_left.id, new_left));
 
-                            let mut new_right = self.right_hand.input_source();
-                            new_right.profiles.clone_from(&profiles);
-                            self.events
-                                .callback(Event::UpdateInput(new_right.id, new_right));
-                        },
-                        Err(e) => {
-                            error!("Failed to get interaction profile: {:?}", e);
-                        },
+                                    let mut new_right = self.right_hand.input_source();
+                                    new_right.profiles.clone_from(&profiles);
+                                    self.events
+                                        .callback(Event::UpdateInput(new_right.id, new_right));
+                                },
+                                Err(e) => {
+                                    error!("Failed to get interaction profile: {:?}", e);
+                                },
+                            },
+                            Err(e) => {
+                                error!("Failed to query current interaction profile: {:?}", e);
+                            },
+                        }
                     }
                 },
                 Some(ReferenceSpaceChangePending(e)) => {
@@ -1206,26 +1368,30 @@ impl SharedData {
     }
 
     fn viewports(&self) -> Viewports {
-        let left_vp = Rect::new(
-            Point2D::zero(),
-            Size2D::new(self.left.extent.width, self.left.extent.height),
-        );
-        let right_vp = Rect::new(
-            Point2D::new(self.left.extent.width, 0),
-            Size2D::new(self.right.extent.width, self.right.extent.height),
-        );
-        let mut viewports = vec![left_vp, right_vp];
-        // Note: we report the secondary viewport even when it is inactive
-        if let Some(ref secondary) = self.secondary {
-            let secondary_vp = Rect::new(
-                Point2D::new(self.left.extent.width + self.right.extent.width, 0),
-                Size2D::new(secondary.extent.width, secondary.extent.height) /
-                    SECONDARY_VIEW_DOWNSCALE,
-            );
-            viewports.push(secondary_vp)
-        }
-        Viewports { viewports }
+        stereo_viewports(
+            self.left.extent,
+            self.right.extent,
+            self.secondary.as_ref().map(|s| s.extent),
+        )
     }
+}
+
+fn stereo_viewports(left: Extent2Di, right: Extent2Di, secondary: Option<Extent2Di>) -> Viewports {
+    let left_vp = Rect::new(Point2D::zero(), Size2D::new(left.width, left.height));
+    let right_vp = Rect::new(
+        Point2D::new(left.width, 0),
+        Size2D::new(right.width, right.height),
+    );
+    let mut viewports = vec![left_vp, right_vp];
+    // Note: we report the secondary viewport even when it is inactive
+    if let Some(secondary) = secondary {
+        let secondary_vp = Rect::new(
+            Point2D::new(left.width + right.width, 0),
+            Size2D::new(secondary.width, secondary.height) / SECONDARY_VIEW_DOWNSCALE,
+        );
+        viewports.push(secondary_vp)
+    }
+    Viewports { viewports }
 }
 
 impl DeviceAPI for OpenXrDevice {
@@ -1311,7 +1477,7 @@ impl DeviceAPI for OpenXrDevice {
                 return None;
             },
         };
-        if !self.supports_mutable_fov {
+        if GraphicsProvider::needs_y_flip() && !self.supports_mutable_fov {
             views.iter_mut().for_each(|v| {
                 std::mem::swap(&mut v.fov.angle_up, &mut v.fov.angle_down);
             });
@@ -1458,28 +1624,43 @@ impl DeviceAPI for OpenXrDevice {
     }
 
     fn quit(&mut self) {
-        self.session.request_exit().unwrap();
-        loop {
-            let mut buffer = openxr::EventDataBuffer::new();
-            let event = match self.instance.poll_event(&mut buffer) {
-                Ok(e) => e,
-                Err(e) => {
-                    error!("Error polling for event while quitting: {:?}", e);
-                    break;
-                },
-            };
-            if let Some(openxr::Event::SessionStateChanged(session_change)) = event {
-                match session_change.state() {
-                    openxr::SessionState::EXITING => break,
-                    openxr::SessionState::STOPPING => {
-                        if let Err(e) = self.session.end() {
-                            error!("Session failed to end while STOPPING: {:?}", e);
-                        }
-                    },
-                    _ => (),
+        match self.session.request_exit() {
+            Ok(()) => {
+                let deadline = Instant::now() + Duration::from_secs(5);
+                while Instant::now() < deadline {
+                    let mut buffer = openxr::EventDataBuffer::new();
+                    let event = match self.instance.poll_event(&mut buffer) {
+                        Ok(e) => e,
+                        Err(e) => {
+                            error!("Error polling for event while quitting: {:?}", e);
+                            break;
+                        },
+                    };
+                    match event {
+                        Some(openxr::Event::SessionStateChanged(session_change)) => {
+                            match session_change.state() {
+                                openxr::SessionState::EXITING |
+                                openxr::SessionState::LOSS_PENDING => break,
+                                openxr::SessionState::STOPPING => {
+                                    if let Err(e) = self.session.end() {
+                                        error!("Session failed to end while STOPPING: {:?}", e);
+                                    }
+                                },
+                                _ => (),
+                            }
+                        },
+                        Some(openxr::Event::InstanceLossPending(_)) => break,
+                        Some(_) => (),
+                        None => thread::sleep(Duration::from_millis(10)),
+                    }
                 }
-            }
-            thread::sleep(Duration::from_millis(30));
+            },
+            Err(openxr::sys::Result::ERROR_SESSION_NOT_RUNNING) => {
+                // Session already exited or stopped.
+            },
+            Err(e) => {
+                error!("Error requesting OpenXR session exit: {:?}", e);
+            },
         }
         self.events.callback(Event::SessionEnd);
         // We clear this data to remove the outstanding reference to XrSpace,
