@@ -410,7 +410,8 @@ impl DOMString {
         TracedDOMString::default().root()
     }
 
-    /// Creates the string from js. If the string can be encoded in latin1, just take the reference
+    /// Converts a value to a string and put it into a [`DOMString`].
+    /// If the string can be encoded in latin1, just take the reference
     /// to the JSString. Otherwise do the conversion to utf8 now.
     /// <https://webidl.spec.whatwg.org/#js-DOMString>
     pub fn from_js_string(

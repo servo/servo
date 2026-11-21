@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>Makes sure that Link headers on subresources preload resources</title>
+<title>Makes sure that Link headers on subresources do not preload resources</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/preload/resources/preload_helper.js"></script>
@@ -7,25 +7,14 @@
 <script>
     setup({single_test: true});
 
-    var iterations = 0;
-
     function check_finished() {
-        if (numberOfResourceTimingEntries("/fonts/CanvasTest.ttf?link-header-on-subresource") == 1) {
-            done();
-        }
-        iterations++;
-        if (iterations == 10) {
-             // This is expected to fail, but this should give details to the exact failure.
-            verifyNumberOfResourceTimingEntries("/fonts/CanvasTest.ttf?link-header-on-subresource", 1);
-            done();
-        } else {
-            step_timeout(check_finished, 500);
-        }
+        verifyNumberOfResourceTimingEntries("/fonts/CanvasTest.ttf?link-header-on-subresource", 0);
+        done();
     }
 
     window.addEventListener("load", function() {
         verifyPreloadAndRTSupport();
-        step_timeout(check_finished, 500);
+        step_timeout(check_finished, 1000);
     });
 </script>
 

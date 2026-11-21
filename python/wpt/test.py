@@ -197,11 +197,25 @@ class TestCleanUpBodyText(unittest.TestCase):
             SyncRun.clean_up_body_text("Subject\n\nNo --- comment\n---Other stuff that"),
         )
         self.assertEqual(
-            "Subject\n\n#<!-- nolink -->3 servo#<!-- nolink -->3 servo/servo#3",
+            "Subject\n\n#<!-- nolink -->3 servo#<!-- nolink -->3 servo/servo#<!-- nolink -->3",
             SyncRun.clean_up_body_text(
                 "Subject\n\n#3 servo#3 servo/servo#3",
             ),
-            "Only relative and bare issue reference links should be escaped.",
+            "Absolute issue reference links should be escaped.",
+        )
+        self.assertEqual(
+            "Subject\n\n[#<!-- nolink -->3](https://github.com/servo/servo/issues/3)",
+            SyncRun.clean_up_body_text(
+                "Subject\n\n[#3](https://github.com/servo/servo/issues/3)",
+            ),
+            "Link text that contains a issue reference should be escaped.",
+        )
+        self.assertEqual(
+            "Subject\n\nAn issue (#<!-- nolink -->3)",
+            SyncRun.clean_up_body_text(
+                "Subject\n\nAn issue (#3)",
+            ),
+            "References adjacent to non-word characters.",
         )
 
 
@@ -541,7 +555,7 @@ class TestFullSyncRun(unittest.TestCase):
         self.assertListEqual(
             self.run_test("edited.json", ["wpt.diff"], [MockPullRequest("servo:servo_export_19620", 10)]),
             [
-                "ChangePRStep:wpt/wpt#10:open:A cool new title:Reference #<!--...[136]",
+                "ChangePRStep:wpt/wpt#10:open:A cool new title:Reference #<!--...[151]",
                 "CommentStep:servo/servo#19620:✍ Updated existing upstream WPT pull "
                 "request (wpt/wpt#10) title and body.",
             ],

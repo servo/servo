@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Module link vs classic stylesheet: shared identity and CSSOM mutations</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/ShadowDOM/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script type="importmap">
+{
+  "imports": {
+    "shared": "./module-stylesheet-blue.css?vs-shared"
+  }
+}
+</script>
+
+<body>
+<script type="module">
+import {createLink, waitForEvent, createShadowRoot, createDocumentContainer} from "./module-stylesheet-helpers.js";
+
+// ownerNode: module sheets are ownerless; classic sheets are link-owned.
+promise_test(async t => {
+  const root = createShadowRoot(t);
+  const m1 = createLink(t, /*import=*/"shared");
+  const m2 = createLink(t, /*import=*/"shared");
+  const c1 = createLink(t, /*import=*/undefined,
+      /*href=*/"./module-stylesheet-blue.css?vs-id");
+  const c2 = createLink(t, /*import=*/undefined,
+      /*href=*/"./module-stylesheet-blue.css?vs-id");
+  const links = [m1, m2, c1, c2];
+  const results = links.map(waitForEvent);
+  root.append(...links);
+
+  assert_array_equals(await Promise.all(results),
+                      ["load", "load", "load", "load"]);
+  assert_equals(m1.sheet, m2.sheet, "duplicate module links share one object");
+  assert_not_equals(c1.sheet, c2.sheet,
+      "duplicate classic links get separate wrappers");
+
+  // Mutating the shared module object is visible through every consumer.
+  m1.sheet.insertRule("span { color: rgb(0, 128, 0) }", m1.sheet.cssRules.length);
+  assert_equals(m2.sheet.cssRules[m2.sheet.cssRules.length - 1].style.color,
+                "rgb(0, 128, 0)");
+  // Mutating one classic wrapper does not affect the other.
+  c1.sheet.insertRule("span { color: rgb(0, 128, 0) }", c1.sheet.cssRules.length);
+  assert_not_equals(
+      c2.sheet.cssRules[c2.sheet.cssRules.length - 1]?.style.color,
+      "rgb(0, 128, 0)");
+}, "Module links expose one shared CSSOM object; classic links do not.");
+
+for (const mutation of ["replaceSync", "insertRule", "declaration"]) {
+  promise_test(async t => {
+    const url = URL.createObjectURL(new Blob(
+        [".cssom-target { color: rgb(0, 0, 255); }"], {type: "text/css"}));
+    t.add_cleanup(() => URL.revokeObjectURL(url));
+    const markup = '<span class="cssom-target">test</span>';
+    const container = createDocumentContainer(t, markup);
+    const roots = [createShadowRoot(t, markup), createShadowRoot(t, markup)];
+    const scopes = [container, ...roots];
+    const links = scopes.map(() => createLink(t, /*import=*/url));
+    const duplicate = createLink(t, /*import=*/url);
+    const results = [...links, duplicate].map(waitForEvent);
+    scopes.forEach((scope, i) => scope.prepend(links[i]));
+    container.prepend(duplicate);
+    assert_array_equals(await Promise.all(results),
+        ["load", "load", "load", "load"]);
+    const sheet = links[0].sheet;
+    for (const link of links) {
+      assert_equals(link.sheet, sheet);
+    }
+
+    const adoptedRoot = createShadowRoot(t, markup);
+    adoptedRoot.adoptedStyleSheets = [sheet];
+    const targets = [...scopes, adoptedRoot].map(
+        scope => scope.querySelector(".cssom-target"));
+    function assertColor(color) {
+      for (const target of targets) {
+        assert_equals(getComputedStyle(target).color, color);
+      }
+    }
+    function mutate(color) {
+      if (mutation === "replaceSync") {
+        sheet.replaceSync(`.cssom-target { color: ${color}; }`);
+      } else if (mutation === "insertRule") {
+        sheet.insertRule(`.cssom-target { color: ${color}; }`,
+            sheet.cssRules.length);
+      } else {
+        sheet.cssRules[0].style.color = color;
+      }
+    }
+
+    assertColor("rgb(0, 0, 255)");
+    mutate("rgb(0, 128, 0)");
+    assertColor("rgb(0, 128, 0)");
+
+    // Removing one consumer must not unregister the remaining document link.
+    duplicate.remove();
+    // Reprocessing one shadow link must stop applying the original sheet there.
+    const replacement = waitForEvent(links[1]);
+    links[1].setAttribute("import", "data:text/css,");
+    assert_equals(await replacement, "load");
+    assert_not_equals(getComputedStyle(targets[1]).color, "rgb(0, 128, 0)");
+    targets.splice(1, 1);
+    mutate("rgb(255, 0, 0)");
+    assertColor("rgb(255, 0, 0)");
+    assert_not_equals(
+        getComputedStyle(roots[0].querySelector(".cssom-target")).color,
+        "rgb(255, 0, 0)");
+  }, `${mutation} recalculates styles for shared module links and adopted sheets.`);
+}
+</script>

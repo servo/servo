@@ -91,6 +91,21 @@ class Bluetooth(BidiModule):
         }
 
     @command
+    def simulate_gatt_mtu_change(self,
+            context: str,
+            address: str,
+            mtu: int) -> Mapping[str, Any]:
+        """
+        Represents a command `bluetooth.simulate_gatt_mtu_change` specified in
+        https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulategattmtuchange-command
+        """
+        return {
+            "context": context,
+            "address": address,
+            "mtu": mtu
+        }
+
+    @command
     def simulate_service(self,
             context: str,
             address: str,

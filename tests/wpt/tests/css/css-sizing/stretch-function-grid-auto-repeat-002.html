@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>CSS stretch(): the minimum size an auto-repeat grid container fits its repetitions into</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#auto-repeat">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="A stretch() minimum size fits the grid container's margin box to its argument, and the auto-fill repetitions fit into the content box that leaves.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 50px);
+    width: min-content;
+    min-width: stretch(150px);
+    margin-right: 50px;
+  }
+  .grid > div {
+    height: 50px;
+    background: green;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<!-- Two 50px repetitions fit into the 100px content box, so the four items take two rows. -->
+<div class="grid"><div></div><div></div><div></div><div></div></div>

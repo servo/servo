@@ -152,9 +152,9 @@ fn is_element_with_inline_contents(element: &Node) -> bool {
 }
 
 /// <https://w3c.github.io/editing/docs/execCommand/#preserving-ranges>
-pub(crate) fn move_preserving_ranges<Move>(cx: &mut JSContext, node: &Node, mut move_: Move)
+pub(crate) fn move_preserving_ranges<Move, Return>(cx: &mut JSContext, node: &Node, mut move_: Move)
 where
-    Move: FnMut(&mut JSContext) -> Fallible<DomRoot<Node>>,
+    Move: FnMut(&mut JSContext) -> Fallible<Return>,
 {
     // Step 1. Let node be the moved node, old parent and old index be the old parent
     // (which may be null) and index, and new parent and new index be the new parent and index.
@@ -2450,7 +2450,15 @@ impl Node {
     pub(crate) fn is_collapsed_line_break(&self, cx: &mut JSContext) -> bool {
         // > A collapsed line break is a br that begins a line box which has nothing else in it,
         // > and therefore has zero height.
-        if !self.is::<HTMLBRElement>() {
+        //
+        // This also takes into account a newly created text node with the only value "\n", since
+        // that's what browsers insert when the white-space CSS property indicates it has pre-formatted
+        // content.
+        if !self.is::<HTMLBRElement>() &&
+            !self
+                .downcast::<Text>()
+                .is_some_and(|text| text.data().as_str() == "\n")
+        {
             return false;
         }
 
@@ -2467,9 +2475,14 @@ impl Node {
         //
         // Only in the case that a `<br>` is followed by nothing (whitespace or no nodes) leading immediately
         // to a block node, it is considered collapsed.
+        let editing_host = self.editing_host_of().expect("Must always be editable");
         let root = self
             .block_node_of(cx)
-            .unwrap_or_else(|| self.editing_host_of().expect("Must always be editable"));
+            // It could be that all ancestors up to and including the editing host are all inline. In that case
+            // we should only consider up to the editing host, as it acts as the bounding box for considering
+            // whether something is collapsed.
+            .filter(|block_node| editing_host.is_ancestor_of(block_node))
+            .unwrap_or(editing_host);
 
         for following in self.following_nodes(&root, ShadowIncluding::No) {
             if let Some(text) = following.downcast::<Text>() {

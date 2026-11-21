@@ -1811,10 +1811,12 @@ impl Node {
         )
     }
 
+    /// Use this if you have a Node already as this skips the cast. Otherwise you can use the [`NodeTraits::owner_document`].
     pub(crate) fn owner_doc(&self) -> DomRoot<Document> {
         self.owner_doc.get().unwrap()
     }
 
+    /// See [`owner_doc`]
     pub(crate) fn owner_doc_unrooted<'a>(&self, no_gc: &'a NoGC) -> UnrootedDom<'a, Document> {
         self.owner_doc.get_unrooted(no_gc).unwrap()
     }

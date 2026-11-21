@@ -1563,6 +1563,18 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-usemap
     make_setter!(SetUseMap, "usemap");
 
+    /// <https://wicg.github.io/entries-api/#dom-htmlinputelement-webkitdirectory>
+    fn Webkitdirectory(&self) -> bool {
+        self.upcast::<Element>()
+            .has_attribute(&LocalName::from("webkitdirectory"))
+    }
+
+    /// <https://wicg.github.io/entries-api/#dom-htmlinputelement-webkitdirectory>
+    fn SetWebkitdirectory(&self, cx: &mut JSContext, value: bool) {
+        self.upcast::<Element>()
+            .set_bool_attribute(cx, &LocalName::from("webkitdirectory"), value)
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#dom-input-indeterminate>
     fn Indeterminate(&self) -> bool {
         self.indeterminateness.get()

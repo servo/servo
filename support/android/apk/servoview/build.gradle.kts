@@ -23,13 +23,6 @@ android {
         // Default debug and release build types are used as templates
         debug { isJniDebuggable = true }
 
-        release {
-            signingConfig =
-                signingConfigs.getByName("debug") // Change this to sign with a production key
-            isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
-        }
-
         val debug = getByName("debug")
         val release = getByName("release")
 

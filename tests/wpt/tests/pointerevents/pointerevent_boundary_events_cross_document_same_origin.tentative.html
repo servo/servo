@@ -3,15 +3,14 @@
 <title>Pointer boundary events across same-origin documents (tentative)</title>
 <!--
 
-Issue: https://github.com/w3c/pointerevents/issues/656
-
-This test is tentative because I'm not sure whether it's the correct behavior.
-It's possible that cross-document should be treated the same as cross-origin.
-
 pointerevent_boundary_events_cross_origin.html tests that the cross-origin
 cases do not expose the true relatedTarget node (which is required for
-security).  This test tests that the same-origin but cross-document cases do
-expose the relatedTarget node.
+security).  This test tests that the same-origin but cross-document cases also
+do not expose the true relatedTarget node.
+
+It seems like there is general agreement in
+https://github.com/w3c/pointerevents/issues/656 that this is correct but I'm
+not sure if it's required by any spec.
 
 -->
 <script src="/resources/testharness.js"></script>
@@ -129,15 +128,15 @@ promise_test(async t => {
   await tapDoneButton();
 
   assert_equals(
-    parentEvents.map(e => `${e.type} from ${e.relatedTarget.id}`).join(),
-    "pointerout from child-target,pointerleave from child-target"
+    parentEvents.map(e => `${e.type} from ${e.relatedTarget ? e.relatedTarget.id : "null"}`).join(),
+    "pointerout from iframe,pointerleave from iframe"
   );
 
   assert_equals(
-    childEvents.map(e => `${e.type} from ${e.relatedTarget.id}`).join(),
-    "pointerover from parent-target,pointerenter from parent-target"
+    childEvents.map(e => `${e.type} from ${e.relatedTarget ? e.relatedTarget.id : "null"}`).join(),
+    "pointerover from null,pointerenter from null"
   );
-}, 'Parent to same-origin iframe: relatedTarget is exposed across documents');
+}, 'Parent to same-origin iframe: relatedTarget is not exposed across documents');
 
 promise_test(async t => {
   const container = document.createElement('div');
@@ -188,15 +187,15 @@ promise_test(async t => {
   await tapDoneButton();
 
   assert_equals(
-    childEvents.map(e => `${e.type} from ${e.relatedTarget.id}`).join(),
-    "pointerout from parent-target,pointerleave from parent-target"
+    childEvents.map(e => `${e.type} from ${e.relatedTarget ? e.relatedTarget.id : "null"}`).join(),
+    "pointerout from null,pointerleave from null"
   );
 
   assert_equals(
-    parentEvents.map(e => `${e.type} from ${e.relatedTarget.id}`).join(),
-    "pointerover from child-target,pointerenter from child-target"
+    parentEvents.map(e => `${e.type} from ${e.relatedTarget ? e.relatedTarget.id : "null"}`).join(),
+    "pointerover from iframe,pointerenter from iframe"
   );
-}, 'Same-origin iframe to parent: relatedTarget is exposed across documents');
+}, 'Same-origin iframe to parent: relatedTarget is not exposed across documents');
 
 promise_test(async t => {
   const container = document.createElement('div');
@@ -307,15 +306,15 @@ promise_test(async t => {
   await tapDoneButton();
 
   assert_equals(
-    s1Events.map(e => `${e.type} from ${e.relatedTarget.id}`).join(),
-    "pointerout from s2,pointerleave from s2"
+    s1Events.map(e => `${e.type} from ${e.relatedTarget ? e.relatedTarget.id : "null"}`).join(),
+    "pointerout from null,pointerleave from null"
   );
 
   assert_equals(
-    s2Events.map(e => `${e.type} from ${e.relatedTarget.id}`).join(),
-    "pointerover from s1,pointerenter from s1"
+    s2Events.map(e => `${e.type} from ${e.relatedTarget ? e.relatedTarget.id : "null"}`).join(),
+    "pointerover from null,pointerenter from null"
   );
-}, 'Sibling same-origin iframes: relatedTarget is exposed across documents');
+}, 'Sibling same-origin iframes: relatedTarget is not exposed across documents');
 
 promise_test(async t => {
   const container = document.createElement('div');
@@ -329,6 +328,7 @@ promise_test(async t => {
   container.appendChild(topTarget);
 
   const outerIframe = document.createElement('iframe');
+  outerIframe.id = 'outer-iframe';
   container.appendChild(outerIframe);
 
   await new Promise(resolve => {
@@ -383,14 +383,14 @@ promise_test(async t => {
   await tapDoneButton();
 
   assert_equals(
-    topEvents.map(e => `${e.type} from ${e.relatedTarget.id}`).join(),
-    "pointerout from deep,pointerleave from deep"
+    topEvents.map(e => `${e.type} from ${e.relatedTarget ? e.relatedTarget.id : "null"}`).join(),
+    "pointerout from outer-iframe,pointerleave from outer-iframe"
   );
 
   assert_equals(
-    deepEvents.map(e => `${e.type} from ${e.relatedTarget.id}`).join(),
-    "pointerover from top-target-nested,pointerenter from top-target-nested"
+    deepEvents.map(e => `${e.type} from ${e.relatedTarget ? e.relatedTarget.id : "null"}`).join(),
+    "pointerover from null,pointerenter from null"
   );
-}, 'Nested same-origin iframes: relatedTarget is exposed across documents');
+}, 'Nested same-origin iframes: relatedTarget is not exposed across documents');
 </script>
 </body>

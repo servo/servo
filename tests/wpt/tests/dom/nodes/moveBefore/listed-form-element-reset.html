@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>Form owner is reset when new form is moved before a listed form element</title>
+<title>Form owners after state-preserving moves</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <body>
@@ -26,4 +26,127 @@ test(t => {
   assert_equals(button.form, form2, "button.form is correctly reset to form2");
 }, "Listed form element form owner is reset when a new form is moved closer " +
    "before the listed element");
+
+test(t => {
+  const container = document.createElement("div");
+  t.add_cleanup(() => container.remove());
+  container.innerHTML = `
+    <span id="moving-owner"></span>
+    <form id="moving-owner"></form>
+    <input form="moving-owner">
+  `;
+  const blocker = container.querySelector("span");
+  const form = container.querySelector("form");
+  const input = container.querySelector("input");
+  document.body.append(container);
+  assert_equals(input.form, null);
+
+  container.moveBefore(blocker, null);
+
+  assert_equals(input.form, form, "The form becomes the first ID match");
+
+  container.moveBefore(blocker, form);
+
+  assert_equals(input.form, null, "The non-form element becomes the first ID match again");
+}, "Moving a non-form ID match updates form owners in a document");
+
+test(t => {
+  const host = document.createElement("div");
+  t.add_cleanup(() => host.remove());
+  const root = host.attachShadow({ mode: "open" });
+  root.innerHTML = `
+    <span id="moving-owner"></span>
+    <form id="moving-owner"></form>
+    <input form="moving-owner">
+  `;
+  const blocker = root.querySelector("span");
+  const form = root.querySelector("form");
+  const input = root.querySelector("input");
+  document.body.append(host);
+  assert_equals(input.form, null);
+
+  root.moveBefore(blocker, null);
+
+  assert_equals(input.form, form, "The form becomes the first ID match");
+
+  root.moveBefore(blocker, form);
+
+  assert_equals(input.form, null, "The non-form element becomes the first ID match again");
+}, "Moving a non-form ID match updates form owners in a shadow tree");
+
+test(t => {
+  const container = document.createElement("div");
+  t.add_cleanup(() => container.remove());
+  container.innerHTML = `
+    <div><span id="moving-owner"></span></div>
+    <form id="moving-owner"></form>
+    <input form="moving-owner">
+  `;
+  const subtree = container.firstElementChild;
+  const documentForm = container.querySelector("form");
+  const documentInput = container.querySelector("input");
+  const host = document.createElement("div");
+  container.append(host);
+  const root = host.attachShadow({ mode: "open" });
+  root.innerHTML = `
+    <form id="moving-owner"></form>
+    <input form="moving-owner">
+  `;
+  const shadowForm = root.querySelector("form");
+  const shadowInput = root.querySelector("input");
+  document.body.append(container);
+  assert_equals(documentInput.form, null);
+  assert_equals(shadowInput.form, shadowForm);
+
+  root.moveBefore(subtree, shadowForm);
+
+  assert_equals(documentInput.form, documentForm, "The blocker has left the document tree");
+  assert_equals(shadowInput.form, null, "The blocker has entered the shadow tree");
+
+  container.moveBefore(subtree, documentForm);
+
+  assert_equals(documentInput.form, null, "The blocker has returned to the document tree");
+  assert_equals(shadowInput.form, shadowForm, "The blocker has left the shadow tree");
+}, "Moving an ancestor of an ID match across a shadow boundary updates form owners in both trees");
+
+test(t => {
+  const container = document.createElement("div");
+  t.add_cleanup(() => container.remove());
+  container.innerHTML = '<form id="cross-tree-owner"></form><div></div>';
+  const form = container.firstElementChild;
+  const root = container.lastElementChild.attachShadow({ mode: "open" });
+  root.innerHTML = '<input form="cross-tree-owner">';
+  const input = root.firstElementChild;
+  document.body.append(container);
+  assert_equals(input.form, null);
+
+  container.moveBefore(input, null);
+
+  assert_equals(input.form, form, "The previously unassociated input enters the form's tree");
+
+  root.moveBefore(input, null);
+
+  assert_equals(input.form, null, "The input leaves the form's tree");
+}, "Moving an input without an ID across a shadow boundary resets its form owner");
+
+test(t => {
+  const container = document.createElement("div");
+  t.add_cleanup(() => container.remove());
+  container.innerHTML = '<form id="cross-tree-owner"></form><div></div>';
+  const form = container.firstElementChild;
+  const root = container.lastElementChild.attachShadow({ mode: "open" });
+  root.innerHTML = '<div><input form="cross-tree-owner"></div>';
+  const subtree = root.firstElementChild;
+  const input = subtree.firstElementChild;
+  document.body.append(container);
+  assert_equals(input.form, null);
+
+  container.moveBefore(subtree, null);
+
+  assert_equals(input.form, form, "The previously unassociated input enters the form's tree");
+
+  root.moveBefore(subtree, null);
+
+  assert_equals(input.form, null, "The input leaves the form's tree");
+}, "Moving an ancestor without an ID across a shadow boundary resets a descendant input's form owner");
 </script>

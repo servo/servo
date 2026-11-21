@@ -45,6 +45,7 @@ function runFrameTest({ policy, frameOrigin, framePolicy, navigatedFramePolicy }
     await navigateAndThenBack(pageA, pageB, urlB);
     assert_implements_optional(await getBFCachedStatus(pageA) === "Not BFCached", "The document has to load again rather than come back from the back/forward cache");
     const after = JSON.parse(await pageA.execute_script(() => askFrame()));
+    assert_array_equals(await pageA.execute_script(() => getLoadEvents()), ["frame", "document"], "the document's load event waits for its child frame after going back");
     assert_equals(after.url, before.url, "child frame's URL after going back");
     assert_equals(after.crossOriginIsolated, before.crossOriginIsolated, "child frame's crossOriginIsolated after going back");
   }, description);

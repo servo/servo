@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Module link: implicit CSS @scope rooting and duplicate references</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/LinkTagModuleImport/explainer.md">
+<link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scope-atrule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script type="importmap">
+{
+  "imports": {
+    "scope-theme": "data:text/css,@scope%7Bspan%7Bcolor:rgb(1,2,3)%7D%7D"
+  }
+}
+</script>
+
+<body>
+<script type="module">
+import {createLink, waitForEvent, createShadowRoot, createDocumentContainer} from "./module-stylesheet-helpers.js";
+
+promise_test(async t => {
+  const container = createDocumentContainer(t, "<span>light</span>");
+  const light = container.querySelector("span");
+  const lightColor = getComputedStyle(light).color;
+  const root = createShadowRoot(t,
+      "<span>near</span><section><div><span>deep</span></div></section>");
+  const link = createLink(t, /*import=*/"scope-theme");
+  const result = waitForEvent(link);
+  root.querySelector("div").append(link);
+  assert_equals(await result, "load");
+  assert_equals(link.sheet.ownerNode, null);
+  for (const target of root.querySelectorAll("span")) {
+    assert_equals(getComputedStyle(target).color, "rgb(1, 2, 3)",
+        "Implicit scope covers the whole shadow tree, not the link's parent.");
+  }
+  assert_equals(getComputedStyle(light).color, lightColor,
+      "The shadow-rooted scope does not leak to light DOM.");
+}, "Empty-prelude @scope in a module sheet is rooted at the shadow host.");
+
+promise_test(async t => {
+  const root = createShadowRoot(t, "<span>test</span>");
+  const target = root.querySelector("span");
+  const initialColor = getComputedStyle(target).color;
+  const a = createLink(t, /*import=*/"scope-theme");
+  const b = createLink(t, /*import=*/"scope-theme");
+  const results = [a, b].map(waitForEvent);
+  root.prepend(a, b);
+  assert_array_equals(await Promise.all(results), ["load", "load"]);
+  assert_equals(a.sheet, b.sheet);
+  assert_equals(getComputedStyle(target).color, "rgb(1, 2, 3)");
+  a.remove();
+  assert_equals(getComputedStyle(target).color, "rgb(1, 2, 3)",
+      "One remaining module link retains the implicit scope.");
+  b.remove();
+  assert_equals(getComputedStyle(target).color, initialColor,
+      "Removing the final module link removes the implicit scope.");
+}, "Duplicate module links retain an implicit scope until the last reference is removed.");
+</script>

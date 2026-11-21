@@ -19,6 +19,8 @@ use style::context::{QuirksMode, SharedStyleContext};
 use style::logical_geometry::LogicalAxis;
 use style::properties::ComputedValues;
 use style::servo::selector_parser::PseudoElement;
+use style::values::computed::{AlignmentBaseline, BaselineShift};
+use style::values::generics::box_::BaselineShiftKeyword;
 use style::values::specified::align::AlignFlags;
 use style::values::specified::{Display, TextAlignKeyword};
 
@@ -35,14 +37,16 @@ use crate::flow::same_formatting_context_block::SameFormattingContextBlock;
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
     BaseFragmentInfo, BlockLevelLayoutInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin,
-    Fragment, FragmentFlags, PositioningFragment,
+    Fragment, FragmentChildren, FragmentFlags, PositioningFragment,
 };
 use crate::geom::{
     AuOrAuto, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect,
     PhysicalSides,
 };
 use crate::layout_box_base::{IndependentFormattingContextLayoutResult, LayoutBoxBase};
-use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
+use crate::positioned::{
+    AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, StaticPositionRect,
+};
 use crate::sizing::{
     self, ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, LazySize, Size,
     SizeConstraint, Sizes,
@@ -418,18 +422,23 @@ impl OutsideMarker {
             &LazySize::intrinsic(),
         );
 
-        let max_inline_size = layout
-            .fragments
-            .iter()
-            .map(|fragment| {
-                LogicalRect::from_physical_deprecated(
-                    fragment.base().map(|base| base.rect()).unwrap_or_default(),
-                    &containing_block_for_children,
-                )
-                .max_inline_position()
-            })
-            .max()
-            .unwrap_or_default();
+        let max_inline_size = match &layout.fragments {
+            FragmentChildren::PhysicalDeprecated(fragments) => fragments
+                .iter()
+                .map(|fragment| {
+                    LogicalRect::from_physical_deprecated(
+                        fragment.base().map(|base| base.rect()).unwrap_or_default(),
+                        &containing_block_for_children,
+                    )
+                    .max_inline_position()
+                })
+                .max(),
+            FragmentChildren::Logical(fragments) => fragments
+                .iter()
+                .map(|fragment| fragment.logical_rect.max_inline_position())
+                .max(),
+        }
+        .unwrap_or_default();
 
         // Position the marker beyond the inline start of the border box list item. This needs to
         // take into account the border and padding of the item.
@@ -481,6 +490,34 @@ impl OutsideMarker {
     ) {
         self.list_item_style = node.parent_style(context);
         self.context.repair_style(context, node, new_style);
+    }
+}
+
+/// The used value of `align-content` for a block formatting context.
+#[derive(PartialEq)]
+pub(crate) enum ContentAlignment {
+    Start,
+    SafeEnd,
+    UnsafeEnd,
+    SafeCenter,
+    UnsafeCenter,
+    Baseline,
+}
+
+impl ContentAlignment {
+    pub(crate) fn resolve_offset(
+        &self,
+        free_space: impl FnOnce() -> Au,
+        baseline: impl FnOnce() -> Au,
+    ) -> Au {
+        match self {
+            Self::Start => Au::zero(),
+            Self::SafeEnd => Au::zero().max(free_space()),
+            Self::UnsafeEnd => free_space(),
+            Self::SafeCenter => Au::zero().max(free_space() / 2),
+            Self::UnsafeCenter => free_space() / 2,
+            Self::Baseline => baseline(),
+        }
     }
 }
 
@@ -553,61 +590,26 @@ impl BlockFormattingContext {
                 return;
             };
 
-            let align_content_style = base.style.get_align_content().primary();
-            let resolved_align_content = match align_content_style.value() {
-                // `normal` behaves as `center` on buttons. Otherwise behaves as `start`.
-                // See <https://github.com/w3c/csswg-drafts/issues/14190>.
-                AlignFlags::NORMAL
-                    if base
-                        .base_fragment_info
-                        .flags
-                        .contains(FragmentFlags::IS_BUTTON) =>
-                {
-                    AlignFlags::CENTER
-                },
-                AlignFlags::NORMAL => AlignFlags::START,
+            let content_alignment = self.content_alignment(base);
 
-                // Explicit sides.
-                AlignFlags::CENTER => AlignFlags::CENTER,
-                AlignFlags::START | AlignFlags::FLEX_START => AlignFlags::START,
-                AlignFlags::END | AlignFlags::FLEX_END => AlignFlags::END,
-
-                // For <content-distribution>, use the fallback alignment.
-                AlignFlags::SPACE_AROUND | AlignFlags::SPACE_EVENLY => AlignFlags::CENTER,
-                AlignFlags::SPACE_BETWEEN | AlignFlags::STRETCH => AlignFlags::START,
-
-                // Stylo parses baseline values, but behavior is broken in browsers,
-                // so the CSSWG resolved to unship them. Treat them as `start` for now.
-                // <https://github.com/w3c/csswg-drafts/issues/13421>
-                AlignFlags::BASELINE | AlignFlags::LAST_BASELINE => AlignFlags::START,
-
-                // Other `AlignFlags` values shouldn't be valid for `align-content`.
-                _ => {
-                    debug_assert!(
-                        false,
-                        "Unexpected align-content value: {:?}",
-                        align_content_style.value()
-                    );
-                    AlignFlags::START
-                },
-            };
-            // No need to do anything for `start`.
-            if resolved_align_content == AlignFlags::START {
+            // No need to do anything for `start`. `baseline` is broken outside table cells,
+            // treat it as `start` for now (<https://github.com/w3c/csswg-drafts/issues/13421>).
+            if matches!(
+                content_alignment,
+                ContentAlignment::Start | ContentAlignment::Baseline
+            ) {
                 return;
             }
-            // If no overflow alignment is specified, the spec describes a "smart" behavior.
-            // But if that isn't implemented, the default behavior must be `safe` on block
-            // containers. See <https://drafts.csswg.org/css-align/#auto-safety-default>.
-            let is_safe = align_content_style.flags() != AlignFlags::UNSAFE;
 
-            // Compute the free space. If negative, the "safe" alignment variants fall back
-            // to `start` alignment.
-            // Note that the alignment subject is the actual contents of the box, even if
-            // the intrinsic block size is different (as is the case with <textarea>)
             flow_layout.depends_on_block_constraints = true;
-            let final_block_size = lazy_block_size.resolve(|| intrinsic_block_size);
-            let free_space = final_block_size - content_block_size;
-            if free_space <= Au::zero() && is_safe {
+            let align_offset = content_alignment.resolve_offset(
+                // Compute the free space: final block size minus block size of the contents.
+                // Note that the alignment subject is the actual contents of the box, even if
+                // the intrinsic block size is different (as is the case with <textarea>)
+                || lazy_block_size.resolve(|| intrinsic_block_size) - content_block_size,
+                || unreachable!("Should have already returned for baseline"),
+            );
+            if align_offset.is_zero() {
                 return;
             }
 
@@ -616,29 +618,26 @@ impl BlockFormattingContext {
             let align_fragment_rect = LogicalRect {
                 start_corner: LogicalVec2 {
                     inline: Au::zero(),
-                    block: match resolved_align_content {
-                        AlignFlags::END => free_space,
-                        AlignFlags::CENTER => free_space / 2,
-                        _ => unreachable!(),
-                    },
+                    block: align_offset,
                 },
                 size: LogicalVec2 {
                     inline: containing_block.inline_size(),
                     block: content_block_size,
                 },
-            }
-            .as_physical_deprecated(containing_block);
-            positioning_context.adjust_static_position_of_hoisted_fragments_with_offset(
-                &align_fragment_rect.origin.to_vector(),
+            };
+            positioning_context.adjust_static_position_of_hoisted_fragments(
+                &align_fragment_rect,
+                containing_block.style.writing_mode,
                 previous_positioning_context_len,
             );
             let align_fragment = PositioningFragment::new_anonymous(
                 base.style.clone(),
-                align_fragment_rect,
+                align_fragment_rect.as_physical_deprecated(containing_block),
                 std::mem::take(&mut flow_layout.fragments),
                 false, /* is_line_box */
             );
-            flow_layout.fragments = vec![Fragment::Positioning(align_fragment)];
+            flow_layout.fragments =
+                FragmentChildren::PhysicalDeprecated(vec![Fragment::Positioning(align_fragment)]);
         };
         apply_align_content();
 
@@ -650,6 +649,65 @@ impl BlockFormattingContext {
             depends_on_block_constraints: flow_layout.depends_on_block_constraints,
             specific_layout_info: None,
             collapsible_margins_in_children: CollapsedBlockMargins::zero(),
+        }
+    }
+
+    pub(crate) fn content_alignment(&self, base: &LayoutBoxBase) -> ContentAlignment {
+        let align_content_style = base.style.get_align_content().primary();
+
+        // If no overflow alignment is specified, the spec describes a "smart" behavior.
+        // But if that isn't implemented, the default behavior must be `safe` on block
+        // containers. See <https://drafts.csswg.org/css-align/#auto-safety-default>.
+        let is_safe = align_content_style.flags() != AlignFlags::UNSAFE;
+
+        match align_content_style.value() {
+            // - On table cells, `align-content: normal` defers to `vertical-align`.
+            //   The spec still assumes that `vertical-align` is a longhand, so it's not very
+            //   clear if this logic is completely correct, but it seems to match Firefox.
+            //   See <https://github.com/w3c/csswg-drafts/issues/13458>.
+            // - On buttons, it behaves as `safe center`.
+            //   See <https://github.com/w3c/csswg-drafts/issues/14190>.
+            // - Otherwise behaves as `start`.
+            AlignFlags::NORMAL if self.is_table_cell => match base.style.get_baseline_shift() {
+                BaselineShift::Keyword(BaselineShiftKeyword::Top) => ContentAlignment::Start,
+                BaselineShift::Keyword(BaselineShiftKeyword::Bottom) => ContentAlignment::SafeEnd,
+                _ => match base.style.get_alignment_baseline() {
+                    AlignmentBaseline::Middle => ContentAlignment::SafeCenter,
+                    _ => ContentAlignment::Baseline,
+                },
+            },
+            AlignFlags::NORMAL
+                if base
+                    .base_fragment_info
+                    .flags
+                    .contains(FragmentFlags::IS_BUTTON) =>
+            {
+                ContentAlignment::SafeCenter
+            },
+            AlignFlags::NORMAL => ContentAlignment::Start,
+
+            // Explicit <content-position>.
+            AlignFlags::CENTER if is_safe => ContentAlignment::SafeCenter,
+            AlignFlags::CENTER => ContentAlignment::UnsafeCenter,
+            AlignFlags::START | AlignFlags::FLEX_START => ContentAlignment::Start,
+            AlignFlags::END | AlignFlags::FLEX_END if is_safe => ContentAlignment::SafeEnd,
+            AlignFlags::END | AlignFlags::FLEX_END => ContentAlignment::UnsafeEnd,
+
+            // For <content-distribution>, use the fallback alignment.
+            AlignFlags::SPACE_AROUND | AlignFlags::SPACE_EVENLY => ContentAlignment::SafeCenter,
+            AlignFlags::SPACE_BETWEEN | AlignFlags::STRETCH => ContentAlignment::Start,
+
+            // The CSSWG resolved to unship the baseline values for `align-content`, and Blink
+            // doesn't even parse `align-content: last baseline`, so don't bother telling them
+            // apart. For now, treat them as `vertical-align: baseline` on table cells.
+            // See <https://github.com/w3c/csswg-drafts/issues/13421>
+            AlignFlags::BASELINE | AlignFlags::LAST_BASELINE => ContentAlignment::Baseline,
+
+            // Other `AlignFlags` values shouldn't be valid for `align-content`.
+            unexpected => {
+                debug_assert!(false, "Unexpected align-content value: {:?}", unexpected);
+                ContentAlignment::Start
+            },
         }
     }
 
@@ -971,7 +1029,7 @@ fn layout_block_level_children(
         ),
     };
 
-    let depends_on_block_constraints = fragments.iter().any(|fragment| {
+    let depends_on_block_constraints = fragments.fragments().any(|fragment| {
         fragment.base().is_some_and(|base| {
             base.flags.contains(
                 FragmentFlags::SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM,
@@ -997,7 +1055,7 @@ fn layout_block_level_children_maybe_in_parallel(
     child_boxes: &[ArcRefCell<BlockLevelBox>],
     placement_state: &mut PlacementState,
     ignore_block_margins_for_stretch: LogicalSides1D<bool>,
-) -> Vec<Fragment> {
+) -> FragmentChildren {
     let mut layout_results: Vec<(Fragment, PositioningContext)> =
         Vec::with_capacity(child_boxes.len());
 
@@ -1027,18 +1085,24 @@ fn layout_block_level_children_maybe_in_parallel(
         layout_results.extend(child_boxes.iter().map(layout));
     };
 
-    layout_results
+    let fragments = layout_results
         .into_iter()
         .map(|(mut fragment, mut child_positioning_context)| {
             placement_state.place_fragment_and_update_baseline(&mut fragment, None);
-            child_positioning_context.adjust_static_position_of_hoisted_fragments(
-                &fragment,
-                PositioningContextLength::zero(),
-            );
+
+            if let Some(rect) = fragment.base().map(|base| base.rect()) {
+                child_positioning_context.adjust_static_position_of_hoisted_fragments(
+                    &LogicalRect::from_physical_deprecated(rect, placement_state.containing_block),
+                    placement_state.containing_block.style.writing_mode,
+                    PositioningContextLength::zero(),
+                );
+            }
+
             positioning_context.append(child_positioning_context);
             fragment
         })
-        .collect()
+        .collect();
+    FragmentChildren::PhysicalDeprecated(fragments)
 }
 
 fn layout_block_level_children_sequentially(
@@ -1048,11 +1112,11 @@ fn layout_block_level_children_sequentially(
     sequential_layout_state: &mut SequentialLayoutState,
     placement_state: &mut PlacementState,
     ignore_block_margins_for_stretch: LogicalSides1D<bool>,
-) -> Vec<Fragment> {
+) -> FragmentChildren {
     // Because floats are involved, we do layout for this block formatting context in tree
     // order without parallelism. This enables mutable access to a `SequentialLayoutState` that
     // tracks every float encountered so far (again in tree order).
-    child_boxes
+    let fragments = child_boxes
         .iter()
         .map(|child_box| {
             layout_block_level_child(
@@ -1065,7 +1129,8 @@ fn layout_block_level_children_sequentially(
                 false, /* has_inline_parent */
             )
         })
-        .collect()
+        .collect();
+    FragmentChildren::PhysicalDeprecated(fragments)
 }
 
 fn layout_block_level_child(
@@ -1091,10 +1156,13 @@ fn layout_block_level_child(
     );
 
     placement_state.place_fragment_and_update_baseline(&mut fragment, sequential_layout_state);
-    positioning_context.adjust_static_position_of_hoisted_fragments(
-        &fragment,
-        positioning_context_length_before_layout,
-    );
+    if let Some(rect) = fragment.base().map(|base| base.rect()) {
+        positioning_context.adjust_static_position_of_hoisted_fragments(
+            &LogicalRect::from_physical_deprecated(rect, placement_state.containing_block),
+            placement_state.containing_block.style.writing_mode,
+            positioning_context_length_before_layout,
+        );
+    }
 
     fragment
 }
@@ -1153,7 +1221,7 @@ impl BlockLevelBox {
                     // This is incorrect, however we do not know the correct positioning
                     // until later, in PlacementState::place_fragment, and this value will be
                     // adjusted there
-                    PhysicalRect::zero(),
+                    StaticPositionRect::default(),
                     LogicalVec2 {
                         inline: AlignFlags::START,
                         block: AlignFlags::START,
@@ -2287,15 +2355,16 @@ impl<'container> PlacementState<'container> {
             Fragment::AbsoluteOrFixedPositionedPlaceholder(fragment) => {
                 // The alignment of absolutes in block flow layout is always "start", so the size of
                 // the static position rectangle does not matter.
-                fragment.borrow_mut().original_static_position_rect = LogicalRect {
+                let rect = LogicalRect {
                     start_corner: LogicalVec2 {
                         block: (self.current_margin.solve() +
                             self.current_block_direction_position),
                         inline: Au::zero(),
                     },
                     size: LogicalVec2::zero(),
-                }
-                .as_physical_deprecated(self.containing_block);
+                };
+                fragment.borrow_mut().original_static_position_rect =
+                    StaticPositionRect::new(rect, self.containing_block.style.writing_mode);
             },
             Fragment::Float(box_fragment) => {
                 let sequential_layout_state = sequential_layout_state

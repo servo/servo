@@ -16,6 +16,16 @@ test_valid_value("background-repeat", "repeat");
 test_valid_value("background-repeat", "repeat-x, repeat-y, repeat", "repeat-x, repeat-y, repeat");
 test_valid_value("background-repeat", "repeat space, round no-repeat, repeat-x");
 test_valid_value("background-repeat", "repeat repeat", ["repeat", "repeat repeat"]);
+test_valid_value("background-repeat", "no-repeat space");
+test_valid_value("background-repeat", "round round", "round");
+test_valid_value("background-repeat", "space repeat");
+
+test(() => {
+  const e = document.createElement("div");
+  e.style.backgroundImage = 'url("https://example.com/"), url("https://example.com/")';
+  e.style.backgroundRepeat = "repeat-x";
+  assert_equals(e.style.backgroundRepeat, "repeat-x");
+}, "background-repeat with fewer values than there are layers serializes as specified");
 </script>
 </body>
 </html>

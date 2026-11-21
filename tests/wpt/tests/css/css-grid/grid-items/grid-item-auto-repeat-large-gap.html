@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Grid auto-repeat with a large gap preserves one repetition</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#auto-repeat">
+<meta name="assert" content="A grid whose tracks and gaps exceed its available width retains one auto-fill repetition and preserves its items' widths.">
+<style>
+.grid {
+    display: grid;
+    width: 500px;
+    grid-template-columns: repeat(4, 100000px) repeat(auto-fill, 1px 1px 1px);
+    column-gap: 17895600px;
+}
+
+.stretched {
+    grid-column: 1;
+    grid-row: 1;
+    height: 20px;
+}
+
+.fixed {
+    grid-column: 1;
+    grid-row: 2;
+    width: 100px;
+    height: 20px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.grid')">
+<div class="grid" id="grid">
+    <div class="stretched" data-expected-width="100000"></div>
+    <div class="fixed" data-expected-width="100"></div>
+</div>
+<script>
+test(() => {
+    assert_equals(getComputedStyle(document.getElementById('grid')).gridTemplateColumns,
+                  '100000px 100000px 100000px 100000px 1px 1px 1px');
+}, 'Auto-fill creates one repetition when large gaps exceed the available width');
+</script>
+</body>

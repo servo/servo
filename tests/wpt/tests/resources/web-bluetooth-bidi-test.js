@@ -141,6 +141,13 @@ class FakePeripheral {
         {address: this.address, code});
   }
 
+  // Simulates the ATT MTU exchange procedure from BT 4.2 Vol 3 Part F 3.4.2
+  // establishing |mtu| for the connection to this peripheral.
+  async simulateGATTMtuChange(mtu) {
+    await test_driver.bidi.bluetooth.simulate_gatt_mtu_change(
+        {address: this.address, mtu});
+  }
+
   // Simulates a GATT disconnection in the peripheral.
   async simulateGATTDisconnection() {
     await test_driver.bidi.bluetooth.simulate_gatt_disconnection(

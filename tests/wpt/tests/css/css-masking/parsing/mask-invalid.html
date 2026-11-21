@@ -13,6 +13,18 @@
 <script>
 test_invalid_value('mask', 'none linear-gradient(to 0% 0%, rgb(0, 0, 0), rgb(0, 0, 255))');
 test_invalid_value('mask', 'none alpha luminance');
+test_invalid_value('mask', 'none / auto');
+test_invalid_value('mask', 'none repeat-x / auto');
+test_invalid_value('mask', 'none border-box / auto');
+test_invalid_value('mask', 'none top left / cover 100%');
+test_invalid_value('mask', 'none scroll');
+test_invalid_value('mask', 'none top left / auto repeat-x scroll border-box border-box');
+test_invalid_value('mask', 'none top left right center top / auto repeat-x scroll border-box border-box');
+test_invalid_value('mask', 'none center center 20px / auto repeat-x scroll border-box border-box');
+test_invalid_value('mask', 'none top 20px right 30px center / auto repeat-x scroll border-box border-box');
+test_invalid_value('mask', 'none top 20px top 30px / auto repeat-x scroll border-box border-box');
+test_invalid_value('mask', 'none top 20px bottom / auto repeat-x scroll border-box border-box');
+test_invalid_value('mask', 'none alpha, none match-source alpha');
 test_invalid_value('mask', 'linear-gradient(to 0% 0%, rgb(0, 0, 0), rgb(0, 0, 255)) url("https://example.com/")');
 
 test_invalid_value('mask', '1px 2px 3px');
@@ -32,6 +44,26 @@ test_invalid_value('mask', 'content-box stroke-box no-clip');
 test_invalid_value('mask', 'margin-box');
 
 test_invalid_value('mask', 'add intersect');
+test_invalid_value('mask', 'top none left');
+test_invalid_value('mask', 'top top');
+test_invalid_value('mask', 'top solid bottom');
+test_invalid_value('mask', 'right none bottom');
+test_invalid_value('mask', 'right right');
+test_invalid_value('mask', 'right top left');
+test_invalid_value('mask', 'left left');
+test_invalid_value('mask', 'bottom bottom');
+test_invalid_value('mask', '50% none 50%');
+test_invalid_value('mask', 'repeat-x repeat-x');
+test_invalid_value('mask', 'space repeat-y');
+test_invalid_value('mask', 'space scroll');
+test_invalid_value('mask', 'repeat space space');
+test_invalid_value('mask', 'padding-box border-box content-box');
+test_invalid_value('mask', 'scroll');
+test_invalid_value('mask', 'fixed');
+test_invalid_value('mask', 'local');
+test_invalid_value('mask', 'center left center');
+test_invalid_value('mask', 'center top center');
+test_invalid_value('mask', 'center right bottom');
 </script>
 </body>
 </html>

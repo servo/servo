@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: forced line breaks in a block-ellipsis string</title>
+<link rel="author" title="Christian Biesinger" href="mailto:cbiesinger@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#valdef-block-ellipsis-string">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#forced-line-break">
+<link rel="match" href="reference/block-ellipsis-042-ref.html">
+<meta name="assert" content="All forced line breaks inside a block-ellipsis string are collapsed as collapsible segment breaks, regardless of white-space, so each sequence of them becomes a single space.">
+<style>
+div {
+  font: 20px/1 monospace;
+  width: 20ch;
+  margin: 4px;
+}
+.line-feeds { line-clamp: 1 "\A\A\Amore"; }
+.line-separator { line-clamp: 1 "\2028 more"; }
+.paragraph-separator { line-clamp: 1 "\2029 more"; }
+.form-feed { line-clamp: 1 "\C more"; }
+.line-tabulation { line-clamp: 1 "\B more"; }
+.next-line { line-clamp: 1 "\85 more"; }
+.mixed { line-clamp: 1 "\A\2028\C\85 more"; }
+.pre { white-space: pre; }
+</style>
+<p>Test passes if each line below reads "x more", with a single space.
+<div class="line-feeds">x<br>y</div>
+<div class="line-separator">x<br>y</div>
+<div class="paragraph-separator">x<br>y</div>
+<div class="form-feed">x<br>y</div>
+<div class="line-tabulation">x<br>y</div>
+<div class="next-line">x<br>y</div>
+<div class="mixed">x<br>y</div>
+<div class="line-feeds pre">x<br>y</div>

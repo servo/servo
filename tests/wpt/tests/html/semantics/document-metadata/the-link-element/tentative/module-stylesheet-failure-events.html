@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Module link: asynchronous failure events and cancellation</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/ShadowDOM/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script type="module">
+import {createLink, loadResult} from "./module-stylesheet-helpers.js";
+
+for (const specifier of ["", "unmapped-specifier", "https://[invalid]/"]) {
+  promise_test(async t => {
+    const link = createLink(t, /*import=*/specifier);
+    const order = [];
+    const result = new Promise(resolve => {
+      link.onload = () => {
+        order.push("load");
+        resolve();
+      };
+      link.onerror = () => {
+        order.push("error");
+        resolve();
+      };
+    });
+    document.head.append(link);
+    order.push("inserted");
+    await Promise.resolve();
+    order.push("microtask");
+    await result;
+    assert_array_equals(order, ["inserted", "microtask", "error"]);
+  }, `Resolution failure for ${JSON.stringify(specifier)} fires asynchronously.`);
+
+  promise_test(async t => {
+    const link = createLink(t, /*import=*/specifier);
+    const events = [];
+    link.onload = () => events.push("load");
+    link.onerror = () => events.push("error");
+    document.head.append(link);
+    link.remove();
+
+    // A later resolution failure provides a task-ordering barrier without
+    // relying on a timeout to wait for the canceled failure.
+    const {event} = await loadResult(t, "unmapped-removal-barrier");
+    assert_equals(event, "error");
+    assert_array_equals(events, [], "The removed link emits no event.");
+    assert_equals(link.sheet, null);
+  }, `Removing a link cancels its queued failure for ${
+      JSON.stringify(specifier)}.`);
+
+  promise_test(async t => {
+    const link = createLink(t, /*import=*/specifier);
+    const events = [];
+    const loaded = new Promise(resolve => {
+      link.onload = () => {
+        events.push("load");
+        resolve();
+      };
+    });
+    link.onerror = () => events.push("error");
+    document.head.append(link);
+    link.setAttribute("import", "data:text/css,/* replacement */");
+    await loaded;
+
+    const {event} = await loadResult(t, "unmapped-reprocessing-barrier");
+    assert_equals(event, "error");
+    assert_array_equals(events, ["load"],
+        "Only the replacement request emits an event.");
+  }, `Changing import cancels the queued failure for ${
+      JSON.stringify(specifier)}.`);
+}
+</script>

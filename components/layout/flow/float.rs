@@ -1072,14 +1072,15 @@ impl SequentialLayoutState {
                 .solve()
     }
 
-    /// This function places a Fragment that has been created for a FloatBox.
+    /// This function places a Fragment that has been created for a FloatBox. Returns the logical
+    /// content rectangle of the float in the containing block.
     pub(crate) fn place_float_fragment(
         &mut self,
         box_fragment: &BoxFragment,
         containing_block: &ContainingBlock,
         margins_collapsing_with_parent_containing_block: CollapsedMargin,
         block_offset_from_containing_block_top: Au,
-    ) {
+    ) -> LogicalRect<Au> {
         let block_start_of_containing_block_in_bfc = self.floats.containing_block_info.block_start +
             self.floats
                 .containing_block_info
@@ -1126,15 +1127,16 @@ impl SequentialLayoutState {
             block: new_position_in_bfc.block - block_start_of_containing_block_in_bfc,
         };
 
-        box_fragment.base.set_rect(
-            LogicalRect {
-                start_corner: new_position_in_containing_block,
-                size: LogicalVec2::from_physical_size(
-                    &box_fragment.content_rect().size,
-                    container_writing_mode,
-                ),
-            }
-            .as_physical_deprecated(containing_block),
-        );
+        let rect = LogicalRect {
+            start_corner: new_position_in_containing_block,
+            size: LogicalVec2::from_physical_size(
+                &box_fragment.content_rect().size,
+                container_writing_mode,
+            ),
+        };
+        box_fragment
+            .base
+            .set_rect(rect.as_physical_deprecated(containing_block));
+        rect
     }
 }

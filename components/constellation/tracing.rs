@@ -84,6 +84,7 @@ mod from_embedder {
                 Self::ForwardAccessibilityAction(..) => target!("ForwardAccessibilityAction"),
                 Self::ClearSessionHistory(..) => target!("ClearHistory"),
                 Self::SetNetworkOnlineState(..) => target!("SetNetworkOnlineState"),
+                Self::StoreCacheToDisk(..) => target!("StoreCacheToDisk"),
             }
         }
     }
@@ -206,6 +207,9 @@ mod from_script {
                 Self::TriggerGarbageCollection => target!("TriggerGarbageCollection"),
                 Self::AcquireWakeLock(..) => target!("AcquireWakeLock"),
                 Self::ReleaseWakeLock(..) => target!("ReleaseWakeLock"),
+                Self::AddTupleToUpgradeInsecureNavigationsSet(..) => {
+                    target!("AddTupleToUpgradeInsecureNavigationsSet")
+                },
             }
         }
     }

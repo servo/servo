@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>Subresource Integrity for link rel=preload load and error events</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/subresource-integrity/sri-test-helpers.sub.js"></script>
+
+<div id="log"></div>
+
+<script>
+  // preload/subresource-integrity.html also counts requests through the resource
+  // timeline, which makes it sensitive to whether the preload is reused for the
+  // subsequent load. These tests look only at whether the link fires load or
+  // error, which is what the integrity check itself decides.
+
+  const script_sha256 = 'sha256-Bu681KMnQ15RYHFvsYdWumweeFAw0hJDTFt9seErghA=';
+  const script_sha384 = 'sha384-cINXh+nCzEHPWzXS7eoT+vYMBpyqczOybRLNU3XAButFWCRhHT5hLByIbPRqIm2f';
+  const script_sha512 = 'sha512-KZdenhzBd7X7Q/vmaOSyvFz1CGdoVt26xzCZjlkU9lfBEK+V/ougGys7iYDi0+tOHIQSQa87bIqx95R7GU7I9Q==';
+  const style_sha256 = 'sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4=';
+  const font_sha256 = 'sha256-mQ5AW27ghl+2Hz7rOhczvRW4KzWOemFPixxS9/bK7M4=';
+  const bad_sha256 = 'sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead';
+  const bad_sha512 = 'sha512-deadbeefKZdenhzBd7X7Q/vmaOSyvFz1CGdoVt26xzCZjlkU9lfBEK+V/ougGys7iYDi0+tOHIQSQa87bIqx95R==';
+
+  const script_url = `${same_origin_prefix}script.js`;
+  const style_url = `${same_origin_prefix}style.css`;
+  const font_url = '/fonts/CanvasTest.ttf';
+  const xorigin_script_url = `${xorigin_prefix}script.js`;
+  const xorigin_ineligible_url = `${xorigin_prefix}crossorigin-ineligible-style.css`;
+
+  // Each test gets a fresh URL so that a preload is never served from an
+  // earlier test's cache entry. `anonymous` from sri-test-helpers.sub.js starts
+  // with '&', so the token has to come first.
+  function unique(url, suffix = '') {
+    return `${url}?${token()}${suffix}`;
+  }
+
+  function preload_test(expect_load, name, as, url, integrity, crossorigin, suffix) {
+    promise_test(async () => {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = as;
+      link.href = unique(url, suffix);
+      link.integrity = integrity;
+      if (crossorigin !== undefined)
+        link.crossOrigin = crossorigin;
+
+      const fired = new Promise(resolve => {
+        link.onload = () => resolve('load');
+        link.onerror = () => resolve('error');
+      });
+      document.head.appendChild(link);
+      assert_equals(await fired, expect_load ? 'load' : 'error');
+    }, name);
+  }
+
+  preload_test(true, 'as=script with a matching sha256 digest',
+               'script', script_url, script_sha256);
+  preload_test(true, 'as=script with a matching sha384 digest',
+               'script', script_url, script_sha384);
+  preload_test(true, 'as=script with a matching sha512 digest',
+               'script', script_url, script_sha512);
+  preload_test(true, 'as=script with empty integrity',
+               'script', script_url, '');
+  preload_test(false, 'as=script with a digest that does not match',
+               'script', script_url, bad_sha256);
+  preload_test(true, 'as=script with an unknown algorithm only',
+               'script', script_url, 'foo666-Bu681KMnQ15RYHFvsYdWumweeFAw0hJDTFt9seErghA=');
+  preload_test(true, 'as=script with options after the digest',
+               'script', script_url, `${script_sha256}?foo=bar?spam=eggs`);
+  preload_test(true, 'as=script with a sha256 mismatch and a sha512 match',
+               'script', script_url, `${bad_sha256} ${script_sha512}`);
+  preload_test(false, 'as=script with a sha256 match and a sha512 mismatch',
+               'script', script_url, `${script_sha256} ${bad_sha512}`);
+
+  preload_test(true, 'as=style with a matching sha256 digest',
+               'style', style_url, style_sha256);
+  preload_test(false, 'as=style with a digest that does not match',
+               'style', style_url, bad_sha256);
+
+  // Fonts are always fetched in anonymous CORS mode.
+  preload_test(true, 'as=font with a matching sha256 digest',
+               'font', font_url, font_sha256, 'anonymous');
+  preload_test(false, 'as=font with a digest that does not match',
+               'font', font_url, bad_sha256, 'anonymous');
+
+  preload_test(true, 'cross-origin as=script with a matching sha256 digest, ACAO: *',
+               'script', xorigin_script_url, script_sha256, 'anonymous', anonymous);
+  preload_test(false, 'cross-origin as=script with a digest that does not match, ACAO: *',
+               'script', xorigin_script_url, bad_sha256, 'anonymous', anonymous);
+  preload_test(false, 'cross-origin as=script with a matching digest but no ACAO',
+               'script', xorigin_ineligible_url, style_sha256, 'anonymous');
+
+  // Without crossorigin the response is opaque, so its body is null and there
+  // is nothing for the digest to match.
+  preload_test(false, 'cross-origin as=script, not a CORS request, with a matching digest',
+               'script', xorigin_script_url, script_sha256, undefined, anonymous);
+  preload_test(true, 'cross-origin as=script, not a CORS request, with empty integrity',
+               'script', xorigin_script_url, '', undefined, anonymous);
+</script>

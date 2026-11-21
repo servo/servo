@@ -302,6 +302,8 @@ def run_info_extras(logger, default_prefs=None, **kwargs):
           "isolated_process": kwargs.get("isolated_process"),
           "vmpSigned": has_vmp_signature(kwargs.get("binary")),
           "playready": bool_pref("media.eme.playready.enabled"),
+          "csp_url_hashes": bool_pref("security.csp.url-hashes.enabled"),
+          "csp_strict_dynamic_url": bool_pref("security.csp.strict-dynamic-url.enabled"),
           }
     rv.update(run_info_browser_version(**kwargs))
 
@@ -341,6 +343,8 @@ def update_properties():
             "openh264",
             "playready",
             "subsuite",
+            "csp_url_hashes",
+            "csp_strict_dynamic_url",
         ],
         {"os": ["display", "version", "os_version"], "processor": ["bits"]},
     )
@@ -647,6 +651,7 @@ class FirefoxOutputHandler(OutputHandler):
 
         # These are filled in after configure_handlers() is called
         self.lsan_handler = None
+        self.asan_handler = None
         self.mozleak_allowed = None
         self.mozleak_thresholds = None
         self.group_metadata = None
@@ -665,12 +670,22 @@ class FirefoxOutputHandler(OutputHandler):
                                                   allowed=lsan_allowed,
                                                   maxNumRecordedFrames=lsan_max_stack_depth,
                                                   allowAll=lsan_disabled)
+            # mozleak < 2.1 has no AddressSanitizer report parser, and the
+            # action it logs needs a mozlog that knows it.
+            asan_parser = getattr(mozleak, "ASanErrorParser", None)
+            if asan_parser and hasattr(self.logger, "asan_error"):
+                self.asan_handler = asan_parser(self.logger, scope=group_metadata.scope)
+            else:
+                self.asan_handler = None
         else:
             self.lsan_handler = None
+            self.asan_handler = None
         super().start()
 
     def after_process_stop(self, clean_shutdown=True):
         super().after_process_stop(clean_shutdown)
+        if self.asan_handler:
+            self.asan_handler.flush()
         if self.lsan_handler:
             self.lsan_handler.process()
         if self.leak_report_file is not None:
@@ -710,6 +725,8 @@ class FirefoxOutputHandler(OutputHandler):
             data = line.decode("utf8", "replace")
             if self.stack_fixer:
                 data = self.stack_fixer(data)
+            if self.asan_handler:
+                self.asan_handler.log(data, pid=self.pid)
             if self.lsan_handler:
                 data = self.lsan_handler.log(data)
             if data is not None:
@@ -1050,6 +1067,9 @@ class FirefoxBrowser(Browser):
                                  "testdriver": self._settings["testdriver"]}
 
     def check_crash(self, process, test):
+        asan_handler = self.instance.output_handler.asan_handler
+        if asan_handler is not None:
+            asan_handler.attribute(test)
         return log_gecko_crashes(self.logger,
                                  process,
                                  test,

@@ -27,6 +27,7 @@ use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::IntersectionObserverBinding::{
     IntersectionObserverCallback, IntersectionObserverInit, IntersectionObserverMethods,
 };
+use crate::dom::bindings::codegen::Bindings::IntersectionObserverEntryBinding::IntersectionObserverEntryMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::{DoubleOrDoubleSequence, ElementOrDocument};
 use crate::dom::bindings::error::{Error, Fallible};
@@ -38,9 +39,14 @@ use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::document::{Document, RenderingUpdateReason};
 use crate::dom::domrectreadonly::DOMRectReadOnly;
 use crate::dom::element::Element;
+use crate::dom::html::htmliframeelement::HTMLIFrameElement;
 use crate::dom::intersectionobserverentry::IntersectionObserverEntry;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::window::Window;
+
+/// The spec leaves the "lazy load scroll margin" implementation-defined.
+/// 600px on every side is the value Firefox uses.
+const LAZY_LOAD_SCROLL_MARGIN: &str = "600px";
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
@@ -81,6 +87,17 @@ impl From<&UnrootedElementOrDocument> for ElementOrDocument {
 /// <https://w3c.github.io/IntersectionObserver/#intersectionobserver-intersection-root>
 pub type IntersectionRoot = Option<UnrootedElementOrDocument>;
 
+/// What an [`IntersectionObserver`] does when it has queued entries to deliver.
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+#[derive(JSTraceable, MallocSizeOf)]
+pub(crate) enum IntersectionObserverCallbackKind {
+    /// A JavaScript function passed to `new IntersectionObserver(callback)`.
+    Script(TracedCallback<IntersectionObserverCallback>),
+    /// The observer used for lazy-loading iframes. It runs Rust code instead of a script callback.
+    /// <https://html.spec.whatwg.org/multipage/#lazy-load-intersection-observer>
+    LazyLoad,
+}
+
 /// The Intersection Observer interface
 ///
 /// > The IntersectionObserver interface can be used to observe changes in the intersection
@@ -104,7 +121,7 @@ pub(crate) struct IntersectionObserver {
     /// > with the intersection root, as per the processing model.
     ///
     /// <https://w3c.github.io/IntersectionObserver/#intersection-observer-callback>
-    callback: TracedCallback<IntersectionObserverCallback>,
+    callback: IntersectionObserverCallbackKind,
 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-queuedentries-slot>
     queued_entries: DomRefCell<Vec<Dom<IntersectionObserverEntry>>>,
@@ -136,9 +153,10 @@ pub(crate) struct IntersectionObserver {
 }
 
 impl IntersectionObserver {
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_inherited(
         window: &Window,
-        callback: RootedCallback<IntersectionObserverCallback>,
+        callback: IntersectionObserverCallbackKind,
         root: &Option<ElementOrDocument>,
         root_margin: IntersectionObserverMargin,
         scroll_margin: IntersectionObserverMargin,
@@ -147,7 +165,7 @@ impl IntersectionObserver {
             reflector_: Reflector::new(),
             owner_doc: window.Document().as_traced(),
             root: root.as_ref().map(|root| root.into()),
-            callback: callback.to_traced(),
+            callback,
             queued_entries: Default::default(),
             observation_targets: Default::default(),
             root_margin: RefCell::new(root_margin),
@@ -160,11 +178,12 @@ impl IntersectionObserver {
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#initialize-new-intersection-observer>
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new(
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        callback: RootedCallback<IntersectionObserverCallback>,
+        callback: IntersectionObserverCallbackKind,
         init: &IntersectionObserverInit,
     ) -> Fallible<DomRoot<Self>> {
         // Step 3.
@@ -207,6 +226,21 @@ impl IntersectionObserver {
         observer.init_observer(init)?;
 
         Ok(observer)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#start-intersection-observing-a-lazy-loading-element>
+    pub(crate) fn new_lazy_load(cx: &mut JSContext, window: &Window) -> DomRoot<Self> {
+        let mut init = IntersectionObserverInit::empty();
+        init.scrollMargin = Some(DOMString::from(LAZY_LOAD_SCROLL_MARGIN));
+
+        Self::new(
+            cx,
+            window,
+            None,
+            IntersectionObserverCallbackKind::LazyLoad,
+            &init,
+        )
+        .expect("Parsing shouldn't fail as the lazy load scroll margin is a valid constant")
     }
 
     /// Step 5-13 of <https://w3c.github.io/IntersectionObserver/#initialize-new-intersection-observer>
@@ -414,9 +448,38 @@ impl IntersectionObserver {
             .collect();
 
         // Step 4-5
-        let _ = self
-            .callback
-            .Call_(cx, self, queued_entries, self, ExceptionHandling::Report);
+        match &self.callback {
+            IntersectionObserverCallbackKind::Script(callback) => {
+                let _ = callback.Call_(cx, self, queued_entries, self, ExceptionHandling::Report);
+            },
+            IntersectionObserverCallbackKind::LazyLoad => {
+                // <https://html.spec.whatwg.org/multipage/#lazy-load-intersection-observer>
+                //
+                // `queued_entries` is a Rust Vec, so no page script can
+                // interfere with the iteration.
+                for entry in &queued_entries {
+                    // Step 1. If entry.isIntersecting is true, ...
+                    if !entry.IsIntersecting() {
+                        continue;
+                    }
+                    let target = entry.Target();
+                    // Servo only lazy loads iframes so far.
+                    let Some(iframe) = target.downcast::<HTMLIFrameElement>() else {
+                        continue;
+                    };
+                    // Step 2. If resumptionSteps is null, then continue.
+                    if !iframe.has_lazy_load_resumption_steps() {
+                        continue;
+                    }
+                    // Step 3. Stop intersection-observing entry.target.
+                    target
+                        .owner_document()
+                        .stop_intersection_observing_a_lazy_loading_element(cx.no_gc(), &target);
+                    // Steps 4-5. Set the resumption steps to null and invoke them.
+                    iframe.resume_lazy_load(cx);
+                }
+            },
+        }
     }
 
     /// Connect the observer itself into owner doc if it is unconnected.
@@ -844,7 +907,13 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
         callback: RootedCallback<IntersectionObserverCallback>,
         init: &IntersectionObserverInit,
     ) -> Fallible<DomRoot<IntersectionObserver>> {
-        Self::new(cx, window, proto, callback, init)
+        Self::new(
+            cx,
+            window,
+            proto,
+            IntersectionObserverCallbackKind::Script(callback.to_traced()),
+            init,
+        )
     }
 }
 

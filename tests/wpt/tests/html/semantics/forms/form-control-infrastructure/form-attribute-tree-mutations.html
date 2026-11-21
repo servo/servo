@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Form attributes and tree mutations</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+customElements.define("form-control", class extends HTMLElement {
+  static formAssociated = true;
+});
+
+test(t => {
+  const container = document.createElement("div");
+  t.add_cleanup(() => container.remove());
+  container.innerHTML = `
+    <div>
+      <form id="owner"></form>
+      <input form="owner">
+      <form-control form="owner"></form-control>
+    </div>
+    <input form="owner">
+    <form-control form="owner"></form-control>
+  `;
+  const subtree = container.firstElementChild;
+  const form = container.querySelector("form");
+  const [inside, outside] = container.querySelectorAll("input");
+  const [insideCustom, outsideCustom] = container.querySelectorAll("form-control");
+  const insideInternals = insideCustom.attachInternals();
+  const outsideInternals = outsideCustom.attachInternals();
+  document.body.append(container);
+  assert_equals(inside.form, form);
+  assert_equals(outside.form, form);
+  assert_equals(insideInternals.form, form);
+  assert_equals(outsideInternals.form, form);
+
+  subtree.remove();
+
+  assert_equals(inside.form, null, "Detached input");
+  assert_equals(outside.form, null, "Input left in the document");
+  assert_equals(insideInternals.form, null, "Detached custom control");
+  assert_equals(outsideInternals.form, null, "Custom control left in the document");
+}, "Removing a form's ancestor resets form owners in both resulting trees");
+
+test(t => {
+  const host = document.createElement("div");
+  t.add_cleanup(() => host.remove());
+  const root = host.attachShadow({ mode: "open" });
+  root.innerHTML = `
+    <div>
+      <form id="owner"></form>
+      <input form="owner">
+      <form-control form="owner"></form-control>
+    </div>
+    <input form="owner">
+    <form-control form="owner"></form-control>
+  `;
+  const subtree = root.firstElementChild;
+  const form = root.querySelector("form");
+  const [inside, outside] = root.querySelectorAll("input");
+  const [insideCustom, outsideCustom] = root.querySelectorAll("form-control");
+  const insideInternals = insideCustom.attachInternals();
+  const outsideInternals = outsideCustom.attachInternals();
+  document.body.append(host);
+  assert_equals(inside.form, form);
+  assert_equals(outside.form, form);
+  assert_equals(insideInternals.form, form);
+  assert_equals(outsideInternals.form, form);
+
+  subtree.remove();
+
+  assert_equals(inside.form, null, "Detached input");
+  assert_equals(outside.form, null, "Input left in the shadow tree");
+  assert_equals(insideInternals.form, null, "Detached custom control");
+  assert_equals(outsideInternals.form, null, "Custom control left in the shadow tree");
+}, "Removing a form's ancestor from a shadow tree resets form owners in both resulting trees");
+
+test(t => {
+  const host = document.createElement("div");
+  t.add_cleanup(() => host.remove());
+  const root = host.attachShadow({ mode: "open" });
+  root.innerHTML = `
+    <form id="owner"></form>
+    <input form="owner">
+    <form-control form="owner"></form-control>
+  `;
+  const form = root.querySelector("form");
+  const input = root.querySelector("input");
+  const controlInternals = root.querySelector("form-control").attachInternals();
+  document.body.append(host);
+  assert_equals(input.form, form);
+  assert_equals(controlInternals.form, form);
+
+  const blocker = document.createElement("span");
+  blocker.id = "owner";
+  root.prepend(blocker);
+
+  assert_equals(input.form, null, "A non-form element is the first ID match");
+  assert_equals(controlInternals.form, null, "A non-form element is the first ID match");
+
+  blocker.remove();
+
+  assert_equals(input.form, form, "The form is the first ID match again");
+  assert_equals(controlInternals.form, form, "The form is the first ID match again");
+}, "Inserting and removing a non-form ID match updates form owners in a shadow tree");
+
+test(t => {
+  const host = document.createElement("div");
+  t.add_cleanup(() => host.remove());
+  const root = host.attachShadow({ mode: "open" });
+  root.innerHTML = '<form id="owner"></form><form-control form="owner"></form-control>';
+  const form = root.querySelector("form");
+  const controlInternals = root.querySelector("form-control").attachInternals();
+  assert_equals(controlInternals.form, null, "The shadow host is disconnected");
+
+  document.body.append(host);
+  assert_equals(controlInternals.form, form, "The shadow host is connected");
+
+  host.remove();
+  assert_equals(controlInternals.form, null, "The shadow host is disconnected again");
+
+  document.body.append(host);
+  assert_equals(controlInternals.form, form, "The shadow host is reconnected");
+
+  form.remove();
+  assert_equals(controlInternals.form, null, "The target form is removed");
+
+  root.append(form);
+  assert_equals(controlInternals.form, form, "The target form is reinserted");
+}, "A custom control's form attribute follows shadow-host connectivity and target-form insertion/removal");
+
+test(t => {
+  const container = document.createElement("div");
+  t.add_cleanup(() => container.remove());
+  document.body.append(container);
+  container.innerHTML = '<form><input form="missing"></form>';
+  const form = container.firstElementChild;
+  const input = form.firstElementChild;
+  assert_equals(input.form, null);
+
+  container.remove();
+
+  assert_equals(input.form, form);
+}, "Disconnecting an unassociated input with a form attribute falls back to its ancestor form without an ID");
+
+test(t => {
+  const container = document.createElement("div");
+  t.add_cleanup(() => container.remove());
+  document.body.append(container);
+  container.innerHTML = '<form id="unrelated"><input form="missing"></form>';
+  const form = container.firstElementChild;
+  const input = form.firstElementChild;
+  assert_equals(input.form, null);
+
+  container.remove();
+
+  assert_equals(input.form, form);
+}, "Disconnecting an unassociated input with a form attribute falls back to its ancestor form with an unrelated ID");
+
+test(t => {
+  const container = document.createElement("div");
+  t.add_cleanup(() => container.remove());
+  document.body.append(container);
+  container.innerHTML = '<form><form-control form="missing"></form-control></form>';
+  const form = container.firstElementChild;
+  const controlInternals = form.firstElementChild.attachInternals();
+  assert_equals(controlInternals.form, null);
+
+  container.remove();
+
+  assert_equals(controlInternals.form, form);
+}, "Disconnecting an unassociated custom control with a form attribute falls back to its ancestor form without an ID");
+</script>

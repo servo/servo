@@ -33,7 +33,6 @@ pub(crate) struct DataTransferItemList {
     #[conditional_malloc_size_of]
     #[no_trace]
     data_store: Rc<RefCell<Option<DragDataStore>>>,
-    #[ignore_malloc_size_of = "mozjs"]
     frozen_types: CachedFrozenArray,
     /// The entries-api file system for the drag data store, built lazily by
     /// `webkitGetAsEntry()` and shared by all of the store's items.

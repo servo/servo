@@ -26,13 +26,16 @@ use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
-    BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags, SpecificLayoutInfo,
+    BoxFragment, CollapsedBlockMargins, Fragment, FragmentChildren, FragmentFlags,
+    SpecificLayoutInfo,
 };
 use crate::geom::{
-    LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, PhysicalVec,
+    LogicalRect, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, PhysicalVec,
 };
 use crate::layout_box_base::IndependentFormattingContextLayoutResult;
-use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
+use crate::positioned::{
+    AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, StaticPositionRect,
+};
 use crate::sizing::{
     ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, LazySize, Size,
     SizeConstraint,
@@ -523,6 +526,10 @@ impl TaffyContainer {
             physical_padding.top + physical_border.top,
         );
         let mut out_of_flow_candidates = output.oof_candidates.iter();
+        let container_content_size = LogicalVec2 {
+            inline: content_box_size_override.inline_size(),
+            block: Au::from_f32_px(output.size.height) - pbm.padding_border_sums.block,
+        };
 
         // Convert `taffy::Layout` into Servo `Fragment`s
         // with container_ctx.child_specific_layout_infos will also moved to the corresponding `Fragment`s
@@ -536,7 +543,7 @@ impl TaffyContainer {
                     PhysicalSides::new(rect.top, rect.right, rect.bottom, rect.left)
                 }
 
-                fn size_and_pos_to_logical_rect<T: Default>(
+                fn size_and_pos_to_physical_rect<T: Default>(
                     position: taffy::Point<T>,
                     size: taffy::Size<T>,
                 ) -> PhysicalRect<T> {
@@ -556,16 +563,14 @@ impl TaffyContainer {
                 //
                 // For the x/y position we have to correct for the difference between the
                 // content box and the border box for both the parent and the child.
-                let content_size = size_and_pos_to_logical_rect(
+                let content_rect = size_and_pos_to_physical_rect(
                     taffy::Point {
                         x: Au::from_f32_px(
                             layout.location.x + layout.padding.left + layout.border.left,
-                        ) - pbm.padding.inline_start -
-                            pbm.border.inline_start,
+                        ) - content_box_offset.x,
                         y: Au::from_f32_px(
                             layout.location.y + layout.padding.top + layout.border.top,
-                        ) - pbm.padding.block_start -
-                            pbm.border.block_start,
+                        ) - content_box_offset.y,
                     },
                     taffy::Size {
                         width: layout.size.width -
@@ -595,7 +600,7 @@ impl TaffyContainer {
                             fragment_info,
                             independent_box.style().clone(),
                             std::mem::take(&mut child.child_fragments),
-                            content_size,
+                            content_rect,
                             padding,
                             border,
                             margin,
@@ -615,10 +620,16 @@ impl TaffyContainer {
                             &mut box_fragment,
                         );
 
+                        let logical_content_rect = &LogicalRect::from_physical(
+                            content_rect,
+                            container_style.writing_mode,
+                            container_content_size,
+                        );
                         child
                             .positioning_context
-                            .adjust_static_position_of_hoisted_fragments_with_offset(
-                                &box_fragment.content_rect().origin.to_vector(),
+                            .adjust_static_position_of_hoisted_fragments(
+                                logical_content_rect,
+                                container_style.writing_mode,
                                 PositioningContextLength::zero(),
                             );
                         container_ctx
@@ -657,9 +668,18 @@ impl TaffyContainer {
                             })
                             .unwrap_or_default();
 
+                        let static_position_rect = LogicalRect::from_physical(
+                            static_position_rect,
+                            container_style.writing_mode,
+                            container_content_size,
+                        );
+
                         let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
                             abs_pos_box.clone(),
-                            static_position_rect,
+                            StaticPositionRect::new(
+                                static_position_rect,
+                                container_style.writing_mode,
+                            ),
                             LogicalVec2 {
                                 inline: resolve_alignment(
                                     child.style.get_justify_self().0,
@@ -691,8 +711,8 @@ impl TaffyContainer {
         debug_assert!(out_of_flow_candidates.next().is_none());
 
         IndependentFormattingContextLayoutResult {
-            fragments,
-            content_block_size: Au::from_f32_px(output.size.height) - pbm.padding_border_sums.block,
+            fragments: FragmentChildren::PhysicalDeprecated(fragments),
+            content_block_size: container_content_size.block,
             content_inline_size_for_table: None,
             baselines: Baselines {
                 first: output.baselines.first.map(|baseline| {

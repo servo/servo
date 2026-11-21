@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>CSS stretch(): percentage block size children of an absolutely positioned box</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#percentage-sizing">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="An absolutely positioned box sized with a percentage stretch() gives its percentage block size children its content box, with its margins taken off.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .container {
+    position: relative;
+    width: 200px;
+    height: 400px;
+  }
+  .abspos {
+    position: absolute;
+    top: 0;
+    width: 50px;
+    /* 50% of 400px, less the 100px margin. */
+    height: stretch(50%);
+    margin-bottom: 100px;
+  }
+  .test {
+    background: green;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="container">
+  <div class="abspos" style="left: 0;"><div class="test" style="height: 100%;"></div></div>
+  <div class="abspos" style="left: 50px;"><div class="test" style="height: stretch;"></div></div>
+</div>

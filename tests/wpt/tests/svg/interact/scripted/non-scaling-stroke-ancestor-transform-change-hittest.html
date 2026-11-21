@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<title>elementFromPoint(...) on non-scaling strokes after an ancestor transform change</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/interact.html#hit-testing">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/painting.html#PaintingVectorEffects">
+<meta name="assert" content="Hit testing a non-scaling stroke uses the current stroke width after an ancestor transform is removed or changed through CSS or a Web Animation.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body { margin: 0; }
+  svg { display: block; }
+  #css-transform, #web-animation { transform: scale(4); }
+  #css-scale { scale: 4; }
+</style>
+<svg width="400" height="400">
+  <g transform="translate(0, 0)">
+    <g id="attribute-removal" transform="scale(2)">
+      <rect x="10" y="10" width="10" height="10" fill="none" stroke="black" stroke-width="8" vector-effect="non-scaling-stroke"/>
+    </g>
+  </g>
+  <g transform="translate(0, 100)">
+    <g id="css-transform">
+      <rect x="10" y="10" width="10" height="10" fill="none" stroke="black" stroke-width="8" vector-effect="non-scaling-stroke"/>
+    </g>
+  </g>
+  <g transform="translate(0, 200)">
+    <g id="css-scale">
+      <rect x="10" y="10" width="10" height="10" fill="none" stroke="black" stroke-width="8" vector-effect="non-scaling-stroke"/>
+    </g>
+  </g>
+  <g transform="translate(0, 300)">
+    <g id="web-animation">
+      <rect x="10" y="10" width="10" height="10" fill="none" stroke="black" stroke-width="8" vector-effect="non-scaling-stroke"/>
+    </g>
+  </g>
+</svg>
+<script>
+// The stroke reaches 4 / scale user units to each side of the left edge at x = 10.
+// Shrinking the scale widens it, so each case probes a point that only the widened
+// stroke covers.
+function check(id, offsetY, before, after, changeTransform) {
+  test(() => {
+    const group = document.getElementById(id);
+    const rect = group.firstElementChild;
+    const elementAt = (x, y, scale) => document.elementFromPoint(x * scale, offsetY + y * scale);
+
+    assert_equals(elementAt(10, 15, before), rect, "on the stroke before the change");
+    assert_not_equals(elementAt(10 - 4 / before - 1, 15, before), rect, "next to the stroke before the change");
+
+    changeTransform(group);
+
+    assert_equals(elementAt(10 - (4 / before + 4 / after) / 2, 15, after), rect, "on the widened stroke");
+    assert_not_equals(elementAt(10 - 4 / after - 1, 15, after), rect, "next to the widened stroke");
+  }, id);
+}
+
+check("attribute-removal", 0, 2, 1, group => group.removeAttribute("transform"));
+check("css-transform", 100, 4, 2, group => group.style.transform = "scale(2)");
+check("css-scale", 200, 4, 2, group => group.style.scale = "2");
+check("web-animation", 300, 4, 2, group => {
+  const animation = group.animate([{ transform: "scale(4)" }, { transform: "scale(2)" }], { duration: 1000, fill: "forwards" });
+  animation.pause();
+  animation.currentTime = 1000;
+});
+</script>

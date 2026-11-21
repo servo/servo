@@ -131,7 +131,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                                 onClick = {
                                     if (isRefreshing) onCancelMenuItemClicked(navigator)
                                     else onRefreshMenuItemClicked(navigator)
-                                }
+                                },
                             ) {
                                 if (isRefreshing) {
                                     Icon(
@@ -156,7 +156,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                         )
                         if (isRefreshing) {
                             CircularProgressIndicator(
-                                modifier = Modifier.padding(end = 10.dp).size(20.dp)
+                                modifier = Modifier.padding(end = 10.dp).size(20.dp),
                             )
                         }
                         if (isWindowWidthAtLeastMedium) {
@@ -169,7 +169,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                             IconButton(
                                 onClick = {
                                     onHistoryMenuItemClicked(historyActivityResultLauncher)
-                                }
+                                },
                             ) {
                                 Icon(
                                     painterResource(R.drawable.history),
@@ -284,7 +284,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
     }
 
     private fun onHistoryMenuItemClicked(
-        historyActivityResultLauncher: ActivityResultLauncher<Intent>
+        historyActivityResultLauncher: ActivityResultLauncher<Intent>,
     ) {
         historyActivityResultLauncher.launch(Intent(this, HistoryActivity::class.java))
     }

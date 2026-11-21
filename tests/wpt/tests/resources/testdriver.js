@@ -269,6 +269,37 @@
                         .simulate_gatt_disconnection(params);
                 },
                 /**
+                 * Simulates an ATT MTU exchange for a given peripheral.
+                 * Matches the `bluetooth.simulateGattMtuChange
+                 * <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulategattmtuchange-command>`_
+                 * WebDriver BiDi command.
+                 *
+                 * @example
+                 * await test_driver.bidi.bluetooth.simulate_gatt_mtu_change({
+                 *     "address": "09:09:09:09:09:09",
+                 *     "mtu": 100,
+                 * });
+                 *
+                 * @param {object} params - Parameters for the command.
+                 * @param {string} params.address - The address of the simulated
+                 * bluetooth peripheral. Matches the
+                 * `bluetooth.SimulateGattMtuChangeParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulategattmtuchange-command>`_
+                 * value.
+                 * @param {number} params.mtu - The ATT MTU in octets negotiated
+                 * with the simulated bluetooth peripheral. Matches the
+                 * `bluetooth.SimulateGattMtuChangeParameters:mtu <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulategattmtuchange-command>`_
+                 * value.
+                 * @param {Context} [params.context] The optional context parameter specifies in
+                 * which browsing context the ATT MTU exchange should be simulated. If not
+                 * provided, the current browsing context is used.
+                 * @returns {Promise} fulfilled after the ATT MTU exchange is
+                 * simulated, or rejected if the operation fails.
+                 */
+                simulate_gatt_mtu_change: function(params) {
+                    return window.test_driver_internal.bidi.bluetooth
+                        .simulate_gatt_mtu_change(params);
+                },
+                /**
                  * Simulates a GATT service.
                  * Matches the `bluetooth.simulateService
                  * <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulateservice-command>`_

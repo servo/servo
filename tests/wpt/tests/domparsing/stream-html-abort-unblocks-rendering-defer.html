@@ -49,7 +49,7 @@
       .streamAppendHTMLUnsafe({ runScripts: true })
       .getWriter();
     await writer.write(
-      "<script defer blocking='render' src='resources/slow.js?pipe=trickle(d3)&render_blocking_abort_defer=1'></" +
+      "<script defer blocking='render' src='resources/slow.sub.js?pipe=trickle(d3)&render_blocking_abort_defer=1'></" +
         "script>"
     );
     const script = await failOnTimeout(deferScriptInserted);

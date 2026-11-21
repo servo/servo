@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Ruby Test: Line breaking before &lt;ruby&gt; after preserved whitespace</title>
+<link rel="author" title="Gleb Mazovetskiy" href="mailto:glebm@google.com">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#break-between">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-property">
+<link rel="help" href="https://crbug.com/580840306">
+<meta name="assert" content="A ruby that doesn't fit after a preserved space wraps at the space instead of overflowing.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.box {
+  font: 20px/1 Ahem;
+  width: 120px;
+}
+.box rt {
+  font-size: 50%;
+}
+</style>
+
+<div id="pre-wrap" class="box" style="white-space: pre-wrap;"><ruby>aaaa<rt>xxxx</rt></ruby> <ruby>bbbb<rt>yyyy</rt></ruby> <ruby>cccc<rt>zzzz</rt></ruby></div>
+
+<div id="break-spaces" class="box" style="white-space: break-spaces;"><ruby>aaaa<rt>xxxx</rt></ruby> <ruby>bbbb<rt>yyyy</rt></ruby> <ruby>cccc<rt>zzzz</rt></ruby></div>
+
+<div id="pre-wrap-multi-space" class="box" style="white-space: pre-wrap;"><ruby>aaaa<rt>xxxx</rt></ruby>    <ruby>bbbb<rt>yyyy</rt></ruby></div>
+
+<div id="break-spaces-multi-space" class="box" style="white-space: break-spaces;"><ruby>aaaa<rt>xxxx</rt></ruby>    <ruby>bbbb<rt>yyyy</rt></ruby></div>
+
+<div id="pre-wrap-tab" class="box" style="white-space: pre-wrap; tab-size: 1;"><ruby>aaaa<rt>xxxx</rt></ruby>&#9;<ruby>bbbb<rt>yyyy</rt></ruby></div>
+
+<div id="pre-wrap-span-space" class="box" style="white-space: pre-wrap;"><ruby>aaaa<rt>xxxx</rt></ruby><span> </span><ruby>bbbb<rt>yyyy</rt></ruby></div>
+
+<div id="rtl-pre-wrap" class="box" dir="rtl" style="white-space: pre-wrap;"><ruby>aaaa<rt>xxxx</rt></ruby> <ruby>bbbb<rt>yyyy</rt></ruby> <ruby>cccc<rt>zzzz</rt></ruby></div>
+
+<div id="normal" class="box"><ruby>aaaa<rt>xxxx</rt></ruby> <ruby>bbbb<rt>yyyy</rt></ruby> <ruby>cccc<rt>zzzz</rt></ruby></div>
+
+<div id="empty-base-leading" class="box" style="width: 32px;"><ruby>
+  <rt>x</rt>
+</ruby>
+<span class="word">FAIL</span></div>
+
+<script>
+setup({ explicit_done: true });
+
+function assertEachRubyOnItsOwnLine(id) {
+  const box = document.getElementById(id);
+  const boxRect = box.getBoundingClientRect();
+  const rubies = box.querySelectorAll('ruby');
+  for (let i = 0; i < rubies.length; i++) {
+    const rect = rubies[i].getBoundingClientRect();
+    assert_greater_than_equal(rect.left, boxRect.left - 0.5,
+        `ruby[${i}] should not overflow the left edge`);
+    assert_less_than_equal(rect.right, boxRect.right + 0.5,
+        `ruby[${i}] should not overflow the right edge`);
+    if (i > 0) {
+      assert_greater_than(rect.top, rubies[i - 1].getBoundingClientRect().top,
+          `ruby[${i}] should wrap onto a new line`);
+    }
+  }
+}
+
+document.fonts.ready.then(() => {
+  for (const id of ['pre-wrap', 'break-spaces', 'pre-wrap-multi-space',
+                    'break-spaces-multi-space', 'pre-wrap-tab',
+                    'pre-wrap-span-space', 'rtl-pre-wrap', 'normal']) {
+    test(() => {
+      assertEachRubyOnItsOwnLine(id);
+    }, `${id}: ruby wraps after the space`);
+  }
+
+  test(() => {
+    const box = document.getElementById('empty-base-leading');
+    const rubyRect = box.querySelector('ruby').getBoundingClientRect();
+    const wordRect = box.querySelector('.word').getBoundingClientRect();
+    assert_approx_equals(wordRect.bottom, rubyRect.bottom, 5,
+        'the word should stay on the line of the empty-base ruby');
+  }, 'empty-base-leading: no break opportunity after an empty-base ruby at the line start');
+
+  done();
+});
+</script>

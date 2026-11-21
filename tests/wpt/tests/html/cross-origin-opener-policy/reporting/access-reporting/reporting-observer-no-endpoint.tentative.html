@@ -1,0 +1,110 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>COOP ReportingObserver delivery independent of reporting endpoints</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/cross-origin-opener-policy/resources/common.js"></script>
+<script src="/html/cross-origin-opener-policy/reporting/resources/reporting-common.js"></script>
+<script src="/html/cross-origin-opener-policy/reporting/resources/try-access.js"></script>
+<script>
+
+const directory = "/html/cross-origin-opener-policy";
+const same_origin = get_host_info().HTTPS_ORIGIN;
+
+promise_test(async t => {
+  const this_window_token = token();
+  const opener_token = token();
+  // No report-to parameter or reporting endpoint headers.
+  const opener_url = same_origin + executor_path +
+    '|header(Cross-Origin-Opener-Policy-Report-Only,same-origin)' +
+    coep_header + `&uuid=${opener_token}`;
+  const openee_token = token();
+  const openee_url = same_origin + executor_path + `&uuid=${openee_token}`;
+
+  window.open(opener_url);
+  t.add_cleanup(() => send(opener_token, "window.close();"));
+  send(opener_token, `openee = window.open('${openee_url}');`);
+  t.add_cleanup(() => send(openee_token, "window.close();"));
+  send(openee_token, `send("${this_window_token}", "Ready");`);
+  assert_equals(await receive(this_window_token), "Ready");
+
+  send(opener_token, addScriptAndTriggerOnload(
+    directory + "/reporting/resources/try-access.js", `
+      let observer = new ReportingObserver(()=>{});
+      observer.observe();
+      tryAccess(openee);
+      let reports = observer.takeRecords();
+      send("${this_window_token}", JSON.stringify(reports));
+      observer.disconnect();
+    `));
+
+  const reports = JSON.parse(await receive(this_window_token));
+  assert_equals(reports.length, 1, "No report received.");
+  assert_equals(reports[0].type, "coop-access-violation");
+  assert_equals(reports[0].url, opener_url);
+  assert_source_location_found(reports[0]);
+  assert_equals(reports[0].body.type, "access-from-coop-page-to-openee");
+  assert_equals(reports[0].body.openeeURL, openee_url);
+  assert_equals(reports[0].body.openerURL, undefined);
+  assert_equals(reports[0].body.otherDocumentURL, undefined);
+}, "ReportingObserver is notified without a reporting endpoint");
+
+promise_test(async t => {
+  const this_window_token = token();
+  const opener_token = token();
+  // An endpoint makes this distinguish an enforced-only opener from one that
+  // declares COOP-Report-Only.
+  const opener_reportTo = reportToHeaders(token());
+  const opener_url = same_origin + executor_path + opener_reportTo.header +
+    opener_reportTo.coopSameOriginAllowPopupsHeader + `&uuid=${opener_token}`;
+  const openee_token = token();
+  const openee_reportTo = reportToHeaders(token());
+  const openee_url = same_origin + executor_path + openee_reportTo.header +
+    openee_reportTo.coopReportOnlySameOriginHeader + coep_header +
+    `&uuid=${openee_token}`;
+
+  window.open(opener_url);
+  t.add_cleanup(() => send(opener_token, "window.close();"));
+  send(opener_token,
+    `openee = window.open('${openee_url.replace(/,/g, '\\,')}');`);
+  t.add_cleanup(() => send(openee_token, "window.close();"));
+
+  send(openee_token, addScriptAndTriggerOnload(
+    directory + "/reporting/resources/try-access.js", `
+      let observer = new ReportingObserver(()=>{});
+      observer.observe();
+      tryAccess(opener);
+      let reports = observer.takeRecords();
+      send("${this_window_token}", JSON.stringify(reports));
+      observer.disconnect();
+    `));
+  const report_access_from = JSON.parse(await receive(this_window_token));
+  assert_equals(report_access_from.length, 1, "No report received.");
+  assert_equals(report_access_from[0].type, "coop-access-violation");
+  assert_equals(report_access_from[0].url, openee_url.replace(/"/g, '%22'));
+  assert_true(report_access_from[0].body.sourceFile.includes("try-access.js"));
+  assert_source_location_found(report_access_from[0]);
+  assert_equals(report_access_from[0].body.type,
+                "access-from-coop-page-to-opener");
+  assert_equals(report_access_from[0].body.openeeURL, undefined);
+  assert_equals(report_access_from[0].body.openerURL,
+                opener_url.replace(/"/g, '%22'));
+  assert_equals(report_access_from[0].body.otherDocumentURL, undefined);
+
+  send(opener_token, addScriptAndTriggerOnload(
+    directory + "/reporting/resources/try-access.js", `
+      let observer = new ReportingObserver(()=>{});
+      observer.observe();
+      tryAccess(openee);
+      let reports = observer.takeRecords();
+      send("${this_window_token}", JSON.stringify(reports));
+      observer.disconnect();
+    `));
+  const report_access_to = JSON.parse(await receive(this_window_token));
+  assert_equals(report_access_to.length, 0, "Unexpected report received.");
+}, "Openee COOP-Report-Only with enforced COOP opener and reporting endpoint");
+</script>

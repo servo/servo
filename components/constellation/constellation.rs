@@ -116,7 +116,7 @@ use embedder_traits::{
     JavaScriptEvaluationError, JavaScriptEvaluationId, KeyboardEvent, MediaSessionActionType,
     MediaSessionEvent, MediaSessionPlaybackState, MouseButtonAction, MouseButtonEvent,
     NewWebViewDetails, PaintHitTestResult, Theme, ViewportDetails, WakeLockDelegate, WakeLockType,
-    WebDriverCommandMsg, WebDriverLoadStatus, WebDriverScriptCommand,
+    WebDriverCommandMsg, WebDriverLoadStatus, WebDriverLoadStatusMessage, WebDriverScriptCommand,
 };
 use euclid::default::Size2D as UntypedSize2D;
 use fonts::SystemFontServiceProxy;
@@ -127,6 +127,7 @@ use log::{debug, error, info, trace, warn};
 use media::WindowGLContext;
 use net::image_cache::ImageCacheFactoryImpl;
 use net_traits::pub_domains::registered_domain_name;
+use net_traits::request::UpgradeInsecureNavigations;
 use net_traits::{self, AsyncRuntime, FetchThread, ResourceThreads};
 use paint_api::{
     PaintMessage, PaintProxy, PinchZoomInfos, PipelineExitSource, SendableFrameTree,
@@ -464,8 +465,12 @@ pub struct Constellation<STF, SWF> {
     /// and the namespaces are allocated by the constellation.
     next_pipeline_namespace_id: Cell<PipelineNamespaceId>,
 
-    /// A [`GenericSender`] to notify navigation events to webdriver.
-    webdriver_load_status_sender: Option<(GenericSender<WebDriverLoadStatus>, PipelineId)>,
+    /// Senders to notify WebDriver of navigation events, keyed by webview.
+    webdriver_load_status_senders: FxHashMap<WebViewId, GenericSender<WebDriverLoadStatusMessage>>,
+
+    /// The top-level browsing contexts with a navigation in progress, as last reported to
+    /// WebDriver.
+    webdriver_navigating_webviews: FxHashSet<WebViewId>,
 
     /// Are we shutting down?
     shutting_down: bool,
@@ -733,7 +738,8 @@ where
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan.clone(),
                     phantom: PhantomData,
-                    webdriver_load_status_sender: None,
+                    webdriver_load_status_senders: Default::default(),
+                    webdriver_navigating_webviews: Default::default(),
                     #[cfg(feature = "webgpu")]
                     webrender_wgpu,
                     shutting_down: false,
@@ -1128,6 +1134,7 @@ where
         viewport_details: ViewportDetails,
         is_private: bool,
         inherited_secure_context: Option<bool>,
+        inherited_upgrade_insecure_navigations_set: HashSet<UpgradeInsecureNavigations>,
     ) {
         debug!("{browsing_context_id}: Creating new browsing context");
         let Some(webview) = self.webviews.get_mut(&webview_id) else {
@@ -1147,6 +1154,7 @@ where
             viewport_details,
             is_private,
             inherited_secure_context,
+            inherited_upgrade_insecure_navigations_set,
         );
         self.browsing_contexts
             .insert(browsing_context_id, browsing_context);
@@ -1509,6 +1517,9 @@ where
             },
             EmbedderToConstellationMessage::SetNetworkOnlineState(online) => {
                 self.handle_set_network_online_state(online);
+            },
+            EmbedderToConstellationMessage::StoreCacheToDisk(sender) => {
+                self.public_resource_threads.store_cache_to_disk(sender);
             },
         }
     }
@@ -2107,6 +2118,31 @@ where
                         warn!("Failed to release screen wake lock: {e}");
                     }
                 },
+            },
+            ScriptToConstellationMessage::AddTupleToUpgradeInsecureNavigationsSet(tuple) => {
+                let browsing_context_id = match self.pipelines.get(&source_pipeline_id) {
+                    Some(pipeline) => pipeline.browsing_context_id,
+                    None => {
+                        warn!(
+                            "{}: AddTupleToUpgradeInsecureNavigationsSet after closure",
+                            source_pipeline_id
+                        );
+                        return;
+                    },
+                };
+                let upgrade_insecure_navigations_set =
+                    match self.browsing_contexts.get_mut(&browsing_context_id) {
+                        Some(ctx) => &mut ctx.upgrade_insecure_navigations_set,
+                        None => {
+                            warn!(
+                                "{}: AddTupleToUpgradeInsecureNavigationsSet in closed {}",
+                                source_pipeline_id, browsing_context_id,
+                            );
+                            return;
+                        },
+                    };
+
+                upgrade_insecure_navigations_set.insert(tuple);
             },
         }
     }
@@ -3464,6 +3500,7 @@ where
                 parent_pipeline_id: None,
                 is_private,
                 inherited_secure_context: None,
+                upgrade_insecure_navigations_set: HashSet::new(),
             }),
             viewport_details,
         });
@@ -3490,6 +3527,9 @@ where
     /// <https://html.spec.whatwg.org/multipage/#destroy-a-top-level-traversable>
     fn handle_close_top_level_browsing_context(&mut self, webview_id: WebViewId) {
         debug!("{webview_id}: Closing");
+
+        self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStop);
+        self.webdriver_load_status_senders.remove(&webview_id);
 
         // Step 1. Let browsingContext be traversable's active browsing context.
         let browsing_context_id = BrowsingContextId::from(webview_id);
@@ -3721,9 +3761,13 @@ where
                     );
                 },
             };
-        let (is_parent_private, is_parent_secure) =
+        let (is_parent_private, is_parent_secure, parent_upgrade_insecure_navigations_set) =
             match self.browsing_contexts.get(&parent_browsing_context_id) {
-                Some(ctx) => (ctx.is_private, ctx.inherited_secure_context),
+                Some(ctx) => (
+                    ctx.is_private,
+                    ctx.inherited_secure_context,
+                    ctx.upgrade_insecure_navigations_set.clone(),
+                ),
                 None => {
                     return warn!(
                         "{}: New iframe {} loaded in closed parent browsing context",
@@ -3762,6 +3806,7 @@ where
                     parent_pipeline_id: Some(parent_pipeline_id),
                     is_private,
                     inherited_secure_context: is_parent_secure,
+                    upgrade_insecure_navigations_set: parent_upgrade_insecure_navigations_set,
                 }),
                 viewport_details: load_info.viewport_details,
             });
@@ -3820,9 +3865,13 @@ where
                     );
                 },
             };
-        let (is_opener_private, is_opener_secure) =
+        let (is_opener_private, is_opener_secure, opener_upgrade_insecure_navigations_set) =
             match self.browsing_contexts.get(&opener_browsing_context_id) {
-                Some(ctx) => (ctx.is_private, ctx.inherited_secure_context),
+                Some(ctx) => (
+                    ctx.is_private,
+                    ctx.inherited_secure_context,
+                    ctx.upgrade_insecure_navigations_set.clone(),
+                ),
                 None => {
                     return warn!(
                         "{}: New auxiliary {} loaded in closed opener browsing context",
@@ -3878,6 +3927,7 @@ where
                 parent_pipeline_id: None,
                 is_private: is_opener_private,
                 inherited_secure_context: is_opener_secure,
+                upgrade_insecure_navigations_set: opener_upgrade_insecure_navigations_set,
             }),
             viewport_details,
         });
@@ -4243,16 +4293,16 @@ where
                         pending.target_snapshot_params,
                     );
                 } else {
-                    if let Some((sender, id)) = &self.webdriver_load_status_sender &&
-                        pipeline_id == *id
-                    {
-                        let _ = sender.send(WebDriverLoadStatus::NavigationStop);
-                    }
-
                     let pipeline_is_top_level_pipeline = self
                         .browsing_contexts
                         .get(&BrowsingContextId::from(webview_id))
                         .is_some_and(|ctx| ctx.pipeline_id == pipeline_id);
+                    if pipeline_is_top_level_pipeline {
+                        self.send_webdriver_load_status(
+                            webview_id,
+                            WebDriverLoadStatus::NavigationStop,
+                        );
+                    }
                     // If the navigation is refused, and this concerns an iframe,
                     // we need to take it out of it's "delaying-load-events-mode".
                     // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
@@ -4279,7 +4329,7 @@ where
         &mut self,
         webview_id: WebViewId,
         source_id: PipelineId,
-        load_data: LoadData,
+        mut load_data: LoadData,
         history_handling: NavigationHistoryBehavior,
         target_snapshot_params: TargetSnapshotParams,
     ) -> Option<PipelineId> {
@@ -4306,26 +4356,34 @@ where
                 return None;
             },
         };
-        let (viewport_details, pipeline_id, parent_pipeline_id, is_private) =
-            match self.browsing_contexts.get(&browsing_context_id) {
-                Some(ctx) => (
-                    ctx.viewport_details,
-                    ctx.pipeline_id,
-                    ctx.parent_pipeline_id,
-                    ctx.is_private,
-                ),
-                None => {
-                    // This should technically never happen (since `load_url` is
-                    // only called on existing browsing contexts), but we prefer to
-                    // avoid `expect`s or `unwrap`s in `Constellation` to ward
-                    // against future changes that might break things.
-                    warn!(
-                        "{}: Loaded url in closed {}",
-                        source_id, browsing_context_id,
-                    );
-                    return None;
-                },
-            };
+        let (
+            viewport_details,
+            pipeline_id,
+            parent_pipeline_id,
+            is_private,
+            upgrade_insecure_navigations_set,
+        ) = match self.browsing_contexts.get(&browsing_context_id) {
+            Some(ctx) => (
+                ctx.viewport_details,
+                ctx.pipeline_id,
+                ctx.parent_pipeline_id,
+                ctx.is_private,
+                ctx.upgrade_insecure_navigations_set.clone(),
+            ),
+            None => {
+                // This should technically never happen (since `load_url` is
+                // only called on existing browsing contexts), but we prefer to
+                // avoid `expect`s or `unwrap`s in `Constellation` to ward
+                // against future changes that might break things.
+                warn!(
+                    "{}: Loaded url in closed {}",
+                    source_id, browsing_context_id,
+                );
+                return None;
+            },
+        };
+
+        load_data.inherited_upgrade_insecure_navigations_set = upgrade_insecure_navigations_set;
 
         #[cfg(feature = "devtools")]
         if let Some(ref chan) = self.devtools_sender {
@@ -4355,10 +4413,6 @@ where
                 };
                 if let Err(e) = result {
                     self.handle_send_error(parent_pipeline_id, e);
-                } else if let Some((sender, id)) = &self.webdriver_load_status_sender &&
-                    source_id == *id
-                {
-                    let _ = sender.send(WebDriverLoadStatus::NavigationStop);
                 }
 
                 None
@@ -4394,6 +4448,8 @@ where
                 };
 
                 let new_pipeline_id = PipelineId::new();
+                // Report the navigation before creating the pipeline.
+                self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStart);
                 self.new_pipeline(
                     new_pipeline_id,
                     browsing_context_id,
@@ -4428,16 +4484,19 @@ where
 
     #[servo_tracing::instrument(skip_all)]
     fn handle_abort_load_url_msg(&mut self, webview_id: WebViewId, new_pipeline_id: PipelineId) {
-        if self
+        let Some(change) = self
             .webviews
             .get_mut(&webview_id)
             .and_then(|webview| webview.remove_pending_change_for_pipeline(new_pipeline_id))
-            .is_none()
-        {
+        else {
             return;
-        }
+        };
 
         self.close_pipeline(new_pipeline_id, DiscardBrowsingContext::No);
+
+        if change.browsing_context_id == BrowsingContextId::from(webview_id) {
+            self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStop);
+        }
 
         if let Some(webview) = self.webviews.get_mut(&webview_id) {
             webview.send_screenshot_readiness_requests_to_pipelines(
@@ -4466,7 +4525,16 @@ where
             .browsing_contexts
             .get(&BrowsingContextId::from(webview_id))
             .is_some_and(|ctx| ctx.pipeline_id == pipeline_id);
-        if !pipeline_is_top_level_pipeline {
+        if pipeline_is_top_level_pipeline {
+            self.send_webdriver_load_status(
+                webview_id,
+                if aborted {
+                    WebDriverLoadStatus::NavigationStop
+                } else {
+                    WebDriverLoadStatus::Complete
+                },
+            );
+        } else {
             self.handle_subframe_load_finished(pipeline_id, aborted);
         }
     }
@@ -4527,6 +4595,9 @@ where
         webview
             .session_history_traversal_request_queue
             .push_back(traversal_request);
+        // Report the traversal as a navigation before applying it: it may have to wait for a
+        // previous traversal to finish, and nothing else reports its start.
+        self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStart);
         self.apply_queued_session_history_traversal_requests(webview_id);
     }
 
@@ -4717,9 +4788,34 @@ where
             .values_mut()
             .find_map(|webview| webview.maybe_finish_ongoing_session_history_traversal_request())
         {
+            let webview_id = traversal_request.webview_id;
             self.notify_embedder_of_completed_session_history_traversal_request(&traversal_request);
-            self.apply_queued_session_history_traversal_requests(traversal_request.webview_id);
+
+            // Apply any queued traversal first, so that a traversal started here is still
+            // considered below.
+            self.apply_queued_session_history_traversal_requests(webview_id);
+
+            // 1. A traversal started above (implies a pipeline is created which has load)
+            // 2. A document that is still loading
+            // will clear theoutstanding status itself.
+            // Otherwise do it manually.
+            if !self.webview_is_navigating(webview_id) {
+                self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStop);
+            }
         }
+    }
+
+    /// Whether a history traversal is still running,
+    /// or the top-level document is still loading.
+    fn webview_is_navigating(&self, webview_id: WebViewId) -> bool {
+        let Some(webview) = self.webviews.get(&webview_id) else {
+            return false;
+        };
+        let top_level_pipeline = self
+            .browsing_contexts
+            .get(&BrowsingContextId::from(webview_id))
+            .and_then(|context| self.pipelines.get(&context.pipeline_id));
+        webview.is_navigating(top_level_pipeline)
     }
 
     /// Notify the embedder that the given [`HistoryTraversalRequest`] is complete, if it was
@@ -4759,10 +4855,18 @@ where
     /// traversal history request, apply the next queued request and potentially finish it
     /// until there is either an ongoing history request or no more queued requests.
     fn apply_queued_session_history_traversal_requests(&mut self, webview_id: WebViewId) {
+        let mut completed_any = false;
         while let Some(traversal_request) =
             self.apply_next_queued_session_history_traversal_request(webview_id)
         {
+            completed_any = true;
             self.notify_embedder_of_completed_session_history_traversal_request(&traversal_request);
+        }
+
+        // Everything completed here finished without loading.
+        // A traversal or document still in flight reports its own.
+        if completed_any && !self.webview_is_navigating(webview_id) {
+            self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStop);
         }
     }
 
@@ -4810,6 +4914,13 @@ where
                     None => None,
                 };
                 let new_pipeline_id = PipelineId::new();
+                if parent_pipeline_id.is_none() {
+                    // Report the navigation before creating the pipeline.
+                    self.send_webdriver_load_status(
+                        webview_id,
+                        WebDriverLoadStatus::NavigationStart,
+                    );
+                }
                 self.new_pipeline(
                     new_pipeline_id,
                     browsing_context_id,
@@ -5017,11 +5128,15 @@ where
                 return warn!("{}: Got reload event after closure", browsing_context_id);
             },
         };
-        self.send_message_to_pipeline(
+
+        self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStart);
+        if !self.send_message_to_pipeline(
             pipeline_id,
             ScriptThreadMessage::Reload(pipeline_id),
             "Got reload event after closure",
-        );
+        ) {
+            self.send_webdriver_load_status(webview_id, WebDriverLoadStatus::NavigationStop);
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#window-post-message-steps>
@@ -5336,6 +5451,37 @@ where
         }
     }
 
+    /// Report a navigation status to the WebDriver server for `webview_id`, if registered.
+    fn send_webdriver_load_status(&mut self, webview_id: WebViewId, status: WebDriverLoadStatus) {
+        match status {
+            WebDriverLoadStatus::NavigationStart => {
+                self.webdriver_navigating_webviews.insert(webview_id);
+            },
+            _ => {
+                self.webdriver_navigating_webviews.remove(&webview_id);
+            },
+        }
+
+        let Some(sender) = self.webdriver_load_status_senders.get(&webview_id) else {
+            return;
+        };
+        let _ = sender.send(WebDriverLoadStatusMessage { webview_id, status });
+    }
+
+    /// Dispatch a script command to the current pipeline of the browsing context.
+    fn dispatch_webdriver_script_command(
+        &mut self,
+        browsing_context_id: BrowsingContextId,
+        cmd: WebDriverScriptCommand,
+    ) {
+        let Some(browsing_context) = self.browsing_contexts.get(&browsing_context_id) else {
+            return warn!("{}: Browsing context is not ready", browsing_context_id);
+        };
+        let pipeline_id = browsing_context.pipeline_id;
+        let control_msg = ScriptThreadMessage::WebDriverScriptCommand(pipeline_id, cmd);
+        self.send_message_to_pipeline(pipeline_id, control_msg, "ScriptCommand after closure");
+    }
+
     #[servo_tracing::instrument(skip_all)]
     fn handle_webdriver_msg(&mut self, msg: WebDriverCommandMsg) {
         // Find the script channel for the given parent pipeline,
@@ -5351,32 +5497,20 @@ where
                     RemoteFocusOperation::Viewport,
                 );
             },
+            WebDriverCommandMsg::AddLoadStatusSender(webview_id, sender) => {
+                self.webdriver_load_status_senders
+                    .insert(webview_id, sender);
+            },
+            WebDriverCommandMsg::RemoveLoadStatusSender(webview_id) => {
+                self.webdriver_load_status_senders.remove(&webview_id);
+            },
+            WebDriverCommandMsg::IsNavigationInProgress(webview_id, response_sender) => {
+                let in_progress = self.webdriver_navigating_webviews.contains(&webview_id);
+                let _ = response_sender.send(in_progress);
+            },
             // TODO: This should use the ScriptThreadMessage::EvaluateJavaScript command
             WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd) => {
-                let pipeline_id = if let Some(browsing_context) =
-                    self.browsing_contexts.get(&browsing_context_id)
-                {
-                    browsing_context.pipeline_id
-                } else {
-                    return warn!("{}: Browsing context is not ready", browsing_context_id);
-                };
-
-                match &cmd {
-                    WebDriverScriptCommand::AddLoadStatusSender(_, sender) => {
-                        self.webdriver_load_status_sender = Some((sender.clone(), pipeline_id));
-                    },
-                    WebDriverScriptCommand::RemoveLoadStatusSender(_) => {
-                        self.webdriver_load_status_sender = None;
-                    },
-                    _ => {},
-                };
-
-                let control_msg = ScriptThreadMessage::WebDriverScriptCommand(pipeline_id, cmd);
-                self.send_message_to_pipeline(
-                    pipeline_id,
-                    control_msg,
-                    "ScriptCommand after closure",
-                );
+                self.dispatch_webdriver_script_command(browsing_context_id, cmd);
             },
             WebDriverCommandMsg::CloseWebView(..) |
             WebDriverCommandMsg::NewWindow(..) |
@@ -5588,6 +5722,7 @@ where
                     change.viewport_details,
                     new_context_info.is_private,
                     new_context_info.inherited_secure_context,
+                    new_context_info.upgrade_insecure_navigations_set,
                 );
                 self.update_activity(change.new_pipeline_id);
             },

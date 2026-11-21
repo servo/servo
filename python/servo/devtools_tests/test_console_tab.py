@@ -212,7 +212,6 @@ class TestConsoleTab:
         assert logged_object["class"] == expected_class
         assert logged_object["preview"]["kind"] == "Object"
 
-    @pytest.mark.xfail
     def test_console_log_function_arguments(self, run_servoshell):
         script_tag = (
             "<script>function test_arguments(a, b) { return a + b; }"
@@ -223,6 +222,17 @@ class TestConsoleTab:
 
         result = evaluate_and_capture_console_log_output("log_arguments();")
         assert result["arguments"][0]["parameterNames"] == ["a", "b"]
+
+    def test_console_log_function_default_and_rest_arguments(self, run_servoshell):
+        script_tag = (
+            "<script>function test_arguments(a, b = 1, ...rest) { return a; }"
+            "let log_arguments = () => console.log(test_arguments);"
+            "</script>"
+        )
+        run_servoshell(url=f"data:text/html,{script_tag}")
+
+        result = evaluate_and_capture_console_log_output("log_arguments();")
+        assert result["arguments"][0]["parameterNames"] == ["a", "b", "rest"]
 
     def test_console_log_sprintf_substitutions(self, run_servoshell):
         script_tag = (

@@ -31,6 +31,7 @@ test_valid_value("filter", "blur(0)", "blur(0px)");
 test_valid_value("filter", "blur()", ["blur()", "blur(0px)"]);
 test_valid_value("filter", "blur(calc(100px))");
 test_valid_value("filter", "blur(calc(100px + (50px * sign(2cqw - 10px))))");
+test_valid_value("filter", "blur(10px)");
 
 test_valid_value("filter", "brightness(0)");
 test_valid_value("filter", "brightness(300%)");
@@ -41,6 +42,10 @@ test_valid_value("filter", "brightness(calc(-10))");
 test_valid_value("filter", "brightness(calc(-10%))");
 test_valid_value("filter", "brightness(calc(10 + (5 * sign(2cqw - 10px))))");
 test_valid_value("filter", "brightness(calc(100% + (50% * sign(2cqw - 10px))))");
+test_valid_value("filter", "brightness(1)");
+test_valid_value("filter", "brightness(50%)");
+test_valid_value("filter", "brightness(1.0)", "brightness(1)");
+test_valid_value("filter", "brightness(101%)");
 
 test_valid_value("filter", "contrast(0)");
 test_valid_value("filter", "contrast(300%)");
@@ -51,6 +56,11 @@ test_valid_value("filter", "contrast(calc(-10))");
 test_valid_value("filter", "contrast(calc(-10%))");
 test_valid_value("filter", "contrast(calc(10 + (5 * sign(2cqw - 10px))))");
 test_valid_value("filter", "contrast(calc(100% + (50% * sign(2cqw - 10px))))");
+test_valid_value("filter", "contrast(1)");
+test_valid_value("filter", "contrast(50%)");
+test_valid_value("filter", "contrast(250%)");
+test_valid_value("filter", "contrast(1.0)", "contrast(1)");
+test_valid_value("filter", "contrast(2)");
 
 test_valid_value("filter", "drop-shadow(1px 2px)");
 test_valid_value("filter", "drop-shadow(1px 2px 3px)");
@@ -61,6 +71,9 @@ test_valid_value("filter", "drop-shadow(1px 2px rgb(4, 5, 6))", "drop-shadow(rgb
 test_valid_value("filter", "drop-shadow(rgba(4, 5, 6, 0.75) 1px 2px 3px)");
 test_valid_value("filter", "drop-shadow(rgb(4, 5, 6) calc(1px) 2px 0px)");
 test_valid_value("filter", "drop-shadow(rgb(4, 5, 6) calc(10px + (5px * sign(2cqw - 10px))) 2px 0px)");
+test_valid_value("filter", "drop-shadow(red 1px 2px 3px)");
+test_valid_value("filter", "drop-shadow(1px 2px 3px red)", "drop-shadow(red 1px 2px 3px)");
+test_valid_value("filter", "drop-shadow(#abc 0 0 0)", "drop-shadow(rgb(170, 187, 204) 0px 0px 0px)");
 
 test_valid_value("filter", "grayscale(0)");
 test_valid_value("filter", "grayscale(300%)", "grayscale(100%)");
@@ -72,12 +85,21 @@ test_valid_value("filter", "grayscale(calc(-10))");
 test_valid_value("filter", "grayscale(calc(-10%))");
 test_valid_value("filter", "grayscale(calc(10 + (5 * sign(2cqw - 10px))))");
 test_valid_value("filter", "grayscale(calc(100% + (50% * sign(2cqw - 10px))))");
+test_valid_value("filter", "grayscale(1)");
+test_valid_value("filter", "grayscale(50%)");
+test_valid_value("filter", "grayscale(1.0)", "grayscale(1)");
 
 test_valid_value("filter", "hue-rotate(90deg)");
 test_valid_value("filter", "hue-rotate(0)", "hue-rotate(0deg)"); // https://github.com/w3c/fxtf-drafts/issues/228
 test_valid_value("filter", "hue-rotate()", ["hue-rotate()", "hue-rotate(0deg)"]);
 test_valid_value("filter", "hue-rotate(calc(90deg))");
 test_valid_value("filter", "hue-rotate(calc(90deg + (45deg * sign(2cqw - 10px))))");
+test_valid_value("filter", "hue-rotate(10deg)");
+test_valid_value("filter", "hue-rotate(10.0deg)", "hue-rotate(10deg)");
+test_valid_value("filter", "hue-rotate(10rad)");
+test_valid_value("filter", "hue-rotate(10grad)");
+test_valid_value("filter", "hue-rotate(0.5turn)");
+test_valid_value("filter", "hue-rotate(-370.2deg)");
 
 test_valid_value("filter", "invert(0)");
 test_valid_value("filter", "invert(300%)", "invert(100%)");
@@ -88,6 +110,9 @@ test_valid_value("filter", "invert(calc(-10))");
 test_valid_value("filter", "invert(calc(-10%))");
 test_valid_value("filter", "invert(calc(10 + (5 * sign(2cqw - 10px))))");
 test_valid_value("filter", "invert(calc(100% + (50% * sign(2cqw - 10px))))");
+test_valid_value("filter", "invert(1)");
+test_valid_value("filter", "invert(50%)");
+test_valid_value("filter", "invert(1.0)", "invert(1)");
 
 test_valid_value("filter", "opacity(0)");
 test_valid_value("filter", "opacity(300%)", "opacity(100%)");
@@ -99,6 +124,9 @@ test_valid_value("filter", "opacity(calc(-10))");
 test_valid_value("filter", "opacity(calc(-10%))");
 test_valid_value("filter", "opacity(calc(10 + (5 * sign(2cqw - 10px))))");
 test_valid_value("filter", "opacity(calc(100% + (50% * sign(2cqw - 10px))))");
+test_valid_value("filter", "opacity(1)");
+test_valid_value("filter", "opacity(50%)");
+test_valid_value("filter", "opacity(1.0)", "opacity(1)");
 
 test_valid_value("filter", "saturate(0)");
 test_valid_value("filter", "saturate(300%)");
@@ -109,6 +137,11 @@ test_valid_value("filter", "saturate(calc(-10))");
 test_valid_value("filter", "saturate(calc(-10%))");
 test_valid_value("filter", "saturate(calc(10 + (5 * sign(2cqw - 10px))))");
 test_valid_value("filter", "saturate(calc(100% + (50% * sign(2cqw - 10px))))");
+test_valid_value("filter", "saturate(1)");
+test_valid_value("filter", "saturate(50%)");
+test_valid_value("filter", "saturate(250%)");
+test_valid_value("filter", "saturate(1.0)", "saturate(1)");
+test_valid_value("filter", "saturate(5.5)");
 
 test_valid_value("filter", "sepia(0)");
 test_valid_value("filter", "sepia(300%)", "sepia(100%)");
@@ -119,15 +152,39 @@ test_valid_value("filter", "sepia(calc(-10))");
 test_valid_value("filter", "sepia(calc(-10%))");
 test_valid_value("filter", "sepia(calc(10 + (5 * sign(2cqw - 10px))))");
 test_valid_value("filter", "sepia(calc(100% + (50% * sign(2cqw - 10px))))");
+test_valid_value("filter", "sepia(1)");
+test_valid_value("filter", "sepia(50%)");
+test_valid_value("filter", "sepia(1.0)", "sepia(1)");
 
 // Edge serializes url(...) without quotes. Blink/WebKit and Firefox use quotes.
 test_valid_value("filter", "url(picture.svg#f)", ['url("picture.svg#f")', 'url(picture.svg#f)']);
 
 test_valid_value("filter", 'url("https://www.example.com/picture.svg#f")',
   ['url("https://www.example.com/picture.svg#f")', 'url(https://www.example.com/picture.svg#f)']);
+test_valid_value("filter", "url(#a)", 'url("#a")');
+test_valid_value("filter", "url('#a')", 'url("#a")');
 
 test_valid_value("filter", 'blur(10px) url("picture.svg#f") contrast(20) brightness(30)',
   ['blur(10px) url("picture.svg#f") contrast(20) brightness(30)', 'blur(10px) url(picture.svg#f) contrast(20) brightness(30)']);
+test_valid_value("filter", "brightness(0.5) brightness(0.25)");
+test_valid_value("filter", "brightness(0.5) grayscale(0.25)");
+test_valid_value("filter", "contrast(0.5) contrast(0.25)");
+test_valid_value("filter", "contrast(0.5) grayscale(0.25)");
+test_valid_value("filter", "grayscale(0.5) grayscale(0.25)");
+test_valid_value("filter", "grayscale(0.25) brightness(0.5)");
+test_valid_value("filter", "grayscale(0.25) contrast(0.5)");
+test_valid_value("filter", "grayscale(0.5) sepia(0.25) saturate(0.75) hue-rotate(35deg) invert(0.2) opacity(0.9) blur(5px) drop-shadow(green 1px 2px 3px)");
+test_valid_value("filter", "grayscale(1) url('#a')", 'grayscale(1) url("#a")');
+test_valid_value("filter", "hue-rotate(10deg) grayscale(0.25)");
+test_valid_value("filter", "invert(0.5) invert(0.25)");
+test_valid_value("filter", "invert(0.5) grayscale(0.25)");
+test_valid_value("filter", "opacity(0.5) opacity(0.25)");
+test_valid_value("filter", "opacity(0.5) grayscale(0.25)");
+test_valid_value("filter", "saturate(0.5) saturate(0.25)");
+test_valid_value("filter", "saturate(0.5) grayscale(0.25)");
+test_valid_value("filter", "sepia(0.5) sepia(0.25)");
+test_valid_value("filter", "sepia(0.5) grayscale(0.25)");
+test_valid_value("filter", "url('#a') url('#b')", 'url("#a") url("#b")');
 </script>
 </body>
 </html>

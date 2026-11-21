@@ -1,0 +1,31 @@
+<!doctype html>
+<title>Integrity-Policy reports do not expose cross-origin redirect targets</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<body>
+<script>
+// https://w3c.github.io/webappsec-subresource-integrity/#report-violation
+// uses the request's URL, which is the first URL in its URL list:
+// https://fetch.spec.whatwg.org/#concept-request-url
+promise_test(async t => {
+  const {HTTPS_NOTSAMESITE_ORIGIN} = get_host_info();
+  const redirect_target =
+      `${HTTPS_NOTSAMESITE_ORIGIN}/content-security-policy/resources/ran.js` +
+      `?secret=${token()}`;
+  const request_url = `${HTTPS_NOTSAMESITE_ORIGIN}/common/redirect.py` +
+      `?location=${encodeURIComponent(redirect_target)}`;
+
+  const frame = await with_iframe('resources/report-only-frame.html');
+  t.add_cleanup(() => frame.remove());
+
+  const blocked_urls =
+      await frame.contentWindow.loadScriptAndCollectBlockedURLs(request_url);
+  assert_true(frame.contentWindow.ran, 'The report-only policy should not block the script.');
+  for (const blocked_url of blocked_urls) {
+    assert_equals(blocked_url, request_url);
+  }
+}, 'blockedURL is the request URL, not the URL a cross-origin redirect led to');
+</script>

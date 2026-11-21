@@ -1,0 +1,18 @@
+<svg id="svg-root"
+  width="480" height="360" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>Paint: CSS Color 4 syntax for 'fill' presentation attribute (xyz)</title>
+    <html:link rel="author"
+          title="Chris Lilley"
+          href="http://svgees.us" />
+    <html:link rel="help"
+          href="https://w3c.github.io/svgwg/svg2-draft/painting.html#SpecifyingPaint" />
+    <html:link rel="help"
+          href="https://drafts.csswg.org/css-color-4/#color-syntax" />
+    <html:link rel="match" href="paint-fill-ref.svg" />
+    <html:meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-14400" />
+  </g>
+  <rect id="test" width="120" height="120" x="10" y="10" fill="color(xyz 0.1515153 0.2298175 0.2108785)"/>
+</svg>

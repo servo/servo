@@ -1,0 +1,181 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>document.parsed, document.contentLoaded, and document.loaded</title>
+<link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+<link rel="help" href="https://github.com/whatwg/html/pull/1936" />
+<link
+  rel="help"
+  href="https://html.spec.whatwg.org/multipage/#current-document-readiness"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+  "use strict";
+
+  let onDomContentLoadedFired = false;
+  let onLoadFired = false;
+  const readyStateChanges = [];
+
+  let parsedFulfilled = false;
+  let contentLoadedFulfilled = false;
+  let loadedFulfilled = false;
+
+  let parsedAssertions, contentLoadedAssertions, loadedAssertions;
+
+  test(() => {
+    assert_equals(
+      document.readyState,
+      "loading",
+      "This test must run while the document is still loading",
+    );
+
+    document.addEventListener("readystatechange", () => {
+      readyStateChanges.push(document.readyState);
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+      onDomContentLoadedFired = true;
+    });
+
+    window.addEventListener("load", () => {
+      onLoadFired = true;
+    });
+
+    // A note on timing:
+    // The event listeners above run before the promise fulfillment callbacks
+    // below do. The UA resolves document.contentLoaded after firing
+    // DOMContentLoaded, and resolves document.parsed and document.loaded before
+    // firing readystatechange; in the latter case the listener callback still
+    // runs first, because the microtask checkpoint that calls onFulfilled only
+    // happens after the callback returns.
+
+    parsedAssertions = document.parsed.then((value) => {
+      parsedFulfilled = true;
+
+      assert_equals(
+        value,
+        undefined,
+        "The document.parsed promise must fulfill with undefined",
+      );
+      assert_equals(
+        document.readyState,
+        "interactive",
+        "Inside the document.parsed fulfillment handler, readyState must be interactive",
+      );
+      assert_array_equals(
+        readyStateChanges,
+        ["interactive"],
+        "Inside the document.parsed fulfillment handler, the readystatechange event must have fired once already",
+      );
+    });
+
+    contentLoadedAssertions = document.contentLoaded.then((value) => {
+      contentLoadedFulfilled = true;
+
+      assert_equals(
+        value,
+        undefined,
+        "The document.contentLoaded promise must fulfill with undefined",
+      );
+      assert_equals(
+        document.readyState,
+        "interactive",
+        "Inside the document.contentLoaded fulfillment handler, readyState must be interactive",
+      );
+      assert_true(
+        parsedFulfilled,
+        "Inside the document.contentLoaded fulfillment handler, document.parsed must have already fulfilled",
+      );
+      assert_true(
+        onDomContentLoadedFired,
+        "Inside the document.contentLoaded fulfillment handler, DOMContentLoaded must have already fired",
+      );
+      assert_array_equals(
+        readyStateChanges,
+        ["interactive"],
+        "Inside the document.contentLoaded fulfillment handler, the readystatechange event must have fired exactly once",
+      );
+    });
+
+    loadedAssertions = document.loaded.then((value) => {
+      loadedFulfilled = true;
+
+      assert_equals(
+        value,
+        undefined,
+        "The document.loaded promise must fulfill with undefined",
+      );
+      assert_equals(
+        document.readyState,
+        "complete",
+        "Inside the document.loaded fulfillment handler, readyState must be complete",
+      );
+      assert_true(
+        parsedFulfilled,
+        "Inside the document.loaded fulfillment handler, document.parsed must have already fulfilled",
+      );
+      assert_true(
+        contentLoadedFulfilled,
+        "Inside the document.loaded fulfillment handler, document.contentLoaded must have already fulfilled",
+      );
+      assert_true(
+        onDomContentLoadedFired,
+        "Inside the document.loaded fulfillment handler, DOMContentLoaded must have already fired",
+      );
+      assert_false(
+        onLoadFired,
+        "Inside the document.loaded fulfillment handler, load must not have already fired",
+      );
+      assert_array_equals(
+        readyStateChanges,
+        ["interactive", "complete"],
+        "Inside the document.loaded fulfillment handler, the readystatechange event must have fired exactly twice",
+      );
+    });
+  }, "Setup code");
+
+  test(() => {
+    assert_equals(document.parsed, document.parsed, "document.parsed");
+    assert_equals(
+      document.contentLoaded,
+      document.contentLoaded,
+      "document.contentLoaded",
+    );
+    assert_equals(document.loaded, document.loaded, "document.loaded");
+    assert_not_equals(
+      document.parsed,
+      document.contentLoaded,
+      "parsed vs. contentLoaded",
+    );
+    assert_not_equals(
+      document.contentLoaded,
+      document.loaded,
+      "contentLoaded vs. loaded",
+    );
+    assert_not_equals(document.parsed, document.loaded, "parsed vs. loaded");
+  }, "The promises are stable, distinct objects");
+
+  test(() => {
+    const unscopables = Document.prototype[Symbol.unscopables];
+    assert_true(unscopables.parsed, "parsed");
+    assert_true(unscopables.contentLoaded, "contentLoaded");
+    assert_true(unscopables.loaded, "loaded");
+  }, "The promise getters are unscopable");
+
+  promise_test(() => parsedAssertions, "document.parsed");
+  promise_test(() => contentLoadedAssertions, "document.contentLoaded");
+  promise_test(() => loadedAssertions, "document.loaded");
+
+  promise_test(async () => {
+    const doc = document.implementation.createHTMLDocument();
+    assert_equals(doc.readyState, "complete");
+    assert_equals(await doc.parsed, undefined, "parsed");
+    assert_equals(await doc.contentLoaded, undefined, "contentLoaded");
+    assert_equals(await doc.loaded, undefined, "loaded");
+  }, "The promises of a document created without a parser are already fulfilled");
+
+  test(() => {
+    assert_false("interactive" in document);
+  }, "document.interactive must not be supported");
+</script>

@@ -483,11 +483,15 @@ interface Comment : CharacterData {
 
 [Exposed=Window]
 interface AbstractRange {
-  readonly attribute Node startContainer;
   readonly attribute unsigned long startOffset;
-  readonly attribute Node endContainer;
   readonly attribute unsigned long endOffset;
   readonly attribute boolean collapsed;
+};
+
+[Exposed=Window]
+interface NodeRange : AbstractRange {
+  readonly attribute Node startContainer;
+  readonly attribute Node endContainer;
 };
 
 dictionary StaticRangeInit {
@@ -498,12 +502,12 @@ dictionary StaticRangeInit {
 };
 
 [Exposed=Window]
-interface StaticRange : AbstractRange {
+interface StaticRange : NodeRange {
   constructor(StaticRangeInit init);
 };
 
 [Exposed=Window]
-interface Range : AbstractRange {
+interface Range : NodeRange {
   constructor();
 
   readonly attribute Node commonAncestorContainer;

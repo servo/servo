@@ -5560,7 +5560,11 @@ function runConformanceTest(browserTest) {
     var testDiv = document.querySelector("div[contenteditable]");
     var originalRootElement, newRootElement;
     var exception = null;
+    var resultsPrepared = false;
+    var commandsExecuted = 0;
     var expectedExecCommandReturnValues = browserTest[3];
+    var actualExecCommandReturnValues = [];
+    var actualExecCommandExceptions = {};
     var expectedQueryResults = browserTest[4];
     var actualQueryResults = {};
     var actualQueryExceptions = {};
@@ -5601,6 +5605,22 @@ function runConformanceTest(browserTest) {
         exception = e;
     }
 
+    function executeCommandsThrough(lastCommand) {
+        if (exception !== null) {
+            return;
+        }
+        while (commandsExecuted <= lastCommand) {
+            var commandIndex = commandsExecuted++;
+            try {
+                actualExecCommandReturnValues[commandIndex] =
+                    document.execCommand(browserTest[1][commandIndex][0], false,
+                        browserTest[1][commandIndex][1]);
+            } catch (e) {
+                actualExecCommandExceptions[commandIndex] = e;
+            }
+        }
+    }
+
     for (var i = 0; i < browserTest[1].length; i++) {
         subtestName = testName + ": execCommand(" +
             format_value(browserTest[1][i][0]) + ", false, " +
@@ -5608,39 +5628,50 @@ function runConformanceTest(browserTest) {
             (browserTest[1][i][2] ? browserTest[1][i][2] + " " : "") +
             "return value"
         subsetTest(test, function() {
+            executeCommandsThrough(i);
             assert_equals(exception, null, "Setup must not throw an exception");
-
-            assert_equals(document.execCommand(browserTest[1][i][0], false, browserTest[1][i][1]),
+            if (i in actualExecCommandExceptions) {
+                throw actualExecCommandExceptions[i];
+            }
+            assert_equals(actualExecCommandReturnValues[i],
                 expectedExecCommandReturnValues[i]);
         }, subtestName);
     }
 
-    if (exception === null) {
-        try {
-            for (var command in expectedQueryResults) {
-                var results = actualQueryResults[command];
-                var exceptions = actualQueryExceptions[command];
-                try { results[3] = document.queryCommandIndeterm(command) }
-                catch(e) { exceptions[3] = e }
-                try { results[4] = document.queryCommandState(command) }
-                catch(e) { exceptions[4] = e }
-                try { results[5] = document.queryCommandValue(command) }
-                catch(e) { exceptions[5] = e }
+    function prepareResults() {
+        if (resultsPrepared) {
+            return;
+        }
+        resultsPrepared = true;
+        executeCommandsThrough(browserTest[1].length - 1);
+        if (exception === null) {
+            try {
+                for (var command in expectedQueryResults) {
+                    var results = actualQueryResults[command];
+                    var exceptions = actualQueryExceptions[command];
+                    try { results[3] = document.queryCommandIndeterm(command) }
+                    catch(e) { exceptions[3] = e }
+                    try { results[4] = document.queryCommandState(command) }
+                    catch(e) { exceptions[4] = e }
+                    try { results[5] = document.queryCommandValue(command) }
+                    catch(e) { exceptions[5] = e }
+                }
+
+                newRootElement = document.documentElement.cloneNode(true);
+                newRootElement.querySelector("[contenteditable]").parentNode
+                    .removeChild(newRootElement.querySelector("[contenteditable]"));
+                newRootElement.querySelector("#log").parentNode
+                    .removeChild(newRootElement.querySelector("#log"));
+
+                normalizeSerializedStyle(testDiv);
+            } catch(e) {
+                exception = e;
             }
-
-            var newRootElement = document.documentElement.cloneNode(true);
-            newRootElement.querySelector("[contenteditable]").parentNode
-                .removeChild(newRootElement.querySelector("[contenteditable]"));
-            newRootElement.querySelector("#log").parentNode
-                .removeChild(newRootElement.querySelector("#log"));
-
-            normalizeSerializedStyle(testDiv);
-        } catch(e) {
-            exception = e;
         }
     }
 
     subsetTest(test, function() {
+        prepareResults();
         assert_equals(exception, null, "Setup must not throw an exception");
 
         // Now test for modifications to non-editable content.  First just
@@ -5665,6 +5696,7 @@ function runConformanceTest(browserTest) {
     }, testName + " checks for modifications to non-editable content");
 
     subsetTest(test, function() {
+        prepareResults();
         assert_equals(exception, null, "Setup must not throw an exception");
 
         if (Array.isArray(browserTest[2])) {
@@ -5693,6 +5725,9 @@ function runConformanceTest(browserTest) {
         ];
         for (var i = 0; i < 6; i++) {
             subsetTest(test, function() {
+                if (i >= 3) {
+                    prepareResults();
+                }
                 assert_equals(exception, null, "Setup must not throw an exception");
 
                 if (expectedQueryResults[command][i] === null) {
@@ -5729,6 +5764,15 @@ function runConformanceTest(browserTest) {
                         "Wrong result returned");
                 }
             }, testName + " " + descriptions[i]);
+        }
+    }
+
+    // Document-wide settings are prerequisites even for skipped cases.
+    for (var i = commandsExecuted; i < browserTest[1].length; i++) {
+        var commandName = browserTest[1][i][0].toLowerCase();
+        if (commandName === "stylewithcss" ||
+            commandName === "defaultparagraphseparator") {
+            document.execCommand(browserTest[1][i][0], false, browserTest[1][i][1]);
         }
     }
 

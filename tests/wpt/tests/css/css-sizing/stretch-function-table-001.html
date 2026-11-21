@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>CSS stretch(): tables</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#used-width-of-table">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="stretch() fits the margin box of a table to its argument in both axes, for an HTML table and a CSS table alike.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .test {
+    width: stretch(150px);
+    margin-right: 50px;
+    height: stretch(50px);
+    border: 10px solid green;
+    border-spacing: 0;
+    background: green;
+  }
+  td, .cell {
+    padding: 0;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<table class="test"><tr><td></td></tr></table>
+<div class="test" style="display: table;"><div class="cell" style="display: table-cell;"></div></div>

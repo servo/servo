@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: executeTool with declarative tool returning an unserializable value via respondWith</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/helpers.js"></script>
+<body>
+<form id="form" toolname="unserializable_tool" tooldescription="Declarative tool returning an unserializable value" toolautosubmit>
+</form>
+
+<script>
+// Each case returns a value that can't become a tool result string: either
+// JSON serialization (objects) or string conversion (primitives) throws.
+const cases = [
+  {
+    description: 'a Symbol',
+    makeResult: () => Symbol('result'),
+  },
+  {
+    description: 'an object with a BigInt property',
+    makeResult: () => ({value: 1n}),
+  },
+  {
+    description: 'an object whose toJSON() throws',
+    makeResult: () => ({toJSON() { throw new Error('toJSON'); }}),
+  },
+  {
+    description: 'an object with a throwing getter',
+    makeResult: () => ({get value() { throw new Error('getter'); }}),
+  },
+];
+
+let makeResult;
+const form = document.querySelector('#form');
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  e.respondWith(Promise.resolve(makeResult()));
+});
+
+for (const {description, makeResult: make} of cases) {
+  promise_test(async t => {
+    const tool = await waitForTool('unserializable_tool');
+    makeResult = make;
+
+    await promise_rejects_dom(
+      t,
+      'OperationError',
+      document.modelContext.executeTool(tool),
+      `executeTool() should reject with OperationError when respondWith is passed ${description}`
+    );
+  }, `Declarative tool executeTool() rejects when respondWith() receives ${description}`);
+}
+</script>
+</body>

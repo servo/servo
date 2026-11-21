@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Reference: white-space-trim discard-inner on block containers</title>
+<style>
+  pre, .pre { white-space: pre; }
+  .pre-line { white-space: pre-line; }
+  div, pre { border: 1px solid; margin: 4px 0; font: 16px/1 monospace; }
+  .ib { display: inline-block; }
+</style>
+</head>
+<body>
+<p>This test passes if it renders identically to the reference.</p>
+<pre>  some
+preformatted
+
+  text</pre>
+<div class="pre">  some text</div>
+<div class="pre">  some text  	</div>
+<div class="pre"><span></span><span>  some text</span></div>
+<div class="pre">  some text  </div>
+<div class="pre"></div>
+<div class="pre-line">some
+text</div>
+<div>[<span class="pre ib">  some text</span>]</div>
+<div class="pre">  some text</div>
+<div>[<span class="pre ib">text</span>]</div>
+</body>
+</html>

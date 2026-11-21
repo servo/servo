@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>Speculation rules: :scope in selector_matches document rule predicates</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/speculative-loading.html#dr-predicate-matches">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#the-scope-pseudo">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11000">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+<script src="/common/subset-tests-by-key.js"></script>
+
+<meta name="variant" content="?include=documentScopeDescendant">
+<meta name="variant" content="?include=shadowRootScope">
+
+<body>
+<script>
+  setup(() => assertSpeculationRulesIsSupported());
+
+  function attachShadowHost(parent = document.body) {
+    const host = document.createElement('div');
+    parent.appendChild(host);
+    return host.attachShadow({ mode: 'open' });
+  }
+
+  function addContainer(parent) {
+    const container = document.createElement('div');
+    parent.appendChild(container);
+    return container;
+  }
+
+  subsetTestByKey('documentScopeDescendant', promise_test, async t => {
+    insertDocumentRule({ selector_matches: ':scope a' });
+
+    const url_1 = getPrefetchUrl({ foo: 'bar' });
+    addLink(url_1);
+    const url_2 = getPrefetchUrl({ foo: 'buzz' });
+    addLink(url_2, addContainer(document.body));
+
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+
+    assert_equals(await isUrlPrefetched(url_1), 1);
+    assert_equals(await isUrlPrefetched(url_2), 1);
+  }, 'test :scope descendant selector for links in the document');
+
+  subsetTestByKey('shadowRootScope', promise_test, async t => {
+    insertDocumentRule({ selector_matches: ':scope a' });
+
+    const shadowRoot = attachShadowHost();
+    const url = getPrefetchUrl({ foo: 'bar' });
+    addLink(url, shadowRoot);
+
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+
+    assert_equals(await isUrlPrefetched(url), 0);
+  }, 'test :scope selector for links in a shadow tree');
+</script>

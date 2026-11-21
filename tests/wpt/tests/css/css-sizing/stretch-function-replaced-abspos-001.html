@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>CSS stretch(): an absolutely positioned replaced element</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#abs-replaced-width">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="stretch() fits the margin box of an absolutely positioned replaced element to its argument, which resolves against the containing block.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .container {
+    position: relative;
+    width: 200px;
+    height: 400px;
+  }
+  canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    /* 75% of 200px less 25% of 200px, and 50% of 400px less 50% of 200px. */
+    width: stretch(75%);
+    margin-right: 25%;
+    height: stretch(50%);
+    margin-bottom: 50%;
+    background: green;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="container">
+  <canvas width="10" height="10"></canvas>
+</div>

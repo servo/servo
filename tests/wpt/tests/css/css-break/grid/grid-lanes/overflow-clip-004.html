@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Row overflow clipped at a column boundary creates no extra columns</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#overflow-properties">
+<link rel="match" href="overflow-clip-004-ref.html">
+<style>
+  .multicol {
+    columns: 2;
+    column-fill: auto;
+    column-gap: 0;
+    width: 100px;
+    height: 100px;
+    margin-bottom: 20px;
+    background: lightgray;
+  }
+  .lanes {
+    display: grid-lanes;
+    grid-template-rows: 120px 120px;
+    height: 200px;
+    overflow: clip;
+  }
+  .lanes > div { width: 50px; }
+</style>
+<div class="multicol">
+  <div class="lanes">
+    <div style="background: green"></div>
+    <div style="background: orange"></div>
+  </div>
+</div>
+<div class="multicol">
+  <div class="lanes" style="grid-template-rows: 40px 120px 120px">
+    <div style="background: green"></div>
+    <div style="background: orange; break-before: column"></div>
+    <div style="background: blue"></div>
+  </div>
+</div>

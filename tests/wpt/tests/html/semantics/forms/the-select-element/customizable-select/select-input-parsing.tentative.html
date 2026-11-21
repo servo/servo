@@ -5,7 +5,7 @@
 <script src="/resources/testharnessreport.js"></script>
 
 <select class=test
-    data-description='Input tags should parse inside select if there are no options first.'
+    data-description='Input tags should parse inside select before any options.'
         data-expect='<button>button</button><input>'>
     <button>button</button>
     <input>
@@ -20,16 +20,16 @@
 </select>
 
 <select class=test
-        data-description='Input tags should close select when directly inside an <option>'
-        data-expect='<option></option>'>
+        data-description='Input tags should parse inside select when directly inside an <option>'
+        data-expect='<option><input></option>'>
   <option>
     <input>
   </option>
 </select>
 
 <select class=test
-        data-description='Input tags should close select when placed after an <option>'
-        data-expect='<option></option>'>
+        data-description='Input tags should parse inside select when placed after an <option>'
+        data-expect='<option></option><input>'>
   <option></option>
   <input>
 </select>

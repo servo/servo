@@ -116,8 +116,8 @@ fn parse_svg_document_in_memory(
                 // Keep the existing path for stylesheets with attribute selectors.
                 .filter(|_| {
                     !document.descendants().any(|node| {
-                        node.has_tag_name("style") &&
-                            node.text().is_some_and(|text| text.contains('['))
+                        node.has_tag_name("style")
+                            && node.text().is_some_and(|text| text.contains('['))
                     })
                 })
                 .map(|_| Arc::new(SVGImageSource::new(&document)));
@@ -316,8 +316,8 @@ impl SVGImageSource {
             }
         }
         let name_start = root.range().start + 1;
-        let name_end = name_start +
-            source[name_start..]
+        let name_end = name_start
+            + source[name_start..]
                 .find(|character: char| {
                     character.is_ascii_whitespace() || matches!(character, '/' | '>')
                 })

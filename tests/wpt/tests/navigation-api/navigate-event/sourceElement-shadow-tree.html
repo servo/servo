@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/nav-history-apis.html#dom-navigateevent-sourceelement">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<svg width="200" height="200">
+  <defs>
+    <a id="svg-anchor" href="#use-target">
+      <rect width="100" height="100" fill="green"></rect>
+    </a>
+  </defs>
+  <use id="use" href="#svg-anchor"></use>
+</svg>
+
+<div id="closed-host"></div>
+<div id="open-host"></div>
+
+<script>
+function waitForNavigate(t) {
+  return new Promise(resolve => {
+    navigation.addEventListener("navigate", t.step_func(e => {
+      e.preventDefault();
+      resolve(e);
+    }), {once: true});
+  });
+}
+
+promise_test(async t => {
+  const use = document.getElementById("use");
+  const navigatePromise = waitForNavigate(t);
+  await test_driver.click(use);
+  const e = await navigatePromise;
+  assert_equals(new URL(e.destination.url).hash, "#use-target");
+  assert_equals(e.sourceElement, use,
+      "sourceElement should be retargeted to the <use> element");
+  assert_equals(e.sourceElement.getRootNode(), document);
+}, "sourceElement for an <svg:a> in a <use> shadow tree is the <use> element");
+
+for (const mode of ["closed", "open"]) {
+  promise_test(async t => {
+    const host = document.getElementById(`${mode}-host`);
+    const shadow = host.attachShadow({mode});
+    const a = document.createElement("a");
+    a.href = `#${mode}-target`;
+    shadow.appendChild(a);
+    const navigatePromise = waitForNavigate(t);
+    a.click();
+    const e = await navigatePromise;
+    assert_equals(new URL(e.destination.url).hash, `#${mode}-target`);
+    assert_equals(e.sourceElement, host,
+        "sourceElement should be retargeted to the shadow host");
+  }, `sourceElement for an <a> in a ${mode} shadow root is the shadow host`);
+}
+</script>

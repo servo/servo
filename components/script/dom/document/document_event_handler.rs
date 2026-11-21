@@ -1868,10 +1868,10 @@ impl DocumentEventHandler {
     ) {
         // Step 1. If document's fullscreen element is not null:
         let document = self.window.Document();
-        if document.fullscreen_element().is_some() {
+        if document.overlay_handler().fullscreen_element().is_some() {
             // Step 1.1. Fully exit fullscreen given document's node navigable's top-level traversable's active document.
             // TODO: node navigable's top-level traversable's active document
-            document.fully_exit_fullscreen(cx);
+            document.overlay_handler().fully_exit_fullscreen(cx);
 
             // Step 1.2. Return.
             return;

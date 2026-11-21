@@ -1,0 +1,57 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Container Timing: containertiming has no effect on SVG and MathML elements</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/container-timing/resources/container-timing-helpers.js"></script>
+<script>
+  const kSvgNS = 'http://www.w3.org/2000/svg';
+  const kMathMLNS = 'http://www.w3.org/1998/Math/MathML';
+
+  test(() => {
+    assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
+    const div = document.createElement('div');
+    const svg = document.createElementNS(kSvgNS, 'svg');
+    const math = document.createElementNS(kMathMLNS, 'math');
+    for (const name of ['containerTiming', 'containerTimingIgnore']) {
+      assert_true(name in div, `${name} is exposed on HTMLElement`);
+      assert_false(name in svg, `${name} is not exposed on SVGElement`);
+      assert_false(name in math, `${name} is not exposed on MathMLElement`);
+    }
+  }, 'containerTiming and containerTimingIgnore are only exposed on HTMLElement.');
+
+  promise_test(async t => {
+    assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
+    const svg = document.createElementNS(kSvgNS, 'svg');
+    svg.setAttribute('containertiming', 'svg_ct');
+    svg.setAttribute('width', '100');
+    svg.setAttribute('height', '100');
+    const image = document.createElementNS(kSvgNS, 'image');
+    image.setAttribute('href', '/container-timing/resources/square100.png');
+    image.setAttribute('width', '100');
+    image.setAttribute('height', '100');
+    const imageLoaded = new Promise(resolve => image.onload = resolve);
+    svg.appendChild(image);
+    document.body.appendChild(svg);
+
+    const math = document.createElementNS(kMathMLNS, 'math');
+    math.setAttribute('containertiming', 'math_ct');
+    const mi = document.createElementNS(kMathMLNS, 'mi');
+    mi.textContent = 'x';
+    math.appendChild(mi);
+    document.body.appendChild(math);
+
+    await imageLoaded;
+    const entries = await getContainerEntries(t, 0);
+    assert_equals(entries.length, 0,
+                  'SVG and MathML elements are not container roots');
+  }, 'containertiming on SVG and MathML elements does not report paints.');
+</script>
+
+</body>

@@ -65,6 +65,10 @@ impl FileSystemFileEntry {
     pub(crate) fn set_filesystem(&self, fs: &FileSystem) {
         self.filesystementry.set_filesystem(fs);
     }
+
+    pub(crate) fn file(&self) -> DomRoot<File> {
+        DomRoot::from_ref(&*self.file)
+    }
 }
 
 impl FileSystemFileEntryMethods<crate::DomTypeHolder> for FileSystemFileEntry {

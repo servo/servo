@@ -1,0 +1,11 @@
+<!doctype html>
+<a id="a">
+    <img />
+    <menu id="m"></menu
+></a>
+<script>
+    var range = document.implementation.createHTMLDocument("").createRange();
+    range.selectNode(document.getElementById("m"));
+    document.getElementById("a").text = "x";
+    range.deleteContents();
+</script>

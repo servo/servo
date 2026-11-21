@@ -38,7 +38,8 @@ use crate::containing_block::{ConstraintSpace, ContainingBlock};
 use crate::context::{LayoutContext, LayoutImageCacheResult};
 use crate::dom::NodeExt;
 use crate::fragment_tree::{
-    BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment, IFrameFragment, ImageFragment,
+    BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment, FragmentChildren,
+    IFrameFragment, ImageFragment,
 };
 use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize};
 use crate::layout_box_base::{IndependentFormattingContextLayoutResult, LayoutBoxBase};
@@ -162,6 +163,17 @@ pub(crate) enum ReplacedContentKind {
     Audio,
 }
 
+impl ReplacedContentKind {
+    pub(crate) fn paints_selection_highlight(&self) -> bool {
+        !matches!(
+            self,
+            ReplacedContentKind::Audio |
+                ReplacedContentKind::IFrame(..) |
+                ReplacedContentKind::Canvas(..)
+        )
+    }
+}
+
 impl ReplacedContents {
     pub fn for_element(node: ServoLayoutNode<'_>, context: &LayoutContext) -> Option<Self> {
         if let Some(ref data_attribute_string) = node.as_typeless_object_with_data_attribute() &&
@@ -224,11 +236,13 @@ impl ReplacedContents {
                 .handle_animated_image(node.opaque(), image.clone());
         }
 
+        let paint_selection_highlight =
+            kind.paints_selection_highlight() && node.replaced_is_selected();
         Some(Self {
             base_fragment_info: node.into(),
             kind,
             is_content_replacement: false,
-            selected: Arc::new(AtomicBool::new(node.replaced_is_selected())),
+            selected: Arc::new(AtomicBool::new(paint_selection_highlight)),
             selected_style: SharedStyle::new(node.selected_style(&context.style_context)),
             natural_size,
         })
@@ -763,7 +777,11 @@ impl ReplacedContents {
             // The result doesn't depend on `containing_block_for_children.size.block`,
             // but it depends on `lazy_block_size`, which is probably tied to that.
             depends_on_block_constraints: true,
-            fragments: self.make_fragments(layout_context, &base.style, size),
+            fragments: FragmentChildren::PhysicalDeprecated(self.make_fragments(
+                layout_context,
+                &base.style,
+                size,
+            )),
             specific_layout_info: None,
         }
     }
@@ -771,13 +789,10 @@ impl ReplacedContents {
     /// Set whether or not this [`ReplacedContents`] is selected. Returns `true` if anything
     /// changed.
     pub(crate) fn set_selection(&self, selected: bool) -> bool {
-        // Only build a display list if the value changed and if this isn't an `<iframe>`
-        // or `<audio>` element as they do not paint a selection tint.
-        self.selected.swap(selected, Ordering::Relaxed) != selected &&
-            !matches!(
-                self.kind,
-                ReplacedContentKind::Audio | ReplacedContentKind::IFrame(..)
-            )
+        // Only build a display list if the value changed and its content actually paints a
+        // selection highlight.
+        self.kind.paints_selection_highlight() &&
+            self.selected.swap(selected, Ordering::Relaxed) != selected
     }
 }
 

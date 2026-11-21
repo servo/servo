@@ -1,0 +1,43 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Container Timing: firstRenderTime is kept on later updates</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+img {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/container-timing/resources/container-timing-helpers.js"></script>
+<script>
+  promise_test(async t => {
+    assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
+    const collector = observeContainerEntries(t);
+    const div = addContainerRoot(document.body, 'div_ct');
+    addSquare100Image(div, {id: 'first_id', style: 'left: 0px; top: 0px'});
+    const beforeRender = performance.now();
+    let entries = await collector.take();
+    assert_equals(entries.length, 1, 'entry for the first image');
+    const first = entries[0];
+    checkContainerEntry(first, 'div_ct', 'first_id', beforeRender);
+    assert_equals(first.firstRenderTime, first.startTime,
+                  'first update renders first');
+
+    addSquare100Image(div, {id: 'second_id', style: 'left: 100px; top: 0px'});
+    entries = await collector.take();
+    assert_equals(entries.length, 1, 'entry for the second image');
+    const second = entries[0];
+    checkContainerEntry(second, 'div_ct', 'second_id', beforeRender);
+    assert_greater_than(second.startTime, first.startTime);
+    assert_equals(second.firstRenderTime, first.firstRenderTime,
+                  'firstRenderTime is not overwritten');
+  }, 'firstRenderTime keeps the time of the first update.');
+</script>
+
+</body>

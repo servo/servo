@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: reference for an ellipsis on an empty clamped line</title>
+<style>
+div {
+  font: 25px/1 monospace;
+  inline-size: 240px;
+}
+.padded { padding-inline-start: 32px; }
+.rtl { direction: rtl; }
+.vertical { writing-mode: vertical-rl; }
+</style>
+<div>…</div>
+<div class="padded">…</div>
+<div class="rtl">…</div>
+<div class="vertical padded">…</div>

@@ -3,6 +3,7 @@
 <title>Common serialization checks for all properties</title>
 <link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
 <link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-getpropertyvalue">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#propdef--webkit-line-clamp">
 
 <div id="element"></div>
 
@@ -70,14 +71,17 @@ test(function() {
   const bad = [];
   for (let property of cssProperties) {
     const result = computedStyle.getPropertyValue(property);
-    if (CSS.supports(property, result)) {
+    if (property === "-webkit-line-clamp" && cssShorthands.has(property)) {
+      // Its fixed ellipsis reset cannot represent initial block-ellipsis.
+      assert_equals(result, "", "Legacy line clamp cannot represent the computed initial longhands");
+    } else if (CSS.supports(property, result)) {
       initialValues.set(property, result);
     } else if (property !== "all") {
       bad.push([property, result]);
     }
   }
   assert_array_equals(bad, []);
-}, "All properties (except 'all') can serialize their initial value (computed)");
+}, "Properties serialize their computed initial value when representable");
 
 test(function() {
   const bad = [];
@@ -119,12 +123,19 @@ test(function() {
       style.setProperty(longhand, initialValues.get(longhand));
     }
     const result = style.getPropertyValue(shorthand);
+    if (shorthand === "-webkit-line-clamp") {
+      // The legacy shorthand always sets block-ellipsis to ellipsis, so it
+      // cannot represent that longhand's initial no-ellipsis value.
+      assert_equals(style.getPropertyValue("block-ellipsis"), "no-ellipsis");
+      assert_equals(result, "", "Legacy line clamp cannot represent the independently initial longhands");
+      continue;
+    }
     if (!CSS.supports(shorthand, result) && shorthand !== "all") {
       bad.push([shorthand, result]);
     }
   }
   assert_array_equals(bad, []);
-}, "All shorthands (except 'all') can serialize their longhands set to their initial value");
+}, "Shorthands serialize independently initial longhands only when representable");
 
 test(function() {
   const bad = [];

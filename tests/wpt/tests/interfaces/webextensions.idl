@@ -13,3 +13,44 @@ enum ExecutionWorld {
     "ISOLATED",
     "MAIN"
 };
+
+partial interface Browser {
+  attribute Alarms alarms;
+};
+
+dictionary Alarm {
+  required DOMString name;
+  required double scheduledTime;
+  double periodInMinutes;
+  required boolean persistAcrossSessions;
+};
+
+dictionary AlarmCreateInfo {
+  DOMString name;
+  double when;
+  double delayInMinutes;
+  double periodInMinutes;
+  boolean persistAcrossSessions;
+};
+
+callback AlarmListener = undefined (Alarm alarm);
+
+[Exposed=(Window,Worker)]
+interface OnAlarmEvent {
+  undefined addListener(AlarmListener listener);
+  undefined removeListener(AlarmListener listener);
+  boolean hasListener(AlarmListener listener);
+};
+
+[Exposed=(Window,Worker)]
+interface Alarms {
+  Promise<undefined> create(optional AlarmCreateInfo alarmInfo = {});
+  Promise<undefined> create(DOMString name, optional AlarmCreateInfo alarmInfo = {});
+
+  Promise<(Alarm or undefined)> get(optional DOMString name);
+  Promise<sequence<Alarm>> getAll();
+  Promise<boolean> clear(optional DOMString name);
+  Promise<undefined> clearAll();
+
+  attribute OnAlarmEvent onAlarm;
+};

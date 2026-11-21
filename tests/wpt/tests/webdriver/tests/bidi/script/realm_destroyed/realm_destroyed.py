@@ -239,6 +239,66 @@ async def test_subscribe_to_one_context(
     remove_listener()
 
 
+async def test_subscribe_to_child_context(
+    bidi_session,
+    subscribe_events,
+    wait_for_bidi_events,
+    wait_for_event,
+    wait_for_future_safe,
+    new_tab,
+    inline,
+):
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=inline("<div>foo</div><script>0</script>"), wait="complete"
+    )
+
+    # Add two frames, each with a realm, once the page has loaded.
+    frame_url = inline("<script>1</script>")
+    await bidi_session.script.evaluate(
+        expression=f"""Promise.all([0, 1].map(() => new Promise(resolve => {{
+            const frame = document.createElement("iframe");
+            frame.onload = resolve;
+            frame.src = "{frame_url}";
+            document.body.append(frame);
+        }})))""",
+        target=ContextTarget(new_tab["context"]),
+        await_promise=True,
+    )
+
+    contexts = await bidi_session.browsing_context.get_tree(root=new_tab["context"])
+    assert len(contexts[0]["children"]) == 2
+    frame_1 = contexts[0]["children"][0]
+    frame_2 = contexts[0]["children"][1]
+
+    created_events = []
+
+    async def on_realm_created(method, data):
+        created_events.append(data)
+
+    remove_listener = bidi_session.add_event_listener(REALM_CREATED_EVENT, on_realm_created)
+
+    # A subscription made with a child context applies to its top-level context.
+    await subscribe_events(
+        events=[REALM_CREATED_EVENT, REALM_DESTROYED_EVENT], contexts=[frame_1["context"]]
+    )
+    await wait_for_bidi_events(created_events, 3)
+    frame_2_realms = [event["realm"] for event in created_events if event["context"] == frame_2["context"]]
+    assert len(frame_2_realms) == 1
+
+    # The realm of a sibling frame is reported when it is destroyed.
+    on_realm_destroyed = wait_for_event(REALM_DESTROYED_EVENT)
+    url = inline("<div>foo</div>")
+    await bidi_session.script.evaluate(
+        expression=f"document.querySelectorAll('iframe')[1].src = '{url}'",
+        target=ContextTarget(new_tab["context"]),
+        await_promise=False,
+    )
+    event = await wait_for_future_safe(on_realm_destroyed)
+    assert event == {"realm": frame_2_realms[0]}
+
+    remove_listener()
+
+
 async def test_dedicated_worker(
     bidi_session,
     subscribe_events,

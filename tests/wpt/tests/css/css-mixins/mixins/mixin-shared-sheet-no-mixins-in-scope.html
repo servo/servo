@@ -17,9 +17,7 @@
           const style = document.createElement('style');
           style.textContent = `
             @mixin ${name}() {
-              @result {
-                color: ${localColor};
-              }
+              color: ${localColor};
             }
           `;
           root.append(style);

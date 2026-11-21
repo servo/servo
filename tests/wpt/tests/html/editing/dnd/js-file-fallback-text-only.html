@@ -8,6 +8,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
+<script src="resources/test-helper.js"></script>
 
 <style>
   .box {
@@ -49,51 +50,42 @@ promise_test(async t => {
   const dragSrc = document.getElementById('drag-src');
   const dropTgt = document.getElementById('drop-tgt');
 
-  const dropWatcher = new Promise((resolve, reject) => {
-    dragSrc.ondragstart = t.step_func(e => {
-      const file = new File([PNG_BYTES], 'test.png', {type: 'image/png'});
-      e.dataTransfer.items.add(file);
-      e.dataTransfer.effectAllowed = 'copy';
-    });
-
-    dropTgt.ondragenter = e => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'copy';
-    };
-    dropTgt.ondragover = e => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'copy';
-    };
-
-    dropTgt.ondrop = t.step_func(async e => {
-      e.preventDefault();
-      try {
-        // When the feature is disabled, no binary file content is transferred.
-        assert_equals(e.dataTransfer.files.length, 0,
-          'No files should be in .files when feature is disabled');
-
-        // The filename should be available as text/plain.
-        const text = e.dataTransfer.getData('text/plain');
-        assert_equals(text, 'test.png',
-          'Filename should be transferred as text/plain fallback');
-        resolve();
-      } catch (err) {
-        reject(err);
-      }
-    });
+  dragSrc.ondragstart = t.step_func(e => {
+    const file = new File([PNG_BYTES], 'test.png', {type: 'image/png'});
+    e.dataTransfer.items.add(file);
+    e.dataTransfer.effectAllowed = 'copy';
   });
 
-  await new test_driver.Actions()
-    .pointerMove(0, 0, {origin: dragSrc})
-    .pointerDown()
-    .pause(100)
-    .pointerMove(15, 15, {origin: dragSrc})
-    .pause(100)
-    .pointerMove(0, 0, {origin: dropTgt})
-    .pause(100)
-    .pointerUp()
-    .send();
+  dropTgt.ondragenter = e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  };
+  dropTgt.ondragover = e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  };
 
-  await dropWatcher;
+  await waitForDragEvent(t, dropTgt, 'drop', 1000, async e => {
+    e.preventDefault();
+    // When the feature is disabled, no binary file content is transferred.
+    assert_equals(e.dataTransfer.files.length, 0,
+      'No files should be in .files when feature is disabled');
+
+    // The filename should be available as text/plain.
+    const text = e.dataTransfer.getData('text/plain');
+    assert_equals(text, 'test.png',
+      'Filename should be transferred as text/plain fallback');
+  }, () => {
+    return new test_driver.Actions()
+      .pointerMove(0, 0, {origin: dragSrc})
+      .pointerDown()
+      .pause(100)
+      .pointerMove(15, 15, {origin: dragSrc})
+      .pause(100)
+      .pointerMove(0, 0, {origin: dropTgt})
+      .pause(100)
+      .pointerUp()
+      .send();
+  });
 }, 'JS File falls back to text/plain filename when DragAndDropJSFileObjects is disabled');
 </script>

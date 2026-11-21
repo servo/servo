@@ -21,7 +21,8 @@ dictionary CrossOriginStorageGetFileHandleOptions {
 };
 
 interface mixin NavigatorCrossOriginStorage {
-  [SameObject, SecureContext] readonly attribute CrossOriginStorageManager crossOriginStorage;
+  [Exposed=(Window,Worker), SameObject, SecureContext]
+  readonly attribute CrossOriginStorageManager crossOriginStorage;
 };
 Navigator includes NavigatorCrossOriginStorage;
 WorkerNavigator includes NavigatorCrossOriginStorage;

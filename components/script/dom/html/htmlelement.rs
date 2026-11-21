@@ -622,10 +622,10 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
                 ScrollContainerQueryFlags::ForScrollParent,
             )
             .and_then(|response| match response {
-                ScrollContainerResponse::Viewport(_) => {
+                ScrollContainerResponse::Viewport(..) => {
                     self.owner_document().GetScrollingElement(cx)
                 },
-                ScrollContainerResponse::Element(parent_node_address, _) => {
+                ScrollContainerResponse::Element(parent_node_address, ..) => {
                     let node = unsafe { from_untrusted_node_address(parent_node_address) };
                     DomRoot::downcast(node)
                 },
@@ -1366,7 +1366,10 @@ impl VirtualMethods for HTMLElement {
                 // > While document is so blocked, every node that is connected to document, with the
                 // > exception of the subject element and its flat tree descendants, must become inert.
                 let is_blocked_document = element.is_document_element() &&
-                    element.owner_document().is_blocked_by_a_modal_dialog();
+                    element
+                        .owner_document()
+                        .overlay_handler()
+                        .is_blocked_by_a_modal_dialog();
 
                 element.set_state(
                     cx.no_gc(),

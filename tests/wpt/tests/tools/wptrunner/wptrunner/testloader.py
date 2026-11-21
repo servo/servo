@@ -363,6 +363,7 @@ class TestLoader:
                  chunk_number=1,
                  include_https=True,
                  include_h2=True,
+                 include_websocket_h3=False,
                  skip_timeout=False,
                  skip_crash=False,
                  skip_implementation_status=None,
@@ -380,6 +381,7 @@ class TestLoader:
         self.disabled_tests = None
         self.include_https = include_https
         self.include_h2 = include_h2
+        self.include_websocket_h3 = include_websocket_h3
         self.skip_timeout = skip_timeout
         self.skip_crash = skip_crash
         self.skip_implementation_status = skip_implementation_status
@@ -481,6 +483,8 @@ class TestLoader:
                 if not self.include_https and test.environment["protocol"] == "https":
                     enabled = False
                 if not self.include_h2 and test.environment["protocol"] == "h2":
+                    enabled = False
+                if not self.include_websocket_h3 and test.environment["protocol"] == "websocket-h3-https":
                     enabled = False
                 if self.skip_timeout and test.expected() == "TIMEOUT":
                     enabled = False

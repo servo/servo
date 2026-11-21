@@ -8,6 +8,7 @@ mod animation_manager;
 pub(crate) mod document;
 pub(crate) mod document_embedder_controls;
 pub(crate) mod document_event_handler;
+pub(crate) mod document_overlay_handler;
 pub(crate) mod documentfragment;
 pub(crate) mod documentorshadowroot;
 pub(crate) mod documenttype;

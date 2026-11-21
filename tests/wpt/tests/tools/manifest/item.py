@@ -125,6 +125,10 @@ class URLManifestItem(ManifestItem):
         return "h2" in self._flags
 
     @property
+    def websocket_h3(self) -> bool:
+        return "websocket-h3" in self._flags
+
+    @property
     def subdomain(self) -> bool:
         # Note: this is currently hard-coded to check for `www`, rather than
         # all possible valid subdomains. It can be extended if needed.

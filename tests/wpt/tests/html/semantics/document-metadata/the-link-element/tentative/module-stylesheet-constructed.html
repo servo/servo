@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Module link: ownerless constructed sheets and ignored CSS @import rules</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/ShadowDOM/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+
+<body>
+<script type="module">
+import {createLink, waitForEvent, createShadowRoot} from "./module-stylesheet-helpers.js";
+
+// ownerNode: module sheets are ownerless; classic sheets are link-owned.
+promise_test(async t => {
+  const root = createShadowRoot(t, "<span>test</span>");
+  const module = createLink(t, /*import=*/"./module-stylesheet-red.css?vs-owner");
+  const classic = createLink(t, /*import=*/undefined,
+      /*href=*/"./module-stylesheet-blue.css?vs-owner");
+  const results = [waitForEvent(module), waitForEvent(classic)];
+  root.prepend(classic);
+  root.prepend(module);
+
+  assert_array_equals(await Promise.all(results), ["load", "load"]);
+  assert_equals(module.sheet.ownerNode, null,
+      "module stylesheet sheet has a null ownerNode");
+  assert_equals(classic.sheet.ownerNode, classic,
+      "classic stylesheet sheet is owned by its link");
+}, "Module sheets are ownerless; classic sheets are link-owned.");
+
+promise_test(async t => {
+  const root = createShadowRoot(t, "<span>test</span>");
+  const link = createLink(t, /*import=*/"./module-stylesheet-import.css?vs-import");
+  const result = waitForEvent(link);
+  root.prepend(link);
+
+  assert_equals(await result, "load");
+  // Only the non-@import rule survives; the @import (blue) is dropped.
+  assert_equals(getComputedStyle(root.querySelector("span")).color,
+                "rgb(255, 0, 0)",
+                "the @import target (blue) is not applied");
+  const hasImport = Array.from(link.sheet.cssRules).some(
+      rule => rule instanceof CSSImportRule);
+  assert_false(hasImport, "@import rules are absent from the module sheet");
+}, "@import is ignored (dropped, not fetched) in CSS module sheets.");
+</script>

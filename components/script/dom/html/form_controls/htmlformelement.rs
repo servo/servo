@@ -931,6 +931,10 @@ impl HTMLFormElement {
             target_document.get_referrer_policy(),
             Some(target_window.as_global_scope().is_secure_context()),
             Some(target_document.insecure_requests_policy()),
+            target_window
+                .as_global_scope()
+                .upgrade_insecure_navigations_set()
+                .clone(),
             target_document.has_trustworthy_ancestor_origin(),
             target_document.creation_sandboxing_flag_set_considering_parent_iframe(),
         );

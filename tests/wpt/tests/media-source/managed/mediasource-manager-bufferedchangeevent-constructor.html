@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>BufferedChangeEvent constructor</title>
+<link rel="help" href="https://w3c.github.io/media-source/#bufferedchangeevent-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="mediasource-manager-util.js"></script>
+<body>
+<script>
+// Constructing a BufferedChangeEvent without both addedRanges and removedRanges
+// is not tested, see https://github.com/w3c/media-source/issues/370.
+
+test(() => {
+  assert_implements(self.BufferedChangeEvent, 'BufferedChangeEvent is supported');
+  const emptyRanges = document.createElement('video').buffered;
+  const event = new BufferedChangeEvent('bufferedchange', { addedRanges: emptyRanges, removedRanges: emptyRanges });
+  assert_true(event instanceof Event, 'instanceof Event');
+  assert_equals(event.type, 'bufferedchange', 'type');
+  assert_false(event.bubbles, 'bubbles');
+  assert_false(event.cancelable, 'cancelable');
+  assert_false(event.isTrusted, 'isTrusted');
+  assert_true(event.addedRanges instanceof TimeRanges, 'addedRanges is a TimeRanges');
+  assert_true(event.removedRanges instanceof TimeRanges, 'removedRanges is a TimeRanges');
+  assert_equals(event.addedRanges.length, 0, 'addedRanges.length');
+  assert_equals(event.removedRanges.length, 0, 'removedRanges.length');
+}, 'BufferedChangeEvent constructed with empty ranges');
+
+test(() => {
+  assert_implements(self.BufferedChangeEvent, 'BufferedChangeEvent is supported');
+  const emptyRanges = document.createElement('video').buffered;
+  const event = new BufferedChangeEvent('custom', { bubbles: true, cancelable: true, addedRanges: emptyRanges, removedRanges: emptyRanges });
+  assert_equals(event.type, 'custom', 'type');
+  assert_true(event.bubbles, 'bubbles');
+  assert_true(event.cancelable, 'cancelable');
+}, 'BufferedChangeEvent constructor honours EventInit members');
+
+test(() => {
+  assert_implements(self.BufferedChangeEvent, 'BufferedChangeEvent is supported');
+  const emptyRanges = document.createElement('video').buffered;
+  const event = new BufferedChangeEvent('bufferedchange', { addedRanges: emptyRanges, removedRanges: emptyRanges });
+  assert_equals(event.addedRanges, event.addedRanges, 'addedRanges returns the same object');
+  assert_equals(event.removedRanges, event.removedRanges, 'removedRanges returns the same object');
+}, 'BufferedChangeEvent attributes are [SameObject]');
+
+test(() => {
+  assert_implements(self.BufferedChangeEvent, 'BufferedChangeEvent is supported');
+  assert_throws_js(TypeError, () => {
+    new BufferedChangeEvent('bufferedchange', { addedRanges: {}, removedRanges: document.createElement('video').buffered });
+  }, 'addedRanges must be a TimeRanges');
+  assert_throws_js(TypeError, () => {
+    new BufferedChangeEvent('bufferedchange', { addedRanges: document.createElement('video').buffered, removedRanges: [] });
+  }, 'removedRanges must be a TimeRanges');
+}, 'BufferedChangeEvent constructor rejects non-TimeRanges members');
+
+promise_test(async t => {
+  const { source, sourceOpen } = attachManagedMediaSource(t);
+  await sourceOpen;
+  const sourceBuffer = source.addSourceBuffer(MANAGED_MEDIA.muxed.type);
+  const data = await fetchMediaData(MANAGED_MEDIA.muxed.url);
+  await appendBufferAsync(sourceBuffer, data);
+  const buffered = sourceBuffer.buffered;
+  assert_greater_than(buffered.length, 0, 'media was buffered');
+
+  const emptyRanges = document.createElement('video').buffered;
+  const event = new BufferedChangeEvent('bufferedchange', { addedRanges: buffered, removedRanges: emptyRanges });
+  assertTimeRangesEqual(event.addedRanges, rangesToArray(buffered), 'addedRanges');
+  assert_equals(event.removedRanges.length, 0, 'removedRanges.length');
+
+  const swapped = new BufferedChangeEvent('bufferedchange', { addedRanges: emptyRanges, removedRanges: buffered });
+  assert_equals(swapped.addedRanges.length, 0, 'addedRanges.length');
+  assertTimeRangesEqual(swapped.removedRanges, rangesToArray(buffered), 'removedRanges');
+}, 'BufferedChangeEvent constructed with non-empty ranges reports them');
+</script>
+</body>

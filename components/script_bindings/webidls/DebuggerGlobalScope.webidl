@@ -8,7 +8,11 @@
 interface DebuggerGlobalScope: GlobalScope {
     undefined notifyNewSource(NotifyNewSource args);
     DOMString? registerObjectActor(DOMString serializedValue);
+    undefined setGetFunctionParameterNamesCallback(GetFunctionParameterNames callback);
 };
+
+// Returns the parameter names of a debuggee function, using the Debugger API.
+callback GetFunctionParameterNames = sequence<DOMString> (any function);
 
 dictionary NotifyNewSource {
     required PipelineIdInit pipelineId;

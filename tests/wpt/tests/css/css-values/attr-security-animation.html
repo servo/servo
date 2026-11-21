@@ -20,6 +20,21 @@
     inherits: false;
     initial-value: 0px;
   }
+  @property --lp {
+    syntax: "<length-percentage>";
+    inherits: false;
+    initial-value: 0px;
+  }
+  @property --t {
+    syntax: "<transform-list>";
+    inherits: false;
+    initial-value: translateX(0px);
+  }
+  @property --nl {
+    syntax: "<number>+";
+    inherits: false;
+    initial-value: 0;
+  }
 
   #attr {
     --s: attr(href);
@@ -96,6 +111,43 @@
       --p: 0px;
     }
   }
+
+  #attr-length-percentage-neutral {
+    --lp: attr(data-foo type(<length-percentage>));
+    animation: hold-length-percentage 1000s linear paused;
+    background-image: if(style(--lp >= 40px): url(https://does-not-exist.test/404.png); else: none);
+  }
+  @keyframes hold-length-percentage {
+    to {
+      --lp: 0px;
+    }
+  }
+
+  #attr-transform-neutral {
+    --t: attr(data-foo type(<transform-list>));
+    animation: hold-transform 1000s linear paused;
+    background-image: if(style(--t: translateX(42px)): url(https://does-not-exist.test/404.png); else: none);
+  }
+  @keyframes hold-transform {
+    to {
+      --t: translateX(0px);
+    }
+  }
+
+  #attr-number-list-add {
+    --nl: 1;
+    animation: add-number-list 1000s linear paused;
+    animation-composition: add;
+    background-image: if(style(--nl: 43): url(https://does-not-exist.test/404.png); else: none);
+  }
+  @keyframes add-number-list {
+    from {
+      --nl: attr(data-foo type(<number>+));
+    }
+    to {
+      --nl: attr(data-foo type(<number>+));
+    }
+  }
 </style>
 
 <html>
@@ -106,6 +158,9 @@
     <div id="attr-keyframe-number" data-foo="42">div</div>
     <div id="attr-composition-add" data-foo="42">div</div>
     <div id="attr-length-neutral" data-foo="42px">div</div>
+    <div id="attr-length-percentage-neutral" data-foo="42px">div</div>
+    <div id="attr-transform-neutral" data-foo="translateX(42px)">div</div>
+    <div id="attr-number-list-add" data-foo="42">div</div>
   </body>
 </html>
 
@@ -170,4 +225,32 @@
       window.getComputedStyle(elem).getPropertyValue("background-image"),
       "none");
   }, "Neutral keyframe on registered <length> preserves attr taint");
+
+  test(() => {
+    var elem = document.getElementById("attr-length-percentage-neutral");
+    assert_equals(window.getComputedStyle(elem).getPropertyValue("--lp"),
+                  '42px');
+    assert_equals(
+        window.getComputedStyle(elem).getPropertyValue("background-image"),
+        "none");
+  }, "Neutral keyframe on registered <length-percentage> preserves attr taint");
+
+  test(() => {
+    var elem = document.getElementById("attr-transform-neutral");
+    assert_equals(window.getComputedStyle(elem).getPropertyValue("--t"),
+                  'translateX(42px)');
+    assert_equals(
+        window.getComputedStyle(elem).getPropertyValue("background-image"),
+        "none");
+  }, "Neutral keyframe on registered <transform-list> preserves attr taint");
+
+  test(() => {
+    var elem = document.getElementById("attr-number-list-add");
+    assert_equals(window.getComputedStyle(elem).getPropertyValue("--nl"),
+                  '43');
+    assert_equals(
+        window.getComputedStyle(elem).getPropertyValue("background-image"),
+        "none");
+  }, "Additive animation composition with attr() keyframe on registered " +
+     "<number>+ preserves attr taint");
 </script>

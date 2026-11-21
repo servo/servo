@@ -6,6 +6,7 @@
 
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell, RefMut};
+use std::collections::HashSet;
 use std::collections::hash_map::Entry;
 use std::default::Default;
 use std::ffi::c_void;
@@ -26,7 +27,7 @@ use dom_struct::dom_struct;
 use embedder_traits::user_contents::UserScript;
 use embedder_traits::{
     AlertResponse, ConfirmResponse, EmbedderMsg, LoadStatus, PromptResponse, ScriptToEmbedderChan,
-    SimpleDialogRequest, Theme, UntrustedNodeAddress, ViewportDetails, WebDriverLoadStatus,
+    SimpleDialogRequest, Theme, UntrustedNodeAddress, ViewportDetails,
 };
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use fonts::{
@@ -60,7 +61,7 @@ use net_traits::image_cache::{
     ImageCache, ImageCacheResponseCallback, ImageCacheResponseMessage, ImageLoadListener,
     ImageResponse, PendingImageId, PendingImageResponse, RasterizationCompleteResponse,
 };
-use net_traits::request::{Origin, Referrer, RequestClient};
+use net_traits::request::{Origin, Referrer, RequestClient, UpgradeInsecureNavigations};
 use net_traits::{ResourceFetchTiming, ResourceThreads};
 use num_traits::ToPrimitive;
 use paint_api::{CrossProcessPaintApi, PinchZoomInfos};
@@ -383,10 +384,6 @@ pub(crate) struct Window {
     /// cases.
     #[no_trace]
     layout_blocker: Cell<LayoutBlocker>,
-
-    /// A channel to notify webdriver if there is a navigation
-    #[no_trace]
-    webdriver_load_status_sender: RefCell<Option<GenericSender<WebDriverLoadStatus>>>,
 
     /// The current state of the window object
     current_state: Cell<WindowState>,
@@ -1091,6 +1088,10 @@ impl Window {
             origin: Origin::Origin(origin.immutable().clone()),
             is_nested_browsing_context: !self.is_top_level(),
             insecure_requests_policy,
+            upgrade_insecure_navigations_set: self
+                .as_global_scope()
+                .upgrade_insecure_navigations_set()
+                .clone(),
             has_trustworthy_ancestor_origin,
             network_partition_key,
         }
@@ -3384,19 +3385,28 @@ impl Window {
         self.scroll_container_query(node, flags)
             .and_then(|response| {
                 Some(match response {
-                    ScrollContainerResponse::Viewport(overflow) => {
-                        (ScrollingBoxSource::Viewport(self.Document()), overflow)
-                    },
-                    ScrollContainerResponse::Element(parent_node_address, overflow) => {
+                    ScrollContainerResponse::Viewport(overflow, writing_mode) => (
+                        ScrollingBoxSource::Viewport(self.Document()),
+                        overflow,
+                        writing_mode,
+                    ),
+                    ScrollContainerResponse::Element(
+                        parent_node_address,
+                        overflow,
+                        writing_mode,
+                    ) => {
                         let node = unsafe { from_untrusted_node_address(parent_node_address) };
                         (
                             ScrollingBoxSource::Element(DomRoot::downcast(node)?),
                             overflow,
+                            writing_mode,
                         )
                     },
                 })
             })
-            .map(|(source, overflow)| ScrollingBox::new(source, overflow))
+            .map(|(source, overflow, writing_mode)| {
+                ScrollingBox::new(source, overflow, writing_mode)
+            })
     }
 
     #[expect(unsafe_code)]
@@ -3558,6 +3568,12 @@ impl Window {
         } else {
             Some(self.IsSecureContext())
         };
+
+        let upgrade_insecure_navigations_set = self
+            .as_global_scope()
+            .upgrade_insecure_navigations_set()
+            .clone();
+
         LoadData::new(
             LoadOrigin::Script(self.origin().snapshot()),
             url,
@@ -3567,6 +3583,7 @@ impl Window {
             source_document.get_referrer_policy(),
             secure_context,
             Some(source_document.insecure_requests_policy()),
+            upgrade_insecure_navigations_set,
             source_document.has_trustworthy_ancestor_origin(),
             source_document.creation_sandboxing_flag_set_considering_parent_iframe(),
         )
@@ -3710,18 +3727,6 @@ impl Window {
         // Push the document title to `Paint` since we are
         // activating this document due to a navigation.
         self.Document().title_changed();
-    }
-    pub(crate) fn set_webdriver_load_status_sender(
-        &self,
-        sender: Option<GenericSender<WebDriverLoadStatus>>,
-    ) {
-        *self.webdriver_load_status_sender.borrow_mut() = sender;
-    }
-
-    pub(crate) fn webdriver_load_status_sender(
-        &self,
-    ) -> Option<GenericSender<WebDriverLoadStatus>> {
-        self.webdriver_load_status_sender.borrow().clone()
     }
 
     pub(crate) fn is_alive(&self) -> bool {
@@ -4213,6 +4218,7 @@ impl Window {
         player_context: WindowGLContext,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
+        inherited_upgrade_insecure_navigations_set: HashSet<UpgradeInsecureNavigations>,
         weak_script_thread: Weak<ScriptThread>,
     ) -> DomRoot<Self> {
         let error_reporter = CSSErrorReporter {
@@ -4236,6 +4242,7 @@ impl Window {
                 #[cfg(feature = "webgpu")]
                 gpu_id_hub,
                 inherited_secure_context,
+                inherited_upgrade_insecure_navigations_set,
                 unminify_js,
             ),
             caches: Default::default(),
@@ -4271,7 +4278,6 @@ impl Window {
             devtools_marker_sender: Default::default(),
             #[cfg(feature = "devtools")]
             devtools_markers: Default::default(),
-            webdriver_load_status_sender: Default::default(),
             error_reporter,
             media_query_lists: DOMTracker::new(),
             #[cfg(feature = "bluetooth")]

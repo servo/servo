@@ -1109,6 +1109,16 @@ impl Element {
         self.upcast::<Node>()
             .set_flag(NodeFlags::HAS_RESOLVED_PRESENTATIONAL_HINTS, false);
     }
+
+    /// <https://fullscreen.spec.whatwg.org/#fullscreen-element-ready-check>
+    pub(crate) fn fullscreen_element_ready_check(&self) -> bool {
+        if !self.is_connected() {
+            return false;
+        }
+        self.owner_document()
+            .overlay_handler()
+            .get_allow_fullscreen()
+    }
 }
 
 /// <https://dom.spec.whatwg.org/#valid-shadow-host-name>
@@ -2504,9 +2514,8 @@ impl Element {
                         // Content Security Policy? algorithm returns "Blocked" when executed
                         // upon the attribute's element, "style attribute", and the attribute's value,
                         // then the style rules defined in the attribute's value must not be applied to the element. [CSP]
-                        if global
-                            .get_csp_list()
-                            .should_elements_inline_type_behavior_be_blocked(
+                        if global.call_on_csp_list(|csp_list| {
+                            csp_list.should_elements_inline_type_behavior_be_blocked(
                                 cx,
                                 global,
                                 self,
@@ -2514,7 +2523,7 @@ impl Element {
                                 source,
                                 doc.get_current_parser_line(),
                             )
-                        {
+                        }) {
                             return;
                         }
                         ServoArc::new(doc.style_shared_author_lock().wrap(parse_style_attribute(
@@ -2651,17 +2660,17 @@ impl Element {
         }
         let global = self.owner_global();
         // Step 1: Let CSP list be element's shadow-including root's policy container's CSP list.
-        let csp_list = match global.get_csp_list() {
-            None => return,
-            Some(csp_list) => csp_list,
-        };
         // Step 2: If CSP list contains a header-delivered Content Security Policy,
         // and element has a nonce content attribute whose value is not the empty string, then:
-        if !csp_list.contains_a_header_delivered_content_security_policy() ||
-            self.get_string_attribute(&local_name!("nonce")).is_empty()
-        {
+        if global.call_on_csp_list(|csp_list| {
+            csp_list.as_ref().is_none_or(|csp_list| {
+                !csp_list.contains_a_header_delivered_content_security_policy() ||
+                    self.get_string_attribute(&local_name!("nonce")).is_empty()
+            })
+        }) {
             return;
         }
+
         // Step 2.1: Let nonce be element's [[CryptographicNonce]].
         let nonce = self.nonce_value();
         // Step 2.2: Set an attribute value for element using "nonce" and the empty string.
@@ -3544,7 +3553,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 9. Return the y-coordinate of the scrolling area at the alignment point
         // with the top of the padding edge of the element.
         let point = window.scroll_offset_query(cx, node);
-        point.y.abs() as f64
+        point.y as f64
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
@@ -3661,7 +3670,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 9. Return the x-coordinate of the scrolling area at the alignment point
         // with the left of the padding edge of the element.
         let point = window.scroll_offset_query(cx, node);
-        point.x.abs() as f64
+        point.x as f64
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollleft>
@@ -4298,7 +4307,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     /// <https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen>
     fn RequestFullscreen(&self, cx: &mut CurrentRealm) -> RootedPromise {
         let doc = self.owner_document();
-        doc.enter_fullscreen(cx, self)
+        doc.overlay_handler().enter_fullscreen(cx, self)
     }
 
     /// <https://w3c.github.io/pointerevents/#dom-element-setpointercapture>
@@ -5149,9 +5158,9 @@ impl VirtualMethods for Element {
         }
 
         let document = self.owner_document_unrooted(cx.no_gc());
-        let fullscreen = document.fullscreen_element();
+        let fullscreen = document.overlay_handler().fullscreen_element();
         if fullscreen.as_deref() == Some(self) {
-            self.owner_document().exit_fullscreen(cx);
+            self.owner_document().overlay_handler().exit_fullscreen(cx);
         }
 
         self.unregister_current_id_and_name_attribute(cx);
@@ -5288,12 +5297,6 @@ impl Element {
                 HTMLElementTypeId::HTMLLabelElement,
             )) => {
                 let element = self.downcast::<HTMLLabelElement>().unwrap();
-                Some(element as &dyn Activatable)
-            },
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLSelectElement,
-            )) => {
-                let element = self.downcast::<HTMLSelectElement>().unwrap();
                 Some(element as &dyn Activatable)
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLElement)) => {
@@ -5511,6 +5514,7 @@ impl Element {
     pub(crate) fn set_modal_state(&self, no_gc: &NoGC, value: bool) {
         self.set_state(no_gc, ElementState::MODAL, value);
         self.owner_document_unrooted(no_gc)
+            .overlay_handler()
             .update_topmost_modal(no_gc);
     }
 

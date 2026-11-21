@@ -59,6 +59,7 @@ test_computed_value("scroll-padding", "0", "0px");
 test_computed_value("scroll-padding", "20%");
 test_computed_value("scroll-padding", "calc(10px + 0.5em)", "30px");
 test_computed_value("scroll-padding", "calc(10px - 0.5em)", "0px");
+test_computed_value("scroll-padding", "calc(50px + 10%) 20px", "calc(10% + 50px) 20px");
 
 test_computed_value("scroll-padding", "1px 2px");
 test_computed_value("scroll-padding", "1px 2px 3%");
@@ -66,6 +67,7 @@ test_computed_value("scroll-padding", "1px 2px 3% 4px");
 test_computed_value("scroll-padding", "1px auto");
 test_computed_value("scroll-padding", "0 0 0 0", "0px");
 test_computed_value("scroll-padding", "auto auto auto auto", "auto");
+test_computed_value("scroll-padding", "10.4375px 6.5px");
 </script>
 </body>
 </html>

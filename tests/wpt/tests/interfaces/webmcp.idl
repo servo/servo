@@ -25,6 +25,7 @@ dictionary ModelContextTool {
   USVString title;
   required DOMString description;
   object inputSchema;
+  object outputSchema;
   required ToolExecuteCallback execute;
   ToolAnnotations annotations;
 };
@@ -63,6 +64,7 @@ dictionary RegisteredTool {
   DOMString title;
   required DOMString description;
   object inputSchema;
+  object outputSchema;
   required Window window;
   required USVString origin;
   ToolAnnotations annotations;

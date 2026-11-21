@@ -3,7 +3,9 @@
 <title>CSS Grid Lanes Layout Test: item [min-|max-]*[width|height] calc() percentages</title>
 <link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
 <link rel="help" href="http://www.w3.org/TR/css-grid-1">
-<link rel="match" href="column-item-percentage-sizes-003-ref.html">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
 <meta name="assert" content="Checks that item [min-|max-]*[width|height] percentages are resolved correctly in span=1 auto tracks.">
 <style>
 html,body {
@@ -50,39 +52,40 @@ html,body {
 .slr .item { writing-mode: sideways-lr; direction:rtl; }
 
 </style>
+<body onload="checkLayout('.grid-lanes')">
 <div class="hl">
 <div class="grid-lanes">
-  <div class="item max">
+  <div class="item max" data-expected-width="30" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min">
+  <div class="item min" data-expected-width="30" data-expected-height="30">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item size">
+  <div class="item size" data-expected-width="32" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item max size">
+  <div class="item max size" data-expected-width="32" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min size">
+  <div class="item min size" data-expected-width="5" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min max">
+  <div class="item min max" data-expected-width="5" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min max size">
+  <div class="item min max size" data-expected-width="5" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
@@ -90,37 +93,37 @@ html,body {
 
 <div class="vrl">
 <div class="grid-lanes">
-  <div class="item max">
+  <div class="item max" data-expected-width="30" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min">
+  <div class="item min" data-expected-width="30" data-expected-height="30">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item size">
+  <div class="item size" data-expected-width="32" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item max size">
+  <div class="item max size" data-expected-width="32" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min size">
+  <div class="item min size" data-expected-width="5" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min max">
+  <div class="item min max" data-expected-width="5" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min max size">
+  <div class="item min max size" data-expected-width="5" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
@@ -128,37 +131,37 @@ html,body {
 
 <div class="vrr">
 <div class="grid-lanes">
-  <div class="item max">
+  <div class="item max" data-expected-width="30" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min">
+  <div class="item min" data-expected-width="30" data-expected-height="30">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item size">
+  <div class="item size" data-expected-width="32" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item max size">
+  <div class="item max size" data-expected-width="32" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min size">
+  <div class="item min size" data-expected-width="5" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min max">
+  <div class="item min max" data-expected-width="5" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min max size">
+  <div class="item min max size" data-expected-width="5" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
@@ -166,37 +169,37 @@ html,body {
 
 <div class="vll">
 <div class="grid-lanes">
-  <div class="item max">
+  <div class="item max" data-expected-width="30" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min">
+  <div class="item min" data-expected-width="30" data-expected-height="30">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item size">
+  <div class="item size" data-expected-width="32" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item max size">
+  <div class="item max size" data-expected-width="32" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min size">
+  <div class="item min size" data-expected-width="5" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min max">
+  <div class="item min max" data-expected-width="5" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min max size">
+  <div class="item min max size" data-expected-width="5" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
@@ -204,37 +207,37 @@ html,body {
 
 <div class="vlr">
 <div class="grid-lanes">
-  <div class="item max">
+  <div class="item max" data-expected-width="30" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min">
+  <div class="item min" data-expected-width="30" data-expected-height="30">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item size">
+  <div class="item size" data-expected-width="32" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item max size">
+  <div class="item max size" data-expected-width="32" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min size">
+  <div class="item min size" data-expected-width="5" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min max">
+  <div class="item min max" data-expected-width="5" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min max size">
+  <div class="item min max size" data-expected-width="5" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
@@ -242,37 +245,37 @@ html,body {
 
 <div class="slr">
 <div class="grid-lanes">
-  <div class="item max">
+  <div class="item max" data-expected-width="30" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min">
+  <div class="item min" data-expected-width="30" data-expected-height="30">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item size">
+  <div class="item size" data-expected-width="32" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item max size">
+  <div class="item max size" data-expected-width="32" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min size">
+  <div class="item min size" data-expected-width="5" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min max">
+  <div class="item min max" data-expected-width="5" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min max size">
+  <div class="item min max size" data-expected-width="5" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
@@ -280,37 +283,37 @@ html,body {
 
 <div class="srl">
 <div class="grid-lanes">
-  <div class="item max">
+  <div class="item max" data-expected-width="30" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min">
+  <div class="item min" data-expected-width="30" data-expected-height="30">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item size">
+  <div class="item size" data-expected-width="32" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item max size">
+  <div class="item max size" data-expected-width="32" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min size">
+  <div class="item min size" data-expected-width="5" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min max">
+  <div class="item min max" data-expected-width="5" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>
 <div class="grid-lanes">
-  <div class="item min max size">
+  <div class="item min max size" data-expected-width="5" data-expected-height="12">
     <div class="content"></div>
   </div>
 </div>

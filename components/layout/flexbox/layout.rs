@@ -34,12 +34,14 @@ use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
 use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::{
-    BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags, SpecificLayoutInfo,
+    BoxFragment, CollapsedBlockMargins, Fragment, FragmentChildren, FragmentFlags,
+    SpecificLayoutInfo,
 };
 use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2};
 use crate::layout_box_base::IndependentFormattingContextLayoutResult;
 use crate::positioned::{
-    AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, relative_adjustement,
+    AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, StaticPositionRect,
+    relative_adjustement,
 };
 use crate::sizing::{
     ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, IntrinsicSizingMode,
@@ -115,7 +117,7 @@ enum FlexContent {
 /// Return type of `FlexItem::layout`
 struct FlexItemLayoutResult {
     hypothetical_cross_size: Au,
-    fragments: Vec<Fragment>,
+    fragments: FragmentChildren,
     positioning_context: PositioningContext,
 
     /// Baselines from the item’s content, relative to the item’s margin box.
@@ -902,13 +904,16 @@ impl FlexContainer {
             },
         );
 
+        let flex_container_size = LogicalVec2 {
+            inline: containing_block.inline_size(),
+            block: content_block_size,
+        };
         let fragments = absolutely_positioned_items_with_original_order
             .into_iter()
             .map(|child_as_abspos| match child_as_abspos {
                 FlexContent::AbsolutelyPositionedBox(absolutely_positioned_box) => self
                     .create_absolutely_positioned_flex_child_fragment(
                         absolutely_positioned_box,
-                        containing_block,
                         container_size,
                         positioning_context,
                     ),
@@ -917,13 +922,17 @@ impl FlexContainer {
                     // per flex item, in the original order.
                     let (fragment, mut child_positioning_context) =
                         flex_item_fragments.next().unwrap();
-                    let fragment = Fragment::Box(fragment);
                     child_positioning_context.adjust_static_position_of_hoisted_fragments(
-                        &fragment,
+                        &LogicalRect::from_physical(
+                            fragment.base.rect(),
+                            self.style.writing_mode,
+                            flex_container_size,
+                        ),
+                        self.style.writing_mode,
                         PositioningContextLength::zero(),
                     );
                     positioning_context.append(child_positioning_context);
-                    fragment
+                    Fragment::Box(fragment)
                 },
             })
             .collect::<Vec<_>>();
@@ -955,7 +964,7 @@ impl FlexContainer {
         let depends_on_block_constraints = true;
 
         IndependentFormattingContextLayoutResult {
-            fragments,
+            fragments: FragmentChildren::PhysicalDeprecated(fragments),
             content_block_size,
             content_inline_size_for_table: None,
             baselines,
@@ -983,7 +992,6 @@ impl FlexContainer {
     fn create_absolutely_positioned_flex_child_fragment(
         &self,
         absolutely_positioned_box: ArcRefCell<AbsolutelyPositionedBox>,
-        containing_block: &ContainingBlock,
         container_size: FlexRelativeVec2<Au>,
         positioning_context: &mut PositioningContext,
     ) -> Fragment {
@@ -1016,12 +1024,11 @@ impl FlexContainer {
         let static_position_rect = LogicalRect {
             start_corner: LogicalVec2::zero(),
             size: self.config.flex_axis.vec2_to_flow_relative(container_size),
-        }
-        .as_physical_deprecated(containing_block);
+        };
 
         let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
             absolutely_positioned_box,
-            static_position_rect,
+            StaticPositionRect::new(static_position_rect, self.style.writing_mode),
             logical_alignment,
             self.config.writing_mode,
         );

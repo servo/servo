@@ -33,6 +33,7 @@ use tokio::io::{AsyncReadExt, AsyncSeekExt};
 use tokio::sync::mpsc::UnboundedSender as TokioSender;
 use tokio::task::yield_now;
 use uuid::Uuid;
+use walkdir::WalkDir;
 
 use crate::async_runtime::spawn_task;
 use crate::embedder::NetToEmbedderMsg;
@@ -577,18 +578,14 @@ impl FileManagerStore {
             },
         };
 
+        let mut files = Vec::with_capacity(paths.len());
         let mut failed = false;
-        let files: Vec<_> = paths
-            .into_iter()
-            .filter_map(|path| match self.create_entry(&path, origin.clone()) {
-                Ok(entry) => Some(entry),
-                Err(error) => {
-                    failed = true;
-                    warn!("Failed to create entry for selected file: {error:?}");
-                    None
-                },
-            })
-            .collect();
+        for path in paths {
+            if let Err(error) = self.create_entries(&path, origin.clone(), &mut files) {
+                failed = true;
+                warn!("Failed to create entries for selected path: {error:?}");
+            }
+        }
 
         // From <https://w3c.github.io/webdriver/#dfn-element-send-keys>:
         //
@@ -606,15 +603,45 @@ impl FileManagerStore {
         EmbedderControlResponse::FilePicker(Some(files))
     }
 
+    /// Appends the entries for `path`, expanding a directory into its files.
+    ///
+    /// <https://wicg.github.io/entries-api/#html-forms>
+    fn create_entries(
+        &self,
+        path: &Path,
+        origin: ImmutableOrigin,
+        files: &mut Vec<SelectedFile>,
+    ) -> Result<(), FileManagerThreadError> {
+        if !path.is_dir() {
+            files.push(self.create_entry(path, origin, None)?);
+            return Ok(());
+        }
+        let root_name = path
+            .file_name()
+            .ok_or(FileManagerThreadError::FileSystemError(
+                "Invalid filepath".to_string(),
+            ))?;
+        let entries = walk_directory(path);
+        files.reserve(entries.len());
+        for (path, relative_path) in entries {
+            // A relative path starts from, and includes, the selected directory.
+            let relative_path = Path::new(root_name).join(relative_path);
+            // Paths in the entries API always use "/" as separator.
+            let relative_path = relative_path.to_string_lossy().replace('\\', "/");
+            files.push(self.create_entry(&path, origin.clone(), Some(relative_path))?);
+        }
+        Ok(())
+    }
+
     fn create_entry(
         &self,
         file_path: &Path,
         origin: ImmutableOrigin,
+        relative_path: Option<String>,
     ) -> Result<SelectedFile, FileManagerThreadError> {
         use net_traits::filemanager_thread::FileManagerThreadError::FileSystemError;
 
-        let file = File::open(file_path).map_err(|e| FileSystemError(e.to_string()))?;
-        let metadata = file
+        let metadata = file_path
             .metadata()
             .map_err(|e| FileSystemError(e.to_string()))?;
         let modified = metadata
@@ -656,6 +683,7 @@ impl FileManagerStore {
             modified,
             size: file_size,
             type_string,
+            relative_path,
         })
     }
 
@@ -924,4 +952,26 @@ fn set_blob_response_headers(
         headers.typed_insert(content_range);
     }
     headers.typed_insert(ContentType::from(mime));
+}
+
+/// Returns `(absolute path, path relative to root)` for each regular file under `root`.
+fn walk_directory(root: &Path) -> Vec<(PathBuf, PathBuf)> {
+    let mut files = Vec::new();
+    for entry in WalkDir::new(root) {
+        let entry = match entry {
+            Ok(entry) => entry,
+            Err(error) => {
+                warn!("Skipping an unreadable entry while walking a directory: {error}");
+                continue;
+            },
+        };
+        if entry.file_type().is_file() {
+            let relative_path = entry
+                .path()
+                .strip_prefix(root)
+                .expect("walked entries are under root");
+            files.push((entry.path().to_path_buf(), relative_path.to_path_buf()));
+        }
+    }
+    files
 }

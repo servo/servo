@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>CSS stretch(): the argument is the size of the margin box in the block axis</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="stretch() fits the margin box of an in-flow box to its argument in the block axis, whatever the box-sizing, and a percentage argument resolves against a definite containing block.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .column {
+    float: left;
+    width: 25px;
+    height: 200px;
+  }
+  .test {
+    background: green;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="column"><div class="test" style="height: stretch(150px); margin-bottom: 50px;"></div></div>
+<div class="column"><div class="test" style="height: stretch(75%); margin-bottom: 50px;"></div></div>
+<div class="column"><div class="test" style="height: stretch(100px); padding-bottom: 20px;"></div></div>
+<div class="column"><div class="test" style="height: stretch(100px); border-bottom: 20px solid green;"></div></div>

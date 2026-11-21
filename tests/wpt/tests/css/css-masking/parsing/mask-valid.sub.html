@@ -20,13 +20,47 @@ test_valid_value('mask', 'none');
 test_valid_value('mask', 'linear-gradient(to left bottom, red, blue)');
 test_valid_value('mask', 'linear-gradient(to left bottom, red, blue) luminance');
 test_valid_value('mask', 'url("https://{{host}}/")');
+test_valid_value('mask', 'none, none');
+test_valid_value('mask', 'none, none, none');
 
 // <position> [ / <bg-size> ]?
 test_valid_value('mask', 'linear-gradient(to left bottom, red, blue) 1px 2px');
 test_valid_value('mask', 'url("https://{{host}}/") 1px 2px / contain');
+test_valid_value('mask', 'center', 'center center');
+test_valid_value('mask', 'top left', 'left top');
+test_valid_value('mask', 'top center', 'center top');
+test_valid_value('mask', 'bottom right', 'right bottom');
+test_valid_value('mask', 'left bottom');
+test_valid_value('mask', 'right top');
+test_valid_value('mask', 'center 50%');
+test_valid_value('mask', 'center left', 'left center');
+test_valid_value('mask', 'center center');
+test_valid_value('mask', '50px 50%');
+test_valid_value('mask', 'left 10px top 15px');
+test_valid_value('mask', 'left 10% top 30%');
+test_valid_value('mask', 'none top', 'center top');
+test_valid_value('mask', 'none bottom', 'center bottom');
+test_valid_value('mask', 'none right', 'right center');
+test_valid_value('mask', 'none left', 'left center');
+test_valid_value('mask', 'none top right', 'right top');
+test_valid_value('mask', 'none bottom left', 'left bottom');
+test_valid_value('mask', 'none left top / auto', 'left top');
+test_valid_value('mask', 'none left top / cover', 'left top / cover');
+test_valid_value('mask', 'none left top / contain', 'left top / contain');
+test_valid_value('mask', 'none left top / auto auto', 'left top');
+test_valid_value('mask', 'none left top / 100% 100%', 'left top / 100% 100%');
+test_valid_value('mask', 'none left top / auto 0%', 'left top / auto 0%');
+test_valid_value('mask', 'none left 20px top 10px / contain', 'left 20px top 10px / contain');
 
 // <repeat-style> = repeat-x | repeat-y | [repeat | space | round | no-repeat]{1,2}
 test_valid_value('mask', 'repeat-y');
+test_valid_value('mask', 'repeat-x');
+test_valid_value('mask', 'space');
+test_valid_value('mask', 'no-repeat');
+test_valid_value('mask', 'repeat space');
+test_valid_value('mask', 'repeat round');
+test_valid_value('mask', 'repeat no-repeat', 'repeat-x');
+test_valid_value('mask', 'repeat space, repeat-x');
 
 // <geometry-box> = <shape-box> | fill-box | stroke-box | view-box
 // <shape-box> = <box>
@@ -37,6 +71,14 @@ test_valid_value('mask', 'content-box');
 test_valid_value('mask', 'url("https://{{host}}/") fill-box');
 test_valid_value('mask', 'linear-gradient(to left bottom, red, blue) stroke-box');
 test_valid_value('mask', 'view-box');
+test_valid_value('mask', 'padding-box');
+test_valid_value('mask', 'padding-box none', 'padding-box');
+test_valid_value('mask', 'padding-box content-box');
+test_valid_value('mask', 'padding-box border-box');
+test_valid_value('mask', 'padding-box border-box none', 'padding-box border-box');
+test_valid_value('mask', 'none padding-box', 'padding-box');
+test_valid_value('mask', 'none padding-box border-box', 'padding-box border-box');
+test_valid_value('mask', 'none padding-box content-box', 'padding-box content-box');
 
 // [ <geometry-box> | no-clip ]
 test_valid_value('mask', 'no-clip');
@@ -50,6 +92,8 @@ test_valid_value('mask', 'linear-gradient(to left bottom, red, blue) exclude');
 // <masking-mode> = alpha | luminance | auto
 test_valid_value('mask', 'alpha');
 test_valid_value('mask', 'url("https://{{host}}/") alpha');
+test_valid_value('mask', 'none luminance, none alpha', 'luminance, alpha');
+test_valid_value('mask', 'none match-source, none, none luminance', 'none, none, luminance');
 
 // Test the combination of mask-origin and mask-clip.
 test_valid_value('mask', 'border-box border-box', 'none');
@@ -69,6 +113,9 @@ test_valid_value('mask',
 // Earlier versions of the mask shorthand always required a <mask-reference>.
 // To avoid unnecessarily losing test coverage, keep one of the test cases from back then.
 test_valid_value('mask', 'none alpha', 'alpha');
+test_valid_value('mask', 'none border-box left top', 'left top');
+test_valid_value('mask', 'none border-box content-box left top repeat-x', 'left top repeat-x border-box content-box');
+test_valid_value('mask', 'none border-box content-box left top / auto repeat-x', 'left top repeat-x border-box content-box');
 
 test_shorthand_value('mask', 'none', {
     'mask-image': 'none',

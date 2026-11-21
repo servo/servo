@@ -17,6 +17,7 @@ dictionary AutofillEventInit : EventInit {
   boolean allowRefill = true;
 };
 
-typedef sequence<any> AutofillValueEntry;
-// AutofillValueEntry is a tuple of [HTMLElement, DOMString]
-// where the first element is the form control and the second is the value to fill
+dictionary AutofillValueEntry {
+  required HTMLElement field;
+  required DOMString value;
+};

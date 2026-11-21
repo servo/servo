@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>Reference for an oversized row making fragmentation progress</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<style>
+  .reference { position: relative; width: 240px; height: 100px; background: lightgray; }
+  .reference > div { position: absolute; width: 40px; }
+</style>
+<div class="reference">
+  <div style="width: 80px; height: 40px; background: blue;"></div>
+  <div style="left: 80px; height: 100px; background: teal;"></div>
+  <div style="left: 120px; height: 100px; background: orange;"></div>
+  <div style="left: 160px; height: 40px; background: teal;"></div>
+  <div style="left: 200px; height: 40px; background: orange;"></div>
+  <div style="left: 160px; top: 40px; width: 80px; height: 20px; background: purple;"></div>
+</div>

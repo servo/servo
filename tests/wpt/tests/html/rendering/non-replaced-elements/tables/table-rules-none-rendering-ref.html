@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reference: table rules=none drawn with CSS</title>
+<style>
+  table { color: black; display: inline-table; vertical-align: top; margin: 0 12px 12px 0;
+          border-collapse: collapse; border-style: hidden; }
+  table.border { border: 1px outset; }
+  td { width: 20px; height: 20px; padding: 0; background: silver; }
+</style>
+
+<table>
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<table class="border">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>

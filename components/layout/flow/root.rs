@@ -11,6 +11,7 @@ use paint_api::display_list::AxesScrollSensitivity;
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
 use style::context::SharedStyleContext;
+use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::{Display as StyleDisplay, Overflow};
 use style_traits::CSSPixel;
@@ -150,6 +151,10 @@ impl BoxTree {
         ServoArc::new(new_style)
     }
 
+    pub(crate) fn writing_mode(&self) -> WritingMode {
+        self.initial_containing_block_style.writing_mode
+    }
+
     fn viewport_overflow(
         root_element: ServoLayoutNode<'_>,
         root_box: Option<&ArcRefCell<BlockLevelBox>>,
@@ -275,11 +280,12 @@ impl BoxTree {
         let physical_containing_block: Rect<Au, CSSPixel> =
             PhysicalSize::from_untyped(viewport).into();
 
+        let initial_containing_block_size = LogicalVec2::from_physical_size(
+            &physical_containing_block.size,
+            self.initial_containing_block_style.writing_mode,
+        );
         let initial_containing_block = DefiniteContainingBlock {
-            size: LogicalVec2::from_physical_size(
-                &physical_containing_block.size,
-                self.initial_containing_block_style.writing_mode,
-            ),
+            size: initial_containing_block_size,
             style: &self.initial_containing_block_style,
         };
 
@@ -292,7 +298,11 @@ impl BoxTree {
             None,
         );
 
-        let mut root_fragments = independent_layout.fragments;
+        let root_fragments = independent_layout.fragments;
+        let mut root_fragments = root_fragments.into_physical_fragments(
+            self.initial_containing_block_style.writing_mode,
+            initial_containing_block_size,
+        );
 
         // Zero box for `:root { display: none }`, one for the root element otherwise.
         assert!(root_fragments.len() <= 1);

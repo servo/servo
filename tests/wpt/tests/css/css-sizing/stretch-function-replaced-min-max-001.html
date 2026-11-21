@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>CSS stretch(): minimum and maximum sizes of a replaced element</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="stretch() in the minimum and maximum sizes of a replaced element fits its margin box to the argument.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .column {
+    float: left;
+    width: 50px;
+    height: 200px;
+  }
+  canvas {
+    display: block;
+    background: green;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="column">
+  <canvas width="10" height="10" style="width: 10px; min-width: stretch(100px); margin-right: 50px; height: 10px; min-height: stretch(150px); margin-bottom: 50px;"></canvas>
+</div>
+<div class="column">
+  <canvas width="10" height="10" style="width: 200px; max-width: stretch(100px); margin-right: 50px; height: 200px; max-height: stretch(150px); margin-bottom: 50px;"></canvas>
+</div>

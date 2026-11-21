@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>CSS fit-content(): the argument is the size of the margin box whatever the box-sizing</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-fit-content">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="fit-content() replaces the available space with stretch() into its argument, which fits the margin box to it regardless of box-sizing.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .test {
+    height: 25px;
+    background: green;
+    font-size: 0;
+  }
+  .test > div {
+    display: inline-block;
+    width: 60px;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="test" style="width: fit-content(100px); padding-right: 20px;"><div></div><div></div></div>
+<div class="test" style="width: fit-content(100px); padding-right: 20px; box-sizing: border-box;"><div></div><div></div></div>
+<div class="test" style="width: fit-content(100px); border-right: 20px solid green;"><div></div><div></div></div>
+<div class="test" style="width: fit-content(70px); padding-right: 40px;"><div></div><div></div></div>

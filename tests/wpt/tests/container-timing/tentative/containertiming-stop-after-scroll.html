@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Container Timing: paints after a user scroll are not reported</title>
+<body>
+<style>
+body {
+  margin: 0;
+  height: 3000px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/container-timing/resources/container-timing-helpers.js"></script>
+<div id="root" containertiming="div_ct">
+  <img src="/container-timing/resources/square100.png">
+</div>
+<script>
+  promise_test(async t => {
+    assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
+    const entries = await getContainerEntries(t);
+    assert_equals(entries.length, 1, 'entries before scroll');
+
+    // Scroll a little, so that the container root stays in the viewport.
+    const watcher = new EventWatcher(t, window, 'scroll');
+    const scrolled = watcher.wait_for('scroll');
+    await new test_driver.Actions().scroll(0, 0, 0, 20).send();
+    await scrolled;
+    watcher.stop_watching();
+
+    // No container entry can end the wait after the input.
+    addSquare100Image(document.getElementById('root'));
+    const laterEntries = await getContainerEntriesWithin(t);
+
+    assert_equals(laterEntries.length, 0, 'entries after scroll');
+  }, 'Container timing stops recording after a user scroll.');
+</script>
+</body>

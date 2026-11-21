@@ -86,19 +86,19 @@ div.grid > div { font: 10px/1 Ahem; }
 
 <div style="position: relative; width: 100px;">
     <div class="grid gridMinContentAndMinMaxFixedMinContentAndFlex gridRowColumnGaps" data-expected-width="100" data-expected-height="149">
-    <div style="grid-column: 2 / span 2;" data-expected-width="80">XXXXX</div>
+    <div style="grid-column: 2 / span 2;" data-expected-width="81">XXXXX</div>
     <div style="grid-column: 1 / -1; grid-row: 2;" data-expected-width="100">XXX XXX XXX</div>
     <div style="grid-column: 1 / span 2; grid-row: 3;" data-expected-width="40">XXXX XXXX</div>
-        <div style="grid-column: 1; grid-row: 4;" data-expected-width="1" data-expected-height="0"></div>
+        <div style="grid-column: 1; grid-row: 4;" data-expected-width="0" data-expected-height="0"></div>
     </div>
 </div>
 
 <div style="position: relative; width: 100px;">
     <div class="grid gridMaxContentAndMinMaxFixedMaxContentAndFlex gridRowColumnGaps" data-expected-width="100" data-expected-height="139">
-    <div style="grid-column: 2 / span 2;" data-expected-width="39">XX</div>
+    <div style="grid-column: 2 / span 2;" data-expected-width="90">XX</div>
     <div style="grid-column: 1 / -1; grid-row: 2;" data-expected-width="109">XXX XXX XXX</div>
     <div style="grid-column: 1 / span 2; grid-row: 3;" data-expected-width="90">XXXX XXXX</div>
-        <div style="grid-column: 1; grid-row: 4;" data-expected-width="51" data-expected-height="0"></div>
+        <div style="grid-column: 1; grid-row: 4;" data-expected-width="0" data-expected-height="0"></div>
     </div>
 </div>
 

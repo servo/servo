@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Text reference: unicode-bidi:plaintext line alignment after a dynamic change of line breaks</title>
+
+<style>
+.test {
+  font: 20px Arial, sans-serif;
+  margin: 10px;
+  border: 1px solid gray;
+  width: 6em;
+  unicode-bidi: plaintext;
+}
+</style>
+
+<p>Alignment of text in both boxes should match (all lines of the Hebrew
+paragraph right-aligned):</p>
+
+<div class="test">Hello World!<br>שלום עולם שלום עולם שלום עולם</div>
+
+<div class="test">Hello World!<br>שלום עולם שלום עולם שלום עולם</div>

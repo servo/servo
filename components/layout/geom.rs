@@ -9,6 +9,7 @@ use std::sync::atomic::{AtomicI32, Ordering};
 
 use app_units::Au;
 use euclid::{Point2D, Size2D};
+use layout_api::WritingModeExt;
 use malloc_size_of_derive::MallocSizeOf;
 use style::Zero;
 use style::logical_geometry::{BlockFlowDirection, InlineBaseDirection, WritingMode};
@@ -18,7 +19,6 @@ use style_traits::CSSPixel;
 
 use crate::containing_block::ContainingBlock;
 use crate::sizing::Size;
-use crate::style_ext::WritingModeExt;
 
 pub type PhysicalPoint<U> = euclid::Point2D<U, CSSPixel>;
 pub type PhysicalSize<U> = euclid::Size2D<U, CSSPixel>;
@@ -28,13 +28,13 @@ pub type PhysicalSides<U> = euclid::SideOffsets2D<U, CSSPixel>;
 pub type AuOrAuto = AutoOr<Au>;
 pub type LengthPercentageOrAuto<'a> = AutoOr<&'a LengthPercentage>;
 
-#[derive(Clone, Copy, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Default, MallocSizeOf, PartialEq)]
 pub struct LogicalVec2<T> {
     pub inline: T,
     pub block: T,
 }
 
-#[derive(Clone, Copy, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Default, MallocSizeOf, PartialEq)]
 pub struct LogicalRect<T> {
     pub start_corner: LogicalVec2<T>,
     pub size: LogicalVec2<T>,
@@ -77,15 +77,6 @@ impl<T: fmt::Debug> fmt::Debug for LogicalVec2<T> {
         f.write_str(", b: ")?;
         self.block.fmt(f)?;
         f.write_str(" }")
-    }
-}
-
-impl<T: Default> Default for LogicalVec2<T> {
-    fn default() -> Self {
-        Self {
-            inline: T::default(),
-            block: T::default(),
-        }
     }
 }
 
@@ -652,7 +643,6 @@ impl LogicalRect<Au> {
         }
     }
 
-    #[cfg_attr(not(test), expect(dead_code))]
     pub(crate) fn from_physical(
         rect: PhysicalRect<Au>,
         writing_mode: WritingMode,

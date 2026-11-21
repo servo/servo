@@ -71,7 +71,9 @@ def _make_websocket_connect_event(stream_id=7):
 
 
 def _make_websocket_h3_protocol():
-    return object.__new__(websocket_h3_server.WebSocketH3Protocol)
+    protocol = object.__new__(websocket_h3_server.WebSocketH3Protocol)
+    protocol._extra_handler_paths = []
+    return protocol
 
 
 def _make_protocol_for_websocket_connect():
@@ -100,6 +102,16 @@ def _make_mock_websocket_session():
 
 
 class WebSocketH3ServerTest(unittest.TestCase):
+    @pytest.mark.skipif(not has_aioquic, reason='not having aioquic')
+    def test_resource_request_uses_https_scheme(self):
+        server = h3_wptserve_adapter._H3ServerAdapter(None, '127.0.0.1', 11001)
+        handler = h3_wptserve_adapter._H3RequestHandlerAdapter(
+            server, h3_wptserve_adapter.H3Headers([
+                (b':method', b'GET'),
+                (b':path', b'/websockets/constants.sub.js'),
+            ]), BytesIO(), 0, _FakeProtocol())
+        self.assertEqual(handler.scheme, 'https')
+
     @pytest.mark.skipif(not has_aioquic, reason='not having aioquic')
     def test_local_settings_enable_extended_connect(self):
         """The H3 connection advertises support for WebSocket CONNECT streams."""
@@ -265,6 +277,7 @@ class WebSocketH3ServerTest(unittest.TestCase):
     def test_slow_http_handler_and_response_writer_do_not_block_loop(self):
         class Request:
             method = 'GET'
+            url_parts = SimpleNamespace(path='/some-resource')
 
             def __init__(self, handler):
                 pass
@@ -299,6 +312,7 @@ class WebSocketH3ServerTest(unittest.TestCase):
                 .__get__(protocol))
             protocol._active_requests = 0
             protocol._h3_server_adapter = SimpleNamespace(
+                scheme='https',
                 rewriter=SimpleNamespace(rewrite=lambda handler: None))
             protocol._h3_request_cls = Request
             protocol._h3_response_cls = Response
@@ -533,6 +547,7 @@ class WebSocketH3ServerTest(unittest.TestCase):
     def test_server_passes_resource_limits_to_protocol(self):
         server = websocket_h3_server.WebSocketH3Server(
             '127.0.0.1', 0, '', 'unused', 'unused',
+            extra_handler_paths=['/extra-handlers'],
             max_pending_handshakes=2, max_active_requests=3,
             max_unread_websocket_bytes=4)
         with mock.patch.object(websocket_h3_server, 'WebSocketH3Protocol') as cls:
@@ -540,10 +555,33 @@ class WebSocketH3ServerTest(unittest.TestCase):
         self.assertEqual(cls.call_args.kwargs['max_pending_handshakes'], 2)
         self.assertEqual(cls.call_args.kwargs['max_active_requests'], 3)
         self.assertEqual(cls.call_args.kwargs['max_unread_websocket_bytes'], 4)
+        self.assertEqual(cls.call_args.kwargs['extra_handler_paths'],
+                         ['/extra-handlers'])
         with self.assertRaisesRegex(ValueError, 'max_pending_handshakes'):
             websocket_h3_server.WebSocketH3Server(
                 '127.0.0.1', 0, '', 'unused', 'unused',
                 max_pending_handshakes=0)
+
+    @pytest.mark.skipif(not has_aioquic, reason='not having aioquic')
+    def test_connect_sources_extra_websocket_handlers(self):
+        async def run():
+            protocol = _make_protocol_for_websocket_connect()
+            protocol._extra_handler_paths = ['/extra-handlers']
+
+            async def handshake(session, path, dispatcher):
+                pass
+
+            protocol._do_websocket_connect = handshake
+            with mock.patch.object(websocket_h3_server.dispatch,
+                                   'Dispatcher') as dispatcher_cls:
+                protocol._handle_websocket_connect(
+                    _make_websocket_connect_event())
+                await asyncio.gather(*protocol._workers)
+                dispatcher_cls.return_value._source_handler_files_in_dir.assert_called_once_with(
+                    '/extra-handlers', '/extra-handlers', False, None)
+            protocol._close_all_sessions()
+
+        asyncio.run(run())
 
     @pytest.mark.skipif(not has_aioquic, reason='not having aioquic')
     def test_request_headers_are_routed_by_method_and_protocol(self):

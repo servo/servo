@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Grid track sized from a non-replaced aspect-ratio box with a definite height</title>
+<link rel="help" href="https://www.w3.org/TR/css-sizing-4/#aspect-ratio-minimum">
+<link rel="match" href="aspect-ratio-nonreplaced-max-content-contribution-002-ref.html">
+<meta name="assert" content="The max-content contribution of a grid item with a definite height and an aspect-ratio is its ratio-derived width floored by its min-content size, not by the max-content size of its content.">
+<style>
+  body { font: 16px/20px monospace; margin: 8px; }
+  .row { margin-bottom: 6px; }
+  .box { height: 20px; background: lightblue; aspect-ratio: 1 / 1; }
+  .grid { background: #ddd; display: inline-grid; }
+</style>
+<div class="row"><div class="grid" style="grid-template-columns:auto"><div class="box" style="">aa bb cc dd</div></div></div>
+<div class="row"><div class="grid" style="grid-template-columns:max-content"><div class="box" style="">aa bb cc dd</div></div></div>
+<div class="row"><div class="grid" style="grid-template-columns:min-content"><div class="box" style="">aa bb cc dd</div></div></div>
+<div class="row"><div class="grid" style="display:grid;width:300px;grid-template-columns:auto 1fr"><div class="box" style="">aa bb cc dd</div><div>Label</div></div></div>
+<div class="row"><div class="grid" style="grid-template-columns:auto"><div class="box" style="justify-self:start;">aa bb cc dd</div></div></div>
+<div class="row"><div class="grid" style="display:grid;width:300px;grid-template-columns:auto"><div class="box" style="">aa bb cc dd</div></div></div>
+<div class="row"><div class="grid" style="grid-template-columns:fit-content(100px)"><div class="box" style="">aa bb cc dd</div></div></div>
+<div class="row"><div class="grid" style="grid-auto-flow:column;grid-auto-columns:auto"><div class="box" style="">aa bb cc dd</div><div class="box" style="">aa bb cc dd</div></div></div>

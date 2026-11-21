@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>Reference for aligned row items fragmented across columns</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<style>
+  .multicol { columns: 4; column-gap: 0; column-fill: auto; width: 320px; height: 30px; background: lightgray; }
+  .grid { display: grid; grid-template: 50px 50px / 40px 40px; width: 80px; }
+</style>
+<div class="multicol">
+  <div class="grid">
+    <div style="grid-area: 1 / 1; height: 20px; align-self: center; background: orange;"></div>
+    <div style="grid-area: 2 / 1; height: 30px; align-self: end; background: purple;"></div>
+    <div style="grid-area: 1 / 2 / span 2; height: 40px; align-self: center; background: teal;"></div>
+  </div>
+</div>

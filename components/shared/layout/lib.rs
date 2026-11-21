@@ -16,6 +16,7 @@ mod layout_dom;
 mod layout_element;
 mod layout_node;
 mod pseudo_element_chain;
+mod writing_mode_ext;
 
 use std::any::Any;
 use std::rc::Rc;
@@ -73,6 +74,7 @@ use style::data::ElementDataWrapper;
 use style::device::Device;
 use style::dom::OpaqueNode;
 use style::invalidation::element::restyle_hints::RestyleHint;
+use style::logical_geometry::WritingMode;
 use style::properties::style_structs::Font;
 use style::properties::{ComputedValues, PropertyId};
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
@@ -85,6 +87,8 @@ use style_traits::CSSPixel;
 use uuid::Uuid;
 use webrender_api::units::{DeviceIntSize, LayoutPoint, LayoutVector2D};
 use webrender_api::{ExternalScrollId, ImageKey};
+
+pub use crate::writing_mode_ext::WritingModeExt;
 
 pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait + Send + Sync + 'static {
     fn as_any(&self) -> &dyn Any;
@@ -261,6 +265,10 @@ pub struct LayoutConfig {
     pub user_stylesheets: Rc<Vec<DocumentStyleSheet>>,
     pub theme: Theme,
     pub embedder_chan: ScriptToEmbedderChan,
+    /// Document-scoped key for hashing the inputs of CSS `random()` functions.
+    /// This random value is 128 bits, as required for the key of the SipHash-1-3
+    /// keyed hash function (see [`style::device::Device::document_random_hasher()`]).
+    pub document_random_hasher_key: (u64, u64),
 }
 
 bitflags! {
@@ -558,8 +566,8 @@ impl AxesOverflow {
 
 #[derive(Clone)]
 pub enum ScrollContainerResponse {
-    Viewport(AxesOverflow),
-    Element(UntrustedNodeAddress, AxesOverflow),
+    Viewport(AxesOverflow, WritingMode),
+    Element(UntrustedNodeAddress, AxesOverflow, WritingMode),
 }
 
 #[derive(Debug, PartialEq)]

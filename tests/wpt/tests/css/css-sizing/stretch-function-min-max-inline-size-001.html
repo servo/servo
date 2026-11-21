@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>CSS stretch(): minimum and maximum inline sizes</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="stretch() in min-width and max-width fits the margin box to its argument.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .container {
+    width: 200px;
+  }
+  .test {
+    height: 25px;
+    background: green;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="container">
+  <div class="test" style="width: 10px; min-width: stretch(150px); margin-right: 50px;"></div>
+  <div class="test" style="max-width: stretch(150px); margin-right: 50px;"></div>
+  <div class="test" style="width: 10px; min-width: stretch(100px); padding-right: 20px;"></div>
+  <div class="test" style="max-width: stretch(100px); border-right: 20px solid green;"></div>
+</div>

@@ -54,8 +54,9 @@ use crate::dom::permissionstatus::PermissionStatus;
 use crate::dom::promise::{Promise, RootedPromise};
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
-use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
+use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request_with_claim};
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 // TODO: Service Worker API (persistent notification)
 // https://notifications.spec.whatwg.org/#service-worker-api
 
@@ -817,9 +818,10 @@ impl ResourceTimingListener for ResourceFetchListener {
 impl Notification {
     fn build_resource_request(&self, url: &ServoUrl) -> RequestBuilder {
         let global = &self.global();
-        create_a_potential_cors_request(
+        let url = ensure_blob_referenced_by_url_is_kept_alive(global, url.clone());
+        create_a_potential_cors_request_with_claim(
             None,
-            url.clone(),
+            url,
             Destination::Image,
             None, // TODO: check which CORS should be used
             None,

@@ -283,9 +283,8 @@ impl Paint {
             warn!("The rendering context has no surfman connection, WebGL will be unavailable");
             return painter_id;
         };
-        let Ok(adapter) = connection.create_adapter().inspect_err(|error| {
-            warn!("Could not create a surfman adapter, WebGL will be unavailable: {error:?}")
-        }) else {
+        let Some(adapter) = rendering_context.adapter() else {
+            warn!("Could not retrieve surfman adapter, WebGL will be unavailable");
             return painter_id;
         };
 
