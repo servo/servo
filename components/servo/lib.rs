@@ -133,7 +133,10 @@ pub mod webxr {
     pub use webxr::glwindow::{GlWindow, GlWindowDiscovery, GlWindowMode, GlWindowRenderTarget};
     #[cfg(not(any(target_os = "android", target_env = "ohos")))]
     pub use webxr::headless::HeadlessMockDiscovery;
-    #[cfg(target_os = "windows")]
+    #[cfg(any(
+        target_os = "windows",
+        all(target_os = "linux", not(target_env = "ohos"))
+    ))]
     pub use webxr::openxr::{AppInfo as OpenXrAppInfo, OpenXrDiscovery};
     pub use webxr::{Discovery, MainThreadRegistry, WebXrRegistry};
 }
