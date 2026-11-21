@@ -27,7 +27,7 @@ use crate::dom::WeakLayoutBox;
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, Fragment, FragmentAndLogicalRect, FragmentChildren,
-    FragmentFlags, SpecificLayoutInfo,
+    FragmentFlags, PhysicalBoxSides, SpecificLayoutInfo,
 };
 use crate::geom::{
     LogicalRect, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, PhysicalVec,
@@ -601,9 +601,11 @@ impl TaffyContainer {
                             independent_box.style().clone(),
                             std::mem::take(&mut child.child_fragments),
                             content_rect,
-                            padding,
-                            border,
-                            margin,
+                            PhysicalBoxSides {
+                                padding,
+                                border,
+                                margin,
+                            },
                             child_specific_layout_info,
                         )
                         .with_baselines(Baselines {

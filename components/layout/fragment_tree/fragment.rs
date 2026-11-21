@@ -202,12 +202,8 @@ impl Fragment {
     pub fn print(&self, tree: &mut PrintTree) {
         match self {
             Fragment::LayoutRoot(layout_root_fragment) => layout_root_fragment.inner().print(tree),
-            Fragment::Box(fragment) => fragment.print(tree),
-            Fragment::Float(fragment) => {
-                tree.new_level("Float".to_string());
-                fragment.print(tree);
-                tree.end_level();
-            },
+            Fragment::Box(fragment) => fragment.print(tree, "Box"),
+            Fragment::Float(fragment) => fragment.print(tree, "Float"),
             Fragment::AbsoluteOrFixedPositionedPlaceholder(_) => {
                 tree.add_item("AbsoluteOrFixedPositioned".to_string());
             },
@@ -358,7 +354,7 @@ impl Fragment {
             rect
         } else {
             let mut rect = fragment.padding_rect();
-            rect.origin = PhysicalPoint::new(fragment.border.left, fragment.border.top);
+            rect.origin = PhysicalPoint::new(fragment.border().left, fragment.border().top);
             rect
         };
 
@@ -478,12 +474,12 @@ impl TextFragment {
 
     pub fn print(&self, tree: &mut PrintTree) {
         tree.add_item(format!(
-            "Text num_glyphs={} box={:?}",
+            "Text {:?} num_glyphs={}",
+            self.base,
             self.glyphs
                 .iter()
                 .map(|shaped_text_slice| shaped_text_slice.glyph_count())
                 .sum::<usize>(),
-            self.base.rect()
         ));
     }
 
@@ -619,21 +615,15 @@ impl TextFragment {
 
 impl ImageFragment {
     pub fn print(&self, tree: &mut PrintTree) {
-        tree.add_item(format!(
-            "Image\
-                \nrect={:?}",
-            self.base.rect()
-        ));
+        tree.add_item(format!("Image {:?}", self.base,));
     }
 }
 
 impl IFrameFragment {
     pub fn print(&self, tree: &mut PrintTree) {
         tree.add_item(format!(
-            "IFrame\
-                \npipeline={:?} rect={:?}",
-            self.pipeline_id,
-            self.base.rect()
+            "IFrame {:?} pipeline={:?}",
+            self.base, self.pipeline_id,
         ));
     }
 }

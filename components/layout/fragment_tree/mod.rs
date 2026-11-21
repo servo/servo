@@ -5,6 +5,7 @@
 mod base_fragment;
 mod box_fragment;
 mod containing_block;
+mod debug;
 mod fragment;
 #[expect(clippy::module_inception)]
 mod fragment_tree;

@@ -690,17 +690,17 @@ impl DisplayListBuilder<'_> {
             paint_highlight(
                 PADDING_BOX_HIGHLIGHT_COLOR,
                 box_fragment.padding_rect(),
-                box_fragment.padding.to_webrender(),
+                box_fragment.padding().to_webrender(),
             );
             paint_highlight(
                 BORDER_BOX_HIGHLIGHT_COLOR,
                 box_fragment.border_rect(),
-                box_fragment.border.to_webrender(),
+                box_fragment.border().to_webrender(),
             );
             paint_highlight(
                 MARGIN_BOX_HIGHLIGHT_COLOR,
                 box_fragment.margin_rect(),
-                box_fragment.margin.to_webrender(),
+                box_fragment.margin().to_webrender(),
             );
         }
     }
@@ -1743,7 +1743,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             return Some(clip);
         }
 
-        let radii = offset_radii(self.border_radius(), -self.fragment.border.to_webrender());
+        let radii = offset_radii(self.border_radius(), -self.fragment.border().to_webrender());
         let maybe_clip =
             builder.maybe_create_clip(state, radii, *self.padding_rect(), force_clip_creation);
         *self.padding_edge_clip_chain_id.borrow_mut() = maybe_clip;
@@ -1762,7 +1762,7 @@ impl<'a> BuilderForBoxFragment<'a> {
 
         let radii = offset_radii(
             self.border_radius(),
-            -(self.fragment.border + self.fragment.padding).to_webrender(),
+            -(self.fragment.border() + self.fragment.padding()).to_webrender(),
         );
         let maybe_clip =
             builder.maybe_create_clip(state, radii, *self.content_rect(), force_clip_creation);
@@ -2262,7 +2262,7 @@ impl<'a> BuilderForBoxFragment<'a> {
 
         let style = self.fragment.style();
         let border = style.get_border();
-        let border_widths = self.fragment.border.to_webrender();
+        let border_widths = self.fragment.border().to_webrender();
 
         if border_widths == SideOffsets2D::zero() {
             return;
@@ -2491,7 +2491,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                     // The `border-radius` value applies to the border box, but inset shadows
                     // use the padding box instead. So we need to shrink the `border-radius`
                     // by the border widths.
-                    offset_radii(self.border_radius(), -self.fragment.border.to_webrender())
+                    offset_radii(self.border_radius(), -self.fragment.border().to_webrender())
                 },
                 BoxShadowClipMode::Outset => self.border_radius(),
             };

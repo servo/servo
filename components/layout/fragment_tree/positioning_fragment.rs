@@ -14,6 +14,7 @@ use style::properties::ComputedValues;
 
 use super::{BaseFragment, BaseFragmentInfo, Fragment};
 use crate::SharedStyle;
+use crate::fragment_tree::debug::PrintableRect;
 use crate::fragment_tree::{CumulativeContentRectCalculation, FragmentChildren};
 use crate::geom::{LogicalVec2, PhysicalRect, SyncPhysicalRectAu};
 
@@ -153,13 +154,9 @@ impl PositioningFragment {
 
     pub fn print(&self, tree: &mut PrintTree) {
         tree.new_level(format!(
-            "PositioningFragment\
-                \nbase={:?}\
-                \nrect={:?}\
-                \nscrollable_overflow={:?}",
+            "PositioningFragment {:?}\nscrollable-overflow={:?}",
             self.base,
-            self.base.rect(),
-            self.scrollable_overflow
+            PrintableRect(self.scrollable_overflow.get()),
         ));
 
         for child in &self.children {
