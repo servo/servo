@@ -21,7 +21,7 @@ default = ["x11"]
 angle = ["surfman/sm-angle"]
 glwindow = []
 headless = []
-openxr-api = ["angle", "openxr", "winapi", "wio", "surfman/sm-angle-default"]
+openxr-api = ["angle", "ash", "openxr", "winapi", "wio", "surfman/sm-angle-default"]
 x11 = ["surfman/sm-x11"]
 
 [dependencies]
@@ -36,9 +36,15 @@ servo-base = { workspace = true }
 surfman = { workspace = true }
 webxr-api = { workspace = true }
 
+[target.'cfg(all(target_os = "linux", not(target_env = "ohos")))'.dependencies]
+ash = { workspace = true, optional = true }
+libc = { workspace = true }
+openxr = { workspace = true, features = ["static"], optional = true }
+
 [target.'cfg(target_os = "windows")'.dependencies]
 winapi = { workspace = true, features = ["d3d11", "dxgi", "winerror"], optional = true }
 wio = { workspace = true, optional = true }
+
 
 [lints]
 workspace = true

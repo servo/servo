@@ -54,8 +54,20 @@ mod graphics_d3d11;
 #[cfg(target_os = "windows")]
 use graphics_d3d11::Backend;
 
+#[cfg(all(target_os = "linux", not(target_env = "ohos")))]
+mod graphics_vulkan;
+#[cfg(all(target_os = "linux", not(target_env = "ohos")))]
+use graphics_vulkan::Backend;
+
 pub(super) fn load_entry() -> Result<Entry, String> {
-    unsafe { Entry::load().map_err(|e| format!("Entry::load {:?}", e)) }
+    #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
+    {
+        Ok(Entry::linked())
+    }
+    #[cfg(not(all(target_os = "linux", not(target_env = "ohos"))))]
+    {
+        unsafe { Entry::load().map_err(|e| format!("Entry::load {:?}", e)) }
+    }
 }
 
 /// Khronos' OpenXR loader only permits a single live `XrInstance` per process at a time.

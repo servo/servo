@@ -16,17 +16,32 @@ use webxr_api::Error;
 pub enum GraphicsProvider {}
 
 #[derive(Default)]
-pub struct SessionGraphics {}
+pub struct SessionGraphics {
+    #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
+    pub(super) vulkan: Option<std::sync::Arc<crate::openxr::graphics_vulkan::VulkanContext>>,
+}
 
 #[derive(Default)]
-pub struct LayerGraphics {}
+pub struct LayerGraphics {
+    #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
+    pub(super) vulkan: Option<crate::openxr::graphics_vulkan::VulkanStagingImage>,
+}
 
 impl LayerGraphics {
-    pub fn destroy(self, _gl: Option<&gl::Context>) {}
+    pub fn destroy(self, gl: Option<&gl::Context>) {
+        #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
+        if let Some(staging) = self.vulkan {
+            staging.destroy(gl);
+        }
+        #[cfg(not(all(target_os = "linux", not(target_env = "ohos"))))]
+        let _ = gl;
+    }
 }
 
 pub enum SwapchainTexture {
     Surface(SurfaceTexture),
+    #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
+    GlTexture(gl::NativeTexture),
 }
 
 impl SwapchainTexture {
@@ -35,18 +50,23 @@ impl SwapchainTexture {
             SwapchainTexture::Surface(surface_texture) => {
                 device.surface_texture_object(surface_texture)
             },
+            #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
+            SwapchainTexture::GlTexture(texture) => Some(*texture),
         }
     }
 
     pub fn gl_texture_target(&self, device: &SurfmanDevice) -> u32 {
         match self {
             SwapchainTexture::Surface(_) => device.surface_gl_texture_target(),
+            #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
+            SwapchainTexture::GlTexture(_) => gl::TEXTURE_2D,
         }
     }
 
     pub fn destroy(self, device: &SurfmanDevice, context: &mut SurfmanContext) {
-        let SwapchainTexture::Surface(surface_texture) = self;
-        if let Ok(mut surface) = device.destroy_surface_texture(context, surface_texture) {
+        if let SwapchainTexture::Surface(surface_texture) = self &&
+            let Ok(mut surface) = device.destroy_surface_texture(context, surface_texture)
+        {
             let _ = device.destroy_surface(context, &mut surface);
         }
     }

@@ -6462,6 +6462,7 @@ version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4b8d66081de28c2fa40216182a37292fe38aeea20bc184612504d5e64daf5359"
 dependencies = [
+ "cmake",
  "libc",
 ]
 
@@ -9902,9 +9903,11 @@ dependencies = [
 name = "servo-webxr"
 version = "0.8.0"
 dependencies = [
+ "ash",
  "crossbeam-channel",
  "euclid",
  "glow",
+ "libc",
  "log",
  "openxr",
  "raw-window-handle",
