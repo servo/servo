@@ -169,6 +169,7 @@ use crate::dom::html::htmliframeelement::HTMLIFrameElement;
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::location::Location;
+use crate::dom::mediadevices::MediaDevices;
 use crate::dom::medialist::MediaList;
 use crate::dom::mediaquerylist::{MediaQueryList, MediaQueryListMatchState};
 use crate::dom::mediaquerylistevent::MediaQueryListEvent;
@@ -568,6 +569,7 @@ impl Window {
 
     fn clear_js_runtime_common(&self) {
         self.stop_geolocation_watches();
+        self.stop_media_capture();
         self.as_global_scope()
             .remove_web_messaging_and_dedicated_workers_infra();
         self.current_state.set(WindowState::Zombie);
@@ -596,6 +598,16 @@ impl Window {
     /// The `Geolocation` object of this `Window`'s `Navigator`.
     pub(crate) fn maybe_geolocation(&self) -> Option<DomRoot<Geolocation>> {
         self.navigator.get()?.maybe_geolocation()
+    }
+
+    pub(crate) fn maybe_media_devices(&self) -> Option<DomRoot<MediaDevices>> {
+        self.navigator.get()?.maybe_media_devices()
+    }
+
+    pub(crate) fn stop_media_capture(&self) {
+        if let Some(media_devices) = self.maybe_media_devices() {
+            media_devices.stop_all_capture();
+        }
     }
 
     /// A convenience method for
