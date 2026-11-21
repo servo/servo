@@ -1100,10 +1100,19 @@ impl PlatformWindow for HeadedWindow {
             EmbedderControl::ContextMenu(prompt) => {
                 self.add_dialog(webview_id, Dialog::new_context_menu(prompt));
             },
+            EmbedderControl::Tooltip(tooltip_control) => {
+                // let offset = self.gui.borrow();
+                // gui.update_image_alt_text( tooltip_control.text);
+                self.gui
+                    .borrow_mut()
+                    .show_tooltip(webview_id, &tooltip_control);
+                self.winit_window.request_redraw();
+            },
         }
     }
 
     fn hide_embedder_control(&self, webview_id: WebViewId, embedder_control_id: EmbedderControlId) {
+        self.gui.borrow_mut().hide_tooltip(embedder_control_id);
         if self.visible_input_method.get() == Some(embedder_control_id) {
             self.visible_input_method.set(None);
             self.winit_window.set_ime_allowed(false);
@@ -1140,6 +1149,9 @@ impl PlatformWindow for HeadedWindow {
 
     fn dismiss_embedder_controls_for_webview(&self, webview_id: WebViewId) {
         self.dialogs.borrow_mut().remove(&webview_id);
+        self.gui
+            .borrow_mut()
+            .dismiss_tooltips_for_webview(webview_id)
     }
 
     fn show_console_message(&self, level: servo::ConsoleLogLevel, message: &str) {

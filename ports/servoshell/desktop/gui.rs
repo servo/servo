@@ -46,8 +46,8 @@ use euclid::{Length, Point2D, Rect, Scale, Size2D};
 use log::info;
 use log::warn;
 use servo::{
-    DeviceIndependentPixel, DevicePixel, Image, LoadStatus, OffscreenRenderingContext, PixelFormat,
-    RenderingContext, WebView, WebViewId,
+    DeviceIndependentPixel, DevicePixel, EmbedderControlId, Image, LoadStatus,
+    OffscreenRenderingContext, PixelFormat, RenderingContext, TooltipControl, WebView, WebViewId,
 };
 use url::Url;
 use winit::event::WindowEvent;
@@ -59,6 +59,12 @@ use crate::desktop::headed_window;
 use crate::desktop::webview_widget::WebViewWidget;
 use crate::running_app_state::{RunningAppState, UserInterfaceCommand};
 use crate::window::{ServoShellWindow, TopLevelWebViewCreationRequest};
+
+pub struct ActiveTooltip {
+    id: EmbedderControlId,
+    webview_id: WebViewId,
+    text: String,
+}
 
 /// The user interface of a headed servoshell. Currently this is implemented via
 /// egui.
@@ -78,8 +84,7 @@ pub struct Gui {
     /// The text to display in the status bar on the bottom of the window.
     status_text: Option<String>,
 
-    /// The text to display in the image alt text field on the bottom of the window.
-    image_alt_text: Option<String>,
+    tooltip: Option<ActiveTooltip>,
 
     /// Whether or not the current `WebView` can navigate backward.
     can_go_back: bool,
@@ -277,7 +282,7 @@ impl Gui {
             location_dirty: false,
             load_status: LoadStatus::Complete,
             status_text: None,
-            image_alt_text: None,
+            tooltip: None,
             can_go_back: false,
             can_go_forward: false,
             favicon_textures: Default::default(),
@@ -698,15 +703,15 @@ impl Gui {
                 .show(|ui| ui.add(Label::new(status_text.clone()).extend()));
             }
 
-            if let Some(image_alt_text) = &self.image_alt_text {
+            if let Some(tooltip) = &self.tooltip {
                 egui::Tooltip::always_open(
-                        ctx.clone(),
-                        LayerId::new(Order::Tooltip, Id::new("image_alt_tooltip")),
-                        "image alt tooltip layer".into(),
-                        pos2(available_rect.max.x, available_rect.max.y),
+                    ctx.clone(),
+                    LayerId::new(Order::Tooltip, Id::new("embedder_tooltip")),
+                    "embedder tooltip layer".into(),
+                    pos2(available_rect.max.x, available_rect.max.y),
                 )
-                    .at_pointer()
-                    .show(|ui| ui.add(Label::new(image_alt_text.clone()).extend()));
+                .at_pointer()
+                .show(|ui| ui.add(Label::new(tooltip.text.clone()).extend()));
             }
 
             window.repaint_webviews();
@@ -810,10 +815,34 @@ impl Gui {
         old_status != self.status_text
     }
 
-    fn update_image_alt_text(&mut self, window: &ServoShellWindow) -> bool {
-        let image_alt_status = window.active_webview().and_then(|webview| webview.image_alt_text());
-        let old_status = std::mem::replace(&mut self.image_alt_text, image_alt_status);
-        old_status != self.image_alt_text
+    pub(crate) fn show_tooltip(&mut self, webview_id: WebViewId, control: &TooltipControl) {
+        self.tooltip = Some(ActiveTooltip {
+            id: control.id,
+            webview_id,
+            text: control.text.clone(),
+        });
+    }
+
+    /// Clears the tooltip only if it is still the one identified by `id`, so a late hide
+    /// for an old tooltip doesn't remove a newer one.
+    pub(crate) fn hide_tooltip(&mut self, id: EmbedderControlId) {
+        if self
+            .tooltip
+            .as_ref()
+            .is_some_and(|tooltip| tooltip.id == id)
+        {
+            self.tooltip = None;
+        }
+    }
+
+    pub(crate) fn dismiss_tooltips_for_webview(&mut self, webview_id: WebViewId) {
+        if self
+            .tooltip
+            .as_ref()
+            .is_some_and(|tooltip| tooltip.webview_id == webview_id)
+        {
+            self.tooltip = None;
+        }
     }
 
     fn update_can_go_back_and_forward(&mut self, window: &ServoShellWindow) -> bool {
@@ -836,7 +865,6 @@ impl Gui {
         self.update_load_status(window) |
             self.update_location_in_toolbar(window) |
             self.update_status_text(window) |
-            self.update_image_alt_text(window) |
             self.update_can_go_back_and_forward(window)
     }
 

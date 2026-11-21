@@ -563,8 +563,8 @@ pub enum EmbedderMsg {
     /// Let the embedder process a DOM Console API message.
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console_API>
     ShowConsoleApiMessage(Option<WebViewId>, ConsoleLogLevel, String),
-    /// Request to the embedder to display a user interace control.
-    ShowEmbedderControl(EmbedderControlId, PipelineRect, EmbedderControlRequest),
+    /// Request to the embedder to display a user interface control.
+    ShowEmbedderControl(EmbedderControlId, DeviceIntRect, EmbedderControlRequest),
     /// Request to the embedder to hide a user interface control.
     HideEmbedderControl(EmbedderControlId),
     /// Inform the embedding layer that a particular `InputEvent` was handled by Servo
@@ -572,8 +572,6 @@ pub enum EmbedderMsg {
     InputEventsHandled(WebViewId, Vec<InputEventOutcome>),
     /// Send the embedder an accessibility tree update.
     AccessibilityTreeUpdate(WebViewId, TreeUpdate, Epoch),
-    /// Inform the embeder about the alt text of an image while hovering over it.
-    AltText(WebViewId, Option<String>),
 }
 
 impl Debug for EmbedderMsg {

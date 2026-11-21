@@ -42,7 +42,9 @@ use crate::gamepad_delegate::{DefaultGamepadDelegate, GamepadDelegate};
 use crate::geolocation_delegate::{DefaultGeolocationDelegate, GeolocationDelegate};
 use crate::responders::AutomaticResponder;
 use crate::servo::PendingHandledInputEvent;
-use crate::webview_delegate::{CreateNewWebViewRequest, DefaultWebViewDelegate, WebViewDelegate};
+use crate::webview_delegate::{
+    CreateNewWebViewRequest, DefaultWebViewDelegate, TooltipControl, WebViewDelegate,
+};
 use crate::{
     ColorPicker, ContextMenu, EmbedderControl, InputMethodControl, SelectElement, Servo,
     UserContentManager, WebRenderDebugOption,
@@ -141,8 +143,6 @@ pub(crate) struct WebViewInner {
 
     /// The current index in the back / forward list.
     back_forward_list_index: usize,
-
-    image_alt_text: Option<String>,
 }
 
 impl Drop for WebViewInner {
@@ -184,7 +184,6 @@ impl WebView {
             hidpi_scale_factor: builder.hidpi_scale_factor,
             load_status: LoadStatus::Started,
             status_text: None,
-            image_alt_text: None,
             page_title: None,
             favicon: None,
             focused: true,
@@ -367,18 +366,6 @@ impl WebView {
         }
         self.inner_mut().status_text = new_value.clone();
         self.delegate().notify_status_text_changed(self, new_value);
-    }
-
-    pub fn image_alt_text(&self) -> Option<String> {
-        self.inner().image_alt_text.clone()
-    }
-
-    pub(crate) fn set_image_alt_text(self, new_value: Option<String>) {
-        if self.inner().image_alt_text == new_value {
-            return;
-        }
-        self.inner_mut().image_alt_text = new_value.clone();
-        self.delegate().notify_image_alt_text_changed(self, new_value);
     }
 
     /// Get the title of the currently active page in this [`WebView`]. Returns `None` if the
@@ -882,6 +869,12 @@ impl WebView {
             },
             EmbedderControlRequest::FilePicker { .. } => {
                 unreachable!("This message should be routed through the FileManagerThread")
+            },
+            EmbedderControlRequest::Tooltip(tooltip_request) => {
+                EmbedderControl::Tooltip(TooltipControl {
+                    id: control_id,
+                    text: tooltip_request.text,
+                })
             },
         };
 
