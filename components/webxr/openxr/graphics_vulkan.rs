@@ -2,6 +2,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+//! Linux OpenXR Vulkan graphics backend (`XR_KHR_vulkan_enable2`) with DMA-BUF
+//! `EGLImage` interop into Surfman's OpenGL/EGL WebGL contexts.
+//!
+//! # Runtime requirements
+//! - An OpenXR runtime supporting `XR_KHR_vulkan_enable2` (for example
+//!   SteamVR, Monado, or WiVRn), discoverable via standard OpenXR loader paths
+//!   or `XR_RUNTIME_JSON`.
+//! - A Vulkan 1.1+ driver supporting `VK_KHR_external_memory_fd` and
+//!   `VK_EXT_external_memory_dma_buf` (plus optional
+//!   `VK_EXT_image_drm_format_modifier` for tiled modifier negotiation, with
+//!   automatic fallback to `VK_IMAGE_TILING_LINEAR`).
+//! - An EGL driver supporting `EGL_KHR_image_base`,
+//!   `EGL_EXT_image_dma_buf_import`, and `GL_OES_EGL_image`.
+//!
+//! # Rendering pipeline
+//! Each WebXR layer owns one DMA-BUF exportable staging `VkImage` imported as a
+//! `GL_TEXTURE_2D` in the layer's WebGL context. On `end_frame`, WebGL commands
+//! are flushed (`glFinish`) and the staging image is blitted into the acquired
+//! OpenXR swapchain `VkImage` with a hardware Y-flip (`vkCmdBlitImage`) before
+//! transitioning to `VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL` and releasing.
+
 use std::ffi::{CStr, c_char, c_void};
 use std::ptr;
 use std::sync::{Arc, LazyLock, Mutex};

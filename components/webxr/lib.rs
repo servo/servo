@@ -3,6 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! This crate defines the Rust implementation of WebXR for various devices.
+//!
+//! Supported native OpenXR backends (behind the `openxr-api` feature):
+//! - **Windows**: D3D11 (`XR_KHR_d3d11_enable`) bridged to Surfman/ANGLE.
+//! - **Linux (non-OHOS)**: Vulkan (`XR_KHR_vulkan_enable2`) using the bundled
+//!   static Khronos OpenXR loader and DMA-BUF `EGLImage` interop with Surfman's
+//!   EGL/OpenGL contexts (compatible with SteamVR, Monado, and WiVRn).
 
 #[cfg(feature = "glwindow")]
 pub mod glwindow;

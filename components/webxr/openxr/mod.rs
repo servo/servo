@@ -2,6 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+//! OpenXR device discovery and session implementation.
+//!
+//! On Windows this uses D3D11 (`XR_KHR_d3d11_enable`); on non-OHOS Linux this
+//! uses Vulkan (`XR_KHR_vulkan_enable2`) with the statically linked Khronos
+//! OpenXR loader (`Entry::linked()`), discovering the active runtime via the
+//! standard loader search paths or `XR_RUNTIME_JSON`.
+//!
+//! Runtime prefs in Servo / `servoshell`:
+//! - `dom_webxr_openxr_enabled`: enables OpenXR discovery (default `true`).
+//! - `dom_webgl2_enabled`: required by WebGL2-based WebXR apps such as modern
+//!   Three.js scenes.
+
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::rc::Rc;
