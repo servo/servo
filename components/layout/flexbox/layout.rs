@@ -2701,17 +2701,27 @@ impl FlexItemBox {
         let content_block_size = || {
             let mut positioning_context = PositioningContext::default();
 
+            let inline_stretch_size = flex_context
+                .containing_block
+                .inline_stretch_size(pbm_auto_is_zero.cross);
+
             // We are computing the intrinsic block size, so the tentative block size that we use
             // as an input to the intrinsic inline sizes needs to ignore the values of the sizing
             // properties in the block axis.
-            let tentative_block_size = SizeConstraint::default();
+            let tentative_block_size = self
+                .independent_formatting_context
+                .tentative_block_content_size(preferred_aspect_ratio, inline_stretch_size)
+                .map(|tentative_block_size| {
+                    SizeConstraint::MinMax(
+                        tentative_block_size.min_content,
+                        Some(tentative_block_size.max_content),
+                    )
+                })
+                .unwrap_or_default();
 
             // TODO: This is wrong if the item writing mode is different from the flex
             // container's writing mode.
             let inline_size = {
-                let stretch_size = flex_context
-                    .containing_block
-                    .inline_stretch_size(pbm_auto_is_zero.cross);
                 let get_content_size = || {
                     self.inline_content_sizes(
                         flex_context,
@@ -2723,7 +2733,7 @@ impl FlexItemBox {
                     LogicalAxis::Inline,
                     automatic_inline_size,
                     Au::zero,
-                    stretch_size,
+                    inline_stretch_size,
                     get_content_size,
                     false,
                 )
