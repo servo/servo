@@ -263,6 +263,8 @@ pub struct Preferences {
     pub dom_worklet_blockingsleep_enabled: bool,
     pub dom_worklet_testing_enabled: bool,
     pub dom_worklet_timeout_ms: u64,
+    /// The name of the embedder product.
+    pub embedder_name: String,
     /// <https://drafts.csswg.org/cssom-view/#the-visualviewport-interface>
     // feature: VisualViewport | #41341 | Web/API/VisualViewport
     pub dom_visual_viewport_enabled: bool,
@@ -628,6 +630,7 @@ impl Preferences {
             user_agent: String::new(),
             viewport_meta_enabled: false,
             expose_servointernals_globally: false,
+            embedder_name: String::new(),
         }
     }
 
@@ -657,6 +660,10 @@ impl Default for Preferences {
         }
         if let Ok(no_proxy) = std::env::var("no_proxy").or_else(|_| std::env::var("NO_PROXY")) {
             preferences.network_http_no_proxy = no_proxy
+        }
+
+        if preferences.embedder_name.is_empty() {
+            preferences.embedder_name = "unknown-servo-embedder".into();
         }
 
         preferences
