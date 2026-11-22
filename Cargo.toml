@@ -162,7 +162,7 @@ ml-kem = { version = "0.3", features = ["getrandom", "pkcs8", "zeroize"] }
 mozangle = "0.7"
 napi-derive-ohos = "1.2.0"
 napi-ohos = "1.2.0"
-nix = "0.30"
+nix = "0.32"
 nom = "8.0.0"
 nom-rfc8288 = "0.4.0"
 num-complex = "0.4.6"

@@ -1837,7 +1837,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d045de693cb712d0b22c6a64be5b953f67b3ce00ab5ad3dd5d8b441886ab8e1a"
 dependencies = [
  "quote",
- "syn 2.0.119",
+ "syn 3.0.4",
 ]
 
 [[package]]
@@ -3134,7 +3134,7 @@ dependencies = [
  "libc",
  "libudev-sys",
  "log",
- "nix",
+ "nix 0.30.1",
  "objc2-core-foundation",
  "objc2-io-kit",
  "uuid",
@@ -5711,6 +5711,18 @@ name = "nix"
 version = "0.30.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "74523f3a35e05aba87a1d978330aef40f67b0304ac79c1c00b294c9830543db6"
+dependencies = [
+ "bitflags 2.13.2",
+ "cfg-if",
+ "cfg_aliases",
+ "libc",
+]
+
+[[package]]
+name = "nix"
+version = "0.32.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77730ed34f01f4990cb2ea67fec715ecebc6fab9a6396cf83c5529b13f581bdc"
 dependencies = [
  "bitflags 2.13.2",
  "cfg-if",
@@ -8310,7 +8322,7 @@ dependencies = [
  "libc",
  "log",
  "mach2",
- "nix",
+ "nix 0.32.0",
  "rustc-demangle",
  "rustc-hash 2.1.3",
  "serde_json",
@@ -9985,7 +9997,7 @@ dependencies = [
  "mime_guess",
  "napi-derive-ohos",
  "napi-ohos",
- "nix",
+ "nix 0.32.0",
  "objc2-app-kit 0.3.2",
  "objc2-foundation 0.3.2",
  "ohos-abilitykit-sys",
