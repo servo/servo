@@ -921,7 +921,7 @@ class MachCommands(CommandBase):
         # We pass `-f` here so that any thread panic will cause Servo to exit,
         # preventing a panic from hanging execution. This means that these kind
         # of panics won't cause timeouts on CI.
-        args = ["-f", "tests/html/close-on-load.html"]
+        args = ["-f", "tests/manual/close-on-load.html"]
         if multiprocess:
             args.append("-M")
         return PostBuildCommands(self.context)._run(servo_binary, params + args)
