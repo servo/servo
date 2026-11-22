@@ -109,6 +109,10 @@ impl DocumentEmbedderControls {
         request: EmbedderControlRequest,
         point: Option<Point2D<Au, CSSPixel>>,
     ) -> EmbedderControlId {
+        if !matches!(element, ControlElement::Tooltip(..)) {
+            self.hide_tooltip();
+        }
+
         let id = self.next_control_id();
         let rect = point
             .map(|point| Rect::new(point, Size2D::zero()))
@@ -249,6 +253,7 @@ impl DocumentEmbedderControls {
                 ControlElement::ContextMenu(context_menu_nodes),
                 EmbedderControlResponse::ContextMenu(action),
             ) => {
+                self.hide_tooltip();
                 context_menu_nodes.handle_context_menu_action(action, cx);
             },
             (_, _) => unreachable!(
