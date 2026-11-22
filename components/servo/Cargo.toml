@@ -18,7 +18,7 @@ crate-type = ["rlib"]
 [features]
 # Note: Servoshell does not use the default features of servo, so you also
 # need to add feature-groups that should be default to ports/servoshell/Cargo.toml
-default = ["bundled", "clipboard", "default_tooling", "js_jit", "multiprocess", "harfrust"]
+default = ["aws-lc-rs", "bundled", "clipboard", "default_tooling", "js_jit", "multiprocess", "harfrust"]
 
 ## Convenience feature groups, to select multiple related features for a sensible
 #  configuration with `--no-default-features` build
@@ -33,6 +33,12 @@ default_web_features = [
     "webxr",
 ]
 default_tooling = ["devtools"]
+
+# Use aws-lc-rs as the cryptography provider for RusTLS.
+# If the embedder wants to use a different provider,
+# you need to initialize it yourself before initializing Servo, like this:
+# `rustls::crypto::aws_lc_rs::default_provider().install_default()`
+aws-lc-rs = ["net/aws-lc-rs"]
 
 # Bundle required resources in the binary.
 bundled = ["baked-in-resources", "bundled_freetype"]
