@@ -244,3 +244,10 @@ partial interface Document {
   [Throws]
   static Document parseHTML(DOMString html, optional SetHTMLOptions options = {});
 };
+
+// https://w3c.github.io/pointerlock/#extensions-to-the-document-interface
+partial interface Document {
+  attribute EventHandler onpointerlockchange;
+  attribute EventHandler onpointerlockerror;
+  undefined exitPointerLock();
+};

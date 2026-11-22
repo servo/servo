@@ -197,3 +197,12 @@ partial interface Element {
 
 // https://drafts.csswg.org/web-animations-1/#extensions-to-the-element-interface
 Element includes Animatable;
+
+// https://w3c.github.io/pointerlock/#requestPointerLock
+partial interface Element {
+    Promise<undefined> requestPointerLock(optional PointerLockOptions options = {});
+};
+
+dictionary PointerLockOptions {
+  boolean unadjustedMovement = false;
+};
