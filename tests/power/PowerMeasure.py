@@ -148,7 +148,7 @@ def PowerParser(OutputDir, LayoutThreads):
 # ----------------------------------------------------#
 def main():
     LayoutThreads = 8  # Maximum number of threads considered for Layout
-    Benchmarks = path.join(TOP_DIR, "tests", "pages", "perf-rainbow.html")
+    Benchmarks = path.join(TOP_DIR, "tests", "manual", "perf-rainbow.html")
     OutputDir = "Experiments"
     os.mkdir(OutputDir)
     Renderer = ""
