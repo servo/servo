@@ -196,7 +196,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
 
         let previous_promise = self
             .playing_effect_promise
-            .borrow_mut()
+            .safe_borrow_mut(cx.no_gc())
             .take()
             .map(|promise| promise.root(cx));
         if let Some(promise) = previous_promise {
@@ -215,7 +215,8 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
             return playing_effect_promise;
         }
 
-        *self.playing_effect_promise.borrow_mut() = Some(playing_effect_promise.to_traced());
+        *self.playing_effect_promise.safe_borrow_mut(cx.no_gc()) =
+            Some(playing_effect_promise.to_traced());
         self.effect_sequence_id.set(self.sequence_id.get());
 
         let context = Trusted::new(self);
@@ -265,7 +266,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
 
         let previous_promise = self
             .playing_effect_promise
-            .borrow_mut()
+            .safe_borrow_mut(cx.no_gc())
             .take()
             .map(|promise| promise.root(cx));
         if let Some(previous_promise) = previous_promise {
@@ -279,7 +280,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
             );
         }
 
-        *self.playing_effect_promise.borrow_mut() = Some(promise.to_traced());
+        *self.playing_effect_promise.safe_borrow_mut(cx.no_gc()) = Some(promise.to_traced());
 
         self.reset_sequence_id.set(self.sequence_id.get());
 
@@ -315,7 +316,7 @@ impl GamepadHapticActuator {
         }
         let playing_effect_promise = self
             .playing_effect_promise
-            .borrow_mut()
+            .safe_borrow_mut(cx.no_gc())
             .take()
             .map(|promise| promise.root(cx));
         if let Some(promise) = playing_effect_promise {
@@ -337,7 +338,7 @@ impl GamepadHapticActuator {
 
         let playing_effect_promise = self
             .playing_effect_promise
-            .borrow_mut()
+            .safe_borrow_mut(cx.no_gc())
             .take()
             .map(|promise| promise.root(cx));
 
@@ -371,7 +372,7 @@ impl GamepadHapticActuator {
                 let actuator = this.root();
                 let playing_effect_promise = actuator
                     .playing_effect_promise
-                    .borrow_mut()
+                    .safe_borrow_mut(cx.no_gc())
                     .take()
                     .map(|promise| promise.root(cx));
                 let Some(promise) = playing_effect_promise else {
