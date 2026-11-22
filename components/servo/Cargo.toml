@@ -18,14 +18,27 @@ crate-type = ["rlib"]
 [features]
 # Note: Servoshell does not use the default features of servo, so you also
 # need to add feature-groups that should be default to ports/servoshell/Cargo.toml
-default = ["bundled", "clipboard", "default_tooling", "js_jit", "multiprocess"]
+default = ["aws-lc-rs", "bundled", "clipboard", "default_tooling", "js_jit", "multiprocess", "harfrust"]
 
 ## Convenience feature groups, to select multiple related features for a sensible
 #  configuration with `--no-default-features` build
 #
 # A convenience feature to enable all default web features servo has.
-default_web_features = ["brotli-compression-stream", "clipboard", "subtlecrypto", "webgpu", "webgl", "webxr"]
+default_web_features = [
+    "brotli-compression-stream",
+    "clipboard",
+    "subtlecrypto",
+    "webgpu",
+    "webgl",
+    "webxr",
+]
 default_tooling = ["devtools"]
+
+# Use aws-lc-rs as the cryptography provider for RusTLS.
+# If the embedder wants to use a different provider,
+# you need to initialize it yourself before initializing Servo, like this:
+# `rustls::crypto::aws_lc_rs::default_provider().install_default()`
+aws-lc-rs = ["net/aws-lc-rs"]
 
 # Bundle required resources in the binary.
 bundled = ["baked-in-resources", "bundled_freetype"]
@@ -35,6 +48,10 @@ background_hang_monitor = ["servo-background-hang-monitor/sampler"]
 
 # Allow brotli to be used for compression and decompression in TransportStream JavaScript API
 brotli-compression-stream = ["script/brotli-compression-stream"]
+
+# Shaping backends
+harfrust = ["fonts/harfrust"]
+harfbuzz = ["fonts/harfbuzz"]
 
 # This is slightly magical, but this will also work on ohos, where `servo-default-resource` is not added,
 # which makes `baked-in-resources a no-op (as intended) on ohos (and perhaps other platforms in the future).

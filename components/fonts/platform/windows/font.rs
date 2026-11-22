@@ -25,9 +25,8 @@ use style::Zero;
 use webrender_api::{FontInstanceFlags, FontVariation};
 use winapi::shared::minwindef::{BOOL, FALSE};
 
-use crate::{
-    FontIdentifier, FontMetrics, FontTableMethods, FractionalPixel, GlyphId, PlatformFontMethods,
-};
+use crate::font::{FontTableMethods, FractionalPixel};
+use crate::{FontIdentifier, FontMetrics, GlyphId, PlatformFontMethods};
 
 // 1em = 12pt = 16px, assuming 72 points per inch and 96 px per inch
 fn pt_to_px(pt: f64) -> f64 {

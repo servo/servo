@@ -28,7 +28,7 @@ files = [
     # Our import script is not currently respecting the lint.
     "./tests/wpt/webgl/tools/import-conformance-tests.py",
     # Ignore those files since the issues reported are on purpose
-    "./tests/html/bad-line-ends.html",
+    "./tests/manual/bad-line-ends.html",
     "./tests/wpt/mozilla/tests/css/fonts",
     "./tests/wpt/mozilla/tests/css/pre-with-tab.html",
     "./tests/wpt/mozilla/tests/mozilla/textarea-placeholder.html",

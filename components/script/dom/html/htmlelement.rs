@@ -196,7 +196,8 @@ impl HTMLElement {
         let element = self.as_element();
 
         // Step 1.
-        let element_not_rendered = !node.is_connected() || !element.has_css_layout_box(cx);
+        let element_not_rendered =
+            !node.is_connected() || !element.has_css_layout_box_deprecated(cx);
         if element_not_rendered {
             return node.GetTextContent().unwrap();
         }

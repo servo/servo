@@ -26,7 +26,7 @@ libc = { workspace = true }
 log = { workspace = true }
 # TODO: We need 'baked-in-resources' as the `inventory` based `ResourceReader`
 # doesn't work when libservo is a cdylib.
-servo = { workspace = true, features = ["js_jit", "baked-in-resources", "bundled_freetype"] }
+servo = { workspace = true, features = ["aws-lc-rs", "baked-in-resources", "bundled_freetype", "harfrust", "js_jit"] }
 url = { workspace = true }
 
 # TODO: ANGLE is needed on Windows to provide libEGL.dll and libGLESv2.dll
