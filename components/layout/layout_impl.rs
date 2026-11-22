@@ -68,7 +68,9 @@ use style::invalidation::stylesheets::StylesheetInvalidationSet;
 use style::media_queries::{MediaList, MediaType};
 use style::properties::style_structs::Font;
 use style::properties::{ComputedValues, LonghandId, NonCustomPropertyId, PropertyId, ShorthandId};
-use style::queries::values::PrefersColorScheme;
+use style::queries::values::{
+    PrefersColorScheme, PrefersContrast, PrefersReducedMotion, PrefersReducedTransparency,
+};
 use style::selector_parser::{PseudoElement, SnapshotMap};
 use style::servo::media_features::PointerCapabilities;
 use style::shared_lock::{SharedRwLock, StylesheetGuards};
@@ -508,8 +510,14 @@ impl Layout for LayoutThread {
     ) -> Option<ScrollContainerResponse> {
         with_layout_state(|| {
             let node = unsafe { node.as_ref().map(|node| ServoLayoutNode::new(node)) };
-            let viewport_overflow = self.box_tree.borrow().as_ref()?.viewport_overflow;
-            process_scroll_container_query(node, flags, viewport_overflow)
+            let box_tree = self.box_tree.borrow();
+            let box_tree = box_tree.as_ref()?;
+            process_scroll_container_query(
+                node,
+                flags,
+                box_tree.viewport_overflow,
+                box_tree.writing_mode(),
+            )
         })
     }
 
@@ -880,6 +888,10 @@ impl LayoutThread {
                 prefers_color_scheme: config.theme.into(),
                 primary_pointer_capabilities: PointerCapabilities::default(),
                 all_pointer_capabilities: PointerCapabilities::default(),
+                // TODO: Obtain these from the embedder via a delegate or preferences.
+                prefers_contrast: PrefersContrast::NoPreference,
+                prefers_reduced_motion: PrefersReducedMotion::NoPreference,
+                prefers_reduced_transparency: PrefersReducedTransparency::NoPreference,
             },
         );
 

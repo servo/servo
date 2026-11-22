@@ -64,4 +64,27 @@ test(function() {
   assert_equals(imported.namespaceURI, originalAttr.namespaceURI);
   assert_equals(imported.localName, originalAttr.localName);
 }, "Import an Attr node with namespace/prefix correctly.");
+
+test(function() {
+  let doc = document.implementation.createHTMLDocument("Title");
+  let doctype = doc.implementation.createDocumentType("html", "public", "system");
+  let imported = document.importNode(doctype);
+  assert_not_equals(imported, doctype);
+  assert_equals(imported.nodeType, Node.DOCUMENT_TYPE_NODE);
+  assert_equals(imported.name, "html");
+  assert_equals(imported.publicId, "public");
+  assert_equals(imported.systemId, "system");
+  assert_equals(imported.ownerDocument, document);
+  assert_equals(imported.parentNode, null);
+  assert_equals(doctype.ownerDocument, doc);
+}, "Import a DocumentType node.");
+
+test(function() {
+  let doc = document.implementation.createHTMLDocument("Title");
+  let imported = document.importNode(doc.doctype, true);
+  assert_not_equals(imported, doc.doctype);
+  assert_equals(imported.name, "html");
+  assert_equals(imported.ownerDocument, document);
+  assert_equals(doc.doctype.parentNode, doc);
+}, "Import a DocumentType node that has a parent.");
 </script>

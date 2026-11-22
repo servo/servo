@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<title>Animations re-resolve their named timeline when the timeline-defining element is replaced or removed</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#timeline-scoping">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
+
+<main id=main></main>
+<script>
+  async function inflate(t, template) {
+    t.add_cleanup(() => main.replaceChildren());
+    return runAndWaitForFrameUpdate(() => {
+      main.append(template.content.cloneNode(true));
+    });
+  }
+
+  async function scrollTop(e, value) {
+    e.scrollTop = value;
+    await waitForNextFrame();
+  }
+</script>
+<style>
+  @keyframes anim {
+    from { width: 0px; }
+    to { width: 200px; }
+  }
+
+  .scroller {
+    overflow-y: hidden;
+    width: 200px;
+    height: 200px;
+  }
+  .scroller > .content {
+    margin: 400px 0px;
+    width: 100px;
+    height: 100px;
+    background-color: green;
+  }
+  .target {
+    background-color: coral;
+    width: 0px;
+    animation: anim auto linear;
+    animation-timeline: --t1;
+  }
+  .timeline {
+    scroll-timeline-name: --t1;
+  }
+  .scope {
+    timeline-scope: --t1;
+  }
+</style>
+
+<template id=scoped>
+  <div class="wrapper scope">
+    <div class=target>Test</div>
+    <div class="scroller timeline">
+      <div class=content></div>
+    </div>
+  </div>
+</template>
+<script>
+  promise_test(async (t) => {
+    await inflate(t, scoped);
+    let wrapper = main.querySelector('.wrapper');
+    let scroller = main.querySelector('.scroller');
+    let target = main.querySelector('.target');
+
+    const anim = target.getAnimations()[0];
+    await anim.ready;
+
+    await scrollTop(scroller, 350); // 50%
+    assert_equals(getComputedStyle(target).width, '100px',
+                  'attached to the first scroller'); // 0px => 200px, 50%
+
+    let replacement = scroller.cloneNode(true);
+    scroller.remove();
+    wrapper.append(replacement);
+    await waitForCSSScrollTimelineStyle();
+
+    await scrollTop(replacement, 175); // 25%
+    assert_equals(getComputedStyle(target).width, '50px',
+                  'attached to the replacement scroller'); // 0px => 200px, 25%
+  }, 'Replacing the element defining a scoped named timeline attaches the ' +
+     'animation to the new element\'s timeline');
+</script>
+
+<template id=unscoped>
+  <div class=wrapper>
+    <div class=target>Test</div>
+    <div class="scroller timeline">
+      <div class=content></div>
+    </div>
+  </div>
+</template>
+<script>
+  promise_test(async (t) => {
+    await inflate(t, unscoped);
+    let scroller = main.querySelector('.scroller');
+    let target = main.querySelector('.target');
+
+    const anim = target.getAnimations()[0];
+    await anim.ready;
+
+    await scrollTop(scroller, 350); // 50%
+    assert_equals(getComputedStyle(target).width, '100px',
+                  'attached'); // 0px => 200px, 50%
+
+    scroller.remove();
+    await waitForCSSScrollTimelineStyle();
+    assert_equals(getComputedStyle(target).width, '0px',
+                  'timeline inactive after its element is removed');
+  }, 'Removing the element defining a global named timeline makes the ' +
+     'animation\'s timeline inactive');
+</script>

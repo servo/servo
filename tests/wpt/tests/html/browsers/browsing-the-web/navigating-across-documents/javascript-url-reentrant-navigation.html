@@ -1,0 +1,81 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Re-entrant navigations during javascript: URL execution</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#navigate-to-a-javascript:-url">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  const iframe = document.createElement("iframe");
+  t.add_cleanup(() => iframe.remove());
+
+  const initialLoad = new Promise(resolve =>
+    iframe.addEventListener("load", resolve, { once: true }));
+  iframe.src = "/common/blank.html?initial";
+  document.body.appendChild(iframe);
+  await initialLoad;
+
+  let loadCount = 0;
+  iframe.addEventListener("load", () => {
+    loadCount++;
+  });
+
+  const doc = iframe.contentDocument;
+  doc.open();
+  doc.addEventListener("readystatechange", () => {
+    iframe.contentWindow.location.href = "/common/blank.html?from-readystatechange";
+  }, { once: true });
+
+  const jsUrlLoad = new Promise(resolve =>
+    iframe.addEventListener("load", resolve, { once: true }));
+  iframe.contentWindow.location.href = "javascript:'<p>replaced</p>'";
+  await jsUrlLoad;
+  await new Promise(resolve => t.step_timeout(resolve, 100));
+
+  assert_equals(
+    loadCount, 1,
+    "re-entrant navigation during readystatechange should be ignored");
+  assert_equals(
+    iframe.contentWindow.location.href, location.href,
+    "document URL should remain at the opener URL from document.open()");
+  assert_equals(
+    iframe.contentDocument.body.textContent, "replaced",
+    "body should reflect the javascript: URL string result");
+}, "Navigation started in readystatechange during javascript: URL document abort is ignored");
+
+promise_test(async t => {
+  const iframe = document.createElement("iframe");
+  t.add_cleanup(() => {
+    delete window.navigateDuringJsUrl;
+    iframe.remove();
+  });
+
+  let loadCount = 0;
+  iframe.addEventListener("load", () => {
+    loadCount++;
+  });
+
+  window.navigateDuringJsUrl = () => {
+    iframe.contentWindow.location.href = "about:blank?committed";
+  };
+
+  const loaded = new Promise(resolve =>
+    iframe.addEventListener("load", resolve, { once: true }));
+  iframe.src = "javascript:(parent.navigateDuringJsUrl(), '<p>overwritten</p>')";
+  document.body.appendChild(iframe);
+  await loaded;
+  await new Promise(resolve => t.step_timeout(resolve, 100));
+
+  assert_equals(
+    loadCount, 1,
+    "javascript: string result should not trigger a second document load");
+  assert_equals(
+    iframe.contentWindow.location.href, "about:blank?committed",
+    "re-entrant about:blank navigation should remain committed");
+  assert_equals(
+    iframe.contentDocument.body.textContent, "",
+    "javascript: URL string result should be ignored after document changed");
+}, "Navigation to about:blank during initial javascript: URL src evaluation prevents string replacement");
+</script>
+</body>

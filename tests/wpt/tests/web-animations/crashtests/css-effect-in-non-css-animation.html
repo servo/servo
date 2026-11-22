@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Chrome issue 578666704</title>
+<link rel="help" href="https://crbug.com/578666704">
+<style>
+  @keyframes --anim {
+    to {
+      color: pink;
+    }
+  }
+  #anim {
+    animation: --anim 1000s step-end;
+  }
+</style>
+<p>Pass if no crash.</p>
+<div id="outer">
+  <div id="anim"></div>
+</div>
+<script>
+  const animation = new Animation(anim.getAnimations()[0].effect, document.timeline);
+  animation.play();
+  outer.style.color = "yellow";
+  animation.effect.getKeyframes()[0].color;
+</script>

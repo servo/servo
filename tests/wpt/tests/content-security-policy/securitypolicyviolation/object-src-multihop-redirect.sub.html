@@ -1,0 +1,31 @@
+<!doctype html>
+<meta http-equiv="content-security-policy" content="object-src 'self'; script-src 'self' 'unsafe-inline';">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+  async_test(t => {
+    // Two hops are needed. With a single hop the original request URL and the previously
+    // requested URL are the same value, so a report naming either one would pass.
+    const target = "http://{{hosts[alt][]}}:{{ports[http][0]}}/content-security-policy/support/postmessage-fail.html";
+    const secondHop = window.origin + "/common/redirect.py?location=" + encodeURIComponent(target);
+    const url = window.origin + "/common/redirect.py?location=" + encodeURIComponent(secondHop);
+
+    // Receiving 'FAIL' from the target means object-src was not enforced after the redirect.
+    window.addEventListener('message', t.step_func((e) => {
+      if (e.data === 'FAIL')
+        assert_unreached("object-src should have blocked the redirect target, but the object loaded it.");
+    }));
+
+    window.addEventListener('securitypolicyviolation', t.step_func_done((e) => {
+      assert_equals(e.violatedDirective, "object-src");
+      assert_equals(e.blockedURI, url);
+    }));
+
+    const obj = document.createElement('object');
+    obj.type = 'text/html';
+    obj.data = url;
+    document.body.appendChild(obj);
+  }, "The blocked URI in the security policy violation event for an object element should be the original URI, not an intermediate one, after more than one redirect.");
+</script>
+</html>

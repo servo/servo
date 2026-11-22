@@ -107,7 +107,9 @@ impl AudioNodeEngine for MediaElementSourceNode {
     make_message_handler!(MediaElementSourceNode: handle_message);
 }
 
+#[derive(MallocSizeOf)]
 struct MediaElementSourceNodeRenderer {
+    #[conditional_malloc_size_of]
     buffers: Arc<Mutex<Vec<Vec<f32>>>>,
     channels: HashMap<u32, usize>,
 }

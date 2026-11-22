@@ -2404,9 +2404,17 @@ function allSimpleSanctionedUnits() {
  *   pre- and post-decimal digits.
  * @param {Object} testData maps input data (in ES5 9.3.1 format) to expected output strings
  *   in unlocalized format with Western digits.
+ * @param {Object} [testOptions] optional settings for the test.
+ * @param {Function} [testOptions.makeInput] converts each input string in
+ *   testData to the value that is formatted, e.g. Number. By default the
+ *   string itself is formatted.
  */
 
-function testNumberFormat(locales, numberingSystems, options, testData) {
+function testNumberFormat(locales, numberingSystems, options, testData, testOptions) {
+  var makeInput = (testOptions && testOptions.makeInput) || function (input) {
+    return input;
+  };
+
   locales.forEach(function (locale) {
     numberingSystems.forEach(function (numbering) {
       var digits = numberingSystemDigits[numbering];
@@ -2459,7 +2467,7 @@ function testNumberFormat(locales, numberingSystems, options, testData) {
             patternParts = posPatternParts;
           }
           var expected = buildExpected(rawExpected, patternParts);
-          var actual = format.format(input);
+          var actual = format.format(makeInput(input));
           if (actual !== expected) {
             throw new Test262Error("Formatted value for " + input + ", " +
             format.resolvedOptions().locale + " and options " +
@@ -2614,8 +2622,13 @@ function partitionDurationFormatPattern(durationFormat, duration) {
     }
     r = String(r).padStart(exponent, "0");
 
+    // Remove trailing zeros. The spec's ComputeFractionalDigits returns a
+    // mathematical value, which carries no trailing zeros, but NumberFormat
+    // may treat zeros spelled in a string as significant.
+    r = r.replace(/0+$/, "");
+
     // Return the result as a decimal string.
-    return `${q}.${r}`;
+    return r === "" ? `${q}` : `${q}.${r}`;
   }
 
   const units = [

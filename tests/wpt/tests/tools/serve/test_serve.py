@@ -158,6 +158,108 @@ def test_set_ws_doc_root():
         assert c.paths["ws_doc_root"] == c.ws_doc_root
 
 
+def test_websocket_h3_config_and_cli():
+    with ConfigBuilder(logger) as c:
+        assert "websocket-h3" in c.ports
+        assert len(c.ports["websocket-h3"]) == 1
+        assert c.ports["websocket-h3-https"] == c.ports["websocket-h3"]
+    with ConfigBuilder(logger, ssl={"type": "none"}) as c:
+        assert "websocket-h3" not in c.ports
+        assert "websocket-h3-https" not in c.ports
+    assert serve.get_parser().parse_args([]).websocket_h3 is False
+    assert serve.get_parser().parse_args(["--websocket-h3"]).websocket_h3 is True
+    assert serve.get_parser().parse_args(["--no-websocket-h3"]).websocket_h3 is False
+
+
+@pytest.mark.parametrize("enabled", [None, False, True])
+def test_websocket_h3_server_dispatch(enabled):
+    with ConfigBuilder(logger, ports={"websocket-h3": [11001]}) as c:
+        with patch.object(serve, "ServerProc") as server_proc:
+            servers = serve.start_servers(
+                logger, c.server_host, c.ports, c.paths, [], c.bind_address,
+                c, None, [], **({} if enabled is None else {"websocket_h3": enabled}))
+
+        if enabled is True:
+            assert len(servers["websocket-h3"]) == 1
+            assert servers["websocket-h3"][0][0] == 11001
+            assert servers["websocket-h3-https"][0][0] == 11001
+            assert [call.args[0] for call in server_proc.return_value.start.call_args_list] == [
+                serve.start_websocket_h3_server,
+                serve.start_websocket_h3_https_server,
+            ]
+        else:
+            assert not servers["websocket-h3"]
+            assert not servers["websocket-h3-https"]
+            server_proc.assert_not_called()
+
+
+def test_websocket_h3_https_alt_svc():
+    handler = object.__new__(serve.WebSocketH3HttpsHandler)
+    handler.server = MagicMock(server_port=11001)
+    request = MagicMock()
+    request.url_parts.query = "wpt_flags=websocket-h3"
+    request.url_parts.path = "/websockets/binary/001.html"
+    response = MagicMock()
+
+    with patch.object(serve.wptserve.Http1WebTestRequestHandler, "finish_handling") as normal:
+        handler.finish_handling(request, response, None)
+        normal.assert_called_once_with(request, response, None)
+    response.headers.set.assert_called_once_with("Alt-Svc", 'h3=":11001"; ma=60')
+    response.write.assert_not_called()
+
+    request.url_parts.query = "wpt_flags=h2"
+    response.headers.set.reset_mock()
+    with patch.object(serve.wptserve.Http1WebTestRequestHandler, "finish_handling") as normal:
+        handler.finish_handling(request, response, None)
+        normal.assert_called_once_with(request, response, None)
+    response.headers.set.assert_not_called()
+
+
+def test_start_websocket_h3_server():
+    pytest.importorskip("aioquic")
+    from websocket.h3 import websocket_h3_server  # type: ignore[import-not-found]
+
+    with ConfigBuilder(logger, ports={"websocket-h3": [11001]},
+                       ws_extra=["/extra-handlers"]) as c:
+        routes = [("GET", "/example", object())]
+        with patch.object(websocket_h3_server, "WebSocketH3Server") as server:
+            instance = serve.start_websocket_h3_server(
+                logger, c.server_host, 11001, c.paths, routes,
+                c.bind_address, c)
+
+        assert instance is server.return_value
+        server.assert_called_once_with(
+            host=c.server_host,
+            port=11001,
+            ws_doc_root=c.paths["ws_doc_root"],
+            cert_path=c.ssl_config["cert_path"],
+            key_path=c.ssl_config["key_path"],
+            doc_root=c.paths["doc_root"],
+            routes=routes,
+            rewrites=serve.rewrites,
+            config=c,
+            extra_handler_paths=["/extra-handlers"],
+            logger=logger)
+
+
+def test_websocket_h3_server_listens():
+    pytest.importorskip("aioquic")
+    from websocket.h3.websocket_h3_server import server_is_running  # type: ignore[import-not-found]
+
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        port = sock.getsockname()[1]
+
+    with ConfigBuilder(logger, ports={"websocket-h3": [port]}) as c:
+        server = serve.start_websocket_h3_server(
+            logger, "127.0.0.1", port, c.paths, [], True, c)
+        try:
+            server.start()
+            assert server_is_running("127.0.0.1", port, timeout=5)
+        finally:
+            server.stop()
+
+
 def test_pickle():
     # Ensure that the config object can be pickled
     with ConfigBuilder(logger) as c:

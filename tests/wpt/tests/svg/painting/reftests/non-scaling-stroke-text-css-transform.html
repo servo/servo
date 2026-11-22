@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>vector-effect: non-scaling-stroke on text below CSS transforms on and above the outermost svg</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#VectorEffects">
+<link rel="match" href="non-scaling-stroke-text-css-transform-ref.html">
+<meta name="fuzzy" content="maxDifference=0-2;totalPixels=0-3000">
+<style>
+  body { margin: 0; }
+  svg { display: block; width: 150px; height: 30px; }
+  .scaled { transform: scale(2); transform-origin: 0 0; }
+  div { height: 60px; }
+</style>
+<div class="scaled">
+  <svg>
+    <g transform="scale(2)">
+      <text x="2" y="12" font-size="10" fill="none" stroke="green" stroke-width="4" vector-effect="non-scaling-stroke">Hello</text>
+    </g>
+  </svg>
+</div>
+<svg class="scaled">
+  <g transform="scale(2)">
+    <text x="2" y="12" font-size="10" fill="none" stroke="green" stroke-width="4" vector-effect="non-scaling-stroke">Hello</text>
+  </g>
+</svg>

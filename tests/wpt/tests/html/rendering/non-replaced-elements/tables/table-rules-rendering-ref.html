@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reference: lines of the table rules attribute drawn with cell borders</title>
+<style>
+  table { color: black; display: inline-table; vertical-align: top; margin: 0 12px 12px 0;
+          border-collapse: collapse; border-style: hidden; }
+  table.border { border: 1px outset; }
+  td { width: 20px; height: 20px; padding: 0; }
+
+  .rows td { border-top: 1px solid; border-bottom: 1px solid; }
+  .cols td { border-left: 1px solid; border-right: 1px solid; }
+  .all td { border: 1px solid; }
+
+  /* groups: a line at both edges of each row group and each column group */
+  .groups thead td, .groups tfoot td { border-top: 1px solid; border-bottom: 1px solid; }
+  .groups tbody tr:first-child td { border-top: 1px solid; }
+  .groups tbody tr:last-child td { border-bottom: 1px solid; }
+  .groups td:nth-child(1) { border-left: 1px solid; }
+  .groups td:nth-child(2) { border-right: 1px solid; }
+  .groups td:nth-child(3) { border-left: 1px solid; border-right: 1px solid; }
+</style>
+
+<table class="groups">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<table class="rows">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<table class="cols">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<table class="all">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<br>
+<table class="border groups">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<table class="border rows">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<table class="border cols">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<table class="border all">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<br>
+<table class="rows">
+  <tbody>
+    <tr><td rowspan="2"></td><td colspan="2"></td></tr>
+    <tr><td></td><td rowspan="2"></td></tr>
+    <tr><td colspan="2"></td></tr>
+  </tbody>
+</table>
+<table class="border rows">
+  <tbody>
+    <tr><td rowspan="2"></td><td colspan="2"></td></tr>
+    <tr><td></td><td rowspan="2"></td></tr>
+    <tr><td colspan="2"></td></tr>
+  </tbody>
+</table>

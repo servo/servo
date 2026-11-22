@@ -15,7 +15,9 @@ use style::properties::style_structs::Font;
 use style::properties::{
     ComputedValues, Importance, PropertyDeclaration, PropertyDeclarationBlock, longhands,
 };
-use style::queries::values::PrefersColorScheme;
+use style::queries::values::{
+    PrefersColorScheme, PrefersContrast, PrefersReducedMotion, PrefersReducedTransparency,
+};
 use style::rule_tree::{RuleCascadeFlags, StyleSource};
 use style::selector_map::SelectorMap;
 use style::selector_parser::{SelectorImpl, SelectorParser};
@@ -260,6 +262,9 @@ fn mock_stylist() -> Stylist {
             device_size: Size2D::new(0f32, 0f32),
             device_pixel_ratio: Scale::new(1.0),
             prefers_color_scheme: PrefersColorScheme::Light,
+            prefers_contrast: PrefersContrast::NoPreference,
+            prefers_reduced_motion: PrefersReducedMotion::NoPreference,
+            prefers_reduced_transparency: PrefersReducedTransparency::NoPreference,
             primary_pointer_capabilities: PointerCapabilities::default(),
             all_pointer_capabilities: PointerCapabilities::default(),
         },

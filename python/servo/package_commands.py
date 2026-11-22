@@ -8,38 +8,36 @@
 # except according to those terms.
 
 import gzip
-import random
-from typing import List
-
-import time
-import re
 import os
 import os.path as path
+import random
+import re
 import shutil
 import subprocess
 import sys
+import time
+from typing import List
 
-import servo.gstreamer
 from mach.decorators import (
+    Command,
     CommandArgument,
     CommandProvider,
-    Command,
 )
 from mach.registrar import Registrar
 
+import servo.gstreamer
+from python.servo.platform.build_target import SanitizerKind
 from servo.command_base import (
-    BuildType,
-    archive_deterministically,
     BuildNotFound,
+    BuildType,
+    CommandBase,
+    archive_deterministically,
     cd,
     check_output,
-    CommandBase,
     is_windows,
 )
-from servo.util import delete
-
-from python.servo.platform.build_target import SanitizerKind
 from servo.platform.build_target import is_android, is_openharmony
+from servo.util import delete
 
 
 def listfiles(directory: str) -> list[str]:

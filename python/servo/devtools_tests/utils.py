@@ -8,20 +8,20 @@
 # except according to those terms.
 
 from __future__ import annotations
+
 from collections import Counter
+from collections.abc import Callable
 from concurrent.futures import Future
 from dataclasses import dataclass
 from threading import Lock
 from typing import Any, Iterable, Optional, TypeVar
 
+from geckordp.actors.descriptors.tab import TabActor
 from geckordp.actors.events import Events
 from geckordp.actors.resources import Resources
 from geckordp.actors.root import RootActor
-from geckordp.actors.descriptors.tab import TabActor
 from geckordp.actors.watcher import WatcherActor
 from geckordp.rdp_client import RDPClient
-
-from collections.abc import Callable
 
 # Set this to true to log requests in the internal web servers.
 LOG_REQUESTS = False

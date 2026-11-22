@@ -1043,8 +1043,13 @@ impl DocumentEventHandler {
         }
 
         // https://w3c.github.io/uievents/#hit-test
-        // Prevent mouse event if element is disabled.
-        if element.is_actually_disabled() {
+        // <https://html.spec.whatwg.org/multipage/#enabling-and-disabling-form-controls:-the-disabled-attribute>
+        // > A form control that is disabled must prevent any click events that are queued on the
+        // > user interaction task source from being dispatched on the element.
+        if element
+            .downcast::<HTMLElement>()
+            .is_some_and(|html_element| html_element.is_form_element_disabled(cx.no_gc()))
+        {
             return;
         }
 
@@ -3222,7 +3227,8 @@ impl DocumentEventHandler {
     ///
     /// target is passed explicitly, because it might not be set on event
     fn light_dismiss_activities(cx: &mut JSContext, event: &PointerEvent, target: &EventTarget) {
-        // TODO: Step 1. Run light dismiss open popovers with event.
+        // Step 1. Run light dismiss open popovers with event.
+        target.light_dismiss_open_popovers(cx, event);
 
         // Step 2. Run light dismiss open dialogs with event.
         HTMLDialogElement::light_dismiss_open_dialogs(cx, event, target);

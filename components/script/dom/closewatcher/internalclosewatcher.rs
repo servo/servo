@@ -15,6 +15,7 @@ use crate::dom::CloseWatcher;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::htmldialogelement::HTMLDialogElement;
 use crate::dom::window::Window;
 
@@ -248,6 +249,9 @@ impl InternalCloseWatcher {
                 );
                 event.fire(cx, dialog.upcast::<EventTarget>())
             },
+            // https://html.spec.whatwg.org/multipage/#show-popover
+            // > cancelAction being to return true.
+            InternalCloseWatcherOwner::Popover(_) => true,
         }
     }
 
@@ -272,6 +276,11 @@ impl InternalCloseWatcher {
                 // > return value, and dialog's request close source element.
                 dialog.close_watcher_close(cx)
             },
+            InternalCloseWatcherOwner::Popover(popover) => {
+                // https://html.spec.whatwg.org/multipage/#show-popover
+                // > closeAction being to hide a popover given element, true, true, false, and null.
+                let _ = popover.hide_popover(cx, true, true, false, None);
+            },
         }
     }
 
@@ -285,6 +294,9 @@ impl InternalCloseWatcher {
             // https://html.spec.whatwg.org/multipage/#the-closewatcher-interface:close-watcher-get-enabled-state
             // > getEnabledState being to return true.
             InternalCloseWatcherOwner::CloseWatcher(_) => true,
+            // https://html.spec.whatwg.org/multipage/#show-popover
+            // > getEnabledState being to return true.
+            InternalCloseWatcherOwner::Popover(_) => true,
         }
     }
 }
@@ -296,4 +308,6 @@ pub(crate) enum InternalCloseWatcherOwner {
     CloseWatcher(Dom<CloseWatcher>),
     /// <https://html.spec.whatwg.org/multipage/#set-the-dialog-close-watcher>
     Dialog(Dom<HTMLDialogElement>),
+    /// <https://html.spec.whatwg.org/multipage/#popover-close-watcher>
+    Popover(Dom<HTMLElement>),
 }

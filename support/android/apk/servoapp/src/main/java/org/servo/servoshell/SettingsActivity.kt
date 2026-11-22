@@ -50,7 +50,7 @@ class SettingsActivity : ComponentActivity() {
                             }
                         },
                     )
-                }
+                },
             ) { innerPadding ->
                 Column(modifier = Modifier.padding(innerPadding)) {
                     SettingsItem(

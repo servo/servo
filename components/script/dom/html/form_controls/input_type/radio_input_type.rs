@@ -9,6 +9,7 @@ use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::dom::UnrootedDom;
 use script_bindings::domstring::DOMString;
 use script_bindings::root::{Dom, DomRoot};
+use script_bindings::traits::DomEventTrait;
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
 
@@ -220,12 +221,19 @@ impl SpecificInputActivationType for RadioInputActivation {
         &self,
         cx: &mut js::context::JSContext,
         input: &HTMLInputElement,
-        _event: &Event,
+        event: &Event,
         _target: &EventTarget,
     ) {
         // Step 1: If the element is not connected, then return.
         if !input.upcast::<Node>().is_connected() {
             return;
+        }
+
+        // According to the spec, because this input type has its own activation behavior,
+        // it shouldn't go through the flow which changes the user validity to true,
+        // but other browsers and tests disagree.
+        if event.IsTrusted() {
+            input.set_user_validity(cx.no_gc(), true);
         }
 
         // Step 2: Fire an event named input at the element with the bubbles and composed

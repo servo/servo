@@ -25,6 +25,7 @@ use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::focusevent::FocusEventType;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
+use crate::dom::input_type::ValueChangeEvents;
 use crate::dom::node::focus::{FocusNavigationScopeOwner, FocusTrigger};
 use crate::dom::types::{Element, EventTarget, FocusEvent, HTMLElement, HTMLIFrameElement, Window};
 use crate::dom::{Document, Event, EventBubbles, EventCancelable, Node, NodeTraits};
@@ -345,6 +346,68 @@ impl DocumentFocusHandler {
         self.focused_area().focus_chain()
     }
 
+    /// Whether this [`Document`] definitely has the top-level focus in its WebView. When this
+    /// question cannot be answered cheaply (trees that span multiple ScriptThreads), it returns
+    /// `false`.
+    ///
+    /// A `Document` updates its focus state right away when it runs the focusing steps, but the
+    /// other `Document`s in the WebView only learn about it asynchronously from the Constellation.
+    /// The question can only answered definitely if all of the `Document`s are in the same
+    /// ScriptThread and agree.
+    pub(crate) fn definitely_has_top_level_focus(&self) -> bool {
+        fn no_other_document_has_focus(
+            document: &Document,
+            documents_with_focus: &[DomRoot<Document>],
+        ) -> bool {
+            document.iframes().iter().all(|iframe| {
+                if iframe.browsing_context_id().is_none() {
+                    return true;
+                }
+                let Some(content_document) = iframe
+                    .GetContentWindow()
+                    .and_then(|window_proxy| window_proxy.document())
+                else {
+                    return false;
+                };
+                (documents_with_focus.contains(&content_document) ||
+                    !content_document.focus_handler().has_focus()) &&
+                    no_other_document_has_focus(&content_document, documents_with_focus)
+            })
+        }
+
+        if !self.has_focus() {
+            return false;
+        }
+
+        let mut document = self.window.Document();
+        let mut documents_with_focus = vec![];
+        while !document.window().is_top_level() {
+            // The navigable container is only available when its `Document` is in this script
+            // thread.
+            let window_proxy = document.window().window_proxy();
+            let Some(container) = window_proxy.frame_element() else {
+                return false;
+            };
+            let parent = container.owner_document();
+            let parent_focus_handler = parent.focus_handler();
+            if !parent_focus_handler.has_focus() ||
+                !matches!(
+                    &*parent_focus_handler.focused_area(),
+                    FocusableArea::IFrameViewport { iframe_element, .. }
+                        if iframe_element.upcast::<Element>() == container
+                )
+            {
+                return false;
+            }
+            documents_with_focus.push(document);
+            document = parent;
+        }
+
+        // The top-level `Document` isn't the content of a navigable, so it doesn't need to be in
+        // `documents_with_focus`.
+        no_other_document_has_focus(&document, &documents_with_focus)
+    }
+
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or the document if no elements requested it.
     pub(crate) fn focus(
@@ -489,9 +552,17 @@ impl DocumentFocusHandler {
             // changed the element's value or its list of selected files while the control was
             // focused without committing that change (such that it is different to what it was
             // when the control was first focused), then:
-            // Step 2.1.1: Set entry's user validity to true.
-            // Step 2.1.2: Fire an event named change at the element, with the bubbles attribute initialized to true.
-            // TODO: Implement this.
+            if let Some(element) = entry.element() &&
+                let Some(input) = element.downcast::<HTMLInputElement>() &&
+                input.does_change_event_apply() &&
+                !input.has_defined_activation_behavior() &&
+                input.changed_by_user_while_focused()
+            {
+                // Step 2.1.1: Set entry's user validity to true.
+                input.set_user_validity(cx.no_gc(), true);
+                // Step 2.1.2: Fire an event named change at the element, with the bubbles attribute initialized to true.
+                input.fire_value_change_events(cx, ValueChangeEvents::Change);
+            }
 
             // Step 2.2:
             // - If entry is an element, let blur event target be entry.

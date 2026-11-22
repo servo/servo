@@ -97,6 +97,39 @@ def test_loader_h2_tests(logger):
     assert loader.disabled_tests[""]["testharness"][0].url == "/a/bar.h2.html"
 
 
+def test_loader_websocket_h3_variant(logger):
+    manifest_json = {
+        "items": {
+            "testharness": {
+                "websockets": {
+                    "basic.html": [
+                        "abcdef123456",
+                        ["websockets/basic.html?default", {}],
+                        ["websockets/basic.html?wpt_flags=websocket-h3", {}],
+                    ],
+                },
+            },
+        },
+        "url_base": "/",
+        "version": 9,
+    }
+    manifest = WPTManifest.from_json("/", manifest_json)
+    subsuites = {"": Subsuite("", config={})}
+    args = (logger, {manifest: {"metadata_path": ""}}, ["testharness"], None, subsuites)
+
+    loader = TestLoader(*args)
+    assert [test.url for test in loader.tests[""]["testharness"]] == [
+        "/websockets/basic.html?default",
+    ]
+    assert loader.disabled_tests[""]["testharness"][0].url == (
+        "/websockets/basic.html?wpt_flags=websocket-h3"
+    )
+
+    loader = TestLoader(*args, include_websocket_h3=True)
+    assert len(loader.tests[""]["testharness"]) == 2
+    assert loader.disabled_tests[""] == {}
+
+
 @pytest.mark.xfail(sys.platform == "win32",
                    reason="NamedTemporaryFile cannot be reopened on Win32")
 def test_include_file():

@@ -61,6 +61,31 @@
 
       test(() => {
         const canvas = document.getElementById('canvas');
+        const notDrawableCanvas = document.getElementById('canvas-not-drawable');
+        const child = document.getElementById('drawable-child-of-not-drawable');
+        const outside = document.getElementById('outside');
+        const otherChild = document.getElementById('other-child');
+        const nestedNonDrawable = document.getElementById('nested-non-drawable');
+
+        assert_throws_dom('InvalidStateError', () => {
+          notDrawableCanvas.clearElementGeometry(child);
+        }, 'Calling clearElementGeometry on canvas without content=drawable must throw');
+
+        assert_throws_dom('InvalidStateError', () => {
+          canvas.clearElementGeometry(outside);
+        }, 'Calling clearElementGeometry on element outside canvas must throw');
+
+        assert_throws_dom('InvalidStateError', () => {
+          canvas.clearElementGeometry(otherChild);
+        }, 'Calling clearElementGeometry on element in another canvas must throw');
+
+        assert_throws_dom('InvalidStateError', () => {
+          canvas.clearElementGeometry(nestedNonDrawable);
+        }, 'Calling clearElementGeometry on non-drawable descendant must throw');
+      }, 'clearElementGeometry throws InvalidStateError for ineligible elements');
+
+      test(() => {
+        const canvas = document.getElementById('canvas');
         const target = document.getElementById('target');
         let rect = target.getBoundingClientRect();
         assert_equals(rect.left, 10);
@@ -150,6 +175,46 @@
         assert_equals(rect.left, 10);
         assert_equals(rect.top, 20);
       }, 'updateElementGeometry and clearElementGeometry accept ElementImage');
+
+      promise_test(async (t) => {
+        const canvas = document.getElementById('canvas');
+        const otherCanvas = document.getElementById('other-canvas');
+        const target = document.getElementById('target');
+        t.add_cleanup(() => {
+          canvas.clearElementGeometry(target);
+        });
+        await waitForCanvasPaint(canvas);
+
+        const elementImage = canvas.captureElementImage(target);
+        canvas.updateElementGeometry(target, {
+          canvasTransform: new DOMMatrix().translate(20, 30)
+        });
+        assert_equals(target.getBoundingClientRect().left, 30);
+        assert_equals(target.getBoundingClientRect().top, 50);
+
+        assert_throws_dom('InvalidStateError', () => {
+          otherCanvas.updateElementGeometry(elementImage, {
+            canvasTransform: new DOMMatrix().translate(100, 100)
+          });
+        }, 'updateElementGeometry with ElementImage from another canvas must throw');
+
+        assert_throws_dom('InvalidStateError', () => {
+          otherCanvas.clearElementGeometry(elementImage);
+        }, 'clearElementGeometry with ElementImage from another canvas must throw');
+
+        // Verify target's transform was not modified or cleared by otherCanvas.
+        assert_equals(target.getBoundingClientRect().left, 30);
+        assert_equals(target.getBoundingClientRect().top, 50);
+
+        elementImage.close();
+        assert_throws_dom('InvalidStateError', () => {
+          canvas.updateElementGeometry(elementImage);
+        }, 'updateElementGeometry with closed ElementImage must throw');
+
+        assert_throws_dom('InvalidStateError', () => {
+          canvas.clearElementGeometry(elementImage);
+        }, 'clearElementGeometry with closed ElementImage must throw');
+      }, 'updateElementGeometry and clearElementGeometry throw InvalidStateError for ineligible ElementImage');
 
       test(() => {
         const canvas = document.getElementById('canvas');

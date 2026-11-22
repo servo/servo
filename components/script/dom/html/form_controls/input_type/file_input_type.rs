@@ -83,6 +83,10 @@ impl FileInputType {
             return;
         };
 
+        let from_directory = response_files
+            .iter()
+            .any(|file| file.relative_path.is_some());
+
         let window = input.owner_window();
         files.extend(
             response_files
@@ -90,9 +94,9 @@ impl FileInputType {
                 .map(|file| File::new_from_selected(cx, &window, file)),
         );
 
-        // Only use the last file if this isn't a multi-select file input. This could
+        // Only use the last file if this isn't a multi-select or webkitdirectory file input. This could
         // happen if the attribute changed after the file dialog was initiated.
-        if !input.Multiple() {
+        if !input.Multiple() && !from_directory {
             files = files
                 .pop()
                 .map(|last_file| vec![last_file])
@@ -176,6 +180,7 @@ impl SpecificInputType for FileInputType {
                     filter_patterns: filter_from_accept(&input.Accept()),
                     allow_select_multiple: input.Multiple(),
                     accept_current_paths_for_testing,
+                    select_directory: input.Webkitdirectory(),
                 }),
                 None,
             );
@@ -295,7 +300,7 @@ impl SpecificShadowTree<HTMLInputElement, FileInputType> for FileInputShadowTree
         self.selector_button
             .downcast::<HTMLButtonElement>()
             .expect("The selector button should be a button")
-            .SetDisabled(cx, input_element.upcast::<Element>().disabled_state());
+            .SetDisabled(cx, input_element.is_form_element_disabled());
 
         self.value_container
             .upcast::<Node>()

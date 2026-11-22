@@ -88,4 +88,27 @@
                   'a still has no timeline');
   }, 'Changing one animation\'s animation-timeline away from a shared name ' +
      'does not stop the other animation from attaching to that name later');
+  promise_test(async (t) => {
+    await inflate(t, shared_name);
+    let scroller = main.querySelector('.scroller');
+    let a = main.querySelector('#a');
+    let b = main.querySelector('#b');
+
+    // No timeline named --t1 exists yet: both animations are inactive.
+    assert_equals(getComputedStyle(a).width, '300px', 'a before any change');
+    assert_equals(getComputedStyle(b).width, '300px', 'b before any change');
+
+    // Remove a from the document.
+    a.remove();
+    await waitForCSSScrollTimelineStyle();
+    assert_equals(getComputedStyle(b).width, '300px', 'b after a is removed');
+
+    // Create the timeline. b must attach to it.
+    scroller.style.scrollTimelineName = '--t1';
+    await waitForCSSScrollTimelineStyle();
+    await scrollTop(scroller, 350); // 50%
+    assert_equals(getComputedStyle(b).width, '100px',
+                  'b attached to the new timeline'); // 0px => 200px, 50%
+  }, 'Removing one element whose animation references a shared name does ' +
+     'not stop the other animation from attaching to that name later');
 </script>

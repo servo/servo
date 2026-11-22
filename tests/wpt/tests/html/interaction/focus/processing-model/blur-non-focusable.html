@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Explicit blur before focus fixup</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#unfocusing-steps">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+"use strict";
+
+for (const mode of ["hidden ancestor", "hidden ancestor with layout flush", "disabled"]) {
+  promise_test(async t => {
+    // Start outside a rendering update, after the document has rendered.
+    await new Promise(resolve => {
+      requestAnimationFrame(() => t.step_timeout(resolve, 0));
+    });
+
+    const container = document.createElement("div");
+    const textarea = document.createElement("textarea");
+    container.append(textarea);
+    document.body.append(container);
+    t.add_cleanup(() => container.remove());
+
+    textarea.focus();
+    assert_equals(document.activeElement, textarea, "The textarea starts focused");
+    const events = [];
+    textarea.addEventListener("blur", () => events.push("blur"));
+
+    if (mode === "disabled") {
+      textarea.disabled = true;
+    } else {
+      container.hidden = true;
+      if (mode === "hidden ancestor with layout flush") {
+        assert_equals(textarea.getClientRects().length, 0, "The textarea has no layout boxes");
+      }
+    }
+
+    assert_equals(document.activeElement, textarea, "Focus fixup has not run yet");
+    assert_array_equals(events, [], "No blur event before explicit blur()");
+
+    textarea.blur();
+    assert_equals(document.activeElement, document.body, "blur() synchronously releases focus");
+    assert_array_equals(events, ["blur"], "blur() synchronously fires a blur event");
+  }, `blur() on a focused textarea made non-focusable: ${mode}`);
+}
+</script>

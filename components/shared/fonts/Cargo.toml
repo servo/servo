@@ -28,6 +28,7 @@ serde = { workspace = true }
 servo_arc = { workspace = true }
 servo-base = { workspace = true }
 servo-url = { workspace = true }
+skrifa = { workspace = true }
 stylo = { workspace = true }
 uuid = { workspace = true }
 webrender_api = { workspace = true }

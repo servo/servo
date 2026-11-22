@@ -9,7 +9,7 @@ partial interface Window {
 };
 
 dictionary IdleRequestOptions {
-  unsigned long timeout;
+  unsigned long timeout = 0;
 };
 
 [Exposed=Window] interface IdleDeadline {

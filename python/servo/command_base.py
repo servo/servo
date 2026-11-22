@@ -19,26 +19,25 @@ import shutil
 import subprocess
 import sys
 import tarfile
-from tarfile import TarInfo
 import zipfile
+from collections.abc import Callable, Generator
 from dataclasses import dataclass
 from enum import Enum
 from glob import glob
 from os import path
 from subprocess import CompletedProcess
-from typing import Any, Optional, Union, cast, List
-from collections.abc import Generator, Callable
+from tarfile import TarInfo
+from typing import Any, List, Optional, Union, cast
 
 import toml
 from mach.decorators import CommandArgument, CommandArgumentGroup
 
 import servo.platform
 import servo.util as util
-from servo.platform.build_target import AndroidTarget, BuildTarget, OpenHarmonyTarget
-from servo.util import get_default_cache_dir
-
 from python.servo.platform.build_target import SanitizerKind
 from python.servo.util import get_target_dir
+from servo.platform.build_target import AndroidTarget, BuildTarget, OpenHarmonyTarget
+from servo.util import get_default_cache_dir
 
 ASAN_LEAK_SUPPRESSION_FILE = "support/suppressed_leaks_for_asan.txt"
 

@@ -9,8 +9,7 @@
 
 import json
 import sys
-from subprocess import Popen, PIPE
-
+from subprocess import PIPE, Popen
 
 TEST_CMD = [
     "./mach",

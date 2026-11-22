@@ -68,28 +68,16 @@
         dragInput.select();
         dragInput.focus();
 
-        await new Promise(async (resolve, reject) => {
-          dropDiv.addEventListener('drop', t.step_func((
-            event) => {
-            try {
-              dropEffectOnDropCallBack(event);
-              resolve();
-            } catch (e) {
-              reject(e);
-            }
-          }));
-          try {
-            let actions = new test_driver.Actions();
-            actions = movePointerToCenter(dragInput, /*iframe=*/
-                null, actions)
-              .pointerDown();
-            actions = movePointerToCenter(dropDiv, /*iframe=*/
-                null, actions)
-              .pointerUp();
-            await actions.send();
-          } catch (e) {
-            reject(e);
-          }
+        await waitForDragEvent(t, dropDiv, 'drop', 1000,
+                               dropEffectOnDropCallBack, () => {
+          let actions = new test_driver.Actions();
+          actions = movePointerToCenter(dragInput, /*iframe=*/
+              null, actions)
+            .pointerDown();
+          actions = movePointerToCenter(dropDiv, /*iframe=*/
+              null, actions)
+            .pointerUp();
+          return actions.send();
         });
       });
     }

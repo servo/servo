@@ -33,6 +33,11 @@ test_valid_value("background-image", "radial-gradient(at right 40%, red, blue)")
 test_valid_value("background-image", "radial-gradient(at right 30% top 60px, red, blue)");
 test_valid_value("background-image", "radial-gradient(at top, red, blue)", ["radial-gradient(at center top, red, blue)", "radial-gradient(at top, red, blue)"]);
 test_valid_value("background-image", "radial-gradient(at top center, red, blue)", ["radial-gradient(at center top, red, blue)", "radial-gradient(at top, red, blue)"]);
+
+test_valid_value("background-image", "radial-gradient(circle closest-side at top, red, blue)", ["radial-gradient(circle closest-side at center top, red, blue)", "radial-gradient(circle closest-side at top, red, blue)"]);
+test_valid_value("background-image", "radial-gradient(circle closest-side at top left, red, blue)", "radial-gradient(circle closest-side at left top, red, blue)");
+test_valid_value("background-image", "radial-gradient(circle closest-side at 10px 20%, red, blue)");
+test_valid_value("background-image", "radial-gradient(10px 10px at center, red, blue)", ["radial-gradient(10px 10px, red, blue)", "radial-gradient(10px 10px at center center, red, blue)", "radial-gradient(10px 10px at center, red, blue)"]);
 </script>
 </body>
 </html>

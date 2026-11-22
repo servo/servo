@@ -52,7 +52,7 @@ use std::ffi::CString;
 use std::hash::{BuildHasher, Hash};
 use std::ops::{Range, RangeInclusive};
 use std::rc::Rc;
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, Once, OnceLock};
 
 use cookie::Cookie;
 use resvg::usvg::fontdb::Source;
@@ -128,8 +128,8 @@ impl<T: MallocConditionalSizeOf> MallocConditionalSizeOf for [T] {
 }
 
 impl<T: MallocSizeOf, const N: usize> MallocSizeOf for Box<[T; N]> {
-    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
-        N * size_of::<T>()
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.iter().map(|value| value.size_of(ops)).sum()
     }
 }
 
@@ -638,6 +638,13 @@ impl<T: MallocConditionalSizeOf> MallocConditionalSizeOf for OnceLock<T> {
         self.get()
             .map(|interior| interior.conditional_size_of(ops))
             .unwrap_or_default()
+    }
+}
+
+impl MallocSizeOf for Once {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        // Currently hard to measure
+        0
     }
 }
 
@@ -1280,6 +1287,12 @@ impl MallocSizeOf for content_security_policy::Policy {
     }
 }
 
+impl MallocSizeOf for content_security_policy::CspList {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.0.size_of(ops)
+    }
+}
+
 malloc_size_of_hash_map!(indexmap::IndexMap<K, V, S>);
 malloc_size_of_hash_set!(indexmap::IndexSet<T, S>);
 
@@ -1308,6 +1321,9 @@ malloc_size_of_is_0!(resvg::usvg::fontdb::Style);
 malloc_size_of_is_0!(resvg::usvg::fontdb::Weight);
 malloc_size_of_is_0!(resvg::usvg::fontdb::Stretch);
 malloc_size_of_is_0!(resvg::usvg::fontdb::Language);
+// The Skrifa font type isn't zero-sized, but it's opaque to us, so
+// we cannot effectively measure it.
+malloc_size_of_is_0!(skrifa::Font);
 malloc_size_of_is_0!(std::num::NonZeroU16);
 malloc_size_of_is_0!(std::num::NonZeroU32);
 malloc_size_of_is_0!(std::num::NonZeroU64);
@@ -1326,6 +1342,9 @@ malloc_size_of_is_0!(style::font_face::SourceList);
 malloc_size_of_is_0!(style::properties::ComputedValues);
 malloc_size_of_is_0!(style::properties::declaration_block::PropertyDeclarationBlock);
 malloc_size_of_is_0!(style::queries::values::PrefersColorScheme);
+malloc_size_of_is_0!(style::queries::values::PrefersContrast);
+malloc_size_of_is_0!(style::queries::values::PrefersReducedMotion);
+malloc_size_of_is_0!(style::queries::values::PrefersReducedTransparency);
 malloc_size_of_is_0!(style::stylesheets::Stylesheet);
 malloc_size_of_is_0!(style::stylesheets::FontFaceRule);
 malloc_size_of_is_0!(style::values::specified::source_size_list::SourceSizeList);

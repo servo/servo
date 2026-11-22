@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Overflow Reference: An absolutely positioned box doesn't cover the root scrollbar-gutter in fullscreen</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+:root {
+  scrollbar-gutter: stable both-edges;
+  background: blue;
+}
+#target {
+  background: transparent;
+}
+#target::backdrop {
+  display: none;
+}
+#box {
+  position: absolute;
+  inset: 0;
+  background: green;
+  z-index: -1;
+}
+</style>
+
+<div id="box"></div>
+<div id="target"></div>
+
+<script>
+document.addEventListener("fullscreenchange", () => {
+  document.documentElement.classList.remove("reftest-wait");
+});
+test_driver.bless("fullscreen", () => target.requestFullscreen());
+</script>
+</html>

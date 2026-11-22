@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>A missing glyph must not hide a newly available web font</title>
+<link rel="author" title="Hoch Hochkeppel" href="mailto:mhochk@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-matching-algorithm">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.test {
+  display: inline-block;
+  font: 100px/1 NotDefCacheTest;
+}
+</style>
+<script>
+promise_test(async () => {
+  const ahemFace = new FontFace(
+      "NotDefCacheTest",
+      "url('/fonts/Ahem.ttf')");
+  document.fonts.add(ahemFace);
+  await ahemFace.load();
+  await document.fonts.ready;
+
+  const target = document.createElement("span");
+  target.className = "test";
+  target.textContent = "\u208F";
+  document.body.appendChild(target);
+
+  // Ahem does not contain U+208F, so force shaping to produce a missing glyph
+  // before switching to a font that contains it.
+  const missingGlyphWidth = target.getBoundingClientRect().width;
+  assert_greater_than(
+      missingGlyphWidth, 0, "the initial missing glyph must have an advance");
+
+  const latoFace = new FontFace(
+      "NotDefCacheTest",
+      "url('/fonts/Lato-Medium.ttf')");
+  await latoFace.load();
+  document.fonts.delete(ahemFace);
+  document.fonts.add(latoFace);
+  await document.fonts.ready;
+
+  const reference = document.createElement("span");
+  reference.className = "test";
+  reference.style.fontFamily = "NotDefCacheTest";
+  reference.textContent = target.textContent;
+  document.body.appendChild(reference);
+
+  const loadedFontWidth = target.getBoundingClientRect().width;
+  assert_not_equals(
+      loadedFontWidth, missingGlyphWidth,
+      "loading the web font must replace the missing glyph");
+  assert_equals(
+      loadedFontWidth, reference.getBoundingClientRect().width,
+      "the target must use the newly available named font");
+}, "A missing-glyph shape result is not reused after a web font loads");
+</script>

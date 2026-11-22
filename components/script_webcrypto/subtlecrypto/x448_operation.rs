@@ -20,8 +20,8 @@ use zeroize::Zeroizing;
 
 use crate::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::subtlecrypto::{
-    CryptoAlgorithm, EcdhKeyDeriveParams, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithm,
-    KeyAlgorithmAndDerivatives,
+    CryptoAlgorithm, EcdhKeyDeriveParams, ExportedKey, JsonWebKeyHelper, JwkStringField,
+    KeyAlgorithm, KeyAlgorithmAndDerivatives, truncate_bit_sequence,
 };
 use crate::traits::Equivalence;
 
@@ -98,13 +98,7 @@ pub(crate) fn derive_bits<D: Equivalence>(
                 Err(Error::Operation(Some("Derived secret is too short".into())))
             } else {
                 let mut secret = secret_slice[..length.div_ceil(8) as usize].to_vec();
-                if length % 8 != 0 {
-                    // Clean excess bits in last byte of secret.
-                    let mask = u8::MAX << (8 - length % 8);
-                    if let Some(last_byte) = secret.last_mut() {
-                        *last_byte &= mask;
-                    }
-                }
+                truncate_bit_sequence(&mut secret, length as usize);
                 Ok(secret)
             }
         },

@@ -22,7 +22,7 @@ use script_bindings::trace::RootedTraceableBox;
 
 use crate::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::subtlecrypto::{
-    CryptoAlgorithm, DigestOperation, ExportedKey, JsonWebKeyExt, JwkStringField,
+    CryptoAlgorithm, DigestOperation, ExportedKey, JsonWebKeyHelper, JwkStringField,
     KeyAlgorithmAndDerivatives, NormalizedAlgorithm, RsaHashedImportParams, RsaHashedKeyAlgorithm,
     RsaHashedKeyGenParams, normalize_algorithm,
 };

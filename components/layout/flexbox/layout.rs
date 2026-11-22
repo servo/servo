@@ -34,8 +34,8 @@ use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
 use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::{
-    BoxFragment, CollapsedBlockMargins, Fragment, FragmentChildren, FragmentFlags,
-    SpecificLayoutInfo,
+    BoxFragment, CollapsedBlockMargins, Fragment, FragmentAndLogicalRect, FragmentChildren,
+    FragmentFlags, SpecificLayoutInfo,
 };
 use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2};
 use crate::layout_box_base::IndependentFormattingContextLayoutResult;
@@ -182,7 +182,7 @@ impl FlexLineItem<'_> {
         flex_context: &mut FlexContext,
         all_baselines: &mut Baselines,
         main_position_cursor: &mut Au,
-    ) -> (Arc<BoxFragment>, PositioningContext) {
+    ) -> (Arc<BoxFragment>, LogicalRect<Au>, PositioningContext) {
         // https://drafts.csswg.org/css-flexbox/#algo-main-align
         // “Align the items along the main-axis”
         *main_position_cursor +=
@@ -217,7 +217,7 @@ impl FlexLineItem<'_> {
             main: initial_flex_layout.line_size.main,
             cross: final_line_cross_size,
         };
-        let content_rect = flex_context.rect_to_flow_relative(
+        let mut content_rect = flex_context.rect_to_flow_relative(
             final_line_size,
             FlexRelativeRect {
                 start_corner,
@@ -274,7 +274,7 @@ impl FlexLineItem<'_> {
             fragment_info,
             style.clone(),
             self.layout_result.fragments,
-            content_rect.as_physical_deprecated(flex_context.containing_block),
+            Default::default(),
             flex_context
                 .sides_to_flow_relative(self.item.padding)
                 .to_physical(container_writing_mode),
@@ -291,16 +291,18 @@ impl FlexLineItem<'_> {
         // descendants, then lay out any relevant absolutely-positioned children. This
         // will remove those children from `self.positioning_context`.
         if style.establishes_containing_block_for_absolute_descendants(flags) {
+            // `layout_collected_children()` assumes that the physical content rect
+            // has already been resolved.
+            fragment
+                .base
+                .set_rect(content_rect.as_physical_deprecated(flex_context.containing_block));
             self.layout_result
                 .positioning_context
                 .layout_collected_children(flex_context.layout_context, &mut fragment);
         }
 
         if style.get_box().position == Position::Relative {
-            fragment.base.translate_rect(
-                relative_adjustement(style, containing_block)
-                    .to_physical_size(containing_block.style.writing_mode),
-            );
+            content_rect.start_corner += relative_adjustement(style, containing_block);
         }
 
         let fragment = Arc::new(fragment);
@@ -309,7 +311,11 @@ impl FlexLineItem<'_> {
             .independent_formatting_context
             .base
             .set_fragment(Fragment::Box(fragment.clone()));
-        (fragment, self.layout_result.positioning_context)
+        (
+            fragment,
+            content_rect,
+            self.layout_result.positioning_context,
+        )
     }
 }
 
@@ -320,7 +326,7 @@ struct FinalFlexLineLayout {
     cross_size: Au,
     /// The [`BoxFragment`]s and [`PositioningContext`]s of all flex items,
     /// one per flex item in "order-modified document order."
-    item_fragments: Vec<(Arc<BoxFragment>, PositioningContext)>,
+    item_fragments: Vec<(Arc<BoxFragment>, LogicalRect<Au>, PositioningContext)>,
     /// The 'shared alignment baseline' of this flex line. This is the baseline used for
     /// baseline-aligned items if there are any, otherwise `None`.
     shared_alignment_baseline: Option<Au>,
@@ -895,44 +901,39 @@ impl FlexContainer {
                     all_baselines.last = line_all_baselines.last;
                 }
 
-                let physical_line_position =
-                    flow_relative_line_position.to_physical_size(self.style.writing_mode);
-                for (fragment, _) in &mut final_line_layout.item_fragments {
-                    fragment.base.translate_rect(physical_line_position);
+                for (_, content_rect, _) in &mut final_line_layout.item_fragments {
+                    content_rect.start_corner += flow_relative_line_position;
                 }
                 final_line_layout.item_fragments
             },
         );
 
-        let flex_container_size = LogicalVec2 {
-            inline: containing_block.inline_size(),
-            block: content_block_size,
-        };
         let fragments = absolutely_positioned_items_with_original_order
             .into_iter()
             .map(|child_as_abspos| match child_as_abspos {
-                FlexContent::AbsolutelyPositionedBox(absolutely_positioned_box) => self
-                    .create_absolutely_positioned_flex_child_fragment(
+                FlexContent::AbsolutelyPositionedBox(absolutely_positioned_box) => {
+                    let fragment = self.create_absolutely_positioned_flex_child_fragment(
                         absolutely_positioned_box,
                         container_size,
                         positioning_context,
-                    ),
+                    );
+                    // The fragment is a `Fragment::AbsoluteOrFixedPositionedPlaceholder`
+                    // with no `BaseFragment`, so the rect is unused.
+                    let logical_rect = LogicalRect::default();
+                    FragmentAndLogicalRect::new(fragment, logical_rect)
+                },
                 FlexContent::FlexItemPlaceholder => {
                     // The `flex_item_fragments` iterator yields one fragment
                     // per flex item, in the original order.
-                    let (fragment, mut child_positioning_context) =
+                    let (fragment, content_rect, mut child_positioning_context) =
                         flex_item_fragments.next().unwrap();
                     child_positioning_context.adjust_static_position_of_hoisted_fragments(
-                        &LogicalRect::from_physical(
-                            fragment.base.rect(),
-                            self.style.writing_mode,
-                            flex_container_size,
-                        ),
+                        &content_rect,
                         self.style.writing_mode,
                         PositioningContextLength::zero(),
                     );
                     positioning_context.append(child_positioning_context);
-                    Fragment::Box(fragment)
+                    FragmentAndLogicalRect::new(Fragment::Box(fragment), content_rect)
                 },
             })
             .collect::<Vec<_>>();
@@ -964,7 +965,7 @@ impl FlexContainer {
         let depends_on_block_constraints = true;
 
         IndependentFormattingContextLayoutResult {
-            fragments: FragmentChildren::PhysicalDeprecated(fragments),
+            fragments: FragmentChildren::Logical(fragments),
             content_block_size,
             content_inline_size_for_table: None,
             baselines,

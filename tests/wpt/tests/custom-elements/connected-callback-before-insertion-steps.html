@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>connectedCallback is enqueued before reactions enqueued by the insertion steps</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-node-insert">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interactive-elements.html#ensure-details-exclusivity-by-closing-the-given-element-if-needed">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// The details element's insertion steps remove its open attribute if another details element in
+// the same group is already open. For a customized built-in details element that observes open,
+// that enqueues attributeChangedCallback, which comes after connectedCallback.
+const log = [];
+
+customElements.define("logging-details", class extends HTMLDetailsElement {
+  static observedAttributes = ["open"];
+  connectedCallback() {
+    log.push(`connected (open is ${this.open})`);
+  }
+  attributeChangedCallback(name, oldValue, newValue) {
+    log.push(`attributeChanged(${name}, ${JSON.stringify(oldValue)}, ${JSON.stringify(newValue)})`);
+  }
+}, { extends: "details" });
+
+test(t => {
+  const first = document.createElement("details");
+  first.name = "exclusive-group";
+  first.open = true;
+  document.body.appendChild(first);
+  t.add_cleanup(() => first.remove());
+
+  const second = document.createElement("details", { is: "logging-details" });
+  second.name = "exclusive-group";
+  second.open = true;
+  t.add_cleanup(() => second.remove());
+
+  log.length = 0;
+  document.body.appendChild(second);
+  assert_false(second.open, "the insertion steps closed the inserted details element");
+  assert_array_equals(log, ["connected (open is false)", "attributeChanged(open, \"\", null)"]);
+}, "Inserting an open details element into a group with another open one calls connectedCallback before attributeChangedCallback");
+</script>
+</body>

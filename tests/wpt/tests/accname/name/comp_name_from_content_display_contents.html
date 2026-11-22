@@ -14,8 +14,8 @@
 </head>
 <body>
 
-<p>Each element below is named from its contents, and its contents are the single character "x". Text in a
-following sibling belongs to that sibling and must not be part of the name.</p>
+<p>Each element below is named from its contents. In the first group its contents are the single character "x", and
+text in a following sibling belongs to that sibling and must not be part of the name.</p>
 
 <!-- Each case carries its own following sibling, so no case depends on what the next case happens to be. -->
 
@@ -52,6 +52,85 @@ following sibling belongs to that sibling and must not be part of the name.</p>
   data-testname="name from content of a display: contents element with the link role, followed by a sibling"
   class="ex"
 >x</div><span>should not be in the name</span>
+
+<p>In the second group the contents are "x" and "y" in different boxes, such as the items of a flex container, and
+both are part of the name.</p>
+
+<div><div
+  role="button"
+  style="display: contents;"
+  data-expectedlabel="x y"
+  data-testname="name from content of a display: contents element with a block child"
+  class="ex"
+>x <div>y</div></div></div>
+
+<div style="display: flex;"><div
+  role="button"
+  style="display: contents;"
+  data-expectedlabel="x y"
+  data-testname="name from content of a display: contents element in a flex container"
+  class="ex"
+>x <span>y</span></div></div>
+
+<div style="display: flex;"><div
+  role="button"
+  style="display: contents;"
+  data-expectedlabel="x y"
+  data-testname="name from content of a display: contents element in a flex container, text after an element"
+  class="ex"
+><span>x</span> y</div></div>
+
+<div style="display: flex;"><div
+  role="button"
+  style="display: contents;"
+  data-expectedlabel="x y"
+  data-testname="name from content of a display: contents element in a flex container, with a child that does not render"
+  class="ex"
+>x <span style="display: none;">should not be in the name</span><span>y</span></div></div>
+
+<div style="display: flex;"><div
+  role="button"
+  style="display: contents;"
+  data-expectedlabel="x y"
+  data-testname="name from content of a display: contents element in a flex container, with a display: contents child"
+  class="ex"
+><span style="display: contents;">x <span>y</span></span></div></div>
+
+<div style="display: grid;"><div
+  role="link"
+  tabindex="0"
+  style="display: contents;"
+  data-expectedlabel="x y"
+  data-testname="name from content of a display: contents element with the link role in a grid container"
+  class="ex"
+>x <span>y</span></div></div>
+
+<p>In the third group the element is a shadow host, so its contents are those of its shadow tree, where a slot stands
+for the nodes assigned to it or else its fallback content.</p>
+
+<div
+  role="button"
+  style="display: contents;"
+  data-expectedlabel="x y"
+  data-testname="name from content of a display: contents shadow host, with a node assigned to a slot"
+  class="ex"
+><template shadowrootmode="open">x <slot></slot></template><span>y</span></div>
+
+<div
+  role="button"
+  style="display: contents;"
+  data-expectedlabel="x y"
+  data-testname="name from content of a display: contents shadow host, with the fallback content of a slot"
+  class="ex"
+><template shadowrootmode="open">x <slot>y</slot></template></div>
+
+<div
+  role="button"
+  style="display: contents;"
+  data-expectedlabel="x"
+  data-testname="name from content of a display: contents shadow host, with a child that is not assigned to a slot"
+  class="ex"
+><template shadowrootmode="open">x</template><span>should not be in the name</span></div>
 
 <script>
 AriaUtils.verifyLabelsBySelector(".ex");

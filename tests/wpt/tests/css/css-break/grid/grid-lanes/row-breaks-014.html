@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>First-row forced breaks are suppressed while later row breaks resume exactly once</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="match" href="row-breaks-014-ref.html">
+<style>
+  .multicol { columns: 3; column-gap: 0; column-fill: auto; width: 240px; height: 100px; background: lightgray; }
+  .lanes { display: grid-lanes; grid-template-rows: repeat(3, 40px); width: 80px; }
+</style>
+<div class="multicol">
+  <div class="lanes">
+    <div style="grid-row: 1; width: 80px; background: orange; break-before: column;"></div>
+    <div style="grid-row: 2; width: 80px; background: teal; break-before: column;"></div>
+    <div style="grid-row: 3; width: 80px; background: purple; break-before: column;"></div>
+  </div>
+</div>

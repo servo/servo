@@ -6,9 +6,9 @@ use std::fmt::Write as _;
 use std::fs::Metadata;
 use std::path::PathBuf;
 
-use chrono::{DateTime, Local};
 use embedder_traits::resources::{Resource, read_bytes};
 use headers::{ContentType, HeaderMapExt};
+use jiff::ZonedDateTime;
 use net_traits::request::Request;
 use net_traits::response::{Response, ResponseBody};
 use net_traits::{NetworkError, ResourceFetchTiming};
@@ -128,8 +128,9 @@ fn write_directory_entry(
     let file_size = metadata_to_file_size_string(&metadata);
     let last_modified = metadata
         .modified()
-        .map(DateTime::<Local>::from)
-        .map(|time| time.format("%F %r").to_string())
+        .ok()
+        .and_then(|mtime| ZonedDateTime::try_from(mtime).ok())
+        .map(|timestamp| timestamp.strftime("%F %r").to_string())
         .unwrap_or_default();
 
     // The file name is the only value here that reaches the page unencoded; the

@@ -62,6 +62,7 @@ fn test_filemanager() {
             filter_patterns: vec![FilterPattern(".txt".to_string())],
             allow_select_multiple: false,
             accept_current_paths_for_testing: true,
+            select_directory: false,
         };
         filemanager.handle(FileManagerThreadMsg::SelectFiles(
             control_id,

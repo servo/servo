@@ -31,7 +31,7 @@ impl Element {
         // Do not allow unrendered, disconnected, disabled or inert nodes to be focusable areas ever.
         let node: &Node = self.upcast();
         if !node.is_connected() ||
-            !self.has_css_layout_box(cx) ||
+            !self.has_css_layout_box_deprecated(cx) ||
             self.is_actually_disabled() ||
             node.is_inert(cx)
         {

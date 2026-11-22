@@ -9,21 +9,20 @@
 
 import datetime
 import os
-from os import PathLike
 import os.path as path
 import pathlib
 import shutil
 import stat
 import subprocess
 import sys
-
+from os import PathLike
 from time import time
-from typing import Optional, Union, Any
+from typing import Any, Optional, Union
 
 from mach.decorators import (
+    Command,
     CommandArgument,
     CommandProvider,
-    Command,
 )
 from mach.registrar import Registrar
 
@@ -31,12 +30,10 @@ import servo.platform
 import servo.platform.macos
 import servo.util
 import servo.visual_studio
-
-from servo.command_base import BuildType, CommandBase, check_call
-from servo.gstreamer import windows_dlls, windows_plugins, package_gstreamer_dylibs
-from servo.platform.build_target import BuildTarget
-
 from python.servo.platform.build_target import SanitizerKind
+from servo.command_base import BuildType, CommandBase, check_call
+from servo.gstreamer import package_gstreamer_dylibs, windows_dlls, windows_plugins
+from servo.platform.build_target import BuildTarget
 
 SUPPORTED_ASAN_TARGETS = [
     "aarch64-apple-darwin",

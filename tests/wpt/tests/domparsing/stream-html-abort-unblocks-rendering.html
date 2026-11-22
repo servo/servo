@@ -48,7 +48,7 @@
       .streamAppendHTMLUnsafe({ runScripts: true })
       .getWriter();
     await writer.write(
-      "<script blocking='render' src='resources/slow.js?pipe=trickle(d3)&render_blocking_abort=1'><" +
+      "<script blocking='render' src='resources/slow.sub.js?pipe=trickle(d3)&render_blocking_abort=1'><" +
         "/script>"
     );
     const script = await failOnTimeout(scriptInserted);

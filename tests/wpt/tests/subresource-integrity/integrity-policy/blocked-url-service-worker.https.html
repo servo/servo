@@ -1,0 +1,42 @@
+<!doctype html>
+<title>Integrity-Policy reports do not expose the URL of opaque service worker responses</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<body>
+<script>
+// https://w3c.github.io/webappsec-subresource-integrity/#report-violation
+// uses the request's URL, which is the first URL in its URL list:
+// https://fetch.spec.whatwg.org/#concept-request-url
+promise_test(async t => {
+  const {HTTPS_NOTSAMESITE_ORIGIN} = get_host_info();
+  const redirect_target =
+      `${HTTPS_NOTSAMESITE_ORIGIN}/content-security-policy/resources/ran.js` +
+      `?secret=${token()}`;
+  const opaque_url = `${HTTPS_NOTSAMESITE_ORIGIN}/common/redirect.py` +
+      `?location=${encodeURIComponent(redirect_target)}`;
+  const frame_url = 'resources/report-only-frame.html?sw';
+
+  const registration = await service_worker_unregister_and_register(
+      t, 'resources/respond-with-no-cors-fetch-sw.js', frame_url);
+  t.add_cleanup(() => registration.unregister());
+  await wait_for_state(t, registration.installing, 'activated');
+
+  const frame = await with_iframe(frame_url);
+  t.add_cleanup(() => frame.remove());
+
+  // A same-origin script, answered by the service worker with an opaque
+  // response that went through a cross-origin redirect.
+  const request_url = new URL(
+      `victim.js?respond-with=${encodeURIComponent(opaque_url)}`,
+      frame.contentWindow.location.href).href;
+  const blocked_urls =
+      await frame.contentWindow.loadScriptAndCollectBlockedURLs(request_url);
+  assert_true(frame.contentWindow.ran, 'The report-only policy should not block the script.');
+  for (const blocked_url of blocked_urls) {
+    assert_equals(blocked_url, request_url);
+  }
+}, 'blockedURL is the request URL, not the URL of the opaque response the service worker provided');
+</script>

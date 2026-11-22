@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>
+      Custom Elements: XML parser creates customized built-in input elements
+      with their attributes applied
+    </title>
+    <link rel="author" href="mailto:nrosenthal@chromium.org" />
+    <meta
+      name="help"
+      content="https://html.spec.whatwg.org/multipage/parsing.html#create-an-element-for-the-token"
+    />
+    <meta
+      name="help"
+      content="https://html.spec.whatwg.org/multipage/xhtml.html#parsing-xhtml-documents"
+    />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../resources/custom-elements-helpers.js"></script>
+  </head>
+  <body>
+    <script>
+      <![CDATA[
+
+      // Builds an XHTML document parsed by the XML content sink. The custom
+      // element constructor runs synchronously during parsing, before the
+      // parser has appended the token's attributes to the element.
+      function make_doc(definition, html) {
+          return `<?xml version="1.0" encoding="utf-8"?>
+      <html xmlns="http://www.w3.org/1999/xhtml">
+      <head><script><` + `![CDATA[
+      ${definition}
+      ]]` + `></scr` + `ipt></head>
+      <body>
+      <div id="pp">${html}</div>
+      </body>
+      </html>`;
+      }
+
+      promise_test(async function (t) {
+          const definition = `
+      customElements.define("custom-input", class extends HTMLInputElement {
+          constructor() { super(); window.ctorRan = true; }
+      }, { extends: "input" });`;
+          const markup = make_doc(definition,
+              '<input is="custom-input" id="root" type="checkbox" checked="checked" value="v" />');
+          const contentWindow = await create_window_in_test_async(t, "application/xhtml+xml", markup);
+          const doc = contentWindow.document;
+          const input = doc.getElementById("root");
+          assert_true(!!input, "custom element instance exists");
+          assert_true(!!contentWindow.ctorRan, "constructor ran synchronously during parse");
+          assert_equals(input.parentNode, doc.getElementById("pp"), "element is parented to the parser's parent");
+          assert_equals(input.getAttribute("is"), "custom-input", "is attribute is set");
+          assert_equals(input.type, "checkbox", "type attribute is applied");
+          assert_true(input.checked, "checked attribute is applied");
+          assert_equals(input.value, "v", "value attribute is applied");
+      }, "Customized built-in input created synchronously by the XML parser gets its attributes");
+
+      promise_test(async function (t) {
+          const definition = `
+      customElements.define("custom-input", class extends HTMLInputElement {
+          constructor() {
+              super();
+              window.ctorRan = true;
+              window.typeInCtor = this.type;
+              this.setAttribute("data-ctor", "yes");
+          }
+      }, { extends: "input" });`;
+          const markup = make_doc(definition,
+              '<input is="custom-input" id="root" type="number" />');
+          const contentWindow = await create_window_in_test_async(t, "application/xhtml+xml", markup);
+          const doc = contentWindow.document;
+          const input = doc.getElementById("root");
+          assert_true(!!input, "custom element instance exists");
+          assert_true(!!contentWindow.ctorRan, "constructor ran synchronously during parse");
+          assert_equals(contentWindow.typeInCtor, "text", "type is the default inside the constructor");
+          assert_equals(input.type, "number", "type attribute is applied after construction");
+          assert_equals(input.getAttribute("data-ctor"), "yes", "attribute set by the constructor is kept");
+      }, "Customized built-in input is fully constructed when its constructor runs during XML parsing");
+
+      ]]>
+    </script>
+  </body>
+</html>

@@ -141,7 +141,7 @@ use crate::dom::html::htmlareaelement::HTMLAreaElement;
 use crate::dom::html::htmlbodyelement::HTMLBodyElement;
 use crate::dom::html::htmlbuttonelement::HTMLButtonElement;
 use crate::dom::html::htmlcollection::HTMLCollection;
-use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::html::htmlelement::{HTMLElement, PopoverState};
 use crate::dom::html::htmlembedelement::HTMLEmbedElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlfontelement::HTMLFontElement;
@@ -154,6 +154,8 @@ use crate::dom::html::htmllegendelement::HTMLLegendElement;
 use crate::dom::html::htmllinkelement::HTMLLinkElement;
 use crate::dom::html::htmlmarqueeelement::HTMLMarqueeElement;
 use crate::dom::html::htmlobjectelement::HTMLObjectElement;
+use crate::dom::html::htmloptgroupelement::HTMLOptGroupElement;
+use crate::dom::html::htmloptionelement::HTMLOptionElement;
 use crate::dom::html::htmloutputelement::HTMLOutputElement;
 use crate::dom::html::htmlscriptelement::HTMLScriptElement;
 use crate::dom::html::htmlselectelement::HTMLSelectElement;
@@ -365,7 +367,7 @@ impl Element {
         )
     }
 
-    fn rare_data(&self) -> Ref<'_, Option<Box<ElementRareData>>> {
+    pub(crate) fn rare_data(&self) -> Ref<'_, Option<Box<ElementRareData>>> {
         self.rare_data.borrow()
     }
 
@@ -537,9 +539,21 @@ impl Element {
         }
     }
 
-    // https://drafts.csswg.org/cssom-view/#css-layout-box
-    pub(crate) fn has_css_layout_box(&self, cx: &mut JSContext) -> bool {
+    /// <https://drafts.csswg.org/css-display-4/#box>
+    ///
+    /// This version is deprecated because it's not specification compliant. It only checks whether
+    /// the element is styled and isn't `display: none`. Callers should be examined to see if they
+    /// should really be calling `Self::has_css_layout_box` instead.
+    pub(crate) fn has_css_layout_box_deprecated(&self, cx: &mut JSContext) -> bool {
         self.style(cx).is_some_and(|s| !s.get_display().is_none())
+    }
+
+    /// <https://drafts.csswg.org/css-display-4/#box>
+    pub(crate) fn has_css_layout_box(&self) -> bool {
+        // TODO: This isn't always the same. For example, SVG elements are rendered
+        // but do not necessarily have a CSS layout box. Later, when we fully support
+        // SVG, this needs to be re-examined.
+        self.upcast::<Node>().is_being_rendered(None)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#potentially-scrollable>
@@ -570,7 +584,7 @@ impl Element {
         // "An element body (which will be the body element) is potentially
         // scrollable if all of the following conditions are true:
         //  - body has an associated box."
-        if !self.has_css_layout_box(cx) {
+        if !self.has_css_layout_box_deprecated(cx) {
             return false;
         }
 
@@ -638,7 +652,7 @@ impl Element {
     ///  2. The style specifies that overflow should be scrollable (`auto`, `hidden` or `scroll`).
     ///  3. The fragment actually has content that overflows the box.
     fn has_scrolling_box(&self, cx: &mut JSContext) -> bool {
-        self.has_css_layout_box(cx) &&
+        self.has_css_layout_box_deprecated(cx) &&
             self.establishes_scroll_container(cx) &&
             self.has_overflow(cx)
     }
@@ -1112,12 +1126,16 @@ impl Element {
 
     /// <https://fullscreen.spec.whatwg.org/#fullscreen-element-ready-check>
     pub(crate) fn fullscreen_element_ready_check(&self) -> bool {
-        if !self.is_connected() {
-            return false;
-        }
-        self.owner_document()
-            .overlay_handler()
-            .get_allow_fullscreen()
+        // > A fullscreen element ready check for an element element returns true if all of the
+        // > following are true, and false otherwise:
+        // > - element is connected.
+        // > - element’s node document is allowed to use the "fullscreen" feature.
+        // > element namespace is not the HTML namespace, or element's popover visibility state is hidden.
+        self.is_connected() &&
+            self.owner_document()
+                .overlay_handler()
+                .get_allow_fullscreen() &&
+            (*self.namespace() != ns!(html) || !self.popover_visibility_state_showing())
     }
 }
 
@@ -2097,36 +2115,149 @@ impl Element {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#concept-element-disabled>
     pub(crate) fn is_actually_disabled(&self) -> bool {
-        let node = self.upcast::<Node>();
-        match node.type_id() {
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLButtonElement,
-            )) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLInputElement,
-            )) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLSelectElement,
-            )) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLTextAreaElement,
-            )) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLOptionElement,
-            )) => self.disabled_state(),
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLElement)) => {
-                self.downcast::<HTMLElement>()
-                    .unwrap()
-                    .is_form_associated_custom_element() &&
-                    self.disabled_state()
-            },
-            // TODO:
-            // an optgroup element that has a disabled attribute
-            // a menuitem element that has a disabled attribute
-            // a fieldset element that is a disabled fieldset
-            _ => false,
+        // This corresponds to the disabled state, so we can return that instead of recomputing if
+        // an element is actually disabled on every call.
+        self.state.get().contains(ElementState::DISABLED)
+    }
+
+    pub(crate) fn invalidate_disabled_state(&self, cx: &mut JSContext) {
+        if !self.enabled_state_applies() {
+            return;
         }
+
+        let actually_disabled = self.compute_is_actually_disabled(cx);
+        if actually_disabled == self.is_actually_disabled() {
+            return;
+        }
+
+        // https://html.spec.whatwg.org/multipage/#selector-disabled
+        // > The :disabled pseudo-class must match any element that is actually disabled.
+        self.set_state(cx.no_gc(), ElementState::DISABLED, actually_disabled);
+
+        // https://html.spec.whatwg.org/multipage/#selector-enabled
+        // > The :enabled pseudo-class must match any button, input, select, textarea, optgroup,
+        // > option, fieldset element, or form-associated custom element that is not actually
+        // > disabled.
+        self.set_state(cx.no_gc(), ElementState::ENABLED, !actually_disabled);
+
+        // https://html.spec.whatwg.org/multipage/#enabling-and-disabling-form-controls:-the-disabled-attribute
+        // > If an element is disabled, it is barred from constraint validation.
+        if let Some(validatable) = self.as_maybe_validatable() {
+            validatable
+                .validity_state(cx)
+                .perform_validation_and_update(cx, ValidationFlags::all());
+        } else if let Some(internals) = self.get_element_internals() {
+            internals.validity_state(cx).update_pseudo_classes(cx);
+        }
+
+        // https://html.spec.whatwg.org/multipage/#custom-element-reactions
+        // > When the disabled state of a form-associated custom element is changed, its
+        // > formDisabledCallback is called, given the new state as an argument.
+        //
+        // The linked spec refers to the form element disabled concept, but for form associated
+        // custom elements this is the same as being actually disabled.
+        if self
+            .downcast::<HTMLElement>()
+            .is_some_and(HTMLElement::is_form_associated_custom_element)
+        {
+            ScriptThread::enqueue_callback_reaction(
+                cx,
+                self,
+                CallbackReaction::FormDisabled(actually_disabled),
+                None,
+            );
+        }
+
+        if let Some(input) = self.downcast::<HTMLInputElement>() {
+            input.disabled_state_changed(cx);
+        } else if let Some(textarea) = self.downcast::<HTMLTextAreaElement>() {
+            textarea.disabled_state_changed(cx.no_gc());
+        }
+
+        if actually_disabled && (self.is::<HTMLInputElement>() || self.is::<HTMLSelectElement>()) {
+            self.owner_document()
+                .embedder_controls()
+                .hide_embedder_control_for_element(self);
+        }
+    }
+
+    pub(crate) fn invalidate_descendants_disabled_state(&self, cx: &mut JSContext) {
+        for descendant in self
+            .upcast::<Node>()
+            .traverse_preorder(ShadowIncluding::No)
+            .skip(1)
+            .filter_map(DomRoot::downcast::<Element>)
+        {
+            descendant.invalidate_disabled_state(cx);
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-element-disabled>
+    fn compute_is_actually_disabled(&self, cx: &mut JSContext) -> bool {
+        // > An element is said to be actually disabled if it is one of the following:
+        // > - a button element that is disabled
+        // > - an input element that is disabled
+        // > - a select element that is disabled
+        // > - a textarea element that is disabled
+        // > - a form-associated custom element that is disabled
+        if let Some(html_element) = self.downcast::<HTMLElement>() &&
+            html_element.is_disableable_form_control()
+        {
+            return html_element.is_form_element_disabled(cx.no_gc());
+        }
+
+        // > - an optgroup element that has a disabled attribute or whose nearest ancestor select is disabled
+        if let Some(opt_group) = self.downcast::<HTMLOptGroupElement>() {
+            return self.has_attribute(&local_name!("disabled")) ||
+                opt_group
+                    .nearest_ancestor_select()
+                    .is_some_and(|select_element| {
+                        select_element
+                            .upcast::<HTMLElement>()
+                            .is_form_element_disabled(cx.no_gc())
+                    });
+        }
+
+        // > - an option element that is disabled or whose nearest ancestor select is disabled
+        if let Some(option) = self.downcast::<HTMLOptionElement>() {
+            return option.is_option_disabled(cx.no_gc()) ||
+                option
+                    .nearest_ancestor_select()
+                    .is_some_and(|select_element| {
+                        select_element
+                            .upcast::<HTMLElement>()
+                            .is_form_element_disabled(cx.no_gc())
+                    });
+        }
+
+        // > - a fieldset element that is a disabled fieldset
+        if let Some(fieldset) = self.downcast::<HTMLFieldSetElement>() {
+            return fieldset.is_fieldset_disabled(cx.no_gc());
+        }
+
+        false
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#selector-enabled>
+    fn enabled_state_applies(&self) -> bool {
+        // > ... any button, input, select, textarea, optgroup, option, fieldset element, or
+        // > form-associated custom element
+        matches!(
+            self.upcast::<Node>().type_id(),
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLButtonElement |
+                    HTMLElementTypeId::HTMLInputElement |
+                    HTMLElementTypeId::HTMLSelectElement |
+                    HTMLElementTypeId::HTMLTextAreaElement |
+                    HTMLElementTypeId::HTMLOptGroupElement |
+                    HTMLElementTypeId::HTMLOptionElement |
+                    HTMLElementTypeId::HTMLFieldSetElement,
+            ))
+        ) || self
+            .downcast::<HTMLElement>()
+            .is_some_and(HTMLElement::is_form_associated_custom_element)
     }
 
     pub(crate) fn push_new_attribute(
@@ -2213,13 +2344,9 @@ impl Element {
         attr.swap_value(&mut value);
         // Step 3. Handle attribute changes for attribute with attribute’s element, oldValue, and value.
         //
-        // Put on a separate line to avoid double borrow
-        self.handle_attribute_changes(
-            cx,
-            AttrRef::Dom(attr),
-            Some(old_value),
-            Some(&*attr.value()),
-        );
+        // Clone: attribute change steps can mutates this attribute again in beforetoggle handler.
+        let new_value = attr.value().clone();
+        self.handle_attribute_changes(cx, AttrRef::Dom(attr), Some(old_value), Some(&new_value));
     }
 
     /// <https://dom.spec.whatwg.org/#concept-element-attributes-append>
@@ -2514,9 +2641,8 @@ impl Element {
                         // Content Security Policy? algorithm returns "Blocked" when executed
                         // upon the attribute's element, "style attribute", and the attribute's value,
                         // then the style rules defined in the attribute's value must not be applied to the element. [CSP]
-                        if global
-                            .get_csp_list()
-                            .should_elements_inline_type_behavior_be_blocked(
+                        if global.call_on_csp_list(|csp_list| {
+                            csp_list.should_elements_inline_type_behavior_be_blocked(
                                 cx,
                                 global,
                                 self,
@@ -2524,7 +2650,7 @@ impl Element {
                                 source,
                                 doc.get_current_parser_line(),
                             )
-                        {
+                        }) {
                             return;
                         }
                         ServoArc::new(doc.style_shared_author_lock().wrap(parse_style_attribute(
@@ -2661,17 +2787,17 @@ impl Element {
         }
         let global = self.owner_global();
         // Step 1: Let CSP list be element's shadow-including root's policy container's CSP list.
-        let csp_list = match global.get_csp_list() {
-            None => return,
-            Some(csp_list) => csp_list,
-        };
         // Step 2: If CSP list contains a header-delivered Content Security Policy,
         // and element has a nonce content attribute whose value is not the empty string, then:
-        if !csp_list.contains_a_header_delivered_content_security_policy() ||
-            self.get_string_attribute(&local_name!("nonce")).is_empty()
-        {
+        if global.call_on_csp_list(|csp_list| {
+            csp_list.as_ref().is_none_or(|csp_list| {
+                !csp_list.contains_a_header_delivered_content_security_policy() ||
+                    self.get_string_attribute(&local_name!("nonce")).is_empty()
+            })
+        }) {
             return;
         }
+
         // Step 2.1: Let nonce be element's [[CryptographicNonce]].
         let nonce = self.nonce_value();
         // Step 2.2: Set an attribute value for element using "nonce" and the empty string.
@@ -3547,14 +3673,14 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // Step 8. If the element does not have any associated box, return zero and
         // terminate these steps.
-        if !self.has_css_layout_box(cx) {
+        if !self.has_css_layout_box_deprecated(cx) {
             return 0.0;
         }
 
         // Step 9. Return the y-coordinate of the scrolling area at the alignment point
         // with the top of the padding edge of the element.
         let point = window.scroll_offset_query(cx, node);
-        point.y.abs() as f64
+        point.y as f64
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
@@ -3664,14 +3790,14 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // Step 8. If the element does not have any associated box, return zero and
         // terminate these steps.
-        if !self.has_css_layout_box(cx) {
+        if !self.has_css_layout_box_deprecated(cx) {
             return 0.0;
         }
 
         // Step 9. Return the x-coordinate of the scrolling area at the alignment point
         // with the left of the padding edge of the element.
         let point = window.scroll_offset_query(cx, node);
-        point.x.abs() as f64
+        point.x as f64
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollleft>
@@ -3773,7 +3899,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // Step 7: If the element does not have any associated box, or is not
         //         available to user-agent features, then return.
-        if !self.has_css_layout_box(cx) {
+        if !self.has_css_layout_box_deprecated(cx) {
             return;
         }
 
@@ -5398,7 +5524,7 @@ impl Element {
     }
 
     pub(crate) fn init_state_for_internals(&self, no_gc: &NoGC) {
-        self.set_enabled_state(no_gc, true);
+        self.set_state(no_gc, ElementState::ENABLED, true);
         self.set_state(no_gc, ElementState::VALID, true);
         self.set_state(no_gc, ElementState::INVALID, false);
     }
@@ -5480,22 +5606,6 @@ impl Element {
         self.set_state(no_gc, ElementState::HOVER, value);
     }
 
-    pub(crate) fn enabled_state(&self) -> bool {
-        self.state.get().contains(ElementState::ENABLED)
-    }
-
-    pub(crate) fn set_enabled_state(&self, no_gc: &NoGC, value: bool) {
-        self.set_state(no_gc, ElementState::ENABLED, value)
-    }
-
-    pub(crate) fn disabled_state(&self) -> bool {
-        self.state.get().contains(ElementState::DISABLED)
-    }
-
-    pub(crate) fn set_disabled_state(&self, no_gc: &NoGC, value: bool) {
-        self.set_state(no_gc, ElementState::DISABLED, value)
-    }
-
     pub(crate) fn read_write_state(&self) -> bool {
         self.state.get().contains(ElementState::READWRITE)
     }
@@ -5521,6 +5631,89 @@ impl Element {
 
     pub(crate) fn set_target_state(&self, no_gc: &NoGC, value: bool) {
         self.set_state(no_gc, ElementState::URLTARGET, value)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#topmost-popover-ancestor>
+    ///
+    /// `self` is the spec's newPopoverOrTopLayerElement.
+    pub(crate) fn topmost_popover_ancestor(
+        &self,
+        no_gc: &NoGC,
+        source: Option<&HTMLElement>,
+        is_popover: bool,
+    ) -> Option<DomRoot<HTMLElement>> {
+        // Step 1. If isPopover is true:
+        if is_popover {
+            // Step 1.1. Assert: newPopoverOrTopLayerElement is an HTML element.
+            // Step 1.2. Assert: newPopoverOrTopLayerElement's popover attribute is not in the
+            // No Popover State or the Manual state.
+            debug_assert!(!matches!(
+                self.downcast::<HTMLElement>()
+                    .expect("newPopoverOrTopLayerElement is expected to be an HTML element")
+                    .popover_state(),
+                PopoverState::NoPopover | PopoverState::Manual
+            ));
+
+            // Step 1.3. Assert: newPopoverOrTopLayerElement's popover visibility state is not in
+            // the popover showing state.
+            debug_assert!(!self.popover_visibility_state_showing());
+        }
+        // Step 2. Otherwise:
+        else {
+            // Step 2.1. Assert: source is null.
+            debug_assert!(source.is_none());
+        }
+
+        // Step 3. Let document be newPopoverOrTopLayerElement's node document.
+        let document = self.owner_document();
+        let overlay_handler = document.overlay_handler();
+
+        // Step 4. Let combinedPopovers be document's showing auto popover list, extended with
+        // document's showing hint popover list.
+        let mut combined_popovers =
+            overlay_handler.showing_popover_list_unrooted(no_gc, PopoverState::Auto);
+        combined_popovers
+            .extend(overlay_handler.showing_popover_list_unrooted(no_gc, PopoverState::Hint));
+
+        // Step 5. Let popoverAncestorIndex be the index of the last item in combinedPopovers of
+        // which newPopoverOrTopLayerElement is a flat tree descendant, or -1 if there is none.
+        //
+        // We use None instead of -1. Since None < Some(_), `max` below matches the spec's
+        // maximum with -1.
+        let last_flat_tree_ancestor_index = |node: &Node| {
+            combined_popovers.iter().rposition(|popover| {
+                node.inclusive_ancestors_in_flat_tree_unrooted(no_gc)
+                    .any(|ancestor| **ancestor == *popover.upcast::<Node>())
+            })
+        };
+        let popover_ancestor_index = last_flat_tree_ancestor_index(self.upcast());
+
+        // Step 6. Let sourceAncestorIndex be -1.
+        // Step 7. If source is not null, then set sourceAncestorIndex to the index of the last
+        // item in combinedPopovers of which source is a flat tree descendant, or -1 if there is
+        // none.
+        let source_ancestor_index =
+            source.and_then(|source| last_flat_tree_ancestor_index(source.upcast()));
+
+        // Step 8. Let ancestorIndex be the maximum of popoverAncestorIndex and
+        // sourceAncestorIndex.
+        // Step 9. If ancestorIndex is -1, then return null.
+        let ancestor_index = popover_ancestor_index.max(source_ancestor_index)?;
+
+        // Step 10. Return combinedPopovers[ancestorIndex].
+        //
+        // We discard combinedPopovers, so this is the fastest operation.
+        Some(combined_popovers.swap_remove(ancestor_index).as_rooted())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#popover-visibility-state>
+    pub(crate) fn popover_visibility_state_showing(&self) -> bool {
+        self.state.get().contains(ElementState::POPOVER_OPEN)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#popover-visibility-state>
+    pub(crate) fn set_popover_visibility_state_showing(&self, no_gc: &NoGC, value: bool) {
+        self.set_state(no_gc, ElementState::POPOVER_OPEN, value);
     }
 
     pub(crate) fn set_fullscreen_state(&self, no_gc: &NoGC, value: bool) {
@@ -5563,7 +5756,10 @@ impl Element {
             let Some(ancestor_element) = ancestor.downcast::<HTMLFieldSetElement>() else {
                 continue;
             };
-            if !ancestor_element.upcast::<Element>().disabled_state() {
+            if !ancestor_element
+                .upcast::<Element>()
+                .has_attribute(&local_name!("disabled"))
+            {
                 continue;
             }
             if !ancestor.is_parent_of(node) &&
@@ -5579,21 +5775,6 @@ impl Element {
         }
 
         false
-    }
-
-    pub(crate) fn check_ancestors_disabled_state_for_form_control(&self, no_gc: &NoGC) {
-        if self.disabled_state() {
-            return;
-        }
-        let disabled = self.is_disabled_by_ancestor_fieldset(no_gc);
-        self.set_disabled_state(no_gc, disabled);
-        self.set_enabled_state(no_gc, !disabled);
-    }
-
-    pub(crate) fn check_disabled_attribute(&self, no_gc: &NoGC) {
-        let has_disabled_attrib = self.has_attribute(&local_name!("disabled"));
-        self.set_disabled_state(no_gc, has_disabled_attrib);
-        self.set_enabled_state(no_gc, !has_disabled_attrib);
     }
 
     pub(crate) fn update_read_write_state_from_readonly_attribute(&self, no_gc: &NoGC) {

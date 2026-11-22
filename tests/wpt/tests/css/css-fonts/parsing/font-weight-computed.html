@@ -41,6 +41,7 @@ test_computed_value('font-weight', 'calc(0)', '1');
 test_computed_value('font-weight', 'calc(-100)', '1');
 test_computed_value('font-weight', 'calc(100 + 100)', '200');
 test_computed_value('font-weight', 'calc(100 + (sign(20cqw - 10px) * 5))', '95');
+test_computed_value('font-weight', 'calc(600 + 700)', '1000');
 
 function test_relative(specified, inherited, computed) {
   test(() => {

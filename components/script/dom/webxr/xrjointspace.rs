@@ -21,7 +21,6 @@ pub(crate) struct XRJointSpace {
     #[no_trace]
     input: InputId,
     #[no_trace]
-    #[ignore_malloc_size_of = "Complicated"]
     joint: Joint,
     hand_joint: XRHandJoint,
 }

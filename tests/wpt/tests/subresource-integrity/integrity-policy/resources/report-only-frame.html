@@ -1,0 +1,31 @@
+<!doctype html>
+<body>
+<script>
+// Loads `url` as a classic (no-cors) script and returns the blockedURL of every
+// integrity-violation report generated while loading it, once the script has
+// loaded and at least one report has been delivered.
+window.loadScriptAndCollectBlockedURLs = async url => {
+  const blocked_urls = [];
+  let observer;
+  const report_delivered = new Promise(resolve => {
+    observer = new ReportingObserver(reports => {
+      blocked_urls.push(...reports.map(report => report.body.blockedURL));
+      resolve();
+    }, {types: ['integrity-violation']});
+  });
+  observer.observe();
+  await new Promise(resolve => {
+    const script = document.createElement('script');
+    script.src = url;
+    script.onload = script.onerror = resolve;
+    document.body.appendChild(script);
+  });
+  await report_delivered;
+  // Also collect reports that are queued but not yet delivered.
+  blocked_urls.push(
+      ...observer.takeRecords().map(report => report.body.blockedURL));
+  observer.disconnect();
+  return blocked_urls;
+};
+</script>
+</body>

@@ -14,6 +14,7 @@ use std::ops::Range;
 use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, Mutex};
 
+use malloc_size_of_derive::MallocSizeOf;
 use servo_base::generic_channel::GenericCallback;
 use servo_media::{Backend, BackendInit, MediaInstanceError, SupportsMediaType};
 use servo_media_audio::block::{Block, Chunk};
@@ -139,6 +140,7 @@ impl AudioBackend for DummyBackend {
     }
 }
 
+#[derive(MallocSizeOf)]
 pub struct DummyPlayer;
 
 pub struct DummyStreamReader;
@@ -255,6 +257,7 @@ impl AudioDecoder for DummyAudioDecoder {
     fn decode(&self, _: Vec<u8>, _: AudioDecoderCallbacks, _: Option<AudioDecoderOptions>) {}
 }
 
+#[derive(MallocSizeOf)]
 pub struct DummySocket;
 
 impl MediaSocket for DummySocket {

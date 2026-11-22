@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<title>formAssociatedCallback is called once when the form a form attribute refers to is removed</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#reset-the-form-owner">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#association-of-controls-and-forms">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+const log = [];
+
+customElements.define("face-element", class extends HTMLElement {
+  static formAssociated = true;
+  constructor() {
+    super();
+    this.elementInternals = this.attachInternals();
+  }
+  formAssociatedCallback(form) {
+    log.push(form ? form.dataset.label : "null");
+  }
+});
+
+function createForm(t, id, label) {
+  const form = document.createElement("form");
+  form.id = id;
+  form.dataset.label = label;
+  t.add_cleanup(() => form.remove());
+  return form;
+}
+
+function createControl(t, formId) {
+  const face = document.createElement("face-element");
+  face.setAttribute("form", formId);
+  t.add_cleanup(() => face.remove());
+  return face;
+}
+
+test(t => {
+  const first = createForm(t, "duplicate-id-1", "first");
+  const second = createForm(t, "duplicate-id-1", "second");
+  const face = createControl(t, "duplicate-id-1");
+  document.body.append(first, second, face);
+  assert_equals(face.elementInternals.form, first, "precondition: the first form with the ID is the form owner");
+
+  log.length = 0;
+  first.remove();
+  assert_array_equals(log, ["second"]);
+  assert_equals(face.elementInternals.form, second);
+}, "Removing the first of two forms with the ID a form attribute refers to calls formAssociatedCallback once, with the second form");
+
+test(t => {
+  const container = document.createElement("div");
+  t.add_cleanup(() => container.remove());
+  const first = createForm(t, "duplicate-id-2", "first");
+  const second = createForm(t, "duplicate-id-2", "second");
+  const face = createControl(t, "duplicate-id-2");
+  container.append(first);
+  document.body.append(container, second, face);
+  assert_equals(face.elementInternals.form, first, "precondition: the first form with the ID is the form owner");
+
+  log.length = 0;
+  container.remove();
+  assert_array_equals(log, ["second"]);
+  assert_equals(face.elementInternals.form, second);
+}, "Removing an element containing the first of two forms with the ID a form attribute refers to calls formAssociatedCallback once, with the second form");
+
+test(t => {
+  const form = createForm(t, "single-id", "form");
+  const face = createControl(t, "single-id");
+  document.body.append(form, face);
+  assert_equals(face.elementInternals.form, form, "precondition");
+
+  log.length = 0;
+  form.remove();
+  assert_array_equals(log, ["null"]);
+  assert_equals(face.elementInternals.form, null);
+}, "Removing the only form with the ID a form attribute refers to calls formAssociatedCallback once, with null");
+</script>
+</body>

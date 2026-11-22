@@ -9,6 +9,9 @@
 
 <meta name="variant" content="?include=defaultPredicate">
 <meta name="variant" content="?include=hrefMatches">
+<meta name="variant" content="?include=hrefMatchesLoneSurrogateString">
+<meta name="variant" content="?include=hrefMatchesLoneSurrogateObject">
+<meta name="variant" content="?include=invalidRuleWithLoneSurrogate">
 <meta name="variant" content="?include=and">
 <meta name="variant" content="?include=or">
 <meta name="variant" content="?include=not">
@@ -51,6 +54,44 @@
     assert_equals(await isUrlPrefetched(url_1), 1);
     assert_equals(await isUrlPrefetched(url_2), 0);
   }, 'test href_matches document rule');
+
+  // insertSpeculationRules serializes these lone surrogates as JSON escapes.
+  for (const [form, patternFor] of [
+    ['String', () => '*\\?*foo=\uDEAD'],
+    ['Object', url => ({
+      pathname: url.pathname,
+      search: '*foo=\uDEAD'
+    })]
+  ]) {
+    subsetTestByKey('hrefMatchesLoneSurrogate' + form, promise_test, async t => {
+      const matchingURL = getPrefetchUrl({foo: '\uFFFD'});
+      const nonMatchingURL = getPrefetchUrl({foo: 'bar'});
+      addLink(matchingURL);
+      addLink(nonMatchingURL);
+      insertDocumentRule({href_matches: patternFor(matchingURL)});
+
+      await new Promise(resolve => t.step_timeout(resolve, 2000));
+      assert_equals(await isUrlPrefetched(matchingURL), 1,
+                    'the replacement character matches the pattern');
+      assert_equals(await isUrlPrefetched(nonMatchingURL), 0,
+                    'an unrelated query does not match the pattern');
+    }, 'href_matches replaces a lone surrogate in the ' + form.toLowerCase() + ' form');
+  }
+
+  subsetTestByKey('invalidRuleWithLoneSurrogate', promise_test, async t => {
+    const invalidURL = getPrefetchUrl();
+    const validURL = getPrefetchUrl();
+    insertSpeculationRules({prefetch: [
+      {source: 'list', urls: [invalidURL.href], eagerness: '\uDEAD'},
+      {source: 'list', urls: [validURL.href], eagerness: 'immediate'}
+    ]});
+
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    assert_equals(await isUrlPrefetched(invalidURL), 0,
+                  'the rule with invalid eagerness is ignored');
+    assert_equals(await isUrlPrefetched(validURL), 1,
+                  'the valid sibling rule still triggers a prefetch');
+  }, 'a lone surrogate in an invalid rule does not invalidate the ruleset');
 
   subsetTestByKey('and', promise_test, async t => {
     insertDocumentRule({

@@ -158,6 +158,9 @@ pub struct FilePickerRequest {
     pub filter_patterns: Vec<FilterPattern>,
     pub allow_select_multiple: bool,
     pub accept_current_paths_for_testing: bool,
+    /// <https://wicg.github.io/entries-api/#html-forms>
+    /// To reflect `webkidirectory` flag.
+    pub select_directory: bool,
 }
 
 /// Request to the embedder to display a control for a `<select>` element.
@@ -184,8 +187,10 @@ pub struct SelectedFile {
     pub filename: PathBuf,
     pub modified: SystemTime,
     pub size: u64,
-    // https://w3c.github.io/FileAPI/#dfn-type
+    /// <https://w3c.github.io/FileAPI/#dfn-type>
     pub type_string: String,
+    /// <https://wicg.github.io/entries-api/#dom-file-webkitrelativepath>
+    pub relative_path: Option<String>,
 }
 
 /// Request from Servo to the embedder with the details of the simple dialog to be displayed.

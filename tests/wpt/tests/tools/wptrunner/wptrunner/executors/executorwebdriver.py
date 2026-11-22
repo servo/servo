@@ -188,6 +188,15 @@ class WebDriverBidiBluetoothProtocolPart(BidiBluetoothProtocolPart):
             context=context,
             address=address)
 
+    async def simulate_gatt_mtu_change(self,
+            context: str,
+            address: str,
+            mtu: int) -> None:
+        await self.webdriver.bidi_session.bluetooth.simulate_gatt_mtu_change(
+            context=context,
+            address=address,
+            mtu=mtu)
+
     async def simulate_service(self,
             context: str,
             address: str,

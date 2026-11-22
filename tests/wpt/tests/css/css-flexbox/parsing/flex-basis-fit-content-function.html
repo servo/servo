@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Flexible Box Layout Module Level 1: fit-content() in flex-basis and flex</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#propdef-flex-basis">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#propdef-flex">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-fit-content">
+<meta name="assert" content="flex-basis accepts the fit-content() value of 'width', and so does the flex shorthand.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+</head>
+<body>
+<div id="target" style="font-size: 20px"></div>
+<script>
+test_valid_value("flex-basis", "fit-content(10px)");
+test_valid_value("flex-basis", "fit-content(10%)");
+test_valid_value("flex-basis", "fit-content(calc(10% - 0.5em))");
+test_invalid_value("flex-basis", "fit-content(-10px)");
+test_invalid_value("flex-basis", "fit-content(auto)");
+test_invalid_value("flex-basis", "fit-content()");
+
+test_computed_value("flex-basis", "fit-content(10px)");
+test_computed_value("flex-basis", "fit-content(20%)");
+test_computed_value("flex-basis", "fit-content(calc(10px + 0.5em))", "fit-content(20px)");
+
+test_shorthand_value('flex', '1 fit-content(10px)', {
+  'flex-grow': '1',
+  'flex-shrink': '1',
+  'flex-basis': 'fit-content(10px)'
+});
+
+test_shorthand_value('flex', 'fit-content(10%) 2 3', {
+  'flex-grow': '2',
+  'flex-shrink': '3',
+  'flex-basis': 'fit-content(10%)'
+});
+</script>
+</body>
+</html>

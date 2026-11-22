@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en" >
+<meta charset="utf-8">
+<title>CSS test: balancing and line-clamp</title>
+<link rel='author' title='Christian Biesinger' href='mailto:cbiesinger@igalia.com'>
+<link rel='help' href='https://drafts.csswg.org/css-overflow-4/#line-clamp'>
+<link rel='help' href='https://drafts.csswg.org/css-text-4/#text-wrap-style'>
+<meta name="assert" content="If the element is affected by line-clamp, the clamping effect is applied first, then the remaining lines are balanced. Content that fits within the maximum number of lines is not clamped, even when the block ellipsis would not fit after it.">
+<link rel="match" href="reference/text-wrap-balance-line-clamp-012-ref.html">
+<style>
+div {
+    border: solid;
+    font-family: monospace;
+    margin: 1ch;
+    width: 9.1ch;  /* .1ch to work around browser bugs */
+}
+.test {
+    border-color: blue;
+
+    text-wrap-style: balance;
+    line-clamp: 3;
+}
+.ref {
+    border-color: orange;
+}
+</style>
+
+<p>Test passes if the box with a blue frame is identical to the orange one.
+
+<div class=test>1 2 3 4 5 6 7 8 abcdefghi</div>
+
+<div class=ref>1 2 3 4<br>5 6 7 8<br>abcdefghi</div>
+
+<!--
+unbalanced layout, which fits within 3 lines:
+    |---------|
+    |1 2 3 4 5|
+    |6 7 8    |
+    |abcdefghi|
+    |---------|
+
+There is no room for the block ellipsis after "abcdefghi", but as the content fits within 3 lines, it is not clamped.
+
+balanced layout:
+    |---------|
+    |1 2 3 4  |
+    |5 6 7 8  |
+    |abcdefghi|
+    |---------|
+-->

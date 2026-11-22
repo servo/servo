@@ -9,11 +9,10 @@
 
 import logging
 import os
-from collections.abc import Iterable
 import unittest
+from collections.abc import Iterable
 
 from . import tidy
-
 
 BASE_PATH = "python/tidy/tests/"
 

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>The table rules attribute draws lines between rows, columns or groups</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#tables-2">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#border-conflict-resolution-algorithm">
+<link rel="match" href="table-rules-rendering-ref.html">
+<meta name="assert" content="rules=groups, rows, cols and all draw 1px solid lines only between the parts of the table they name (row and column groups, rows, columns, or all cells), never around the outside unless the border attribute also gives the table a border. The reference draws the same lines with cell borders.">
+<style>
+  /* Text colour black: the UA sheet asks for black rule lines and the other
+     borders use currentcolor, so either way the lines are black. */
+  table { color: black; display: inline-table; vertical-align: top; margin: 0 12px 12px 0; }
+  td { width: 20px; height: 20px; padding: 0; }
+</style>
+
+<table rules="groups">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<table rules="rows">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<table rules="cols">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<table rules="all">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<br>
+<table rules="groups" border="1">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<table rules="rows" border="1">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<table rules="cols" border="1">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<table rules="all" border="1">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<br>
+<!-- Spanning cells: no row line is drawn through a cell that spans two rows. -->
+<table rules="rows">
+  <tbody>
+    <tr><td rowspan="2"></td><td colspan="2"></td></tr>
+    <tr><td></td><td rowspan="2"></td></tr>
+    <tr><td colspan="2"></td></tr>
+  </tbody>
+</table>
+<table rules="rows" border="1">
+  <tbody>
+    <tr><td rowspan="2"></td><td colspan="2"></td></tr>
+    <tr><td></td><td rowspan="2"></td></tr>
+    <tr><td colspan="2"></td></tr>
+  </tbody>
+</table>

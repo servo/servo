@@ -6,7 +6,7 @@ use std::borrow::Cow;
 use std::collections::VecDeque;
 use std::str::FromStr;
 
-use chrono::NaiveDateTime;
+use jiff::civil;
 use servo_url::ServoUrl;
 use url::{Position, Url, form_urlencoded};
 
@@ -126,31 +126,28 @@ impl MediaFragmentParser {
     }
 
     fn parse_utc_timestamp(&self, input: &str) -> Result<(Option<f64>, Option<f64>), ()> {
+        let timestamp_to_seconds = |input: &str| -> Result<f64, ()> {
+            let date_time =
+                civil::DateTime::strptime("%Y%m%dT%H%M%S%.fZ", input).map_err(|_| ())?;
+            Ok(hms_to_seconds(
+                date_time.hour() as u32,
+                date_time.minute() as u32,
+                f64::from(date_time.second()) + (f64::from(date_time.subsec_nanosecond()) / 1e9),
+            ))
+        };
+
         if input.ends_with('-') || input.starts_with(',') || !input.contains('-') {
-            let sec = parse_hms(
-                NaiveDateTime::parse_from_str(&input.replace(['-', ','], ""), "%Y%m%dT%H%M%S%.fZ")
-                    .map_err(|_| ())?
-                    .time()
-                    .to_string()
-                    .as_ref(),
-            )?;
+            let seconds = timestamp_to_seconds(&input.replace(['-', ','], ""))?;
             if input.starts_with(',') {
-                Ok((Some(0.), Some(sec)))
+                Ok((Some(0.), Some(seconds)))
             } else {
-                Ok((Some(sec), None))
+                Ok((Some(seconds), None))
             }
         } else {
-            let vec: Vec<&str> = input.split('-').collect();
-            let mut hms: Vec<f64> = vec
-                .iter()
-                .flat_map(|s| NaiveDateTime::parse_from_str(s, "%Y%m%dT%H%M%S%.fZ"))
-                .flat_map(|s| parse_hms(&s.time().to_string()))
-                .collect();
-
-            let end = hms.pop().ok_or(())?;
-            let start = hms.pop().ok_or(())?;
-
-            if !hms.is_empty() || start >= end {
+            let mut seconds: Vec<f64> = input.split('-').flat_map(timestamp_to_seconds).collect();
+            let end = seconds.pop().ok_or(())?;
+            let start = seconds.pop().ok_or(())?;
+            if !seconds.is_empty() || start >= end {
                 return Err(());
             }
 

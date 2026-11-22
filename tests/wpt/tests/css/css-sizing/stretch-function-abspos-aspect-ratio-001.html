@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS stretch(): a minimum block size transferred through the aspect ratio of an absolutely positioned box</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-size-transfers">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="A stretch() minimum block size of an absolutely positioned box takes its margins off before it transfers through the aspect ratio.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .container {
+    position: relative;
+    width: 200px;
+    height: 400px;
+  }
+  .test {
+    position: absolute;
+    top: 0;
+    left: 0;
+    aspect-ratio: 1 / 1;
+    min-height: stretch(150px);
+    margin-bottom: 50px;
+    background: green;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="container">
+  <div class="test"></div>
+</div>

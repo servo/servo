@@ -21,7 +21,6 @@ use std::{os, ptr};
 
 use background_hang_monitor_api::ScriptHangAnnotation;
 use js::context::JSContext;
-use js::conversions::jsstr_to_string;
 use js::gc::StackGCVector;
 use js::glue::{
     DispatchablePointer, RUST_js_GetErrorMessage, RegisterScriptEnvironmentPreparer,
@@ -330,10 +329,11 @@ unsafe extern "C" fn promise_rejection_tracker(
 
 #[expect(unsafe_code)]
 fn safely_convert_null_to_string(cx: &JSContext, str_: HandleString) -> DOMString {
-    DOMString::from(match std::ptr::NonNull::new(*str_) {
-        None => String::new(),
-        Some(str_) => unsafe { jsstr_to_string(cx, str_) },
-    })
+    unsafe {
+        // Non null string is a valid string.
+        DOMString::from_raw_js_string(cx, *str_)
+    }
+    .unwrap_or_default()
 }
 
 #[expect(unsafe_code)]
@@ -379,10 +379,8 @@ unsafe extern "C" fn content_security_policy_allows(
         // SpiderMonkey provides null pointer when executing webassembly.
         let mut realm = CurrentRealm::assert(cx);
         let global = GlobalScope::from_current_realm(&mut realm);
-        let csp_list = global.get_csp_list();
-
         // If we don't have any CSP checks to run, short-circuit all logic here
-        allowed = csp_list.is_none() ||
+        allowed = global.call_on_csp_list(|csp_list| csp_list.is_none()) ||
             match runtime_code {
                 RuntimeCode::JS => {
                     let parameter_strings = unsafe { Handle::from_raw(parameter_strings) };
@@ -443,8 +441,7 @@ unsafe extern "C" fn content_security_policy_allows(
                     )
                 },
                 RuntimeCode::WASM => global
-                    .get_csp_list()
-                    .is_wasm_evaluation_allowed(cx, &global),
+                    .call_on_csp_list(|csp_list| csp_list.is_wasm_evaluation_allowed(cx, &global)),
             };
     });
     unsafe { *can_compile_strings = allowed };

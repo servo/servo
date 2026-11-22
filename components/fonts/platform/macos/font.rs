@@ -8,11 +8,11 @@ use std::ptr::NonNull;
 use std::sync::Arc;
 use std::{fmt, ptr};
 
-/// Implementation of Quartz (CoreGraphics) fonts.
 use app_units::Au;
 use byteorder::{BigEndian, ByteOrder};
 use euclid::default::{Point2D, Rect, Size2D};
-use fonts_traits::{FontIdentifier, FontTemplateRef, LocalFontIdentifier};
+use fonts_traits::tag::{CBDT, COLR, KERN, SBIX};
+use fonts_traits::{FontIdentifier, FontTemplateDescriptor, FontTemplateRef, LocalFontIdentifier};
 use log::debug;
 use objc2_core_foundation::{
     CFData, CFDictionary, CFIndex, CFNumber, CFRange, CFRetained, CFString, CFType,
@@ -22,16 +22,19 @@ use objc2_core_text::{
     CTFont, CTFontOrientation, CTFontSymbolicTraits, CTFontTableOptions, CTFontTableTag,
     kCTFontSlantTrait, kCTFontSymbolicTrait, kCTFontWeightTrait, kCTFontWidthTrait,
 };
-use skrifa::Tag;
-use style::values::computed::font::{FontStyle, FontWeight, FontWidth};
+use skrifa::font::{Blob, TableFunction};
+use skrifa::{Font as SkrifaFont, Tag};
+use style::font_face::{FontStyle, FontWidth};
+use style::values::computed::FontWeight;
 use webrender_api::{FontInstanceFlags, FontVariation};
 
 use super::core_text_font_cache::CoreTextFontCache;
+use crate::font::{FontTableMethods, FractionalPixel, map_platform_values_to_style_values};
+use crate::font_context::SkrifaFontCache;
 use crate::platform::font_list::font_template_for_local_font_descriptor;
 use crate::{
-    CBDT, COLR, FallbackFontSelectionOptions, Font, FontData, FontMetrics, FontRef,
-    FontTableMethods, FontTemplateDescriptor, FractionalPixel, GlyphId, KERN, PlatformFontMethods,
-    SBIX, map_platform_values_to_style_values,
+    FallbackFontSelectionOptions, Font, FontData, FontMetrics, FontRef, GlyphId,
+    PlatformFontMethods,
 };
 
 const KERN_PAIR_LEN: usize = 6;
@@ -78,31 +81,19 @@ unsafe impl Sync for PlatformFont {}
 unsafe impl Send for PlatformFont {}
 
 impl PlatformFont {
-    pub(crate) fn new_with_ctfont(ctfont: CFRetained<CTFont>, synthetic_bold: bool) -> Self {
-        Self::new_with_ctfont_and_variations(ctfont, vec![], synthetic_bold)
+    pub(crate) fn new_with_ctfont(ctfont: CFRetained<CTFont>) -> Self {
+        Self::new_with_ctfont_and_variations(ctfont, vec![])
     }
 
-    #[expect(unsafe_code)]
     pub(crate) fn new_with_ctfont_and_variations(
         ctfont: CFRetained<CTFont>,
         variations: Vec<FontVariation>,
-        synthetic_bold: bool,
     ) -> PlatformFont {
-        let ctfont_is_bold = unsafe {
-            ctfont
-                .symbolic_traits()
-                .contains(CTFontSymbolicTraits::TraitBold)
-        };
-        let is_variable_font =
-            unsafe { ctfont.variation_axes().is_some_and(|arr| !arr.is_empty()) };
-
-        let synthetic_bold = !ctfont_is_bold && !is_variable_font && synthetic_bold;
-
         Self {
             ctfont,
             variations,
             h_kern_subtable: None,
-            synthetic_bold,
+            synthetic_bold: false,
         }
     }
 
@@ -110,14 +101,13 @@ impl PlatformFont {
         font_identifier: FontIdentifier,
         data: Option<&FontData>,
         requested_size: Option<Au>,
-        synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let size = match requested_size {
             Some(s) => s.to_f64_px(),
             None => 0.0,
         };
         let Some(mut platform_font) =
-            CoreTextFontCache::core_text_font(font_identifier, data, size, synthetic_bold)
+            CoreTextFontCache::core_text_font(font_identifier, data, size)
         else {
             return Err("Could not generate CTFont for FontTemplateData");
         };
@@ -247,29 +237,17 @@ impl PlatformFontMethods for PlatformFont {
         font_identifier: FontIdentifier,
         data: &FontData,
         requested_size: Option<Au>,
-        synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
-        Self::new(font_identifier, Some(data), requested_size, synthetic_bold)
+        Self::new(font_identifier, Some(data), requested_size)
     }
 
     fn new_from_local_font_identifier(
         font_identifier: LocalFontIdentifier,
         requested_size: Option<Au>,
-        synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
-        Self::new(
-            FontIdentifier::Local(font_identifier),
-            None,
-            requested_size,
-            synthetic_bold,
-        )
+        Self::new(FontIdentifier::Local(font_identifier), None, requested_size)
     }
 
-    /// Create a platform font with the given variations from a existing font.
-    ///
-    /// `self` is consumed to work around platform differences. On some platforms, changing the
-    /// variations requires creating an entirely new font face, whereas on others the returned
-    /// font is `self`.
     fn copy_with_variations(
         self,
         font_identifier: &FontIdentifier,
@@ -281,8 +259,9 @@ impl PlatformFontMethods for PlatformFont {
         Ok(platform_font)
     }
 
-    fn descriptor(&self) -> FontTemplateDescriptor {
-        font_template_descriptor_from_ctfont_attributes(unsafe { self.ctfont.traits() })
+    fn copy_with_synthetic_bold(mut self) -> Result<Self, &'static str> {
+        self.synthetic_bold = true;
+        Ok(self)
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
@@ -464,12 +443,68 @@ impl PlatformFontMethods for PlatformFont {
     fn variations(&self) -> &[FontVariation] {
         &self.variations
     }
+
+    fn create_skrifa_font(&self) -> Option<SkrifaFont> {
+        let font = ThreadSafeCTFont {
+            font: self.ctfont.clone(),
+        };
+        let table_function = TableFunction::new(Arc::new(move |tag: Tag| -> Option<Blob> {
+            font.copy_table(tag)
+        }));
+        SkrifaFont::new(
+            table_function,
+            0, /* This value is ignored, for a table function */
+        )
+    }
+}
+
+struct ThreadSafeCTFont {
+    font: CFRetained<CTFont>,
+}
+
+impl ThreadSafeCTFont {
+    fn copy_table(&self, tag: Tag) -> Option<Blob> {
+        let tag_u32 = u32::from_be_bytes(tag.to_be_bytes());
+        // SAFETY: This should always be safe because
+        let data = unsafe {
+            self.font
+                .table(tag_u32 as CTFontTableTag, CTFontTableOptions::NoOptions)
+        }?;
+        Some(Blob::Shared(Arc::new(ThreadSafeCFData { data })))
+    }
+}
+
+// From https://developer.apple.com/documentation/coretext:
+// > All individual functions in CoreText are thread-safe. Font objects (CTFont,
+// > CTFontDescriptor, and associated objects) can be used simultaneously by multiple
+// > operations, work queues, or threads. However, the layout objects (CTTypesetter,
+// > CTFramesetter, CTRun, CTLine, CTFrame, and associated objects) should be used in a
+// > single operation, work queue, or thread.
+unsafe impl Send for ThreadSafeCTFont {}
+unsafe impl Sync for ThreadSafeCTFont {}
+
+struct ThreadSafeCFData {
+    data: CFRetained<CFData>,
+}
+
+// SAFETY: The slice returned from a CFData must not be mutated while the slice is alive.
+// Data returned from CTFontCopyTable is immutable.
+unsafe impl Send for ThreadSafeCFData {}
+unsafe impl Sync for ThreadSafeCFData {}
+
+impl AsRef<[u8]> for ThreadSafeCFData {
+    fn as_ref(&self) -> &[u8] {
+        // SAFETY: The slice returned from a CFData must not be mutated while the slice is alive.
+        // Data returned from CTFontCopyTable is immutable.
+        unsafe { self.data.as_bytes_unchecked() }
+    }
 }
 
 impl Font {
     pub(crate) fn find_fallback_using_system_font_api(
         &self,
         options: &FallbackFontSelectionOptions,
+        skrifa_font_cache: &SkrifaFontCache,
     ) -> Option<FontRef> {
         // TODO: The CoreText API is taking a UTS #35 string for the language value, and
         // the value stored in the HTML lang attribute is a BCP 47 language tag. These two
@@ -492,7 +527,14 @@ impl Font {
         let template = unsafe { font_template_for_local_font_descriptor(font.font_descriptor())? };
         let template = FontTemplateRef::new(template);
         Some(FontRef(Arc::new(
-            Font::new(template, self.descriptor.clone(), None, None).ok()?,
+            Font::new(
+                template,
+                self.descriptor.clone(),
+                None,
+                None,
+                skrifa_font_cache,
+            )
+            .ok()?,
         )))
     }
 }

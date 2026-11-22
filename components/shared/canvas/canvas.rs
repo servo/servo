@@ -294,37 +294,34 @@ impl Path {
             return Err(IndexSizeError);
         }
 
-        let mut start = Angle::radians(start_angle);
-        let mut end = Angle::radians(end_angle);
+        let start = Angle::radians(start_angle);
+        let end = Angle::radians(end_angle);
 
-        // Wrap angles mod 2 * PI if necessary
-        if !counterclockwise && start > end + Angle::two_pi() ||
-            counterclockwise && end > start + Angle::two_pi()
-        {
-            start = start.positive();
-            end = end.positive();
-        }
+        // The total sweep angle, positive in the given direction
+        let dir_sweep = if counterclockwise {
+            start - end
+        } else {
+            end - start
+        };
 
-        // Calculate the total arc we're going to sweep.
-        let sweep = match counterclockwise {
-            true => {
-                if end - start == Angle::two_pi() {
-                    -Angle::two_pi()
-                } else if end > start {
-                    -(Angle::two_pi() - (end - start))
-                } else {
-                    -(start - end)
-                }
-            },
-            false => {
-                if start - end == Angle::two_pi() {
-                    Angle::two_pi()
-                } else if start > end {
-                    Angle::two_pi() - (start - end)
-                } else {
-                    end - start
-                }
-            },
+        // Find the positive sweep angle in the given direction, in range [0, 2*PI].
+        let wrapped_sweep = if dir_sweep >= Angle::two_pi() {
+            Angle::two_pi()
+        } else if dir_sweep >= Angle::zero() {
+            dir_sweep
+        } else if dir_sweep.positive() != Angle::zero() {
+            // Wrap negative values that aren't exact multiples of -2*PI.
+            dir_sweep.positive()
+        } else {
+            Angle::two_pi()
+        };
+
+        // Wrap `start` and convert `wrapped_sweep` to clockwise-positive.
+        let start = start.positive();
+        let sweep = if counterclockwise {
+            -wrapped_sweep
+        } else {
+            wrapped_sweep
         };
 
         self.append_ellipse_arc(

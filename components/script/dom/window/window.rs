@@ -27,13 +27,10 @@ use dom_struct::dom_struct;
 use embedder_traits::user_contents::UserScript;
 use embedder_traits::{
     AlertResponse, ConfirmResponse, EmbedderMsg, LoadStatus, PromptResponse, ScriptToEmbedderChan,
-    SimpleDialogRequest, Theme, UntrustedNodeAddress, ViewportDetails, WebDriverLoadStatus,
+    SimpleDialogRequest, Theme, UntrustedNodeAddress, ViewportDetails,
 };
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
-use fonts::{
-    CspViolationHandler, FontContext, NetworkTimingHandler, WebFontDocumentContext,
-    WebFontSetDifference,
-};
+use fonts::{CspViolationHandler, FontContext, NetworkTimingHandler, WebFontSetDifference};
 use html5ever::LocalName;
 use js::context::{JSContext, NoGC};
 use js::conversions::ToJSValConvertible;
@@ -385,10 +382,6 @@ pub(crate) struct Window {
     #[no_trace]
     layout_blocker: Cell<LayoutBlocker>,
 
-    /// A channel to notify webdriver if there is a navigation
-    #[no_trace]
-    webdriver_load_status_sender: RefCell<Option<GenericSender<WebDriverLoadStatus>>>,
-
     /// The current state of the window object
     current_state: Cell<WindowState>,
 
@@ -405,7 +398,6 @@ pub(crate) struct Window {
     #[cfg(feature = "webgl")]
     webgl_chan: Option<WebGLChan>,
 
-    #[ignore_malloc_size_of = "defined in webxr"]
     #[no_trace]
     #[cfg(feature = "webxr")]
     webxr_registry: Option<webxr_api::Registry>,
@@ -1036,24 +1028,6 @@ impl Window {
         self.script_thread().perform_a_microtask_checkpoint(cx);
     }
 
-    pub(crate) fn web_font_context(&self, no_gc: &NoGC) -> WebFontDocumentContext {
-        let global = self.as_global_scope();
-        let task_source = global
-            .task_manager()
-            .dom_manipulation_task_source()
-            .to_sendable();
-        let document = self.document_unrooted(no_gc);
-        WebFontDocumentContext {
-            policy_container: document.policy_container().clone(),
-            request_client: self.request_client(Some(no_gc)),
-            document_url: document.base_url(),
-            csp_handler: Box::new(FontCspHandler {
-                task_source: task_source.clone(),
-            }),
-            network_timing_handler: Box::new(FontNetworkTimingHandler { task_source }),
-        }
-    }
-
     /// Part of <https://fetch.spec.whatwg.org/#populate-request-from-client>
     pub(crate) fn request_client(&self, no_gc: Option<&NoGC>) -> RequestClient {
         // Step 1.2.2. If global is a Window object and global’s navigable is not null,
@@ -1156,8 +1130,8 @@ impl Window {
 }
 
 #[derive(Debug, MallocSizeOf)]
-struct FontCspHandler {
-    task_source: SendableTaskSource,
+pub(crate) struct FontCspHandler {
+    pub(crate) task_source: SendableTaskSource,
 }
 
 impl CspViolationHandler for FontCspHandler {
@@ -1177,8 +1151,8 @@ impl CspViolationHandler for FontCspHandler {
 }
 
 #[derive(Debug, MallocSizeOf)]
-struct FontNetworkTimingHandler {
-    task_source: SendableTaskSource,
+pub(crate) struct FontNetworkTimingHandler {
+    pub(crate) task_source: SendableTaskSource,
 }
 
 impl NetworkTimingHandler for FontNetworkTimingHandler {
@@ -2857,7 +2831,7 @@ impl Window {
         // layout runs, so that the map can gather their elements in DOM order.
         document.id_map().resolve_all(cx.no_gc(), document.upcast());
 
-        let document_context = self.web_font_context(cx.no_gc());
+        let document_context = self.as_global_scope().web_font_context(cx.no_gc());
         let should_update_accessibility_tree = matches!(
             reflow_goal,
             ReflowGoal::UpdateTheRendering | ReflowGoal::LayoutQuery(QueryMsg::AccessKitNodeQuery)
@@ -3389,19 +3363,28 @@ impl Window {
         self.scroll_container_query(node, flags)
             .and_then(|response| {
                 Some(match response {
-                    ScrollContainerResponse::Viewport(overflow) => {
-                        (ScrollingBoxSource::Viewport(self.Document()), overflow)
-                    },
-                    ScrollContainerResponse::Element(parent_node_address, overflow) => {
+                    ScrollContainerResponse::Viewport(overflow, writing_mode) => (
+                        ScrollingBoxSource::Viewport(self.Document()),
+                        overflow,
+                        writing_mode,
+                    ),
+                    ScrollContainerResponse::Element(
+                        parent_node_address,
+                        overflow,
+                        writing_mode,
+                    ) => {
                         let node = unsafe { from_untrusted_node_address(parent_node_address) };
                         (
                             ScrollingBoxSource::Element(DomRoot::downcast(node)?),
                             overflow,
+                            writing_mode,
                         )
                     },
                 })
             })
-            .map(|(source, overflow)| ScrollingBox::new(source, overflow))
+            .map(|(source, overflow, writing_mode)| {
+                ScrollingBox::new(source, overflow, writing_mode)
+            })
     }
 
     #[expect(unsafe_code)]
@@ -3722,18 +3705,6 @@ impl Window {
         // Push the document title to `Paint` since we are
         // activating this document due to a navigation.
         self.Document().title_changed();
-    }
-    pub(crate) fn set_webdriver_load_status_sender(
-        &self,
-        sender: Option<GenericSender<WebDriverLoadStatus>>,
-    ) {
-        *self.webdriver_load_status_sender.borrow_mut() = sender;
-    }
-
-    pub(crate) fn webdriver_load_status_sender(
-        &self,
-    ) -> Option<GenericSender<WebDriverLoadStatus>> {
-        self.webdriver_load_status_sender.borrow().clone()
     }
 
     pub(crate) fn is_alive(&self) -> bool {
@@ -4285,7 +4256,6 @@ impl Window {
             devtools_marker_sender: Default::default(),
             #[cfg(feature = "devtools")]
             devtools_markers: Default::default(),
-            webdriver_load_status_sender: Default::default(),
             error_reporter,
             media_query_lists: DOMTracker::new(),
             #[cfg(feature = "bluetooth")]

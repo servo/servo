@@ -14,8 +14,8 @@
 # the mode line below and replace <YOUR_PROXY_ADDRESS> with your address, for example, the line shoud look like:
 # "--mode", "upstream:http://127.0.0.1:3128",
 
-import subprocess
 import argparse
+import subprocess
 import time
 
 import common_function_for_servo_test

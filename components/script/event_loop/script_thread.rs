@@ -34,7 +34,6 @@ use background_hang_monitor_api::{
     HangAnnotation, MonitoredComponentId, MonitoredComponentType,
 };
 use bytes::Bytes;
-use chrono::{DateTime, Local};
 use crossbeam_channel::unbounded;
 use data_url::mime::Mime;
 #[cfg(feature = "devtools")]
@@ -53,6 +52,7 @@ use fonts::{FontContext, SystemFontServiceProxy, WebFontLoadEvent};
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
 use http::header::REFRESH;
 use hyper_serde::Serde;
+use jiff::ZonedDateTime;
 use js::context::{JSContext, NoGC};
 use js::glue::GetWindowProxyClass;
 use js::jsapi::{GCReason, JSContext as UnsafeJSContext};
@@ -139,9 +139,7 @@ use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
 };
 use crate::dom::document::focus::FocusableArea;
-use crate::dom::document::{
-    AbortReason, Document, HasBrowsingContext, IsHTMLDocument, RenderingUpdateReason,
-};
+use crate::dom::document::{AbortReason, Document, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmliframeelement::{HTMLIFrameElement, IframeContext, ProcessingMode};
@@ -656,10 +654,14 @@ impl ScriptThread {
 
         // Step 5: If the result of should navigation request of type be blocked by
         // Content Security Policy? given request and cspNavigationType is "Blocked", then return. [CSP]
-        if initiator_global
-            .get_csp_list()
-            .should_navigation_request_be_blocked(cx, initiator_global, load_data, container)
-        {
+        if initiator_global.call_on_csp_list(|csp_list| {
+            csp_list.should_navigation_request_be_blocked(
+                cx,
+                initiator_global,
+                load_data,
+                container,
+            )
+        }) {
             return false;
         }
 
@@ -1230,21 +1232,11 @@ impl ScriptThread {
                 document.run_the_animation_frame_callbacks(cx);
             }
 
-            // Run the resize observer steps.
-            let mut depth = Default::default();
-            while document.gather_active_resize_observations_at_depth(cx, &depth) {
-                // Note: this will reflow the doc.
-                depth = document.broadcast_active_resize_observations(cx);
-            }
-
-            if document.has_skipped_resize_observations() {
-                document.deliver_resize_loop_error_notification(cx);
-                // Ensure that another turn of the event loop occurs to process
-                // the skipped observations.
-                document.add_rendering_update_reason(
-                    RenderingUpdateReason::ResizeObserverStartedObservingTarget,
-                );
-            }
+            // Run the resize observer steps. Note that this can cause a reflow
+            // of the Document.
+            // Step 16. For each doc of docs:
+            //  (the resize observer substeps are contained within this step)
+            document.run_the_resize_observer_steps(cx);
 
             // <https://html.spec.whatwg.org/multipage/#focus-fixup-rule>
             // > For each doc of docs, if the focused area of doc is not a focusable area, then run the
@@ -2713,16 +2705,6 @@ impl ScriptThread {
                 strict_file_interactability,
                 reply,
             ),
-            WebDriverScriptCommand::AddLoadStatusSender(_, response_sender) => {
-                webdriver_handlers::handle_add_load_status_sender(
-                    &documents,
-                    pipeline_id,
-                    response_sender,
-                )
-            },
-            WebDriverScriptCommand::RemoveLoadStatusSender(_) => {
-                webdriver_handlers::handle_remove_load_status_sender(&documents, pipeline_id)
-            },
             // https://github.com/servo/servo/issues/23535
             // The Script messages need different treatment since the JS script might mutate
             // `self.documents`, which would conflict with the immutable borrow of it that
@@ -3664,11 +3646,12 @@ impl ScriptThread {
         // > If the last modification date and time are not known,
         // > the attribute must return the current date and time in the above format.
         let last_modified = metadata.headers.as_ref().and_then(|headers| {
-            headers.typed_get::<LastModified>().map(|tm| {
-                let tm: SystemTime = tm.into();
-                let local_time: DateTime<Local> = tm.into();
-                local_time.format("%m/%d/%Y %H:%M:%S").to_string()
-            })
+            headers
+                .typed_get::<LastModified>()
+                .and_then(|last_modified| {
+                    ZonedDateTime::try_from(SystemTime::from(last_modified)).ok()
+                })
+                .map(|date_time| date_time.strftime("%m/%d/%Y %H:%M:%S").to_string())
         });
 
         let loader = DocumentLoader::new_with_threads(

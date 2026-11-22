@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Table's rules attribute changing dynamically</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#tables-2">
+<link rel="match" href="table-attribute-rules-dynamic-ref.html">
+<meta name="assert" content="Changing or removing the rules attribute after the table has been rendered updates the lines on the cells, rows and groups to match the new value, as if the table had been parsed with it.">
+<style>
+  table { color: black; display: inline-table; vertical-align: top; margin: 0 12px 12px 0; }
+  td { width: 20px; height: 20px; padding: 0; }
+</style>
+
+<table id="cols-to-rows" border="1" rules="cols">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<table id="rows-to-cols" rules="rows">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<table id="none-to-rows" rules="none">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<br>
+<table id="rows-removed" rules="rows">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+<table id="groups-to-none" rules="groups">
+  <colgroup span="2"></colgroup><colgroup></colgroup>
+  <thead><tr><td></td><td></td><td></td></tr></thead>
+  <tbody><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody>
+  <tfoot><tr><td></td><td></td><td></td></tr></tfoot>
+</table>
+
+<script src="/common/rendering-utils.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<script type="module">
+  await waitForAtLeastOneFrame();
+  document.getElementById("cols-to-rows").setAttribute("rules", "rows");
+  document.getElementById("rows-to-cols").setAttribute("rules", "cols");
+  document.getElementById("none-to-rows").setAttribute("rules", "rows");
+  document.getElementById("rows-removed").removeAttribute("rules");
+  document.getElementById("groups-to-none").setAttribute("rules", "none");
+  takeScreenshot();
+</script>
+</html>

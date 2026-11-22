@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS stretch(): the intrinsic size contributions of a box with a fixed argument</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-contribution">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="A fixed stretch() argument is the size of the margin box, so the box contributes it to its container's min-content and max-content sizes, margins included, whatever the box-sizing.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .max-content {
+    width: max-content;
+    height: 20px;
+    background: green;
+  }
+  .min-content {
+    width: min-content;
+    height: 20px;
+    background: green;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="max-content"><div style="width: stretch(100px); margin-right: 10px;"></div></div>
+<div class="min-content"><div style="width: stretch(100px); margin-right: 10px;"></div></div>
+<div class="max-content"><div style="width: stretch(100px); padding-right: 20px; box-sizing: border-box;"></div></div>
+<!-- Percentage margins are zero in the contributions. -->
+<div class="max-content"><div style="width: stretch(100px); margin-right: 20%;"></div></div>
+<!-- The border box doesn't shrink below its padding. -->
+<div class="max-content"><div style="width: stretch(50px); padding-left: 100px;"></div></div>

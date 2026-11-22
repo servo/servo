@@ -22,8 +22,14 @@
   'use strict';
 
   promise_test(async t => {
+    t.add_cleanup(() => {
+      canvas1.clearElementGeometry(child1);
+    });
     await waitForCanvasPaint(canvas1);
 
+    canvas1.updateElementGeometry(child1, {
+      canvasTransform: new DOMMatrix().translate(20, 30),
+    });
     const elementImage1 = canvas1.captureElementImage(child1);
     const ctx2 = canvas2.getContext('2d');
 
@@ -36,6 +42,19 @@
     }, 'Getting default size for an ElementImage from a different canvas must throw InvalidStateError');
 
     assert_throws_dom('InvalidStateError', () => {
+      canvas2.updateElementGeometry(elementImage1);
+    }, 'Updating element geometry with an ElementImage from a different canvas must throw InvalidStateError');
+
+    assert_throws_dom('InvalidStateError', () => {
+      canvas2.clearElementGeometry(elementImage1);
+    }, 'Clearing element geometry with an ElementImage from a different canvas must throw InvalidStateError');
+
+    assert_array_equals(
+      canvas1.getElementTransform(child1).toFloat64Array(),
+      new DOMMatrix().translate(20, 30).toFloat64Array(),
+      'Source element transform must remain unchanged after rejected clearElementGeometry on a different canvas');
+
+    assert_throws_dom('InvalidStateError', () => {
       let standaloneCtx = new OffscreenCanvas(200, 200).getContext('2d');
       standaloneCtx.drawElementImage(elementImage1, 0, 0);
     }, 'Drawing an ElementImage into a standalone OffscreenCanvas must throw InvalidStateError');
@@ -44,6 +63,16 @@
       let standalone = new OffscreenCanvas(200, 200);
       standalone.getElementImageDefaultSize(elementImage1);
     }, 'Getting default size for an ElementImage from a standalone OffscreenCanvas must throw InvalidStateError');
+
+    assert_throws_dom('InvalidStateError', () => {
+      let standalone = new OffscreenCanvas(200, 200);
+      standalone.updateElementGeometry(elementImage1);
+    }, 'Updating element geometry on a standalone OffscreenCanvas must throw InvalidStateError');
+
+    assert_throws_dom('InvalidStateError', () => {
+      let standalone = new OffscreenCanvas(200, 200);
+      standalone.clearElementGeometry(elementImage1);
+    }, 'Clearing element geometry on a standalone OffscreenCanvas must throw InvalidStateError');
   }, 'Prevent drawing ElementImage into a different canvas on main thread');
 
   const workerCode = `
@@ -74,6 +103,20 @@
         }
 
         try {
+          canvas2.updateElementGeometry(e.data.elementImage1);
+          results.updateGeometryError = 'success';
+        } catch (e) {
+          results.updateGeometryError = e.name;
+        }
+
+        try {
+          canvas2.clearElementGeometry(e.data.elementImage1);
+          results.clearGeometryError = 'success';
+        } catch (e) {
+          results.clearGeometryError = e.name;
+        }
+
+        try {
           let standaloneCtx = new OffscreenCanvas(200, 200).getContext('2d');
           standaloneCtx.drawElementImage(e.data.elementImage1, 0, 0);
           results.standaloneDrawError = 'success';
@@ -87,6 +130,22 @@
           results.standaloneSizeError = 'success';
         } catch (e) {
           results.standaloneSizeError = e.name;
+        }
+
+        try {
+          let standalone = new OffscreenCanvas(200, 200);
+          standalone.updateElementGeometry(e.data.elementImage1);
+          results.standaloneUpdateGeometryError = 'success';
+        } catch (e) {
+          results.standaloneUpdateGeometryError = e.name;
+        }
+
+        try {
+          let standalone = new OffscreenCanvas(200, 200);
+          standalone.clearElementGeometry(e.data.elementImage1);
+          results.standaloneClearGeometryError = 'success';
+        } catch (e) {
+          results.standaloneClearGeometryError = e.name;
         }
 
         self.postMessage(results);
@@ -118,7 +177,11 @@
     const result = await response_promise;
     assert_equals(result.drawError, 'InvalidStateError', 'Drawing an ElementImage into a different canvas must throw InvalidStateError');
     assert_equals(result.sizeError, 'InvalidStateError', 'Getting the default size for an ElementImage from a different canvas must throw InvalidStateError');
+    assert_equals(result.updateGeometryError, 'InvalidStateError', 'Updating element geometry with an ElementImage from a different canvas must throw InvalidStateError');
+    assert_equals(result.clearGeometryError, 'InvalidStateError', 'Clearing element geometry with an ElementImage from a different canvas must throw InvalidStateError');
     assert_equals(result.standaloneDrawError, 'InvalidStateError', 'Drawing an ElementImage into a standalone OffscreenCanvas must throw InvalidStateError');
     assert_equals(result.standaloneSizeError, 'InvalidStateError', 'Getting the default size for an ElementImage from a standalone OffscreenCanvas must throw InvalidStateError');
+    assert_equals(result.standaloneUpdateGeometryError, 'InvalidStateError', 'Updating element geometry on a standalone OffscreenCanvas must throw InvalidStateError');
+    assert_equals(result.standaloneClearGeometryError, 'InvalidStateError', 'Clearing element geometry on a standalone OffscreenCanvas must throw InvalidStateError');
   }, 'Prevent drawing ElementImage into a different canvas in a worker thread');
 </script>

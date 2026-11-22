@@ -16,17 +16,17 @@
 
 
 test_valid_value("image-resolution", "1dpi");
-test_valid_value("image-resolution", "2dpcm from-image");
-test_valid_value("image-resolution", "3dppx from-image snap");
+test_valid_value("image-resolution", "2dpcm from-image", "from-image 2dpcm");
+test_valid_value("image-resolution", "3dppx from-image snap", "from-image 3dppx snap");
 test_valid_value("image-resolution", "4dpi snap");
 test_valid_value("image-resolution", "from-image");
 test_valid_value("image-resolution", "from-image 5dpcm");
 test_valid_value("image-resolution", "from-image 6dppx snap");
 test_valid_value("image-resolution", "from-image snap");
-test_valid_value("image-resolution", "snap 7.5dpi");
+test_valid_value("image-resolution", "snap 7.5dpi", "7.5dpi snap");
 test_valid_value("image-resolution", "snap -8dpcm from-image");
-test_valid_value("image-resolution", "snap from-image");
-test_valid_value("image-resolution", "snap from-image 0dppx");
+test_valid_value("image-resolution", "snap from-image", "from-image snap");
+test_valid_value("image-resolution", "snap from-image 0dppx", "from-image 0dppx snap");
 
 
 </script>

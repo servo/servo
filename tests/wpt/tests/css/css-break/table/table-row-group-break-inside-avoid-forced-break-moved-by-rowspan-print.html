@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>A table row group with break-inside: avoid moves to the next page when a rowspan cell grows its rows past the end of the page and pushes a forced break along</title>
+<link rel="help" href="https://drafts.csswg.org/css-break-3/#break-within">
+<link rel="help" href="https://drafts.csswg.org/css-break-3/#forced-breaks">
+<link rel="help" href="https://drafts.csswg.org/css-break-3/#unforced-breaks">
+<link rel="match" href="table-row-group-break-inside-avoid-forced-break-moved-by-rowspan-print-ref.html">
+<meta name="assert" content="A row group with break-inside: avoid doesn't break between its rows on the first page, where the rows grown by a rowspan cell end past the end of the page, even though the rows' contents alone would put a later forced break on that page.">
+<style>
+@page { size: 5in 3in; margin: 0; }
+:root { print-color-adjust: exact; }
+body { margin: 0; }
+table { border-spacing: 0; }
+td { padding: 0; vertical-align: top; }
+div { width: 100px; height: 48px; background: blue; }
+.first { background: green; }
+.spacer { background: none; }
+.high { height: 144px; }
+.tall { height: 288px; background: orange; }
+tbody { break-inside: avoid; }
+.forced { break-before: page; }
+.forced div { background: purple; }
+</style>
+<div class="first"></div>
+<table>
+  <tbody>
+    <tr><td><div class="high"></div></td><td rowspan="2"><div class="tall"></div></td></tr>
+    <tr><td><div class="spacer"></div></td></tr>
+    <tr class="forced"><td><div></div></td></tr>
+    <tr><td><div></div></td></tr>
+  </tbody>
+</table>

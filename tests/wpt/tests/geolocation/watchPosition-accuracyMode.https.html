@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+    const mockedPosition = {
+        latitude: 51.478,
+        longitude: -0.166,
+        accuracy: 100,
+        altitude: 53,
+        altitudeAccuracy: 30,
+        heading: 10.4,
+        speed: 20.7,
+    };
+
+    async function override_geolocation(t) {
+        t.add_cleanup(async () => {
+            await test_driver.bidi.emulation.set_geolocation_override(
+                {coordinates: null});
+        });
+
+        await test_driver.bidi.emulation.set_geolocation_override({
+            coordinates: mockedPosition
+        });
+    }
+
+    // Returns the coordinates of the first position reported by watchPosition()
+    // with the given `options`, and stops watching afterwards.
+    function watch_first_position(t, options) {
+        const {promise, resolve, reject} = Promise.withResolvers();
+        const watchId = navigator.geolocation.watchPosition(({coords}) => {
+            navigator.geolocation.clearWatch(watchId);
+            resolve(coords);
+        }, error => {
+            navigator.geolocation.clearWatch(watchId);
+            reject(error);
+        }, options);
+        t.add_cleanup(() => navigator.geolocation.clearWatch(watchId));
+        return promise;
+    }
+
+    promise_setup(async () => {
+        // Ensure permission is granted before proceeding.
+        await test_driver.bidi.permissions.set_permission({
+            descriptor: {name: "geolocation"},
+            state: "granted",
+        });
+    });
+
+    promise_test(async (t) => {
+        await override_geolocation(t);
+
+        const position = await watch_first_position(
+            t, {accuracyMode: "approximate"});
+
+        assert_equals(position.latitude, mockedPosition.latitude);
+        assert_equals(position.longitude, mockedPosition.longitude);
+        assert_equals(position.accuracy, mockedPosition.accuracy);
+        assert_equals(position.altitude, null);
+        assert_equals(position.altitudeAccuracy, null);
+        assert_equals(position.heading, null);
+        assert_equals(position.speed, null);
+    }, 'watchPosition with accuracyMode: "approximate"');
+
+    promise_test(async (t) => {
+        await override_geolocation(t);
+
+        const position = await watch_first_position(
+            t, {accuracyMode: "precise", enableHighAccuracy: true});
+
+        assert_equals(position.latitude, mockedPosition.latitude);
+        assert_equals(position.longitude, mockedPosition.longitude);
+        assert_equals(position.accuracy, mockedPosition.accuracy);
+        assert_equals(position.altitude, mockedPosition.altitude);
+        assert_equals(position.altitudeAccuracy, mockedPosition.altitudeAccuracy);
+        assert_equals(position.heading, mockedPosition.heading);
+        assert_equals(position.speed, mockedPosition.speed);
+    }, 'watchPosition with accuracyMode: "precise"');
+</script>

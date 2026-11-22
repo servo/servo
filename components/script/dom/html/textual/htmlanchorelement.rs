@@ -326,7 +326,7 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
         reflect_referrer_policy_attribute(self.upcast::<Element>())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-script-referrerpolicy
+    // https://html.spec.whatwg.org/multipage/#dom-a-referrerpolicy
     make_setter!(SetReferrerPolicy, "referrerpolicy");
 }
 
@@ -342,6 +342,9 @@ impl Activatable for HTMLAnchorElement {
         // https://html.spec.whatwg.org/multipage/#the-a-element
         // "The activation behaviour of a elements *that create hyperlinks*"
         self.as_element().has_attribute(&local_name!("href"))
+            // This is not specified, but is what browsers do. They disable any anchor
+            // interaction if it is marked as contenteditable
+            && !self.as_element().has_attribute(&local_name!("contenteditable"))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#links-created-by-a-and-area-elements:activation-behaviour>

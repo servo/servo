@@ -6,13 +6,14 @@
 <link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
 <link rel="match" href="reference/line-clamp-auto-041-ref.html">
 <meta name="assert" content="even if inserting the ellipsis makes the last line so much smaller than extra content would fit, don't reclamp to a later point">
+<link rel="stylesheet" href="/fonts/ahem.css">
+
 <style>
 .clamp {
-  font-family: monospace;
+  font: 25px/1 Ahem;
   line-clamp: auto;
   max-height: 5lh;
-  line-height: 1;
-  width: 25.2ch; /* the extra .2 is in case things aren't perfectly monospaced */
+  width: 25ch;
 }
 span {
   font-size: 4em;

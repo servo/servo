@@ -8,6 +8,7 @@ use std::rc::Rc;
 use app_units::Au;
 use euclid::Rect;
 use layout_api::{ContainerTimingRecord, LCPCandidate};
+use malloc_size_of_derive::MallocSizeOf;
 use paint_api::display_list::PaintTimingReport;
 use rustc_hash::{FxHashMap, FxHashSet};
 use servo_arc::Arc as ServoArc;
@@ -70,9 +71,10 @@ enum LCPCandidateType<'a> {
 /// One link in the chain of Container Timing roots that marks a point in the fragment
 /// tree, nearest first. The chain is passed down the stacking context tree build and the
 /// paint traversal,
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) struct ContainerTimingRootChain {
     root: OpaqueNode,
+    #[conditional_malloc_size_of]
     parent: ContainerTimingRoots,
 }
 

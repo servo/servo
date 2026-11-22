@@ -4,7 +4,7 @@
 <meta name=variant content="?isCrossOriginPreload=true&isCrossOriginResource=false">
 <meta name=variant content="?isCrossOriginPreload=false&isCrossOriginResource=true">
 <meta name=variant content="?isCrossOriginPreload=false&isCrossOriginResource=false">
-<title>The referrerpolicy attribute on Link header should be ignored for subresources</title>
+<title>Link headers on subresources should be ignored</title>
 <meta name="timeout" content="long">
 <script src="resources/dummy.js?link-header-preload2"></script>
 <script src="/common/get-host-info.sub.js"></script>
@@ -13,7 +13,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/preload/resources/preload_helper.js"></script>
 <body>
-    <p>The referrerpolicy attribute on Link header should be ignored for subresources
+    <p>Link headers on subresources should be ignored
     to prevent cross-origin referrer leakage</p>
 <script>
 window.referrers = {};
@@ -35,16 +35,9 @@ async function loader(t, {preloadPolicy, resourcePolicy, isCrossOriginResource, 
     await preloaded;
     hrefParams.set('operation', 'take');
     const take_href = `${hrefUrl}?${hrefParams.toString()}`;
-    let actualReferrer;
-    for (let i = 0; i < 10; ++i) {
-        actualReferrer = await fetch(take_href).then(res => res.text());
-        if (actualReferrer === '') {
-            // Preload request has not yet been received. Retry after timeout.
-            await new Promise(resolve => t.step_timeout(resolve, 100));
-        } else {
-            break;
-        }
-    }
+    // Give a (wrongly) issued preload time to arrive; it should never be requested.
+    await new Promise(resolve => t.step_timeout(resolve, 100));
+    const actualReferrer = await fetch(take_href).then(res => res.text());
     return {actualReferrer, unsafe: img.src};
 };
 
@@ -56,7 +49,7 @@ function test_referrer_policy(preloadPolicy, resourcePolicy, isCrossOriginPreloa
         hrefParams.set('key', id);
         hrefParams.set('operation', 'put');
         const {actualReferrer, unsafe} = await loader(t, {preloadPolicy, resourcePolicy, isCrossOriginResource, hrefUrl, hrefParams})
-        assert_equals(actualReferrer, 'NO-REFERER');
+        assert_equals(actualReferrer, '', 'subresource Link header must not trigger a preload');
     }, `referrer policy (${preloadPolicy} -> ${resourcePolicy}, ${isCrossOriginPreload ? 'cross-origin' : 'same-origin'}, ${isCrossOriginResource ? 'cross-origin' : 'same-origin'})`)
 }
 const policies = [

@@ -16,6 +16,7 @@
 <body>
 <script>
 test_valid_value("mask-repeat", "repeat-x");
+test_valid_value("mask-repeat", "repeat-x, repeat-y");
 test_valid_value("mask-repeat", "repeat-y");
 
 test_valid_value("mask-repeat", "repeat");
@@ -42,6 +43,13 @@ test_valid_value("mask-repeat", "no-repeat repeat", "repeat-y");
 test_valid_value("mask-repeat", "no-repeat space");
 test_valid_value("mask-repeat", "no-repeat round");
 test_valid_value("mask-repeat", "no-repeat no-repeat", "no-repeat");
+
+test(() => {
+  const e = document.createElement("div");
+  e.style.maskImage = 'url("https://example.com/"), url("https://example.com/")';
+  e.style.maskRepeat = "repeat-x";
+  assert_equals(e.style.maskRepeat, "repeat-x");
+}, "mask-repeat with fewer values than there are layers serializes as specified");
 </script>
 </body>
 </html>

@@ -46,6 +46,15 @@ test(() => {
   }
 }, `Property -webkit-line-clamp serializes to empty when longhand max-lines is not an integer`);
 
+test(() => {
+  if (CSS.supports("block-ellipsis",  'no-ellipsis')) {
+    target.style["-webkit-line-clamp"] = 'none';
+    assert_equals(getComputedStyle(target)["block-ellipsis"], "no-ellipsis");
+    target.style["-webkit-line-clamp"] = '1';
+    assert_equals(getComputedStyle(target)["block-ellipsis"], "ellipsis");
+  }
+}, `Property -webkit-line-clamp sets block-ellipsis to no-ellipsis if -webkit-line-clamp is none, and to ellipsis otherwise`);
+
 </script>
 </body>
 </html>

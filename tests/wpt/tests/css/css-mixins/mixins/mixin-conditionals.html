@@ -10,24 +10,16 @@
 
     <style>
       @mixin --m1() {
-        @result {
-          color: red;
-          --custom-property: wrong;
-        }
+        color: red;
+        --custom-property: wrong;
         @media (width < 1000px) {
-          @result {
-            color: green;
-          }
+          color: green;
         }
         @supports (color: green) {
-          @result {
-            --custom-property: exists;
-          }
+          --custom-property: exists;
         }
         @media (width > 1000px) {
-          @result {
-            color: red;
-          }
+          color: red;
         }
       }
       #e1 {
@@ -40,7 +32,7 @@
         let e1 = document.getElementById('e1');
         assert_equals(getComputedStyle(e1).color, 'rgb(0, 128, 0)');
         assert_equals(getComputedStyle(e1).getPropertyValue('--custom-property'), 'exists');
-      }, '@media and @supports wrapping @result');
+      }, '@media and @supports wrapping mixin declarations');
     </script>
 
 
@@ -52,19 +44,13 @@
       }
       @mixin --m2() {
         @container (width = 50px) {
-          @result {
-            color: red;
-          }
+          color: red;
         }
         @container (width = 100px) {
-          @result {
-            color: green;
-          }
+          color: green;
         }
         @container (width = 200px) {
-          @result {
-            color: red;
-          }
+          color: red;
         }
       }
       #e2 {
@@ -76,26 +62,24 @@
       test(() => {
         let e2 = document.getElementById('e2');
         assert_equals(getComputedStyle(e2).color, 'rgb(0, 128, 0)');
-      }, '@container wrapping @result');
+      }, '@container wrapping mixin declarations');
     </script>
 
 
     <style>
       @mixin --m3() {
-        --some-color: red;
+        @private { --some-color: red; }
         @media (width < 3000px) {
-          --some-color: green;
+          @private { --some-color: green; }
         }
         @supports (color: green) {
-          --some-other-color: blue;
+          @private { --some-other-color: blue; }
         }
         @media (width > 3000px) {
-          --some-color: red;
+          @private { --some-color: red; }
         }
-        @result {
-          color: var(--some-color);
-          --custom-property: var(--some-other-color);
-        }
+        color: var(--some-color);
+        --custom-property: var(--some-other-color);
       }
       #e3 {
         @apply --m3;
@@ -107,7 +91,7 @@
         let e3 = document.getElementById('e3');
         assert_equals(getComputedStyle(e3).color, 'rgb(0, 128, 0)');
         assert_equals(getComputedStyle(e3).getPropertyValue('--custom-property'), 'blue');
-      }, '@media and @supports wrapping locals');
+      }, '@media and @supports wrapping @private variables');
     </script>
 
 
@@ -118,22 +102,20 @@
         height: 50px;
       }
       @mixin --m4() {
-        --some-color: red;
+        @private { --some-color: red; }
         @container (width = 50px) {
-          --some-color: pink;
+          @private { --some-color: pink; }
         }
         @container (width = 100px) {
-          --some-color: pink;
+          @private { --some-color: pink; }
         }
         @container (width = 100px) {
-          --some-color: green;
+          @private { --some-color: green; }
         }
         @container (width = 400px) {
-          --some-color: blue;
+          @private { --some-color: blue; }
         }
-        @result {
-          color: var(--some-color);
-        }
+        color: var(--some-color);
       }
       #e4 {
         @apply --m4;
@@ -144,7 +126,7 @@
       test(() => {
         let e4 = document.getElementById('e4');
         assert_equals(getComputedStyle(e4).color, 'rgb(0, 128, 0)');
-      }, '@container wrapping locals');
+      }, '@container wrapping @private variables');
     </script>
 
 
@@ -163,22 +145,20 @@
       test(() => {
         let e4b = document.getElementById('e4b');
         assert_equals(getComputedStyle(e4b).color, 'rgb(0, 0, 255)');
-      }, '@container wrapping locals with different container is not cached');
+      }, '@private variables with different containers are not incorrectly cached');
     </script>
 
 
     <style>
       @mixin --m5() {
         @media (screen) {
-          --some-color: pink;
+          @private { --some-color: pink; }
         }
         @supports (color: green) {
-          --some-color: fuchsia;
+          @private { --some-color: fuchsia; }
         }
-        --some-color: green;
-        @result {
-          color: var(--some-color);
-        }
+        @private { --some-color: green; }
+        color: var(--some-color);
       }
       #e5 {
         @apply --m5;
@@ -189,7 +169,7 @@
       test(() => {
         let e5 = document.getElementById('e5');
         assert_equals(getComputedStyle(e5).color, 'rgb(0, 128, 0)');
-      }, 'Bare locals overriding earlier conditional-wrapped locals');
+      }, 'Unconditional @private declarations override earlier conditional ones');
     </script>
 
 
@@ -200,27 +180,25 @@
         height: 50px;
       }
       @mixin --m6() {
-        --some-color: red;
+        @private { --some-color: red; }
         @media (width < 3000px) {
           @container (width = 50px) {
-            --some-color: pink;
+            @private { --some-color: pink; }
           }
         }
         @container (width = 100px) {
           @media (width > 3000px) {
-            --some-color: violet;
+            @private { --some-color: violet; }
           }
         }
         @container (width = 100px) {
           @media (width < 4000px) {
-            --some-color: green;
+            @private { --some-color: green; }
           }
         }
         @media (width < 2000px) {
           @container (width = 100px) {
-            @result {
-              color: var(--some-color);
-            }
+            color: var(--some-color);
           }
         }
       }
@@ -233,7 +211,7 @@
       test(() => {
         let e6 = document.getElementById('e6');
         assert_equals(getComputedStyle(e6).color, 'rgb(0, 128, 0)');
-      }, 'Nested @media and @container locals');
+      }, '@private variables in nested @media and @container rules');
     </script>
 
   </body>

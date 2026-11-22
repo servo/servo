@@ -21,20 +21,10 @@ function testDragSourceRemoval(source, target,
       source.removeEventListener('dragstart', onDragStart);
     });
 
-    let droppedData;
-    const dropped = new Promise(resolve => {
-      const onDrop = event => {
-        // The data store is only readable while the drop event is dispatched.
-        droppedData = event.dataTransfer.getData(dataType);
-        resolve();
-      };
-      target.addEventListener('drop', onDrop, {once: true});
-      t.add_cleanup(() => {
-        target.removeEventListener('drop', onDrop);
-      });
-    });
-
-    await Promise.all([dropped, dragAndDropWithLayoutShift(source, target)]);
+    let droppedData = await waitForDragEvent(
+        t, target, 'drop', 1000,
+        event => event.dataTransfer.getData(dataType),
+        () => dragAndDropWithLayoutShift(source, target));
 
     assert_true(removedDuringDragStart, 'dragstart removed the source');
     assert_false(source.isConnected, 'The source remains removed after drop');

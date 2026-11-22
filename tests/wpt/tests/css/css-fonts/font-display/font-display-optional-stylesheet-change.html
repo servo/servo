@@ -1,0 +1,87 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Adding an unused font face must not swap a painted optional font</title>
+<link rel="author" title="Hoch Hochkeppel" href="mailto:mhochk@microsoft.com">
+<meta name="timeout" content="long">
+<link rel="help" href="https://drafts.csswg.org/css-fonts/#font-display-timeline">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#valdef-font-face-font-display-optional">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#valdef-font-face-font-display-fallback">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style id="font-style">
+  @font-face {
+    font-family: OptionalFont;
+    font-display: optional;
+  }
+  @font-face {
+    font-family: FallbackFont;
+    src: url("/fonts/Ahem.ttf");
+    size-adjust: 50%;
+  }
+  #target { font: 40px/1 OptionalFont, FallbackFont; }
+</style>
+<body>
+<span id="target">XXXX</span>
+<template id="font-face-change">
+  <style>
+    @font-face {
+      font-family: UnusedFont;
+      src: url("/fonts/Ahem.ttf");
+    }
+  </style>
+</template>
+<script>
+promise_test(async t => {
+  function delayedFont() {
+    const url = `support/optional-font-stylesheet-change.py?key=${token()}`;
+    let released = false;
+    async function release() {
+      if (released) {
+        return;
+      }
+      released = true;
+      const response = await fetch(url, {method: "POST"});
+      assert_true(response.ok, "The pending font was released");
+    }
+    t.add_cleanup(release);
+    return {url, release};
+  }
+
+  // Trigger the optional font loading
+  // Note - this is not done with a property mutation, so as to accomodate a
+  // Firefox bug that is not relevant to this test.
+  // https://bugzilla.mozilla.org/show_bug.cgi?id=443978
+  const font = delayedFont();
+  const sheet = document.getElementById("font-style").sheet;
+  const descriptors = sheet.cssRules[0].style.cssText;
+  sheet.deleteRule(0);
+  sheet.insertRule(`@font-face { ${descriptors} src: url("${font.url}"); }`, 0);
+
+  // Ensure the fallback font is loaded
+  await document.fonts.load("40px FallbackFont");
+
+  // Validate the fallback font is being used
+  const target = document.getElementById("target");
+  assert_equals(target.offsetWidth, 80, "The half-size fallback font is used");
+
+  // The optional font is only supposed to be used if it is available "immediately"
+  // for the "first paint" of the text, but user agents are allowed to delay actually
+  // painting to the screen, so we wait a reasonable amount of time to ensure real
+  // painting has happened.
+  await waitForAnimationFramesWithDelay(500);
+  await waitForAtLeastOneFrame();
+  await font.release();
+  await document.fonts.ready;
+  await waitForAtLeastOneFrame();
+  assert_equals(target.offsetWidth, 80, "Downloading the optional font must not swap it in");
+
+  document.getElementById("font-style").before(
+    document.getElementById("font-face-change").content);
+  await waitForAtLeastOneFrame();
+  assert_equals(target.offsetWidth, 80,
+                "Adding an unused font face must not swap in the full-size font");
+}, "An optional font must keep its painted fallback after adding an unused font face");
+</script>

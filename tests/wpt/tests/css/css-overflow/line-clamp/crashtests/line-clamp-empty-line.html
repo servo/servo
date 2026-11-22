@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: block ellipsis on an empty line</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<style>
+div {
+  line-clamp: 1;
+  width: 240px;
+}
+</style>
+<div><br>XX</div>
+<div><span style="position: relative; inset-inline-start: -300px;">XX</span><br>XX</div>
+<div style="direction: rtl;"><span style="position: relative; inset-inline-start: -300px;">XX</span><br>XX</div>

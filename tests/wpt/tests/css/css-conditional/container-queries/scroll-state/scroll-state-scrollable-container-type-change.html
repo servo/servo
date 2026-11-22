@@ -16,8 +16,16 @@
     width: 200px;
     height: 200px;
     --scrollable: no;
+    --inline-end: no;
+    --block-end: no;
     @container scroll-state(scrollable) {
       --scrollable: yes;
+    }
+    @container scroll-state(scrollable: inline-end) {
+      --inline-end: yes;
+    }
+    @container scroll-state(scrollable: block-end) {
+      --block-end: yes;
     }
   }
 </style>
@@ -55,5 +63,35 @@
     assert_equals(getComputedStyle(target).getPropertyValue("--scrollable"), "yes",
                   "container-type re-added");
   }, "Check scroll-state(scrollable) not matching when container-type is removed");
+
+  promise_test(async t => {
+    t.add_cleanup(async () => scroller.style.overflow = "");
+    scroller.style.overflow = "hidden";
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(target).getPropertyValue("--scrollable"), "no",
+                  "overflow:hidden");
+    assert_equals(getComputedStyle(target).getPropertyValue("--inline-end"), "no",
+                  "overflow:hidden inline-end");
+    assert_equals(getComputedStyle(target).getPropertyValue("--block-end"), "no",
+                  "overflow:hidden block-end");
+    scroller.style.overflow = "";
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(target).getPropertyValue("--scrollable"), "yes",
+                  "overflow:auto restored");
+  }, "Check scroll-state(scrollable) not matching when overflow is hidden");
+
+  promise_test(async t => {
+    t.add_cleanup(async () => scroller.style.overflowX = "");
+    scroller.style.overflowX = "hidden";
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(target).getPropertyValue("--inline-end"), "no",
+                  "overflow-x:hidden inline-end");
+    assert_equals(getComputedStyle(target).getPropertyValue("--block-end"), "yes",
+                  "overflow-y:auto block-end");
+    scroller.style.overflowX = "";
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(target).getPropertyValue("--inline-end"), "yes",
+                  "overflow-x:auto restored");
+  }, "Check scroll-state(scrollable) per-axis matching when overflow-x is hidden");
 
 </script>

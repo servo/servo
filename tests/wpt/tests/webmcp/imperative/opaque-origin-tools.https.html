@@ -8,66 +8,283 @@
 </head>
 <body>
 <script>
+if (new URLSearchParams(location.search).has('popup_helper')) {
+  (async () => {
+    try {
+      if (self.origin !== 'null') {
+        parent.postMessage(
+            {error: 'expected opaque origin in helper, got ' + self.origin},
+            '*');
+        return;
+      }
+      const popup = window.open('about:blank');
+      if (!popup) {
+        parent.postMessage({error: 'popup was null'}, '*');
+        return;
+      }
+      try {
+        await popup.document.modelContext.registerTool({
+          name: 'popup_parent_tool',
+          description: 'Tool registered in unsandboxed opaque-origin popup',
+          execute: async input => `from-popup-parent:${input.arg ?? 'none'}`
+        });
+
+        const child = popup.document.createElement('iframe');
+        child.allow = 'tools';
+        popup.document.body.appendChild(child);
+
+        await child.contentDocument.modelContext.registerTool({
+          name: 'popup_child_tool',
+          description: 'Tool registered in same-opaque-origin child iframe',
+          execute: async input => `from-popup-child:${input.arg ?? 'none'}`
+        });
+
+        const childVisibleTools =
+            await child.contentDocument.modelContext.getTools();
+        const parentToolFromChild =
+            childVisibleTools.find(t => t.name === 'popup_parent_tool');
+        const parentResult = await child.contentDocument.modelContext.executeTool(
+            parentToolFromChild, {arg: 'hello'});
+
+        const parentVisibleTools =
+            await popup.document.modelContext.getTools();
+        const childToolFromParent =
+            parentVisibleTools.find(t => t.name === 'popup_child_tool');
+        const childResult = await popup.document.modelContext.executeTool(
+            childToolFromParent, {arg: 'world'});
+
+        parent.postMessage({
+          popupOrigin: popup.origin,
+          childOrigin: child.contentWindow.origin,
+          distinctDocuments: popup.document !== child.contentDocument,
+          parentToolOrigin: parentToolFromChild.origin,
+          childToolOrigin: childToolFromParent.origin,
+          parentResult,
+          childResult,
+        }, '*');
+      } finally {
+        popup.close();
+      }
+    } catch (err) {
+      parent.postMessage({error: err.name + ': ' + err.message}, '*');
+    }
+  })();
+} else {
 promise_test(async t => {
   // Assert that our CSP header took effect.
   assert_equals(self.origin, 'null');
 
+  const ac = new AbortController();
+  t.add_cleanup(() => ac.abort());
+
   await document.modelContext.registerTool({
     name: 'opaque_tool',
     description: 'Opaque tool description',
-    execute: async () => 'success'
+    execute: async input => `executed:${input.param1 ?? 'none'}`
+  }, {signal: ac.signal});
+
+  const tools = await document.modelContext.getTools();
+  const tool = tools.find(t => t.name === 'opaque_tool');
+  assert_true(tool !== undefined, 'Tool should be visible to registering document');
+  assert_equals(tool.origin, 'null');
+
+  const result = await document.modelContext.executeTool(tool, {param1: 'value'});
+  assert_equals(result, 'executed:value');
+}, 'An opaque origin document can register and execute its own tools');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  iframe.allow = 'tools';
+  iframe.sandbox = 'allow-scripts';
+  t.add_cleanup(() => iframe.remove());
+
+  const messagePromise = new Promise(resolve => {
+    window.addEventListener('message', e => {
+      if (e.source === iframe.contentWindow) {
+        resolve(e.data);
+      }
+    }, {once: true});
   });
 
-  // The tool should be available, but its execution is rejected because opaque
-  // origins lose their same-origin identity during string serialization ("null").
-  const tools = await document.modelContext.getTools();
-  const tool = tools.find(t => t.name === 'opaque_tool');
+  iframe.srcdoc = `
+    <script>
+      (async () => {
+        try {
+          if (self.origin !== 'null') {
+            parent.postMessage({error: 'expected opaque origin, got ' + self.origin}, '*');
+            return;
+          }
+          await document.modelContext.registerTool({
+            name: 'sandbox_iframe_tool',
+            description: 'Tool in sandboxed iframe',
+            execute: async () => 'sandbox-iframe-ok'
+          });
+          const tools = await document.modelContext.getTools();
+          const tool = tools.find(t => t.name === 'sandbox_iframe_tool');
+          const result = await document.modelContext.executeTool(tool);
+          parent.postMessage({origin: tool.origin, result}, '*');
+        } catch (err) {
+          parent.postMessage({error: err.name + ': ' + err.message}, '*');
+        }
+      })();
+    <\/script>
+  `;
+  document.body.appendChild(iframe);
 
-  await promise_rejects_dom(
-    t,
-    'NotSupportedError',
-    document.modelContext.executeTool(tool),
-    'executeTool() must reject with NotSupportedError in opaque origin documents'
-  );
-}, 'An opaque origin document can register but not execute its own tools');
+  const data = await messagePromise;
+  assert_equals(data.error, undefined, `Unexpected iframe error: ${data.error}`);
+  assert_equals(data.origin, 'null');
+  assert_equals(data.result, 'sandbox-iframe-ok');
+}, 'A document inside a sandboxed (opaque) iframe can execute its own tool');
 
-// Executing a tool whose origin as returned from `getTools()` is "null"
-// synchronously rejects the execution Promise. "null" fails to parse as a URL,
-// because we don't parse it relative to the document's URL as a base URL.
-//
-// Script used to be able to pass a fabricated tool whose origin was an
-// arbitrary string (e.g., an unparseable URL, or a URL with an opaque origin),
-// but `executeTool()` now only accepts a real `Tool`, whose `origin` is always
-// the serialization of the registering document's origin. A compromised
-// renderer supplying an opaque target origin is covered by the
-// `SecurityExploitBrowserTestWebMCPEnabled.ExecuteRemoteScriptToolOpaqueTargetOrigin`
-// Chromium browser test.
 promise_test(async t => {
-  const tools = await document.modelContext.getTools();
-  const tool = tools.find(t => t.name === 'opaque_tool');
-  assert_equals(tool.origin, "null", "getTools() gives");
+  // An un-sandboxed `<iframe srcdoc>` child inside a CSP-sandboxed document
+  // inherits the active `sandboxed origin browsing context flag` per HTML,
+  // which forces it to derive a new, distinct opaque origin rather than
+  // copying the parent's opaque origin.
+  const ac = new AbortController();
+  t.add_cleanup(() => ac.abort());
 
-  let events = [];
-  const p = document.modelContext.executeTool(tool);
+  await document.modelContext.registerTool({
+    name: 'parent_opaque_tool',
+    description: 'Registered in CSP-sandboxed parent',
+    execute: async () => 'from-parent'
+  }, {signal: ac.signal});
 
-  // Since `executeTool()` synchronously rejects the Promise for opaque origins,
-  // the microtask to run the catch reaction is already queued before
-  // `queueMicrotask()` is invoked below.
-  p.catch(() => events.push('rejection'));
+  const child = document.createElement('iframe');
+  child.allow = 'tools';
+  t.add_cleanup(() => child.remove());
 
-  // Queue another microtask immediately after.
-  queueMicrotask(() => events.push('microtask'));
+  const messagePromise = new Promise(resolve => {
+    window.addEventListener('message', e => {
+      if (e.source === child.contentWindow) {
+        resolve(e.data);
+      }
+    }, {once: true});
+  });
 
-  await promise_rejects_dom(
-    t,
-    'NotSupportedError',
-    document.modelContext.executeTool(tool, {"param1":"value"}),
-    'executeTool() must reject with NotSupportedError in opaque origin documents'
-  );
+  child.srcdoc = `
+    <script>
+      (async () => {
+        try {
+          if (self.origin !== 'null') {
+            parent.postMessage({error: 'srcdoc not opaque: ' + self.origin}, '*');
+            return;
+          }
+          await document.modelContext.registerTool({
+            name: 'srcdoc_opaque_tool',
+            description: 'Registered in opaque srcdoc child',
+            execute: async () => 'from-opaque-srcdoc'
+          });
+          const tools = await document.modelContext.getTools();
+          const tool = tools.find(t => t.name === 'srcdoc_opaque_tool');
+          const result = await document.modelContext.executeTool(tool);
+          parent.postMessage({
+            origin: tool.origin,
+            toolNames: tools.map(t => t.name),
+            result
+          }, '*');
+        } catch (err) {
+          parent.postMessage({error: err.name + ': ' + err.message}, '*');
+        }
+      })();
+    <\/script>
+  `;
+  document.body.appendChild(child);
 
-  assert_array_equals(events, ['rejection', 'microtask'],
-    'returned promise is rejected before custom microtask is queued');
-}, 'executeTool() rejects synchronously for origin "null" that fails to parse as a URL');
+  const data = await messagePromise;
+  assert_equals(data.error, undefined, `Unexpected error: ${data.error}`);
+  assert_equals(data.origin, 'null');
+  assert_array_equals(data.toolNames, ['srcdoc_opaque_tool'],
+    'srcdoc child gets a distinct opaque origin and only sees its own tool');
+  assert_equals(data.result, 'from-opaque-srcdoc');
+}, 'An opaque-origin srcdoc child can register and execute its own tool');
+
+promise_test(async t => {
+  // Load a helper document without a CSP `sandbox` header inside an
+  // `<iframe sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox">`.
+  // When that iframe opens an `about:blank` popup, the popup escapes the
+  // sandbox (`active_sandbox_flags() == kNone`) while copying the opener's
+  // potentially trustworthy opaque origin. A child `<iframe>` inside that popup
+  // then also copies the same opaque origin, so the two Documents in the
+  // popup's frame tree share the same opaque origin and can see and execute
+  // each other's tools.
+  const iframe = document.createElement('iframe');
+  iframe.allow = 'tools';
+  iframe.sandbox = 'allow-scripts allow-popups allow-popups-to-escape-sandbox';
+  t.add_cleanup(() => iframe.remove());
+
+  const messagePromise = new Promise(resolve => {
+    window.addEventListener('message', e => {
+      if (e.source === iframe.contentWindow) {
+        resolve(e.data);
+      }
+    }, {once: true});
+  });
+
+  iframe.src =
+      `${location.pathname}?popup_helper&pipe=header(Content-Security-Policy,)`;
+  document.body.appendChild(iframe);
+
+  const data = await messagePromise;
+  assert_equals(data.error, undefined, `Unexpected error: ${data.error}`);
+  assert_equals(data.popupOrigin, 'null');
+  assert_equals(data.childOrigin, 'null');
+  assert_true(data.distinctDocuments,
+    'Popup and child iframe must be distinct Documents');
+  assert_equals(data.parentToolOrigin, 'null');
+  assert_equals(data.childToolOrigin, 'null');
+  assert_equals(data.parentResult, 'from-popup-parent:hello');
+  assert_equals(data.childResult, 'from-popup-child:world');
+}, 'Two Documents sharing a copied opaque origin can see and execute each other\'s tools');
+
+promise_test(async t => {
+  const ac = new AbortController();
+  t.add_cleanup(() => ac.abort());
+
+  await document.modelContext.registerTool({
+    name: 'parent_only_opaque_tool',
+    description: 'Should not be exposed to a distinct opaque origin',
+    execute: async () => 'should-not-run'
+  }, {signal: ac.signal});
+
+  const iframe = document.createElement('iframe');
+  iframe.allow = 'tools';
+  iframe.sandbox = 'allow-scripts';
+  t.add_cleanup(() => iframe.remove());
+
+  const messagePromise = new Promise(resolve => {
+    window.addEventListener('message', e => {
+      if (e.source === iframe.contentWindow) {
+        resolve(e.data);
+      }
+    }, {once: true});
+  });
+
+  iframe.srcdoc = `
+    <script>
+      (async () => {
+        try {
+          const tools = await document.modelContext.getTools();
+          parent.postMessage({
+            origin: self.origin,
+            toolNames: tools.map(t => t.name)
+          }, '*');
+        } catch (err) {
+          parent.postMessage({error: err.name + ': ' + err.message}, '*');
+        }
+      })();
+    <\/script>
+  `;
+  document.body.appendChild(iframe);
+
+  const data = await messagePromise;
+  assert_equals(data.error, undefined, `Unexpected iframe error: ${data.error}`);
+  assert_equals(data.origin, 'null');
+  assert_array_equals(data.toolNames, [],
+    'Distinct opaque origin must not obtain tools from another opaque origin');
+}, 'A document with a different opaque origin cannot obtain or execute the tool');
+}
 </script>
 </body>
 </html>

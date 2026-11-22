@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>CSS stretch(): flex items</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#algo-main-item">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="stretch() fits the margin box of a flex item to its argument in the main axis and in the cross axis.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .flex {
+    display: flex;
+    width: 200px;
+    height: 25px;
+  }
+  .column {
+    flex-direction: column;
+  }
+  .test {
+    flex: none;
+    background: green;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="flex"><div class="test" style="width: stretch(150px); margin-right: 50px;"></div></div>
+<div class="flex"><div class="test" style="width: stretch(75%); margin-right: 50px;"></div></div>
+<div class="flex column"><div class="test" style="width: 100px; height: stretch(75px); margin-bottom: 50px;"></div></div>
+<div class="flex column"><div class="test" style="width: stretch(150px); height: 25px; margin-right: 50px;"></div></div>

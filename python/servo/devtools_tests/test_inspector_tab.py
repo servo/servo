@@ -8,9 +8,10 @@
 # except according to those terms.
 
 from __future__ import annotations
-from typing import Optional, Any
-from concurrent.futures import Future
+
 import time
+from concurrent.futures import Future
+from typing import Any, Optional
 
 from geckordp.actors.events import Events
 from geckordp.actors.inspector import InspectorActor
@@ -48,6 +49,34 @@ class TestInspectorTab:
             assert_event_listeners(button, [{"type": "click", "capturing": False}], devtools)
             assert_event_listeners(span, [{"type": "hover", "capturing": True}], devtools)
             assert_event_listeners(div, None, devtools)
+
+    def test_inspector_css_database_includes_shorthands(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/inspector/demo_dom.html")
+        with Devtools.connect() as devtools:
+            css_properties = devtools.targets[0]["cssPropertiesActor"]
+
+            reply = devtools.client.send_receive(
+                {
+                    "to": css_properties,
+                    "type": "getCSSDatabase",
+                },
+            )
+
+            properties = reply["properties"]
+
+            # Assert that shorthands are present
+            assert "padding" in properties
+
+            # Assert that a shorthand lists its longhands
+            assert properties["padding"]["subproperties"] == [
+                "padding-top",
+                "padding-right",
+                "padding-bottom",
+                "padding-left",
+            ]
+
+            # Assert that longhands are still present
+            assert properties["padding-top"]["subproperties"] == ["padding-top"]
 
     def test_inspector_attribute_modifications_affect_dom(self, run_servoshell, web_server_urls):
         run_servoshell(url=f"{web_server_urls[0]}/inspector/demo_dom.html")
@@ -209,6 +238,48 @@ class TestInspectorTab:
             time.sleep(1)
             assert not did_see_new_mutations
             assert walker.get_mutations(False) == []
+
+    def test_inspector_rules_shows_style_rules_as_authored(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/inspector/rules.html")
+        with Devtools.connect() as devtools:
+            inspector = InspectorActor(devtools.client, devtools.targets[0]["inspectorActor"])
+            walker = WalkerActor(devtools.client, inspector.get_walker()["actor"])
+
+            # Find div whose rules will be inspected
+            document = walker.document_element("")["actor"]
+            div = walker.query_selector(document, "div")["node"]["actor"]
+
+            # Get the page style actor
+            page_style_actor = inspector.get_page_style()["pageStyle"]["actor"]
+
+            # Get the Css rules applied to the div
+            response = devtools.client.send_receive({"to": page_style_actor, "type": "getApplied", "node": div})
+
+            # Keep the div's own rules and identify its style attribute and stylesheet rule
+            entries = [entry for entry in response["entries"] if "inherited" not in entry]
+
+            style_attribute = next(entry for entry in entries if entry["rule"].get("selectors", []) == [])
+
+            stylesheet_rule = next(entry for entry in entries if entry["rule"].get("selectors", []) == ["#a"])
+
+            style_declarations = [
+                (declaration["name"], declaration["value"], declaration["priority"])
+                for declaration in style_attribute["rule"]["declarations"]
+            ]
+
+            stylesheet_declarations = [
+                (declaration["name"], declaration["value"], declaration["priority"])
+                for declaration in stylesheet_rule["rule"]["declarations"]
+            ]
+
+            # Assert that declarations are kept as authored.
+            assert style_declarations == [("background", "yellow", ""), ("color", "blue", "important")]
+
+            assert stylesheet_declarations == [
+                ("padding", "20px", ""),
+                ("border", "2px solid var(--x)", ""),
+                ("color", "red", "important"),
+            ]
 
     def test_walker_observes_new_dom_after_nav(self, run_servoshell, web_server_urls):
         # This tests that the walker actor can correctly recognize a new DOM across distinct

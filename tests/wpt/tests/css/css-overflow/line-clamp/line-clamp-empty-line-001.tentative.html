@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: ellipsis placement on an empty clamped line</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="match" href="reference/line-clamp-empty-line-001-ref.html">
+<meta name="assert" content="An ellipsis on an empty clamped line respects padding and writing direction.">
+<style>
+div {
+  font: 25px/1 monospace;
+  inline-size: 240px;
+  line-clamp: 1;
+}
+.padded { padding-inline-start: 32px; }
+.rtl { direction: rtl; }
+.vertical { writing-mode: vertical-rl; }
+</style>
+<div><br>XX</div>
+<div class="padded"><br>XX</div>
+<div class="rtl"><br>XX</div>
+<div class="vertical padded"><br>XX</div>

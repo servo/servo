@@ -17,7 +17,6 @@ use std::time::Duration;
 
 use atomic_refcell::{AtomicRef, AtomicRefCell};
 use bitflags::bitflags;
-use chrono::Local;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use content_security_policy::{CspList, Policy as CspPolicy, PolicyDisposition};
 use cookie::Cookie;
@@ -33,6 +32,7 @@ use encoding_rs::{Encoding, UTF_8};
 use html5ever::{LocalName, QualName, local_name, ns};
 use hyper_serde::Serde;
 use indexmap::IndexSet;
+use jiff::ZonedDateTime;
 use js::context::{JSContext, NoGC};
 use js::jsapi::JSObject;
 use js::realm::CurrentRealm;
@@ -891,6 +891,9 @@ impl Document {
             let msg = ScriptToConstellationMessage::DiscardDocument;
             let _ = global_scope.script_to_constellation_chan().send(msg);
         }
+
+        // If any element has requested to open a control, we should hide all of them
+        self.embedder_controls().hide_all_embedder_controls();
     }
 
     pub(crate) fn track_websocket(&self, websocket: &WebSocket) {
@@ -3539,30 +3542,96 @@ impl Document {
         &self.id_map
     }
 
-    /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-resizeobserver>
-    pub(crate) fn add_resize_observer(&self, cx: &mut JSContext, resize_observer: &ResizeObserver) {
+    /// <https://drafts.csswg.org/resize-observer/#lifetime>
+    pub(crate) fn add_resize_observer(&self, no_gc: &NoGC, resize_observer: &ResizeObserver) {
+        let mut resize_observers = self.resize_observers.safe_borrow_mut(no_gc);
+        let mut insertion_index = None;
+        for (index, existing_resize_observer) in resize_observers.iter().enumerate() {
+            if &**existing_resize_observer == resize_observer {
+                return;
+            }
+            if existing_resize_observer.created_after(resize_observer) {
+                insertion_index = Some(index);
+                break;
+            }
+        }
+
+        match insertion_index {
+            Some(index) => resize_observers.insert(index, Dom::from_ref(resize_observer)),
+            None => resize_observers.push(Dom::from_ref(resize_observer)),
+        }
+    }
+
+    pub(crate) fn remove_resize_observer(&self, no_gc: &NoGC, resize_observer: &ResizeObserver) {
         self.resize_observers
-            .safe_borrow_mut(cx)
-            .push(Dom::from_ref(resize_observer));
+            .safe_borrow_mut(no_gc)
+            .retain(|existing_resize_observer| &**existing_resize_observer != resize_observer);
     }
 
     /// <https://drafts.csswg.org/resize-observer/#gather-active-observations-h>
     /// <https://drafts.csswg.org/resize-observer/#has-active-resize-observations>
     pub(crate) fn gather_active_resize_observations_at_depth(
         &self,
-        cx: &mut JSContext,
+        no_gc: &NoGC,
         depth: &ResizeObservationDepth,
     ) -> bool {
-        // This does not trigger a creation of ResizeObserver, hence, we can take a simple borrow.
+        // This does not trigger a creation of ResizeObservers, so we can take a simple borrow.
         let mut has_active_resize_observations = false;
         for observer in self.resize_observers.borrow().iter() {
             observer.gather_active_resize_observations_at_depth(
-                cx,
+                no_gc,
                 depth,
                 &mut has_active_resize_observations,
             );
         }
         has_active_resize_observations
+    }
+
+    /// Step 16 from
+    /// <https://html.spec.whatwg.org/multipage/#update-the-rendering>
+    pub(crate) fn run_the_resize_observer_steps(&self, cx: &mut JSContext) {
+        // Not specified, but allows us to skip work when it isn't necessary.
+        if self.resize_observers.borrow().is_empty() {
+            return;
+        }
+
+        // Step 16.1. Let resizeObserverDepth be 0.
+        let mut resize_observer_depth = Default::default();
+        // Step 16.2. While true:
+        loop {
+            // Step 16.2.1. Recalculate styles and update layout for doc.
+            self.window()
+                .reflow_for_non_flushing_update_the_rendering_queries(cx);
+
+            // Step 16.2.2. Let hadInitialVisibleContentVisibilityDetermination be false.
+            // Step 16.2.3. For each element element with 'auto' used value of 'content-visibility':
+            // Step 16.2.4. If hadInitialVisibleContentVisibilityDetermination is true, then continue.
+            // TODO: Implement content-visibility
+
+            // Step 16.2.5. Gather active resize observations at depth resizeObserverDepth for doc.
+            let has_active_resize_observers =
+                self.gather_active_resize_observations_at_depth(cx.no_gc(), &resize_observer_depth);
+            // Step 16.2.6. If doc has active resize observations:
+            if has_active_resize_observers {
+                // Step 16.2.6.1. Set resizeObserverDepth to the result of broadcasting active resize
+                // observations given doc.
+                resize_observer_depth = self.broadcast_active_resize_observations(cx);
+                continue;
+            }
+            // Step 16.2.7. Otherwise, break.
+            break;
+        }
+
+        // Step 16.3. If doc has skipped resize observations, then deliver resize loop error given
+        // doc.
+        if self.has_skipped_resize_observations() {
+            self.deliver_resize_loop_error_notification(cx);
+            // Ensure that another turn of the event loop occurs to process
+            // the skipped observations.
+            self.add_rendering_update_reason(
+                RenderingUpdateReason::ResizeObserverStartedObservingTarget,
+            );
+        }
     }
 
     /// <https://drafts.csswg.org/resize-observer/#broadcast-active-resize-observations>
@@ -5463,11 +5532,9 @@ impl Document {
             self.origin().immutable().is_potentially_trustworthy()
     }
 
-    /// <https://fetch.spec.whatwg.org/#determine-the-network-partition-key>
-    pub(crate) fn determine_the_network_partition_key(&self) -> Option<Site> {
-        // Step 1. Let topLevelOrigin be environment’s top-level origin.
-        // https://html.spec.whatwg.org/multipage/#concept-environment-top-level-origin
-        let top_level_origin = if self.window().is_top_level() {
+    /// <https://html.spec.whatwg.org/multipage/#concept-environment-top-level-origin>
+    pub(crate) fn top_level_origin(&self) -> Option<ImmutableOrigin> {
+        if self.window().is_top_level() {
             Some(self.origin().immutable().clone())
         } else if let Some(top_level_document) = self.window().top_level_document_if_local() {
             Some(top_level_document.origin().immutable().clone())
@@ -5478,7 +5545,13 @@ impl Document {
                 .and_then(|ancestors| ancestors.last().cloned())
         } else {
             None
-        };
+        }
+    }
+
+    /// <https://fetch.spec.whatwg.org/#determine-the-network-partition-key>
+    pub(crate) fn determine_the_network_partition_key(&self) -> Option<Site> {
+        // Step 1. Let topLevelOrigin be environment’s top-level origin.
+        let top_level_origin = self.top_level_origin();
 
         // Step 2. If topLevelOrigin is null, then set topLevelOrigin to environment’s
         // top-level creation URL’s origin.
@@ -6464,13 +6537,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-lastmodified>
     fn LastModified(&self) -> DOMString {
-        DOMString::from(self.last_modified.as_ref().cloned().unwrap_or_else(|| {
-            // Ideally this would get the local time using `time`, but `time` always fails to get the local
-            // timezone on Unix unless the application is single threaded unless the library is explicitly
-            // set to "unsound" mode. Maybe that's fine, but it needs more investigation. see
-            // https://nvd.nist.gov/vuln/detail/CVE-2020-26235
-            // When `time` supports a thread-safe way of getting the local time zone we could use it here.
-            Local::now().format("%m/%d/%Y %H:%M:%S").to_string()
+        DOMString::from(self.last_modified.clone().unwrap_or_else(|| {
+            ZonedDateTime::now()
+                .strftime("%m/%d/%Y %H:%M:%S")
+                .to_string()
         }))
     }
 

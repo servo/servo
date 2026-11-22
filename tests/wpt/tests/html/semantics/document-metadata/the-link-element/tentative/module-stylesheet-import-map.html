@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Module link: import map base-URL snapshot and late maps</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/ShadowDOM/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script type="module">
+import {createLink, waitForEvent} from "./module-stylesheet-helpers.js";
+
+const baseDir = new URL("./", location.href).href;
+
+function createFrame(t, bodyMarkup = "<span>test</span>") {
+  return new Promise(resolve => {
+    const iframe = document.createElement("iframe");
+    // Give the frame the parent's directory as its base so that relative
+    // import-map addresses resolve against the parent's support/ resources.
+    iframe.srcdoc =
+        `<!DOCTYPE html><base href="${baseDir}"><body>${bodyMarkup}`;
+    iframe.onload = () => resolve(iframe);
+    document.body.append(iframe);
+    t.add_cleanup(() => iframe.remove());
+  });
+}
+
+function appendImportMap(doc, imports) {
+  const script = doc.createElement("script");
+  script.type = "importmap";
+  script.textContent = JSON.stringify({ imports });
+  doc.head.append(script);
+}
+
+// Import-map relative addresses resolve against the base URL in effect when the
+// map is parsed, even if the document base later changes.
+promise_test(async t => {
+  const iframe = await createFrame(t);
+  const doc = iframe.contentDocument;
+  appendImportMap(doc, {
+    "snapshot-theme": "./module-stylesheet-blue.css?imap-snapshot",
+  });
+  // Change the base after the map is parsed; it must not affect resolution.
+  doc.querySelector("base").href = new URL("./nonexistent/", baseDir).href;
+
+  const link = createLink(t, /*import=*/"snapshot-theme");
+  const result = waitForEvent(link);
+  doc.head.append(link);
+  assert_equals(await result, "load");
+  assert_equals(link.sheet.cssRules[0].style.color, "rgb(0, 0, 255)");
+}, "Import-map addresses keep the base URL used when the map was parsed.");
+
+// A late import map cannot override a successful resolution but can satisfy a
+// previously-unresolved bare specifier.
+promise_test(async t => {
+  const iframe = await createFrame(t);
+  const doc = iframe.contentDocument;
+
+  const unresolved = createLink(t, /*import=*/"late-theme");
+  const firstResult = waitForEvent(unresolved);
+  doc.head.append(unresolved);
+  assert_equals(await firstResult, "error",
+      "an unmapped bare specifier is unresolvable");
+  assert_equals(unresolved.sheet, null);
+
+  appendImportMap(doc, {
+    "late-theme": "./module-stylesheet-red.css?imap-late",
+  });
+
+  const retry = createLink(t, /*import=*/"late-theme");
+  const retryResult = waitForEvent(retry);
+  doc.head.append(retry);
+  assert_equals(await retryResult, "load",
+      "a later import map satisfies the previously-unresolved specifier");
+  assert_equals(retry.sheet.cssRules[0].style.color, "rgb(255, 0, 0)");
+}, "Late import maps can satisfy previously-unresolved bare specifiers.");
+</script>

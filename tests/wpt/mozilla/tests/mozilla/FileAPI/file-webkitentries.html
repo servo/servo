@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>HTMLInputElement.webkitEntries is empty for picker selections</title>
+<link rel=help href="https://wicg.github.io/entries-api/#dom-htmlinputelement-webkitentries">
+<link rel="author" title="Euclid Ye" href="mailto:yezhizhenjiakang@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<input id="file" type="file">
+<input id="directory" type="file" webkitdirectory>
+</body>
+
+<script>
+function testEntries(input, path, expectedFiles, description) {
+  async_test(function(t) {
+    input.addEventListener("change", t.step_func_done(() => {
+      assert_equals(input.files.length, expectedFiles);
+
+      // Browsers only populate webkitEntries from a drag-and-drop operation,
+      // which is now Baseline 2025.
+      // https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/webkitEntries
+      // https://wicg.github.io/entries-api/#issue-4cc238bb
+      // https://wicg.github.io/entries-api/#issue-452f97f6
+      const entries = input.webkitEntries;
+      assert_equals(entries.length, 0);
+      assert_true(Object.isFrozen(entries));
+    }));
+
+    input.selectFiles([path]);
+  }, description);
+}
+
+const resource = "./tests/wpt/mozilla/tests/mozilla/FileAPI/resource/relative-path";
+
+testEntries(document.getElementById("file"), resource + "/a.txt", 1,
+    "A file selection does not populate webkitEntries");
+
+testEntries(document.getElementById("directory"), resource, 3,
+    "A webkitdirectory selection does not populate webkitEntries");
+</script>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>white-space-trim: discard-inner on an inline box discards preserved white space</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#valdef-white-space-trim-discard-inner">
+<link rel="match" href="reference/white-space-trim-discard-inner-preserved-ref.html">
+<meta name="assert" content="On an inline box, 'white-space-trim: discard-inner' discards all white space at the start and end of the element, including preserved spaces, tabs and segment breaks. White space between the element's contents and outside the element is left alone.">
+<style>
+  .di { white-space-trim: discard-inner; }
+</style>
+</head>
+<body>
+<p>This test passes if it renders identically to the reference.</p>
+<!-- 1. pre, spaces --><div style="white-space: pre">a[<span class="di">   b c   </span>]d</div>
+<!-- 2. pre, tabs --><div style="white-space: pre">a[<span class="di">	b	c	</span>]d</div>
+<!-- 3. pre, segment breaks and indentation -->
+<div style="white-space: pre">a[<span class="di">
+
+  b
+  c
+
+</span>]d</div>
+<!-- 4. pre-line -->
+<div style="white-space: pre-line">a[<span class="di">
+
+  b
+  c
+
+</span>]d</div>
+<!-- 5. pre-wrap --><div style="white-space: pre-wrap">a[<span class="di">   b c   </span>]d</div>
+<!-- 6. break-spaces --><div style="white-space: break-spaces">a[<span class="di">   b c   </span>]d</div>
+<!-- 7. white space outside the element is kept --><div style="white-space: pre">a [<span class="di">   b   </span>] d</div>
+</body>
+</html>

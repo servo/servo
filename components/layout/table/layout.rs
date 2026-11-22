@@ -38,8 +38,8 @@ use crate::dom::WeakLayoutBox;
 use crate::flow::ContentAlignment;
 use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::{
-    BoxFragment, CollapsedBlockMargins, ExtraBackground, Fragment, FragmentChildren, FragmentFlags,
-    PositioningFragment, SpecificLayoutInfo,
+    BoxFragment, CollapsedBlockMargins, ExtraBackground, Fragment, FragmentAndLogicalRect,
+    FragmentChildren, FragmentFlags, PositioningFragment, SpecificLayoutInfo,
 };
 use crate::geom::{
     LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect,
@@ -1682,7 +1682,10 @@ impl<'a> TableLayout<'a> {
                     containing_block_for_logical_conversion.style.writing_mode,
                     original_positioning_context_length,
                 );
-                table_layout_fragments.push(Fragment::Box(grid_fragment.into()));
+                table_layout_fragments.push(FragmentAndLogicalRect::new(
+                    Fragment::Box(grid_fragment.into()),
+                    grid_fragment_rect,
+                ));
             } else {
                 let caption_fragments = self.table.captions.iter().filter_map(|caption| {
                     let caption = caption.borrow();
@@ -1738,14 +1741,17 @@ impl<'a> TableLayout<'a> {
                     );
 
                     caption.context.base.set_fragment(caption_fragment.clone());
-                    Some(caption_fragment)
+                    Some(FragmentAndLogicalRect::new(
+                        caption_fragment,
+                        logical_caption_rect,
+                    ))
                 });
                 table_layout_fragments.extend(caption_fragments);
             }
         }
 
         table_layout.content_block_size = current_block_offset + offset_from_wrapper.block_end;
-        table_layout.fragments = FragmentChildren::PhysicalDeprecated(table_layout_fragments);
+        table_layout.fragments = FragmentChildren::Logical(table_layout_fragments);
         table_layout
     }
 
@@ -1902,7 +1908,7 @@ impl<'a> TableLayout<'a> {
         BoxFragment::new(
             self.table.grid_base_fragment_info,
             self.table.grid_style.clone(),
-            FragmentChildren::PhysicalDeprecated(table_fragments),
+            FragmentChildren::Logical(table_fragments),
             content_rect,
             self.pbm.padding.to_physical(table_writing_mode),
             self.pbm.border.to_physical(table_writing_mode),
@@ -2037,9 +2043,11 @@ impl<'a> TableLayout<'a> {
             cell.colspan,
         );
         row_relative_cell_rect.start_corner -= row_fragment_layout.rect.start_corner;
+        let row_relative_cell_content_rect =
+            row_relative_cell_rect.deflate(&(layout.padding + layout.border));
         let mut fragment = cell.create_fragment(
             layout,
-            row_relative_cell_rect,
+            row_relative_cell_content_rect,
             row_baseline,
             positioning_context,
             &self.table.style,
@@ -2113,41 +2121,44 @@ impl<'a> TableLayout<'a> {
 
         let fragment = Fragment::Box(fragment.into());
         cell.context.base.set_fragment(fragment.clone());
-        row_fragment_layout.fragments.push(fragment);
+        row_fragment_layout
+            .fragments
+            .push(FragmentAndLogicalRect::new(
+                fragment,
+                row_relative_cell_content_rect,
+            ));
     }
 
     fn make_fragments_for_columns_and_column_groups(
         &self,
         dimensions: &TableAndTrackDimensions,
-        fragments: &mut Vec<Fragment>,
+        fragments: &mut Vec<FragmentAndLogicalRect>,
         containing_block_for_logical_conversion: &ContainingBlock,
     ) {
         for column_group in self.table.column_groups.iter() {
             let column_group = column_group.borrow();
             if !column_group.is_empty() {
+                let rect = dimensions.get_column_group_rect(&column_group);
                 let fragment = Fragment::Positioning(PositioningFragment::new_empty(
                     column_group.base.base_fragment_info,
-                    dimensions
-                        .get_column_group_rect(&column_group)
-                        .as_physical_deprecated(containing_block_for_logical_conversion),
+                    rect.as_physical_deprecated(containing_block_for_logical_conversion),
                     column_group.base.style.clone(),
                 ));
                 column_group.base.set_fragment(fragment.clone());
-                fragments.push(fragment);
+                fragments.push(FragmentAndLogicalRect::new(fragment, rect));
             }
         }
 
         for (column_index, column) in self.table.columns.iter().enumerate() {
             let column = column.borrow();
+            let rect = dimensions.get_column_rect(column_index);
             let fragment = Fragment::Positioning(PositioningFragment::new_empty(
                 column.base.base_fragment_info,
-                dimensions
-                    .get_column_rect(column_index)
-                    .as_physical_deprecated(containing_block_for_logical_conversion),
+                rect.as_physical_deprecated(containing_block_for_logical_conversion),
                 column.base.style.clone(),
             ));
             column.base.set_fragment(fragment.clone());
-            fragments.push(fragment);
+            fragments.push(FragmentAndLogicalRect::new(fragment, rect));
         }
     }
 
@@ -2289,7 +2300,7 @@ struct RowFragmentLayout<'a> {
     rect: LogicalRect<Au>,
     containing_block: ContainingBlock<'a>,
     positioning_context: Option<PositioningContext>,
-    fragments: Vec<Fragment>,
+    fragments: Vec<FragmentAndLogicalRect>,
 }
 
 impl<'a> RowFragmentLayout<'a> {
@@ -2315,6 +2326,7 @@ impl<'a> RowFragmentLayout<'a> {
             fragments: Vec::new(),
         }
     }
+
     fn finish(
         mut self,
         layout_context: &LayoutContext,
@@ -2322,7 +2334,7 @@ impl<'a> RowFragmentLayout<'a> {
         containing_block_for_logical_conversion: &ContainingBlock,
         containing_block_for_children: &ContainingBlock,
         row_group_fragment_layout: &mut Option<RowGroupFragmentLayout>,
-    ) -> Fragment {
+    ) -> FragmentAndLogicalRect {
         if self.row.base.style.get_box().position == Position::Relative {
             self.rect.start_corner +=
                 relative_adjustement(&self.row.base.style, containing_block_for_children);
@@ -2343,16 +2355,17 @@ impl<'a> RowFragmentLayout<'a> {
             style: containing_block_for_logical_conversion.style,
         };
 
-        let mut row_fragment = BoxFragment::new(
+        let mut row_fragment = BoxFragment::new_with_writing_mode_override(
             self.row.base.base_fragment_info,
             self.row.base.style.clone(),
-            FragmentChildren::PhysicalDeprecated(self.fragments),
+            FragmentChildren::Logical(self.fragments),
             self.rect
                 .as_physical_deprecated(&row_group_containing_block),
             PhysicalSides::zero(), /* padding */
             PhysicalSides::zero(), /* border */
             PhysicalSides::zero(), /* margin */
             None,                  /* specific_layout_info */
+            containing_block_for_logical_conversion.style.writing_mode,
         );
         row_fragment.set_does_not_paint_background();
 
@@ -2368,7 +2381,7 @@ impl<'a> RowFragmentLayout<'a> {
 
         let fragment = Fragment::Box(row_fragment.into());
         self.row.base.set_fragment(fragment.clone());
-        fragment
+        FragmentAndLogicalRect::new(fragment, self.rect)
     }
 }
 
@@ -2377,7 +2390,7 @@ struct RowGroupFragmentLayout {
     rect: LogicalRect<Au>,
     positioning_context: Option<PositioningContext>,
     index: usize,
-    fragments: Vec<Fragment>,
+    fragments: Vec<FragmentAndLogicalRect>,
 }
 
 impl RowGroupFragmentLayout {
@@ -2408,23 +2421,24 @@ impl RowGroupFragmentLayout {
         table_positioning_context: &mut PositioningContext,
         containing_block_for_logical_conversion: &ContainingBlock,
         containing_block_for_children: &ContainingBlock,
-    ) -> Fragment {
+    ) -> FragmentAndLogicalRect {
         let row_group = self.row_group.borrow();
         if row_group.base.style.get_box().position == Position::Relative {
             self.rect.start_corner +=
                 relative_adjustement(&row_group.base.style, containing_block_for_children);
         }
 
-        let mut row_group_fragment = BoxFragment::new(
+        let mut row_group_fragment = BoxFragment::new_with_writing_mode_override(
             row_group.base.base_fragment_info,
             row_group.base.style.clone(),
-            FragmentChildren::PhysicalDeprecated(self.fragments),
+            FragmentChildren::Logical(self.fragments),
             self.rect
                 .as_physical_deprecated(containing_block_for_logical_conversion),
             PhysicalSides::zero(), /* padding */
             PhysicalSides::zero(), /* border */
             PhysicalSides::zero(), /* margin */
             None,                  /* specific_layout_info */
+            containing_block_for_logical_conversion.style.writing_mode,
         );
         row_group_fragment.set_does_not_paint_background();
 
@@ -2436,7 +2450,7 @@ impl RowGroupFragmentLayout {
 
         let fragment = Fragment::Box(row_group_fragment.into());
         row_group.base.set_fragment(fragment.clone());
-        fragment
+        FragmentAndLogicalRect::new(fragment, self.rect)
     }
 }
 
@@ -2871,7 +2885,7 @@ impl TableSlotCell {
     fn create_fragment(
         &self,
         mut layout: CellLayout,
-        cell_rect: LogicalRect<Au>,
+        cell_content_rect: LogicalRect<Au>,
         cell_baseline: Au,
         positioning_context: &mut PositioningContext,
         table_style: &ComputedValues,
@@ -2882,7 +2896,6 @@ impl TableSlotCell {
         use style::Zero as StyleZero;
 
         let cell_style = self.context.style();
-        let cell_content_rect = cell_rect.deflate(&(layout.padding + layout.border));
         let content_block_size = layout.layout.content_block_size;
         let align_offset = self.content_alignment().resolve_offset(
             || cell_content_rect.size.block - content_block_size,
@@ -2947,7 +2960,10 @@ impl TableSlotCell {
         BoxFragment::new(
             base_fragment_info,
             cell_style.clone(),
-            FragmentChildren::PhysicalDeprecated(vec![Fragment::Positioning(align_fragment)]),
+            FragmentChildren::Logical(vec![FragmentAndLogicalRect::new(
+                Fragment::Positioning(align_fragment),
+                align_fragment_rect,
+            )]),
             cell_content_rect.as_physical_deprecated(containing_block),
             layout.padding.to_physical(table_style.writing_mode),
             layout.border.to_physical(table_style.writing_mode),

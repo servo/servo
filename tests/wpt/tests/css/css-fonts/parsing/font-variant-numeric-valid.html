@@ -15,6 +15,9 @@ test_valid_value('font-variant-numeric', 'normal');
 
 // <numeric-figure-values>   = [ lining-nums | oldstyle-nums ]
 test_valid_value('font-variant-numeric', 'lining-nums');
+test_valid_value('font-variant-numeric', 'lining-nums slashed-zero');
+test_valid_value('font-variant-numeric', 'lining-nums proportional-nums');
+test_valid_value('font-variant-numeric', 'lining-nums diagonal-fractions');
 test_valid_value('font-variant-numeric', 'oldstyle-nums');
 
 // <numeric-spacing-values>  = [ proportional-nums | tabular-nums ]
@@ -26,6 +29,7 @@ test_valid_value('font-variant-numeric', 'diagonal-fractions');
 test_valid_value('font-variant-numeric', 'stacked-fractions');
 
 test_valid_value('font-variant-numeric', 'ordinal');
+test_valid_value('font-variant-numeric', 'ordinal slashed-zero');
 
 test_valid_value('font-variant-numeric', 'slashed-zero');
 

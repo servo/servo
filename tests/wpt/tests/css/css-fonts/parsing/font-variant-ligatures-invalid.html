@@ -14,14 +14,19 @@
 test_invalid_value('font-variant-ligatures', 'none normal');
 
 test_invalid_value('font-variant-ligatures', 'normal common-ligatures');
+test_invalid_value('font-variant-ligatures', 'normal normal');
+test_invalid_value('font-variant-ligatures', 'normal no-common-ligatures');
 
 test_invalid_value('font-variant-ligatures', 'common-ligatures no-common-ligatures');
+test_invalid_value('font-variant-ligatures', 'common-ligatures common-ligatures');
+test_invalid_value('font-variant-ligatures', 'common-ligatures no-discretionary-ligatures normal');
 
 test_invalid_value('font-variant-ligatures', 'discretionary-ligatures no-discretionary-ligatures');
 
 test_invalid_value('font-variant-ligatures', 'historical-ligatures no-historical-ligatures');
 
 test_invalid_value('font-variant-ligatures', 'contextual no-contextual');
+test_invalid_value('font-variant-ligatures', '25px');
 </script>
 </body>
 </html>

@@ -1,0 +1,144 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="variant" content="?caret">
+<meta name="variant" content="?range">
+<meta name="variant" content="?forward">
+<meta name="variant" content="?inside-backward">
+<meta name="variant" content="?inside-forward">
+<meta name="variant" content="?inside-range">
+<meta name="variant" content="?nested-range">
+<meta name="variant" content="?nested-cross-range">
+<meta name="variant" content="?inline-block-range">
+<meta name="variant" content="?block-content-range">
+<meta name="variant" content="?pre-wrap-range">
+<meta name="variant" content="?paragraph-control">
+<meta name="variant" content="?undo-redo">
+<title>Deletion around object fallback paragraph boundaries</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+const cases = {
+    "caret": {
+        start: ["outside", 0],
+        end: ["outside", 0],
+    },
+    "range": {
+        start: ["fallback", 2],
+        end: ["outside", 0],
+    },
+    "forward": {
+        html: "abc<object>def</object>",
+        start: ["outside", 3],
+        end: ["outside", 3],
+        command: "forwardDelete",
+        expected: "abc<object>ef</object>",
+    },
+    "inside-backward": {
+        start: ["fallback", 2],
+        end: ["fallback", 2],
+        expected: "<object>ac</object>def",
+    },
+    "inside-forward": {
+        start: ["fallback", 1],
+        end: ["fallback", 1],
+        command: "forwardDelete",
+        expected: "<object>ac</object>def",
+    },
+    "inside-range": {
+        start: ["fallback", 1],
+        end: ["fallback", 2],
+        expected: "<object>ac</object>def",
+    },
+    "nested-range": {
+        html: "<object><object>abc</object></object>def",
+        start: ["fallback", 1],
+        end: ["fallback", 2],
+        expected: "<object><object>ac</object></object>def",
+    },
+    "nested-cross-range": {
+        html: "<object><object>abc</object></object>def",
+        start: ["fallback", 2],
+        end: ["outside", 0],
+        expected: "<object><object>ab</object></object>def",
+    },
+    "inline-block-range": {
+        html: '<object style="display:inline-block">abc</object>def',
+        start: ["fallback", 2],
+        end: ["outside", 0],
+        expected: '<object style="display:inline-block">ab</object>def',
+    },
+    "block-content-range": {
+        html: "<object><div>abc</div></object>def",
+        start: ["fallback", 1],
+        end: ["fallback", 2],
+        expected: "<object><div>ac</div></object>def",
+    },
+    "pre-wrap-range": {
+        start: ["fallback", 2],
+        end: ["outside", 0],
+        whiteSpace: "pre-wrap",
+    },
+    "paragraph-control": {
+        html: "<p>abc</p><p>def</p>",
+        start: ["paragraph", 0],
+        end: ["paragraph", 0],
+        expected: "<p>abcdef</p>",
+    },
+    "undo-redo": {
+        start: ["outside", 0],
+        end: ["outside", 0],
+        undoRedo: true,
+    },
+};
+
+promise_test(async t => {
+    const name = location.search.slice(1);
+    assert_own_property(cases, name);
+    const data = cases[name];
+    const host = document.body.appendChild(document.createElement("div"));
+    t.add_cleanup(() => {
+        getSelection().removeAllRanges();
+        host.remove();
+    });
+    host.contentEditable = "true";
+    host.innerHTML = data.html || "<object>abc</object>def";
+    if (data.whiteSpace)
+        host.style.whiteSpace = data.whiteSpace;
+    const originalHTML = host.innerHTML;
+    const object = host.querySelector("object");
+    const fallback = object ?
+        document.createTreeWalker(object, NodeFilter.SHOW_TEXT).nextNode() : null;
+    if (fallback) {
+        const probe = document.createRange();
+        probe.selectNodeContents(fallback);
+        await t.step_wait(() => probe.getClientRects().length > 0);
+    }
+
+    const points = {
+        fallback,
+        outside: data.command === "forwardDelete" ? host.firstChild : host.lastChild,
+        paragraph: host.lastElementChild.firstChild,
+    };
+
+    const range = document.createRange();
+    range.setStart(points[data.start[0]], data.start[1]);
+    range.setEnd(points[data.end[0]], data.end[1]);
+    getSelection().removeAllRanges();
+    getSelection().addRange(range);
+
+    const expected = data.expected || "<object>ab</object>def";
+    assert_true(document.execCommand(data.command || "delete"),
+        "The editing command succeeds");
+    assert_equals(host.innerHTML, expected, "The deletion preserves the expected DOM");
+    assert_true(getSelection().isCollapsed, "The selection collapses after deletion");
+
+    if (data.undoRedo) {
+        assert_true(document.execCommand("undo"));
+        assert_equals(host.innerHTML, originalHTML, "Undo restores the original DOM");
+        assert_true(document.execCommand("redo"));
+        assert_equals(host.innerHTML, expected, "Redo restores the deletion");
+        assert_true(getSelection().isCollapsed, "Redo restores a caret");
+    }
+}, "Deletion at paragraph boundaries: " + location.search.slice(1));
+</script>

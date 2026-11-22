@@ -158,7 +158,7 @@
       const writer = writable.getWriter();
 
       await writer.write(
-        `<script async src="resources/slow.js?pipe=trickle(d0.3)&async_slow=${method}"><` + `/script>` +
+        `<script async src="resources/slow.sub.js?pipe=trickle(d0.3)&async_slow=${method}"><` + `/script>` +
         `<script async src="data:text/javascript,window.events.push('fast-async');window.fast_async.resolve();"><` + `/script>` +
         `<p id="after-async">after</p>` +
         `<script>window.events.push('sync-inline');<` + `/script>`

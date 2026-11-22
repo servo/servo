@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+function onFocusIn() {
+  const firstInput = document.querySelector("input");
+  firstInput.select();
+  document.execCommand("insertHTML", false, "A");
+  const childCollapsibleSpan = document.querySelector("span > span");
+  getSelection().selectAllChildren(childCollapsibleSpan);
+}
+</script>
+</head>
+<body>
+<input onfocusin="onFocusIn()">
+B
+<span contenteditable>
+<span>
+</span>
+<span style="white-space: pre-wrap">
+</span>
+</span>
+<div>
+<input autofocus onfocusin="onFocusIn()">
+</body>
+</html>

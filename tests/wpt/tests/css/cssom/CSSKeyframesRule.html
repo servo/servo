@@ -80,6 +80,23 @@
         assert_equals(keyframes[1].cssText, "100% { top: 200px; }", "CSSKeyframesRule indexed getter [1]");
         assert_equals(keyframes.length, 2, "CSSKeyframesRule.length");
     }, 'indexed getter, length');
+
+    test(function () {
+        const style = document.createElement("style");
+        style.textContent = `
+            @keyframes "abcd" {}
+            @keyframes "initial" {}
+            @keyframes "none" {}
+            @keyframes "default" {}
+        `;
+        document.head.appendChild(style);
+        const rules = style.sheet.cssRules;
+        assert_equals(rules[0].cssText.replace(/\s/g, ""), "@keyframesabcd{}", "<string> name that is a valid <custom-ident>");
+        assert_equals(rules[1].cssText.replace(/\s/g, ""), "@keyframes\"initial\"{}", "<string> name that is a CSS-wide keyword");
+        assert_equals(rules[2].cssText.replace(/\s/g, ""), "@keyframes\"none\"{}", "<string> name 'none'");
+        assert_equals(rules[3].cssText.replace(/\s/g, ""), "@keyframes\"default\"{}", "<string> name 'default'");
+        style.remove();
+    }, 'cssText serialization of <string> names');
     </script>
 </head>
 </html>

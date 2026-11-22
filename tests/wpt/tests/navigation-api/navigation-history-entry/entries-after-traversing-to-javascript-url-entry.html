@@ -1,0 +1,37 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+// Resolves after the load event so that the next navigation isn't converted to
+// a replace navigation.
+function navigateAndWaitForLoad(t, iframe, navigate) {
+  return new Promise(resolve => {
+    iframe.onload = () => t.step_timeout(resolve, 0);
+    navigate();
+  });
+}
+
+promise_test(async t => {
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  const key = i.contentWindow.navigation.currentEntry.key;
+  const historyLength = history.length;
+  await navigateAndWaitForLoad(t, i, () => i.src = "javascript:'new content'");
+  const id = i.contentWindow.navigation.currentEntry.id;
+  assert_equals(history.length, historyLength);
+
+  await navigateAndWaitForLoad(t, i, () => i.contentWindow.navigation.navigate("/common/blank.html?next"));
+  const entries = i.contentWindow.navigation.entries();
+  assert_equals(entries.length, 2);
+  assert_equals(entries[0].key, key);
+  assert_equals(entries[0].id, id);
+  assert_equals(history.length, historyLength + 1);
+
+  await navigateAndWaitForLoad(t, i, () => i.contentWindow.navigation.back());
+  assert_equals(i.contentWindow.navigation.currentEntry.id, id);
+  assert_equals(i.contentWindow.navigation.currentEntry.key, key);
+  assert_equals(i.contentWindow.navigation.currentEntry.index, 0);
+  assert_equals(new URL(i.contentWindow.location.href).pathname, "/common/blank.html");
+}, "entries() after traversing back to an entry created by a javascript: URL navigation");
+</script>

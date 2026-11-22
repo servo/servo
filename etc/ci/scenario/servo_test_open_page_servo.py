@@ -9,9 +9,8 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-from selenium.common import NoSuchElementException
-
 import common_function_for_servo_test
+from selenium.common import NoSuchElementException
 from selenium.webdriver.common.by import By
 
 

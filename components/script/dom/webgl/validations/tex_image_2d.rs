@@ -5,7 +5,7 @@
 use std::{self, fmt};
 
 use servo_canvas_traits::webgl::WebGLError::*;
-use servo_canvas_traits::webgl::{TexDataType, TexFormat};
+use servo_canvas_traits::webgl::{TexDataType, TexFormat, WebGLVersion};
 
 use super::WebGLValidator;
 use super::types::TexImageTarget;
@@ -134,6 +134,8 @@ pub(crate) struct CommonTexImage2DValidator<'a> {
     width: i32,
     height: i32,
     border: i32,
+    /// Whether `width` and `height` describe a region of an existing image.
+    is_sub_image: bool,
 }
 
 pub(crate) struct CommonTexImage2DValidatorResult {
@@ -175,7 +177,7 @@ impl WebGLValidator for CommonTexImage2DValidator<'_> {
 
         // GL_INVALID_VALUE is generated if target is one of the six cube map 2D
         // image targets and the width and height parameters are not equal.
-        if target.is_cubic() && self.width != self.height {
+        if !self.is_sub_image && target.is_cubic() && self.width != self.height {
             self.context.webgl_error(InvalidValue);
             return Err(TexImageValidationError::InvalidCubicTextureDimensions);
         }
@@ -206,7 +208,12 @@ impl WebGLValidator for CommonTexImage2DValidator<'_> {
 
         // GL_INVALID_VALUE is generated if level is greater than zero and the
         // texture is not power of two.
-        if level > 0 && (!width.is_power_of_two() || !height.is_power_of_two()) {
+        // Only WebGL 1 restricts mipmaps to power-of-two sizes.
+        if !self.is_sub_image &&
+            self.context.webgl_version() == WebGLVersion::WebGL1 &&
+            level > 0 &&
+            (!width.is_power_of_two() || !height.is_power_of_two())
+        {
             self.context.webgl_error(InvalidValue);
             return Err(TexImageValidationError::NonPotTexture);
         }
@@ -256,7 +263,14 @@ impl<'a> CommonTexImage2DValidator<'a> {
             width,
             height,
             border,
+            is_sub_image: false,
         }
+    }
+
+    /// Marks `width` and `height` as a region of an existing image.
+    pub(crate) fn for_sub_image(mut self) -> Self {
+        self.is_sub_image = true;
+        self
     }
 }
 
@@ -293,6 +307,12 @@ impl<'a> TexImage2DValidator<'a> {
             format,
             data_type,
         }
+    }
+
+    /// Marks `width` and `height` as a region of an existing image.
+    pub(crate) fn for_sub_image(mut self) -> Self {
+        self.common_validator = self.common_validator.for_sub_image();
+        self
     }
 }
 
@@ -422,6 +442,12 @@ impl<'a> CommonCompressedTexImage2DValidator<'a> {
             ),
             data_len,
         }
+    }
+
+    /// Marks `width` and `height` as a region of an existing image.
+    pub(crate) fn for_sub_image(mut self) -> Self {
+        self.common_validator = self.common_validator.for_sub_image();
+        self
     }
 }
 
@@ -622,7 +648,8 @@ impl<'a> CompressedTexSubImage2DValidator<'a> {
                 0,
                 compression_format,
                 data_len,
-            ),
+            )
+            .for_sub_image(),
             xoffset,
             yoffset,
         }

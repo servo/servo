@@ -20,9 +20,9 @@ use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::subtlecrypto::{
-    CryptoAlgorithm, EcKeyAlgorithm, EcKeyGenParams, EcKeyImportParams, ExportedKey, JsonWebKeyExt,
-    JwkStringField, KeyAlgorithmAndDerivatives, NAMED_CURVE_P256, NAMED_CURVE_P384,
-    NAMED_CURVE_P521, SUPPORTED_CURVES,
+    CryptoAlgorithm, EcKeyAlgorithm, EcKeyGenParams, EcKeyImportParams, ExportedKey,
+    JsonWebKeyHelper, JwkStringField, KeyAlgorithmAndDerivatives, NAMED_CURVE_P256,
+    NAMED_CURVE_P384, NAMED_CURVE_P521, SUPPORTED_CURVES,
 };
 use crate::traits::Equivalence;
 

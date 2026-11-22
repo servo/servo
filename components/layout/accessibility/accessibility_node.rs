@@ -19,6 +19,7 @@ use num_traits::ToPrimitive;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script::layout_dom::{ServoLayoutElement, ServoLayoutNode};
 use servo_base::print_tree::PrintTree;
+use servo_base::text::RangeAny;
 use servo_config::pref;
 use style::dom::{NodeInfo, OpaqueNode};
 use style_traits::CSSPixel;
@@ -46,37 +47,6 @@ fn scroll_offset_to_affine(layout_vector: LayoutVector2D) -> Affine {
         -layout_vector.x.to_f64().unwrap_or(0.),
         -layout_vector.y.to_f64().unwrap_or(0.),
     ))
-}
-
-bitflags! {
-    /// Flags tracking an [`AccessibilityNode`]'s dirty state during an update. All flags which are
-    /// set during the update should be unset by the end of the update.
-    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-    pub(super) struct DirtyState : u16 {
-        /// At least one descendant of this node has unresolved damage from the DOM tree.
-        const DescendantHasDamage = 0b0001;
-        /// This node has unresolved damage from the DOM tree.
-        const HasDamage = 0b0010;
-        /// This node's data changed, but it hasn't yet been added to the [`AccessibilityUpdate`].
-        const Updated = 0b0100;
-    }
-}
-
-bitflags! {
-    /// Damage which was caused by changes to the accessibility tree. These changes can cause other
-    /// properties to need to be re-computed based on the updated values, either on the same node or
-    /// on other nodes.
-    #[derive(Clone, Copy, Default, Debug, Eq, PartialEq)]
-    pub(super) struct LocalAccessibilityDamage: u16 {
-        /// This node's children changed, and/or any node in its subtree changed.
-        const SubtreeChanged = 0b0001;
-        /// This node's computed role changed.
-        const RoleChanged = 0b0010;
-        /// This node's computed label or text value (for a text node) changed.
-        const TextChanged = 0b0100;
-        /// This node's visibility changed.
-        const VisibilityChanged = 0b1000;
-    }
 }
 
 pub(super) struct AccessibilityNode {
@@ -238,15 +208,13 @@ impl AccessibilityNode {
     ) -> LocalAccessibilityDamage {
         let mut local_damage = LocalAccessibilityDamage::empty();
 
-        if !dom_damage.intersects(
-            AccessibilityDamage::Node | AccessibilityDamage::Children | AccessibilityDamage::Layout,
-        ) {
+        if dom_damage.is_empty() {
             return local_damage;
         }
 
         // We check for layout damage here because we need to walk the DOM children of nodes with
-        // layout damage in order to be able to recompute their bounds. Text nodes have neither
-        // bounds nor child nodes, so if the only damage is layout, we can early return here.
+        // layout damage in order to be able to recompute their bounds. Text nodes don't have
+        // child nodes, so if the only damage is layout, we can early return here.
         if dom_damage == AccessibilityDamage::Layout && dom_node.is_text_node() {
             return local_damage;
         }
@@ -351,12 +319,6 @@ impl AccessibilityNode {
     ) -> LocalAccessibilityDamage {
         let mut local_damage = LocalAccessibilityDamage::empty();
         local_damage.insert(self.set_role(role_from_dom_node(dom_node)));
-        if dom_node.type_id() == Some(LayoutNodeType::Text) {
-            let text_content = dom_node.text_content();
-            trace!("node text content = {text_content:?}");
-            // FIXME: this should take into account editing selection units (grapheme clusters?)
-            local_damage.insert(self.set_value(&text_content));
-        }
 
         local_damage
     }
@@ -388,6 +350,20 @@ impl AccessibilityNode {
             } else {
                 local_damage.insert(self.clear_hidden());
             }
+        } else if dom_node.is_text_node() {
+            if let Some(layout_data) = dom_node.layout_data() &&
+                let Some(rendered_text) = layout_data.rendered_text(RangeAny::new(None, None)) &&
+                !rendered_text.is_empty()
+            {
+                trace!("node text content = {rendered_text:?}");
+                // FIXME: this should take into account editing selection units (grapheme clusters?)
+                local_damage.insert(self.set_value(rendered_text.as_str()));
+                local_damage.insert(self.clear_hidden());
+            } else {
+                local_damage.insert(self.set_hidden());
+            };
+
+            return local_damage;
         }
 
         if self.is_hidden() {
@@ -443,6 +419,7 @@ impl AccessibilityNode {
         if local_damage.is_empty() {
             return new_damage;
         }
+
         update.counters.nodes_updated_from_tree += 1;
 
         if local_damage.contains(LocalAccessibilityDamage::SubtreeChanged) ||
@@ -739,11 +716,29 @@ impl Debug for AccessibilityNode {
             write!(f, "[hidden] ")?;
         }
         write!(f, "{:?}: {:?}", self.id, self.role())?;
+
+        let write_truncated = |f: &mut std::fmt::Formatter<'_>, value: &str| {
+            let mut truncated = value.to_string();
+            truncated.truncate(30);
+            let ellipsis = if truncated.len() < value.len() {
+                "…"
+            } else {
+                ""
+            };
+            let truncated = truncated.replace("\n", "↵");
+            write!(f, "\"{truncated}{ellipsis}\"")
+        };
+
+        if let Some(value) = self.value() {
+            write!(f, " ")?;
+            write_truncated(f, value)?;
+        }
         if let Some(html_tag) = self.html_tag() {
             write!(f, " (html_tag: {html_tag:?})")?;
         }
         if let Some(label) = self.label() {
-            write!(f, "\nlabel: {label:?}")?;
+            write!(f, "\nlabel: ")?;
+            write_truncated(f, label)?;
         }
         if let Some(bounds) = self.bounds() {
             write!(f, "\nbounds: {bounds:?}")?;
@@ -817,6 +812,36 @@ where
     }
 }
 
+bitflags! {
+    /// Damage which was caused by changes to the accessibility tree. These changes can cause other
+    /// properties to need to be re-computed based on the updated values, either on the same node or
+    /// on other nodes.
+    #[derive(Clone, Copy, Default, Debug, Eq, PartialEq)]
+    pub(super) struct LocalAccessibilityDamage: u16 {
+        /// This node's children changed, and/or any node in its subtree changed.
+        const SubtreeChanged = 1 << 0;
+        /// This node's computed role changed.
+        const RoleChanged = 1 << 1;
+        /// This node's computed label or text value (for a text node) changed.
+        const TextChanged = 1 << 2;
+        /// This node's visibility changed.
+        const VisibilityChanged = 1 << 3;
+    }
+}
+
+bitflags! {
+    /// Flags tracking an [`AccessibilityNode`]'s dirty state during an update. All flags which are
+    /// set during the update should be unset by the end of the update.
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub(super) struct DirtyState : u16 {
+        /// At least one descendant of this node has unresolved damage from the DOM tree.
+        const DescendantHasDamage = 1 << 0;
+        /// This node has unresolved damage from the DOM tree.
+        const HasDamage = 1 << 1;
+        /// This node's data changed, but it hasn't yet been added to the [`AccessibilityUpdate`].
+        const Updated = 1 << 2;
+    }
+}
 impl DirtyState {
     pub(super) fn updated(&self) -> bool {
         self.contains(DirtyState::Updated)

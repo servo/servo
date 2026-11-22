@@ -6,7 +6,6 @@
 // information for an approach that we'll likely need to take when the
 // renderer moves to a sandboxed process.
 
-use std::cell::RefCell;
 use std::ffi::c_void;
 use std::fmt;
 use std::ops::Deref;
@@ -18,19 +17,16 @@ use dwrote::{
     FontCollection, FontFace, FontFile, FontSimulations,
 };
 use euclid::default::{Point2D, Rect, Size2D};
-use fonts_traits::LocalFontIdentifier;
+use fonts_traits::{FontData, LocalFontIdentifier};
 use log::debug;
-use read_fonts::TableProvider;
-use skrifa::Tag;
+use skrifa::font::{Blob, TableFunction};
+use skrifa::{Font as SkrifaFont, Tag};
 use style::Zero;
 use webrender_api::{FontInstanceFlags, FontVariation};
 use winapi::shared::minwindef::{BOOL, FALSE};
-use winapi::um::wingdi::FW_SEMIBOLD;
 
-use crate::{
-    FontData, FontIdentifier, FontMetrics, FontTableMethods, FontTemplateDescriptor,
-    FractionalPixel, GlyphId, PlatformFontMethods,
-};
+use crate::font::{FontTableMethods, FractionalPixel};
+use crate::{FontIdentifier, FontMetrics, GlyphId, PlatformFontMethods};
 
 // 1em = 12pt = 16px, assuming 72 points per inch and 96 px per inch
 fn pt_to_px(pt: f64) -> f64 {
@@ -115,36 +111,8 @@ impl PlatformFont {
         font_face: FontFace,
         pt_size: Option<Au>,
         variations: &[FontVariation],
-        synthetic_bold: bool,
     ) -> Result<Self, &'static str> {
-        // If the font face is already bold, applying synthetic bold would "double embolden" the font
-        let font_face_is_bold = DirectWriteTableProvider::from(&font_face)
-            .os2()
-            .is_ok_and(|os2| os2.us_weight_class() >= FW_SEMIBOLD as u16);
-
-        // Variable fonts do not count as font synthesis and their use is not affected by
-        // the font-synthesis property.
-        //
-        // See <https://www.w3.org/TR/css-fonts-4/#font-synthesis-intro>
-        let is_variable_font = font_face.has_variations();
-
-        let synthetic_bold = !font_face_is_bold && !is_variable_font && synthetic_bold;
-
-        let simulations = match synthetic_bold {
-            true => DWRITE_FONT_SIMULATIONS_BOLD,
-            false => DWRITE_FONT_SIMULATIONS_NONE,
-        };
-
-        if variations.is_empty() {
-            // The font_face created in `new_from_local_font_identifier` may already have some simulations applied
-            let font_face = match font_face.simulations() as u32 == simulations {
-                true => font_face,
-                false => font_face.create_font_face_with_simulations(simulations),
-            };
-            return Self::new(font_face, pt_size, vec![]);
-        }
-
-        // On FreeType and CoreText platforms, the platform layer is able to read the minimum, maxmimum,
+        // On FreeType and CoreText platforms, the platform layer is able to read the minimum, maximum,
         // and default values of each axis. This doesn't seem possible here and it seems that Gecko
         // also just sets the value of the axis based on the values from the style as well.
         //
@@ -159,7 +127,8 @@ impl PlatformFont {
             })
             .collect();
 
-        let Some(font_face) = font_face.create_font_face_with_variations(simulations, &variations)
+        let Some(font_face) =
+            font_face.create_font_face_with_variations(DWRITE_FONT_SIMULATIONS_NONE, &variations)
         else {
             return Err("Could not adapt FontFace to given variations");
         };
@@ -189,27 +158,36 @@ impl PlatformFontMethods for PlatformFont {
         _font_identifier: FontIdentifier,
         data: &FontData,
         pt_size: Option<Au>,
-        synthetic_bold: bool,
     ) -> Result<Self, &'static str> {
         let font_face = FontFile::new_from_buffer(Arc::new(data.clone()))
             .ok_or("Could not create FontFile")?
             .create_face(0 /* face_index */, DWRITE_FONT_SIMULATIONS_NONE)
             .map_err(|_| "Could not create FontFace")?;
-        Self::new_with_variations(font_face, pt_size, &[], synthetic_bold)
+        Self::new(font_face, pt_size, vec![])
     }
 
     fn new_from_local_font_identifier(
         font_identifier: LocalFontIdentifier,
         pt_size: Option<Au>,
-        synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
-        let font_face = FontCollection::system()
+        let mut font_face = FontCollection::system()
             .font_from_descriptor(&font_identifier.font_descriptor)
             .ok()
             .flatten()
             .ok_or("Could not create Font from descriptor")?
             .create_font_face();
-        Self::new_with_variations(font_face, pt_size, &[], synthetic_bold)
+
+        // If DirectWrite created this font face with simulations already applied, we need
+        // to strip them here. That way if Servo decides not to apply synthetic bold the
+        // face will reflect that.
+        if matches!(
+            font_face.simulations(),
+            FontSimulations::Bold | FontSimulations::BoldOblique
+        ) {
+            font_face = font_face.create_font_face_with_simulations(DWRITE_FONT_SIMULATIONS_NONE);
+        }
+
+        Self::new(font_face, pt_size, vec![])
     }
 
     fn copy_with_variations(
@@ -221,16 +199,15 @@ impl PlatformFontMethods for PlatformFont {
             self.face.0.clone(),
             Some(Au::from_f32_px(self.em_size * 16.)),
             variations,
-            self.uses_synthetic_bold(),
         )
     }
 
-    fn descriptor(&self) -> FontTemplateDescriptor {
-        DirectWriteTableProvider::new(self)
-            .os2()
-            .as_ref()
-            .map(Self::descriptor_from_os2_table)
-            .unwrap_or_default()
+    fn copy_with_synthetic_bold(self) -> Result<Self, &'static str> {
+        let font_face = self
+            .face
+            .0
+            .create_font_face_with_simulations(DWRITE_FONT_SIMULATIONS_BOLD);
+        Self::new(font_face, Some(Au::from_f32_px(self.em_size * 16.)), vec![])
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
@@ -372,49 +349,37 @@ impl PlatformFontMethods for PlatformFont {
     fn variations(&self) -> &[FontVariation] {
         &self.variations
     }
-}
 
-/// A wrapper struct around [`PlatformFont`] which is responsible for
-/// implementing [`TableProvider`] and cleaning up any font table contexts from
-/// DirectWrite when the struct is dropped.
-struct DirectWriteTableProvider<'platform_font> {
-    platform_font: &'platform_font FontFace,
-    contexts: RefCell<Vec<*mut c_void>>,
-}
-
-impl<'platform_font> DirectWriteTableProvider<'platform_font> {
-    fn new(platform_font: &'platform_font PlatformFont) -> Self {
-        Self {
-            platform_font: &platform_font.face,
-            contexts: Default::default(),
-        }
+    fn create_skrifa_font(&self) -> Option<SkrifaFont> {
+        let font = ThreadSafeDirectWriteFontFace::new(self.face.0.clone());
+        let table_function = TableFunction::new(Arc::new(move |tag: Tag| -> Option<Blob> {
+            font.table_data_blob(tag)
+        }));
+        SkrifaFont::new(
+            table_function,
+            0, /* This value is ignored, for a table function */
+        )
     }
 }
 
-impl<'platform_font> From<&'platform_font FontFace> for DirectWriteTableProvider<'platform_font> {
-    fn from(value: &'platform_font FontFace) -> Self {
-        Self {
-            platform_font: value,
-            contexts: Default::default(),
-        }
-    }
+/// A wrapper struct around [`FontFace`] which is responsible for allowing
+/// access to table data across threads.
+struct ThreadSafeDirectWriteFontFace {
+    face: FontFace,
 }
 
-impl Drop for DirectWriteTableProvider<'_> {
-    fn drop(&mut self) {
-        let direct_write_face = unsafe { self.platform_font.as_ptr() };
-        assert!(!direct_write_face.is_null());
+// SAFETY: Table data is immutable and we assume that DirectWrite handles are thread safe.
+// See the comment about this on PlatformFont above.
+unsafe impl Sync for ThreadSafeDirectWriteFontFace {}
+unsafe impl Send for ThreadSafeDirectWriteFontFace {}
 
-        let direct_write_face = unsafe { &*direct_write_face };
-        for context in self.contexts.borrow_mut().drain(..) {
-            unsafe { direct_write_face.ReleaseFontTable(context) };
-        }
+impl ThreadSafeDirectWriteFontFace {
+    fn new(face: FontFace) -> Self {
+        Self { face }
     }
-}
 
-impl<'platform_font> TableProvider<'platform_font> for DirectWriteTableProvider<'platform_font> {
-    fn data_for_tag(&self, tag: Tag) -> Option<read_fonts::FontData<'platform_font>> {
-        let direct_write_face = unsafe { self.platform_font.as_ptr() };
+    fn table_data_blob(&self, tag: Tag) -> Option<Blob> {
+        let direct_write_face = unsafe { self.face.as_ptr() };
         if direct_write_face.is_null() {
             return None;
         }
@@ -422,7 +387,7 @@ impl<'platform_font> TableProvider<'platform_font> for DirectWriteTableProvider<
         let direct_write_face = unsafe { &*direct_write_face };
         let direct_write_tag = u32::from_be_bytes(tag.to_be_bytes()).swap_bytes();
         let mut table_data_ptr: *const u8 = std::ptr::null_mut();
-        let mut table_size: u32 = 0;
+        let mut table_length: u32 = 0;
         let mut table_context: *mut c_void = std::ptr::null_mut();
         let mut exists: BOOL = FALSE;
 
@@ -430,7 +395,7 @@ impl<'platform_font> TableProvider<'platform_font> for DirectWriteTableProvider<
             direct_write_face.TryGetFontTable(
                 direct_write_tag,
                 &mut table_data_ptr as *mut *const _ as *mut *const c_void,
-                &mut table_size,
+                &mut table_length,
                 &mut table_context,
                 &mut exists,
             )
@@ -440,13 +405,48 @@ impl<'platform_font> TableProvider<'platform_font> for DirectWriteTableProvider<
             return None;
         }
 
-        self.contexts.borrow_mut().push(table_context);
-
-        if table_data_ptr.is_null() || table_size == 0 {
+        let table = ThreadSafeDirectWriteFontTable {
+            face: self.face.clone(),
+            context: table_context,
+            data: table_data_ptr,
+            length: table_length as usize,
+        };
+        if table.data.is_null() || table.length == 0 {
             return None;
         }
 
-        let bytes = unsafe { std::slice::from_raw_parts(table_data_ptr, table_size as usize) };
-        Some(read_fonts::FontData::new(bytes))
+        Some(Blob::Shared(Arc::new(table)))
+    }
+}
+
+struct ThreadSafeDirectWriteFontTable {
+    face: FontFace,
+    context: *mut c_void,
+    data: *const u8,
+    length: usize,
+}
+
+// SAFETY: The slice returned from DirectWrite must not be mutated while the slice is
+// alive. Data returned from DirectWrite is immutable.
+unsafe impl Send for ThreadSafeDirectWriteFontTable {}
+unsafe impl Sync for ThreadSafeDirectWriteFontTable {}
+
+impl AsRef<[u8]> for ThreadSafeDirectWriteFontTable {
+    fn as_ref(&self) -> &[u8] {
+        if self.data.is_null() {
+            return &[];
+        }
+        // SAFETY: The slice returned from DirectWrite must not be mutated while the slice
+        // is alive. Data returned from DirectWrite font tables is immutable.
+        unsafe { std::slice::from_raw_parts(self.data, self.length) }
+    }
+}
+
+impl Drop for ThreadSafeDirectWriteFontTable {
+    fn drop(&mut self) {
+        let direct_write_face = unsafe { self.face.as_ptr() };
+        assert!(!direct_write_face.is_null());
+        let direct_write_face = unsafe { &*direct_write_face };
+        unsafe { direct_write_face.ReleaseFontTable(self.context) };
     }
 }

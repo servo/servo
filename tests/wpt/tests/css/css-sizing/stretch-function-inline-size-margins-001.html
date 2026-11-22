@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>CSS stretch(): margins in the inline axis</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="stretch() takes percentage and negative margins off its argument, treats auto margins as zero, ignores box-sizing, and doesn't shrink the border box below its borders and padding.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .container {
+    width: 200px;
+  }
+  .test {
+    height: 20px;
+    background: green;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="container">
+  <div class="test" style="width: stretch(150px); margin-right: 25%;"></div>
+  <div class="test" style="width: stretch(50px); margin-right: -50px;"></div>
+  <div class="test" style="width: stretch(200px); margin-left: auto; margin-right: 100px;"></div>
+  <div class="test" style="width: stretch(100px); padding-right: 20px; box-sizing: border-box;"></div>
+  <div class="test" style="width: stretch(50px); margin-right: 50px; border-left: 100px solid green;"></div>
+</div>

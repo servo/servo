@@ -18,14 +18,15 @@ Here is the breakdown of how our code works:
 *   Using curl request, we load the html files for this session ID based on the session we just created.
 """
 
-import os
+import base64
+import getopt
 import json
+import os
+import sys
+import time
+
 import requests
 import start_servo
-import time
-import base64
-import sys
-import getopt
 
 
 def print_help():

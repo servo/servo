@@ -5,23 +5,22 @@
 use std::path::Path;
 use std::{env, fs};
 
-use chrono::{TimeZone, Utc};
+use jiff::Timestamp;
 
 fn main() {
     println!("cargo:rerun-if-env-changed=SOURCE_DATE_EPOCH");
     // Parsing as suggested on <https://reproducible-builds.org/docs/source-date-epoch/>
-    let now = match env::var("SOURCE_DATE_EPOCH") {
-        Ok(val) => Utc
-            .timestamp_opt(
-                val.parse::<i64>()
-                    .expect("SOURCE_DATE_EPOCH should be a valid integer"),
-                0,
-            )
-            .unwrap(),
-        Err(_) => Utc::now(),
-    };
-
-    let build_id = now.format("%Y%m%d%H%M%S").to_string();
+    let build_id = match env::var("SOURCE_DATE_EPOCH") {
+        Ok(value) => {
+            let value = value
+                .parse::<i64>()
+                .expect("Could not parse SOURCE_DATE_EPOCH");
+            Timestamp::from_second(value).expect("SOURCE_DATE_EPOCH is out of range")
+        },
+        Err(_) => Timestamp::now(),
+    }
+    .strftime("%Y%m%d%H%M%S")
+    .to_string();
 
     let path = Path::new(&env::var_os("OUT_DIR").unwrap()).join("build_id.rs");
     // The build ID is used in Firefox devtools, `getDateFromBuildID` function:

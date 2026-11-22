@@ -495,7 +495,7 @@ pub struct StackingContext {
     /// The Container Timing roots that enclose this [`StackingContext`] in tree order,
     /// not including its own root fragment. Stacking contexts are painted out of tree
     /// order, so these are captured while building the stacking context tree.
-    #[ignore_malloc_size_of = "Small and shared with other stacking contexts"]
+    #[conditional_malloc_size_of]
     pub(crate) container_timing_roots: ContainerTimingRoots,
 
     /// If this [`StackingContext`] also created a WebRender reference frame, this field
@@ -1151,6 +1151,10 @@ impl BoxFragmentWithStyle<'_> {
             .padding_rect()
             .translate(containing_block_rect.origin.to_vector())
             .to_webrender();
+        let scroll_frame_content_rect = self
+            .scrollable_overflow()
+            .translate(containing_block_rect.origin.to_vector())
+            .to_webrender();
 
         let clip_id = stacking_context_tree.clip_store.add(
             BuilderForBoxFragment::new(self, containing_block_rect.origin).border_radius(),
@@ -1192,7 +1196,7 @@ impl BoxFragmentWithStyle<'_> {
         let scroll_tree_node_id = stacking_context_tree.define_scroll_frame(
             parent_scroll_node_id,
             external_scroll_id,
-            self.scrollable_overflow().to_webrender(),
+            scroll_frame_content_rect,
             scroll_frame_rect,
             sensitivity,
             touch_action,

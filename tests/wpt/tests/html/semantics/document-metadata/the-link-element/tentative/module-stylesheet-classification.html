@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Module link: classification and attribute precedence</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/ShadowDOM/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script type="module">
+import {createLink, loadResult, appendAndWait} from "./module-stylesheet-helpers.js";
+
+for (const type of [null, "", "text/css", "text/plain"]) {
+  promise_test(async t => {
+    const link = createLink(t, /*import=*/"data:text/css,/* module */",
+        /*href=*/"data:text/plain,not-css");
+    if (type !== null) {
+      link.type = type;
+    }
+    const {event} = await appendAndWait(link);
+    assert_equals(event, "load",
+        "The CSS module loads regardless of type or the invalid href.");
+  }, `A module stylesheet link with type=${JSON.stringify(type)} uses import.`);
+}
+
+for (const restoreImport of [false, true]) {
+  promise_test(async t => {
+    const link = createLink(t, /*import=*/"unmapped-classification-specifier",
+        /*href=*/"data:text/css,/* classic */");
+    link.removeAttribute("import");
+    if (restoreImport) {
+      link.setAttribute("import", "unmapped-classification-specifier");
+    }
+    const {event} = await appendAndWait(link);
+    assert_equals(event, restoreImport ? "error" : "load");
+    if (restoreImport) {
+      assert_equals(link.sheet, null, "An unresolved module has no sheet.");
+    } else {
+      assert_true(link.sheet instanceof CSSStyleSheet);
+      assert_equals(link.sheet.ownerNode, link,
+          "Without import, href creates a classic link-owned stylesheet.");
+    }
+  }, `${restoreImport ? "Restoring" : "Removing"} import before insertion ${
+      restoreImport ? "selects module" : "selects classic"} fetching.`);
+}
+
+for (const restoreStylesheet of [false, true]) {
+  promise_test(async t => {
+    const link = createLink(t, /*import=*/"unmapped-rel-specifier",
+        /*href=*/"module-stylesheet-blue.css?classification-preload");
+    link.rel = "preload";
+    link.as = "style";
+    if (restoreStylesheet) {
+      link.rel = "stylesheet";
+    }
+    const {event} = await appendAndWait(link);
+    assert_equals(event, restoreStylesheet ? "error" : "load",
+        "Only rel=stylesheet selects the unresolved module specifier.");
+    assert_equals(link.sheet, null);
+  }, `${restoreStylesheet ? "Restoring stylesheet" : "Changing to preload"
+      } before insertion selects the appropriate fetching mode.`);
+}
+
+promise_test(async t => {
+  const { link, event } =
+      await loadResult(t, "unmapped-with-href", "module-stylesheet-blue.css");
+  assert_equals(event, "error", "An unresolved module specifier fires error.");
+  assert_equals(link.sheet, null, "The href stylesheet is not connected.");
+}, "A nonempty import attribute takes precedence over a valid href.");
+</script>

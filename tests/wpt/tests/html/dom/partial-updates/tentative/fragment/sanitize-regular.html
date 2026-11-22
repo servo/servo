@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>Declarative Fragment: sanitize attribute on regular templates</title>
+<title>Declarative Fragment: sanitize attribute on templates without src</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <body>
@@ -9,6 +9,15 @@
   <template id="regular-template" sanitize>
     <span id="ok-regular">Allowed</span>
     <script id="script-regular">window.regularScriptRun = true;</script>
+  </template>
+
+  <!-- Inline <template for> without src: sanitize attribute has no effect -->
+  <div id="target-inline">
+    <?start name="marker-inline">Original<?end>
+  </div>
+  <template for="marker-inline" sanitize>
+    <span id="ok-inline">Allowed Inline</span>
+    <script id="script-inline">window.inlineScriptRun = true;</script>
   </template>
 
   <!-- Template with non-existent target and sanitize attribute -->
@@ -21,17 +30,23 @@
 <script>
 test(() => {
   const regularTemplate = document.getElementById('regular-template');
+  assert_equals(regularTemplate.sanitize, "");
   assert_not_equals(regularTemplate.content.querySelector('#ok-regular'), null);
   assert_not_equals(regularTemplate.content.querySelector('#script-regular'), null, "Script in regular template should not be stripped");
+
+  // Inline <template for> without src does not sanitize its contents.
+  const targetInline = document.getElementById('target-inline');
+  assert_equals(targetInline.querySelector('#ok-inline').textContent, 'Allowed Inline');
+  assert_true(!!window.inlineScriptRun, "Script in inline <template for> without src should run even if sanitize attribute is present");
 
   // Template with missing target should fall back to regular template and not sanitize contents.
   const missingTargetTemplate = document.getElementById('missing-target-template');
   assert_not_equals(missingTargetTemplate.content.querySelector('#ok-missing'), null);
   assert_not_equals(missingTargetTemplate.content.querySelector('#script-missing'), null, "Script in template with non-existent target should not be stripped");
 
-  // Scripts should not have run because template contents are inert.
+  // Scripts in inert templates should not have run.
   assert_false(!!window.regularScriptRun);
   assert_false(!!window.missingScriptRun);
-}, "The sanitize attribute does not sanitize contents of regular templates or templates with non-existent targets");
+}, "The sanitize attribute only applies when src is present");
 </script>
 </body>

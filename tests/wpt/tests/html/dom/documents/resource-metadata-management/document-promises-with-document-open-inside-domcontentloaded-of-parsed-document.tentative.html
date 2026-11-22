@@ -1,0 +1,132 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>
+  document.parsed, document.contentLoaded, and document.loaded when
+  document.open() happens inside DOMContentLoaded of a parsed document
+</title>
+<link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+<link rel="help" href="https://github.com/whatwg/html/pull/1936" />
+<link
+  rel="help"
+  href="https://html.spec.whatwg.org/multipage/#current-document-readiness"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    "use strict";
+
+    function delay(t, ms) {
+      return new Promise((resolve) => t.step_timeout(resolve, ms));
+    }
+
+    const fulfilled1 = [];
+    const fulfilled2 = [];
+    let originalLoadedFulfilled = false;
+    let contentDoc, before, afterOpen;
+
+    const domContentLoaded = new Promise((resolve) => {
+      window.iframeParsing = (doc) => {
+        contentDoc = doc;
+        before = {
+          readyState: doc.readyState,
+          parsed: doc.parsed,
+          contentLoaded: doc.contentLoaded,
+          loaded: doc.loaded,
+        };
+
+        before.parsed.then(() => fulfilled1.push("parsed"));
+        before.contentLoaded.then(() => fulfilled1.push("contentLoaded"));
+        before.loaded.then(() => {
+          originalLoadedFulfilled = true;
+        });
+
+        doc.addEventListener(
+          "DOMContentLoaded",
+          () => {
+            const inHandler = {
+              readyState: doc.readyState,
+              fulfilled: [...fulfilled1],
+            };
+
+            doc.open();
+
+            afterOpen = {
+              readyState: doc.readyState,
+              parsed: doc.parsed,
+              contentLoaded: doc.contentLoaded,
+              loaded: doc.loaded,
+            };
+            doc.parsed.then(() => fulfilled2.push("parsed"));
+            doc.contentLoaded.then(() => fulfilled2.push("contentLoaded"));
+            doc.loaded.then(() => fulfilled2.push("loaded"));
+
+            resolve(inHandler);
+          },
+          { once: true },
+        );
+      };
+    });
+
+    promise_test(async (t) => {
+      const iframe = document.createElement("iframe");
+      iframe.srcdoc = "<script>parent.iframeParsing(document)<\/script>";
+      document.body.append(iframe);
+
+      const inHandler = await domContentLoaded;
+
+      assert_equals(
+        before.readyState,
+        "loading",
+        "Precondition: the iframe document is loading",
+      );
+      assert_equals(inHandler.readyState, "interactive");
+      assert_array_equals(
+        inHandler.fulfilled,
+        ["parsed"],
+        "Only parsed must have been fulfilled by the time the DOMContentLoaded handler fires",
+      );
+
+      assert_equals(afterOpen.readyState, "loading");
+      assert_not_equals(afterOpen.parsed, before.parsed);
+      assert_not_equals(afterOpen.contentLoaded, before.contentLoaded);
+      assert_not_equals(afterOpen.loaded, before.loaded);
+
+      await delay(t, 10);
+
+      assert_array_equals(
+        fulfilled1,
+        ["parsed", "contentLoaded"],
+        "The original parsed and contentLoaded promises must have fulfilled",
+      );
+      assert_array_equals(
+        fulfilled2,
+        [],
+        "None of the new promises should be fulfilled before document.close()",
+      );
+
+      contentDoc.close();
+
+      await Promise.all([
+        contentDoc.parsed,
+        contentDoc.contentLoaded,
+        contentDoc.loaded,
+      ]);
+
+      assert_array_equals(
+        fulfilled2,
+        ["parsed", "contentLoaded", "loaded"],
+        "After document.close(), the new promises must fulfill in order",
+      );
+    }, "document.open() inside DOMContentLoaded resets the promises without affecting the fulfilled ones");
+
+    promise_test(async () => {
+      assert_not_equals(
+        contentDoc,
+        undefined,
+        "The previous test must have run",
+      );
+      assert_false(originalLoadedFulfilled);
+    }, "The original document.loaded promise never fulfills");
+  </script>
+</body>

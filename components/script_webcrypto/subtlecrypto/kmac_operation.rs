@@ -18,8 +18,8 @@ use zeroize::Zeroizing;
 
 use crate::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::subtlecrypto::{
-    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    KmacImportParams, KmacKeyAlgorithm, KmacKeyGenParams, KmacParams,
+    CryptoAlgorithm, ExportedKey, JsonWebKeyHelper, JwkStringField, KeyAlgorithmAndDerivatives,
+    KmacImportParams, KmacKeyAlgorithm, KmacKeyGenParams, KmacParams, truncate_keccak_bit_string,
 };
 use crate::traits::Equivalence;
 
@@ -29,8 +29,8 @@ pub(crate) fn sign<D: Equivalence>(
     key: &CryptoKey<D>,
     message: &[u8],
 ) -> Result<Vec<u8>, Error> {
-    // Step 1. Let customization be the customization member of normalizedAlgorithm if present or
-    // the empty octet string otherwise.
+    // Step 1. Let customization be the Keccak decoding of the customization member of
+    // normalizedAlgorithm if present, or the empty bit string otherwise.
     let customization = normalized_algorithm
         .customization
         .as_deref()
@@ -39,14 +39,16 @@ pub(crate) fn sign<D: Equivalence>(
     // Step 2.
     // If the name member of normalizedAlgorithm is a case-sensitive string match for "KMAC128":
     //     Let mac be the result of performing the KMAC128 function defined in Section 4 of
-    //     [NIST-SP800-185] using the key represented by [[handle]] internal slot of key as the K
-    //     input parameter, message as the X input parameter, the outputLength member of
-    //     normalizedAlgorithm as the L input parameter, and customization as the S input parameter.
+    //     [NIST-SP800-185] using the raw bits of the key represented by the [[handle]] internal
+    //     slot of key as the K input parameter, the Keccak decoding of message as the X input
+    //     parameter, the outputLength member of normalizedAlgorithm as the L input parameter, and
+    //     customization as the S input parameter.
     // If the name member of normalizedAlgorithm is a case-sensitive string match for "KMAC256":
     //     Let mac be the result of performing the KMAC256 function defined in Section 4 of
-    //     [NIST-SP800-185] using the key represented by [[handle]] internal slot of key as the K
-    //     input parameter, message as the X input parameter, the outputLength member of
-    //     normalizedAlgorithm as the L input parameter, and customization as the S input parameter.
+    //     [NIST-SP800-185] using the raw bits of the key represented by the [[handle]] internal
+    //     slot of key as the K input parameter, the Keccak decoding of message as the X input
+    //     parameter, the outputLength member of normalizedAlgorithm as the L input parameter, and
+    //     customization as the S input parameter.
     // Step 3. If performing the operation results in an error, then throw an OperationError.
     let Handle::KmacKey(kmac_key) = key.handle() else {
         return Err(Error::Operation(Some(
@@ -81,7 +83,7 @@ pub(crate) fn sign<D: Equivalence>(
         },
     };
 
-    // Step 4. Return a byte sequence containing mac.
+    // Step 4. Return the Keccak encoding of mac.
     Ok(mac)
 }
 
@@ -92,8 +94,8 @@ pub(crate) fn verify<D: Equivalence>(
     message: &[u8],
     signature: &[u8],
 ) -> Result<bool, Error> {
-    // Step 1. Let customization be the customization member of normalizedAlgorithm if present or
-    // the empty octet string otherwise.
+    // Step 1. Let customization be the Keccak decoding of the customization member of
+    // normalizedAlgorithm if present, or the empty bit string otherwise.
     let customization = normalized_algorithm
         .customization
         .as_deref()
@@ -102,16 +104,16 @@ pub(crate) fn verify<D: Equivalence>(
     // Step 2.
     // If the name member of normalizedAlgorithm is a case-sensitive string match for "KMAC128":
     //     Let mac be the result of performing the KMAC128 function defined in Section 4 of
-    //     [NIST-SP800-185] using the key represented by [[handle]] internal slot of key as the K
-    //     input parameter, message as the X input parameter, the outputLength member of
-    //     normalizedAlgorithm as the L input parameter, and customization as the S input parameter.
+    //     [NIST-SP800-185] using the raw bits of the key represented by the [[handle]] internal
+    //     slot of key as the K input parameter, the Keccak decoding of message as the X input
+    //     parameter, the outputLength member of normalizedAlgorithm as the L input parameter, and
+    //     customization as the S input parameter.
     // If the name member of normalizedAlgorithm is a case-sensitive string match for "KMAC256":
     //     Let mac be the result of performing the KMAC256 function defined in Section 4 of
-    //     [NIST-SP800-185] using the key represented by [[handle]] internal slot of key as the K
-    //     input parameter, message as the X input parameter, the outputLength member of
-    //     normalizedAlgorithm as the L input parameter, and customization as the S input parameter.
-    // Step 3. If performing the operation results in an error, then throw an OperationError.
-    // Step 4. Let computedMac be a byte sequence containing mac.
+    //     [NIST-SP800-185] using the raw bits of the key represented by the [[handle]] internal
+    //     slot of key as the K input parameter, the Keccak decoding of message as the X input
+    //     parameter, the outputLength member of normalizedAlgorithm as the L input parameter, and
+    //     customization as the S input parameter.
     let Handle::KmacKey(kmac_key) = key.handle() else {
         return Err(Error::Operation(Some(
             "[[handle]] internal slot of key is not a KMAC key".into(),
@@ -145,7 +147,7 @@ pub(crate) fn verify<D: Equivalence>(
         },
     };
 
-    // Step 5. Return true if computedMac is equal to signature and false otherwise. This comparison
+    // Step 4. Return true if computedMac is equal to signature and false otherwise. This comparison
     // must be performed in constant-time.
     Ok(computed_mac.ct_eq(signature).into())
 }
@@ -186,19 +188,13 @@ pub(crate) fn generate_key<D: Equivalence>(
     // Step 3. Generate a key of length length bits.
     // Step 4. If the key generation step fails, then throw an OperationError.
     //
-    // NOTE: We store the KMAC key bits as the byte sequence containing bits.
-    // <https://w3c.github.io/webcrypto/#dfn-byte-sequence-containing>
+    // NOTE: We store the Keccak encoding of the first length bits of data, in the key.
+    // <https://wicg.github.io/webcrypto-modern-algos/#dfn-keccak-encoding>
     let mut rng = rand::rng();
     let mut bits = vec![0u8; length.div_ceil(8) as usize];
     rng.try_fill_bytes(&mut bits)
         .map_err(|_| Error::Operation(Some("Failed to generate KMAC key".into())))?;
-    if !length.is_multiple_of(8) {
-        // Clean excess bits in the last byte of result.
-        let mask = u8::MAX << (8 - length % 8);
-        if let Some(last_byte) = bits.last_mut() {
-            *last_byte &= mask;
-        }
-    }
+    truncate_keccak_bit_string(&mut bits, length as usize);
 
     // Step 5. Let key be a new CryptoKey object representing the generated key.
     // Step 6. Set the [[type]] internal slot of key to "secret".
@@ -349,23 +345,17 @@ pub(crate) fn import_key<D: Equivalence>(
         }
     }
 
-    // Step 6. Let key be a new CryptoKey object representing an KMAC key with the first length bits
-    // of data.
+    // Step 6. Let key be a new CryptoKey object representing a KMAC key with the first length bits
+    // of the Keccak decoding of data.
     // Step 7. Set the [[type]] internal slot of key to "secret".
     // Step 8. Let algorithm be a new KmacKeyAlgorithm.
     // Step 9. Set the name attribute of algorithm to the name member of normalizedAlgorithm.
     // Step 10. Set the length attribute of algorithm to length.
     // Step 11. Set the [[algorithm]] internal slot of key to algorithm.
     //
-    // NOTE: We store the first length bits of data as the byte sequence containing bits.
-    // <https://w3c.github.io/webcrypto/#dfn-byte-sequence-containing>
-    if !length.is_multiple_of(8) {
-        // Clean excess bits in the last byte of result.
-        let mask = u8::MAX << (8 - length % 8);
-        if let Some(last_byte) = data.last_mut() {
-            *last_byte &= mask;
-        }
-    }
+    // NOTE: We store the Keccak encoding of the first length bits of data, in the key.
+    // <https://wicg.github.io/webcrypto-modern-algos/#dfn-keccak-encoding>
+    truncate_keccak_bit_string(&mut data, length as usize);
     let algorithm = KmacKeyAlgorithm {
         name: normalized_algorithm.name,
         length,
@@ -393,10 +383,10 @@ pub(crate) fn export_key<D: Equivalence>(
     // slot of key cannot be accessed, then throw an OperationError.
 
     // Step 2. Let bits be the raw bits of the key represented by [[handle]] internal slot of key.
-    // Step 3. Let data be an byte sequence containing bits.
+    // Step 3. Let data be the Keccak encoding of bits.
     //
-    // NOTE: We already store KMAC key bits as the byte sequence containing bits in the [[handle]]
-    // internal slot of key.
+    // NOTE: We already store the Keccak encoding of bits, in the key.
+    // <https://wicg.github.io/webcrypto-modern-algos/#dfn-keccak-encoding>
     let Handle::KmacKey(data) = key.handle() else {
         return Err(Error::Operation(Some(
             "[[handle]] internal slot of key is not a KMAC key".into(),
@@ -574,13 +564,7 @@ fn kmac<const RATE: usize>(
     // Finalize cSHAKE.
     let mut result = vec![0u8; output_length.div_ceil(8) as usize];
     cshake.finalize_xof_into(&mut result);
-    if !output_length.is_multiple_of(8) {
-        // Clean excess bits in the last byte of result.
-        let mask = u8::MAX << (8 - output_length % 8);
-        if let Some(last_byte) = result.last_mut() {
-            *last_byte &= mask;
-        }
-    }
+    truncate_keccak_bit_string(&mut result, output_length as usize);
 
     result
 }

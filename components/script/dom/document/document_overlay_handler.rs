@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
 use std::default::Default;
 
 use embedder_traits::EmbedderMsg;
@@ -9,6 +10,7 @@ use html5ever::{local_name, ns};
 use js::context::{JSContext, NoGC};
 use js::realm::CurrentRealm;
 use script_bindings::cell::DomRefCell;
+use script_bindings::dom::UnrootedDom;
 use servo_config::pref;
 use stylo_dom::ElementState;
 
@@ -23,6 +25,7 @@ use crate::dom::document::document::Document;
 use crate::dom::element::element::Element;
 use crate::dom::event::event::{EventBubbles, EventCancelable, EventComposed};
 use crate::dom::event::eventtarget::EventTarget;
+use crate::dom::html::htmlelement::{HTMLElement, PopoverState};
 use crate::dom::html::interactive::htmldialogelement::HTMLDialogElement;
 use crate::dom::node::NodeTraits;
 use crate::dom::promise::Promise;
@@ -51,6 +54,14 @@ pub(crate) struct DocumentOverlayHandler {
     open_dialogs_list: DomRefCell<Vec<Dom<HTMLDialogElement>>>,
     /// <https://html.spec.whatwg.org/multipage/#dialog-pointerdown-target>
     dialog_pointerdown_target: MutNullableDom<HTMLDialogElement>,
+    /// <https://html.spec.whatwg.org/multipage/#popover-pointerdown-target>
+    popover_pointerdown_target: MutNullableDom<HTMLElement>,
+    /// <https://html.spec.whatwg.org/multipage/#hiding-popover-nesting-count>
+    hiding_popover_nesting_count: Cell<u32>,
+    /// <https://html.spec.whatwg.org/multipage/#showing-popover>
+    showing_popover: Cell<bool>,
+    /// <https://html.spec.whatwg.org/multipage/#hint-stack-parent>
+    hint_stack_parent: MutNullableDom<HTMLElement>,
 }
 
 impl DocumentOverlayHandler {
@@ -63,6 +74,10 @@ impl DocumentOverlayHandler {
             topmost_modal: Default::default(),
             open_dialogs_list: Default::default(),
             dialog_pointerdown_target: Default::default(),
+            popover_pointerdown_target: Default::default(),
+            hiding_popover_nesting_count: Default::default(),
+            showing_popover: Default::default(),
+            hint_stack_parent: Default::default(),
         }
     }
 
@@ -318,6 +333,14 @@ impl DocumentOverlayHandler {
         self.dialog_pointerdown_target.set(dialog);
     }
 
+    pub(crate) fn popover_pointerdown_target(&self) -> Option<DomRoot<HTMLElement>> {
+        self.popover_pointerdown_target.get()
+    }
+
+    pub(crate) fn set_popover_pointerdown_target(&self, element: Option<&HTMLElement>) {
+        self.popover_pointerdown_target.set(element);
+    }
+
     pub(crate) fn top_layer_contains(&self, element: &Element) -> bool {
         self.top_layer
             .borrow()
@@ -426,7 +449,7 @@ impl DocumentOverlayHandler {
             .map(|element| DomRoot::from_ref(&**element))
             .collect();
         for element in pending_removals {
-            if !element.has_css_layout_box(cx) {
+            if !element.has_css_layout_box_deprecated(cx) {
                 self.remove_an_element_from_the_top_layer_immediately(&element, cx)
             }
         }
@@ -469,6 +492,217 @@ impl DocumentOverlayHandler {
     /// <https://html.spec.whatwg.org/multipage/#blocked-by-a-modal-dialog>
     pub(crate) fn is_blocked_by_a_modal_dialog(&self) -> bool {
         self.topmost_modal.get().is_some()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#hide-popovers-until>
+    pub(crate) fn hide_popovers_until(
+        &self,
+        cx: &mut JSContext,
+        endpoint: Option<&HTMLElement>,
+        focus_previous_element: bool,
+        fire_events: bool,
+    ) {
+        // Step 1. Let endpointIsHint be true if document's showing hint popover list contains
+        // endpoint; otherwise false.
+        let endpoint_is_hint = endpoint.is_some_and(|endpoint| {
+            self.showing_popover_list_contains(cx.no_gc(), PopoverState::Hint, endpoint)
+        });
+
+        // Step 2. Run hide popover stack until given document, endpoint, Hint,
+        // focusPreviousElement, and fireEvents.
+        self.hide_popover_stack_until(
+            cx,
+            endpoint,
+            PopoverState::Hint,
+            focus_previous_element,
+            fire_events,
+        );
+
+        // Step 3. Let autoEndpoint be endpoint.
+        //
+        // Need to keep the reference to the hint_parent alive such that we
+        // can dereference to obtain its endpoint
+        let hint_parent;
+        let mut auto_endpoint = endpoint;
+
+        // Step 4. If endpointIsHint is true, then set autoEndpoint to document's hint stack
+        // parent.
+        if endpoint_is_hint {
+            hint_parent = self.hint_stack_parent.get();
+            auto_endpoint = hint_parent.as_deref();
+        }
+
+        // Step 5. Run hide popover stack until given document, autoEndpoint, Auto,
+        // focusPreviousElement, and fireEvents.
+        self.hide_popover_stack_until(
+            cx,
+            auto_endpoint,
+            PopoverState::Auto,
+            focus_previous_element,
+            fire_events,
+        );
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#hide-popover-stack-until>
+    pub(crate) fn hide_popover_stack_until(
+        &self,
+        cx: &mut JSContext,
+        endpoint: Option<&HTMLElement>,
+        stack_type: PopoverState,
+        focus_previous_element: bool,
+        fire_events: bool,
+    ) {
+        // Step 1. Let popoverList be document's showing auto popover list if stackType is Auto,
+        // and document's showing hint popover list otherwise.
+        let popover_list: Vec<DomRoot<HTMLElement>> = self
+            .showing_popover_list_unrooted(cx.no_gc(), stack_type)
+            .iter()
+            .map(|popover| popover.as_rooted())
+            .collect();
+
+        // Step 2. Let lastHideIndex be 0 if popoverList does not contain endpoint; otherwise the
+        // index of endpoint in popoverList plus 1.
+        let last_hide_index = endpoint
+            .and_then(|endpoint| {
+                popover_list
+                    .iter()
+                    .position(|popover| &**popover == endpoint)
+            })
+            .map_or(0, |index| index + 1);
+
+        // Step 3. Let toHide be popoverList from lastHideIndex onwards, in reverse order.
+        let to_hide = popover_list[last_hide_index..].iter().rev();
+
+        // Step 4. Let toRemain be popoverList up to lastHideIndex.
+        let to_remain = &popover_list[..last_hide_index];
+
+        // Step 5. For each popover of toHide, run the hide popover algorithm given popover,
+        // focusPreviousElement, fireEvents, false, and null.
+        for popover in to_hide {
+            let _ = popover.hide_popover(cx, focus_previous_element, fire_events, false, None);
+        }
+
+        // Step 6. Let newPopoverList be document's showing auto popover list if stackType is
+        // Auto, and document's showing hint popover list otherwise.
+        let new_popover_list: Vec<DomRoot<HTMLElement>> = self
+            .showing_popover_list_unrooted(cx.no_gc(), stack_type)
+            .iter()
+            .map(|popover| popover.as_rooted())
+            .collect();
+
+        // Step 7. Let toCheck be newPopoverList in reverse order.
+        let to_check = new_popover_list.iter().rev();
+
+        // Step 8. For each popover of toCheck:
+        for popover in to_check {
+            // Step 8.1. If toRemain contains popover, then continue.
+            if to_remain.contains(popover) {
+                continue;
+            }
+
+            // Step 8.2. Run the hide popover algorithm given popover, focusPreviousElement, false,
+            // false, and null.
+            let _ = popover.hide_popover(cx, focus_previous_element, false, false, None);
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#topmost-auto-or-hint-popover>
+    pub(crate) fn find_the_topmost_auto_or_hint_popover(
+        &self,
+        no_gc: &NoGC,
+    ) -> Option<DomRoot<HTMLElement>> {
+        // Step 1. If document's showing hint popover list is not empty, then return its last
+        // element.
+        // Step 2. If document's showing auto popover list is not empty, then return its last
+        // element.
+        // Step 3. Return null.
+        //
+        // We use pop instead of last to take ownership of its last element. The Vec is temporary,
+        // so mutating it is fine.
+        self.showing_popover_list_unrooted(no_gc, PopoverState::Hint)
+            .pop()
+            .or_else(|| {
+                self.showing_popover_list_unrooted(no_gc, PopoverState::Auto)
+                    .pop()
+            })
+            .map(|popover| popover.as_rooted())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#auto-popover-list>
+    /// <https://html.spec.whatwg.org/multipage/#showing-hint-popover-list>
+    ///
+    /// The spec lists these steps twice, once with "auto" and once with "hint" as the mode in step 2.1.
+    /// `mode` must be [`PopoverState::Auto`] or [`PopoverState::Hint`].
+    pub(crate) fn showing_popover_list_unrooted<'a>(
+        &self,
+        no_gc: &'a NoGC,
+        mode: PopoverState,
+    ) -> Vec<UnrootedDom<'a, HTMLElement>> {
+        debug_assert!(matches!(mode, PopoverState::Auto | PopoverState::Hint));
+
+        // Step 1. Let popovers be « ».
+        // Step 2. For each Element element of document's top layer:
+        // Step 2.1. If all of the following are true:
+        // - element is an HTML element;
+        // - element's opened in popover mode is mode; and
+        // - element's popover visibility state is showing,
+        // - then append element to popovers.
+        // Step 3. Return popovers.
+        self.top_layer
+            .borrow()
+            .iter()
+            .filter_map(|element| element.downcast::<HTMLElement>())
+            .filter(|element| {
+                element
+                    .upcast::<Element>()
+                    .popover_visibility_state_showing() &&
+                    element.opened_in_popover_mode() == Some(mode)
+            })
+            .map(|element| UnrootedDom::from_ref(element, no_gc))
+            .collect()
+    }
+
+    pub(crate) fn showing_popover_list_contains(
+        &self,
+        no_gc: &NoGC,
+        mode: PopoverState,
+        element: &HTMLElement,
+    ) -> bool {
+        self.showing_popover_list_unrooted(no_gc, mode)
+            .iter()
+            .any(|popover| ***popover == *element)
+    }
+
+    pub(crate) fn showing_popover(&self) -> bool {
+        self.showing_popover.get()
+    }
+
+    pub(crate) fn set_showing_popover(&self, value: bool) {
+        self.showing_popover.set(value);
+    }
+
+    pub(crate) fn hiding_popover_nesting_count(&self) -> u32 {
+        self.hiding_popover_nesting_count.get()
+    }
+
+    pub(crate) fn increment_hiding_popover_nesting_count(&self) {
+        self.hiding_popover_nesting_count
+            .set(self.hiding_popover_nesting_count.get() + 1);
+    }
+
+    pub(crate) fn decrement_hiding_popover_nesting_count(&self) {
+        self.hiding_popover_nesting_count
+            .set(self.hiding_popover_nesting_count.get() - 1);
+    }
+
+    pub(crate) fn is_hint_stack_parent(&self, element: &HTMLElement) -> bool {
+        self.hint_stack_parent
+            .get()
+            .is_some_and(|parent| &*parent == element)
+    }
+
+    pub(crate) fn set_hint_stack_parent(&self, element: Option<&HTMLElement>) {
+        self.hint_stack_parent.set(element);
     }
 }
 

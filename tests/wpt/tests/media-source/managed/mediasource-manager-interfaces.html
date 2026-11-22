@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ManagedMediaSource and ManagedSourceBuffer basic behaviour</title>
+<link rel="help" href="https://w3c.github.io/media-source/#managedmediasource-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="mediasource-manager-util.js"></script>
+<body>
+<script>
+test(() => {
+  assert_implements(self.ManagedMediaSource, 'ManagedMediaSource is supported');
+  const source = new ManagedMediaSource();
+  // MediaSource may not be exposed when only ManagedMediaSource is supported,
+  // so walk the prototype chain rather than referencing it by name.
+  const parent = Object.getPrototypeOf(ManagedMediaSource.prototype).constructor;
+  assert_equals(parent.name, 'MediaSource', 'ManagedMediaSource inherits from MediaSource');
+  assert_true(source instanceof parent, 'instanceof MediaSource');
+  assert_equals(source.readyState, 'closed', 'readyState');
+}, 'ManagedMediaSource construction');
+
+test(() => {
+  assert_implements(self.ManagedMediaSource, 'ManagedMediaSource is supported');
+  const source = new ManagedMediaSource();
+  assert_false(source.streaming, 'streaming');
+}, 'ManagedMediaSource streaming attribute is initially false');
+
+test(() => {
+  assert_implements(self.ManagedMediaSource, 'ManagedMediaSource is supported');
+  const source = new ManagedMediaSource();
+  assert_equals(source.onstartstreaming, null, 'onstartstreaming');
+  assert_equals(source.onendstreaming, null, 'onendstreaming');
+}, 'ManagedMediaSource event handlers are initially null');
+
+promise_test(async t => {
+  const { source, sourceOpen } = attachManagedMediaSource(t);
+  await sourceOpen;
+  const sourceBuffer = source.addSourceBuffer(MANAGED_MEDIA.muxed.type);
+  assert_true(sourceBuffer instanceof ManagedSourceBuffer, 'addSourceBuffer returns a ManagedSourceBuffer');
+  assert_equals(source.sourceBuffers[0], sourceBuffer, 'sourceBuffers[0]');
+  assert_equals(sourceBuffer.onbufferedchange, null, 'onbufferedchange');
+}, 'ManagedMediaSource.addSourceBuffer() returns a ManagedSourceBuffer');
+</script>
+</body>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>display:table-cell on element that dynamically becomes replaced</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/css-display-3/#valdef-display-table-cell">
+<link rel="help" href="https://github.com/servo/servo/issues/49996">
+<link rel="match" href="../reference/ref-filled-green-200px-square.html">
+<meta name="assert" content="
+  When `#target` gets assigned `content` to an image, it becomes a replaced element.
+  Therefore, `display: table-cell` should behave as `inline`.
+  This means `#target` should appear above (and not at the side of) the other `.cell`.
+">
+
+<style>
+  .cell {
+    display: table-cell;
+    width: 200px;
+    height: 100px;
+    vertical-align: top;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 200px; height: 200px; background: red">
+  <div class="cell" id="target"></div>
+  <div class="cell" style="background: green"></div>
+</div>
+
+<script src="/common/reftest-wait.js"></script>
+<script>
+  // Force layout, as non-replaced table-cell.
+  target.offsetLeft;
+
+  // Turn it into a replaced element.
+  target.style.content = "url('../support/1x1-green.png')";
+
+  // Wait for the image to load.
+  addEventListener("load", takeScreenshot, { once: true });
+</script>
+</html>

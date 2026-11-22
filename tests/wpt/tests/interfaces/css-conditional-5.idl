@@ -15,6 +15,16 @@ interface CSSContainerRule : CSSConditionRule {
   readonly attribute FrozenArray<CSSContainerCondition> conditions;
 };
 
+partial interface Element {
+  [NewObject] ContainerQueryList matchContainer(CSSOMString query);
+};
+
+[Exposed=Window]
+interface ContainerQueryList {
+  readonly attribute CSSOMString query;
+  readonly attribute boolean matches;
+};
+
 [Exposed=Window]
 interface CSSSupportsConditionRule : CSSGroupingRule {
   readonly attribute CSSOMString name;

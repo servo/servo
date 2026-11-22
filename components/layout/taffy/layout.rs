@@ -26,8 +26,8 @@ use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
-    BoxFragment, CollapsedBlockMargins, Fragment, FragmentChildren, FragmentFlags,
-    SpecificLayoutInfo,
+    BoxFragment, CollapsedBlockMargins, Fragment, FragmentAndLogicalRect, FragmentChildren,
+    FragmentFlags, SpecificLayoutInfo,
 };
 use crate::geom::{
     LogicalRect, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, PhysicalVec,
@@ -533,7 +533,7 @@ impl TaffyContainer {
 
         // Convert `taffy::Layout` into Servo `Fragment`s
         // with container_ctx.child_specific_layout_infos will also moved to the corresponding `Fragment`s
-        let fragments: Vec<Fragment> = self
+        let fragments_and_rects = self
             .children
             .iter()
             .map(|child| (**child).borrow_mut())
@@ -567,12 +567,10 @@ impl TaffyContainer {
                     taffy::Point {
                         x: Au::from_f32_px(
                             layout.location.x + layout.padding.left + layout.border.left,
-                        ) - pbm.padding.inline_start -
-                            pbm.border.inline_start,
+                        ) - content_box_offset.x,
                         y: Au::from_f32_px(
                             layout.location.y + layout.padding.top + layout.border.top,
-                        ) - pbm.padding.block_start -
-                            pbm.border.block_start,
+                        ) - content_box_offset.y,
                     },
                     taffy::Size {
                         width: layout.size.width -
@@ -592,7 +590,7 @@ impl TaffyContainer {
                 let child_specific_layout_info: Option<SpecificLayoutInfo> =
                     std::mem::take(&mut container_ctx.child_specific_layout_infos[child_id]);
 
-                let fragment = match &mut child.taffy_level_box {
+                let fragment_and_rect = match &mut child.taffy_level_box {
                     TaffyItemBoxInner::InFlowBox(independent_box) => {
                         let mut fragment_info = independent_box.base_fragment_info();
                         fragment_info
@@ -622,7 +620,7 @@ impl TaffyContainer {
                             &mut box_fragment,
                         );
 
-                        let logical_content_rect = &LogicalRect::from_physical(
+                        let logical_content_rect = LogicalRect::from_physical(
                             content_rect,
                             container_style.writing_mode,
                             container_content_size,
@@ -630,7 +628,7 @@ impl TaffyContainer {
                         child
                             .positioning_context
                             .adjust_static_position_of_hoisted_fragments(
-                                logical_content_rect,
+                                &logical_content_rect,
                                 container_style.writing_mode,
                                 PositioningContextLength::zero(),
                             );
@@ -638,7 +636,10 @@ impl TaffyContainer {
                             .positioning_context
                             .append(std::mem::take(&mut child.positioning_context));
 
-                        Fragment::Box(box_fragment.into())
+                        FragmentAndLogicalRect::new(
+                            Fragment::Box(box_fragment.into()),
+                            logical_content_rect,
+                        )
                     },
                     TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(abs_pos_box) => {
                         fn resolve_alignment(value: AlignFlags, auto: AlignFlags) -> AlignFlags {
@@ -696,7 +697,12 @@ impl TaffyContainer {
                         );
                         let hoisted_fragment = hoisted_box.fragment.clone();
                         container_ctx.positioning_context.push(hoisted_box);
-                        Fragment::AbsoluteOrFixedPositionedPlaceholder(hoisted_fragment)
+                        FragmentAndLogicalRect::new(
+                            Fragment::AbsoluteOrFixedPositionedPlaceholder(hoisted_fragment),
+                            // The fragment is a `Fragment::AbsoluteOrFixedPositionedPlaceholder`
+                            // with no `BaseFragment`, so the rect is unused.
+                            LogicalRect::default(),
+                        )
                     },
                 };
 
@@ -705,15 +711,15 @@ impl TaffyContainer {
                 {
                     independent_formatting_context
                         .base
-                        .set_fragment(fragment.clone());
+                        .set_fragment(fragment_and_rect.fragment.clone());
                 }
-                fragment
+                fragment_and_rect
             })
             .collect();
         debug_assert!(out_of_flow_candidates.next().is_none());
 
         IndependentFormattingContextLayoutResult {
-            fragments: FragmentChildren::PhysicalDeprecated(fragments),
+            fragments: FragmentChildren::Logical(fragments_and_rects),
             content_block_size: container_content_size.block,
             content_inline_size_for_table: None,
             baselines: Baselines {

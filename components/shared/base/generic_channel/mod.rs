@@ -791,7 +791,7 @@ mod generic_receiversets_tests {
             let _ = snd2_c.send(20); // this might error with closed channel
         });
 
-        let select_result = set.select();
+        let select_result = set.selector().select();
         let channel_result = select_result.first().unwrap();
         assert_eq!(
             *channel_result,
@@ -819,7 +819,7 @@ mod generic_receiversets_tests {
             snd2_c.send(20).unwrap();
         });
 
-        let select_result = set.select();
+        let select_result = set.selector().select();
         let channel_result = select_result.first().unwrap();
         assert_eq!(
             *channel_result,
@@ -847,7 +847,7 @@ mod generic_receiversets_tests {
             let _ = snd2_c.send(20);
         });
 
-        let select_result = set.select();
+        let select_result = set.selector().select();
         let channel_result = select_result.first().unwrap();
         assert_eq!(
             *channel_result,
@@ -875,7 +875,7 @@ mod generic_receiversets_tests {
             snd2_c.send(20).unwrap();
         });
 
-        let select_result = set.select();
+        let select_result = set.selector().select();
         let channel_result = select_result.first().unwrap();
         assert_eq!(
             *channel_result,
@@ -904,7 +904,7 @@ mod generic_receiversets_tests {
             snd2.send(20).unwrap();
         });
         std::thread::sleep(Duration::from_secs(1));
-        let select_result = set.select();
+        let select_result = set.selector().select();
         let channel_result = select_result.first().unwrap();
         assert_eq!(
             *channel_result,
@@ -932,7 +932,7 @@ mod generic_receiversets_tests {
             snd2.send(20).unwrap();
         });
         std::thread::sleep(Duration::from_secs(1));
-        let select_result = set.select();
+        let select_result = set.selector().select();
         let channel_result = select_result.first().unwrap();
         assert_eq!(
             *channel_result,
@@ -960,7 +960,7 @@ mod generic_receiversets_tests {
             drop(snd2);
         });
 
-        let select_result = set.select();
+        let select_result = set.selector().select();
         let channel_result = select_result.first().unwrap();
         assert_eq!(
             *channel_result,
@@ -987,7 +987,7 @@ mod generic_receiversets_tests {
             drop(snd2);
         });
 
-        let select_result = set.select();
+        let select_result = set.selector().select();
         let channel_result = select_result.first().unwrap();
         assert_eq!(
             *channel_result,

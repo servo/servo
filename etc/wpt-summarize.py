@@ -18,8 +18,8 @@
 # so passing `--full` will find any output from Servo process
 # command lines that include the URL.
 
-import sys
 import json
+import sys
 
 full_search = len(sys.argv) > 3 and sys.argv[3] == "--full"
 

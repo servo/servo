@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>CSS Flexbox: a fit-content() flex basis</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#flex-basis-property">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#algo-main-item">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-fit-content">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="A fit-content() flex basis or main size sizes the item into the available space with its argument in place of the available space.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .flex {
+    display: flex;
+    width: 300px;
+    height: 25px;
+  }
+  .item {
+    flex: none;
+    background: green;
+    font-size: 0;
+  }
+  .item > div {
+    display: inline-block;
+    width: 60px;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="flex"><div class="item" style="flex-basis: fit-content(100px);"><div></div><div></div></div></div>
+<div class="flex"><div class="item" style="flex-basis: fit-content(calc(100% / 3));"><div></div><div></div></div></div>
+<div class="flex"><div class="item" style="flex: 0 0 fit-content(110px); margin-right: 10px;"><div></div><div></div></div></div>
+<div class="flex"><div class="item" style="width: fit-content(100px);"><div></div><div></div></div></div>

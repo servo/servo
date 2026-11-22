@@ -8,6 +8,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
+<script src="resources/test-helper.js"></script>
 
 <style>
   .box {
@@ -46,49 +47,40 @@ promise_test(async t => {
   const dragSrc = document.getElementById('drag-src');
   const dropTgt = document.getElementById('drop-tgt');
 
-  const dropWatcher = new Promise((resolve, reject) => {
-    dragSrc.ondragstart = t.step_func(e => {
-      const file = new File([PNG_BYTES], 'test.png', {type: 'image/png'});
-      e.dataTransfer.items.add(file);
-      e.dataTransfer.effectAllowed = 'copy';
-    });
-
-    dropTgt.ondragenter = e => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'copy';
-    };
-    dropTgt.ondragover = e => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'copy';
-    };
-
-    dropTgt.ondrop = t.step_func(async e => {
-      e.preventDefault();
-      try {
-        assert_equals(e.dataTransfer.files.length, 1, "File should be in .files");
-        const file = e.dataTransfer.files[0];
-        assert_equals(file.name, 'test.png');
-
-        const buffer = await file.arrayBuffer();
-        assert_equals(buffer.byteLength, PNG_BYTES.byteLength, "Content size mismatch");
-        resolve();
-      } catch (err) {
-        reject(err);
-      }
-    });
+  dragSrc.ondragstart = t.step_func(e => {
+    const file = new File([PNG_BYTES], 'test.png', {type: 'image/png'});
+    e.dataTransfer.items.add(file);
+    e.dataTransfer.effectAllowed = 'copy';
   });
 
-  await new test_driver.Actions()
-    .pointerMove(0, 0, {origin: dragSrc})
-    .pointerDown()
-    .pause(100)
-    .pointerMove(15, 15, {origin: dragSrc})
-    .pause(100)
-    .pointerMove(0, 0, {origin: dropTgt})
-    .pause(100)
-    .pointerUp()
-    .send();
+  dropTgt.ondragenter = e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  };
+  dropTgt.ondragover = e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  };
 
-  await dropWatcher;
+  await waitForDragEvent(t, dropTgt, 'drop', 1000, async e => {
+    e.preventDefault();
+    assert_equals(e.dataTransfer.files.length, 1, "File should be in .files");
+    const file = e.dataTransfer.files[0];
+    assert_equals(file.name, 'test.png');
+
+    const buffer = await file.arrayBuffer();
+    assert_equals(buffer.byteLength, PNG_BYTES.byteLength, "Content size mismatch");
+  }, () => {
+    return new test_driver.Actions()
+      .pointerMove(0, 0, {origin: dragSrc})
+      .pointerDown()
+      .pause(100)
+      .pointerMove(15, 15, {origin: dragSrc})
+      .pause(100)
+      .pointerMove(0, 0, {origin: dropTgt})
+      .pause(100)
+      .pointerUp()
+      .send();
+  });
 }, 'JS File with PNG bytes carries content to drop target');
 </script>

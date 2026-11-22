@@ -9,40 +9,40 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-import random
-from enum import Enum
-import os
-import time
-import sys
-import re
-import json
 import argparse
+import csv
+import json
+import os
+import random
+import re
+import sys
+import threading
+import time
 from contextlib import nullcontext
+from dataclasses import dataclass
+from enum import Enum
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from types import TracebackType
-from hdc_py.hdc import HarmonyDeviceConnector, HarmonyDevicePerfMode  # type: ignore[import-untyped]
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.common.exceptions import NoSuchElementException
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from dataclasses import dataclass
-import threading
-import csv
 from typing import Any, Dict, Optional, Type
+
 from common_function_for_servo_test import (
     ABOUT_BLANK,
     DEFAULT_SERVO_BIN_PATH,
+    WEBDRIVER_PORT,
     HostOptions,
     RunTestOptions,
-    WEBDRIVER_PORT,
     close_usb_popup,
     create_driver,
     setup_hdc_forward,
     start_servo,
     stop_servo,
 )
-
+from hdc_py.hdc import HarmonyDeviceConnector, HarmonyDevicePerfMode  # type: ignore[import-untyped]
+from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 BLINK_PERF_FILES_SERVE_PORT = random.randrange(7150, 9000)
 DIRECTORY = "tests/blink_perf_tests/perf_tests"

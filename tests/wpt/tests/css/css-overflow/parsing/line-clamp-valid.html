@@ -30,14 +30,19 @@ test_valid_value("line-clamp", 'auto 11', '11 auto');
 test_valid_value("line-clamp", 'ellipsis 11', '11');
 test_valid_value("line-clamp", '" etc., etc. " 12', '12 " etc., etc. "');
 
-test_valid_value("line-clamp", '3 ellipsis auto');
+test_valid_value("line-clamp", '3 auto ellipsis', "3 auto");
+test_valid_value("line-clamp", '3 ellipsis auto', "3 auto");
+test_valid_value("line-clamp", 'auto 3 ellipsis', "3 auto");
+test_valid_value("line-clamp", 'auto ellipsis 3', "3 auto");
+test_valid_value("line-clamp", 'ellipsis 3 auto', "3 auto");
+test_valid_value("line-clamp", 'ellipsis auto 3', "3 auto");
 
 test_valid_value("line-clamp", '1 -webkit-legacy');
 test_valid_value("line-clamp", 'auto -webkit-legacy');
 test_valid_value("line-clamp", 'no-ellipsis -webkit-legacy',
-                 'auto no-ellipsis -webkit-legacy');
+                 'no-ellipsis -webkit-legacy');
 test_valid_value("line-clamp", '3 auto -webkit-legacy');
-test_valid_value("line-clamp", '3 ellipsis auto -webkit-legacy');
+test_valid_value("line-clamp", '3 ellipsis auto -webkit-legacy', "3 auto -webkit-legacy");
 </script>
 </body>
 </html>

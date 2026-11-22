@@ -245,3 +245,65 @@ test(t => {
     'Inserting the select should update selectedcontent once.');
 }, 'Inserting a select that already contains options updates its selectedcontent once.');
 </script>
+
+<select id=select9>
+  <button>
+    <selectedcontent></selectedcontent>
+  </button>
+  <option>one</option>
+</select>
+
+<script>
+test(t => {
+  const select = document.getElementById('select9');
+  const selectedcontent = select.querySelector('selectedcontent');
+  const div = document.createElement('div');
+  const newSelectedcontent = div.appendChild(document.createElement('selectedcontent'));
+
+  const observer = new MutationObserver(() => {});
+  t.add_cleanup(() => observer.disconnect());
+  observer.observe(selectedcontent, {childList: true});
+  const newObserver = new MutationObserver(() => {});
+  t.add_cleanup(() => newObserver.disconnect());
+  newObserver.observe(newSelectedcontent, {childList: true});
+
+  select.append(new Option('two', 'two', true, true), div);
+
+  assert_equals(selectedcontent.textContent, 'two',
+    'The existing selectedcontent should match the selected option.');
+  assert_equals(newSelectedcontent.textContent, 'two',
+    'The inserted selectedcontent should match the selected option.');
+  assert_equals(observer.takeRecords().length, 1,
+    'The existing selectedcontent should be updated once.');
+  assert_equals(newObserver.takeRecords().length, 1,
+    'The inserted selectedcontent should be updated once.');
+}, 'Inserting an option that changes selectedness followed by selectedcontent updates every selectedcontent once.');
+</script>
+
+<select id=select10>
+  <button>
+    <selectedcontent></selectedcontent>
+  </button>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<script>
+test(t => {
+  const select = document.getElementById('select10');
+  const div = document.createElement('div');
+  const newSelectedcontent = div.appendChild(document.createElement('selectedcontent'));
+
+  const observer = new MutationObserver(() => {});
+  t.add_cleanup(() => observer.disconnect());
+  observer.observe(newSelectedcontent, {childList: true});
+
+  select.options[0].remove();
+  select.append(new Option('three'), div);
+
+  assert_equals(newSelectedcontent.textContent, 'two',
+    'The inserted selectedcontent should match the selected option.');
+  assert_equals(observer.takeRecords().length, 1,
+    'The inserted selectedcontent should be updated once.');
+}, 'Inserting an option followed by selectedcontent while an update is pending updates the selectedcontent once.');
+</script>

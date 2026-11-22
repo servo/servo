@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS @private: invalidation</title>
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14004">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+    #host {
+      @private {
+        --size: 10px;
+      }
+
+      &.changed {
+        --size: 25px;
+      }
+
+      & > #child {
+        width: var(--size);
+      }
+    }
+
+    #eclipsing-host {
+      @private {
+        --outer-size: 10px;
+      }
+
+      &.changed {
+        --outer-size: 40px;
+      }
+
+      & > #eclipsing-child {
+        @private {
+          --outer-size: 20px;
+        }
+        width: var(--outer-size);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="host"><div id="child"></div></div>
+  <div id="eclipsing-host"><div id="eclipsing-child"></div></div>
+  <script>
+    function createTarget(t, css) {
+      const style = document.createElement('style');
+      style.textContent = css;
+      const target = document.createElement('div');
+      target.id = 'mutation-target';
+      document.body.append(style, target);
+      t.add_cleanup(() => {
+        target.remove();
+        style.remove();
+      });
+      return {style, target};
+    }
+
+    test(t => {
+      const {style, target} = createTarget(t, `
+        #mutation-target {
+          @private { --size: 10px; }
+          width: var(--size);
+        }
+      `);
+      const privateRule = style.sheet.cssRules[0].cssRules[0];
+      assert_equals(getComputedStyle(target).width, '10px');
+      privateRule.styleMap.set('--size', '20px');
+      assert_equals(getComputedStyle(target).width, '20px');
+      privateRule.style.setProperty('--size', '30px');
+      assert_equals(getComputedStyle(target).width, '30px');
+      privateRule.style.cssText = '--size: 40px';
+      assert_equals(getComputedStyle(target).width, '40px');
+    }, 'Private CSSOM mutations invalidate the containing style rule');
+
+    test(t => {
+      const {target} = createTarget(t, `
+        #mutation-target {
+          @private { --x: 11px; }
+          @private { --y: var(--x); }
+          width: var(--y, 99px);
+        }
+      `);
+      assert_equals(getComputedStyle(target).width, '11px');
+    }, 'Private declarations in separate blocks share the enclosing scope');
+
+    test(t => {
+      const {style, target} = createTarget(t, `
+        @layer first, second;
+        #mutation-target {
+          @layer first { @private { --size: 10px; } }
+          @layer second { @private { --size: 20px; } }
+          @media not all { @private { --size: 90px; } }
+          width: var(--size, 99px);
+        }
+      `);
+      assert_equals(getComputedStyle(target).width, '20px');
+      style.sheet.cssRules[1].cssRules[2].media.mediaText = 'all';
+      assert_equals(getComputedStyle(target).width, '90px');
+    }, 'Private declarations respect media conditions and cascade layers');
+
+    test(t => {
+      const {target} = createTarget(t, `
+        #mutation-target {
+          container-type: inline-size;
+          width: 100px;
+          & > .probe {
+            @private { --size: 10px; }
+            @container (width > 150px) {
+              @private { --size: 20px; }
+            }
+            width: var(--size);
+          }
+        }
+      `);
+      const child = document.createElement('div');
+      child.className = 'probe';
+      target.append(child);
+      assert_equals(getComputedStyle(child).width, '10px');
+      target.style.width = '200px';
+      assert_equals(getComputedStyle(child).width, '20px');
+    }, 'Private declarations retain their container-query conditions');
+
+    test(t => {
+      const {target} = createTarget(t, `
+        #mutation-target {
+          @private { --size: 10px; }
+          --size: 20px;
+          @private { --size: 30px; }
+          width: var(--size);
+        }
+      `);
+      assert_equals(getComputedStyle(target).width, '30px');
+    }, 'Private blocks participate in declaration source order');
+
+    test(() => {
+      const host = document.getElementById('host');
+      const child = document.getElementById('child');
+      assert_equals(getComputedStyle(child).width, '10px');
+      host.classList.add('changed');
+      assert_equals(getComputedStyle(child).width, '25px');
+      host.classList.remove('changed');
+      assert_equals(getComputedStyle(child).width, '10px');
+    }, 'Changing an element-scoped @private variable invalidates descendants');
+
+    test(() => {
+      const host = document.getElementById('eclipsing-host');
+      const child = document.getElementById('eclipsing-child');
+      assert_equals(getComputedStyle(child).width, '20px');
+      host.classList.add('changed');
+      assert_equals(getComputedStyle(child).width, '20px');
+    }, 'An eclipsing @private variable isolates descendants from outer value changes');
+
+    test(t => {
+      const {target} = createTarget(t, `
+        #mutation-target {
+          @private { --size: 10px; }
+          &.changed { --size: 25px; }
+          .leaf { width: var(--size); }
+        }
+      `);
+      target.innerHTML = '<div><div class="leaf"></div></div>';
+      const leaf = target.querySelector('.leaf');
+      assert_equals(getComputedStyle(leaf).width, '10px');
+      target.classList.add('changed');
+      assert_equals(getComputedStyle(leaf).width, '25px');
+      target.classList.remove('changed');
+      assert_equals(getComputedStyle(leaf).width, '10px');
+    }, 'Private variables propagate through elements without variable references');
+  </script>
+</body>
+</html>

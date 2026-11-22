@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
 
 use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
@@ -22,7 +22,11 @@ use crate::dom::node::Node;
 use crate::dom::selection::Selection;
 
 /// <https://w3c.github.io/editing/docs/execCommand/#indent>
-pub(crate) fn indent(cx: &mut JSContext, context_object: &Document, node_list: Vec<DomRoot<Node>>) {
+pub(crate) fn indent(
+    cx: &mut JSContext,
+    context_object: &Document,
+    node_list: VecDeque<DomRoot<Node>>,
+) {
     // Step 1. If node list is empty, do nothing and abort these steps.
     if node_list.is_empty() {
         return;
@@ -30,7 +34,7 @@ pub(crate) fn indent(cx: &mut JSContext, context_object: &Document, node_list: V
 
     // Step 2. Let first node be the first member of node list.
     let first_node = node_list
-        .first()
+        .front()
         .expect("Must have a first node by now.")
         .clone();
 
@@ -171,10 +175,10 @@ pub(crate) fn execute_indent_command(
     let mut node_list_iter = node_list.iter().peekable();
     while node_list_iter.peek().is_some() {
         // Step 7.1. Let sublist be a list of nodes, initially empty.
-        let mut sublist: Vec<DomRoot<Node>> = vec![];
+        let mut sublist: VecDeque<DomRoot<Node>> = VecDeque::new();
 
         // Step 7.2. Remove the first member of node list and append it to sublist.
-        sublist.push(
+        sublist.push_back(
             node_list_iter
                 .next()
                 .expect("Must always have a next item")
@@ -185,12 +189,12 @@ pub(crate) fn execute_indent_command(
         //           sublist, remove the first member of node list and append it to sublist.
         while node_list_iter.peek().is_some_and(|node| {
             sublist
-                .last()
+                .back()
                 .expect("Must always have last element here.")
                 .GetNextSibling()
                 .is_some_and(|next_sibling| &&next_sibling == node)
         }) {
-            sublist.push(
+            sublist.push_back(
                 node_list_iter
                     .next()
                     .expect("Must always have a next item")

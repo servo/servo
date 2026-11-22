@@ -32,6 +32,13 @@ test(function() {
     var ctx3 = offscreenCanvas2.getContext('webgl');
     var ctx4 = offscreenCanvas2.getContext('2d');
     assert_equals(ctx4, null);
+    var ctx5 = offscreenCanvas2.getContext('webgl2');
+    assert_equals(ctx5, null);
+
+    var offscreenCanvas3 = new OffscreenCanvas(1, 1);
+    var ctx6 = offscreenCanvas3.getContext('webgl2');
+    var ctx7 = offscreenCanvas3.getContext('webgl');
+    assert_equals(ctx7, null);
 }, "Test that getContext twice with different context type returns null the second time");
 
 test(function() {

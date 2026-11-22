@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::OnceCell;
 use std::marker::PhantomData;
 use std::sync::atomic::Ordering;
 
@@ -906,13 +907,15 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
         let Display::GeneratingBox(display) = box_style.display.into() else {
             return false;
         };
-        let contents = || {
-            assert!(
-                self.pseudo_element_chain().is_empty(),
-                "Shouldn't try to rebuild box tree from a pseudo-element"
-            );
-            Contents::for_element(info.node, layout_context)
-        };
+        assert!(
+            self.pseudo_element_chain().is_empty(),
+            "Shouldn't try to rebuild box tree from a pseudo-element"
+        );
+        // TODO: Use a `LazyCell` once `LazyCell::into_inner()` stabilizes.
+        let contents = OnceCell::new();
+        let compute_contents = || Contents::for_element(info.node, layout_context);
+        let display =
+            || display.used_value_for_contents(contents.get_or_init(compute_contents), &info);
         match layout_box {
             LayoutBox::DisplayContents(..) => false,
             LayoutBox::BlockLevel(block_level) => {
@@ -927,7 +930,7 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
                         let DisplayGeneratingBox::OutsideInside {
                             outside: DisplayOutside::Block,
                             inside: display_inside,
-                        } = display
+                        } = display()
                         else {
                             return false;
                         };
@@ -935,7 +938,7 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
                             BlockLevelCreator::new_for_inflow_block_level_element(
                                 &info,
                                 display_inside,
-                                contents(),
+                                contents.into_inner().unwrap_or_else(compute_contents),
                                 independent_formatting_context.propagated_data,
                             ),
                             BlockLevelCreator::Independent { .. }
@@ -983,7 +986,7 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
                     true
                 },
                 InlineItem::Atomic(atomic_box, _, _) => {
-                    let flags = match contents() {
+                    let flags = match contents.get_or_init(compute_contents) {
                         Contents::NonReplaced(_) => FragmentFlags::empty(),
                         Contents::Replaced(_) => FragmentFlags::IS_REPLACED,
                         Contents::Widget(_) => FragmentFlags::IS_WIDGET,
@@ -1023,7 +1026,7 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
             },
             LayoutBox::TableLevelBox(table_level_box) => match table_level_box {
                 TableLevelBox::Caption(caption) => {
-                    if display !=
+                    if display() !=
                         DisplayGeneratingBox::LayoutInternal(DisplayLayoutInternal::TableCaption)
                     {
                         return false;
@@ -1032,7 +1035,7 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
                     true
                 },
                 TableLevelBox::Cell(table_cell) => {
-                    if display !=
+                    if display() !=
                         DisplayGeneratingBox::LayoutInternal(DisplayLayoutInternal::TableCell)
                     {
                         return false;

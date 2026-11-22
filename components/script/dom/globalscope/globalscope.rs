@@ -23,7 +23,7 @@ use dom_struct::dom_struct;
 use embedder_traits::{
     ConsoleLogLevel, EmbedderMsg, JavaScriptEvaluationError, ScriptToEmbedderChan,
 };
-use fonts::FontContext;
+use fonts::{FontContext, WebFontDocumentContext};
 use js::context::{JSContext, NoGC};
 use js::jsapi::{GetNonCCWObjectGlobal, HandleObject, Heap, JSObject};
 use js::jsval::UndefinedValue;
@@ -142,7 +142,7 @@ use crate::dom::types::{AbortSignal, MessageEvent};
 use crate::dom::webgpu::gpudevice::GPUDevice;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
-use crate::dom::window::Window;
+use crate::dom::window::{FontCspHandler, FontNetworkTimingHandler, Window};
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::event_loop::script_thread::{ScriptThread, with_script_thread};
@@ -294,7 +294,6 @@ pub(crate) struct GlobalScope {
     gpu_devices: DomRefCell<HashMapTracedValues<WebGPUDevice, WeakRef<GPUDevice>, FxBuildHasher>>,
 
     // https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute
-    #[ignore_malloc_size_of = "mozjs"]
     frozen_supported_performance_entry_types: CachedFrozenArray,
 
     /// The stack of active group labels for the Console APIs.
@@ -355,6 +354,15 @@ impl GlobalScope {
             cookie_store.clean_up();
         }
         self.with_module_map(|module_map| std::mem::take(&mut *module_map.borrow_mut()));
+
+        // Dedicated and shared workers have their own font context (service workers share one),
+        // so free the WebRender font resources it created.
+        if (self.is::<DedicatedWorkerGlobalScope>() || self.is::<SharedWorkerGlobalScope>()) &&
+            let Some(webview_id) = self.webview_id()
+        {
+            self.font_context()
+                .remove_all_webrender_resources(webview_id.into());
+        }
     }
 
     /// <https://storage.spec.whatwg.org/#obtain-a-storage-key-for-non-storage-purposes>
@@ -491,6 +499,23 @@ impl GlobalScope {
             window.with_timers(f)
         } else {
             unreachable!("Unsupported global type retrieving timers")
+        }
+    }
+
+    /// The context used to load web fonts for this global, for both windows and workers.
+    pub(crate) fn web_font_context(&self, no_gc: &NoGC) -> WebFontDocumentContext {
+        let task_source = self
+            .task_manager()
+            .dom_manipulation_task_source()
+            .to_sendable();
+        WebFontDocumentContext {
+            policy_container: self.policy_container(),
+            request_client: self.request_client(Some(no_gc)),
+            document_url: self.api_base_url(),
+            csp_handler: Box::new(FontCspHandler {
+                task_source: task_source.clone(),
+            }),
+            network_timing_handler: Box::new(FontNetworkTimingHandler { task_source }),
         }
     }
 
@@ -2963,12 +2988,12 @@ impl GlobalScope {
     }
 
     /// <https://www.w3.org/TR/CSP/#get-csp-of-object>
-    pub(crate) fn get_csp_list(&self) -> Option<CspList> {
+    pub(crate) fn call_on_csp_list<T, F: FnOnce(&Option<CspList>) -> T>(&self, f: F) -> T {
         if self.is::<Window>() || self.is::<WorkerGlobalScope>() {
-            return self.policy_container().csp_list.clone();
+            return f(&self.policy_container().as_ref().csp_list);
         }
         // TODO: Worklet global scopes.
-        None
+        f(&None)
     }
 
     pub(crate) fn status_code(&self) -> Option<u16> {

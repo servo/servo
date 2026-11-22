@@ -2320,8 +2320,11 @@ impl HTMLMediaElement {
                 self.media_type_id(),
                 HTMLMediaElementTypeId::HTMLVideoElement
             );
-            let should_enable_download_buffering =
-                (is_video || self.Loop()) && self.Preload() == "auto";
+            let should_enable_download_buffering = if is_video {
+                self.Preload() == "auto"
+            } else {
+                self.Loop()
+            };
             if let Err(error) =
                 player_guard.set_download_buffering_enabled(should_enable_download_buffering)
             {
@@ -3374,13 +3377,15 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-media-preload
-    // Missing/Invalid values are user-agent defined.
+    // > The attribute's missing value default and invalid value default are both implementation-defined,
+    // though the Metadata state is suggested as a compromise between reducing server load and providing
+    // an optimal user experience.
     make_enumerated_getter!(
         Preload,
         "preload",
         "none" | "metadata" | "auto",
-        missing => "auto",
-        invalid => "auto"
+        missing => "metadata",
+        invalid => "metadata"
     );
 
     // https://html.spec.whatwg.org/multipage/#attr-media-preload

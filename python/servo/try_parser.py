@@ -12,13 +12,12 @@
 from __future__ import annotations
 
 import json
-import sys
-from typing import ClassVar, Optional, Any
-import unittest
 import logging
-
+import sys
+import unittest
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, ClassVar, Optional
 
 
 class Workflow(str, Enum):
@@ -74,11 +73,11 @@ class JobConfig(object):
         if self.workflow is Workflow.LINUX:
             self.name = "Linux"
         elif self.workflow is Workflow.LINUX_ARM:
-            self.name = "Linux Arm64"
+            self.name = "Linux arm64"
         elif self.workflow is Workflow.MACOS:
-            self.name = "MacOS"
+            self.name = "macOS"
         elif self.workflow is Workflow.MACOS_ARM:
-            self.name = "MacOS Arm64"
+            self.name = "macOS arm64"
         elif self.workflow is Workflow.WINDOWS:
             self.name = "Windows"
         elif self.workflow is Workflow.ANDROID:
@@ -114,13 +113,13 @@ def handle_preset(s: str) -> Optional[JobConfig]:
     s = s.lower()
 
     if any(word in s for word in ["linux-arm", "linux-arm64"]):
-        return JobConfig("Linux Arm64", Workflow.LINUX_ARM)
+        return JobConfig("Linux arm64", Workflow.LINUX_ARM)
     elif any(word in s for word in ["linux"]):
         return JobConfig("Linux", Workflow.LINUX)
     elif any(word in s for word in ["mac-arm", "macos-arm", "mac-arm64", "macos-arm64"]):
-        return JobConfig("MacOS Arm64", Workflow.MACOS_ARM)
+        return JobConfig("macOS arm64", Workflow.MACOS_ARM)
     elif any(word in s for word in ["mac", "macos"]):
-        return JobConfig("MacOS", Workflow.MACOS)
+        return JobConfig("macOS", Workflow.MACOS)
     elif any(word in s for word in ["win", "windows"]):
         return JobConfig("Windows", Workflow.WINDOWS)
     elif any(word in s for word in ["android"]):
@@ -356,7 +355,7 @@ class TestParser(unittest.TestCase):
                         "number_of_wpt_chunks": 20,
                     },
                     {
-                        "name": "MacOS Arm64 (Unit Tests)",
+                        "name": "macOS arm64 (Unit Tests)",
                         "workflow": "macos-arm64",
                         "wpt": False,
                         "profile": "checked-release",

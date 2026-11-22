@@ -5,14 +5,16 @@
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use app_units::Au;
-use fonts::platform::font::PlatformFont;
 use fonts::{
-    Font, FontData, FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef,
-    PlatformFontMethods, ShapingFlags, ShapingOptions,
+    Font, FontData, FontDescriptor, FontIdentifier, FontTemplate, FontTemplateDescriptor,
+    FontTemplateRef, ShapingFlags, ShapingOptions,
 };
 use servo_url::ServoUrl;
+use skrifa::Font as SkrifaFont;
+use skrifa::font::Blob;
 use style::Zero;
 use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
 use style::computed_values::font_variant_position::T as FontVariantPosition;
@@ -33,10 +35,9 @@ fn make_font(path: PathBuf) -> Font {
     let data = FontData::from_bytes(&bytes);
 
     let identifier = FontIdentifier::Web(ServoUrl::from_file_path(path).unwrap());
-    let platform_font =
-        PlatformFont::new_from_data(identifier.clone(), &data, None, false).unwrap();
-
-    let template = FontTemplate::new(identifier, platform_font.descriptor(), None);
+    let skrifa_font = SkrifaFont::new(Blob::Shared(Arc::new(data.clone())), 0).unwrap();
+    let descriptor = FontTemplateDescriptor::from_skrifa_font(&skrifa_font);
+    let template = FontTemplate::new(identifier, descriptor, None);
     let descriptor = FontDescriptor {
         weight: FontWeight::normal(),
         width: FontWidth::hundred(),
@@ -47,7 +48,14 @@ fn make_font(path: PathBuf) -> Font {
         synthesis_weight: FontSynthesis::Auto,
         optical_sizing: FontOpticalSizing::Auto,
     };
-    Font::new(FontTemplateRef::new(template), descriptor, Some(data), None).unwrap()
+    Font::new(
+        FontTemplateRef::new(template),
+        descriptor,
+        Some(data),
+        None,
+        &Default::default(),
+    )
+    .unwrap()
 }
 
 #[test]

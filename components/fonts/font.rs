@@ -14,24 +14,24 @@ use atomic_refcell::AtomicRef;
 use bitflags::bitflags;
 use euclid::default::{Point2D, Rect};
 use euclid::num::Zero;
-use font_types::NameId;
+use font_types::{BigEndian, NameId};
 use fonts_traits::FontDescriptor;
+use fonts_traits::tag::{CBDT, COLR, GPOS, GSUB, ITAL, KERN, SBIX, SLNT, WDTH, WGHT};
 use icu_locale_core::subtags::Language;
 use icu_properties::props::{EnumeratedProperty, GeneralCategory};
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
+use read_fonts::TableProvider;
 use read_fonts::collections::int_set::Domain;
-use read_fonts::tables::fvar::Fvar;
-use read_fonts::tables::name::Name as NameTable;
-use read_fonts::tables::os2::{Os2, SelectionFlags};
 use read_fonts::types::Tag;
-use read_fonts::{FontRead, ReadError};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_base::id::PainterId;
 use servo_base::text::{UnicodeBlock, UnicodeBlockMethod};
-use skrifa::string::LocalizedString;
+use skrifa::Font as SkrifaFont;
+use skrifa::font::Variation;
+use skrifa::font::attribute::Weight;
 use smallvec::SmallVec;
 use style::Atom;
 use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
@@ -43,65 +43,22 @@ use style::values::computed::font::{
 };
 use style::values::computed::{
     FontFeatureSettings, FontStyle, FontSynthesis, FontVariantEastAsian, FontVariantLigatures,
-    FontVariantNumeric, FontWeight, FontWidth,
+    FontVariantNumeric, FontWeight,
 };
 use unicode_script::Script;
 use webrender_api::{
     FontInstanceFlags, FontInstanceKey, FontInstancePlatformOptions, FontVariation,
 };
 
+use crate::font_context::SkrifaFontCache;
 use crate::font_feature_values::ResolvedFontVariantAlternates;
 use crate::platform::font::{FontTable, PlatformFont};
 use crate::platform::font_list::fallback_font_families;
 use crate::{
     EmojiPresentationPreference, FallbackFontSelectionOptions, FontContext, FontData,
-    FontDataAndIndex, FontDataError, FontIdentifier, FontTemplateDescriptor, FontTemplateRef,
-    FontTemplateRefMethods, GlyphId, LocalFontIdentifier, ShapedGlyph, ShapedText, Shaper,
-    compute_used_font_features,
+    FontDataAndIndex, FontDataError, FontIdentifier, FontTemplateRef, FontTemplateRefMethods,
+    GlyphId, LocalFontIdentifier, ShapedGlyph, ShapedText, Shaper, compute_used_font_features,
 };
-
-pub(crate) const AFRC: Tag = Tag::new(b"afrc");
-pub(crate) const BASE: Tag = Tag::new(b"BASE");
-pub(crate) const CALT: Tag = Tag::new(b"calt");
-pub(crate) const CBDT: Tag = Tag::new(b"CBDT");
-pub(crate) const CLIG: Tag = Tag::new(b"clig");
-pub(crate) const COLR: Tag = Tag::new(b"COLR");
-pub(crate) const CWSH: Tag = Tag::new(b"cwsh");
-pub(crate) const FRAC: Tag = Tag::new(b"frac");
-pub(crate) const DLIG: Tag = Tag::new(b"dlig");
-pub(crate) const FVAR: Tag = Tag::new(b"fvar");
-pub(crate) const FWID: Tag = Tag::new(b"fwid");
-pub(crate) const GPOS: Tag = Tag::new(b"GPOS");
-pub(crate) const GSUB: Tag = Tag::new(b"GSUB");
-pub(crate) const HIST: Tag = Tag::new(b"hist");
-pub(crate) const HLIG: Tag = Tag::new(b"hlig");
-pub(crate) const ITAL: Tag = Tag::new(b"ital");
-pub(crate) const JP04: Tag = Tag::new(b"jp04");
-pub(crate) const JP78: Tag = Tag::new(b"jp78");
-pub(crate) const JP83: Tag = Tag::new(b"jp83");
-pub(crate) const JP90: Tag = Tag::new(b"jp90");
-pub(crate) const KERN: Tag = Tag::new(b"kern");
-pub(crate) const LIGA: Tag = Tag::new(b"liga");
-pub(crate) const LNUM: Tag = Tag::new(b"lnum");
-pub(crate) const NALT: Tag = Tag::new(b"nalt");
-pub(crate) const NAME: Tag = Tag::new(b"name");
-pub(crate) const ONUM: Tag = Tag::new(b"onum");
-pub(crate) const ORNM: Tag = Tag::new(b"ornm");
-pub(crate) const ORDN: Tag = Tag::new(b"ordn");
-pub(crate) const PNUM: Tag = Tag::new(b"pnum");
-pub(crate) const PWID: Tag = Tag::new(b"pwid");
-pub(crate) const RUBY: Tag = Tag::new(b"ruby");
-pub(crate) const SALT: Tag = Tag::new(b"salt");
-pub(crate) const SBIX: Tag = Tag::new(b"sbix");
-pub(crate) const SLNT: Tag = Tag::new(b"slnt");
-pub(crate) const SMPL: Tag = Tag::new(b"smpl");
-pub(crate) const SUBS: Tag = Tag::new(b"subs");
-pub(crate) const SUPS: Tag = Tag::new(b"sups");
-pub(crate) const SWSH: Tag = Tag::new(b"swsh");
-pub(crate) const TNUM: Tag = Tag::new(b"tnum");
-pub(crate) const TRAD: Tag = Tag::new(b"trad");
-pub(crate) const ZERO: Tag = Tag::new(b"zero");
-
 pub const LAST_RESORT_GLYPH_ADVANCE: FractionalPixel = 10.0;
 
 // PlatformFont encapsulates access to the platform's font API,
@@ -115,21 +72,19 @@ pub trait PlatformFontMethods: Sized {
         template: FontTemplateRef,
         pt_size: Option<Au>,
         data: &Option<FontData>,
-        synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let template = template.borrow();
         let font_identifier = template.identifier.clone();
 
         match font_identifier {
             FontIdentifier::Local(font_identifier) => {
-                Self::new_from_local_font_identifier(font_identifier, pt_size, synthetic_bold)
+                Self::new_from_local_font_identifier(font_identifier, pt_size)
             },
             FontIdentifier::Web(_) | FontIdentifier::ArrayBuffer(_) => Self::new_from_data(
                 font_identifier,
                 data.as_ref()
                     .expect("Should never create a web font without data."),
                 pt_size,
-                synthetic_bold,
             ),
         }
     }
@@ -137,30 +92,36 @@ pub trait PlatformFontMethods: Sized {
     fn new_from_local_font_identifier(
         font_identifier: LocalFontIdentifier,
         pt_size: Option<Au>,
-        synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str>;
 
     fn new_from_data(
         font_identifier: FontIdentifier,
         data: &FontData,
         pt_size: Option<Au>,
-        synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str>;
 
-    /// Create a platform font with the given variations from a existing font.
+    /// Create a [`skrifa::Font`] for this `PlatformFont`. Generally, this should not be
+    /// used and you should try to retrieve the cached version of the [`SkrifaFont`] from
+    /// the `FontContext`.
+    fn create_skrifa_font(&self) -> Option<SkrifaFont>;
+
+    /// Create a platform font with the given variations from an existing font.
     ///
     /// `self` is consumed to work around platform differences. On some platforms, changing the
     /// variations requires creating an entirely new font face, whereas on others the returned
     /// font is `self`.
     fn copy_with_variations(
         self,
-        _font_identifer: &FontIdentifier,
+        _font_identifier: &FontIdentifier,
         _variations: &[FontVariation],
     ) -> Result<Self, &'static str>;
 
-    /// Get a [`FontTemplateDescriptor`] from a [`PlatformFont`]. This is used to get
-    /// descriptors for web fonts.
-    fn descriptor(&self) -> FontTemplateDescriptor;
+    /// Create a platform font with synthetic bold from an existing font.
+    ///
+    /// `self` is consumed to work around platform differences. On some platforms, making a font
+    /// have synthetic bold requires creating an entirely new font face, whereas on others the
+    /// returned font is `self`.
+    fn copy_with_synthetic_bold(self) -> Result<Self, &'static str>;
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId>;
     fn glyph_h_advance(&self, _: GlyphId) -> Option<FractionalPixel>;
@@ -180,42 +141,14 @@ pub trait PlatformFontMethods: Sized {
 
     /// Return all the variation values that the font was instantiated with.
     fn variations(&self) -> &[FontVariation];
-
-    fn descriptor_from_os2_table(os2: &Os2) -> FontTemplateDescriptor {
-        let mut style = FontStyle::NORMAL;
-        if os2.fs_selection().contains(SelectionFlags::ITALIC) {
-            style = FontStyle::ITALIC;
-        }
-
-        let weight = FontWeight::from_float(os2.us_weight_class() as f32);
-        let width = match os2.us_width_class() {
-            1 => FontWidth::ULTRA_CONDENSED,
-            2 => FontWidth::EXTRA_CONDENSED,
-            3 => FontWidth::CONDENSED,
-            4 => FontWidth::SEMI_CONDENSED,
-            5 => FontWidth::NORMAL,
-            6 => FontWidth::SEMI_EXPANDED,
-            7 => FontWidth::EXPANDED,
-            8 => FontWidth::EXTRA_EXPANDED,
-            9 => FontWidth::ULTRA_EXPANDED,
-            _ => FontWidth::NORMAL,
-        };
-
-        FontTemplateDescriptor::new(weight, width, style)
-    }
 }
 
 // Used to abstract over the shaper's choice of fixed int representation.
 pub(crate) type FractionalPixel = f64;
 
+#[allow(unused)]
 pub(crate) trait FontTableMethods {
     fn buffer(&self) -> &[u8];
-    fn parse_as_specific_table<'a, Table>(&'a self) -> Result<Table, ReadError>
-    where
-        Table: FontRead<'a, Args = ()>,
-    {
-        Table::read(read_fonts::FontData::new(self.buffer()))
-    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize)]
@@ -286,6 +219,10 @@ pub struct Font {
     /// This might be uninitialized for system fonts.
     data_and_index: OnceLock<FontDataAndIndex>,
 
+    /// A `skrifa` `Font` instance for this [`Font`] used to access table data in
+    /// a platform-independent way.
+    skrifa_font: SkrifaFont,
+
     shaper: OnceLock<Shaper>,
     cached_shape_data: RwLock<CachedShapeData>,
     font_instance_key: RwLock<FxHashMap<PainterId, FontInstanceKey>>,
@@ -353,40 +290,55 @@ impl Font {
         descriptor: FontDescriptor,
         data: Option<FontData>,
         synthesized_small_caps: Option<FontRef>,
+        skrifa_font_cache: &SkrifaFontCache,
     ) -> Result<Font, &'static str> {
-        let synthetic_bold = {
-            let is_bold = descriptor.weight >= FontWeight::BOLD_THRESHOLD;
-            let allows_synthetic_bold = matches!(descriptor.synthesis_weight, FontSynthesis::Auto);
+        let mut handle =
+            PlatformFont::new_from_template(template.clone(), Some(descriptor.pt_size), &data)?;
 
-            is_bold && allows_synthetic_bold
+        let data_and_index = data
+            .map(|data| OnceLock::from(FontDataAndIndex { data, index: 0 }))
+            .unwrap_or_default();
+        let Some(mut skrifa_font) =
+            skrifa_font_cache.get(&template.identifier(), || handle.create_skrifa_font())
+        else {
+            return Err("Could not create Skrifa font for font");
         };
 
-        let handle = PlatformFont::new_from_template(
-            template.clone(),
-            Some(descriptor.pt_size),
-            &data,
-            synthetic_bold,
-        )?;
-        let variation_axes = VariationAxes::from_platform_font(&handle);
+        let variation_axes = servo_config::pref!(layout_css_font_variations_enabled)
+            .then(|| VariationAxes::from_skrifa_font(&skrifa_font))
+            .unwrap_or_else(VariationAxes::empty);
 
-        // Compute and apply the OpenType variations
-        let handle = if servo_config::pref!(layout_css_font_variations_enabled) &&
-            variation_axes.contains(VariationAxes::IS_VARIABLE)
-        {
+        // Either apply variations or font synthesis, but not both. Variable fonts do not
+        // count as font synthesis and their use is not affected by the font-synthesis
+        // property. See <https://www.w3.org/TR/css-fonts-4/#font-synthesis-intro>.
+        if variation_axes.contains(VariationAxes::IS_VARIABLE) {
             let used_variations = compute_variations(&descriptor, &template, variation_axes);
-            handle.copy_with_variations(&template.identifier(), &used_variations)?
+            handle = handle.copy_with_variations(&template.identifier(), &used_variations)?;
+            skrifa_font = skrifa_font
+                .instance_builder()
+                .variations(used_variations.iter().map(|variation| Variation {
+                    tag: Tag::from_u32(variation.tag),
+                    value: variation.value,
+                }))
+                .build();
         } else {
-            handle
-        };
+            let template_descriptor = template.descriptor();
+            let apply_synthetic_bold = descriptor.weight >= FontWeight::BOLD_THRESHOLD &&
+                matches!(descriptor.synthesis_weight, FontSynthesis::Auto) &&
+                template_descriptor.weight.1 < FontWeight::BOLD_THRESHOLD &&
+                skrifa_font.default_attributes().weight < Weight::SEMI_BOLD;
+            if apply_synthetic_bold {
+                handle = handle.copy_with_synthetic_bold()?;
+            }
+        }
 
         Ok(Font {
             handle,
             template,
             metrics: OnceLock::new(),
             descriptor,
-            data_and_index: data
-                .map(|data| OnceLock::from(FontDataAndIndex { data, index: 0 }))
-                .unwrap_or_default(),
+            data_and_index,
+            skrifa_font,
             shaper: OnceLock::new(),
             cached_shape_data: Default::default(),
             font_instance_key: Default::default(),
@@ -404,6 +356,11 @@ impl Font {
 
     pub fn metrics(&self) -> &Arc<FontMetrics> {
         self.metrics.get_or_init(|| Arc::new(self.handle.metrics()))
+    }
+
+    /// Return a reference to the [`SkrifaFont`] for this [`Font`].
+    pub(crate) fn skrifa_font(&self) -> &SkrifaFont {
+        &self.skrifa_font
     }
 
     pub(crate) fn webrender_font_instance_flags(&self) -> FontInstanceFlags {
@@ -550,6 +507,7 @@ impl Font {
         } else {
             debug!("shape_text: Using Harfbuzz.");
             self.shaper.get_or_init(|| Shaper::new(self)).shape_text(
+                self,
                 text,
                 options,
                 &lookup_key.font_features,
@@ -687,54 +645,84 @@ impl Font {
 
     /// Get the [`FontBaseline`] for this font.
     pub fn baseline(&self) -> Option<FontBaseline> {
-        self.shaper.get_or_init(|| Shaper::new(self)).baseline()
+        // Load the horizontal axis of the BASE table
+        let base_table = self.skrifa_font().tables().base().ok()?;
+        let horiz_axis = base_table.horiz_axis()?.ok()?;
+
+        // Get the index of each baseline tag in the tag list
+        let tag_list = horiz_axis.base_tag_list()?.ok()?;
+        let baseline_tags = tag_list.baseline_tags();
+        let romn_tag_idx = baseline_tags
+            .binary_search(&BigEndian::from(Tag::new(b"romn")))
+            .ok();
+        let hang_tag_idx = baseline_tags
+            .binary_search(&BigEndian::from(Tag::new(b"hang")))
+            .ok();
+        let ideo_tag_idx = baseline_tags
+            .binary_search(&BigEndian::from(Tag::new(b"ideo")))
+            .ok();
+
+        // Bail early if none of the baseline tags exist in the tag list
+        if romn_tag_idx.is_none() && hang_tag_idx.is_none() && ideo_tag_idx.is_none() {
+            return None;
+        }
+
+        // Find the DFLT (default) script record
+        let script_list = horiz_axis.base_script_list().ok()?;
+        let script_records = script_list.base_script_records();
+        let default_script_record_idx = script_records
+            .binary_search_by_key(&Tag::from_be_bytes(*b"DFLT"), |record| {
+                record.base_script_tag()
+            })
+            .ok()?;
+        let default_script_record = &script_records[default_script_record_idx];
+
+        // Lookup the baseline coordinates DFLT script record
+        let base_script = default_script_record
+            .base_script(script_list.offset_data())
+            .ok()?;
+        let base_script_values = base_script.base_values()?.ok()?;
+        let base_coords = base_script_values.base_coords();
+
+        // Search for the baseline corresponding to a given baseline index. BASE table
+        // coordinates are whole numbers in font design units, so they need to be scaled
+        // to the font size in pixels.
+        let units_per_em = self.skrifa_font().units_per_em();
+
+        // Avoid division by 0 on broken fonts.
+        if units_per_em == 0 {
+            return None;
+        }
+        let scale = self.descriptor.pt_size.to_f64_px() / units_per_em as f64;
+        let get_coord = |idx: usize| {
+            base_coords
+                .get(idx)
+                .ok()
+                .map(|coord| (coord.coordinate() as f64 * scale) as f32)
+        };
+
+        Some(FontBaseline {
+            ideographic_baseline: ideo_tag_idx.and_then(get_coord).unwrap_or(0.0),
+            alphabetic_baseline: romn_tag_idx.and_then(get_coord).unwrap_or(0.0),
+            hanging_baseline: hang_tag_idx.and_then(get_coord).unwrap_or(0.0),
+        })
     }
 
     #[cfg(not(target_os = "macos"))]
     pub(crate) fn find_fallback_using_system_font_api(
         &self,
         _: &FallbackFontSelectionOptions,
+        _: &SkrifaFontCache,
     ) -> Option<FontRef> {
         None
     }
 
-    fn get_family_name_from_font_data(&self) -> Result<Atom, NoUsableFamilyName> {
-        let name_table = self.table_for_tag(NAME).ok_or(NoUsableFamilyName)?;
-        let name_table = NameTable::read(read_fonts::FontData::new(name_table.buffer()))
-            .map_err(|_| NoUsableFamilyName)?;
-
-        // Find the most usable family name entry, preferring "en-US" > "en" > "everything else".
-        // TODO: If we ever have a way to get a read_fonts::FontRef out of a PlatformFont then skrifa can
-        // do this for us with LocalizedStrings::english_or_first.
-        //
-        // https://docs.rs/skrifa/latest/skrifa/string/struct.LocalizedStrings.html#method.english_or_first
-        let mut best_rank = -1;
-        let mut best_string = None;
-        for (index, name_record) in name_table
-            .name_record()
-            .iter()
-            .filter(|name_record| name_record.name_id() == NameId::FAMILY_NAME)
-            .enumerate()
-        {
-            let localized_string = LocalizedString::new(&name_table, name_record);
-            let rank = match (index, localized_string.language()) {
-                (_, Some("en-US")) => {
-                    best_string = Some(localized_string);
-                    break;
-                },
-                (_, Some("en")) => 2,
-                (_, None) => 1,
-                (0, _) => 0,
-                _ => continue,
-            };
-            if rank > best_rank {
-                best_rank = rank;
-                best_string = Some(localized_string);
-            }
-        }
-
-        best_string
-            .map(|best_string| best_string.chars().collect::<String>().into())
+    fn family_name_from_font_data(&self) -> Result<Atom, NoUsableFamilyName> {
+        self.skrifa_font()
+            .names()
+            .get(NameId::FAMILY_NAME)
+            .and_then(|family_name| family_name.english_or_first())
+            .map(|name| name.name().to_string().into())
             .ok_or(NoUsableFamilyName)
     }
 
@@ -751,7 +739,7 @@ impl Font {
             .map(|font_family| font_family.name.clone())
             .or_else(|| {
                 self.family_name
-                    .get_or_init(|| self.get_family_name_from_font_data())
+                    .get_or_init(|| self.family_name_from_font_data())
                     .clone()
                     .ok()
             })
@@ -902,10 +890,9 @@ impl FontGroup {
         }
 
         let first_font = self.first(font_context);
-        if let Some(fallback) = first_font
-            .as_ref()
-            .and_then(|font| font.find_fallback_using_system_font_api(&options)) &&
-            font_has_glyph_and_presentation(&fallback)
+        if let Some(fallback) = first_font.as_ref().and_then(|font| {
+            font.find_fallback_using_system_font_api(&options, font_context.skrifa_font_cache())
+        }) && font_has_glyph_and_presentation(&fallback)
         {
             return Some(fallback);
         }
@@ -1116,6 +1103,7 @@ impl FontFamilyDescriptor {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub struct FontBaseline {
     pub ideographic_baseline: f32,
     pub alphabetic_baseline: f32,
@@ -1224,12 +1212,12 @@ fn compute_variations(
     // to the value of the font-weight, font-width, and font-style descriptors in that @font-face rule.
     // TODO: Clamp weight/width to the descriptors from the @font-face rule, if any
     add_variation(FontVariation {
-        tag: Tag::new(b"wght").to_u32(),
+        tag: WGHT.to_u32(),
         value: descriptor.weight.value(),
     });
 
     add_variation(FontVariation {
-        tag: Tag::new(b"wdth").to_u32(),
+        tag: WDTH.to_u32(),
         value: descriptor.width.0.to_float(),
     });
 
@@ -1320,29 +1308,14 @@ bitflags! {
 }
 
 impl VariationAxes {
-    fn from_platform_font(platform_font: &PlatformFont) -> Self {
-        let Some(fvar_table) = platform_font.table_for_tag(FVAR) else {
-            // This is not a variable font.
-            return VariationAxes::empty();
-        };
-
-        let Some(variation_axes) = fvar_table
-            .parse_as_specific_table::<Fvar<'_>>()
-            .ok()
-            .and_then(|fvar: Fvar<'_>| fvar.axis_instance_arrays().ok())
-            .map(|instance_arrays| instance_arrays.axes())
-        else {
-            // The fvar table is malformed.
-            return VariationAxes::empty();
-        };
-
+    fn from_skrifa_font(font: &SkrifaFont) -> Self {
+        let variation_axes = font.axes();
         if variation_axes.is_empty() {
             return VariationAxes::empty();
         }
-
         let mut result = VariationAxes::IS_VARIABLE;
-        for axis in variation_axes {
-            match axis.axis_tag() {
+        for axis in variation_axes.iter() {
+            match axis.tag() {
                 ITAL => result |= VariationAxes::ITAL,
                 SLNT => result |= VariationAxes::SLNT,
                 _ => {},

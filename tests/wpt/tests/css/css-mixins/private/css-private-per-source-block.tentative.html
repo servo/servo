@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS @private: same-named variables in different source blocks are distinct</title>
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14004">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+    #target {
+      @private {
+        --color: green;
+      }
+      border: 5px solid var(--color, red);
+    }
+    #target {
+      @private {
+        --color: blue;
+      }
+      background-color: var(--color, red);
+    }
+  </style>
+</head>
+<body>
+  <div id="target"></div>
+  <script>
+    test(() => {
+      const style = getComputedStyle(document.getElementById('target'));
+      assert_equals(style.borderTopColor, 'rgb(0, 128, 0)',
+                    'first block resolves its own --color to green');
+      assert_equals(style.backgroundColor, 'rgb(0, 0, 255)',
+                    'second block resolves its own --color to blue');
+    }, 'Same-named @private variables in different source blocks are distinct');
+
+    test(() => {
+      const style = getComputedStyle(document.getElementById('target'));
+      assert_equals(style.getPropertyValue('--color'), '',
+                    'the private --color name is not observable via computed style');
+    }, 'An @private variable is not exposed as an author custom property');
+  </script>
+</body>
+</html>

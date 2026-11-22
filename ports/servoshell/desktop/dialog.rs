@@ -7,17 +7,14 @@ use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context, Poll, Waker};
 
-use egui::{
-    Area, Button, CornerRadius, Frame, Id, Modal, Order, RichText, Sense, Stroke, Vec2, pos2,
-};
-use euclid::Length;
+use egui::{Area, Button, CornerRadius, Frame, Id, Modal, Order, RichText, Sense, Stroke, Vec2};
 use itertools::Either;
 use log::{error, warn};
 use rfd::AsyncFileDialog;
 use servo::{
     AlertDialog, AuthenticationRequest, BluetoothDeviceSelectionRequest, ColorPicker,
-    ConfirmDialog, ContextMenu, ContextMenuItem, DeviceIndependentPixel, EmbedderControlId,
-    FilePicker, PermissionRequest, PromptDialog, RgbColor, SelectElement, SelectElementOption,
+    ConfirmDialog, ContextMenu, ContextMenuItem, DeviceIntRect, EmbedderControlId, FilePicker,
+    PermissionRequest, PromptDialog, RgbColor, SelectElement, SelectElementOption,
     SelectElementOptionOrOptgroup, SimpleDialog,
 };
 use winit::window::Window as WinitWindow;
@@ -52,16 +49,13 @@ pub enum Dialog {
     },
     SelectElement {
         maybe_prompt: Option<SelectElement>,
-        toolbar_offset: Length<f32, DeviceIndependentPixel>,
     },
     ColorPicker {
         current_color: egui::Color32,
         maybe_prompt: Option<ColorPicker>,
-        toolbar_offset: Length<f32, DeviceIndependentPixel>,
     },
     ContextMenu {
         menu: Option<ContextMenu>,
-        toolbar_offset: Length<f32, DeviceIndependentPixel>,
     },
 }
 
@@ -84,17 +78,20 @@ impl Dialog {
         // We need to call `pick_files` / pick_file` outside of the closure here
         // in order to ensure they are called at least one time to trigger the
         // dialog properly.
-        let allow_select_multiple = file_picker.allow_select_multiple();
-        let future = if allow_select_multiple {
+        // `webkitdirectory` only allows selecting one folder.
+        let future = if file_picker.select_directory() {
+            Either::Right(Either::Left(dialog.pick_folder()))
+        } else if file_picker.allow_select_multiple() {
             Either::Left(dialog.pick_files())
         } else {
-            Either::Right(dialog.pick_file())
+            Either::Right(Either::Right(dialog.pick_file()))
         };
 
         let future = Box::pin(async move {
             let handles = match future {
                 Either::Left(future) => future.await,
-                Either::Right(future) => future.await.map(|file_handle| vec![file_handle]),
+                Either::Right(Either::Left(folder)) => folder.await.map(|handle| vec![handle]),
+                Either::Right(Either::Right(file)) => file.await.map(|handle| vec![handle]),
             };
             handles.map(|handles| {
                 handles
@@ -145,20 +142,13 @@ impl Dialog {
         }
     }
 
-    pub fn new_select_element_dialog(
-        prompt: SelectElement,
-        toolbar_offset: Length<f32, DeviceIndependentPixel>,
-    ) -> Self {
+    pub fn new_select_element_dialog(prompt: SelectElement) -> Self {
         Dialog::SelectElement {
             maybe_prompt: Some(prompt),
-            toolbar_offset,
         }
     }
 
-    pub fn new_color_picker_dialog(
-        prompt: ColorPicker,
-        toolbar_offset: Length<f32, DeviceIndependentPixel>,
-    ) -> Self {
+    pub fn new_color_picker_dialog(prompt: ColorPicker) -> Self {
         let current_color = prompt
             .current_color()
             .map(|color| egui::Color32::from_rgb(color.red, color.green, color.blue))
@@ -166,12 +156,11 @@ impl Dialog {
         Dialog::ColorPicker {
             current_color,
             maybe_prompt: Some(prompt),
-            toolbar_offset,
         }
     }
 
     /// Returns false if the dialog has been closed, or true otherwise.
-    pub fn update(&mut self, ctx: &egui::Context) -> bool {
+    pub fn update(&mut self, ctx: &egui::Context, webview_rect: egui::Rect) -> bool {
         enum DialogAction {
             Dismiss,
             Submit,
@@ -481,21 +470,16 @@ impl Dialog {
                 });
                 is_open
             },
-            Dialog::SelectElement {
-                maybe_prompt,
-                toolbar_offset,
-            } => {
+            Dialog::SelectElement { maybe_prompt } => {
                 let Some(prompt) = maybe_prompt else {
                     // Prompt was dismissed, so the dialog should be closed too.
                     return false;
                 };
                 let mut is_open = true;
 
-                let mut position = prompt.position();
-                position.min.y += toolbar_offset.0 as i32;
-                position.max.y += toolbar_offset.0 as i32;
-                let area = egui::Area::new(egui::Id::new("select-window"))
-                    .fixed_pos(egui::pos2(position.min.x as f32, position.max.y as f32));
+                let rect = Self::webview_rect_to_egui_rect(ctx, webview_rect, prompt.position());
+                let area =
+                    egui::Area::new(egui::Id::new("select-window")).fixed_pos(rect.left_bottom());
 
                 let mut selected_options = prompt.selected_options();
 
@@ -607,7 +591,6 @@ impl Dialog {
             Dialog::ColorPicker {
                 current_color,
                 maybe_prompt,
-                toolbar_offset,
             } => {
                 let Some(prompt) = maybe_prompt else {
                     // Prompt was dismissed, so the dialog should be closed too.
@@ -615,11 +598,9 @@ impl Dialog {
                 };
                 let mut is_open = true;
 
-                let mut position = prompt.position();
-                position.min.y += toolbar_offset.0 as i32;
-                position.max.y += toolbar_offset.0 as i32;
-                let area = egui::Area::new(egui::Id::new("select-window"))
-                    .fixed_pos(egui::pos2(position.min.x as f32, position.max.y as f32));
+                let rect = Self::webview_rect_to_egui_rect(ctx, webview_rect, prompt.position());
+                let area =
+                    egui::Area::new(egui::Id::new("select-window")).fixed_pos(rect.left_bottom());
 
                 let modal = Modal::new("select_element_picker".into()).area(area);
                 let backdrop_response = modal
@@ -657,19 +638,15 @@ impl Dialog {
 
                 is_open
             },
-            Dialog::ContextMenu {
-                menu,
-                toolbar_offset,
-            } => {
+            Dialog::ContextMenu { menu } => {
                 let mut is_open = true;
                 if let Some(context_menu) = menu {
                     let mut selected_action = None;
-                    let mut position = context_menu.position();
-                    position.min.y += toolbar_offset.0 as i32;
-                    position.max.y += toolbar_offset.0 as i32;
+                    let rect =
+                        Self::webview_rect_to_egui_rect(ctx, webview_rect, context_menu.position());
 
                     let response = Area::new(Id::new("context_menu"))
-                        .fixed_pos(pos2(position.min.x as f32, position.min.y as f32))
+                        .fixed_pos(rect.left_bottom())
                         .order(Order::Foreground)
                         .show(ctx, |ui| {
                             Frame::popup(ui.style()).show(ui, |ui| {
@@ -758,14 +735,21 @@ impl Dialog {
         }
     }
 
-    pub(crate) fn new_context_menu(
-        menu: ContextMenu,
-        toolbar_offset: Length<f32, DeviceIndependentPixel>,
-    ) -> Dialog {
-        Dialog::ContextMenu {
-            menu: Some(menu),
-            toolbar_offset,
-        }
+    pub(crate) fn new_context_menu(menu: ContextMenu) -> Dialog {
+        Dialog::ContextMenu { menu: Some(menu) }
+    }
+
+    fn webview_rect_to_egui_rect(
+        context: &egui::Context,
+        webview_rect: egui::Rect,
+        rect: DeviceIntRect,
+    ) -> egui::Rect {
+        let rect = rect.to_f32() / context.pixels_per_point();
+        egui::Rect::from_min_max(
+            egui::Pos2::new(rect.min.x, rect.min.y),
+            egui::Pos2::new(rect.max.x, rect.max.y),
+        )
+        .translate(webview_rect.min.to_vec2())
     }
 }
 

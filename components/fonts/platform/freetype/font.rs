@@ -3,10 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::fs::File;
+use std::sync::Arc;
 
 use app_units::Au;
 use euclid::default::{Point2D, Rect, Size2D};
-use fonts_traits::{FontIdentifier, FontTemplateDescriptor, LocalFontIdentifier};
+use fonts_traits::{FontDataAndIndex, FontIdentifier, LocalFontIdentifier};
 use freetype_sys::{
     FT_F26Dot6, FT_Get_Char_Index, FT_Get_Kerning, FT_GlyphSlot, FT_KERNING_DEFAULT,
     FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_Load_Glyph, FT_Size_Metrics, FT_SizeRec, FT_UInt,
@@ -15,10 +16,10 @@ use freetype_sys::{
 use log::debug;
 use memmap2::Mmap;
 use parking_lot::ReentrantMutex;
+use read_fonts::TableProvider;
 use read_fonts::types::Tag;
-use read_fonts::{FontRef, ReadError, TableProvider};
-use servo_arc::Arc;
-use skrifa::attribute::Weight;
+use skrifa::Font as SkrifaFont;
+use skrifa::font::Blob;
 use style::Zero;
 use webrender_api::{FontInstanceFlags, FontInstancePlatformOptions, FontVariation};
 
@@ -30,8 +31,6 @@ use crate::platform::freetype::freetype_face::{
     FALLBACK_HINTING_STYLE, FontBackingStore, FreeTypeFace,
 };
 
-const SEMI_BOLD_U16: u16 = Weight::SEMI_BOLD.value() as u16;
-
 /// Convert FreeType-style 26.6 fixed point to an [`f64`].
 fn fixed_26_dot_6_to_float(fixed: FT_F26Dot6) -> f64 {
     fixed as f64 / 64.0
@@ -39,7 +38,7 @@ fn fixed_26_dot_6_to_float(fixed: FT_F26Dot6) -> f64 {
 
 #[derive(Debug)]
 pub struct FontTable {
-    data: FreeTypeFaceTableProviderData,
+    data: FontDataAndIndex,
     tag: Tag,
 }
 
@@ -60,9 +59,10 @@ pub struct PlatformFont {
     actual_face_size: Au,
     variations: Vec<FontVariation>,
     synthetic_bold: bool,
-
     /// A member that allows using `skrifa` to read values from this font.
-    table_provider_data: FreeTypeFaceTableProviderData,
+    /// Eventually, this should be eliminated in favor of reading the shared
+    /// `SkrifaFont` from the `Font` itself.
+    data_and_index: FontDataAndIndex,
 }
 
 impl PlatformFontMethods for PlatformFont {
@@ -70,7 +70,6 @@ impl PlatformFontMethods for PlatformFont {
         _font_identifier: FontIdentifier,
         font_data: &FontData,
         requested_size: Option<Au>,
-        synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
         let data = FontBackingStore::Web(font_data.clone());
@@ -81,24 +80,22 @@ impl PlatformFontMethods for PlatformFont {
             None => (Au::zero(), Au::zero()),
         };
 
-        let table_provider_data = FreeTypeFaceTableProviderData::Web(font_data.clone());
-
-        let synthetic_bold = table_provider_data.should_apply_synthetic_bold(synthetic_bold);
-
         Ok(PlatformFont {
             face: ReentrantMutex::new(face),
             requested_face_size,
             actual_face_size,
-            table_provider_data,
             variations: vec![],
-            synthetic_bold,
+            synthetic_bold: false,
+            data_and_index: FontDataAndIndex {
+                data: font_data.clone(),
+                index: 0,
+            },
         })
     }
 
     fn new_from_local_font_identifier(
         font_identifier: LocalFontIdentifier,
         requested_size: Option<Au>,
-        synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
 
@@ -121,19 +118,24 @@ impl PlatformFontMethods for PlatformFont {
             None => (Au::zero(), Au::zero()),
         };
 
-        let table_provider_data =
-            FreeTypeFaceTableProviderData::Local(memory_mapped_font_data, font_identifier.index());
-
-        let synthetic_bold = table_provider_data.should_apply_synthetic_bold(synthetic_bold);
-
         Ok(PlatformFont {
             face: ReentrantMutex::new(face),
             requested_face_size,
             actual_face_size,
-            table_provider_data,
             variations: vec![],
-            synthetic_bold,
+            synthetic_bold: false,
+            data_and_index: FontDataAndIndex {
+                data: FontData::MemoryMapped(memory_mapped_font_data),
+                index: font_identifier.index(),
+            },
         })
+    }
+
+    fn create_skrifa_font(&self) -> Option<SkrifaFont> {
+        SkrifaFont::new(
+            Blob::Shared(Arc::new(self.data_and_index.data.clone())),
+            self.data_and_index.index,
+        )
     }
 
     fn copy_with_variations(
@@ -149,14 +151,9 @@ impl PlatformFontMethods for PlatformFont {
         Ok(self)
     }
 
-    fn descriptor(&self) -> FontTemplateDescriptor {
-        let Ok(font_ref) = self.table_provider_data.font_ref() else {
-            return FontTemplateDescriptor::default();
-        };
-        let Ok(os2) = font_ref.os2() else {
-            return FontTemplateDescriptor::default();
-        };
-        Self::descriptor_from_os2_table(&os2)
+    fn copy_with_synthetic_bold(mut self) -> Result<Self, &'static str> {
+        self.synthetic_bold = true;
+        Ok(self)
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
@@ -218,7 +215,7 @@ impl PlatformFontMethods for PlatformFont {
 
     fn metrics(&self) -> FontMetrics {
         let face = self.face.lock();
-        let font_ref = self.table_provider_data.font_ref();
+        let font_ref = self.data_and_index.font_ref();
 
         // face.size is a *c_void in the bindings, presumably to avoid recursive structural types
         let freetype_size: &FT_SizeRec = unsafe { &*face.as_ref().size };
@@ -353,10 +350,10 @@ impl PlatformFontMethods for PlatformFont {
     }
 
     fn table_for_tag(&self, tag: Tag) -> Option<FontTable> {
-        let font_ref = self.table_provider_data.font_ref().ok()?;
+        let font_ref = self.data_and_index.font_ref().ok()?;
         let _table_data = font_ref.table_data(tag)?;
         Some(FontTable {
-            data: self.table_provider_data.clone(),
+            data: self.data_and_index.clone(),
             tag,
         })
     }
@@ -417,41 +414,6 @@ impl PlatformFont {
     /// font, we need to scale them based on the final size and the actual font size.
     fn unscalable_font_metrics_scale(&self) -> f64 {
         self.requested_face_size.to_f64_px() / self.actual_face_size.to_f64_px()
-    }
-}
-
-#[derive(Clone)]
-enum FreeTypeFaceTableProviderData {
-    Web(FontData),
-    Local(Arc<Mmap>, u32),
-}
-
-impl FreeTypeFaceTableProviderData {
-    fn font_ref(&self) -> Result<FontRef<'_>, ReadError> {
-        match self {
-            Self::Web(ipc_shared_memory) => FontRef::new(ipc_shared_memory.as_ref()),
-            Self::Local(mmap, index) => FontRef::from_index(mmap, *index),
-        }
-    }
-
-    fn should_apply_synthetic_bold(&self, synthetic_bold: bool) -> bool {
-        // Ensures that a font face is not emboldened if it's a variable font or
-        // if it's already bold.
-        let face_is_bold = self
-            .font_ref()
-            .and_then(|font_ref| font_ref.os2())
-            .is_ok_and(|table| table.us_weight_class() >= SEMI_BOLD_U16);
-        let is_variable_font = self
-            .font_ref()
-            .and_then(|font_ref| font_ref.fvar())
-            .is_ok_and(|table| table.axis_count() > 0);
-        !face_is_bold && !is_variable_font && synthetic_bold
-    }
-}
-
-impl std::fmt::Debug for FreeTypeFaceTableProviderData {
-    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Ok(())
     }
 }
 

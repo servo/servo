@@ -10,10 +10,9 @@
 # except according to those terms.
 
 
-from selenium.common import NoSuchElementException
-
-import common_function_for_servo_test
 import common_function_for_mossel
+import common_function_for_servo_test
+from selenium.common import NoSuchElementException
 from selenium.webdriver.common.by import By
 
 

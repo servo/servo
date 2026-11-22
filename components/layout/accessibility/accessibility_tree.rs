@@ -212,7 +212,7 @@ impl AccessibilityTree {
         if update.is_new(&root_id) {
             // We're going to rebuild the whole tree, so ignore any incoming damage.
             update.clear_damage();
-            update.insert_damage(root_id, AccessibilityDamage::Rebuild);
+            update.insert_damage(root_id, AccessibilityDamage::all());
             update.insert_dom_node(root_id, *root_dom_node);
             self.populate_pending_scroll_updates_from_scroll_tree(context);
         }
@@ -417,7 +417,7 @@ impl AccessibilityTree {
         if update.is_new(&id) {
             let mut node = node_ref.borrow_mut();
             node.initialize_from_dom_node(dom_node);
-            update.insert_damage(id, AccessibilityDamage::Rebuild);
+            update.insert_damage(id, AccessibilityDamage::all());
             node.add_dirty_state(DirtyState::HasDamage);
         }
 

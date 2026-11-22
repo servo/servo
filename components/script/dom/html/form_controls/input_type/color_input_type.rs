@@ -57,7 +57,7 @@ impl ColorInputType {
             "#{:0>2x}{:0>2x}{:0>2x}",
             selected_color.red, selected_color.green, selected_color.blue
         );
-        let _ = input.SetValue(cx, formatted_color.into());
+        let _ = input.set_value(cx, formatted_color.into(), true);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#update-a-color-well-control-color>
@@ -229,7 +229,7 @@ impl SpecificInputType for ColorInputType {
         input
             .owner_document()
             .embedder_controls()
-            .hide_embedder_control(input.upcast());
+            .hide_embedder_control_for_element(input.upcast());
     }
 }
 

@@ -4,12 +4,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-from contextlib import contextmanager
 import json
 import os
+import sys
+from contextlib import contextmanager
+
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
-import sys
 
 
 @contextmanager

@@ -56,6 +56,7 @@ test_invalid_value("color", "color(1 1 1)");  // No color space
 test_invalid_value("color", "color(srgb 1 1)");  // One missing component
 test_invalid_value("color", "color(srgb 1)");  // Two missing components
 test_invalid_value("color", "color(srgb 0, 0, 0)");  // Commas as separators
+test_invalid_value("color", "color(unknown 1 2 3, red)");  // Fallback color
 
 test_invalid_value("color", "color(srgb 1 1 1 1)");  // Too many parameters
 test_invalid_value("color", "color(srgb 1 1 1 1 1)");  // Way too many parameters

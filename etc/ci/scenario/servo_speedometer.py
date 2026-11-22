@@ -13,9 +13,10 @@ import json
 import sys
 import time
 from typing import Any
+
 import common_function_for_servo_test
-from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.common.by import By
 
 
 def speedometer_to_bmf(speedometer: dict[str, Any], bmf_output: str, profile: str | None = None) -> None:

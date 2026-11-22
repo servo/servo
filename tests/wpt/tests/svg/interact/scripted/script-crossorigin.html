@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>The crossorigin attribute of the SVG script element sets the mode of the script request</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/interact.html#ScriptElementCrossoriginAttribute">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/urls-and-fetching.html#cors-settings-attribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+
+<svg id="svg"></svg>
+
+<script>
+const remoteScript = get_host_info().HTTP_REMOTE_ORIGIN + "/common/utils.js";
+
+function loadScript(t, crossorigin, allowOrigin) {
+  const script = document.createElementNS("http://www.w3.org/2000/svg", "script");
+  if (crossorigin !== null)
+    script.setAttribute("crossorigin", crossorigin);
+  let url = `${remoteScript}?id=${token()}`;
+  if (allowOrigin)
+    url += "&pipe=header(Access-Control-Allow-Origin,*)";
+  const result = new Promise(resolve => {
+    script.onload = () => resolve("load");
+    script.onerror = () => resolve("error");
+  });
+  script.setAttribute("href", url);
+  document.getElementById("svg").appendChild(script);
+  t.add_cleanup(() => script.remove());
+  return result;
+}
+
+promise_test(async t => {
+  assert_equals(await loadScript(t, null, false), "load");
+}, "no crossorigin: a cross-origin script without CORS headers loads");
+
+promise_test(async t => {
+  assert_equals(await loadScript(t, "anonymous", true), "load");
+}, "crossorigin=anonymous: a cross-origin script with Access-Control-Allow-Origin loads");
+
+promise_test(async t => {
+  assert_equals(await loadScript(t, "anonymous", false), "error");
+}, "crossorigin=anonymous: a cross-origin script without CORS headers fails");
+</script>

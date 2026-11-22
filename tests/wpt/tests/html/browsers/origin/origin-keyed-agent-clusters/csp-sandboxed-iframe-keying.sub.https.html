@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>An iframe sandboxed by its CSP doesn't decide the keying of its URL's origin</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script type="module">
+import {
+  insertIframe,
+  waitForIframe,
+  testSameAgentCluster,
+  testGetter
+} from "./resources/helpers.mjs";
+
+promise_setup(async () => {
+  // Must be sequential, not parallel: the sandboxed frame must load first.
+  const url = new URL("resources/send-oac-header.py", location.href);
+  url.host = "{{hosts[][www]}}";
+  url.searchParams.set("header", "?1");
+  url.searchParams.set("pipe", "header(Content-Security-Policy,sandbox allow-scripts)");
+  const iframe = document.createElement("iframe");
+  const loaded = waitForIframe(iframe, url.href);
+  iframe.src = url.href;
+  document.body.append(iframe);
+  await loaded;
+
+  await insertIframe("{{hosts[][www]}}", "?0");
+});
+
+// Child 1's origin is opaque, so its header is recorded for that origin and not
+// for its URL's. Child 2 is then site-keyed, as it requests, and in the parent's
+// agent cluster.
+testGetter(0, true, "child1");
+testGetter(1, false, "child2");
+testSameAgentCluster([self, 1], "Parent to child2");
+</script>

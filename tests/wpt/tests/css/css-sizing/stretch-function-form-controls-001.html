@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>CSS stretch(): the intrinsic size contribution of form controls</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#funcdef-width-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-contribution">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="A fixed stretch() argument is the size of a form control's margin box, so the form control contributes it to its container's max-content size, margins included.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  .container {
+    width: max-content;
+    height: 20px;
+    background: green;
+  }
+  input, select, textarea {
+    display: block;
+    visibility: hidden;
+    width: stretch(100px);
+    margin: 0 10px 0 0;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div class="container"><input></div>
+<div class="container"><textarea></textarea></div>
+<div class="container"><select><option>option</option></select></div>
+<div class="container"><select multiple><option>option</option></select></div>
+<div class="container"><input type="range"></div>

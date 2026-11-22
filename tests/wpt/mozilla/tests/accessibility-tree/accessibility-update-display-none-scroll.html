@@ -21,7 +21,7 @@
       assert_equals(initial.nodesUpdatedFromDom, 20, "nodesUpdatedFromDom");
       assert_equals(initial.nodesUpdatedFromTree, 20, "nodesUpdatedFromTree");
       // Bounds are refreshed for every visible node in the tree
-      assert_equals(initial.nodesUpdatedBounds, 13, "nodesUpdatedBounds");
+      assert_equals(initial.nodesUpdatedBounds, 6, "nodesUpdatedBounds");
       assert_equals(initial.nodesInTreeUpdate, 20, "nodesInTreeUpdate");
 
       aside.style.display = "none";
@@ -32,7 +32,7 @@
       // Ancestors of <aside> are updated in case their computed text has changed.
       assert_equals(update.nodesUpdatedFromTree, 4, "nodesUpdatedFromTree");
       // Bounds are refreshed for every visible node in the tree.
-      assert_equals(update.nodesUpdatedBounds, 12, "nodesUpdatedBounds");
+      assert_equals(update.nodesUpdatedBounds, 5, "nodesUpdatedBounds");
       // Only the <aside> is actually updated.
       assert_equals(update.nodesInTreeUpdate, 1, "nodesInTreeUpdate");
 
@@ -43,7 +43,7 @@
       assert_equals(update.nodesUpdatedFromDom, 0, "nodesUpdatedFromDom");
       assert_equals(update.nodesUpdatedFromTree, 0, "nodesUpdatedFromTree");
       assert_equals(update.nodesUpdatedBounds, 0, "nodesUpdatedBounds");
-      assert_equals(update.nodesInTreeUpdate, 6, "nodesInTreeUpdate");
+      assert_equals(update.nodesInTreeUpdate, 2, "nodesInTreeUpdate");
 
       aside.style.removeProperty("display");
       update = window.ServoTestUtils.forceAccessibilityUpdate();
@@ -53,7 +53,7 @@
       // Ancestors of <aside> are updated in case their computed text has changed.
       assert_equals(update.nodesUpdatedFromTree, 4, "nodesUpdatedFromTree");
       // Bounds are refreshed for every visible node in the tree.
-      assert_equals(update.nodesUpdatedBounds, 13, "nodesUpdatedBounds");
+      assert_equals(update.nodesUpdatedBounds, 6, "nodesUpdatedBounds");
       // Only the <aside> is actually updated.
       assert_equals(update.nodesInTreeUpdate, 1, "nodesInTreeUpdate");
     }, "Hidden nodes should not be updated due to scrolling, and should be updated when becoming visible again");

@@ -656,7 +656,7 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
             outside_storage_key,
             global.insecure_requests_policy(),
             global.policy_container(),
-            global.font_context(),
+            Arc::new(global.font_context().new_for_worker()),
         ) {
             Ok(join_handle) => join_handle,
             Err(error) => {

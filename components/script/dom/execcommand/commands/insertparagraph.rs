@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::VecDeque;
+
 use html5ever::local_name;
 use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::SelectionBinding::SelectionMethods;
@@ -132,7 +134,7 @@ pub(crate) fn execute_insert_paragraph_command(
                         )
                     })
             }) {
-            vec![eligible_node]
+            VecDeque::from([eligible_node])
         } else {
             // Step 11.3. Let node list be a list of nodes, initially empty.
             // Step 11.5. If node list is empty:
@@ -183,7 +185,7 @@ pub(crate) fn execute_insert_paragraph_command(
                 )
             })
         {
-            node_list.push(next_of_last);
+            node_list.push_back(next_of_last);
         }
         // Step 11.7. Wrap node list, with sibling criteria returning false
         // and new parent instructions returning the result of calling createElement(tag) on the context object.
