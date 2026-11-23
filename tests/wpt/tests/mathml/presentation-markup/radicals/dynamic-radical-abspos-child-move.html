@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<title>Dynamic radical: moving an absolutely positioned child</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#radicals-msqrt-mroot">
+<meta name="assert" content="Moving an absolutely positioned child of a positioned radical keeps the radical symbol.">
+<link rel="match" href="dynamic-radical-abspos-child-move-ref.html">
+<style>
+  @font-face {
+    font-family: RadicalFont;
+    src: url("/fonts/math/radical-displaystyleverticalgap7000-rulethickness1000.woff");
+  }
+  math {
+      font-family: RadicalFont;
+      font-size: 10px;
+  }
+  msqrt, mroot {
+      position: relative;
+  }
+  .abspos {
+      position: absolute;
+      top: 0;
+  }
+</style>
+<script src="/mathml/support/fonts.js"></script>
+<script>
+  window.addEventListener("load", () => { loadAllFonts().then(runTests); });
+  function runTests() {
+      // force initial layout so we're sure what we're testing against
+      document.documentElement.getBoundingClientRect();
+
+      for (const abspos of document.getElementsByClassName("abspos")) {
+          abspos.style.top = "40px";
+      }
+
+      document.documentElement.classList.remove('reftest-wait');
+  };
+</script>
+</head>
+<body>
+  <div style="height: 80px">
+    <math>
+      <msqrt>
+        <mspace width="20px" height="10px" depth="10px" style="background: blue"/>
+        <mspace class="abspos" width="10px" height="10px" style="background: green"/>
+      </msqrt>
+    </math>
+  </div>
+  <div style="height: 80px">
+    <math>
+      <mroot>
+        <mspace width="20px" height="10px" depth="10px" style="background: blue"/>
+        <mspace width="20px" height="10px" depth="10px" style="background: lightblue"/>
+        <mspace class="abspos" width="10px" height="10px" style="background: green"/>
+      </mroot>
+    </math>
+  </div>
+  <script src="/mathml/support/feature-detection.js"></script>
+  <script>MathMLFeatureDetection.ensure_for_match_reftest("has_mspace");</script>
+</body>
+</html>

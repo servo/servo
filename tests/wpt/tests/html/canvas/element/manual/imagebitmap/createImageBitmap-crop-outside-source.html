@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<title>createImageBitmap: a crop rect entirely outside the source is transparent black</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const kSize = 8;
+const kBackground = [10, 20, 30, 255];
+
+function makeSource() {
+  const canvas = new OffscreenCanvas(kSize, kSize);
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = 'rgb(0, 255, 0)';
+  ctx.fillRect(0, 0, kSize, kSize);
+  return canvas;
+}
+
+// The crop rect lies entirely to the right of the source.
+function cropOutside(image) {
+  return createImageBitmap(image, kSize * 2, 0, kSize, kSize);
+}
+
+function makeTarget() {
+  const ctx = new OffscreenCanvas(kSize, kSize).getContext('2d');
+  ctx.fillStyle = `rgba(${kBackground.join(', ')})`;
+  ctx.fillRect(0, 0, kSize, kSize);
+  return ctx;
+}
+
+function assertBackground(ctx, description) {
+  const data = ctx.getImageData(0, 0, kSize, kSize).data;
+  for (let i = 0; i < data.length; i += 4) {
+    assert_array_equals(
+        Array.from(data.subarray(i, i + 4)), kBackground,
+        `${description}: pixel ${i / 4}`);
+  }
+}
+
+const kSources = [
+  ['OffscreenCanvas', () => cropOutside(makeSource())],
+  ['ImageBitmap', async () => {
+    const source = await createImageBitmap(makeSource());
+    const bitmap = await cropOutside(source);
+    source.close();
+    return bitmap;
+  }],
+];
+
+for (const [name, make] of kSources) {
+  promise_test(async t => {
+    const bitmap = await make();
+    t.add_cleanup(() => bitmap.close());
+    assert_equals(bitmap.width, kSize, 'width');
+    assert_equals(bitmap.height, kSize, 'height');
+    const ctx = makeTarget();
+    ctx.drawImage(bitmap, 0, 0);
+    assertBackground(ctx, 'drawImage');
+  }, `drawImage() of a bitmap cropped entirely outside its source (${name})`);
+
+  promise_test(async t => {
+    const bitmap = await make();
+    t.add_cleanup(() => bitmap.close());
+    const ctx = makeTarget();
+    ctx.fillStyle = ctx.createPattern(bitmap, 'repeat');
+    ctx.fillRect(0, 0, kSize, kSize);
+    assertBackground(ctx, 'createPattern');
+  }, `createPattern() of a bitmap cropped entirely outside its source (${name})`);
+}
+</script>

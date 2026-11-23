@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SVGTextContentElement queries on right-to-left and mixed text</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#InterfaceSVGTextContentElement">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TermAlignmentPoint">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TermFindTypographicCharacterForCharacter">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.shaped {
+    font: 40px serif;
+    white-space: pre;
+}
+</style>
+</head>
+<body>
+<svg id="svg" width="800" height="100"></svg>
+<div id="spans"></div>
+<script>
+const samples = [
+    ["Hebrew", "שלום עולם"],
+    ["Latin, then Hebrew", "abc שלום def"],
+    ["Hebrew, then Latin", "שלום abc עולם"],
+    ["Hebrew and Latin in a tspan", "שלום <abc> עולם"],
+    ["Arabic", "مرحبا بالعالم"],
+    ["Latin, then Arabic", "abc مرحبا def"],
+    ["Arabic, then Latin", "مرحبا abc عالم"],
+    ["Arabic and Latin in a tspan", "مرحبا <abc> عالم"],
+];
+const isRTLCharacter = character => /[\u0590-\u05FF\u0600-\u06FF]/.test(character);
+
+function createText(text, direction) {
+    const textElement = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    textElement.setAttribute("class", "shaped");
+    textElement.setAttribute("x", "400");
+    textElement.setAttribute("y", "50");
+    textElement.setAttribute("direction", direction);
+    for (const [index, part] of text.split(/[<>]/).entries()) {
+        if (index % 2) {
+            const tspan = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+            tspan.textContent = part;
+            textElement.appendChild(tspan);
+        } else
+            textElement.appendChild(document.createTextNode(part));
+    }
+    svg.appendChild(textElement);
+
+    const span = document.createElement("span");
+    span.className = "shaped";
+    span.dir = direction;
+    span.textContent = text.replace(/[<>]/g, "");
+    spans.appendChild(span);
+    return [textElement, span];
+}
+
+// The cell of each character in HTML, relative to the left edge of the text. Range rectangles are snapped to whole pixels.
+const cellTolerance = 2;
+function htmlCells(span) {
+    const range = document.createRange();
+    const spanLeft = span.getBoundingClientRect().left;
+    return [...span.firstChild.data].map((character, index) => {
+        range.setStart(span.firstChild, index);
+        range.setEnd(span.firstChild, index + 1);
+        const rect = range.getBoundingClientRect();
+        return { character, left: rect.left - spanLeft, width: rect.width };
+    });
+}
+
+for (const direction of ["ltr", "rtl"]) {
+    for (const [name, text] of samples) {
+        test(() => {
+            const [textElement, span] = createText(text, direction);
+            const cells = htmlCells(span);
+            const textLeft = textElement.getBBox().x;
+            assert_equals(textElement.getNumberOfChars(), cells.length, "getNumberOfChars()");
+
+            // "Let rect be the rectangle that forms the tightest bounding box around quad"
+            cells.forEach((cell, index) => {
+                const extent = textElement.getExtentOfChar(index);
+                assert_approx_equals(extent.x - textLeft, cell.left, cellTolerance, `getExtentOfChar(${index}).x`);
+                assert_approx_equals(extent.width, cell.width, cellTolerance, `getExtentOfChar(${index}).width`);
+            });
+        }, `getExtentOfChar() on ${name} in ${direction} text`);
+
+        test(() => {
+            const [textElement, span] = createText(text, direction);
+            const cells = htmlCells(span);
+            const textLeft = textElement.getBBox().x;
+
+            // "The inline-base direction position of the alignment point is on the start-edge of the glyph."
+            // The end position adds the advance in "the direction of the character".
+            cells.forEach((cell, index) => {
+                if (cell.character == " ")
+                    return;
+                const start = textElement.getStartPositionOfChar(index).x - textLeft;
+                const end = textElement.getEndPositionOfChar(index).x - textLeft;
+                const [startEdge, endEdge] = isRTLCharacter(cell.character) ? [cell.left + cell.width, cell.left] : [cell.left, cell.left + cell.width];
+                assert_approx_equals(start, startEdge, cellTolerance, `getStartPositionOfChar(${index})`);
+                assert_approx_equals(end, endEdge, cellTolerance, `getEndPositionOfChar(${index})`);
+            });
+        }, `getStartPositionOfChar() and getEndPositionOfChar() on ${name} in ${direction} text`);
+
+        test(() => {
+            const [textElement, span] = createText(text, direction);
+            const count = textElement.getNumberOfChars();
+            const shapedWidth = span.getBoundingClientRect().width;
+
+            assert_approx_equals(textElement.getComputedTextLength(), shapedWidth, 1, "getComputedTextLength()");
+            assert_approx_equals(textElement.getSubStringLength(0, count), shapedWidth, 1, "getSubStringLength() of all characters");
+            const advances = [...Array(count).keys()].map(index => textElement.getSubStringLength(index, 1));
+            for (let start = 0; start < count; ++start) {
+                const expected = advances.slice(start, start + 4).reduce((sum, advance) => sum + advance, 0);
+                assert_approx_equals(textElement.getSubStringLength(start, 4), expected, 0.01, `getSubStringLength(${start}, 4)`);
+            }
+        }, `getSubStringLength() on ${name} in ${direction} text`);
+
+        test(() => {
+            const [textElement] = createText(text, direction);
+            // The last character is not tested until the spec's loop ("While charnum < last") includes it.
+            for (let index = 0; index < textElement.getNumberOfChars() - 1; ++index) {
+                const extent = textElement.getExtentOfChar(index);
+                const point = new DOMPoint(extent.x + extent.width / 2, extent.y + extent.height / 2);
+                assert_equals(textElement.getCharNumAtPosition(point), index, `the center of character ${index}`);
+            }
+        }, `getCharNumAtPosition() on ${name} in ${direction} text`);
+
+        test(() => {
+            const [textElement] = createText(text, direction);
+            // The glyphs are not rotated, whatever their direction.
+            for (let index = 0; index < textElement.getNumberOfChars(); ++index)
+                assert_equals(textElement.getRotationOfChar(index), 0, `getRotationOfChar(${index})`);
+        }, `getRotationOfChar() on ${name} in ${direction} text`);
+    }
+}
+</script>
+</body>
+</html>

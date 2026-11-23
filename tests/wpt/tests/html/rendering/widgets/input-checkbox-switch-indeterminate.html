@@ -1,0 +1,9 @@
+<!doctype html>
+<title>Checkbox with switch attribute set does not render differently when the indeterminate attribute is set</title>
+<link rel=match href="input-checkbox-switch-indeterminate-ref.html">
+<input id="input" type=checkbox switch>
+<input id="input2" type=checkbox switch checked>
+<script>
+    input.indeterminate = true;
+    input2.indeterminate = true;
+</script>

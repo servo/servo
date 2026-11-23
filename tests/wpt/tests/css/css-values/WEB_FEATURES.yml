@@ -44,3 +44,4 @@ rules:
 - rem-root-*: [rem]
 - progress-*: [progress-function]
 - random-*: [random-function]
+- random-item-*: [random-item]

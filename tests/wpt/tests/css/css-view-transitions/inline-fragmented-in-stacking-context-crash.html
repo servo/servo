@@ -1,0 +1,21 @@
+<!doctype html>
+<html class="test-wait">
+<title>View transitions: fragmented inline inside a fragmented inline stacking context</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/#capture-old-state-algorithm">
+<link rel="help" href="https://bugzil.la/2093752">
+<style>
+  div { width: 100px; }
+</style>
+<div><span style="mask-image: url(data:,)"><q style="view-transition-name: a">Some text that wraps across lines</q></span></div>
+<div><span style="opacity: 0.5"><q style="view-transition-name: b">Some text that wraps across lines</q></span></div>
+<div><span style="position: relative; z-index: 1"><q style="view-transition-name: c">Some text that wraps across lines</q></span></div>
+<div><span style="mask-image: url(data:,)"><q style="view-transition-name: d; padding-inline: 99999999%;"> </q></span></div>
+<script>
+window.addEventListener("load", () => {
+  document.startViewTransition().ready.then(() => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      document.documentElement.className = "";
+    }));
+  });
+});
+</script>

@@ -172,6 +172,54 @@ class BidiBluetoothSimulateDescriptorResponseAction(BidiBluetoothAction):
         return await self.protocol.bidi_bluetooth.simulate_descriptor_response(
             context, address, service_uuid, characteristic_uuid, descriptor_uuid, type, code, data)
 
+class BidiBrowsingContextSetViewportAction:
+    name = "bidi.browsing_context.set_viewport"
+
+    def __init__(self, logger, protocol):
+        do_delayed_imports()
+        self.logger = logger
+        self.protocol = protocol
+
+    async def __call__(self, payload):
+        if "context" in payload and "userContexts" in payload:
+            raise ValueError("`context` and `userContexts` are mutually exclusive")
+
+        if "context" in payload:
+            if payload["context"] is None:
+                raise ValueError("`context` must not be null")
+            context = get_browsing_context_id(payload["context"])
+        else:
+            context = None
+
+        viewport = (
+            payload["viewport"]
+            if "viewport" in payload
+            else webdriver.bidi.undefined.UNDEFINED
+        )
+        device_pixel_ratio = (
+            payload["devicePixelRatio"]
+            if "devicePixelRatio" in payload
+            else webdriver.bidi.undefined.UNDEFINED
+        )
+
+        if "userContexts" in payload:
+            user_contexts = payload["userContexts"]
+            if user_contexts is None:
+                raise ValueError("`userContexts` must not be null")
+            if len(user_contexts) == 0:
+                raise ValueError("At least one user context must be provided")
+        else:
+            user_contexts = None
+
+        if context is None and user_contexts is None:
+            raise ValueError("Either `context` or `userContexts` must be provided")
+
+        return await self.protocol.bidi_browsing_context.set_viewport(
+            context=context,
+            viewport=viewport,
+            device_pixel_ratio=device_pixel_ratio,
+            user_contexts=user_contexts)
+
 class BidiEmulationSetGeolocationOverrideAction:
     name = "bidi.emulation.set_geolocation_override"
 
@@ -484,6 +532,7 @@ async_actions = [
     BidiBluetoothSimulateCharacteristicResponseAction,
     BidiBluetoothSimulateDescriptorAction,
     BidiBluetoothSimulateDescriptorResponseAction,
+    BidiBrowsingContextSetViewportAction,
     BidiEmulationSetGeolocationOverrideAction,
     BidiEmulationSetLocaleOverrideAction,
     BidiEmulationSetMediaFeaturesOverrideAction,

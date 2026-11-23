@@ -47,21 +47,25 @@ const positionIn = id => {
     return { left: probe.left - box.left, top: probe.top - box.top };
 };
 
-for (const shape of ["nested", "sibling"]) {
+setup({ explicit_done: true });
+document.fonts.ready.then(() => {
+  for (const shape of ["nested", "sibling"]) {
     for (const kind of ["selfCollapsing", "withBorder"]) {
-        test(() => {
-            const position = positionIn(`${shape}-${kind}`);
-            assert_equals(position.top, expected[kind].top, "the line's block-axis position");
-            assert_equals(position.left, expected[kind].left, "the line is pushed clear of the float");
-        }, `A line after a ${kind === "withBorder" ? "bordered" : "self collapsing"} block containing a float `
+      test(() => {
+        const position = positionIn(`${shape}-${kind}`);
+        assert_equals(position.top, expected[kind].top, "the line's block-axis position");
+        assert_equals(position.left, expected[kind].left, "the line is pushed clear of the float");
+      }, `A line after a ${kind === "withBorder" ? "bordered" : "self collapsing"} block containing a float `
            + `avoids it at the block's position (${shape})`);
     }
-}
+  }
 
-for (const kind of ["selfCollapsing", "withBorder"]) {
+  for (const kind of ["selfCollapsing", "withBorder"]) {
     test(() => {
-        assert_object_equals(positionIn(`nested-${kind}`), positionIn(`sibling-${kind}`));
+      assert_object_equals(positionIn(`nested-${kind}`), positionIn(`sibling-${kind}`));
     }, `The float lands in the same place whether the ${kind === "withBorder" ? "bordered" : "self collapsing"} `
-       + `block is nested in an inline box or a sibling of inline content`);
-}
+         + `block is nested in an inline box or a sibling of inline content`);
+  }
+  done();
+});
 </script>

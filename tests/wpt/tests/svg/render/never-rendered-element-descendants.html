@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG Test: descendants of never-rendered elements are not rendered</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/render.html#Rendered-vs-NonRendered">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/render.html#TermNeverRenderedElement">
+<meta name="assert" content="A shape inside a never-rendered element is not rendered, whatever the display value of that element: it is not hit by elementFromPoint, it cannot receive focus (nor can a link without tabindex), it does not contribute to the bounding box of an ancestor, and text inside desc, title or metadata is not counted by getNumberOfChars.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  svg.probe { position: fixed; left: 0; top: 0; }
+  .forced { display: inline !important; }
+</style>
+<body>
+<script>
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+function el(name, attributes = {}, children = []) {
+  const element = document.createElementNS(SVG_NS, name);
+  for (const [key, value] of Object.entries(attributes))
+    element.setAttribute(key, value);
+  element.append(...children);
+  return element;
+}
+
+// <svg><g id="wrap"><rect width="5" height="5"/><container><rect id="target"/></container></g></svg>
+function setup(t, containerName, containerAttributes) {
+  const target = el("rect", { x: 10, y: 10, width: 40, height: 40, tabindex: 0 });
+  const container = el(containerName, containerAttributes, [target]);
+  const wrap = el("g", {}, [el("rect", { width: 5, height: 5 }), container]);
+  const svg = el("svg", { class: "probe", width: 60, height: 60 }, [wrap]);
+  document.body.append(svg);
+  t.add_cleanup(() => svg.remove());
+  return { target, wrap };
+}
+
+function assert_bbox(actual, expected, description) {
+  assert_array_equals([actual.x, actual.y, actual.width, actual.height], expected, description);
+}
+
+const variants = [
+  { suffix: "", attributes: {} },
+  { suffix: " with display: inline !important", attributes: { class: "forced" } },
+];
+const containers = ["defs", "title", "desc", "metadata", "symbol", "marker", "pattern", "clipPath", "mask"];
+
+test(t => {
+  const { target } = setup(t, "g", {});
+  assert_equals(document.elementFromPoint(30, 30), target);
+}, "control: a shape inside a g is hit by elementFromPoint");
+
+test(t => {
+  const { target } = setup(t, "g", {});
+  target.focus();
+  assert_equals(document.activeElement, target);
+}, "control: a shape inside a g can receive focus");
+
+test(t => {
+  const { wrap } = setup(t, "g", {});
+  assert_bbox(wrap.getBBox(), [0, 0, 50, 50]);
+}, "control: a shape inside a g contributes to the bounding box of an ancestor");
+
+for (const name of containers) {
+  for (const variant of variants) {
+    test(t => {
+      const { target } = setup(t, name, variant.attributes);
+      assert_not_equals(document.elementFromPoint(30, 30), target);
+    }, `${name}${variant.suffix}: a shape inside is not hit by elementFromPoint`);
+
+    test(t => {
+      const { target } = setup(t, name, variant.attributes);
+      const before = document.activeElement;
+      target.focus();
+      assert_equals(document.activeElement, before);
+    }, `${name}${variant.suffix}: a shape inside cannot receive focus`);
+
+    test(t => {
+      const { wrap } = setup(t, name, variant.attributes);
+      assert_bbox(wrap.getBBox(), [0, 0, 5, 5]);
+    }, `${name}${variant.suffix}: a shape inside does not contribute to the bounding box of an ancestor`);
+  }
+}
+
+// <svg><container><a href="#target"><rect/></a></container></svg>
+// A link gets focus from its href, not from tabindex.
+function setupLink(t, containerName) {
+  const link = el("a", { href: "#target" }, [el("rect", { x: 10, y: 10, width: 40, height: 40 })]);
+  const svg = el("svg", { class: "probe", width: 60, height: 60 }, [el(containerName, {}, [link])]);
+  document.body.append(svg);
+  t.add_cleanup(() => svg.remove());
+  return link;
+}
+
+test(t => {
+  const link = setupLink(t, "g");
+  link.focus();
+  assert_equals(document.activeElement, link);
+}, "control: a link without tabindex inside a g can receive focus");
+
+for (const name of containers) {
+  test(t => {
+    const link = setupLink(t, name);
+    const before = document.activeElement;
+    link.focus();
+    assert_equals(document.activeElement, before);
+  }, `${name}: a link without tabindex inside cannot receive focus`);
+}
+
+// <text>ab<X>XYZ</X>cd</text>
+function setupText(t, innerName, innerAttributes) {
+  const text = el("text", { x: 5, y: 25 });
+  text.append("ab", el(innerName, innerAttributes, ["XYZ"]), "cd");
+  const svg = el("svg", { class: "probe", width: 160, height: 36 }, [text]);
+  document.body.append(svg);
+  t.add_cleanup(() => svg.remove());
+  return text;
+}
+
+test(t => {
+  assert_equals(setupText(t, "tspan", {}).getNumberOfChars(), 7);
+}, "control: text inside a tspan is counted by getNumberOfChars");
+
+for (const name of ["desc", "title", "metadata"]) {
+  for (const variant of variants) {
+    test(t => {
+      assert_equals(setupText(t, name, variant.attributes).getNumberOfChars(), 4);
+    }, `${name}${variant.suffix}: text inside is not counted by getNumberOfChars`);
+  }
+}
+</script>
+</body>

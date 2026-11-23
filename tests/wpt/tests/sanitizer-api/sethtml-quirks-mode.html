@@ -1,0 +1,34 @@
+<!-- No doctype: this document is in quirks mode. -->
+<meta charset="utf-8">
+<title>setHTML and setHTMLUnsafe parse in the context's document mode</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// In quirks mode a <table> start tag does not close an open <p>.
+const input = "<p><table></table>";
+const quirksTree = "<p><table></table></p>";
+
+test(() => {
+  assert_equals(document.compatMode, "BackCompat");
+}, "document is in quirks mode");
+
+for (const [name, run] of [
+  ["setHTML", el => el.setHTML(input)],
+  ["setHTML with a config", el => el.setHTML(input, { sanitizer: { elements: ["p", "table"] } })],
+  ["setHTMLUnsafe", el => el.setHTMLUnsafe(input)],
+  ["setHTMLUnsafe with a config", el => el.setHTMLUnsafe(input, { sanitizer: {} })],
+]) {
+  test(() => {
+    const el = document.createElement("div");
+    run(el);
+    assert_equals(el.innerHTML, quirksTree);
+  }, `${name} parses in quirks mode`);
+}
+
+test(() => {
+  const el = document.createElement("div");
+  el.innerHTML = input;
+  assert_equals(el.innerHTML, quirksTree);
+}, "innerHTML parses in quirks mode (control)");
+</script>

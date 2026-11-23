@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS test: balancing text with forced breaks and different paragraph directions</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-wrap-style">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#valdef-unicode-bidi-plaintext">
+<link rel="match" href="reference/text-wrap-balance-bidi-001-ref.html">
+<meta name="assert" content="Balancing the lines of a block does not change the direction of each paragraph that unicode-bidi: plaintext gives it.">
+<style>
+div {
+  unicode-bidi: plaintext;
+  white-space: pre-line;
+  overflow-wrap: break-word;
+  text-wrap: balance;
+}
+</style>
+<div><span>ab
+&#x5D0;</span></div>
+<div><span>&#x5D0;&#x5D1;
+a</span></div>

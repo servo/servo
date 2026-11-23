@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <title>CSS @private: mixins across style sheets, mixins and groups</title>
   <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14243">
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14790">
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <style>
@@ -27,6 +28,18 @@
         --size: 22px;
       }
       height: var(--size, 2px);
+    }
+
+    @mixin --nested-declaration() {
+      @private {
+        --outer-size: 13px;
+      }
+      & {
+        @private {
+          --inner-size: var(--outer-size, 27px);
+        }
+        width: var(--inner-size, 99px);
+      }
     }
 
     @mixin --conditional() {
@@ -67,6 +80,10 @@
       @apply --outer-size;
     }
 
+    #nested-declaration {
+      @apply --nested-declaration;
+    }
+
     #conditional {
       @apply --conditional;
     }
@@ -85,6 +102,7 @@
 <body>
   <div id="cross"></div>
   <div id="composed"></div>
+  <div id="nested-declaration"></div>
   <div id="conditional"></div>
   <div id="fallback"></div>
   <div id="not-fallback"></div>
@@ -102,6 +120,11 @@
       assert_equals(style('composed').width, '11px');
       assert_equals(style('composed').height, '22px');
     }, 'Nested mixins with the same private name do not share it');
+
+    test(() => {
+      assert_equals(style('nested-declaration').width, '13px');
+    }, 'A nested private declaration in a mixin can reference an enclosing ' +
+       'private name');
 
     test(() => {
       assert_equals(style('conditional').width, '4px');

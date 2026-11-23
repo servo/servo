@@ -15,7 +15,7 @@
 // Content-Length: 18
 // Signature-Input: signature=("unencoded-digest";sf "@query";req); \
 //                  keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";       \
-//                  tag="sri"
+//                  tag="ed25519-integrity"
 // Signature: signature=[SEE NOTE BELOW]
 //
 // {"hello": "world"}

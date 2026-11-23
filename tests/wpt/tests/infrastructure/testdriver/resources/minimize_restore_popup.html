@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+const channel = new BroadcastChannel("testchannel");
+
+test_driver.set_test_context(window.opener);
+
+onload = async () => {
+    window.opener.events.push(document.visibilityState);
+    let rect = await test_driver.minimize_window();
+    window.opener.events.push(document.visibilityState);
+    await test_driver.set_window_rect(rect);
+    window.opener.events.push(document.visibilityState);
+    channel.postMessage("done");
+};
+</script>

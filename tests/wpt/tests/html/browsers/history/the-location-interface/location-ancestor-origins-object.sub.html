@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>location.ancestorOrigins for documents in and below &lt;object&gt;</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2081573">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dom.html#ancestor-origins">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+  <script>
+    const helperPath = "/html/browsers/history/the-location-interface/resources/location-ancestor-origins-object-helper.html";
+    const B = `http://{{hosts[alt][]}}:{{ports[http][0]}}`;
+    const C = `http://{{hosts[][www]}}:{{ports[http][0]}}`;
+    const helper = (origin, query = "") => `${origin}${helperPath}${query}`;
+
+    function load(tag, src, t) {
+      const el = document.createElement(tag);
+      el[tag === "object" ? "data" : "src"] = src;
+      const origins = new Promise(resolve =>
+        window.addEventListener("message", e => resolve(e.data), { once: true }));
+      document.body.append(el);
+      t.add_cleanup(() => el.remove());
+      return origins;
+    }
+
+    promise_test(async t => {
+      assert_implements(location.ancestorOrigins);
+      const src = helper(B, `?object=${encodeURIComponent(helper(C))}`);
+      assert_array_equals(await load("iframe", src, t), [B, window.origin]);
+    }, "<object> inside a cross-origin iframe includes the iframe's ancestor origins");
+
+    promise_test(async t => {
+      assert_implements(location.ancestorOrigins);
+      const src = helper(B, `?iframe=${encodeURIComponent(helper(C))}`);
+      assert_array_equals(await load("object", src, t), [B, window.origin]);
+    }, "iframe inside a cross-origin <object> includes the <object>'s ancestor origins");
+  </script>
+</body>

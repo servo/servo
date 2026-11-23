@@ -111,6 +111,54 @@
     }, "Multiple labels targeting a custom element using shadowrootreferencetarget inside multiple layers of shadow roots works for .labels property");
 </script>
 
+<!-- Regression test for https://bugzilla.mozilla.org/2095145. -->
+<label id="label3bis-A" for="x-level3bis0">A</label>
+<x-level3bis0 id="x-level3bis0">
+  <!-- shadowrootreferencetarget does not refer to x-level3bis1. -->
+  <template shadowrootmode="open" shadowrootreferencetarget="invalid">
+    <label id="label3bis-B" for="x-level3bis1">B</label>
+    <x-level3bis1 id="x-level3bis1">
+      <template shadowrootmode="open" shadowrootreferencetarget="x-level3bis2">
+        <label id="label3bis-C" for="x-level3bis2">C</label>
+        <!-- x-level3bis2 reference target is not the last child node. -->
+        <x-level3bis2 id="x-level3bis2">
+          <template shadowrootmode="open" shadowrootreferencetarget="input3bis">
+            <label id="label3bis-D" for="input3bis">D</label>
+            <!-- input3bis reference target is the last child node. -->
+            <input id="input3bis"></template></x-level3bis2>
+        <span>dummy element</span>
+      </template>
+    </x-level3bis1>
+    <label id="label3bis-E" for="x-level3bis1">E</label>
+  </template>
+</x-level3bis0>
+<label id="label3bis-F" for="x-level3bis0">F</label>
+<script>
+  promise_test(async t => {
+      const x_level0 = document.getElementById('x-level3bis0');
+      const x_level1 = x_level0.shadowRoot.getElementById('x-level3bis1');
+      const x_level2 = x_level1.shadowRoot.getElementById('x-level3bis2');
+      const input = x_level2.shadowRoot.getElementById('input3bis');
+      const computed_label = await test_driver.get_computed_label(input);
+      assert_equals(computed_label, "B C D E");
+  }, "Multiple labels targeting a custom element using shadowrootreferencetarget inside multiple layers of shadow roots works for computed name (more complex case)");
+
+  promise_test(async t => {
+      const x_level0 = document.getElementById('x-level3bis0');
+      const x_level1 = x_level0.shadowRoot.getElementById('x-level3bis1');
+      const x_level2 = x_level1.shadowRoot.getElementById('x-level3bis2');
+      const input = x_level2.shadowRoot.getElementById('input3bis');
+      const A = document.getElementById('label3bis-A');
+      const B = x_level0.shadowRoot.getElementById('label3bis-B');
+      const C = x_level1.shadowRoot.getElementById('label3bis-C');
+      const D = x_level2.shadowRoot.getElementById('label3bis-D');
+      const E = x_level0.shadowRoot.getElementById('label3bis-E');
+      const F = document.getElementById('label3bis-F');
+
+      assert_array_equals(Array.from(input['labels']), [B, C, D, E]);
+  }, "Multiple labels targeting a custom element using shadowrootreferencetarget inside multiple layers of shadow roots works for .labels property (more complex case)");
+</script>
+
 <label id="label-input4">Input 4</label>
 <x-input4 id="x-input4">
   <template shadowrootmode="open" shadowrootreferencetarget="input4">

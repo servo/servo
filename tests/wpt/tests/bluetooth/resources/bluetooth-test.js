@@ -123,6 +123,15 @@ return promise_test(async (t) => {
   try {
     await test_function(t);
   } finally {
+    // Revoke any persistent device permissions granted during the test so they
+    // do not leak across tests that reuse the same browser profile.
+    if (navigator.bluetooth.test.fake_central_) {
+      try {
+        const devices = await navigator.bluetooth.getDevices();
+        await Promise.allSettled(devices.map(device => device.forget()));
+      } catch {
+      }
+    }
     await test_driver.bidi.bluetooth.disable_simulation();
   }
 }, name, properties);

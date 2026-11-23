@@ -26,11 +26,10 @@
   <div class="item">D</div>
   <div class="item">E</div>
   <div class="item">F</div>
-  <!-- Two segments per column gap. With overlap-join and no row-rule, each
-       segment extends to the row gap center (y=120) and overlaps by 3px (half
-       the rule width) on each side, matching the painter's segment endpoints. -->
-  <div class="col-rule" style="left: 117px; top: 10px; height: 112px;"></div>
-  <div class="col-rule" style="left: 117px; top: 119px; height: 111px;"></div>
-  <div class="col-rule" style="left: 237px; top: 10px; height: 112px;"></div>
-  <div class="col-rule" style="left: 237px; top: 119px; height: 111px;"></div>
+  <!-- The two column segments touch the same junction. No row rule paints,
+       so overlap-join extends each by half the gutter width to y=120. -->
+  <div class="col-rule" style="left: 117px; top: 10px; height: 110px;"></div>
+  <div class="col-rule" style="left: 117px; top: 120px; height: 110px;"></div>
+  <div class="col-rule" style="left: 237px; top: 10px; height: 110px;"></div>
+  <div class="col-rule" style="left: 237px; top: 120px; height: 110px;"></div>
 </div>

@@ -2,6 +2,7 @@
 <meta charset="utf-8">
 <title>Non-rendered SVG containers cannot receive focus</title>
 <link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/interact.html#Focus">
+<link rel="help" href="https://drafts.csswg.org/filter-effects-1/#FilterElement">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
@@ -14,14 +15,57 @@
   <pattern id="pattern" tabindex="0"></pattern>
   <linearGradient id="linearGradient" tabindex="0"></linearGradient>
   <radialGradient id="radialGradient" tabindex="0"></radialGradient>
+  <filter id="filter" tabindex="0">
+    <feFlood id="feFlood" tabindex="0"/>
+  </filter>
 </svg>
 
 <script>
-  for (const id of ["defs", "symbol", "clipPath", "mask", "marker", "pattern", "linearGradient", "radialGradient"]) {
+  for (const id of ["defs", "symbol", "clipPath", "mask", "marker", "pattern", "linearGradient", "radialGradient", "filter", "feFlood"]) {
     test(() => {
       const element = document.getElementById(id);
       element.focus();
       assert_not_equals(document.activeElement, element, `<${element.localName} tabindex="0"> should not be focusable`);
     }, `Non-rendered <${id}> is not focusable`);
   }
+
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const svg = document.querySelector("svg");
+
+  // <svg><g style="..."><rect tabindex="0"/></g></svg>, laid out before focus().
+  function focusRectInGroupAfterLayout(t, groupStyle) {
+    const rect = document.createElementNS(SVG_NS, "rect");
+    rect.setAttribute("width", "10");
+    rect.setAttribute("height", "10");
+    rect.setAttribute("tabindex", "0");
+    const g = document.createElementNS(SVG_NS, "g");
+    g.setAttribute("style", groupStyle);
+    g.append(rect);
+    svg.append(g);
+    t.add_cleanup(() => g.remove());
+    rect.getBoundingClientRect();
+    rect.focus();
+    return rect;
+  }
+
+  test(t => {
+    const rect = focusRectInGroupAfterLayout(t, "");
+    assert_equals(document.activeElement, rect);
+  }, "Control: a <rect> inside a <g> is focusable after layout");
+
+  test(t => {
+    const rect = focusRectInGroupAfterLayout(t, "display: none");
+    assert_not_equals(document.activeElement, rect);
+  }, "A <rect> inside a <g> with display: none is not focusable after layout");
+
+  test(t => {
+    const feFlood = document.createElementNS(SVG_NS, "feFlood");
+    feFlood.setAttribute("tabindex", "0");
+    const filter = document.createElementNS(SVG_NS, "filter");
+    filter.append(feFlood);
+    svg.append(filter);
+    t.add_cleanup(() => filter.remove());
+    feFlood.focus();
+    assert_not_equals(document.activeElement, feFlood);
+  }, "An <feFlood> inside a <filter> inserted by script is not focusable before layout");
 </script>

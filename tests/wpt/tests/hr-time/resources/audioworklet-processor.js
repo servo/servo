@@ -120,6 +120,29 @@ class HrTimeProcessor extends AudioWorkletProcessor {
           this.port.postMessage({id, now});
           break;
         }
+        case 'resolution': {
+          const hasNow = typeof globalThis.performance?.now === 'function';
+          let minPositiveDeltaMs = Infinity;
+          if (hasNow) {
+            let prev = performance.now();
+            for (let i = 0; i < 32; i++) {
+              let curr = prev;
+              // Cap busy-spin so a frozen clock cannot hang the worklet thread.
+              let spins = 0;
+              while (curr === prev && spins < 1000000) {
+                curr = performance.now();
+                spins++;
+              }
+              const delta = curr - prev;
+              if (delta > 0 && delta < minPositiveDeltaMs) {
+                minPositiveDeltaMs = delta;
+              }
+              prev = curr;
+            }
+          }
+          this.port.postMessage({id, hasNow, minPositiveDeltaMs});
+          break;
+        }
         default: {
           this.port.postMessage({id, error: `Unknown command: ${command}`});
           break;

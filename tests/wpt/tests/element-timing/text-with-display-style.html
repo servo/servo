@@ -16,9 +16,6 @@ h3 {
   display: block;
 }
 </style>
-<h1 id='title1' elementtiming='h1'>I am h1</h1>
-<h2 id='title2' elementtiming='h2'>I am h2</h2>
-<h3 id='title3' elementtiming='h3'>I am h3</h3>
 <script>
   async_test(function (t) {
     assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
@@ -51,4 +48,7 @@ h3 {
     observer.observe({type: 'element', buffered: true});
   }, 'Text with display style is observable.');
 </script>
+<h1 id='title1' elementtiming='h1'>I am h1</h1>
+<h2 id='title2' elementtiming='h2'>I am h2</h2>
+<h3 id='title3' elementtiming='h3'>I am h3</h3>
 </body>

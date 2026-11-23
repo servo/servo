@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Document Policy in dedicated module workers</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async function runWorker(t, url) {
+  const worker = new Worker(url, {type: 'module'});
+  t.add_cleanup(() => worker.terminate());
+  return await new Promise((resolve, reject) => {
+    worker.onmessage = event => resolve(event.data);
+    worker.onerror = event => reject(new Error(event.message));
+  });
+}
+
+promise_test(async t => {
+  const url = '/js-self-profiling/resources/dedicated-worker-profiler-test.js';
+  const results = await Promise.all(
+      Array.from({length: 8}, () => runWorker(t, url)));
+  for (const result of results) {
+    assert_true(result.success, 'each worker response enables profiling');
+  }
+}, 'Concurrent module workers parse their response policies');
+
+promise_test(async t => {
+  const result = await runWorker(
+      t, '/js-self-profiling/without-document-policy/dedicated-worker-profiler-test.js');
+  assert_false(result.success, 'the worker must not inherit the creator policy');
+  assert_equals(result.error, 'NotAllowedError');
+}, 'A network module worker without a policy cannot profile');
+
+const moduleURL = '/js-self-profiling/resources/module-worker-profiler.js';
+
+promise_test(async t => {
+  const url = moduleURL +
+      '?sample&pipe=header(Document-Policy-Report-Only,js-profiling=?0)';
+  const result = await runWorker(t, url);
+  assert_true(result.success, result.message);
+  assert_true(result.stopped);
+  assert_greater_than(result.trace.resources.length, 0);
+  assert_greater_than(result.trace.frames.length, 0);
+  assert_greater_than(result.trace.stacks.length, 0);
+  assert_greater_than(result.trace.samples.length, 0);
+}, 'Report-only policy does not block collecting and stopping a module-worker profiling trace');
+
+promise_test(async t => {
+  const url = moduleURL +
+      '?pipe=header(Document-Policy,js-profiling=?0)' +
+      '|header(Document-Policy-Report-Only,js-profiling)';
+  const result = await runWorker(t, url);
+  assert_false(result.success, result.message);
+  assert_equals(result.error, 'NotAllowedError');
+}, 'Report-only allowance does not override an enforced policy denying module-worker profiling');
+
+for (const allowed of [true, false]) {
+  for (const importType of ['static', 'dynamic']) {
+    promise_test(async t => {
+      const url = new URL(importType === 'static' ?
+          '/js-self-profiling/resources/module-worker-profiler-static-import.sub.js' :
+          moduleURL, location.href);
+      url.searchParams.set(
+          'pipe', `header(Document-Policy,js-profiling=?${allowed ? 1 : 0})`);
+      const importedURL = new URL(moduleURL, location.href);
+      importedURL.searchParams.set(
+          'pipe', `header(Document-Policy,js-profiling=?${allowed ? 0 : 1})`);
+      url.searchParams.set('import', importedURL);
+      const result = await runWorker(t, url);
+      assert_equals(result.success, allowed, result.message);
+      if (!allowed) {
+        assert_equals(result.error, 'NotAllowedError');
+      }
+    }, `A ${importType} import's policy cannot ${
+        allowed ? 'disable' : 'enable'} profiling`);
+  }
+
+  promise_test(async t => {
+    const url = new URL(moduleURL, location.href);
+    url.searchParams.set(
+        'pipe', `header(Document-Policy,js-profiling=?${allowed ? 1 : 0})`);
+    url.searchParams.set('nested', '');
+    const result = await runWorker(t, url);
+    assert_equals(result.success, allowed, result.message);
+    if (!allowed) {
+      assert_equals(result.error, 'NotAllowedError');
+    }
+  }, `A nested blob module worker inherits its network creator's ${
+      allowed ? 'allowing' : 'denying'} Document Policy`);
+}
+
+promise_test(async t => {
+  const result = await runWorker(t, moduleURL + '?gc');
+  assert_true(result.success, result.message);
+  assert_true(result.stopped);
+  assert_true(Array.isArray(result.trace.samples));
+}, 'A module worker can profile and stop after requesting GC of a leaked profiler');
+
+const workerScript = `
+  try {
+    const profiler = new Profiler({sampleInterval: 10, maxBufferSize: 100});
+    await profiler.stop();
+    self.postMessage({success: true});
+  } catch (error) {
+    self.postMessage({success: false, error: error.name});
+  }
+`;
+
+promise_test(async t => {
+  const url = URL.createObjectURL(new Blob([workerScript],
+      {type: 'text/javascript'}));
+  t.add_cleanup(() => URL.revokeObjectURL(url));
+  const result = await runWorker(t, url);
+  assert_true(result.success, 'the worker inherits the creator policy');
+}, 'A blob module worker inherits its creator Document Policy');
+
+promise_test(async t => {
+  const result = await runWorker(
+      t, 'data:text/javascript,' + encodeURIComponent(workerScript));
+  assert_true(result.success, 'the worker inherits the creator policy');
+}, 'A data module worker inherits its creator Document Policy');
+</script>

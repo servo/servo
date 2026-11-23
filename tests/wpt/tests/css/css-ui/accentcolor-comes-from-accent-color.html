@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+
+<title>AccentColor/AccentColorText system color comes from accent-color</title>
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#widget-accent">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  .color-set-to-accentcolor {
+    /* Some properties that accept <color> */
+    background-color: AccentColor;
+    border-block-end-color: AccentColor;
+    caret-color: AccentColor;
+    fill: AccentColor;
+    text-decoration-color: AccentColor;
+  }
+
+  .color-set-to-accentcolortext {
+    /* Some properties that accept <color> */
+    background-color: AccentColorText;
+    border-block-end-color: AccentColorText;
+    caret-color: AccentColorText;
+    fill: AccentColorText;
+    text-decoration-color: AccentColorText;
+  }
+
+  #t1 { accent-color: #261200; }
+
+  #t2_black { accent-color: #000000; }
+  #t2_white { accent-color: #ffffff; }
+
+  #t3_auto { accent-color: auto; }
+  #t3_unset { }
+
+  #t4_auto { accent-color: auto; }
+  #t4_unset { }
+</style>
+
+<div class="color-set-to-accentcolor" id="t1"></div>
+
+<div class="color-set-to-accentcolortext" id="t2_black"></div>
+<div class="color-set-to-accentcolortext" id="t2_white"></div>
+
+<div class="color-set-to-accentcolor" id="t3_auto"></div>
+<div class="color-set-to-accentcolor" id="t3_unset"></div>
+
+<div class="color-set-to-accentcolortext" id="t4_auto"></div>
+<div class="color-set-to-accentcolortext" id="t4_unset"></div>
+
+<script>
+  function assertColor(computedStyle, expectedColor) {
+    assert_equals(computedStyle.backgroundColor, expectedColor, "background-color");
+    assert_equals(computedStyle.borderBlockEndColor, expectedColor, "border-block-end-color");
+    assert_equals(computedStyle.caretColor, expectedColor, "caret-color");
+    assert_equals(computedStyle.fill, expectedColor, "fill");
+    assert_equals(computedStyle.textDecorationColor, expectedColor, "text-decoration-color");
+  }
+
+  test(() => {
+    assertColor(getComputedStyle(t1), "rgb(38, 18, 0)");
+  }, "When accent-color is set, AccentColor keyword color comes from accent-color");
+
+  test(() => {
+    const blackStyle = getComputedStyle(t2_black);
+    const accentColorTextWhenBlack = blackStyle.fill;
+    assertColor(blackStyle, accentColorTextWhenBlack);
+
+    const whiteStyle = getComputedStyle(t2_white);
+    const accentColorTextWhenWhite = whiteStyle.fill;
+    assertColor(whiteStyle, accentColorTextWhenWhite);
+
+    // Make sure AccentColorText contrasts the background.
+    assert_not_equals(accentColorTextWhenBlack, accentColorTextWhenWhite);
+  }, "When accent-color is set, AccentColorText keyword color comes from accent-color");
+
+  test(() => {
+    const autoStyle = getComputedStyle(t3_auto);
+    const unsetStyle = getComputedStyle(t3_unset);
+
+    const expectedColor = autoStyle.fill;
+    assertColor(autoStyle, expectedColor);
+    assertColor(unsetStyle, expectedColor);
+  }, "When accent-color is auto or not set, AccentColor keyword comes from the system color and should match.");
+
+  test(() => {
+    const autoStyle = getComputedStyle(t4_auto);
+    const unsetStyle = getComputedStyle(t4_unset);
+
+    const expectedColor = autoStyle.fill;
+    assertColor(autoStyle, expectedColor);
+    assertColor(unsetStyle, expectedColor);
+  }, "When accent-color is auto or not set, AccentColorText keyword comes from the system color and should match.");
+</script>

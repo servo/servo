@@ -29,7 +29,8 @@
     subgrid {
       display: grid;
       grid-row: auto/span 2;
-      grid: subgrid / auto;
+      /* The second row packs 4b (2ch) and 4c (3ch) with a 4px gap. */
+      grid: subgrid / 2ch 3ch;
       gap: 4px;
       background: yellow;
     }
@@ -41,9 +42,9 @@
   <item>2</item>
   <item>3</item>
   <subgrid>
-    <item>4a</item>
-    <item>4b</item>
-    <item>4c</item>
+    <item style="grid-area: 1 / 1 / 2 / 3">4a</item>
+    <item style="grid-area: 2 / 1">4b</item>
+    <item style="grid-area: 2 / 2">4c</item>
   </subgrid>
   <item>5</item>
 </grid-lanes>

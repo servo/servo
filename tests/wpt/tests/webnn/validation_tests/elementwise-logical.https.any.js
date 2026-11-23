@@ -54,3 +54,29 @@ if (operatorName === 'logicalNot' ||
   validateTwoInputsFromMultipleBuilders(operatorName);
   validateTwoInputsBroadcastable(operatorName, label);
 }
+
+if (operatorName === 'logicalNot' || operatorName === 'isNaN' ||
+    operatorName === 'isInfinite') {
+  // Unary operators use operand key 'a'.
+  validateOperandRank(operatorName, 'a', (builder, a) => {
+    return builder[operatorName](a);
+  });
+} else {
+  // Binary operators: test that ranks below min / above max on either input
+  // throw TypeError.
+  validateOperandRankOutOfRange(operatorName, 'a', (builder, a) => {
+    const b =
+        builder.input('b', {dataType: a.dataType, shape: [kExampleDimSize]});
+    return builder[operatorName](a, b);
+  });
+  validateOperandRankOutOfRange(operatorName, 'b', (builder, b) => {
+    const a =
+        builder.input('a', {dataType: b.dataType, shape: [kExampleDimSize]});
+    return builder[operatorName](a, b);
+  });
+  // Accept every (a rank, b rank) pair where each rank is within its
+  // operand's rankRange from opSupportLimits.
+  validateTwoOperandsRankInRange(operatorName, 'a', 'b', (builder, a, b) => {
+    return builder[operatorName](a, b);
+  });
+}

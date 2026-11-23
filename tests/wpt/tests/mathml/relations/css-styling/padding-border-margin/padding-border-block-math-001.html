@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Padding and border on a block math element</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#the-top-level-math-element">
+<link rel="help" href="https://w3c.github.io/mathml-core/#layout-algorithms">
+<meta name="assert" content="Verify that horizontal padding and border on a math element with display: block math are taken into account, including when the content is centered and when it overflows.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/feature-detection.js"></script>
+<style>
+  .container {
+    position: relative;
+  }
+  math {
+    margin: 0;
+  }
+  mspace {
+    background: blue;
+  }
+</style>
+<script>
+  const epsilon = 1;
+
+  function measure(id) {
+      const math = document.getElementById(id);
+      const mathBox = math.getBoundingClientRect();
+      const childBox = math.firstElementChild.getBoundingClientRect();
+      return {
+          left: childBox.left - mathBox.left,
+          right: mathBox.right - childBox.right,
+          width: mathBox.width,
+      };
+  }
+
+  setup({ explicit_done: true });
+  window.addEventListener("load", runTests);
+
+  function runTests() {
+      // Content box is 400 - 20 - 30 = 350px wide, the 50px mspace is centered in it.
+      test(function() {
+          assert_true(MathMLFeatureDetection.has_mspace());
+          const s = measure("centered-padding");
+          assert_approx_equals(s.width, 400, epsilon, "math width");
+          assert_approx_equals(s.left, 20 + 150, epsilon, "space on the left");
+          assert_approx_equals(s.right, 30 + 150, epsilon, "space on the right");
+      }, "Asymmetric padding on centered block math");
+
+      test(function() {
+          assert_true(MathMLFeatureDetection.has_mspace());
+          const s = measure("centered-border");
+          assert_approx_equals(s.width, 400, epsilon, "math width");
+          assert_approx_equals(s.left, 20 + 150, epsilon, "space on the left");
+          assert_approx_equals(s.right, 30 + 150, epsilon, "space on the right");
+      }, "Asymmetric border on centered block math");
+
+      test(function() {
+          assert_true(MathMLFeatureDetection.has_mspace());
+          const s = measure("centered-padding-rtl");
+          assert_approx_equals(s.width, 400, epsilon, "math width");
+          assert_approx_equals(s.left, 20 + 150, epsilon, "space on the left");
+          assert_approx_equals(s.right, 30 + 150, epsilon, "space on the right");
+      }, "Asymmetric padding on centered block math (rtl)");
+
+      // Shrink-to-fit: no extra space to distribute.
+      test(function() {
+          assert_true(MathMLFeatureDetection.has_mspace());
+          const s = measure("shrink-to-fit-padding");
+          assert_approx_equals(s.width, 20 + 50 + 30, epsilon, "math width");
+          assert_approx_equals(s.left, 20, epsilon, "space on the left");
+          assert_approx_equals(s.right, 30, epsilon, "space on the right");
+      }, "Asymmetric padding on shrink-to-fit block math");
+
+      test(function() {
+          assert_true(MathMLFeatureDetection.has_mspace());
+          const s = measure("shrink-to-fit-border");
+          assert_approx_equals(s.width, 20 + 50 + 30, epsilon, "math width");
+          assert_approx_equals(s.left, 20, epsilon, "space on the left");
+          assert_approx_equals(s.right, 30, epsilon, "space on the right");
+      }, "Asymmetric border on shrink-to-fit block math");
+
+      // Overflowing content uses safe centering: it starts at the content
+      // box start edge, after the padding and border.
+      test(function() {
+          assert_true(MathMLFeatureDetection.has_mspace());
+          const s = measure("overflow-padding");
+          assert_approx_equals(s.left, 20, epsilon, "space on the left");
+      }, "Padding on block math with overflowing content");
+
+      test(function() {
+          assert_true(MathMLFeatureDetection.has_mspace());
+          const s = measure("overflow-border");
+          assert_approx_equals(s.left, 20, epsilon, "space on the left");
+      }, "Border on block math with overflowing content");
+
+      test(function() {
+          assert_true(MathMLFeatureDetection.has_mspace());
+          const s = measure("overflow-padding-rtl");
+          assert_approx_equals(s.right, 20, epsilon, "space on the right");
+      }, "Padding on block math with overflowing content (rtl)");
+
+      done();
+  }
+</script>
+</head>
+<body>
+  <div id="log"></div>
+
+  <div class="container" style="width: 400px;">
+    <math id="centered-padding" display="block"
+          style="padding-left: 20px; padding-right: 30px;">
+      <mspace width="50px" height="50px"/>
+    </math>
+  </div>
+
+  <div class="container" style="width: 400px;">
+    <math id="centered-border" display="block"
+          style="border-left: 20px solid transparent; border-right: 30px solid transparent;">
+      <mspace width="50px" height="50px"/>
+    </math>
+  </div>
+
+  <div class="container" style="width: 400px;">
+    <math id="centered-padding-rtl" display="block" dir="rtl"
+          style="padding-left: 20px; padding-right: 30px;">
+      <mspace width="50px" height="50px"/>
+    </math>
+  </div>
+
+  <div class="container" style="display: inline-block;">
+    <math id="shrink-to-fit-padding" display="block"
+          style="padding-left: 20px; padding-right: 30px;">
+      <mspace width="50px" height="50px"/>
+    </math>
+  </div>
+
+  <div class="container" style="display: inline-block;">
+    <math id="shrink-to-fit-border" display="block"
+          style="border-left: 20px solid transparent; border-right: 30px solid transparent;">
+      <mspace width="50px" height="50px"/>
+    </math>
+  </div>
+
+  <div class="container" style="width: 100px;">
+    <math id="overflow-padding" display="block"
+          style="padding-left: 20px; padding-right: 30px;">
+      <mspace width="200px" height="50px"/>
+    </math>
+  </div>
+
+  <div class="container" style="width: 100px;">
+    <math id="overflow-border" display="block"
+          style="border-left: 20px solid transparent; border-right: 30px solid transparent;">
+      <mspace width="200px" height="50px"/>
+    </math>
+  </div>
+
+  <div class="container" style="width: 100px;">
+    <math id="overflow-padding-rtl" display="block" dir="rtl"
+          style="padding-left: 30px; padding-right: 20px;">
+      <mspace width="200px" height="50px"/>
+    </math>
+  </div>
+</body>
+</html>

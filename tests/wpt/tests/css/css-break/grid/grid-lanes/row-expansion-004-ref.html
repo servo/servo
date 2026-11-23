@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Reference for expansion of a deferred row across two columns</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
+<style>
+  .columns { position: relative; height: 100px; margin-bottom: 10px; }
+  :where(.columns > div) { position: absolute; top: 0; width: 40px; height: 20px; }
+  .first { left: 0; height: 40px; background: silver; }
+  .content { left: 80px; background: green; }
+  .parallel { left: 120px; height: 100px; background: purple; }
+  .continued { left: 160px; background: blue; }
+  .parallel-continued { left: 200px; background: purple; }
+  .last { left: 160px; top: 20px; background: orange; }
+</style>
+<div class="columns">
+  <div class="first"></div>
+  <div class="content"></div>
+  <div class="parallel"></div>
+  <div class="continued"></div>
+  <div class="parallel-continued"></div>
+  <div class="last"></div>
+</div>
+<div class="columns">
+  <div class="first"></div>
+  <div class="content"></div>
+  <div class="parallel"></div>
+  <div class="continued"></div>
+  <div class="parallel-continued"></div>
+  <div class="last"></div>
+</div>

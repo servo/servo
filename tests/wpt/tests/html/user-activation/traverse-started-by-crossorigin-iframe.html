@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<title>User activation propagation across a traversal a cross-origin iframe starts</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#apply-the-history-step">
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/helper.sub.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+  <p>Non-zero-sized body to allow clicks.</p>
+</body>
+
+<script>
+  'use strict';
+
+  let uuid1 = token();
+  let uuid2 = token();
+  let uuid3 = token();
+
+  let opened = executorPath + uuid1;
+  let navigated_to = originSameOrigin + executorPath + uuid2;
+  let framed = `${originCrossSite}${executorPath}${uuid3}`;
+
+  promise_test(async test => {
+    // Let a cross-origin iframe start the traversal back to an entry this page
+    // navigated to. What the entry recorded is what the carry-over turns on, so
+    // the window that asks for the traversal does not come into it, even when it
+    // is cross-origin. This is the other direction of
+    // traverse-to-entry-initiated-by-crossorigin.https.html, where the entry
+    // records a cross-origin initiator and a same-origin document asks.
+    let w;
+    document.body.onclick = () => {
+      w = window.open(opened);
+    };
+
+    await test_driver.click(document.body);
+    assert_true(!!w, "A window is opened");
+    // Close the window at the end of the test, so that a later test in the same
+    // session cannot click a window this one left behind.
+    test.add_cleanup(() => w && w.close());
+
+    const first = new RemoteContext(uuid1);
+    const second = new RemoteContext(uuid2);
+    const frame = new RemoteContext(uuid3);
+
+    // Navigate the window on, so that there is an entry to traverse back to.
+    await first.execute_script(url => {
+      prepareNavigation(() => {
+        location.href = url;
+      });
+    }, [navigated_to]);
+
+    // Give the second document a cross-origin iframe.
+    await second.execute_script(url => {
+      let iframe = document.createElement("iframe");
+      iframe.width = 200;
+      iframe.height = 50;
+      iframe.src = url;
+      document.body.appendChild(iframe);
+    }, [framed]);
+
+    {
+      const result = await frame.execute_script(async () => {
+        await window.pageShowPromise;
+        const state = [navigator.userActivation.isActive,
+                       navigator.userActivation.hasBeenActive];
+
+        return state;
+      });
+      assertUserActivationState(result, false, false, "after iframe loaded");
+    }
+
+    // Click the iframe. The activation propagates to the document holding it,
+    // which is the one the traversal below replaces.
+    await test_driver.click(w.document.querySelector("iframe"));
+    {
+      const result = await second.execute_script(getUserActivationState);
+      assertUserActivationState(result, true, true,
+            "of the document holding the iframe after the iframe was clicked");
+    }
+
+    // Let the iframe traverse back. A child's History object traverses the
+    // traversable it sits in, and a cross-origin iframe cannot reach its
+    // parent's History object, so this is the iframe's own back().
+    await frame.execute_script(() => {
+      prepareNavigation(() => {
+        history.back();
+      });
+    });
+
+    // Confirm that the first document got the sticky user activation carried
+    // over. Its entry records this page as the initiator, and a cross-origin
+    // window asking for the traversal does not change that.
+    {
+      const result = await first.execute_script(getUserActivationStateWhenShown);
+      assertUserActivationState(result, false, true, "after traversing back");
+    }
+}, "User activation propagation across a traversal a cross-origin iframe starts");
+</script>

@@ -1295,7 +1295,6 @@ navigation-api/navigation-methods/traverseTo-with-cross-origin-in-history.html @
 navigation-api/ordering-and-transition/anchor-download-aborts-previous-navigation.html @web-platform-tests/interop
 navigation-api/ordering-and-transition/anchor-download-intercept-reject.html @web-platform-tests/interop
 navigation-api/ordering-and-transition/anchor-download-intercept.html @web-platform-tests/interop
-navigation-api/ordering-and-transition/anchor-download.html @web-platform-tests/interop
 navigation-api/ordering-and-transition/back-cross-document-event-order-with-pagehide.html @web-platform-tests/interop
 navigation-api/ordering-and-transition/back-same-document-intercept-reject.html @web-platform-tests/interop
 navigation-api/ordering-and-transition/back-same-document-intercept.html @web-platform-tests/interop

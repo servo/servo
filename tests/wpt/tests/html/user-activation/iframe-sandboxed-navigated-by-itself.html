@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<title>User activation propagation across a navigation of a sandboxed iframe</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#apply-the-history-step">
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+  <iframe id="child" width="200" height="50"
+          sandbox="allow-scripts"></iframe>
+</body>
+
+<script>
+  'use strict';
+
+  let driver = token();
+  let uuid1 = token();
+  let uuid2 = token();
+
+  // The sandbox without "allow-same-origin" gives each document the iframe
+  // shows its own opaque origin, and two different opaque origins are never
+  // same origin, so both the same-origin condition and the entry's initiator
+  // rule the carry-over out.
+  const executor = "/common/dispatcher/executor.html?uuid=";
+  let loaded = executor + uuid1;
+  let navigated_to = executor + uuid2;
+
+  const reportState = `
+    send("${driver}", JSON.stringify([self.origin,
+        navigator.userActivation.isActive,
+        navigator.userActivation.hasBeenActive]));
+  `;
+
+  promise_test(async test => {
+    const child = document.getElementById("child");
+
+    // Load a document in the sandboxed iframe, and ask it what it sees. The
+    // queue holds the request until the executor is there to take it.
+    child.src = loaded;
+    await send(uuid1, reportState);
+    {
+      const [origin, ...state] = JSON.parse(await receive(driver));
+      assert_equals(origin, "null",
+            "The sandboxed document's origin is opaque");
+      assertUserActivationState(state, false, false, "after iframe loaded");
+    }
+
+    // Confirm that the iframe gets user activation after a click. Clicking the
+    // iframe element lands the click inside the document it shows.
+    await test_driver.click(child);
+    await send(uuid1, reportState);
+    {
+      const [, ...state] = JSON.parse(await receive(driver));
+      assertUserActivationState(state, true, true, "after iframe clicked");
+    }
+
+    // Let the iframe navigate itself. The sandboxed navigation browsing context
+    // flag only stops it from navigating browsing contexts other than its own,
+    // so this is allowed.
+    await send(uuid1, `location.href = "${navigated_to}";`);
+
+    // Confirm that the document the iframe navigated to has no user activation.
+    await send(uuid2, reportState);
+    {
+      const [origin, ...state] = JSON.parse(await receive(driver));
+      assert_equals(origin, "null",
+            "The document the iframe navigated to also has an opaque origin");
+      assertUserActivationState(state, false, false,
+            "after the sandboxed iframe navigated itself");
+    }
+}, "User activation propagation across a navigation of a sandboxed iframe");
+</script>

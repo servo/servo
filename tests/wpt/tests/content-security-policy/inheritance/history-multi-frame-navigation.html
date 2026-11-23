@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<body>
+<script>
+const img_url = "data:image/gif;base64," +
+    "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+
+function executorDataUrl(uuid) {
+  const html = `<!doctype html>
+    <base href="${location.origin}">
+    <script src="/common/dispatcher/dispatcher.js"></scr` + `ipt>
+    <script>
+      const executor = new Executor('${uuid}');
+    </scr` + `ipt>
+    <body></body>`;
+  return 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
+}
+
+function executorWithChildIframeUrl(uuid, csp) {
+  const html = `<!doctype html>
+    <iframe name="b" src="/common/blank.html"></iframe>
+    <script src="/common/dispatcher/dispatcher.js"></scr` + `ipt>
+    <script>
+      const executor = new Executor('${uuid}');
+    </scr` + `ipt>`;
+  let url = '/common/echo.py?content=' + encodeURIComponent(html);
+  if (csp) {
+    url += `&pipe=header(Content-Security-Policy,${encodeURIComponent(csp)})`;
+  }
+  return url;
+}
+
+function checkImageLoad(ctx) {
+  return ctx.execute_script((url) => {
+    return new Promise(resolve => {
+      const img = document.createElement('img');
+      img.onload = () => resolve('img loaded');
+      img.onerror = () => resolve('img blocked');
+      img.src = url;
+      document.body.appendChild(img);
+    });
+  }, [img_url]);
+}
+
+async function reloadFromHistory(ctx) {
+  const away = new RemoteContext(token());
+  await ctx.execute_script((url) => {
+    executor.suspend(() => {
+      location.href = url;
+    });
+  }, [remoteExecutorUrl(away.context_id).href]);
+  await away.execute_script(() => {
+    executor.suspend(() => {
+      history.back();
+    });
+  });
+}
+
+promise_test(async t => {
+  const m = document.createElement('iframe');
+  t.add_cleanup(() => m.remove());
+
+  // Entry 0: Load a page without CSP in `m` containing a parser-created child
+  // iframe `b` (so `b` gets a stable unique name across `m` navigations).
+  // Make navigating back to Entry 0 slow so it remains pending while the
+  // top-level same-document history navigation commits immediately.
+  const m0 = new RemoteContext(token());
+  m.src = executorWithChildIframeUrl(m0.context_id);
+  document.body.appendChild(m);
+  await m0.execute_script(() => {
+    history.replaceState(null, '', '/common/slow.py?delay=2000');
+  });
+
+  // Entry 1: Navigate `m` cross-document to a page with CSP `img-src 'none'`.
+  const m1 = new RemoteContext(token());
+  m.src = executorWithChildIframeUrl(m1.context_id, "img-src 'none'");
+
+  // Navigate child iframe `b` to a data URL initiated by `m1`, so `b` inherits
+  // `img-src 'none'` from `m1`.
+  const b1 = new RemoteContext(token());
+  await m1.execute_script((url) => {
+    frames['b'].location.replace(url);
+  }, [executorDataUrl(b1.context_id)]);
+  assert_equals(await checkImageLoad(b1), 'img blocked');
+
+  // Entry 2: Push a same-document history entry in the top frame.
+  history.pushState(null, '', '#step2');
+  // Session history:
+  //   [0]  top(m0(blank))
+  //   [1]  top(m1(b1))        m1 and b1 have img-src 'none'
+  //   [2]* top#step2(m1(b1))
+
+  // Jump back 2 entries to Entry 0. The top frame commits its same-document
+  // navigation to Entry 0 immediately, while `m`'s cross-document navigation to
+  // the slow URL stays pending.
+  const popstate = new Promise(
+      r => window.addEventListener('popstate', r, {once: true}));
+  history.go(-2);
+  await popstate;
+  // The top frame is back on Entry 0, but `m` still shows m1(b1) while its
+  // navigation back to m0 is pending:
+  //   [0]* top(m0(blank))
+  //   [1]  top(m1(b1))
+  //   [2]  top#step2(m1(b1))
+  //   Displayed: top(m1(b1))
+
+  // While `m`'s history navigation is still pending, perform same-document
+  // navigations in `m` and `b`.
+  await m1.execute_script(() => {
+    location.hash = '#m-hash';
+  });
+  await b1.execute_script(() => {
+    location.hash = '#b-hash';
+  });
+
+  await reloadFromHistory(b1);
+  assert_equals(await checkImageLoad(b1), 'img blocked');
+}, 'Same-document navigation in child frame during pending parent history ' +
+   'navigation preserves CSP');
+
+promise_test(async t => {
+  const m = document.createElement('iframe');
+  t.add_cleanup(() => m.remove());
+
+  // Entry 0: Load a page without CSP in `m` containing a parser-created child
+  // iframe `b`.
+  const m0 = new RemoteContext(token());
+  m.src = executorWithChildIframeUrl(m0.context_id);
+  document.body.appendChild(m);
+
+  const b0 = new RemoteContext(token());
+  await m0.execute_script((url) => {
+    frames['b'].location.replace(url);
+  }, [executorDataUrl(b0.context_id)]);
+  assert_equals(await checkImageLoad(b0), 'img loaded');
+
+  await m0.execute_script(() => {
+    history.replaceState(null, '', '/common/slow.py?delay=2000');
+  });
+
+  // Entry 1: Navigate `m` cross-document to a page with CSP `img-src 'none'`.
+  const m1 = new RemoteContext(token());
+  m.src = executorWithChildIframeUrl(m1.context_id, "img-src 'none'");
+
+  const b1 = new RemoteContext(token());
+  await m1.execute_script((url) => {
+    frames['b'].location.replace(url);
+  }, [executorDataUrl(b1.context_id)]);
+  assert_equals(await checkImageLoad(b1), 'img blocked');
+
+  // Entry 2: Push a same-document history entry in the top frame.
+  history.pushState(null, '', '#step2-m2');
+  // Session history:
+  //   [0]  top(m0(b0))
+  //   [1]  top(m1(b1))           m1 and b1 have img-src 'none'
+  //   [2]* top#step2-m2(m1(b1))
+
+  // Jump back 2 entries to Entry 0.
+  const popstate = new Promise(
+      r => window.addEventListener('popstate', r, {once: true}));
+  history.go(-2);
+  await popstate;
+  // The top frame is back on Entry 0, but `m` still shows m1(b1) while its
+  // navigation back to m0 is pending:
+  //   [0]* top(m0(b0))
+  //   [1]  top(m1(b1))
+  //   [2]  top#step2-m2(m1(b1))
+  //   Displayed: top(m1(b1))
+
+  // While `m`'s cross-document history navigation to Entry 0 is pending,
+  // perform a same-document navigation in `m` itself. The new session history
+  // entry must keep `b1`'s session history entry, rather than Entry 0's `b0`.
+  await m1.execute_script(() => {
+    location.hash = '#m-hash';
+  });
+
+  await reloadFromHistory(b1);
+  assert_equals(await checkImageLoad(b1), 'img blocked');
+}, 'Same-document navigation in parent frame during pending history ' +
+   'navigation preserves child FrameNavigationEntry');
+</script>
+</body>

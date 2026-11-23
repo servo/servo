@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+
+<title>AccentColor in relative colors</title>
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#widget-accent">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  #t1 {
+    background-color: rgb(from #261200 r g 255 / alpha);
+    fill: rgb(from AccentColor r g 255 / alpha);
+  }
+
+  #t2 {
+    background-color: color-mix(in srgb, #123456, rgb(from #261200 r g 255 / alpha));
+    fill: color-mix(in srgb, #123456, rgb(from AccentColor r g 255 / alpha));
+  }
+
+  .accent-color-set { accent-color: #261200; }
+</style>
+
+<div class="accent-color-set" id="t1"></div>
+<div class="accent-color-set" id="t2"></div>
+
+<script>
+  test(() => {
+    const t1Style = getComputedStyle(t1);
+    assert_equals(t1Style.backgroundColor, t1Style.fill);
+
+    const t2Style = getComputedStyle(t2);
+    assert_equals(t2Style.backgroundColor, t2Style.fill);
+  });
+</script>

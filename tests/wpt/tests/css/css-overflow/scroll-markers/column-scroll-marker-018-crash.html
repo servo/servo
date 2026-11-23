@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>Scrollable multicol with anchors in ::scroll-marker, reducing column count</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-property">
+<link rel="help" href="https://issues.chromium.org/issues/584828291">
+<style>
+  .carousel {
+    columns: 3;
+    column-fill: auto;
+    height: 100px;
+    overflow: scroll;
+    scroll-marker-group: before;
+
+    &::scroll-marker-group {
+      position: absolute;
+      width: 100px;
+      height: 50px;
+    }
+
+    &::column::scroll-marker {
+      display: block;
+      content: "x";
+      anchor-name: --a;
+    }
+  }
+</style>
+<div class="carousel">
+  <div id="child" style="height:110px;"></div>
+</div>
+<div style="position:absolute; position-anchor:--a; top:anchor(bottom);"></div>
+<script>
+  document.body.offsetTop;
+  child.style.height = "50px";
+</script>

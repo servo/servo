@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>The root element of an embedded SVG document is focusable</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/interact.html#Focus">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="iframe" src="resources/focusable-root.svg"></iframe>
+<object id="object" type="image/svg+xml" data="resources/focusable-root.svg"></object>
+<script>
+const loaded = new Promise(resolve => window.addEventListener("load", resolve));
+
+for (const id of ["iframe", "object"]) {
+  promise_test(async () => {
+    await loaded;
+    const doc = document.getElementById(id).contentDocument;
+    const nested = doc.getElementById("nested");
+    nested.focus();
+    assert_false(nested.matches(":focus"));
+    assert_not_equals(doc.activeElement, nested);
+  }, `Nested svg element without tabindex is not focusable in an SVG document in <${id}>`);
+
+  promise_test(async () => {
+    await loaded;
+    const doc = document.getElementById(id).contentDocument;
+    const root = doc.documentElement;
+    let focusEvents = 0;
+    root.addEventListener("focus", () => focusEvents++);
+    root.focus();
+    assert_true(root.matches(":focus"));
+    assert_equals(doc.activeElement, root);
+    assert_equals(focusEvents, 1);
+  }, `Root svg element is focusable in an SVG document in <${id}>`);
+}
+</script>

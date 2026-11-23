@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>View Transition: StartViewTransitionOptions.shadowRoots WebIDL and option handling</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  :root {
+    view-transition-name: none;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 300s;
+  }
+  .host {
+    width: 100px;
+    height: 100px;
+    contain: layout;
+    view-transition-name: none;
+  }
+</style>
+</head>
+<body>
+<div id="sandbox"></div>
+<script>
+const sandbox = document.getElementById("sandbox");
+
+function createShadowBox(mode, vtName) {
+  const host = document.createElement("div");
+  host.className = "host";
+  sandbox.appendChild(host);
+  const sr = host.attachShadow({ mode });
+  sr.innerHTML = `
+    <style>
+      #box {
+        width: 50px;
+        height: 50px;
+        background: green;
+        view-transition-name: ${vtName};
+      }
+    </style>
+    <div id="box"></div>
+  `;
+  return { host, sr, box: sr.getElementById("box") };
+}
+
+function capturedNames(root = document) {
+  const regexp = /\((?<name>[^)]+)\)/;
+  const names = root.getAnimations()
+      .map(a => a.effect.pseudoElement)
+      .filter(Boolean)
+      .map(p => p.match(regexp)?.groups.name)
+      .filter(Boolean);
+  return [...new Set(names)].sort();
+}
+
+promise_test(async t => {
+  t.add_cleanup(() => { sandbox.replaceChildren(); });
+  const { host } = createShadowBox("open", "shadow-box");
+
+  for (const invoke of [
+    () => document.startViewTransition(),
+    () => document.startViewTransition(() => {}),
+    () => document.startViewTransition({}),
+    () => document.startViewTransition({ shadowRoots: undefined }),
+    () => document.startViewTransition({ shadowRoots: [] }),
+    () => host.startViewTransition(),
+    () => host.startViewTransition(() => {}),
+    () => host.startViewTransition({}),
+    () => host.startViewTransition({ shadowRoots: undefined }),
+    () => host.startViewTransition({ shadowRoots: [] }),
+  ]) {
+    const vt = invoke();
+    t.add_cleanup(() => vt.skipTransition());
+    await vt.ready;
+    assert_array_equals(capturedNames(), [],
+                        "Shadow names are not discovered without shadowRoots opt-in");
+    vt.skipTransition();
+    await vt.finished.catch(() => {});
+  }
+}, "Default empty shadowRoots does not expose shadow tree view-transition-names");
+
+promise_test(async t => {
+  t.add_cleanup(() => { sandbox.replaceChildren(); });
+  const { host: host1, sr: sr1 } = createShadowBox("open", "open-box");
+  const { sr: sr2 } = createShadowBox("closed", "closed-box");
+
+  function* shadowRootGenerator() {
+    yield sr1;
+    yield sr2;
+  }
+
+  for (const makeIterable of [
+    () => [sr1, sr2],
+    () => new Set([sr1, sr2]),
+    () => shadowRootGenerator(),
+  ]) {
+    const vt = document.startViewTransition({ shadowRoots: makeIterable() });
+    t.add_cleanup(() => vt.skipTransition());
+    await vt.ready;
+    assert_array_equals(capturedNames(), ["closed-box", "open-box"]);
+    vt.skipTransition();
+    await vt.finished.catch(() => {});
+  }
+
+  const scopedVt = host1.startViewTransition({
+    shadowRoots: new Set([sr1]),
+  });
+  t.add_cleanup(() => scopedVt.skipTransition());
+  await scopedVt.ready;
+  assert_array_equals(capturedNames(), ["open-box"]);
+  scopedVt.skipTransition();
+  await scopedVt.finished.catch(() => {});
+}, "shadowRoots accepts Array, Set, and custom iterables with open and closed ShadowRoots");
+
+promise_test(async t => {
+  t.add_cleanup(() => { sandbox.replaceChildren(); });
+  const { host, sr } = createShadowBox("open", "dedup-box");
+
+  for (const target of [document, host]) {
+    const vt = target.startViewTransition({ shadowRoots: [sr, sr, sr] });
+    t.add_cleanup(() => vt.skipTransition());
+    await vt.ready;
+    assert_array_equals(capturedNames(), ["dedup-box"]);
+    vt.skipTransition();
+    await vt.finished.catch(() => {});
+  }
+}, "Duplicate ShadowRoots in shadowRoots sequence are deduplicated without collision");
+
+promise_test(async t => {
+  t.add_cleanup(() => { sandbox.replaceChildren(); });
+  const { sr: sr1, box: box1 } = createShadowBox("open", "initial-one");
+  const { sr: sr2, box: box2 } = createShadowBox("open", "initial-two");
+
+  const passedArray = [sr1];
+  const vt = document.startViewTransition({
+    shadowRoots: passedArray,
+    update: () => {
+      // Mutating the array after startViewTransition() is called must not
+      // remove sr1 or add sr2 to the participating tree roots.
+      passedArray.length = 0;
+      passedArray.push(sr2);
+      box1.style.transform = "translateX(10px)";
+      box2.style.transform = "translateX(10px)";
+    },
+  });
+  t.add_cleanup(() => vt.skipTransition());
+
+  // Also mutate synchronously right after startViewTransition() returns.
+  passedArray.push(sr2);
+
+  await vt.ready;
+  assert_array_equals(capturedNames(), ["initial-one"]);
+  const groupAnims = document.getAnimations().filter(
+      a => a.effect.pseudoElement === "::view-transition-group(initial-one)");
+  assert_equals(groupAnims.length, 1,
+                "sr1 remained participating across both capture and start phases");
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+}, "Mutating the passed shadowRoots array after startViewTransition() has no effect");
+
+test(t => {
+  t.add_cleanup(() => { sandbox.replaceChildren(); });
+  const div = document.createElement("div");
+  div.className = "host";
+  sandbox.appendChild(div);
+  const frag = document.createDocumentFragment();
+
+  const invalidValues = [
+    null,
+    false,
+    true,
+    42,
+    "not-a-sequence",
+    {},
+    [null],
+    [undefined],
+    [42],
+    ["sr"],
+    [document],
+    [div],
+    [frag],
+  ];
+
+  for (const invalid of invalidValues) {
+    assert_throws_js(TypeError, () => {
+      document.startViewTransition({ shadowRoots: invalid });
+    }, `document.startViewTransition should throw TypeError for ${String(invalid)}`);
+
+    assert_throws_js(TypeError, () => {
+      div.startViewTransition({ shadowRoots: invalid });
+    }, `element.startViewTransition should throw TypeError for ${String(invalid)}`);
+  }
+}, "Invalid shadowRoots values throw TypeError on both Document and Element");
+</script>
+</body>
+</html>

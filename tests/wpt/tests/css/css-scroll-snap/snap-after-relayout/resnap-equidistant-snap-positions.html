@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<title>
+  Re-snapping from a scroll position equidistant between two snap positions should choose the earlier one.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap/#re-snap" />
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap/#choosing" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div {
+  position: absolute;
+  margin: 0;
+}
+
+#scroller {
+  height: 400px;
+  width: 400px;
+  overflow: hidden;
+  scroll-snap-type: none;
+}
+
+.x-target {
+  width: 400px;
+  height: 1200px;
+  top: 0;
+  scroll-snap-align: none start;
+}
+
+.y-target {
+  width: 1200px;
+  height: 400px;
+  left: 0;
+  scroll-snap-align: start none;
+}
+
+.area {
+  width: 1200px;
+  height: 1200px;
+}
+</style>
+
+<div id="scroller">
+  <div class="area"></div>
+  <div class="x-target" style="left: 0;"></div>
+  <div class="x-target" style="left: 400px;"></div>
+  <div class="x-target" style="left: 800px;"></div>
+  <div class="y-target" style="top: 0;"></div>
+  <div class="y-target" style="top: 400px;"></div>
+  <div class="y-target" style="top: 800px;"></div>
+</div>
+
+<script>
+const scroller = document.getElementById("scroller");
+
+function cleanup() {
+  scroller.style.setProperty("scroll-snap-type", "none");
+  scroller.scrollTo(0, 0);
+}
+
+test(t => {
+  t.add_cleanup(cleanup);
+  scroller.scrollTo(200, 0);
+  assert_equals(scroller.scrollLeft, 200);
+
+  scroller.style.setProperty("scroll-snap-type", "x mandatory");
+  assert_equals(scroller.scrollLeft, 0);
+}, "Re-snapping on the x-axis from a position equidistant between two snap positions chooses the earlier one.");
+
+test(t => {
+  t.add_cleanup(cleanup);
+  scroller.scrollTo(0, 200);
+  assert_equals(scroller.scrollTop, 200);
+
+  scroller.style.setProperty("scroll-snap-type", "y mandatory");
+  assert_equals(scroller.scrollTop, 0);
+}, "Re-snapping on the y-axis from a position equidistant between two snap positions chooses the earlier one.");
+
+test(t => {
+  t.add_cleanup(cleanup);
+  scroller.scrollTo(600, 600);
+  assert_equals(scroller.scrollLeft, 600);
+  assert_equals(scroller.scrollTop, 600);
+
+  scroller.style.setProperty("scroll-snap-type", "both mandatory");
+  assert_equals(scroller.scrollLeft, 400);
+  assert_equals(scroller.scrollTop, 400);
+}, "Re-snapping on both axes from a position equidistant between two snap positions chooses the earlier one.");
+</script>

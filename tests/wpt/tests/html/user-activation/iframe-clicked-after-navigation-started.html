@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<title>User activation propagation when an iframe is clicked after its navigation started</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#apply-the-history-step">
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+  <iframe id="child" width="200" height="50"></iframe>
+</body>
+
+<script>
+  'use strict';
+
+  let uuid1 = token();
+  let uuid2 = token();
+
+  // The conditions are read when the history step is applied, which is after
+  // the response arrives, so activation gained while the navigation is still in
+  // flight counts. The server holds the whole response back, headers
+  // included, long enough for the click to land in the document being
+  // replaced.
+  //
+  // It is a frame that navigates rather than a window, because
+  // test_driver.click() cannot reach into a window whose own navigation is
+  // pending. Clicking the frame element is a click on this page, which is not
+  // navigating, and the event is routed into the document the frame still
+  // shows.
+  let loaded = `/common/dispatcher/remote-executor.html?uuid=${uuid1}`;
+  let navigated_to = `/html/user-activation/resources/slow-remote-executor.py` +
+                     `?uuid=${uuid2}&delay=4`;
+
+  promise_test(async test => {
+    const child = document.getElementById("child");
+    const first = new RemoteContext(uuid1);
+    const second = new RemoteContext(uuid2);
+
+    // Load a document in the iframe. The executor only answers once the
+    // document has loaded, so this doubles as waiting for it.
+    child.src = loaded;
+    {
+      const result = await first.execute_script(getUserActivationState);
+      assertUserActivationState(result, false, false, "after iframe loaded");
+    }
+
+    // Set up the click report in the first document, then start its navigation
+    // and click it before the response replaces it.
+    const old_window = child.contentWindow;
+    const clicked = new Promise(resolve => {
+      old_window.document.addEventListener("click", () => {
+        resolve([old_window.navigator.userActivation.isActive,
+                 old_window.navigator.userActivation.hasBeenActive]);
+      }, {once: true});
+    });
+    old_window.location.href = navigated_to;
+    await test_driver.click(child);
+
+    // Confirm the click reached the document being replaced and
+    // activated it. A sticky bit of false below would otherwise not separate
+    // a missing carry-over from a click that never arrived.
+    // The wait is bounded because a click that has not arrived by now is not
+    // coming, and the response that ends this document is held back for much
+    // longer than that.
+    const reported = await Promise.race([
+      clicked,
+      new Promise(resolve => test.step_timeout(() => resolve(null), 2000)),
+    ]);
+    assert_not_equals(reported, null,
+          "The click reached the document being replaced");
+    assertUserActivationState(reported, true, true,
+          "in the document being replaced, when the click reached it");
+
+    // Confirm that the document the navigation lands on got the sticky user
+    // activation carried over, and that the transient one did not come with it.
+    {
+      const result = await second.execute_script(getUserActivationState);
+      assertUserActivationState(result, false, true,
+            "after the navigation that was already in flight committed");
+    }
+}, "User activation propagation when an iframe is clicked after its " +
+   "navigation started");
+</script>

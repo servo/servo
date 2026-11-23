@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<!--
+  A back/forward cache executor that also records whether it has sticky
+  activation at the points the spec sets the bit before. The inline script below
+  is the document's first script, and the pageshow handler it registers is the
+  first one for that event, so these are the earliest readings the document can
+  take: a recreated document runs its first script, and a reactivated one fires
+  pageshow, before anything else of its own runs. Anything read through
+  RemoteContext.execute_script() is read too late to tell when the bit arrived.
+-->
+<script>
+  window.activationWhen = {
+    firstScript: navigator.userActivation.hasBeenActive,
+    pageShows: [],
+  };
+
+  // Not {once: true}: a document restored from the back/forward cache gets
+  // another pageshow, and that one is the reading this records for.
+  window.addEventListener("pageshow", event => {
+    activationWhen.pageShows.push(
+          [event.persisted, navigator.userActivation.hasBeenActive]);
+  });
+</script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/executor.js" type="module"></script>

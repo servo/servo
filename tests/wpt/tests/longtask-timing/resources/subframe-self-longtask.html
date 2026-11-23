@@ -1,0 +1,51 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>LongTask Timing: subframe observing its own long task</title>
+<script>
+  let done = false;
+  const observer = new PerformanceObserver(entryList => {
+    for (const longtask of entryList.getEntries()) {
+      if (longtask.name !== 'self') {
+        continue;
+      }
+      done = true;
+      const attribution = longtask.attribution[0];
+      parent.postMessage({
+        entryType: longtask.entryType,
+        frameAttribution: longtask.name,
+        attributionLength: longtask.attribution.length,
+        taskAttribution: attribution.name,
+        containerType: attribution.containerType,
+        containerId: attribution.containerId,
+        containerName: attribution.containerName,
+        containerSrc: attribution.containerSrc,
+      }, '*');
+      observer.disconnect();
+      return;
+    }
+  });
+  observer.observe({entryTypes: ['longtask']});
+
+  function spinLongTaskUntilObserved() {
+    if (done) {
+      return;
+    }
+    window.requestAnimationFrame(() => {
+      if (done) {
+        return;
+      }
+      const channel = new MessageChannel();
+      channel.port1.onmessage = () => {
+        if (done) {
+          return;
+        }
+        const begin = window.performance.now();
+        while (window.performance.now() < begin + 60);
+        spinLongTaskUntilObserved();
+      };
+      channel.port2.postMessage(null);
+    });
+  }
+
+  window.onload = spinLongTaskUntilObserved;
+</script>

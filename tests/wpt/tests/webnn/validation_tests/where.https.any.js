@@ -158,3 +158,42 @@ promise_test(async t => {
   assert_throws_with_label(
       () => builder.where(condition, trueValue, falseValue, options), regrexp);
 }, '[where] throw if the output tensor byte length exceeds limit');
+
+validateOperandRankOutOfRange('where', 'condition', (builder, condition) => {
+  const trueValue = builder.input(
+      'trueValue', {dataType: 'float32', shape: [kExampleDimSize]});
+  const falseValue = builder.input(
+      'falseValue', {dataType: 'float32', shape: [kExampleDimSize]});
+  return builder.where(condition, trueValue, falseValue);
+});
+
+validateOperandRankOutOfRange('where', 'trueValue', (builder, trueValue) => {
+  const opLimits = context.opSupportLimits().where;
+  const condition = buildInputOperand(
+      builder, 'condition', pickSupportedDataTypeInfo(opLimits.condition),
+      [kExampleDimSize]);
+  const falseValue = builder.input(
+      'falseValue', {dataType: trueValue.dataType, shape: [kExampleDimSize]});
+  return builder.where(condition, trueValue, falseValue);
+});
+
+validateOperandRankOutOfRange('where', 'falseValue', (builder, falseValue) => {
+  const opLimits = context.opSupportLimits().where;
+  const condition = buildInputOperand(
+      builder, 'condition', pickSupportedDataTypeInfo(opLimits.condition),
+      [kExampleDimSize]);
+  const trueValue = builder.input(
+      'trueValue', {dataType: falseValue.dataType, shape: [kExampleDimSize]});
+  return builder.where(condition, trueValue, falseValue);
+});
+
+// Accept every (condition rank, trueValue rank, falseValue rank) triple in
+// each operand's opSupportLimits.rankRange. `where`'s operand data-type
+// domains differ (condition is uint8-only; trueValue/falseValue are broader),
+// so this uses the N-operand Cartesian helper, which initialises each operand
+// to its own allowable (and globally creatable) data type. With uniform
+// [kExampleDimSize] dims any independent-rank triple broadcasts.
+validateNOperandsRankInRange(
+    'where', ['condition', 'trueValue', 'falseValue'],
+    (builder, [condition, trueValue, falseValue]) =>
+        builder.where(condition, trueValue, falseValue));

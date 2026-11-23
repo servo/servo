@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: overlap-join extends a grid-axis rule across the wider crossing stacking-axis rule in column grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#inset">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#assigning">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="column-gap-decorations-inset-overlap-join-multi-width-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(2, 80px);
+    gap: 20px;
+    width: max-content;
+    background: #cdd5e0;
+    column-rule: 8px solid rgba(0, 0, 255, 0.5);
+    row-rule-width: 4px, 12px;
+    row-rule-style: solid;
+    row-rule-color: gold;
+    column-rule-inset-junction-end: overlap-join;
+    row-rule-inset-junction-start: overlap-join;
+    row-rule-inset-junction-end: overlap-join;
+    rule-overlap: column-over-row;
+  }
+  .lanes > div { background: #5b8def; }
+  .t1 { grid-column: 1; height: 60px; }
+  .t2 { grid-column: 2; height: 20px; }
+  .span { grid-column: 1 / -1; height: 60px; background: #8a6df0; }
+</style>
+<div class="lanes">
+  <div class="t1"></div>
+  <div class="t2"></div>
+  <div class="t2"></div>
+  <div class="span"></div>
+</div>

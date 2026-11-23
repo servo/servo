@@ -98,11 +98,11 @@ PUBLIC_KEY = "JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs="
 JSON_BODY = b'{"hello": "world"}'
 JSON_DIGEST = "sha-256=:X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=:"
 JSON_SIGNATURE_INPUT = (
-    f'signature=("unencoded-digest";sf);keyid="{PUBLIC_KEY}";tag="sri"'
+    f'signature=("unencoded-digest";sf);keyid="{PUBLIC_KEY}";tag="ed25519-integrity"'
 )
 JSON_VALID_SIGNATURE = (
-    "signature=:gHim9e5Pk2H7c9BStOmxSmkyc8+ioZgoxynu3d4INAT4dwfj"
-    "5LhvaV9DFnEQ9p7C0hzW4o4Qpkm5aApd6WLLCw==:"
+    "signature=:SbCdPUyjc0IBJjFbVRWs81ucEUcFz87b37nQ63d6kDW+/JvD"
+    "mET6O5cSdwlddePvlwemLdaWFuY6pQGO+hrkAg==:"
 )
 INVALID_SIGNATURE = (
     "signature=:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -112,8 +112,8 @@ INVALID_SIGNATURE = (
 SCRIPT_EXECUTE_BODY = b"window.hello = `world`;"
 SCRIPT_EXECUTE_DIGEST = "sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:"
 SCRIPT_EXECUTE_VALID_SIGNATURE = (
-    "signature=:A1wOGCGrcfN34uMe2Umt7hJ6Su1MQFUL1QuT5nmk1R8I761e"
-    "XUt2Zv4D5fOt1h1+4DlHPiA1FVwfJLbwlWnpBw==:"
+    "signature=:c7bMDgqzbSrojbHC0ewzJBqcI7i0b/KgVFZFIOCS49mrSyxJ"
+    "j+Fqq0ioPySY4fvnq79rGpphAZ+9rYBW83vTCw==:"
 )
 
 SCRIPT_BLOCK_BODY = b"assert_unreached(`This code should not execute.`);"

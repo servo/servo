@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes Test: Local column names at subgrid endpoints</title>
+<link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="column-line-names-006-ref.html">
+<meta name="assert" content="A negative named column index uses the last matching local line, and placement starting at the subgrid's final line is clamped to its last track.">
+<style>
+  .grid-lanes {
+    display: grid-lanes;
+    grid-template-columns: 20px 40px 60px 80px 100px 120px;
+    width: max-content;
+    gap: 4px;
+    fit-tolerance: 0;
+    padding: 8px;
+    border: 2px solid black;
+    background: lightgrey;
+  }
+  .subgrid {
+    display: grid-lanes;
+    grid-column: 2 / span 4;
+    gap: 4px;
+    fit-tolerance: 0;
+    background: yellow;
+  }
+  .start { grid-template-columns: subgrid [a]; }
+  .internal { grid-template-columns: subgrid [] [a] [a]; }
+  .end { grid-template-columns: subgrid [a] [a] [a] [a] [a]; }
+  .subgrid > div { grid-column: a -1; height: 24px; background: green; }
+</style>
+<div class="grid-lanes">
+  <div class="subgrid start"><div></div></div>
+</div>
+<div class="grid-lanes">
+  <div class="subgrid internal"><div></div></div>
+</div>
+<div class="grid-lanes">
+  <div class="subgrid end"><div></div></div>
+</div>

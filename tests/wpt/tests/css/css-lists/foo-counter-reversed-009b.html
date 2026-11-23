@@ -50,7 +50,7 @@ li {
  <div style="counter-increment: foo 1"></div>
  <div style="counter-increment: foo -2"></div>
  <li class="pure-set"></li>
- <li style="counter-increment: foo -1"></li>
+ <li style="counter-increment: foo -1">
   <ol reversed>
    <div><span></span></div>
    <div style="counter-increment: foo -1"></div>
@@ -69,7 +69,7 @@ li {
  <li style="counter-increment: foo 2"></li>
  <li class="pure-set"></li>
  <div><span></span></div>
- <li style="counter-increment: foo 2"></li>
+ <li style="counter-increment: foo 2">
   <ol reversed>
    <li style="counter-increment: foo 3"></li>
    <li style="counter-increment: foo 1"></li>
@@ -81,13 +81,15 @@ li {
  </li>
 </ol>
 <ol reversed>
- <ol reversed>
-  <div style="counter-increment: foo -1"></div>
-  <div style="counter-increment: foo 2"></div>
-  <li class="pure-set"></li>
-  <li style="counter-increment: foo 1"></li>
-  <li style="counter-increment: foo 8"></li>
- </ol>
+ <div>
+  <ol reversed>
+   <div style="counter-increment: foo -1"></div>
+   <div style="counter-increment: foo 2"></div>
+   <li class="pure-set"></li>
+   <li style="counter-increment: foo 1"></li>
+   <li style="counter-increment: foo 8"></li>
+  </ol>
+ </div>
  <li style="counter-increment: foo 3"></li>
  <li style="counter-increment: foo 1"></li>
  <div style="counter-increment: foo 4"></div>

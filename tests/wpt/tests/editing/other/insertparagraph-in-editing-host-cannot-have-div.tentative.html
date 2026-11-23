@@ -145,7 +145,12 @@ test(() => {
   editingHost.getBoundingClientRect();
   execInsertTextOrParagraphCommand();
   // If <div> is styled as inline, it should be treated like <span>.
-  assert_equals(editingHost.innerHTML, `<div style="display:inline">a\nb</div>`);
+  assert_equals(
+    editingHost.innerHTML,
+    isNewLineSignificant
+      ? `<div style="display:inline">a\nb</div>`
+      : `<div style="display:inline">a<br>b</div>`
+  );
 }, `<${tag} ${editingHostOpenTagAttrs}><div style="display:inline">a[]b</div></${tag}>`);
 
 test(() => {

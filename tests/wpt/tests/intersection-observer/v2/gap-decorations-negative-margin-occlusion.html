@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<title>IntersectionObserver V2: gap decoration above flex container occludes target</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#algo-main-item">
+<link rel="help" href="https://w3c.github.io/IntersectionObserver/v2/">
+<meta name="assert" content="A row rule painted above a flex container border box due to a negative item margin occludes an underlying IntersectionObserver target.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #target {
+    position: absolute;
+    left: 50px;
+    top: 100px;
+    width: 100px;
+    height: 50px;
+    background: blue;
+  }
+  #occluder {
+    position: absolute;
+    left: 0;
+    top: 450px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    width: 400px;
+    height: 20px;
+    row-gap: 600px;
+    row-rule: 200px solid red;
+  }
+  #occluder > div {
+    width: 0;
+    height: 10px;
+    flex-shrink: 0;
+  }
+  #first {
+    margin-bottom: -610px;
+  }
+</style>
+<div id="target"></div>
+<div id="occluder">
+  <div id="first"></div>
+  <div id="second"></div>
+</div>
+<script>
+  setup({ single_test: true });
+  assert_implements("isVisible" in IntersectionObserverEntry.prototype,
+                    "IntersectionObserver V2 is required");
+  const target = document.getElementById("target");
+  new IntersectionObserver(entries => {
+    assert_false(entries[0].isVisible);
+    done();
+  }, {trackVisibility: true, delay: 100}).observe(target);
+</script>

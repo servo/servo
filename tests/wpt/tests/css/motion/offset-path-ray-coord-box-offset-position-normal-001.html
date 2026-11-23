@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Motion Path test: ray() with content-box and offset-position: normal</title>
+<link rel="help" href="https://drafts.csswg.org/motion/#offset-path-property">
+<link rel="help" href="https://drafts.csswg.org/motion/#offset-position-property">
+<link rel="match" href="offset-path-ray-coord-box-offset-position-normal-001-ref.html">
+<meta name="assert" content="With offset-position: normal, a ray() starts at the center of its coord-box.">
+<style>
+#outer {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  padding-left: 200px;
+}
+#red {
+  position: absolute;
+  left: 250px;
+  top: 50px;
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+#target {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100px;
+  height: 100px;
+  background: green;
+  offset-path: ray(0deg) content-box;
+  offset-distance: 0;
+  offset-rotate: 0deg;
+}
+</style>
+<p>Test passes if there is a filled green square and no red.</p>
+<div id="outer">
+  <div id="red"></div>
+  <div id="target"></div>
+</div>

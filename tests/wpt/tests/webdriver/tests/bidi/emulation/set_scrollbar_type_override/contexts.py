@@ -1,5 +1,7 @@
 import pytest
 
+from webdriver.bidi.modules.script import ContextTarget
+
 pytestmark = pytest.mark.asyncio
 
 
@@ -147,6 +149,157 @@ async def test_overrides_global(
 
     # Clearing global setting reverts to default.
     await bidi_session.emulation.set_scrollbar_type_override(
+        scrollbar_type=None,
+    )
+    assert await get_scrollbar_width(new_tab) == default_scrollbar_width
+
+
+@pytest.mark.parametrize("domain", ["", "alt"], ids=["same_origin", "cross_origin"])
+async def test_existing_iframe(
+    bidi_session,
+    new_tab,
+    inline,
+    iframe,
+    domain,
+    get_scrollbar_width,
+    default_scrollbar_width,
+):
+    # Load a page with an iframe before setting the override.
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"],
+        url=inline(iframe("<div>foo</div>", domain=domain)),
+        wait="complete",
+    )
+    contexts = await bidi_session.browsing_context.get_tree(root=new_tab["context"])
+    existing_iframe = contexts[0]["children"][0]
+
+    # Apply overrides to new_tab, and verify that they apply to the iframe.
+    await bidi_session.emulation.set_scrollbar_type_override(
+        contexts=[new_tab["context"]],
+        scrollbar_type="overlay",
+    )
+    assert await get_scrollbar_width(existing_iframe) == 0
+
+    await bidi_session.emulation.set_scrollbar_type_override(
+        contexts=[new_tab["context"]],
+        scrollbar_type="classic",
+    )
+    assert await get_scrollbar_width(existing_iframe) > 0
+
+    # Clear override on new_tab and verify the iframe falls back.
+    await bidi_session.emulation.set_scrollbar_type_override(
+        contexts=[new_tab["context"]],
+        scrollbar_type=None,
+    )
+    assert await get_scrollbar_width(existing_iframe) == default_scrollbar_width
+
+
+@pytest.mark.parametrize(
+    "content_height", ["1000px", "10px"], ids=["scrollable", "not_scrollable"]
+)
+@pytest.mark.parametrize("domain", ["", "alt"], ids=["same_origin", "cross_origin"])
+async def test_existing_iframe_own_scrollbar(
+    bidi_session, new_tab, inline, iframe, domain, content_height
+):
+    # The iframe's document has a vertical scrollbar, whether or not its content
+    # overflows. It belongs to the iframe's viewport rather than to an element,
+    # and changing its type changes the width that the iframe's document is laid
+    # out in.
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"],
+        url=inline(
+            iframe(
+                "<style>html { overflow-y: scroll; }</style>"
+                f"<div style='height: {content_height}'>foo</div>",
+                domain=domain,
+            )
+        ),
+        wait="complete",
+    )
+    contexts = await bidi_session.browsing_context.get_tree(root=new_tab["context"])
+    existing_iframe = contexts[0]["children"][0]
+
+    async def evaluate_in_iframe(expression):
+        result = await bidi_session.script.call_function(
+            function_declaration=f"() => {expression}",
+            target=ContextTarget(existing_iframe["context"]),
+            await_promise=False,
+        )
+        return result["value"]
+
+    async def get_viewport_scrollbar_width():
+        return await evaluate_in_iframe(
+            "window.innerWidth - document.documentElement.clientWidth"
+        )
+
+    async def assert_laid_out_for_viewport():
+        # The root element fills the width of the viewport, without its scrollbar.
+        assert await evaluate_in_iframe(
+            "document.documentElement.getBoundingClientRect().width"
+        ) == await evaluate_in_iframe("document.documentElement.clientWidth")
+
+    default_width = await get_viewport_scrollbar_width()
+    await assert_laid_out_for_viewport()
+
+    await bidi_session.emulation.set_scrollbar_type_override(
+        contexts=[new_tab["context"]],
+        scrollbar_type="overlay",
+    )
+    assert await get_viewport_scrollbar_width() == 0
+    await assert_laid_out_for_viewport()
+
+    await bidi_session.emulation.set_scrollbar_type_override(
+        contexts=[new_tab["context"]],
+        scrollbar_type="classic",
+    )
+    assert await get_viewport_scrollbar_width() > 0
+    await assert_laid_out_for_viewport()
+
+    await bidi_session.emulation.set_scrollbar_type_override(
+        contexts=[new_tab["context"]],
+        scrollbar_type=None,
+    )
+    assert await get_viewport_scrollbar_width() == default_width
+    await assert_laid_out_for_viewport()
+
+
+@pytest.mark.parametrize("domain", ["", "alt"], ids=["same_origin", "cross_origin"])
+async def test_navigation(
+    bidi_session,
+    new_tab,
+    inline,
+    domain,
+    get_scrollbar_width,
+    default_scrollbar_width,
+):
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=inline("<div>foo</div>"), wait="complete"
+    )
+
+    # Apply override to new_tab, and verify it persists after navigation.
+    await bidi_session.emulation.set_scrollbar_type_override(
+        contexts=[new_tab["context"]],
+        scrollbar_type="overlay",
+    )
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"],
+        url=inline("<div>bar</div>", domain=domain),
+        wait="complete",
+    )
+    assert await get_scrollbar_width(new_tab) == 0
+
+    await bidi_session.emulation.set_scrollbar_type_override(
+        contexts=[new_tab["context"]],
+        scrollbar_type="classic",
+    )
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=inline("<div>foo</div>"), wait="complete"
+    )
+    assert await get_scrollbar_width(new_tab) > 0
+
+    # Clear override on new_tab and verify the navigated page falls back.
+    await bidi_session.emulation.set_scrollbar_type_override(
+        contexts=[new_tab["context"]],
         scrollbar_type=None,
     )
     assert await get_scrollbar_width(new_tab) == default_scrollbar_width

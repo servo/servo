@@ -1,0 +1,54 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>devicePixelRatio reflects BiDi setViewport override</title>
+<link rel="help" href="https://www.w3.org/TR/cssom-view/#dom-window-devicepixelratio">
+<link rel="help" href="https://www.w3.org/TR/webdriver-bidi/#command-browsingContext-setViewport">
+<link rel="help" href="https://www.w3.org/TR/mediaqueries-4/#resolution">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+function getTargetDPR() {
+  // Pick a value that's different from the current DPR, so the test
+  // still detects failures even if the default environment is already 2.
+  return window.devicePixelRatio === 2 ? 1 : 2;
+}
+
+function getNonMatchingDPR(target) {
+  return target === 2 ? 1 : 2;
+}
+
+function setDevicePixelRatio(test, value) {
+  return test_driver.bidi.browsing_context.set_viewport(test, {
+    context: window,
+    devicePixelRatio: value,
+  });
+}
+
+promise_test(async t => {
+  const targetDPR = getTargetDPR();
+  await setDevicePixelRatio(t, targetDPR);
+  assert_equals(
+    window.devicePixelRatio,
+    targetDPR,
+    "window.devicePixelRatio should reflect the BiDi override"
+  );
+}, "window.devicePixelRatio reflects a BiDi devicePixelRatio override");
+
+promise_test(async t => {
+  const targetDPR = getTargetDPR();
+  const nonMatchingDPR = getNonMatchingDPR(targetDPR);
+  await setDevicePixelRatio(t, targetDPR);
+  assert_true(
+    matchMedia(`(resolution: ${targetDPR}dppx)`).matches,
+    "The matching resolution media query should match after the override"
+  );
+  assert_false(
+    matchMedia(`(resolution: ${nonMatchingDPR}dppx)`).matches,
+    "A different resolution media query should not match after the override"
+  );
+}, "resolution media queries reflect a BiDi devicePixelRatio override");
+</script>

@@ -1,0 +1,63 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Gap decoration geometry changes update intersection visibility</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://w3c.github.io/IntersectionObserver/#visibility">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+for (const [property, value, left, top] of [
+  ["column-rule-width", "160px", 75, 140],
+  ["row-rule-width", "160px", 140, 75],
+  ["column-rule-inset-cap-start", "-40px", 145, 75],
+  ["row-rule-inset-cap-start", "-40px", 75, 145],
+]) {
+  promise_test(async t => {
+    const target = document.createElement("div");
+    target.style.cssText = `
+      position: absolute; left: ${left}px; top: ${top}px;
+      width: 10px; height: 10px; background: blue;
+    `;
+    const occluder = document.createElement("div");
+    occluder.style.cssText = `
+      position: absolute; left: 100px; top: 100px;
+      width: 100px; height: 100px; display: grid;
+      grid-template: 40px 40px / 40px 40px; gap: 20px;
+      column-rule: 2px solid black; row-rule: 2px solid black;
+    `;
+    for (let i = 0; i < 4; ++i) {
+      occluder.appendChild(document.createElement("div"));
+    }
+    document.body.append(target, occluder);
+    t.add_cleanup(() => {
+      target.remove();
+      occluder.remove();
+    });
+
+    let resolveObservation;
+    const observer = new IntersectionObserver(entries => {
+      resolveObservation(entries[entries.length - 1]);
+    }, {trackVisibility: true, delay: 100});
+    t.add_cleanup(() => observer.disconnect());
+
+    let observation = new Promise(resolve => resolveObservation = resolve);
+    observer.observe(target);
+    let entry = await observation;
+    assert_true(entry.isIntersecting);
+    assert_true(entry.isVisible, "The initial rule does not cover the target");
+
+    observation = new Promise(resolve => resolveObservation = resolve);
+    occluder.style.setProperty(property, value);
+    entry = await observation;
+    assert_true(entry.isIntersecting);
+    assert_false(entry.isVisible, "The extended rule covers the target");
+
+    observation = new Promise(resolve => resolveObservation = resolve);
+    occluder.style.removeProperty(property);
+    entry = await observation;
+    assert_true(entry.isIntersecting);
+    assert_true(entry.isVisible, "Resetting the rule uncovers the target");
+  }, `Visibility updates after changing and resetting ${property}`);
+}
+</script>

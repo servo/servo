@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+  .grid-lanes {
+    display: inline grid-lanes;
+    grid-template-rows: 20px [a] 40px 60px [a] 80px 100px [a] 120px;
+    width: max-content;
+    gap: 4px;
+    fit-tolerance: 0;
+    padding: 8px;
+    border: 2px solid black;
+    background: lightgrey;
+  }
+  .subgrid {
+    display: grid;
+    grid-template-rows: subgrid;
+    grid-auto-flow: column;
+    grid-row: 2 / span 4;
+    gap: 4px;
+    background: yellow;
+  }
+  .subgrid > div { width: 24px; }
+  .first { grid-row: 1 / 3; background: green; }
+  .second { grid-row: 3 / 5; background: blue; }
+</style>
+<div class="grid-lanes">
+  <div class="subgrid">
+    <div class="first"></div>
+    <div class="second"></div>
+  </div>
+</div>

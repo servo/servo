@@ -97,3 +97,21 @@ validateTwoInputsOfSameDataType(operatorName, label);
 validateTwoInputsBroadcastable(operatorName, label);
 validateTwoInputsFromMultipleBuilders(operatorName);
 validateTwoBroadcastableInputsTensorLimit(operatorName, label);
+
+validateOperandRankOutOfRange(operatorName, 'a', (builder, a) => {
+  const b =
+      builder.input('b', {dataType: a.dataType, shape: [kExampleDimSize]});
+  return builder[operatorName](a, b);
+});
+
+validateOperandRankOutOfRange(operatorName, 'b', (builder, b) => {
+  const a =
+      builder.input('a', {dataType: b.dataType, shape: [kExampleDimSize]});
+  return builder[operatorName](a, b);
+});
+
+// Accept every (a rank, b rank) pair where each rank is within its operand's
+// rankRange from opSupportLimits.
+validateTwoOperandsRankInRange(operatorName, 'a', 'b', (builder, a, b) => {
+  return builder[operatorName](a, b);
+});

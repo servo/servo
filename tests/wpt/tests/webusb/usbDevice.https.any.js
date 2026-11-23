@@ -18,6 +18,14 @@ usb_test((t) => {
   });
 }, 'open rejects when called on a disconnected device');
 
+usb_test(async (t) => {
+  const {device, fakeDevice} = await getFakeDevice();
+  fakeDevice.stallNextOperation('open');
+  const promise = device.open();
+  fakeDevice.disconnect();
+  await promise_rejects_dom(t, 'NotFoundError', promise);
+}, 'disconnect rejects open requests in progress');
+
 usb_test(() => {
   return getFakeDevice().then(({ device, fakeDevice }) => {
     return device.open()
@@ -187,6 +195,32 @@ usb_test(() => {
       .then(() => device.close());
   });
 }, 'device configuration can be set and queried');
+
+usb_test(async () => {
+  const deviceInit = JSON.parse(JSON.stringify(fakeDeviceInit));
+  deviceInit.activeConfigurationValue = 1;
+  const promise = connectionEventPromise('connect');
+  navigator.usb.test.addFakeDevice(deviceInit);
+  const device = await promise;
+  assertDeviceInfoEquals(device.configuration, deviceInit.configurations[0]);
+}, 'device configuration is initialized from the active configuration');
+
+usb_test(async () => {
+  const deviceInit = JSON.parse(JSON.stringify(fakeDeviceInit));
+  deviceInit.configurations[0].interfaces[0].alternates[0].endpoints.push({
+    endpointNumber: 0,
+    direction: 'out',
+    type: 'bulk',
+    packetSize: 8
+  });
+  const promise = connectionEventPromise('connect');
+  navigator.usb.test.addFakeDevice(deviceInit);
+  const device = await promise;
+  await device.open();
+  await device.selectConfiguration(1);
+  await device.claimInterface(0);
+  await device.close();
+}, 'claimInterface ignores invalid endpoint numbers');
 
 usb_test(async () => {
   let { device } = await getFakeDevice();
@@ -627,6 +661,154 @@ usb_test(async () => {
   }
   await device.close();
 }, 'can issue all types of OUT control transfers');
+
+usb_test(async (t) => {
+  const transferParams = {
+      requestType: 'vendor',
+      recipient: 'device',
+      request: 0x42,
+      value: 0x1234,
+      index: 0x5678
+  };
+  const statusTests = [
+    ['transfer-error', 'NetworkError'],
+    ['permission-denied', 'SecurityError'],
+    ['timeout', 'TimeoutError'],
+    ['cancelled', 'AbortError'],
+    ['disconnect', 'NotFoundError'],
+  ];
+
+  for (const [transferStatus, errorName] of statusTests) {
+    const {device, fakeDevice} = await getFakeDevice();
+    await device.open();
+    fakeDevice.setNextTransferStatus(transferStatus);
+    await promise_rejects_dom(
+        t, errorName, device.controlTransferIn(transferParams, 8));
+    await device.close();
+  }
+}, 'controlTransferIn rejects on transfer failures');
+
+usb_test(async (t) => {
+  const transferParams = {
+      requestType: 'vendor',
+      recipient: 'device',
+      request: 0x42,
+      value: 0x1234,
+      index: 0x5678
+  };
+
+  let {device, fakeDevice} = await getFakeDevice();
+  await device.open();
+  fakeDevice.setNextTransferStatus('transfer-error');
+  await promise_rejects_dom(
+      t, 'NetworkError', device.controlTransferOut(transferParams));
+  await device.close();
+
+  ({device, fakeDevice} = await getFakeDevice());
+  await device.open();
+  await device.selectConfiguration(1);
+  await device.claimInterface(1);
+  fakeDevice.setNextTransferStatus('transfer-error');
+  await promise_rejects_dom(t, 'NetworkError', device.transferIn(2, 8));
+
+  ({device, fakeDevice} = await getFakeDevice());
+  await device.open();
+  await device.selectConfiguration(1);
+  await device.claimInterface(1);
+  fakeDevice.setNextTransferStatus('transfer-error');
+  await promise_rejects_dom(
+      t, 'NetworkError', device.transferOut(2, new Uint8Array(8)));
+
+  ({device, fakeDevice} = await getFakeDevice());
+  await device.open();
+  await device.selectConfiguration(2);
+  await device.claimInterface(0);
+  await device.selectAlternateInterface(0, 1);
+  fakeDevice.setNextTransferStatus('transfer-error');
+  await promise_rejects_dom(
+      t, 'NetworkError', device.isochronousTransferIn(1, [8]));
+
+  ({device, fakeDevice} = await getFakeDevice());
+  await device.open();
+  await device.selectConfiguration(2);
+  await device.claimInterface(0);
+  await device.selectAlternateInterface(0, 1);
+  fakeDevice.setNextTransferStatus('transfer-error');
+  await promise_rejects_dom(
+      t, 'NetworkError',
+      device.isochronousTransferOut(1, new Uint8Array(8), [8]));
+}, 'transfer methods reject on transfer failures');
+
+usb_test(async () => {
+  const {device, fakeDevice} = await getFakeDevice();
+  const transferParams = {
+      requestType: 'vendor',
+      recipient: 'device',
+      request: 0x42,
+      value: 0x1234,
+      index: 0x5678
+  };
+  await device.open();
+
+  fakeDevice.setNextTransferStatus('stall');
+  let result = await device.controlTransferOut(transferParams);
+  assert_equals(result.status, 'stall');
+
+  fakeDevice.setNextTransferStatus('babble');
+  result = await device.controlTransferIn(transferParams, 8);
+  assert_equals(result.status, 'babble');
+
+  await device.close();
+}, 'control transfers resolve non-fatal transfer statuses');
+
+usb_test(async (t) => {
+  let {device, fakeDevice} = await getFakeDevice();
+  fakeDevice.failNextOperation('open');
+  await promise_rejects_dom(t, 'SecurityError', device.open());
+
+  ({device, fakeDevice} = await getFakeDevice());
+  await device.open();
+  fakeDevice.failNextOperation('selectConfiguration');
+  await promise_rejects_dom(
+      t, 'NetworkError', device.selectConfiguration(1));
+  await device.close();
+
+  ({device, fakeDevice} = await getFakeDevice());
+  await device.open();
+  await device.selectConfiguration(1);
+  fakeDevice.failNextOperation('claimInterface');
+  await promise_rejects_dom(t, 'NetworkError', device.claimInterface(0));
+  await device.close();
+}, 'device state operations reject on device failure');
+
+usb_test(async (t) => {
+  let {device, fakeDevice} = await getFakeDevice();
+  await device.open();
+  await device.selectConfiguration(1);
+  await device.claimInterface(0);
+  fakeDevice.failNextOperation('releaseInterface');
+  await promise_rejects_dom(t, 'NetworkError', device.releaseInterface(0));
+
+  ({device, fakeDevice} = await getFakeDevice());
+  await device.open();
+  await device.selectConfiguration(2);
+  await device.claimInterface(0);
+  fakeDevice.failNextOperation('selectAlternateInterface');
+  await promise_rejects_dom(
+      t, 'NetworkError', device.selectAlternateInterface(0, 1));
+
+  ({device, fakeDevice} = await getFakeDevice());
+  await device.open();
+  await device.selectConfiguration(1);
+  await device.claimInterface(0);
+  fakeDevice.failNextOperation('clearHalt');
+  await promise_rejects_dom(t, 'NetworkError', device.clearHalt('in', 1));
+
+  ({device, fakeDevice} = await getFakeDevice());
+  await device.open();
+  fakeDevice.failNextOperation('reset');
+  await promise_rejects_dom(t, 'NetworkError', device.reset());
+}, 'interface and endpoint operations reject on device failure');
 
 usb_test(async () => {
   let { device } = await getFakeDevice();
@@ -1290,6 +1472,31 @@ usb_test(async (t) => {
   await promise_rejects_dom(
       t, 'DataError', device.isochronousTransferOut(1, buffer, packetLengths));
 }, 'isochronousTransferOut rejects when packet lengths exceed maximum size');
+
+usb_test(async (t) => {
+  const {device} = await getFakeDevice();
+  await device.open();
+  await device.selectConfiguration(2);
+  await device.claimInterface(0);
+  await device.selectAlternateInterface(0, 1);
+  const maxUnsignedLong = 4294967295;
+  const packetLengths = [maxUnsignedLong, 1];
+  await promise_rejects_dom(
+      t, 'DataError', device.isochronousTransferIn(1, packetLengths));
+}, 'isochronousTransferIn rejects when packet lengths overflow');
+
+usb_test(async (t) => {
+  const {device} = await getFakeDevice();
+  await device.open();
+  await device.selectConfiguration(2);
+  await device.claimInterface(0);
+  await device.selectAlternateInterface(0, 1);
+  const maxUnsignedLong = 4294967295;
+  const packetLengths = [maxUnsignedLong, 1];
+  await promise_rejects_dom(
+      t, 'DataError',
+      device.isochronousTransferOut(1, new ArrayBuffer(0), packetLengths));
+}, 'isochronousTransferOut rejects when packet lengths overflow');
 
 usb_test(async (t) => {
   const {device} = await getFakeDevice();

@@ -82,7 +82,7 @@
     await runAndWaitForFrameUpdate(() => {
       const new_style = document.createElement('style');
       new_style.innerText =
-          "::view-transition-group(demo):not(:only-child) { " +
+          "::view-transition-group(demo) { " +
           "  display: flex;" +
           "  outline: 5px solid green;" +
           "}";

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+
+<title>accent-color: currentColor uses the element's current color</title>
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#widget-accent">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  #t1 {
+    color: #261200;
+    accent-color: currentColor;
+  }
+
+  #t2_parent { color: #261200; }
+  #t2 { color: currentColor; accent-color: currentColor; }
+</style>
+
+<div id="t1"></div>
+
+<div id="t2_parent">
+  <div id="t2"></div>
+</div>
+
+<script>
+  test(() => {
+    const style = getComputedStyle(t1);
+    assert_equals(style.accentColor, "rgb(38, 18, 0)");
+  }, "accent-color: currentColor uses the element's current color");
+
+  test(() => {
+    const style = getComputedStyle(t2);
+    assert_equals(style.color, "rgb(38, 18, 0)");
+    assert_equals(style.accentColor, "rgb(38, 18, 0)");
+  }, "accent-color: currentColor when color: currentColor uses the parent element's current color");
+</script>

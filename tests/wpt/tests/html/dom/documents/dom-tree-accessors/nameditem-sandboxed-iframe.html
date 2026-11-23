@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dom.html#dom-document-nameditem">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe id="frame" sandbox="allow-same-origin"
+  srcdoc="<img name=parsed_item><form name=parsed_form></form>"></iframe>
+<iframe id="order_frame" sandbox="allow-same-origin"
+  srcdoc="<img name=zeta><form name=alpha></form><img name=mu><form name=beta></form><iframe name=psi></iframe><img name=gamma><form name=omega></form><img name=delta>"></iframe>
+<script>
+const loaded = new Promise(resolve => window.addEventListener('load', resolve));
+
+// The sandboxed documents never run script themselves, and their named items
+// are added before anything accesses them from script.
+promise_test(async () => {
+  await loaded;
+  const doc = document.getElementById('frame').contentDocument;
+  assert_equals(doc.parsed_item, doc.querySelector('img'));
+  assert_equals(doc.parsed_form, doc.querySelector('form'));
+
+  const img = doc.createElement('img');
+  img.name = 'added_item';
+  doc.body.appendChild(img);
+  assert_equals(doc.added_item, img);
+  img.remove();
+  assert_equals(doc.added_item, undefined);
+}, 'Named items are exposed on a document that does not run script');
+
+promise_test(async () => {
+  await loaded;
+  const doc = document.getElementById('order_frame').contentDocument;
+  const expected =
+      ['zeta', 'alpha', 'mu', 'beta', 'psi', 'gamma', 'omega', 'delta'];
+  const actual = Object.getOwnPropertyNames(doc).filter(
+      name => expected.includes(name));
+  assert_array_equals(actual, expected);
+}, 'Supported property names of a document that does not run script are in ' +
+   'tree order');
+</script>

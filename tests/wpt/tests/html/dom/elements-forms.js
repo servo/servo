@@ -51,6 +51,7 @@ var formElements = {
     size: {type: "limited unsigned long", defaultVal: 20},
     src: "url",
     step: "string",
+    switch: "boolean",
     type: {type: "enum", keywords: ["hidden", "text", "search", "tel",
       "url", "email", "password", "date",
       "time", "datetime-local", "number", "range", "color", "checkbox",

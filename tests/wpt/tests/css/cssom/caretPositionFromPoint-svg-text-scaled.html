@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>SVG text: caretPositionFromPoint picks the right fragment when text is scaled</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view-1/#dom-document-caretpositionfrompoint">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body { margin: 0; }
+svg { display: block; }
+text { font-family: Ahem; font-size: 10px; }
+</style>
+<!-- viewBox scales user units by 4. Ahem has a 0.8em ascent, so each glyph spans [y - 8, y + 2] in user units. -->
+<svg width="400" height="400" viewBox="0 0 100 100">
+  <text id="text" x="10 10" y="20 44">AB</text>
+</svg>
+<script>
+function caretOffsetAt(clientX, clientY) {
+    if (document.caretPositionFromPoint) {
+        const position = document.caretPositionFromPoint(clientX, clientY);
+        return { node: position.offsetNode, offset: position.offset };
+    }
+    const range = document.caretRangeFromPoint(clientX, clientY);
+    return { node: range.startContainer, offset: range.startOffset };
+}
+
+const textNode = document.getElementById("text").firstChild;
+
+promise_test(async () => {
+    await document.fonts.ready;
+    // User-space point (12, 16) lies inside the glyph 'A' (x 10..20, y 12..22).
+    const result = caretOffsetAt(12 * 4, 16 * 4);
+    assert_equals(result.node, textNode, "caret is in the SVG text node");
+    assert_equals(result.offset, 0, "caret is before 'A'");
+}, "Point on the first glyph of a scaled SVG text resolves to that glyph");
+
+promise_test(async () => {
+    await document.fonts.ready;
+    // User-space point (12, 40) lies inside the glyph 'B' (x 10..20, y 36..46).
+    const result = caretOffsetAt(12 * 4, 40 * 4);
+    assert_equals(result.node, textNode, "caret is in the SVG text node");
+    assert_equals(result.offset, 1, "caret is before 'B'");
+}, "Point on the second glyph of a scaled SVG text resolves to that glyph");
+</script>

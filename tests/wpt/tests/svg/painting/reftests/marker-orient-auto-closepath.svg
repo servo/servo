@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml" width="200" height="200">
+  <title>orient="auto" on a mid marker before a closepath uses the closepath segment direction</title>
+  <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/painting.html#OrientAttribute"/>
+  <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/paths.html#PathDataClosePathCommand"/>
+  <html:link rel="match" href="marker-orient-auto-closepath-ref.svg"/>
+  <html:meta name="assert" content="The direction of a closepath segment is from the current point to the initial point of the subpath, so a mid marker at the vertex before it is oriented by that direction."/>
+  <marker id="m" orient="auto" markerUnits="userSpaceOnUse" overflow="visible">
+    <rect x="0" y="-4" width="40" height="8" fill="green"/>
+  </marker>
+  <path d="M 150 150 L 50 150 L 50 50 Z" fill="none" stroke="black" stroke-width="2" marker-mid="url(#m)"/>
+</svg>

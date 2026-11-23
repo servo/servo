@@ -33,6 +33,7 @@
                 var target0 = document.getElementById("target0");
                 var target1 = document.getElementById("target1");
                 var actions_promise;
+                var target1_capture = null;
 
                 on_event(target0, "pointerdown", function (e) {
                     detected_pointertypes[e.pointerType] = true;
@@ -109,15 +110,27 @@
                     });
                 });
 
+                on_event(target1, "pointerdown", test_pointerEvent.step_func(function (e) {
+                    target1_capture = target1.hasPointerCapture(e.pointerId);
+                    if (pointer_type !== "pen") {
+                        // Implicit capture for pen is platform-dependent.
+                        assert_equals(target1_capture, pointer_type === "touch",
+                                      "pointerdown target1.hasPointerCapture should reflect implicit capture");
+                    }
+                }));
+
                 on_event(target1, "pointerup", function (e) {
                     test_pointerEvent.step(function () {
-                        assert_equals(target1.hasPointerCapture(e.pointerId), false,
-                                      "pointerup target1.hasPointerCapture should be false");
+                        assert_equals(target1.hasPointerCapture(e.pointerId), target1_capture,
+                                      "implicit capture should persist during pointerup");
                     });
                     // Make sure the test finishes after all the input actions are completed.
-                    actions_promise.then( () => {
-                        test_pointerEvent.done();
-                    });
+                    actions_promise.then(test_pointerEvent.step_func_done(function () {
+                        assert_false(target0.hasPointerCapture(e.pointerId),
+                                     "target0 should not have capture after the actions complete");
+                        assert_false(target1.hasPointerCapture(e.pointerId),
+                                     "target1 should release capture after pointerup");
+                    }));
                 });
 
                 // Inject mouse inputs.
@@ -134,7 +147,9 @@
                     .pointerMove(0, 0, {origin: target1})
                     .pointerDown()
                     .pointerUp()
-                    .send();
+                    .send().catch(test_pointerEvent.step_func(function (error) {
+                        assert_unreached("Input actions failed: " + error);
+                    }));
             }
         </script>
     </head>

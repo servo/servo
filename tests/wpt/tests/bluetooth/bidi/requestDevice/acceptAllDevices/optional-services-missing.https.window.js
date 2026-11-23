@@ -15,6 +15,6 @@ const expected = new DOMException(
 bluetooth_bidi_test(async () => {
   let {device} =
       await getConnectedHealthThermometerDevice({acceptAllDevices: true});
-  assert_promise_rejects_with_message(
-      device.gatt.getPrimaryServices(), expected);
+  await assert_promise_rejects_with_message(device.gatt.getPrimaryServices(),
+                                            expected);
 }, test_desc);

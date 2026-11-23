@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Test: system cyclic with negative values at or below minus the symbol count</title>
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles-3/#cyclic-system">
+<link rel="match" href="system-cyclic-negative-ref.html">
+<link rel="stylesheet" href="support/test-common.css">
+<style type="text/css">
+  @counter-style a {
+    system: cyclic;
+    symbols: "1" "2" "3";
+    suffix: "";
+  }
+  @counter-style b {
+    system: cyclic;
+    symbols: "1" "2" "3" "4" "5";
+    suffix: "";
+  }
+</style>
+<ol start="-6" style="list-style-type: a">
+  <li><li><li><li><li>
+</ol>
+<ol start="-10" style="list-style-type: b">
+  <li><li><li><li><li>
+</ol>

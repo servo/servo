@@ -15,7 +15,7 @@
 // Content-Length: 18
 // Signature-Input: signature=("unencoded-digest";sf); \
 //                  keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs="; \
-//                  tag="sri"
+//                  tag="ed25519-integrity"
 // Signature: signature=:TUznBT2ikFq6VrtoZeC5znRtZugu1U8OHJWoBkOLDTJA2FglSR34Q \
 //                       Y9j+BwN79PT4H0p8aIosnv4rXSKfIZVDA==:
 //
@@ -38,8 +38,8 @@ generate_fetch_test({},
 const kRequestWithValidSignature = {
   body: `{"hello": "world"}`,
   digest: `sha-256=:X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=:`,
-  signature: `signature=:gHim9e5Pk2H7c9BStOmxSmkyc8+ioZgoxynu3d4INAT4dwfj5LhvaV9DFnEQ9p7C0hzW4o4Qpkm5aApd6WLLCw==:`,
-  signatureInput: `signature=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`
+  signature: `signature=:SbCdPUyjc0IBJjFbVRWs81ucEUcFz87b37nQ63d6kDW+/JvDmET6O5cSdwlddePvlwemLdaWFuY6pQGO+hrkAg==:`,
+  signatureInput: `signature=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="ed25519-integrity"`
 };
 generate_fetch_test(kRequestWithValidSignature,
                     {integrity:"ed25519-???"},
@@ -66,7 +66,7 @@ const kRequestWithInvalidSignature = {
   body: `{"hello": "world"}`,
   digest: `sha-256=:X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=:`,
   signature: `signature=:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==:`,
-  signatureInput: `signature=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`
+  signatureInput: `signature=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="ed25519-integrity"`
 };
 generate_fetch_test(kRequestWithInvalidSignature,
                     {integrity:"ed25519-???"},

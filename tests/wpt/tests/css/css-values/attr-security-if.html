@@ -119,4 +119,18 @@
                 if(style(--condition-val < attr(data-foo type(*))): url(${url});))`,
               'text',
               'none');
+
+    for (const imageSet of ['image-set', '-webkit-image-set']) {
+      // A tainted condition must not select an untainted URL via resolution.
+      for (const attrValue of ['3', '1']) {
+        test_attr('background-image',
+                  `${imageSet}(url(${url}) if(style(--condition-val: attr(data-foo type(*))): 1x; else: 3x), url(${url2}) 2x)`,
+                  attrValue,
+                  'none');
+      }
+      test_attr('background-image',
+                `${imageSet}(url(${url}) if(style(--true): 1x; else: attr(data-foo type(<resolution>))), url(${url2}) 2x)`,
+                '3dppx',
+                `image-set(url("${url}") 1dppx, url("${url2}") 2dppx)`);
+    }
 </script>

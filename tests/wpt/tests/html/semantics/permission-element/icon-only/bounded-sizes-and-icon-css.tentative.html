@@ -1,0 +1,169 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Capability Elements: bounded sizes, symmetric padding, and ::permission-icon CSS constraints in icon-only mode</title>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<style>
+  #icon-margin-test {
+    font-size: 20px;
+  }
+  #icon-margin-test::permission-icon {
+    margin-inline-end: 50px !important;
+    margin-right: 50px !important;
+    margin: 50px !important;
+  }
+  #icon-margin-ref {
+    font-size: 20px;
+  }
+</style>
+
+<div id="static-container">
+  <geolocation id="icon-margin-test" displayhint="icon-only"></geolocation>
+  <geolocation id="icon-margin-ref" displayhint="icon-only"></geolocation>
+</div>
+<div id="container"></div>
+
+<script>
+const container = document.getElementById("container");
+
+for (const tag of ["geolocation", "camera", "microphone"]) {
+  test((t) => {
+    t.add_cleanup(() => { container.innerHTML = ""; });
+
+    const naturalIconOnly = document.createElement(tag);
+    naturalIconOnly.setAttribute("displayhint", "icon-only");
+    naturalIconOnly.style.fontSize = "20px";
+    container.appendChild(naturalIconOnly);
+
+    const naturalNormal = document.createElement(tag);
+    naturalNormal.style.fontSize = "20px";
+    container.appendChild(naturalNormal);
+
+    const iconOnlyRect = naturalIconOnly.getBoundingClientRect();
+    const normalRect = naturalNormal.getBoundingClientRect();
+    assert_greater_than(
+      iconOnlyRect.width,
+      0,
+      `<${tag} displayhint="icon-only"> natural width must be positive`
+    );
+    assert_less_than(
+      iconOnlyRect.width,
+      normalRect.width,
+      `<${tag} displayhint="icon-only"> natural width must be smaller than normal text-bearing width`
+    );
+    assert_equals(
+      getComputedStyle(naturalIconOnly).paddingLeft,
+      "8px",
+      `<${tag} displayhint="icon-only"> default horizontal padding is 8px`
+    );
+
+    // 1. Attempt to shrink width/height to 1px (click-hiding / micro-target attack)
+    const shrunkEl = document.createElement(tag);
+    shrunkEl.setAttribute("displayhint", "icon-only");
+    shrunkEl.style.fontSize = "20px";
+    shrunkEl.style.border = "0px";
+    shrunkEl.style.width = "1px";
+    shrunkEl.style.height = "1px";
+    shrunkEl.style.minWidth = "1px";
+    shrunkEl.style.minHeight = "1px";
+    container.appendChild(shrunkEl);
+
+    const shrunkRect = shrunkEl.getBoundingClientRect();
+    const shrunkStyle = getComputedStyle(shrunkEl);
+    assert_not_equals(shrunkStyle.minWidth, "1px", `<${tag}> min-width lower bound expression overrides 1px`);
+    assert_true(
+      shrunkStyle.minHeight === "20px" || shrunkStyle.minHeight === "calc(20px)",
+      `<${tag}> min-height clamped to 1em (20px)`
+    );
+    assert_greater_than_equal(
+      shrunkRect.height,
+      20,
+      `<${tag} displayhint="icon-only"> height cannot be shrunk below 1em (20px)`
+    );
+    // Notice when explicit width is set without a distinct border, horizontal padding is reset to 0px,
+    // so 1 * fit-content equals the icon width (1.3 * 20px = 26px).
+    assert_approx_equals(
+      shrunkRect.width,
+      26,
+      1.5,
+      `<${tag} displayhint="icon-only"> width: 1px is clamped to at least the icon fit-content width (1.3em = 26px)`
+    );
+
+    // 2. Attempt to expand width/height to 1000px without a distinct border (full-screen clickjacking trap)
+    const expandedEl = document.createElement(tag);
+    expandedEl.setAttribute("displayhint", "icon-only");
+    expandedEl.style.fontSize = "20px";
+    expandedEl.style.border = "0px";
+    expandedEl.style.width = "1000px";
+    expandedEl.style.height = "1000px";
+    expandedEl.style.maxWidth = "1000px";
+    expandedEl.style.maxHeight = "1000px";
+    container.appendChild(expandedEl);
+
+    const expandedRect = expandedEl.getBoundingClientRect();
+    const expandedStyle = getComputedStyle(expandedEl);
+    assert_not_equals(expandedStyle.maxWidth, "1000px", `<${tag}> max-width upper bound expression overrides 1000px`);
+    assert_true(
+      expandedStyle.maxHeight === "60px" || expandedStyle.maxHeight === "calc(60px)",
+      `<${tag}> max-height clamped to 3em (60px)`
+    );
+    assert_approx_equals(
+      expandedRect.height,
+      60,
+      1.5,
+      `<${tag} displayhint="icon-only"> height: 1000px is clamped to 3em (60px)`
+    );
+    assert_approx_equals(
+      expandedRect.width,
+      shrunkRect.width * 3,
+      2.0,
+      `<${tag} displayhint="icon-only"> width: 1000px is clamped to 3x icon fit-content width`
+    );
+    assert_less_than(
+      expandedRect.width,
+      normalRect.width,
+      `<${tag} displayhint="icon-only"> max clamped width must remain smaller than normal text-bearing width`
+    );
+  }, `<${tag} displayhint="icon-only"> enforces [1x, 3x] fit-content width bounds and [1em, 3em] height bounds`);
+
+  test((t) => {
+    t.add_cleanup(() => { container.innerHTML = ""; });
+
+    // Attempt asymmetric and out-of-bounds padding in icon-only mode to push the icon off-center
+    const asymmetricEl = document.createElement(tag);
+    asymmetricEl.setAttribute("displayhint", "icon-only");
+    asymmetricEl.style.fontSize = "20px";
+    asymmetricEl.style.border = "0px";
+    asymmetricEl.style.paddingLeft = "500px";
+    asymmetricEl.style.paddingRight = "2px";
+    asymmetricEl.style.paddingTop = "500px";
+    asymmetricEl.style.paddingBottom = "2px";
+    container.appendChild(asymmetricEl);
+
+    const style = getComputedStyle(asymmetricEl);
+    // Horizontal padding upper bound is 5em (100px); padding-right is forced equal to padding-left.
+    assert_equals(style.paddingLeft, "100px", `<${tag}> padding-left clamped to 5em (100px)`);
+    assert_equals(style.paddingRight, "100px", `<${tag}> padding-right forced equal to padding-left`);
+    // Vertical padding upper bound is 1em (20px); padding-bottom is forced equal to padding-top.
+    assert_equals(style.paddingTop, "20px", `<${tag}> padding-top clamped to 1em (20px)`);
+    assert_equals(style.paddingBottom, "20px", `<${tag}> padding-bottom forced equal to padding-top`);
+  }, `<${tag} displayhint="icon-only"> clamps excessive padding and enforces symmetric padding to keep the icon centered`);
+}
+
+test(() => {
+  const testEl = document.getElementById("icon-margin-test");
+  const refEl = document.getElementById("icon-margin-ref");
+
+  // In normal mode, ::permission-icon allows margin-inline-end up to 3em.
+  // In icon-only mode, UA CSS enforces `margin-inline-end: 0px !important` so author CSS cannot
+  // add trailing whitespace next to the icon.
+  assert_equals(
+    testEl.getBoundingClientRect().width,
+    refEl.getBoundingClientRect().width,
+    "Author ::permission-icon { margin-inline-end: 50px !important } must not affect icon-only element width"
+  );
+}, "::permission-icon margin-inline-end is locked to 0px !important in icon-only mode");
+</script>
+</body>

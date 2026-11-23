@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<title>User activation propagation across a navigation initiated by a cross-origin window</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#apply-the-history-step">
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+  <p>Non-zero-sized body to allow clicks.</p>
+</body>
+
+<script>
+  'use strict';
+
+  let uuid1 = token();
+  let uuid2 = token();
+  let uuid3 = token();
+
+  let origin = get_host_info().HTTP_ORIGIN;
+  let remote_origin = get_host_info().HTTP_REMOTE_ORIGIN;
+
+  let navigator_window =
+        `${remote_origin}/common/dispatcher/remote-executor.html?uuid=${uuid3}`;
+  let navigated_to = `${origin}/common/dispatcher/remote-executor.html?uuid=${uuid2}`;
+
+  promise_test(async test => {
+    // Open a new window that we will navigate away and observe.
+    let w;
+    document.body.onclick = () => {
+      w = window.open(`/common/dispatcher/remote-executor.html?uuid=${uuid1}`);
+    };
+
+    await test_driver.click(document.body);
+    assert_true(!!w, "A window is opened");
+    // Close the window at the end of the test, so that a later test in the same
+    // session cannot click a window this one left behind.
+    test.add_cleanup(() => w && w.close());
+
+    // Check that the new window does not have user activation initially.
+    {
+      const context = new RemoteContext(uuid1);
+      const result = await context.execute_script(getUserActivationState);
+      assertUserActivationState(result, false, false, "after window opened");
+    }
+
+    // Confirm that the new window gets user activation after a click.
+    await test_driver.click(w.document.documentElement);
+    {
+      const context = new RemoteContext(uuid1);
+      const result = await context.execute_script(getUserActivationState);
+      assertUserActivationState(result, true, true, "after window clicked");
+    }
+
+    // Let the window open a cross-origin one, which navigates it away. Both
+    // documents the window shows are same origin with each other, and no
+    // redirect is involved, so only the initiator rules the carry-over out.
+    {
+      const context = new RemoteContext(uuid1);
+      await context.execute_script(url => {
+        window.open(url);
+      }, [navigator_window]);
+    }
+
+    // The window above opened a cross-origin one, which there is no handle for
+    // here, so ask it to close itself at the end of the test. Suspending its
+    // executor first lets it answer this task before it goes away.
+    test.add_cleanup(() => new RemoteContext(uuid3).execute_script(() => {
+      executor.suspend(() => window.close());
+    }));
+    {
+      const context = new RemoteContext(uuid3);
+      await context.execute_script(url => {
+        opener.location = url;
+      }, [navigated_to]);
+    }
+
+    // Confirm that the window does not have user activation.
+    {
+      const context = new RemoteContext(uuid2);
+      const result = await context.execute_script(getUserActivationState);
+      assertUserActivationState(result, false, false,
+            "after window navigated by a cross-origin window");
+    }
+}, "User activation propagation across a navigation initiated by a cross-origin window");
+</script>

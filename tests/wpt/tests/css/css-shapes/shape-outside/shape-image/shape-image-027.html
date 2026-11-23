@@ -12,6 +12,10 @@
                                  + the shape-margin when shape-outside is given a png file.
                                  Additionally, the shape-outside: image element is given a negative
                                  left offset relative to its containing block."/>
+    <script src="/common/reftest-wait.js"></script>
+    <!-- Wait for the shape image using the same CORS mode as shape-outside. -->
+    <link rel="preload" as="image" crossorigin="anonymous"
+          href="support/left-half-rectangle.png" onload="takeScreenshot()">
     <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
     <style type="text/css">
         body {
@@ -66,16 +70,5 @@
     <div class="blue left-line"></div>
     <div class="blue right-line"></div>
     <div class="failure"></div>
-<script>
-// A workaround of an issue of Chromium content_shell.  It finishes a test
-// without waiting layout with images linked from url().  crbug.com/372756068
-window.addEventListener('load', () => {
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      document.documentElement.classList.remove('reftest-wait');
-    });
-  });
-});
-</script>
 </body>
 </html>

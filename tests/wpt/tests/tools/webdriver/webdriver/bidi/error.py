@@ -107,6 +107,10 @@ class NoSuchWebExtensionException(BidiException):
     error_code = "no such web extension"
 
 
+class SessionNotCreatedException(BidiException):
+    error_code = "session not created"
+
+
 class UnableToCaptureScreenException(BidiException):
     error_code = "unable to capture screen"
 

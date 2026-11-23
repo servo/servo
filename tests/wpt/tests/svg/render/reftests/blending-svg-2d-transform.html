@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>'mix-blend-mode' inside an SVG element with a 2D transform</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/compositing-1/#csscompositingrules_SVG">
+<link rel="match" href="blending-svg-root-ref.html">
+<meta name="assert" content="A 2D transform on an SVG element does not create an isolated group, so blending descendants blend with the content behind the 'svg' element.">
+<div style="background: green">
+  <div>Expected: a black square on green background.</div>
+  <svg style="width: 200px; height: 200px">
+    <g transform="translate(10, 0)">
+      <g style="transform: translate(-10px, 0)">
+        <rect width="200" height="200" fill="red" style="mix-blend-mode: multiply"/>
+      </g>
+    </g>
+  </svg>
+</div>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Tables: offsetWidth of a column inside a track spanned by a single cell</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetwidth">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#dimensioning-the-row-column-grid--step2">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+table {
+  border-spacing: 10px;
+}
+td {
+  padding: 0;
+}
+</style>
+
+<table id="cols">
+  <col id="cols-first">
+  <col>
+  <col id="cols-last">
+  <tr>
+    <td colspan="2" id="cols-spanning"><div style="width: 100px; height: 10px"></div></td>
+    <td id="cols-single"><div style="width: 50px; height: 10px"></div></td>
+  </tr>
+</table>
+
+<table id="colgroup">
+  <colgroup id="colgroup-first">
+    <col>
+  </colgroup>
+  <colgroup>
+    <col>
+  </colgroup>
+  <colgroup id="colgroup-last">
+    <col>
+  </colgroup>
+  <tr>
+    <td colspan="2" id="colgroup-spanning"><div style="width: 100px; height: 10px"></div></td>
+    <td id="colgroup-single"><div style="width: 50px; height: 10px"></div></td>
+  </tr>
+</table>
+
+<script>
+function checkColumns(prefix, kind) {
+    const first = document.getElementById(`${prefix}-first`);
+    const last = document.getElementById(`${prefix}-last`);
+    const spanningCell = document.getElementById(`${prefix}-spanning`);
+    const singleCell = document.getElementById(`${prefix}-single`);
+
+    test(() => {
+        assert_less_than_equal(first.offsetWidth, spanningCell.offsetWidth);
+    }, `First ${kind} is not wider than the cell spanning its column`);
+
+    test(() => {
+        assert_less_than_equal(first.offsetLeft + first.offsetWidth, last.offsetLeft);
+    }, `First ${kind} does not overlap the last ${kind}`);
+
+    test(() => {
+        assert_equals(last.offsetWidth, singleCell.offsetWidth);
+    }, `Last ${kind} is as wide as the cell in its column`);
+}
+
+checkColumns("cols", "col");
+checkColumns("colgroup", "colgroup");
+</script>

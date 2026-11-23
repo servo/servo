@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>'mix-blend-mode' inside an &lt;svg&gt; element with 'position: sticky'</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/compositing-1/#csscompositingrules_CSS">
+<link rel="match" href="blending-svg-root-ref.html">
+<meta name="assert" content="'position: sticky' makes the 'svg' element a CSS stacking context, which creates an isolated group, so blending descendants do not blend with the content behind the 'svg' element.">
+<div style="background: green">
+  <div>Expected: a black square on green background.</div>
+  <svg style="width: 200px; height: 200px; position: sticky">
+    <rect width="200" height="200" fill="black" style="mix-blend-mode: difference"/>
+  </svg>
+</div>

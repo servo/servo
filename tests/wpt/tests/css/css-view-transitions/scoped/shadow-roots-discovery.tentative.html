@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>View Transition: shadowRoots participant discovery across styling mechanisms and DOM updates</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  :root {
+    view-transition-name: none;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 300s;
+  }
+  .host {
+    width: 120px;
+    height: 120px;
+    contain: layout;
+  }
+  .slotted-box {
+    width: 40px;
+    height: 40px;
+    background: coral;
+  }
+</style>
+</head>
+<body>
+<div id="sandbox"></div>
+<script>
+const sandbox = document.getElementById("sandbox");
+
+function capturedNames(animRoot = document) {
+  const regexp = /\((?<name>[^)]+)\)/;
+  const names = animRoot.getAnimations()
+      .map(a => a.effect.pseudoElement)
+      .filter(Boolean)
+      .map(p => p.match(regexp)?.groups.name)
+      .filter(Boolean);
+  return [...new Set(names)].sort();
+}
+
+promise_test(async t => {
+  t.add_cleanup(() => { sandbox.replaceChildren(); });
+
+  const host = document.createElement("div");
+  host.className = "host";
+  const slotted = document.createElement("div");
+  slotted.className = "slotted-box";
+  host.appendChild(slotted);
+  sandbox.appendChild(host);
+
+  const sr = host.attachShadow({ mode: "open" });
+  const adopted = new CSSStyleSheet();
+  adopted.replaceSync(`
+    :host {
+      view-transition-name: from-host-selector;
+    }
+    #adopted-el {
+      width: 30px;
+      height: 30px;
+      background: dodgerblue;
+      view-transition-name: from-adopted-sheet;
+    }
+    ::slotted(.slotted-box) {
+      view-transition-name: from-slotted-selector;
+    }
+  `);
+  sr.adoptedStyleSheets = [adopted];
+  sr.innerHTML = `
+    <style>
+      #style-el {
+        width: 30px;
+        height: 30px;
+        background: seagreen;
+        view-transition-name: from-style-tag;
+      }
+    </style>
+    <div id="style-el"></div>
+    <div id="adopted-el"></div>
+    <div id="inline-el" style="width: 30px; height: 30px; background: gold; view-transition-name: from-inline-style;"></div>
+    <slot></slot>
+  `;
+
+  const expected = [
+    "from-adopted-sheet",
+    "from-host-selector",
+    "from-inline-style",
+    "from-slotted-selector",
+    "from-style-tag",
+  ];
+
+  for (const target of [document, host]) {
+    const vt = target.startViewTransition({ shadowRoots: [sr] });
+    t.add_cleanup(() => vt.skipTransition());
+    await vt.ready;
+    assert_array_equals(capturedNames(), expected);
+    vt.skipTransition();
+    await vt.finished.catch(() => {});
+  }
+}, "Discovers participants from <style>, adoptedStyleSheets, inline style, :host, and ::slotted()");
+
+promise_test(async t => {
+  t.add_cleanup(() => { sandbox.replaceChildren(); });
+
+  const outerHost = document.createElement("div");
+  outerHost.className = "host";
+  sandbox.appendChild(outerHost);
+  const sr1 = outerHost.attachShadow({ mode: "open" });
+  sr1.innerHTML = `
+    <style>
+      ::view-transition-group(*),
+      ::view-transition-old(*),
+      ::view-transition-new(*) {
+        animation-duration: 300s;
+      }
+      #inner-scope {
+        width: 100px;
+        height: 100px;
+        contain: layout;
+        view-transition-name: none;
+      }
+      #sr1-child {
+        width: 30px;
+        height: 30px;
+        background: purple;
+        view-transition-name: sr1-item;
+      }
+      #nested-host {
+        width: 50px;
+        height: 50px;
+      }
+    </style>
+    <div id="inner-scope">
+      <div id="sr1-child"></div>
+      <div id="nested-host"></div>
+    </div>
+  `;
+
+  const innerScope = sr1.getElementById("inner-scope");
+  const nestedHost = sr1.getElementById("nested-host");
+  const sr2 = nestedHost.attachShadow({ mode: "closed" });
+  sr2.innerHTML = `
+    <style>
+      #sr2-child {
+        width: 25px;
+        height: 25px;
+        background: orange;
+        view-transition-name: sr2-item;
+      }
+    </style>
+    <div id="sr2-child"></div>
+  `;
+
+  // Without passing sr2, innerScope still automatically includes its own root (sr1).
+  let vt = innerScope.startViewTransition();
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+  assert_array_equals(capturedNames(sr1), ["sr1-item"]);
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+
+  // Passing sr2 adds sr2 alongside innerScope's own root (sr1).
+  vt = innerScope.startViewTransition({ shadowRoots: [sr2] });
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+  assert_array_equals(capturedNames(sr1), ["sr1-item", "sr2-item"]);
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+}, "Element inside ShadowRoot sr1 includes sr1 by default and opts into nested sr2 via shadowRoots");
+
+promise_test(async t => {
+  t.add_cleanup(() => { sandbox.replaceChildren(); });
+
+  // Prepare a disconnected shadow host whose ShadowRoot is passed up front.
+  const enteringHost = document.createElement("div");
+  enteringHost.className = "host";
+  const enteringSR = enteringHost.attachShadow({ mode: "open" });
+  enteringSR.innerHTML = `
+    <style>
+      #entering {
+        width: 40px;
+        height: 40px;
+        background: green;
+        view-transition-name: entering-shadow-el;
+      }
+    </style>
+    <div id="entering"></div>
+  `;
+
+  // Prepare a connected shadow host that will be disconnected in update().
+  const exitingHost = document.createElement("div");
+  exitingHost.className = "host";
+  sandbox.appendChild(exitingHost);
+  const exitingSR = exitingHost.attachShadow({ mode: "open" });
+  exitingSR.innerHTML = `
+    <style>
+      #exiting {
+        width: 40px;
+        height: 40px;
+        background: red;
+        view-transition-name: exiting-shadow-el;
+      }
+    </style>
+    <div id="exiting"></div>
+  `;
+
+  const vt = document.startViewTransition({
+    shadowRoots: [enteringSR, exitingSR],
+    update: () => {
+      exitingHost.remove();
+      sandbox.appendChild(enteringHost);
+    },
+  });
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+
+  const animSummary = document.getAnimations()
+      .map(a => `${a.effect.pseudoElement}:${a.animationName}`)
+      .sort();
+  assert_in_array(
+      "::view-transition-old(exiting-shadow-el):-ua-view-transition-fade-out",
+      animSummary);
+  assert_in_array(
+      "::view-transition-new(entering-shadow-el):-ua-view-transition-fade-in",
+      animSummary);
+  assert_false(
+      animSummary.some(s => s.startsWith("::view-transition-new(exiting-shadow-el):")),
+      "Disconnected shadow host should have no new snapshot");
+  assert_false(
+      animSummary.some(s => s.startsWith("::view-transition-old(entering-shadow-el):")),
+      "Newly connected shadow host should have no old snapshot");
+
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+}, "Shadow hosts connected or disconnected during update() animate entry and exit");
+</script>
+</body>
+</html>

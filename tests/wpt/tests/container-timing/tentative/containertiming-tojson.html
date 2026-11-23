@@ -1,0 +1,59 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Container Timing: Test toJSON serialization</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/container-timing/resources/container-timing-helpers.js"></script>
+<script>
+  promise_test(async (t) => {
+    assert_implements(window.PerformanceContainerTiming,
+                      "PerformanceContainerTiming is not implemented");
+    const root = addContainerRoot(document.body, "p_ct");
+    addText(root);
+    const entries = await getContainerEntries(t);
+    assert_equals(entries.length, 1);
+    const entry = entries[0];
+    entry.my_prop = "my_prop";
+
+    const json = entry.toJSON();
+
+    // Does not include "my_prop", not non-JSON valued attributes
+    // including "rootElement" and "lastPaintedElement"
+    assert_array_equals(Object.keys(json).sort(), [
+      "duration", "entryType", "firstRenderTime", "identifier",
+      "intersectionRect", "name", "navigationId", "paintTime",
+      "presentationTime", "size", "startTime",
+    ]);
+
+    // PerformanceEntry
+    assert_equals(json.name, "");
+    assert_equals(json.entryType, "container");
+    assert_equals(json.startTime, entry.startTime);
+    assert_equals(json.duration, entry.duration);
+    assert_equals(json.navigationId, entry.navigationId);
+
+    // PaintTimingMixin
+    assert_equals(json.paintTime, entry.paintTime);
+    assert_equals(json.presentationTime, entry.presentationTime);
+
+    // PerformanceContainerTiming
+    assert_equals(json.size, entry.size);
+    assert_equals(json.identifier, entry.identifier);
+    assert_equals(json.firstRenderTime, entry.firstRenderTime);
+
+    for (const prop of ["x", "y", "width", "height", "top", "right", "bottom", "left"]) {
+      assert_equals(
+        json.intersectionRect[prop],
+        entry.intersectionRect[prop],
+        `intersectionRect.${prop} should match`,
+      );
+    }
+  }, "PerformanceContainerTiming.toJSON() serializes its data correctly");
+</script>
+</body>

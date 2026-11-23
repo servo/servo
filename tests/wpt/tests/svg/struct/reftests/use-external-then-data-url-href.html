@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Changing a &lt;use> href from an external resource to a data: URL drops the external document</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/struct.html#UseElementHrefAttribute">
+<link rel="match" href="reference/green-100x100.html">
+<svg>
+  <rect width="100" height="100" fill="green"/>
+  <use href="support/red-rect.svg"/>
+</svg>
+<script>
+  const use = document.querySelector("use");
+  use.onload = () => {
+    use.onload = null;
+    use.setAttribute("href", "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='100' height='100' fill='green'/%3E%3C/svg%3E");
+    document.documentElement.offsetTop;
+    document.documentElement.classList.remove("reftest-wait");
+  };
+</script>
+</html>

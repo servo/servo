@@ -237,9 +237,22 @@ test(t => {
     const [doc, win] = makeIframe(t);
     doc.body.append(clone);
     const host2shadow = doc.querySelector('#template-host-2').shadowRoot;
-    assert_equals(host2shadow.querySelector('new-foo').customElementRegistry, win.customElements);
-    assert_equals(host2shadow.querySelector('x-foo').querySelector('new-foo').customElementRegistry, win.customElements);
+    assert_equals(host2shadow.querySelector('new-foo').customElementRegistry, null);
+    assert_equals(host2shadow.querySelector('x-foo').querySelector('new-foo').customElementRegistry, null);
 }, "Global registry element should gain effective global registry of scoped registry from its parent upon adoption.")
+
+test(() => {
+    const doc = document.implementation.createHTMLDocument();
+    const registry = new CustomElementRegistry;
+    registry.initialize(doc);
+    const element1 = doc.createElement('a-b');
+    const element2 = doc.createElement('a-b');
+    assert_equals(element1.customElementRegistry, registry);
+    doc.createElement('div').attachShadow({mode: 'open', customElementRegistry: new CustomElementRegistry}).appendChild(element1);
+    doc.createElement('div').attachShadow({mode: 'open', customElementRegistry: null}).appendChild(element2);
+    assert_equals(element1.customElementRegistry, registry, 'shadow root with a scoped registry');
+    assert_equals(element2.customElementRegistry, registry, 'shadow root with a null registry');
+}, "Inserting an element with its document's scoped registry into a shadow root with another registry does not change the registry")
 </script>
 </body>
 </html>

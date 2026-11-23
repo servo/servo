@@ -17,3 +17,6 @@ def session_established(session):
             stream_id = session.create_bidirectional_stream()
         session.send_stream_data(stream_id, f'stream{i}'.encode(),
                                  end_stream=True)
+    if qs.get(b'marker') == b'1':
+        stream_id = session.create_unidirectional_stream()
+        session.send_stream_data(stream_id, b'marker', end_stream=True)

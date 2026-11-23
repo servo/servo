@@ -1,0 +1,70 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Negative percentage row rule insets at overlapping gaps occlude a target outside a flex container</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#rule-inset">
+<link rel="help" href="https://w3c.github.io/IntersectionObserver/#visibility">
+<meta name="assert" content="A negative percentage junction inset resolves against the full width of overlapping gaps, and the extended row rule occludes a target outside the flex container.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #target {
+    position: absolute;
+    left: 400px;
+    top: 20px;
+    width: 100px;
+    height: 100px;
+    background: blue;
+  }
+  #occluder {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    width: 200px;
+    column-gap: 20px;
+    row-gap: 20px;
+    row-rule: 120px solid black;
+    row-rule-break: intersection;
+    row-rule-inset-junction-end: -500%;
+  }
+  #occluder > div {
+    flex: none;
+    width: 10px;
+    height: 60px;
+  }
+  #occluder > :nth-child(7) { width: 20px; }
+  #occluder > :nth-child(8) { width: 25px; }
+  #occluder > :nth-child(13) { width: 35px; }
+</style>
+<div id="target"></div>
+<div id="occluder">
+  <div></div><div></div><div></div><div></div>
+  <div></div><div></div><div></div>
+  <div></div><div></div><div></div>
+  <div></div><div></div><div></div>
+</div>
+<script>
+promise_test(async t => {
+  const target = document.getElementById("target");
+  const items = document.querySelectorAll("#occluder > div");
+  assert_array_equals(
+    Array.from(items, item => item.getBoundingClientRect().top),
+    [0, 0, 0, 0, 0, 0, 0, 80, 80, 80, 80, 80, 80],
+    "The flex items form two flex lines");
+  assert_array_equals(
+    Array.from(items, item => item.getBoundingClientRect().left),
+    [0, 30, 60, 90, 120, 150, 180, 0, 45, 75, 105, 135, 165],
+    "The column gaps on adjacent flex lines overlap");
+  const entry = await new Promise(resolve => {
+    const observer = new IntersectionObserver(entries => {
+      resolve(entries[entries.length - 1]);
+    }, {trackVisibility: true, delay: 100});
+    t.add_cleanup(() => observer.disconnect());
+    observer.observe(target);
+  });
+  assert_true(entry.isIntersecting, "The target intersects the viewport");
+  assert_false(entry.isVisible, "The extended row rule occludes the target");
+}, "Overlapping gaps with a negative percentage junction inset occlude a target");
+</script>

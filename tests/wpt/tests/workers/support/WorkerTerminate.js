@@ -1,10 +1,7 @@
-onmessage = function(evt)
-{
-    for (var i=0; true; i++)
-    {
-        if (i%1000 == 0)
-        {
-            postMessage(i);
-        }
+onmessage = function(evt) {
+  for (var i = 0; i <= 100000; i++) {
+    if (i % 1000 == 0) {
+      postMessage(i);
     }
+  }
 }

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+  .grid-lanes {
+    font: 10px/1 monospace;
+    display: inline grid-lanes;
+    grid-template-rows: 40px 60px 80px;
+    width: max-content;
+    gap: 4px;
+    fit-tolerance: 0;
+    padding: 7px 5px 3px 1px;
+    border: solid black;
+    border-width: 1px 1px 5px 3px;
+    background: lightgrey;
+  }
+  .before { width: 40px; background: grey; }
+  .after { width: 20px; background: purple; }
+  .subgrid {
+    display: grid;
+    grid-template-rows: subgrid;
+    grid-auto-flow: column;
+    grid-row: auto / span 2;
+    gap: 4px;
+    background: yellow;
+  }
+  .first {
+    width: 13px;
+    border: solid black;
+    border-width: 1px 1px 5px 3px;
+    margin: 3px 5px 1px 7px;
+    background: green;
+  }
+  .second { width: 29px; background: blue; }
+  .third { width: 19px; background: orange; }
+</style>
+<div class="grid-lanes">
+  <div class="before">1</div>
+  <div class="subgrid">
+    <div class="first">2</div>
+    <div class="second">3</div>
+    <div class="third">4</div>
+  </div>
+  <div class="after">5</div>
+  <div class="after">6</div>
+  <div class="after">7</div>
+  <div class="after">8</div>
+</div>

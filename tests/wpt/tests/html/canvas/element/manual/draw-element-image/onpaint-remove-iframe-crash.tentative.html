@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>Removing an iframe from inside a canvas paint event should not crash</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<body>
+<script>
+  const iframe = document.createElement('iframe');
+  iframe.srcdoc = `
+    <!DOCTYPE html>
+    <canvas id="canvas" width="200" height="200" content="drawable">
+      <form id="form" drawable>
+        <label for="name">name:</label>
+        <input id="name">
+      </form>
+    </canvas>
+  `;
+  iframe.onload = () => {
+    const childDoc = iframe.contentDocument;
+    const canvas = childDoc.getElementById('canvas');
+    const form = childDoc.getElementById('form');
+    const ctx = canvas.getContext('2d');
+    let count = 0;
+    canvas.onpaint = () => {
+      ctx.reset();
+      ctx.drawElementImage(form, 0, 0);
+      if (++count === 1) {
+        canvas.requestPaint();
+      } else {
+        iframe.remove();
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            document.documentElement.classList.remove('test-wait');
+          });
+        });
+      }
+    };
+    canvas.requestPaint();
+  };
+  document.body.appendChild(iframe);
+</script>
+</body>
+</html>

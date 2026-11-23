@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Scoped view transition: scope background stays stable while descendant group escapes under ancestor overflow clip</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/#scoped-view-transition-layout">
+<link rel="match" href="scope-background-stable-under-ancestor-clip-ref.html">
+<meta name="assert" content="During a scoped view transition, the scope element's own border box and background remain stable at their layout size while a descendant with view-transition-name moves outside the scope; the escaping transition group is clipped by the first ancestor with overflow:hidden.">
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  body { margin: 0; }
+  #ancestor {
+    position: relative;
+    width: 240px;
+    height: 240px;
+    overflow: hidden;
+    background: #ccc;
+  }
+  #scope {
+    position: absolute;
+    left: 20px;
+    top: 20px;
+    width: 200px;
+    height: 200px;
+    background: #123;
+    view-transition-name: none;
+  }
+  #target {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80px;
+    height: 80px;
+    background: #0d0;
+    view-transition-name: target;
+  }
+  #target.after {
+    left: 300px;
+  }
+
+  #scope::view-transition-group(target) {
+    animation-duration: 100000s;
+    animation-delay: -50000s;
+    animation-timing-function: linear;
+  }
+  #scope::view-transition-new(target) {
+    animation: unset;
+    opacity: 1;
+  }
+  #scope::view-transition-old(target) {
+    animation: unset;
+    opacity: 0;
+  }
+</style>
+<div id="ancestor">
+  <div id="scope">
+    <div id="target"></div>
+  </div>
+</div>
+<script>
+  const scope = document.getElementById('scope');
+  const target = document.getElementById('target');
+  failIfNot(scope.startViewTransition,
+            'Missing Element.startViewTransition');
+
+  async function runTest() {
+    await waitForCompositorReady();
+    const vt = scope.startViewTransition(
+        () => target.classList.add('after'));
+    await vt.ready;
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+  }
+  onload = runTest;
+</script>
+</html>

@@ -1,0 +1,55 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>A zoomed iframe scrolls exactly as far as its document's content</title>
+<link rel="help" href="https://drafts.csswg.org/css-viewport/#zoom-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/iframe-zoom.js"></script>
+<style>
+  body { margin: 0; }
+  iframe { border: 0; }
+</style>
+<body>
+<script>
+function loadScrollingIframe(test, zoom, contentHeight) {
+  return loadIframe({
+    srcdoc: `<!doctype html><style>html, body { margin: 0; }</style><div style="height: ${contentHeight}px"></div>`,
+    style: `width: 256px; height: 128px; zoom: ${zoom}`,
+    test,
+  });
+}
+
+promise_test(async t => {
+  const iframe = await loadScrollingIframe(t, 0.5, 32);
+  assert_equals(iframe.contentDocument.documentElement.clientWidth, 256, "no vertical scrollbar");
+  assert_equals(iframe.contentDocument.documentElement.clientHeight, 128, "no horizontal scrollbar");
+  iframe.contentWindow.scrollTo(100000, 100000);
+  assert_equals(iframe.contentWindow.scrollX, 0, "scrollX");
+  assert_equals(iframe.contentWindow.scrollY, 0, "scrollY");
+}, "Content that fits does not scroll at zoom 0.5");
+
+promise_test(async t => {
+  const iframe = await loadScrollingIframe(t, 2, 32);
+  assert_equals(iframe.contentDocument.documentElement.clientWidth, 256, "no vertical scrollbar");
+  assert_equals(iframe.contentDocument.documentElement.clientHeight, 128, "no horizontal scrollbar");
+  iframe.contentWindow.scrollTo(100000, 100000);
+  assert_equals(iframe.contentWindow.scrollX, 0, "scrollX");
+  assert_equals(iframe.contentWindow.scrollY, 0, "scrollY");
+}, "Content that fits does not scroll at zoom 2");
+
+promise_test(async t => {
+  const iframe = await loadScrollingIframe(t, 0.5, 1024);
+  iframe.contentWindow.scrollTo(100000, 100000);
+  await nextFrame();
+  assert_equals(iframe.contentWindow.scrollX, 0, "scrollX");
+  assert_approx_equals(iframe.contentWindow.scrollY, 1024 - iframe.contentWindow.innerHeight, 1, "scrollY at the bottom");
+}, "Tall content scrolls exactly to its bottom at zoom 0.5");
+
+promise_test(async t => {
+  const iframe = await loadScrollingIframe(t, 2, 1024);
+  iframe.contentWindow.scrollTo(100000, 100000);
+  await nextFrame();
+  assert_equals(iframe.contentWindow.scrollX, 0, "scrollX");
+  assert_approx_equals(iframe.contentWindow.scrollY, 1024 - iframe.contentWindow.innerHeight, 1, "scrollY at the bottom");
+}, "Tall content scrolls exactly to its bottom at zoom 2");
+</script>

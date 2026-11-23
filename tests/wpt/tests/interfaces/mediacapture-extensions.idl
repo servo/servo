@@ -16,14 +16,6 @@ enum GetUserMediaSemantics {
   "user-chooses"
 };
 
-[Exposed=(Window,DedicatedWorker), Transferable]
-partial interface MediaStreamTrack {
-};
-
-[Exposed=(Window,DedicatedWorker)]
-partial interface OverconstrainedError {
-};
-
 partial interface MediaStreamTrack {
   [SameObject] readonly attribute
       (MediaStreamTrackAudioStats or MediaStreamTrackVideoStats)? stats;

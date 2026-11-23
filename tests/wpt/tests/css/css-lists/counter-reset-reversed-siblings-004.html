@@ -1,0 +1,41 @@
+<!doctype html>
+<title>CSS Lists: nested counter-reset: reversed() followed by siblings</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists/#counter-reset">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#inheriting-counters">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#instantiating-counters">
+<link rel="author" title="Minseong Kim" href="mailto:jja08111@gmail.com">
+<link rel="match" href="counter-reset-reversed-siblings-004-ref.html">
+<meta name="assert" content="A nested reversed() counter is inherited by the following siblings of its element, so the outer reversed() counter does not count their increments.">
+<style>
+.counter-use::before {
+  content: counters(foo, ".");
+}
+ol[reversed] {
+  counter-reset: reversed(foo);
+}
+li {
+  display: block;
+  counter-increment: foo -1;
+}
+</style>
+<div style="counter-reset: reversed(foo)">
+  <div style="counter-reset: reversed(foo)">
+    <div class="counter-use" style="counter-increment: foo -1"></div>
+  </div>
+  <div class="counter-use" style="counter-increment: foo -2"></div>
+</div>
+<ol reversed>
+  <ol reversed>
+    <li class="counter-use"></li>
+    <li class="counter-use"></li>
+  </ol>
+  <li class="counter-use"></li>
+  <li class="counter-use"></li>
+</ol>
+<ol reversed>
+  <li class="counter-use"></li>
+  <ol reversed>
+    <li class="counter-use"></li>
+  </ol>
+  <li class="counter-use"></li>
+</ol>

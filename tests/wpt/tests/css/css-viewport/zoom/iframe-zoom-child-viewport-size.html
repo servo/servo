@@ -1,0 +1,75 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>A zoomed iframe's document sees the iframe's specified size as its viewport</title>
+<link rel="help" href="https://drafts.csswg.org/css-viewport/#zoom-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/iframe-zoom.js"></script>
+<style>
+  body { margin: 0; }
+  iframe { border: 0; }
+</style>
+<body>
+<script>
+const viewportHtml = `<!doctype html>
+<style>
+  html, body { margin: 0; }
+  #fill { height: 16px; }
+  #vw { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; }
+</style>
+<div id="fill"></div>
+<div id="vw"></div>`;
+
+function loadViewportIframe(test, zoom) {
+  return loadIframe({ srcdoc: viewportHtml, style: `width: 256px; height: 128px; zoom: ${zoom}`, test });
+}
+
+promise_test(async t => {
+  const iframe = await loadViewportIframe(t, 0.5);
+  const doc = iframe.contentDocument;
+  assert_equals(doc.documentElement.clientWidth, 256, "clientWidth");
+  assert_equals(doc.documentElement.clientHeight, 128, "clientHeight");
+  assert_equals(iframe.contentWindow.innerWidth, 256, "innerWidth");
+  assert_equals(iframe.contentWindow.innerHeight, 128, "innerHeight");
+  assert_equals(doc.getElementById("fill").offsetWidth, 256, "width: 100%");
+  assert_equals(doc.getElementById("vw").offsetWidth, 256, "width: 100vw");
+  assert_equals(doc.getElementById("vw").offsetHeight, 128, "height: 100vh");
+}, "Viewport sizes, percentages and viewport units agree at zoom 0.5");
+
+promise_test(async t => {
+  const iframe = await loadViewportIframe(t, 2);
+  const doc = iframe.contentDocument;
+  assert_equals(doc.documentElement.clientWidth, 256, "clientWidth");
+  assert_equals(doc.documentElement.clientHeight, 128, "clientHeight");
+  assert_equals(iframe.contentWindow.innerWidth, 256, "innerWidth");
+  assert_equals(iframe.contentWindow.innerHeight, 128, "innerHeight");
+  assert_equals(doc.getElementById("fill").offsetWidth, 256, "width: 100%");
+  assert_equals(doc.getElementById("vw").offsetWidth, 256, "width: 100vw");
+  assert_equals(doc.getElementById("vw").offsetHeight, 128, "height: 100vh");
+}, "Viewport sizes, percentages and viewport units agree at zoom 2");
+
+promise_test(async t => {
+  const iframe = await loadViewportIframe(t, 0.5);
+  assert_true(iframe.contentWindow.matchMedia("(width: 256px)").matches, "(width: 256px)");
+  assert_true(iframe.contentWindow.matchMedia("(height: 128px)").matches, "(height: 128px)");
+}, "Media queries match the iframe's specified size at zoom 0.5");
+
+promise_test(async t => {
+  const iframe = await loadViewportIframe(t, 2);
+  assert_true(iframe.contentWindow.matchMedia("(width: 256px)").matches, "(width: 256px)");
+  assert_true(iframe.contentWindow.matchMedia("(height: 128px)").matches, "(height: 128px)");
+}, "Media queries match the iframe's specified size at zoom 2");
+
+promise_test(async t => {
+  const blankHtml = "<!doctype html><style>html, body { margin: 0; }</style><body>";
+  const outer = await loadIframe({ srcdoc: blankHtml, style: "width: 256px; height: 128px; zoom: 2", test: t });
+  const middle = await loadIframe({ srcdoc: blankHtml, style: "display: block; border: 0; width: 128px; height: 64px; zoom: 0.5", container: outer.contentDocument.body });
+  const inner = await loadIframe({ srcdoc: blankHtml, style: "display: block; border: 0; width: 64px; height: 32px; zoom: 2", container: middle.contentDocument.body });
+  assert_equals(outer.contentDocument.documentElement.clientWidth, 256, "outer clientWidth");
+  assert_equals(outer.contentDocument.documentElement.clientHeight, 128, "outer clientHeight");
+  assert_equals(middle.contentDocument.documentElement.clientWidth, 128, "middle clientWidth");
+  assert_equals(middle.contentDocument.documentElement.clientHeight, 64, "middle clientHeight");
+  assert_equals(inner.contentDocument.documentElement.clientWidth, 64, "inner clientWidth");
+  assert_equals(inner.contentDocument.documentElement.clientHeight, 32, "inner clientHeight");
+}, "Each of three nested zoomed iframes sees its own specified size");
+</script>

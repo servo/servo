@@ -34,18 +34,22 @@ promise_test(async t => {
   const message1 = await awaitMessage(offerDatachannel1);
   assert_equals(message1, 'hello');
 
-  // Renegotiate with PC 2
+  // Renegotiate with PC 2. This is a handover to a peer with a different
+  // certificate (fingerprint), which per RFC 9429 section 5.11 is only allowed
+  // as part of an ICE restart.
   // Note - ICE candidates will also be sent to answerPc1, but that shouldn't matter.
   exchangeIceCandidates(offerPc, answerPcSecond);
-  const offer2 = await offerPc.createOffer();
+  const offer2 = await offerPc.createOffer({iceRestart: true});
   await offerPc.setLocalDescription(offer2);
   await answerPcSecond.setRemoteDescription(offer2);
   const answer2 = await answerPcSecond.createAnswer();
   await offerPc.setRemoteDescription(answer2);
   await answerPcSecond.setLocalDescription(answer2);
 
-  // Kill the first PC. This should not affect anything, but leaving it may cause untoward events.
-  answerPcFirst.close();
+  // Deliberately leave answerPcFirst open. Closing it aborts its (old) DTLS
+  // association, but during the handover the offerer keeps that old association
+  // alive briefly to catch stragglers; catching an ABORT there would disrupt the
+  // handover. (t.add_cleanup closes it at the end of the test.)
 
   const answerDataChannel2 = answerPcSecond.createDataChannel('second back');
 

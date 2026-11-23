@@ -21,6 +21,7 @@ test(function() {
     CSS.registerProperty({name: '--name1', inherits: false});
     CSS.registerProperty({name: '--name2, no need for escapes', inherits: false});
     CSS.registerProperty({name: ['--name', 3], inherits: false});
+    CSS.registerProperty({name: '--name4'});
 
     // Invalid property names
     assert_throws_js(TypeError, () => CSS.registerProperty({}));
@@ -32,9 +33,8 @@ test(function() {
 test(function() {
     CSS.registerProperty({name: '--syntax-test-1', syntax: '*', inherits: false});
     CSS.registerProperty({name: '--syntax-test-2', syntax: ' * ', inherits: false});
-    assert_throws_dom("SyntaxError",
-        () => CSS.registerProperty({name: '--syntax-test-3', syntax: 'length', inherits: false}));
-}, "registerProperty only allows omitting initialValue if syntax is '*'");
+    CSS.registerProperty({name: '--syntax-test-3', syntax: '<length>', inherits: false});
+}, "registerProperty allows omitting initialValue for any syntax");
 
 test(function() {
     CSS.registerProperty({name: '--re-register', syntax: '<length>', initialValue: '0px', inherits: false});
@@ -45,8 +45,32 @@ test(function() {
 test(function(){
     CSS.registerProperty({name: '--inherit-test-1', syntax: '<length>', initialValue: '0px', inherits: true});
     CSS.registerProperty({name: '--inherit-test-2', syntax: '<length>', initialValue: '0px', inherits: false});
-    assert_throws_js(TypeError, () => CSS.registerProperty({name: '--inherit-test-3', syntax: '<length>', initialValue: '0px'}));
-}, "registerProperty requires inherits");
+    CSS.registerProperty({name: '--inherit-test-3', syntax: '<length>'});
+
+    try {
+        target.style.setProperty('--inherit-test-3', '10px');
+        const child = document.createElement('div');
+        target.append(child);
+        assert_equals(getComputedStyle(child).getPropertyValue('--inherit-test-3'), '10px');
+    } finally {
+        target.replaceChildren();
+        target.style = '';
+    }
+}, "registerProperty defaults inherits to true");
+
+test(function(){
+    try {
+        CSS.registerProperty({
+            name: '--initial-test',
+            syntax: '<length>',
+            inherits: false
+        });
+        target.style = '--initial-test: red; width: var(--initial-test, 10px)';
+        assert_equals(getComputedStyle(target).width, '10px');
+    } finally {
+        target.style = '';
+    }
+}, "registerProperty defaults initialValue to guaranteed-invalid");
 
 test(function(){
     try {

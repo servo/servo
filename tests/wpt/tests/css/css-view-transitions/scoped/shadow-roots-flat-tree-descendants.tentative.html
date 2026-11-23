@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>View Transition: shadowRoots flat-tree inclusive descendant scoping</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  :root {
+    view-transition-name: none;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 300s;
+  }
+  .scope-box {
+    width: 100px;
+    height: 100px;
+    contain: layout;
+    view-transition-name: none;
+  }
+</style>
+</head>
+<body>
+<div id="sandbox"></div>
+<script>
+const sandbox = document.getElementById("sandbox");
+
+function capturedNames(animRoot = document) {
+  const regexp = /\((?<name>[^)]+)\)/;
+  const names = animRoot.getAnimations()
+      .map(a => a.effect.pseudoElement)
+      .filter(Boolean)
+      .map(p => p.match(regexp)?.groups.name)
+      .filter(Boolean);
+  return [...new Set(names)].sort();
+}
+
+promise_test(async t => {
+  t.add_cleanup(() => { sandbox.replaceChildren(); });
+
+  const scope1 = document.createElement("div");
+  scope1.className = "scope-box";
+  scope1.innerHTML = `<div style="width: 30px; height: 30px; view-transition-name: in-scope;"></div>`;
+  sandbox.appendChild(scope1);
+
+  // Sibling ShadowRoot in same document.
+  const siblingHost = document.createElement("div");
+  siblingHost.className = "scope-box";
+  sandbox.appendChild(siblingHost);
+  const siblingSR = siblingHost.attachShadow({ mode: "open" });
+  siblingSR.innerHTML = `<div style="width: 30px; height: 30px; view-transition-name: sibling-sr-name;"></div>`;
+
+  // Disconnected ShadowRoot.
+  const disconnectedHost = document.createElement("div");
+  const disconnectedSR = disconnectedHost.attachShadow({ mode: "open" });
+  disconnectedSR.innerHTML = `<div style="width: 30px; height: 30px; view-transition-name: disconnected-sr-name;"></div>`;
+
+  // Detached HTMLDocument ShadowRoot.
+  const detachedDoc = document.implementation.createHTMLDocument("other");
+  const detachedDocHost = detachedDoc.createElement("div");
+  detachedDoc.body.appendChild(detachedDocHost);
+  const detachedDocSR = detachedDocHost.attachShadow({ mode: "open" });
+  detachedDocSR.innerHTML = `<div style="width: 30px; height: 30px; view-transition-name: detached-doc-sr-name;"></div>`;
+
+  // Cross-document iframe ShadowRoot.
+  const iframe = document.createElement("iframe");
+  sandbox.appendChild(iframe);
+  const iframeHost = iframe.contentDocument.createElement("div");
+  iframe.contentDocument.body.appendChild(iframeHost);
+  const iframeSR = iframeHost.attachShadow({ mode: "open" });
+  iframeSR.innerHTML = `<div style="width: 30px; height: 30px; view-transition-name: iframe-sr-name;"></div>`;
+
+  const docVt = document.startViewTransition({
+    shadowRoots: [disconnectedSR, detachedDocSR, iframeSR],
+  });
+  t.add_cleanup(() => docVt.skipTransition());
+  await docVt.ready;
+  assert_array_equals(capturedNames(), ["in-scope"]);
+  docVt.skipTransition();
+  await docVt.finished.catch(() => {});
+
+  const scopedVt = scope1.startViewTransition({
+    shadowRoots: [siblingSR, disconnectedSR, detachedDocSR, iframeSR],
+  });
+  t.add_cleanup(() => scopedVt.skipTransition());
+  await scopedVt.ready;
+  assert_array_equals(capturedNames(), ["in-scope"]);
+  scopedVt.skipTransition();
+  await scopedVt.finished.catch(() => {});
+}, "Sibling, disconnected, and cross-document ShadowRoots do not throw and their non-descendant elements are ignored");
+
+promise_test(async t => {
+  t.add_cleanup(() => { sandbox.replaceChildren(); });
+
+  const outerHost = document.createElement("div");
+  outerHost.className = "scope-box";
+  sandbox.appendChild(outerHost);
+  const outerSR = outerHost.attachShadow({ mode: "open" });
+  outerSR.innerHTML = `
+    <style>
+      ::view-transition-group(*),
+      ::view-transition-old(*),
+      ::view-transition-new(*) {
+        animation-duration: 300s;
+      }
+      #ancestor-box {
+        width: 80px;
+        height: 80px;
+        view-transition-name: outer-ancestor;
+      }
+      #sibling-box {
+        width: 20px;
+        height: 20px;
+        view-transition-name: outer-sibling;
+      }
+      #inner-scope {
+        width: 50px;
+        height: 50px;
+        contain: layout;
+        view-transition-name: none;
+      }
+      #inner-child {
+        width: 20px;
+        height: 20px;
+        view-transition-name: inner-descendant;
+      }
+    </style>
+    <div id="ancestor-box">
+      <div id="sibling-box"></div>
+      <div id="inner-scope">
+        <div id="inner-child"></div>
+      </div>
+    </div>
+  `;
+
+  const innerScope = outerSR.getElementById("inner-scope");
+  const vt = innerScope.startViewTransition({ shadowRoots: [outerSR] });
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+  assert_array_equals(capturedNames(outerSR), ["inner-descendant"]);
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+}, "Ancestor ShadowRoot in shadowRoots does not capture shadow ancestors or siblings outside transitionRoot");
+
+promise_test(async t => {
+  t.add_cleanup(() => { sandbox.replaceChildren(); });
+
+  const host = document.createElement("div");
+  host.className = "scope-box";
+  sandbox.appendChild(host);
+
+  const hostSR = host.attachShadow({ mode: "open" });
+  hostSR.innerHTML = `
+    <div style="position: relative; width: 90px; height: 90px; view-transition-name: shadow-wrapper;">
+      <slot name="active"></slot>
+      <div style="width: 20px; height: 20px; view-transition-name: shadow-sibling;"></div>
+    </div>
+  `;
+
+  const slottedScope = document.createElement("div");
+  slottedScope.slot = "active";
+  slottedScope.className = "scope-box";
+  slottedScope.innerHTML = `
+    <div style="width: 25px; height: 25px; view-transition-name: slotted-child;"></div>
+    <div id="nested-host" style="width: 25px; height: 25px;"></div>
+  `;
+  host.appendChild(slottedScope);
+
+  // Unslotted light-DOM child has no assigned slot and is not in the flat tree.
+  const unslotted = document.createElement("div");
+  unslotted.style.cssText = "width: 25px; height: 25px; view-transition-name: unslotted-child;";
+  host.appendChild(unslotted);
+
+  const nestedHost = slottedScope.querySelector("#nested-host");
+  const nestedSR = nestedHost.attachShadow({ mode: "open" });
+  nestedSR.innerHTML = `<div style="width: 15px; height: 15px; view-transition-name: nested-shadow-child;"></div>`;
+
+  // Scoped transition on slottedScope ignores hostSR's wrapper/sibling and unslotted light DOM.
+  let vt = slottedScope.startViewTransition({ shadowRoots: [hostSR, nestedSR] });
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+  assert_array_equals(capturedNames(), ["nested-shadow-child", "slotted-child"]);
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+
+  // Document transition with hostSR and nestedSR still skips unslotted light-DOM child.
+  vt = document.startViewTransition({ shadowRoots: [hostSR, nestedSR] });
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+  assert_array_equals(capturedNames(), [
+    "nested-shadow-child",
+    "shadow-sibling",
+    "shadow-wrapper",
+    "slotted-child",
+  ]);
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+}, "Slotted transitionRoot ignores shadow ancestors/siblings and unslotted light-DOM children are skipped");
+
+promise_test(async t => {
+  t.add_cleanup(() => { sandbox.replaceChildren(); });
+
+  const outerHost = document.createElement("div");
+  outerHost.className = "scope-box";
+  sandbox.appendChild(outerHost);
+  const outerSR = outerHost.attachShadow({ mode: "open" });
+  outerSR.innerHTML = `
+    <div style="width: 40px; height: 40px; view-transition-name: outer-name;"></div>
+    <div id="inner-host" style="width: 40px; height: 40px;"></div>
+  `;
+
+  const innerHost = outerSR.getElementById("inner-host");
+  const innerSR = innerHost.attachShadow({ mode: "open" });
+  innerSR.innerHTML = `
+    <div style="width: 20px; height: 20px; view-transition-name: inner-name;"></div>
+  `;
+
+  // Only outerSR opted in.
+  let vt = document.startViewTransition({ shadowRoots: [outerSR] });
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+  assert_array_equals(capturedNames(), ["outer-name"]);
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+
+  // Only innerSR opted in (skipping outerSR).
+  vt = document.startViewTransition({ shadowRoots: [innerSR] });
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+  assert_array_equals(capturedNames(), ["inner-name"]);
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+
+  // Both outerSR and innerSR opted in.
+  vt = document.startViewTransition({ shadowRoots: [outerSR, innerSR] });
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+  assert_array_equals(capturedNames(), ["inner-name", "outer-name"]);
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+}, "Nested ShadowRoots participate independently based on explicit membership in shadowRoots");
+</script>
+</body>
+</html>

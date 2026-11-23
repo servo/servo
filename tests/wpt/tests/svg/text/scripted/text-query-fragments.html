@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SVGTextContentElement queries on text split into fragments</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#__svg__SVGTextContentElement__getSubStringLength">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#__svg__SVGTextContentElement__getCharNumAtPosition">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextLayoutPath">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.shaped {
+    font: 40px serif;
+    white-space: pre;
+}
+</style>
+</head>
+<body>
+<div class="shaped"><span id="span">text</span></div>
+<svg width="800" height="400">
+    <path id="curve" d="M 50 300 C 200 50 600 50 750 300" fill="none"/>
+    <text id="positioned" class="shaped" x="10 100 200 300" y="50">text</text>
+    <text class="shaped"><textPath id="onPath" href="#curve">curved text</textPath></text>
+</svg>
+<script>
+test(() => {
+    // Each character starts a new fragment.
+    const range = document.createRange();
+    for (let index = 0; index < 4; ++index) {
+        range.setStart(span.firstChild, index);
+        range.setEnd(span.firstChild, index + 1);
+        // Range rectangles are snapped to whole pixels.
+        assert_approx_equals(positioned.getSubStringLength(index, 1), range.getBoundingClientRect().width, 2, `getSubStringLength(${index}, 1)`);
+    }
+    assert_approx_equals(positioned.getSubStringLength(1, 2), positioned.getSubStringLength(1, 1) + positioned.getSubStringLength(2, 1), 0.01, "getSubStringLength(1, 2)");
+}, "getSubStringLength() on characters positioned one by one");
+
+test(() => {
+    // "point in this element's coordinate system is within the glyph cell for the typographic character"
+    // The last character is not tested until the spec's loop ("While charnum < last") includes it.
+    for (let index = 0; index < onPath.getNumberOfChars() - 1; ++index) {
+        const start = onPath.getStartPositionOfChar(index);
+        const end = onPath.getEndPositionOfChar(index);
+        const extent = onPath.getExtentOfChar(index);
+        // The middle of the baseline segment of the glyph, moved a little towards the middle of its glyph cell.
+        const point = new DOMPoint((start.x + end.x) / 2, (start.y + end.y) / 2);
+        const towardsCenter = { x: extent.x + extent.width / 2 - point.x, y: extent.y + extent.height / 2 - point.y };
+        const distance = Math.hypot(towardsCenter.x, towardsCenter.y) || 1;
+        point.x += towardsCenter.x / distance * 2;
+        point.y += towardsCenter.y / distance * 2;
+        assert_equals(onPath.getCharNumAtPosition(point), index, `character ${index}`);
+    }
+}, "getCharNumAtPosition() on text on a curved path");
+</script>
+</body>
+</html>

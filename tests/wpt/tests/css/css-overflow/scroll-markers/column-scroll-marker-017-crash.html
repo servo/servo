@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Scrollable multicol with snap areas in ::scroll-marker, reducing column count</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-property">
+<link rel="help" href="https://issues.chromium.org/issues/584828291">
+<style>
+  :root {
+    scroll-snap-type: y mandatory;
+  }
+  .carousel {
+    columns: 2;
+    column-fill: auto;
+    height: 100px;
+    overflow: scroll;
+    scroll-marker-group: before;
+
+    &::column::scroll-marker {
+      display: block;
+      content: "x";
+      scroll-snap-align: center;
+    }
+  }
+</style>
+<div class="carousel">
+  <div id="child" style="height:110px;"></div>
+</div>
+<script>
+  document.body.offsetTop;
+  child.style.height = "50px";
+</script>

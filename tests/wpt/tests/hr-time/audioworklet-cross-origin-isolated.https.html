@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>High Resolution Time in cross-origin isolated AudioWorklet</title>
+<link rel="help" href="https://w3c.github.io/hr-time/#sec-workletperformance">
+<link rel="help" href="https://w3c.github.io/hr-time/#dfn-coarsen-time">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  assert_true(self.crossOriginIsolated, 'Document must be COI');
+  const context = new AudioContext();
+  t.add_cleanup(() => context.close());
+
+  await context.audioWorklet.addModule('resources/audioworklet-processor.js');
+  const node = new AudioWorkletNode(context, 'hr-time-processor');
+
+  const result = await new Promise((resolve, reject) => {
+    node.port.onmessage = event => {
+      if (event.data?.error) {
+        reject(new Error(event.data.error));
+      } else {
+        resolve(event.data);
+      }
+    };
+    node.port.postMessage({id: 1, command: 'resolution'});
+  });
+
+  assert_true(result.hasNow, 'performance.now() is exposed');
+  assert_true(
+      Number.isFinite(result.minPositiveDeltaMs),
+      'Observed at least one positive performance.now() delta');
+  // Floating-point slack; same value as webtiming-resolution.any.js.
+  const epsilon = 1e-5;
+  assert_greater_than_equal(
+      result.minPositiveDeltaMs, 0.005 - epsilon,
+      'Minimum resolution is at least 5 microseconds');
+}, 'AudioWorkletGlobalScope performance.now() enforces >= 5us COI resolution');
+</script>

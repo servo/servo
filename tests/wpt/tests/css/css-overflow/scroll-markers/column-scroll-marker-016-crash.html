@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Out-of-flow multicol scrollable multicol with ::scroll-marker-group reducing column count</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-property">
+<link rel="help" href="https://issues.chromium.org/issues/585218684">
+<style>
+  .container {
+    position: absolute;
+    columns: 2;
+    column-fill: auto;
+    inline-size: 100px;
+    block-size: 100px;
+    overflow-x: scroll;
+    scroll-marker-group: before;
+  }
+  .container::column::scroll-marker {
+    display: block;
+    content: "x";
+  }
+</style>
+<div class="container">
+  <div id="child" style="height:110px;"></div>
+</div>
+<script>
+  document.body.offsetTop;
+  child.style.height = "50px";
+</script>

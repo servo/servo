@@ -1,0 +1,68 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Capability Elements: displayhint="icon-only" unsupported element defense</title>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="container"></div>
+<script>
+const container = document.getElementById("container");
+
+function createCapabilityElement(tag, attrs = {}) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    el.setAttribute(k, v);
+  }
+  container.appendChild(el);
+  return el;
+}
+
+function assertIgnoresIconOnly(tag) {
+  const normalEl = createCapabilityElement(tag);
+  const staticIconOnlyEl = createCapabilityElement(tag, {
+    displayhint: "icon-only",
+  });
+  const dynamicIconOnlyEl = createCapabilityElement(tag);
+  dynamicIconOnlyEl.setAttribute("displayhint", "ICON-ONLY");
+
+  const normalWidth = normalEl.getBoundingClientRect().width;
+  const staticWidth = staticIconOnlyEl.getBoundingClientRect().width;
+  const dynamicWidth = dynamicIconOnlyEl.getBoundingClientRect().width;
+
+  assert_greater_than(normalWidth, 0, `<${tag}> normal width must be positive`);
+  assert_equals(
+    staticWidth,
+    normalWidth,
+    `<${tag}> with static displayhint="icon-only" must ignore icon-only mode and keep full text width`
+  );
+  assert_equals(
+    dynamicWidth,
+    normalWidth,
+    `<${tag}> with dynamic displayhint="ICON-ONLY" must ignore icon-only mode and keep full text width`
+  );
+  assert_equals(
+    getComputedStyle(staticIconOnlyEl).paddingLeft,
+    "16px",
+    `<${tag}> must retain normal 16px padding-left`
+  );
+}
+
+test((t) => {
+  t.add_cleanup(() => { container.innerHTML = ""; });
+  // <usermedia> requests both camera and microphone while having only a single icon slot,
+  // so it must ignore displayhint="icon-only".
+  assertIgnoresIconOnly("usermedia");
+}, "<usermedia> ignores displayhint='icon-only' to prevent ambiguous single-icon spoofing");
+
+test((t) => {
+  assert_implements_optional(
+    "HTMLInstallElement" in window,
+    "<install> element is not supported on this platform"
+  );
+  t.add_cleanup(() => { container.innerHTML = ""; });
+  // <install> requires visible text context and must ignore displayhint="icon-only".
+  assertIgnoresIconOnly("install");
+}, "<install> ignores displayhint='icon-only'");
+</script>
+</body>

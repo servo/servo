@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SVG text metrics follow the shaping of the text</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextLayoutAlgorithm">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextAnchoringProperties">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#FontsGlyphs">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TSpanNotes">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#__svg__SVGTextContentElement__getSubStringLength">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@font-face {
+    font-family: "Lato";
+    src: url(/fonts/Lato-Medium.ttf);
+}
+.shaped {
+    font: 50px "Lato";
+    white-space: pre;
+}
+</style>
+</head>
+<body>
+<div class="shaped"><span id="wholeSpan">AVATAR office</span></div>
+<div class="shaped" style="font-kerning: none; font-variant-ligatures: none"><span id="unshapedSpan">AVATAR office</span></div>
+<div class="shaped"><span id="pairSpan">AV</span></div>
+<div class="shaped"><span id="aSpan">A</span></div>
+<div class="shaped"><span id="vSpan">V</span></div>
+<div class="shaped"><span id="fiatSpan">fiat</span></div>
+<div class="shaped"><span id="markSpan">AVATAR office&#x301;</span></div>
+<div class="shaped" style="letter-spacing: 10px"><span id="letterSpacedSpan">fiat</span></div>
+<svg width="800" height="680">
+    <path id="line" d="M 10 340 H 790"/>
+    <text id="start" class="shaped" x="400" y="60">AVATAR office</text>
+    <text id="middle" class="shaped" x="400" y="140" text-anchor="middle">AVATAR office</text>
+    <text id="end" class="shaped" x="400" y="220" text-anchor="end">AVATAR office</text>
+    <text id="shifted" class="shaped" x="10" y="280" dx="0 20">AV</text>
+    <text class="shaped"><textPath id="onPath" href="#line">AVATAR office</textPath></text>
+    <text id="spaced" class="shaped" x="10" y="420" lengthAdjust="spacing">fiat</text>
+    <text id="complex" class="shaped" x="400" y="500" text-anchor="middle">AVATAR office&#x301;</text>
+    <text id="rotated" class="shaped" x="10" y="580" rotate="0 30">AV</text>
+    <text id="letterSpaced" class="shaped" x="10" y="660" style="letter-spacing: 10px">fiat</text>
+</svg>
+<script>
+promise_test(async () => {
+    await document.fonts.load("50px Lato", "AVATAR office");
+
+    const shapedWidth = wholeSpan.getBoundingClientRect().width;
+    const unshapedWidth = unshapedSpan.getBoundingClientRect().width;
+    assert_greater_than(Math.abs(shapedWidth - unshapedWidth), 1, "shaping changes the width of the text");
+
+    for (const textElement of [start, middle, end]) {
+        assert_approx_equals(textElement.getComputedTextLength(), shapedWidth, 1, `${textElement.id}: getComputedTextLength()`);
+        assert_approx_equals(textElement.getBBox().width, shapedWidth, 1, `${textElement.id}: getBBox().width`);
+    }
+    assert_approx_equals(start.getBBox().x, 400, 1, "text-anchor: start");
+    assert_approx_equals(middle.getBBox().x, 400 - shapedWidth / 2, 1, "text-anchor: middle");
+    assert_approx_equals(end.getBBox().x, 400 - shapedWidth, 1, "text-anchor: end");
+}, "The metrics and the anchoring of a text chunk use the shaped text");
+
+promise_test(async () => {
+    await document.fonts.load("50px Lato", "AV");
+
+    const aWidth = aSpan.getBoundingClientRect().width;
+    const vWidth = vSpan.getBoundingClientRect().width;
+    assert_greater_than(aWidth + vWidth - pairSpan.getBoundingClientRect().width, 1, "the font kerns 'AV'");
+
+    // "SVG attributes such as 'dx' [...] that may reposition typographic characters do not break discretionary ligatures."
+    // The shift of "V" adds to the kerned advance of "A".
+    assert_approx_equals(shifted.getStartPositionOfChar(0).x, 10, 0.5, "the position of 'A'");
+    assert_approx_equals(shifted.getEndPositionOfChar(1).x, 10 + pairSpan.getBoundingClientRect().width + 20, 0.5, "the end of 'V'");
+}, "A dx shift does not break the shaping of a text chunk");
+
+promise_test(async () => {
+    await document.fonts.load("50px Lato", "AVATAR office");
+
+    const shapedWidth = wholeSpan.getBoundingClientRect().width;
+    assert_approx_equals(onPath.getStartPositionOfChar(0).x, 10, 0.5, "the start of the text on the path");
+    assert_approx_equals(onPath.getEndPositionOfChar(12).x, 10 + shapedWidth, 1, "the end of the text on the path");
+}, "Text on a path uses the shaped text");
+
+promise_test(async () => {
+    await document.fonts.load("50px Lato", "fiat");
+
+    // "fi" forms a ligature, so "fiat" has three typographic characters.
+    const extraLength = 120;
+    spaced.setAttribute("textLength", fiatSpan.getBoundingClientRect().width + extraLength);
+    const range = document.createRange();
+    range.setStart(fiatSpan.firstChild, 2);
+    range.setEnd(fiatSpan.firstChild, 3);
+    const aOffset = range.getBoundingClientRect().left - fiatSpan.getBoundingClientRect().left;
+
+    // "However, repositioning is applied to typographic characters."
+    assert_approx_equals(spaced.getStartPositionOfChar(2).x, 10 + aOffset + extraLength / 2, 1, "the position of 'a'");
+}, "textLength spaces out typographic characters, not the characters of a ligature");
+
+promise_test(async () => {
+    await document.fonts.load("50px Lato", "AVATAR office");
+
+    const shapedWidth = markSpan.getBoundingClientRect().width;
+    assert_approx_equals(complex.getBBox().width, shapedWidth, 1, "getBBox().width");
+    assert_approx_equals(complex.getBBox().x, 400 - shapedWidth / 2, 1, "text-anchor: middle");
+}, "The anchoring of text with a combining mark uses the shaped text");
+
+promise_test(async () => {
+    await document.fonts.load("50px Lato", "AV");
+
+    // A 'rotate' value turns the glyph of "V" around its origin, which follows the kerned advance of "A".
+    const kernedAdvance = pairSpan.getBoundingClientRect().width - vSpan.getBoundingClientRect().width;
+    assert_approx_equals(rotated.getStartPositionOfChar(1).x, 10 + kernedAdvance, 0.5, "the position of 'V'");
+}, "A rotate value does not break the shaping of a text chunk");
+
+promise_test(async () => {
+    await document.fonts.load("50px Lato", "fiat");
+
+    // "Discretionary ligatures should not be used when the spacing between two characters is not the same as the default space
+    // (e.g. when letter-spacing has a non-default value [...])". The characters are placed as in HTML.
+    const range = document.createRange();
+    range.setStart(letterSpacedSpan.firstChild, 2);
+    range.setEnd(letterSpacedSpan.firstChild, 3);
+    const aOffset = range.getBoundingClientRect().left - letterSpacedSpan.getBoundingClientRect().left;
+    assert_approx_equals(letterSpaced.getStartPositionOfChar(2).x, 10 + aOffset, 1, "the position of 'a'");
+    // "If the letter-spacing or word-spacing properties contributed space just after the typographic character, then add that
+    // space to length."
+    assert_approx_equals(letterSpaced.getComputedTextLength(), letterSpacedSpan.getBoundingClientRect().width, 1, "getComputedTextLength()");
+}, "Letter spacing breaks the shaping of a text chunk");
+</script>
+</body>
+</html>

@@ -69,6 +69,9 @@ class SeleniumBaseProtocolPart(BaseProtocolPart):
     def load(self, url):
         self.webdriver.get(url)
 
+    def refresh(self):
+        self.webdriver.refresh()
+
     def wait(self):
         while True:
             try:

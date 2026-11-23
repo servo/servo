@@ -1,0 +1,31 @@
+<!doctype html>
+<title>CSS Lists Reference: nested counter-reset: reversed() followed by siblings</title>
+<style>
+.counter-use::before {
+  content: attr(data-value);
+}
+li {
+  display: block;
+}
+</style>
+<div>
+  <div>
+    <div class="counter-use" data-value="0.4"></div>
+  </div>
+  <div class="counter-use" data-value="0.2"></div>
+</div>
+<ol>
+  <ol>
+    <li class="counter-use" data-value="0.4"></li>
+    <li class="counter-use" data-value="0.3"></li>
+  </ol>
+  <li class="counter-use" data-value="0.2"></li>
+  <li class="counter-use" data-value="0.1"></li>
+</ol>
+<ol>
+  <li class="counter-use" data-value="1"></li>
+  <ol>
+    <li class="counter-use" data-value="1.2"></li>
+  </ol>
+  <li class="counter-use" data-value="1.1"></li>
+</ol>

@@ -18,6 +18,7 @@ const tests = [
   "P1Y1M1W1DT1H0.5M0.5S",
   "P",
   "PT",
+  "P1DT",
   "-P",
   "-PT",
   "+P",

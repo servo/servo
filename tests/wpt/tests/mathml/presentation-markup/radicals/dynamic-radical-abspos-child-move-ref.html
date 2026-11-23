@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Dynamic radical: moving an absolutely positioned child (expectation)</title>
+<style>
+  @font-face {
+    font-family: RadicalFont;
+    src: url("/fonts/math/radical-displaystyleverticalgap7000-rulethickness1000.woff");
+  }
+  math {
+      font-family: RadicalFont;
+      font-size: 10px;
+  }
+  msqrt, mroot {
+      position: relative;
+  }
+  .abspos {
+      position: absolute;
+      top: 40px;
+  }
+</style>
+</head>
+<body>
+  <div style="height: 80px">
+    <math>
+      <msqrt>
+        <mspace width="20px" height="10px" depth="10px" style="background: blue"/>
+        <mspace class="abspos" width="10px" height="10px" style="background: green"/>
+      </msqrt>
+    </math>
+  </div>
+  <div style="height: 80px">
+    <math>
+      <mroot>
+        <mspace width="20px" height="10px" depth="10px" style="background: blue"/>
+        <mspace width="20px" height="10px" depth="10px" style="background: lightblue"/>
+        <mspace class="abspos" width="10px" height="10px" style="background: green"/>
+      </mroot>
+    </math>
+  </div>
+</body>
+</html>

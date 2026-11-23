@@ -27,6 +27,9 @@
   test_computed_value(prop, 'ident(5px)', 'none');
   test_computed_value(prop, 'ident(rgb(1, 2, 3))', 'none');
 
+  // Empty ident, invalid at computed-value time.
+  test_computed_value(prop, 'ident("")', 'none');
+
   // Check for support in specific properties (WIP):
   let actual_ident = 'ident("myident" 42)';
   let expected_ident = 'myident42';

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml" class="reftest-wait">
+<g id="testmeta">
+  <title>CSS Masking: mask after the size of the masked element changes</title>
+  <html:link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com"/>
+  <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/render.html#ClippingAndMasking"/>
+  <html:link rel="match" href="reference/mask-green-square-001-ref.svg"/>
+  <metadata class="flags">svg</metadata>
+</g>
+<mask id="mask" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200">
+  <rect y="50" width="50" height="100" fill="black"/>
+  <rect x="50" y="50" width="100" height="100" fill="white"/>
+</mask>
+<rect id="target" width="100" height="200" fill="green" mask="url(#mask)"/>
+<script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    document.getElementById("target").setAttribute("width", "200");
+    document.documentElement.classList.remove("reftest-wait");
+  });
+});
+</script>
+</svg>

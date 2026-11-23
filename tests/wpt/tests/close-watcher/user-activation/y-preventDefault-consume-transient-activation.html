@@ -1,0 +1,44 @@
+<!doctype html>
+<meta name=variant content="?dialog">
+<meta name=variant content="?CloseWatcher">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/common/top-layer.js"></script>
+<script src="/html/user-activation/resources/utils.js"></script>
+<script src="../resources/helpers.js"></script>
+
+<body>
+<script>
+const type = location.search.substring(1);
+
+promise_test(async t => {
+  const events = [];
+
+  const watcher = await createBlessedRecordingCloseWatcher(t, events, undefined, type);
+  // Cancel the first close request, so that it consumes the history-action
+  // activation without closing the watcher.
+  watcher.addEventListener("cancel", e => e.preventDefault());
+
+  await sendCloseRequest();
+  await waitForPotentialCloseEvent();
+  assert_array_equals(events, ["cancel[cancelable=true]"]);
+
+  // Consuming the transient activation must not bring the history-action
+  // activation back. whatwg/html#11454 makes "has history-action activation" a
+  // plain boolean; it used to be "the last history-action activation timestamp
+  // is not equal to the last activation timestamp", and consuming the transient
+  // activation sets the latter to negative infinity, which made the two
+  // unequal again and handed the page a second cancelable close request.
+  assert_true(await consumeTransientActivation(),
+              "The transient activation from creating the watcher is consumed");
+
+  await sendCloseRequest();
+  await waitForPotentialCloseEvent();
+  assert_array_equals(events,
+      ["cancel[cancelable=true]", "cancel[cancelable=false]", "close"]);
+}, "Create a close watcher with user activation that preventDefault()s cancel; " +
+   "consume the transient activation");
+</script>

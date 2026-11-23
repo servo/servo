@@ -4,4 +4,5 @@ rules:
 - seg-break-transformation-*: []
 - white-space-collapse-*: [white-space-collapse]
 - line-edge-white-space-collapse-*: [white-space-collapse]
+- white-space-trim-*: [white-space-trim]
 - "*": [white-space]

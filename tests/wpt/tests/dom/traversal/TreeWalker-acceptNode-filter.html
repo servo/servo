@@ -190,6 +190,35 @@ test(() =>
     assert_equals(nodeArgID, 'A1');
 }, 'Testing with filter object: this value and `node` argument');
 
+test(() =>
+{
+    let thisValue;
+    function filter(node) {
+        thisValue = this;
+        return NodeFilter.FILTER_ACCEPT;
+    }
+
+    const walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, filter);
+    walker.nextNode();
+
+    assert_equals(thisValue, globalThis);
+}, 'Testing with raw function filter: this value');
+
+test(() =>
+{
+    let thisValue = null;
+    function filter(node) {
+        "use strict";
+        thisValue = this;
+        return NodeFilter.FILTER_ACCEPT;
+    }
+
+    const walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, filter);
+    walker.nextNode();
+
+    assert_equals(thisValue, undefined);
+}, 'Testing with strict raw function filter: this value');
+
 </script>
 </body>
 </html>

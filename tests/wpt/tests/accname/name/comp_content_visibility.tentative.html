@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Name Comp: content visibility (Tentative)</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/wai-aria/scripts/aria-utils.js"></script>
+    </head>
+    <body>
+        <h1>Testing accessibility of content-visibility: auto</h1>
+        <h2>Accname</h2>
+            <div style="height:5px; overflow:scroll;">
+            <div>
+                <p>Some content</p>
+                <p>Some content</p>
+                <p>Some content</p>
+                <p>Some content</p>
+                <p>Some content</p>
+            </div>
+            <div style="content-visibility:auto">
+                <h2 class="ex" data-expectedlabel="SPEC_AMBIGUOUS_LOG_VALUE" data-expectedrole="heading" data-testname="HTML heading element under content-visibility auto condition">test heading</h2>
+                <button class="ex" data-expectedlabel="SPEC_AMBIGUOUS_LOG_VALUE" data-expectedrole="button" data-testname="HTML button element under content-visibility auto condition">test button</button>
+                <a class="ex" href="#" data-expectedlabel="SPEC_AMBIGUOUS_LOG_VALUE" data-expectedrole="link" data-testname="HTML link element under content-visibility auto condition">test link</a>
+            </div>
+        </div>
+        <script>
+            AriaUtils.verifyRolesAndLabelsBySelector(".ex");
+        </script>
+    </body>
+</html>

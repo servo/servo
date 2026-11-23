@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: justify-self: anchor-center behaves as center on a box at its static position with no default anchor</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-center">
+<link rel="match" href="anchor-center-no-default-static-position-ref.html">
+<style>
+.containing-block {
+  position: relative;
+  width: 200px;
+  height: 50px;
+}
+
+.box {
+  position: absolute;
+  justify-self: anchor-center;
+  width: 50px;
+  height: 50px;
+  background: green;
+}
+
+.rtl {
+  direction: rtl;
+}
+</style>
+<div class="containing-block"><div class="box"></div></div>
+<div class="containing-block rtl"><div class="box"></div></div>

@@ -1,0 +1,98 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCPeerConnection DTLS handover to a peer that fails to verify</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+// A handover whose new DTLS association cannot be established: the answer
+// carries an ICE restart, so it is accepted, but a fingerprint that does not
+// match the answerer's certificate. The previous association may carry media
+// only while both are alive (RFC 8842 section 5.5). Once the new one fails, the
+// transport has to report failed rather than stay connected on the strength of
+// the old one, and media from the old peer has to stop.
+
+const BOGUS_FINGERPRINT =
+  'BA:DC:0F:FE:EB:AD:C0:DE:DE:AD:BE:EF:B0:BB:1E:5F:' +
+  'AB:1E:CA:11:AB:1E:D0:0D:FE:E1:DE:AD:C0:1D:B0:55';
+
+function mungeFingerprint(sdp, fingerprint) {
+  return sdp.replace(/a=fingerprint:sha-256 [0-9A-Fa-f:]+/,
+                     `a=fingerprint:sha-256 ${fingerprint}`);
+}
+
+async function inboundAudioBytes(pc) {
+  let bytes = 0;
+  for (const stats of (await pc.getStats()).values()) {
+    if (stats.type === 'inbound-rtp' && stats.kind === 'audio') {
+      bytes += stats.bytesReceived;
+    }
+  }
+  return bytes;
+}
+
+const sleep = (t, ms) => new Promise(r => t.step_timeout(r, ms));
+
+async function waitUntil(t, cond, description) {
+  const deadline = performance.now() + 20000;
+  while (!(await cond())) {
+    assert_less_than(performance.now(), deadline,
+      `Timed out waiting for ${description}`);
+    await sleep(t, 100);
+  }
+}
+
+promise_test(async t => {
+  const offerPc = new RTCPeerConnection();
+  const answerPcFirst = new RTCPeerConnection();
+  const answerPcSecond = new RTCPeerConnection();
+  t.add_cleanup(() => {
+    offerPc.close();
+    answerPcFirst.close();
+    answerPcSecond.close();
+  });
+  offerPc.addTransceiver('audio', {direction: 'recvonly'});
+
+  async function addSender(pc) {
+    const [track] = (await getNoiseStream({audio: true})).getTracks();
+    t.add_cleanup(() => track.stop());
+    pc.addTrack(track);
+  }
+
+  await addSender(answerPcFirst);
+  exchangeIceCandidates(offerPc, answerPcFirst);
+  await exchangeOfferAnswer(offerPc, answerPcFirst);
+  const transport = offerPc.getReceivers()[0].transport;
+  await waitForState(transport, 'connected');
+  await waitUntil(t, async () => (await inboundAudioBytes(offerPc)) > 0,
+                  'media from the first answerer');
+
+  // Hand over with an ICE restart, but lie to the offerer about the second
+  // answerer's fingerprint, so the new DTLS handshake fails verification.
+  await addSender(answerPcSecond);
+  offerPc.restartIce();
+  exchangeIceCandidates(offerPc, answerPcSecond);
+  const offer = await offerPc.createOffer();
+  await offerPc.setLocalDescription(offer);
+  await answerPcSecond.setRemoteDescription(offer);
+  const answer = await answerPcSecond.createAnswer();
+  await answerPcSecond.setLocalDescription(answer);
+  await offerPc.setRemoteDescription(
+    {type: 'answer', sdp: mungeFingerprint(answer.sdp, BOGUS_FINGERPRINT)});
+
+  await waitForState(transport, 'failed');
+
+  // The old association is not kept going on the side. Allow for packets that
+  // were already in flight when it was torn down.
+  await sleep(t, 300);
+  const before = await inboundAudioBytes(offerPc);
+  await sleep(t, 500);
+  assert_equals(await inboundAudioBytes(offerPc), before,
+    'no more media arrives from the first answerer');
+}, 'A handover whose new DTLS association fails to verify reports failed ' +
+   'and stops using the previous association');
+
+</script>

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>View Transition: view-transition-name auto and match-element with shadowRoots</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  :root {
+    view-transition-name: none;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 300s;
+  }
+  .host {
+    width: 120px;
+    height: 120px;
+    contain: layout;
+  }
+  ::part(exposed-part) {
+    view-transition-name: auto;
+  }
+</style>
+</head>
+<body>
+<div id="sandbox"></div>
+<script>
+const sandbox = document.getElementById("sandbox");
+
+function countGroupAnimations() {
+  return document.getAnimations().filter(
+      a => a.effect.pseudoElement?.startsWith("::view-transition-group(")).length;
+}
+
+promise_test(async t => {
+  t.add_cleanup(() => { sandbox.replaceChildren(); });
+
+  const host = document.createElement("div");
+  host.className = "host";
+  sandbox.appendChild(host);
+  const sr = host.attachShadow({ mode: "open" });
+  sr.innerHTML = `
+    <style>
+      .box { width: 30px; height: 30px; background: teal; }
+      #style-match { view-transition-name: match-element; }
+    </style>
+    <div id="style-match" class="box"></div>
+    <div id="inline-match" class="box" style="view-transition-name: match-element;"></div>
+    <div id="typedom-match" class="box"></div>
+  `;
+  const typedomEl = sr.getElementById("typedom-match");
+  typedomEl.attributeStyleMap.set("view-transition-name", "match-element");
+
+  // Without shadowRoots, none of the shadow match-element declarations participate.
+  let vt = document.startViewTransition();
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+  assert_equals(document.getAnimations().length, 0);
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+
+  // With sr in shadowRoots, all three participate and pair across update().
+  vt = document.startViewTransition({
+    shadowRoots: [sr],
+    update: () => {
+      sr.getElementById("style-match").style.transform = "translateX(10px)";
+      sr.getElementById("inline-match").style.transform = "translateX(10px)";
+      typedomEl.style.transform = "translateX(10px)";
+    },
+  });
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+
+  const groupPseudos = document.getAnimations()
+      .filter(a => a.effect.pseudoElement?.startsWith("::view-transition-group("))
+      .map(a => a.effect.pseudoElement);
+  assert_array_equals(groupPseudos, [
+    "::view-transition-group(match-element)",
+    "::view-transition-group(match-element)",
+    "::view-transition-group(match-element)",
+  ]);
+
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+}, "view-transition-name: match-element in ShadowRoot works via <style>, inline style, and CSS Typed OM");
+
+promise_test(async t => {
+  t.add_cleanup(() => { sandbox.replaceChildren(); });
+
+  const host = document.createElement("div");
+  host.className = "host";
+  sandbox.appendChild(host);
+  const sr = host.attachShadow({ mode: "open" });
+  sr.innerHTML = `
+    <style>
+      .box { width: 40px; height: 40px; background: royalblue; }
+      .auto-style { view-transition-name: auto; }
+    </style>
+    <div id="a" class="box auto-style"></div>
+    <div id="b" class="box" style="view-transition-name: auto;"></div>
+    <div id="c" class="box"></div>
+  `;
+  sr.getElementById("c").attributeStyleMap.set("view-transition-name", "auto");
+
+  // Without shadowRoots, shadow auto names are ignored.
+  let vt = document.startViewTransition();
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+  assert_equals(document.getAnimations().length, 0);
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+
+  // Replacing elements inside sr with new elements carrying the same IDs pairs them!
+  vt = document.startViewTransition({
+    shadowRoots: [sr],
+    update: () => {
+      sr.getElementById("a").remove();
+      sr.getElementById("b").remove();
+      sr.getElementById("c").remove();
+
+      const nextA = document.createElement("div");
+      nextA.id = "a";
+      nextA.className = "box auto-style";
+      nextA.style.width = "60px";
+
+      const nextB = document.createElement("div");
+      nextB.id = "b";
+      nextB.className = "box";
+      nextB.style.cssText = "width: 60px; view-transition-name: auto;";
+
+      const nextC = document.createElement("div");
+      nextC.id = "c";
+      nextC.className = "box";
+      nextC.style.width = "60px";
+      nextC.attributeStyleMap.set("view-transition-name", "auto");
+
+      sr.append(nextA, nextB, nextC);
+    },
+  });
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+  assert_equals(countGroupAnimations(), 3,
+                "Replaced shadow elements with matching IDs pair via auto across <style>, inline style, and Typed OM");
+
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+}, "view-transition-name: auto inside opted-in ShadowRoot pairs replaced elements by id");
+
+promise_test(async t => {
+  t.add_cleanup(() => { sandbox.replaceChildren(); });
+
+  const lightEl = document.createElement("div");
+  lightEl.id = "cross-tree-id";
+  lightEl.style.cssText = "width: 40px; height: 40px; background: green; view-transition-name: auto;";
+  sandbox.appendChild(lightEl);
+
+  const host = document.createElement("div");
+  host.className = "host";
+  sandbox.appendChild(host);
+  const sr = host.attachShadow({ mode: "open" });
+  sr.innerHTML = `<style>.auto-box { width: 70px; height: 70px; background: blue; view-transition-name: auto; }</style>`;
+
+  // Cross-tree pairing by matching id when outgoing lightEl is replaced by incoming shadowEl.
+  let vt = document.startViewTransition({
+    shadowRoots: [sr],
+    update: () => {
+      lightEl.remove();
+      const shadowEl = document.createElement("div");
+      shadowEl.id = "cross-tree-id";
+      shadowEl.className = "auto-box";
+      sr.appendChild(shadowEl);
+    },
+  });
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+
+  const groupAnims = document.getAnimations().filter(
+      a => a.effect.pseudoElement === "::view-transition-group(match-element)");
+  assert_equals(groupAnims.length, 1,
+                "Light DOM auto and opted-in ShadowRoot auto with same id pair into a single morphing group");
+  assert_equals(groupAnims[0].effect.getKeyframes()[0].width, "40px");
+
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+
+  // Simultaneous elements with the same id and auto in both Document and opted-in ShadowRoot collide.
+  const dupLight = document.createElement("div");
+  dupLight.id = "cross-tree-id";
+  dupLight.style.cssText = "width: 40px; height: 40px; background: green; view-transition-name: auto;";
+  sandbox.appendChild(dupLight);
+
+  // Without sr in shadowRoots, there is NO collision.
+  vt = document.startViewTransition();
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+  assert_equals(countGroupAnimations(), 1);
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+
+  // With sr in shadowRoots, duplicate auto id across participating trees rejects ready with InvalidStateError.
+  vt = document.startViewTransition({ shadowRoots: [sr] });
+  await promise_rejects_dom(t, "InvalidStateError", vt.ready);
+  await vt.finished;
+}, "Cross-tree auto pairs by id across participating trees and collides when active simultaneously");
+
+promise_test(async t => {
+  t.add_cleanup(() => { sandbox.replaceChildren(); });
+
+  const lightEl = document.createElement("div");
+  lightEl.id = "secret-shadow-id";
+  lightEl.style.cssText = "width: 40px; height: 40px; background: green; view-transition-name: auto;";
+  sandbox.appendChild(lightEl);
+
+  const host = document.createElement("div");
+  host.className = "host";
+  sandbox.appendChild(host);
+  const sr = host.attachShadow({ mode: "open" });
+  sr.innerHTML = `
+    <div id="secret-shadow-id" part="exposed-part" style="width: 40px; height: 40px; background: gold;"></div>
+  `;
+
+  // Even when sr IS in shadowRoots, `::part(exposed-part) { view-transition-name: auto }`
+  // comes from Document's tree scope (not sr), so it must NOT read the shadow element's id
+  // and therefore must NOT collide with lightEl's id="secret-shadow-id"!
+  const vt = document.startViewTransition({ shadowRoots: [sr] });
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+  assert_equals(countGroupAnimations(), 2,
+                "Both lightEl and ::part() element animate independently without id collision");
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+}, "::part() rule with view-transition-name: auto does not use shadow element id even when ShadowRoot is in shadowRoots");
+</script>
+</body>
+</html>

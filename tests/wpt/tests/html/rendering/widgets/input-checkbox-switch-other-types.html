@@ -1,0 +1,21 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>The switch attribute has no effect on input elements that are not checkboxes</title>
+<link rel=match href="input-checkbox-switch-other-types-ref.html">
+<link rel=mismatch href="input-checkbox-switch-other-types-notref.html">
+<script src="/common/rendering-utils.js"></script>
+<input switch>
+<input type=radio switch>
+<input type=radio switch checked>
+<input type=range switch>
+<input type=color switch>
+<input type=button switch value=Button>
+<input id=dynamic type=checkbox switch>
+<input type=checkbox switch>
+<script>
+    waitForAtLeastOneFrame().then(() => {
+        dynamic.type = "radio";
+        document.documentElement.classList.remove("reftest-wait");
+    });
+</script>
+</html>

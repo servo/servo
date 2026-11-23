@@ -63,6 +63,24 @@ promise_test(async () => {
   const key = token();
   await test_driver.bless('Open a scroll to text fragment URL');
   window.open(
+    `resources/beforematch-scroll-to-text-fragment-with-anchor-fallback.html?key=${key}#bar:~:text=doesnotexist`,
+    '_blank',
+    'noopener');
+  const results = await fetchResultsNoResolver(key);
+  assert_true(results.barHasHiddenAttribute,
+    'hidden=until-found revealing should not happen until after the script tag loads.');
+  assert_true(results.beforematchFiredOnBar,
+    'bar should get the beforematch event when the text fragment does not match and falls back to the element fragment.');
+  assert_equals(results.pageYOffsetDuringBeforematch, 0,
+    'Scrolling should happen after beforematch is fired.');
+  assert_true(results.pageYOffsetAfterRaf > 0,
+    'The page should be scrolled down to bar.');
+}, 'Verifies that beforematch is fired on an element targeted by an element fragment when a text fragment fails to match.');
+
+promise_test(async () => {
+  const key = token();
+  await test_driver.bless('Open a scroll to text fragment URL');
+  window.open(
     `resources/beforematch-scroll-to-text-fragment-bubble.html?key=${key}#:~:text=foo`,
     '_blank',
     'noopener');

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>range-index() Typed OM conversion</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+// Like sibling-index(), range-index() has no CSSNumericValue representation.
+for (const input of [
+  "calc(100ms * range-index())",
+  "calc(100ms * (-1 + range-index()))",
+]) {
+  test(() => {
+    assert_throws_dom("SyntaxError", () => CSSNumericValue.parse(input));
+  }, `CSSNumericValue.parse(${input}) rejects an unsupported index function`);
+
+  test(() => {
+    const value = CSSStyleValue.parse("animation-delay", input);
+    assert_class_string(value, "CSSStyleValue");
+    assert_false(value instanceof CSSNumericValue);
+    assert_equals(value.toString(), input);
+  }, `CSSStyleValue.parse(animation-delay, ${input}) preserves an unsupported value`);
+}
+</script>

@@ -24,6 +24,18 @@
 
     test((t) => {
       const element = document.createElement("div");
+      element.setHTMLUnsafe(
+        "<div><template shadowrootmode='open'>shadow</template>light</div>",
+        { sanitizer: {} },
+      );
+      const host = element.firstElementChild;
+      assert_not_equals(host.shadowRoot, null);
+      assert_equals(host.shadowRoot.textContent, "shadow");
+      assert_equals(host.textContent, "light");
+    }, "template with shadowrootmode should create a shadow root in unsafe mode with an empty sanitizer config");
+
+    test((t) => {
+      const element = document.createElement("div");
       element.setHTML(
         "<div><template shadowrootmode='open'></template></div>",
         { sanitizer: { removeElements: ["template"] } },

@@ -3,6 +3,7 @@
 <title>High Resolution Time in AudioWorkletGlobalScope</title>
 <link rel="help" href="https://w3c.github.io/hr-time/#sec-workletperformance">
 <link rel="help" href="https://w3c.github.io/hr-time/#sec-audioworkletglobalscope">
+<link rel="help" href="https://w3c.github.io/hr-time/#dfn-coarsen-time">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
@@ -214,6 +215,22 @@ promise_test(async (t) => {
       final.hrt - initial.hrt, final.date - initial.date, 30,
       'High resolution time value increased by approximately the same amount as time from Date object');
 }, 'High resolution time in AudioWorkletGlobalScope has approximately the right relative magnitude');
+
+promise_test(async () => {
+  assert_false(self.crossOriginIsolated, 'Document must not be COI');
+  const {node} = await getSharedAudioWorklet();
+  const result = await sendCommand(node, 'resolution');
+
+  assert_true(result.hasNow, 'performance.now() is exposed');
+  assert_true(
+      Number.isFinite(result.minPositiveDeltaMs),
+      'Observed at least one positive performance.now() delta');
+  // Floating-point slack; same value as webtiming-resolution.any.js.
+  const epsilon = 1e-5;
+  assert_greater_than_equal(
+      result.minPositiveDeltaMs, 0.1 - epsilon,
+      'Minimum resolution is at least 100 microseconds');
+}, 'performance.now() resolution is >= 100us without cross-origin isolation');
 
 promise_test(async (t) => {
   let context2;

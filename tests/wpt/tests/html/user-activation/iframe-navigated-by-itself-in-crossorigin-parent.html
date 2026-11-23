@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<title>User activation propagation across a navigation an iframe inside a cross-origin parent performs on itself</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#apply-the-history-step">
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+  <iframe id="child" width="200" height="50"></iframe>
+</body>
+
+<script>
+  'use strict';
+
+  let uuid1 = token();
+  let uuid2 = token();
+
+  // Both documents the iframe shows are on the same origin, which is not the
+  // origin of this page. The iframe navigates itself, so the entry it lands on
+  // records an initiator that is same origin with it, and the carry-over has to
+  // happen even though the parent frame is cross-origin.
+  let remote_origin = get_host_info().HTTP_REMOTE_ORIGIN;
+  let loaded = `${remote_origin}/common/dispatcher/remote-executor.html?uuid=${uuid1}`;
+  let navigated_to =
+        `${remote_origin}/common/dispatcher/remote-executor.html?uuid=${uuid2}`;
+
+  promise_test(async test => {
+    const child = document.getElementById("child");
+    const first = new RemoteContext(uuid1);
+    const second = new RemoteContext(uuid2);
+
+    // Load a cross-origin document in the iframe. The executor only answers once
+    // the document has loaded, so this doubles as waiting for it.
+    child.src = loaded;
+    {
+      const result = await first.execute_script(getUserActivationState);
+      assertUserActivationState(result, false, false, "after iframe loaded");
+    }
+
+    // Confirm that the iframe gets user activation after a click. Clicking the
+    // iframe element lands the click inside the document it shows.
+    await test_driver.click(child);
+    {
+      const result = await first.execute_script(getUserActivationState);
+      assertUserActivationState(result, true, true, "after iframe clicked");
+    }
+
+    // Let the iframe navigate itself, so that the entry it lands on records the
+    // iframe rather than this page as the initiator.
+    await first.execute_script(url => {
+      executor.suspend(() => {
+        location.href = url;
+      });
+    }, [navigated_to]);
+
+    // Confirm that the document the iframe navigated to got the sticky user
+    // activation carried over. A cross-origin parent frame does not stand in
+    // the way when it did not drive the navigation.
+    {
+      const result = await second.execute_script(getUserActivationState);
+      assertUserActivationState(result, false, true,
+            "after iframe navigated itself");
+    }
+}, "User activation propagation across a navigation an iframe inside a " +
+   "cross-origin parent performs on itself");
+</script>

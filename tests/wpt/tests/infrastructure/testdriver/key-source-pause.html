@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>testdriver-vendor.js supports pause actions in a key source</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<div id="log"></div>
+<script>
+promise_test(async () => {
+    const keys = [];
+    document.addEventListener("keydown", event => keys.push(`down:${event.key}`));
+    document.addEventListener("keyup", event => keys.push(`up:${event.key}`));
+
+    // A pause with no duration is what testdriver-actions.js inserts for a tick in
+    // which this source has no action of its own; a pause with a duration is explicit.
+    await test_driver.action_sequence([{
+        type: "key",
+        id: "key-source",
+        actions: [
+            { type: "keyDown", value: "a" },
+            { type: "pause" },
+            { type: "pause", duration: 50 },
+            { type: "keyUp", value: "a" },
+        ],
+    }]);
+
+    assert_array_equals(keys, ["down:a", "up:a"]);
+}, "pause actions in a key source do not reject the action sequence");
+</script>

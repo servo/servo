@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<title>User activation propagation across a reload through a cross-origin redirection</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#apply-the-history-step">
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+  <p>Non-zero-sized body to allow clicks.</p>
+</body>
+
+<script>
+  'use strict';
+
+  let uuid1 = token();
+
+  let origin = get_host_info().HTTP_ORIGIN;
+  let remote_origin = get_host_info().HTTP_REMOTE_ORIGIN;
+
+  let opened = `/common/dispatcher/remote-executor.html?uuid=${uuid1}`;
+
+  // The chain goes same origin -> cross origin -> same origin, so it lands on
+  // a document that is same origin with the one that was reloaded, while the
+  // entry still records that a cross-origin redirect was followed. "reloaded"
+  // marks where the chain lands, so that the test can tell it apart from the
+  // URL that redirected.
+  let lands_on = `${origin}/common/dispatcher/remote-executor.html` +
+                 `?uuid=${uuid1}&reloaded=1`;
+  let bounce = `${remote_origin}/common/redirect.py` +
+               `?location=${encodeURIComponent(lands_on)}`;
+  let reloads_to =
+        `/common/redirect.py?location=${encodeURIComponent(bounce)}`;
+
+  promise_test(async test => {
+    // Open a new window that we will reload and observe.
+    let w;
+    document.body.onclick = () => {
+      w = window.open(opened);
+    };
+
+    await test_driver.click(document.body);
+    assert_true(!!w, "A window is opened");
+    // Close the window at the end of the test, so that a later test in the same
+    // session cannot click a window this one left behind.
+    test.add_cleanup(() => w && w.close());
+
+    // Check that the new window does not have user activation initially.
+    {
+      const context = new RemoteContext(uuid1);
+      const result = await context.execute_script(getUserActivationState);
+      assertUserActivationState(result, false, false, "after window opened");
+    }
+
+    // Confirm that the new window gets user activation after a click.
+    await test_driver.click(w.document.documentElement);
+    {
+      const context = new RemoteContext(uuid1);
+      const result = await context.execute_script(getUserActivationState);
+      assertUserActivationState(result, true, true, "after window clicked");
+    }
+
+    // Point the entry at a URL that redirects through the other origin, and
+    // reload it. An entry ends up with the final URL of whatever redirects its
+    // navigation followed, so rewriting the URL in place is what gives the
+    // entry one that redirects when reloaded. The entry keeps its document
+    // state, which is where the rest of the carry-over conditions are
+    // recorded.
+    {
+      const context = new RemoteContext(uuid1);
+      await context.execute_script(url => {
+        history.replaceState(null, "", url);
+        executor.suspend(() => {
+          location.reload();
+        });
+      }, [reloads_to]);
+    }
+
+    // Confirm that the document the redirects landed on does not have user
+    // activation, even though it is same origin with the one that was reloaded.
+    // Unlike what the entry records, the check on the new document applies to
+    // reloads too.
+    {
+      const context = new RemoteContext(uuid1);
+      const url = await context.execute_script(() => location.href);
+      assert_true(url.includes("reloaded=1"),
+            "The reload followed the redirects");
+      assert_equals(new URL(url).origin, origin,
+            "The redirects landed back on a same-origin document");
+
+      const result = await context.execute_script(getUserActivationState);
+      assertUserActivationState(result, false, false, "after window reloaded");
+    }
+}, "User activation propagation across a reload through a cross-origin redirection");
+</script>

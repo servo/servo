@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<button id=unrelated>Unrelated</button>
+
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+  #unrelated {
+    position: fixed;
+    left: 0;
+    top: 0;
+  }
+  .container {
+    position: absolute;
+    left: 50px;
+    top: 50px;
+  }
+  .container button {
+    width: 100px;
+    height: 50px;
+  }
+  .container button::interest-button {
+    content: "";
+    position: absolute;
+    left: 250px;
+    top: 0;
+    width: 50px;
+    height: 50px;
+    background: green;
+  }
+  .target {
+    position-anchor: auto;
+    position-area: bottom;
+    width: 50px;
+    height: 50px;
+    background: blue;
+  }
+</style>
+
+<script>
+// Builds a fresh invoker (with an ::interest-button) and a target popover.
+// The ::interest-button is located 250px to the right of the invoker, so
+// that it is easy to tell which element the popover is anchored to.
+async function setup(t, interestDelay) {
+  await hoverOver(unrelated);
+  const container = document.createElement('div');
+  container.classList.add('container');
+  const invoker = document.createElement('button');
+  invoker.textContent = 'Invoker';
+  invoker.style.interestDelay = interestDelay;
+  container.appendChild(invoker);
+  const target = document.createElement('div');
+  target.classList.add('target');
+  target.popover = 'auto';
+  invoker.interestForElement = target;
+  document.body.append(container, target);
+  t.add_cleanup(async () => {
+    target.remove();
+    container.remove();
+    await hoverOver(unrelated);
+  });
+  await waitForRender();
+  const rect = invoker.getBoundingClientRect();
+  return {
+    invoker,
+    target,
+    buttonX: Math.round(rect.x + 275),
+    buttonY: Math.round(rect.y + 25),
+  };
+}
+
+function assertAnchoredToInvoker(invoker, target) {
+  assert_true(target.matches(':popover-open'), 'target should be open');
+  const i = invoker.getBoundingClientRect();
+  const r = target.getBoundingClientRect();
+  assert_equals(r.left, i.left + 25, 'target should be centered under the invoker');
+  assert_equals(r.top, i.bottom, 'target should be below the invoker');
+}
+
+function assertAnchoredToInterestButton(invoker, target) {
+  assert_true(target.matches(':popover-open'), 'target should be open');
+  const i = invoker.getBoundingClientRect();
+  const r = target.getBoundingClientRect();
+  assert_equals(r.left, i.left + 250, 'target should be centered under the ::interest-button');
+  assert_equals(r.top, i.bottom, 'target should be below the ::interest-button');
+}
+
+async function hoverInterestButton(x, y) {
+  await new test_driver.Actions()
+    .pointerMove(x, y, {})
+    .send();
+  await waitForRender();
+  await waitForRender();
+}
+
+async function clickInterestButton(x, y) {
+  const actions = new test_driver.Actions();
+  await actions
+    .pointerMove(x, y, {})
+    .pointerDown({button: actions.ButtonType.LEFT})
+    .pointerUp({button: actions.ButtonType.LEFT})
+    .send();
+  await waitForRender();
+}
+
+async function longPressInterestButton(x, y) {
+  await new test_driver.Actions()
+    .addPointer("touchPointer", "touch")
+    .pointerMove(x, y, {sourceName: "touchPointer"})
+    .pointerDown({sourceName: "touchPointer"})
+    .pause(1000, "pointer", {sourceName: "touchPointer"})
+    .pointerUp({sourceName: "touchPointer"})
+    .send();
+  await waitForRender();
+}
+
+const activations = [
+  // For hover, interest needs to be shown immediately. For click and
+  // long-press, a long delay ensures that interest isn't first shown via
+  // hover.
+  {name: 'Hovering', activate: hoverInterestButton, delay: '0s 1000s'},
+  {name: 'Clicking', activate: clickInterestButton, delay: '1000s'},
+  {name: 'Long-pressing', activate: longPressInterestButton, delay: '1000s'},
+];
+
+const preOpenMethods = [
+  {
+    name: 'hovering the invoker',
+    open: async (invoker, target) => await hoverOver(invoker),
+  },
+  {
+    name: 'showPopover({source: invoker})',
+    open: async (invoker, target) => {
+      target.showPopover({source: invoker});
+      await waitForRender();
+    },
+  },
+];
+
+promise_test(async (t) => {
+  const {invoker, target} = await setup(t, '0s 1000s');
+  await hoverOver(invoker);
+  await waitForRender();
+  assertAnchoredToInvoker(invoker, target);
+}, 'Hovering the invoker anchors the popover to the invoker');
+
+// A fresh invocation from the ::interest-button anchors the popover to the
+// ::interest-button.
+for (const {name, activate, delay} of activations) {
+  promise_test(async (t) => {
+    const {invoker, target, buttonX, buttonY} = await setup(t, delay);
+    assert_false(target.matches(':popover-open'), 'precondition');
+    await activate(buttonX, buttonY);
+    assertAnchoredToInterestButton(invoker, target);
+  }, `${name} the ::interest-button anchors the popover to the ::interest-button`);
+}
+
+// If the popover is already open and anchored to the invoker, activating the
+// ::interest-button should not move it.
+for (const {name, activate} of activations) {
+  for (const preOpen of preOpenMethods) {
+    promise_test(async (t) => {
+      const {invoker, target, buttonX, buttonY} = await setup(t, '0s 1000s');
+      await preOpen.open(invoker, target);
+      assertAnchoredToInvoker(invoker, target);
+      await activate(buttonX, buttonY);
+      assertAnchoredToInvoker(invoker, target);
+    }, `${name} the ::interest-button does not re-anchor a popover already opened via ${preOpen.name}`);
+  }
+}
+</script>

@@ -514,6 +514,11 @@
 
     @assert ctx.measureText(' AB').width === 150;
     @assert ctx.measureText('AB ').width === 150;
+
+    @assert ctx.measureText('AB\x09').width === 150;
+    @assert ctx.measureText('AB\x0d').width === 150;
+    @assert ctx.measureText('\x09').width === 50;
+    @assert ctx.measureText('あ\x09').width === ctx.measureText('あ ').width;
   variants:
   - *load-font-variant-definition
 
@@ -4117,6 +4122,40 @@
       ctx.strokeText(texts[i], 10, y);
       ctx.strokeText(texts[i], 260, y);
     }
+
+- name: 2d.text.shape.fillGlyphRun-leading-spaces.tentative
+  desc: >-
+    Test that a glyph run starting with spaces, drawn at a negative x, renders
+    its visible glyphs like fillText() instead of being clipped away.
+  size: [300, 100]
+  code: |
+    ctx.font = '24px sans-serif';
+    // The LTR run ends before the Hebrew word, so it holds only the leading
+    // spaces and 'A '.
+    const st = ctx.shapeText('            A אב');
+    ctx.fillGlyphRun(st.glyphRuns()[0], -40, 50);
+  reference: |
+    ctx.font = '24px sans-serif';
+    ctx.fillText('            A ', -40, 50);
+
+- name: 2d.text.shape.fillGlyphRuns-shadow.tentative
+  desc: >-
+    Test that a multi-word glyph run with a shadow renders like fillText(),
+    with no word's shadow painted over the glyphs of the previous word.
+  size: [300, 100]
+  code: |
+    ctx.font = '24px sans-serif';
+    const st = ctx.shapeText('Wave fi 12');
+    ctx.shadowColor = '#0a0';
+    ctx.shadowOffsetX = -15;
+    ctx.shadowOffsetY = 2;
+    ctx.fillGlyphRuns(st.glyphRuns(), 40, 50);
+  reference: |
+    ctx.font = '24px sans-serif';
+    ctx.shadowColor = '#0a0';
+    ctx.shadowOffsetX = -15;
+    ctx.shadowOffsetY = 2;
+    ctx.fillText('Wave fi 12', 40, 50);
 
 - name: 2d.text.drawing.style.absolute.spacing
   desc: Testing letter spacing and word spacing with absolute length

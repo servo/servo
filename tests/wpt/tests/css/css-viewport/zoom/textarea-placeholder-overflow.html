@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>A textarea's placeholder does not overflow the textarea under zoom</title>
+<link rel="help" href="https://drafts.csswg.org/css-viewport/#zoom-property">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-elements.html#attr-textarea-placeholder">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  textarea { display: block; resize: none; }
+</style>
+<div style="zoom: 1.25">
+  <textarea rows="1" placeholder="placeholder" style="width: 400px; padding: 0; border: 0"
+    data-description="Fixed width, zoom 1.25"></textarea>
+  <textarea rows="1" placeholder="placeholder" style="width: 50%; padding: 5px; border: 2px solid"
+    data-description="Percentage width with padding and border, zoom 1.25"></textarea>
+</div>
+<div style="zoom: 1.5">
+  <textarea rows="1" placeholder="placeholder" style="width: 200px; padding: 0; border: 0"
+    data-description="Fixed width, zoom 1.5"></textarea>
+</div>
+<div style="zoom: 2">
+  <textarea rows="3" placeholder="placeholder" style="width: 200px; padding: 4px; border: 1px solid"
+    data-description="Multiple rows with padding and border, zoom 2"></textarea>
+</div>
+<script>
+for (const textarea of document.querySelectorAll("textarea")) {
+  test(() => {
+    assert_equals(textarea.scrollWidth, textarea.clientWidth, "scrollWidth");
+    assert_equals(textarea.scrollHeight, textarea.clientHeight, "scrollHeight");
+  }, textarea.dataset.description);
+}
+</script>

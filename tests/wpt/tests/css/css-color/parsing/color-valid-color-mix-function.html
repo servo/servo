@@ -501,6 +501,9 @@
     fuzzy_test_valid_color(`color-mix(in srgb, currentcolor, red, blue)`, `color-mix(in srgb, currentcolor, red, blue)`);
     fuzzy_test_valid_color(`color-mix(in srgb, red 0%)`, `color-mix(in srgb, red 0%)`);
     fuzzy_test_valid_color(`color-mix(in srgb, red 0%, green 0%, blue 0%)`, `color-mix(in srgb, red 0%, green 0%, blue 0%)`);
+    fuzzy_test_valid_color(`color-mix(red)`, `color-mix(red)`);
+    fuzzy_test_valid_color(`color-mix(in oklch longer hue, red, green, blue)`, `color-mix(in oklch longer hue, red, green, blue)`);
+    fuzzy_test_valid_color(`color-mix(in srgb, color-mix(in srgb, red), blue, green)`, `color-mix(in srgb, color-mix(in srgb, red), blue, green)`);
 </script>
 </body>
 </html>

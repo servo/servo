@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const channel = new BroadcastChannel("testchannel");
+
+// The page that the popup navigates to, with "?new", does nothing.
+if (params.has("popup")) {
+  test_driver.set_test_context(window.opener);
+
+  onload = async () => {
+    await test_driver.minimize_window();
+    window.opener.events.push(document.visibilityState);
+
+    location.href = location.href.split('?')[0] + '?new';
+  };
+
+  onpageswap = (e) => {
+    window.opener.events.push("pageswap");
+    if (e.viewTransition != null)
+      window.opener.events.push("transition");
+    window.opener.events.push(e.activation.entry.url);
+    window.opener.events.push(e.activation.navigationType);
+    if (e.activation.from == navigation.currentEntry)
+      window.opener.events.push("from");
+  };
+
+  onpagehide = () => {
+    window.opener.events.push("pagehide");
+    channel.postMessage("nav");
+  };
+}
+</script>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>EventListener with non-callable handleEvent reports a TypeError after an exception was caught</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#callbackdef-eventlistener">
+<link rel="help" href="https://webidl.spec.whatwg.org/#call-a-user-objects-operation">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#report-an-exception">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+setup({ allow_uncaught_exception: true });
+
+function collectReportedErrors(t) {
+    const errors = [];
+    const onerror = event => errors.push(event.error);
+    window.addEventListener("error", onerror);
+    t.add_cleanup(() => window.removeEventListener("error", onerror));
+    return errors;
+}
+
+test(t => {
+    const errors = collectReportedErrors(t);
+    const caughtError = new Error("caught");
+
+    const target = new EventTarget();
+    target.addEventListener("foo", {
+        get handleEvent() {
+            try {
+                throw caughtError;
+            } catch { }
+            return "not callable";
+        },
+    });
+    target.dispatchEvent(new Event("foo"));
+
+    assert_equals(errors.length, 1, "exactly one error should be reported");
+    assert_not_equals(errors[0], caughtError, "the caught exception should not be reported");
+    assert_true(errors[0] instanceof TypeError, "a TypeError should be reported");
+}, "reports a TypeError when the handleEvent getter caught an exception before returning a non-callable value");
+
+test(t => {
+    const errors = collectReportedErrors(t);
+    const caughtError = new Error("caught");
+
+    const target = new EventTarget();
+    target.addEventListener("foo", () => {
+        try {
+            throw caughtError;
+        } catch { }
+    });
+    target.addEventListener("foo", { handleEvent: "not callable" });
+    target.dispatchEvent(new Event("foo"));
+
+    assert_equals(errors.length, 1, "exactly one error should be reported");
+    assert_not_equals(errors[0], caughtError, "the caught exception should not be reported");
+    assert_true(errors[0] instanceof TypeError, "a TypeError should be reported");
+}, "reports a TypeError when a previous listener caught an exception");
+</script>

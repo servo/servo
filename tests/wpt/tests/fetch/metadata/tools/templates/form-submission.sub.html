@@ -67,7 +67,7 @@
 
   promise_test(() => {
     const key = '{{uuid()}}';
-    const url = makeRequestURL(key, [% subtest.origins %], responseParams);
+    const url = makeRequestURL(key, [% subtest.origins %], responseParams[%', { stashedRedirect: true }' if subtest.stashedRedirect%]);
     const userActivated = [% 'true' if subtest.userActivated else 'false' %];
     return induceRequest('[%subtest.method | default("POST")%]', url, userActivated)
       .then(() => retrieve(key))

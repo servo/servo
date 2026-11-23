@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVGTextContentElement.getCharNumAtPosition on the edges of glyph cells</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#__svg__SVGTextContentElement__getCharNumAtPosition">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+text {
+    font: 10px/1 Ahem;
+}
+</style>
+<svg width="400" height="100">
+    <path id="short" d="M 10 80 L 40 80"/>
+    <text id="text" x="10" y="20">ABC</text>
+    <text id="onPath"><textPath href="#short">ABCDEF</textPath></text>
+</svg>
+<script>
+const point = (x, y) => new DOMPoint(x, y);
+setup({ explicit_done: true });
+document.fonts.ready.then(() => {
+    test(() => {
+        // "point in this element's coordinate system is within the glyph cell for the typographic character"
+        // The cells are 10 units wide and span from y = 12 to y = 22. The spec has no rule for the right and bottom edges
+        // of a cell, so only points that are inside a cell under any rule are tested. No point is in the cell of the last character,
+        // "C", until the spec's loop ("While charnum < last") includes it.
+        assert_equals(text.getCharNumAtPosition(point(10, 15)), 0, "left edge");
+        assert_equals(text.getCharNumAtPosition(point(20, 15)), 1, "shared edge");
+        assert_equals(text.getCharNumAtPosition(point(29.9, 15)), 1, "inside");
+        assert_equals(text.getCharNumAtPosition(point(15, 12)), 0, "top edge");
+    }, "A point on the edge between two glyph cells belongs to one of them");
+
+    test(() => {
+        // The characters beyond the end of the path are not rendered and have no glyph cell. The path ends at x = 40, so
+        // "D", "E" and "F" would follow it there. The points are fixed, since the spec does not yet say what
+        // getStartPositionOfChar() returns for a last character that is not rendered.
+        for (const x of [45, 55, 65])
+            assert_equals(onPath.getCharNumAtPosition(point(x, 75)), -1, `x = ${x}`);
+        assert_equals(onPath.getCharNumAtPosition(point(35, 75)), 2);
+    }, "Characters beyond the end of a text path");
+    done();
+});
+</script>

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Tables: offsetLeft / offsetWidth of columns whose edges fall inside a spanning cell</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetwidth">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#dimensioning-the-row-column-grid--step2">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+table {
+  border-spacing: 10px;
+  margin-bottom: 10px;
+}
+td {
+  padding: 0;
+}
+td > div {
+  height: 10px;
+}
+</style>
+
+<!-- Second col starts inside a colspan="3" cell and ends at the last cell. -->
+<table id="start-inside">
+  <col span="2" id="start-inside-first">
+  <col span="2" id="start-inside-second">
+  <tr>
+    <td colspan="3" id="start-inside-spanning"><div style="width: 150px"></div></td>
+    <td id="start-inside-last"><div style="width: 50px"></div></td>
+  </tr>
+</table>
+
+<!-- Same as above, but the second col spans past the last column. -->
+<table id="start-inside-overflow">
+  <col>
+  <col span="3" id="start-inside-overflow-second">
+  <tr>
+    <td colspan="2" id="start-inside-overflow-spanning"><div style="width: 150px"></div></td>
+    <td id="start-inside-overflow-last"><div style="width: 50px"></div></td>
+  </tr>
+</table>
+
+<!-- A single col spanning more columns than the table has. -->
+<table id="overflow">
+  <col span="5" id="overflow-col">
+  <tr>
+    <td id="overflow-first"><div style="width: 100px"></div></td>
+    <td id="overflow-last"><div style="width: 50px"></div></td>
+  </tr>
+</table>
+
+<!-- Middle col lies entirely inside a colspan="3" cell. -->
+<table id="middle">
+  <col id="middle-first">
+  <col id="middle-middle">
+  <col id="middle-third">
+  <col id="middle-last">
+  <tr>
+    <td colspan="3" id="middle-spanning"><div style="width: 150px"></div></td>
+    <td id="middle-single"><div style="width: 50px"></div></td>
+  </tr>
+</table>
+
+<!-- Spanning cell comes last; first col ends inside it, second col starts inside it. -->
+<table id="end-inside">
+  <col span="2" id="end-inside-first">
+  <col span="2" id="end-inside-second">
+  <tr>
+    <td id="end-inside-single"><div style="width: 50px"></div></td>
+    <td colspan="3" id="end-inside-spanning"><div style="width: 150px"></div></td>
+  </tr>
+</table>
+
+<!-- Second colgroup (with col children) starts inside a colspan="3" cell. -->
+<table id="colgroup-children">
+  <colgroup id="colgroup-children-first"><col span="2"></colgroup>
+  <colgroup id="colgroup-children-second"><col><col></colgroup>
+  <tr>
+    <td colspan="3" id="colgroup-children-spanning"><div style="width: 150px"></div></td>
+    <td id="colgroup-children-last"><div style="width: 50px"></div></td>
+  </tr>
+</table>
+
+<!-- Second colgroup (span attribute, no children) starts inside a colspan="3" cell. -->
+<table id="colgroup-span">
+  <colgroup span="2" id="colgroup-span-first"></colgroup>
+  <colgroup span="2" id="colgroup-span-second"></colgroup>
+  <tr>
+    <td colspan="3" id="colgroup-span-spanning"><div style="width: 150px"></div></td>
+    <td id="colgroup-span-last"><div style="width: 50px"></div></td>
+  </tr>
+</table>
+
+<script>
+function element(id) {
+    return document.getElementById(id);
+}
+
+function left(id) {
+    return element(id).offsetLeft;
+}
+
+function right(id) {
+    const e = element(id);
+    return e.offsetLeft + e.offsetWidth;
+}
+
+function describe(id) {
+    const e = element(id);
+    return `${id}: offsetLeft ${e.offsetLeft}, offsetWidth ${e.offsetWidth}, right ${e.offsetLeft + e.offsetWidth}`;
+}
+
+// A col that starts inside a spanning cell and ends at the end of a later cell.
+function checkStartsInside(prefix, column, spanning, last) {
+    test(() => {
+        assert_equals(right(column), right(last), describe(column));
+    }, `${prefix}: ${column} ends at the end of ${last}`);
+
+    test(() => {
+        assert_greater_than_equal(left(column), left(spanning), describe(column));
+        assert_less_than_equal(left(column), left(last), describe(column));
+    }, `${prefix}: ${column} starts within ${spanning}`);
+}
+
+// A col that starts at the start of a spanning cell and ends inside it.
+function checkEndsInside(prefix, column, spanning) {
+    test(() => {
+        assert_equals(left(column), left(spanning), describe(column));
+    }, `${prefix}: ${column} starts at the start of ${spanning}`);
+
+    test(() => {
+        assert_less_than_equal(right(column), right(spanning), describe(column));
+    }, `${prefix}: ${column} does not extend past ${spanning}`);
+}
+
+checkEndsInside("start-inside", "start-inside-first", "start-inside-spanning");
+checkStartsInside("start-inside", "start-inside-second", "start-inside-spanning", "start-inside-last");
+
+checkStartsInside("start-inside-overflow", "start-inside-overflow-second", "start-inside-overflow-spanning", "start-inside-overflow-last");
+
+test(() => {
+    assert_equals(left("overflow-col"), left("overflow-first"), describe("overflow-col"));
+    assert_equals(right("overflow-col"), right("overflow-last"), describe("overflow-col"));
+}, "overflow: col spanning past the last column ends at the end of the last cell");
+
+checkEndsInside("middle", "middle-first", "middle-spanning");
+test(() => {
+    assert_greater_than_equal(left("middle-middle"), left("middle-spanning"), describe("middle-middle"));
+    assert_less_than_equal(right("middle-middle"), right("middle-spanning"), describe("middle-middle"));
+}, "middle: middle col lies within middle-spanning");
+test(() => {
+    assert_greater_than_equal(left("middle-third"), left("middle-spanning"), describe("middle-third"));
+    assert_equals(right("middle-third"), right("middle-spanning"), describe("middle-third"));
+}, "middle: third col ends at the end of middle-spanning");
+test(() => {
+    assert_equals(left("middle-last"), left("middle-single"), describe("middle-last"));
+    assert_equals(right("middle-last"), right("middle-single"), describe("middle-last"));
+}, "middle: last col matches middle-single");
+
+test(() => {
+    assert_equals(left("end-inside-first"), left("end-inside-single"), describe("end-inside-first"));
+    assert_greater_than_equal(right("end-inside-first"), right("end-inside-single"), describe("end-inside-first"));
+    assert_less_than_equal(right("end-inside-first"), right("end-inside-spanning"), describe("end-inside-first"));
+}, "end-inside: first col starts at end-inside-single and ends within end-inside-spanning");
+test(() => {
+    assert_greater_than_equal(left("end-inside-second"), left("end-inside-spanning"), describe("end-inside-second"));
+    assert_equals(right("end-inside-second"), right("end-inside-spanning"), describe("end-inside-second"));
+}, "end-inside: second col ends at the end of end-inside-spanning");
+
+checkEndsInside("colgroup-children", "colgroup-children-first", "colgroup-children-spanning");
+checkStartsInside("colgroup-children", "colgroup-children-second", "colgroup-children-spanning", "colgroup-children-last");
+
+checkEndsInside("colgroup-span", "colgroup-span-first", "colgroup-span-spanning");
+checkStartsInside("colgroup-span", "colgroup-span-second", "colgroup-span-spanning", "colgroup-span-last");
+</script>

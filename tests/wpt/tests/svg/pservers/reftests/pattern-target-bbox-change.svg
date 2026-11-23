@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml" class="reftest-wait">
+  <title>Pattern: after the size of the painted element changes</title>
+  <h:link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com"/>
+  <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/pservers.html#Patterns"/>
+  <h:link rel="match" href="reference/pattern-target-bbox-change-ref.svg"/>
+  <h:script src="/common/reftest-wait.js"/>
+  <h:script src="/common/rendering-utils.js"/>
+
+  <pattern id="pattern" width="1" height="1">
+    <rect width="50" height="100" fill="green"/>
+  </pattern>
+  <rect id="target" width="50" height="100" fill="url(#pattern)"/>
+  <script>
+    waitForAtLeastOneFrame().then(() => {
+      document.getElementById('target').setAttribute('width', '100');
+      takeScreenshot();
+    });
+  </script>
+</svg>

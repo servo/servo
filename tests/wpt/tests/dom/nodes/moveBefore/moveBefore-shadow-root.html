@@ -171,4 +171,206 @@ test(t => {
   roundtripHost.moveBefore(roundtripItem, null);
   assert_equals(getComputedStyle(roundtripItem).color, 'rgb(128, 0, 128)');
 }, "moveBefore() preserves active fallback state and invalidates style across same-task slot roundtrips");
+
+test(t => {
+  const container = document.createElement('div');
+  t.add_cleanup(() => container.remove());
+  container.setHTMLUnsafe(`
+    <div id="move_to"></div>
+    <div id="outer">
+      <div id="host" style="display: contents">
+        <template shadowrootmode="open">
+          <div id="wrapper">
+            <slot name="direct"></slot>
+            <slot name="outer_slot"><slot name="nested"></slot></slot>
+            <div id="nested_host">
+              <template shadowrootmode="open">
+                <slot></slot>
+              </template>
+              <div id="nested_slotted" style="transition: opacity 10s linear; opacity: 1">Nested</div>
+            </div>
+          </div>
+        </template>
+        <div slot="direct" style="height: 20px">Direct slotted</div>
+        <div slot="nested" style="height: 20px">Nested slotted</div>
+      </div>
+    </div>
+  `);
+  document.body.appendChild(container);
+  container.offsetTop;
+
+  const moveTo = container.querySelector('#move_to');
+  const outer = container.querySelector('#outer');
+  const host = container.querySelector('#host');
+  const wrapper = host.shadowRoot.querySelector('#wrapper');
+  const nestedHost = host.shadowRoot.querySelector('#nested_host');
+  const nestedSlotted = nestedHost.querySelector('#nested_slotted');
+
+  assert_equals(getComputedStyle(nestedSlotted).opacity, '1');
+  nestedSlotted.style.opacity = '0.5';
+  const nestedTransition = nestedSlotted.getAnimations()[0];
+  assert_true(!!nestedTransition, 'Nested host slotted child has a running transition');
+  assert_greater_than(outer.offsetHeight, 0);
+
+  // Moving `wrapper` out of `host.shadowRoot` into `moveTo` should detach the
+  // layout trees of nodes assigned to `<slot>`s in `host.shadowRoot` (including
+  // nested `<slot>`s), while leaving `nested_host`'s `<slot>` (in a different
+  // TreeScope) intact.
+  moveTo.moveBefore(wrapper, null);
+  host.remove();
+
+  assert_equals(outer.offsetHeight, 0,
+      'Assigned nodes of moved subtree slots were detached before host removal');
+  assert_equals(nestedSlotted.getAnimations()[0], nestedTransition,
+      'Assigned nodes of a slot in a nested shadow tree keep their transition');
+}, "moveBefore() of a subtree across trees detaches assigned nodes only for slots in the source TreeScope");
+
+promise_test(async t => {
+  const container = document.createElement('div');
+  t.add_cleanup(() => container.remove());
+  container.setHTMLUnsafe(`
+    <style>
+      @keyframes light_anim {
+        from { left: 10px; }
+        to { left: 100px; }
+      }
+      #slotted_anim {
+        position: relative;
+        animation: light_anim 10s linear infinite;
+      }
+      #slotted_trans {
+        position: relative;
+        left: 0px;
+        transition: left 10s linear;
+      }
+    </style>
+    <div id="host">
+      <template shadowrootmode="open">
+        <style>
+          @keyframes slot_anim {
+            from { opacity: 0.4; }
+            to { opacity: 0.8; }
+          }
+          slot {
+            display: block;
+            animation: slot_anim 10s linear infinite;
+          }
+        </style>
+        <div id="old_parent">
+          <div id="slot_wrapper">
+            <slot name="assigned"></slot>
+            <slot name="fallback">
+              <iframe id="fallback_iframe" src="/resources/blank.html"></iframe>
+              <div id="fallback_popover" popover>Popover</div>
+              <input id="fallback_input" value="abcdef">
+            </slot>
+          </div>
+        </div>
+        <div id="new_parent"></div>
+      </template>
+      <div id="slotted_anim" slot="assigned">Animated slotted</div>
+      <div id="slotted_trans" slot="assigned">Transitioned slotted</div>
+      <iframe id="slotted_iframe" slot="assigned" src="/resources/blank.html"></iframe>
+    </div>
+  `);
+
+  const host = container.querySelector('#host');
+  const shadowRoot = host.shadowRoot;
+  const assignedSlot = shadowRoot.querySelector('slot[name="assigned"]');
+  const fallbackSlot = shadowRoot.querySelector('slot[name="fallback"]');
+  const slotWrapper = shadowRoot.querySelector('#slot_wrapper');
+  const oldParent = shadowRoot.querySelector('#old_parent');
+  const newParent = shadowRoot.querySelector('#new_parent');
+
+  const slottedAnimEl = container.querySelector('#slotted_anim');
+  const slottedTransEl = container.querySelector('#slotted_trans');
+  const slottedIframe = container.querySelector('#slotted_iframe');
+  const fallbackIframe = shadowRoot.querySelector('#fallback_iframe');
+  const fallbackPopover = shadowRoot.querySelector('#fallback_popover');
+  const fallbackInput = shadowRoot.querySelector('#fallback_input');
+
+  const iframeLoads = Promise.all([
+    new Promise(resolve => slottedIframe.addEventListener('load', resolve, {once: true})),
+    new Promise(resolve => fallbackIframe.addEventListener('load', resolve, {once: true})),
+  ]);
+  document.body.appendChild(container);
+  await iframeLoads;
+
+  assert_equals(getComputedStyle(slottedTransEl).left, '0px');
+  slottedTransEl.style.left = '100px';
+  assert_equals(slottedTransEl.getAnimations().length, 1);
+
+  const slottedAnim = slottedAnimEl.getAnimations()[0];
+  const slottedTrans = slottedTransEl.getAnimations()[0];
+  const assignedSlotAnim = assignedSlot.getAnimations()[0];
+  const fallbackSlotAnim = fallbackSlot.getAnimations()[0];
+  assert_true(!!slottedAnim, 'Slotted CSS animation is running');
+  assert_true(!!slottedTrans, 'Slotted CSS transition is running');
+  assert_true(!!assignedSlotAnim, 'Assigned slot CSS animation is running');
+  assert_true(!!fallbackSlotAnim, 'Fallback slot CSS animation is running');
+
+  let iframeReloadCount = 0;
+  slottedIframe.addEventListener('load', () => iframeReloadCount++);
+  fallbackIframe.addEventListener('load', () => iframeReloadCount++);
+  const slottedDoc = slottedIframe.contentDocument;
+  const fallbackDoc = fallbackIframe.contentDocument;
+
+  fallbackInput.focus();
+  fallbackInput.setSelectionRange(1, 4, 'backward');
+  fallbackPopover.showPopover();
+  assert_true(fallbackPopover.matches(':popover-open'), 'Popover starts open');
+  assert_equals(shadowRoot.activeElement, fallbackInput, 'Fallback input starts focused');
+
+  // 1. Move <slot> elements directly within the same shadow tree.
+  newParent.moveBefore(assignedSlot, null);
+  newParent.moveBefore(fallbackSlot, null);
+
+  await new Promise(resolve => requestAnimationFrame(resolve));
+
+  assert_equals(slottedAnimEl.getAnimations()[0], slottedAnim,
+      'Direct same-shadow-tree slot move preserves CSS animation on assigned node');
+  assert_equals(slottedTransEl.getAnimations()[0], slottedTrans,
+      'Direct same-shadow-tree slot move preserves CSS transition on assigned node');
+  assert_equals(assignedSlot.getAnimations()[0], assignedSlotAnim,
+      'Direct same-shadow-tree slot move preserves CSS animation on slot');
+  assert_equals(fallbackSlot.getAnimations()[0], fallbackSlotAnim,
+      'Direct same-shadow-tree slot move preserves CSS animation on fallback slot');
+  assert_equals(slottedIframe.contentDocument, slottedDoc,
+      'Slotted iframe document is preserved');
+  assert_equals(fallbackIframe.contentDocument, fallbackDoc,
+      'Fallback iframe document inside slot is preserved');
+  assert_equals(iframeReloadCount, 0, 'No iframe reloaded during slot move');
+  assert_true(fallbackPopover.matches(':popover-open'),
+      'Open popover inside slot remains open');
+  assert_equals(shadowRoot.activeElement, fallbackInput,
+      'Focus inside slot is preserved');
+  assert_equals(fallbackInput.selectionStart, 1, 'selectionStart is preserved');
+  assert_equals(fallbackInput.selectionEnd, 4, 'selectionEnd is preserved');
+  assert_equals(fallbackInput.selectionDirection, 'backward',
+      'selectionDirection is preserved');
+
+  // 2. Move an ancestor wrapper containing the <slot> elements within the same
+  // shadow tree.
+  slotWrapper.moveBefore(assignedSlot, null);
+  slotWrapper.moveBefore(fallbackSlot, null);
+  newParent.moveBefore(slotWrapper, null);
+  oldParent.moveBefore(slotWrapper, null);
+
+  await new Promise(resolve => requestAnimationFrame(resolve));
+
+  assert_equals(slottedAnimEl.getAnimations()[0], slottedAnim,
+      'Subtree same-shadow-tree slot move preserves CSS animation on assigned node');
+  assert_equals(slottedTransEl.getAnimations()[0], slottedTrans,
+      'Subtree same-shadow-tree slot move preserves CSS transition on assigned node');
+  assert_equals(fallbackIframe.contentDocument, fallbackDoc,
+      'Subtree same-shadow-tree slot move preserves fallback iframe document');
+  assert_equals(iframeReloadCount, 0, 'No iframe reloaded during subtree slot move');
+  assert_true(fallbackPopover.matches(':popover-open'),
+      'Subtree same-shadow-tree slot move keeps popover open');
+  assert_equals(shadowRoot.activeElement, fallbackInput,
+      'Subtree same-shadow-tree slot move preserves focus');
+  assert_equals(fallbackInput.selectionStart, 1);
+  assert_equals(fallbackInput.selectionEnd, 4);
+  assert_equals(fallbackInput.selectionDirection, 'backward');
+}, "moveBefore() of <slot> within the same shadow tree preserves state on the slot, fallback content, and assigned nodes");
 </script>

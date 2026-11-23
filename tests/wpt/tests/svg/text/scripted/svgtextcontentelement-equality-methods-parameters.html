@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>SVGTextContentElement equality methods' parameters are correctly validated</title>
+<link rel="help" href="http://www.w3.org/TR/SVG2/text.html#InterfaceSVGTextContentElement">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(function() {
+    var svgNS = "http://www.w3.org/2000/svg";
+    var svgRoot = document.createElementNS(svgNS, "svg");
+    document.documentElement.appendChild(svgRoot);
+
+    var svgText = document.createElementNS(svgNS, "text");
+    svgText.style.fontFamily = "Ahem";
+    svgText.style.fontSize = "20px";
+    svgText.appendChild(document.createTextNode("abcdefg"));
+    svgRoot.appendChild(svgText);
+
+    var emptySvgText = document.createElementNS(svgNS, "text");
+    svgRoot.appendChild(emptySvgText);
+
+    // Test the equality part of the restriction.
+    assert_throws_dom("IndexSizeError", function() { svgText.getSubStringLength(7, 2); });
+    assert_throws_dom("IndexSizeError", function() { svgText.getStartPositionOfChar(7); });
+    assert_throws_dom("IndexSizeError", function() { svgText.getEndPositionOfChar(7); });
+    assert_throws_dom("IndexSizeError", function() { svgText.getExtentOfChar(7); });
+    assert_throws_dom("IndexSizeError", function() { svgText.getRotationOfChar(7); });
+    assert_throws_dom("IndexSizeError", function() { svgText.selectSubString(7, 2); });
+
+    // Test the equality part of the restriction for the <number of chars> == 0 case.
+    assert_throws_dom("IndexSizeError", function() { emptySvgText.getSubStringLength(0, 2); });
+    assert_throws_dom("IndexSizeError", function() { emptySvgText.getStartPositionOfChar(0); });
+    assert_throws_dom("IndexSizeError", function() { emptySvgText.getEndPositionOfChar(0); });
+    assert_throws_dom("IndexSizeError", function() { emptySvgText.getExtentOfChar(0); });
+    assert_throws_dom("IndexSizeError", function() { emptySvgText.getRotationOfChar(0); });
+    assert_throws_dom("IndexSizeError", function() { emptySvgText.selectSubString(0, 2); });
+
+    // cleanup
+    document.documentElement.removeChild(svgRoot);
+  });
+</script>

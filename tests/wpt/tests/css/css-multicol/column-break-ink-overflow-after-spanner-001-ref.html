@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Multi-column Layout: reference</title>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+#columns {
+    columns: 2;
+    column-gap: 0;
+    column-fill: auto;
+    width: 200px;
+    height: 90px;
+    font: 20px/20px Ahem;
+    orphans: 1;
+    widows: 1;
+}
+.spanner {
+    column-span: all;
+    height: 10px;
+}
+</style>
+<div id="columns">
+    <div>X<br>X<br>X</div>
+    <div class="spanner"></div>
+    <div style="height: 10px"></div>
+    <div>X<br><span>X</span><br>X</div>
+</div>

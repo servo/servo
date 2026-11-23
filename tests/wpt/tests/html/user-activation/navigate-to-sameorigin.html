@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <title>User activation propagation across a same-origin navigation</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#apply-the-history-step">
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/common/utils.js"></script>
 <script src="/resources/testharness.js"></script>
@@ -20,15 +21,6 @@
   let uuid2 = token();
   let clicked_link = `/common/dispatcher/remote-executor.html?uuid=${uuid2}`
 
-  const getUserActivationState = () =>
-    [navigator.userActivation.isActive, navigator.userActivation.hasBeenActive];
-
-  function assertUserActivationState(list,
-        expected_transient_bit, expected_sticky_bit, msg) {
-    assert_equals(list[0], expected_transient_bit, "Transient bit " + msg);
-    assert_equals(list[1], expected_sticky_bit, "Sticky bit " + msg);
-  }
-
   promise_test(async test => {
     // Open a new window that we will navigate away and observe.
     let w;
@@ -38,23 +30,18 @@
 
     await test_driver.click(document.body);
     assert_true(!!w, "A window is opened");
+    // Close the window at the end of the test, so that a later test in the same
+    // session cannot click a window this one left behind.
+    test.add_cleanup(() => w && w.close());
 
-    // Populate the window: add two elements (a non-link and a link) to allow
-    // the following clicks.
+    // Give the window a link, to click for the navigation below.
     {
       const context = new RemoteContext(uuid1);
       await context.execute_script(link => {
-        // Not sure why the first click below fails w/o this line!
-        document.body.textContent = "";
-
-        let elem1 = document.createElement("div");
-        elem1.textContent = "Dummy text to make it clickable";
-        document.body.appendChild(elem1);
-
-        let elem2 = document.createElement("a");
-        elem2.textContent = "Dummy text to make it clickable";
-        elem2.href = link;
-        document.body.appendChild(elem2);
+        let elem = document.createElement("a");
+        elem.textContent = "Link to click to navigate the window";
+        elem.href = link;
+        document.body.appendChild(elem);
       }, [clicked_link]);
     }
 
@@ -66,7 +53,7 @@
     }
 
     // Confirm that the new window gets user activation after a click.
-    await test_driver.click(w.document.body.firstElementChild);
+    await test_driver.click(w.document.documentElement);
     {
       const context = new RemoteContext(uuid1);
       const result = await context.execute_script(getUserActivationState);
@@ -76,11 +63,12 @@
     // Click on the link to navigate away.
     await test_driver.click(w.document.body.lastElementChild);
 
-    // Confirm that the new window does not have user activation.
+    // Confirm that the new window got the sticky user activation carried
+    // over, and that the transient one did not come with it.
     {
       const context = new RemoteContext(uuid2);
       const result = await context.execute_script(getUserActivationState);
-      assertUserActivationState(result, false, true, "after window redirected");
+      assertUserActivationState(result, false, true, "after window navigated");
     }
 }, "User activation propagation across a same-origin navigation");
 </script>

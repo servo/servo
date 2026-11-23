@@ -1,0 +1,111 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>LongTask Timing: container attributes redacted for cross-origin parent</title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script>
+  function waitForSelfLongTaskFromIframe(t, src) {
+    return new Promise(resolve => {
+      const iframe = document.createElement('iframe');
+      iframe.id = 'child-iframe-id';
+      iframe.name = 'child-iframe-name';
+      t.add_cleanup(() => iframe.remove());
+
+      window.addEventListener('message', t.step_func(function onMessage(e) {
+        if (e.source !== iframe.contentWindow) {
+          return;
+        }
+        window.removeEventListener('message', onMessage);
+        resolve(e.data);
+      }));
+
+      document.body.appendChild(iframe);
+      iframe.src = src;
+    });
+  }
+
+  promise_test(async t => {
+    assert_implements(window.PerformanceLongTaskTiming, 'Longtasks are not supported.');
+    const src = 'resources/subframe-self-longtask.html';
+    const data = await waitForSelfLongTaskFromIframe(t, src);
+    assert_equals(data.entryType, 'longtask');
+    assert_equals(data.frameAttribution, 'self');
+    assert_equals(data.attributionLength, 1);
+    assert_equals(data.taskAttribution, 'unknown');
+    assert_equals(data.containerType, 'iframe');
+    assert_equals(data.containerId, 'child-iframe-id');
+    assert_equals(data.containerName, 'child-iframe-name');
+    assert_equals(data.containerSrc, src);
+  }, 'Same-origin child iframe observing its own long task receives parent container attributes.');
+
+  promise_test(async t => {
+    assert_implements(window.PerformanceLongTaskTiming, 'Longtasks are not supported.');
+    const crossOriginSrc = new URL(
+        'resources/subframe-self-longtask.html',
+        new URL(location.pathname, get_host_info().HTTPS_REMOTE_ORIGIN)).href;
+    const data = await waitForSelfLongTaskFromIframe(t, crossOriginSrc);
+    assert_equals(data.entryType, 'longtask');
+    assert_equals(data.frameAttribution, 'self');
+    assert_equals(data.attributionLength, 1);
+    assert_equals(data.taskAttribution, 'unknown');
+    assert_equals(data.containerType, 'window');
+    assert_equals(data.containerId, '');
+    assert_equals(data.containerName, '');
+    assert_equals(data.containerSrc, '');
+  }, 'Cross-origin child iframe observing its own long task does not receive parent container attributes.');
+
+  promise_test(async t => {
+    assert_implements(window.PerformanceLongTaskTiming, 'Longtasks are not supported.');
+    const dataUrlPayload = `<!DOCTYPE html><script>
+      let done = false;
+      const observer = new PerformanceObserver(entryList => {
+        for (const longtask of entryList.getEntries()) {
+          if (longtask.name !== 'self') continue;
+          done = true;
+          const attribution = longtask.attribution[0];
+          parent.postMessage({
+            entryType: longtask.entryType,
+            frameAttribution: longtask.name,
+            attributionLength: longtask.attribution.length,
+            taskAttribution: attribution.name,
+            containerType: attribution.containerType,
+            containerId: attribution.containerId,
+            containerName: attribution.containerName,
+            containerSrc: attribution.containerSrc,
+          }, '*');
+          observer.disconnect();
+          return;
+        }
+      });
+      observer.observe({entryTypes: ['longtask']});
+      function spinLongTaskUntilObserved() {
+        if (done) return;
+        window.requestAnimationFrame(() => {
+          if (done) return;
+          const channel = new MessageChannel();
+          channel.port1.onmessage = () => {
+            if (done) return;
+            const begin = window.performance.now();
+            while (window.performance.now() < begin + 60);
+            spinLongTaskUntilObserved();
+          };
+          channel.port2.postMessage(null);
+        });
+      }
+      window.onload = spinLongTaskUntilObserved;
+    </scr` + `ipt>`;
+    const dataSrc = 'data:text/html;charset=utf-8,' + encodeURIComponent(dataUrlPayload);
+    const data = await waitForSelfLongTaskFromIframe(t, dataSrc);
+    assert_equals(data.entryType, 'longtask');
+    assert_equals(data.frameAttribution, 'self');
+    assert_equals(data.attributionLength, 1);
+    assert_equals(data.taskAttribution, 'unknown');
+    assert_equals(data.containerType, 'window');
+    assert_equals(data.containerId, '');
+    assert_equals(data.containerName, '');
+    assert_equals(data.containerSrc, '');
+  }, 'Opaque-origin data: child iframe observing its own long task does not receive parent container attributes.');
+</script>
+</body>

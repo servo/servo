@@ -36,7 +36,7 @@ bluetooth_bidi_test(async () => {
   try {
     await devices[0].gatt.connect();
     await devices[0].gatt.getPrimaryService('generic_access');
-    assert_promise_rejects_with_message(
+    await assert_promise_rejects_with_message(
         devices[0].gatt.getPrimaryService('health_thermometer'),
         {name: 'SecurityError'});
   } catch (err) {
@@ -62,8 +62,8 @@ bluetooth_bidi_test(async () => {
       if (device.name === 'Heart Rate') {
         await device.gatt.getPrimaryService('heart_rate');
       } else {
-        assert_promise_rejects_with_message(
-            devices[0].gatt.getPrimaryService('health_thermometer'),
+        await assert_promise_rejects_with_message(
+            device.gatt.getPrimaryService('health_thermometer'),
             {name: 'SecurityError'});
       }
     }

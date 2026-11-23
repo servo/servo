@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="timeout" content="long">
+<title>Resource Timing: contentType for failed subframe navigations</title>
+<link rel="help" href="https://www.w3.org/TR/resource-timing-2/#sec-performanceresourcetiming"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/entry-invariants.js"></script>
+<script src="resources/resource-loaders.js"></script>
+</head>
+<body>
+<script>
+const {ORIGIN, REMOTE_ORIGIN} = get_host_info();
+const SAME_ORIGIN = location.origin;
+
+const load_non_committing_iframe = (url, cleanup) => {
+  const frame = document.createElement("iframe");
+  cleanup(() => frame.remove());
+  frame.src = url;
+  document.body.appendChild(frame);
+};
+
+const wait_for_entry = async (t, loader, url) => {
+  const target_url = load.cache_bust(url);
+  const loaded_entry = new Promise((resolve, reject) => {
+    const observer = new PerformanceObserver(entry_list => {
+      try {
+        for (const entry of entry_list.getEntries()) {
+          if (entry.name.startsWith(target_url)) {
+            observer.disconnect();
+            resolve(entry);
+            return;
+          }
+        }
+      } catch (e) {
+        reject(e);
+      }
+    });
+    t.add_cleanup(() => observer.disconnect());
+    observer.observe({"type": "resource"});
+  });
+
+  await loader(target_url, fn => t.add_cleanup(fn));
+  const entry = await await_with_timeout(
+    2000, "Timeout was reached before entry fired", loaded_entry);
+  assert_not_equals(entry, null, "No entry was received");
+  return entry;
+};
+
+const content_type_url = (origin, status, content_type, tao_value) => {
+  let path = `/resource-timing/resources/content-type.py?status=${status}` +
+    `&content_type=${encodeURIComponent(content_type)}`;
+  if (tao_value) {
+    path += `&tao_value=${encodeURIComponent(tao_value)}`;
+  }
+  return new URL(path, origin);
+};
+
+const object_loaders = [
+  ["null-typed object", load.null_object],
+  ["frame-typed object", load.frame_object],
+];
+
+const same_origin_object_cases = [
+  [404, "text/html;charset=utf-8", "text/html"],
+  [404, "text/plain", "text/plain"],
+  [500, "text/json", "application/json"],
+];
+
+for (const [loader_label, loader] of object_loaders) {
+  for (const [status, raw_type, expected_type] of same_origin_object_cases) {
+    promise_test(async t => {
+      const url = content_type_url(ORIGIN, status, raw_type);
+      const entry = await wait_for_entry(t, loader, url);
+      assert_equals(entry.responseStatus, status);
+      assert_equals(entry.contentType, expected_type);
+    }, `Same-origin ${status} ${loader_label} exposes minimized contentType` +
+       ` (${raw_type} -> ${expected_type})`);
+  }
+
+  promise_test(async t => {
+    const url = content_type_url(REMOTE_ORIGIN, 404, "text/html", "*");
+    const entry = await wait_for_entry(t, loader, url);
+    assert_equals(entry.responseStatus, 0);
+    assert_equals(entry.contentType, "");
+  }, `Cross-origin 404 ${loader_label} with Timing-Allow-Origin masks` +
+     ` contentType`);
+}
+
+promise_test(async t => {
+  const final_url = load.cache_bust(
+    content_type_url(SAME_ORIGIN, 404, "text/html"));
+  const redirect_url = new URL(
+    `/resource-timing/resources/redirect-cors.py?location=` +
+      encodeURIComponent(final_url),
+    SAME_ORIGIN);
+  const entry = await wait_for_entry(t, load.null_object, redirect_url);
+  assert_equals(entry.responseStatus, 404);
+  assert_equals(entry.contentType, "text/html");
+}, "Same-origin redirected 404 object exposes contentType");
+
+promise_test(async t => {
+  const final_path =
+    `/resource-timing/resources/content-type.py?status=404` +
+    `&content_type=${encodeURIComponent("text/html")}&tao_value=*` +
+    `&id=${Math.random().toString().substring(2)}`;
+  const redirect_url = new URL(
+    `/resource-timing/resources/multi_redirect.py` +
+      `?page_origin=${encodeURIComponent(SAME_ORIGIN)}` +
+      `&cross_origin=${encodeURIComponent(REMOTE_ORIGIN)}` +
+      `&tao_steps=3` +
+      `&final_resource=${encodeURIComponent(final_path)}`,
+    SAME_ORIGIN);
+  const entry = await wait_for_entry(t, load.null_object, redirect_url);
+  assert_equals(entry.responseStatus, 0);
+  assert_equals(entry.contentType, "");
+}, "Cross-origin redirected 404 object with Timing-Allow-Origin masks" +
+   " contentType");
+
+const same_origin_iframe_cases = [
+  [204, "text/html;charset=utf-8", "text/html"],
+  [205, "application/json", "application/json"],
+];
+
+for (const [status, raw_type, expected_type] of same_origin_iframe_cases) {
+  promise_test(async t => {
+    const url = content_type_url(ORIGIN, status, raw_type);
+    const entry = await wait_for_entry(t, load_non_committing_iframe, url);
+    assert_equals(entry.responseStatus, status);
+    assert_equals(entry.contentType, expected_type);
+  }, `Same-origin ${status} iframe exposes minimized contentType` +
+     ` (${raw_type} -> ${expected_type})`);
+}
+
+promise_test(async t => {
+  const url = content_type_url(REMOTE_ORIGIN, 204, "text/html", "*");
+  const entry = await wait_for_entry(t, load_non_committing_iframe, url);
+  assert_equals(entry.responseStatus, 0);
+  assert_equals(entry.contentType, "");
+}, "Cross-origin 204 iframe with Timing-Allow-Origin masks contentType");
+</script>
+</body>
+</html>

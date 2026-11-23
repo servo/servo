@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Document Policy in module workers created without Document Policy</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async function runWorker(t, url) {
+  const worker = new Worker(url, {type: 'module'});
+  t.add_cleanup(() => worker.terminate());
+  return await new Promise((resolve, reject) => {
+    worker.onmessage = event => resolve(event.data);
+    worker.onerror = event => reject(new Error(event.message));
+  });
+}
+
+test(() => {
+  assert_throws_dom('NotAllowedError', () => {
+    new Profiler({sampleInterval: 10, maxBufferSize: 100});
+  });
+}, 'The creator cannot profile without Document Policy');
+
+const moduleURL = '/js-self-profiling/resources/module-worker-profiler.js';
+
+for (const allowed of [true, false]) {
+  promise_test(async t => {
+    const url = moduleURL +
+        `?pipe=header(Document-Policy,js-profiling=?${allowed ? 1 : 0})`;
+    const result = await runWorker(t, url);
+    assert_equals(result.success, allowed, result.message);
+    if (allowed) {
+      assert_true(result.stopped);
+    } else {
+      assert_equals(result.error, 'NotAllowedError');
+    }
+  }, `A network module worker's ${
+      allowed ? 'allowing' : 'denying'} response policy applies without a creator policy`);
+}
+
+const importedURL = new URL(moduleURL, location.href);
+importedURL.searchParams.set('pipe', 'header(Access-Control-Allow-Origin,*)');
+const workerScript = `
+  import {profile} from ${JSON.stringify(importedURL.href)};
+  try {
+    self.postMessage(await profile());
+  } catch (error) {
+    self.postMessage(
+        {success: false, error: error.name, message: error.message});
+  }
+`;
+
+for (const scheme of ['blob', 'data']) {
+  promise_test(async t => {
+    let url;
+    if (scheme === 'blob') {
+      url = URL.createObjectURL(
+          new Blob([workerScript], {type: 'text/javascript'}));
+      t.add_cleanup(() => URL.revokeObjectURL(url));
+    } else {
+      url = 'data:text/javascript,' + encodeURIComponent(workerScript);
+    }
+    const result = await runWorker(t, url);
+    assert_false(result.success, result.message);
+    assert_equals(result.error, 'NotAllowedError');
+  }, `A ${scheme} module worker inherits its creator's missing policy despite an imported module's allowing header`);
+}
+</script>

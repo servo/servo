@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Opacity auto in Typed OM</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="target"></div>
+<script>
+test(() => {
+  const value = CSSStyleValue.parse("opacity", "auto");
+  assert_true(value instanceof CSSKeywordValue);
+  assert_equals(value.value, "auto");
+}, "Parsing opacity auto produces a keyword");
+
+test(t => {
+  t.add_cleanup(() => target.attributeStyleMap.clear());
+  target.attributeStyleMap.set("opacity", new CSSKeywordValue("auto"));
+  const specified = target.attributeStyleMap.get("opacity");
+  assert_true(specified instanceof CSSKeywordValue);
+  assert_equals(specified.value, "auto");
+  const computed = target.computedStyleMap().get("opacity");
+  assert_true(computed instanceof CSSUnitValue);
+  assert_equals(computed.unit, "number");
+  assert_equals(computed.value, 1);
+}, "A specified auto keyword computes to numeric one");
+</script>

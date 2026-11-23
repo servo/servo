@@ -45,6 +45,21 @@ def test_primitive_serialization(session, expression, expected):
     assert value == expected
 
 
+@pytest.mark.parametrize("expression", [
+    "null",
+    "undefined",
+    "true",
+    "23",
+    "'foo'",
+    "42n",
+    "Symbol('foo')",
+    "{ message: Symbol('foo') }",
+])
+def test_thrown_value(session, expression):
+    response = execute_async_script(session, "throw {};".format(expression))
+    assert_error(response, "javascript error")
+
+
 @pytest.mark.parametrize("dialog_type", ["alert", "confirm", "prompt"])
 def test_abort_by_user_prompt(session, dialog_type):
     response = execute_async_script(

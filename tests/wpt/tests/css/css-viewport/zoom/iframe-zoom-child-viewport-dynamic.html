@@ -1,0 +1,71 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>A zoomed iframe's document follows changes to the iframe's zoom</title>
+<link rel="help" href="https://drafts.csswg.org/css-viewport/#zoom-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/iframe-zoom.js"></script>
+<style>
+  body { margin: 0; }
+  iframe { border: 0; }
+</style>
+<body>
+<script>
+const viewportHtml = `<!doctype html>
+<style>
+  html, body { margin: 0; }
+  #fill { height: 16px; }
+  #vw { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; }
+</style>
+<div id="fill"></div>
+<div id="vw"></div>`;
+
+promise_test(async t => {
+  const iframe = await loadIframe({ srcdoc: viewportHtml, style: "width: 512px; height: 256px; zoom: 0.5", test: t });
+  iframe.style.zoom = 1;
+  iframe.style.width = "256px";
+  iframe.style.height = "128px";
+  await nextFrame();
+  const doc = iframe.contentDocument;
+  assert_equals(doc.documentElement.clientWidth, 256, "clientWidth");
+  assert_equals(doc.getElementById("fill").offsetWidth, 256, "width: 100%");
+  assert_equals(doc.getElementById("vw").offsetWidth, 256, "width: 100vw");
+  assert_equals(doc.getElementById("vw").offsetHeight, 128, "height: 100vh");
+}, "The iframe's document lays out again when the zoom changes from 0.5 to 1 but the iframe's box does not");
+
+promise_test(async t => {
+  const iframe = await loadIframe({ srcdoc: viewportHtml, style: "width: 512px; height: 256px; zoom: 0.5", test: t });
+  iframe.style.zoom = 2;
+  iframe.style.width = "128px";
+  iframe.style.height = "64px";
+  await nextFrame();
+  const doc = iframe.contentDocument;
+  assert_equals(doc.documentElement.clientWidth, 128, "clientWidth");
+  assert_equals(doc.getElementById("fill").offsetWidth, 128, "width: 100%");
+  assert_equals(doc.getElementById("vw").offsetWidth, 128, "width: 100vw");
+  assert_equals(doc.getElementById("vw").offsetHeight, 64, "height: 100vh");
+}, "The iframe's document lays out again when the zoom changes from 0.5 to 2 but the iframe's box does not");
+
+promise_test(async t => {
+  const iframe = await loadIframe({ srcdoc: viewportHtml, style: "width: 256px; height: 128px; zoom: 2", test: t });
+  iframe.style.display = "none";
+  await nextFrame();
+  iframe.style.zoom = 1;
+  await nextFrame();
+  iframe.style.display = "";
+  await nextFrame();
+  assert_equals(iframe.contentDocument.documentElement.clientWidth, 256, "clientWidth");
+  assert_equals(iframe.contentDocument.getElementById("vw").offsetWidth, 256, "width: 100vw");
+}, "The iframe's document follows a zoom change made while the iframe was not rendered");
+
+promise_test(async t => {
+  const iframe = await loadIframe({
+    srcdoc: `<!doctype html><body onresize="window.resizeCount = (window.resizeCount ?? 0) + 1">`,
+    style: "width: 256px; height: 128px; zoom: 0.5",
+    test: t,
+  });
+  await nextFrame();
+  await nextFrame();
+  assert_equals(iframe.contentWindow.resizeCount ?? 0, 0);
+}, "A zoomed iframe does not fire a resize event when it loads");
+</script>

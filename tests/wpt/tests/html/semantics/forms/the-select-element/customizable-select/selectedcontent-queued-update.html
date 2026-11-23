@@ -131,6 +131,46 @@ test(() => {
 }, 'Inserting an option performs a pending update of selectedcontent.');
 </script>
 
+<select id=select4b>
+  <button>
+    <selectedcontent></selectedcontent>
+  </button>
+  <option class=removed-by-script>one</option>
+  <option>two</option>
+</select>
+
+<script>
+// The option post-connection steps check for a pending update when they run,
+// not when the option is inserted, so they also perform an update that was
+// queued by an earlier node's post-connection steps in the same insertion.
+test(() => {
+  const select = document.getElementById('select4b');
+  const selectedcontent = select.querySelector('selectedcontent');
+
+  // This script removes the selected option "one" when it runs, which selects
+  // "two" and queues an update of selectedcontent.
+  const script = document.createElement('script');
+  script.textContent =
+    `document.querySelector('#select4b .removed-by-script').remove();`;
+  const unselectedOption = new Option('three');
+
+  // Insert both nodes at once. Their insertion steps run first, and since
+  // nothing is pending and "three" is not selected, no update is queued yet.
+  // Then their post-connection steps run in tree order: the script runs and
+  // removes the selected option, which changes the selected option to "two"
+  // and queues an update, and then the option's post-connection steps see the
+  // pending update and perform it synchronously.
+  select.append(script, unselectedOption);
+
+  assert_equals(select.options.length, 2,
+    'The inserted script should have removed an option.');
+  assert_equals(select.value, 'two',
+    'Removing the selected option should select the next one.');
+  assert_equals(selectedcontent.textContent, 'two',
+    'The option post-connection steps should update selectedcontent synchronously.');
+}, 'Inserting an option after a script that queues an update performs that update.');
+</script>
+
 <select id=select5a>
   <button>
     <selectedcontent id=selectedcontent5></selectedcontent>

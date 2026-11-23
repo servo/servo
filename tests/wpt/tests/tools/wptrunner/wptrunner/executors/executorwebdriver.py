@@ -55,11 +55,14 @@ from .protocol import (BaseProtocolPart,
                        WebExtensionsProtocolPart,
                        merge_dicts)
 
-from typing import Any, List, Dict, Optional
+from typing import Any, List, Dict, Optional, Mapping, TYPE_CHECKING, Union
 from webdriver.client import Session
 from webdriver import error as webdriver_error
 from webdriver.bidi import error as webdriver_bidi_error
 from webdriver.bidi.protocol import bidi_deserialize
+
+if TYPE_CHECKING:
+    from webdriver.bidi.undefined import Undefined
 
 here = os.path.dirname(__file__)
 
@@ -108,6 +111,9 @@ class WebDriverBaseProtocolPart(BaseProtocolPart):
 
     def load(self, url):
         self.webdriver.url = url
+
+    def refresh(self):
+        self.webdriver.refresh()
 
     def wait(self):
         while True:
@@ -288,6 +294,17 @@ class WebDriverBidiBrowsingContextProtocolPart(BidiBrowsingContextProtocolPart):
                                  user_text: Optional[str] = None) -> None:
         await self.webdriver.bidi_session.browsing_context.handle_user_prompt(
             context=context, accept=accept, user_text=user_text)
+
+    async def set_viewport(self,
+                           context: Optional[str],
+                           viewport: Union[Optional[Mapping[str, Any]], "Undefined"],
+                           device_pixel_ratio: Union[Optional[float], "Undefined"],
+                           user_contexts: Optional[List[str]]) -> None:
+        await self.webdriver.bidi_session.browsing_context.set_viewport(
+            context=context,
+            viewport=viewport,
+            device_pixel_ratio=device_pixel_ratio,
+            user_contexts=user_contexts)
 
 
 class WebDriverBidiEventsProtocolPart(BidiEventsProtocolPart):

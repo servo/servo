@@ -1,0 +1,83 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>SVGAElement HyperlinkElementUtils setters write href, or xlink:href only when href is absent</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/linking.html#InterfaceSVGAElement">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/links.html#update-href">
+<link rel="help" href="https://github.com/w3c/svgwg/issues/1234">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg id="container"></svg>
+<script>
+  // "update href" for SVGAElement: write xlink:href only when href is not
+  // present and xlink:href is present, otherwise write href. Each test reads
+  // the two attributes back by name, in both orders, so the result cannot
+  // depend on which attribute is read first.
+
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const XLINK_NS = "http://www.w3.org/1999/xlink";
+
+  const HREF_URL = "http://a.test/old?q=1#h1";
+  const XLINK_URL = "http://b.test/xlink?q=2#h2";
+
+  // [property, value to set, initial value read from HREF_URL,
+  //  result built from HREF_URL, result built from XLINK_URL]
+  const setters = [
+    ["pathname", "/new", "/old", "http://a.test/new?q=1#h1", "http://b.test/new?q=2#h2"],
+    ["search", "?q=9", "?q=1", "http://a.test/old?q=9#h1", "http://b.test/xlink?q=9#h2"],
+    ["hash", "#h9", "#h1", "http://a.test/old?q=1#h9", "http://b.test/xlink?q=2#h9"],
+  ];
+
+  function createAnchor(mode) {
+    const a = document.createElementNS(SVG_NS, "a");
+    if (mode === "href" || mode === "both")
+      a.setAttribute("href", HREF_URL);
+    if (mode === "xlink" || mode === "both")
+      a.setAttributeNS(XLINK_NS, "xlink:href", XLINK_URL);
+    document.getElementById("container").appendChild(a);
+    return a;
+  }
+
+  function expectedAttributes(mode, fromHref, fromXlink) {
+    switch (mode) {
+    case "href":
+      return { href: fromHref, xlink: null };
+    case "xlink":
+      return { href: null, xlink: fromXlink };
+    case "both":
+      return { href: fromHref, xlink: XLINK_URL };
+    }
+  }
+
+  function initialGetterValue(mode, [property, , fromHref]) {
+    if (mode !== "xlink")
+      return fromHref;
+    return new URL(XLINK_URL)[property];
+  }
+
+  for (const mode of ["href", "xlink", "both"]) {
+    for (const readFirst of ["href", "xlink:href"]) {
+      for (const setter of setters) {
+        const [property, value, , fromHref, fromXlink] = setter;
+        test(t => {
+          const a = createAnchor(mode);
+          t.add_cleanup(() => a.remove());
+
+          assert_equals(a[property], initialGetterValue(mode, setter), `${property} before the setter`);
+
+          a[property] = value;
+
+          const expected = expectedAttributes(mode, fromHref, fromXlink);
+          const readHref = () => assert_equals(a.getAttribute("href"), expected.href, "href attribute");
+          const readXlink = () => assert_equals(a.getAttributeNS(XLINK_NS, "href"), expected.xlink, "xlink:href attribute");
+          if (readFirst === "href") {
+            readHref();
+            readXlink();
+          } else {
+            readXlink();
+            readHref();
+          }
+        }, `${property} setter, attributes: ${mode}, ${readFirst} read first`);
+      }
+    }
+  }
+</script>

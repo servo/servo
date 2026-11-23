@@ -95,3 +95,55 @@ promise_test(async t => {
       new Float32Array(outputData), [4],
       'Read tensor data equals expected data.');
 }, 'Destroying graph after dispatch() and before readTensor() is OK.');
+
+promise_test(async t => {
+  const operandType = {dataType: 'float32', shape: [1]};
+
+  const builder1 = new MLGraphBuilder(context);
+  const lhsOperand1 = builder1.input('lhs', operandType);
+  const rhsOperand1 = builder1.input('rhs', operandType);
+  const graph1 =
+      await builder1.build({'output': builder1.mul(lhsOperand1, rhsOperand1)});
+  t.add_cleanup(() => graph1.destroy());
+
+  const builder2 = new MLGraphBuilder(context);
+  const lhsOperand2 = builder2.input('lhs', operandType);
+  const rhsOperand2 = builder2.input('rhs', operandType);
+  const graph2 =
+      await builder2.build({'output': builder2.add(lhsOperand2, rhsOperand2)});
+
+  graph2.destroy();
+
+  const lhsTensor = await context.createTensor({
+    dataType: 'float32',
+    shape: [1],
+    writable: true,
+  });
+  const rhsTensor = await context.createTensor({
+    dataType: 'float32',
+    shape: [1],
+    writable: true,
+  });
+  const outputTensor = await context.createTensor({
+    dataType: 'float32',
+    shape: [1],
+    readable: true,
+  });
+  t.add_cleanup(() => {
+    lhsTensor.destroy();
+    rhsTensor.destroy();
+    outputTensor.destroy();
+  });
+
+  const inputData = new Float32Array(1).fill(3.0);
+  context.writeTensor(lhsTensor, inputData);
+  context.writeTensor(rhsTensor, inputData);
+  const dispatchInputs = {'lhs': lhsTensor, 'rhs': rhsTensor};
+  const dispatchOutputs = {'output': outputTensor};
+  context.dispatch(graph1, dispatchInputs, dispatchOutputs);
+
+  const outputData = await context.readTensor(outputTensor);
+  assert_array_equals(
+      new Float32Array(outputData), [9],
+      'Read tensor data equals expected data.');
+}, 'Destroying another graph on the same context before dispatch() is OK.');

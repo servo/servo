@@ -131,6 +131,97 @@ for (element of ["html", "body", "div"]) {
     assert_removed_parseHTML({ elements: [{ name: element, attributes: [] }], attributes: [] }, element);
   }, `parseHTML removes ${element} is= attribute with local allow attributes`);
 }
+
+let bold_constructed = 0;
+
+class XBoldElement extends HTMLElement {
+  constructor() {
+    super();
+    bold_constructed++;
+  }
+}
+
+customElements.define("x-bold", XBoldElement, { extends: "b" });
+
+const formatting_cases = [
+  ["adoption agency", `<b is="x-bold">a<p>b</b>c`, `<b>a</b><p><b>b</b>c</p>`],
+  ["reconstructing", `<p><b is="x-bold">a</p>b`, `<p><b>a</b></p><b>b</b>`],
+];
+
+for (const [name, markup, expected] of formatting_cases) {
+  test(t => {
+    bold_constructed = 0;
+
+    let d = document.createElement("div");
+    document.body.append(d);
+    d.setHTML(markup, { sanitizer: { removeAttributes: ["is"] } });
+    assert_equals(d.innerHTML, expected);
+    assert_equals(bold_constructed, 0);
+
+    d.remove();
+  }, `Formatting elements created by ${name} don't get a removed is= attribute`);
+
+  test(t => {
+    bold_constructed = 0;
+
+    let d = document.createElement("div");
+    document.body.append(d);
+    d.setHTML(markup, { sanitizer: { attributes: ["is"] } });
+    const bs = d.querySelectorAll("b");
+    assert_greater_than(bs.length, 0);
+    for (const b of bs) {
+      assert_equals(b.getAttribute("is"), "x-bold");
+      assert_true(b instanceof XBoldElement);
+    }
+    assert_equals(bold_constructed, bs.length);
+
+    d.remove();
+  }, `Formatting elements created by ${name} keep an allowed is= attribute`);
+}
+
+for (const [markup, getElement] of [
+  [`<body>hello<body is="foo-bar">`, doc => doc.body],
+  [`<body>hello<html is="foo-bar">`, doc => doc.documentElement],
+]) {
+  test(t => {
+    const doc = Document.parseHTML(markup, { sanitizer: { removeAttributes: ["is"] } });
+    assert_equals(doc.body.textContent, "hello");
+    assert_false(getElement(doc).hasAttribute("is"));
+  }, `parseHTML doesn't merge a removed is= attribute from ${markup}`);
+
+  test(t => {
+    const doc = Document.parseHTML(markup, { sanitizer: { attributes: ["is"] } });
+    assert_equals(getElement(doc).getAttribute("is"), "foo-bar");
+  }, `parseHTML merges an allowed is= attribute from ${markup}`);
+}
+
+test(t => {
+  constructor_called = connectedCallback_called = false;
+
+  let host = document.createElement("div");
+  document.body.append(host);
+  const shadow = host.attachShadow({ mode: "open" });
+  shadow.setHTML(`<div is="foo-bar">hello</div>`, { sanitizer: { removeAttributes: ["is"] } });
+  assert_equals(shadow.innerHTML, `<div>hello</div>`);
+  assert_false(constructor_called);
+  assert_false(connectedCallback_called);
+
+  host.remove();
+}, "ShadowRoot setHTML removes the is= attribute with global removeAttributes");
+
+test(t => {
+  const doc = Document.parseHTMLUnsafe(`<div is="foo-bar">hello</div>`, { sanitizer: { removeAttributes: ["is"] } });
+  assert_false(doc.querySelector("div").hasAttribute("is"));
+}, "parseHTMLUnsafe removes the is= attribute with global removeAttributes");
+
+for (const sanitizer of [
+  { removeElements: ["foo-bar"], attributes: ["is"] },
+  { replaceWithChildrenElements: ["foo-bar"], attributes: ["is"] },
+]) {
+  test(t => {
+    assert_kept(sanitizer);
+  }, `The is= attribute is kept when its value is in ${Object.keys(sanitizer)[0]}`);
+}
 </script>
 </body>
 </html>

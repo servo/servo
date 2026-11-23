@@ -4061,6 +4061,69 @@ const subgraphTests = [
       }
     }
   },
+  {
+    'name': 'quantized element-wise logical lesserOrEqual with scale 1.0',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [-3, 2, 5, 7],
+          'descriptor': {shape: [2, 2], dataType: 'int8'},
+          'constant': false
+        },
+        'inputB': {
+          'data': [-7, 2, 8, 7],
+          'descriptor': {shape: [2, 2], dataType: 'int8'},
+          'constant': true
+        },
+        'scale': {
+          'data': [1.0],
+          'descriptor': {shape: [1, 1], dataType: 'float32'},
+          'constant': true
+        },
+        'zeroPoint': {
+          'data': [0],
+          'descriptor': {shape: [1, 1], dataType: 'int8'},
+          'constant': true
+        },
+      },
+      'operators': [
+        {
+          'name': 'dequantizeLinear',
+          'arguments': [
+            {'input': 'inputA'},
+            {'scale': 'scale', 'zeroPoint': 'zeroPoint'}
+          ],
+          'outputs': 'dequantizedInputA'
+        },
+        {
+          'name': 'dequantizeLinear',
+          'arguments': [
+            {'input': 'inputB'},
+            {'scale': 'scale', 'zeroPoint': 'zeroPoint'}
+          ],
+          'outputs': 'dequantizedInputB'
+        },
+        {
+          'name': 'lesserOrEqual',
+          'arguments': [
+            {'inputA': 'dequantizedInputA'}, {'inputB': 'dequantizedInputB'}
+          ],
+          'outputs': 'lesserOrEqualOutput'
+        },
+        {
+          'name': 'cast',
+          'arguments': [{'input': 'lesserOrEqualOutput'}, {'type': 'int32'}],
+          'outputs': 'output'
+        },
+      ],
+      'expectedOutputs': {
+        'output': {
+          'data': [0, 1, 1, 1],
+          'descriptor': {shape: [2, 2], dataType: 'int32'}
+        }
+      }
+    }
+  },
 ];
 
 webnn_conformance_test(

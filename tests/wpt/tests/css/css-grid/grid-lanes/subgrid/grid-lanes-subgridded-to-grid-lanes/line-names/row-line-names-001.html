@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes Test: Repeated inherited row line names</title>
+<link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="row-line-names-001-ref.html">
+<meta name="assert" content="A grid-lanes subgrid resolves named spans and negative named row indices within its inherited span.">
+<style>
+  .grid-lanes {
+    display: inline grid-lanes;
+    grid-template-rows: 20px [a] 40px 60px [a] 80px 100px [a] 120px;
+    width: max-content;
+    gap: 4px;
+    fit-tolerance: 0;
+    padding: 8px;
+    border: 2px solid black;
+    background: lightgrey;
+  }
+  .subgrid {
+    display: grid-lanes;
+    grid-template-rows: subgrid;
+    grid-row: 2 / span 4;
+    gap: 4px;
+    fit-tolerance: 0;
+    background: yellow;
+  }
+  .subgrid > div { width: 24px; }
+  .first { grid-row: a / span a; background: green; }
+  .second { grid-row: span a / a -1; background: blue; }
+</style>
+<div class="grid-lanes">
+  <div class="subgrid">
+    <div class="first"></div>
+    <div class="second"></div>
+  </div>
+</div>

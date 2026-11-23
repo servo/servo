@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG Test: computed display of never-rendered elements</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/render.html#TermNeverRenderedElement">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/styling.html#UAStyleSheet">
+<meta name="assert" content="The SVG user agent style sheet sets no display value on never-rendered elements, so display computes to its initial value, inline, and a display presentation attribute is not overridden.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg id="root" width="10" height="10"></svg>
+<script>
+const SVG_NS = "http://www.w3.org/2000/svg";
+const root = document.getElementById("root");
+const names = [
+  "defs", "title", "desc", "metadata", "symbol", "marker", "clipPath", "mask",
+  "linearGradient", "radialGradient", "pattern", "script", "style"
+];
+
+function computedDisplay(name, attributeValue) {
+  const element = document.createElementNS(SVG_NS, name);
+  if (attributeValue)
+    element.setAttribute("display", attributeValue);
+  root.append(element);
+  const value = getComputedStyle(element).display;
+  element.remove();
+  return value;
+}
+
+for (const name of names) {
+  test(() => {
+    assert_equals(computedDisplay(name), "inline");
+  }, `${name}: display computes to inline`);
+
+  test(() => {
+    assert_equals(computedDisplay(name, "block"), "block");
+  }, `${name}: display="block" computes to block`);
+}
+</script>

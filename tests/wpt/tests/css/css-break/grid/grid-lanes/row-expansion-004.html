@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>Deferred grid-lanes rows expand only in fragments where they are laid out</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="match" href="row-expansion-004-ref.html">
+<style>
+  .multicol {
+    columns: 3;
+    column-fill: auto;
+    column-gap: 0;
+    width: 240px;
+    height: 100px;
+    margin-bottom: 10px;
+  }
+  .lanes {
+    display: grid-lanes;
+    grid-template-rows: 40px auto 20px;
+    width: 80px;
+  }
+  .lanes > div { width: 40px; }
+  .first { grid-row: 1; background: silver; }
+  .content, .parallel { grid-row: 2; }
+  .content > div { height: 20px; background: green; }
+  .content > div + div { break-before: column; background: blue; }
+  .parallel { background: purple; }
+  .last { grid-row: 3; background: orange; }
+  .break-before .content { break-before: column; }
+  .break-after .first { break-after: column; }
+</style>
+<div class="multicol break-before">
+  <div class="lanes">
+    <div class="first"></div>
+    <div class="content"><div></div><div></div></div>
+    <div class="parallel"></div>
+    <div class="last"></div>
+  </div>
+</div>
+<div class="multicol break-after">
+  <div class="lanes">
+    <div class="first"></div>
+    <div class="content"><div></div><div></div></div>
+    <div class="parallel"></div>
+    <div class="last"></div>
+  </div>
+</div>

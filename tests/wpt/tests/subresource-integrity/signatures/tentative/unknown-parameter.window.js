@@ -15,7 +15,7 @@
 // Content-Length: 18
 // Signature-Input: signature=("unencoded-digest";sf "@status"); \
 //                  keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";       \
-//                  tag="sri"
+//                  tag="ed25519-integrity"
 // Signature: signature=:oVQ+s/OqXLAVdfvgZ3HaPiyzkpNXZSit9l6e1FB/gOOL3t8FOrIRDV \
 //                       CkcIEcJjd3MA1mROn39/WQShTmnKmlDg==:
 //
@@ -27,23 +27,23 @@
 const kRequestsWithValidSignature = [
   // ```
   // "unencoded-digest";sf: sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:
-  // "@signature-params": ("unencoded-digest";sf "@status");keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="sri";unknown=1
+  // "@signature-params": ("unencoded-digest";sf);keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="ed25519-integrity";unknown=1
   // ```
   {
     body: "window.hello = `world`;",
     digest: "sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:",
-    signature: `signature=:eZ2DGIHUsTNMxFReOMkbOrTmn+CqDckCZ5/635x1Apl2ws0nA+qZcHqZFMdjBvcGw0WElh3zYD0ynkQ+cHiWCA==:`,
-    signatureInput: `signature=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri";unknown=1`
+    signature: `signature=:OTrf8jGK6BeX856d0lFXR18qoWic/bQjQs5N+o+FpjF2x+l2EJHqZ9DpJCHQZv+w1kY/wk2HG/DaSi0IlJQkBw==:`,
+    signatureInput: `signature=("unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="ed25519-integrity";unknown=1`
   },
   // ```
   // "unencoded-digest";sf: sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:
-  // "@signature-params": ("unencoded-digest";sf "@status");unknown=1;keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="sri"
+  // "@signature-params": ("unencoded-digest";sf);unknown=1;keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="ed25519-integrity"
   // ```
   {
     body: "window.hello = `world`;",
     digest: "sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:",
-    signature: `signature=:YXQH8lkKBcGOMNSFbS56j3d5nK3j15HbFPIdsljzQVGFFd93T6FmXb2cLsoINYQbnMUOQBSROIzFZpgUQTBTBA==:`,
-    signatureInput: `signature=("unencoded-digest";sf);unknown=1;keyid="${kValidKeys['rfc']}";tag="sri"`
+    signature: `signature=:6Nzo6GLSoUIx6UUSs0TgbtvvJbATbm+d4ErnXaIo8xjNVYvpFwO0MQO02/h70EMoHo1gpuTEA3YWbaUIZ7D6Aw==:`,
+    signatureInput: `signature=("unencoded-digest";sf);unknown=1;keyid="${kValidKeys['rfc']}";tag="ed25519-integrity"`
   },
 ];
 

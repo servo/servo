@@ -3,6 +3,7 @@
      xmlns:h="http://www.w3.org/1999/xhtml">
   <metadata>
     <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/paths.html#TheDProperty"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/paths.html#ArcOutOfRangeParameters"/>
     <h:meta name="assert" content="computed d is serialized using absolute commands"/>
   </metadata>
   <path id="target"></path>
@@ -30,5 +31,18 @@
   let test5 = '  path(  "m 10 20 a 10 20 30 1 0 40 50 a 110 120 30 1 1 140 50"  )';
   test_valid_value('d', test5, 'path("m 10 20 a 10 20 30 1 0 40 50 a 110 120 30 1 1 140 50")');
   test_computed_value('d', test5, 'path("M 10 20 A 10 20 30 1 0 50 70 A 110 120 30 1 1 190 120")');
+
+  // A zero radius keeps the arc command; only rendering treats it as a lineto.
+  let test6 = 'path("m 10 20 a 0 20 30 1 0 40 50 l 10 10")';
+  test_valid_value('d', test6);
+  test_computed_value('d', test6, 'path("M 10 20 A 0 20 30 1 0 50 70 L 60 80")');
+
+  let test7 = 'path("m 10 20 l 10 10 a 10 0 0 0 1 40 50")';
+  test_valid_value('d', test7);
+  test_computed_value('d', test7, 'path("M 10 20 L 20 30 A 10 0 0 0 1 60 80")');
+
+  let test8 = 'path("m 10 20 a 0 0 0 0 1 40 50")';
+  test_valid_value('d', test8);
+  test_computed_value('d', test8, 'path("M 10 20 A 0 0 0 0 1 50 70")');
   ]]></script>
 </svg>

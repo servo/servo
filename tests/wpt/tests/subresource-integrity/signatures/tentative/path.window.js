@@ -15,7 +15,7 @@
 // Content-Length: 18
 // Signature-Input: signature=("unencoded-digest";sf "@path";req); \
 //                  keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";       \
-//                  tag="sri"
+//                  tag="ed25519-integrity"
 // Signature: signature=:oVQ+s/OqXLAVdfvgZ3HaPiyzkpNXZSit9l6e1FB/gOOL3t8FOrIRDV \
 //                       CkcIEcJjd3MA1mROn39/WQShTmnKmlDg==:
 //
@@ -30,26 +30,26 @@ const kRequestsWithValidSignature = [
   // ```
   // "unencoded-digest";sf: sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:
   // "@path";req: /subresource-integrity/signatures/resource.py
-  // "@signature-params": ("unencoded-digest";sf "@path";req);keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="sri"
+  // "@signature-params": ("unencoded-digest";sf "@path";req);keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="ed25519-integrity"
   // ```
   {
     body: "window.hello = `world`;",
     digest: "sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:",
-    signature: `signature=:+sRkplliS3TanqASHirBTokxhOn6fRTodc7i6Q6PUMsSPP0RJ2Xdb/woWz0+JXaBXAfa55qj+N9paXP5j7DFCw==:`,
-    signatureInput: `signature=("unencoded-digest";sf "@path";req);keyid="${kValidKeys['rfc']}";tag="sri"`
+    signature: `signature=:we4o7ZOhixcZjecSxyVr+N0Am7D/XQtKW0v/UjHXbtmMKmIiHxgmVnwv9OVOIcDBCXE9FrO4H8+MpRU5Ar1qAA==:`,
+    signatureInput: `signature=("unencoded-digest";sf "@path";req);keyid="${kValidKeys['rfc']}";tag="ed25519-integrity"`
   },
   // `@path` then `unencoded-digest`, with the following signature base:
   //
   // ```
   // "@path";req: /subresource-integrity/signatures/resource.py
   // "unencoded-digest";sf: sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:
-  // "@signature-params": ("@path";req "unencoded-digest";sf);keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="sri"
+  // "@signature-params": ("@path";req "unencoded-digest";sf);keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="ed25519-integrity"
   // ```
   {
     body: "window.hello = `world`;",
     digest: "sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:",
-    signature: `signature=:YPH2/cRdbR+DPhb1hVG1BgwCpzPLECsAyBavmb7QaXtCF1Hx2QyYp0ki1mi7UftMOnLVpBJdfdLb99Nzf0XqDg==:`,
-    signatureInput: `signature=("@path";req "unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`
+    signature: `signature=:0a5bop98ih3H//KVjSxali1rOqDHZeN2yT7yeG4ZtRTpeYnXkIUWeC8w7l594V+g6FSFJngOnwscOeAzWyuSCw==:`,
+    signatureInput: `signature=("@path";req "unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="ed25519-integrity"`
   }
 ];
 

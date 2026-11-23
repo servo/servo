@@ -17,16 +17,16 @@ def main(request, response):
   response.headers.set(b'signature-input', \
                        b'signature=("unencoded-digest";sf); '      \
                        b'keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs="; ' \
-                       b'tag="sri"')
+                       b'tag="ed25519-integrity"')
 
   # Do the exciting and complicated matching calculation:
   body = b'document.currentScript.setAttribute(`matched`, false);'
   digest = b'es+3YnsBqgi4mkbDZd3Vghz6PsqpNeg5CEJn7WOKzJI='
-  signature = b'y91SB5QNcqsZBd0XOnuf83W1FOgTWYOP+0gJZ+Lj3JahopKDedZDne9LsJ1KmV4JnjpF8LF5jJzbOO5snLidAg=='
+  signature = b'RLBUQN/+Wydbs24v6AvT/ZKI2PPRGlsOtNOm1OavgGZxTY8q2JqZjTanUNjfIiInXIQExrM5qAtSvnXKazhUAQ=='
   if actual_header == expected_header:
     body = b'document.currentScript.setAttribute(`matched`, true);'
     digest = b'dq6r7uJehA7JvZk7hczA4TM0uQ5Ad9WkKKihnuQ+B3c='
-    signature = b'93PZphf5q5GJ0esZxDk/RJTG5WcExWsRAYSPgXdiQDQVyOH33qgwi0nvon9kQj7jdtoLg7uEOceGv/DBTAbRDQ=='
+    signature = b'lPat3V34wDgxt1guVhKZDPT6Kk2rRijxfAV5PJ62wObt1GufpX7xzVUuOD5IdlShnUqRvJFyvpDTUu3MLWYfAQ=='
 
   # Then set those bits.
   response.content = body

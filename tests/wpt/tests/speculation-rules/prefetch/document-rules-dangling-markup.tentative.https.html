@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+
+<body>
+<script>
+  setup(() => assertSpeculationRulesIsSupported());
+
+  promise_test(async t => {
+    const danglingCheckUrl = getPrefetchUrl();
+    const benignNewlineUrl = getPrefetchUrl();
+    const sentinelUrl = getPrefetchUrl();
+
+    const container = document.createElement('div');
+    t.add_cleanup(() => container.remove());
+    container.innerHTML =
+      `<a href='${danglingCheckUrl.href}&leak=\n<input value="secret">'>dangling</a>` +
+      `<a href='${benignNewlineUrl.href}&ok=\nb'>benign</a>`;
+    document.body.appendChild(container);
+    const sentinelLink = addLink(sentinelUrl);
+    t.add_cleanup(() => sentinelLink.remove());
+
+    const rule = document.createElement('script');
+    rule.type = 'speculationrules';
+    rule.textContent = JSON.stringify({
+      prefetch: [{source: 'document', eagerness: 'immediate'}],
+    });
+    document.head.appendChild(rule);
+    t.add_cleanup(() => rule.remove());
+
+    assert_equals(await waitUntilPrefetched(t, sentinelUrl, 5000), 1);
+    assert_equals(await waitUntilPrefetched(t, benignNewlineUrl, 5000), 1);
+    assert_equals(await isUrlPrefetched(danglingCheckUrl), 0);
+  }, 'Document rules skip links with potentially dangling markup');
+
+  promise_test(async t => {
+    const taintedCheckUrl = getPrefetchUrl();
+    const taintedUuid = taintedCheckUrl.searchParams.get('uuid');
+    const sentinelUrl = getPrefetchUrl();
+
+    const base = document.createElement('base');
+    base.setAttribute(
+      'href',
+      location.href.replace(/[^/]*$/, 'resources/?\n<'));
+    document.head.appendChild(base);
+    t.add_cleanup(() => base.remove());
+
+    const relativeLink = addLink(`prefetch.py?uuid=${taintedUuid}`);
+    t.add_cleanup(() => relativeLink.remove());
+    const sentinelLink = addLink(sentinelUrl.href);
+    t.add_cleanup(() => sentinelLink.remove());
+
+    const rule = document.createElement('script');
+    rule.type = 'speculationrules';
+    rule.textContent = JSON.stringify({
+      prefetch: [{source: 'document', eagerness: 'immediate'}],
+    });
+    document.head.appendChild(rule);
+    t.add_cleanup(() => rule.remove());
+
+    assert_equals(await waitUntilPrefetched(t, sentinelUrl, 5000), 1);
+    assert_equals(await isUrlPrefetched(taintedCheckUrl), 0);
+  }, 'Document rules skip relative links tainted by a dangling base URL');
+</script>
+</body>

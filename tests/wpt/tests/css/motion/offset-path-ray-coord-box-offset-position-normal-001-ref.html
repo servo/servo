@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Motion Path test reference</title>
+<style>
+#outer {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  padding-left: 200px;
+}
+#target {
+  position: absolute;
+  left: 250px;
+  top: 50px;
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+</style>
+<p>Test passes if there is a filled green square and no red.</p>
+<div id="outer">
+  <div id="target"></div>
+</div>

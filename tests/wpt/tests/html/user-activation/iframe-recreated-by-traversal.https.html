@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<meta name="variant" content="?store">
+<meta name="variant" content="?no-store">
+<title>User activation is not carried over to an iframe that a traversal recreates</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#apply-the-history-step">
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/helper.sub.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+  <p>Non-zero-sized body to allow clicks.</p>
+</body>
+
+<script>
+  'use strict';
+
+  let uuid1 = token();
+  let uuid2 = token();
+  let uuid3 = token();
+
+  // The carry-over copies from the predecessor Window in the same frame. A
+  // traversal that does not use the back/forward cache leaves an iframe with no
+  // predecessor to copy from, since the frame did not exist while the other
+  // document was shown. whatwg/html#11454 calls this out as the one case the
+  // change does not cover, so the two variants below pin both sides of it: the
+  // restored iframe keeps what it earned, the recreated one starts over.
+  const noStore = location.search === "?no-store";
+  let framed = `/common/dispatcher/remote-executor.html?uuid=${uuid2}`;
+  let opened = `./resources/executor-with-iframe.html?uuid=${uuid1}` +
+               `&frame-src=${encodeURIComponent(framed)}` +
+               (noStore ? "&pipe=header(Cache-Control,no-store)" : "");
+  let navigated_to = executorPath + uuid3;
+
+  promise_test(async test => {
+    // Open a window holding an iframe, click the iframe, navigate the window on
+    // and traverse back to it.
+    let w;
+    document.body.onclick = () => {
+      w = window.open(opened);
+    };
+
+    await test_driver.click(document.body);
+    assert_true(!!w, "A window is opened");
+    // Close the window at the end of the test, so that a later test in the same
+    // session cannot click a window this one left behind.
+    test.add_cleanup(() => w && w.close());
+
+    const top_context = new RemoteContext(uuid1);
+    const frame = new RemoteContext(uuid2);
+    const navigated = new RemoteContext(uuid3);
+
+    // The iframe's executor only answers once it has loaded, so this doubles as
+    // waiting for the window and the iframe in it.
+    {
+      const result = await frame.execute_script(() => {
+        const state = [navigator.userActivation.isActive,
+                       navigator.userActivation.hasBeenActive];
+
+        return state;
+      });
+      assertUserActivationState(result, false, false, "after iframe loaded");
+    }
+
+    // Click the iframe. This gives both the iframe and the window holding it
+    // sticky activation, since a click propagates to the ancestors of the
+    // document it lands in.
+    await test_driver.click(w.document.querySelector("iframe"));
+    {
+      const result = await frame.execute_script(getUserActivationState);
+      assertUserActivationState(result, true, true, "after iframe clicked");
+    }
+
+    // Navigate the window on to a document without an iframe.
+    await top_context.execute_script(url => {
+      prepareNavigation(() => {
+        location.href = url;
+      });
+    }, [navigated_to]);
+
+    {
+      const result = await navigated.execute_script(getUserActivationStateWhenShown);
+      assertUserActivationState(result, false, true, "after window navigated");
+    }
+
+    // Traverse back to the window holding the iframe.
+    await navigated.execute_script(() => {
+      prepareNavigation(() => {
+        history.back();
+      });
+    });
+
+    const [transient, sticky] =
+          await top_context.execute_script(getUserActivationStateWhenShown);
+
+    if (noStore) {
+      await assert_not_bfcached(top_context);
+    } else {
+      await assert_bfcached(top_context);
+    }
+
+    // The window itself gets the carry-over either way. Its transient bit is
+    // only read for the recreated window: the click in the iframe propagated to
+    // its ancestors, so a restored Window may still be within the transient
+    // activation duration.
+    assert_true(sticky, "Sticky bit after traversing back");
+    if (noStore)
+      assert_false(transient, "Transient bit of the recreated window");
+
+    // The iframe only keeps the activation it earned when it came back with the
+    // window. A recreated one has no predecessor Window to copy from.
+    {
+      // Only the sticky bit is read: for the restored iframe the Window was
+      // never replaced, so whether its transient bit has expired by now is a
+      // matter of timing.
+      const sticky = await frame.execute_script(
+            () => navigator.userActivation.hasBeenActive);
+      if (noStore)
+        assert_false(sticky, "Sticky bit of the recreated iframe");
+      else
+        assert_true(sticky, "Sticky bit of the restored iframe");
+    }
+}, "User activation is not carried over to an iframe that a traversal recreates");
+</script>

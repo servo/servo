@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVGTextContentElement.getSubStringLength</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#__svg__SVGTextContentElement__getSubStringLength">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+@font-face {
+    font-family: "Lato-Medium-Liga";
+    src: url("/fonts/Lato-Medium-Liga.ttf");
+}
+.ahem {
+    font: 10px/1 Ahem;
+}
+.liga {
+    font: 50px "Lato-Medium-Liga";
+}
+</style>
+<svg width="400" height="300">
+    <text id="plain" class="ahem" x="10" y="20">ABCD</text>
+    <text id="spacing" class="ahem" x="10" y="40" style="letter-spacing: 5px">ABCD</text>
+    <text id="wordSpacing" class="ahem" x="10" y="60" style="word-spacing: 5px">AB CD</text>
+    <text id="ligature" class="liga" x="10" y="150">fi</text>
+    <text id="separate" class="liga" x="10" y="250" style="font-variant-ligatures: none">fi</text>
+</svg>
+<script>
+setup({ explicit_done: true });
+document.fonts.load('50px "Lato-Medium-Liga"', "fi").then(() => document.fonts.ready).then(() => {
+    test(() => {
+        assert_equals(plain.getSubStringLength(0, 1), 10);
+        assert_equals(plain.getSubStringLength(1, 2), 20);
+        assert_equals(plain.getSubStringLength(0, 4), 40);
+    }, "The sum of the advances of the characters in the range");
+
+    test(() => {
+        assert_equals(plain.getSubStringLength(2, 100), 20);
+        assert_equals(plain.getSubStringLength(3, 0), 0);
+        // nchars is an unsigned long, so -1 becomes 4294967295 and the range runs to the end.
+        assert_equals(plain.getSubStringLength(1, -1), plain.getSubStringLength(1, 3));
+    }, "The range ends at the last character");
+
+    test(() => {
+        // "If charnum is greater than the highest index assigned to a character [...], then throw an IndexSizeError."
+        // charnum is an unsigned long, so -1 becomes 4294967295.
+        assert_throws_dom("IndexSizeError", () => plain.getSubStringLength(4, 1));
+        assert_throws_dom("IndexSizeError", () => plain.getSubStringLength(-1, 1));
+    }, "A character index past the end throws");
+
+    test(() => {
+        // "If the letter-spacing or word-spacing properties contributed space just after the typographic character, then add
+        // that space to length."
+        assert_equals(spacing.getSubStringLength(0, 1), 15);
+        assert_equals(spacing.getSubStringLength(1, 2), 30);
+    }, "Letter spacing after a character counts");
+
+    test(() => {
+        // "If the letter-spacing or word-spacing properties contributed space just after the typographic character, then add
+        // that space to length."
+        assert_equals(wordSpacing.getSubStringLength(1, 1), 10, "the character before the space");
+        assert_equals(wordSpacing.getSubStringLength(2, 1), 15, "the space");
+        assert_equals(wordSpacing.getSubStringLength(0, 5), 55, "all characters");
+    }, "Word spacing after a space counts");
+
+    test(() => {
+        // "This means that, for example, if there is a ligature that is only partly included in the substring, then the
+        // advance of the typographic character and any subsequent letter-spacing or word-spacing space will be assigned to
+        // the first character's text length."
+        const advance = ligature.getSubStringLength(0, 2);
+        assert_less_than(advance, separate.getSubStringLength(0, 2), "the ligature is narrower than the separate glyphs");
+        assert_equals(ligature.getSubStringLength(0, 1), advance, "first character");
+        assert_equals(ligature.getSubStringLength(1, 1), 0, "second character");
+    }, "A ligature counts for its first character");
+    done();
+});
+</script>

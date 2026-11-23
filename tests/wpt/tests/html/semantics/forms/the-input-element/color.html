@@ -6,6 +6,7 @@
 <link rel="help" href="https://drafts.csswg.org/css-color/#parse-color">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<div style="color: rgba(from AccentColor r g b / 1)" id="initialAccentColorGetter"></div>
 <div id="log"></div>
 <script>
   var colors = [
@@ -45,6 +46,20 @@
       assert_equals(input.value, w.expected);
     }, w.testname);
   }
+
+  // AccentColor is different between browsers, so to get its resolved value, we have to
+  // use it in a style, then pull the value out from the computed style. But the resolved
+  // style color is always rgb() or rgba(). To get the same output from <input type="color">,
+  // it has to be with alpha=true so the value will be rgba() too.
+  const initialAccentColor = getComputedStyle(initialAccentColorGetter).color;
+  test(function() {
+    var input = document.createElement("input");
+    input.type = "color";
+    input.alpha = true;
+    input.value = "rgba(from AccentColor r g b / 1)";
+    assert_equals(input.value, initialAccentColor);
+  }, "Valid color: AccentColor");
+
   test(() => {
     const input = document.createElement("input");
     input.type = "color";

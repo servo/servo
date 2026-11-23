@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>Relative colors default to OKLab gradient interpolation</title>
+  <meta name="fuzzy" content="maxDifference=0-2;totalPixels=0-24000">
+  <link rel="author" title="Matt Woodrow" href="mailto:mattwoodrow@apple.com">
+  <link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+  <meta name="assert" content="Relative colors are not legacy colors, so a gradient using one defaults to OKLab interpolation, even when the origin color is a legacy color.">
+  <link rel="match" href="relative-color-default-to-oklab-gradient-ref.html">
+  <style>
+   .test {
+       width: 480px;
+       height: 50px;
+       background: linear-gradient(to right, rgb(255, 0, 0), rgb(from rgb(0, 255, 0) r g b));
+   }
+ </style>
+ </head>
+ <body>
+  <div class="test"></div>
+ </body>
+</html>

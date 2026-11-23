@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>BroadcastChannel with only a messageerror listener is not garbage collected</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/web-messaging.html#broadcasting-to-other-browsing-contexts">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/gc.js"></script>
+<script>
+function createChannelWithMessageErrorHandler(name, onMessageError) {
+  const channel = new BroadcastChannel(name);
+  channel.onmessageerror = onMessageError;
+}
+
+function createChannelWithMessageErrorListener(name, onMessageError) {
+  const channel = new BroadcastChannel(name);
+  channel.addEventListener("messageerror", onMessageError);
+}
+
+for (const [description, createChannel] of [
+  ["onmessageerror", createChannelWithMessageErrorHandler],
+  ["addEventListener('messageerror')", createChannelWithMessageErrorListener],
+]) {
+  promise_test(async t => {
+    const name = `messageerror-gc-${description}-${Math.random()}`;
+    const messageError = new Promise(resolve => createChannel(name, t.step_func(e => {
+      assert_equals(e.data, null);
+      resolve();
+    })));
+    await new Promise(resolve => t.step_timeout(resolve, 0));
+    await garbageCollect();
+    const worker = new SharedWorker("resources/post-wasm-module-sharedworker.js", name);
+    worker.port.postMessage(name);
+    await messageError;
+  }, `BroadcastChannel with only a messageerror listener (${description}) receives messageerror after garbage collection`);
+}
+</script>

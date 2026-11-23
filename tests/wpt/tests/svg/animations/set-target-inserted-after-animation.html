@@ -1,0 +1,51 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>An animation whose href target is inserted after it resolves to that target</title>
+<link rel="help" href="https://w3c.github.io/svgwg/specs/animations/#HrefAttribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg id="rectSVG" width="300" height="100">
+  <set href="#rect" attributeName="x" to="50" begin="0s" fill="freeze"/>
+  <g id="rectHost"></g>
+</svg>
+<svg id="textPathSVG" width="300" height="100">
+  <path id="path" d="M0,50 L300,50"/>
+  <set href="#textPath" attributeName="startOffset" to="50" begin="0s" fill="freeze"/>
+  <text id="textPathHost"></text>
+</svg>
+<script>
+const svgNS = "http://www.w3.org/2000/svg";
+
+function waitForAnimationFrame()
+{
+    return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+}
+
+promise_test(async () => {
+    rectSVG.pauseAnimations();
+
+    const rect = document.createElementNS(svgNS, "rect");
+    rect.id = "rect";
+    rect.setAttribute("width", "10");
+    rect.setAttribute("height", "10");
+    rectHost.appendChild(rect);
+
+    rectSVG.setCurrentTime(1);
+    await waitForAnimationFrame();
+    assert_equals(rect.x.animVal.value, 50);
+}, "<set> targeting a <rect> inserted after it");
+
+promise_test(async () => {
+    textPathSVG.pauseAnimations();
+
+    const textPath = document.createElementNS(svgNS, "textPath");
+    textPath.id = "textPath";
+    textPath.setAttribute("href", "#path");
+    textPath.textContent = "abc";
+    textPathHost.appendChild(textPath);
+
+    textPathSVG.setCurrentTime(1);
+    await waitForAnimationFrame();
+    assert_equals(textPath.startOffset.animVal.value, 50);
+}, "<set> targeting a <textPath> inserted after it");
+</script>

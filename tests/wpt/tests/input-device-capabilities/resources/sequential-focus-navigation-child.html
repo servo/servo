@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<input id="child_input">
+<script>
+function describe(capabilities) {
+  return {
+    isNull: capabilities === null,
+    ownRealm: capabilities !== null &&
+        Object.getPrototypeOf(capabilities) ===
+            InputDeviceCapabilities.prototype,
+    firesTouchEvents: capabilities ? capabilities.firesTouchEvents : null,
+  };
+}
+
+// Read sourceCapabilities in this document whenever a key is pressed, so that
+// this document's InputDeviceCapabilities object is exposed to script before
+// focus moves to the parent document.
+document.addEventListener('keydown', e => { e.sourceCapabilities; });
+
+document.getElementById('child_input').addEventListener('focus', e => {
+  parent.postMessage(
+      Object.assign({type: 'focus'}, describe(e.sourceCapabilities)), '*');
+});
+
+window.addEventListener('load', () => {
+  parent.postMessage({type: 'ready'}, '*');
+});
+</script>

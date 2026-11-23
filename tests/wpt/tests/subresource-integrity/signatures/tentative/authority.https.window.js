@@ -22,7 +22,7 @@
 // Content-Length: 18
 // Signature-Input: signature=("unencoded-digest";sf "@authority"); \
 //                  keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";       \
-//                  tag="sri"
+//                  tag="ed25519-integrity"
 // Signature: signature=:oVQ+s/OqXLAVdfvgZ3HaPiyzkpNXZSit9l6e1FB/gOOL3t8FOrIRDV \
 //                       CkcIEcJjd3MA1mROn39/WQShTmnKmlDg==:
 //
@@ -38,20 +38,20 @@ const kRequestsWithValidSignature = [
   {
     body: "window.hello = `world`;",
     digest: "sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:",
-    signatureInput: `signature=("unencoded-digest";sf "@authority";req);keyid="${kValidKeys['rfc']}";tag="sri"`,
+    signatureInput: `signature=("unencoded-digest";sf "@authority";req);keyid="${kValidKeys['rfc']}";tag="ed25519-integrity"`,
     signatureBase: `"unencoded-digest";sf: sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:
 "@authority";req: ${kAuthority}
-"@signature-params": ("unencoded-digest";sf "@authority";req);keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="sri"`
+"@signature-params": ("unencoded-digest";sf "@authority";req);keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="ed25519-integrity"`
   },
 
   // `@authority` then `unencoded-digest`.
   {
     body: "window.hello = `world`;",
     digest: "sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:",
-    signatureInput: `signature=("@authority";req "unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`,
+    signatureInput: `signature=("@authority";req "unencoded-digest";sf);keyid="${kValidKeys['rfc']}";tag="ed25519-integrity"`,
     signatureBase: `"@authority";req: ${kAuthority}
 "unencoded-digest";sf: sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:
-"@signature-params": ("@authority";req "unencoded-digest";sf);keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="sri"`
+"@signature-params": ("@authority";req "unencoded-digest";sf);keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="ed25519-integrity"`
   }
 ];
 

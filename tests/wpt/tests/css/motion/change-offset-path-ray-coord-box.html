@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Motion Path test: changing only the &lt;coord-box&gt; of a ray() offset-path</title>
+<link rel="help" href="https://drafts.csswg.org/motion/#offset-path-property">
+<link rel="help" href="https://drafts.csswg.org/motion/#offset-position-property">
+<link rel="match" href="change-offset-path-ray-coord-box-ref.html">
+<meta name="assert" content="Changing only the coord-box of a ray() offset-path updates the offset starting position.">
+<style>
+#outer {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  padding-left: 200px;
+}
+#red {
+  position: absolute;
+  left: 250px;
+  top: 50px;
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+#target {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100px;
+  height: 100px;
+  background: green;
+  offset-path: ray(0deg) border-box;
+  offset-distance: 0;
+  offset-rotate: 0deg;
+}
+</style>
+<p>Test passes if there is a filled green square and no red.</p>
+<div id="outer">
+  <div id="red"></div>
+  <div id="target"></div>
+</div>
+<script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    // The content box center is 100px to the right of the border box center.
+    target.style.offsetPath = 'ray(0deg) content-box';
+    document.documentElement.removeAttribute('class');
+  });
+});
+</script>
+</html>

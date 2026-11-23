@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>View Transition: cross-tree pairing and duplicate name collisions with shadowRoots</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  :root {
+    view-transition-name: none;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 300s;
+  }
+  .host {
+    width: 100px;
+    height: 100px;
+    contain: layout;
+  }
+  .box {
+    width: 40px;
+    height: 40px;
+    background: royalblue;
+  }
+</style>
+</head>
+<body>
+<div id="sandbox"></div>
+<script>
+const sandbox = document.getElementById("sandbox");
+
+function createShadowHost(initialName = "none") {
+  const host = document.createElement("div");
+  host.className = "host";
+  sandbox.appendChild(host);
+  const sr = host.attachShadow({ mode: "open" });
+  sr.innerHTML = `
+    <style>
+      #target {
+        width: 60px;
+        height: 60px;
+        background: seagreen;
+        view-transition-name: ${initialName};
+      }
+    </style>
+    <div id="target"></div>
+  `;
+  return { host, sr, target: sr.getElementById("target") };
+}
+
+promise_test(async t => {
+  t.add_cleanup(() => { sandbox.replaceChildren(); });
+
+  const lightBox = document.createElement("div");
+  lightBox.className = "box";
+  lightBox.style.viewTransitionName = "shared-hero";
+  sandbox.appendChild(lightBox);
+
+  const { sr, target: shadowTarget } = createShadowHost("none");
+
+  const vt = document.startViewTransition({
+    shadowRoots: [sr],
+    update: () => {
+      lightBox.style.viewTransitionName = "none";
+      shadowTarget.style.viewTransitionName = "shared-hero";
+    },
+  });
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+
+  const groupAnims = document.getAnimations().filter(
+      a => a.effect.pseudoElement === "::view-transition-group(shared-hero)");
+  assert_equals(groupAnims.length, 1,
+                "Light DOM old snapshot and ShadowRoot new snapshot pair into one morphing group");
+  assert_equals(groupAnims[0].effect.getKeyframes()[0].width, "40px");
+
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+}, "Light DOM outgoing element pairs with ShadowRoot incoming element");
+
+promise_test(async t => {
+  t.add_cleanup(() => { sandbox.replaceChildren(); });
+
+  const { sr: sr1, target: target1 } = createShadowHost("cross-shadow");
+  const { sr: sr2, target: target2 } = createShadowHost("none");
+  target2.style.width = "80px";
+
+  const vt = document.startViewTransition({
+    shadowRoots: [sr1, sr2],
+    update: () => {
+      target1.style.viewTransitionName = "none";
+      target2.style.viewTransitionName = "cross-shadow";
+    },
+  });
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+
+  const groupAnims = document.getAnimations().filter(
+      a => a.effect.pseudoElement === "::view-transition-group(cross-shadow)");
+  assert_equals(groupAnims.length, 1,
+                "Outgoing element in sr1 pairs with incoming element in sr2");
+  assert_equals(groupAnims[0].effect.getKeyframes()[0].width, "60px");
+
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+}, "ShadowRoot sr1 outgoing element pairs with ShadowRoot sr2 incoming element");
+
+promise_test(async t => {
+  t.add_cleanup(() => { sandbox.replaceChildren(); });
+
+  const lightBox = document.createElement("div");
+  lightBox.className = "box";
+  lightBox.style.viewTransitionName = "dup";
+  sandbox.appendChild(lightBox);
+
+  const { sr } = createShadowHost("dup");
+
+  let updateRan = false;
+  const vt = document.startViewTransition({
+    shadowRoots: [sr],
+    update: () => { updateRan = true; },
+  });
+
+  await promise_rejects_dom(t, "InvalidStateError", vt.ready);
+  await vt.updateCallbackDone;
+  assert_true(updateRan, "Update callback still runs when capture detects duplicate names");
+  await vt.finished;
+}, "Duplicate view-transition-name between Document and opted-in ShadowRoot in old phase skips transition with InvalidStateError");
+
+promise_test(async t => {
+  t.add_cleanup(() => { sandbox.replaceChildren(); });
+
+  const { sr: sr1, target: target1 } = createShadowHost("unique-old");
+  const { sr: sr2, target: target2 } = createShadowHost("none");
+
+  const vt = document.startViewTransition({
+    shadowRoots: [sr1, sr2],
+    update: () => {
+      target1.style.viewTransitionName = "dup-new";
+      target2.style.viewTransitionName = "dup-new";
+    },
+  });
+
+  await vt.updateCallbackDone;
+  await promise_rejects_dom(t, "InvalidStateError", vt.ready);
+  await vt.finished;
+}, "Duplicate view-transition-name across two opted-in ShadowRoots in new phase skips transition with InvalidStateError");
+
+promise_test(async t => {
+  t.add_cleanup(() => { sandbox.replaceChildren(); });
+
+  const lightBox = document.createElement("div");
+  lightBox.className = "box";
+  lightBox.style.viewTransitionName = "same-name";
+  sandbox.appendChild(lightBox);
+
+  const { sr: optedInSR } = createShadowHost("other-name");
+  createShadowHost("same-name"); // Unopted-in ShadowRoot using "same-name".
+
+  const vt = document.startViewTransition({ shadowRoots: [optedInSR] });
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+
+  const pseudos = document.getAnimations().map(a => a.effect.pseudoElement);
+  assert_in_array("::view-transition-group(same-name)", pseudos);
+  assert_in_array("::view-transition-group(other-name)", pseudos);
+
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+}, "Same view-transition-name in an unopted-in ShadowRoot does not collide with participating trees");
+</script>
+</body>
+</html>

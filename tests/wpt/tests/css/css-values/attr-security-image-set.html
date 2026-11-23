@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: attr() security limitations in image-set()</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#attr-security">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#image-set-notation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="attr"></div>
+
+<script>
+    // TODO(kbabbitt): These tests were separated from attr-security.html to avoid modifying that file during Interop2026.
+    // Once Interop2026 is unfrozen, merge back in or refactor shared code into a helper file.
+    function test_attr(property, attrString, attrValue, expectedValue) {
+        var elem = document.getElementById("attr");
+        elem.setAttribute("data-foo", attrValue);
+
+        elem.style.setProperty("--unregistered", attrString);
+        let value = window.getComputedStyle(elem).getPropertyValue("--unregistered");
+
+        test(() => {
+          // Skip tests that include unsupported functions, since they are not violation of attr() security.
+          if (value == "" || CSS.supports(`${property} : ${value}`)) {
+            elem.style.setProperty(property, attrString);
+            assert_equals(window.getComputedStyle(elem).getPropertyValue(property),
+                          expectedValue);
+          }
+        }, `'${property}: ${attrString}' with data-foo="${attrValue}"`);
+
+        elem.style.setProperty(property, null);
+    }
+
+    function test_attr_shorthand(shorthand, longhand, attrString, attrValue, expectedValue) {
+        var elem = document.getElementById("attr");
+        elem.setAttribute("data-foo", attrValue);
+        elem.style.setProperty(shorthand, attrString);
+
+        test(() => {
+            assert_equals(window.getComputedStyle(elem).getPropertyValue(longhand),
+                          expectedValue);
+        }, `'${shorthand}: ${attrString}' with data-foo="${attrValue}"`);
+
+        elem.style.setProperty(shorthand, null);
+    }
+
+    const url = "https://does-not-exist.test/404.png";
+    const url2 = "https://does-not-exist-2.test/404.png";
+
+    for (const imageSet of ['image-set', '-webkit-image-set']) {
+      // Resolution and type() must not use attribute data to select an image.
+      test_attr('background-image',
+                `${imageSet}(url(${url}) attr(data-foo type(<resolution>)), url(${url2}) 2x)`,
+                '1dppx',
+                'none');
+      test_attr('background-image',
+                `${imageSet}(url(${url}) calc((attr(data-foo type(<number>)) + 1000) * 1dppx), url(${url2}) 1008dppx)`,
+                '7',
+                'none');
+      test_attr('background-image',
+                `${imageSet}(url(${url}) type(attr(data-foo)) 1x, url(${url2}) 2x)`,
+                'image/png',
+                'none');
+      test_attr('background-image',
+                `${imageSet}(url(${url}) 1x type(attr(data-foo)), url(${url2}) 2x)`,
+                'image/png',
+                'none');
+      test_attr('background-image',
+                `${imageSet}(url(${url}) 1x, url(${url2}) type(attr(data-foo)))`,
+                'text/plain',
+                'none');
+
+      test_attr('background-image',
+                `${imageSet}(url(${url}) 1x type("image/png"), url(${url2}) 2x)`,
+                '',
+                `image-set(url("${url}") 1dppx type("image/png"), url("${url2}") 2dppx)`);
+      // Attribute data in the image itself cannot affect option selection.
+      test_attr('background-image',
+                `${imageSet}(linear-gradient(attr(data-foo type(<color>)), black) 1x, url(${url}) 2x)`,
+                'red',
+                `image-set(linear-gradient(rgb(255, 0, 0), rgb(0, 0, 0)) 1dppx, url("${url}") 2dppx)`);
+      test_attr_shorthand('background',
+                          'background-image',
+                          `${imageSet}(url(${url}) 1x, url(${url2}) 2x) attr(data-foo type(<color>))`,
+                          'red',
+                          `image-set(url("${url}") 1dppx, url("${url2}") 2dppx)`);
+    }
+</script>

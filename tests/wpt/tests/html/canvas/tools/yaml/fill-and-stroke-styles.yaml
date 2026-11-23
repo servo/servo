@@ -293,6 +293,18 @@
     @assert pixel 50,25 == 0,255,0,255;
   expected: green
 
+- name: 2d.fillStyle.parse.current.notcached
+  desc: Setting fillStyle to currentColor always re-computes it
+  canvas_types: ['HtmlCanvas']
+  code: |
+    canvas.setAttribute('style', 'color: #f00');
+    ctx.fillStyle = 'currentColor';
+    canvas.setAttribute('style', 'color: #0f0');
+    ctx.fillStyle = 'currentColor';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
 - name: 2d.fillStyle.parse.current.removed
   desc: currentColor is solid black when the canvas element is not in a document
   canvas_types: ['HtmlCanvas']
@@ -386,6 +398,18 @@
   code: |
     @assert ctx.strokeStyle === '#000000';
 
+- name: 2d.strokeStyle.parse.current.notcached
+  desc: Setting strokeStyle to currentColor always re-computes it
+  canvas_types: ['HtmlCanvas']
+  code: |
+    canvas.setAttribute('style', 'color: #f00');
+    ctx.strokeStyle = 'currentColor';
+    canvas.setAttribute('style', 'color: #0f0');
+    ctx.strokeStyle = 'currentColor';
+    ctx.lineWidth = 1000;
+    ctx.strokeRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
 
 - name: 2d.gradient.object.type
   desc: window.CanvasGradient exists and has the right properties

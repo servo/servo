@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<title>xml:space whitespace handling applies to text changed by script</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#WhiteSpace">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+text { font: 10px/1 Ahem; }
+</style>
+
+<svg width="200" height="200">
+  <text id="preserveStatic" x="10" y="20" xml:space="preserve">a&#10;b</text>
+  <text id="preserveNewline" x="10" y="40" xml:space="preserve">ab</text>
+  <text id="preserveTab" x="10" y="60" xml:space="preserve">ab</text>
+  <text id="preserveAppend" x="10" y="80" xml:space="preserve">a</text>
+  <text id="defaultNewline" x="10" y="100">ab</text>
+  <text id="tspanNewline" x="10" y="120" xml:space="preserve"><tspan>ab</tspan></text>
+</svg>
+
+<script>
+setup({ explicit_done: true });
+
+function assertCharsOnOneLine(element, expectedCount, x, y) {
+  assert_equals(element.getNumberOfChars(), expectedCount, 'number of chars');
+  for (let i = 0; i < expectedCount; ++i) {
+    const position = element.getStartPositionOfChar(i);
+    assert_equals(position.x, x + i * 10, `char ${i} x`);
+    assert_equals(position.y, y, `char ${i} y`);
+  }
+}
+
+document.fonts.ready.then(() => {
+  document.body.offsetWidth;
+
+  const preserveNewline = document.getElementById('preserveNewline');
+  preserveNewline.firstChild.data = 'a\nb';
+
+  const preserveTab = document.getElementById('preserveTab');
+  preserveTab.firstChild.data = 'a\tb';
+
+  const preserveAppend = document.getElementById('preserveAppend');
+  preserveAppend.firstChild.appendData('\nb');
+
+  const defaultNewline = document.getElementById('defaultNewline');
+  defaultNewline.firstChild.data = 'a\nb';
+
+  const tspanNewline = document.getElementById('tspanNewline');
+  tspanNewline.firstChild.firstChild.data = 'a\nb';
+
+  test(() => {
+    assertCharsOnOneLine(document.getElementById('preserveStatic'), 3, 10, 20);
+  }, 'xml:space="preserve" converts a parsed newline to a space');
+
+  test(() => {
+    assertCharsOnOneLine(preserveNewline, 3, 10, 40);
+  }, 'xml:space="preserve" converts a newline set via CharacterData.data to a space');
+
+  test(() => {
+    assertCharsOnOneLine(preserveTab, 3, 10, 60);
+  }, 'xml:space="preserve" converts a tab set via CharacterData.data to a space');
+
+  test(() => {
+    assertCharsOnOneLine(preserveAppend, 3, 10, 80);
+  }, 'xml:space="preserve" converts a newline added via appendData() to a space');
+
+  test(() => {
+    assertCharsOnOneLine(defaultNewline, 3, 10, 100);
+  }, 'xml:space="default" collapses a newline set via CharacterData.data to a space');
+
+  test(() => {
+    assertCharsOnOneLine(tspanNewline, 3, 10, 120);
+  }, 'xml:space="preserve" converts a newline set via CharacterData.data inside a tspan to a space');
+
+  done();
+});
+</script>

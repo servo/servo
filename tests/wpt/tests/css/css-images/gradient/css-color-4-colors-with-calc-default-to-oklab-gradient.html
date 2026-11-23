@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>CSS color 4 colors with calc() channels default to OKLab gradient interpolation</title>
+  <meta name="fuzzy" content="maxDifference=0-2;totalPixels=0-24000">
+  <link rel="author" title="Matt Woodrow" href="mailto:mattwoodrow@apple.com">
+  <link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+  <meta name="assert" content="Test that a new color input defaults to OKLab for gradient interpolation when none is provided, also when its channels use a calc() that is only resolved with style.">
+  <link rel="match" href="css-color-4-colors-with-calc-default-to-oklab-gradient-ref.html">
+  <style>
+   .test {
+       width: 480px;
+       height: 50px;
+       background: linear-gradient(to right, rgb(255, 0, 0), color(srgb 0 calc(1 * sign(1em)) 0));
+   }
+ </style>
+ </head>
+ <body>
+  <div class="test"></div>
+ </body>
+</html>

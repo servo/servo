@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SVG text metrics follow the shaping of bidirectional text</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextLayoutAlgorithm">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#DirectionalityProperties">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.shaped {
+    font: 40px serif;
+    white-space: pre;
+}
+</style>
+</head>
+<body>
+<svg id="svg" width="800" height="100"></svg>
+<div id="spans"></div>
+<script>
+const samples = [
+    ["Arabic", "مرحبا بالعالم"],
+    ["Latin, then Arabic", "abc مرحبا def"],
+    ["Arabic, then Latin", "مرحبا abc عالم"],
+    ["Arabic lam-alef ligature", "لا إله"],
+    ["Latin with kerning", "AVATAR office"],
+];
+for (const direction of ["ltr", "rtl"]) {
+    for (const [name, text] of samples) {
+        test(() => {
+            const textElement = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            textElement.setAttribute("class", "shaped");
+            textElement.setAttribute("x", "400");
+            textElement.setAttribute("y", "50");
+            textElement.setAttribute("direction", direction);
+            textElement.textContent = text;
+            svg.appendChild(textElement);
+
+            const span = document.createElement("span");
+            span.className = "shaped";
+            span.dir = direction;
+            span.textContent = text;
+            spans.appendChild(span);
+
+            assert_approx_equals(textElement.getComputedTextLength(), span.getBoundingClientRect().width, 0.5);
+        }, `${name} in ${direction} text has the width of the shaped text`);
+    }
+}
+
+test(() => {
+    const createText = direction => {
+        const textElement = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        textElement.setAttribute("class", "shaped");
+        textElement.setAttribute("x", "400");
+        textElement.setAttribute("y", "50");
+        textElement.setAttribute("direction", direction);
+        textElement.textContent = "office";
+        svg.appendChild(textElement);
+        return textElement;
+    };
+    const ltrText = createText("ltr");
+    const rtlText = createText("rtl");
+
+    // The Latin text is left-to-right in both, so its characters have the same advances.
+    for (let i = 0; i < ltrText.getNumberOfChars(); ++i)
+        assert_approx_equals(rtlText.getSubStringLength(i, 1), ltrText.getSubStringLength(i, 1), 0.01, `getSubStringLength(${i}, 1)`);
+}, "The text DOM APIs measure Latin in rtl text left to right");
+</script>
+</body>
+</html>

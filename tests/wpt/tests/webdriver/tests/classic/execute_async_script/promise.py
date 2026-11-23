@@ -1,3 +1,5 @@
+import pytest
+
 from tests.support.classic.asserts import assert_error, assert_success
 from . import execute_async_script
 
@@ -65,6 +67,21 @@ def test_promise_reject(session):
         let resolve = arguments[0];
         resolve(Promise.reject(new Error('my error')));
         """)
+    assert_error(response, "javascript error")
+
+
+@pytest.mark.parametrize("expression", [
+    "null",
+    "undefined",
+    "true",
+    "23",
+    "'foo'",
+    "42n",
+    "Symbol('foo')",
+    "{ message: Symbol('foo') }",
+])
+def test_promise_reject_value(session, expression):
+    response = execute_async_script(session, "arguments[0](Promise.reject({}));".format(expression))
     assert_error(response, "javascript error")
 
 

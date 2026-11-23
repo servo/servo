@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html style="position: relative; top: 10%">
+<title>CSS Position Test: percentage 'top' on a relatively positioned root element</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#insets">
+<link rel="help" href="https://drafts.csswg.org/css2/#containing-block-details">
+<link rel="match" href="position-relative-root-percentage-top-ref.html">
+<meta name="assert" content="A percentage 'top' on a relatively positioned root element refers to the height of the initial containing block.">
+<style>
+body { margin: 0; }
+div { width: 100px; height: 100px; }
+#red { position: fixed; top: 10vh; z-index: -1; background-color: red; }
+#green { background-color: green; }
+</style>
+<div id="red"></div>
+<div id="green"></div>
+</html>

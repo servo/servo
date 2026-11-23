@@ -1,0 +1,88 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Long Animation Frame Timing: cross-origin promise rejection on detach is not exposed</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<body>
+<div id="log"></div>
+<script>
+const {HTTP_ORIGIN_WITH_DIFFERENT_PORT} = get_host_info();
+
+promise_test(async t => {
+  assert_implements(window.PerformanceLongAnimationFrameTiming,
+      "Long animation frames are not supported.");
+
+  const streamKey = token();
+  const fetchKey = token();
+  const releaseKey = token();
+
+  t.add_cleanup(() => {
+    fetch(`resources/streamed-promise-detach.py?mode=continue_stream&key=${streamKey}`).catch(() => {});
+    fetch(`${HTTP_ORIGIN_WITH_DIFFERENT_PORT}/long-animation-frame/resources/streamed-promise-detach.py?mode=release_fetch&release_key=${releaseKey}`).catch(() => {});
+  });
+
+  window.detachReferenceTime = -1;
+
+  let keepLooping = true;
+  t.add_cleanup(() => { keepLooping = false; });
+  const rafLoop = () => {
+    if (keepLooping) {
+      requestAnimationFrame(rafLoop);
+    }
+  };
+  requestAnimationFrame(rafLoop);
+
+  const loafPromise = new Promise(resolve => {
+    const observer = new PerformanceObserver(list => {
+      for (const entry of list.getEntries()) {
+        if (window.detachReferenceTime >= 0 &&
+            entry.startTime <= window.detachReferenceTime &&
+            window.detachReferenceTime <= entry.startTime + entry.duration) {
+          observer.disconnect();
+          resolve(entry);
+        }
+      }
+    });
+    t.add_cleanup(() => observer.disconnect());
+    observer.observe({type: "long-animation-frame"});
+  });
+
+  const crossOriginUrl = new URL(
+      `/long-animation-frame/resources/streamed-promise-detach.py?mode=cross_origin_html&fetch_key=${fetchKey}&release_key=${releaseKey}`,
+      HTTP_ORIGIN_WITH_DIFFERENT_PORT);
+
+  const runner = document.createElement("iframe");
+  t.add_cleanup(() => runner.remove());
+  runner.src =
+      `resources/streamed-promise-detach.py?mode=stream_html&key=${streamKey}` +
+      `&cross_origin_url=${encodeURIComponent(crossOriginUrl.href)}`;
+  document.body.appendChild(runner);
+
+  // Wait until the cross-origin iframe's fetch() request is in flight.
+  while (true) {
+    const resp = await fetch(
+        `${HTTP_ORIGIN_WITH_DIFFERENT_PORT}/long-animation-frame/resources/streamed-promise-detach.py?mode=check_fetch&key=${fetchKey}`);
+    const status = await resp.text();
+    if (status === "in_flight") {
+      break;
+    }
+    await new Promise(r => t.step_timeout(r, 25));
+  }
+
+  // Trigger chunk 2 (</b>), causing the HTML parser's adoption agency algorithm
+  // to reparent <p> and detach the cross-origin iframe at script depth 0.
+  await fetch(
+      `resources/streamed-promise-detach.py?mode=continue_stream&key=${streamKey}`);
+
+  const entry = await loafPromise;
+  for (const script of entry.scripts) {
+    assert_false(
+        script.sourceURL.startsWith(HTTP_ORIGIN_WITH_DIFFERENT_PORT),
+        `Cross-origin script must not be exposed: ${script.sourceURL} (${script.invoker})`);
+  }
+}, "Cross-origin promise rejection settled synchronously during parser frame detach is not exposed");
+</script>
+</body>

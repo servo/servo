@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+
+<title>accent-color: AccentColorText is the AccentColorText of the parent element</title>
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#widget-accent">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  #default-accentcolortext {
+    fill: AccentColorText;
+  }
+
+  #accentcolortext-of-default-accentcolortext {
+    /* accent-color is set in the JavaScript below */
+    background-color: AccentColorText;
+  }
+
+  #expected-accentcolortext {
+    accent-color: #261200;
+    fill: AccentColorText;
+  }
+
+  #accentcolortext-of-expected-accentcolortext {
+    /* accent-color is set in the JavaScript below */
+    background-color: AccentColorText;
+  }
+
+  #accent-color-auto { accent-color: auto; }
+  #accent-color-currentcolor { color: #261200; accent-color: currentColor; }
+  #accent-color-fixed { accent-color: #261200; }
+
+  .target {
+    /* AccentColorText of the parent */
+    accent-color: AccentColorText;
+
+    /* accent color of this element, which is the accent color text of the parent */
+    fill: AccentColor;
+
+    /* accent color text of this element, based on the accent color text of the parent */
+    background-color: AccentColorText;
+  }
+</style>
+
+<div id="default-accentcolortext"></div>
+<div id="accentcolortext-of-default-accentcolortext"></div>
+<div id="expected-accentcolortext"></div>
+<div id="accentcolortext-of-expected-accentcolortext"></div>
+
+<div>
+  <div class="target" id="t1"></div>
+</div>
+
+<div id="accent-color-auto">
+  <div class="target" id="t2"></div>
+</div>
+
+<div id="accent-color-currentcolor">
+  <div class="target" id="t3"></div>
+</div>
+
+<div id="accent-color-fixed">
+  <div class="target" id="t4"></div>
+</div>
+
+<script>
+  const defaultAccentColorText = getComputedStyle(document.getElementById("default-accentcolortext")).fill;
+  document.getElementById("accentcolortext-of-default-accentcolortext").style.accentColor = defaultAccentColorText;
+  const accentColorTextOfDefaultAccentColorText = getComputedStyle(document.getElementById("accentcolortext-of-default-accentcolortext")).backgroundColor;
+
+  test(() => {
+    const style = getComputedStyle(t1);
+    assert_equals(style.accentColor, defaultAccentColorText);
+    assert_equals(style.fill, defaultAccentColorText);
+    assert_equals(style.backgroundColor, accentColorTextOfDefaultAccentColorText);
+  }, "accent-color: AccentColorText when parent has no accent-color set should result in the system default AccentColorText");
+
+  test(() => {
+    const style = getComputedStyle(t2);
+    assert_equals(style.accentColor, defaultAccentColorText);
+    assert_equals(style.fill, defaultAccentColorText);
+    assert_equals(style.backgroundColor, accentColorTextOfDefaultAccentColorText);
+  }, "accent-color: AccentColorText when parent has accent-color: auto should result in the system default AccentColorText");
+
+  const expectedAccentColorText = getComputedStyle(document.getElementById("expected-accentcolortext")).fill;
+  document.getElementById("accentcolortext-of-expected-accentcolortext").style.accentColor = expectedAccentColorText;
+  const accentColorTextOfExpectedAccentColorText = getComputedStyle(document.getElementById("accentcolortext-of-expected-accentcolortext")).backgroundColor;
+
+  test(() => {
+    const style = getComputedStyle(t3);
+    assert_equals(style.accentColor, expectedAccentColorText);
+    assert_equals(style.fill, expectedAccentColorText);
+    assert_equals(style.backgroundColor, accentColorTextOfExpectedAccentColorText);
+  }, "accent-color: AccentColorText when parent has accent-color: currentColor should result in the parent's accent color text");
+
+  test(() => {
+    const style = getComputedStyle(t4);
+    assert_equals(style.accentColor, expectedAccentColorText);
+    assert_equals(style.fill, expectedAccentColorText);
+    assert_equals(style.backgroundColor, accentColorTextOfExpectedAccentColorText);
+  }, "accent-color: AccentColorText when parent has accent-color set to a resolved color should result in the parent's accent color text");
+</script>

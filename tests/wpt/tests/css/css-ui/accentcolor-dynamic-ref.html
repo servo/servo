@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+
+<style>
+  #container {
+    display: flex;
+    gap: 20px;
+  }
+
+  .common {
+    width: 100px;
+    height: 100px;
+  }
+
+  #text { color: blue; }
+  #background { background-color: blue; }
+  #border { box-sizing: border-box; border: 10px blue solid; }
+  #gradient { background: blue; }
+  #drop-shadow { background-color: black; filter: drop-shadow(10px 10px 0 blue); }
+</style>
+
+<div id="container">
+  <div class="common" id="text">Text in AccentColor color</div>
+  <div class="common" id="background"></div>
+  <div class="common" id="border"></div>
+  <div class="common" id="gradient"></div>
+  <div class="common" id="drop-shadow"></div>
+</div>

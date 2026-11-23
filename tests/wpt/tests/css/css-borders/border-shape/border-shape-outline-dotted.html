@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>CSS Borders Test: outline-style: dotted follows border-shape</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<link rel="help" href="https://drafts.csswg.org/css-ui/#outline">
+<link rel="match" href="border-shape-outline-dotted-ref.html">
+<meta name="assert" content="A dotted outline on an element with border-shape
+must be painted along the border-shape path.">
+<meta name="fuzzy" content="maxDifference=0-255;totalPixels=0-1100">
+<style>
+body { margin: 0; }
+.container { padding: 30px; }
+.target {
+  /* Sized so the outline center-path perimeter sits near the middle of a
+     20px dot period (2 * outline-width), which makes the dot count stable
+     across Skia's Oval/RRect measurement differences. */
+  width: 98px;
+  height: 98px;
+  background: lightblue;
+  border-shape: circle(49px at 49px 49px);
+  outline: 10px dotted green;
+}
+</style>
+<div class="container">
+  <div class="target"></div>
+</div>

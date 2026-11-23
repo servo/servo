@@ -466,8 +466,12 @@ cases:
       element-video.sub.html: [{}]
       element-video-poster.sub.html: [{}]
       form-submission.sub.html:
+        # Omit query parameters on intermediate HTTP redirect hops so browsers
+        # do not block the redirect as a mixed form leaking form data.
         - method: GET
+          stashedRedirect: true
         - method: POST
+          stashedRedirect: true
       header-refresh.optional.sub.html: [{}]
       svg-image.sub.html: [{}]
       window-location.sub.html: [{}]

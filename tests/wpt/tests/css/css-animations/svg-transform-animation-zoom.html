@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>Transform animations on zoomed SVG elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/">
+<link rel="match" href="svg-transform-animation-zoom-ref.html">
+<style>
+@keyframes translate-px {
+  from { transform: translate(50px, 50px); }
+  to { transform: translate(0px, 0px); }
+}
+@keyframes translate-pct {
+  from { transform: translate(100%, 100%); }
+  to { transform: translate(0%, 0%); }
+}
+@keyframes rotate-origin {
+  from { transform: rotate(180deg); }
+  to { transform: rotate(0deg); }
+}
+@keyframes translate-y {
+  from { transform: translateY(50px); }
+  to { transform: translateY(0px); }
+}
+</style>
+<svg style="zoom: 2" width="150" height="150">
+  <!-- Pixel translation -->
+  <rect x="50" y="50" width="50" height="50" fill="red"/>
+  <rect style="animation: translate-px 1000s steps(1, end) infinite"
+        x="0" y="0" width="50" height="50" fill="green"/>
+
+  <!-- Percentage translation with fill-box -->
+  <rect x="100" y="50" width="50" height="50" fill="red"/>
+  <rect style="transform-box: fill-box;
+               animation: translate-pct 1000s steps(1, end) infinite"
+        x="50" y="0" width="50" height="50" fill="green"/>
+
+  <!-- Rotation with transform-origin -->
+  <rect x="50" y="100" width="50" height="50" fill="red"/>
+  <rect style="transform-box: fill-box; transform-origin: 100% 50%;
+               animation: rotate-origin 1000s steps(1, end) infinite"
+        x="0" y="100" width="50" height="50" fill="green"/>
+
+  <!-- foreignObject inside zoomed SVG -->
+  <rect x="0" y="50" width="50" height="50" fill="red"/>
+  <foreignObject style="animation: translate-y 1000s steps(1, end) infinite"
+                 x="0" y="0" width="50" height="50">
+    <div style="width: 50px; height: 50px; background: green"></div>
+  </foreignObject>
+</svg>

@@ -8,48 +8,23 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-const params = new URLSearchParams(location.search);
-
 // This is required to prevent the test harness from failing the test
 // when the unhandled promise rejection occurs.
 setup({ allow_uncaught_exception: true });
 
-switch (params.get("mode") || "test") {
-case "test":
-  promise_test(async t => {
-    const event = await new Promise(resolve => {
-      window.did_reveal = e => { resolve(e) };
-      const popup = window.open("?mode=old");
-      t.add_cleanup(() => popup.close());
-    });
+promise_test(async t => {
+  let popup;
+  t.add_cleanup(() => popup.close());
 
-    assert_equals(event.viewTransition, null,
-      "Transition should have been skipped when document was minimized");
+  const restored = new Promise(resolve => { window.did_restore = resolve; });
+  const event = await new Promise(resolve => {
+    window.did_reveal = resolve;
+    popup = window.open("resources/hide-before-reveal-popup.html?mode=old");
   });
-  break;
-case "old":
-  onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
-      location.replace('?mode=new');
-  }));
-  break;
-case "new":
-  const render_blocker = document.createElement("script");
-  render_blocker.blocking = "render";
-  render_blocker.src = "/loading/resources/dummy.js?pipe=trickle(d10)";
-  render_blocker.type = "module";
-  document.head.append(render_blocker);
+  // Don't close the popup while its testdriver actions are still pending.
+  await restored;
 
-  addEventListener('pagereveal', e => window.opener.did_reveal(e));
-
-  test_driver.minimize_window().then(rect => {
-    render_blocker.remove();
-    test_driver.set_window_rect(rect);
-  });
-  break;
-}
+  assert_equals(event.viewTransition, null,
+    "Transition should have been skipped when document was minimized");
+});
 </script>
-<style>
-  @view-transition {
-    navigation: auto;
-  }
-</style>

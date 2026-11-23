@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>timeline-trigger and animation-trigger on an element with @starting-style</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#animation-trigger">
+<link rel="help" href="https://crbug.com/579050373">
+<style>
+  @keyframes fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  #target {
+    animation: fade 1s;
+    animation-trigger: --trigger play-once;
+    timeline-trigger: --trigger view();
+    transition: opacity 0.2s;
+    @starting-style {
+      opacity: 0;
+    }
+  }
+</style>
+<div id="target">target</div>
+<script>
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.documentElement.classList.remove("test-wait");
+    });
+  });
+</script>
+</html>

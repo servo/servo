@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>View Transition: shadowRoots with view-transition-class, view-transition-group, and view-transition-scope</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  :root {
+    view-transition-name: none;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 300s;
+    animation-play-state: paused;
+  }
+  .host {
+    width: 120px;
+    height: 120px;
+    contain: layout;
+    view-transition-name: none;
+  }
+  html::view-transition {
+    background-color: rgb(255, 0, 0);
+  }
+  html::view-transition-group(.shadow-cls) {
+    outline: 5px solid rgb(0, 0, 255);
+  }
+  html::view-transition-group(outer-grp),
+  html::view-transition-group(shadow-grp) {
+    background-color: rgb(0, 128, 0);
+  }
+  html::view-transition-group-children(*) {
+    background-color: inherit;
+  }
+  html::view-transition-group(child-item),
+  html::view-transition-group(part-item) {
+    background-color: inherit;
+  }
+  ::part(named-part) {
+    view-transition-name: part-item;
+  }
+</style>
+</head>
+<body>
+<div id="sandbox"></div>
+<script>
+const sandbox = document.getElementById("sandbox");
+
+function capturedNames(animRoot = document) {
+  const regexp = /\((?<name>[^)]+)\)/;
+  const names = animRoot.getAnimations()
+      .map(a => a.effect.pseudoElement)
+      .filter(Boolean)
+      .map(p => p.match(regexp)?.groups.name)
+      .filter(Boolean);
+  return [...new Set(names)].sort();
+}
+
+promise_test(async t => {
+  t.add_cleanup(() => { sandbox.replaceChildren(); });
+
+  const host = document.createElement("div");
+  host.className = "host";
+  sandbox.appendChild(host);
+  const sr = host.attachShadow({ mode: "open" });
+  sr.innerHTML = `
+    <style>
+      #box {
+        width: 40px;
+        height: 40px;
+        background: teal;
+        view-transition-class: shadow-cls;
+      }
+    </style>
+    <div id="box" part="named-part"></div>
+  `;
+
+  // Without sr in shadowRoots, #box is captured via ::part(named-part) from Document,
+  // but its shadow-scoped view-transition-class must NOT leak to Document!
+  let vt = document.startViewTransition();
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+  assert_equals(
+      getComputedStyle(document.documentElement, "::view-transition-group(part-item)").outlineStyle,
+      "none",
+      "Unopted-in shadow view-transition-class is ignored");
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+
+  // With sr in shadowRoots, shadow-cls participates and matches ::view-transition-group(.shadow-cls)!
+  vt = document.startViewTransition({ shadowRoots: [sr] });
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+  const matchedStyle =
+      getComputedStyle(document.documentElement, "::view-transition-group(part-item)");
+  assert_equals(matchedStyle.outlineStyle, "solid",
+                "Opted-in shadow view-transition-class matches ::view-transition-group(.shadow-cls)");
+  assert_equals(matchedStyle.outlineColor, "rgb(0, 0, 255)");
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+}, "view-transition-class from ShadowRoot applies if and only if ShadowRoot is in shadowRoots");
+
+promise_test(async t => {
+  t.add_cleanup(() => { sandbox.replaceChildren(); });
+
+  // 1. Light-DOM ancestor containing ShadowRoot child via contain, nearest, and explicit ident.
+  const outer = document.createElement("div");
+  outer.style.cssText = "width: 150px; height: 150px; view-transition-name: outer-grp;";
+  sandbox.appendChild(outer);
+
+  const host = document.createElement("div");
+  host.className = "host";
+  outer.appendChild(host);
+  const sr = host.attachShadow({ mode: "open" });
+  sr.innerHTML = `
+    <style>
+      #child {
+        width: 40px;
+        height: 40px;
+        background: yellow;
+        view-transition-name: child-item;
+      }
+    </style>
+    <div id="child"></div>
+  `;
+  const child = sr.getElementById("child");
+
+  // Explicit custom-ident group in sr pointing to light-DOM outer-grp.
+  child.style.viewTransitionGroup = "outer-grp";
+  let vt = document.startViewTransition({ shadowRoots: [sr] });
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+  assert_equals(
+      getComputedStyle(document.documentElement, "::view-transition-group(child-item)").backgroundColor,
+      "rgb(0, 128, 0)",
+      "Shadow child with view-transition-group: outer-grp nests under light-DOM outer-grp");
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+
+  // Typed OM nearest in sr pointing to light-DOM outer-grp.
+  child.attributeStyleMap.set("view-transition-group", "nearest");
+  vt = document.startViewTransition({ shadowRoots: [sr] });
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+  assert_equals(
+      getComputedStyle(document.documentElement, "::view-transition-group(child-item)").backgroundColor,
+      "rgb(0, 128, 0)",
+      "Shadow child with Typed OM view-transition-group: nearest nests under light-DOM outer-grp");
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+
+  // Unopted-in ShadowRoot view-transition-group: nearest on a ::part()-named element resolves to normal.
+  child.setAttribute("part", "named-part");
+  child.style.viewTransitionName = "none";
+  vt = document.startViewTransition();
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+  assert_equals(
+      getComputedStyle(document.documentElement, "::view-transition-group(part-item)").backgroundColor,
+      "rgb(255, 0, 0)",
+      "Out-of-scope shadow view-transition-group resolves to normal when ShadowRoot is not in shadowRoots");
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+
+  // 2. Shadow ancestor with view-transition-group: contain (via Typed OM) containing slotted light-DOM child!
+  sandbox.replaceChildren();
+  const slotHost = document.createElement("div");
+  slotHost.className = "host";
+  sandbox.appendChild(slotHost);
+  const slotSR = slotHost.attachShadow({ mode: "open" });
+  slotSR.innerHTML = `
+    <div id="shadow-container" style="width: 100px; height: 100px; view-transition-name: shadow-grp;">
+      <slot></slot>
+    </div>
+  `;
+  slotSR.getElementById("shadow-container").attributeStyleMap.set("view-transition-group", "contain");
+
+  const slottedChild = document.createElement("div");
+  slottedChild.style.cssText = "width: 30px; height: 30px; view-transition-name: child-item;";
+  slotHost.appendChild(slottedChild);
+
+  vt = document.startViewTransition({ shadowRoots: [slotSR] });
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+  assert_equals(
+      getComputedStyle(document.documentElement, "::view-transition-group(child-item)").backgroundColor,
+      "rgb(0, 128, 0)",
+      "Slotted light-DOM child nests under containing shadow ancestor across <slot>");
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+}, "view-transition-group (contain, nearest, custom-ident) resolves across participating trees and <slot> boundaries");
+
+promise_test(async t => {
+  t.add_cleanup(() => {
+    document.documentElement.style.viewTransitionScope = "";
+    sandbox.replaceChildren();
+  });
+
+  const host = document.createElement("div");
+  host.className = "host";
+  sandbox.appendChild(host);
+  const sr = host.attachShadow({ mode: "open" });
+  sr.innerHTML = `
+    <div id="wrapper">
+      <div id="shadow-inner" style="width: 20px; height: 20px; view-transition-name: shadow-inner;"></div>
+      <div id="fixed-inner" style="position: fixed; left: 0; top: 0; width: 20px; height: 20px; view-transition-name: fixed-inner;"></div>
+      <slot id="the-slot"></slot>
+    </div>
+  `;
+  const slotted = document.createElement("div");
+  slotted.style.cssText = "width: 20px; height: 20px; view-transition-name: slotted-light;";
+  host.appendChild(slotted);
+
+  const wrapper = sr.getElementById("wrapper");
+  const slot = sr.getElementById("the-slot");
+
+  // 1. view-transition-scope: all on :root (transitionRoot of document.startViewTransition) does NOT block discovery.
+  document.documentElement.style.viewTransitionScope = "all";
+  let vt = document.startViewTransition({ shadowRoots: [sr] });
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+  assert_array_equals(capturedNames(), ["fixed-inner", "shadow-inner", "slotted-light"]);
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+  document.documentElement.style.viewTransitionScope = "";
+
+  // 2. view-transition-scope: all on shadow host blocks outer document transition,
+  //    but allows scoped transition on host itself!
+  host.style.viewTransitionScope = "all";
+  vt = document.startViewTransition({ shadowRoots: [sr] });
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+  assert_array_equals(capturedNames(), []);
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+
+  // Remove position: fixed inside scoped transition (or keep contain: layout on host which traps fixed!).
+  vt = host.startViewTransition({ shadowRoots: [sr] });
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+  assert_array_equals(capturedNames(), ["fixed-inner", "shadow-inner", "slotted-light"],
+                      "view-transition-scope: all on transitionRoot itself allows discovery");
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+  host.style.viewTransitionScope = "";
+
+  // 3. view-transition-scope: all on display: contents shadow wrapper blocks both shadow-inner and slotted-light.
+  wrapper.style.display = "contents";
+  wrapper.style.viewTransitionScope = "all";
+  vt = document.startViewTransition({ shadowRoots: [sr] });
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+  assert_array_equals(capturedNames(), []);
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+  wrapper.style.display = "";
+  wrapper.style.viewTransitionScope = "";
+
+  // 4. view-transition-scope: all on <slot> blocks slotted light-DOM children while keeping shadow siblings!
+  slot.style.viewTransitionScope = "all";
+  vt = document.startViewTransition({ shadowRoots: [sr] });
+  t.add_cleanup(() => vt.skipTransition());
+  await vt.ready;
+  assert_array_equals(capturedNames(), ["fixed-inner", "shadow-inner"]);
+  vt.skipTransition();
+  await vt.finished.catch(() => {});
+}, "view-transition-scope: all on :root, shadow host, display: contents shadow wrapper, and <slot>");
+</script>
+</body>
+</html>

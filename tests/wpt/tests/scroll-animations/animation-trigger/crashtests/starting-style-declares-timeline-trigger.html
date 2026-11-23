@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>timeline-trigger repeated inside @starting-style</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#animation-trigger">
+<link rel="help" href="https://crbug.com/579050373">
+<style>
+  @keyframes fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  #target {
+    width: 100px;
+    height: 100px;
+    background: green;
+    animation: fade 1s both;
+    animation-trigger: --trigger play-once;
+    timeline-trigger: --trigger view();
+    @starting-style {
+      timeline-trigger: --trigger view();
+    }
+  }
+</style>
+<div id="target"></div>
+<script>
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.documentElement.classList.remove("test-wait");
+    });
+  });
+</script>
+</html>

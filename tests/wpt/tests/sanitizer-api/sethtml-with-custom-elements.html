@@ -212,7 +212,7 @@ test(t => {
   assert_equals(window.connected, 1);
 }, "Sanity check, that is= processing still works when allowed.");
 
-// Test cases involving `is=` with <html> or <script>
+// Test cases involving `is=` with <script>
 customElements.define("x-script", class extends HTMLScriptElement {
   constructor() { super(); window.constructed++; }
   connectedCallback() { window.connected++; }
@@ -226,20 +226,6 @@ test(t => {
   assert_equals(window.constructed, 0);
   assert_equals(window.connected, 0);
 }, "Custom element via is-attribute on script element, where is attribute is not allowed.");
-
-customElements.define("x-html", class extends HTMLHtmlElement {
-  constructor() { super(); window.constructed++; }
-  connectedCallback() { window.connected++; }
-}, {extends: "html"});
-
-test(t => {
-  t.add_cleanup(cleanup);
-  document.body.firstElementChild.setHTMLUnsafe(
-    "<html is='x-html'></html>",
-    {sanitizer: {elements: ["html"],removeAttributes:["is"]}});
-  assert_equals(window.constructed, 0);
-  assert_equals(window.connected, 0);
-}, "Custom element via is-attribute on html element, where is attribute is not default-allowed.");
 
 </script>
 </body>

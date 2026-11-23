@@ -78,6 +78,12 @@
     test_invalid_value(`color`, `color-mix(in hsl, hsl(120deg 10% 20%) -10%, hsl(30deg 30% 40%), hsl(60deg 20% 30%))`);
     test_invalid_value(`color`, `color-mix(in srgb, red 150%, green 50%, blue)`);
     test_invalid_value(`color`, `color-mix(in hsl, hsl(120deg 10% 20%) 150%, hsl(30deg 30% 40%), hsl(60deg 20% 30%))`);
+    test_invalid_value(`color`, `color-mix()`); // No colors.
+    test_invalid_value(`color`, `color-mix(in srgb)`); // No colors after the interpolation method.
+    test_invalid_value(`color`, `color-mix(in srgb,)`); // No colors after the comma.
+    test_invalid_value(`color`, `color-mix(in srgb, red,)`); // Trailing comma.
+    test_invalid_value(`color`, `color-mix(red,, blue)`); // Empty item between commas.
+    test_invalid_value(`color`, `color-mix(in srgb, red 10% 20%)`); // Two percentages for one color.
 </script>
 </body>
 </html>

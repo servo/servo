@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG Animations: animating 'd' through arcs with a zero radius</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/paths.html#DProperty">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/paths.html#ArcOutOfRangeParameters">
+<link rel="help" href="https://w3c.github.io/svgwg/specs/animations/#ValuesAttribute">
+<meta name="assert" content="An arc with a zero radius keeps its arc command, so it interpolates with another arc instead of falling back to discrete animation.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg>
+  <path id="zero-rx-from" d="M 0 0 A 0 10 0 0 1 50 50">
+    <animate attributeName="d" from="M 0 0 A 0 10 0 0 1 50 50" to="M 0 0 A 20 30 0 0 1 50 50" dur="2s" fill="freeze"/>
+  </path>
+  <path id="zero-ry-from" d="M 0 0 A 10 0 0 0 1 50 50">
+    <animate attributeName="d" from="M 0 0 A 10 0 0 0 1 50 50" to="M 0 0 A 30 20 0 0 1 50 50" dur="2s" fill="freeze"/>
+  </path>
+  <path id="zero-rx-to" d="M 0 0 A 20 30 0 0 1 50 50">
+    <animate attributeName="d" from="M 0 0 A 20 30 0 0 1 50 50" to="M 0 0 A 0 10 0 0 1 50 50" dur="2s" fill="freeze"/>
+  </path>
+  <path id="zero-rx-relative" d="m 0 0 a 0 10 0 0 1 50 50">
+    <animate attributeName="d" from="m 0 0 a 0 10 0 0 1 50 50" to="m 0 0 a 20 30 0 0 1 50 50" dur="2s" fill="freeze"/>
+  </path>
+  <path id="zero-rx-values" d="M 0 0 A 10 20 0 0 1 50 50">
+    <animate attributeName="d" values="M 0 0 A 10 20 0 0 1 50 50; M 0 0 A 0 20 0 0 1 50 50; M 0 0 A 10 20 0 0 1 50 50" dur="2s" fill="freeze"/>
+  </path>
+</svg>
+<script>
+  'use strict';
+
+  const svg = document.querySelector('svg');
+  svg.pauseAnimations();
+
+  promise_setup(() => new Promise(resolve => {
+    window.addEventListener('load', () => requestAnimationFrame(resolve));
+  }));
+
+  // A discrete fallback shows the 'from' value before 1s and the 'to' value
+  // from 1s, so every sample below fails if the arc was rewritten as a lineto.
+  const cases = [
+    {
+      id: 'zero-rx-from',
+      title: 'from-to animation, rx is 0 in the from value',
+      samples: [
+        [0.5, 'path("M 0 0 A 5 15 0 0 1 50 50")'],
+        [1, 'path("M 0 0 A 10 20 0 0 1 50 50")'],
+        [1.5, 'path("M 0 0 A 15 25 0 0 1 50 50")'],
+      ],
+    },
+    {
+      id: 'zero-ry-from',
+      title: 'from-to animation, ry is 0 in the from value',
+      samples: [
+        [0.5, 'path("M 0 0 A 15 5 0 0 1 50 50")'],
+        [1, 'path("M 0 0 A 20 10 0 0 1 50 50")'],
+        [1.5, 'path("M 0 0 A 25 15 0 0 1 50 50")'],
+      ],
+    },
+    {
+      id: 'zero-rx-to',
+      title: 'from-to animation, rx is 0 in the to value',
+      samples: [
+        [0.5, 'path("M 0 0 A 15 25 0 0 1 50 50")'],
+        [1, 'path("M 0 0 A 10 20 0 0 1 50 50")'],
+        [1.5, 'path("M 0 0 A 5 15 0 0 1 50 50")'],
+      ],
+    },
+    {
+      id: 'zero-rx-relative',
+      title: 'from-to animation, relative arc with rx 0 in the from value',
+      samples: [
+        [0.5, 'path("M 0 0 A 5 15 0 0 1 50 50")'],
+        [1, 'path("M 0 0 A 10 20 0 0 1 50 50")'],
+        [1.5, 'path("M 0 0 A 15 25 0 0 1 50 50")'],
+      ],
+    },
+    {
+      id: 'zero-rx-values',
+      title: 'values animation passing through rx 0',
+      samples: [
+        [0.5, 'path("M 0 0 A 5 20 0 0 1 50 50")'],
+        [1, 'path("M 0 0 A 0 20 0 0 1 50 50")'],
+        [1.5, 'path("M 0 0 A 5 20 0 0 1 50 50")'],
+      ],
+    },
+  ];
+
+  for (const {id, title, samples} of cases) {
+    promise_test(async () => {
+      const path = document.getElementById(id);
+      for (const [time, expected] of samples) {
+        svg.setCurrentTime(time);
+        assert_equals(getComputedStyle(path).d, expected, `at ${time}s`);
+      }
+    }, title);
+  }
+</script>

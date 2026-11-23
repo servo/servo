@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<title>User activation when a traversal is aborted by a 204 response</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#apply-the-history-step">
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+  <p>Non-zero-sized body to allow clicks.</p>
+</body>
+
+<script>
+  'use strict';
+
+  let uuid1 = token();
+  let uuid2 = token();
+
+  // A response with a 204 status leaves the entry's document null, so the
+  // navigable never goes cross-document and there is no document for the
+  // traversal to carry anything over to. The window stays where it is, keeping
+  // the activation it earned there.
+  //
+  // "no-store" keeps the first document out of the back/forward cache, so that
+  // traversing back to its entry has to fetch the entry's URL, which is where
+  // the 204 comes from. The test is "https" because that is where a no-store
+  // response keeps a page out of the cache.
+  let opened = `/common/dispatcher/remote-executor.html?uuid=${uuid1}` +
+               `&pipe=header(Cache-Control,no-store)`;
+  let navigated_to = `/common/dispatcher/remote-executor.html?uuid=${uuid2}`;
+  let responds_204 = "/common/blank.html?pipe=status(204)";
+
+  promise_test(async test => {
+    // Open a new window, point its entry at a URL that answers 204, navigate it
+    // on, click it, and traverse back.
+    let w;
+    document.body.onclick = () => {
+      w = window.open(opened);
+    };
+
+    await test_driver.click(document.body);
+    assert_true(!!w, "A window is opened");
+    // Close the window at the end of the test, so that a later test in the same
+    // session cannot click a window this one left behind.
+    test.add_cleanup(() => w && w.close());
+
+    const first = new RemoteContext(uuid1);
+    const second = new RemoteContext(uuid2);
+
+    // Rewrite the entry's URL in place, so that traversing back to it re-fetches
+    // a URL that answers 204 rather than the document that is there now, and
+    // navigate the window on to a second same-origin document.
+    await first.execute_script((url204, next) => {
+      history.replaceState(null, "", url204);
+      executor.suspend(() => {
+        location.href = next;
+      });
+    }, [responds_204, navigated_to]);
+
+    // Wait for the second document to answer before clicking it.
+    {
+      const result = await second.execute_script(getUserActivationState);
+      assertUserActivationState(result, false, false,
+            "after window navigated, with nothing to carry over");
+    }
+
+    // Confirm that the second document gets user activation after a click.
+    await test_driver.click(w.document.documentElement);
+    {
+      const result = await second.execute_script(getUserActivationState);
+      assertUserActivationState(result, true, true, "after window clicked");
+    }
+
+    // The window is same origin with this page, so what it is showing can be
+    // read from the handle directly. Nothing in the executor is relied on past
+    // this point: if the traversal did go through, whatever document is there
+    // would answer for neither uuid, and a timeout would say less than the URL
+    // does.
+    const url_before = w.location.href;
+
+    // Traverse back. The executor is not suspended for this one: an aborted
+    // traversal fires nothing, so there would be nothing to resume it with.
+    await second.execute_script(() => {
+      history.back();
+    });
+
+    // An aborted traversal is observable only by what did not happen, so give
+    // it time to be attempted. Fetching the entry's URL is a network round
+    // trip, and the Navigation API's own promises never settle for a traversal
+    // a 204 ends, which leaves a bare wait as the signal available here.
+    await new Promise(resolve => test.step_timeout(resolve, 1000));
+
+    // Confirm that the window is still showing the second document, with the
+    // activation it earned there.
+    assert_equals(w.location.href, url_before,
+          "The window stayed on the document it was on");
+    assertUserActivationState(
+          [w.navigator.userActivation.isActive,
+           w.navigator.userActivation.hasBeenActive], true, true,
+          "after a traversal the 204 aborted");
+}, "User activation when a traversal is aborted by a 204 response");
+</script>

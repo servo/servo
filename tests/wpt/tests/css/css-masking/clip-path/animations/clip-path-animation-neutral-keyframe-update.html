@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
+<link rel="match" href="clip-path-animation-neutral-keyframe-ref.html">
+<link rel="author" title="Claire Chambers" href="mailto:clchambers@microsoft.com">
+<meta name="assert" content="interpolation on clip-path functions with updated neutral keyframes">
+<style>
+  .container {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+    clip-path: circle(15% at 50% 50%);
+    animation: clippath 20s steps(2, jump-end) -8s;
+  }
+
+  .container.updated {
+    clip-path: circle(5% at 50% 50%);
+  }
+
+  @keyframes clippath {
+    80% {
+      clip-path: circle(25% at 50% 50%);
+    }
+
+    100% {
+      clip-path: circle(50% at 50% 50%);
+    }
+  }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="../../../../web-animations/resources/timing-utils.js"></script>
+
+<body>
+  <div class="container"></div>
+
+  <script>
+    document.getAnimations()[0].ready.then(() => {
+      const container = document.querySelector('.container');
+      container.classList.add('updated');
+      takeScreenshot();
+    });
+  </script>
+</body>
+
+</html>

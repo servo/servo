@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: text-transform:full-width applies to all characters of an expanded case mapping</title>
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#text-transform-property">
+<link rel="match" href="reference/text-transform-fullwidth-011-ref.html">
+<meta name="assert" content="When uppercasing expands one character to several, text-transform:full-width applies to every resulting character.">
+<style>
+div {
+  text-transform: full-width uppercase;
+}
+</style>
+<div>&szlig;</div>

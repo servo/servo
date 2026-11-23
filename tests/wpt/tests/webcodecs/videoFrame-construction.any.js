@@ -423,6 +423,20 @@ test(t => {
   assert_equals(scaledFrame.displayHeight, 20, 'scaledFrame.displayHeight');
 }, 'Test display size metadata override');
 
+promise_test(async t => {
+  let image = makeImageBitmap(64, 64);
+  let cropped = await createImageBitmap(image, 10, 10, 30, 40);
+  let frame = new VideoFrame(cropped, { timestamp: 0 });
+  assert_equals(frame.codedWidth, 30);
+  assert_equals(frame.codedHeight, 40);
+  assert_equals(frame.visibleRect.x, 0);
+  assert_equals(frame.visibleRect.y, 0);
+  assert_equals(frame.visibleRect.width, 30);
+  assert_equals(frame.visibleRect.height, 40);
+  assert_equals(frame.displayWidth, 30, 'frame.displayWidth');
+  assert_equals(frame.displayHeight, 40, 'frame.displayHeight');
+}, 'Test constructing from cropped ImageBitmap');
+
 test(t => {
   assert_throws_js(
       TypeError,
@@ -445,6 +459,7 @@ test(t => {
     ]);
     return new VideoFrame(data, {...init, format: 'I420'});
   }
+
 
   assert_throws_js(
       TypeError, () => constructFrame({
@@ -511,6 +526,20 @@ test(t => {
                  }),
       'invalid display height');
 }, 'Test invalid buffer constructed VideoFrames');
+
+test(() => {
+  assert_throws_js(
+      TypeError, () => new VideoFrame(new Uint8Array(36), {
+                   timestamp: 10,
+                   codedWidth: 3,
+                   codedHeight: 3,
+                   visibleRect: {x: 0, y: 0, width: 1, height: 1},
+                   format: 'RGBA',
+                   layout: [{offset: 0, stride: 16}],
+                 }),
+      'buffer must hold the whole coded size, not just the visible rect');
+
+}, 'VideoFrame buffer must cover the coded size with an explicit layout');
 
 test(t => {
   testBufferConstructedI420Frame('Uint8Array(ArrayBuffer)');

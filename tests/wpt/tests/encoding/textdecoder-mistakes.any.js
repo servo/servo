@@ -384,8 +384,8 @@ test(() => {
   const d = new TextDecoder('euc-jp', {fatal: true});
   assert_throws_js(TypeError,
                    () => d.decode(u(0x8f, 0xa2, 0x20), {stream: true}));
-  // The ASCII byte is restored to the input queue before the error is returned.
-  assert_equals(d.decode(u(0xa1, 0xa1)), ' \u3000');
+  // The ASCII byte is restored to the input queue, but the decoder is reset when decode() throws.
+  assert_equals(d.decode(u(0xa1, 0xa1)), '\u3000');
 }, 'EUC-JP JIS0212 state after a fatal streaming error');
 
 // Chrome, Firefox and Safari all fail on this
@@ -701,22 +701,21 @@ for (const encoding of ['utf-16le', 'utf-16be']) {
   }, `fatal stream: ${encoding}`)
 }
 
-// Bun is incorrect
 test(() => {
-  // This is the only decoder which does not clear internal state before throwing in stream mode (non-EOF throws)
-  // So the internal state of this decoder can legitimately persist after an error was thrown
+  // This is the only decoder which does not clear internal state when returning an error
+  // But decode() resets the decoder when it throws, so that state does not persist
   {
     const d = new TextDecoder('iso-2022-jp', { fatal: true })
     assert_equals(d.decode(Uint8Array.of(0x7e)), '\x7E')
     assert_throws_js(TypeError, () => d.decode(u(0x1b, 0x28, 0x4a, 0xff), { stream: true })) // Switch to Roman, error
-    assert_equals(d.decode(Uint8Array.of(0x7e)), '\u203E')
+    assert_equals(d.decode(Uint8Array.of(0x7e)), '\x7E')
   }
 
   {
     const d = new TextDecoder('iso-2022-jp', { fatal: true })
     assert_equals(d.decode(Uint8Array.of(0x42)), 'B')
     assert_throws_js(TypeError, () => d.decode(u(0x1b, 0x28, 0x49, 0xff), { stream: true })) // Switch to Katakana, error
-    assert_equals(d.decode(Uint8Array.of(0x42)), '\uFF82')
+    assert_equals(d.decode(Uint8Array.of(0x42)), 'B')
   }
 }, 'fatal stream: iso-2022-jp')
 

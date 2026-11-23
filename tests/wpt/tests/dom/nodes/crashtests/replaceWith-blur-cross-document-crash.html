@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/583907042">
+
+<iframe id=iframe srcdoc="<fieldset><legend><input id=input></legend><span id=old></span></fieldset>"></iframe>
+
+<script>
+window.onload = () => {
+  const doc = iframe.contentDocument;
+  const input = doc.getElementById('input');
+  const old = doc.getElementById('old');
+  const n1 = document.createElement('div');
+  input.focus();
+  input.disabled = true;
+  input.addEventListener('blur', () => {
+    document.body.appendChild(n1);
+  });
+  // Removing `old` from the fieldset blurs the focused (disabled) input,
+  // and the blur handler inserts `n1` into the top-level document. `n1`
+  // must not then also be inserted into the fieldset.
+  old.replaceWith(n1);
+  n1.remove();
+  document.body.offsetTop;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.documentElement.classList.remove('test-wait');
+    });
+  });
+};
+</script>

@@ -14,11 +14,14 @@
   test_invalid_value(prop, 'ident()');
   test_invalid_value(prop, 'ident( )');
   test_invalid_value(prop, 'ident({})');
+  test_invalid_value(prop, 'ident(a {})');
   test_invalid_value(prop, 'ident(a, b)');
 
   // Not an <ident-arg>+, so these are valid here and invalid at computed-value time.
   test_valid_value(prop, 'ident(rgb(1, 2, 3))');
   test_valid_value(prop, 'ident(5px)');
+  test_valid_value(prop, 'ident(())');
+  test_valid_value(prop, 'ident(b ())');
 
   // The argument round-trips as specified, with no whitespace normalization.
   test_valid_value(prop, 'ident(myident)');
@@ -33,6 +36,7 @@
   test_valid_value(prop, 'ident(my ident)');
   test_valid_value(prop, 'ident(-- myident)');
   test_valid_value(prop, 'ident(my 3 3 3 3 ident)')
+  test_valid_value(prop, 'ident("")');
 
   // Check for support in specific properties (WIP):
   let ident = 'ident("myident" 42)';

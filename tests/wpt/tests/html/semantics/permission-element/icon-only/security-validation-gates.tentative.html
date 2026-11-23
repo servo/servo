@@ -1,0 +1,148 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Capability Elements: security validation gates and anti-clickjacking defenses in icon-only mode</title>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<span tabindex="0" id="focusable_span">Focusable target</span>
+<div id="container"></div>
+<script>
+const container = document.getElementById("container");
+const focusableSpan = document.getElementById("focusable_span");
+
+function waitForSettledValidationReason(t, element) {
+  return new Promise((resolve) => {
+    element.onvalidationstatuschange = t.step_func(() => {
+      if (
+        element.invalidReason === "unsuccessful_registration" ||
+        element.invalidReason === "recently_attached" ||
+        element.invalidReason === "intersection_changed"
+      ) {
+        return;
+      }
+      resolve(element.invalidReason);
+    });
+  });
+}
+
+const styleInvalidCases = [
+  {
+    name: "low contrast between icon color (currentColor) and background-color",
+    applyStyle: (el) => {
+      el.style.color = "rgb(240, 240, 240)";
+      el.style.backgroundColor = "rgb(255, 255, 255)";
+    },
+  },
+  {
+    name: "non-opaque icon color",
+    applyStyle: (el) => {
+      el.style.color = "rgba(0, 0, 0, 0.5)";
+      el.style.backgroundColor = "rgb(255, 255, 255)";
+    },
+  },
+  {
+    name: "non-opaque background-color",
+    applyStyle: (el) => {
+      el.style.color = "rgb(0, 0, 0)";
+      el.style.backgroundColor = "rgba(255, 255, 255, 0.5)";
+    },
+  },
+  {
+    name: "font-size too small (attempting to shrink the 1.3em icon to microscopic size)",
+    applyStyle: (el) => {
+      el.style.fontSize = "2px";
+    },
+  },
+  {
+    name: "font-size too large (attempting to oversize the 1.3em icon)",
+    applyStyle: (el) => {
+      el.style.fontSize = "300px";
+    },
+  },
+  {
+    name: "invalid display property (display: inline)",
+    applyStyle: (el) => {
+      el.style.display = "inline";
+    },
+  },
+  {
+    name: "invalid display property (display: contents)",
+    applyStyle: (el) => {
+      el.style.display = "contents";
+    },
+  },
+];
+
+for (const testCase of styleInvalidCases) {
+  promise_test(async (t) => {
+    const el = document.createElement("geolocation");
+    el.setAttribute("displayhint", "icon-only");
+    testCase.applyStyle(el);
+    t.add_cleanup(() => el.remove());
+
+    const reasonPromise = waitForSettledValidationReason(t, el);
+    container.appendChild(el);
+
+    const reason = await reasonPromise;
+    assert_false(el.isValid, `Icon-only element with ${testCase.name} must not be valid`);
+    assert_equals(reason, "style_invalid", `Expected invalidReason "style_invalid" for ${testCase.name}`);
+  }, `Icon-only element is invalidated (style_invalid) by ${testCase.name}`);
+}
+
+promise_test(async (t) => {
+  const parent = document.createElement("div");
+  parent.style.mask = "linear-gradient(black, transparent)";
+  const el = document.createElement("geolocation");
+  el.setAttribute("displayhint", "icon-only");
+  parent.appendChild(el);
+  container.appendChild(parent);
+  t.add_cleanup(() => parent.remove());
+
+  // Force initial layout so the element and its masked ancestor have LayoutObjects/PaintLayers
+  // before triggering style recalc for IsMaskedByAncestor() validation.
+  el.getBoundingClientRect();
+  const reasonPromise = waitForSettledValidationReason(t, el);
+  el.style.color = "rgb(0, 0, 0)";
+
+  const reason = await reasonPromise;
+  assert_false(el.isValid, "Icon-only element inside a masked ancestor must not be valid");
+  assert_equals(
+    reason,
+    "style_invalid",
+    "Ancestor CSS mask must invalidate icon-only element to prevent partial icon erasure/spoofing"
+  );
+}, "Ancestor CSS mask invalidates icon-only element (preventing partial icon masking attacks)");
+
+promise_test(async (t) => {
+  const el = document.createElement("microphone");
+  el.setAttribute("displayhint", "icon-only");
+  container.appendChild(el);
+  t.add_cleanup(() => el.remove());
+
+  focusableSpan.focus();
+  assert_equals(document.activeElement, focusableSpan);
+
+  // Script-initiated focus without user activation must be blocked in icon-only mode.
+  el.focus();
+  assert_equals(
+    document.activeElement,
+    focusableSpan,
+    "Script-initiated focus() without user activation must be ignored on icon-only element"
+  );
+
+  // Focus with transient user activation must succeed.
+  await test_driver.bless("Focus icon-only element with user activation", () => {
+    el.focus();
+  });
+  assert_equals(
+    document.activeElement,
+    el,
+    "focus() with transient user activation must succeed on icon-only element"
+  );
+}, "Icon-only element blocks script-initiated focus without user activation");
+</script>
+</body>

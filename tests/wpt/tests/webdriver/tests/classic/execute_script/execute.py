@@ -45,6 +45,21 @@ def test_primitive_serialization(session, expression, expected):
     assert value == expected
 
 
+@pytest.mark.parametrize("expression", [
+    "null",
+    "undefined",
+    "true",
+    "23",
+    "'foo'",
+    "42n",
+    "Symbol('foo')",
+    "{ message: Symbol('foo') }",
+])
+def test_thrown_value(session, expression):
+    response = execute_script(session, "throw {};".format(expression))
+    assert_error(response, "javascript error")
+
+
 def test_opening_new_window_keeps_current_window_handle(session, inline):
     original_handle = session.window_handle
     original_handles = session.handles

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes Test: Following items after a spanning column subgrid</title>
+<link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="grid-lanes-subgrid-002f-ref.html">
+<meta name="assert" content="Following items wrap to the shortest column after an early spanning subgrid with zero fit tolerance.">
+<style>
+  .grid-lanes {
+    font: 10px/1 monospace;
+    display: inline grid-lanes;
+    grid-template-columns: 40px 60px 80px;
+    width: 188px;
+    gap: 4px;
+    fit-tolerance: 0;
+    padding: 1px 3px 5px 7px;
+    border: solid black;
+    border-width: 3px 5px 1px 1px;
+    background: lightgrey;
+  }
+  .before { height: 40px; background: grey; }
+  .after { height: 20px; background: purple; }
+  .subgrid {
+    display: grid-lanes;
+    grid-template-columns: subgrid;
+    grid-column: auto / span 2;
+    gap: 4px;
+    fit-tolerance: 0;
+    background: yellow;
+  }
+  .first {
+    height: 13px;
+    border: solid black;
+    border-width: 3px 5px 1px 1px;
+    margin: 7px 1px 5px 3px;
+    background: green;
+  }
+  .second { height: 29px; background: blue; }
+  .third { height: 19px; background: orange; }
+</style>
+<div class="grid-lanes">
+  <div class="before">1</div>
+  <div class="subgrid">
+    <div class="first">2</div>
+    <div class="second">3</div>
+    <div class="third">4</div>
+  </div>
+  <div class="after">5</div>
+  <div class="after">6</div>
+  <div class="after">7</div>
+  <div class="after">8</div>
+</div>

@@ -123,6 +123,9 @@ class MarionetteBaseProtocolPart(BaseProtocolPart):
     def load(self, url):
         self.marionette.navigate(url)
 
+    def refresh(self):
+        self.marionette.refresh()
+
     def wait(self):
         try:
             socket_timeout = self.marionette.client.socket_timeout
@@ -928,8 +931,9 @@ class MarionetteProtocol(Protocol):
         return True
 
     def on_environment_change(self, old_environment, new_environment):
-        # Unset all the old prefs
-        for name in old_environment.get("prefs", {}).keys():
+        # Unset all the old prefs, in the reverse of the order they were set, so
+        # that prefs which depend on earlier ones are restored first.
+        for name in reversed(old_environment.get("prefs", {}).keys()):
             value = self.executor.original_pref_values[name]
             if value is None:
                 self.prefs.clear(name)

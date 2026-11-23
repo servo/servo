@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>Reference: backdrop-filter inside a transform with backface-visibility: hidden</title>
+<!-- invert(1) of red is exactly cyan, and of blue exactly yellow. -->
+<style>
+  #container {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    background: blue;
+  }
+  #container > div {
+    position: absolute;
+  }
+</style>
+<div id="container">
+  <div style="left: 0; top: 0; width: 100px; height: 200px; background: red"></div>
+  <div style="left: 50px; top: 50px; width: 50px; height: 100px; background: cyan"></div>
+  <div style="left: 100px; top: 50px; width: 50px; height: 100px; background: yellow"></div>
+</div>
