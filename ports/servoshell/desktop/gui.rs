@@ -19,6 +19,7 @@ use std::fs;
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::time::Instant;
 
 use dpi::PhysicalSize;
 use egui::text::{CCursor, CCursorRange};
@@ -55,7 +56,7 @@ use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 use winit::window::Window;
 
 use crate::desktop::event_loop::AppEvent;
-use crate::desktop::headed_window;
+use crate::desktop::headed_window::{self, TOOLTIP_DELAY};
 use crate::desktop::webview_widget::WebViewWidget;
 use crate::running_app_state::{RunningAppState, UserInterfaceCommand};
 use crate::window::{ServoShellWindow, TopLevelWebViewCreationRequest};
@@ -64,6 +65,7 @@ pub struct ActiveTooltip {
     id: EmbedderControlId,
     webview_id: WebViewId,
     text: String,
+    shown_at: Instant,
 }
 
 /// The user interface of a headed servoshell. Currently this is implemented via
@@ -704,14 +706,16 @@ impl Gui {
             }
 
             if let Some(tooltip) = &self.tooltip {
-                egui::Tooltip::always_open(
-                    ctx.clone(),
-                    LayerId::new(Order::Tooltip, Id::new("embedder_tooltip")),
-                    "embedder tooltip layer".into(),
-                    webview_rect.right_bottom(),
-                )
-                .at_pointer()
-                .show(|ui| ui.add(Label::new(tooltip.text.clone()).extend()));
+                if tooltip.shown_at.elapsed() >= TOOLTIP_DELAY {
+                    egui::Tooltip::always_open(
+                        ctx.clone(),
+                        LayerId::new(Order::Tooltip, Id::new("embedder_tooltip")),
+                        "embedder tooltip layer".into(),
+                        webview_rect.right_bottom(),
+                    )
+                    .at_pointer()
+                    .show(|ui| ui.add(Label::new(tooltip.text.clone()).extend()));
+                }
             }
 
             window.repaint_webviews();
@@ -820,29 +824,34 @@ impl Gui {
             id: control.id,
             webview_id,
             text: control.text.clone(),
+            shown_at: Instant::now(),
         });
     }
 
     /// Clears the tooltip only if it is still the one identified by `id`, so a late hide
     /// for an old tooltip doesn't remove a newer one.
-    pub(crate) fn hide_tooltip(&mut self, id: EmbedderControlId) {
+    pub(crate) fn hide_tooltip(&mut self, id: EmbedderControlId) -> bool {
         if self
             .tooltip
             .as_ref()
             .is_some_and(|tooltip| tooltip.id == id)
         {
             self.tooltip = None;
+            return true;
         }
+        false
     }
 
-    pub(crate) fn dismiss_tooltips_for_webview(&mut self, webview_id: WebViewId) {
+    pub(crate) fn dismiss_tooltips_for_webview(&mut self, webview_id: WebViewId) -> bool {
         if self
             .tooltip
             .as_ref()
             .is_some_and(|tooltip| tooltip.webview_id == webview_id)
         {
             self.tooltip = None;
+            return true;
         }
+        false
     }
 
     fn update_can_go_back_and_forward(&mut self, window: &ServoShellWindow) -> bool {
