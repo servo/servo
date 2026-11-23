@@ -1240,3 +1240,10 @@ pub trait WakeLockDelegate: Send + Sync {
     /// from N to 0.
     fn release(&self, type_: WakeLockType) -> Result<(), Box<dyn std::error::Error>>;
 }
+
+/// Enum representing what to treat as the canonical source of mouse movement deltas.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum MouseMovementSource {
+    WindowEvent,
+    DeviceMotion,
+}

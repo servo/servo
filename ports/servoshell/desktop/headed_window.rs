@@ -18,15 +18,7 @@ use keyboard_types::ShortcutMatcher;
 use log::{debug, info, warn};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
 use servo::{
-    AuthenticationRequest, BluetoothDeviceSelectionRequest, Cursor, DeviceIndependentIntRect,
-    DeviceIndependentPixel, DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint,
-    EmbedderControl, EmbedderControlId, ImeEvent, InputEvent, InputEventId, InputEventResult,
-    InputMethodControl, Key, KeyState, KeyboardEvent, Modifiers, MouseButton as ServoMouseButton,
-    MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, NamedKey,
-    OffscreenRenderingContext, PermissionRequest, RenderingContext, ScreenGeometry, Theme,
-    TouchEvent, TouchEventType, TouchId, TouchPointerType, WebRenderDebugOption, WebView,
-    WebViewId, WheelDelta, WheelEvent, WheelMode, WindowRenderingContext,
-    convert_rect_to_css_pixel,
+    AuthenticationRequest, BluetoothDeviceSelectionRequest, Cursor, DeviceIndependentIntRect, DeviceIndependentPixel, DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, EmbedderControl, EmbedderControlId, ImeEvent, InputEvent, InputEventId, InputEventResult, InputMethodControl, Key, KeyState, KeyboardEvent, Modifiers, MouseButton as ServoMouseButton, MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, MouseMovementSource, NamedKey, OffscreenRenderingContext, PermissionRequest, RenderingContext, ScreenGeometry, Theme, TouchEvent, TouchEventType, TouchId, TouchPointerType, WebRenderDebugOption, WebView, WebViewId, WheelDelta, WheelEvent, WheelMode, WindowRenderingContext, convert_rect_to_css_pixel,
 };
 use url::Url;
 use winit::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
@@ -108,10 +100,10 @@ pub struct HeadedWindow {
     /// The position of the mouse cursor after the most recent `MouseMove` event.
     last_mouse_position: Cell<Option<Point2D<f32, DeviceIndependentPixel>>>,
     /// Whether pointer lock is currently active
-    pointerlock: Cell<bool>,
+    pointer_lock_active: Cell<bool>,
     /// Whether to use DeviceMotion or CursorMove as the mouse movement source
     /// while under pointer lock.
-    use_device_motion: Cell<bool>,
+    mouse_movement_source: Cell<MouseMovementSource>,
 }
 
 impl HeadedWindow {
@@ -227,8 +219,8 @@ impl HeadedWindow {
             dialogs: Default::default(),
             visible_input_method: Default::default(),
             last_mouse_position: Default::default(),
-            pointerlock: Cell::new(false),
-            use_device_motion: Cell::new(false),
+            pointer_lock_active: Cell::new(false),
+            mouse_movement_source: Cell::new(MouseMovementSource::WindowEvent),
         })
     }
 
@@ -407,10 +399,10 @@ impl HeadedWindow {
                 || active_webview.exit_fullscreen(),
             )
             .optional_shortcut(
-                self.get_pointerlock(),
+                self.pointer_lock_active(),
                 Modifiers::empty(),
                 Key::Named(NamedKey::Escape),
-                || active_webview.unlock_pointer(),
+                || active_webview.request_pointer_unlock(),
             )
             // Select the first 8 tabs via shortcuts
             .shortcut(CMD_OR_CONTROL, '1', || window.activate_webview_by_index(0))
@@ -672,7 +664,7 @@ impl HeadedWindow {
                     self.handle_mouse_button_event(&webview, button, state);
                 },
                 WindowEvent::CursorMoved { position, .. } => {
-                    if !self.get_use_device_motion() {
+                    if self.mouse_movement_source() == MouseMovementSource::WindowEvent {
                         self.handle_mouse_move_event(&webview, position);
                     }
                 },
@@ -830,8 +822,8 @@ impl HeadedWindow {
         };
         if let DeviceEvent::MouseMotion { delta } = device_event &&
             let Some(webview) = window.active_webview() &&
-            self.get_pointerlock() &&
-            self.get_use_device_motion()
+            self.pointer_lock_active() &&
+            self.mouse_movement_source() == MouseMovementSource::DeviceMotion
         {
             webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent {
                 point: self.webview_relative_mouse_point.get().into(),
@@ -994,20 +986,20 @@ impl PlatformWindow for HeadedWindow {
         self.fullscreen.get()
     }
 
-    fn set_pointerlock(&self, state: bool) {
-        self.pointerlock.set(state);
+    fn set_pointer_lock_active(&self, state: bool) {
+        self.pointer_lock_active.set(state);
     }
 
-    fn get_pointerlock(&self) -> bool {
-        self.pointerlock.get()
+    fn pointer_lock_active(&self) -> bool {
+        self.pointer_lock_active.get()
     }
 
-    fn set_use_device_motion(&self, value: bool) {
-        self.use_device_motion.set(value);
+    fn set_mouse_movement_source(&self, value: MouseMovementSource) {
+        self.mouse_movement_source.set(value);
     }
 
-    fn get_use_device_motion(&self) -> bool {
-        self.use_device_motion.get()
+    fn mouse_movement_source(&self) -> MouseMovementSource {
+        self.mouse_movement_source.get()
     }
 
     fn set_cursor(&self, cursor: Cursor) {
@@ -1054,7 +1046,7 @@ impl PlatformWindow for HeadedWindow {
             },
         };
         self.winit_window.set_cursor(winit_cursor);
-        if !self.get_pointerlock() {
+        if !self.pointer_lock_active() {
             self.winit_window.set_cursor_visible(true);
         }
     }
@@ -1232,8 +1224,8 @@ impl PlatformWindow for HeadedWindow {
         match locked {
             Ok(_) => {
                 self.winit_window.set_cursor_visible(false);
-                self.set_pointerlock(true);
-                self.set_use_device_motion(true);
+                self.set_pointer_lock_active(true);
+                self.set_mouse_movement_source(MouseMovementSource::DeviceMotion);
 
                 true
             },
@@ -1254,8 +1246,8 @@ impl PlatformWindow for HeadedWindow {
         }
         self.winit_window.set_cursor_visible(true);
 
-        self.set_pointerlock(false);
-        self.set_use_device_motion(false);
+        self.set_pointer_lock_active(false);
+        self.set_mouse_movement_source(MouseMovementSource::WindowEvent);
 
         true
     }

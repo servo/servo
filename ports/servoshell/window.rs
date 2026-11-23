@@ -10,11 +10,7 @@ use std::sync::atomic::AtomicU64;
 use euclid::Scale;
 use log::warn;
 use servo::{
-    AuthenticationRequest, BluetoothDeviceSelectionRequest, ConsoleLogLevel,
-    CreateNewWebViewRequest, Cursor, DeviceIndependentIntRect, DeviceIndependentPixel,
-    DeviceIntPoint, DeviceIntSize, DevicePixel, EmbedderControl, EmbedderControlId, InputEventId,
-    InputEventResult, PermissionRequest, RenderingContext, ScreenGeometry, WebView, WebViewBuilder,
-    WebViewId,
+    AuthenticationRequest, BluetoothDeviceSelectionRequest, ConsoleLogLevel, CreateNewWebViewRequest, Cursor, DeviceIndependentIntRect, DeviceIndependentPixel, DeviceIntPoint, DeviceIntSize, DevicePixel, EmbedderControl, EmbedderControlId, InputEventId, InputEventResult, MouseMovementSource, PermissionRequest, RenderingContext, ScreenGeometry, WebView, WebViewBuilder, WebViewId,
 };
 use url::Url;
 
@@ -519,15 +515,15 @@ pub(crate) trait PlatformWindow {
         true
     }
 
-    fn get_pointerlock(&self) -> bool {
+    fn pointer_lock_active(&self) -> bool {
         false
     }
 
-    fn set_pointerlock(&self, _state: bool) {}
+    fn set_pointer_lock_active(&self, _state: bool) {}
 
-    fn get_use_device_motion(&self) -> bool {
-        false
+    fn mouse_movement_source(&self) -> MouseMovementSource {
+        MouseMovementSource::WindowEvent
     }
 
-    fn set_use_device_motion(&self, _value: bool) {}
+    fn set_mouse_movement_source(&self, _value: MouseMovementSource) {}
 }

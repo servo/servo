@@ -896,12 +896,12 @@ impl WebViewDelegate for RunningAppState {
             .notify_accessibility_tree_update(webview, tree_update);
     }
 
-    fn lock_pointer(&self, webview: WebView, use_unadjusted: bool) -> bool {
+    fn try_lock_pointer(&self, webview: WebView, use_unadjusted: bool) -> bool {
         self.platform_window_for_webview(&webview)
             .lock_pointer(use_unadjusted)
     }
 
-    fn unlock_pointer(&self, webview: WebView) -> bool {
+    fn try_unlock_pointer(&self, webview: WebView) -> bool {
         self.platform_window_for_webview(&webview).unlock_pointer()
     }
 }

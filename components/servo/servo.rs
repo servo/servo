@@ -864,12 +864,12 @@ impl ServoInner {
             },
             EmbedderMsg::LockPointer(webview_id, use_unadjusted) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.lock_pointer(use_unadjusted);
+                    webview.request_pointer_lock(use_unadjusted);
                 }
             },
             EmbedderMsg::UnlockPointer(webview_id) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.unlock_pointer();
+                    webview.request_pointer_unlock();
                 }
             },
         }

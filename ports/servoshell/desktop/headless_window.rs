@@ -180,22 +180,22 @@ impl PlatformWindow for HeadlessWindow {
         log::log!(level.into(), "{message}");
     }
 
-    fn get_pointerlock(&self) -> bool {
+    fn pointer_lock_active(&self) -> bool {
         self.pointerlock.get()
     }
 
-    fn set_pointerlock(&self, state: bool) {
+    fn set_pointer_lock_active(&self, state: bool) {
         self.pointerlock.set(state);
     }
 
     fn lock_pointer(&self, _unadjusted_movement: bool) -> bool {
         // Treat headless pointer lock requests as no-op successes
-        self.set_pointerlock(true);
+        self.set_pointer_lock_active(true);
         true
     }
 
     fn unlock_pointer(&self) -> bool {
-        self.set_pointerlock(false);
+        self.set_pointer_lock_active(false);
         true
     }
 }
