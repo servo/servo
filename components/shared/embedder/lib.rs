@@ -572,6 +572,10 @@ pub enum EmbedderMsg {
     InputEventsHandled(WebViewId, Vec<InputEventOutcome>),
     /// Send the embedder an accessibility tree update.
     AccessibilityTreeUpdate(WebViewId, TreeUpdate, Epoch),
+    /// Request to the embedder to lock the pointer
+    LockPointer(WebViewId, bool),
+    /// Request to the embedder to unlock the pointer
+    UnlockPointer(WebViewId),
 }
 
 impl Debug for EmbedderMsg {

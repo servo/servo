@@ -9,7 +9,7 @@ use std::rc::Rc;
 use std::thread::sleep;
 use std::time::Duration;
 
-use euclid::Point2D;
+use euclid::{Point2D, Vector2D};
 use servo::{InputEvent, JSValue, MouseButton, MouseMoveEvent, WebView, WebViewBuilder};
 use servo_config::prefs::Preferences;
 use url::Url;
@@ -161,6 +161,7 @@ fn test_largest_contentful_paint_js_api_with_mouse_move() {
     // halt LCP calculation.
     webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
         DevicePoint::new(10., 10.).into(),
+        Vector2D::zero(),
     )));
 
     // Append a larger image

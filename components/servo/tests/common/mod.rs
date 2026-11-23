@@ -10,6 +10,7 @@ use std::time::Duration;
 
 use dpi::PhysicalSize;
 use embedder_traits::EventLoopWaker;
+use euclid::Vector2D;
 use paint_api::rendering_context::{RenderingContext, SoftwareRenderingContext};
 use servo::{
     ConsoleLogLevel, DeviceIntRect, EmbedderControl, InputEvent, InputEventId, InputEventResult,
@@ -213,7 +214,8 @@ impl WebViewDelegate for WebViewDelegateImpl {
 #[allow(dead_code)]
 pub(crate) fn click_at_point(webview: &WebView, point: DevicePoint, button: MouseButton) {
     let point = point.into();
-    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
+    let movement = Vector2D::zero();
+    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point, movement)));
     webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
         MouseButtonAction::Down,
         button,

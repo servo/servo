@@ -14,7 +14,7 @@ use std::sync::{Arc, Mutex};
 use dpi::PhysicalSize;
 use embedder_traits::{RefreshDriver, UrlRequest};
 use euclid::default::Size2D as UntypedSize2D;
-use euclid::{Point2D, Size2D};
+use euclid::{Point2D, Size2D, Vector2D};
 use http::{HeaderMap, HeaderName, HeaderValue, StatusCode};
 use http_body_util::combinators::BoxBody;
 use hyper::body::{Bytes, Incoming};
@@ -391,6 +391,7 @@ fn test_cursor_change() {
 
     webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
         DevicePoint::new(10., 10.).into(),
+        Vector2D::zero(),
     )));
 
     let captured_delegate = delegate.clone();
@@ -426,6 +427,7 @@ fn test_cursor_unchanged_input_color() {
 
     webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
         DevicePoint::new(20., 65.).into(),
+        Vector2D::zero(),
     )));
 
     let captured_delegate = delegate.clone();
@@ -435,6 +437,7 @@ fn test_cursor_unchanged_input_color() {
     delegate.reset();
     webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
         DevicePoint::new(20., 25.).into(),
+        Vector2D::zero(),
     )));
 
     let captured_delegate = delegate.clone();
@@ -557,6 +560,7 @@ fn test_webview_resize_interactivity() {
 
     webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
         DevicePoint::new(20., 520.).into(),
+        Vector2D::zero(),
     )));
 
     let captured_delegate = delegate.clone();

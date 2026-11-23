@@ -5,9 +5,11 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use bitflags::bitflags;
+use euclid::Vector2D;
 use keyboard_types::{Code, CompositionEvent, Key, KeyState, Location, Modifiers};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+use servo_geometry::DeviceIndependentPixel;
 
 use crate::WebViewPoint;
 
@@ -280,6 +282,7 @@ pub enum MouseButtonAction {
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct MouseMoveEvent {
     pub point: WebViewPoint,
+    pub movement: Vector2D<f32, DeviceIndependentPixel>,
     #[doc(hidden)]
     // An internal flag used to avoid refreshing the cursor in response to move
     // events for touch devices since they are simulated in Servo using mouse events.
@@ -287,9 +290,10 @@ pub struct MouseMoveEvent {
 }
 
 impl MouseMoveEvent {
-    pub fn new(point: WebViewPoint) -> Self {
+    pub fn new(point: WebViewPoint, movement: Vector2D<f32, DeviceIndependentPixel>) -> Self {
         Self {
             point,
+            movement,
             is_compatibility_event_for_touch: false,
         }
     }
@@ -298,6 +302,7 @@ impl MouseMoveEvent {
     pub fn new_compatibility_for_touch(point: WebViewPoint) -> Self {
         Self {
             point,
+            movement: Vector2D::default(),
             is_compatibility_event_for_touch: true,
         }
     }

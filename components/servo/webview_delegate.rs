@@ -1090,6 +1090,14 @@ pub trait WebViewDelegate {
         _tree_update: accesskit::TreeUpdate,
     ) {
     }
+
+    fn lock_pointer(&self, _webview: WebView, _use_unadjusted: bool) -> bool {
+        true
+    }
+
+    fn unlock_pointer(&self, _webview: WebView) -> bool {
+        true
+    }
 }
 
 pub(crate) struct DefaultWebViewDelegate;

@@ -1521,6 +1521,40 @@ where
             EmbedderToConstellationMessage::StoreCacheToDisk(sender) => {
                 self.public_resource_threads.store_cache_to_disk(sender);
             },
+            EmbedderToConstellationMessage::RequestPointerLockResult(webview_id, succeeded) => {
+                let Some(webview) = self.webviews.get_mut(&webview_id) else {
+                    return;
+                };
+                let Some(pipeline_id) = webview.active_top_level_pipeline_id else {
+                    return;
+                };
+                if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
+                    let msg = ScriptThreadMessage::RequestPointerLockResult(webview_id, succeeded);
+                    if let Err(e) = pipeline.event_loop.send(msg) {
+                        warn!(
+                            "{}: Failed to send RequestointerLockResult to pipeline ({:?})",
+                            pipeline_id, e
+                        );
+                    }
+                }
+            },
+            EmbedderToConstellationMessage::ExitPointerLockResult(webview_id, succeeded) => {
+                let Some(webview) = self.webviews.get_mut(&webview_id) else {
+                    return;
+                };
+                let Some(pipeline_id) = webview.active_top_level_pipeline_id else {
+                    return;
+                };
+                if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
+                    let msg = ScriptThreadMessage::ExitPointerLockResult(webview_id, succeeded);
+                    if let Err(e) = pipeline.event_loop.send(msg) {
+                        warn!(
+                            "{}: Failed to send ExitPointerLockResult to pipeline ({:?})",
+                            pipeline_id, e
+                        );
+                    }
+                }
+            },
         }
     }
 

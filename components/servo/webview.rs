@@ -1077,6 +1077,20 @@ impl WebView {
             EmbedderToConstellationMessage::ClearSessionHistory(self.id()),
         );
     }
+
+    pub fn lock_pointer(&self, use_unadjusted: bool) {
+        let result = self.delegate().lock_pointer(self.clone(), use_unadjusted);
+        self.servo().constellation_proxy().send(
+            EmbedderToConstellationMessage::RequestPointerLockResult(self.id(), result),
+        );
+    }
+
+    pub fn unlock_pointer(&self) {
+        let result = self.delegate().unlock_pointer(self.clone());
+        self.servo().constellation_proxy().send(
+            EmbedderToConstellationMessage::ExitPointerLockResult(self.id(), result),
+        );
+    }
 }
 
 /// A structure used to expose a view of the [`WebView`] to the Servo
