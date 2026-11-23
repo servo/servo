@@ -705,17 +705,17 @@ impl Gui {
                 .show(|ui| ui.add(Label::new(status_text.clone()).extend()));
             }
 
-            if let Some(tooltip) = &self.tooltip {
-                if (tooltip.shown_at.elapsed() >= TOOLTIP_DELAY) {
-                    egui::Tooltip::always_open(
-                        ctx.clone(),
-                        LayerId::new(Order::Tooltip, Id::new("embedder_tooltip")),
-                        "embedder tooltip layer".into(),
-                        webview_rect.right_bottom(),
-                    )
-                    .at_pointer()
-                    .show(|ui| ui.add(Label::new(tooltip.text.clone()).extend()));
-                }
+            if let Some(tooltip) = &self.tooltip &&
+                tooltip.shown_at.elapsed() >= TOOLTIP_DELAY
+            {
+                egui::Tooltip::always_open(
+                    ctx.clone(),
+                    LayerId::new(Order::Tooltip, Id::new("embedder_tooltip")),
+                    "embedder tooltip layer".into(),
+                    webview_rect.right_bottom(),
+                )
+                .at_pointer()
+                .show(|ui| ui.add(Label::new(tooltip.text.clone()).extend()));
             }
 
             window.repaint_webviews();
