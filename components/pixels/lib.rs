@@ -228,13 +228,29 @@ pub fn multiply_u8_color(a: u8, b: u8) -> u8 {
     ((c + (c >> 8)) >> 8) as u8
 }
 
+/// Fixed-point shift of [`RECIPROCALS`].
+const RECIPROCAL_SHIFT: u32 = 31;
+
+/// Fixed-point reciprocal of every nonzero alpha: `n * RECIPROCALS[a] >> RECIPROCAL_SHIFT`
+/// is `n / a` for any `n` that fits in a `u16`.
+static RECIPROCALS: [u32; 256] = {
+    let mut table = [0; 256];
+    let mut alpha = 1;
+    while alpha < table.len() {
+        table[alpha] = (1u32 << RECIPROCAL_SHIFT).div_ceil(alpha as u32);
+        alpha += 1;
+    }
+    table
+};
+
 /// Returns `color * 255 / alpha` rounded to nearest: the inverse of [`multiply_u8_color`]
 /// for any `color` up to `alpha`.
 #[inline(always)]
 fn unmultiply_u8_color(color: u8, alpha: NonZeroU8) -> u8 {
-    let alpha = NonZeroU32::from(alpha);
+    let alpha = alpha.get();
     // Adding half the divisor rounds to nearest.
-    ((color as u32 * 255 + alpha.get() / 2) / alpha) as u8
+    let dividend = color as u32 * 255 + (alpha / 2) as u32;
+    ((dividend as u64 * RECIPROCALS[alpha as usize] as u64) >> RECIPROCAL_SHIFT) as u8
 }
 
 pub fn clip(
@@ -601,25 +617,16 @@ pub fn unmultiply_inplace<const SWAP_RB: bool>(pixels: &mut [u8]) {
     let (chunks, remainder) = pixels.as_chunks_mut::<4>();
     debug_assert!(remainder.is_empty());
     for rgba in chunks {
-        let a = rgba[3];
-        let mut b = rgba[2];
-        let mut g = rgba[1];
-        let mut r = rgba[0];
-
-        if let Some(a) = NonZeroU8::new(a) {
-            r = unmultiply_u8_color(r, a);
-            g = unmultiply_u8_color(g, a);
-            b = unmultiply_u8_color(b, a);
-
-            if SWAP_RB {
-                rgba[2] = r;
-                rgba[1] = g;
-                rgba[0] = b;
-            } else {
-                rgba[2] = b;
-                rgba[1] = g;
-                rgba[0] = r;
-            }
+        let Some(a) = NonZeroU8::new(rgba[3]) else {
+            continue;
+        };
+        if a != NonZeroU8::MAX {
+            rgba[0] = unmultiply_u8_color(rgba[0], a);
+            rgba[1] = unmultiply_u8_color(rgba[1], a);
+            rgba[2] = unmultiply_u8_color(rgba[2], a);
+        }
+        if SWAP_RB {
+            rgba.swap(0, 2);
         }
     }
 }
@@ -673,7 +680,9 @@ pub fn generic_transform_inplace<
             2 => {
                 let a = rgba[3];
 
-                if let Some(a) = NonZeroU8::new(a) {
+                if let Some(a) = NonZeroU8::new(a) &&
+                    a != NonZeroU8::MAX
+                {
                     rgba[0] = unmultiply_u8_color(rgba[0], a);
                     rgba[1] = unmultiply_u8_color(rgba[1], a);
                     rgba[2] = unmultiply_u8_color(rgba[2], a);

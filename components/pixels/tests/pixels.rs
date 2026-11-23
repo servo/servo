@@ -151,3 +151,32 @@ fn test_unmultiply_then_premultiply_restores_pixels() {
     transform_inplace(&mut pixels, Multiply::PreMultiply, false, false);
     assert_eq!(pixels, premultiplied, "transform_inplace");
 }
+
+#[test]
+fn test_unmultiply_matches_rounded_division() {
+    // Every color under every alpha, including colors above their alpha.
+    let pixels: Vec<u8> = (0..=u8::MAX)
+        .flat_map(|alpha| (0..=u8::MAX).map(move |color| [color, !color, color / 3, alpha]))
+        .flatten()
+        .collect();
+    let expected: Vec<u8> = pixels
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .flat_map(|&[r, g, b, a]| {
+            let unmultiply = |c: u8| match a {
+                0 => c,
+                _ => ((c as u32 * 255 + a as u32 / 2) / a as u32) as u8,
+            };
+            [unmultiply(r), unmultiply(g), unmultiply(b), a]
+        })
+        .collect();
+
+    let mut unmultiplied = pixels.clone();
+    unmultiply_inplace::<false>(&mut unmultiplied);
+    assert_eq!(unmultiplied, expected, "unmultiply_inplace");
+
+    let mut unmultiplied = pixels;
+    transform_inplace(&mut unmultiplied, Multiply::UnMultiply, false, false);
+    assert_eq!(unmultiplied, expected, "transform_inplace");
+}
