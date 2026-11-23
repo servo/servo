@@ -14,6 +14,7 @@ use crate::dom::RootedPromise;
 use crate::dom::element::Element;
 
 #[derive(Default)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub struct PointerLockState {
     pub target: MutNullableDom<Element>,
     pub options: Cell<Option<PointerLockOptions>>,
