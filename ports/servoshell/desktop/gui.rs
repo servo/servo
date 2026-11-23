@@ -706,7 +706,7 @@ impl Gui {
             }
 
             if let Some(tooltip) = &self.tooltip {
-                if tooltip.shown_at.elapsed() >= TOOLTIP_DELAY {
+                if (tooltip.shown_at.elapsed() >= TOOLTIP_DELAY) {
                     egui::Tooltip::always_open(
                         ctx.clone(),
                         LayerId::new(Order::Tooltip, Id::new("embedder_tooltip")),
