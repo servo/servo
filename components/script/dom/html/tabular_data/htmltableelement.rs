@@ -37,6 +37,7 @@ pub(crate) struct HTMLTableElement {
     cellpadding: Cell<Option<u32>>,
     cellspacing: Cell<Option<u32>>,
     tbodies: MutNullableDom<HTMLCollection>,
+    rows: MutNullableDom<HTMLCollection>,
 }
 
 #[cfg_attr(crown, expect(crown::unrooted_must_root))]
@@ -67,6 +68,7 @@ impl HTMLTableElement {
             cellpadding: Cell::new(None),
             cellspacing: Cell::new(None),
             tbodies: Default::default(),
+            rows: Default::default(),
         }
     }
 
@@ -194,8 +196,10 @@ impl HTMLTableElement {
 impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-table-rows>
     fn Rows(&self, cx: &mut JSContext) -> DomRoot<HTMLCollection> {
-        let filter = self.get_rows();
-        HTMLCollection::new(cx, &self.owner_window(), self.upcast(), Box::new(filter))
+        self.rows.or_init(|| {
+            let filter = self.get_rows();
+            HTMLCollection::new(cx, &self.owner_window(), self.upcast(), Box::new(filter))
+        })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-table-caption>

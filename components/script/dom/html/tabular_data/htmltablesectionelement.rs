@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::HTM
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{DomRoot, LayoutDom};
+use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::attributes::storage::AttrRef;
@@ -27,6 +27,7 @@ use crate::dom::node::{Node, NodeTraits};
 #[dom_struct]
 pub(crate) struct HTMLTableSectionElement {
     htmlelement: HTMLElement,
+    rows: MutNullableDom<HTMLCollection>,
 }
 
 impl HTMLTableSectionElement {
@@ -37,6 +38,7 @@ impl HTMLTableSectionElement {
     ) -> HTMLTableSectionElement {
         HTMLTableSectionElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+            rows: Default::default(),
         }
     }
 
@@ -64,15 +66,17 @@ impl HTMLTableSectionElement {
 impl HTMLTableSectionElementMethods<crate::DomTypeHolder> for HTMLTableSectionElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-tbody-rows>
     fn Rows(&self, cx: &mut JSContext) -> DomRoot<HTMLCollection> {
-        HTMLCollection::new_with_filter_fn(
-            cx,
-            &self.owner_window(),
-            self.upcast(),
-            |element, root| {
-                element.is::<HTMLTableRowElement>() &&
-                    element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
-            },
-        )
+        self.rows.or_init(|| {
+            HTMLCollection::new_with_filter_fn(
+                cx,
+                &self.owner_window(),
+                self.upcast(),
+                |element, root| {
+                    element.is::<HTMLTableRowElement>() &&
+                        element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
+                },
+            )
+        })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tbody-insertrow>

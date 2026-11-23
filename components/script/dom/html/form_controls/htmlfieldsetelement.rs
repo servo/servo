@@ -35,6 +35,7 @@ pub(crate) struct HTMLFieldSetElement {
     /// The first [`HTMLLegendElement`] child as of the last children change. Descendants of it
     /// are not disabled by this fieldset, so they must be updated when it changes.
     first_legend: MutNullableDom<HTMLLegendElement>,
+    elements: MutNullableDom<HTMLCollection>,
 }
 
 impl HTMLFieldSetElement {
@@ -53,6 +54,7 @@ impl HTMLFieldSetElement {
             form_owner: Default::default(),
             validity_state: Default::default(),
             first_legend: Default::default(),
+            elements: Default::default(),
         }
     }
 
@@ -90,10 +92,17 @@ impl HTMLFieldSetElement {
 impl HTMLFieldSetElementMethods<crate::DomTypeHolder> for HTMLFieldSetElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-fieldset-elements>
     fn Elements(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
-        HTMLCollection::new_with_filter_fn(cx, &self.owner_window(), self.upcast(), |element, _| {
-            element
-                .downcast::<HTMLElement>()
-                .is_some_and(HTMLElement::is_listed_element)
+        self.elements.or_init(|| {
+            HTMLCollection::new_with_filter_fn(
+                cx,
+                &self.owner_window(),
+                self.upcast(),
+                |element, _| {
+                    element
+                        .downcast::<HTMLElement>()
+                        .is_some_and(HTMLElement::is_listed_element)
+                },
+            )
         })
     }
 

@@ -486,6 +486,7 @@ pub(crate) struct Document {
     scripts: MutNullableDom<HTMLCollection>,
     anchors: MutNullableDom<HTMLCollection>,
     applets: MutNullableDom<HTMLCollection>,
+    children: MutNullableDom<HTMLCollection>,
     /// Information about the `<iframes>` in this [`Document`].
     iframes: IFrameCollection,
     /// Shared locks used for style attributes, author-origin stylesheets, and user and
@@ -4414,6 +4415,7 @@ impl Document {
             scripts: Default::default(),
             anchors: Default::default(),
             applets: Default::default(),
+            children: Default::default(),
             iframes: IFrameCollection::new(),
             shared_style_locks,
             stylesheets: DomRefCell::new(DocumentStylesheetSet::new()),
@@ -6855,7 +6857,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-children>
     fn Children(&self, cx: &mut JSContext) -> DomRoot<HTMLCollection> {
-        HTMLCollection::children(cx, &self.window, self.upcast())
+        self.children
+            .or_init(|| HTMLCollection::children(cx, &self.window, self.upcast()))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild>
