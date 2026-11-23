@@ -339,17 +339,22 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     /// Return the selection range as UTF-32 offsets from the start of the content.
     ///
-    /// If there is no selection, returns an empty range at the edit point.
+    /// If there is no selection, returns None.
     ///
     /// If the start or/and end of the range is at the start/end of the text,
     /// return a `RangeAny` unbounded on that side.
-    pub(crate) fn sorted_selection_character_offsets_range(&self) -> RangeAny<Utf32CodeUnits> {
+    pub(crate) fn sorted_selection_character_offsets_range(
+        &self,
+    ) -> Option<RangeAny<Utf32CodeUnits>> {
         let rope = &self.rope;
         let start = self.selection_start();
         let end = self.selection_end();
+        if start == end {
+            return None;
+        }
         let start = (start != rope.first_index()).then(|| rope.index_to_character_offset(start));
         let end = (end != rope.last_index()).then(|| rope.index_to_character_offset(end));
-        RangeAny::new(start, end)
+        Some(RangeAny::new(start, end))
     }
 
     /// The state of the current selection. Can be used to compare whether selection state has changed.

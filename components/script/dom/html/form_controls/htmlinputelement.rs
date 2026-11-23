@@ -1081,7 +1081,9 @@ impl TextControlElement for HTMLInputElement {
                 self.schedule_a_selection_change_event();
             }
 
-            let selection = enabled.then(|| text_input.sorted_selection_character_offsets_range());
+            let selection = enabled
+                .then(|| text_input.sorted_selection_character_offsets_range())
+                .flatten();
             text_input.previous_selection_range = selection_range;
             text_input.selection_for_layout = selection;
             selection
