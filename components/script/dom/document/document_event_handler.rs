@@ -307,7 +307,7 @@ impl DocumentEventHandler {
                 }
                 self.coalesced_mouse_move_event_ids
                     .borrow_mut()
-                    .push(mouse_move_event.event.id);
+                    .push(old_event.event.id);
                 return;
             }
 
