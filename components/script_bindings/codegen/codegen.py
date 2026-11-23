@@ -9885,16 +9885,15 @@ impl Clone for TopTypeId {
     def ContentEventHandlerNames(config: Configuration) -> CGThing:
         """Generate the sorted list of content event handler attribute names
         by inspecting WebIDL definitions for interfaces that inherit from
-        HTMLElement or SVGElement."""
+        Element."""
 
         handler_names: set[str] = set()
 
         for descriptor in config.getDescriptors(isCallback=False, isIteratorInterface=False):
-            # Only include interfaces that inherit from HTMLElement or
-            # SVGElement, to avoid non-content event handlers like
-            # Document.onreadystatechange or XMLHttpRequest handlers.
-            chain = descriptor.prototypeChain
-            if "HTMLElement" not in chain and "SVGElement" not in chain:
+            # Only include Element and interfaces that inherit from it, to avoid
+            # non-content event handlers like Document.onreadystatechange or
+            # XMLHttpRequest handlers.
+            if "Element" not in descriptor.prototypeChain:
                 continue
 
             for member in descriptor.interface.members:

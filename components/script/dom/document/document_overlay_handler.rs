@@ -259,11 +259,25 @@ impl DocumentOverlayHandler {
 
             // Step 2.4. Let container be lastDoc’s node navigable’s container.
             // Step 2.5. If container is null, then break.
+            //
             // FIXME: Support cross-origin container
             let window_proxy = last_doc.window().window_proxy();
             let Some(container) = window_proxy.frame_element() else {
                 break;
             };
+
+            // Also break when container's content navigable is no longer lastDoc's node navigable.
+            // This happens when that navigable is being destroyed. lastDoc's navigable then has no
+            // parent anymore, even though it still refers to its former container, so the lastDoc
+            // is treated as having no container.
+            if container
+                .downcast::<HTMLIFrameElement>()
+                .is_some_and(|iframe| {
+                    iframe.browsing_context_id() != Some(window_proxy.browsing_context_id())
+                })
+            {
+                break;
+            }
 
             // Step 2.6. If container’s iframe fullscreen flag is set, break.
             if container
