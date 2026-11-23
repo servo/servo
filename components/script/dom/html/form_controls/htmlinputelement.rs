@@ -1638,6 +1638,21 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-popovertargetaction
     make_setter!(SetPopoverTargetAction, "popovertargetaction");
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-popovertargetelement>
+    fn GetPopoverTargetElement(&self, cx: &mut JSContext) -> Option<DomRoot<Element>> {
+        self.upcast::<Element>()
+            .get_attr_associated_element(cx, &local_name!("popovertarget"))
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-popovertargetelement>
+    fn SetPopoverTargetElement(&self, cx: &mut JSContext, value: Option<&Element>) {
+        self.upcast::<Element>().set_attr_associated_element(
+            cx,
+            &local_name!("popovertarget"),
+            value,
+        )
+    }
+
     /// <https://wicg.github.io/entries-api/#dom-htmlinputelement-webkitdirectory>
     fn Webkitdirectory(&self) -> bool {
         self.upcast::<Element>()

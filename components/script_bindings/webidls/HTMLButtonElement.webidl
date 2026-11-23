@@ -9,8 +9,8 @@ interface HTMLButtonElement : HTMLElement {
 
   [CEReactions]
   attribute DOMString command;
-  // [CEReactions]
-  // attribute Element? commandForElement;
+  [CEReactions]
+  attribute Element? commandForElement;
   [CEReactions]
            attribute boolean disabled;
   readonly attribute HTMLFormElement? form;

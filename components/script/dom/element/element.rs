@@ -94,7 +94,7 @@ use crate::dom::bindings::codegen::Bindings::ElementBinding::{
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::codegen::Bindings::SanitizerBinding::{
     SetHTMLOptions, SetHTMLUnsafeOptions,
 };
@@ -3192,6 +3192,100 @@ impl Element {
             None => Cow::Borrowed(&*self.local_name),
         }
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#explicitly-set-attr-element>
+    fn explicitly_set_attr_element(&self, attr: &LocalName) -> Option<DomRoot<Element>> {
+        self.rare_data()
+            .as_ref()?
+            .explicitly_set_attr_elements
+            .get(attr)
+            .map(|element| element.as_rooted())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#attr-associated-element>
+    ///
+    /// For now, we only handle the Element type, although the spec is written with types inheriting
+    /// from Element in mind.
+    pub(crate) fn get_attr_associated_element(
+        &self,
+        cx: &mut JSContext,
+        attr: &LocalName,
+    ) -> Option<DomRoot<Element>> {
+        // Step 1. Let element be the result of running reflectedTarget's get the element.
+        // Step 2. Let contentAttributeValue be the result of running reflectedTarget's get the content attribute.
+        let content_attribute_value = self.get_attribute_string_value(attr);
+
+        // Step 3. If reflectedTarget's explicitly set attr-element is not null:
+        if let Some(explicitly_set_attr_element) = self.explicitly_set_attr_element(attr) {
+            // Step 3.1. If reflectedTarget's explicitly set attr-element is a descendant of any of
+            // element's shadow-including ancestors, then return reflectedTarget's explicitly set
+            // attr-element.
+            let explicitly_set_attr_element_node = explicitly_set_attr_element.upcast::<Node>();
+            if self
+                .upcast::<Node>()
+                .inclusive_ancestors(ShadowIncluding::Yes)
+                .skip(1)
+                .any(|ancestor| ancestor.is_ancestor_of(explicitly_set_attr_element_node))
+            {
+                return Some(explicitly_set_attr_element);
+            }
+
+            // Step 3.2. Return null.
+            return None;
+        }
+        // Step 4. Otherwise, if contentAttributeValue is not null, return the first element
+        // candidate, in tree order, that meets the following criteria:
+        // - candidate's root is the same as element's root;
+        // - candidate's ID is contentAttributeValue; and
+        // FIXME: - candidate implements T.
+        // If no such element exists, then return null.
+        else if let Some(content_attribute_value) = content_attribute_value {
+            let value = Atom::from(content_attribute_value);
+            return self
+                .upcast::<Node>()
+                .GetRootNode(&GetRootNodeOptions::empty())
+                .traverse_preorder_unrooted(cx.no_gc(), ShadowIncluding::No)
+                .find_map(|element| {
+                    let element = UnrootedDom::downcast::<Element>(element)?;
+                    (element.get_id().as_ref() == Some(&value)).then(|| element.as_rooted())
+                });
+        }
+
+        // 5. Return null.
+        None
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#reflecting-content-attributes-in-idl-attributes>
+    pub(crate) fn set_attr_associated_element(
+        &self,
+        cx: &mut JSContext,
+        attr: &LocalName,
+        value: Option<&Element>,
+    ) {
+        // Step 1. If the given value is null:
+        let Some(value) = value else {
+            // Step 1.1. Set this's explicitly set attr-element to null.
+            self.ensure_rare_data(cx.no_gc())
+                .explicitly_set_attr_elements
+                .remove(attr);
+
+            // Step 1.2. Run this's delete the content attribute.
+            self.remove_attribute(cx, &ns!(), attr);
+
+            // Step 1.3. Return.
+            return;
+        };
+
+        // Step 2. Run this's set the content attribute with the empty string.
+        self.set_string_attribute(cx, attr, DOMString::new());
+
+        // Step 3. Set this's explicitly set attr-element to a weak reference to the given value.
+        //
+        // FIXME: weak reference
+        self.ensure_rare_data(cx.no_gc())
+            .explicitly_set_attr_elements
+            .insert(attr.clone(), Dom::from_ref(value));
+    }
 }
 
 impl ElementMethods<crate::DomTypeHolder> for Element {
@@ -5197,6 +5291,18 @@ impl VirtualMethods for Element {
         self.super_type()
             .unwrap()
             .attribute_mutated(cx, attr, mutation);
+
+        // <https://html.spec.whatwg.org/multipage/#dom-trees:explicitly-set-attr-element>
+        // 1. If namespace is not null, then return.
+        // 4. If element has an explicitly set localName-element, then set it to null.
+        if *attr.namespace() == ns!() &&
+            let Some(rare_data) = self.rare_data_mut().as_mut()
+        {
+            rare_data
+                .explicitly_set_attr_elements
+                .remove(attr.local_name());
+        }
+
         let node = self.upcast::<Node>();
         match *attr.local_name() {
             // https://html.spec.whatwg.org/multipage/#event-handler-attributes:event-handler-content-attributes-3

@@ -34,6 +34,7 @@ use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::codegen::GenericBindings::DocumentTypeBinding::DocumentTypeMethods;
 use script_bindings::codegen::GenericBindings::ElementBinding::ElementMethods;
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
+use script_bindings::codegen::GenericBindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
 use script_bindings::codegen::GenericBindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
 use script_bindings::codegen::InheritTypes::{DocumentFragmentTypeId, TextTypeId};
 use script_bindings::domstring::TracedDOMString;
@@ -2458,7 +2459,7 @@ impl Node {
         }
 
         // Step 3. Let target be the result of running node's get the commandfor-associated element.
-        let target = button.command_for_element(cx);
+        let target: Option<script_bindings::root::Root<Dom<_>>> = button.GetCommandForElement(cx);
 
         // Step 4. If target is null, then return node's popover target element.
         let Some(target) = target else {

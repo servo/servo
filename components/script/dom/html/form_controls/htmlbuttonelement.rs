@@ -9,21 +9,17 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
 use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
-use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
-use script_bindings::codegen::GenericBindings::DocumentFragmentBinding::DocumentFragmentMethods;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use style::selector_parser::PseudoElement;
 use stylo_dom::ElementState;
 
 use crate::dom::activation::Activatable;
 use crate::dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::commandevent::CommandEvent;
 use crate::dom::document::Document;
-use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -161,6 +157,33 @@ impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-popovertargetaction
     make_setter!(SetPopoverTargetAction, "popovertargetaction");
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-popovertargetelement>
+    fn GetPopoverTargetElement(&self, cx: &mut JSContext) -> Option<DomRoot<Element>> {
+        self.upcast::<Element>()
+            .get_attr_associated_element(cx, &local_name!("popovertarget"))
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-popovertargetelement>
+    fn SetPopoverTargetElement(&self, cx: &mut JSContext, value: Option<&Element>) {
+        self.upcast::<Element>().set_attr_associated_element(
+            cx,
+            &local_name!("popovertarget"),
+            value,
+        )
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-button-commandforelement>
+    fn GetCommandForElement(&self, cx: &mut JSContext) -> Option<DomRoot<Element>> {
+        self.upcast::<Element>()
+            .get_attr_associated_element(cx, &local_name!("commandfor"))
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-button-commandforelement>
+    fn SetCommandForElement(&self, cx: &mut JSContext, value: Option<&Element>) {
+        self.upcast::<Element>()
+            .set_attr_associated_element(cx, &local_name!("commandfor"), value)
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
     make_bool_getter!(Disabled, "disabled");
@@ -329,24 +352,6 @@ impl HTMLButtonElement {
         if let Some(form) = self.form_owner() {
             form.invalidate_default_button(cx.no_gc());
         }
-    }
-
-    pub(crate) fn command_for_element(&self, cx: &mut JSContext) -> Option<DomRoot<Element>> {
-        let command_for_value = self
-            .upcast::<Element>()
-            .get_attribute_string_value(&local_name!("commandfor"))?
-            .into();
-
-        let root_node = self
-            .upcast::<Node>()
-            .GetRootNode(&GetRootNodeOptions::empty());
-
-        if let Some(document) = root_node.downcast::<Document>() {
-            return document.GetElementById(cx, command_for_value);
-        } else if let Some(document_fragment) = root_node.downcast::<DocumentFragment>() {
-            return document_fragment.GetElementById(cx, command_for_value);
-        }
-        unreachable!("Button element must be in a document or document fragment");
     }
 
     pub(crate) fn command_state(&self) -> CommandState {
@@ -576,7 +581,7 @@ impl Activatable for HTMLButtonElement {
         // Step 4. Let target be the result of running element's get the commandfor-associated
         // element.
         // Step 5. If target is not null:
-        if let Some(target) = self.command_for_element(cx) {
+        if let Some(target) = self.GetCommandForElement(cx) {
             // Steps 5.1 Let command be element's command attribute.
             let command = self.command_state();
 
