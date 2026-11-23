@@ -296,6 +296,7 @@ pub(crate) mod performance;
 pub(crate) use self::performance::*;
 pub(crate) mod permission;
 pub(crate) use self::permission::*;
+pub(crate) mod pointerlock;
 pub(crate) mod promise;
 pub(crate) use self::promise::*;
 pub(crate) mod quotaexceedederror;

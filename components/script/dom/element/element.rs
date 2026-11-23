@@ -16,6 +16,7 @@ use std::{fmt, mem};
 
 use app_units::Au;
 use atomic_refcell::{AtomicRef, AtomicRefCell};
+use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use cssparser::match_ignore_ascii_case;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
@@ -40,8 +41,10 @@ use script_bindings::callback::RootedCallback;
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::codegen::GenericBindings::AnimationBinding::AnimationMethods;
 use script_bindings::codegen::GenericBindings::KeyframeEffectBinding::KeyframeEffectMethods;
+use script_bindings::codegen::GenericBindings::NodeBinding::GetRootNodeOptions;
 use script_bindings::dom::UnrootedDom;
 use script_bindings::domstring::TracedDOMString;
+use script_bindings::refcounted::Trusted;
 use script_bindings::reflector::DomObject;
 use selectors::attr::CaseSensitivity;
 use selectors::matching::ElementSelectorFlags;
@@ -88,7 +91,7 @@ use crate::dom::bindings::cell::AtomicSafeBorrowMut;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::{
-    ElementMethods, FullscreenOptions, GetHTMLOptions, ScrollIntoViewContainer,
+    ElementMethods, FullscreenOptions, GetHTMLOptions, PointerLockOptions, ScrollIntoViewContainer,
     ScrollLogicalPosition, ShadowRootInit,
 };
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
@@ -118,6 +121,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::{CspReporting, InlineCheckType, SourcePosition};
@@ -184,6 +188,8 @@ use crate::dom::node::{
     NodeFlags, NodeTraits, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
+use crate::dom::pointerlock::PointerLockRequest;
+use crate::dom::promise::Promise;
 use crate::dom::range::Range;
 use crate::dom::raredata::ElementRareData;
 use crate::dom::sanitizer::Sanitizer;
@@ -4638,7 +4644,16 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // Step 3. If this method is invoked while the document has a locked element
         // (pointerLockElement), throw an "InvalidStateError" DOMException.
-        // TODO: Implement when pointer lock is supported.
+        if document
+            .window()
+            .script_thread()
+            .get_pointer_lock_element(document.webview_id())
+            .is_some()
+        {
+            return Err(Error::InvalidState(Some(
+                "Can't capture pointer while pointer lock is active".into(),
+            )));
+        }
 
         // Step 4/5. If the pointer is not in the active buttons state or the element's
         // node document is not the active document of the pointer, then terminate these
@@ -5169,6 +5184,128 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // Step 7. Return animation.
         animation
+    }
+
+    /// <https://w3c.github.io/pointerlock/#dom-element-requestpointerlock>
+    fn RequestPointerLock(
+        &self,
+        cx: &mut CurrentRealm,
+        options: &PointerLockOptions,
+    ) -> RootedPromise {
+        // > A parallel queue named as lock requests queue is used for queuing all requests.
+        // > When requestPointerLock() is invoked, perform the following steps:
+        // > 1. Let promise be a new promise.
+        let promise = Promise::new_in_realm(cx);
+
+        // > 2. When a window is in focus, if the this's shadow-including root
+        //      is the active document of a browsing context
+        //      (or has an ancestor browsing context) that is not in focus:
+        let document = self.owner_document();
+        let root = self
+            .upcast::<Node>()
+            .GetRootNode(&GetRootNodeOptions { composed: true });
+        let root_is_focused_document = root
+            .downcast::<Document>()
+            .is_some_and(|root_doc| root_doc.HasFocus());
+        if !root_is_focused_document {
+            // > 2.1 Queue an element task on the user interaction task source, given this, to perform the following steps:
+            let trusted_document = Trusted::new(&*document);
+            let trusted_promise = TrustedPromise::from(&promise);
+            self.global()
+                .task_manager()
+                .user_interaction_task_source()
+                .queue(task!(pointer_lock_error: move |cx| {
+                    // > 2.1.1 Fire an event named pointerlockerror at this's node document.
+                    trusted_document.root().upcast::<EventTarget>().fire_event(cx, Atom::from("pointerlockerror"));
+                    // > 2.1.2 Reject promise with a "WrongDocumentError" DOMException.
+                    trusted_promise.root(cx).reject_error(cx, Error::WrongDocument(Some("The element's document is not in focus".to_string())));
+                }));
+
+            // > 2.2 Return promise.
+            return promise;
+        }
+
+        // > 3. If the relevant global object does not have transient activation
+        //      and the Document has not previously released a successful pointer lock with exitPointerLock():
+        if !self.global().as_window().has_transient_activation() &&
+            !document.get_has_exited_pointer_lock_once()
+        {
+            // > 3.1 Queue an element task on the user interaction task source, given this, to perform the following steps:
+            let trusted_document = Trusted::new(&*document);
+            let trusted_promise = TrustedPromise::from(&promise);
+            self.global()
+                .task_manager()
+                .user_interaction_task_source()
+                .queue(task!(pointer_lock_error: move |cx| {
+                    // > 3.1.1 Fire an event named pointerlockerror at this's node document.
+                    trusted_document.root().upcast::<EventTarget>().fire_event(cx, Atom::from("pointerlockerror"));
+                    // > 3.1.2 Reject promise with a "NotAllowedError" DOMException.
+                    trusted_promise.root(cx).reject_error(cx, Error::NotAllowed(Some("Missing transient activation on window".to_string())));
+                }));
+
+            // > 3.2 Return promise.
+            return promise;
+        }
+
+        // > 4. If this's node document's active sandboxing flag set has the sandboxed pointer lock browsing context flag set:
+        if self
+            .owner_document()
+            .active_sandboxing_flag_set()
+            .contains(SandboxingFlagSet::SANDBOXED_POINTER_LOCK_BROWSING_CONTEXT_FLAG)
+        {
+            // > 4.1 Queue an element task on the user interaction task source, given this, to perform the following steps:
+            let trusted_document = Trusted::new(&*document);
+            let trusted_promise = TrustedPromise::from(&promise);
+            self.global()
+                .task_manager()
+                .user_interaction_task_source()
+                .queue(task!(pointer_lock_error: move |cx| {
+                    // > 4.1.1 Fire an event named pointerlockerror at this's node document.
+                    trusted_document.root().upcast::<EventTarget>().fire_event(cx, Atom::from("pointerlockerror"));
+                    // > 4.1.2 Reject promise with a "SecurityError" DOMException.
+                    trusted_promise.root(cx).reject_error(cx, Error::Security(Some("Pointer Lock API is currently disabled by sandbox".to_string())));
+                }));
+
+            // > 4.2 Return promise.
+            return promise;
+        }
+
+        // > 5. If options["unadjustedMovement"] is true and the platform does not support unadjustedMovement:
+        // For now, just exclude mobile platforms since mouse acceleration is not a factor there
+        if options.unadjustedMovement && (cfg!(target_os = "android") || cfg!(target_env = "ohos"))
+        {
+            // > 5.1 Queue an element task on the user interaction task source, given this, to perform the following steps:
+            let trusted_document = Trusted::new(&*document);
+            let trusted_promise = TrustedPromise::from(&promise);
+            self.global()
+                .task_manager()
+                .user_interaction_task_source()
+                .queue(task!(pointer_lock_error: move |cx| {
+                    // > 5.1.1 Fire an event named pointerlockerror at this's node document.
+                    trusted_document.root().upcast::<EventTarget>().fire_event(cx, Atom::from("pointerlockerror"));
+                    // > 5.1.2 Reject promise with a "NotSupportedError" DOMException.
+                    trusted_promise.root(cx).reject_error(cx, Error::NotSupported(Some("unadjustedMovement is not supported on this platform".to_string())));
+                }));
+
+            // > 5.2 Return promise.
+            return promise;
+        }
+
+        // > 6. Enqueue the following steps to the lock requests queue:
+        let window = self.owner_window();
+        let request = PointerLockRequest {
+            element: Trusted::new(self),
+            promise: DomRefCell::new(promise.clone()),
+            options: PointerLockOptions {
+                unadjustedMovement: options.unadjustedMovement,
+            },
+        };
+        window
+            .script_thread()
+            .queue_pointer_lock_request(request, window.webview_id());
+
+        // > 7. Return promise.
+        promise
     }
 }
 

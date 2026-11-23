@@ -718,9 +718,14 @@ impl DocumentEventHandler {
             .as_ref()
             .is_none_or(|old_target| *old_target != new_target);
 
+        let pointer_lock_target = self
+            .window
+            .script_thread()
+            .get_pointer_lock_element(self.window.webview_id());
+
         // Here we know the target has changed, so we must update the state,
         // dispatch mouseout to the previous one, mouseover to the new one.
-        if target_has_changed {
+        if target_has_changed && pointer_lock_target.is_none() {
             // Dispatch pointerout/mouseout and pointerleave/mouseleave to previous target.
             if let Some(old_target) = self.current_hover_target.get() {
                 let old_target_is_ancestor_of_new_target = old_target
@@ -1026,7 +1031,17 @@ impl DocumentEventHandler {
             return;
         };
 
-        let node = element.upcast::<Node>();
+        let pointer_lock_element = self
+            .window
+            .script_thread()
+            .get_pointer_lock_element(self.window.webview_id());
+        // When pointer lock is active, click events should be routed
+        // to the pointer lock element.
+        let click_target_element = pointer_lock_element.as_deref().unwrap_or(&element);
+        let node = match &pointer_lock_element {
+            Some(el) => el.upcast::<Node>(),
+            None => element.upcast::<Node>(),
+        };
         debug!("{:?} on {:?}", mouse_button_event.action, node.debug_str());
 
         // <https://html.spec.whatwg.org/multipage/#selector-active>
@@ -1250,7 +1265,7 @@ impl DocumentEventHandler {
                     mouse_button_event,
                     input_event,
                     &hit_test_result,
-                    &element,
+                    click_target_element,
                 );
             },
         }
@@ -2016,7 +2031,14 @@ impl DocumentEventHandler {
             return Default::default();
         };
 
-        let node = el.upcast::<Node>();
+        let pointer_lock_element = self
+            .window
+            .script_thread()
+            .get_pointer_lock_element(self.window.webview_id());
+        let node = match &pointer_lock_element {
+            Some(element) => element.upcast::<Node>(),
+            None => el.upcast::<Node>(),
+        };
         debug!(
             "wheel: on {:?} at {:?}",
             node.debug_str(),
