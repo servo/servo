@@ -3882,7 +3882,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             Ok((color, depth, stencil))
         };
 
-        let (src_color, src_depth, src_stencil) = match src_fb {
+        let (src_color, src_depth, src_stencil) = match &src_fb {
             Some(fb) => match fb.get_attachment_formats() {
                 Ok(formats) => formats,
                 Err(error) => return self.base.webgl_error(error),
@@ -3894,16 +3894,30 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         };
         let (dst_color, dst_depth, dst_stencil) = match dst_fb {
             Some(fb) => match fb.get_attachment_formats() {
-                Ok(formats) => formats,
+                Ok((_, depth, stencil)) => (fb.color_draw_buffer_formats(), depth, stencil),
                 Err(error) => return self.base.webgl_error(error),
             },
             None => match get_default_formats() {
-                Ok(formats) => formats,
+                Ok((color, depth, stencil)) => (Vec::from_iter(color), depth, stencil),
                 Err(error) => return self.base.webgl_error(error),
             },
         };
 
-        if bits.intersects(BlitFrameBufferFlags::COLOR) && src_color != dst_color {
+        // Renderbuffer sample counts are untracked, so any renderbuffer may be multisampled.
+        let src_single_sampled = src_fb
+            .as_ref()
+            .is_none_or(|fb| fb.color_read_buffer_is_texture());
+        // Format rules from GLES 3.0 section 4.3.3.
+        let colors_compatible = dst_color.iter().all(|&dst| {
+            src_color.is_some_and(|src| {
+                if src_single_sampled {
+                    blit_integer_type(src) == blit_integer_type(dst)
+                } else {
+                    src == dst
+                }
+            })
+        });
+        if bits.intersects(BlitFrameBufferFlags::COLOR) && !colors_compatible {
             return self.base.webgl_error(InvalidOperation);
         }
         if bits.intersects(BlitFrameBufferFlags::DEPTH) && src_depth != dst_depth {
@@ -5274,4 +5288,12 @@ impl WebGL2RenderingContextHelpers for WebGL2RenderingContext {
     fn is_webgl2_enabled(cx: &mut js::context::JSContext, global: HandleObject) -> bool {
         Self::is_webgl2_enabled(cx, global)
     }
+}
+
+/// Returns the component type of a signed or unsigned integer format.
+fn blit_integer_type(format: u32) -> Option<TexComponentType> {
+    use TexComponentType::{SignedInt, UnsignedInt};
+    TexFormat::from_gl_constant(format)?
+        .component_type()
+        .filter(|ty| matches!(ty, SignedInt | UnsignedInt))
 }
