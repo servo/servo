@@ -749,7 +749,9 @@ impl Runtime {
         }
         cx_opts.set_wasmBaseline_(pref!(js_wasm_baseline_enabled));
         cx_opts.set_wasmIon_(pref!(js_wasm_ion_enabled));
-        // Async stacks cost a stack capture per promise.
+        // Only capture async stacks for debuggee realms.
+        // Otherwise, SM records `SavedFrame` for every promise, which only devtools can observe.
+        // See benchmark in <https://github.com/servo/servo/pull/50141>
         cx_opts.set_asyncStackCaptureDebuggeeOnly_(true);
 
         unsafe {
