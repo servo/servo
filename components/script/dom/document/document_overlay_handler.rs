@@ -6,12 +6,12 @@ use std::cell::Cell;
 use std::default::Default;
 
 use embedder_traits::EmbedderMsg;
-use html5ever::{local_name, ns};
+use html5ever::local_name;
 use js::context::{JSContext, NoGC};
 use js::realm::CurrentRealm;
 use script_bindings::cell::DomRefCell;
 use script_bindings::dom::UnrootedDom;
-use servo_config::pref;
+use style::Atom;
 use stylo_dom::ElementState;
 
 use crate::dom::RootedPromise;
@@ -21,18 +21,15 @@ use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::document::document::Document;
+use crate::dom::document::document::{Document, LocalDescendantNavigablesIterator};
 use crate::dom::element::element::Element;
 use crate::dom::event::event::{EventBubbles, EventCancelable, EventComposed};
 use crate::dom::event::eventtarget::EventTarget;
+use crate::dom::html::embedded_content::htmliframeelement::HTMLIFrameElement;
 use crate::dom::html::htmlelement::{HTMLElement, PopoverState};
 use crate::dom::html::interactive::htmldialogelement::HTMLDialogElement;
 use crate::dom::node::NodeTraits;
 use crate::dom::promise::Promise;
-use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
-use crate::runtime::script_runtime::ScriptThreadEventCategory;
-use crate::tasks::task::TaskOnce;
-use crate::tasks::task_source::TaskSourceName;
 
 /// The [`DocumentOverlayHandler`] is a structure responsible for overlays for
 /// the [`crate::Document`] and storing data related to overlays. It exists to
@@ -42,8 +39,8 @@ use crate::tasks::task_source::TaskSourceName;
 pub(crate) struct DocumentOverlayHandler {
     /// The [`Document`] this [`DocumentOverlayHandler`] belongs to.
     document: Dom<Document>,
-    /// Entry node for fullscreen.
-    fullscreen_element: MutNullableDom<Element>,
+    /// <https://fullscreen.spec.whatwg.org/#list-of-pending-fullscreen-events>
+    list_of_pending_fullscreen_events: DomRefCell<Vec<PendingFullscreenEvent>>,
     /// <https://drafts.csswg.org/css-position-4/#document-top-layer>
     top_layer: DomRefCell<Vec<Dom<Element>>>,
     /// <https://drafts.csswg.org/css-position-4/#document-pending-top-layer-removals>
@@ -68,7 +65,7 @@ impl DocumentOverlayHandler {
     pub(crate) fn new(document: &Document) -> Self {
         Self {
             document: Dom::from_ref(document),
-            fullscreen_element: MutNullableDom::new(None),
+            list_of_pending_fullscreen_events: Default::default(),
             top_layer: Default::default(),
             pending_top_layer_removals: Default::default(),
             topmost_modal: Default::default(),
@@ -81,164 +78,233 @@ impl DocumentOverlayHandler {
         }
     }
 
+    /// <https://fullscreen.spec.whatwg.org/#fullscreen-element>
     pub(crate) fn fullscreen_element(&self) -> Option<DomRoot<Element>> {
-        self.fullscreen_element.get()
+        // > The fullscreen element is the topmost element in the document’s top layer whose
+        // > fullscreen flag is set, if any, and null otherwise.
+        self.top_layer
+            .borrow()
+            .iter()
+            .rfind(|element| element.fullscreen_flag())
+            .map(|element| element.as_rooted())
     }
 
-    pub(crate) fn set_fullscreen_element(&self, element: Option<&Element>) {
-        self.fullscreen_element.set(element);
+    pub(crate) fn append_to_list_of_pending_fullscreen_events(
+        &self,
+        no_gc: &NoGC,
+        event_type: Atom,
+        element: &Element,
+    ) {
+        self.list_of_pending_fullscreen_events
+            .safe_borrow_mut(no_gc)
+            .push(PendingFullscreenEvent {
+                event_type,
+                element: Dom::from_ref(element),
+            });
+    }
+
+    pub(crate) fn has_pending_fullscreen_events(&self) -> bool {
+        !self.list_of_pending_fullscreen_events.borrow().is_empty()
+    }
+
+    /// <https://fullscreen.spec.whatwg.org/#fullscreen-an-element>
+    pub(crate) fn fullscreen_an_element(&self, cx: &mut JSContext, element: &Element) {
+        // Step 1. Let hideUntil be the result of running topmost popover ancestor given element,
+        // null, and false.
+        let hide_until = element.topmost_popover_ancestor(cx.no_gc(), None, false);
+
+        // Step 2. Run hide popovers until given element’s node document, hideUntil, false, and
+        // true.
+        element
+            .owner_document()
+            .overlay_handler()
+            .hide_popovers_until(cx, hide_until.as_deref(), false, true);
+
+        // Step 3. Set element’s fullscreen flag.
+        element.set_fullscreen_state(cx.no_gc(), true);
+
+        // Step 4. Remove from the top layer immediately given element.
+        self.remove_an_element_from_the_top_layer_immediately(element, cx.no_gc());
+
+        // Step 5. Add to the top layer given element.
+        self.add_an_element_to_the_top_layer(element, cx.no_gc());
+    }
+
+    /// <https://fullscreen.spec.whatwg.org/#unfullscreen-an-element>
+    pub(crate) fn unfullscreen_an_element(&self, no_gc: &NoGC, element: &Element) {
+        // > To unfullscreen an element, unset element’s fullscreen flag, iframe fullscreen flag
+        // > (if any), and keyboard lock flag, and remove from the top layer immediately given
+        // > element.
+        element.set_fullscreen_state(no_gc, false);
+        if let Some(iframe) = element.downcast::<HTMLIFrameElement>() {
+            iframe.set_iframe_fullscreen_flag(false);
+        }
+        // FIXME: Unset element’s keyboard lock flag.
+        self.remove_an_element_from_the_top_layer_immediately(element, no_gc);
+    }
+
+    /// <https://fullscreen.spec.whatwg.org/#unfullscreen-a-document>
+    pub(crate) fn unfullscreen_a_document(&self, no_gc: &NoGC) {
+        // > To unfullscreen a document, unfullscreen all elements, within document’s top layer,
+        // > whose fullscreen flag is set.
+        let fullscreened_elements = self
+            .top_layer
+            .borrow()
+            .iter()
+            .filter(|element| element.fullscreen_flag())
+            .map(|element| element.as_unrooted(no_gc))
+            .collect::<Vec<_>>();
+        for element in fullscreened_elements {
+            self.unfullscreen_an_element(no_gc, &element);
+        }
     }
 
     /// <https://fullscreen.spec.whatwg.org/#fully-exit-fullscreen>
     pub(crate) fn fully_exit_fullscreen(&self, cx: &mut JSContext) {
-        // Step 1. If document’s fullscreen element is null, terminate these
-        // steps.
-        if self.fullscreen_element().is_none() {
+        // Step 1. If document’s fullscreen element is null, terminate these steps.
+        let Some(fullscreen_element) = self.fullscreen_element() else {
             return;
         };
 
-        // TODO Step 2. Unfullscreen elements whose fullscreen flag is set,
-        // within document’s top layer, except for document’s fullscreen element.
+        // Step 2. Unfullscreen elements whose fullscreen flag is set, within document’s top
+        // layer, except for document’s fullscreen element.
+        let elements = self
+            .top_layer
+            .borrow()
+            .iter()
+            .filter(|element| element.fullscreen_flag() && ***element != *fullscreen_element)
+            .map(|element| element.as_unrooted(cx.no_gc()))
+            .collect::<Vec<_>>();
+        for element in elements {
+            self.unfullscreen_an_element(cx.no_gc(), &element);
+        }
 
         // Step 3. Exit fullscreen document.
         let _ = self.exit_fullscreen(cx);
     }
 
-    /// <https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen>
-    pub(crate) fn enter_fullscreen(
-        &self,
-        cx: &mut CurrentRealm,
-        pending: &Element,
-    ) -> RootedPromise {
-        // Step 1
-        // > Let pendingDoc be this’s node document.
-        let document = pending.owner_document();
+    /// <https://fullscreen.spec.whatwg.org/#fullscreen-is-supported>
+    pub(crate) fn fullscreen_is_supported(&self) -> bool {
+        // > Fullscreen is supported if there is no previously-established user preference,
+        // > security risk, or platform limitation.
+        true
+    }
 
-        // Step 2
-        // > Let promise be a new promise.
-        let promise = Promise::new_in_realm(cx);
+    /// <https://fullscreen.spec.whatwg.org/#run-the-fullscreen-steps>
+    pub(crate) fn run_the_fullscreen_steps(&self, cx: &mut JSContext) {
+        // Step 1. Let pendingEvents be a clone of document’s list of pending fullscreen events.
+        // Step 2. Empty document’s list of pending fullscreen events.
+        let pending_events: Vec<(Atom, DomRoot<Element>)> = self
+            .list_of_pending_fullscreen_events
+            .safe_borrow_mut(cx.no_gc())
+            .drain(..)
+            .map(|event| (event.event_type.clone(), event.element.as_rooted()))
+            .collect();
 
-        // Step 3
-        // > If pendingDoc is not fully active, then reject promise with a TypeError exception and return promise.
-        if !document.is_fully_active() {
-            promise.reject_error(cx, Error::Type(c"Document is not fully active".to_owned()));
-            return promise;
+        // Step 3. For each (type, element) in pendingEvents:
+        for (event_type, element) in pending_events {
+            // Step 3.1. Let target be element if element is connected and its node document is
+            // document, and otherwise let target be document.
+            let target: DomRoot<EventTarget> =
+                if element.is_connected() && *element.owner_document() == *self.document {
+                    DomRoot::upcast(element)
+                } else {
+                    DomRoot::upcast(self.document.as_rooted())
+                };
+
+            // Step 3.2. Fire an event named type, with its bubbles and composed attributes set to
+            // true, at target.
+            target.fire_event_with_params(
+                cx,
+                event_type,
+                EventBubbles::Bubbles,
+                EventCancelable::NotCancelable,
+                EventComposed::Composed,
+            );
         }
+    }
 
-        // Step 4
-        // > Let error be false.
-        let mut error = false;
+    /// <https://fullscreen.spec.whatwg.org/#simple-fullscreen-document>
+    pub(crate) fn is_simple_fullscreen_document(&self) -> bool {
+        // > A document is said to be a simple fullscreen document if there is exactly one element
+        // > in its top layer that has its fullscreen flag set.
+        self.top_layer
+            .borrow()
+            .iter()
+            .filter(|element| element.fullscreen_flag())
+            .count() ==
+            1
+    }
 
-        // Step 5
-        // > If any of the following conditions are false, then set error to true:
-        {
-            // > - This’s namespace is the HTML namespace or this is an SVG svg or MathML math element. [SVG] [MATHML]
-            match *pending.namespace() {
-                ns!(mathml) => {
-                    if *pending.local_name() != local_name!("math") {
-                        error = true;
-                    }
-                },
-                ns!(svg) => {
-                    if *pending.local_name() != local_name!("svg") {
-                        error = true;
-                    }
-                },
-                ns!(html) => (),
-                _ => error = true,
+    /// <https://fullscreen.spec.whatwg.org/#collect-documents-to-unfullscreen>
+    pub(crate) fn collect_documents_to_unfullscreen(&self) -> Vec<DomRoot<Document>> {
+        // Step 1. Let docs be an ordered set consisting of doc.
+        let mut docs = vec![self.document.as_rooted()];
+
+        // Step 2. While true:
+        loop {
+            // Step 2.1. Let lastDoc be docs’s last document.
+            let last_doc = docs
+                .last()
+                .expect("docs is initialized with an element")
+                .clone();
+
+            // Step 2.2. Assert: lastDoc’s fullscreen element is not null.
+            assert!(last_doc.overlay_handler().fullscreen_element().is_some());
+
+            // Step 2.3. If lastDoc is not a simple fullscreen document, break.
+            if !last_doc.overlay_handler().is_simple_fullscreen_document() {
+                break;
             }
 
-            // > - This is not a dialog element.
-            if pending.is::<HTMLDialogElement>() {
-                error = true;
+            // Step 2.4. Let container be lastDoc’s node navigable’s container.
+            // Step 2.5. If container is null, then break.
+            //
+            // FIXME: Support cross-origin container
+            let window_proxy = last_doc.window().window_proxy();
+            let Some(container) = window_proxy.frame_element() else {
+                break;
+            };
+
+            // Also break when container's content navigable is no longer lastDoc's node navigable.
+            // This happens when that navigable is being destroyed. lastDoc's navigable then has no
+            // parent anymore, even though it still refers to its former container, so the lastDoc
+            // is treated as having no container.
+            if container
+                .downcast::<HTMLIFrameElement>()
+                .is_some_and(|iframe| {
+                    iframe.browsing_context_id() != Some(window_proxy.browsing_context_id())
+                })
+            {
+                break;
             }
 
-            // > - The fullscreen element ready check for this returns true.
-            if !pending.fullscreen_element_ready_check() {
-                error = true;
+            // Step 2.6. If container’s iframe fullscreen flag is set, break.
+            if container
+                .downcast::<HTMLIFrameElement>()
+                .is_some_and(|iframe| iframe.iframe_fullscreen_flag())
+            {
+                break;
             }
 
-            // > - Fullscreen is supported.
-            // <https://fullscreen.spec.whatwg.org/#fullscreen-is-supported>
-            // > Fullscreen is supported if there is no previously-established user preference, security risk, or platform limitation.
-            // TODO: Add checks for whether fullscreen is supported as definition.
-
-            // > - This’s relevant global object has transient activation or the algorithm is triggered by a user generated orientation change.
-            // TODO: implement screen orientation API
-            if !pending.owner_window().has_transient_activation() {
-                error = true;
-            }
+            // Step 2.7. Append container’s node document to docs.
+            docs.push(container.owner_document());
         }
 
-        if pref!(dom_fullscreen_test) {
-            // For reftests we just take over the current window,
-            // and don't try to really enter fullscreen.
-            info!("Tests don't really enter fullscreen.");
-        } else {
-            // TODO fullscreen is supported
-            // TODO This algorithm is allowed to request fullscreen.
-            warn!("Fullscreen not supported yet");
-        }
-
-        // Step 6
-        // > If error is false, then consume user activation given pendingDoc’s relevant global object.
-        if !error {
-            pending
-                .owner_window_unrooted(cx.no_gc())
-                .consume_user_activation();
-        }
-
-        // Step 8.
-        // > If error is false, then resize pendingDoc’s node navigable’s top-level traversable’s active document’s viewport’s dimensions,
-        // > optionally taking into account options["navigationUI"]:
-        // TODO(#21600): Improve spec compliance of steps 7-13 paralelism.
-        // TODO(#42064): Implement fullscreen options, and ensure that this is spec compliant for all embedder.
-        if !error {
-            let event = EmbedderMsg::NotifyFullscreenStateChanged(document.webview_id(), true);
-            document.send_to_embedder(event);
-        }
-
-        // Step 7
-        // > Return promise, and run the remaining steps in parallel.
-        let pipeline_id = self.document.window().pipeline_id();
-
-        let trusted_pending = Trusted::new(pending);
-        let trusted_pending_doc = Trusted::new(&*document);
-        let trusted_promise = TrustedPromise::from(&promise);
-        let handler = ElementPerformFullscreenEnter::new(
-            trusted_pending,
-            trusted_pending_doc,
-            trusted_promise,
-            error,
-        );
-        let script_msg = CommonScriptMsg::Task(
-            ScriptThreadEventCategory::EnterFullscreen,
-            handler,
-            Some(pipeline_id),
-            TaskSourceName::DOMManipulation,
-        );
-        let msg = MainThreadScriptMsg::Common(script_msg);
-        self.document
-            .window()
-            .main_thread_script_chan()
-            .send(msg)
-            .unwrap();
-
-        promise
+        // Step 3. Return docs.
+        docs
     }
 
     /// <https://fullscreen.spec.whatwg.org/#exit-fullscreen>
     pub(crate) fn exit_fullscreen(&self, cx: &mut JSContext) -> RootedPromise {
-        let document = &*self.document;
-
-        // Step 1
-        // > Let promise be a new promise
+        // Step 1. Let promise be a new promise.
         let mut realm = CurrentRealm::assert(cx);
         let promise = Promise::new_in_realm(&mut realm);
 
-        // Step 2
-        // > If doc is not fully active or doc’s fullscreen element is null, then reject promise with a TypeError exception and return promise.
-        if !document.is_fully_active() || self.fullscreen_element().is_none() {
+        // Step 2. If doc is not fully active or doc’s fullscreen element is null, then reject
+        // promise with a TypeError exception and return promise.
+        let mut doc = self.document.as_rooted();
+        if !doc.is_fully_active() || self.fullscreen_element().is_none() {
             promise.reject_error(
                 cx,
                 Error::Type(
@@ -248,55 +314,171 @@ impl DocumentOverlayHandler {
             return promise;
         }
 
-        // TODO(#42067): Implement step 3-7, handling fullscreen's propagation across navigables.
+        // Step 3. Let resize be false.
+        let mut resize = false;
 
-        let element = self.fullscreen_element().unwrap();
-        // Step 10
-        // > If resize is true, resize doc’s viewport to its "normal" dimensions.
-        // TODO(#21600): Improve spec compliance of steps 8-15 paralelism.
-        let event = EmbedderMsg::NotifyFullscreenStateChanged(document.webview_id(), false);
-        document.send_to_embedder(event);
+        // Step 4. Let docs be the result of collecting documents to unfullscreen given doc.
+        let docs = self.collect_documents_to_unfullscreen();
 
-        // Step 8
-        // > Return promise, and run the remaining steps in parallel.
-        let trusted_element = Trusted::new(&*element);
+        // Step 5. Let topLevelDoc be doc’s node navigable’s top-level traversable’s active
+        // document.
+        // FIXME: Support cross-origin document
+        let top_level_doc = doc.window().top_level_document_if_local();
+
+        // Step 6. If topLevelDoc is in docs, and it is a simple fullscreen document, then set doc
+        // to topLevelDoc and resize to true.
+        if let Some(top_level_doc) = top_level_doc &&
+            docs.contains(&top_level_doc) &&
+            top_level_doc
+                .overlay_handler()
+                .is_simple_fullscreen_document()
+        {
+            doc = top_level_doc;
+            resize = true;
+        }
+
+        // Step 7. If doc’s fullscreen element is not connected:
+        if let Some(fullscreen_element) = doc.overlay_handler().fullscreen_element() &&
+            !fullscreen_element.is_connected()
+        {
+            // Step 7.1. Append (fullscreenchange, doc’s fullscreen element) to doc’s list of
+            // pending fullscreen events.
+            doc.overlay_handler()
+                .append_to_list_of_pending_fullscreen_events(
+                    cx.no_gc(),
+                    atom!("fullscreenchange"),
+                    &fullscreen_element,
+                );
+
+            // Step 7.2. Unfullscreen doc’s fullscreen element.
+            doc.overlay_handler()
+                .unfullscreen_an_element(cx.no_gc(), &fullscreen_element);
+        }
+
+        // Step 8. Return promise, and run the remaining steps in parallel.
+
+        // FIXME: Step 9. Run the fully unlock the screen orientation steps with doc.
+
+        // Step 10. If resize is true, resize doc’s viewport to its "normal" dimensions.
+        //
+        // This is sent right away instead of from the queued task below, as the task never runs
+        // when the document is being unloaded. The screen would then be stuck in fullscreen. The
+        // message is processed in parallel, so this aligns with the spec.
+        if resize {
+            doc.send_to_embedder(EmbedderMsg::NotifyFullscreenStateChanged(
+                doc.webview_id(),
+                false,
+            ));
+        }
+
+        let trusted_doc = Trusted::new(&*doc);
         let trusted_promise = TrustedPromise::from(&promise);
-        let handler = ElementPerformFullscreenExit::new(trusted_element, trusted_promise);
-        let pipeline_id = Some(self.document.window().pipeline_id());
-        let script_msg = CommonScriptMsg::Task(
-            ScriptThreadEventCategory::ExitFullscreen,
-            handler,
-            pipeline_id,
-            TaskSourceName::DOMManipulation,
-        );
-        let msg = MainThreadScriptMsg::Common(script_msg);
-        self.document
-            .window()
-            .main_thread_script_chan()
-            .send(msg)
-            .unwrap();
+        doc.owner_global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(exit_fullscreen_steps: move |cx| {
+                let doc = trusted_doc.root();
+                let promise = trusted_promise.root(cx);
+
+                // Step 11. If doc’s fullscreen element is null, then resolve promise with undefined
+                // and terminate these steps.
+                if doc.overlay_handler().fullscreen_element().is_none() {
+                    promise.resolve_native(cx, &());
+                    return;
+                }
+
+                // Step 12. Let exitDocs be the result of collecting documents to unfullscreen given
+                // doc.
+                let exit_docs = doc.overlay_handler().collect_documents_to_unfullscreen();
+
+                // Step 13. Let descendantDocs be an ordered set consisting of doc’s descendant
+                // navigables' active documents whose fullscreen element is non-null, if any, in
+                // tree order.
+                let descendant_docs = LocalDescendantNavigablesIterator::new(&doc)
+                    .filter_map(|descendant_doc| {
+                        let element = descendant_doc.overlay_handler().fullscreen_element()?;
+                        Some((descendant_doc, element))
+                    })
+                    .collect::<Vec<_>>();
+
+                // Step 14. For each exitDoc in exitDocs:
+                for exit_doc in exit_docs {
+                    let fullscreen_element = exit_doc.overlay_handler().fullscreen_element().expect("The document is asserted to have a fullscreen element in collect_documents_to_unfullscreen");
+
+                    // Step 14.1. Append (fullscreenchange, exitDoc’s fullscreen element) to
+                    // exitDoc’s list of pending fullscreen events.
+                    exit_doc
+                        .overlay_handler()
+                        .append_to_list_of_pending_fullscreen_events(
+                            cx.no_gc(),
+                            atom!("fullscreenchange"),
+                            &fullscreen_element,
+                        );
+
+                    // Step 14.2. If resize is true, unfullscreen exitDoc.
+                    if resize {
+                        exit_doc.overlay_handler().unfullscreen_a_document(cx.no_gc());
+                    }
+                    // Step 14.3. Otherwise, unfullscreen exitDoc’s fullscreen element.
+                    else {
+                        exit_doc
+                            .overlay_handler()
+                            .unfullscreen_an_element(cx.no_gc(), &fullscreen_element);
+                    }
+                }
+
+                // Step 15. For each descendantDoc in descendantDocs:
+                for (descendant_doc, fullscreen_element) in descendant_docs {
+                    // Step 15.1. Append (fullscreenchange, descendantDoc’s fullscreen element) to
+                    // descendantDoc’s list of pending fullscreen events.
+                    descendant_doc
+                        .overlay_handler()
+                        .append_to_list_of_pending_fullscreen_events(
+                            cx.no_gc(),
+                            atom!("fullscreenchange"),
+                            &fullscreen_element,
+                        );
+
+                    // Step 15.2. Unfullscreen descendantDoc.
+                    descendant_doc
+                        .overlay_handler()
+                        .unfullscreen_a_document(cx.no_gc());
+                }
+
+                // Step 16. Resolve promise with undefined.
+                promise.resolve_native(cx, &());
+            }));
 
         promise
     }
 
     /// <https://html.spec.whatwg.org/multipage/#allowed-to-use>
-    pub(crate) fn get_allow_fullscreen(&self) -> bool {
-        match self.document.browsing_context() {
-            // Step 1
-            None => false,
-            Some(_) => {
-                // Step 2
-                if self.document.window().is_top_level() {
-                    true
-                } else {
-                    // Step 3
-                    self.document
-                        .window()
-                        .GetFrameElement()
-                        .is_some_and(|el| el.has_attribute(&local_name!("allowfullscreen")))
-                }
-            },
+    pub(crate) fn is_allowed_to_use_fullscreen(&self) -> bool {
+        // Step 1. If document's browsing context is null, then return false.
+        if self.document.browsing_context().is_none() {
+            return false;
+        };
+
+        // Step 2. If document is not fully active, then return false.
+        if !self.document.is_fully_active() {
+            return false;
         }
+
+        // 3. If the result of running is feature enabled in document for origin on feature,
+        // document, and document's origin is "Enabled", then return true.
+        //
+        // FIXME: Properly check if feature is enabled, for now we do a makeshift attribute check
+        // for iFrames and otherwise assume it always is.
+        if self.document.window().is_top_level() {
+            true
+        } else {
+            self.document
+                .window()
+                .GetFrameElement()
+                .is_some_and(|el| el.has_attribute(&local_name!("allowfullscreen")))
+        }
+
+        // FIXME: Return false.
     }
 
     pub(crate) fn open_dialogs_list_contains(&self, dialog: &HTMLDialogElement) -> bool {
@@ -706,113 +888,10 @@ impl DocumentOverlayHandler {
     }
 }
 
-struct ElementPerformFullscreenEnter {
-    element: Trusted<Element>,
-    document: Trusted<Document>,
-    promise: TrustedPromise,
-    error: bool,
-}
-
-impl ElementPerformFullscreenEnter {
-    fn new(
-        element: Trusted<Element>,
-        document: Trusted<Document>,
-        promise: TrustedPromise,
-        error: bool,
-    ) -> Box<ElementPerformFullscreenEnter> {
-        Box::new(ElementPerformFullscreenEnter {
-            element,
-            document,
-            promise,
-            error,
-        })
-    }
-}
-
-impl TaskOnce for ElementPerformFullscreenEnter {
-    /// Step 9-14 of <https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen>
-    fn run_once(self, cx: &mut js::context::JSContext) {
-        let element = self.element.root();
-        let promise = self.promise.root(cx);
-        let document = element.owner_document();
-
-        // Step 9
-        // > If any of the following conditions are false, then set error to true:
-        // > - This’s node document is pendingDoc.
-        // > - The fullscreen element ready check for this returns true.
-        // Step 10
-        // > If error is true:
-        // > - Append (fullscreenerror, this) to pendingDoc’s list of pending fullscreen events.
-        // > - Reject promise with a TypeError exception and terminate these steps.
-        if self.document.root() != document ||
-            !element.fullscreen_element_ready_check() ||
-            self.error
-        {
-            // TODO(#31866): we should queue this and fire them in update the rendering.
-            document
-                .upcast::<EventTarget>()
-                .fire_event(cx, atom!("fullscreenerror"));
-            promise.reject_error(cx, Error::Type(c"fullscreen is not connected".to_owned()));
-            return;
-        }
-
-        // TODO(#42067): Implement step 11-13
-        // The following operations is based on the old version of the specs.
-        element.set_fullscreen_state(cx.no_gc(), true);
-        document
-            .overlay_handler()
-            .set_fullscreen_element(Some(&element));
-        document.upcast::<EventTarget>().fire_event_with_params(
-            cx,
-            atom!("fullscreenchange"),
-            EventBubbles::Bubbles,
-            EventCancelable::NotCancelable,
-            EventComposed::Composed,
-        );
-
-        // Step 14.
-        // > Resolve promise with undefined.
-        promise.resolve_native(cx, &());
-    }
-}
-
-struct ElementPerformFullscreenExit {
-    element: Trusted<Element>,
-    promise: TrustedPromise,
-}
-
-impl ElementPerformFullscreenExit {
-    fn new(
-        element: Trusted<Element>,
-        promise: TrustedPromise,
-    ) -> Box<ElementPerformFullscreenExit> {
-        Box::new(ElementPerformFullscreenExit { element, promise })
-    }
-}
-
-impl TaskOnce for ElementPerformFullscreenExit {
-    /// Step 9-16 of <https://fullscreen.spec.whatwg.org/#exit-fullscreen>
-    fn run_once(self, cx: &mut js::context::JSContext) {
-        let element = self.element.root();
-        let document = element.owner_document();
-        // Step 9.
-        // > Run the fully unlock the screen orientation steps with doc.
-        // TODO: Need to implement ScreenOrientation API first
-
-        // TODO(#42067): Implement step 10-15
-        // The following operations is based on the old version of the specs.
-        element.set_fullscreen_state(cx.no_gc(), false);
-        document.overlay_handler().set_fullscreen_element(None);
-        document.upcast::<EventTarget>().fire_event_with_params(
-            cx,
-            atom!("fullscreenchange"),
-            EventBubbles::Bubbles,
-            EventCancelable::NotCancelable,
-            EventComposed::Composed,
-        );
-
-        // Step 16
-        // > Resolve promise with undefined.
-        self.promise.root(cx).resolve_native(cx, &());
-    }
+#[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct PendingFullscreenEvent {
+    #[no_trace]
+    event_type: Atom,
+    element: Dom<Element>,
 }
