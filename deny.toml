@@ -49,6 +49,9 @@ ignore = [
     "RUSTSEC-2026-0459",
     # The crate `chrono` is unmaintained. This is used by `tracing-perfetto`
     "RUSTSEC-2026-0543",
+    # https://crates.io/crates/webdriver/0.54.0 depends on https://crates.io/crates/cookie/0.16.2
+    # but doesn’t actually use it: https://bugzilla.mozilla.org/show_bug.cgi?id=2096456
+    "RUSTSEC-2026-0594",
 ]
 
 # This section is considered when running `cargo deny check licenses`
