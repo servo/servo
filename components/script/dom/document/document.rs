@@ -1378,7 +1378,9 @@ impl Document {
     pub(crate) fn set_quirks_mode(&self, new_mode: QuirksMode) {
         let old_mode = self.quirks_mode.replace(new_mode);
 
-        if old_mode != new_mode {
+        // Only pass the quirks mode on to layout when we are dealing with the `Window`'s
+        // main `Document`, not those created with other DOM APIs.
+        if old_mode != new_mode && self.has_browsing_context() {
             self.window.layout_mut().set_quirks_mode(new_mode);
         }
     }

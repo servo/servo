@@ -683,16 +683,14 @@ impl LineItemLayout<'_, '_> {
             }
         };
 
-        if let Some(mut positioning_context) = atomic.positioning_context {
-            positioning_context.adjust_static_position_of_hoisted_fragments(
-                &content_rect,
-                containing_block.style.writing_mode,
-                PositioningContextLength::zero(),
-            );
-
-            self.current_positioning_context_mut()
-                .append(positioning_context);
-        }
+        let mut positioning_context = atomic.positioning_context;
+        positioning_context.adjust_static_position_of_hoisted_fragments(
+            &content_rect,
+            containing_block.style.writing_mode,
+            PositioningContextLength::zero(),
+        );
+        self.current_positioning_context_mut()
+            .append(positioning_context);
 
         self.current_state.inline_advance += atomic.size.inline;
 
@@ -954,7 +952,7 @@ impl TextRunLineItem {
 pub(super) struct AtomicLineItem {
     pub fragment: Arc<BoxFragment>,
     pub size: LogicalVec2<Au>,
-    pub positioning_context: Option<PositioningContext>,
+    pub positioning_context: PositioningContext,
 
     /// The block offset of this items' baseline relative to the baseline of the line.
     /// This will be zero for boxes with `vertical-align: top` and `vertical-align:
