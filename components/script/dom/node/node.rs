@@ -672,6 +672,8 @@ impl Node {
             false,                              // is_primary
             &[],                                // coalesced_events
             &[],                                // predicted_events
+            0.,
+            0.,
         );
 
         // Step 4. Set event's composed flag.

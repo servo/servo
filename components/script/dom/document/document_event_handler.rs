@@ -299,10 +299,15 @@ impl DocumentEventHandler {
                 .borrow()
                 .and_then(|index| pending_input_events.get_mut(index))
             {
+                let old_event = mem::replace(mouse_move_event, event);
+                if let (InputEvent::MouseMove(old), InputEvent::MouseMove(new)) =
+                    (&old_event.event.event, &mut mouse_move_event.event.event)
+                {
+                    new.movement += old.movement;
+                }
                 self.coalesced_mouse_move_event_ids
                     .borrow_mut()
                     .push(mouse_move_event.event.id);
-                *mouse_move_event = event;
                 return;
             }
 
@@ -692,10 +697,15 @@ impl DocumentEventHandler {
         let old_mouse_move_point = self
             .most_recent_mousemove_point
             .replace(Some(hit_test_result.point_in_frame));
+        let movement = match input_event.event.event {
+            InputEvent::MouseMove(ref event) => event.movement,
+            _ => Vector2D::zero(),
+        };
         // Always dispatch compatibility `mousemove` events, even at the same
         // point as the previous one.
         if !is_compatibility_event_for_touch &&
-            old_mouse_move_point == Some(hit_test_result.point_in_frame)
+            old_mouse_move_point == Some(hit_test_result.point_in_frame) &&
+            movement == Vector2D::zero()
         {
             return;
         }
@@ -1402,6 +1412,8 @@ impl DocumentEventHandler {
             true,                            // is_primary
             &[],                             // coalesced_events
             &[],                             // predicted_events
+            0.,
+            0.,
         );
         menu_event.upcast::<Event>().set_composed(true);
 
@@ -2865,6 +2877,8 @@ impl DocumentEventHandler {
             is_primary,
             &[],
             &[],
+            0.,
+            0.,
         );
         pointer_event.upcast::<Event>().set_composed(true);
         pointer_event.upcast::<Event>().fire(cx, target);
@@ -2915,6 +2929,8 @@ impl DocumentEventHandler {
             is_primary,
             &[],
             &[],
+            0.,
+            0.,
         );
         pointer_event.upcast::<Event>().set_composed(true);
         pointer_event.upcast::<Event>().fire(cx, target.upcast());

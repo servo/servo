@@ -197,6 +197,8 @@ impl Touch {
             is_primary,
             &[], // coalesced_events
             &[], // predicted_events
+            0.,
+            0.,
         );
 
         // https://w3c.github.io/pointerevents/#dfn-attributes-and-default-actions

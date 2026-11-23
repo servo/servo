@@ -14,6 +14,7 @@ use js::rust::HandleObject;
 use keyboard_types::Modifiers;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::match_domstring_ascii;
+use script_bindings::num::Finite;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_traits::{ConstellationInputEvent, MouseButtons};
 use style::Atom;
@@ -83,6 +84,10 @@ pub(crate) struct MouseEvent {
 
     #[no_trace]
     point_in_target: Cell<Option<Point2D<f32, CSSPixel>>>,
+
+    // <https://w3c.github.io/pointerlock/#extensions-to-the-mouseevent-interface>
+    movement_x: Cell<f64>,
+    movement_y: Cell<f64>,
 }
 
 impl MouseEvent {
@@ -96,6 +101,8 @@ impl MouseEvent {
             button: Cell::new(MouseButton::Primary),
             buttons: Cell::new(MouseButtons::empty()),
             point_in_target: Cell::new(None),
+            movement_x: Cell::new(0.),
+            movement_y: Cell::new(0.),
         }
     }
 
@@ -128,6 +135,8 @@ impl MouseEvent {
         buttons: MouseButtons,
         related_target: Option<&EventTarget>,
         point_in_target: Option<Point2D<f32, CSSPixel>>,
+        movement_x: f64,
+        movement_y: f64,
     ) -> DomRoot<MouseEvent> {
         Self::new_with_proto(
             cx,
@@ -146,6 +155,8 @@ impl MouseEvent {
             buttons,
             related_target,
             point_in_target,
+            movement_x,
+            movement_y,
         )
     }
 
@@ -167,6 +178,8 @@ impl MouseEvent {
         buttons: MouseButtons,
         related_target: Option<&EventTarget>,
         point_in_target: Option<Point2D<f32, CSSPixel>>,
+        movement_x: f64,
+        movement_y: f64,
     ) -> DomRoot<MouseEvent> {
         let ev = MouseEvent::new_uninitialized_with_proto(cx, window, proto);
         ev.initialize_mouse_event(
@@ -183,6 +196,8 @@ impl MouseEvent {
             buttons,
             related_target,
             point_in_target,
+            movement_x,
+            movement_y,
         );
         ev
     }
@@ -204,6 +219,8 @@ impl MouseEvent {
         buttons: MouseButtons,
         related_target: Option<&EventTarget>,
         point_in_target: Option<Point2D<f32, CSSPixel>>,
+        movement_x: f64,
+        movement_y: f64,
     ) {
         self.uievent.initialize_ui_event(
             event_type,
@@ -221,6 +238,7 @@ impl MouseEvent {
         self.buttons.set(buttons);
         self.upcast::<Event>().set_related_target(related_target);
         self.point_in_target.set(point_in_target);
+        self.set_movement(movement_x, movement_y);
 
         // From <https://w3c.github.io/uievents/#dom-uievent-which>:
         // > For MouseEvents, this contains a value equal to the value stored in button+1.
@@ -247,6 +265,13 @@ impl MouseEvent {
             ),
         };
 
+        let movement =
+            if let embedder_traits::InputEvent::MouseMove(event) = input_event.event.event {
+                event.movement
+            } else {
+                euclid::Vector2D::zero()
+            };
+
         let mouse_event = Self::new(
             cx,
             window,
@@ -265,6 +290,8 @@ impl MouseEvent {
             input_event.pressed_mouse_buttons,
             None,
             None,
+            movement.x as f64,
+            movement.y as f64,
         );
 
         let event = mouse_event.upcast::<Event>();
@@ -309,6 +336,8 @@ impl MouseEvent {
             pressed_mouse_buttons,
             None,
             Some(hit_test_result.point_in_node),
+            0.,
+            0.,
         );
 
         mouse_event.upcast::<Event>().set_trusted(true);
@@ -381,6 +410,8 @@ impl MouseEvent {
             true, // is_primary (mouse is always primary)
             &[],  // coalesced_events
             &[],  // predicted_events
+            self.movement_x.get(),
+            self.movement_y.get(),
         );
 
         pointer_event.upcast::<Event>().set_composed(composed);
@@ -440,6 +471,8 @@ impl MouseEvent {
             true, // is_primary (mouse is always primary)
             &[],  // coalesced_events
             &[],  // predicted_events
+            self.movement_x.get(),
+            self.movement_y.get(),
         );
 
         // https://w3c.github.io/pointerevents/#dfn-attributes-and-default-actions
@@ -466,6 +499,11 @@ impl MouseEvent {
 
     pub(crate) fn buttons(&self) -> MouseButtons {
         self.buttons.get()
+    }
+
+    pub(crate) fn set_movement(&self, x: f64, y: f64) {
+        self.movement_x.set(x);
+        self.movement_y.set(y);
     }
 }
 
@@ -502,6 +540,8 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
             MouseButtons::from_bits_retain(init.buttons),
             init.relatedTarget.as_deref(),
             None,
+            *init.movementX,
+            *init.movementY,
         );
         event
             .upcast::<Event>()
@@ -745,5 +785,13 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
                 "SymbolLock" => Modifiers::SYMBOL_LOCK,
                     _ => { return false; },
             ))
+    }
+
+    fn MovementX(&self) -> Finite<f64> {
+        Finite::new(self.movement_x.get()).unwrap_or_default()
+    }
+
+    fn MovementY(&self) -> Finite<f64> {
+        Finite::new(self.movement_y.get()).unwrap_or_default()
     }
 }
