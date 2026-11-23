@@ -1,0 +1,54 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Cancel transition benchmark</title>
+<style>
+  .box { width: 6px; height: 6px; display: inline-block; background: blue;
+         opacity: .1; transition: opacity 3000ms linear; }
+  #stage.on .box { opacity: 1; }
+</style>
+<div id="stage"></div>
+<pre id="out">…</pre>
+<script>
+const stage = document.getElementById('stage');
+const out = document.getElementById('out');
+const N = 5000;
+const ROUNDS = 6;   // Ignore warm-up first round
+stage.innerHTML = '<div class="box"></div>'.repeat(N);
+
+// Track the worst gap between frames for the whole run.
+let last = performance.now(), worst = 0;
+function frame(t) {
+  worst = Math.max(worst, t - last);
+  last = t;
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+const spikes = [];
+function round(i) {
+  if (i === ROUNDS) {
+    out.textContent =
+      `N=${N}  mass-cancel worst frame (ms): ${spikes.slice(1).map(v => v.toFixed(1)).join(', ')}`;
+    document.title = out.textContent;
+    return;
+  }
+  out.textContent = `round ${i + 1}/${ROUNDS}…`;
+  stage.classList.add('on');          // start N transitions
+  // Wait 800 ms before cancel, to let the restyle that starts the transitions finish first.
+  setTimeout(() => {
+    // Reset measurement for this round.
+    worst = 0;
+    last = performance.now();
+    stage.style.display = 'none';     // cancel all N transitions at once
+    // Collect results and reset states 1000ms later.
+    setTimeout(() => {
+      spikes.push(worst);
+      stage.classList.remove('on');   // reset while hidden: no transition
+      stage.style.display = '';
+      // Run next round with restored state.
+      setTimeout(() => round(i + 1), 600);
+    }, 1000);
+  }, 800);
+}
+round(0);
+</script>
