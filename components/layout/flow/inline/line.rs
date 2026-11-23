@@ -22,7 +22,7 @@ use unicode_bidi::{BidiInfo, Level};
 use super::inline_box::{InlineBoxContainerState, InlineBoxIdentifier, InlineBoxTreePathToken};
 use super::{InlineFormattingContextLayout, LineBlockSizes, line_height};
 use crate::cell::ArcRefCell;
-use crate::containing_block::{ContainingBlock, ContainingBlockSize};
+use crate::containing_block::ContainingBlock;
 use crate::flow::inline::text_run::{FontAndScriptInfo, SharedTextRunData};
 use crate::fragment_tree::{
     BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, FragmentAndLogicalRect,
@@ -491,26 +491,16 @@ impl LineItemLayout<'_, '_> {
             },
         };
 
-        let fragments = FragmentAndLogicalRect::resolve_physical_rects(
-            inner_state.fragments_and_logical_rect,
-            &ContainingBlock {
-                size: ContainingBlockSize::new(
-                    content_rect.size.inline,
-                    Default::default(), /* block_size */
-                ),
-                style: containing_block.style,
-            },
-        );
-
-        let mut fragment = BoxFragment::new(
+        let mut fragment = BoxFragment::new_with_writing_mode_override(
             inline_box.base.base_fragment_info,
             inline_box.base.style.clone(),
-            FragmentChildren::PhysicalDeprecated(fragments),
+            FragmentChildren::Logical(inner_state.fragments_and_logical_rect),
             // Previously all the fragment's children were positioned relative to the linebox,
             // but they need to be made relative to this fragment.
             content_rect.as_physical_deprecated(containing_block),
             PhysicalBoxSides::from_logical(padding, border, margin, containing_block_writing_mode),
             None, /* specific_layout_info */
+            containing_block_writing_mode,
         );
         if self.for_block_level {
             fragment.base.flags.insert(FragmentFlags::DO_NOT_PAINT);
