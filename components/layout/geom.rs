@@ -282,22 +282,6 @@ impl LogicalVec2<Au> {
             PhysicalVec::new(block, inline)
         }
     }
-
-    /// Convert the vector to an offset in the parent container, but without flipping anything
-    /// in the block axis.
-    pub(crate) fn to_physical_offset_deprecated(self, mode: WritingMode) -> PhysicalVec<Au> {
-        let inline = if mode.is_inline_flipped() {
-            -self.inline
-        } else {
-            self.inline
-        };
-        if mode.is_horizontal() {
-            PhysicalVec::new(inline, self.block)
-        } else {
-            debug_assert!(mode.is_vertical());
-            PhysicalVec::new(self.block, inline)
-        }
-    }
 }
 
 impl<T: Clone> LogicalSides<T> {
