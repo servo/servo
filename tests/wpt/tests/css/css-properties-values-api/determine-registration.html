@@ -185,9 +185,9 @@ test(() => {
       initial-value: green;
     }
   `, () => {
-    assert_equals(getComputedStyle(div).getPropertyValue(name), '1px');
+    assert_equals(getComputedStyle(div).getPropertyValue(name), 'green');
   });
-}, 'Invalid @property rule (missing syntax) does not overwrite previous valid rule');
+}, 'Later @property rule uses universal syntax when syntax is omitted');
 
 test(() => {
   let name = generate_name();
@@ -204,9 +204,9 @@ test(() => {
       initial-value: green;
     }
   `, () => {
-    assert_equals(getComputedStyle(div).getPropertyValue(name), '1px');
+    assert_equals(getComputedStyle(div).getPropertyValue(name), 'rgb(0, 128, 0)');
   });
-}, 'Invalid @property rule (missing inherits descriptor) does not overwrite previous valid rule');
+}, 'Later @property rule applies even when inherits is omitted');
 
 test(() => {
   let name = generate_name();
@@ -223,9 +223,9 @@ test(() => {
       inherits: false;
     }
   `, () => {
-    assert_equals(getComputedStyle(div).getPropertyValue(name), '1px');
+    assert_equals(getComputedStyle(div).getPropertyValue(name), '');
   });
-}, 'Invalid @property rule (missing initial-value) does not overwrite previous valid rule');
+}, 'Later @property rule uses guaranteed-invalid when initial-value is omitted');
 
 test(() => {
   let name = generate_name();
@@ -244,7 +244,7 @@ test(() => {
   `, () => {
     assert_equals(getComputedStyle(div).getPropertyValue(name), '1px');
   });
-}, 'Previous invalid rule does not prevent valid rule from causing registration');
+}, 'Previous partial rule does not prevent a later rule from winning');
 
 test(() => {
   let name = generate_name();

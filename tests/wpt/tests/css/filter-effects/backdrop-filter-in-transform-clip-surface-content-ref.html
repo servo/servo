@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Reference: backdrop-filter inside a transform that inherits a rounded clip and paints content</title>
+<!-- invert(1) of lime is exactly magenta, and of blue exactly yellow. Everything
+     except the backdrop-filter is identical to the test, so the container's
+     rounded corners rasterize the same way. -->
+<style>
+  #container {
+    position: relative;
+    width: 200px;
+    height: 100px;
+    background: blue;
+    border-radius: 20px;
+    overflow: hidden;
+    backdrop-filter: opacity(1);
+  }
+  #wrapper {
+    position: absolute;
+    inset: 0;
+    transform: translateX(-10px);
+  }
+  #wrapper > div {
+    position: absolute;
+  }
+</style>
+<div id="container">
+  <div id="wrapper">
+    <div style="left: 40px; top: 0; width: 100px; height: 100px; background: lime"></div>
+    <div style="left: 60px; top: 20px; width: 80px; height: 60px; background: magenta"></div>
+    <div style="left: 140px; top: 20px; width: 20px; height: 60px; background: yellow"></div>
+  </div>
+</div>

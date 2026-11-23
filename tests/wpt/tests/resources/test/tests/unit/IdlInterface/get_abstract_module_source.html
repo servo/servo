@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<title>IdlInterface.prototype.get_abstract_module_source()</title>
+<div id="log"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<script src="../../../idl-helper.js"></script>
+<script>
+"use strict";
+const idl = '[LegacyNamespace=WebAssembly] interface Module { }; namespace WebAssembly { };';
+
+test(function() {
+    const AbstractModuleSource = class AbstractModuleSource { };
+    const Module = class Module extends AbstractModuleSource { };
+    window.WebAssembly = { Module };
+    assert_equals(interfaceFrom(idl).get_abstract_module_source(), AbstractModuleSource);
+}, 'WebAssembly.Module inheriting from AbstractModuleSource');
+
+test(function() {
+    window.WebAssembly = { Module: class Module { } };
+    assert_equals(interfaceFrom(idl).get_abstract_module_source(), undefined);
+}, 'WebAssembly.Module without AbstractModuleSource');
+
+test(function() {
+    const Other = class Other { };
+    window.WebAssembly = { Module: class Module extends Other { } };
+    assert_equals(interfaceFrom(idl).get_abstract_module_source(), undefined);
+}, 'WebAssembly.Module inheriting from something else');
+
+test(function() {
+    const AbstractModuleSource = class AbstractModuleSource { };
+    window.Module = class Module extends AbstractModuleSource { };
+    assert_equals(interfaceFrom('interface Module { };').get_abstract_module_source(), undefined);
+}, 'Module outside the WebAssembly namespace');
+</script>

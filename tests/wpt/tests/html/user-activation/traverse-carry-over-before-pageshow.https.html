@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<meta name="variant" content="?store">
+<meta name="variant" content="?no-store">
+<title>Sticky user activation is carried over before the document it reaches runs anything</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#apply-the-history-step">
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/helper.sub.js"></script>
+
+<body>
+  <p>Non-zero-sized body to allow clicks.</p>
+</body>
+
+<script>
+  'use strict';
+
+  let uuid1 = token();
+  let uuid2 = token();
+
+  // The spec sets the bit before the new document's first script runs, and
+  // before pageshow when a document is reactivated, so each variant reads the
+  // point its path goes through.
+  const noStore = location.search === "?no-store";
+  let opened = `${originSameOrigin}/html/user-activation/resources/` +
+               `early-activation-recorder.html?uuid=${uuid1}` +
+               (noStore ? "&pipe=header(Cache-Control,no-store)" : "");
+  let navigated_to = originSameOrigin + executorPath + uuid2;
+
+  promise_test(async test => {
+    // Open a window that records its sticky activation as early as it can, give
+    // it no activation of its own, and let a traversal back to it carry one
+    // over. Whatever it recorded then says when the bit arrived.
+    let w;
+    document.body.onclick = () => {
+      w = window.open(opened);
+    };
+
+    await test_driver.click(document.body);
+    assert_true(!!w, "A window is opened");
+    // Close the window at the end of the test, so that a later test in the same
+    // session cannot click a window this one left behind.
+    test.add_cleanup(() => w && w.close());
+
+    const first = new RemoteContext(uuid1);
+    const second = new RemoteContext(uuid2);
+
+    // Check that the window recorded no activation on its first load, so that
+    // anything it reports after the traversal came from the carry-over.
+    {
+      const states = await first.execute_script(async () => {
+        await window.pageShowPromise;
+        return window.activationWhen;
+      });
+      assert_false(states.firstScript,
+            "Sticky bit in the first script on the first load");
+      assert_array_equals(states.pageShows[0], [false, false],
+            "[persisted, sticky bit] in pageshow on the first load");
+    }
+
+    // Navigate the window to a second same-origin document, and give that one
+    // the activation to be carried back.
+    await first.execute_script(url => {
+      prepareNavigation(() => {
+        location.href = url;
+      });
+    }, [navigated_to]);
+
+    await second.execute_script(() => window.pageShowPromise);
+    await test_driver.click(w.document.documentElement);
+    {
+      const sticky = await second.execute_script(
+            () => navigator.userActivation.hasBeenActive);
+      assert_true(sticky, "Sticky bit after the window was clicked");
+    }
+
+    // Traverse back to the first document.
+    await second.execute_script(() => {
+      prepareNavigation(() => {
+        history.back();
+      });
+    });
+
+    const states = await first.execute_script(async () => {
+      await window.pageShowPromise;
+      return window.activationWhen;
+    });
+
+    if (noStore) {
+      await assert_not_bfcached(first);
+
+      // The document was created from scratch, so everything it recorded is
+      // from this load, and its first script is the earliest point the spec
+      // allows the bit to be read at.
+      assert_true(states.firstScript,
+            "Sticky bit in the first script of the recreated document");
+      assert_equals(states.pageShows.length, 1,
+            "Number of pageshow events the recreated document saw");
+      assert_array_equals(states.pageShows[0], [false, true],
+            "[persisted, sticky bit] in pageshow of the recreated document");
+    } else {
+      await assert_bfcached(first);
+
+      // The same document came back, so its first script never ran again: the
+      // reactivation's pageshow is the earliest reading it could take, and the
+      // bit is already set by then.
+      assert_false(states.firstScript,
+            "Sticky bit in the first script, which did not run again");
+      assert_array_equals(states.pageShows.at(-1), [true, true],
+            "[persisted, sticky bit] in pageshow of the restored document");
+    }
+}, "Sticky user activation is carried over before the document it reaches runs anything");
+</script>

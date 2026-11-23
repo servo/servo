@@ -1,0 +1,27 @@
+<!doctype html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>A scrollable zoomed iframe renders like content zoomed inside the iframe</title>
+<link rel="help" href="https://drafts.csswg.org/css-viewport/#zoom-property">
+<link rel="match" href="reference/iframe-zoom-scrollable-content-sharp-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="resources/iframe-zoom.js"></script>
+<style>
+  body { margin: 0; }
+  iframe { display: block; width: 64px; height: 32px; zoom: 4; border: 0; }
+</style>
+<body>
+<script type="module">
+const boxHtml = `<!doctype html>
+<style>
+  body { margin: 0; }
+  #box { width: 32px; height: 32px; background: green; }
+  #spacer { height: 64px; }
+</style>
+<div id="box">Box</div>
+<div id="spacer"></div>`;
+
+await loadIframe({ srcdoc: boxHtml });
+await nextFrame();
+takeScreenshot();
+</script>

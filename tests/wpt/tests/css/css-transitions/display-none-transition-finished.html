@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Completed display:none transitions finish instead of canceling</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/#transition-lifecycle">
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#display-animation">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/popover.html">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+
+<style>
+  dialog.closing-test,
+  [popover].closing-test {
+    opacity: 0;
+    scale: 0.9;
+    transition:
+      display var(--dur) allow-discrete,
+      opacity var(--dur),
+      overlay var(--dur) allow-discrete,
+      scale var(--dur);
+  }
+  dialog.closing-test[open],
+  [popover].closing-test:popover-open {
+    opacity: 1;
+    scale: 1;
+  }
+  dialog.closing-test::backdrop,
+  [popover].closing-test::backdrop {
+    opacity: 0;
+    transition:
+      display var(--dur) allow-discrete,
+      opacity var(--dur),
+      overlay var(--dur) allow-discrete;
+  }
+  dialog.closing-test[open]::backdrop,
+  [popover].closing-test:popover-open::backdrop {
+    opacity: 1;
+  }
+
+  .partial-box {
+    display: block;
+    opacity: 1;
+    transition:
+      display 100s allow-discrete,
+      opacity 100s;
+  }
+  .partial-box.hidden {
+    display: none;
+    opacity: 0;
+  }
+
+  .fade-box {
+    opacity: 1;
+    transition: opacity 100s;
+  }
+</style>
+
+<body>
+<script>
+const kExpectedClosingTransitions = [
+  '::backdrop:opacity',
+  ':display',
+  ':opacity',
+  ':overlay',
+  ':scale',
+];
+
+function keyForAnimation(anim) {
+  return `${anim.effect.pseudoElement || ''}:${anim.transitionProperty}`;
+}
+
+function createDialog(t, duration) {
+  const dialog = document.createElement('dialog');
+  dialog.className = 'closing-test';
+  dialog.style.setProperty('--dur', duration);
+  dialog.textContent = 'Dialog content';
+  document.body.appendChild(dialog);
+  t.add_cleanup(() => dialog.remove());
+  return dialog;
+}
+
+function createPopover(t, duration) {
+  const popover = document.createElement('div');
+  popover.popover = 'auto';
+  popover.className = 'closing-test';
+  popover.style.setProperty('--dur', duration);
+  popover.textContent = 'Popover content';
+  document.body.appendChild(popover);
+  t.add_cleanup(() => popover.remove());
+  return popover;
+}
+
+function createEventRecorder(element) {
+  const state = {
+    transitionend: [],
+    transitioncancel: [],
+    finish: [],
+    cancel: [],
+  };
+  element.addEventListener('transitionend', (e) => {
+    state.transitionend.push(`${e.pseudoElement}:${e.propertyName}`);
+  });
+  element.addEventListener('transitioncancel', (e) => {
+    state.transitioncancel.push(`${e.pseudoElement}:${e.propertyName}`);
+  });
+  return state;
+}
+
+function recordAnimationEvents(anims, state) {
+  for (const anim of anims) {
+    const key = keyForAnimation(anim);
+    anim.addEventListener('finish', () => state.finish.push(key));
+    anim.addEventListener('cancel', () => state.cancel.push(key));
+  }
+}
+
+function assertClosingTransitionsFinished(element, anims, state) {
+  assert_equals(getComputedStyle(element).display, 'none');
+  assert_array_equals(state.transitioncancel, [], 'No transitioncancel events');
+  assert_array_equals(state.cancel, [], 'No animation cancel events');
+  assert_array_equals(state.transitionend.slice().sort(),
+                      kExpectedClosingTransitions,
+                      'All transitionend events');
+  assert_array_equals(state.finish.slice().sort(),
+                      kExpectedClosingTransitions,
+                      'All animation finish events');
+  for (const anim of anims) {
+    assert_equals(anim.playState, 'finished',
+                  `${keyForAnimation(anim)} should remain finished`);
+  }
+}
+
+async function runNormalDismissTest(element, openFn, closeFn) {
+  const state = createEventRecorder(element);
+  openFn();
+  await waitForAnimationFrames(2);
+
+  closeFn();
+  const anims = element.getAnimations({ subtree: true });
+  assert_equals(anims.length, 5, 'Expected 5 closing transitions');
+  recordAnimationEvents(anims, state);
+
+  await Promise.all(anims.map((a) => a.finished));
+  await waitForAnimationFrames(2);
+  assertClosingTransitionsFinished(element, anims, state);
+}
+
+async function runOnDemandFlushDismissTest(element, openFn, closeFn) {
+  const state = createEventRecorder(element);
+  openFn();
+  await waitForAnimationFrames(2);
+
+  closeFn();
+  const anims = element.getAnimations({ subtree: true });
+  assert_equals(anims.length, 5, 'Expected 5 closing transitions');
+  recordAnimationEvents(anims, state);
+
+  await Promise.all(anims.map((a) => a.ready));
+  await waitForAnimationFrames(1);
+
+  // Advance all transitions to their end time and immediately force an
+  // on-demand style update before microtasks or an animation frame run.
+  for (const anim of anims) {
+    anim.currentTime = 100000;
+  }
+  assert_equals(getComputedStyle(element).display, 'none',
+                'On-demand style update resolves display: none');
+
+  await Promise.all(anims.map((a) => a.finished));
+  await waitForAnimationFrames(2);
+  assertClosingTransitionsFinished(element, anims, state);
+}
+
+promise_test(async (t) => {
+  const dialog = createDialog(t, '50ms');
+  await runNormalDismissTest(dialog, () => dialog.showModal(),
+                             () => dialog.close());
+}, 'Closing dialog allow-discrete transitions finish cleanly without canceling');
+
+promise_test(async (t) => {
+  const dialog = createDialog(t, '100s');
+  await runOnDemandFlushDismissTest(dialog, () => dialog.showModal(),
+                                    () => dialog.close());
+}, 'On-demand style flush to display:none after transitions reach end does not cancel them');
+
+promise_test(async (t) => {
+  const popover = createPopover(t, '50ms');
+  await runNormalDismissTest(popover, () => popover.showPopover(),
+                             () => popover.hidePopover());
+}, 'Hiding popover allow-discrete transitions finish cleanly without canceling');
+
+promise_test(async (t) => {
+  const popover = createPopover(t, '100s');
+  await runOnDemandFlushDismissTest(popover, () => popover.showPopover(),
+                                    () => popover.hidePopover());
+}, 'On-demand style flush to display:none after popover transitions reach end does not cancel them');
+
+promise_test(async (t) => {
+  const popover = createPopover(t, '100ms');
+  const outside = document.createElement('button');
+  outside.style.cssText =
+      'position: fixed; left: 5px; top: 5px; width: 30px; height: 30px;';
+  document.body.appendChild(outside);
+  t.add_cleanup(() => outside.remove());
+
+  const state = createEventRecorder(popover);
+  let anims = [];
+
+  popover.showPopover();
+  await waitForAnimationFrames(2);
+
+  // Light dismiss runs immediately before dispatching `click`; capture the
+  // closing transitions synchronously on `click` while also establishing a live
+  // mouse position so BeginMainFrame hover recomputation exercises on-demand
+  // updates.
+  document.addEventListener('click', () => {
+    anims = popover.getAnimations({ subtree: true });
+    recordAnimationEvents(anims, state);
+  }, { once: true });
+
+  const actions = new test_driver.Actions();
+  await actions
+      .pointerMove(20, 20)
+      .pointerDown({ button: actions.ButtonType.LEFT })
+      .pointerUp({ button: actions.ButtonType.LEFT })
+      .send();
+
+  assert_equals(anims.length, 5,
+                'Expected 5 closing transitions on light dismiss');
+  await Promise.all(anims.map((a) => a.finished));
+  await waitForAnimationFrames(2);
+  assertClosingTransitionsFinished(popover, anims, state);
+}, 'Light-dismissing popover via pointer click finishes allow-discrete transitions without canceling');
+
+promise_test(async (t) => {
+  const el = document.createElement('div');
+  el.className = 'partial-box';
+  el.textContent = 'Box';
+  document.body.appendChild(el);
+  t.add_cleanup(() => el.remove());
+
+  const transitionend = [];
+  const transitioncancel = [];
+  el.addEventListener('transitionend', (e) => transitionend.push(e.propertyName));
+  el.addEventListener('transitioncancel', (e) => transitioncancel.push(e.propertyName));
+
+  await waitForAnimationFrames(2);
+  el.classList.add('hidden');
+
+  const anims = el.getAnimations();
+  assert_equals(anims.length, 2);
+  const displayAnim = anims.find((a) => a.transitionProperty === 'display');
+  const opacityAnim = anims.find((a) => a.transitionProperty === 'opacity');
+  assert_true(Boolean(displayAnim && opacityAnim));
+
+  await Promise.all(anims.map((a) => a.ready));
+  await waitForAnimationFrames(1);
+
+  // Only finish the display transition, leaving opacity still running.
+  displayAnim.currentTime = 100000;
+  const opacityFinished = promise_rejects_dom(t, 'AbortError', opacityAnim.finished);
+  assert_equals(getComputedStyle(el).display, 'none');
+
+  await displayAnim.finished;
+  await opacityFinished;
+  await waitForAnimationFrames(2);
+
+  assert_array_equals(transitionend, ['display']);
+  assert_array_equals(transitioncancel, ['opacity']);
+  assert_equals(displayAnim.playState, 'finished');
+  assert_equals(opacityAnim.playState, 'idle');
+}, 'Completed display transition finishes while still-running sibling transition cancels');
+
+promise_test(async (t) => {
+  for (const mode of ['remove-property', 'retarget']) {
+    const el = document.createElement('div');
+    el.className = 'fade-box';
+    el.textContent = 'Fade';
+    document.body.appendChild(el);
+    t.add_cleanup(() => el.remove());
+
+    const transitionend = [];
+    const transitioncancel = [];
+    el.addEventListener('transitionend', (e) => transitionend.push(e.propertyName));
+    el.addEventListener('transitioncancel', (e) => transitioncancel.push(e.propertyName));
+
+    await waitForAnimationFrames(2);
+    el.style.opacity = '0';
+
+    const anim = el.getAnimations()[0];
+    assert_equals(anim.transitionProperty, 'opacity');
+    await anim.ready;
+    await waitForAnimationFrames(1);
+
+    anim.currentTime = 100000;
+    if (mode === 'remove-property') {
+      el.style.transitionProperty = 'none';
+    } else {
+      el.style.opacity = '0.5';
+    }
+    getComputedStyle(el).opacity;
+
+    await anim.finished;
+    await waitForAnimationFrames(2);
+
+    assert_array_equals(transitionend, ['opacity'], `${mode}: transitionend`);
+    assert_array_equals(transitioncancel, [], `${mode}: no transitioncancel`);
+    assert_equals(anim.playState, 'finished', `${mode}: playState`);
+  }
+}, 'Retargeting or removing transition-property after transition reaches end finishes cleanly');
+</script>
+</body>

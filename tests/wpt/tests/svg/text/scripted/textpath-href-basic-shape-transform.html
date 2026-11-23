@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<title>textPath href: the transform of a basic shape target moves the text with it</title>
+<link rel="author" title="Karl Dubost" href="mailto:k_dubost@apple.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextLayoutPath">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementHrefAttribute">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  text { font: 20px Ahem; }
+</style>
+
+<!--
+  Companion to textpath-href-basic-shape-targets.html. SVG 2: "The transform attribute
+  on the referenced path element or basic shape element represents a supplemental
+  transformation relative to the current user coordinate system for the current text
+  element". One property per subtest: where the transformed shape starts, and, for scale
+  and rotate, which way the text then runs.
+
+  Ahem at 20px advances 20 units per character, so on a straight stretch character 1
+  starts 20 units after character 0, in the direction of the transformed path.
+-->
+
+<svg width="500" height="300">
+  <path id="path-translate" d="M 100 100 H 300" transform="translate(100 50)"/>
+  <text><textPath id="on-path-translate" href="#path-translate">ABC</textPath></text>
+</svg>
+<svg width="500" height="300">
+  <rect id="rect-translate" x="100" y="100" width="200" height="100" transform="translate(100 50)"/>
+  <text><textPath id="on-rect-translate" href="#rect-translate">ABC</textPath></text>
+</svg>
+<svg width="500" height="300">
+  <line id="line-translate" x1="100" y1="100" x2="300" y2="100" stroke="black" transform="translate(100 50)"/>
+  <text><textPath id="on-line-translate" href="#line-translate">ABC</textPath></text>
+</svg>
+<svg width="500" height="300">
+  <polygon id="polygon-translate" points="100,100 300,100 300,200" transform="translate(100 50)"/>
+  <text><textPath id="on-polygon-translate" href="#polygon-translate">ABC</textPath></text>
+</svg>
+<svg width="500" height="300">
+  <circle id="circle-translate" cx="150" cy="100" r="100" transform="translate(100 50)"/>
+  <text><textPath id="on-circle-translate" href="#circle-translate">ABC</textPath></text>
+</svg>
+<svg width="500" height="300">
+  <ellipse id="ellipse-translate" cx="150" cy="100" rx="120" ry="80" transform="translate(100 50)"/>
+  <text><textPath id="on-ellipse-translate" href="#ellipse-translate">ABC</textPath></text>
+</svg>
+
+<svg width="500" height="300">
+  <path id="path-scale" d="M 100 75 H 200" transform="scale(2)"/>
+  <text><textPath id="on-path-scale" href="#path-scale">ABC</textPath></text>
+</svg>
+<svg width="500" height="300">
+  <line id="line-scale" x1="100" y1="75" x2="200" y2="75" stroke="black" transform="scale(2)"/>
+  <text><textPath id="on-line-scale" href="#line-scale">ABC</textPath></text>
+</svg>
+
+<svg width="500" height="300">
+  <path id="path-rotate" d="M 200 150 H 400" transform="rotate(90 200 150)"/>
+  <text><textPath id="on-path-rotate" href="#path-rotate">ABC</textPath></text>
+</svg>
+<svg width="500" height="300">
+  <line id="line-rotate" x1="200" y1="150" x2="400" y2="150" stroke="black" transform="rotate(90 200 150)"/>
+  <text><textPath id="on-line-rotate" href="#line-rotate">ABC</textPath></text>
+</svg>
+
+<svg width="500" height="300">
+  <path id="path-css" d="M 100 100 H 300" style="transform: translate(100px, 50px)"/>
+  <text><textPath id="on-path-css" href="#path-css">ABC</textPath></text>
+</svg>
+<svg width="500" height="300">
+  <line id="line-css" x1="100" y1="100" x2="300" y2="100" stroke="black" style="transform: translate(100px, 50px)"/>
+  <text><textPath id="on-line-css" href="#line-css">ABC</textPath></text>
+</svg>
+
+<script>
+const TOLERANCE = 3;
+
+// The positions of characters after the first depend on Ahem's advance of 20, so wait for
+// the font before measuring.
+const fontReady = document.fonts.load('20px Ahem');
+function fontTest(fn, name) {
+  promise_test(async () => {
+    await fontReady;
+    fn();
+  }, name);
+}
+
+function expectAt(id, index, x, y) {
+  const start = document.getElementById(id).getStartPositionOfChar(index);
+  assert_approx_equals(start.x, x, TOLERANCE, `x of character ${index}`);
+  assert_approx_equals(start.y, y, TOLERANCE, `y of character ${index}`);
+}
+
+// Every expected point is more than 100 units from the origin, and none equals the
+// untransformed start, so neither "not laid out" (0, 0) nor "transform ignored" passes.
+fontTest(() => {
+  const untransformed = [100, 100];
+  for (const [x, y] of [[200, 150], [220, 150], [200, 170], [220, 150]]) {
+    assert_greater_than(Math.hypot(x, y), 100);
+    assert_true(x !== untransformed[0] || y !== untransformed[1]);
+  }
+}, 'control: every expected point is far from the origin and from the untransformed start');
+
+// translate(100 50) moves a start of (100, 100) to (200, 150).
+fontTest(() => expectAt('on-path-translate', 0, 200, 150), 'control, path: translate moves the start');
+fontTest(() => expectAt('on-rect-translate', 0, 200, 150), 'rect: translate moves the start');
+fontTest(() => expectAt('on-line-translate', 0, 200, 150), 'line: translate moves the start');
+fontTest(() => expectAt('on-polygon-translate', 0, 200, 150), 'polygon: translate moves the start');
+fontTest(() => expectAt('on-circle-translate', 0, 350, 150), 'circle: translate moves the 3 o\'clock start');
+fontTest(() => expectAt('on-ellipse-translate', 0, 370, 150), 'ellipse: translate moves the 3 o\'clock start');
+
+// scale(2) of M 100 75 is (200, 150). The text keeps its own size: character 1 starts
+// 20 units on, in the scaled path, and not 10.
+fontTest(() => expectAt('on-path-scale', 1, 220, 150), 'control, path: scale keeps the character advance at 20');
+fontTest(() => expectAt('on-line-scale', 1, 220, 150), 'line: scale keeps the character advance at 20');
+
+// rotate(90) about the start turns a path running right into one running down.
+fontTest(() => expectAt('on-path-rotate', 1, 200, 170), 'control, path: rotate turns the text to run down');
+fontTest(() => expectAt('on-line-rotate', 1, 200, 170), 'line: rotate turns the text to run down');
+
+// The CSS property is the same transform; the spec word is "attribute".
+fontTest(() => expectAt('on-path-css', 0, 200, 150), 'control, path: the CSS transform property moves the start');
+fontTest(() => expectAt('on-line-css', 0, 200, 150), 'line: the CSS transform property moves the start');
+</script>

@@ -395,6 +395,7 @@ class FirefoxAndroidBrowser(Browser):
 
     def cleanup(self, force=False):
         self.stop(force)
+        self.runner.device.device.pull_ccov()
 
     def executor_browser(self):
         return ExecutorBrowser, {"marionette_port": self.marionette_port,

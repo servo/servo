@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>A soft row break does not expand a spanner in the preceding fragment</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="match" href="row-expansion-005-ref.html">
+<style>
+  .multicol { columns: 3; column-gap: 0; column-fill: auto; width: 300px; height: 100px; }
+  .lanes { display: grid-lanes; grid-template-rows: 40px auto 40px; width: 100px; }
+  .lanes > div { width: 20px; }
+</style>
+<div class="multicol">
+  <div class="lanes">
+    <div style="grid-row: 1;"></div>
+    <div style="grid-row: 1 / 3; background: teal;"></div>
+    <div style="grid-row: 2;">
+      <div style="height: 20px; background: green;"></div>
+      <div style="height: 20px; break-before: column; background: blue;"></div>
+    </div>
+    <div style="grid-row: 2; background: purple;"></div>
+    <div style="grid-row: 2 / 4; height: 80px; break-inside: avoid;"></div>
+  </div>
+</div>

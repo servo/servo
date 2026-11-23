@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Pixel snapping of content in a stuck sticky element at a fractional layout offset</title>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Content inside a stuck sticky element at a fractional layout offset pixel-snaps to the element's true sticky position">
+<style>
+  #scroller {
+    overflow: hidden;
+    width: 100px;
+    height: 100px;
+  }
+  #sticky {
+    position: sticky;
+    top: 0;
+    height: 100px;
+    background: red;
+  }
+  #child {
+    position: relative;
+    height: 100px;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="scroller">
+  <div id="spacer"></div>
+  <div id="sticky">
+    <div id="child"></div>
+  </div>
+  <div style="height: 200px;"></div>
+</div>
+<script>
+  // Fractional device-pixel offsets: the sticky element's layout position
+  // and its child's relative offset are both non-integral, but the stuck
+  // position (scroll offset 20) is whole, so the child must snap to it.
+  spacer.style.height = (10.375 / devicePixelRatio) + 'px';
+  child.style.top = (0.25 / devicePixelRatio) + 'px';
+  scroller.scrollTo(0, 20);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.documentElement.classList.remove('reftest-wait');
+  }));
+</script>
+</html>

@@ -932,6 +932,7 @@ interface HTMLInputElement : HTMLElement {
   [CEReactions, Reflect] attribute unsigned long size;
   [CEReactions, ReflectURL] attribute USVString src;
   [CEReactions, Reflect] attribute DOMString step;
+  [CEReactions, Reflect] attribute boolean switch;
   [CEReactions] attribute DOMString type;
   [CEReactions, Reflect="value"] attribute DOMString defaultValue;
   [CEReactions] attribute [LegacyNullToEmptyString] DOMString value;

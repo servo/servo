@@ -192,7 +192,7 @@
       assert_equals(pi.getAttribute("attr"), "");
     }, "Processing instruction toggleAttribute from " + source);
 
-    function test_attribute_value(value) {
+    function test_valid_attribute_value(value) {
       test(() => {
         const pi = createProcessingInstruction("target", "");
         pi.setAttribute("attr", value);
@@ -204,7 +204,16 @@
           .replaceAll("<", "&lt;")
           .replaceAll(">", "&gt;");
         assert_equals(pi.data, `attr="${escaped}"`);
-      }, `check attribute value: ${format_value(value)} (source: "${source}")`);
+      }, `Valid attribute value: ${format_value(value)} (source: ${source})`);
+    }
+
+    function test_invalid_attribute_value(value) {
+      test(() => {
+        const pi = createProcessingInstruction("target", "");
+        assert_throws_dom("InvalidCharacterError", () => {
+          pi.setAttribute("attr", value);
+        });
+      }, `Invalid attribute value: ${format_value(value)} (source: ${source})`);
     }
 
     function test_valid_attribute_name(name) {
@@ -215,6 +224,12 @@
         assert_equals(pi.getAttribute(name), "value");
         assert_array_equals(pi.getAttributeNames(), [name]);
 
+        // A name setAttribute() accepts matches Name, so it survives being parsed back out
+        // of data.
+        assert_equals(pi.data, `${name}="value"`);
+        pi.data = pi.data;
+        assert_equals(pi.getAttribute(name), "value");
+
         pi.toggleAttribute(name, false);
         assert_false(pi.hasAttribute(name));
 
@@ -224,12 +239,12 @@
 
         pi.removeAttribute(name);
         assert_false(pi.hasAttribute(name));
-      }, `Valid attribute name: ${name} (source: ${source})`);
+      }, `Valid attribute name: ${format_value(name)} (source: ${source})`);
     }
 
     function test_invalid_attribute_name(name) {
       test(() => {
-        const pi = document.createProcessingInstruction("target", "");
+        const pi = createProcessingInstruction("target", "");
         assert_throws_dom("InvalidCharacterError", () => {
           pi.setAttribute(name, "value");
         });
@@ -242,7 +257,7 @@
         assert_throws_dom("InvalidCharacterError", () => {
           pi.toggleAttribute(name);
         });
-      }, `Invalid attribute name: ${name} (source: ${source})`);
+      }, `Invalid attribute name: ${format_value(name)} (source: ${source})`);
     }
 
     function test_distinct_attribute_name(name, other) {
@@ -268,26 +283,106 @@
       );
     }
 
-    test_attribute_value("");
+    // https://www.w3.org/TR/xml-stylesheet/#dt-parsing defines PseudoAtt in terms of XML's
+    // Name and Reference productions. These helpers parse data rather than calling
+    // setAttribute(), so they cover the other direction of the same grammar.
+    function test_valid_pseudo_att(data, name, value) {
+      test(() => {
+        const pi = createProcessingInstruction("t", data);
+        assert_equals(pi.data, data, "data is preserved verbatim");
+        assert_true(pi.hasAttributes());
+        assert_array_equals(pi.getAttributeNames(), [name]);
+        assert_equals(pi.getAttribute(name), value);
+      }, `Valid pseudo-attribute: ${format_value(data)} (source: ${source})`);
+    }
+
+    function test_invalid_pseudo_att(data) {
+      test(() => {
+        const pi = createProcessingInstruction("t", data);
+        assert_equals(pi.data, data, "data is preserved verbatim");
+        assert_false(pi.hasAttributes());
+        assert_array_equals(pi.getAttributeNames(), []);
+      }, `Invalid pseudo-attribute: ${format_value(data)} (source: ${source})`);
+    }
+
+    // A name that matches Name parses out of data, and one that does not is an error that
+    // leaves the processing instruction without attributes.
+    function test_valid_name_in_data(name) {
+      test_valid_pseudo_att(`${name}="1"`, name, "1");
+    }
+
+    function test_invalid_name_in_data(name) {
+      test_invalid_pseudo_att(`${name}="1"`);
+    }
+
+    // A value in data goes through the Reference production, so a character reference is
+    // resolved while a malformed or out-of-range one is an error.
+    function test_valid_value_in_data(literal, value) {
+      test_valid_pseudo_att(`a="${literal}"`, "a", value);
+    }
+
+    function test_invalid_value_in_data(literal) {
+      test_invalid_pseudo_att(`a="${literal}"`);
+    }
+
+    test_valid_attribute_value("");
 
     // Escaped in PI https://dom.spec.whatwg.org/#update-data-from-attributes
-    test_attribute_value("&");
-    test_attribute_value('"');
-    test_attribute_value("<");
-    test_attribute_value(">");
+    test_valid_attribute_value("&");
+    test_valid_attribute_value('"');
+    test_valid_attribute_value("<");
+    test_valid_attribute_value(">");
 
     // Escaped in XML attributes but not in PIs
-    test_attribute_value("\t");
-    test_attribute_value("\n");
-    test_attribute_value("\r");
+    test_valid_attribute_value("\t");
+    test_valid_attribute_value("\n");
+    test_valid_attribute_value("\r");
 
     // Escaped in HTML attributes but not in PIs
-    test_attribute_value("\u00A0");
+    test_valid_attribute_value("\u00A0");
 
     // These should not be escaped
-    test_attribute_value("=");
-    test_attribute_value("'");
+    test_valid_attribute_value("=");
+    test_valid_attribute_value("'");
 
+    // [#x20-#xD7FF] boundaries and DEL/C1 controls
+    test_valid_attribute_value(" ");
+    test_valid_attribute_value("\x7F");
+    test_valid_attribute_value("\u0080");
+    test_valid_attribute_value("\uD7FF");
+    // [#xE000-#xFFFD] boundaries (including #xFDD0, allowed by XML's Char)
+    test_valid_attribute_value("\uE000");
+    test_valid_attribute_value("\uFDD0");
+    test_valid_attribute_value("\uFFFD");
+    // [#x10000-#x10FFFF] boundaries (surrogate pairs, including #xF0000 and #x10FFFF)
+    test_valid_attribute_value("\u{10000}");
+    test_valid_attribute_value("\u{F0000}");
+    test_valid_attribute_value("\u{10FFFE}");
+    test_valid_attribute_value("\u{10FFFF}");
+
+    // Code points excluded from XML's Char are rejected by setAttribute() per
+    // https://github.com/whatwg/dom/pull/1524. toggleAttribute() only ever writes the empty
+    // string, so it has no value check.
+    // Control characters excluded from XML's Char (#x0-#x8, #xB-#xC, #xE-#x1F)
+    test_invalid_attribute_value("\0");
+    test_invalid_attribute_value("a\0b");
+    test_invalid_attribute_value("\x08");
+    test_invalid_attribute_value("\x0B");
+    test_invalid_attribute_value("\f");
+    test_invalid_attribute_value("\x0E");
+    test_invalid_attribute_value("\x1F");
+    // Lone surrogates (#xD800-#xDFFF)
+    test_invalid_attribute_value("\uD800");
+    test_invalid_attribute_value("\uDFFF");
+    test_invalid_attribute_value("a\uD800b");
+    test_invalid_attribute_value("\uDC00\uD800");
+    // Noncharacters excluded from XML's Char (#xFFFE-#xFFFF)
+    test_invalid_attribute_value("\uFFFE");
+    test_invalid_attribute_value("\uFFFF");
+    test_invalid_attribute_value("a\uFFFEb");
+
+    // Empty, delimiter, whitespace, and null characters (also invalid as attribute local names)
+    test_invalid_attribute_name("");
     test_invalid_attribute_name("=");
     test_invalid_attribute_name("a=");
     test_invalid_attribute_name("=x");
@@ -303,17 +398,156 @@
     test_invalid_attribute_name("\nx");
     test_invalid_attribute_name("x\r");
     test_invalid_attribute_name("\rx");
+    test_invalid_attribute_name("x\f");
+    test_invalid_attribute_name("\fx");
+    test_invalid_attribute_name("x ");
+    test_invalid_attribute_name(" x");
+    test_invalid_attribute_name("x\0");
+    test_invalid_attribute_name("\0x");
 
-    test_valid_attribute_name("$");
+    // Names rejected by setAttribute() per https://github.com/whatwg/dom/pull/1524 because
+    // they do not match XML's Name production, even though they used to be valid attribute
+    // local names.
+    test_invalid_attribute_name("$");
+    test_invalid_attribute_name("$foo");
+    test_invalid_attribute_name("a$b");
+    test_invalid_attribute_name('a"b');
+    test_invalid_attribute_name("a'b");
+    test_invalid_attribute_name("a<b");
+    test_invalid_attribute_name("a&b");
+    test_invalid_attribute_name("a?b");
+    // XML NameChar characters that are not NameStartChar
+    test_invalid_attribute_name("-");
+    test_invalid_attribute_name("-foo");
+    test_invalid_attribute_name(".");
+    test_invalid_attribute_name(".foo");
+    test_invalid_attribute_name("0");
+    test_invalid_attribute_name("0foo");
+    test_invalid_attribute_name("\u00B7");
+    test_invalid_attribute_name("\u00B7a");
+    test_invalid_attribute_name("\u0300a");
+    test_invalid_attribute_name("\u203Fa");
+    // Non-ASCII, surrogate, and astral code points excluded from NameStartChar and NameChar
+    test_invalid_attribute_name("\u00AA"); // below #xC0 (excluding #xB7)
+    test_invalid_attribute_name("a\u00AA");
+    test_invalid_attribute_name("\u00BA");
+    test_invalid_attribute_name("a\u00BA");
+    test_invalid_attribute_name("\u00D7"); // between #xC0-#xD6 and #xD8-#xF6
+    test_invalid_attribute_name("a\u00D7");
+    test_invalid_attribute_name("\u00F7"); // between #xD8-#xF6 and #xF8-#x2FF
+    test_invalid_attribute_name("a\u00F7");
+    test_invalid_attribute_name("\u037E"); // between #x370-#x37D and #x37F-#x1FFF
+    test_invalid_attribute_name("\u2000"); // between #x1FFF and #x200C-#x200D
+    test_invalid_attribute_name("\uD800"); // lone surrogate (#xD800-#xDFFF)
+    test_invalid_attribute_name("\uFFFE"); // noncharacters above #xFDF0-#xFFFD
+    test_invalid_attribute_name("\uFFFF");
+    test_invalid_attribute_name("\u{F0000}"); // Supplementary Private Use above #x10000-#xEFFFF
+    test_invalid_attribute_name("\u{10FFFF}");
+
+    // ASCII NameStartChar ("_" and ":", including names not matching QName)
     test_valid_attribute_name("_");
-    test_valid_attribute_name("$foo");
     test_valid_attribute_name("_bar");
-    test_valid_attribute_name("a$b");
     test_valid_attribute_name("a_b");
+    test_valid_attribute_name(":");
+    test_valid_attribute_name(":foo");
+    test_valid_attribute_name("foo:");
+    test_valid_attribute_name("a:b");
+    test_valid_attribute_name("a:b:c");
+    // NameChar-only characters after a NameStartChar
+    test_valid_attribute_name("a-b");
+    test_valid_attribute_name("a.b");
+    test_valid_attribute_name("a0");
+    test_valid_attribute_name("a\u00B7b");
+    test_valid_attribute_name("a\u0300b");
+    test_valid_attribute_name("a\u203Fb");
+    // Non-ASCII and astral NameStartChar ranges
+    test_valid_attribute_name("\u00C0"); // #xC0-#xD6
+    test_valid_attribute_name("\u0370"); // #x370-#x37D
+    test_valid_attribute_name("\u3001"); // #x3001-#xD7FF
+    test_valid_attribute_name("\uFFFD"); // top of #xFDF0-#xFFFD
+    test_valid_attribute_name("\u{10000}"); // #x10000-#xEFFFF
+    test_valid_attribute_name("\u{1F600}");
+    test_valid_attribute_name("\u{EFFFF}");
 
     test_distinct_attribute_name("ABC", "abc");
     test_distinct_attribute_name("abC", "abc");
     test_distinct_attribute_name("x123A", "x123a");
+
+    // Names in data that match XML's Name production, including names that are not QNames
+    test_valid_name_in_data("_a");
+    test_valid_name_in_data(":a");
+    test_valid_name_in_data("a:b");
+    test_valid_name_in_data("a-b");
+    test_valid_name_in_data("a.b");
+    test_valid_name_in_data("a0");
+    test_valid_name_in_data("a:-b");
+    test_valid_name_in_data("a\u00B7");
+    test_valid_name_in_data("\u00C0");
+    test_valid_name_in_data("\uFFFD");
+    test_valid_name_in_data("\u{10000}");
+
+    // Names in data that do not match Name
+    test_invalid_name_in_data("$");
+    test_invalid_name_in_data("$foo");
+    test_invalid_name_in_data("a$b");
+    test_invalid_name_in_data("1a");
+    test_invalid_name_in_data("-a");
+    test_invalid_name_in_data(".a");
+    test_invalid_name_in_data("\u00D7");
+    test_invalid_name_in_data("\u00B7a");
+    test_invalid_name_in_data("\u{F0000}");
+
+    // CharRef is '&#' [0-9]+ ';' | '&#x' [0-9a-fA-F]+ ';', and the referenced character has
+    // to match Char.
+    test_valid_value_in_data("&#65;", "A");
+    test_valid_value_in_data("&#00065;", "A");
+    test_valid_value_in_data("&#x41;", "A");
+    test_valid_value_in_data("&#x4a;", "J");
+    test_valid_value_in_data("&#x4A;", "J");
+    test_valid_value_in_data("&#9;", "\t");
+    test_valid_value_in_data("&#xFDD0;", "\uFDD0"); // noncharacter allowed by Char
+    test_valid_value_in_data("&#xFFFD;", "\uFFFD");
+    test_valid_value_in_data("&#x10000;", "\u{10000}");
+    test_valid_value_in_data("&#x10FFFF;", "\u{10FFFF}");
+
+    // The predefined entities, which EntityRef allows in a pseudo-attribute value
+    test_valid_value_in_data("&amp;", "&");
+    test_valid_value_in_data("&lt;", "<");
+    test_valid_value_in_data("&gt;", ">");
+    test_valid_value_in_data("&quot;", '"');
+    test_valid_value_in_data("&apos;", "'");
+    // The replacement text of a reference is not rescanned for further references
+    test_valid_value_in_data("&#38;lt;", "&lt;");
+    test_valid_value_in_data("&amp;#65;", "&#65;");
+
+    // Malformed references
+    test_invalid_value_in_data("&# 65;");
+    test_invalid_value_in_data("&#+65;");
+    test_invalid_value_in_data("&#X41;"); // uppercase X
+    test_invalid_value_in_data("&#;");
+    test_invalid_value_in_data("&#x;");
+    test_invalid_value_in_data("&#xZZ;");
+    test_invalid_value_in_data("&#65"); // no semicolon
+    test_invalid_value_in_data("&");
+    test_invalid_value_in_data("&amp");
+    test_invalid_value_in_data("&AMP;");
+    test_invalid_value_in_data("&unknown;");
+    // Referenced characters that do not match Char, including values that overflow
+    test_invalid_value_in_data("&#0;");
+    test_invalid_value_in_data("&#1;");
+    test_invalid_value_in_data("&#xDFFF;");
+    test_invalid_value_in_data("&#xFFFE;");
+    test_invalid_value_in_data("&#x110000;");
+    test_invalid_value_in_data("&#4294967361;");
+    test_invalid_value_in_data("&#x100000041;");
+
+    // Literal characters in a value: neither xml-stylesheet nor DOM normalizes whitespace,
+    // and '>' needs no escaping, while '<' has to be a reference.
+    // CR is left out because the HTML parser normalizes newlines in data.
+    test_valid_value_in_data("a\tb", "a\tb");
+    test_valid_value_in_data("a\nb", "a\nb");
+    test_valid_value_in_data(">", ">");
+    test_invalid_value_in_data("<");
 
     test(() => {
       // This data would be normalized to `a="b" c="d"` if it went through

@@ -4,12 +4,9 @@ const sha256ofURLBytes = async (url) => {
 };
 
 // The hash of the URL in the format of url hashes in a policy, i.e. base64url
-// without padding.
+// with padding.
 const sha256ofURL = async (url) => {
-  return (await sha256ofURLBytes(url)).toBase64({
-    alphabet: "base64url",
-    omitPadding: true,
-  });
+  return (await sha256ofURLBytes(url)).toBase64({alphabet: "base64url"});
 };
 
 // The hash of the URL in the format used by the urlHash member of

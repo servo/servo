@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<meta name="variant" content="?store">
+<meta name="variant" content="?no-store">
+<title>User activation of a document a traversal returns to is left alone when nothing is carried over</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#apply-the-history-step">
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/helper.sub.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+  <p>Non-zero-sized body to allow clicks.</p>
+</body>
+
+<script>
+  'use strict';
+
+  let uuid1 = token();
+  let uuid2 = token();
+
+  // The carry-over only ever sets sticky activation, so a traversal that
+  // carries none leaves the document it returns to as it was. The "no-store"
+  // variant recreates that document instead, which starts out with nothing.
+  const noStore = location.search === "?no-store";
+  let opened = originSameOrigin + executorPath + uuid1 +
+               (noStore ? "&pipe=header(Cache-Control,no-store)" : "");
+  let navigated_to = `${originCrossSite}${executorPath}${uuid2}`;
+
+  promise_test(async test => {
+    // Open a new window, click it, navigate it to a cross-origin document and
+    // traverse back. The document the traversal leaves has no sticky activation
+    // to give, and would be blocked from giving it anyway, so whatever the
+    // window reports afterwards is what the carry-over left alone.
+    let w;
+    document.body.onclick = () => {
+      w = window.open(opened);
+    };
+
+    await test_driver.click(document.body);
+    assert_true(!!w, "A window is opened");
+    // Close the window at the end of the test, so that a later test in the same
+    // session cannot click a window this one left behind.
+    test.add_cleanup(() => w && w.close());
+
+    const first = new RemoteContext(uuid1);
+    const second = new RemoteContext(uuid2);
+
+    // Check that the new window does not have user activation initially.
+    {
+      const result = await first.execute_script(getUserActivationStateWhenShown);
+      assertUserActivationState(result, false, false, "after window opened");
+    }
+
+    // Confirm that the new window gets user activation after a click.
+    await test_driver.click(w.document.documentElement);
+    {
+      const result = await first.execute_script(getUserActivationState);
+      assertUserActivationState(result, true, true, "after window clicked");
+    }
+
+    // Navigate the window to a cross-origin document.
+    await first.execute_script(url => {
+      prepareNavigation(() => {
+        location.href = url;
+      });
+    }, [navigated_to]);
+
+    // The cross-origin document gets nothing carried over, which is also what
+    // leaves it with nothing to hand back below.
+    {
+      const result = await second.execute_script(getUserActivationStateWhenShown);
+      assertUserActivationState(result, false, false,
+            "of the cross-origin document the window navigated to");
+    }
+
+    // Traverse back to the first document.
+    await second.execute_script(() => {
+      prepareNavigation(() => {
+        history.back();
+      });
+    });
+
+    const [transient, sticky] =
+          await first.execute_script(getUserActivationStateWhenShown);
+
+    if (noStore) {
+      await assert_not_bfcached(first);
+
+      // A document created from scratch starts out with nothing. The sticky
+      // activation the entry's previous document earned is not stored on the
+      // entry, so there is nothing for it to come back with.
+      assert_false(sticky, "Sticky bit of the recreated document");
+      assert_false(transient, "Transient bit of the recreated document");
+    } else {
+      await assert_bfcached(first);
+
+      // Only the sticky bit is read: the Window was never replaced, so whether
+      // its transient bit has expired by now is a matter of timing.
+      assert_true(sticky, "Sticky bit of the restored document");
+    }
+}, "User activation of a document a traversal returns to is left alone when " +
+   "nothing is carried over");
+</script>

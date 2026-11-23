@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<title>textPath href: text runs along a basic shape in the direction of its equivalent path</title>
+<link rel="author" title="Karl Dubost" href="mailto:k_dubost@apple.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextLayoutPath">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/shapes.html#RectElement">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/shapes.html#CircleElement">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/shapes.html#EllipseElement">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/shapes.html#LineElement">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/shapes.html#PolylineElement">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/shapes.html#PolygonElement">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  text { font: 20px Ahem; }
+</style>
+
+<!--
+  Companion to textpath-href-basic-shape-targets.html, which only checks where the
+  first character starts. This file checks which way the text runs after that, one
+  property per subtest, so a failure here means the direction is wrong and not that the
+  shape is unsupported.
+
+  Ahem at 20px advances 20 units per character. The midpoint of character k sits at
+  distance 20k + 10 along the path, so on a straight stretch its start is the point at
+  distance 20k.
+
+  Expected points, from the equivalent paths (rect, polyline and polygon turn clockwise
+  at the first corner, circle and ellipse run clockwise from the 3 o'clock point):
+    rect, polyline, polygon, path   "ABCDEFGH" char 6: 100 along the top, then 20 down
+                                    the right edge, so (300, 170)
+    polygon, path with Z            "ABCDEFGHIJKL" char 11: 220 along, which is 20 back
+                                    along the closing edge from (300, 250)
+    line from right to left         char 1 is 20 left of the start
+    circle, arc path                char 1 is 20 along the arc below the 3 o'clock point
+-->
+
+<svg width="500" height="300">
+  <path id="path-corner" d="M 200 150 H 300 V 250"/>
+  <text><textPath id="on-path-corner" href="#path-corner">ABCDEFGH</textPath></text>
+</svg>
+<svg width="500" height="300">
+  <rect id="rect" x="200" y="150" width="100" height="100"/>
+  <text><textPath id="on-rect" href="#rect">ABCDEFGH</textPath></text>
+</svg>
+<svg width="500" height="300">
+  <polyline id="polyline" points="200,150 300,150 300,250"/>
+  <text><textPath id="on-polyline" href="#polyline">ABCDEFGH</textPath></text>
+</svg>
+<svg width="500" height="300">
+  <polygon id="polygon-corner" points="200,150 300,150 300,250"/>
+  <text><textPath id="on-polygon-corner" href="#polygon-corner">ABCDEFGH</textPath></text>
+</svg>
+<svg width="500" height="300">
+  <path id="path-closed" d="M 200 150 H 300 V 250 Z"/>
+  <text><textPath id="on-path-closed" href="#path-closed">ABCDEFGHIJKL</textPath></text>
+</svg>
+<svg width="500" height="300">
+  <polygon id="polygon-closing" points="200,150 300,150 300,250"/>
+  <text><textPath id="on-polygon-closing" href="#polygon-closing">ABCDEFGHIJKL</textPath></text>
+</svg>
+<svg width="500" height="300">
+  <path id="path-reversed" d="M 400 150 H 200"/>
+  <text><textPath id="on-path-reversed" href="#path-reversed">ABC</textPath></text>
+</svg>
+<svg width="500" height="300">
+  <line id="line-reversed" x1="400" y1="150" x2="200" y2="150" stroke="black"/>
+  <text><textPath id="on-line-reversed" href="#line-reversed">ABC</textPath></text>
+</svg>
+<svg width="500" height="300">
+  <path id="path-circle" d="M 350 150 A 100 100 0 0 1 250 250 A 100 100 0 0 1 150 150 A 100 100 0 0 1 250 50 A 100 100 0 0 1 350 150 Z"/>
+  <text><textPath id="on-path-circle" href="#path-circle">ABC</textPath></text>
+</svg>
+<svg width="500" height="300">
+  <circle id="circle" cx="250" cy="150" r="100"/>
+  <text><textPath id="on-circle" href="#circle">ABC</textPath></text>
+</svg>
+<svg width="500" height="300">
+  <ellipse id="ellipse" cx="250" cy="150" rx="120" ry="80"/>
+  <text><textPath id="on-ellipse" href="#ellipse">ABC</textPath></text>
+</svg>
+
+<script>
+const TOLERANCE = 3;
+
+// The positions of characters after the first depend on Ahem's advance of 20, so wait for
+// the font before measuring.
+const fontReady = document.fonts.load('20px Ahem');
+function fontTest(fn, name) {
+  promise_test(async () => {
+    await fontReady;
+    fn();
+  }, name);
+}
+
+function startOf(id, index) {
+  return document.getElementById(id).getStartPositionOfChar(index);
+}
+
+function expectAt(id, index, x, y) {
+  const start = startOf(id, index);
+  assert_approx_equals(start.x, x, TOLERANCE, `x of character ${index}`);
+  assert_approx_equals(start.y, y, TOLERANCE, `y of character ${index}`);
+}
+
+// Every expected point below is more than 100 units from the origin, so an engine that
+// does not lay the text out on the shape and reports (0, 0) cannot pass by accident.
+fontTest(() => {
+  for (const [x, y] of [[300, 170], [285.86, 235.86], [380, 150], [348.5, 170]])
+    assert_greater_than(Math.hypot(x, y), 100);
+}, 'control: every expected point is far from the origin');
+
+// Controls built from path data. They name the same points the shapes must reach, so if
+// one of them fails the expected numbers are wrong and not the shape support.
+fontTest(() => expectAt('on-path-corner', 6, 300, 170),
+     'control, path: after the first corner the text runs down the right edge');
+fontTest(() => expectAt('on-path-closed', 11, 285.86, 235.86),
+     'control, path with Z: the text continues back along the closing edge');
+fontTest(() => expectAt('on-path-reversed', 1, 380, 150),
+     'control, path drawn right to left: the second character is to the left of the first');
+fontTest(() => expectAt('on-path-circle', 1, 348.5, 170),
+     'control, path of four clockwise arcs: the second character is below the 3 o\'clock point');
+
+fontTest(() => expectAt('on-rect', 6, 300, 170),
+     'rect: after the first corner the text runs down the right edge');
+fontTest(() => expectAt('on-polyline', 6, 300, 170),
+     'polyline: after the first corner the text runs down the right edge');
+fontTest(() => expectAt('on-polygon-corner', 6, 300, 170),
+     'polygon: after the first corner the text runs down the right edge');
+fontTest(() => expectAt('on-polygon-closing', 11, 285.86, 235.86),
+     'polygon: the text continues back along the closing edge');
+fontTest(() => expectAt('on-line-reversed', 1, 380, 150),
+     'line from right to left: the second character is to the left of the first');
+fontTest(() => expectAt('on-circle', 1, 348.5, 170),
+     'circle: the second character is below the 3 o\'clock point (clockwise)');
+fontTest(() => {
+  const first = startOf('on-ellipse', 0);
+  const second = startOf('on-ellipse', 1);
+  assert_greater_than(second.y, first.y + 10, 'moves down, which is clockwise on screen');
+  assert_less_than(second.x, first.x + 1, 'does not move right of the 3 o\'clock point');
+}, 'ellipse: the second character is below the 3 o\'clock point (clockwise)');
+</script>

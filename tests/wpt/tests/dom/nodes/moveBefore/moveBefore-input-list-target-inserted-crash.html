@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/583179912">
+
+<input list="list">
+<div id="destination"></div>
+<div id="list"></div>
+<div id="moved">
+  <datalist id="list"><option value="x"></option></datalist>
+  <div id="host">
+    <template shadowrootmode="open"><slot></slot></template>
+    <span></span>
+  </div>
+</div>
+<script>
+  // Moving #moved inserts the <datalist> before the <div id="list">, so the
+  // focused <input> now refers to the <datalist>. That must not force a
+  // layout in the middle of the move.
+  document.querySelector('input').focus();
+  document.body.offsetTop;
+  host.shadowRoot.querySelector('slot').name = 'other';
+  destination.moveBefore(moved, null);
+</script>

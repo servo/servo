@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS Test: A float that does not overhang its containing block paints over an earlier float</title>
+<link rel="help" href="https://drafts.csswg.org/css2/#elaborate-stacking-contexts">
+<link rel="help" href="https://drafts.csswg.org/css-position-4/#paint-a-stacking-context">
+<link rel="match" href="non-overhanging-float-paint-order-ref.html">
+<meta name="assert" content="Floats paint in tree order, so the green float, which stays inside its containing block, paints over the earlier red float.">
+<style>
+#container {
+  width: 200px;
+}
+
+#red-first-float {
+  float: left;
+  width: 100px;
+  height: 100px;
+  background-color: red;
+}
+
+#block {
+  height: 100px;
+}
+
+#green-second-float {
+  float: left;
+  width: 150px;
+  height: 100px;
+  margin-left: -100px;
+  background-color: green;
+}
+</style>
+<div id="container">
+  <div id="red-first-float"></div>
+  <div id="block">
+    <div id="green-second-float"></div>
+  </div>
+</div>

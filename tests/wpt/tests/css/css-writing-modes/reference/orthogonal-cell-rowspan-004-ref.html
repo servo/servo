@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Writing Modes reference: orthogonal table cell content centered in stretched rows</title>
+
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+
+<style>
+.container {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.table {
+  display: flex;
+  height: 240px;
+  font: 20px/1 Ahem;
+  color: green;
+}
+
+.cell { box-sizing: border-box; height: 240px; padding-top: 80px; }
+.filler { width: 20px; }
+
+.vrl { writing-mode: vertical-rl; }
+.vlr { writing-mode: vertical-lr; }
+.slr { writing-mode: sideways-lr; padding-top: 0; padding-bottom: 80px; }
+.srl { writing-mode: sideways-rl; }
+</style>
+
+<div class="container">
+  <div class="table"><div class="cell vlr">XXXX</div><div class="filler"></div></div>
+  <div class="table"><div class="cell vrl">XXXX</div><div class="filler"></div></div>
+  <div class="table"><div class="cell slr">XXXX</div><div class="filler"></div></div>
+  <div class="table"><div class="cell srl">XXXX</div><div class="filler"></div></div>
+  <div class="table"><div class="cell vlr">XXXX</div><div class="filler"></div></div>
+</div>

@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="UTF-8">
+<title>CSS-contain test: style containment hides out-of-scope counters (with an outer counter)</title>
+<link rel="author" title="Minseong Kim" href="mailto:jja08111@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#containment-style">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#inheriting-counters">
+<link rel="match" href="reference/counter-scoping-005-ref.html">
+<meta name="assert" content="A counter created by a nested element is only inherited by its descendants and following siblings, so it is not visible to counters() inside a later style containment boundary.">
+<style>
+  .test::before {
+    content: counters(c, ".");
+  }
+</style>
+<div style="counter-reset: c 0">
+  <span><span style="counter-reset: c 5"></span></span>
+  <div style="contain: style">
+    <span class="test" style="counter-increment: c"></span>
+  </div>
+</div>

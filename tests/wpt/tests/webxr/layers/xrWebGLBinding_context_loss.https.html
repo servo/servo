@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+
+<script>
+  const SESSION_INIT = { requiredFeatures: ['local'] };
+
+  function nextFrame(session) {
+    return new Promise((resolve) =>
+      session.requestAnimationFrame((time, frame) => resolve(frame)));
+  }
+
+  xr_session_promise_test(
+    "Losing WebGL context during an XR animation frame rejects getViewSubImage and does not crash",
+    async (session, controller, t, { gl, glLayer }) => {
+      const refSpace = await session.requestReferenceSpace('local');
+      const binding = new XRWebGLBinding(session, gl);
+      const projectionLayer = binding.createProjectionLayer({ depthFormat: 0 });
+
+      await new Promise((resolve) => {
+        session.requestAnimationFrame((time, frame) => {
+          t.step(() => {
+            const pose = frame.getViewerPose(refSpace);
+            assert_not_equals(pose, null, "Viewer pose must be available.");
+            assert_greater_than(pose.views.length, 0, "At least one view must exist.");
+
+            // Dirty the active baseLayer framebuffer before losing the context
+            // to exercise post-callback frame submission with a lost context.
+            gl.bindFramebuffer(gl.FRAMEBUFFER, glLayer.framebuffer);
+            gl.clearColor(1.0, 0.0, 0.0, 1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+
+            const loseContext = gl.getExtension('WEBGL_lose_context');
+            loseContext.loseContext();
+            assert_true(gl.isContextLost(), "WebGL context must now be lost.");
+
+            assert_throws_dom(
+              'InvalidStateError',
+              () => binding.getViewSubImage(projectionLayer, pose.views[0]),
+              "getViewSubImage() must throw InvalidStateError once context is lost.");
+          });
+          resolve();
+        });
+      });
+
+      // Ensure subsequent frames after context loss still execute cleanly.
+      await nextFrame(session);
+    },
+    TRACKED_IMMERSIVE_DEVICE,
+    'immersive-vr',
+    SESSION_INIT);
+
+  xr_session_promise_test(
+    "getViewSubImage rejects inactive frames, ended sessions, and layers created by another context",
+    async (session, controller, t, { gl }) => {
+      const refSpace = await session.requestReferenceSpace('local');
+      const binding = new XRWebGLBinding(session, gl);
+      const projectionLayer = binding.createProjectionLayer({ depthFormat: 0 });
+
+      const otherCanvas = document.createElement('canvas');
+      const otherGl = otherCanvas.getContext('webgl');
+      await otherGl.makeXRCompatible();
+      const otherBinding = new XRWebGLBinding(session, otherGl);
+
+      let savedView = null;
+      await new Promise((resolve) => {
+        session.requestAnimationFrame((time, frame) => {
+          t.step(() => {
+            const pose = frame.getViewerPose(refSpace);
+            assert_not_equals(pose, null);
+            savedView = pose.views[0];
+
+            assert_throws_dom(
+              'InvalidStateError',
+              () => otherBinding.getViewSubImage(projectionLayer, savedView),
+              "getViewSubImage() must reject a layer created by a binding with a different context.");
+          });
+          resolve();
+        });
+      });
+
+      // Yield to a macrotask so XRSession::OnFrame() finishes and deactivates
+      // the XRFrame after microtasks drain.
+      await new Promise((resolve) => t.step_timeout(resolve, 0));
+
+      assert_throws_dom(
+        'InvalidStateError',
+        () => binding.getViewSubImage(projectionLayer, savedView),
+        "getViewSubImage() must throw InvalidStateError outside an active animation frame.");
+
+      await session.end();
+      assert_throws_dom(
+        'InvalidStateError',
+        () => binding.getViewSubImage(projectionLayer, savedView),
+        "getViewSubImage() must throw InvalidStateError on an ended session.");
+    },
+    TRACKED_IMMERSIVE_DEVICE,
+    'immersive-vr',
+    SESSION_INIT);
+</script>

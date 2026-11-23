@@ -1,0 +1,108 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCPeerConnection rapid DTLS handovers (torture)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script src="../third_party/sdp/sdp.js"></script>
+<script>
+'use strict';
+
+// These stress the parallel-DTLS handover machinery with rapid ICE restarts,
+// without waiting for any one of them to settle. The offerer only ever receives;
+// each assertion is that media eventually flows *to* the offerer from the final
+// answerer once the dust settles.
+
+async function waitForInboundAudio(t, pc, predicate) {
+  for (;;) {
+    for (const stats of (await pc.getStats()).values()) {
+      if (stats.type === 'inbound-rtp' && stats.kind === 'audio' &&
+          predicate(stats)) {
+        return stats;
+      }
+    }
+    await new Promise(r => t.step_timeout(r, 100));
+  }
+}
+
+async function addSender(t, pc) {
+  const [track] = (await getNoiseStream({audio: true})).getTracks();
+  t.add_cleanup(() => track.stop());
+  pc.addTrack(track);
+}
+
+// Hand `offerPc` over to a brand-new answerer (with its own certificate) via an
+// ICE restart, applying the full offer/answer but NOT waiting for the connection
+// to settle. Returns the new answerer.
+async function handOverToNewAnswerer(t, offerPc, iceRestart) {
+  const answerer = new RTCPeerConnection();
+  t.add_cleanup(() => answerer.close());
+  exchangeIceCandidates(offerPc, answerer);
+  if (iceRestart) {
+    offerPc.restartIce();
+  }
+  await addSender(t, answerer);
+  await exchangeOfferAnswer(offerPc, answerer);
+  return answerer;
+}
+
+function getSsrcs(sdp) {
+  return SDPUtils.matchPrefixAndTrim(sdp, 'a=ssrc:')
+    .map(attr => attr.split(' ')[0]).map(Number);
+}
+
+// The offerer is handed rapidly from answerer to answerer, and each retired
+// answerer is closed immediately -- pelting the offerer with DTLS closure alerts
+// for associations it is abandoning while a new handshake is in flight. Those
+// closure alerts must not foul the association we finally settle on.
+promise_test(async t => {
+  const offerPc = new RTCPeerConnection();
+  t.add_cleanup(() => offerPc.close());
+  offerPc.addTransceiver('audio', {direction: 'recvonly'});
+
+  let previous = await handOverToNewAnswerer(t, offerPc, false);
+  for (let i = 0; i < 5; i++) {
+    const next = await handOverToNewAnswerer(t, offerPc, true);
+    // Fire a closure alert at the offerer for the association it is leaving,
+    // without waiting for `next` to finish handshaking.
+    previous.close();
+    previous = next;
+  }
+
+  // Despite the barrage of closure alerts, media must settle and flow from the
+  // final answerer.
+  const [ssrc] = getSsrcs(offerPc.remoteDescription.sdp);
+  await waitForInboundAudio(t, offerPc,
+    s => s.bytesReceived > 0 && s.ssrc == ssrc);
+}, 'Rapid handovers: DTLS closure alerts from retired associations do not foul ' +
+   'the final transport');
+
+// Rapidly interleave fingerprint-changing restarts (handover to a new answerer)
+// with non-changing restarts (ICE restart against the *same* answerer, whose
+// certificate is unchanged, so the DTLS association is meant to continue over
+// the new ICE credentials). The old/new reconciliation must survive the churn.
+promise_test(async t => {
+  const offerPc = new RTCPeerConnection();
+  t.add_cleanup(() => offerPc.close());
+  offerPc.addTransceiver('audio', {direction: 'recvonly'});
+
+  let current = await handOverToNewAnswerer(t, offerPc, false);
+  for (let i = 0; i < 4; i++) {
+    // Non-changing ICE restart against the current answerer.
+    offerPc.restartIce();
+    await exchangeOfferAnswer(offerPc, current);
+
+    // Fingerprint-changing restart: hand over to a fresh answerer, retiring the
+    // one we just restarted.
+    const next = await handOverToNewAnswerer(t, offerPc, true);
+    current.close();
+    current = next;
+  }
+
+  const [ssrc] = getSsrcs(offerPc.remoteDescription.sdp);
+  await waitForInboundAudio(t, offerPc,
+    s => s.bytesReceived > 0 && s.ssrc == ssrc);
+}, 'Rapid interleaved fingerprint-changing and non-changing ICE restarts settle');
+
+</script>

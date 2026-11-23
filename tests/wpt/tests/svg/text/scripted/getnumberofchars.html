@@ -16,6 +16,8 @@ text {
 <text id="t2"><tspan id="ts2" x="40" y="100">ab</tspan>c</text>
 <text id="t3"><tspan id="ts3" x="40" y="100">هيab</tspan>c</text>
 <text id="t4"><tspan id="ts4" x="40" y="100">هي<tspan>ab</tspan></tspan>c</text>
+<path id="p5" d="M 40 200 L 80 200" fill="none"/>
+<text id="t5"><textPath href="#p5">abcd</textPath></text>
 </svg>
 
 <script>
@@ -47,6 +49,12 @@ document.fonts.ready.then(() => {
     const tspan = document.querySelector('#ts4');
     assert_equals(tspan.getNumberOfChars(), 4);
   }, 'mixed-rtl text and tested tspan');
+
+  test(() => {
+    // The path is 40 units long, so only "ab" fits on it.
+    const text = document.querySelector('#t5');
+    assert_equals(text.getNumberOfChars(), 4);
+  }, 'textPath with characters after the end of the path');
 
   done();
 });

@@ -1,5 +1,8 @@
 <!DOCTYPE html>
+<meta name="variant" content="?same-site">
+<meta name="variant" content="?cross-site">
 <title>User activation propagation across a cross-origin redirection</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#apply-the-history-step">
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
 <script src="/common/utils.js"></script>
@@ -20,20 +23,17 @@
   let uuid1 = token();
   let uuid2 = token();
 
+  // What the entry records is that a redirect crossed an origin, with no note
+  // of whether it also left the site, so the two variants are expected to block
+  // the carry-over alike. The "same-site" hop only changes the host label; the
+  // "cross-site" one changes the registrable domain as well.
   let origin = get_host_info().HTTP_ORIGIN;
-  let remote_origin = get_host_info().HTTP_REMOTE_ORIGIN;
+  let remote_origin = location.search === "?cross-site"
+        ? get_host_info().HTTP_NOTSAMESITE_ORIGIN
+        : get_host_info().HTTP_REMOTE_ORIGIN;
   let clicked_link =
         `${remote_origin}/common/redirect.py?location=` +
         `${origin}/common/dispatcher/remote-executor.html?uuid=${uuid2}`;
-
-  const getUserActivationState = () =>
-    [navigator.userActivation.isActive, navigator.userActivation.hasBeenActive];
-
-  function assertUserActivationState(list,
-        expected_transient_bit, expected_sticky_bit, msg) {
-    assert_equals(list[0], expected_transient_bit, "Transient bit " + msg);
-    assert_equals(list[1], expected_sticky_bit, "Sticky bit " + msg);
-  }
 
   promise_test(async test => {
     // Open a new window that we will navigate away and observe.
@@ -44,24 +44,19 @@
 
     await test_driver.click(document.body);
     assert_true(!!w, "A window is opened");
+    // Close the window at the end of the test, so that a later test in the same
+    // session cannot click a window this one left behind.
+    test.add_cleanup(() => w && w.close());
 
-    // Populate the window: add two elements (a non-link and a link) to allow
-    // the following clicks.
+    // Give the window a link, to click for the navigation below.
     {
       const context = new RemoteContext(uuid1);
       await context.execute_script(link => {
-        // Not sure why the first click below fails w/o this line!
-        document.body.textContent = "";
+        let elem = document.createElement("a");
+        elem.textContent = "Link to click to navigate the window";
+        elem.href = link;
 
-        let elem1 = document.createElement("div");
-        elem1.textContent = "Dummy text to make it clickable";
-        document.body.appendChild(elem1);
-
-        let elem2 = document.createElement("a");
-        elem2.textContent = "Dummy text to make it clickable";
-        elem2.href = link;
-
-        document.body.appendChild(elem2);
+        document.body.appendChild(elem);
       }, [clicked_link]);
     }
 
@@ -73,7 +68,7 @@
     }
 
     // Confirm that the new window gets user activation after a click.
-    await test_driver.click(w.document.body.firstElementChild);
+    await test_driver.click(w.document.documentElement);
     {
       const context = new RemoteContext(uuid1);
       const result = await context.execute_script(getUserActivationState);
@@ -88,7 +83,7 @@
       const context = new RemoteContext(uuid2);
       const result = await context.execute_script(getUserActivationState);
       assertUserActivationState(result, false, false,
-            "after window nagivated and redirected");
+            "after window navigated and redirected");
     }
-}, "User activation propagation across a same-origin navigation");
+}, "User activation propagation across a cross-origin redirection");
 </script>

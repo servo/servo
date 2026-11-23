@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>'mix-blend-mode' inside an SVG element whose 3D transform changes to a 2D transform</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/compositing-1/#csscompositingrules_SVG">
+<link rel="match" href="blending-svg-root-ref.html">
+<meta name="assert" content="When the 3D transform of an SVG element changes to a 2D transform, the element no longer creates an isolated group, so blending descendants blend with the content behind the 'svg' element.">
+<div style="background: green">
+  <div>Expected: a black square on green background.</div>
+  <svg style="width: 200px; height: 200px">
+    <g id="group" style="transform: translateZ(0)">
+      <rect width="200" height="200" fill="red" style="mix-blend-mode: multiply"/>
+    </g>
+  </svg>
+</div>
+<script>
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  group.style.transform = "translate(0)";
+  document.documentElement.classList.remove("reftest-wait");
+}));
+</script>

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/583431475">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+function createDialogWithButton() {
+  const dialog = document.createElement("dialog");
+  const button = document.createElement("button");
+  button.autofocus = true;
+  button.textContent = "Focus target";
+  dialog.appendChild(button);
+  return { dialog, button };
+}
+
+test(t => {
+  const old_parent = document.createElement("div");
+  const host = document.createElement("div");
+  const { dialog, button } = createDialogWithButton();
+  old_parent.appendChild(dialog);
+  document.body.append(old_parent, host);
+  t.add_cleanup(() => {
+    dialog.close();
+    old_parent.remove();
+    host.remove();
+  });
+
+  const shadow = host.attachShadow({ mode: "open" });
+  dialog.show();
+  assert_equals(document.activeElement, button);
+  assert_true(old_parent.matches(":focus-within"));
+  assert_false(host.matches(":focus-within"));
+
+  shadow.moveBefore(dialog, null);
+  assert_true(dialog.open);
+  assert_equals(dialog.parentNode, shadow);
+  assert_equals(shadow.activeElement, button);
+  assert_false(old_parent.matches(":focus-within"));
+  assert_true(host.matches(":focus-within"));
+}, "moveBefore of an open non-modal dialog into a ShadowRoot updates :focus-within");
+
+test(t => {
+  const container = document.createElement("div");
+  const host = document.createElement("div");
+  const { dialog, button } = createDialogWithButton();
+  container.appendChild(dialog);
+  document.body.append(container, host);
+  t.add_cleanup(() => {
+    dialog.close();
+    container.remove();
+    host.remove();
+  });
+
+  const shadow = host.attachShadow({ mode: "open" });
+  dialog.show();
+  assert_equals(document.activeElement, button);
+
+  shadow.moveBefore(container, null);
+  assert_true(dialog.open);
+  assert_equals(container.parentNode, shadow);
+  assert_equals(shadow.activeElement, button);
+  assert_true(host.matches(":focus-within"));
+}, "moveBefore of an element containing an open non-modal dialog into a ShadowRoot updates :focus-within");
+
+test(t => {
+  const host = document.createElement("div");
+  const target = document.createElement("div");
+  const { dialog, button } = createDialogWithButton();
+  document.body.append(host, target);
+  t.add_cleanup(() => {
+    dialog.close();
+    host.remove();
+    target.remove();
+  });
+
+  const shadow = host.attachShadow({ mode: "open" });
+  shadow.appendChild(dialog);
+  dialog.show();
+  assert_equals(shadow.activeElement, button);
+  assert_true(host.matches(":focus-within"));
+  assert_false(target.matches(":focus-within"));
+
+  target.moveBefore(dialog, null);
+  assert_true(dialog.open);
+  assert_equals(dialog.parentNode, target);
+  assert_equals(document.activeElement, button);
+  assert_false(host.matches(":focus-within"));
+  assert_true(target.matches(":focus-within"));
+}, "moveBefore of an open non-modal dialog out of a ShadowRoot updates :focus-within");
+
+test(t => {
+  const host = document.createElement("div");
+  const { dialog, button } = createDialogWithButton();
+  host.appendChild(dialog);
+  document.body.appendChild(host);
+  t.add_cleanup(() => {
+    dialog.close();
+    host.remove();
+  });
+
+  const shadow = host.attachShadow({ mode: "open" });
+  shadow.innerHTML = "<slot></slot>";
+  const slot = shadow.querySelector("slot");
+  dialog.show();
+  assert_equals(document.activeElement, button);
+  assert_true(host.matches(":focus-within"));
+  assert_true(slot.matches(":focus-within"));
+
+  shadow.moveBefore(dialog, null);
+  assert_true(dialog.open);
+  assert_equals(dialog.parentNode, shadow);
+  assert_equals(shadow.activeElement, button);
+  assert_true(host.matches(":focus-within"));
+  assert_false(slot.matches(":focus-within"));
+}, "moveBefore of a slotted open non-modal dialog into its host's ShadowRoot clears :focus-within on the old slot");
+
+test(t => {
+  const old_parent = document.createElement("div");
+  const host = document.createElement("div");
+  const { dialog, button } = createDialogWithButton();
+  old_parent.appendChild(dialog);
+  document.body.append(old_parent, host);
+  t.add_cleanup(() => {
+    dialog.close();
+    old_parent.remove();
+    host.remove();
+  });
+
+  const shadow = host.attachShadow({ mode: "open" });
+  shadow.innerHTML = "<slot></slot>";
+  const slot = shadow.querySelector("slot");
+  dialog.show();
+  assert_equals(document.activeElement, button);
+  assert_true(old_parent.matches(":focus-within"));
+  assert_false(slot.matches(":focus-within"));
+  assert_false(host.matches(":focus-within"));
+
+  host.moveBefore(dialog, null);
+  assert_true(dialog.open);
+  assert_equals(dialog.parentNode, host);
+  assert_equals(document.activeElement, button);
+  assert_false(old_parent.matches(":focus-within"));
+  assert_true(slot.matches(":focus-within"));
+  assert_true(host.matches(":focus-within"));
+}, "moveBefore of an open non-modal dialog into a slotted position updates :focus-within on the slot and host");
+
+test(t => {
+  const old_parent = document.createElement("div");
+  const host = document.createElement("div");
+  const { dialog, button } = createDialogWithButton();
+  old_parent.appendChild(dialog);
+  document.body.append(old_parent, host);
+  t.add_cleanup(() => {
+    dialog.close();
+    old_parent.remove();
+    host.remove();
+  });
+
+  host.attachShadow({ mode: "open" });
+  dialog.show();
+  assert_equals(document.activeElement, button);
+  assert_true(old_parent.matches(":focus-within"));
+
+  host.moveBefore(dialog, null);
+  assert_true(dialog.open);
+  assert_equals(dialog.parentNode, host);
+  assert_false(old_parent.matches(":focus-within"));
+  assert_false(document.body.matches(":focus-within"));
+  assert_false(document.documentElement.matches(":focus-within"));
+}, "moveBefore into a shadow host with no matching slot clears :focus-within on old ancestors");
+
+test(t => {
+  const old_parent = document.createElement("div");
+  const new_parent = document.createElement("div");
+  const host = document.createElement("div");
+  const { dialog, button } = createDialogWithButton();
+  old_parent.appendChild(host);
+  document.body.append(old_parent, new_parent);
+  t.add_cleanup(() => {
+    dialog.close();
+    old_parent.remove();
+    new_parent.remove();
+  });
+
+  const shadow = host.attachShadow({ mode: "open" });
+  shadow.appendChild(dialog);
+  dialog.show();
+  assert_equals(shadow.activeElement, button);
+  assert_true(old_parent.matches(":focus-within"));
+  assert_false(new_parent.matches(":focus-within"));
+
+  new_parent.moveBefore(host, null);
+  assert_true(dialog.open);
+  assert_equals(host.parentNode, new_parent);
+  assert_equals(shadow.activeElement, button);
+  assert_false(old_parent.matches(":focus-within"));
+  assert_true(new_parent.matches(":focus-within"));
+}, "moveBefore of a shadow host containing an open non-modal dialog updates :focus-within");
+</script>

@@ -2,7 +2,7 @@
 <title>popup helper</title>
 <script>
 
-const search = decodeURIComponent(window.location.search.replace("?", ""));
+const search = decodeURIComponent(window.location.search.replace("?", "").split("&pipe=")[0]);
 const steps = search.split("|");
 
 async function proceedTest() {
@@ -15,7 +15,7 @@ async function proceedTest() {
       stashURL.searchParams.set('id', id);
       stashURL.searchParams.set('value', window.name);
 
-      await fetch(stashURL, { method: "POST" });
+      await fetch(stashURL, { method: "POST", mode: "no-cors" });
       continue;
     }
 
@@ -36,6 +36,14 @@ async function proceedTest() {
       const url = new URL(window.location);
       url.host = "{{host}}:{{ports[https][0]}}";
       url.search = "?" + steps.join("|");
+      window.location = url.href;
+      break;
+    }
+
+    if (step === "sameCSPSandbox") {
+      const url = new URL(window.location);
+      url.host = "{{host}}:{{ports[https][0]}}";
+      url.search = "?" + steps.join("|") + "&pipe=header(Content-Security-Policy,sandbox allow-scripts)";
       window.location = url.href;
       break;
     }

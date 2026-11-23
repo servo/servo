@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>window.name is reset when a same-origin response has a CSP sandbox</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#finalize-a-cross-document-navigation">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<body>
+<script>
+function anchorClick(href) {
+  const hyperlink = document.body.appendChild(document.createElement("a"));
+  hyperlink.rel = "noopener";
+  hyperlink.target = "_blank";
+  hyperlink.href = href;
+  hyperlink.click();
+}
+
+async function pollResult(t, id) {
+  const stashURL = new URL("resources/window-name-stash.py", location);
+  stashURL.searchParams.set("id", id);
+
+  let result = "NONE";
+  while (result === "NONE") {
+    await new Promise(resolve => t.step_timeout(resolve, 100));
+    result = await (await fetch(stashURL)).text();
+  }
+  return result;
+}
+
+promise_test(async t => {
+  const id = token();
+  anchorClick(`resources/window-name.sub.html?set=${id}|same|report=${id}|close`);
+  assert_equals(await pollResult(t, id), id);
+}, "window.name is kept across a same-origin navigation");
+
+promise_test(async t => {
+  const id = token();
+  anchorClick(`resources/window-name.sub.html?set=${id}|sameCSPSandbox|report=${id}|close`);
+  assert_equals(await pollResult(t, id), "");
+}, "window.name is reset by a same-origin navigation to a response with a CSP sandbox");
+</script>

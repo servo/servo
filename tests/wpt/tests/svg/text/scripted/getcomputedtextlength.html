@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVGTextContentElement.getComputedTextLength</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#__svg__SVGTextContentElement__getComputedTextLength">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+text {
+    font: 10px/1 Ahem;
+}
+</style>
+<svg width="400" height="200">
+    <text id="plain" x="10" y="20">ABC</text>
+    <text id="tspans" x="10" y="40">A<tspan id="tspanBC">BC</tspan><tspan dx="30">D</tspan></text>
+    <text id="positioned" x="10 100 200" y="60">ABC</text>
+    <text id="spacing" x="10" y="80" style="letter-spacing: 5px">ABC</text>
+    <text id="vertical" x="300" y="10" style="writing-mode: vertical-rl">ABC</text>
+    <text id="empty" x="10" y="100"></text>
+    <text id="wordSpacing" x="10" y="120" style="word-spacing: 5px">A BC</text>
+    <text id="hidden" x="10" y="140" style="display: none">ABC</text>
+</svg>
+<script>
+// "Let length be the value that would be returned if the getSubStringLength method were called on this element, passing 0
+// and count as arguments."
+setup({ explicit_done: true });
+document.fonts.ready.then(() => {
+    test(() => {
+        assert_equals(plain.getComputedTextLength(), 30);
+    }, "The sum of the advances");
+
+    test(() => {
+        // Positioning adjustments due to dx no longer count.
+        assert_equals(tspans.getComputedTextLength(), 40);
+        assert_equals(positioned.getComputedTextLength(), 30);
+    }, "The positions of the characters do not count");
+
+    test(() => {
+        // "If the letter-spacing or word-spacing properties contributed space just after the typographic character, then add
+        // that space to length."
+        assert_equals(spacing.getComputedTextLength(), 45);
+    }, "Letter spacing counts");
+
+    test(() => {
+        assert_equals(wordSpacing.getComputedTextLength(), 45);
+    }, "Word spacing counts");
+
+    test(() => {
+        assert_equals(tspanBC.getComputedTextLength(), 20);
+    }, "The characters of a tspan");
+
+    test(() => {
+        assert_equals(vertical.getComputedTextLength(), 30);
+    }, "Vertical text");
+
+    test(() => {
+        assert_equals(empty.getComputedTextLength(), 0);
+    }, "No characters");
+
+    test(() => {
+        // "If the element is not rendered (e.g., because the display property has the used value none), then return 0"
+        assert_equals(hidden.getNumberOfChars(), 0, "getNumberOfChars()");
+        assert_equals(hidden.getComputedTextLength(), 0, "getComputedTextLength()");
+    }, "An element that is not rendered");
+
+    test(() => {
+        for (const element of document.querySelectorAll("text:not(#empty, #hidden)"))
+            assert_equals(element.getComputedTextLength(), element.getSubStringLength(0, element.getNumberOfChars()), element.id);
+    }, "The same as getSubStringLength() of all characters");
+    done();
+});
+</script>

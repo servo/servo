@@ -2411,70 +2411,69 @@ function allSimpleSanctionedUnits() {
  */
 
 function testNumberFormat(locales, numberingSystems, options, testData, testOptions) {
+  var optionsStr = JSON.stringify(options);
   var makeInput = (testOptions && testOptions.makeInput) || function (input) {
     return input;
   };
 
   locales.forEach(function (locale) {
+    assert.sameValue(
+      locale,
+      getLocaleBaseName(locale),
+      "Unexpected extension in locale: '" + locale + "'"
+    );
+
     numberingSystems.forEach(function (numbering) {
       var digits = numberingSystemDigits[numbering];
-      var format = new Intl.NumberFormat([getLocaleBaseName(locale) + "-u-nu-" + numbering], options);
-
-      function getPatternParts(positive) {
-        var n = positive ? 1.1 : -1.1;
-        var formatted = format.format(n);
-        var oneoneRE = "([^" + digits + "]*)[" + digits + "]+([^" + digits + "]+)[" + digits + "]+([^" + digits + "]*)";
-        var match = formatted.match(new RegExp(oneoneRE));
-        if (match === null) {
-          throw new Test262Error("Unexpected formatted " + n + " for " +
-            format.resolvedOptions().locale + " and options " +
-            JSON.stringify(options) + ": " + formatted);
-        }
-        return match;
+      var formatter =
+        new Intl.NumberFormat(locale + "-u-nu-" + numbering, options);
+      var resolved = formatter.resolvedOptions();
+      if (resolved.numberingSystem !== numbering) {
+        return;
       }
 
-      function toNumbering(raw) {
-        return raw.replace(/[0-9]/g, function (digit) {
-          return digits[digit.charCodeAt(0) - "0".charCodeAt(0)];
+      // Capture static parts (prefix/infix/suffix) for positive and negative values.
+      var digitsPatt = "[" + digits + "]+";
+      var nonDigitsPatt = "([^" + digits + "]*)";
+      var partsPatt = nonDigitsPatt + digitsPatt + nonDigitsPatt + digitsPatt + nonDigitsPatt;
+      var posFormatted = formatter.format(1.1);
+      var negFormatted = formatter.format(-1.1);
+      var posStaticParts = posFormatted.match(new RegExp(partsPatt));
+      var negStaticParts = negFormatted.match(new RegExp(partsPatt));
+      assert(posStaticParts && negStaticParts && true,
+        "Unexpected output in " + resolved.locale + " with options " + optionsStr +
+        ": 1.1 -> " + posFormatted + ", -1.1 -> " + negFormatted);
+
+      function transliterateDigits(raw) {
+        return raw.replace(/[0-9]/g, function (asciiDigit) {
+          return digits[asciiDigit];
         });
       }
 
-      function buildExpected(raw, patternParts) {
-        var period = raw.indexOf(".");
-        if (period === -1) {
-          return patternParts[1] + toNumbering(raw) + patternParts[3];
-        } else {
-          return patternParts[1] +
-            toNumbering(raw.substring(0, period)) +
-            patternParts[2] +
-            toNumbering(raw.substring(period + 1)) +
-            patternParts[3];
+      function buildExpected(raw, staticParts) {
+        var sepIdx = raw.indexOf(".");
+        var middle = sepIdx >= 0
+          ? transliterateDigits(raw.substring(0, sepIdx)) +
+            staticParts[2] +
+            transliterateDigits(raw.substring(sepIdx + 1))
+          : transliterateDigits(raw);
+        return staticParts[1] + middle + staticParts[3];
+      }
+
+      Object.getOwnPropertyNames(testData).forEach(function (input) {
+        var rawExpected = testData[input];
+        var staticParts = posStaticParts;
+        if (rawExpected[0] === "-") {
+          rawExpected = rawExpected.substring(1);
+          staticParts = negStaticParts;
         }
-      }
+        var expected = buildExpected(rawExpected, staticParts);
 
-      if (format.resolvedOptions().numberingSystem === numbering) {
-        // figure out prefixes, infixes, suffixes for positive and negative values
-        var posPatternParts = getPatternParts(true);
-        var negPatternParts = getPatternParts(false);
-
-        Object.getOwnPropertyNames(testData).forEach(function (input) {
-          var rawExpected = testData[input];
-          var patternParts;
-          if (rawExpected[0] === "-") {
-            patternParts = negPatternParts;
-            rawExpected = rawExpected.substring(1);
-          } else {
-            patternParts = posPatternParts;
-          }
-          var expected = buildExpected(rawExpected, patternParts);
-          var actual = format.format(makeInput(input));
-          if (actual !== expected) {
-            throw new Test262Error("Formatted value for " + input + ", " +
-            format.resolvedOptions().locale + " and options " +
-            JSON.stringify(options) + " is " + actual + "; expected " + expected + ".");
-          }
-        });
-      }
+        var actual = formatter.format(makeInput(input));
+        assert.sameValue(actual, expected,
+          "Formatted " + input + " in " + resolved.locale + " with options " + optionsStr +
+          " is " + actual + "; expected " + expected + ".");
+      });
     });
   });
 }

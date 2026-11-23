@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<title>User activation propagation across a forward traversal to an entry a cross-origin document navigated to</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#apply-the-history-step">
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/helper.sub.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+  <p>Non-zero-sized body to allow clicks.</p>
+</body>
+
+<script>
+  'use strict';
+
+  let uuid1 = token();
+  let uuid2 = token();
+  let uuid3 = token();
+
+  // The window goes to a cross-origin document and from there back to this
+  // origin, so that the third entry records a cross-origin initiator. The
+  // traversal that reads it is a forward one, from a document that is same
+  // origin and freshly clicked, which leaves the initiator the entry recorded
+  // as the only thing ruling the carry-over out. Clicking again rather than
+  // relying on the first document coming back from the back/forward cache is
+  // what makes the document the traversal leaves have activation either way.
+  let opened = originSameOrigin + executorPath + uuid1;
+  let crossorigin = originCrossSite + executorPath + uuid2;
+  let returned_to = originSameOrigin + executorPath + uuid3;
+
+  promise_test(async test => {
+    let w;
+    document.body.onclick = () => {
+      w = window.open(opened);
+    };
+
+    await test_driver.click(document.body);
+    assert_true(!!w, "A window is opened");
+    // Close the window at the end of the test, so that a later test in the same
+    // session cannot click a window this one left behind.
+    test.add_cleanup(() => w && w.close());
+
+    const first = new RemoteContext(uuid1);
+    const second = new RemoteContext(uuid2);
+    const third = new RemoteContext(uuid3);
+
+    // Walk the window to a cross-origin document, and let that one bring it
+    // back to this origin.
+    await first.execute_script(waitUntilShown);
+    await first.execute_script(url => {
+      prepareNavigation(() => {
+        location.href = url;
+      });
+    }, [crossorigin]);
+
+    await second.execute_script(waitUntilShown);
+    await second.execute_script(url => {
+      prepareNavigation(() => {
+        location.href = url;
+      });
+    }, [returned_to]);
+
+    // The third document gets nothing carried over: the document it replaced is
+    // cross-origin, and the entry it landed on records that document as the
+    // initiator.
+    {
+      const result = await third.execute_script(getUserActivationStateWhenShown);
+      assertUserActivationState(result, false, false,
+            "after the cross-origin document navigated the window back");
+    }
+
+    // Traverse back past the cross-origin document, to the first one.
+    await third.execute_script(() => {
+      prepareNavigation(() => {
+        history.go(-2);
+      });
+    });
+
+    await first.execute_script(waitUntilShown);
+
+    // Give the first document activation of its own, so that the forward
+    // traversal below leaves a document that has some.
+    await test_driver.click(w.document.documentElement);
+    {
+      const result = await first.execute_script(getUserActivationState);
+      assertUserActivationState(result, true, true,
+            "of the first document after it was clicked again");
+    }
+
+    // Traverse forward to the third document.
+    await first.execute_script(() => {
+      prepareNavigation(() => {
+        history.go(2);
+      });
+    });
+
+    // Confirm that it still has no user activation. It is same origin with the
+    // document the traversal left, and no redirect is involved, so the
+    // initiator its entry recorded when the cross-origin document navigated to
+    // it is the only thing left.
+    {
+      const result = await third.execute_script(getUserActivationStateWhenShown);
+      assertUserActivationState(result, false, false,
+            "after traversing forward to it");
+    }
+}, "User activation propagation across a forward traversal to an entry a " +
+   "cross-origin document navigated to");
+</script>

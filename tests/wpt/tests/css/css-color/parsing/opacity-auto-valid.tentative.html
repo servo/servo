@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Opacity auto parsing</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+test_valid_value("opacity", "auto");
+for (const value of ["auto 0.5", "auto auto", "calc(auto)"]) {
+  test_invalid_value("opacity", value);
+}
+</script>

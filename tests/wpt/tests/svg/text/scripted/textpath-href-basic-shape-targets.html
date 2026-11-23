@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<title>textPath href: a basic shape is a valid target, text starts at the start of its equivalent path</title>
+<link rel="author" title="Karl Dubost" href="mailto:k_dubost@apple.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementHrefAttribute">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextLayoutPath">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/shapes.html#RectElement">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/shapes.html#CircleElement">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/shapes.html#EllipseElement">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/shapes.html#LineElement">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/shapes.html#PolylineElement">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/shapes.html#PolygonElement">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  text { font: 20px Ahem; }
+</style>
+
+<!--
+  Each case is its own <svg>, so one engine failing one shape cannot hide another.
+  Every shape sits far from the origin: an engine that does not lay the text out on the
+  shape at all reports the characters at (0, 0), which is more than 100 user units
+  from every expected start point below.
+
+  Expected start point of the first character, from the equivalent path of each shape:
+    rect          (x + rx, y)
+    circle        (cx + r, cy)
+    ellipse       (cx + rx, cy)
+    line          (x1, y1)
+    polyline      the first coordinate pair
+    polygon       the first coordinate pair
+-->
+
+<svg width="500" height="300">
+  <path id="path" d="M 200 150 H 400"/>
+  <text><textPath id="on-path" href="#path">ABC</textPath></text>
+</svg>
+<svg width="500" height="300">
+  <rect id="rect" x="200" y="150" width="200" height="100"/>
+  <text><textPath id="on-rect" href="#rect">ABC</textPath></text>
+</svg>
+<svg width="500" height="300">
+  <rect id="rect-rx" x="200" y="150" width="200" height="100" rx="40"/>
+  <text><textPath id="on-rect-rx" href="#rect-rx">ABC</textPath></text>
+</svg>
+<svg width="500" height="300">
+  <circle id="circle" cx="250" cy="150" r="100"/>
+  <text><textPath id="on-circle" href="#circle">ABC</textPath></text>
+</svg>
+<svg width="500" height="300">
+  <ellipse id="ellipse" cx="250" cy="150" rx="120" ry="80"/>
+  <text><textPath id="on-ellipse" href="#ellipse">ABC</textPath></text>
+</svg>
+<svg width="500" height="300">
+  <line id="line" x1="200" y1="150" x2="400" y2="150" stroke="black"/>
+  <text><textPath id="on-line" href="#line">ABC</textPath></text>
+</svg>
+<svg width="500" height="300">
+  <polyline id="polyline" points="200,150 400,150 400,250"/>
+  <text><textPath id="on-polyline" href="#polyline">ABC</textPath></text>
+</svg>
+<svg width="500" height="300">
+  <polygon id="polygon" points="200,150 400,150 400,250"/>
+  <text><textPath id="on-polygon" href="#polygon">ABC</textPath></text>
+</svg>
+
+<script>
+// Half of one Ahem character. The first character's midpoint sits on the path, so its
+// start is within a few units of the path start; on the curved shapes it is off by under one.
+const TOLERANCE = 3;
+
+const CASES = [
+  { id: 'on-path',     x: 200, y: 150, name: 'path (control)' },
+  { id: 'on-rect',     x: 200, y: 150, name: 'rect' },
+  { id: 'on-rect-rx',  x: 240, y: 150, name: 'rect with rx' },
+  { id: 'on-circle',   x: 350, y: 150, name: 'circle' },
+  { id: 'on-ellipse',  x: 370, y: 150, name: 'ellipse' },
+  { id: 'on-line',     x: 200, y: 150, name: 'line' },
+  { id: 'on-polyline', x: 200, y: 150, name: 'polyline' },
+  { id: 'on-polygon',  x: 200, y: 150, name: 'polygon' },
+];
+
+// Without this, a start point near the origin would let an engine that never lays the
+// text out pass by reporting (0, 0).
+test(() => {
+  for (const c of CASES)
+    assert_greater_than(Math.hypot(c.x, c.y), 100, c.name);
+}, 'control: every expected start point is far from the origin');
+
+for (const c of CASES) {
+  test(() => {
+    const textPath = document.getElementById(c.id);
+    assert_equals(textPath.getNumberOfChars(), 3, 'the string is laid out');
+    const start = textPath.getStartPositionOfChar(0);
+    assert_approx_equals(start.x, c.x, TOLERANCE, 'x of the first character');
+    assert_approx_equals(start.y, c.y, TOLERANCE, 'y of the first character');
+  }, `textPath href to ${c.name}: the first character starts at the start of the shape's path`);
+}
+</script>

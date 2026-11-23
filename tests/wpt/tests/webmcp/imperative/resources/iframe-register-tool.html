@@ -8,15 +8,15 @@
 <script>
   // This is a helper function to convert an array of `Tool` objects to plain
   // objects that can be sent over `postMessage()`. This exists because `Tool`
-  // itself is not cloneable, and neither is its `window` attribute, so we must
+  // itself is not cloneable, and neither is its `source` attribute, so we must
   // reduce the tool structure a bit before sending it.
   //
   // `Tool`'s attributes are accessors on `Tool.prototype`, not own properties
   // of each instance, so we enumerate the prototype's getters to copy every
-  // attribute (except `window`).
+  // attribute (except `source`).
   const kToolKeys =
       Object.entries(Object.getOwnPropertyDescriptors(Tool.prototype))
-          .filter(([key, desc]) => desc.get && key !== 'window')
+          .filter(([key, desc]) => desc.get && key !== 'source')
           .map(([key, _]) => key);
   function convertToCloneableTools(tools) {
     return tools.map(tool =>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<title>Permissions Policy for Dedicated Workers: WorkerOptions.allow</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+function createWorkerBlobUrl(code) {
+  const blob = new Blob([code], { type: 'application/javascript' });
+  return URL.createObjectURL(blob);
+}
+
+function dataWorkerUrl() {
+  return 'data:text/javascript,' + encodeURIComponent(`
+    postMessage('running');
+  `);
+}
+
+function workerOutcome(t, worker) {
+  t.add_cleanup(() => worker.terminate());
+  return new Promise(resolve => {
+    worker.onerror = e => {
+      e.preventDefault();
+      resolve('error');
+    };
+    worker.onmessage = e => resolve(e.data);
+  });
+}
+
+promise_test(async t => {
+  const workerUrl = createWorkerBlobUrl(`postMessage('running');`);
+  const worker = new Worker(workerUrl, { allow: 'serial' });
+  assert_equals(await workerOutcome(t, worker), 'error');
+}, "DedicatedWorker cannot be created with disallowed feature in 'allow'");
+
+promise_test(async t => {
+  const workerUrl = createWorkerBlobUrl(`postMessage('running');`);
+  const worker = new Worker(workerUrl, { allow: "serial 'none'" });
+  assert_equals(await workerOutcome(t, worker), 'running');
+}, "DedicatedWorker can be created when 'allow' disables a feature disabled in the creator");
+
+promise_test(async t => {
+  const workerUrl = createWorkerBlobUrl(`postMessage('running');`);
+  const worker = new Worker(workerUrl, { allow: 'usb' });
+  assert_equals(await workerOutcome(t, worker), 'running');
+}, "DedicatedWorker can be created with allowed feature in 'allow'");
+
+promise_test(async t => {
+  // 'usb' has a default allowlist of 'self' and no declared policy in this
+  // document, so it can be delegated to the opaque origin of a data: URL
+  // worker.
+  const worker = new Worker(dataWorkerUrl(), { allow: 'usb' });
+  assert_equals(await workerOutcome(t, worker), 'running');
+}, "data: URL DedicatedWorker can be delegated a default 'self' feature " +
+   "without a declared policy");
+
+promise_test(async t => {
+  // 'hid' is declared as 'self' in this document, so it can be delegated to a
+  // same-origin worker...
+  const workerUrl = createWorkerBlobUrl(`postMessage('running');`);
+  const worker = new Worker(workerUrl, { allow: 'hid' });
+  assert_equals(await workerOutcome(t, worker), 'running');
+}, "Same-origin DedicatedWorker can be delegated a feature declared as 'self'");
+
+promise_test(async t => {
+  // ...but not to the opaque origin of a data: URL worker.
+  const worker = new Worker(dataWorkerUrl(), { allow: 'hid' });
+  assert_equals(await workerOutcome(t, worker), 'error');
+}, "data: URL DedicatedWorker cannot be delegated a feature declared as 'self'");
+</script>
+</body>

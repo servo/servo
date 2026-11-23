@@ -16,7 +16,7 @@
 // Content-Length: 18
 // Signature-Input: signature=("unencoded-digest";sf "@scheme";req); \
 //                  keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";       \
-//                  tag="sri"
+//                  tag="ed25519-integrity"
 // Signature: signature=:oVQ+s/OqXLAVdfvgZ3HaPiyzkpNXZSit9l6e1FB/gOOL3t8FOrIRDV \
 //                       CkcIEcJjd3MA1mROn39/WQShTmnKmlDg==:
 //
@@ -28,20 +28,20 @@ const test_cases = [
   // ```
   // "unencoded-digest";sf: sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:
   // "@scheme";req: http
-  // "@signature-params": ("unencoded-digest";sf "@scheme";req);keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="sri"
+  // "@signature-params": ("unencoded-digest";sf "@scheme";req);keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="ed25519-integrity"
   // ```
   {
     origin: get_host_info().HTTP_REMOTE_ORIGIN,
-    signature: `signature=:WZp87p7X3ELfgIKL/qxsY/CT6XArMvZRaxcJ3uy1QklEcLf0c8tol2+W2pvaXX4jnd7hGevFVkzWE77rCOIzAA==:`,
+    signature: `signature=:Idt0SZ7kOVmVoAMroCIgIQFr5/POgBIZ8/tcv73eILJ+9VW6zwfPiA7D6zl1MdjKehcwRJ5uFKa2y9cvCfQyCA==:`,
   },
   // ```
   // "unencoded-digest";sf: sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:
   // "@scheme";req: https
-  // "@signature-params": ("unencoded-digest";sf "@scheme";req);keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="sri"
+  // "@signature-params": ("unencoded-digest";sf "@scheme";req);keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";tag="ed25519-integrity"
   // ```
   {
     origin: get_host_info().HTTPS_REMOTE_ORIGIN,
-    signature: `signature=:lMzR8lIXYG0Iz0MmTXcRTcBfNw6TgBAPfaNLAU1LzsxWC5dlez8SNe7aCW7avHTWKgaqTGBCMW1LgxkHlijgDA==:`,
+    signature: `signature=:JlyZ8nQvWU8rG7GF4igLJhJEhvgLNlu+n6GIH/xOYzm1rIiX1Q2qkmxCkND2TR7JmhdV33vc5F8wkVzKN2quCg==:`,
   }
 ]
 
@@ -56,7 +56,7 @@ for (const test_case of test_cases) {
       cors: true,
       body: "window.hello = `world`;",
       digest: "sha-256=:PZJ+9CdAAIacg7wfUe4t/RkDQJVKM0mCZ2K7qiRhHFc=:",
-      signatureInput: `signature=("unencoded-digest";sf "@scheme";req);keyid="${kValidKeys['rfc']}";tag="sri"`,
+      signatureInput: `signature=("unencoded-digest";sf "@scheme";req);keyid="${kValidKeys['rfc']}";tag="ed25519-integrity"`,
       signature: test_case.signature
     };
 

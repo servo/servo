@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Module link: per-link disabled state and cached re-enabling</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/LinkTagModuleImport/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+
+<body>
+<script type="module">
+import {createLink, waitForEvent, createShadowRoot, createDocumentContainer, controlledModule, recordLinkEvents, loadResult} from "./module-stylesheet-helpers.js";
+
+for (const scopeName of ["document", "shadowRoot"]) {
+  promise_test(async t => {
+    const parent = scopeName === "document" ?
+        createDocumentContainer(t, "<span>test</span>") :
+        createShadowRoot(t, "<span>test</span>");
+    const scope = scopeName === "document" ? document : parent;
+    const initialSheets = Array.from(scope.styleSheets);
+
+    // Blue module, red classic, blue module: disabling the last reveals red.
+    const resource = controlledModule(t);
+    const first = createLink(t, /*import=*/resource.url);
+    const classic = createLink(t, /*import=*/undefined,
+        /*href=*/"./module-stylesheet-red.css");
+    const last = createLink(t, /*import=*/resource.url,
+        /*href=*/"./module-stylesheet-red.css");
+    const results = [first, classic, last].map(waitForEvent);
+    parent.prepend(first, classic, last);
+    await resource.started();
+    await resource.release();
+    assert_array_equals(await Promise.all(results), ["load", "load", "load"]);
+    const sheet = first.sheet;
+    assert_equals(last.sheet, sheet);
+    const adopted = createShadowRoot(t, "<span>adopted</span>");
+    adopted.adoptedStyleSheets = [sheet];
+    t.add_cleanup(() => {
+      adopted.adoptedStyleSheets = [];
+    });
+    const target = parent.querySelector("span");
+    assert_equals(getComputedStyle(target).color, "rgb(0, 0, 255)");
+    assert_equals(getComputedStyle(adopted.querySelector("span")).color,
+        "rgb(0, 0, 255)");
+
+    last.disabled = true;
+    assert_equals(last.sheet, null, "Setting disabled disconnects the sheet.");
+    assert_array_equals(Array.from(scope.styleSheets),
+        [...initialSheets, sheet, classic.sheet]);
+    assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+    last.setAttribute("disabled", "still-disabled");
+    assert_equals(last.sheet, null);
+    assert_false(sheet.disabled, "Disabling a link does not disable its sheet.");
+    assert_array_equals(Array.from(scope.styleSheets),
+        [...initialSheets, sheet, classic.sheet]);
+    assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+
+    // Mutate the shared sheet with both module links disabled. The changed
+    // rules must not affect styles in their TreeScope, but must still apply
+    // in the shadow root that adopts the sheet.
+    first.disabled = true;
+    assert_equals(first.sheet, null);
+    assert_array_equals(Array.from(scope.styleSheets),
+        [...initialSheets, classic.sheet]);
+    sheet.replaceSync("span { color: rgb(0, 128, 0); }");
+    assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+    assert_equals(getComputedStyle(adopted.querySelector("span")).color,
+        "rgb(0, 128, 0)", "The adopted consumer remains active.");
+
+    const enabled = waitForEvent(last);
+    const events = recordLinkEvents(last);
+    last.disabled = false;
+    assert_array_equals(events, [],
+        "Re-enabling queues the load event asynchronously.");
+    assert_equals(last.sheet, sheet, "A cached sheet reconnects synchronously.");
+    assert_array_equals(Array.from(scope.styleSheets),
+        [...initialSheets, classic.sheet, sheet]);
+    assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+    assert_equals(await enabled, "load");
+    last.disabled = false;
+    last.removeAttribute("disabled");
+    sheet.replaceSync("span { color: rgb(128, 0, 128); }");
+    assert_equals(getComputedStyle(target).color, "rgb(128, 0, 128)",
+        "Mutating the sheet updates styles after re-enabling.");
+    assert_equals((await resource.status()).count, 1, "No refetch on enabling.");
+
+    last.disabled = true;
+    last.remove();
+    last.disabled = false;
+    assert_equals(last.sheet, null,
+        "Enabling a detached link does not reconnect its sheet.");
+    const reinserted = waitForEvent(last);
+    parent.append(last);
+    assert_equals(await reinserted, "load");
+    assert_equals(last.sheet, sheet);
+    assert_equals(getComputedStyle(target).color, "rgb(128, 0, 128)");
+    assert_equals((await resource.status()).count, 1);
+    assert_array_equals(events, ["load", "load"],
+        "Only re-enabling and reinsertion fire load events.");
+
+    // Changing href after toggling disabled must still use import, rather than
+    // falling back to classic stylesheet loading.
+    const reprocessed = waitForEvent(last);
+    last.href = "./module-stylesheet-red.css?disabled-classification";
+    assert_equals(await reprocessed, "load");
+    assert_equals(last.sheet, sheet, "Reprocessing still uses import, not href.");
+  }, `${scopeName}: disabled removes only one link's association and enabling restores its cached sheet in DOM order.`);
+}
+
+promise_test(async t => {
+  const root = createShadowRoot(t, "<span>test</span>");
+  const link = createLink(t,
+      /*import=*/"./module-stylesheet-blue.css?disabled-attribute");
+  const loaded = waitForEvent(link);
+  root.prepend(link);
+  assert_equals(await loaded, "load");
+  const sheet = link.sheet;
+  const target = root.querySelector("span");
+  assert_equals(getComputedStyle(target).color, "rgb(0, 0, 255)");
+
+  link.setAttribute("disabled", "");
+  assert_equals(link.sheet, null);
+  assert_array_equals(Array.from(root.styleSheets), []);
+  assert_equals(getComputedStyle(target).color, "rgb(0, 0, 0)");
+  assert_false(sheet.disabled);
+
+  const enabled = waitForEvent(link);
+  link.removeAttribute("disabled");
+  assert_equals(link.sheet, sheet);
+  assert_array_equals(Array.from(root.styleSheets), [sheet]);
+  assert_equals(getComputedStyle(target).color, "rgb(0, 0, 255)");
+  assert_equals(await enabled, "load");
+}, "Adding and removing the disabled attribute disconnects and reconnects the same module sheet.");
+
+promise_test(async t => {
+  const specifier = "./module-stylesheet-blue.css?cached-disabled-toggle";
+  const {default: sheet} = await import(specifier, {with: {type: "css"}});
+  const root = createShadowRoot(t, "<span>test</span>");
+  const link = createLink(t, /*import=*/specifier);
+  const events = recordLinkEvents(link);
+  const loaded = waitForEvent(link);
+  root.prepend(link);
+  assert_equals(link.sheet, sheet, "The cached sheet is connected on insertion.");
+
+  link.disabled = true;
+  assert_equals(link.sheet, null);
+  link.disabled = false;
+  assert_equals(link.sheet, sheet, "Re-enabling reconnects the sheet synchronously.");
+  assert_array_equals(Array.from(root.styleSheets), [sheet]);
+  assert_equals(getComputedStyle(root.querySelector("span")).color,
+      "rgb(0, 0, 255)");
+  assert_array_equals(events, [], "The completion callback has not run yet.");
+
+  assert_equals(await loaded, "load");
+  const {event} = await loadResult(t, "unmapped-cached-disabled-toggle-barrier");
+  assert_equals(event, "error");
+  assert_array_equals(events, ["load"], "The cached request completes only once.");
+}, "Toggling disabled before a cached module's completion reconnects it immediately.");
+
+promise_test(async t => {
+  const specifier = "./module-stylesheet-blue.css?ineligible-disabled-enable";
+  const {default: sheet} = await import(specifier, {with: {type: "css"}});
+  const root = createShadowRoot(t);
+  const link = createLink(t, /*import=*/specifier);
+  const events = recordLinkEvents(link);
+  link.disabled = true;
+  root.append(link);
+
+  link.rel = "stylesheet expect";
+  link.disabled = false;
+  assert_equals(link.sheet, null, "Re-enabling does not bypass the rel load gate.");
+  const {event} = await loadResult(t, "unmapped-ineligible-disabled-enable-barrier");
+  assert_equals(event, "error");
+  assert_array_equals(events, []);
+  assert_array_equals(Array.from(root.styleSheets), []);
+
+  const loaded = waitForEvent(link);
+  link.rel = "stylesheet";
+  assert_equals(await loaded, "load");
+  assert_equals(link.sheet, sheet, "Becoming eligible connects the cached sheet.");
+}, "Re-enabling a module link with rel='stylesheet expect' does not load it.");
+
+promise_test(async t => {
+  const resource = controlledModule(t);
+  const root = createShadowRoot(t);
+  const link = createLink(t, /*import=*/resource.url);
+  const events = recordLinkEvents(link);
+  root.append(link);
+  await resource.started();
+  const shared = import(resource.url, {with: {type: "css"}});
+
+  link.disabled = true;
+  link.rel = "stylesheet expect";
+  link.disabled = false;
+  await resource.release();
+  await shared;
+  const {event} = await loadResult(t, "unmapped-ineligible-disabled-pending-barrier");
+  assert_equals(event, "error");
+  assert_array_equals(events, [], "The ineligible link ignores the old completion.");
+  assert_equals(link.sheet, null);
+  assert_array_equals(Array.from(root.styleSheets), []);
+  assert_equals((await resource.status()).count, 1, "The shared fetch completes once.");
+}, "Becoming ineligible while disabled supersedes a pending module load.");
+
+for (const initiallyDisabled of [false, true]) {
+  const enableWhilePending = !initiallyDisabled;
+  promise_test(async t => {
+    const resource = controlledModule(t);
+    const root = createShadowRoot(t, "<span>test</span>");
+    const link = createLink(t);
+
+    // Set disabled before import to exercise classification as a module link.
+    if (initiallyDisabled) {
+      link.disabled = true;
+    }
+    link.setAttribute("import", resource.url);
+    link.href = "./module-stylesheet-red.css";
+    const events = recordLinkEvents(link);
+    const completed = waitForEvent(link);
+    root.prepend(link);
+    if (initiallyDisabled) {
+      assert_equals((await resource.status()).count, 0,
+          "An initially disabled link does not start a fetch.");
+      assert_array_equals(events, []);
+      assert_equals(link.sheet, null);
+      link.disabled = false;
+    }
+    await resource.started();
+    link.disabled = true;
+    assert_equals(link.sheet, null);
+    if (enableWhilePending) {
+      link.disabled = false;
+    }
+    await resource.release();
+    assert_equals(await completed, "load",
+        "Disabling does not cancel an in-flight fetch.");
+    const {default: sheet} = await import(resource.url, {with: {type: "css"}});
+    assert_false(sheet.disabled);
+    assert_equals(link.sheet, enableWhilePending ? sheet : null);
+    assert_equals(getComputedStyle(root.querySelector("span")).color,
+        enableWhilePending ? "rgb(0, 0, 255)" : "rgb(0, 0, 0)");
+    assert_array_equals(Array.from(root.styleSheets),
+        enableWhilePending ? [sheet] : []);
+    if (!enableWhilePending) {
+      const enabled = waitForEvent(link);
+      link.disabled = false;
+      assert_equals(link.sheet, sheet);
+      assert_equals(await enabled, "load");
+      assert_equals(getComputedStyle(root.querySelector("span")).color,
+          "rgb(0, 0, 255)");
+    }
+    assert_array_equals(events,
+        enableWhilePending ? ["load"] : ["load", "load"]);
+    assert_equals((await resource.status()).count, 1);
+  }, initiallyDisabled ?
+      "Initially disabled module links defer fetching until enabled and can finish loading while disabled." :
+      "Disabling and re-enabling during a module fetch does not restart it.");
+}
+
+promise_test(async t => {
+  const root = createShadowRoot(t);
+  const link = createLink(t, /*import=*/"unmapped-disabled-specifier");
+  link.disabled = true;
+  const events = recordLinkEvents(link);
+  const failed = waitForEvent(link);
+  root.append(link);
+  await new Promise(resolve => requestAnimationFrame(
+      () => t.step_timeout(resolve, 0)));
+  assert_array_equals(events, [], "Disabled links defer resolution errors.");
+  assert_equals(link.sheet, null);
+  link.disabled = false;
+  assert_equals(await failed, "error");
+  assert_equals(link.sheet, null);
+  link.disabled = true;
+  const retried = waitForEvent(link);
+  link.disabled = false;
+  assert_equals(await retried, "error",
+      "Re-enabling retries specifier resolution.");
+  assert_equals(link.sheet, null);
+}, "Initially disabled module links report errors only after enabling, including retries.");
+
+promise_test(async t => {
+  const resource = controlledModule(t);
+  await resource.configure(404);
+  const root = createShadowRoot(t);
+  const link = createLink(t, /*import=*/resource.url);
+  const failed = waitForEvent(link);
+  root.append(link);
+  await resource.started();
+  await resource.release();
+  assert_equals(await failed, "error");
+  assert_equals(link.sheet, null);
+  assert_equals((await resource.status()).count, 1);
+
+  // The module map evicts failed fetches. Re-enabling can therefore retry
+  // and recover, as with classic links.
+  await resource.configure(200);
+  link.disabled = true;
+  const retried = waitForEvent(link);
+  link.disabled = false;
+  assert_equals(await retried, "load");
+  assert_true(link.sheet instanceof CSSStyleSheet);
+  assert_equals(link.sheet.ownerNode, null);
+  assert_equals((await resource.status()).count, 2,
+      "Re-enabling retries the failed module fetch.");
+}, "Re-enabling a module link retries a failed fetch and can recover.");
+
+promise_test(async t => {
+  const first = controlledModule(t);
+  const second = controlledModule(t);
+  const root = createShadowRoot(t, "<span>test</span>");
+  const link = createLink(t, /*import=*/first.url);
+  const events = recordLinkEvents(link);
+  const loaded = waitForEvent(link);
+  root.prepend(link);
+  await first.started();
+  const shared = import(first.url, {with: {type: "css"}});
+
+  link.disabled = true;
+  link.setAttribute("import", second.url);
+  assert_equals((await second.status()).count, 0,
+      "Changing import while disabled does not start the replacement fetch.");
+  link.disabled = false;
+  await second.release();
+  await first.release();
+  assert_equals(await loaded, "load");
+  const {default: firstSheet} = await shared;
+  const {default: secondSheet} =
+      await import(second.url, {with: {type: "css"}});
+  assert_equals(link.sheet, secondSheet,
+      "Re-enabling uses the new import, not the superseded pending client.");
+  assert_not_equals(link.sheet, firstSheet);
+  assert_array_equals(Array.from(root.styleSheets), [secondSheet]);
+  assert_equals(getComputedStyle(root.querySelector("span")).color,
+      "rgb(0, 0, 255)");
+  const {event} = await loadResult(t, "unmapped-disabled-replacement-barrier");
+  assert_equals(event, "error");
+  assert_array_equals(events, ["load"],
+      "The superseded client does not dispatch an event.");
+  assert_equals((await first.status()).count, 1,
+      "The original shared fetch is not canceled.");
+  assert_equals((await second.status()).count, 1);
+}, "Changing import while disabled supersedes an in-flight module fetch before re-enabling.");
+
+promise_test(async t => {
+  const frame = document.createElement("iframe");
+  t.add_cleanup(() => frame.remove());
+  const ready = new Promise(resolve => frame.onload = resolve);
+  const url = new URL("./module-stylesheet-blue.css", location.href).href;
+
+  // Exercise parser initialization with disabled preceding rel and import.
+  frame.srcdoc = `<!doctype html><link disabled rel="stylesheet" import="${url}"><span>test</span>`;
+  document.body.append(frame);
+  await ready;
+  const doc = frame.contentDocument;
+  const link = doc.querySelector("link");
+  const target = doc.querySelector("span");
+  assert_true(link.disabled);
+  assert_equals(link.sheet, null);
+  assert_equals(doc.styleSheets.length, 0);
+  assert_equals(frame.contentWindow.getComputedStyle(target).color,
+      "rgb(0, 0, 0)");
+  const enabled = waitForEvent(link);
+  link.disabled = false;
+  assert_equals(await enabled, "load");
+  assert_equals(link.sheet.ownerNode, null);
+  assert_equals(frame.contentWindow.getComputedStyle(target).color,
+      "rgb(0, 0, 255)");
+}, "A parser-created initially disabled module link can be enabled.");
+
+promise_test(async t => {
+  const frame = document.createElement("iframe");
+  t.add_cleanup(() => frame.remove());
+  document.body.append(frame);
+  const doc = frame.contentDocument;
+  doc.open();
+  doc.write("<!doctype html><span>test</span>");
+  // Document load waits for the classic sheet if fetching starts.
+  const loaded = new Promise(resolve => frame.onload = resolve);
+  const link = doc.createElement("link");
+  link.disabled = true;
+  link.rel = "stylesheet";
+  link.setAttribute("import",
+      new URL("./module-stylesheet-blue.css", location.href).href);
+  link.disabled = false;
+  link.removeAttribute("import");
+  link.href = new URL("./module-stylesheet-red.css", location.href).href;
+  assert_false(link.disabled);
+  doc.head.append(link);
+  doc.close();
+  await loaded;
+  assert_not_equals(link.sheet, null,
+      "The enabled classic stylesheet loads before the document load event.");
+  assert_equals(link.sheet.ownerNode, link);
+  assert_false(link.sheet.disabled);
+  assert_true(Array.from(doc.styleSheets).includes(link.sheet));
+  assert_equals(frame.contentWindow.getComputedStyle(
+      doc.querySelector("span")).color,
+      "rgb(255, 0, 0)");
+}, "A detached link enabled while classified as a module link can later load a classic stylesheet.");
+
+promise_test(async t => {
+  const root = createShadowRoot(t, "<span>test</span>");
+  const link = createLink(t, /*import=*/undefined,
+      /*href=*/"./module-stylesheet-red.css");
+  const classicLoaded = waitForEvent(link);
+  root.prepend(link);
+  assert_equals(await classicLoaded, "load");
+  assert_equals(link.sheet.ownerNode, link);
+  const target = root.querySelector("span");
+  assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+
+  const specifier = "./module-stylesheet-blue.css?enable-resource-selection";
+  const reprocessed = waitForEvent(link);
+  link.setAttribute("import", specifier);
+  assert_equals(await reprocessed, "load");
+  link.disabled = true;
+  assert_equals(link.sheet, null);
+  const events = recordLinkEvents(link);
+  link.disabled = false;
+  const {default: sheet} = await import(specifier, {with: {type: "css"}});
+  const {event} = await loadResult(t, "unmapped-enable-resource-barrier");
+  assert_equals(event, "error");
+  assert_false(link.disabled);
+  assert_equals(link.sheet, sheet,
+      "Enabling selects and processes the module resource.");
+  assert_equals(sheet.ownerNode, null);
+  assert_array_equals(Array.from(root.styleSheets), [sheet]);
+  assert_equals(getComputedStyle(target).color, "rgb(0, 0, 255)");
+  assert_array_equals(events, ["load"]);
+}, "Enabling a classic link after adding import loads and applies its module stylesheet.");
+
+promise_test(async t => {
+  const frame = document.createElement("iframe");
+  t.add_cleanup(() => frame.remove());
+  const ready = new Promise(resolve => frame.onload = resolve);
+  frame.srcdoc = "<!doctype html><span>test</span>";
+  document.body.append(frame);
+  await ready;
+  const doc = frame.contentDocument;
+  const link = doc.createElement("link");
+  link.rel = "stylesheet";
+  link.setAttribute("import",
+      new URL("./module-stylesheet-blue.css", location.href).href);
+  link.disabled = true;
+  link.disabled = false;
+  link.removeAttribute("import");
+  link.rel = "alternate stylesheet";
+  link.title = "alternate";
+  link.href = new URL("./module-stylesheet-red.css", location.href).href;
+  const loaded = waitForEvent(link);
+  doc.head.append(link);
+  assert_equals(await loaded, "load");
+  assert_false(link.disabled);
+  assert_equals(link.sheet.ownerNode, link);
+  assert_array_equals(Array.from(doc.styleSheets), [link.sheet]);
+  assert_equals(frame.contentWindow.getComputedStyle(
+      doc.querySelector("span")).color,
+      "rgb(255, 0, 0)", "The explicitly enabled alternate stylesheet applies.");
+}, "Enabling a detached module link preserves explicitly enabled state when it becomes an alternate classic link.");
+</script>

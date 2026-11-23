@@ -36,17 +36,34 @@ promise_test(async () => {
 }, 'Summarizer.create() with speed preference notifies its monitor on downloadprogress');
 
 promise_test(async () => {
-  const summarizer = await createSummarizer({
-    preference: 'speed',
-    type: 'tldr',
-    format: 'plain-text',
-    length: 'medium',
-    expectedInputLanguages: ['en'],
-    outputLanguage: 'en',
-  });
-  assert_equals(summarizer.type, 'tldr');
-  assert_equals(summarizer.format, 'plain-text');
-  assert_equals(summarizer.length, 'medium');
-  assert_array_equals(summarizer.expectedInputLanguages, ['en']);
-  assert_equals(summarizer.outputLanguage, 'en');
-}, 'Summarizer.create() with speed preference configures supported attributes');
+  const kCreateOptionsSpec = [
+    {preference: ['speed']},
+    {type: ['tldr', 'teaser', 'key-points', 'headline']},
+    {format: ['plain-text']},
+    {length: ['short', 'medium', 'long']},
+    {expectedInputLanguages: [['en']]},
+    {outputLanguage: ['en', 'es']},
+  ];
+  const combinations = generateOptionCombinations(kCreateOptionsSpec);
+  let createdCount = 0;
+  let rejectedCount = 0;
+  for (const options of combinations) {
+    try {
+      const summarizer = await createSummarizer(options);
+      assert_true(summarizer instanceof Summarizer);
+      assert_equals(summarizer.type, options.type);
+      assert_equals(summarizer.format, options.format);
+      assert_equals(summarizer.length, options.length);
+      assert_array_equals(
+          summarizer.expectedInputLanguages, options.expectedInputLanguages);
+      assert_equals(summarizer.outputLanguage, options.outputLanguage);
+      summarizer.destroy();
+      createdCount++;
+    } catch (e) {
+      assert_equals(e.name, 'NotSupportedError');
+      rejectedCount++;
+    }
+  }
+  assert_equals(createdCount + rejectedCount, combinations.length);
+  assert_greater_than(createdCount, 0);
+}, 'Summarizer.create() with speed preference handles option combinations');

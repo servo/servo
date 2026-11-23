@@ -93,4 +93,8 @@
                       computed('width: 10px; width: unset;', "width"));
     }, "ident() substituting a value the property does not accept");
 
+    test(() => {
+        assert_equals(computed('--empty: var(--fail); --fail: "FAIL"; --empty: ident(""); --result: var(--empty, PASS)', '--result'), "PASS");
+    }, "ident('') valid, but generating IACVT value, fallback when used as var() name");
+
 </script>

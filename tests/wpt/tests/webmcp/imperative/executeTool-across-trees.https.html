@@ -28,7 +28,7 @@ promise_test(async t => {
   assert_array_equals(tools, [], "We do not see the other document's tool");
 
   const [tool] = await windowB.document.modelContext.getTools();
-  assert_equals(tool.window, windowB);
+  assert_equals(tool.source, windowB);
   const execute_promise = document.modelContext.executeTool(tool);
 
   await promise_rejects_dom(t, 'InvalidStateError', execute_promise);

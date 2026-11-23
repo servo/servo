@@ -67,17 +67,21 @@
     data-description="An orthogonal float contributes its block size and its left and right margins"><div class="left orthogonal">x</div></div>
 
 <script>
-for (const content of document.querySelectorAll(".content")) {
-    for (const [width, expectedWidth] of [["min-content", content.dataset.minContent], ["max-content", content.dataset.maxContent]]) {
-        test(() => {
-            const container = content.cloneNode(true);
-            container.removeAttribute("id");
-            container.style.width = width;
-            document.body.appendChild(container);
-            assert_equals(container.offsetWidth, Number(expectedWidth));
-            container.remove();
-        }, `${content.dataset.description} (${content.id}, ${width})`);
+setup({ explicit_done: true });
+document.fonts.ready.then(() => {
+    for (const content of document.querySelectorAll(".content")) {
+        for (const [width, expectedWidth] of [["min-content", content.dataset.minContent], ["max-content", content.dataset.maxContent]]) {
+            test(() => {
+                const container = content.cloneNode(true);
+                container.removeAttribute("id");
+                container.style.width = width;
+                document.body.appendChild(container);
+                assert_equals(container.offsetWidth, Number(expectedWidth));
+                container.remove();
+            }, `${content.dataset.description} (${content.id}, ${width})`);
+        }
+        content.remove();
     }
-    content.remove();
-}
+    done();
+});
 </script>

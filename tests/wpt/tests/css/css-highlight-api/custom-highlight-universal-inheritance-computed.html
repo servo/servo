@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Custom highlight computed style inherits from a universal parent highlight</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#highlight-cascade">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#selectordef-highlight-highlight-name-selector">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .parent::highlight(*) { color: green; }
+  .named-parent::highlight(example) { color: blue; }
+  .target::highlight(example) { background-color: yellow; }
+</style>
+<body>
+<script>
+for (const namedParent of [false, true]) {
+  test(t => {
+    const parent = document.createElement("div");
+    parent.className = namedParent ? "parent named-parent" : "parent";
+    const target = parent.appendChild(document.createElement("span"));
+    target.className = "target";
+    target.textContent = "Highlighted text";
+    document.body.appendChild(parent);
+    t.add_cleanup(() => parent.remove());
+
+    const range = new Range();
+    range.selectNodeContents(target);
+    CSS.highlights.set("example", new Highlight(range));
+    t.add_cleanup(() => {
+      CSS.highlights.delete("example");
+    });
+
+    const style = getComputedStyle(target, "::highlight(example)");
+    assert_equals(style.color,
+                  namedParent ? "rgb(0, 0, 255)" : "rgb(0, 128, 0)");
+    assert_equals(style.backgroundColor, "rgb(255, 255, 0)");
+  }, `Registered highlight inherits from the ` +
+     `${namedParent ? "named" : "universal"} parent highlight`);
+}
+</script>

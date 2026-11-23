@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS test: balancing keeps the letter order of a paragraph after a forced break</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-wrap-style">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#valdef-unicode-bidi-plaintext">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#bidi-linebox">
+<link rel="match" href="reference/text-wrap-balance-bidi-002-ref.html">
+<meta name="assert" content="When balancing moves the text of a paragraph into another text frame, the text keeps the order of its own direction.">
+<style>
+div {
+  width: 320px;
+  font: 20px sans-serif;
+  unicode-bidi: plaintext;
+  white-space: pre-line;
+  overflow-wrap: break-word;
+  text-wrap: balance;
+}
+</style>
+<div><span>Hello!
+&#x5E9;&#x5DC;&#x5D5;&#x5DD;!</span></div>
+<div><span>&#x5E9;&#x5DC;&#x5D5;&#x5DD;!
+Hello!</span></div>

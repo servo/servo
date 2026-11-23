@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<title>Hit-test of element with &lt;clipPath> with 'pointer-events: bounding-box' text content</title>
+<link rel="help" href="https://drafts.fxtf.org/css-masking/#the-clip-path">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/interact.html#PointerEventsProp">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+</style>
+<svg width="200" font-size="25" font-family="Ahem">
+  <clipPath id="pebb_text">
+    <text x="0 75" y="50" pointer-events="bounding-box">MM</text>
+  </clipPath>
+  <clipPath id="pebb_tspan">
+    <text y="50"><tspan x="100 175" pointer-events="bounding-box">MM</tspan></text>
+  </clipPath>
+  <rect width="100" height="100" clip-path="url(#pebb_text)"/>
+  <rect x="100" width="100" height="100" clip-path="url(#pebb_tspan)"/>
+</svg>
+<script>
+promise_setup(() => document.fonts.ready);
+
+promise_test(async () => {
+  const svgRoot = document.querySelector('svg');
+  const rects = document.getElementsByTagName('rect');
+  assert_equals(rects.length, 2);
+  [
+    [10, 40, rects[0]],
+    [35, 40, svgRoot],
+    [65, 40, svgRoot],
+    [90, 40, rects[0]],
+  ].forEach(([x, y, expected]) => {
+    const result = document.elementFromPoint(x, y);
+    assert_equals(result, expected, `${x},${y} is clipped out`);
+  });
+}, 'pointer-events: bounding-box on <text> in <clipPath>');
+
+promise_test(async () => {
+  const svgRoot = document.querySelector('svg');
+  const rects = document.getElementsByTagName('rect');
+  assert_equals(rects.length, 2);
+  [
+    [110, 40, rects[1]],
+    [135, 40, svgRoot],
+    [165, 40, svgRoot],
+    [190, 40, rects[1]],
+  ].forEach(([x, y, expected]) => {
+    const result = document.elementFromPoint(x, y);
+    assert_equals(result, expected, `${x},${y} is clipped out`);
+  });
+}, 'pointer-events: bounding-box on <tspan> in <clipPath>');
+</script>

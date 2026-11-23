@@ -756,7 +756,7 @@ name = "jinxed"
 version = "1.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "ansicon" },
+    { name = "ansicon", marker = "sys_platform == 'win32'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/3c/e9/96633f12b6829eb1e91e70e5846704c0b1293ec47bd65a7b681e19c8eeff/jinxed-1.4.0.tar.gz", hash = "sha256:8f7801a10799de39e509eb5abc6d131ee169c1ce4fd5d568aa85b5f56ed58068", size = 37169, upload-time = "2026-03-26T01:49:38.337Z" }
 wheels = [
@@ -989,7 +989,7 @@ wheels = [
 
 [[package]]
 name = "mozlog"
-version = "8.1.0"
+version = "9.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "blessed" },
@@ -997,9 +997,9 @@ dependencies = [
     { name = "mozsystemmonitor" },
     { name = "mozterm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4e/e6/a6886a2b5ad91f96abf9460ff4f1acb45435600eedfb4440b740f278a5b2/mozlog-8.1.0.tar.gz", hash = "sha256:89a2a9b3b54d71ab3572b7fb3b3af13100bd447ac3d980eb173d2da56498bac4", size = 70389, upload-time = "2026-03-23T11:14:37.607Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ed/4b/55cf4100fa4c9bc1a08a74e2c189f53046ea3c89a2ad2e1f316dec3051d1/mozlog-9.0.0.tar.gz", hash = "sha256:0640d537400f7a9a8db35545ce466748427b50c81e386eeb7e77af513f2cfbc8", size = 79353, upload-time = "2026-10-30T12:06:01.511Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d5/d0/2b4570c6328aefe8060f950577ff660bac1b4e57e9ba9821977c06f03f43/mozlog-8.1.0-py2.py3-none-any.whl", hash = "sha256:bc4a715e03896ebdb727d4df133d188cb53bcce18a1bbb90baa6bba6b83b007a", size = 72222, upload-time = "2026-03-23T11:14:38.836Z" },
+    { url = "https://files.pythonhosted.org/packages/e5/b8/8cc82663c1028b79b1aac40c43b80c5755010aadcb89424723fe8a5b61a4/mozlog-9.0.0-py2.py3-none-any.whl", hash = "sha256:a3d0a17955890e1d78c647eb5082fefc741d244a1227d251f8e199f3157e67d5", size = 76292, upload-time = "2026-10-30T12:06:00.057Z" },
 ]
 
 [[package]]
@@ -1859,7 +1859,7 @@ requires-dist = [
     { name = "mozfile", specifier = "==3.0.0" },
     { name = "mozinfo", specifier = "==1.2.3" },
     { name = "mozleak", specifier = "==0.2" },
-    { name = "mozlog", specifier = "==8.1.0" },
+    { name = "mozlog", specifier = "==9.0.0" },
     { name = "mozprocess", specifier = "==1.4.0" },
     { name = "mozrunner", specifier = "==8.4.0" },
     { name = "mozshellutil", specifier = "==1.0.0" },

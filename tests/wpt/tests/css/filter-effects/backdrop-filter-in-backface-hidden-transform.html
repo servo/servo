@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>backdrop-filter inside a transform with backface-visibility: hidden</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match" href="backdrop-filter-in-backface-hidden-transform-ref.html">
+<!-- The transformed element is not a backdrop root, so the backdrop-filter has
+     to read both the container's content and the transformed element's own
+     background painted before it. -->
+<style>
+  #container {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    background: blue;
+  }
+  #wrapper {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100px;
+    height: 200px;
+    background: red;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+  }
+  #inner {
+    position: absolute;
+    left: 50px;
+    top: 50px;
+    width: 100px;
+    height: 100px;
+    backdrop-filter: invert(1);
+  }
+</style>
+<div id="container">
+  <div id="wrapper">
+    <div id="inner"></div>
+  </div>
+</div>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>unicode-bidi: plaintext with forced breaks inside an inline element</title>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#valdef-unicode-bidi-plaintext">
+<link rel="match" href="reference/bidi-plaintext-br-002-ref.html">
+<meta name="assert" content="Each line after a forced break inside an inline element takes its direction from the first strong character after the break.">
+<style>
+div {
+  width: 10ch;
+  unicode-bidi: plaintext;
+}
+</style>
+<div><span>a<br>&#x5D0;</span></div>
+<div><span><span>a<br>&#x5D0;</span></span></div>
+<div><span>&#x5D0;<br>a</span></div>
+<div><span><span>&#x5D0;<br>a</span></span></div>

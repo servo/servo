@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>CSS Borders Test: outline-style: ridge follows border-shape</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<link rel="help" href="https://drafts.csswg.org/css-ui/#outline">
+<link rel="match" href="border-shape-outline-ridge-ref.html">
+<meta name="assert" content="A ridge outline on an element with border-shape
+must be painted along the border-shape path as a lightened outer half and a
+darkened inner half.">
+<meta name="fuzzy" content="maxDifference=0-100;totalPixels=0-1300">
+<style>
+body { margin: 0; }
+.container { padding: 30px; }
+.target {
+  width: 100px;
+  height: 100px;
+  background: lightblue;
+  border-shape: circle(50px at 50px 50px);
+  outline: 10px ridge green;
+}
+</style>
+<div class="container">
+  <div class="target"></div>
+</div>

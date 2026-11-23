@@ -349,3 +349,81 @@ promise_test(async t => {
   assert_equals(output_chunks[3].timestamp, 20000);
   assert_equals(output_chunks[3].duration, 222);
 }, 'Encode video preserves unset, zero, and duplicate-timestamp durations');
+
+promise_test(async t => {
+  let outputs = 0;
+  let resolveError;
+  let gotError = new Promise(resolve => {
+    resolveError = resolve;
+  });
+  let encoder = new VideoEncoder({
+    output: () => {
+      outputs++;
+    },
+    error: e => resolveError(e),
+  });
+  t.add_cleanup(() => {
+    if (encoder.state !== 'closed') {
+      encoder.close();
+    }
+  });
+
+  const config = {
+    codec: 'vp8',
+    width: 64,
+    height: 64,
+  };
+  encoder.configure(config);
+  await encoder.flush();
+
+  // Reconfigure with the same codec ('vp8') but an unsupported width so
+  // ProcessReconfigure() queues a NotSupportedError and blocks subsequent
+  // requests.
+  encoder.configure({...config, width: 1000000});
+
+  let frame = createFrame(64, 64, 0);
+  encoder.encode(frame);
+  assert_equals(encoder.encodeQueueSize, 1);
+  frame.close();
+
+  let err = await gotError;
+  assert_equals(err.name, 'NotSupportedError');
+  assert_equals(encoder.state, 'closed');
+  assert_equals(encoder.encodeQueueSize, 0);
+  assert_equals(outputs, 0);
+}, 'Reconfiguring VideoEncoder with unsupported config blocks subsequent encodes and closes encoder');
+
+promise_test(async t => {
+  let outputs = 0;
+  let encoder = new VideoEncoder({
+    output: () => {
+      outputs++;
+    },
+    error: t.unreached_func('Unexpected error after reset()'),
+  });
+  t.add_cleanup(() => {
+    if (encoder.state !== 'closed') {
+      encoder.close();
+    }
+  });
+
+  encoder.configure({
+    codec: 'bogus-codec',
+    width: 64,
+    height: 64,
+  });
+  encoder.reset();
+
+  encoder.configure({
+    codec: 'vp8',
+    width: 64,
+    height: 64,
+  });
+  let frame = createFrame(64, 64, 0);
+  encoder.encode(frame);
+  frame.close();
+
+  await encoder.flush();
+  assert_greater_than(outputs, 0);
+  encoder.close();
+}, 'reset() cancels queued configure() error and allows subsequent configuration');

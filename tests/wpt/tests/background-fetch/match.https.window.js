@@ -83,6 +83,27 @@ backgroundFetchTest(async (test, backgroundFetch) => {
 }, 'Access to active fetches is supported.');
 
 backgroundFetchTest(async (test, backgroundFetch) => {
+  const url = 'resources/feature-name.txt?pipe=trickle(d1)';
+  const registration = await backgroundFetch.fetch(
+      uniqueId(), [url, '/common/slow.py']);
+
+  const [record1, record2] = await Promise.all([
+    registration.match(url),
+    registration.match(url),
+  ]);
+  const [response1, response2] = await Promise.all([
+    record1.responseReady,
+    record2.responseReady,
+  ]);
+
+  for (const response of [response1, response2]) {
+    assert_true(response.url.includes('resources/feature-name.txt'));
+    assert_equals(response.status, 200);
+    assert_equals(await response.text(), 'Background Fetch');
+  }
+}, 'Multiple observers for the same active fetch both resolve.');
+
+backgroundFetchTest(async (test, backgroundFetch) => {
   const registration = await backgroundFetch.fetch(
       uniqueId(), [
           'resources/feature-name.txt',

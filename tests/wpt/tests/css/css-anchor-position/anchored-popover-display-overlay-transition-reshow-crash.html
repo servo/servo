@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<title>Re-showing an anchored popover and then removing its display/overlay transitions must not crash</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/popover.html">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/">
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/#transition-behavior-property">
+<style>
+  #anchor {
+    anchor-name: --a;
+    width: 40px;
+    height: 20px;
+    margin: 20px;
+  }
+  #popover {
+    position: fixed;
+    position-anchor: --a;
+    position-area: block-end;
+    margin: 0;
+  }
+  #popover.transitions {
+    transition: display 0.001s allow-discrete, overlay 1s allow-discrete;
+  }
+</style>
+<p>PASS if no crash.</p>
+<div id="anchor"></div>
+<div id="popover" popover="manual">Popover</div>
+<script>
+const frame = () => new Promise(resolve => requestAnimationFrame(() => resolve()));
+
+(async () => {
+  popover.showPopover();
+  popover.classList.add("transitions");
+  await frame();
+
+  // The exit transition keeps the popover rendered in the top layer.
+  popover.hidePopover();
+  await frame();
+
+  // Re-show it and drop the transitions. The anchored layout must not see a
+  // style-less element that still has a LayoutObject.
+  popover.showPopover();
+  popover.classList.remove("transitions");
+
+  await frame();
+  await frame();
+  document.documentElement.classList.remove("test-wait");
+})();
+</script>
+</html>

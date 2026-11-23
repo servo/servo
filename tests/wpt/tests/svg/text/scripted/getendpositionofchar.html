@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVGTextContentElement.getEndPositionOfChar</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#__svg__SVGTextContentElement__getEndPositionOfChar">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TermAlignmentPoint">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.ahem {
+    font: 10px/1 Ahem;
+}
+.serif {
+    font: 20px serif;
+}
+</style>
+<svg width="600" height="300">
+    <text id="ltr" class="ahem" x="10" y="20">ABC</text>
+    <text id="rtl" class="ahem" x="200" y="20" direction="rtl">אבג</text>
+    <text id="rotated" class="ahem" x="10" y="60" rotate="90">ABC</text>
+    <text id="verticalSideways" class="serif" x="300" y="10" style="writing-mode: vertical-rl">Wil</text>
+    <text id="verticalUpright" class="ahem" x="400" y="10" style="writing-mode: vertical-rl; text-orientation: upright">ABC</text>
+    <text id="verticalRotated" class="ahem" x="500" y="10" rotate="90" style="writing-mode: vertical-rl">ABC</text>
+</svg>
+<script>
+// "Let direction be a unit vector in the direction of the cluster's advance. This direction takes into account the writing
+// mode being used, the direction of the character, the text-orientation, glyph-orientation-horizontal and
+// glyph-orientation-vertical properties, any 'rotate' value that applies to cluster, and any rotation applied to due a
+// 'textPath'."
+// "Set p to p + advance · direction."
+function assertAdvance(element, index, dx, dy) {
+    const start = element.getStartPositionOfChar(index);
+    const end = element.getEndPositionOfChar(index);
+    assert_approx_equals(end.x - start.x, dx, 0.01, `x of character ${index}`);
+    assert_approx_equals(end.y - start.y, dy, 0.01, `y of character ${index}`);
+}
+
+setup({ explicit_done: true });
+document.fonts.ready.then(() => {
+    test(() => {
+        for (let index = 0; index < 3; ++index)
+            assertAdvance(ltr, index, 10, 0);
+        assert_equals(ltr.getEndPositionOfChar(0).x, ltr.getStartPositionOfChar(1).x);
+        assert_throws_dom("IndexSizeError", () => ltr.getEndPositionOfChar(3));
+    }, "Left to right text");
+
+    test(() => {
+        for (let index = 0; index < 3; ++index)
+            assertAdvance(rtl, index, -rtl.getSubStringLength(index, 1), 0);
+        assert_equals(rtl.getEndPositionOfChar(0).x, rtl.getStartPositionOfChar(1).x);
+    }, "Right to left text");
+
+    test(() => {
+        // The rotate attribute turns the direction of the advance.
+        assertAdvance(rotated, 0, 0, 10);
+    }, "Rotated glyphs");
+
+    test(() => {
+        // Sideways glyphs advance by their width.
+        for (let index = 0; index < 3; ++index)
+            assertAdvance(verticalSideways, index, 0, verticalSideways.getSubStringLength(index, 1));
+        assert_not_equals(verticalSideways.getSubStringLength(0, 1), verticalSideways.getSubStringLength(1, 1));
+    }, "Sideways glyphs in vertical text");
+
+    test(() => {
+        for (let index = 0; index < 3; ++index)
+            assertAdvance(verticalUpright, index, 0, 10);
+    }, "Upright glyphs in vertical text");
+
+    test(() => {
+        assertAdvance(verticalRotated, 0, -10, 0);
+    }, "Rotated glyphs in vertical text");
+    done();
+});
+</script>

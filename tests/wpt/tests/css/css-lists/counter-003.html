@@ -2,7 +2,7 @@
 <title>CSS Lists and Counters: counter(c, &quot;.", upper-roman)</title>
 <link rel="help" href="https://drafts.csswg.org/css-lists/#inheriting-counters">
 <link rel="match" href="counter-003-ref.html">
-<meta name="assert" content="counters are not inherited from the previous sibling, when can be inherited from the ancestor">
+<meta name="assert" content="counters are not inherited from the ancestor, when can be inherited from the previous sibling">
 <style type="text/css">
 #test { counter-reset: c; }
 #test span { counter-increment: c; }
@@ -44,10 +44,10 @@
   <span>XI</span>
   <span>XII</span>
   <span>XLIX</span>
-  <span>XIII</span>
+  <span>L</span>
   <span>CCCLXXXIX</span>
-  <span>XIV</span>
+  <span>CCCXC</span>
   <span>MMMCDLXXXIX</span>
-  <span>XV</span>
-  <span>XVI</span>
+  <span>MMMCDXC</span>
+  <span>MMMCDXCI</span>
 </div>

@@ -13,7 +13,6 @@ body {
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/element-timing-helpers.js"></script>
-<p elementtiming='my_text' id='text_id'></p>
 <script>
   async_test(function (t) {
     const beforeRender = performance.now();
@@ -33,4 +32,5 @@ body {
     observer.observe({type: 'element', buffered: true});
   }, 'Generated text content is observable.');
 </script>
+<p elementtiming='my_text' id='text_id'></p>
 </body>

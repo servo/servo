@@ -10,7 +10,6 @@
   display: flex;
 }
 </style>
-<h1 id='title'>I am a title!</h1>
 <script>
   async_test(function (t) {
     assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
@@ -61,4 +60,5 @@
     beforeRender = performance.now();
   }, 'Text with display style is observable.');
 </script>
+<h1 id='title'>I am a title!</h1>
 </body>

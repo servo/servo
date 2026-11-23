@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<title>Canvas onpaint invalidations from nested OffscreenCanvas commits</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  div[drawable] {
+    width: 60px;
+    height: 30px;
+  }
+  div[drawable] > canvas {
+    display: block;
+  }
+</style>
+
+<canvas id="main_outer" width="60" height="30" content=drawable>
+  <div drawable id="main_child">
+    <canvas id="main_inner" width="60" height="30" content=drawable></canvas>
+  </div>
+</canvas>
+
+<canvas id="worker_outer" width="60" height="30" content=drawable>
+  <div drawable id="worker_child">
+    <canvas id="worker_inner" width="60" height="30" content=drawable></canvas>
+  </div>
+</canvas>
+
+<script id="worker_script" type="text/worker">
+  let ctx;
+  onmessage = e => {
+    if (e.data.canvas) {
+      ctx = e.data.canvas.getContext('2d');
+      return;
+    }
+    ctx.fillStyle = e.data.color;
+    ctx.fillRect(0, 0, 60, 30);
+    postMessage('drawn');
+  };
+</script>
+
+<script>
+  'use strict';
+
+  const RED = [255, 0, 0, 255];
+  const GREEN = [0, 255, 0, 255];
+  const BLUE = [0, 0, 255, 255];
+
+  // OffscreenCanvas frames reach the placeholder asynchronously, so allow
+  // several frames for a commit to arrive before treating it as missing.
+  const MAX_FRAMES_TO_WAIT = 20;
+
+  function waitForOneFrame() {
+    return new Promise(requestAnimationFrame);
+  }
+
+  async function waitForLoad() {
+    if (document.readyState === 'complete') return;
+    return new Promise(resolve => window.addEventListener('load', resolve));
+  }
+
+  // Records every paint event on `outer`. Each paint draws `child` and reads
+  // back the nested canvas's pixel, as a page redrawing from onpaint would.
+  function observePaints(outer, child) {
+    const ctx = outer.getContext('2d', {willReadFrequently: true});
+    const paints = [];
+    outer.onpaint = event => {
+      ctx.clearRect(0, 0, outer.width, outer.height);
+      ctx.drawElementImage(child, 0, 0);
+      paints.push({
+        changedElements: event.changedElements,
+        pixel: Array.from(ctx.getImageData(30, 15, 1, 1).data),
+      });
+    };
+    return paints;
+  }
+
+  async function waitForPaintCount(paints, count) {
+    for (let i = 0; i < MAX_FRAMES_TO_WAIT && paints.length < count; i++) {
+      await waitForOneFrame();
+    }
+  }
+
+  async function settle(paints) {
+    let length;
+    do {
+      length = paints.length;
+      await waitForOneFrame();
+      await waitForOneFrame();
+    } while (paints.length !== length);
+  }
+
+  async function checkCommitFiresPaint(paints, child, draw, color, name) {
+    const before = paints.length;
+    await draw(color);
+    await waitForPaintCount(paints, before + 1);
+    assert_greater_than(paints.length, before,
+                        `${name}: committing a frame should fire paint`);
+    const paint = paints[paints.length - 1];
+    assert_array_equals(paint.changedElements, [child],
+                        `${name}: changedElements`);
+    assert_array_equals(paint.pixel, color,
+                        `${name}: paint should see the committed pixels`);
+
+    const after = paints.length;
+    await waitForOneFrame();
+    await waitForOneFrame();
+    await waitForOneFrame();
+    assert_equals(paints.length, after,
+                  `${name}: should not fire paint again without a new commit`);
+  }
+
+  promise_setup(async () => {
+    await waitForLoad();
+    await waitForOneFrame();
+  });
+
+  promise_test(async t => {
+    const outer = document.getElementById('main_outer');
+    const child = document.getElementById('main_child');
+    const offscreen =
+        document.getElementById('main_inner').transferControlToOffscreen();
+    const offscreen_ctx = offscreen.getContext('2d');
+    const paints = observePaints(outer, child);
+    t.add_cleanup(() => { outer.onpaint = null; });
+    await settle(paints);
+
+    const draw = color => new Promise(resolve => {
+      requestAnimationFrame(() => {
+        offscreen_ctx.fillStyle = `rgba(${color.join(',')})`;
+        offscreen_ctx.fillRect(0, 0, 60, 30);
+        resolve();
+      });
+    });
+    await checkCommitFiresPaint(paints, child, draw, RED, 'red');
+    await checkCommitFiresPaint(paints, child, draw, GREEN, 'green');
+    await checkCommitFiresPaint(paints, child, draw, BLUE, 'blue');
+  }, 'commits from a main-thread OffscreenCanvas in a drawable element ' +
+     'should fire paint on the ancestor canvas');
+
+  promise_test(async t => {
+    const outer = document.getElementById('worker_outer');
+    const child = document.getElementById('worker_child');
+    const offscreen =
+        document.getElementById('worker_inner').transferControlToOffscreen();
+    const worker_source = document.getElementById('worker_script').textContent;
+    const worker = new Worker(URL.createObjectURL(
+        new Blob([worker_source], {type: 'text/javascript'})));
+    t.add_cleanup(() => worker.terminate());
+    worker.postMessage({canvas: offscreen}, [offscreen]);
+    const paints = observePaints(outer, child);
+    t.add_cleanup(() => { outer.onpaint = null; });
+    await settle(paints);
+
+    const draw = color => new Promise(resolve => {
+      worker.onmessage = () => resolve();
+      worker.postMessage({color: `rgba(${color.join(',')})`});
+    });
+    await checkCommitFiresPaint(paints, child, draw, RED, 'red');
+    await checkCommitFiresPaint(paints, child, draw, GREEN, 'green');
+    await checkCommitFiresPaint(paints, child, draw, BLUE, 'blue');
+  }, 'commits from a worker OffscreenCanvas in a drawable element ' +
+     'should fire paint on the ancestor canvas');
+</script>

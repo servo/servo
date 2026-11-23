@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Same view timeline name on named view-transition pseudo-element shouldn't crash</title>
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/">
+<style>
+  ::view-transition-old(root), .tl { view-timeline: --a; }
+</style>
+<div class="tl"></div>
+<script>
+addEventListener("DOMContentLoaded", async () => {
+  let vt = document.startViewTransition();
+  await vt.ready;
+  document.documentElement.classList.remove("reftest-wait");
+});
+</script>
+</html>

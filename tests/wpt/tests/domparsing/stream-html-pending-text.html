@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Streaming HTML parser text node coalescing and characterData mutations</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#html-streaming-methods">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/parsing.html#insert-a-character">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/parsing.html#flush-pending-text">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/parsing.html#run-a-fragment-parser">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+function observeMutations(target) {
+  const records = [];
+  const observer = new MutationObserver(list => records.push(...list));
+  observer.observe(target, {
+    childList: true,
+    characterData: true,
+    characterDataOldValue: true,
+    subtree: true,
+  });
+  return {
+    take() {
+      records.push(...observer.takeRecords());
+      return records.splice(0);
+    },
+    disconnect() {
+      observer.disconnect();
+    },
+  };
+}
+
+promise_test(async t => {
+  const container = document.createElement("div");
+  const obs = observeMutations(container);
+  t.add_cleanup(() => obs.disconnect());
+
+  const writer = container.streamHTML().getWriter();
+
+  await writer.write("hello &amp; <123> a\0b");
+  let records = obs.take();
+  assert_equals(container.childNodes.length, 1);
+  const textNode = container.firstChild;
+  assert_equals(textNode.nodeType, Node.TEXT_NODE);
+  assert_equals(textNode.data, "hello & <123> ab");
+  assert_equals(records.filter(r => r.type === "childList").length, 1,
+    "First chunk inserts a single Text node even across ignored U+0000 NULL tokens");
+  assert_equals(records.filter(r => r.type === "characterData").length, 0,
+    "First chunk does not queue characterData mutations");
+
+  await writer.write(" world");
+  records = obs.take();
+  assert_equals(container.childNodes.length, 1);
+  assert_equals(container.firstChild, textNode, "Same Text node is reused across chunks");
+  assert_equals(textNode.data, "hello & <123> ab world");
+  assert_equals(records.filter(r => r.type === "childList").length, 0,
+    "Second chunk does not insert a new node");
+  const charRecords1 = records.filter(r => r.type === "characterData");
+  assert_equals(charRecords1.length, 1, "Second chunk queues one characterData mutation");
+  assert_equals(charRecords1[0].target, textNode);
+  assert_equals(charRecords1[0].oldValue, "hello & <123> ab");
+
+  await writer.write(" &am");
+  records = obs.take();
+  assert_equals(textNode.data, "hello & <123> ab world ");
+  const charRecords2 = records.filter(r => r.type === "characterData");
+  assert_equals(charRecords2.length, 1,
+    "Characters emitted before incomplete character reference are flushed at end of write()");
+  assert_equals(charRecords2[0].oldValue, "hello & <123> ab world");
+
+  await writer.close();
+  records = obs.take();
+  assert_equals(textNode.data, "hello & <123> ab world &am");
+  const charRecords3 = records.filter(r => r.type === "characterData");
+  assert_equals(charRecords3.length, 1,
+    "Remaining buffered character reference text is flushed via replace data on close()");
+  assert_equals(charRecords3[0].oldValue, "hello & <123> ab world ");
+}, "streamHTML() coalesces character tokens per write() and appends subsequent chunks via replace data");
+
+promise_test(async t => {
+  const container = document.createElement("div");
+  container.textContent = "existing";
+  const initialText = container.firstChild;
+  const obs = observeMutations(container);
+  t.add_cleanup(() => obs.disconnect());
+
+  const writer = container.streamAppendHTML().getWriter();
+
+  await writer.write(" first");
+  let records = obs.take();
+  assert_equals(container.childNodes.length, 1);
+  assert_equals(container.firstChild, initialText);
+  assert_equals(initialText.data, "existing first");
+  assert_equals(records.filter(r => r.type === "childList").length, 0);
+  const charRecords1 = records.filter(r => r.type === "characterData");
+  assert_equals(charRecords1.length, 1);
+  assert_equals(charRecords1[0].target, initialText);
+  assert_equals(charRecords1[0].oldValue, "existing");
+
+  await writer.write(" second");
+  records = obs.take();
+  assert_equals(initialText.data, "existing first second");
+  assert_equals(records.filter(r => r.type === "childList").length, 0);
+  const charRecords2 = records.filter(r => r.type === "characterData");
+  assert_equals(charRecords2.length, 1);
+  assert_equals(charRecords2[0].oldValue, "existing first");
+
+  await writer.close();
+}, "streamAppendHTML() appends streamed text to an existing trailing Text node via replace data");
+
+promise_test(async t => {
+  const container = document.createElement("div");
+  container.innerHTML = "before<span id='ref'>ref</span>";
+  const initialText = container.firstChild;
+  const ref = container.querySelector("#ref");
+  const obs = observeMutations(container);
+  t.add_cleanup(() => obs.disconnect());
+
+  const writer = ref.streamBeforeHTML().getWriter();
+
+  await writer.write(" chunk1");
+  let records = obs.take();
+  assert_equals(container.childNodes.length, 2);
+  assert_equals(container.firstChild, initialText);
+  assert_equals(initialText.data, "before chunk1");
+  assert_equals(records.filter(r => r.type === "childList").length, 0);
+  const charRecords1 = records.filter(r => r.type === "characterData");
+  assert_equals(charRecords1.length, 1);
+  assert_equals(charRecords1[0].target, initialText);
+  assert_equals(charRecords1[0].oldValue, "before");
+
+  await writer.write(" chunk2");
+  records = obs.take();
+  assert_equals(initialText.data, "before chunk1 chunk2");
+  assert_equals(records.filter(r => r.type === "childList").length, 0);
+  const charRecords2 = records.filter(r => r.type === "characterData");
+  assert_equals(charRecords2.length, 1);
+  assert_equals(charRecords2[0].oldValue, "before chunk1");
+
+  ref.remove();
+  obs.take();
+
+  await promise_rejects_dom(t, "HierarchyRequestError", writer.write(" ignored"));
+  records = obs.take();
+  assert_equals(initialText.data, "before chunk1 chunk2",
+    "Detaching referenceChild rejects write() without mutating its former previousSibling");
+  assert_equals(records.length, 0);
+}, "streamBeforeHTML() appends to referenceChild.previousSibling via replace data and rejects if referenceChild is detached before write()");
+
+promise_test(async t => {
+  const container = document.createElement("div");
+  container.innerHTML = "before<span id='ref'>ref</span>";
+  document.body.append(container);
+  t.add_cleanup(() => container.remove());
+
+  const initialText = container.firstChild;
+  const ref = container.querySelector("#ref");
+  const obs = observeMutations(container);
+  t.add_cleanup(() => obs.disconnect());
+
+  const writer = ref.streamBeforeHTMLUnsafe({ runScripts: true }).getWriter();
+
+  await promise_rejects_dom(
+    t,
+    "HierarchyRequestError",
+    writer.write(" mid<script>document.getElementById('ref').remove();<" + "/script> ignored")
+  );
+  const records = obs.take();
+  assert_equals(initialText.data, "before mid",
+    "Text before <script> flushes via replace data, while text after referenceChild removal is discarded");
+  assert_false(container.textContent.includes("ignored"));
+  const charRecords = records.filter(r => r.type === "characterData");
+  assert_equals(charRecords.length, 1);
+  assert_equals(charRecords[0].target, initialText);
+  assert_equals(charRecords[0].oldValue, "before");
+}, "streamBeforeHTMLUnsafe({ runScripts: true }) flushes text before mid-parse referenceChild removal and discards trailing characters");
+
+promise_test(async t => {
+  const container = document.createElement("div");
+  container.innerHTML = "<span>after</span>";
+  const span = container.firstChild;
+  const obs = observeMutations(container);
+  t.add_cleanup(() => obs.disconnect());
+
+  const writer = container.streamPrependHTML().getWriter();
+
+  await writer.write("hello");
+  let records = obs.take();
+  assert_equals(container.childNodes.length, 2);
+  const prependedText = container.firstChild;
+  assert_equals(prependedText.data, "hello");
+  assert_equals(container.lastChild, span);
+  assert_equals(records.filter(r => r.type === "childList").length, 1);
+  assert_equals(records.filter(r => r.type === "characterData").length, 0);
+
+  await writer.write(" world");
+  records = obs.take();
+  assert_equals(container.childNodes.length, 2);
+  assert_equals(container.firstChild, prependedText);
+  assert_equals(prependedText.data, "hello world");
+  assert_equals(records.filter(r => r.type === "childList").length, 0);
+  const charRecords = records.filter(r => r.type === "characterData");
+  assert_equals(charRecords.length, 1);
+  assert_equals(charRecords[0].target, prependedText);
+  assert_equals(charRecords[0].oldValue, "hello");
+
+  await writer.close();
+}, "streamPrependHTML() inserts a single Text node before firstChild and appends subsequent chunks via replace data");
+
+promise_test(async t => {
+  const template = document.createElement("template");
+  const obs = observeMutations(template.content);
+  t.add_cleanup(() => obs.disconnect());
+
+  const writer = template.streamHTML().getWriter();
+  await writer.write("chunk1");
+  obs.take();
+
+  await writer.write(" chunk2");
+  const records = obs.take();
+  assert_equals(template.content.childNodes.length, 1);
+  assert_equals(template.content.firstChild.data, "chunk1 chunk2");
+  const charRecords = records.filter(r => r.type === "characterData");
+  assert_equals(charRecords.length, 1);
+  assert_equals(charRecords[0].oldValue, "chunk1");
+
+  await writer.close();
+}, "template.streamHTML() coalesces streamed text inside template.content via replace data");
+
+promise_test(async t => {
+  const textarea = document.createElement("textarea");
+  textarea.textContent = "hello";
+  const initialText = textarea.firstChild;
+  assert_equals(textarea.value, "hello");
+
+  const obs = observeMutations(textarea);
+  t.add_cleanup(() => obs.disconnect());
+
+  const writer = textarea.streamAppendHTML().getWriter();
+  await writer.write(" world");
+  let records = obs.take();
+  assert_equals(textarea.childNodes.length, 1);
+  assert_equals(textarea.firstChild, initialText);
+  assert_equals(initialText.data, "hello world");
+  assert_equals(textarea.value, "hello world");
+  assert_equals(records.filter(r => r.type === "childList").length, 0);
+  const charRecords1 = records.filter(r => r.type === "characterData");
+  assert_equals(charRecords1.length, 1);
+  assert_equals(charRecords1[0].oldValue, "hello");
+
+  await writer.write("!");
+  records = obs.take();
+  assert_equals(textarea.childNodes.length, 1);
+  assert_equals(initialText.data, "hello world!");
+  assert_equals(textarea.value, "hello world!");
+  const charRecords2 = records.filter(r => r.type === "characterData");
+  assert_equals(charRecords2.length, 1);
+  assert_equals(charRecords2[0].oldValue, "hello world");
+
+  await writer.close();
+}, "streamAppendHTML() into <textarea> coalesces chunks into existing Text node and updates raw value via replace data");
+
+promise_test(async t => {
+  const textarea = document.createElement("textarea");
+  textarea.textContent = "hello";
+  assert_equals(textarea.value, "hello");
+
+  const writer = textarea.streamAppendHTML().getWriter();
+  await writer.write(" world\0!");
+  await writer.close();
+
+  assert_equals(textarea.childNodes.length, 1);
+  assert_equals(textarea.firstChild.data, "hello world\uFFFD!");
+  assert_equals(textarea.value, "hello world\uFFFD!");
+}, "streamAppendHTML() into <textarea> coalesces U+0000 replacement characters in RCDATA mode via replace data");
+
+promise_test(async t => {
+  const style = document.createElement("style");
+  const target = document.createElement("div");
+  target.id = "stream-style-target";
+  document.body.append(style, target);
+  t.add_cleanup(() => {
+    style.remove();
+    target.remove();
+  });
+
+  style.textContent = "#stream-style-target { color: rgb(10, 20, 30); }";
+  assert_equals(getComputedStyle(target).color, "rgb(10, 20, 30)");
+
+  const writer = style.streamAppendHTML().getWriter();
+  await writer.write(" #stream-style-target { color: rgb(40, 50, 60); }");
+  await writer.close();
+
+  assert_equals(style.childNodes.length, 1);
+  assert_equals(getComputedStyle(target).color, "rgb(40, 50, 60)");
+}, "streamAppendHTML() into <style> re-evaluates stylesheet via replace data children changed steps");
+
+promise_test(async t => {
+  window.events = [];
+  const container = document.createElement("div");
+  document.body.append(container);
+  t.add_cleanup(() => container.remove());
+
+  const obs = observeMutations(container);
+  t.add_cleanup(() => obs.disconnect());
+
+  const writer = container.streamHTMLUnsafe({ runScripts: true }).getWriter();
+
+  await writer.write(
+    "before" +
+    "<script src='resources/slow.sub.js?pipe=trickle(d0.2)&pending_text=1'><" + "/script>" +
+    "after &amp; more"
+  );
+
+  assert_equals(container.firstChild.nodeType, Node.TEXT_NODE);
+  assert_equals(container.firstChild.data, "before",
+    "Pending text before parser-blocking <script> is flushed before parser pauses");
+  assert_false(container.textContent.includes("after"),
+    "Trailing text after parser-blocking <script> has not been parsed while blocked");
+
+  await t.step_wait(() => container.lastChild.nodeType === Node.TEXT_NODE &&
+    container.lastChild.data === "after & more",
+    "Trailing text is flushed when run a fragment parser resumes after blocking script", 3000, 10);
+
+  assert_array_equals(window.events, ["slow"]);
+  await writer.close();
+}, "streamHTMLUnsafe({ runScripts: true }) flushes pending text before blocking script and when parser resumes before close()");
+
+promise_test(async t => {
+  window.events = [];
+  window.on_slow = () => {
+    document.getElementById("self-rm").remove();
+  };
+  t.add_cleanup(() => { delete window.on_slow; });
+
+  const container = document.createElement("div");
+  document.body.append(container);
+  t.add_cleanup(() => container.remove());
+
+  const obs = observeMutations(container);
+  t.add_cleanup(() => obs.disconnect());
+
+  const writer = container.streamHTMLUnsafe({ runScripts: true }).getWriter();
+
+  await writer.write(
+    "before" +
+    "<script id='self-rm' src='resources/slow.sub.js?pipe=trickle(d0.2)&tag=self_rm'><" + "/script>" +
+    " after"
+  );
+
+  assert_equals(container.childNodes.length, 2, "Script is still pending right after write()");
+  const initialText = container.firstChild;
+  assert_equals(initialText.nodeType, Node.TEXT_NODE);
+  assert_equals(initialText.data, "before");
+  obs.take();
+
+  await t.step_wait(() => initialText.data === "before after",
+    "Resumed fragment parser appends trailing text to preceding Text node via replace data", 3000, 10);
+
+  const records = obs.take();
+  assert_array_equals(window.events, ["self_rm"]);
+  assert_equals(container.childNodes.length, 1);
+  assert_equals(container.firstChild, initialText);
+  const charRecords = records.filter(r => r.type === "characterData");
+  assert_equals(charRecords.length, 1);
+  assert_equals(charRecords[0].target, initialText);
+  assert_equals(charRecords[0].oldValue, "before");
+
+  await writer.close();
+}, "Resumed fragment parser after self-removing external <script> coalesces trailing text via replace data");
+
+promise_test(async t => {
+  const container = document.createElement("div");
+  const obs = observeMutations(container);
+  t.add_cleanup(() => obs.disconnect());
+
+  const writer = container.streamHTML().getWriter();
+  await writer.write("flushed");
+  assert_equals(container.childNodes.length, 1);
+  assert_equals(container.firstChild.data, "flushed");
+  obs.take();
+
+  await writer.abort("abort");
+  await writer.write("ignored").catch(() => {});
+
+  assert_equals(container.textContent, "flushed");
+  assert_equals(obs.take().length, 0);
+}, "Aborting streamHTML() retains already-flushed text and ignores subsequent writes");
+
+for (const method of ["streamAppendHTMLUnsafe", "streamPrependHTMLUnsafe"]) {
+  promise_test(async t => {
+    const container = document.createElement("div");
+    if (method === "streamAppendHTMLUnsafe") {
+      container.textContent = "start";
+    } else {
+      container.innerHTML = "<span>end</span>";
+    }
+    const obs = observeMutations(container);
+    t.add_cleanup(() => obs.disconnect());
+
+    const writer = container[method]().getWriter();
+    await writer.write(" chunk1");
+    let records = obs.take();
+    const targetText = container.firstChild;
+    assert_equals(targetText.nodeType, Node.TEXT_NODE);
+    if (method === "streamAppendHTMLUnsafe") {
+      assert_equals(records.filter(r => r.type === "childList").length, 0);
+      assert_equals(records.filter(r => r.type === "characterData").length, 1);
+    } else {
+      assert_equals(records.filter(r => r.type === "childList").length, 1);
+      assert_equals(records.filter(r => r.type === "characterData").length, 0);
+    }
+
+    await writer.write(" chunk2");
+    records = obs.take();
+    assert_equals(container.firstChild, targetText);
+    assert_equals(records.filter(r => r.type === "childList").length, 0);
+    const charRecords = records.filter(r => r.type === "characterData");
+    assert_equals(charRecords.length, 1);
+    assert_equals(charRecords[0].target, targetText);
+
+    await writer.close();
+    assert_equals(
+      container.textContent,
+      method === "streamAppendHTMLUnsafe" ? "start chunk1 chunk2" : " chunk1 chunk2end"
+    );
+  }, `Element.${method}() coalesces multi-chunk text via replace data`);
+}
+
+for (const method of [
+  "streamHTML",
+  "streamHTMLUnsafe",
+  "streamAppendHTML",
+  "streamAppendHTMLUnsafe",
+  "streamPrependHTML",
+  "streamPrependHTMLUnsafe",
+]) {
+  promise_test(async t => {
+    const host = document.createElement("div");
+    const shadow = host.attachShadow({ mode: "open" });
+    if (method.includes("Append")) {
+      shadow.innerHTML = "start";
+    } else if (method.includes("Prepend")) {
+      shadow.innerHTML = "<span>end</span>";
+    } else {
+      shadow.innerHTML = "<span>replaced</span>";
+    }
+
+    const writer = shadow[method]().getWriter();
+    const obs = observeMutations(shadow);
+    t.add_cleanup(() => obs.disconnect());
+
+    await writer.write(" chunk1");
+    obs.take();
+    const targetText = shadow.firstChild;
+    assert_equals(targetText.nodeType, Node.TEXT_NODE);
+
+    await writer.write(" chunk2");
+    const records = obs.take();
+    assert_equals(shadow.firstChild, targetText);
+    assert_equals(records.filter(r => r.type === "childList").length, 0);
+    const charRecords = records.filter(r => r.type === "characterData");
+    assert_equals(charRecords.length, 1);
+    assert_equals(charRecords[0].target, targetText);
+    assert_equals(
+      charRecords[0].oldValue,
+      method.includes("Append") ? "start chunk1" : " chunk1"
+    );
+
+    await writer.close();
+    if (method.includes("Append")) {
+      assert_equals(shadow.textContent, "start chunk1 chunk2");
+    } else if (method.includes("Prepend")) {
+      assert_equals(shadow.textContent, " chunk1 chunk2end");
+    } else {
+      assert_equals(shadow.textContent, " chunk1 chunk2");
+    }
+  }, `ShadowRoot.${method}() coalesces multi-chunk text via replace data`);
+}
+
+for (const method of ["streamAfterHTML", "streamAfterHTMLUnsafe"]) {
+  promise_test(async t => {
+    const container = document.createElement("div");
+    container.innerHTML = "<span id='ref'>ref</span><b>tail</b>";
+    const ref = container.querySelector("#ref");
+    const obs = observeMutations(container);
+    t.add_cleanup(() => obs.disconnect());
+
+    const writer = ref[method]().getWriter();
+    await writer.write("chunk1");
+    let records = obs.take();
+    const insertedText = ref.nextSibling;
+    assert_equals(insertedText.nodeType, Node.TEXT_NODE);
+    assert_equals(insertedText.data, "chunk1");
+    assert_equals(records.filter(r => r.type === "childList").length, 1);
+    assert_equals(records.filter(r => r.type === "characterData").length, 0);
+
+    await writer.write(" chunk2");
+    records = obs.take();
+    assert_equals(ref.nextSibling, insertedText);
+    assert_equals(insertedText.data, "chunk1 chunk2");
+    assert_equals(records.filter(r => r.type === "childList").length, 0);
+    const charRecords = records.filter(r => r.type === "characterData");
+    assert_equals(charRecords.length, 1);
+    assert_equals(charRecords[0].target, insertedText);
+    assert_equals(charRecords[0].oldValue, "chunk1");
+
+    await writer.close();
+    assert_equals(container.childNodes.length, 3);
+  }, `Element.${method}() coalesces subsequent text chunks via replace data`);
+
+  promise_test(async t => {
+    const container = document.createElement("div");
+    container.innerHTML = "head<b>tail</b>";
+    const headText = container.firstChild;
+    const obs = observeMutations(container);
+    t.add_cleanup(() => obs.disconnect());
+
+    const writer = headText[method]().getWriter();
+    await writer.write(" chunk1");
+    const records = obs.take();
+    assert_equals(container.childNodes.length, 2);
+    assert_equals(container.firstChild, headText);
+    assert_equals(headText.data, "head chunk1");
+    assert_equals(records.filter(r => r.type === "childList").length, 0);
+    const charRecords = records.filter(r => r.type === "characterData");
+    assert_equals(charRecords.length, 1);
+    assert_equals(charRecords[0].target, headText);
+    assert_equals(charRecords[0].oldValue, "head");
+
+    await writer.close();
+  }, `Text.${method}() appends streamed text directly to the receiver Text node via replace data`);
+}
+
+for (const method of ["streamReplaceWithHTML", "streamReplaceWithHTMLUnsafe"]) {
+  promise_test(async t => {
+    const container = document.createElement("div");
+    container.innerHTML = "before<span id='target'>old</span><b>after</b>";
+    const beforeText = container.firstChild;
+    const target = container.querySelector("#target");
+
+    const writer = target[method]().getWriter();
+    assert_equals(target.parentNode, null, `${method}() removes receiver synchronously`);
+
+    const obs = observeMutations(container);
+    t.add_cleanup(() => obs.disconnect());
+
+    await writer.write(" chunk1");
+    let records = obs.take();
+    assert_equals(container.childNodes.length, 2);
+    assert_equals(container.firstChild, beforeText);
+    assert_equals(beforeText.data, "before chunk1");
+    assert_equals(records.filter(r => r.type === "childList").length, 0);
+    const charRecords1 = records.filter(r => r.type === "characterData");
+    assert_equals(charRecords1.length, 1);
+    assert_equals(charRecords1[0].target, beforeText);
+    assert_equals(charRecords1[0].oldValue, "before");
+
+    await writer.write(" chunk2");
+    records = obs.take();
+    assert_equals(beforeText.data, "before chunk1 chunk2");
+    assert_equals(records.filter(r => r.type === "childList").length, 0);
+    const charRecords2 = records.filter(r => r.type === "characterData");
+    assert_equals(charRecords2.length, 1);
+    assert_equals(charRecords2[0].oldValue, "before chunk1");
+
+    await writer.close();
+  }, `${method}() coalesces streamed text into previousSibling Text node via replace data after removing receiver`);
+}
+</script>
+</body>

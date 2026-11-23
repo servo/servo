@@ -1,0 +1,36 @@
+<!doctype html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>CSS Content Visibility: top-layer check with pending slot assignment recalc does not crash</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<style>
+  #ticker { content-visibility: hidden; contain: layout style; width: 10px; height: 10px; }
+  dialog { width: 120px; height: 60px; }
+</style>
+<div id="host">
+  <template shadowrootmode="open">
+    <slot name="s">fallback</slot>
+  </template>
+  <dialog id="dlg1" slot="s">top layer 1</dialog>
+  <dialog id="dlg2" slot="s">top layer 2</dialog>
+</div>
+<div id="ticker"></div>
+<script>
+const dlg1 = document.getElementById('dlg1');
+const dlg2 = document.getElementById('dlg2');
+const ticker = document.getElementById('ticker');
+dlg1.showModal();
+dlg2.showModal();
+void document.body.offsetHeight;
+
+requestAnimationFrame(() => {
+  dlg1.setAttribute('slot', 'does-not-exist');
+  dlg2.setAttribute('slot', 'does-not-exist');
+  ticker.remove();
+  document.body.appendChild(ticker);
+  requestAnimationFrame(() => {
+    document.documentElement.classList.remove('test-wait');
+  });
+});
+</script>
+</html>

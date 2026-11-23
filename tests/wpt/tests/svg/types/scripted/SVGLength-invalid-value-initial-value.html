@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<title>SVGLength: a script setting an out-of-range value gets the initial value, as in markup</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/types.html#InvalidValues">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/types.html#SynchronizingReflectedValues">
+<link rel="help" href="https://github.com/w3c/svgwg/issues/1210">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// The content attribute keeps what the script wrote. The element is handled
+// as if that value had been written in markup: it takes the initial value.
+const cases = [
+  { element: 'rect', attribute: 'rx', property: 'rx' },
+  { element: 'rect', attribute: 'ry', property: 'ry' },
+  { element: 'ellipse', attribute: 'rx', property: 'rx' },
+  { element: 'ellipse', attribute: 'ry', property: 'ry' },
+  { element: 'circle', attribute: 'r', property: 'r' },
+];
+
+// outermost: true puts the element directly in the body, for the outermost svg.
+function create(element, attributes, outermost) {
+  const target = document.createElementNS('http://www.w3.org/2000/svg', element);
+  for (const [name, value] of Object.entries(attributes || {}))
+    target.setAttribute(name, value);
+  if (outermost) {
+    document.body.appendChild(target);
+    return target;
+  }
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.appendChild(target);
+  document.body.appendChild(svg);
+  return target;
+}
+
+// The third item is how the content attribute is reserialized from the
+// written value: newValueSpecifiedUnits() carries a unit, the others do not.
+const writes = [
+  ['value = -20', baseVal => { baseVal.value = -20; }, '-20'],
+  ['valueAsString = "-20"', baseVal => { baseVal.valueAsString = '-20'; }, '-20'],
+  ['newValueSpecifiedUnits(PX, -20)', baseVal => { baseVal.newValueSpecifiedUnits(SVGLength.SVG_LENGTHTYPE_PX, -20); }, '-20px'],
+  ['valueInSpecifiedUnits = -20', baseVal => { baseVal.valueInSpecifiedUnits = -20; }, '-20'],
+];
+
+for (const { element, attribute, property } of cases) {
+  for (const [label, write, serialized] of writes) {
+    test(() => {
+      const target = create(element, { [attribute]: '20' });
+      const reference = create(element);
+      const initial = getComputedStyle(reference)[property];
+      assert_equals(getComputedStyle(target)[property], '20px', 'valid value before');
+
+      write(target[attribute].baseVal);
+
+      assert_equals(target.getAttribute(attribute), serialized, 'content attribute keeps the written value');
+      assert_equals(getComputedStyle(target)[property], initial, 'computed value is the initial value');
+    }, `${element} ${attribute}: ${label} takes the initial value`);
+
+    test(() => {
+      const target = create(element, { [attribute]: '20' });
+      const markup = create(element, { [attribute]: '-20' });
+
+      write(target[attribute].baseVal);
+
+      assert_equals(target[attribute].baseVal.value, markup[attribute].baseVal.value,
+                    'baseVal.value matches the same value written in markup');
+    }, `${element} ${attribute}: ${label} reads back like markup`);
+
+    test(() => {
+      const target = create(element, { [attribute]: '20' });
+      const markup = create(element, { [attribute]: '-20' });
+
+      write(target[attribute].baseVal);
+
+      assert_equals(target[attribute].animVal.value, markup[attribute].animVal.value,
+                    'animVal.value matches the same value written in markup');
+    }, `${element} ${attribute}: ${label} reads back like markup through animVal`);
+  }
+}
+// width and height. The svg element is the only one whose initial value is not 0 (it is 100%),
+// so unitType and valueAsString are compared too, not only value.
+const sizeCases = [];
+for (const element of ['rect', 'image', 'use', 'pattern', 'svg'])
+  for (const attribute of ['width', 'height'])
+    sizeCases.push({ element, attribute, outermost: false, label: element });
+for (const attribute of ['width', 'height'])
+  sizeCases.push({ element: 'svg', attribute, outermost: true, label: 'outermost svg' });
+
+for (const { element, attribute, outermost, label } of sizeCases) {
+  for (const [writeLabel, write] of writes) {
+    test(t => {
+      const target = create(element, { [attribute]: '20' }, outermost);
+      const markup = create(element, { [attribute]: '-20' }, outermost);
+      t.add_cleanup(() => { target.remove(); markup.remove(); });
+
+      write(target[attribute].baseVal);
+
+      const written = target[attribute].baseVal;
+      const expected = markup[attribute].baseVal;
+      assert_equals(written.unitType, expected.unitType, 'unitType');
+      assert_equals(written.valueAsString, expected.valueAsString, 'valueAsString');
+      assert_equals(written.value, expected.value, 'value');
+    }, `${label} ${attribute}: ${writeLabel} reads back like markup`);
+  }
+}
+</script>

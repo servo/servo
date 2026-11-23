@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes Test: Auto-placed full-row-span subgrid</title>
+<link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="grid-lanes-subgrid-002d-ref.html">
+<meta name="assert" content="An auto-placed subgrid spanning every row advances all parent running positions.">
+<style>
+  .grid-lanes {
+    font: 10px/1 monospace;
+    display: inline grid-lanes;
+    grid-template-rows: 40px 60px 80px;
+    width: max-content;
+    gap: 4px;
+    fit-tolerance: 0;
+    padding: 7px 5px 3px 1px;
+    border: solid black;
+    border-width: 1px 1px 5px 3px;
+    background: lightgrey;
+  }
+  .before { width: 40px; background: grey; }
+  .after { width: 20px; background: purple; }
+  .subgrid {
+    display: grid-lanes;
+    grid-template-rows: subgrid;
+    grid-row: auto / span 3;
+    gap: 4px;
+    fit-tolerance: 0;
+    background: yellow;
+  }
+  .first {
+    width: 13px;
+    border: solid black;
+    border-width: 1px 1px 5px 3px;
+    margin: 3px 5px 1px 7px;
+    background: green;
+  }
+  .second { width: 29px; background: blue; }
+  .third { width: 19px; background: orange; }
+</style>
+<div class="grid-lanes">
+  <div class="before">1</div>
+  <div class="before">2</div>
+  <div class="before">3</div>
+  <div class="subgrid">
+    <div class="first">4</div>
+    <div class="second">5</div>
+    <div class="third">6</div>
+  </div>
+  <div class="after">7</div>
+</div>

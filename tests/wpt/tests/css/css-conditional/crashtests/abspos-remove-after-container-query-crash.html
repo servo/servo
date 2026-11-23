@@ -1,0 +1,46 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Removing a never-laid-out out-of-flow descendant during container-query relayout</title>
+<link rel="author" title="Hoch Hochkeppel" href="mailto:mhochk@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<meta name="assert" content="Transitioning an absolutely positioned descendant from display: block back to display: none via a container query before its containing block lays it out does not crash.">
+<!--
+  During initial layout:
+  1. Measuring `body`'s wrapped flex column sizes `#query-container` at its 0px
+     intrinsic inline-size (`container-type: inline-size`), matching
+     `@container (width = 0px)` and giving `#candidate` `display: block` while
+     `#inner` is laid out at 100px.
+  2. Stretching the wrapped flex column to `body`'s 200px width resizes
+     `#query-container` to 200px before the initial containing block lays out
+     `#candidate`. `@container (width = 0px)` stops matching, returning
+     `#candidate` to `display: none` while `#inner`'s 100px size is unchanged.
+-->
+<style>
+  body {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    width: 200px;
+  }
+  #query-container {
+    container-type: inline-size;
+  }
+  #inner {
+    width: 100px;
+  }
+  #candidate {
+    display: none;
+    position: absolute;
+  }
+  @container (width = 0px) {
+    #candidate {
+      display: block;
+    }
+  }
+</style>
+<body>
+<div id="query-container">
+  <div id="inner">
+    <div id="candidate"></div>
+  </div>
+</div>

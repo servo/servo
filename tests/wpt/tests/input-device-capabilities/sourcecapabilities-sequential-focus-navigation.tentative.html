@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>FocusEvent.sourceCapabilities across frames during sequential focus navigation</title>
+<link rel="help" href="https://wicg.github.io/input-device-capabilities/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<!--
+  When sequential focus navigation (Tab / Shift+Tab) moves focus between a
+  document and a child frame, the focus event in the receiving document must
+  expose an InputDeviceCapabilities object from its own realm, never the
+  object belonging to the document where the key was pressed.
+-->
+<input id="start">
+<script>
+const TAB = '\uE004';
+const SHIFT = '\uE008';
+const CHILD_PATH =
+    '/input-device-capabilities/resources/sequential-focus-navigation-child.html';
+
+function pressTab() {
+  return new test_driver.Actions().keyDown(TAB).keyUp(TAB).send();
+}
+
+function pressShiftTab() {
+  return new test_driver.Actions()
+      .keyDown(SHIFT).keyDown(TAB).keyUp(TAB).keyUp(SHIFT)
+      .send();
+}
+
+function waitForChildMessage(iframe, type) {
+  return new Promise(resolve => {
+    window.addEventListener('message', function listener(e) {
+      if (e.source === iframe.contentWindow && e.data.type === type) {
+        window.removeEventListener('message', listener);
+        resolve(e.data);
+      }
+    });
+  });
+}
+
+function crossFrameTest(origin, description) {
+  promise_test(async t => {
+    const start = document.getElementById('start');
+
+    // Read sourceCapabilities in this document whenever a key is pressed, so
+    // that this document's InputDeviceCapabilities object is exposed to
+    // script before focus moves to the other document.
+    let keydownCapabilities;
+    const onKeydown = e => { keydownCapabilities = e.sourceCapabilities; };
+    document.addEventListener('keydown', onKeydown);
+    t.add_cleanup(() => document.removeEventListener('keydown', onKeydown));
+
+    const iframe = document.createElement('iframe');
+    iframe.src = origin + CHILD_PATH;
+    const ready = waitForChildMessage(iframe, 'ready');
+    document.body.appendChild(iframe);
+    t.add_cleanup(() => iframe.remove());
+    await ready;
+
+    start.focus();
+    assert_equals(document.activeElement, start, 'initial focus');
+
+    // Tab: from this document into the child frame.
+    const childFocus = waitForChildMessage(iframe, 'focus');
+    await pressTab();
+    const child = await childFocus;
+    assert_not_equals(keydownCapabilities, null,
+                      'keydown in this document has sourceCapabilities');
+    assert_false(child.isNull,
+                 'focus event in the child frame has sourceCapabilities');
+    assert_true(child.ownRealm,
+                'child frame sourceCapabilities belongs to the child realm');
+    assert_false(child.firesTouchEvents,
+                 'child frame sourceCapabilities.firesTouchEvents');
+
+    // Shift+Tab: from the child frame back into this document.
+    const parentFocus = new Promise(resolve => {
+      start.addEventListener('focus', e => resolve(e.sourceCapabilities),
+                             {once: true});
+    });
+    await pressShiftTab();
+    const capabilities = await parentFocus;
+    assert_not_equals(capabilities, null,
+                      'focus event in this document has sourceCapabilities');
+    assert_equals(Object.getPrototypeOf(capabilities),
+                  InputDeviceCapabilities.prototype,
+                  'sourceCapabilities belongs to this realm');
+    assert_false(capabilities.firesTouchEvents,
+                 'sourceCapabilities.firesTouchEvents');
+  }, description);
+}
+
+crossFrameTest(get_host_info().ORIGIN, 'same-origin iframe');
+crossFrameTest(get_host_info().REMOTE_ORIGIN, 'same-site cross-origin iframe');
+</script>

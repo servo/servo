@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<title>SVGLength: a script setting an out-of-range value does not throw</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/types.html#InvalidValues">
+<link rel="help" href="https://github.com/w3c/svgwg/issues/1210">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// An out-of-range value is not a syntax error. Only a string that does not
+// parse as a length throws from valueAsString.
+const cases = [
+  { element: 'rect', attribute: 'rx' },
+  { element: 'rect', attribute: 'ry' },
+  { element: 'rect', attribute: 'width' },
+  { element: 'rect', attribute: 'height' },
+  { element: 'ellipse', attribute: 'rx' },
+  { element: 'ellipse', attribute: 'ry' },
+  { element: 'circle', attribute: 'r' },
+];
+
+function create(element) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  const target = document.createElementNS('http://www.w3.org/2000/svg', element);
+  svg.appendChild(target);
+  document.body.appendChild(svg);
+  return target;
+}
+
+for (const { element, attribute } of cases) {
+  const name = `${element} ${attribute}`;
+
+  test(() => {
+    const target = create(element);
+    target[attribute].baseVal.valueAsString = '20';
+    target[attribute].baseVal.valueAsString = '-20';
+  }, `${name}: valueAsString = "-20" does not throw`);
+
+  test(() => {
+    const target = create(element);
+    target[attribute].baseVal.value = -20;
+  }, `${name}: value = -20 does not throw`);
+
+  test(() => {
+    const target = create(element);
+    target[attribute].baseVal.newValueSpecifiedUnits(SVGLength.SVG_LENGTHTYPE_PX, -20);
+  }, `${name}: newValueSpecifiedUnits(PX, -20) does not throw`);
+
+  test(() => {
+    const target = create(element);
+    assert_throws_dom('SyntaxError', () => {
+      target[attribute].baseVal.valueAsString = 'rubbish';
+    });
+  }, `${name}: valueAsString = "rubbish" still throws a SyntaxError`);
+}
+</script>

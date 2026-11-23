@@ -116,8 +116,8 @@ if (kChildTag[0] === "") {
       await utils.sendKey("Y", utils.kShiftKey);
     },
     expectedResult: [
-      `<p>${kParentTag[0]}<a href="about:blank">XY${kParentTag[1]}</a></p>`,
-      `<p>${kParentTag[0]}<a href="about:blank">XY${kParentTag[1]}</a><br></p>`,
+      `<p>${kParentTag[0]}<a href="about:blank">XY</a>${kParentTag[1]}</p>`,
+      `<p>${kParentTag[0]}<a href="about:blank">XY</a>${kParentTag[1]}<br></p>`,
     ],
   });
 

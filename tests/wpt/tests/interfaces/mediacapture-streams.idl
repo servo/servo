@@ -21,7 +21,7 @@ interface MediaStream : EventTarget {
   attribute EventHandler onremovetrack;
 };
 
-[Exposed=Window]
+[Exposed=(Window,DedicatedWorker), Transferable, SameAgentCluster]
 interface MediaStreamTrack : EventTarget {
   readonly attribute DOMString kind;
   readonly attribute DOMString id;
@@ -152,7 +152,7 @@ dictionary MediaStreamTrackEventInit : EventInit {
   required MediaStreamTrack track;
 };
 
-[Exposed=Window]
+[Exposed=(Window,DedicatedWorker)]
 interface OverconstrainedError : DOMException {
   constructor(DOMString constraint, optional DOMString message = "");
   readonly attribute DOMString constraint;

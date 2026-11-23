@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<title>User activation propagation across a same-origin navigation that switches the browsing context group</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#apply-the-history-step">
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+  <p>Non-zero-sized body to allow clicks.</p>
+</body>
+
+<script>
+  'use strict';
+
+  let uuid1 = token();
+  let uuid2 = token();
+
+  // Two documents on this origin whose Cross-Origin-Opener-Policy values do not
+  // match: the first has none, so "unsafe-none", and the second asks for
+  // "same-origin". A navigation between them switches the browsing context
+  // group, even though they are same origin with each other. The test is
+  // "https" because the header is ignored in a non-secure context.
+  let opened = `/common/dispatcher/remote-executor.html?uuid=${uuid1}`;
+  let navigated_to = `/common/dispatcher/remote-executor.html?uuid=${uuid2}` +
+                     `&pipe=header(Cross-Origin-Opener-Policy,same-origin)`;
+
+  promise_test(async test => {
+    // Open a new window, click it, and let it navigate itself to a document
+    // that asks for a different opener policy. The carry-over conditions are
+    // read off the session history entry, which the group switch does not
+    // touch, so the activation has to reach the new document even though it
+    // ends up in a browsing context the window never had.
+    let w;
+    document.body.onclick = () => {
+      w = window.open(opened);
+    };
+
+    await test_driver.click(document.body);
+    assert_true(!!w, "A window is opened");
+
+    const first = new RemoteContext(uuid1);
+    const second = new RemoteContext(uuid2);
+
+    // The group switch leaves the handle above pointing at a browsing context
+    // that is gone, so ask the window to close itself at the end of the test.
+    test.add_cleanup(() => second.execute_script(() => {
+      executor.suspend(() => window.close());
+    }));
+
+    // Check that the new window does not have user activation initially.
+    {
+      const result = await first.execute_script(getUserActivationState);
+      assertUserActivationState(result, false, false, "after window opened");
+    }
+
+    // Confirm that the new window gets user activation after a click.
+    await test_driver.click(w.document.documentElement);
+    {
+      const result = await first.execute_script(getUserActivationState);
+      assertUserActivationState(result, true, true, "after window clicked");
+    }
+
+    // Navigate the window to the document with the opener policy.
+    await first.execute_script(url => {
+      executor.suspend(() => {
+        location.href = url;
+      });
+    }, [navigated_to]);
+
+    // Confirm that the group switch happened, and that the document the window
+    // landed on got the sticky user activation carried over. The executor
+    // answers through the server rather than through a window reference, which
+    // is what lets this be read at all once the handle is severed.
+    {
+      const [hasOpener, state] = await second.execute_script(() =>
+            [!!window.opener,
+             [navigator.userActivation.isActive,
+              navigator.userActivation.hasBeenActive]]);
+      assert_false(hasOpener, "The window lost its opener");
+      assertUserActivationState(state, false, true,
+            "after window navigated to a document with an opener policy");
+    }
+
+    assert_true(w.closed,
+          "The browsing context the handle pointed at was discarded");
+}, "User activation propagation across a same-origin navigation that " +
+   "switches the browsing context group");
+</script>

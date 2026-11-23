@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+
+<title>accent-color: currentColor and color: AccentColor results in AccentColor being the parent's color</title>
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#widget-accent">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14192">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14193">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  #accentcolortext-expected {
+    accent-color: #261200;
+    background-color: AccentColorText;
+  }
+
+  #parent {
+    color: #261200;
+    /* Making sure we don't take the parent's accent color. */
+    accent-color: #112233;
+  }
+
+  #target {
+    /* accent-color gets resolved first and is currentColor */
+    accent-color: currentColor;
+
+    /* then color gets resolved to accent-color, which is currentColor.
+       This means this is equivalent to color: currentColor, and it gets the parent's color */
+    color: AccentColor;
+
+    /* These resolve to the parent's color, because AccentColor is currentColor,
+       and current color is parent's color */
+    fill: AccentColor;
+    background-color: AccentColorText;
+  }
+</style>
+
+<div id="accentcolortext-expected"></div>
+
+<div id="parent">
+  <div id="target"></div>
+</div>
+
+<script>
+  const accentColorTextExpected = getComputedStyle(document.getElementById("accentcolortext-expected")).backgroundColor;
+
+  test(() => {
+    const style = getComputedStyle(target);
+    assert_equals(style.color, "rgb(38, 18, 0)");
+    assert_equals(style.accentColor, "rgb(38, 18, 0)");
+    assert_equals(style.fill, "rgb(38, 18, 0)");
+    assert_equals(style.backgroundColor, accentColorTextExpected);
+  });
+</script>

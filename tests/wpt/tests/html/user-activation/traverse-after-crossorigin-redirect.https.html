@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<meta name="variant" content="?store">
+<meta name="variant" content="?no-store">
+<title>User activation propagation across a traversal to an entry reached through a cross-origin redirection</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#apply-the-history-step">
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/helper.sub.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+  <p>Non-zero-sized body to allow clicks.</p>
+</body>
+
+<script>
+  'use strict';
+
+  let uuid1 = token();
+  let uuid2 = token();
+
+  // The "no-store" variant keeps the first document out of the back/forward
+  // cache, so that the traversal back to it has to create a new one. Both
+  // variants are worth running: the carry-over has to be blocked for a
+  // document that is reactivated as well as for one that is populated from
+  // scratch. Only the "no-store" variant reads the blocking condition off the
+  // entry alone, since a document populated by a fetch that followed no
+  // redirect does not record one itself.
+  const noStore = location.search === "?no-store";
+  let lands_on = originSameOrigin + executorPath + uuid1 +
+                 (noStore ? "&pipe=header(Cache-Control,no-store)" : "");
+  let opened = `${originCrossSite}/common/redirect.py` +
+               `?location=${encodeURIComponent(lands_on)}`;
+  let navigated_to = executorPath + uuid2;
+
+  promise_test(async test => {
+    // Open a new window through a cross-origin redirection, which the entry
+    // records, and then navigate away from it and traverse back to it.
+    let w;
+    document.body.onclick = () => {
+      w = window.open(opened);
+    };
+
+    await test_driver.click(document.body);
+    assert_true(!!w, "A window is opened");
+    // Close the window at the end of the test, so that a later test in the same
+    // session cannot click a window this one left behind.
+    test.add_cleanup(() => w && w.close());
+
+    const first = new RemoteContext(uuid1);
+    const second = new RemoteContext(uuid2);
+
+    // Check that the redirection landed on a same-origin document that does not
+    // have user activation.
+    {
+      const [url, state] = await first.execute_script(async () => {
+        await window.pageShowPromise;
+        return [location.href,
+                [navigator.userActivation.isActive,
+                 navigator.userActivation.hasBeenActive]];
+      });
+      assert_equals(new URL(url).origin, originSameOrigin,
+            "The redirection landed back on a same-origin document");
+      assertUserActivationState(state, false, false, "after window opened");
+    }
+
+    // Navigate the window to a second same-origin document.
+    await first.execute_script(url => {
+      prepareNavigation(() => {
+        location.href = url;
+      });
+    }, [navigated_to]);
+
+    await second.execute_script(() => window.pageShowPromise);
+
+    // Confirm that the second document gets user activation after a click.
+    await test_driver.click(w.document.documentElement);
+    {
+      const result = await second.execute_script(getUserActivationState);
+      assertUserActivationState(result, true, true, "after window clicked");
+    }
+
+    // Traverse back to the first document.
+    await second.execute_script(() => {
+      prepareNavigation(() => {
+        history.back();
+      });
+    });
+
+    // Confirm that the first document did not get the sticky user activation
+    // carried over. The two documents are same origin, but the entry records
+    // that the document it points at was reached through a cross-origin
+    // redirection.
+    const result = await first.execute_script(getUserActivationStateWhenShown);
+
+    if (noStore) {
+      await assert_not_bfcached(first);
+    } else {
+      await assert_bfcached(first);
+    }
+
+    assertUserActivationState(result, false, false, "after traversing back");
+}, "User activation propagation across a traversal to an entry reached " +
+   "through a cross-origin redirection");
+</script>

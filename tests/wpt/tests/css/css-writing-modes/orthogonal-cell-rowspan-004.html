@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Writing Modes test: orthogonal table cell content centered in rows stretched by the table's height</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#orthogonal-flows">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1995428">
+<meta name="assert" content="When the table's height stretches the rows, the content of an orthogonal table cell is laid out for the final size of the rows it spans, so text-align applies along the full spanned extent.">
+<link rel="match" href="reference/orthogonal-cell-rowspan-004-ref.html">
+
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+
+<style>
+.container {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+table {
+  font: 20px/1 Ahem;
+  border-spacing: 0;
+  height: 240px;
+}
+
+td {
+  padding: 0;
+  color: green;
+  text-align: center;
+}
+
+td.filler {
+  width: 20px;
+}
+
+.vrl { writing-mode: vertical-rl; }
+.vlr { writing-mode: vertical-lr; }
+.slr { writing-mode: sideways-lr; }
+.srl { writing-mode: sideways-rl; }
+</style>
+
+<div class="container">
+  <table><tr><td class="vlr" rowspan="3">XXXX</td><td class="filler"></td></tr>
+         <tr><td class="filler"></td></tr>
+         <tr><td class="filler"></td></tr></table>
+  <table><tr><td class="vrl" rowspan="3">XXXX</td><td class="filler"></td></tr>
+         <tr><td class="filler"></td></tr>
+         <tr><td class="filler"></td></tr></table>
+  <table><tr><td class="slr" rowspan="3">XXXX</td><td class="filler"></td></tr>
+         <tr><td class="filler"></td></tr>
+         <tr><td class="filler"></td></tr></table>
+  <table><tr><td class="srl" rowspan="3">XXXX</td><td class="filler"></td></tr>
+         <tr><td class="filler"></td></tr>
+         <tr><td class="filler"></td></tr></table>
+  <table><tr><td class="vlr">XXXX</td><td class="filler"></td></tr></table>
+</div>

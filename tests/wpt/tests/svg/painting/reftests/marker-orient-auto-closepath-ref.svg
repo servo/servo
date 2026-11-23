@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+  <title>Reference</title>
+  <path d="M 150 150 L 50 150 L 50 50 Z" fill="none" stroke="black" stroke-width="2"/>
+  <!-- Incoming 180deg, outgoing -90deg: bisector 225deg. -->
+  <rect x="0" y="-4" width="40" height="8" fill="green" transform="translate(50 150) rotate(225)"/>
+  <!-- Incoming -90deg, outgoing (closepath toward 150,150) 45deg: bisector -22.5deg. -->
+  <rect x="0" y="-4" width="40" height="8" fill="green" transform="translate(50 50) rotate(-22.5)"/>
+</svg>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<style>
+body { margin: 0; }
+.container { padding: 30px; width: 100px; height: 100px; position: relative; }
+</style>
+<div class="container">
+  <!-- Mirrors BorderShapePainter::PaintOutline's ridge branch:
+       outer half (r 55..60) in green.Light(); inner half (r 50..55) in
+       green.Dark(). The lightblue disk fills the border-shape interior. -->
+  <svg width="130" height="130" style="position: absolute; left: 15px; top: 15px;">
+    <circle cx="65" cy="65" r="50" fill="lightblue"/>
+    <circle cx="65" cy="65" r="57.5" fill="none" stroke="rgb(0,212,0)"
+            stroke-width="5"/>
+    <circle cx="65" cy="65" r="52.5" fill="none" stroke="rgb(0,44,0)"
+            stroke-width="5"/>
+  </svg>
+</div>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<script src="/scroll-to-text-fragment/stash.js"></script>
+
+<!-- This test is navigated to with the fragment #bar:~:text=doesnotexist -->
+
+<!-- This test uses parser-created elements,
+  unlike beforematch-scroll-to-text-fragment-basic.html,
+  which adds them from JS -->
+<div style="height:10000px"></div>
+<div id=bar hidden=until-found>bar</div>
+
+<script>
+(async () => {
+  const results = {};
+  const key = (new URLSearchParams(window.location.search)).get('key');
+
+  // This should be true. hidden=until-found revealing should not happen until
+  // after the script tag loads.
+  results.barHasHiddenAttribute = bar.hasAttribute('hidden');
+
+  let beforematchResolver = null;
+  const beforematchPromise = new Promise(resolve => {
+    beforematchResolver = resolve;
+  });
+
+  // This should be true. When the text fragment does not match, the browser
+  // should fall back to the element fragment and fire beforematch on bar.
+  results.beforematchFiredOnBar = false;
+  bar.addEventListener('beforematch', () => {
+    results.beforematchFiredOnBar = true;
+    // This should be zero. Scrolling should happen after beforematch is fired.
+    results.pageYOffsetDuringBeforematch = window.pageYOffset;
+    beforematchResolver();
+  });
+
+  if (!results.barHasHiddenAttribute) {
+    // No need to wait for the beforematch event if it will never come.
+    stashResultsThenClose(key, results);
+  } else {
+    await beforematchPromise;
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+    // This should be greater than zero. Scrolling should happen after the
+    // beforematch event handler.
+    results.pageYOffsetAfterRaf = window.pageYOffset;
+    stashResultsThenClose(key, results);
+  }
+})();
+</script>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>A statically-positioned abspos box aligned by justify-self follows a change of its parent's width</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#justify-abspos">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#staticpos-rect">
+<link rel="match" href="justify-self-static-position-dynamic-parent-width-ref.html">
+<meta name="assert" content="When the parent's content box widens while the static position stays, an end or center aligned box moves with the parent's content box.">
+<style>
+.containing-block {
+  position: relative;
+  width: 300px;
+  height: 20px;
+  margin-bottom: 10px;
+}
+
+.parent {
+  width: 100px;
+  height: 20px;
+  margin-left: 100px;
+}
+
+.in-flow {
+  height: 10px;
+}
+
+.box {
+  position: absolute;
+  top: 0;
+  width: 100px;
+  height: 20px;
+  background-color: green;
+}
+</style>
+<div class="containing-block"><div class="parent"><div class="in-flow"></div><div class="box" style="justify-self: end"></div><div class="in-flow"></div></div></div>
+<div class="containing-block"><div class="parent"><div class="in-flow"></div><div class="box" style="justify-self: center"></div><div class="in-flow"></div></div></div>
+<div class="containing-block"><div class="parent"><div class="box" style="justify-self: end"></div></div></div>
+<script>
+document.body.offsetHeight;
+for (const parent of document.querySelectorAll(".parent"))
+  parent.style.width = "200px";
+</script>

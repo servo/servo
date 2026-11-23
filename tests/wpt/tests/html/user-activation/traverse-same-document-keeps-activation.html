@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<title>User activation is kept across a traversal within one document</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#apply-the-history-step">
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+  <p>Non-zero-sized body to allow clicks.</p>
+</body>
+
+<script>
+  'use strict';
+
+  let uuid1 = token();
+
+  promise_test(async test => {
+    // Open a new window that we will traverse within and observe. Carry-over
+    // only ever sets sticky activation, so a traversal that carries none has to
+    // leave what the document earned for itself alone. Traversing between two
+    // entries of one document keeps that document either way, which a traversal
+    // to another document would not guarantee.
+    let w;
+    document.body.onclick = () => {
+      w = window.open(`/common/dispatcher/remote-executor.html?uuid=${uuid1}`);
+    };
+
+    await test_driver.click(document.body);
+    assert_true(!!w, "A window is opened");
+    // Close the window at the end of the test, so that a later test in the same
+    // session cannot click a window this one left behind.
+    test.add_cleanup(() => w && w.close());
+
+    // Check that the new window does not have user activation initially.
+    {
+      const context = new RemoteContext(uuid1);
+      const result = await context.execute_script(getUserActivationState);
+      assertUserActivationState(result, false, false, "after window opened");
+    }
+
+    // Confirm that the new window gets user activation after a click.
+    await test_driver.click(w.document.documentElement);
+    {
+      const context = new RemoteContext(uuid1);
+      const result = await context.execute_script(getUserActivationState);
+      assertUserActivationState(result, true, true, "after window clicked");
+    }
+
+    // Push a second entry for the same document, then traverse back to the
+    // first one.
+    {
+      const context = new RemoteContext(uuid1);
+      await context.execute_script(() => {
+        history.pushState(null, "", location.href + "&pushed=1");
+      });
+      await context.execute_script(() => {
+        const popstate = new Promise(resolve => {
+          window.addEventListener("popstate", () => resolve(), {once: true});
+        });
+        history.go(-1);
+        return popstate;
+      });
+    }
+
+    // Confirm that the document kept the sticky user activation it earned. The
+    // transient bit is left alone because the document was never replaced, so
+    // whether it has expired by now is a matter of timing.
+    {
+      const context = new RemoteContext(uuid1);
+      const [url, sticky] = await context.execute_script(
+            () => [location.href, navigator.userActivation.hasBeenActive]);
+      assert_false(url.includes("pushed=1"), "Traversed back to the first entry");
+      assert_true(sticky, "Sticky bit after traversing back");
+    }
+}, "User activation is kept across a traversal within one document");
+</script>

@@ -2,7 +2,7 @@
 <title>CSS Lists and Counters: counter(c, &quot;.", decimal-leading-zero)</title>
 <link rel="help" href="https://drafts.csswg.org/css-lists/#inheriting-counters">
 <link rel="match" href="counter-001-ref.html">
-<meta name="assert" content="counters are not inherited from the previous sibling, when can be inherited from the ancestor">
+<meta name="assert" content="counters are not inherited from the ancestor, when can be inherited from the previous sibling">
 <style type="text/css">
 #test { counter-reset: c; }
 #test span { counter-increment: c; }
@@ -40,6 +40,6 @@
   11
   12
   99
-  13
-  14
+  100
+  101
 </div>

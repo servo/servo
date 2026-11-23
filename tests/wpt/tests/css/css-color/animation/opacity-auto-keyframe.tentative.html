@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Opacity auto keyframes interpolate as numeric one on elements</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="target" style="opacity: 0.4"></div>
+<script>
+test(t => {
+  const target = document.getElementById("target");
+  const animation = target.animate(
+      { opacity: ["auto", "0"] }, { duration: 1000, fill: "both" });
+  t.add_cleanup(() => animation.cancel());
+  animation.pause();
+  animation.currentTime = 250;
+  assert_equals(getComputedStyle(target).opacity, "0.75");
+}, "An ordinary-element auto opacity keyframe interpolates as numeric one");
+</script>

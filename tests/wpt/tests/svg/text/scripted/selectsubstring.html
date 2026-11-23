@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVGTextContentElement.selectSubString</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#__svg__SVGTextContentElement__selectSubString">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg width="400" height="100">
+    <text id="text" x="10" y="50">Hello <tspan>world</tspan></text>
+</svg>
+<script>
+test(() => {
+    // "Selects a substring of the text in this element, beginning at character index charnum and extending forwards nchars
+    // characters."
+    text.selectSubString(1, 3);
+    assert_equals(getSelection().toString(), "ell");
+    text.selectSubString(4, 5);
+    assert_equals(getSelection().toString(), "o wor");
+}, "Selects the characters in the range");
+
+test(() => {
+    // "If charnum ≥ count [...], then throw an IndexSizeError."
+    assert_throws_dom("IndexSizeError", () => text.selectSubString(text.getNumberOfChars(), 1));
+    // charnum is an unsigned long, so -1 becomes 4294967295.
+    assert_throws_dom("IndexSizeError", () => text.selectSubString(-1, 0));
+}, "A character index past the end throws");
+</script>

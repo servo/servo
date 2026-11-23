@@ -21,25 +21,29 @@ const rect = id => document.getElementById(id).getBoundingClientRect();
 // 20px line of text, then the block's 16px margin and 40px height, then a 20px line of text.
 const EXPECTED_HEIGHT = 20 + 16 + 40 + 20;
 
-test(() => {
+setup({ explicit_done: true });
+document.fonts.ready.then(() => {
+  test(() => {
     assert_equals(rect("inner").height, EXPECTED_HEIGHT,
         "the inline box bounds the text before the block, the block, and the text after it");
-}, "An inline box around a block level box bounds exactly its content");
+  }, "An inline box around a block level box bounds exactly its content");
 
-test(() => {
+  test(() => {
     assert_equals(rect("inner").height, rect("middle").height, "inner vs middle");
     assert_equals(rect("middle").height, rect("outer").height, "middle vs outer");
-}, "Inline boxes at every nesting level around a block level box report the same height");
+  }, "Inline boxes at every nesting level around a block level box report the same height");
 
-test(() => {
+  test(() => {
     assert_equals(rect("inner").top, rect("outer").top, "tops match");
     assert_equals(rect("inner").bottom, rect("outer").bottom, "bottoms match");
-}, "Nesting depth does not offset an inline box around a block level box");
+  }, "Nesting depth does not offset an inline box around a block level box");
 
-test(() => {
+  test(() => {
     // The block sits below the first line of text plus its own margin, and one line follows it.
     const block = rect("block");
     assert_equals(block.top - rect("inner").top, 36, "the block starts below the first line and its margin");
     assert_equals(rect("inner").bottom, block.bottom + 20, "one line of text follows the block");
-}, "A block level box nested in inline boxes is positioned by its margin");
+  }, "A block level box nested in inline boxes is positioned by its margin");
+  done();
+});
 </script>

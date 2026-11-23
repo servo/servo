@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>range-index() parsing and serialization</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+"use strict";
+
+test_valid_value("animation-delay", "calc(100ms * range-index())",
+                 "calc(0.1s * range-index())");
+test_valid_value("animation-delay", "calc(100ms * RANGE-INDEX( /**/ ))",
+                 "calc(0.1s * range-index())");
+test_valid_value("animation-delay", "calc(100ms * (-1 + range-index()))",
+                 "calc(0.1s * (-1 + range-index()))");
+
+for (const value of [
+  "range-index(1)",
+  "range-index(foo)",
+  "range-index(,)",
+  "range-index(range-index())",
+  "range-index(1, 2)",
+]) {
+  test_invalid_value("animation-delay", `calc(100ms * ${value})`);
+}
+
+test_invalid_value("animation-delay", "range-index()");
+test_invalid_value("animation-delay", "calc(range-index() + 100ms)");
+</script>

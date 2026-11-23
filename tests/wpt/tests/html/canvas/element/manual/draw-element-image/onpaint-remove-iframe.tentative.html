@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<title>Removing an iframe from inside a canvas paint event should not crash</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  'use strict';
+
+  async function waitForOneFrame() {
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+  }
+
+  promise_test(async t => {
+    const iframe = document.createElement('iframe');
+    iframe.srcdoc = `
+      <!DOCTYPE html>
+      <style>
+        @keyframes spin {
+          from { transform: rotate(0); }
+          to { transform: rotate(360deg); }
+        }
+        #grandchild, #composited {
+          width: 50px;
+          height: 50px;
+          background: green;
+          animation: spin 2s linear infinite;
+        }
+      </style>
+      <div id="composited"></div>
+      <canvas id="canvas" width="200" height="200" content="drawable">
+        <div id="child" drawable>
+          <div id="grandchild"></div>
+        </div>
+      </canvas>
+    `;
+    const loaded = new Promise(resolve => {
+      iframe.onload = resolve;
+    });
+    document.body.appendChild(iframe);
+    await loaded;
+
+    const childDoc = iframe.contentDocument;
+    const canvas = childDoc.getElementById('canvas');
+    const child = childDoc.getElementById('child');
+    const ctx = canvas.getContext('2d');
+
+    await waitForOneFrame();
+
+    let paintCount = 0;
+    const removed = new Promise(resolve => {
+      canvas.onpaint = () => {
+        ctx.reset();
+        ctx.drawElementImage(child, 0, 0);
+        if (++paintCount === 2) {
+          iframe.remove();
+          resolve();
+        }
+      };
+    });
+
+    await removed;
+    assert_equals(paintCount, 2);
+    assert_equals(iframe.parentNode, null);
+    await waitForOneFrame();
+  }, 'Removing an animating iframe from inside its own canvas paint event does not crash');
+
+  promise_test(async t => {
+    const parentCanvas = document.createElement('canvas');
+    parentCanvas.width = 200;
+    parentCanvas.height = 200;
+    parentCanvas.setAttribute('content', 'drawable');
+    t.add_cleanup(() => parentCanvas.remove());
+
+    const wrapper = document.createElement('div');
+    wrapper.setAttribute('drawable', '');
+    parentCanvas.appendChild(wrapper);
+
+    const iframe = document.createElement('iframe');
+    iframe.srcdoc = `
+      <!DOCTYPE html>
+      <form><input></form>
+    `;
+    const loaded = new Promise(resolve => {
+      iframe.onload = resolve;
+    });
+    wrapper.appendChild(iframe);
+    document.body.appendChild(parentCanvas);
+    await loaded;
+    await waitForOneFrame();
+
+    const ctx = parentCanvas.getContext('2d');
+    const removed = new Promise(resolve => {
+      parentCanvas.onpaint = () => {
+        ctx.reset();
+        ctx.drawElementImage(wrapper, 0, 0);
+        iframe.remove();
+        resolve();
+      };
+    });
+    parentCanvas.requestPaint();
+
+    await removed;
+    assert_equals(iframe.parentNode, null);
+    await waitForOneFrame();
+  }, 'Removing a child iframe from inside a parent canvas paint event does not crash');
+</script>
+</body>

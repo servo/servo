@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVGTextContentElement queries on a ligature with dx on its second character</title>
+<link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextLayoutAlgorithm">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#FontsGlyphs">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@font-face {
+    font-family: "Lato-Medium";
+    src: url("/fonts/Lato-Medium.ttf");
+}
+text {
+    font: 50px "Lato-Medium";
+}
+</style>
+<svg width="400" height="200">
+    <text id="reference" x="10" y="80">fia</text>
+    <text id="shifted" x="10" y="160" dx="0 20">fia</text>
+</svg>
+<script>
+setup({ explicit_done: true });
+document.fonts.load('50px "Lato-Medium"', "fia").then(() => {
+    test(() => {
+        // "SVG attributes such as 'dx', 'textLength', and 'spacing' (in 'textPath') that may reposition typographic
+        // characters do not break discretionary ligatures."
+        assert_equals(shifted.getSubStringLength(1, 1), 0, "the second character is part of the ligature");
+        assert_equals(shifted.getStartPositionOfChar(0).x, reference.getStartPositionOfChar(0).x);
+        // "Let shift.x = shift.x + resolve_dx[i] and shift.y = shift.y + resolve_dy[i]."
+        assert_approx_equals(shifted.getStartPositionOfChar(2).x, reference.getStartPositionOfChar(2).x + 20, 0.01);
+        assert_approx_equals(shifted.getExtentOfChar(2).x, reference.getExtentOfChar(2).x + 20, 0.01);
+    }, "The dx of the second character of a ligature moves the characters after it");
+    done();
+});
+</script>

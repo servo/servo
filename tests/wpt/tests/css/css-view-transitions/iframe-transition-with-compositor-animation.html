@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>A view transition in an animated iframe preserves its animation</title>
+<link rel="author" title="Hoch Hochkeppel" href="mailto:mhochk@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<body>
+<iframe id="frame" srcdoc="
+  <style>
+    @keyframes slide {
+      from { transform: translateX(0); }
+      to { transform: translateX(100px); }
+    }
+    #target {
+      width: 100px;
+      height: 100px;
+      background: green;
+      animation: slide 100s linear infinite;
+    }
+    ::view-transition-group(*) { animation-duration: 0s; }
+  </style>
+  <div id='target'></div>
+"></iframe>
+<script>
+window.onload = () => {
+  promise_test(async () => {
+    const frame = document.getElementById('frame');
+    const childDocument = frame.contentDocument;
+    const animation = childDocument.getAnimations()[0];
+    await animation.ready;
+    await waitForAnimationFrames(2);
+    const startTime = animation.startTime;
+    const currentTime = animation.currentTime;
+
+    const transition = childDocument.startViewTransition(async () => {
+      // While the child's rendering is paused waiting for this async callback
+      // to complete, trigger a repaint of the parent and give it a few frames
+      // to ensure it updates its compositor property trees.
+      await runAndWaitForFrameUpdate(() => {
+        frame.style.background = 'blue';
+      });
+      await waitForAnimationFrames(2);
+    });
+    await transition.ready;
+    await transition.finished;
+    await waitForAnimationFrames(2);
+
+    assert_equals(animation.playState, 'running');
+    assert_equals(animation.startTime, startTime);
+    assert_greater_than(animation.currentTime, currentTime);
+  }, 'An iframe view transition preserves an existing compositor animation');
+};
+</script>

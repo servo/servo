@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
+<meta name="timeout" content="long">
 <link rel="help"
   href="https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#form-submission-algorithm">
 
@@ -22,10 +23,15 @@
         return;
       }
 
-      promise_test(async () => {
+      promise_test(async t => {
         const form = populateForm(`<input name=n1 value=v1><${submitterType} type=submit name=n2 value=v2>${submitterType == 'button' ? '</button>' : ''}`);
         const input = form.elements[0];
         const submitter = form.elements[1];
+        const targetFrame = form.previousSibling;
+        t.add_cleanup(() => {
+          targetFrame.remove();
+          form.remove();
+        });
         submitter.addEventListener('click', e => {
           form.addEventListener('submit', e => {
             submitter.value = 'v3';
@@ -78,10 +84,15 @@
         return;
       }
 
-      promise_test(async () => {
+      promise_test(async t => {
         const form = populateForm(`<input name=n1 value=v1><${submitterType} type=submit name=n2 value=v3>${submitterType == 'button' ? '</button>' : ''}`);
         const input = form.elements[0];
         const submitter = form.elements[1];
+        const targetFrame = form.previousSibling;
+        t.add_cleanup(() => {
+          targetFrame.remove();
+          form.remove();
+        });
 
         form.addEventListener('submit', e => {
           if (callRequestSubmit) {

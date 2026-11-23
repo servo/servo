@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<title>Abspos descendants of the rendered legend are contained by the fieldset, not the anonymous fieldset content box</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#the-fieldset-and-legend-elements">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2094177">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body { margin: 0; }
+fieldset { position: relative; margin: 0 0 20px 0; border: 10px solid; padding: 20px; width: 300px; }
+legend { height: 30px; padding: 0; }
+.abs { position: absolute; width: 6px; height: 6px; }
+.tl { top: 0; left: 0; }
+.br { bottom: 0; right: 0; }
+.scroll { overflow: scroll; height: 100px; }
+</style>
+
+<fieldset id="f1">
+  <legend><span class="abs tl" id="legendTL"></span><span class="abs br" id="legendBR"></span><span class="abs tl" id="legendPercent" style="height: 50%"></span></legend>
+  <div class="abs tl" id="contentTL"></div>
+  content
+</fieldset>
+
+<fieldset id="f2" class="scroll">
+  <legend><span class="abs tl" id="scrolledLegendTL"></span></legend>
+  <div style="height: 400px"></div>
+</fieldset>
+
+<script>
+function offset(id, fieldsetId) {
+  const f = document.getElementById(fieldsetId).getBoundingClientRect();
+  const r = document.getElementById(id).getBoundingClientRect();
+  return { x: r.left - f.left, y: r.top - f.top, fw: f.width, fh: f.height };
+}
+
+test(() => {
+  const o = offset("legendTL", "f1");
+  assert_equals(o.x, 10, "x");
+  assert_equals(o.y, 10, "y");
+}, "top/left of an abspos in the legend resolve against the fieldset's padding box");
+
+test(() => {
+  const o = offset("legendBR", "f1");
+  assert_equals(o.x, o.fw - 10 - 6, "x");
+  assert_equals(o.y, o.fh - 10 - 6, "y");
+}, "bottom/right of an abspos in the legend resolve against the fieldset's padding box");
+
+test(() => {
+  const f = document.getElementById("f1").getBoundingClientRect();
+  const r = document.getElementById("legendPercent").getBoundingClientRect();
+  assert_approx_equals(r.height, (f.height - 20) / 2, 1);
+}, "a percentage height on an abspos in the legend resolves against the fieldset's padding box");
+
+test(() => {
+  const o = offset("contentTL", "f1");
+  assert_equals(o.x, 10, "x");
+  assert_equals(o.y, 30, "y");
+}, "an abspos in the fieldset content is still contained by the anonymous fieldset content box");
+
+test(() => {
+  const f2 = document.getElementById("f2");
+  f2.scrollTop = 50;
+  assert_equals(f2.scrollTop, 50, "fieldset scrolled");
+  const o = offset("scrolledLegendTL", "f2");
+  assert_equals(o.x, 10, "x");
+  assert_equals(o.y, 10, "y");
+}, "an abspos in the legend does not scroll with the fieldset content");
+</script>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>CSS Environment Variables: indexed env() whose indices do not match the variable uses its fallback</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-env-1/#env-function">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id="target"></div>
+<script>
+// safe-area-inset-top is a zero-dimensional variable.
+test_computed_value('margin-left', 'calc(100px + env(safe-area-inset-top, 50px))', '100px');
+
+// Indices on a zero-dimensional variable make env() use its fallback.
+test_computed_value('margin-left', 'calc(100px + env(safe-area-inset-top 0, 50px))', '150px');
+test_computed_value('margin-left', 'calc(100px + env(safe-area-inset-top 0 0, 50px))', '150px');
+test_computed_value('margin-left', 'calc(100px + env(safe-area-inset-top 0))', '0px');
+
+// An unknown indexed variable uses the fallback.
+test_computed_value('margin-left', 'env(unknown 0 1, 50px)', '50px');
+</script>

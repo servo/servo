@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>Syncbase begin and end values that add up beyond the largest finite time stay resolved</title>
+<link rel="help" href="https://www.w3.org/TR/REC-smil/smil30.html#smil-timing-q72">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg height="0">
+  <animate id="a" attributeName="visibility" begin="300000000000000000000000000000000000000s" dur="1s"/>
+  <animate id="b" attributeName="visibility" begin="a.begin+300000000000000000000000000000000000000s" dur="1s"/>
+  <animate id="c" attributeName="visibility" begin="0s" dur="300000000000000000000000000000000000000s" repeatCount="2"/>
+  <animate id="d" attributeName="visibility" begin="c.end" dur="1s"/>
+</svg>
+<script>
+setup(() => {
+  document.querySelector('svg').pauseAnimations();
+});
+
+const loaded = new Promise(resolve => {
+  window.addEventListener('load', () => step_timeout(resolve, 0));
+});
+
+promise_test(async () => {
+  await loaded;
+  const startTime = document.getElementById('b').getStartTime();
+  assert_true(Number.isFinite(startTime), 'start time is finite');
+  assert_greater_than_equal(startTime, document.getElementById('a').getStartTime());
+}, 'Adding two finite times beyond the largest finite time yields a resolved begin');
+
+promise_test(async () => {
+  await loaded;
+  const startTime = document.getElementById('d').getStartTime();
+  assert_true(Number.isFinite(startTime), 'start time is finite');
+  assert_greater_than(startTime, 0);
+}, 'Multiplying a finite duration by a repeat count beyond the largest finite time yields a resolved end');
+</script>

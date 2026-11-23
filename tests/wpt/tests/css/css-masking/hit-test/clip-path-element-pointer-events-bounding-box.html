@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Hit-test of element with &lt;clipPath> with 'pointer-events: bounding-box' content</title>
+<link rel="help" href="https://drafts.fxtf.org/css-masking/#the-clip-path">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/interact.html#PointerEventsProp">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body {
+  margin: 0;
+}
+</style>
+<svg width="200">
+  <clipPath id="pebb">
+    <circle id="c" cx="50" cy="50" r="50" pointer-events="bounding-box"/>
+  </clipPath>
+  <clipPath id="pebb_use">
+    <use href="#c" x="100" pointer-events="bounding-box"/>
+  </clipPath>
+  <rect width="100" height="100" clip-path="url(#pebb)"/>
+  <rect x="100" width="100" height="100" clip-path="url(#pebb_use)"/>
+</svg>
+<script>
+test(() => {
+  const svgRoot = document.querySelector('svg');
+  // Test 10,10 in from each corner of the rects.
+  [
+    [10, 10],
+    [90, 10],
+    [90, 90],
+    [10, 90],
+    [110, 10],
+    [190, 10],
+    [190, 90],
+    [110, 90],
+  ].forEach(([x, y]) => {
+    const result = document.elementFromPoint(x, y);
+    assert_equals(result, svgRoot, `${x},${y} is clipped out`);
+  });
+});
+</script>

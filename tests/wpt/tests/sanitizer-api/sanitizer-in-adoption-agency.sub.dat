@@ -632,3 +632,56 @@
 |   <i>
 |     "bar"
 |   "baz"
+
+#data
+<table><b><i><div>x</b>y
+#config
+{ "removeElements": ["i"], "replaceWithChildrenElements": ["div"] }
+#document
+| <b>
+| <table>
+
+#data
+<table><b><i><div>x</b>y</div><span>z</span>
+#config
+{ "replaceWithChildrenElements": ["i", "div"] }
+#document
+| <b>
+|   "x"
+| <b>
+| "y"
+| <span>
+|   "z"
+| <table>
+
+#data
+<table><b><i><em><div>x</b>y</em><span>z</span></i>
+#config
+{ "removeElements": ["em"], "replaceWithChildrenElements": ["i", "div"] }
+#document
+| <b>
+| <span>
+|   "z"
+| <table>
+
+#data
+<table><b><em><div>x</b>y</div><span>z</span>
+#config
+{ "replaceWithChildrenElements": ["em"] }
+#document
+| <b>
+| <div>
+|   <b>
+|     "x"
+|   "y"
+| <span>
+|   "z"
+| <table>
+
+#data
+<table><b><div>x</b>y
+#config
+{ "removeElements": ["b"], "replaceWithChildrenElements": ["div"] }
+#document
+| "y"
+| <table>

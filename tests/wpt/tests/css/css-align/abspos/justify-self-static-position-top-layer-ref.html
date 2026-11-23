@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>Reference: green boxes at the start, center and end of the viewport</title>
+<style>
+.box {
+  position: fixed;
+  width: 50px;
+  height: 50px;
+  background-color: green;
+}
+</style>
+<div class="box" style="top: 0; left: 0"></div>
+<div class="box" style="top: 60px; left: calc(50% - 25px)"></div>
+<div class="box" style="top: 120px; right: 0"></div>

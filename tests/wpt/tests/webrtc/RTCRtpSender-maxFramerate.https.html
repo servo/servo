@@ -1,0 +1,151 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpSender maxFramerate limits the frame rate of generated video tracks</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+function drawCanvasAt60fps(t, canvas) {
+  const context = canvas.getContext('2d');
+  let counter = 0;
+  const interval = setInterval(() => {
+    context.fillStyle = `rgb(${counter % 256}, ${(counter * 3) % 256}, ${(counter * 7) % 256})`;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    ++counter;
+  }, 1000 / 60);
+  t.add_cleanup(() => clearInterval(interval));
+}
+
+async function createVideoTrackGeneratorTrackAt60fps(t) {
+  const script = `
+    const generator = new VideoTrackGenerator();
+    const writer = generator.writable.getWriter();
+    const canvas = new OffscreenCanvas(320, 240);
+    const context = canvas.getContext('2d');
+    let counter = 0;
+    setInterval(() => {
+      context.fillStyle = \`rgb(\${counter % 256}, \${(counter * 3) % 256}, \${(counter * 7) % 256})\`;
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      writer.write(new VideoFrame(canvas, { timestamp: counter * 1000000 / 60 }));
+      ++counter;
+    }, 1000 / 60);
+    self.postMessage({ track: generator.track }, [generator.track]);
+  `;
+  const url = URL.createObjectURL(new Blob([script], { type: 'text/javascript' }));
+  const worker = new Worker(url);
+  URL.revokeObjectURL(url);
+  t.add_cleanup(() => worker.terminate());
+  const event = await new Promise((resolve, reject) => {
+    worker.onmessage = resolve;
+    worker.onerror = reject;
+  });
+  return event.data.track;
+}
+
+async function getFramesEncoded(sender) {
+  const report = await sender.getStats();
+  for (const stats of report.values()) {
+    if (stats.type === 'outbound-rtp' && stats.kind === 'video')
+      return { framesEncoded: stats.framesEncoded || 0, timestamp: stats.timestamp };
+  }
+  return { framesEncoded: 0, timestamp: performance.timeOrigin + performance.now() };
+}
+
+const maxWaitDuration = 10000;
+
+function wait(duration) {
+  return new Promise(resolve => step_timeout(resolve, duration));
+}
+
+async function waitForSenderFrameRateAbove(sender, minFrameRate) {
+  const deadline = (await getFramesEncoded(sender)).timestamp + maxWaitDuration;
+  let frameRate;
+  while (true) {
+    const first = await getFramesEncoded(sender);
+    if (first.timestamp > deadline)
+      assert_unreached(`frame rate should be above ${minFrameRate}, last measured frame rate is ${frameRate}`);
+    await wait(200);
+    const last = await getFramesEncoded(sender);
+    frameRate = (last.framesEncoded - first.framesEncoded) * 1000 / (last.timestamp - first.timestamp);
+    if (frameRate > minFrameRate)
+      return frameRate;
+  }
+}
+
+async function measureSenderFrameRateOverFrames(sender, frameCount, deadline) {
+  // We measure the time it takes to encode a given number of frames, starting right after a frame got encoded.
+  const pollInterval = 20;
+  let first = await getFramesEncoded(sender);
+  let current = first;
+  while (current.framesEncoded === first.framesEncoded) {
+    if (current.timestamp > deadline)
+      return undefined;
+    await wait(pollInterval);
+    current = await getFramesEncoded(sender);
+  }
+  first = current;
+  while (current.framesEncoded - first.framesEncoded < frameCount) {
+    if (current.timestamp > deadline)
+      return undefined;
+    await wait(pollInterval);
+    current = await getFramesEncoded(sender);
+  }
+  return (current.framesEncoded - first.framesEncoded) * 1000 / (current.timestamp - first.timestamp);
+}
+
+// Measures the frame rate over a few frames and retries until it is at most maxFrameRate.
+async function waitForSenderFrameRateAtMost(sender, maxFrameRate) {
+  const frameCount = 4;
+  const deadline = (await getFramesEncoded(sender)).timestamp + maxWaitDuration;
+  let frameRate;
+  while (true) {
+    const measuredFrameRate = await measureSenderFrameRateOverFrames(sender, frameCount, deadline);
+    if (measuredFrameRate === undefined)
+      assert_unreached(`frame rate should be at most ${maxFrameRate}, last measured frame rate is ${frameRate}`);
+    frameRate = measuredFrameRate;
+    if (frameRate <= maxFrameRate)
+      return frameRate;
+  }
+}
+
+async function checkMaxFramerateIsRespected(t, track, stream) {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  const pc2 = createPeerConnectionWithCleanup(t);
+  const sender = pc1.addTrack(track, stream);
+  exchangeIceCandidates(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
+
+  await waitForSenderFrameRateAbove(sender, 20);
+
+  const maxFramerate = 5;
+  const parameters = sender.getParameters();
+  parameters.encodings[0].maxFramerate = maxFramerate;
+  await sender.setParameters(parameters);
+
+  await waitForSenderFrameRateAtMost(sender, maxFramerate * 1.2);
+}
+
+promise_test(async t => {
+  const canvas = document.createElement('canvas');
+  canvas.width = 320;
+  canvas.height = 240;
+  drawCanvasAt60fps(t, canvas);
+
+  const stream = canvas.captureStream();
+  const [track] = stream.getVideoTracks();
+  t.add_cleanup(() => track.stop());
+
+  await checkMaxFramerateIsRespected(t, track, stream);
+}, 'setParameters() with maxFramerate limits the encoded frame rate of a canvas track generated at 60 fps');
+
+promise_test(async t => {
+  const track = await createVideoTrackGeneratorTrackAt60fps(t);
+  const stream = new MediaStream([track]);
+  t.add_cleanup(() => track.stop());
+
+  await checkMaxFramerateIsRespected(t, track, stream);
+}, 'setParameters() with maxFramerate limits the encoded frame rate of a VideoTrackGenerator track generated at 60 fps');
+</script>

@@ -7,7 +7,10 @@ promise_test(async t => {
   await new Promise(resolve => window.onload = resolve);
 
   let navigate_called = false;
+  let navigateerror_called = false;
   i.contentWindow.navigation.onnavigate = () => navigate_called = true;
+  i.contentWindow.navigation.onnavigatesuccess = t.unreached_func("navigatesuccess must not fire");
+  i.contentWindow.navigation.onnavigateerror = () => navigateerror_called = true;
   navigation.onnavigate = t.unreached_func("navigate must not fire");
 
   let a = i.contentDocument.createElement("a");
@@ -16,9 +19,8 @@ promise_test(async t => {
   i.contentDocument.body.appendChild(a);
   a.click();
 
-  i.contentWindow.navigation.onnavigatesuccess = t.unreached_func("navigatesuccess must not fire");
-  i.contentWindow.navigation.onnavigateerror = t.unreached_func("navigateerror must not fire");
   await new Promise(resolve => t.step_timeout(resolve, 20));
   assert_true(navigate_called);
-}, "<a download> fires navigate, but not navigatesuccess or navigateerror when not intercepted by intercept()");
+  assert_true(navigateerror_called);
+}, "<a download> fires navigate and navigateerror, but not navigatesuccess, when not intercepted by intercept()");
 </script>

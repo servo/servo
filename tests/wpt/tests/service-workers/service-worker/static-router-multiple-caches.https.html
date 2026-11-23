@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Static Router: the "cache" source searches every cache</title>
+<link rel="help" href="https://w3c.github.io/ServiceWorker/#handle-fetch">
+<link rel="help" href="https://github.com/w3c/ServiceWorker/issues/1853">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<script src="resources/static-router-helpers.sub.js"></script>
+<body>
+<script>
+const SCRIPT = 'resources/static-router-multiple-caches-sw.js';
+const HTML_FILE = 'resources/simple.html';
+const CACHE_NAMES = [
+  'static-router-multiple-caches-first',
+  'static-router-multiple-caches-second',
+];
+
+function multipleCachesTest(callback, name) {
+  return promise_test(async t => {
+    t.add_cleanup(async () => {
+      for (const cacheName of CACHE_NAMES) {
+        await caches.delete(cacheName);
+      }
+    });
+    const worker = await registerAndActivate(t, 'multiple-caches', SCRIPT);
+    const iframe = await createIframe(t, HTML_FILE);
+    // The iframe navigation itself goes to the fetch handler; only count
+    // the subresource requests made by each test.
+    await reset_info_in_worker(worker);
+    await callback(t, iframe.contentWindow, worker);
+  }, name);
+}
+
+multipleCachesTest(async (t, iwin, worker) => {
+  // The first cache does not contain the request; the second one does.
+  const response = await iwin.fetch('multiple-caches-second-only.txt');
+  assert_equals(response.status, 200);
+  assert_equals(await response.text(), 'From second cache');
+  const {requests} = await get_info_from_worker(worker);
+  assert_equals(requests.length, 0, 'The fetch handler is not used');
+}, 'Cache source finds a response stored only in a later cache');
+
+multipleCachesTest(async (t, iwin, worker) => {
+  // Both caches contain the request; the first match in cache order wins.
+  const response = await iwin.fetch('multiple-caches-both.txt');
+  assert_equals(response.status, 200);
+  assert_equals(await response.text(), 'From first cache');
+  const {requests} = await get_info_from_worker(worker);
+  assert_equals(requests.length, 0, 'The fetch handler is not used');
+}, 'Cache source uses the first cache that contains the request');
+
+multipleCachesTest(async (t, iwin, worker) => {
+  const response = await iwin.fetch('multiple-caches-named-second.txt');
+  assert_equals(response.status, 200);
+  assert_equals(await response.text(), 'From second cache');
+  const {requests} = await get_info_from_worker(worker);
+  assert_equals(requests.length, 0, 'The fetch handler is not used');
+}, 'Cache source with a cacheName finds the response in the named cache');
+
+multipleCachesTest(async (t, iwin, worker) => {
+  // Only the second cache contains the request, but the rule names the first
+  // cache, so the other cache is not consulted and the request goes to the
+  // network, where no such resource exists.
+  const response = await iwin.fetch('multiple-caches-named-first.txt');
+  assert_equals(response.status, 404);
+  const {requests} = await get_info_from_worker(worker);
+  assert_equals(requests.length, 0, 'The fetch handler is not used');
+}, 'Cache source with a cacheName does not search other caches');
+
+multipleCachesTest(async (t, iwin, worker) => {
+  // No cache contains the request, so it falls back to the network.
+  const response = await iwin.fetch('direct.txt');
+  assert_equals(response.status, 200);
+  assert_equals(await response.text(), 'Network\n');
+  const {requests} = await get_info_from_worker(worker);
+  assert_equals(requests.length, 0, 'The fetch handler is not used');
+}, 'Cache source falls back to the network when no cache has the request');
+</script>
+</body>

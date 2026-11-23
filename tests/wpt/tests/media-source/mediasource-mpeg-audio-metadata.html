@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>MPEG audio byte stream format: metadata frames are ignored</title>
+<link rel="help" href="https://w3c.github.io/mse-byte-stream-format-mpeg-audio/#metadata-frames">
+<link rel="help" href="https://w3c.github.io/media-source/#sourcebuffer-segment-parser-loop">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+const TYPE = "audio/mpeg";
+
+function concat(...parts) {
+  const bytes = new Uint8Array(parts.reduce((n, part) => n + part.length, 0));
+  let offset = 0;
+  for (const part of parts) {
+    bytes.set(part, offset);
+    offset += part.length;
+  }
+  return bytes;
+}
+
+// An ID3v2.4 tag, whose size is a 28 bit synchsafe integer.
+function id3v2Tag(payloadSize) {
+  const tag = new Uint8Array(10 + payloadSize);
+  tag.set([0x49, 0x44, 0x33, 4, 0, 0,
+           (payloadSize >> 21) & 0x7f, (payloadSize >> 14) & 0x7f,
+           (payloadSize >> 7) & 0x7f, payloadSize & 0x7f]);
+  return tag;
+}
+
+function id3v1Tag() {
+  const tag = new Uint8Array(128).fill(0x20);
+  tag.set([0x54, 0x41, 0x47]);
+  return tag;
+}
+
+const icyHeader =
+    new TextEncoder().encode("ICY 200 OK\r\nicy-name: test\r\n\r\n");
+
+async function createSourceBuffer(t) {
+  assert_implements_optional(MediaSource.isTypeSupported(TYPE),
+                             TYPE + " is supported");
+  const mediaSource = new MediaSource();
+  const audio = document.createElement("audio");
+  audio.src = URL.createObjectURL(mediaSource);
+  t.add_cleanup(() => {
+    audio.removeAttribute("src");
+    audio.load();
+  });
+  await new Promise(resolve => {
+    mediaSource.addEventListener("sourceopen", resolve, {once: true});
+  });
+  return mediaSource.addSourceBuffer(TYPE);
+}
+
+function append(sourceBuffer, data) {
+  return new Promise((resolve, reject) => {
+    sourceBuffer.addEventListener("error", () => {
+      reject(new Error("The append failed"));
+    }, {once: true});
+    sourceBuffer.addEventListener("updateend", resolve, {once: true});
+    sourceBuffer.appendBuffer(data);
+  });
+}
+
+async function fetchFrames() {
+  const response = await fetch("mp3/sound_5.mp3");
+  return new Uint8Array(await response.arrayBuffer());
+}
+
+async function bufferedRange(t, ...appends) {
+  const sourceBuffer = await createSourceBuffer(t);
+  for (const data of appends) {
+    await append(sourceBuffer, data);
+  }
+  assert_equals(sourceBuffer.buffered.length, 1, "one buffered range");
+  return [sourceBuffer.buffered.start(0), sourceBuffer.buffered.end(0)];
+}
+
+promise_test(async t => {
+  const frames = await fetchFrames();
+  const expected = await bufferedRange(t, frames);
+  assert_array_equals(
+      await bufferedRange(t, concat(id3v2Tag(1000), frames, id3v1Tag())),
+      expected, "ID3v2 and ID3v1 tags around the frames");
+  assert_array_equals(await bufferedRange(t, concat(icyHeader, frames)),
+                      expected, "An Icecast header before the frames");
+
+  const twice = await bufferedRange(t, frames, frames);
+  assert_array_equals(
+      await bufferedRange(t, concat(frames, id3v2Tag(1000), frames)), twice,
+      "An ID3v2 tag between the frames");
+}, "Metadata frames add no coded frames");
+
+promise_test(async t => {
+  const frames = await fetchFrames();
+  const [, end] = await bufferedRange(t, frames);
+  const sourceBuffer = await createSourceBuffer(t);
+  const tag = id3v2Tag(1000);
+  await append(sourceBuffer, tag.subarray(0, 100));
+  // The partial tag is removed from the input buffer, so the append state
+  // stays WAITING_FOR_SEGMENT.
+  sourceBuffer.mode = "sequence";
+  sourceBuffer.timestampOffset = 1;
+  await append(sourceBuffer, concat(tag.subarray(100), frames));
+  assert_equals(sourceBuffer.buffered.length, 1, "one buffered range");
+  assert_equals(sourceBuffer.buffered.start(0), 1, "buffered start");
+  assert_approx_equals(sourceBuffer.buffered.end(0), 1 + end, 1e-3,
+                       "buffered end");
+}, "timestampOffset and mode can be set partway through an ID3v2 tag");
+
+promise_test(async t => {
+  const frames = await fetchFrames();
+  const sourceBuffer = await createSourceBuffer(t);
+  // The first frame is 208 bytes long.
+  await append(sourceBuffer, frames.subarray(0, 300));
+  assert_throws_dom("InvalidStateError", () => {
+    sourceBuffer.timestampOffset = 1;
+  }, "timestampOffset");
+  assert_throws_dom("InvalidStateError", () => {
+    sourceBuffer.mode = "sequence";
+  }, "mode");
+}, "timestampOffset and mode can't be set partway through a frame");
+</script>

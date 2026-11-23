@@ -1,0 +1,79 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Changing the remote DTLS fingerprint requires an ICE restart</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+// Per RFC 9429 section 5.11, the remote DTLS fingerprint may only change as part
+// of an ICE restart. A fingerprint change in a plain renegotiation must be
+// rejected.
+
+const BOGUS_FINGERPRINT =
+  'BA:DC:0F:FE:EB:AD:C0:DE:DE:AD:BE:EF:B0:BB:1E:5F:' +
+  'AB:1E:CA:11:AB:1E:D0:0D:FE:E1:DE:AD:C0:1D:B0:55';
+
+function mungeFingerprint(sdp, fingerprint) {
+  return sdp.replace(/a=fingerprint:sha-256 [0-9A-Fa-f:]+/,
+                     `a=fingerprint:sha-256 ${fingerprint}`);
+}
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => {
+    pc1.close();
+    pc2.close();
+  });
+  pc1.addTransceiver('audio');
+
+  // Establish a normal session.
+  await exchangeOfferAnswer(pc1, pc2);
+
+  // Renegotiate WITHOUT an ICE restart (a plain re-offer reuses the ICE
+  // credentials), but munge the answer so the remote fingerprint changes.
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  const answer = await pc2.createAnswer();
+  const munged = {
+    type: 'answer',
+    sdp: mungeFingerprint(answer.sdp, BOGUS_FINGERPRINT),
+  };
+  await promise_rejects_dom(
+    t, 'InvalidAccessError', pc1.setRemoteDescription(munged),
+    'A changed remote fingerprint without an ICE restart must be rejected');
+}, 'setRemoteDescription rejects a changed DTLS fingerprint without an ICE ' +
+   'restart');
+
+// The same rule applies to a remote (re)offer, not just a remote answer: an
+// offer that changes the fingerprint without changing the ICE credentials is
+// not an ICE restart and must be rejected.
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => {
+    pc1.close();
+    pc2.close();
+  });
+  pc1.addTransceiver('audio');
+
+  // Establish a normal session.
+  await exchangeOfferAnswer(pc1, pc2);
+
+  // pc1 makes a plain re-offer (same ICE credentials); munge it so the remote
+  // fingerprint changes. pc2 (the answerer here) must reject it.
+  const reoffer = await pc1.createOffer();
+  const munged = {
+    type: 'offer',
+    sdp: mungeFingerprint(reoffer.sdp, BOGUS_FINGERPRINT),
+  };
+  await promise_rejects_dom(
+    t, 'InvalidAccessError', pc2.setRemoteDescription(munged),
+    'A changed remote fingerprint in a re-offer without an ICE restart must be '
+    + 'rejected');
+}, 'setRemoteDescription rejects a changed DTLS fingerprint in a re-offer ' +
+   'without an ICE restart');
+
+</script>

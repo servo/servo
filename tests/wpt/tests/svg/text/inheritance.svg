@@ -17,8 +17,6 @@
   <script><![CDATA[
 
 assert_not_inherited('inline-size', 'auto', '10px');
-assert_not_inherited('shape-inside', 'auto', 'url("https://example/com/")');
-assert_not_inherited('shape-subtract', 'auto', 'url("https://example/com/")');
 assert_not_inherited('shape-margin', '0px', '10px');
 assert_inherited('text-anchor', 'start', 'middle');
 

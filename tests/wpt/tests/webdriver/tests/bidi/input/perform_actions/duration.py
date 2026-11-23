@@ -125,3 +125,75 @@ async def test_wheel_scroll_dispatches_multiple_events(
     # requested scroll distance.
     assert sum(event["deltaX"] for event in events) == 30
     assert sum(event["deltaY"] for event in events) == 60
+
+
+async def test_pointer_moves_in_one_tick_are_dispatched_concurrently(
+    bidi_session, configuration, top_context, inline
+):
+    # The page records a "pointermove" event as the moves it coalesces, so that
+    # moves merged into one event are not lost.
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=inline(
+            "<body style='width: 1000px; height: 500px'></body>"
+            "<script>"
+            "window.allEvents = { events: [] };"
+            "window.addEventListener('pointermove', event => {"
+            "  const coalesced = event.getCoalescedEvents ? event.getCoalescedEvents() : [];"
+            "  for (const e of coalesced.length ? coalesced : [event])"
+            "    window.allEvents.events.push({ type: e.type, clientX: e.clientX, clientY: e.clientY });"
+            "});"
+            "</script>"
+        ),
+        wait="complete",
+    )
+
+    # Start each pointer on its own row, so that its events can be told apart by
+    # their clientY.
+    actions = Actions()
+    actions.add_pointer(input_id="pointer1").pointer_move(x=50, y=100)
+    actions.add_pointer(input_id="pointer2").pointer_move(x=50, y=300)
+    await bidi_session.input.perform_actions(
+        actions=actions, context=top_context["context"]
+    )
+    await bidi_session.script.evaluate(
+        expression="window.allEvents.events = []",
+        target=ContextTarget(top_context["context"]),
+        await_promise=False,
+    )
+
+    duration = DURATION * configuration["timeout_multiplier"]
+    actions = Actions()
+    actions.add_pointer(input_id="pointer1").pointer_move(
+        x=350, y=100, duration=duration
+    )
+    actions.add_pointer(input_id="pointer2").pointer_move(
+        x=350, y=300, duration=duration
+    )
+    await bidi_session.input.perform_actions(
+        actions=actions, context=top_context["context"]
+    )
+
+    events = await wait_for_events(bidi_session, top_context["context"], min_count=4)
+    assert all(event["type"] == "pointermove" for event in events)
+
+    rows = [round(event["clientY"]) for event in events]
+    assert set(rows) == {100, 300}
+
+    # Both moves are timed from the start of the tick and run in parallel, so
+    # their events are interspersed: each pointer has an event before the other
+    # pointer's last one. Running the moves one after the other, in either
+    # order, fails one of these.
+    def first(row):
+        return rows.index(row)
+
+    def last(row):
+        return len(rows) - 1 - rows[::-1].index(row)
+
+    assert first(300) < last(100)
+    assert first(100) < last(300)
+
+    # Both pointers reach their targets.
+    for row in (100, 300):
+        row_events = [event for event in events if round(event["clientY"]) == row]
+        assert row_events[-1]["clientX"] == pytest.approx(350, abs=1.0)

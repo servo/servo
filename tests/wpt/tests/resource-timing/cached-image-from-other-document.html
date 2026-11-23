@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Resource Timing: image reused from another document's load</title>
+<link rel="help" href="https://w3c.github.io/resource-timing/"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+</head>
+<body>
+<script>
+const load_image = (doc, url) => new Promise(resolve => {
+  const img = doc.createElement('img');
+  img.onload = img.onerror = () => resolve();
+  img.src = url;
+  doc.body.append(img);
+});
+
+const fresh_image_url = () => new URL(
+  "resources/blue.png?pipe=header(Cache-Control,max-age=3600)&unique=" +
+  token(), location.href).href;
+
+const add_frame = t => new Promise(resolve => {
+  const frame = document.createElement('iframe');
+  t.add_cleanup(() => frame.remove());
+  frame.onload = () => resolve(frame);
+  frame.srcdoc = "<body></body>";
+  document.body.append(frame);
+});
+
+promise_test(async t => {
+  const url = fresh_image_url();
+  const frame = await add_frame(t);
+
+  await load_image(frame.contentDocument, url);
+  assert_equals(frame.contentWindow.performance.getEntriesByName(url).length,
+    1, "The first document must have an entry for the image");
+
+  await load_image(document, url);
+  assert_equals(performance.getEntriesByName(url).length, 1,
+    "The second document must have an entry for the image");
+}, "An image loaded by another document must have an entry in the " +
+  "Performance Timeline of each document");
+
+promise_test(async t => {
+  const url = fresh_image_url();
+  const frame = await add_frame(t);
+
+  await load_image(frame.contentDocument, url);
+  await load_image(document, url);
+  await load_image(document, url);
+  await load_image(document, url);
+  assert_equals(performance.getEntriesByName(url).length, 1,
+    "Reusing the image must not add a second entry to the second document");
+}, "An image loaded by another document and used several times must have " +
+  "one entry in the Performance Timeline");
+
+promise_test(async t => {
+  const url = fresh_image_url();
+  const frame = await add_frame(t);
+
+  await load_image(frame.contentDocument, url);
+  await load_image(document, url);
+  await load_image(frame.contentDocument, url);
+  await load_image(document, url);
+  assert_equals(frame.contentWindow.performance.getEntriesByName(url).length,
+    1, "Reusing the image must not add a second entry to the first document");
+  assert_equals(performance.getEntriesByName(url).length, 1,
+    "Reusing the image must not add a second entry to the second document");
+}, "An image used alternately by two documents must have one entry in the " +
+  "Performance Timeline of each document");
+</script>
+</body>
+</html>

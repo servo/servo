@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>WebVTT rendering, ::cue, text-wrap-style does not apply</title>
+<link rel="help" href="https://w3c.github.io/webvtt/#the-cue-pseudo-element">
+<link rel="match" href="text-wrap_not_allowed-ref.html">
+<meta name="assert" content="text-wrap is not in the list of properties that apply to ::cue, so a ::cue rule cannot change the text-wrap: balance default of the cue.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+html { overflow:hidden }
+body { margin:0 }
+::cue {
+    font: 50px/1 Ahem;
+    color: green;
+    background-color: rgba(0,0,0,1);
+    text-wrap-style: stable;
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<video width="320" height="180" autoplay>
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+    <track src="../../support/three_words.vtt">
+    <script>
+    document.getElementsByTagName('track')[0].track.mode = 'showing';
+    waitForActiveCueAndTakeScreenshot();
+    </script>
+</video>
+</html>

@@ -75,6 +75,17 @@ for (const [targetDescription, createTarget] of targets) {
 
 test(t => {
   const contentWindow = createWindow(t);
+  const element = document.createElement("div");
+  const host = appendToShadowRoot(element, new CustomElementRegistry());
+  document.implementation.createHTMLDocument().adoptNode(host);
+  assert_equals(element.customElementRegistry, null, "after adoption into a document without a browsing context");
+
+  contentWindow.document.adoptNode(host);
+  assert_equals(element.customElementRegistry, null, "after adoption into a document with a global registry");
+}, "Element with the global registry in a shadow root with a scoped registry, whose host is adopted into a document without a browsing context and then into a document with a global registry");
+
+test(t => {
+  const contentWindow = createWindow(t);
   const element = document.createElement("test-element");
   const host = appendToShadowRoot(element, new CustomElementRegistry());
   contentWindow.document.body.append(host);

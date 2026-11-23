@@ -115,3 +115,37 @@ for (const [from, to, tolerance] of [
     }
   }, `copyTo() of a ${from} VideoFrame to ${to} gives opaque pixels`);
 }
+
+// Copying a translucent RGBA or BGRA frame to RGBX or BGRX drops the alpha: the
+// color is unchanged (it is not premultiplied or composited onto black), and
+// the padding byte is opaque.
+for (const [from, to, tolerance] of [
+         ['RGBA', 'RGBX', 2], ['BGRA', 'BGRX', 2], ['RGBA', 'BGRX', 2],
+         ['BGRA', 'RGBX', 2]]) {
+  promise_test(async t => {
+    // The fourth byte of the pixels is used as alpha. None of them is 0, so
+    // that their color is well defined.
+    const data = makeData(from);
+    for (let i = 3; i < data.length; i += 4) {
+      data[i] = Math.max(data[i], 0x40);
+    }
+    const frame = makeFrame(from, data);
+    t.add_cleanup(() => frame.close());
+
+    const options = {format: to};
+    const copy = new Uint8Array(frame.allocationSize(options));
+    const layout = await frame.copyTo(copy, options);
+    assert_equals(layout.length, 1);
+
+    const expected = makeData(to);
+    assert_equals(copy.byteLength, expected.byteLength, 'array length');
+    for (let i = 0; i < copy.byteLength; i++) {
+      if (i % 4 === 3) {
+        assert_equals(copy[i], 255, `padding byte of pixel ${(i - 3) / 4}`);
+      } else {
+        assert_approx_equals(
+            copy[i], expected[i], tolerance, `byte ${i} of the copy`);
+      }
+    }
+  }, `copyTo() of a translucent ${from} VideoFrame to ${to} drops alpha`);
+}

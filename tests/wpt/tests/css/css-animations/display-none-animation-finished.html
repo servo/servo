@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Completed display:none CSS animations finish instead of canceling</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/">
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#display-animation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+
+<style>
+  @keyframes fade-out {
+    from {
+      display: block;
+      opacity: 1;
+    }
+    to {
+      display: block;
+      opacity: 0;
+    }
+  }
+  .target {
+    display: block;
+  }
+  .target.closing {
+    display: none;
+    animation: fade-out var(--dur);
+  }
+</style>
+
+<body>
+<script>
+function createTarget(t, duration) {
+  const el = document.createElement('div');
+  el.className = 'target';
+  el.style.setProperty('--dur', duration);
+  el.textContent = 'Target';
+  document.body.appendChild(el);
+  t.add_cleanup(() => el.remove());
+  return el;
+}
+
+promise_test(async (t) => {
+  const el = createTarget(t, '50ms');
+  let animationend = 0;
+  let animationcancel = 0;
+  let finish = 0;
+  let cancel = 0;
+
+  el.addEventListener('animationend', () => animationend++);
+  el.addEventListener('animationcancel', () => animationcancel++);
+
+  await waitForAnimationFrames(2);
+  el.classList.add('closing');
+  const anim = el.getAnimations()[0];
+  assert_equals(anim.animationName, 'fade-out');
+  anim.addEventListener('finish', () => finish++);
+  anim.addEventListener('cancel', () => cancel++);
+
+  await anim.finished;
+  await waitForAnimationFrames(2);
+
+  assert_equals(getComputedStyle(el).display, 'none');
+  assert_equals(animationend, 1, 'animationend should fire once');
+  assert_equals(animationcancel, 0, 'animationcancel should not fire');
+  assert_equals(finish, 1, 'finish event should fire once');
+  assert_equals(cancel, 0, 'cancel event should not fire');
+  assert_equals(anim.playState, 'finished');
+}, 'CSS animation keeping display:none element visible finishes without canceling');
+
+promise_test(async (t) => {
+  const el = createTarget(t, '100s');
+  let animationend = 0;
+  let animationcancel = 0;
+  let finish = 0;
+  let cancel = 0;
+
+  el.addEventListener('animationend', () => animationend++);
+  el.addEventListener('animationcancel', () => animationcancel++);
+
+  await waitForAnimationFrames(2);
+  el.classList.add('closing');
+  const anim = el.getAnimations()[0];
+  assert_equals(anim.animationName, 'fade-out');
+  anim.addEventListener('finish', () => finish++);
+  anim.addEventListener('cancel', () => cancel++);
+
+  await anim.ready;
+  await waitForAnimationFrames(1);
+
+  anim.currentTime = 100000;
+  assert_equals(getComputedStyle(el).display, 'none',
+                'On-demand style update resolves display: none');
+
+  await anim.finished;
+  await waitForAnimationFrames(2);
+
+  assert_equals(animationend, 1, 'animationend should fire once');
+  assert_equals(animationcancel, 0, 'animationcancel should not fire');
+  assert_equals(finish, 1, 'finish event should fire once');
+  assert_equals(cancel, 0, 'cancel event should not fire');
+  assert_equals(anim.playState, 'finished');
+}, 'On-demand style flush to display:none after CSS animation reaches end does not cancel it');
+</script>
+</body>

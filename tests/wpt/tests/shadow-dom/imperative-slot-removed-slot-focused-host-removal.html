@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/582540348">
+<link rel="help" href="https://dom.spec.whatwg.org/#find-a-slot">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+function setup(t) {
+  const host = document.createElement('div');
+  const button = document.createElement('button');
+  host.appendChild(button);
+  document.body.appendChild(host);
+  t.add_cleanup(() => host.remove());
+  const slot = document.createElement('slot');
+  host.attachShadow({mode: 'open', slotAssignment: 'manual'}).append(slot);
+  slot.assign(button);
+  return {host, button, slot};
+}
+
+function waitForFrames() {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  });
+}
+
+for (const focus of [false, true]) {
+  for (const afterFrames of [false, true]) {
+    const description = `${focus ? 'focused' : 'unfocused'} slottable, ` +
+        `${afterFrames ? 'after rendering' : 'before rendering'}`;
+    promise_test(async t => {
+      const {host, button, slot} = setup(t);
+      if (afterFrames) {
+        await waitForFrames();
+      }
+      assert_equals(button.assignedSlot, slot);
+      if (focus) {
+        button.focus();
+        assert_equals(document.activeElement, button);
+      }
+      slot.remove();
+      assert_equals(button.assignedSlot, null,
+          'Removed slot should no longer be the assigned slot');
+      host.remove();
+      assert_false(host.isConnected);
+      assert_array_equals(slot.assignedNodes(), [],
+          'Disconnected slot should have no assigned nodes');
+    }, `Removing a manual slot, then its host (${description})`);
+  }
+}
+</script>

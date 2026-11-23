@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>CSS Test: collapsed borders cover fractional column edges in a right-to-left 'table-layout: fixed' table with a fractional width</title>
+<link rel="help" href="https://www.w3.org/TR/CSS21/tables.html#fixed-table-layout">
+<link rel="help" href="https://www.w3.org/TR/CSS21/tables.html#collapsing-borders">
+<link rel="match" href="fixed-table-layout-collapsed-border-rtl-002-ref.html">
+<meta name="assert" content="In a right-to-left fixed layout table whose width is fractional, the shared collapsed borders cover the auto columns next to the middle cell.">
+<style>
+#clip {
+    width: 100px;
+    overflow: hidden;
+}
+
+table {
+    border-collapse: collapse;
+    table-layout: fixed;
+    width: 100.75px;
+}
+
+td {
+    padding: 50px 0;
+}
+
+td.middle {
+    background-color: green;
+    border-inline: 25px solid green;
+    width: 50.75px;
+}
+
+td.side {
+    background-color: red;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="clip">
+    <table dir="rtl">
+        <tr>
+            <td class="side"></td>
+            <td class="middle"></td>
+            <td class="side"></td>
+        </tr>
+    </table>
+</div>

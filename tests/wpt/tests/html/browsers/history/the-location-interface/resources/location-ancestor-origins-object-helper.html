@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<body>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const tag = params.has("object") ? "object" : params.has("iframe") ? "iframe" : null;
+    if (tag) {
+      const el = document.createElement(tag);
+      el[tag === "object" ? "data" : "src"] = params.get(tag);
+      document.body.append(el);
+    } else {
+      top.postMessage(Array.from(location.ancestorOrigins), "*");
+    }
+  </script>
+</body>

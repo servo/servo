@@ -122,7 +122,8 @@ function fillYUV(data, codedWidth, codedHeight, visibleRect, v_y, v_u, v_v) {
   for (let y = 0; y < codedHeight; y++) {
     for (let x = 0; x < codedWidth; x++) {
       data[y * codedWidth + x] =
-          (x >= visibleRect.x && y < visibleRect.y + visibleRect.height) ? v_y
+          (x >= visibleRect.x && x < visibleRect.x + visibleRect.width &&
+           y >= visibleRect.y && y < visibleRect.y + visibleRect.height) ? v_y
                                                                          : 0;
     }
   }
@@ -131,10 +132,12 @@ function fillYUV(data, codedWidth, codedHeight, visibleRect, v_y, v_u, v_v) {
   const uvPlaneSize = uvWidth * uvHeight;
   const uvOffset = codedWidth * codedHeight;
   const uvX = visibleRect.x / 2;
+  const uvMaxX = (visibleRect.x + visibleRect.width) / 2;
+  const uvY = visibleRect.y / 2;
   const uvMaxY = (visibleRect.y + visibleRect.height) / 2;
   for (let y = 0; y < uvHeight; y++) {
     for (let x = 0; x < uvWidth; x++) {
-      if (x >= uvX && y < uvMaxY) {
+      if (x >= uvX && x < uvMaxX && y >= uvY && y < uvMaxY) {
         data[uvOffset + y * uvWidth + x] = v_u;
         data[uvOffset + uvPlaneSize + y * uvWidth + x] = v_v;
       } else {

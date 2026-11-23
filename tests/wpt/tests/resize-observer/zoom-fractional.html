@@ -1,0 +1,128 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>ResizeObserver sizes of zoomed elements are not rounded</title>
+<link rel="help" href="https://drafts.csswg.org/resize-observer/#calculate-box-size">
+<link rel="help" href="https://drafts.csswg.org/css-viewport/#zoom-om">
+<link rel="help" href="https://crbug.com/575023846">
+<meta name="assert" content="Dividing a zoomed element's size by its zoom does not round the result, e.g. to 1/64px.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .target {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    padding: 2px;
+  }
+</style>
+<div style="width: 301px; height: 301px">
+  <div class="target" style="zoom: 3"></div>
+</div>
+<div style="width: 1221px; height: 100px">
+  <div class="target" style="zoom: 2.6875"></div>
+</div>
+<script>
+// Neither 301 / 3 nor 1221 / 2.6875 is a multiple of 1/64, so rounding the
+// sizes to 1/64px would be off by more than this.
+const EPSILON = 0.001;
+
+function animationFrame() {
+  return new Promise(resolve => requestAnimationFrame(resolve));
+}
+
+promise_test(async () => {
+  const targets = document.querySelectorAll(".target");
+  const entries = await new Promise(resolve => {
+    const observer = new ResizeObserver(entries => {
+      observer.disconnect();
+      resolve(entries);
+    });
+    for (const target of targets) {
+      observer.observe(target);
+    }
+  });
+  assert_equals(entries.length, targets.length);
+
+  for (const entry of entries) {
+    const zoom = parseFloat(entry.target.style.zoom);
+    const container = entry.target.parentElement;
+    // The padding is 2px on each side, scaled by the zoom.
+    const borderBoxWidth = parseFloat(container.style.width) / zoom;
+    const borderBoxHeight = parseFloat(container.style.height) / zoom;
+    const contentBoxWidth = borderBoxWidth - 4;
+    const contentBoxHeight = borderBoxHeight - 4;
+    const description = `zoom: ${zoom}`;
+
+    assert_approx_equals(entry.contentRect.left, 2, EPSILON, `${description} contentRect.left`);
+    assert_approx_equals(entry.contentRect.top, 2, EPSILON, `${description} contentRect.top`);
+    assert_approx_equals(entry.contentRect.width, contentBoxWidth, EPSILON, `${description} contentRect.width`);
+    assert_approx_equals(entry.contentRect.height, contentBoxHeight, EPSILON, `${description} contentRect.height`);
+    assert_approx_equals(entry.contentBoxSize[0].inlineSize, contentBoxWidth, EPSILON, `${description} contentBoxSize.inlineSize`);
+    assert_approx_equals(entry.contentBoxSize[0].blockSize, contentBoxHeight, EPSILON, `${description} contentBoxSize.blockSize`);
+    assert_approx_equals(entry.borderBoxSize[0].inlineSize, borderBoxWidth, EPSILON, `${description} borderBoxSize.inlineSize`);
+    assert_approx_equals(entry.borderBoxSize[0].blockSize, borderBoxHeight, EPSILON, `${description} borderBoxSize.blockSize`);
+  }
+}, "contentRect, contentBoxSize and borderBoxSize are not rounded");
+
+promise_test(async () => {
+  // Don't start observing from within the previous test's ResizeObserver
+  // callback.
+  await animationFrame();
+  const targets = document.querySelectorAll(".target");
+  const entries = await new Promise(resolve => {
+    const observer = new ResizeObserver(entries => {
+      observer.disconnect();
+      resolve(entries);
+    });
+    for (const target of targets) {
+      observer.observe(target, {box: "device-pixel-content-box"});
+    }
+  });
+  assert_equals(entries.length, targets.length);
+
+  for (const entry of entries) {
+    const zoom = parseFloat(entry.target.style.zoom);
+    const container = entry.target.parentElement;
+    const scale = zoom * window.devicePixelRatio;
+    const contentBoxWidth = parseFloat(container.style.width) * window.devicePixelRatio - 4 * scale;
+    const contentBoxHeight = parseFloat(container.style.height) * window.devicePixelRatio - 4 * scale;
+    const description = `zoom: ${zoom}`;
+    const size = entry.devicePixelContentBoxSize[0];
+
+    // Snapping to device pixels can change the size by up to one pixel,
+    // depending on the box's position.
+    assert_true(Number.isInteger(size.inlineSize), `${description} inlineSize is an integer`);
+    assert_true(Number.isInteger(size.blockSize), `${description} blockSize is an integer`);
+    assert_approx_equals(size.inlineSize, contentBoxWidth, 1, `${description} devicePixelContentBoxSize.inlineSize`);
+    assert_approx_equals(size.blockSize, contentBoxHeight, 1, `${description} devicePixelContentBoxSize.blockSize`);
+  }
+}, "devicePixelContentBoxSize is the content box in device pixels");
+
+promise_test(async t => {
+  const target = document.querySelector(".target");
+  const container = target.parentElement;
+  t.add_cleanup(() => { container.style.width = "301px"; });
+
+  const sizes = [];
+  const observer = new ResizeObserver(entries => {
+    sizes.push(entries[0].contentBoxSize[0].inlineSize);
+  });
+  t.add_cleanup(() => observer.disconnect());
+  // Don't start observing from within the previous test's ResizeObserver
+  // callback.
+  await animationFrame();
+  observer.observe(target);
+  await animationFrame();
+  await animationFrame();
+  assert_equals(sizes.length, 1, "initial notification");
+  assert_approx_equals(sizes[0], 289 / 3, EPSILON, "initial size");
+
+  // Changes the target's size by 1/192px, which doesn't change the size
+  // rounded down to 1/64px.
+  container.style.width = "301.015625px";
+  await animationFrame();
+  await animationFrame();
+  assert_equals(sizes.length, 2, "notification for the size change");
+  assert_approx_equals(sizes[1], 289.015625 / 3, EPSILON, "new size");
+}, "A change smaller than 1/64px is observed");
+</script>

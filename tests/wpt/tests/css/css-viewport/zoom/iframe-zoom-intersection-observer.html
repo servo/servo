@@ -1,0 +1,64 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>IntersectionObserver in a zoomed iframe uses the iframe's own coordinates</title>
+<link rel="help" href="https://drafts.csswg.org/css-viewport/#zoom-property">
+<link rel="help" href="https://w3c.github.io/IntersectionObserver/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/iframe-zoom.js"></script>
+<style>
+  body { margin: 0; }
+  iframe { border: 0; width: 256px; height: 128px; }
+</style>
+<body>
+<script>
+const targetsHtml = `<!doctype html>
+<style>
+  html, body { margin: 0; height: 1024px; }
+  div { position: absolute; left: 0; width: 32px; height: 32px; }
+  #visible { top: 64px; }
+  #hidden { top: 192px; }
+</style>
+<div id="visible"></div>
+<div id="hidden"></div>`;
+
+async function observeTargets(test, zoom) {
+  const iframe = await loadIframe({ srcdoc: targetsHtml, style: `zoom: ${zoom}`, test });
+  const doc = iframe.contentDocument;
+  return new Promise(resolve => {
+    const observer = new iframe.contentWindow.IntersectionObserver(entries => {
+      observer.disconnect();
+      resolve(Object.fromEntries(entries.map(entry => [entry.target.id, entry])));
+    });
+    observer.observe(doc.getElementById("visible"));
+    observer.observe(doc.getElementById("hidden"));
+  });
+}
+
+promise_test(async t => {
+  const { visible, hidden } = await observeTargets(t, 1);
+  assert_true(visible.isIntersecting, "#visible isIntersecting");
+  assert_equals(visible.intersectionRatio, 1, "#visible intersectionRatio");
+  assert_equals(visible.boundingClientRect.top, 64, "#visible boundingClientRect.top");
+  assert_equals(visible.boundingClientRect.height, 32, "#visible boundingClientRect.height");
+  assert_false(hidden.isIntersecting, "#hidden isIntersecting");
+}, "IntersectionObserver entries in an unzoomed iframe");
+
+promise_test(async t => {
+  const { visible, hidden } = await observeTargets(t, 2);
+  assert_true(visible.isIntersecting, "#visible isIntersecting");
+  assert_equals(visible.intersectionRatio, 1, "#visible intersectionRatio");
+  assert_equals(visible.boundingClientRect.top, 64, "#visible boundingClientRect.top");
+  assert_equals(visible.boundingClientRect.height, 32, "#visible boundingClientRect.height");
+  assert_false(hidden.isIntersecting, "#hidden isIntersecting");
+}, "IntersectionObserver entries in an iframe at zoom 2");
+
+promise_test(async t => {
+  const { visible, hidden } = await observeTargets(t, 0.5);
+  assert_true(visible.isIntersecting, "#visible isIntersecting");
+  assert_equals(visible.intersectionRatio, 1, "#visible intersectionRatio");
+  assert_equals(visible.boundingClientRect.top, 64, "#visible boundingClientRect.top");
+  assert_equals(visible.boundingClientRect.height, 32, "#visible boundingClientRect.height");
+  assert_false(hidden.isIntersecting, "#hidden isIntersecting");
+}, "IntersectionObserver entries in an iframe at zoom 0.5");
+</script>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS View Transitions: Scoped view transition on zero-opacity scope occludes underlying elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+  #target {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100px;
+    height: 100px;
+    background: green;
+    z-index: 1;
+  }
+  #scope {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100px;
+    height: 100px;
+    z-index: 2;
+    opacity: 0;
+    will-change: opacity;
+    pointer-events: none;
+    contain: layout;
+  }
+  #box {
+    width: 100px;
+    height: 100px;
+    background: black;
+    view-transition-name: box;
+  }
+  #scope::view-transition {
+    background: black;
+  }
+  #scope::view-transition-group(*),
+  #scope::view-transition-old(*),
+  #scope::view-transition-new(*) {
+    animation-play-state: paused;
+  }
+</style>
+<div id="target"></div>
+<div id="scope">
+  <div id="box"></div>
+</div>
+<script>
+function waitForNotification(t) {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        t.step_timeout(resolve, 0);
+      });
+    });
+  });
+}
+
+promise_test(async t => {
+  assert_implements(window.IntersectionObserver, "IntersectionObserver is required");
+  assert_implements(
+      IntersectionObserverEntry.prototype.hasOwnProperty("isVisible"),
+      "IntersectionObserverV2 isVisible is required");
+  assert_implements(
+      Element.prototype.startViewTransition,
+      "Element.prototype.startViewTransition is required");
+
+  const entries = [];
+  const observer = new IntersectionObserver(newEntries => {
+    entries.push(...newEntries);
+  }, { trackVisibility: true, delay: 100 });
+  observer.observe(target);
+  t.add_cleanup(() => observer.disconnect());
+
+  await waitForNotification(t);
+  assert_equals(entries.length, 1, "Initial IntersectionObserver notification");
+  assert_true(entries[0].isIntersecting, "Target is intersecting");
+  assert_true(
+      entries[0].isVisible,
+      "Target is visible before transition starts because #scope has opacity: 0");
+
+  const transition = scope.startViewTransition(() => {});
+  t.add_cleanup(() => transition.skipTransition());
+  await transition.ready;
+
+  // Wait for IntersectionObserver delay (100ms) and frame delivery.
+  await new Promise(resolve => t.step_timeout(resolve, 150));
+  await waitForNotification(t);
+
+  assert_greater_than_equal(
+      entries.length, 2,
+      "IntersectionObserver notified after scoped view transition started");
+  assert_false(
+      entries[entries.length - 1].isVisible,
+      "Target is occluded while opaque scoped ::view-transition overlay covers it");
+}, "Scoped view transition on an opacity: 0 scope occludes underlying target");
+</script>

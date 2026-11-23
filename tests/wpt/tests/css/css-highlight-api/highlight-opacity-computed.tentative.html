@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Computed opacity for elements and highlights</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #explicit, #explicit::highlight(test) { opacity: auto; }
+  #omitted::highlight(test) { color: green; }
+  #one::highlight(test) { opacity: 1; }
+</style>
+<div id="explicit">Explicit opacity</div>
+<div id="omitted">Omitted opacity</div>
+<div id="one">Explicit opacity 1</div>
+<script>
+const explicit = document.getElementById("explicit");
+const omitted = document.getElementById("omitted");
+const one = document.getElementById("one");
+
+test(() => {
+  assert_equals(getComputedStyle(explicit).opacity, "1");
+}, "Explicit auto opacity on an element computes to 1");
+test(() => {
+  assert_equals(getComputedStyle(omitted).opacity, "1");
+}, "Omitted opacity on an element computes to 1");
+test(() => {
+  assert_equals(getComputedStyle(explicit, "::highlight(test)").opacity, "auto");
+}, "Explicit auto opacity on a highlight computes to auto");
+test(() => {
+  assert_equals(getComputedStyle(omitted, "::highlight(test)").opacity, "auto");
+}, "Omitted author opacity on a highlight computes to auto");
+test(() => {
+  assert_equals(getComputedStyle(one, "::highlight(test)").opacity, "1");
+}, "Explicit opacity 1 on a highlight computes to 1");
+</script>

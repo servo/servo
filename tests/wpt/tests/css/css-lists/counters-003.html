@@ -2,7 +2,7 @@
 <title>CSS Lists and Counters: counters(c, &quot;.", upper-roman)</title>
 <link rel="help" href="https://drafts.csswg.org/css-lists/#inheriting-counters">
 <link rel="match" href="counters-003-ref.html">
-<meta name="assert" content="counters are not inherited from the previous sibling, when can be inherited from the ancestor">
+<meta name="assert" content="counters are not inherited from the ancestor, when can be inherited from the previous sibling">
 <style type="text/css">
 body, #test span:first-child { counter-reset: c; }
 p, #test span { counter-increment: c; }
@@ -32,23 +32,22 @@ p, #test span { counter-increment: c; }
 </div>
 <div>
   <span>I.I</span>
-  <span>II</span>
-  <span>III</span>
-  <span>IV</span>
-  <span>V</span>
-  <span>VI</span>
-  <span>VII</span>
-  <span>VIII</span>
-  <span>IX</span>
-  <span>X</span>
-  <span>XI</span>
-  <span>XII</span>
-  <span>XII.XLIX</span>
-  <span>XIII</span>
-  <span>XIII.CCCLXXXIX</span>
-  <span>XIV</span>
-  <span>XIV.MMMCDLXXXIX</span>
-  <span>XV</span>
-  <span>XVI</span>
+  <span>I.II</span>
+  <span>I.III</span>
+  <span>I.IV</span>
+  <span>I.V</span>
+  <span>I.VI</span>
+  <span>I.VII</span>
+  <span>I.VIII</span>
+  <span>I.IX</span>
+  <span>I.X</span>
+  <span>I.XI</span>
+  <span>I.XII</span>
+  <span>I.XLIX</span>
+  <span>I.L</span>
+  <span>I.CCCLXXXIX</span>
+  <span>I.CCCXC</span>
+  <span>I.MMMCDLXXXIX</span>
+  <span>I.MMMCDXC</span>
+  <span>I.MMMCDXCI</span>
 </div>
-

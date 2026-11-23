@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes Test: Row named-line resolution at subgrid boundaries</title>
+<link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="row-line-names-005-ref.html">
+<meta name="assert" content="Missing row names, out-of-range named occurrences, and named spans are clamped to the grid-lanes subgrid's inherited tracks.">
+<style>
+  body { display: flex; align-items: flex-start; gap: 4px; }
+  .grid-lanes {
+    display: grid-lanes;
+    grid-template-rows: [outside] 20px 40px [a] 60px 80px [a] 100px 120px [outside];
+    width: max-content;
+    gap: 4px;
+    fit-tolerance: 0;
+    padding: 8px;
+    border: 2px solid black;
+    background: lightgrey;
+  }
+  .subgrid {
+    display: grid-lanes;
+    grid-template-rows: subgrid;
+    grid-row: 2 / span 4;
+    gap: 4px;
+    fit-tolerance: 0;
+    background: yellow;
+  }
+  .subgrid > div { width: 24px; background: green; }
+  .missing-forward { grid-row: missing / span 2; }
+  .missing-backward { grid-row: missing -1 / span 2; }
+  .far-forward { grid-row: a 8 / span 2; }
+  .far-backward { grid-row: span 2 / a -8; }
+  .forward-span { grid-row: 2 / span a 8; }
+  .backward-span { grid-row: span a 8 / 4; }
+  .outside-name { grid-row: outside / span 2; }
+</style>
+<div class="grid-lanes">
+  <div class="subgrid"><div class="missing-forward"></div></div>
+</div>
+<div class="grid-lanes">
+  <div class="subgrid"><div class="missing-backward"></div></div>
+</div>
+<div class="grid-lanes">
+  <div class="subgrid"><div class="far-forward"></div></div>
+</div>
+<div class="grid-lanes">
+  <div class="subgrid"><div class="far-backward"></div></div>
+</div>
+<div class="grid-lanes">
+  <div class="subgrid"><div class="forward-span"></div></div>
+</div>
+<div class="grid-lanes">
+  <div class="subgrid"><div class="backward-span"></div></div>
+</div>
+<div class="grid-lanes">
+  <div class="subgrid"><div class="outside-name"></div></div>
+</div>

@@ -1,0 +1,32 @@
+<!doctype html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>A WebGL canvas sized to the viewport fills a zoomed iframe</title>
+<link rel="help" href="https://drafts.csswg.org/css-viewport/#zoom-property">
+<link rel="match" href="reference/iframe-zoom-webgl-fills-frame-ref.html">
+<meta name="fuzzy" content="maxDifference=0-45;totalPixels=0-38">
+<script src="/common/reftest-wait.js"></script>
+<script src="resources/iframe-zoom.js"></script>
+<style>
+  body { margin: 0; }
+  iframe { display: block; width: 256px; height: 128px; zoom: 0.5; border: 0; background: red; }
+</style>
+<body>
+<script type="module">
+const canvasHtml = `<!doctype html>
+<style>
+  html, body { margin: 0; height: 100%; }
+  canvas { display: block; width: 100%; height: 100%; }
+</style>
+<canvas></canvas>`;
+
+const iframe = await loadIframe({ srcdoc: canvasHtml });
+const canvas = iframe.contentDocument.querySelector("canvas");
+canvas.width = iframe.contentWindow.innerWidth;
+canvas.height = iframe.contentWindow.innerHeight;
+const gl = canvas.getContext("webgl");
+gl.clearColor(0, 128 / 255, 0, 1);
+gl.clear(gl.COLOR_BUFFER_BIT);
+await nextFrame();
+takeScreenshot();
+</script>

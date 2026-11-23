@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Device Bound Session Credentials: Cross-site refresh redirects</title>
+<link rel="help" href="https://w3c.github.io/webappsec-dbsc/#algo-refresh-request">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="helper.js" type="module"></script>
+
+<script type="module">
+  import {
+    expireCookie,
+    waitForCookie,
+    addCookieAndSessionCleanup,
+    setupShardedServerState,
+    configureServer,
+    crossSiteFetch
+  } from "./helper.js";
+
+  const kCookieAndValue = "auth_cookie=abcdef0123";
+  const kCookieAttributes =
+      `Domain=${location.hostname};Path=/device-bound-session-credentials`;
+  const kCookieAndAttributes = `${kCookieAndValue};${kCookieAttributes}`;
+
+  async function registerSessionWithCrossSiteRefresh(t, otherSite) {
+    const testId = await setupShardedServerState({crossSite: true});
+    assert_equals(
+        await crossSiteFetch(
+            otherSite,
+            `${otherSite}/device-bound-session-credentials/setup_sharded_server_state.py`,
+            {
+              method: "POST",
+              headers: {"Content-Type": "application/json"},
+              body: JSON.stringify({testId, crossSite: true}),
+              credentials: "include"
+            }),
+        200);
+
+    addCookieAndSessionCleanup(t);
+    t.add_cleanup(() => crossSiteFetch(
+        otherSite,
+        `${otherSite}/device-bound-session-credentials/end_session_via_clear_site_data.py`,
+        {credentials: "include"}));
+
+    await configureServer({
+      refreshUrl: `/device-bound-session-credentials/redirect.py?${otherSite}/device-bound-session-credentials/refresh_session.py`,
+      refreshSendsChallenge: false
+    });
+    assert_equals((await fetch("login.py")).status, 200);
+    await waitForCookie(kCookieAndValue, /*expectCookie=*/true);
+  }
+
+  promise_test(async t => {
+    const otherSite = get_host_info().HTTPS_NOTSAMESITE_ORIGIN;
+    const otherCookieAttributes =
+        `Domain=${get_host_info().NOTSAMESITE_HOST};Path=/device-bound-session-credentials;SameSite=None;Secure`;
+    await registerSessionWithCrossSiteRefresh(t, otherSite);
+
+    await configureServer({
+      refreshUrl: "/device-bound-session-credentials/refresh_session.py",
+      scopeOrigin: otherSite,
+      cookieDetails: [{
+        nameAndValue: kCookieAndValue,
+        attributes: otherCookieAttributes
+      }]
+    });
+
+    expireCookie(kCookieAndAttributes);
+    assert_equals((await fetch("verify_authenticated.py")).status, 403);
+
+    // Expire the cookie set directly by the HTTP response and confirm no
+    // session was planted on `otherSite`.
+    assert_equals(
+        await crossSiteFetch(
+            otherSite,
+            `${otherSite}/device-bound-session-credentials/set_cookie.py`,
+            {
+              method: "POST",
+              body: `${kCookieAndValue};${otherCookieAttributes};Max-Age=0`,
+              credentials: "include"
+            }),
+        200);
+    assert_equals(
+        await crossSiteFetch(
+            otherSite,
+            `${otherSite}/device-bound-session-credentials/verify_authenticated.py`,
+            {credentials: "include"}),
+        403);
+
+    // Confirm the original session on `location.origin` was also terminated.
+    await configureServer({refreshEndpointUnavailable: true});
+    const headers = new Headers(await (await fetch("reflect_headers.py")).json());
+    assert_equals(headers.get("secure-session-skipped"), null);
+  }, "Refresh redirected cross-site with non-empty config fails without planting a session");
+
+  promise_test(async t => {
+    const otherSite = get_host_info().HTTPS_NOTSAMESITE_ORIGIN;
+    await registerSessionWithCrossSiteRefresh(t, otherSite);
+
+    await configureServer({useEmptyResponse: true});
+    expireCookie(kCookieAndAttributes);
+    assert_equals((await fetch("verify_authenticated.py")).status, 403);
+
+    // An empty cross-site refresh must not terminate the session: a subsequent
+    // 500 from the refresh endpoint still emits `Secure-Session-Skipped`.
+    await configureServer({refreshEndpointUnavailable: true});
+    const headers = new Headers(await (await fetch("reflect_headers.py")).json());
+    assert_equals(
+        headers.get("secure-session-skipped"),
+        "server_error;session_identifier=\"0\"");
+  }, "Refresh redirected cross-site with empty response keeps the session alive");
+</script>

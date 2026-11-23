@@ -36,4 +36,29 @@ test(() => {
     assert_equals(style.marginRight, '2px');
 }, 'random-item() expands in a shorthand property');
 
+test(() => {
+    const observed = new Set();
+    try {
+        for (let i = 0; i < 50; i++) {
+            const element = document.createElement('div');
+            element.style.animationName =
+                `random-item(auto,
+                    random-item(auto, one, two),
+                    random-item(auto, two, one))`;
+            target.appendChild(element);
+            observed.add(getComputedStyle(element).animationName);
+        }
+    } finally {
+        target.innerHTML = '';
+    }
+    // The outer and inner `random-item()` functions should have independent random cache names
+    // due to having separate indexes. If they have the same index, then only the value `one`
+    // will ever be produced:
+    // - If the outer draws the first option, the inner will also draw the first option (`one`)
+    // - If the outer draws the second option, the inner will also draw the second option (`one`)
+    //
+    // Observing a value of `two` indicates that the functions had different random cache names.
+    assert_true(observed.has('two'), 'inner and outer random-item() shared a random base value');
+}, 'auto random-item() nested inside auto random-item() have independent random base values');
+
 </script>

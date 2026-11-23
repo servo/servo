@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<title>View Transition: morphing an element from light DOM into an opted-in ShadowRoot</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="shadow-roots-cross-tree-morph-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+  :root {
+    view-transition-name: none;
+  }
+  #light-box {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100px;
+    height: 100px;
+    background: green;
+    view-transition-name: hero;
+  }
+  #host {
+    position: absolute;
+    left: 200px;
+    top: 100px;
+    width: 100px;
+    height: 100px;
+  }
+  html::view-transition-group(hero) {
+    animation-duration: 300s;
+    animation-timing-function: steps(2, start);
+    animation-play-state: paused;
+  }
+  html::view-transition-old(hero) {
+    animation: unset;
+    opacity: 0;
+  }
+  html::view-transition-new(hero) {
+    animation: unset;
+    opacity: 1;
+  }
+</style>
+</head>
+<body>
+<div id="light-box"></div>
+<div id="host"></div>
+<script>
+const host = document.getElementById("host");
+const sr = host.attachShadow({ mode: "open" });
+sr.innerHTML = `
+  <style>
+    #shadow-box {
+      width: 100px;
+      height: 100px;
+      background: green;
+      display: none;
+    }
+    #shadow-box.active {
+      display: block;
+      view-transition-name: hero;
+    }
+  </style>
+  <div id="shadow-box"></div>
+`;
+
+onload = async () => {
+  await waitForCompositorReady();
+  const vt = document.startViewTransition({
+    shadowRoots: [sr],
+    update: () => {
+      document.getElementById("light-box").remove();
+      sr.getElementById("shadow-box").classList.add("active");
+    },
+  });
+  await vt.ready;
+  requestAnimationFrame(takeScreenshot);
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<meta name="variant" content="?navigate">
+<meta name="variant" content="?reload">
+<meta name="variant" content="?traverse">
+<meta name="variant" content="?traverse-to">
+<meta name="variant" content="?go-zero">
+<title>User activation propagation across the navigation API entry points and history.go(0)</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#apply-the-history-step">
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/helper.sub.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+  <p>Non-zero-sized body to allow clicks.</p>
+</body>
+
+<script>
+  'use strict';
+
+  let uuid1 = token();
+  let uuid2 = token();
+  let uuid3 = token();
+
+  // Each variant asks for a navigation that navigate-to-sameorigin.html,
+  // reload-sameorigin.html or traverse-to-sameorigin.https.html already
+  // covers, through an entry point none of them uses: navigation.navigate(),
+  // navigation.reload(), navigation.back(), navigation.traverseTo() and
+  // history.go(0). All of them are specified to reach "apply the history step",
+  // where the conditions are read, so what is left to check is whether each
+  // entry point reaches that algorithm.
+  const variant = location.search;
+
+  let opened = originSameOrigin + executorPath + uuid1;
+  let navigated_to = originSameOrigin + executorPath + uuid2;
+  let navigated_on = originSameOrigin + executorPath + uuid3;
+
+  // Which document each variant ends up on, and how many times the executor
+  // there should have run by the end. A navigation to a document that was not
+  // there before runs it once, and a reload runs it a second time, which is
+  // what tells a reload apart from a traversal to the entry it is already on.
+  // A traversal is left unchecked, since it may either restore the document
+  // the back/forward cache kept or create a new one.
+  const target = {
+    "?navigate": [uuid3, 1],
+    "?reload": [uuid2, 2],
+    "?traverse": [uuid1, null],
+    "?traverse-to": [uuid1, null],
+    "?go-zero": [uuid2, 2],
+  }[variant];
+
+  promise_test(async test => {
+    let w;
+    document.body.onclick = () => {
+      w = window.open(opened);
+    };
+
+    await test_driver.click(document.body);
+    assert_true(!!w, "A window is opened");
+    // Close the window at the end of the test, so that a later test in the same
+    // session cannot click a window this one left behind.
+    test.add_cleanup(() => w && w.close());
+
+    const first = new RemoteContext(uuid1);
+    const second = new RemoteContext(uuid2);
+    const ended_on = new RemoteContext(target[0]);
+
+    // Navigate on to a second same-origin document, so that there is an entry
+    // behind the one the variants act from.
+    await first.execute_script(waitUntilShown);
+    await first.execute_script(url => {
+      prepareNavigation(() => {
+        location.href = url;
+      });
+    }, [navigated_to]);
+
+    await second.execute_script(waitUntilShown);
+
+    if (variant !== "?go-zero") {
+      const supported = await second.execute_script(() => !!window.navigation);
+      assert_implements(supported, "The navigation API is supported");
+    }
+
+    // Confirm that the second document gets user activation after a click.
+    await test_driver.click(w.document.documentElement);
+    {
+      const result = await second.execute_script(getUserActivationState);
+      assertUserActivationState(result, true, true, "after window clicked");
+    }
+
+    // Ask for the navigation through the entry point this variant is about.
+    await second.execute_script((which, url) => {
+      prepareNavigation(() => {
+        if (which === "?navigate")
+          navigation.navigate(url);
+        else if (which === "?reload")
+          navigation.reload();
+        else if (which === "?traverse")
+          navigation.back();
+        else if (which === "?traverse-to")
+          navigation.traverseTo(navigation.entries()[0].key);
+        else
+          history.go(0);
+      });
+    }, [variant, navigated_on]);
+
+    // Confirm that the document it ended up on got the sticky user activation
+    // carried over.
+    {
+      const [loadCount, state] = await ended_on.execute_script(async () => {
+        await window.pageShowPromise;
+        return [window.loadCount,
+                [navigator.userActivation.isActive,
+                 navigator.userActivation.hasBeenActive]];
+      });
+      if (target[1] !== null) {
+        assert_equals(loadCount, target[1],
+              "Times the executor ran in the document the entry point reached");
+      }
+      assertUserActivationState(state, false, true,
+            "after the navigation the entry point asked for");
+    }
+}, "User activation propagation across the navigation API entry points and " +
+   "history.go(0)");
+</script>

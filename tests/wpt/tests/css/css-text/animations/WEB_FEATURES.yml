@@ -1,3 +1,4 @@
 rules:
+- hyphenate-limit-lines-interpolation.html: [hyphenate-limit-lines]
 - tab-size-interpolation.html: [tab-size]
 - letter-spacing-*: [letter-spacing]

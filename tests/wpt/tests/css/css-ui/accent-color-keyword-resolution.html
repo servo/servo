@@ -98,4 +98,21 @@
         context.getImageData(2, 0, 1, 1).data, [45, 67, 89, 255]);
   }, "Canvas color functions resolve AccentColor against accent-color");
 
+  test(() => {
+    const canvas = document.getElementById("canvas");
+    const context = canvas.getContext("2d");
+
+    canvas.style.accentColor = "initial";
+    canvas.style.color = "AccentColor";
+
+    context.fillStyle = "currentColor";
+    context.fillRect(0, 0, 1, 1);
+
+    context.fillStyle = "AccentColor";
+    context.fillRect(1, 0, 1, 1);
+
+    assert_array_equals(
+        context.getImageData(1, 0, 1, 1).data, context.getImageData(0, 0, 1, 1).data);
+  }, "When <canvas>'s accent-color is initial, fillStyle=accentColor resolves to the default accent color");
+
 </script>

@@ -16,6 +16,6 @@ bluetooth_bidi_test(async () => {
     filters: [{services: ['device_information']}],
     optionalServices: ['human_interface_device']
   });
-  assert_promise_rejects_with_message(
-      device.gatt.getPrimaryServices('human_interface_device'), expected)
+  await assert_promise_rejects_with_message(
+      device.gatt.getPrimaryServices('human_interface_device'), expected);
 }, test_desc);

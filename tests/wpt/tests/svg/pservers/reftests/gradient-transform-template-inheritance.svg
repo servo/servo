@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml" width="500" height="100">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml" width="500" height="100">
   <title>SVG Paint Servers: only a specified gradientTransform stops template inheritance.</title>
   <metadata>
-    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/pservers.html#PaintServerTemplates"/>
-    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/pservers.html#LinearGradientElementGradientTransformAttribute"/>
-    <h:link rel="match" href="reference/gradient-transform-template-inheritance-ref.svg"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/pservers.html#PaintServerTemplates"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/pservers.html#LinearGradientElementGradientTransformAttribute"/>
+    <html:link rel="match" href="reference/gradient-transform-template-inheritance-ref.svg"/>
+    <html:meta name="fuzzy" content="maxDifference=0-1; totalPixels=0-6400"/>
+    <!-- The fifth square can be one unit per channel off its reference. A
+         wrong transform changes the colours by far more. -->
   </metadata>
   <!-- A template gradient supplies gradientTransform when the referencing gradient
        does not specify it. gradientTransform is a presentation attribute for the

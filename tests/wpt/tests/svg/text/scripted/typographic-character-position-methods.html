@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVGTextContentElement character queries use the typographic character</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TermFindTypographicCharacterForCharacter">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#__svg__SVGTextContentElement__getStartPositionOfChar">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#__svg__SVGTextContentElement__getEndPositionOfChar">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#__svg__SVGTextContentElement__getExtentOfChar">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#__svg__SVGTextContentElement__getCharNumAtPosition">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextLayoutAlgorithm">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=331228">
+<meta name="assert" content="A combining mark or a dependent vowel sign belongs to the typographic character of the letter before it. The character queries return the values of that typographic character, and an x value on the mark has no effect.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+text {
+  font: 20px/1 Ahem;
+}
+.devanagari {
+  font: 20px/1 sans-serif;
+}
+</style>
+
+<svg width="400" height="250">
+  <!-- A, E, U+0301 COMBINING ACUTE ACCENT, B: E and the accent are one typographic character. -->
+  <text id="latin" x="10" y="40">AE&#x301;B</text>
+  <!-- A, E, U+0301, U+0323 COMBINING DOT BELOW, B: E and both marks are one typographic character. -->
+  <text id="two-marks" x="10" y="80">AE&#x301;&#x323;B</text>
+  <!-- RA, VOWEL SIGN AA, MA, VOWEL SIGN O: two typographic characters, each a consonant and its vowel sign. -->
+  <text id="devanagari" class="devanagari" x="10" y="120">&#x930;&#x93E;&#x92E;&#x94B;</text>
+  <!-- One x per character, as authoring tools write it. The x on the accent must be ignored. -->
+  <text id="latin-positioned" x="10 50 300 90" y="160">AE&#x301;B</text>
+  <!-- The x values on the two vowel signs must be ignored. -->
+  <text id="devanagari-positioned" class="devanagari" x="10 300 100 350" y="200">&#x930;&#x93E;&#x92E;&#x94B;</text>
+</svg>
+
+<script>
+const EPSILON = 0.01;
+function $(sel) { return document.querySelector(sel); }
+
+function assert_same_point(actual, expected, description) {
+  assert_approx_equals(actual.x, expected.x, EPSILON, description + ' x');
+  assert_approx_equals(actual.y, expected.y, EPSILON, description + ' y');
+}
+
+function assert_same_rect(actual, expected, description) {
+  assert_approx_equals(actual.x, expected.x, EPSILON, description + ' x');
+  assert_approx_equals(actual.y, expected.y, EPSILON, description + ' y');
+  assert_approx_equals(actual.width, expected.width, EPSILON, description + ' width');
+  assert_approx_equals(actual.height, expected.height, EPSILON, description + ' height');
+}
+
+setup({ explicit_done: true });
+
+document.fonts.ready.then(() => {
+  test(() => {
+    assert_equals($('#latin').getNumberOfChars(), 4);
+    assert_equals($('#two-marks').getNumberOfChars(), 5);
+    assert_equals($('#devanagari').getNumberOfChars(), 4);
+  }, 'getNumberOfChars still counts every character');
+
+  test(() => {
+    const t = $('#latin');
+    assert_same_point(t.getStartPositionOfChar(2), t.getStartPositionOfChar(1), 'start of the accent');
+  }, 'getStartPositionOfChar on a combining mark returns the start of its base');
+
+  test(() => {
+    const t = $('#latin');
+    assert_same_point(t.getEndPositionOfChar(1), t.getStartPositionOfChar(3), 'end of the base');
+    assert_same_point(t.getEndPositionOfChar(2), t.getStartPositionOfChar(3), 'end of the accent');
+  }, 'getEndPositionOfChar on a base and on its combining mark returns the end of the typographic character');
+
+  test(() => {
+    const t = $('#latin');
+    assert_same_rect(t.getExtentOfChar(2), t.getExtentOfChar(1), 'extent of the accent');
+  }, 'getExtentOfChar on a combining mark returns the extent of the typographic character');
+
+  test(() => {
+    const t = $('#two-marks');
+    const start = t.getStartPositionOfChar(1);
+    const end = t.getStartPositionOfChar(4);
+    for (const i of [2, 3]) {
+      assert_same_point(t.getStartPositionOfChar(i), start, 'start of character ' + i);
+      assert_same_point(t.getEndPositionOfChar(i), end, 'end of character ' + i);
+    }
+    assert_same_point(t.getEndPositionOfChar(1), end, 'end of the base');
+  }, 'every mark of a typographic character with two marks returns the same start and end');
+
+  test(() => {
+    const t = $('#devanagari');
+    assert_same_point(t.getStartPositionOfChar(1), t.getStartPositionOfChar(0), 'start of VOWEL SIGN AA');
+    assert_same_point(t.getStartPositionOfChar(3), t.getStartPositionOfChar(2), 'start of VOWEL SIGN O');
+  }, 'getStartPositionOfChar on a Devanagari vowel sign returns the start of its consonant');
+
+  test(() => {
+    const t = $('#devanagari');
+    assert_same_point(t.getEndPositionOfChar(0), t.getStartPositionOfChar(2), 'end of RA');
+    assert_same_point(t.getEndPositionOfChar(1), t.getStartPositionOfChar(2), 'end of VOWEL SIGN AA');
+    assert_same_point(t.getEndPositionOfChar(3), t.getEndPositionOfChar(2), 'end of VOWEL SIGN O');
+  }, 'getEndPositionOfChar on a Devanagari consonant and its vowel sign returns the end of the typographic character');
+
+  test(() => {
+    const t = $('#devanagari');
+    assert_same_rect(t.getExtentOfChar(1), t.getExtentOfChar(0), 'extent of VOWEL SIGN AA');
+    assert_same_rect(t.getExtentOfChar(3), t.getExtentOfChar(2), 'extent of VOWEL SIGN O');
+  }, 'getExtentOfChar on a Devanagari vowel sign returns the extent of the typographic character');
+
+  test(() => {
+    // 1px before the end of each typographic character, where its vowel sign is drawn.
+    const t = $('#devanagari');
+    const y = t.getExtentOfChar(0).y + t.getExtentOfChar(0).height / 2;
+    assert_equals(t.getCharNumAtPosition({ x: t.getStartPositionOfChar(2).x - 1, y }), 0, 'inside the first typographic character');
+    assert_equals(t.getCharNumAtPosition({ x: t.getEndPositionOfChar(3).x - 1, y }), 2, 'inside the second typographic character');
+  }, 'getCharNumAtPosition returns the first character of the typographic character');
+
+  test(() => {
+    const t = $('#latin-positioned');
+    assert_approx_equals(t.getStartPositionOfChar(1).x, 50, EPSILON, 'start of E');
+    assert_approx_equals(t.getStartPositionOfChar(2).x, 50, EPSILON, 'start of the accent');
+    assert_approx_equals(t.getStartPositionOfChar(3).x, 90, EPSILON, 'start of B');
+  }, 'with one x per character, getStartPositionOfChar on a combining mark returns the x of its base');
+
+  test(() => {
+    const t = $('#devanagari-positioned');
+    assert_approx_equals(t.getStartPositionOfChar(0).x, 10, EPSILON, 'start of RA');
+    assert_approx_equals(t.getStartPositionOfChar(1).x, 10, EPSILON, 'start of VOWEL SIGN AA');
+    assert_approx_equals(t.getStartPositionOfChar(2).x, 100, EPSILON, 'start of MA');
+    assert_approx_equals(t.getStartPositionOfChar(3).x, 100, EPSILON, 'start of VOWEL SIGN O');
+  }, 'with one x per character, getStartPositionOfChar on a Devanagari vowel sign returns the x of its consonant');
+
+  done();
+});
+</script>

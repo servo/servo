@@ -92,6 +92,7 @@ the global scope.
 ```eval_rst
 .. js:autofunction:: test_driver.create_window
 .. js:autofunction:: test_driver.navigate
+.. js:autofunction:: test_driver.refresh
 ```
 
 ### Window State ###

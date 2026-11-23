@@ -2,8 +2,13 @@
 <html>
 
 <head>
+  <meta name="variant" content="?include=touch">
+  <meta name="variant" content="?include=wheel">
+  <meta name="variant" content="?include=scrollbar">
+  <meta name="variant" content="?include=keyboard">
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/subset-tests-by-key.js"></script>
   <script src="/resources/testdriver.js"></script>
   <script src="/resources/testdriver-actions.js"></script>
   <script src="/resources/testdriver-vendor.js"></script>
@@ -78,7 +83,7 @@
     const snap_area_1 = document.getElementById("snap_area_1");
 
     // Touch scroll test.
-    promise_test(async (t) => {
+    subsetTestByKey("touch", promise_test, async (t) => {
       await waitForCompositorCommit();
       const scroller_middle = Math.round(scroller.clientWidth / 2);
       const test_data = {
@@ -98,7 +103,7 @@
     }, "touch scrolling fires scrollsnapchanging.");
 
     // Wheel scroll test.
-    promise_test(async (t) => {
+    subsetTestByKey("wheel", promise_test, async (t) => {
       await waitForCompositorCommit();
       const test_data = {
         scroller: scroller,
@@ -116,12 +121,15 @@
     }, "mouse wheel scroll triggers scrollsnapchanging.");
 
     // Scrollbar drag test.
-    promise_test(async (t) => {
+    subsetTestByKey("scrollbar", promise_test, async (t) => {
       await waitForCompositorCommit();
       // Skip test on platforms that do not have a visible scrollbar (e.g.
       // overlay scrollbar).
       const scrollbar_width = window.innerWidth -
           document.documentElement.clientWidth;
+      if (scrollbar_width == 0) {
+        return;
+      }
       const test_data = {
         scroller: scroller,
         scrolling_function: async () => {
@@ -142,7 +150,7 @@
     }, "scrollbar dragging fires scrollsnapchanging.");
 
     // Keyboard test.
-    promise_test(async (t) => {
+    subsetTestByKey("keyboard", promise_test, async (t) => {
       await waitForCompositorCommit();
       const test_data = {
         scroller: scroller,
@@ -160,7 +168,7 @@
     }, "keyboard scroll triggers scrollsnapchanging.");
 
     // Touch scroll test (onscrollsnapchanging variant).
-    promise_test(async (t) => {
+    subsetTestByKey("touch", promise_test, async (t) => {
       await waitForCompositorCommit();
       const scroller_middle = Math.round(scroller.clientWidth / 2);
       const test_data = {
@@ -182,7 +190,7 @@
 
     // Touch scroll test: peek at snap_area_2 and then drag back to
     // snap_area_1.
-    promise_test(async (t) => {
+    subsetTestByKey("touch", promise_test, async (t) => {
       await waitForScrollReset(t, scroller);
       await waitForCompositorCommit();
       const pos_x = Math.round(scroller.clientWidth / 2);
@@ -211,7 +219,7 @@
     }, "scrollsnapchanging fires as scroll moves through different snap targets.");
 
     // scrollsnapchanging doesn't fire test.
-    promise_test(async (t) => {
+    subsetTestByKey("wheel", promise_test, async (t) => {
       test_no_scrollsnapchanging(t, scroller, 10);
     }, "scrollsnapchanging doesn't fire if scroll doesn't reach different snap " +
     "targets.");

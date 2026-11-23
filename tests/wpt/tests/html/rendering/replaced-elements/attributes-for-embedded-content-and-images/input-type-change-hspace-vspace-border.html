@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>hspace, vspace and border on input follow changes to and from the Image Button state</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#attributes-for-embedded-content-and-images">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+const attributes = {
+  hspace: ["marginLeft", "marginRight"],
+  vspace: ["marginTop", "marginBottom"],
+  border: ["borderTopWidth", "borderRightWidth", "borderBottomWidth",
+           "borderLeftWidth"],
+};
+
+function append_input(type) {
+  const input = document.createElement("input");
+  input.type = type;
+  document.body.appendChild(input);
+  return input;
+}
+
+for (const [attribute, properties] of Object.entries(attributes)) {
+  for (const [from, to] of [["text", "image"], ["image", "text"],
+                            ["hidden", "image"], ["image", "hidden"]]) {
+    test(t => {
+      const input = append_input(from);
+      input.setAttribute(attribute, "10");
+      // An input of the new type without the attribute has unmapped values.
+      const reference = append_input(to);
+      t.add_cleanup(() => {
+        input.remove();
+        reference.remove();
+      });
+
+      // Compute the style before the type change, so that it has to be invalidated.
+      getComputedStyle(input)[properties[0]];
+      input.type = to;
+      const style = getComputedStyle(input);
+      for (const property of properties) {
+        const expected =
+            to == "image" ? "10px" : getComputedStyle(reference)[property];
+        assert_equals(style[property], expected, property);
+      }
+    }, `<input ${attribute}> changing type from ${from} to ${to}`);
+  }
+}
+</script>

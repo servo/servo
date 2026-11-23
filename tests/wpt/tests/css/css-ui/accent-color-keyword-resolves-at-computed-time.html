@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+
+<title>AccentColor and AccentColorText are resolved at computed value time</title>
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#widget-accent">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14193">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  #accentcolortext-expected {
+    accent-color: #261200;
+    background-color: AccentColorText;
+  }
+
+  .target {
+    accent-color: #ffffff;
+    background-color: inherit;
+  }
+</style>
+
+<div id="accentcolortext-expected"></div>
+
+<div style="accent-color: #261200; background-color: AccentColor">
+  <div id="t1" class="target"></div>
+</div>
+
+<div style="accent-color: #261200; background-color: AccentColorText">
+  <div id="t2" class="target"></div>
+</div>
+
+<script>
+  const accentColorTextExpected = getComputedStyle(document.getElementById("accentcolortext-expected")).backgroundColor;
+
+  test(() => {
+    const inheritedColor = getComputedStyle(t1).backgroundColor;
+    assert_equals(inheritedColor, "rgb(38, 18, 0)");
+  }, "AccentColor is resolved at computed time");
+
+  test(() => {
+    const inheritedColor = getComputedStyle(t2).backgroundColor;
+    assert_equals(inheritedColor, accentColorTextExpected);
+  }, "AccentColorText is resolved at computed time");
+</script>

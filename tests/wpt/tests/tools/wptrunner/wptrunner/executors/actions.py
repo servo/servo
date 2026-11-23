@@ -174,6 +174,16 @@ class NavigateAction:
     def __call__(self, payload):
         self.protocol.base.load(payload["url"])
 
+class RefreshAction:
+    name = "refresh"
+
+    def __init__(self, logger, protocol):
+        self.logger = logger
+        self.protocol = protocol
+
+    def __call__(self, payload):
+        self.protocol.base.refresh()
+
 class ActionSequenceAction:
     name = "action_sequence"
 
@@ -675,6 +685,7 @@ actions = [ClickAction,
            GetWindowRectAction,
            CreateWindowAction,
            NavigateAction,
+           RefreshAction,
            ActionSequenceAction,
            GenerateTestReportAction,
            SetPermissionAction,

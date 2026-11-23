@@ -19,7 +19,7 @@ bluetooth_bidi_test(async () => {
   });
   await fake_peripheral.setNextGATTConnectionResponse({code: HCI_SUCCESS});
   await device.gatt.connect();
-  Promise.all([
+  await Promise.all([
     assert_promise_rejects_with_message(
         device.gatt.getPrimaryService('human_interface_device'), expected,
         'Blocklisted service not accessible.'),

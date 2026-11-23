@@ -1,0 +1,48 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>ident() preserves animation taint through custom properties</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#ident">
+<link rel="help" href="https://drafts.csswg.org/css-variables-1/#animation-tainted">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @keyframes supply-name {
+    from, to { --source: foo; }
+  }
+
+  #parent {
+    animation: supply-name 1s linear both paused;
+  }
+
+  #child {
+    --derived: ident(var(--source));
+    animation-name: var(--derived, none);
+  }
+</style>
+<div id="parent">
+  <div id="child"></div>
+</div>
+<script>
+  const parentElement = document.getElementById("parent");
+  const childElement = document.getElementById("child");
+  const animationReady = parentElement.getAnimations()[0].ready;
+
+  promise_test(async () => {
+    await animationReady;
+    assert_equals(
+        getComputedStyle(childElement).getPropertyValue("--source"),
+        "foo");
+  }, "An animated custom property is inherited");
+
+  promise_test(async () => {
+    await animationReady;
+    assert_equals(
+        getComputedStyle(childElement).getPropertyValue("--derived"),
+        "foo");
+  }, "ident() constructs an identifier from an animation-tainted custom property");
+
+  promise_test(async () => {
+    await animationReady;
+    assert_equals(getComputedStyle(childElement).animationName, "none");
+  }, "ident() preserves animation taint so animation-name uses its fallback");
+</script>

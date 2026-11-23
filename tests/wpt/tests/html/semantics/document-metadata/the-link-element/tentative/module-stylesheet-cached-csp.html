@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Module link: CSP checks before synchronous cached stylesheet exposure</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/LinkTagModuleImport/explainer.md">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#fetch-a-single-module-script">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script type="module">
+import {createLink, waitForEvent, createShadowRoot, recordLinkEvents} from "./module-stylesheet-helpers.js";
+
+for (const scopeName of ["document", "shadowRoot"]) {
+  for (const allowed of [false, true]) {
+    promise_test(async t => {
+      const frame = document.createElement("iframe");
+      t.add_cleanup(() => frame.remove());
+      const ready = new Promise(resolve => frame.onload = resolve);
+      frame.srcdoc = "<!doctype html><head></head><body><span>test</span></body>";
+      document.body.append(frame);
+      await ready;
+      const childDocument = frame.contentDocument;
+      const childWindow = frame.contentWindow;
+      const url = new URL("./module-stylesheet-blue.css", location.href).href;
+      const warm = createLink(t, /*import=*/url);
+      const warmed = waitForEvent(warm);
+      childDocument.head.append(warm);
+      assert_equals(await warmed, "load");
+      const sheet = warm.sheet;
+      assert_equals(childWindow.getComputedStyle(
+          childDocument.querySelector("span")).color, "rgb(0, 0, 255)");
+      warm.remove();
+
+      let scope = childDocument;
+      let parent = childDocument.body;
+      if (scopeName === "shadowRoot") {
+        scope = createShadowRoot(t, "<span>test</span>");
+        childDocument.body.append(scope.host);
+        parent = scope;
+      }
+      const target = parent.querySelector("span");
+      const initialColor = childWindow.getComputedStyle(target).color;
+      assert_equals(initialColor, "rgb(0, 0, 0)");
+      const initialSheets = Array.from(scope.styleSheets);
+      const policy = childDocument.createElement("meta");
+      policy.httpEquiv = "Content-Security-Policy";
+      policy.content = allowed ?
+          "default-src 'self'" : "default-src 'none'; style-src 'self'";
+      childDocument.head.append(policy);
+
+      const link = createLink(t, /*import=*/url);
+      const events = recordLinkEvents(link);
+      const completed = waitForEvent(link);
+      const violations = [];
+      let violationReported;
+      const reported = new Promise(resolve => violationReported = resolve);
+      childDocument.addEventListener("securitypolicyviolation", t.step_func(e => {
+        violations.push(e);
+        assert_equals(violations.length, 1, "CSP rejection is reported once.");
+        assert_false(allowed, "Permitted cache hits do not report violations.");
+        assert_equals(e.blockedURI, url);
+        violationReported();
+      }));
+      parent.prepend(link);
+      assert_array_equals(events, [], "Completion is asynchronous.");
+      assert_equals(childWindow.getComputedStyle(target).color,
+          allowed ? "rgb(0, 0, 255)" : initialColor,
+          "A CSP-rejected cache hit must not transiently apply styles.");
+      assert_equals(link.sheet, allowed ? sheet : null,
+          "Synchronous exposure requires this request to pass CSP.");
+      assert_array_equals(Array.from(scope.styleSheets),
+          allowed ? [...initialSheets, sheet] : initialSheets);
+      assert_equals(await completed, allowed ? "load" : "error");
+      assert_array_equals(events, [allowed ? "load" : "error"]);
+      assert_equals(link.sheet, allowed ? sheet : null);
+      assert_equals(childWindow.getComputedStyle(target).color,
+          allowed ? "rgb(0, 0, 255)" : initialColor);
+      if (!allowed) {
+        await reported;
+      }
+    }, `${scopeName}: a ${allowed ? "permitted" : "CSP-rejected"} cached module link exposes and applies only an approved sheet.`);
+  }
+}
+</script>

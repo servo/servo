@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<title>View Transition: nested groups across ShadowRoot and slotted light DOM</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="shadow-roots-nested-groups-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+  :root {
+    view-transition-name: none;
+  }
+  #slotted-overflow {
+    position: absolute;
+    left: 100px;
+    top: 0;
+    width: 100px;
+    height: 100px;
+    background: red;
+    view-transition-name: badge;
+  }
+  html::view-transition-group(*),
+  html::view-transition-old(*),
+  html::view-transition-new(*) {
+    animation-duration: 300s;
+    animation-play-state: paused;
+  }
+  html::view-transition-group-children(card) {
+    overflow: clip;
+  }
+</style>
+</head>
+<body>
+<div id="host">
+  <div id="slotted-overflow"></div>
+</div>
+<script>
+const host = document.getElementById("host");
+const sr = host.attachShadow({ mode: "open" });
+sr.innerHTML = `
+  <style>
+    #card {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      background: green;
+      overflow: clip;
+      view-transition-name: card;
+      view-transition-group: contain;
+    }
+  </style>
+  <div id="card">
+    <slot></slot>
+  </div>
+`;
+
+onload = async () => {
+  await waitForCompositorReady();
+  const vt = document.startViewTransition({ shadowRoots: [sr] });
+  await vt.ready;
+  requestAnimationFrame(takeScreenshot);
+};
+</script>
+</body>
+</html>

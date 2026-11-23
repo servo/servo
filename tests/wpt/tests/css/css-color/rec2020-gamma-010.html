@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Color 4: rec2020 grey 010 (pure 2.4 gamma transfer function)</title>
+<link rel="author" title="Chris Lilley" href="mailto:chris@w3.org">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#valdef-color-rec2020">
+<link rel="match" href="rec2020-gamma-010-ref.html">
+<meta name="assert" content="rec2020 grey, using the 2.4 gamma transfer function, matches the equivalent sRGB grey #e5e5e5">
+<meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-36864">
+<style>
+    .test { background-color: red; width: 12em; height: 12em; }
+    .test { background-color: color(rec2020 0.9033547 0.9033547 0.9033547); } /* grey (sRGB #e5e5e5) converted to rec2020 */
+</style>
+<body>
+    <p>Test passes if you see a grey square, and no red.</p>
+    <div class="test"></div>
+</body>

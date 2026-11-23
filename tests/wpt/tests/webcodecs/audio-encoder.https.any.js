@@ -625,3 +625,136 @@ testOpusEncoderConfigs.forEach(entry => {
         total_encoded_duration, total_duration_s * 1_000_000);
   }, 'Test encoding Opus with additional parameters: ' + entry.comment);
 });
+
+promise_test(async t => {
+  let outputs = [];
+  let encoder = new AudioEncoder({
+    error: t.unreached_func('Unexpected error'),
+    output: (chunk, metadata) => {
+      outputs.push({
+        duration: chunk.duration,
+        hasDecoderConfig: !!(metadata && metadata.decoderConfig),
+      });
+    },
+  });
+
+  encoder.configure({
+    codec: 'opus',
+    sampleRate: 48000,
+    numberOfChannels: 2,
+    bitrate: 128000,
+    opus: {frameDuration: 20000},
+  });
+
+  // 480 frames (10ms) is less than the 20ms Opus frameDuration, so it stays
+  // buffered until the encoder is flushed by the subsequent configure().
+  let data1 = make_audio_data(0, 2, 48000, 480);
+  encoder.encode(data1);
+  data1.close();
+
+  encoder.configure({
+    codec: 'opus',
+    sampleRate: 48000,
+    numberOfChannels: 2,
+    bitrate: 128000,
+    opus: {frameDuration: 60000},
+  });
+
+  // 2880 frames (60ms) produces one 60ms chunk under the new configuration.
+  let data2 = make_audio_data(20000, 2, 48000, 2880);
+  encoder.encode(data2);
+  data2.close();
+
+  await encoder.flush();
+  encoder.close();
+
+  assert_greater_than_equal(outputs.length, 2);
+  assert_equals(outputs[0].duration, 20000);
+  assert_true(outputs[0].hasDecoderConfig);
+  assert_equals(outputs[1].duration, 60000);
+  assert_true(outputs[1].hasDecoderConfig);
+}, 'Reconfiguring AudioEncoder flushes buffered data and applies new Opus options');
+
+promise_test(async t => {
+  let outputs = [];
+  let encoder = new AudioEncoder({
+    error: t.unreached_func('Unexpected error'),
+    output: (chunk, metadata) => {
+      outputs.push({
+        timestamp: chunk.timestamp,
+        sampleRate: metadata?.decoderConfig?.sampleRate,
+      });
+    },
+  });
+
+  encoder.configure({
+    codec: 'opus',
+    sampleRate: 48000,
+    numberOfChannels: 2,
+    bitrate: 64000,
+  });
+
+  // 480 frames (10ms at 48kHz) is less than one 20ms Opus packet, so it stays
+  // buffered until flushed by the second configure().
+  let data1 = make_audio_data(0, 2, 48000, 480);
+  encoder.encode(data1);
+  data1.close();
+
+  encoder.configure({
+    codec: 'opus',
+    sampleRate: 24000,
+    numberOfChannels: 2,
+    bitrate: 96000,
+  });
+
+  // 480 frames at 24kHz is 20ms (one full Opus packet).
+  let data2 = make_audio_data(20000, 2, 24000, 480);
+  encoder.encode(data2);
+  data2.close();
+
+  await encoder.flush();
+  encoder.close();
+
+  assert_greater_than_equal(outputs.length, 2);
+  assert_equals(outputs[0].sampleRate, 48000);
+  assert_equals(outputs[1].sampleRate, 24000);
+}, 'Reconfiguring AudioEncoder with new sampleRate flushes buffered data from previous configuration');
+
+promise_test(async t => {
+  let outputs = 0;
+  let encoder = new AudioEncoder({
+    error: t.unreached_func('Unexpected error after reset()'),
+    output: () => {
+      outputs++;
+    },
+  });
+  t.add_cleanup(() => {
+    if (encoder.state !== 'closed') {
+      encoder.close();
+    }
+  });
+
+  // Unsupported codec queues an async NotSupportedError; synchronous reset()
+  // must cancel it so the subsequent valid configure() succeeds.
+  encoder.configure({
+    codec: 'bogus-codec',
+    sampleRate: 48000,
+    numberOfChannels: 2,
+    bitrate: 64000,
+  });
+  encoder.reset();
+
+  encoder.configure({
+    codec: 'opus',
+    sampleRate: 48000,
+    numberOfChannels: 2,
+    bitrate: 64000,
+  });
+  let data = make_audio_data(0, 2, 48000, 960);
+  encoder.encode(data);
+  data.close();
+
+  await encoder.flush();
+  assert_greater_than(outputs, 0);
+  encoder.close();
+}, 'reset() cancels queued configure() error and allows subsequent configuration');

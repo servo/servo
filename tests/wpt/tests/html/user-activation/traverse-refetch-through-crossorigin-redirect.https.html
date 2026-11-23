@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<title>User activation propagation across a traversal whose re-fetch redirects cross-origin</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#apply-the-history-step">
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/helper.sub.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+  <p>Non-zero-sized body to allow clicks.</p>
+</body>
+
+<script>
+  'use strict';
+
+  let uuid1 = token();
+  let uuid2 = token();
+
+  // The entry is reached without any redirect, so nothing is recorded on it,
+  // and only the re-fetch the traversal has to make follows one. What blocks
+  // the carry-over is therefore the document the traversal creates, not
+  // anything the entry remembered, which is the other way round from
+  // traverse-after-crossorigin-redirect.https.html.
+  //
+  // "no-store" keeps the first document out of the back/forward cache, so that
+  // the traversal has to fetch the entry's URL at all. The test is "https"
+  // because that is where a no-store response keeps a page out of the cache.
+  let opened = originSameOrigin + executorPath + uuid1 +
+               "&pipe=header(Cache-Control,no-store)";
+  let navigated_to = originSameOrigin + executorPath + uuid2;
+
+  // The chain goes same origin -> cross site -> same origin, so it lands on a
+  // document that is same origin with the one the traversal leaves, while that
+  // document records having been created through a cross-origin redirect.
+  // "redirected" marks where the chain lands. The first hop is on this origin
+  // because replaceState() below only accepts a same-origin URL.
+  let lands_on = originSameOrigin + executorPath + uuid1 + "&redirected=1";
+  let bounce = `${originCrossSite}/common/redirect.py` +
+               `?location=${encodeURIComponent(lands_on)}`;
+  let entry_url = `/common/redirect.py?location=${encodeURIComponent(bounce)}`;
+
+  promise_test(async test => {
+    let w;
+    document.body.onclick = () => {
+      w = window.open(opened);
+    };
+
+    await test_driver.click(document.body);
+    assert_true(!!w, "A window is opened");
+    // Close the window at the end of the test, so that a later test in the same
+    // session cannot click a window this one left behind.
+    test.add_cleanup(() => w && w.close());
+
+    const first = new RemoteContext(uuid1);
+    const second = new RemoteContext(uuid2);
+
+    await first.execute_script(waitUntilShown);
+
+    // Rewrite the entry's URL in place, so that traversing back to it follows
+    // the redirects, and navigate the window on to a second same-origin
+    // document.
+    await first.execute_script((url, next) => {
+      history.replaceState(null, "", url);
+      prepareNavigation(() => {
+        location.href = next;
+      });
+    }, [entry_url, navigated_to]);
+
+    await second.execute_script(waitUntilShown);
+
+    // Confirm that the second document gets user activation after a click.
+    await test_driver.click(w.document.documentElement);
+    {
+      const result = await second.execute_script(getUserActivationState);
+      assertUserActivationState(result, true, true, "after window clicked");
+    }
+
+    // Traverse back to the first entry, which now redirects.
+    await second.execute_script(() => {
+      prepareNavigation(() => {
+        history.back();
+      });
+    });
+
+    // Confirm that the document the redirects landed on has no user activation,
+    // even though it is same origin with the one the traversal left.
+    {
+      const [url, state] = await first.execute_script(async () => {
+        await window.pageShowPromise;
+        return [location.href,
+                [navigator.userActivation.isActive,
+                 navigator.userActivation.hasBeenActive]];
+      });
+      assert_true(url.includes("redirected=1"),
+            "The traversal followed the redirects");
+      assert_equals(new URL(url).origin, originSameOrigin,
+            "The redirects landed back on a same-origin document");
+      await assert_not_bfcached(first);
+
+      assertUserActivationState(state, false, false,
+            "after traversing back through the redirects");
+    }
+}, "User activation propagation across a traversal whose re-fetch redirects " +
+   "cross-origin");
+</script>

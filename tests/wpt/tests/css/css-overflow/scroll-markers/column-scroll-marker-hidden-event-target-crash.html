@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/584370079">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+
+<style>
+  body {
+    margin: 0;
+  }
+  #scroller {
+    overflow: hidden;
+    columns: 1;
+    column-fill: auto;
+    gap: 0;
+    width: 300px;
+    height: 100px;
+    scroll-marker-group: before;
+  }
+  #scroller::scroll-marker-group {
+    display: flex;
+    width: 300px;
+    height: 50px;
+  }
+  #scroller::column::scroll-marker {
+    display: block;
+    width: 100px;
+    height: 50px;
+    background: green;
+    content: "";
+  }
+  .content {
+    height: 300px;
+  }
+</style>
+<div id="scroller"><div class="content"></div></div>
+<script>
+  // While the ::column::scroll-marker's default handlers run (here, from a
+  // DOMActivate listener), hide the originating element so that its ::column
+  // pseudo-elements are torn down by style recalc, then read the target of
+  // the kept click event. This should not crash.
+  const scroller = document.getElementById('scroller');
+  let kept = null;
+  document.addEventListener('click', (e) => { kept = e; }, true);
+  document.addEventListener('DOMActivate', () => {
+    if (!kept) {
+      return;
+    }
+    scroller.style.display = 'none';
+    scroller.offsetTop;
+    kept.target;
+  });
+
+  (async () => {
+    await waitForCompositorReady();
+    // Click the second (middle) ::column::scroll-marker.
+    await new test_driver.Actions()
+      .pointerMove(150, 25)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    document.documentElement.classList.remove('test-wait');
+  })();
+</script>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>XML empty-element tags for media elements fire loadedmetadata</title>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/xhtml.html#parsing-xhtml-documents" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script>
+    const audioTest = async_test("An XML audio empty-element tag fires loadedmetadata");
+    const videoTest = async_test("An XML video empty-element tag fires loadedmetadata");
+  </script>
+</head>
+<body>
+  <audio src="/media/sound_5.mp3" preload="metadata"
+         onloadedmetadata="audioTest.done()"
+         onerror="audioTest.unreached_func('Failed to load audio')()" />
+  <video src="/media/movie_5.webm" preload="metadata"
+         onloadedmetadata="videoTest.done()"
+         onerror="videoTest.unreached_func('Failed to load video')()" />
+</body>
+</html>

@@ -12,8 +12,11 @@
 
       // Save a reference to its contentDocument
       const savedDoc = iframe.contentDocument;
+      const preAttachedGeolocation = savedDoc.createElement("geolocation");
+      savedDoc.body.appendChild(preAttachedGeolocation);
 
       iframe.onload = () => {
+        preAttachedGeolocation.remove();
         // Call createElement through that reference
         let geolocation = savedDoc.createElement("geolocation");
         geolocation.setAttribute("watch", "");

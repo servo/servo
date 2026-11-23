@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<title>User activation propagation across a navigation of a top-level frame initiated by a cross-origin iframe</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#apply-the-history-step">
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+  <p>Non-zero-sized body to allow clicks.</p>
+</body>
+
+<script>
+  'use strict';
+
+  let uuid1 = token();
+  let uuid2 = token();
+  let uuid3 = token();
+
+  let origin = get_host_info().HTTP_ORIGIN;
+  let remote_origin = get_host_info().HTTP_REMOTE_ORIGIN;
+
+  let opened = `/common/dispatcher/remote-executor.html?uuid=${uuid1}`;
+  let framed = `${remote_origin}/common/dispatcher/remote-executor.html?uuid=${uuid2}`;
+  let navigated_to = `${origin}/common/dispatcher/remote-executor.html?uuid=${uuid3}`;
+
+  promise_test(async test => {
+    // Open the window that plays the part of the top-level frame, since this
+    // page cannot be navigated away while it is running the test.
+    let w;
+    document.body.onclick = () => {
+      w = window.open(opened);
+    };
+
+    await test_driver.click(document.body);
+    assert_true(!!w, "A window is opened");
+    // Close the window at the end of the test, so that a later test in the same
+    // session cannot click a window this one left behind.
+    test.add_cleanup(() => w && w.close());
+
+    const top_context = new RemoteContext(uuid1);
+    const frame = new RemoteContext(uuid2);
+    const navigated = new RemoteContext(uuid3);
+
+    // Give the window a cross-origin iframe.
+    await top_context.execute_script(url => {
+      let iframe = document.createElement("iframe");
+      iframe.width = 200;
+      iframe.height = 50;
+      iframe.src = url;
+      document.body.appendChild(iframe);
+    }, [framed]);
+
+    {
+      const result = await frame.execute_script(getUserActivationState);
+      assertUserActivationState(result, false, false, "after iframe loaded");
+    }
+
+    // Click the iframe. A click propagates its activation to the ancestors of
+    // the document it lands in, whatever their origin, so this gives the
+    // top-level frame sticky activation as well.
+    await test_driver.click(w.document.querySelector("iframe"));
+    {
+      const result = await frame.execute_script(getUserActivationState);
+      assertUserActivationState(result, true, true, "after iframe clicked");
+    }
+    {
+      const result = await top_context.execute_script(getUserActivationState);
+      assertUserActivationState(result, true, true,
+            "of the top-level frame after the iframe was clicked");
+    }
+
+    // Let the iframe navigate the top-level frame to a document that is same
+    // origin with the one being replaced. The click above is also what allows a
+    // cross-origin iframe to navigate the top-level frame at all.
+    await frame.execute_script(url => {
+      executor.suspend(() => {
+        top.location = url;
+      });
+    }, [navigated_to]);
+
+    // Confirm that the document the top-level frame navigated to does not have
+    // user activation. The two documents are same origin, so the only thing
+    // ruling the carry-over out is that a cross-origin iframe asked for it.
+    {
+      const result = await navigated.execute_script(getUserActivationState);
+      assertUserActivationState(result, false, false,
+            "after the top-level frame was navigated by a cross-origin iframe");
+    }
+}, "User activation propagation across a navigation of a top-level frame " +
+   "initiated by a cross-origin iframe");
+</script>

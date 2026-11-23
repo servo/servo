@@ -1,0 +1,5 @@
+<!doctype html>
+<script>
+new BroadcastChannel(new URLSearchParams(location.search).get("channel"))
+    .postMessage(performance.getEntriesByType("navigation")[0].type);
+</script>

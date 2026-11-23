@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>Scoped view transition: scope background stays stable while descendant group escapes under ancestor overflow clip (ref)</title>
+<style>
+  body { margin: 0; }
+  #ancestor {
+    position: relative;
+    width: 240px;
+    height: 240px;
+    overflow: hidden;
+    background: #ccc;
+  }
+  #scope {
+    position: absolute;
+    left: 20px;
+    top: 20px;
+    width: 200px;
+    height: 200px;
+    background: #123;
+  }
+  #escaped {
+    position: absolute;
+    left: 170px;
+    top: 20px;
+    width: 80px;
+    height: 80px;
+    background: #0d0;
+  }
+</style>
+<div id="ancestor">
+  <div id="scope"></div>
+  <div id="escaped"></div>
+</div>
+</html>

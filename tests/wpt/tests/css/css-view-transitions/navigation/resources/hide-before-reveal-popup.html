@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  @view-transition {
+    navigation: auto;
+  }
+</style>
+<script>
+test_driver.set_test_context(window.opener);
+
+const params = new URLSearchParams(location.search);
+
+if (params.get("mode") === "old") {
+  onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+    location.replace("?mode=new");
+  }));
+} else {
+  const render_blocker = document.createElement("script");
+  render_blocker.blocking = "render";
+  render_blocker.src = "/loading/resources/dummy.js?pipe=trickle(d10)";
+  render_blocker.type = "module";
+  document.head.append(render_blocker);
+
+  addEventListener("pagereveal", e => window.opener.did_reveal(e));
+
+  test_driver.minimize_window().then(async rect => {
+    render_blocker.remove();
+    await test_driver.set_window_rect(rect);
+    window.opener.did_restore();
+  });
+}
+</script>

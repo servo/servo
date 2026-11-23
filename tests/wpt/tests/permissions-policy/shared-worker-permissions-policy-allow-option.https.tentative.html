@@ -86,11 +86,5 @@ promise_test(async t => {
   const worker = new SharedWorker(dataWorkerUrl(), { allow: 'hid' });
   assert_equals(await workerOutcome(worker), 'error');
 }, "data: URL SharedWorker cannot be delegated a feature declared as 'self'");
-
-test(t => {
-  const workerUrl = createWorkerBlobUrl("");
-  const worker = new Worker(workerUrl, { allow: 'serial' });
-  t.add_cleanup(() => worker.terminate());
-}, "DedicatedWorker ignores 'allow' option");
 </script>
 </body>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="help" href="https://dom.spec.whatwg.org/#move">
+<link rel="match" href="/css/reference/nothing.html">
+<p>There should be nothing below.</p>
+<div id="moveTo"></div>
+<div id="container">
+  <div id="host" style="display:contents">
+    <template shadowrootmode="open"><slot></slot></template>
+    <div style="background:red;">FAIL</div>
+  </div>
+</div>
+<script>
+  const moveTo = document.getElementById("moveTo");
+  moveTo.offsetTop;
+  moveTo.moveBefore(host.shadowRoot.firstChild, null);
+  host.remove();
+</script>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>A document whose response has a CSP sandbox is a secure context if its URL is potentially trustworthy</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/webappapis.html#secure-context">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<body>
+<script>
+const helper = "postMessage-helper.https.html?pipe=header(Content-Security-Policy,sandbox allow-scripts)";
+
+function nextMessage() {
+  return new Promise(resolve => window.addEventListener("message", event => resolve(event.data), { once: true }));
+}
+
+promise_test(async t => {
+  const iframe = document.createElement("iframe");
+  iframe.src = helper;
+  const message = nextMessage();
+  document.body.append(iframe);
+  t.add_cleanup(() => iframe.remove());
+
+  assert_true(await message);
+}, "An iframe whose response has a CSP sandbox is a secure context");
+
+promise_test(async t => {
+  const message = nextMessage();
+  const popup = window.open(helper);
+  t.add_cleanup(() => popup.close());
+
+  assert_true(await message);
+}, "A popup whose response has a CSP sandbox is a secure context");
+</script>

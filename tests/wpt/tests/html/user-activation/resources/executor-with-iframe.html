@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<!--
+  A back/forward cache executor that also holds an iframe, whose URL comes from
+  the "frame-src" parameter of this document's own URL. The iframe is added by a
+  script that runs on every load, so a traversal that recreates this document
+  recreates the iframe with it, which a script injected from the outside after
+  the first load would not do.
+-->
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/executor.js" type="module"></script>
+
+<body>
+<script>
+  const iframe = document.createElement("iframe");
+  iframe.width = 200;
+  iframe.height = 50;
+  iframe.src = new URLSearchParams(location.search).get("frame-src");
+  document.body.appendChild(iframe);
+</script>
+</body>

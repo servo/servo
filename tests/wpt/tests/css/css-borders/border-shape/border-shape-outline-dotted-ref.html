@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<style>
+body { margin: 0; }
+.container { padding: 30px; }
+.target {
+  width: 98px;
+  height: 98px;
+  background: lightblue;
+  border-radius: 50%;
+  outline: 10px dotted green;
+  /* The dash phase starts at the path start point, which differs between
+     the border-shape circle path and the rounded-rect outline path; the
+     rotation aligns the dots. */
+  transform: rotate(5.4deg);
+}
+</style>
+<div class="container">
+  <div class="target"></div>
+</div>

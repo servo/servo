@@ -1348,6 +1348,31 @@ IdlInterface.prototype.get_interface_object = function() {
     return this.get_interface_object_owner()[this.name];
 };
 
+/**
+ * With Source Phase Imports, the WebAssembly ESM Integration requires the
+ * WebAssembly.Module interface object and interface prototype object to
+ * inherit from %AbstractModuleSource% and %AbstractModuleSource.prototype%.
+ * This is specified in prose, as Web IDL cannot express inheritance from an
+ * ECMAScript intrinsic, so it is special-cased here like DOMException.
+ *
+ * %AbstractModuleSource% is not a global, so it is only reachable through
+ * WebAssembly.Module itself. Returns it if present, or undefined for
+ * implementations without Source Phase Imports.
+ *
+ * https://webassembly.github.io/esm-integration/js-api/#modules
+ * https://github.com/whatwg/webidl/issues/1322
+ */
+IdlInterface.prototype.get_abstract_module_source = function() {
+    if (this.get_qualified_name() !== "WebAssembly.Module") {
+        return undefined;
+    }
+    var parent = Object.getPrototypeOf(this.get_interface_object());
+    if (parent === Function.prototype || parent.name !== "AbstractModuleSource") {
+        return undefined;
+    }
+    return parent;
+};
+
 IdlInterface.prototype.get_qualified_name = function() {
     // https://webidl.spec.whatwg.org/#qualified-name
     var legacyNamespace = this.get_legacy_namespace();
@@ -1549,6 +1574,9 @@ IdlInterface.prototype.test_self = function()
                               'prototype of ' + this.name + ' is not ' +
                               this.base);
             }
+        } else if (this.get_abstract_module_source()) {
+            assert_equals(Object.getPrototypeOf(prototype), Function.prototype,
+                          "prototype of AbstractModuleSource is not Function.prototype");
         } else {
             // "If the interface doesn't inherit from any other interface, the
             // value of [[Prototype]] is %FunctionPrototype% ([ECMA-262],
@@ -1865,6 +1893,9 @@ IdlInterface.prototype.test_self = function()
             } else if (this.name === "DOMException") {
                 inherit_interface = 'Error';
                 inherit_interface_interface_object = self.Error;
+            } else if (this.get_abstract_module_source()) {
+                inherit_interface = 'AbstractModuleSource';
+                inherit_interface_interface_object = this.get_abstract_module_source();
             } else {
                 inherit_interface = 'Object';
                 inherit_interface_interface_object = self.Object;

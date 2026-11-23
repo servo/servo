@@ -1,0 +1,90 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>SVG animation: a key press does not trigger accessKey() in begin and end</title>
+<link rel="help" href="https://w3c.github.io/svgwg/specs/animations/#AccessKeyValueSyntax">
+<!-- Tentative: SVG Animations still defines accessKey-value. No browser
+     implements it, and https://github.com/w3c/svgwg/issues/1262 proposes
+     removing it. -->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<input id="keyTarget">
+<svg width="100" height="100">
+  <rect id="beginCamel" width="10" height="10">
+    <set attributeName="width" to="20" begin="accessKey(a)"/>
+    <set attributeName="height" to="20" begin="ref"/>
+  </rect>
+  <rect id="beginLower" width="10" height="10">
+    <set attributeName="width" to="20" begin="accesskey(a)"/>
+    <set attributeName="height" to="20" begin="ref"/>
+  </rect>
+  <rect id="endCamel" width="10" height="10">
+    <set attributeName="width" to="20" begin="0s" end="accessKey(a)" dur="indefinite"/>
+    <set attributeName="height" to="20" begin="ref"/>
+  </rect>
+  <rect id="endLower" width="10" height="10">
+    <set attributeName="width" to="20" begin="0s" end="accesskey(a)" dur="indefinite"/>
+    <set attributeName="height" to="20" begin="ref"/>
+  </rect>
+</svg>
+<script>
+// The <set> on width is the one tested. The <set> on height begins on an
+// event named "ref": dispatching it after the key press and waiting for its
+// beginEvent shows the animations were sampled after the key press, so a
+// beginEvent or endEvent that did not fire really did not happen.
+
+// Wait one task after the load event: an engine may start the animation
+// timeline after the load event handlers have run, and an event dispatched
+// before that can be lost.
+const loaded = new Promise(resolve => window.addEventListener("load", () => step_timeout(resolve, 0), { once: true }));
+
+function nextEvent(target, type) {
+  return new Promise(resolve => target.addEventListener(type, resolve, { once: true }));
+}
+
+async function pressKeyAndWatch(id, watchedEvent) {
+  await loaded;
+  const rect = document.getElementById(id);
+  const tested = rect.querySelector("set[attributeName=width]");
+  const reference = rect.querySelector("set[attributeName=height]");
+  let fired = false;
+  tested.addEventListener(watchedEvent, () => fired = true, { once: true });
+  let keySeen = false;
+  const onKeyDown = event => { if (event.key === "a") keySeen = true; };
+  document.addEventListener("keydown", onKeyDown);
+  await test_driver.send_keys(document.getElementById("keyTarget"), "a");
+  document.removeEventListener("keydown", onKeyDown);
+  assert_true(keySeen, "Precondition: the key press reached the document");
+  const sampled = nextEvent(reference, "beginEvent");
+  rect.dispatchEvent(new Event("ref"));
+  await sampled;
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+  return { tested, fired };
+}
+
+promise_test(async () => {
+  const { tested, fired } = await pressKeyAndWatch("beginCamel", "beginEvent");
+  assert_false(fired, "beginEvent fired");
+  assert_throws_dom("InvalidStateError", () => tested.getStartTime());
+}, "begin='accessKey(a)' does not begin when the user presses 'a'");
+
+promise_test(async () => {
+  const { tested, fired } = await pressKeyAndWatch("beginLower", "beginEvent");
+  assert_false(fired, "beginEvent fired");
+  assert_throws_dom("InvalidStateError", () => tested.getStartTime());
+}, "begin='accesskey(a)' does not begin when the user presses 'a'");
+
+promise_test(async () => {
+  const { tested, fired } = await pressKeyAndWatch("endCamel", "endEvent");
+  assert_false(fired, "endEvent fired");
+  assert_equals(tested.getStartTime(), 0);
+}, "end='accessKey(a)' does not end when the user presses 'a'");
+
+promise_test(async () => {
+  const { tested, fired } = await pressKeyAndWatch("endLower", "endEvent");
+  assert_false(fired, "endEvent fired");
+  assert_equals(tested.getStartTime(), 0);
+}, "end='accesskey(a)' does not end when the user presses 'a'");
+</script>

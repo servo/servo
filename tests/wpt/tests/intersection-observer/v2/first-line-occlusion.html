@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IntersectionObserver V2: ::first-line background and box-shadow ink overflow occlusion</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/intersection-observer-test-utils.js"></script>
+
+<style>
+body, html {
+  margin: 0;
+}
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 260px;
+}
+#target {
+  position: absolute;
+  left: 20px;
+  top: 30px;
+  width: 100px;
+  height: 40px;
+  background: green;
+}
+#occluder {
+  position: absolute;
+  left: 0;
+  top: 120px;
+  width: 220px;
+  line-height: 2px;
+  z-index: 10;
+}
+#occluder.bg::first-line {
+  font-size: 200px;
+  line-height: 2px;
+  background: #000000;
+}
+#occluder.typography-only::first-line {
+  font-size: 200px;
+  line-height: 2px;
+  color: navy;
+}
+#occluder.shadow::first-line {
+  font-size: 16px;
+  line-height: 2px;
+  box-shadow: 0 -90px 0 50px rgba(0, 0, 0, 0.8);
+}
+</style>
+
+<div id="target">Target</div>
+<div id="occluder" class="bg"><span style="display:inline-block;width:220px;height:2px;vertical-align:top"></span></div>
+
+<script>
+const delay = 100;
+let entries = [];
+let target;
+let occluder;
+
+runTestCycle(function() {
+  target = document.getElementById("target");
+  occluder = document.getElementById("occluder");
+  assert_true(!!target, "target exists");
+  assert_true(!!occluder, "occluder exists");
+  const observer = new IntersectionObserver(function(changes) {
+    entries = entries.concat(changes);
+  }, {trackVisibility: true, delay: delay});
+  observer.observe(target);
+  entries = entries.concat(observer.takeRecords());
+  assert_equals(entries.length, 0, "No initial notifications.");
+  runTestCycle(step0, "First rAF.", delay);
+}, "IntersectionObserverV2 detects occlusion from ::first-line background and box-shadow ink overflow.", delay);
+
+function step0() {
+  assert_equals(entries.length, 1, "Initial notification.");
+  assert_false(entries[0].isVisible, "Occluded by ::first-line background.");
+  occluder.className = "typography-only";
+  runTestCycle(step1, "Switch to typographic ::first-line without background.", delay);
+}
+
+function step1() {
+  assert_equals(entries.length, 2, "Notification after removing ::first-line background.");
+  assert_true(entries[1].isVisible, "Visible when ::first-line has no background or shadow.");
+  occluder.className = "shadow";
+  runTestCycle(step2, "Switch to ::first-line box-shadow.", delay);
+}
+
+function step2() {
+  assert_equals(entries.length, 3, "Notification after adding ::first-line box-shadow.");
+  assert_false(entries[2].isVisible, "Occluded by ::first-line box-shadow.");
+  occluder.style.overflow = "hidden";
+  runTestCycle(step3, "Clip ::first-line overflow with overflow: hidden.", delay);
+}
+
+function step3() {
+  assert_equals(entries.length, 4, "Notification after clipping occluder overflow.");
+  assert_true(entries[3].isVisible, "Visible when ::first-line overflow is clipped.");
+}
+</script>

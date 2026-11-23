@@ -1,0 +1,160 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCPeerConnection DTLS handover (media keeps flowing)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+// Handing the offerer's connection over from one answerer to another that has a
+// different certificate (fingerprint) is valid (as long as there's an ICE
+// restart, see RFC 9429 section 5.11). This checks that after such a handover,
+// media keeps flowing *to* the offerer from the new answerer over the new DTLS
+// association (recognizable by a new SSRC).
+
+async function findInbound(pc, kind, predicate) {
+  for (const stats of (await pc.getStats()).values()) {
+    if (stats.type === 'inbound-rtp' && stats.kind === kind &&
+        predicate(stats)) {
+      return stats;
+    }
+  }
+  return null;
+}
+
+async function waitForInbound(t, pc, kind, predicate, description) {
+  const deadline = performance.now() + 20000;
+  let found;
+  while (!(found = await findInbound(pc, kind, predicate))) {
+    assert_false(performance.now() > deadline,
+      `Timed out waiting for ${description} after 20 seconds`);
+    await new Promise(r => t.step_timeout(r, 100));
+  }
+  return found;
+}
+
+for (const kind of ['audio', 'video']) {
+  promise_test(async t => {
+    const offerPc = new RTCPeerConnection();
+    const answerPcFirst = new RTCPeerConnection();
+    const answerPcSecond = new RTCPeerConnection();
+    t.add_cleanup(() => {
+      offerPc.close();
+      answerPcFirst.close();
+      answerPcSecond.close();
+    });
+
+    // We deliberately assert only on media flowing TO the switching offerer.
+    // The reverse direction (offerer -> new answerer) is genuinely harder and
+    // out of scope here: the offerer's carried-over RTCP state looks like
+    // garbage to the fresh answerer, the RTP MID is no longer being
+    // transmitted, and so on. There is currently no web-platform way to cause
+    // an RTCPeerConnection to offer a DTLS restart.
+    offerPc.addTransceiver(kind, {direction: 'recvonly'});
+    const [track1] = (await getNoiseStream({[kind]: true})).getTracks();
+    t.add_cleanup(() => track1.stop());
+    answerPcFirst.addTrack(track1);
+
+    // Negotiate with the first answerer, who sends.
+    exchangeIceCandidates(offerPc, answerPcFirst);
+    await exchangeOfferAnswer(offerPc, answerPcFirst);
+
+    // Media should flow from the first answerer.
+    const firstInbound = await waitForInbound(
+      t, offerPc, kind, s => s.bytesReceived > 0,
+      `${kind} from the first answerer`);
+
+    // Hand the offerer over to a second answerer with a different certificate.
+    // This is only legal as part of an ICE restart.
+    const [track2] = (await getNoiseStream({[kind]: true})).getTracks();
+    t.add_cleanup(() => track2.stop());
+    answerPcSecond.addTrack(track2);
+
+    offerPc.restartIce();
+    exchangeIceCandidates(offerPc, answerPcSecond);
+    await exchangeOfferAnswer(offerPc, answerPcSecond);
+
+    // Media should now flow from the second answerer -- a fresh DTLS
+    // association, and therefore an SSRC distinct from the first answerer's.
+    await waitForInbound(
+      t, offerPc, kind,
+      s => s.ssrc !== firstInbound.ssrc && s.bytesReceived > 0,
+      `${kind} from the second answerer`);
+  }, `Media (${kind}) keeps flowing to the offerer after a DTLS handover via ` +
+     `ICE restart`);
+}
+
+// A session with more than one transport. The answerer never sees the BUNDLE
+// group, so every m-section keeps its own ICE and DTLS. A handover then has to
+// stand up a new DTLS association on each transport, and each must keep
+// straight which association its packets belong to.
+const stripBundle = sdp => sdp.replace(/^a=group:BUNDLE.*\r\n/m, '');
+
+async function exchangeOfferAnswerUnbundled(offerer, answerer) {
+  const offer = await offerer.createOffer();
+  await offerer.setLocalDescription(offer);
+  await answerer.setRemoteDescription(
+    {type: 'offer', sdp: stripBundle(offer.sdp)});
+  const answer = await answerer.createAnswer();
+  await answerer.setLocalDescription(answer);
+  await offerer.setRemoteDescription(answer);
+}
+
+promise_test(async t => {
+  const kinds = ['audio', 'video'];
+  const offerPc = new RTCPeerConnection({bundlePolicy: 'max-compat'});
+  const answerPcFirst = new RTCPeerConnection();
+  const answerPcSecond = new RTCPeerConnection();
+  t.add_cleanup(() => {
+    offerPc.close();
+    answerPcFirst.close();
+    answerPcSecond.close();
+  });
+  for (const kind of kinds) {
+    offerPc.addTransceiver(kind, {direction: 'recvonly'});
+  }
+
+  async function addSenders(pc) {
+    for (const kind of kinds) {
+      const [track] = (await getNoiseStream({[kind]: true})).getTracks();
+      t.add_cleanup(() => track.stop());
+      pc.addTrack(track);
+    }
+  }
+
+  await addSenders(answerPcFirst);
+  exchangeIceCandidates(offerPc, answerPcFirst);
+  await exchangeOfferAnswerUnbundled(offerPc, answerPcFirst);
+
+  const transports = offerPc.getReceivers().map(r => r.transport);
+  assert_equals(new Set(transports).size, kinds.length,
+    'each m-section has its own transport');
+
+  const firstInbound = {};
+  for (const kind of kinds) {
+    firstInbound[kind] = await waitForInbound(
+      t, offerPc, kind, s => s.bytesReceived > 0,
+      `${kind} from the first answerer`);
+  }
+
+  await addSenders(answerPcSecond);
+  offerPc.restartIce();
+  exchangeIceCandidates(offerPc, answerPcSecond);
+  await exchangeOfferAnswerUnbundled(offerPc, answerPcSecond);
+
+  for (const kind of kinds) {
+    await waitForInbound(
+      t, offerPc, kind,
+      s => s.ssrc !== firstInbound[kind].ssrc && s.bytesReceived > 0,
+      `${kind} from the second answerer`);
+  }
+  offerPc.getReceivers().forEach(({transport, track}) => {
+    assert_equals(transport.state, 'connected',
+      `${track.kind} transport is connected after the handover`);
+  });
+}, 'Media keeps flowing to the offerer on every transport after a DTLS ' +
+   'handover with multiple transports');
+
+</script>

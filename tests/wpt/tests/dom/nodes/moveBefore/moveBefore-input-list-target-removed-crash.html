@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/583179912">
+
+<div id="outer">
+  <template shadowrootmode="open">
+    <div id="scroller" style="overflow: auto; height: 20px">
+      <div style="height: 100px"></div>
+    </div>
+    <div style="contain: strict; width: 100px; height: 40px">
+      <div id="inner"></div>
+    </div>
+    <div id="host">
+      <template shadowrootmode="open"><slot></slot></template>
+      <div id="list"></div>
+      <input list="list">
+    </div>
+    <div id="destination"></div>
+  </template>
+</div>
+<datalist id="list"><option value="x"></option></datalist>
+<script>
+  // Moving #host removes the <div id="list"> from the shadow tree, which
+  // changes the list target of the focused <input>. That must not force a
+  // layout in the middle of the move.
+  const root = outer.shadowRoot;
+  const host = root.getElementById('host');
+  root.getElementById('scroller').scrollTop = 5;
+  host.querySelector('input').focus();
+  document.body.offsetTop;
+  host.shadowRoot.querySelector('slot').name = 'other';
+  root.getElementById('inner').style.height = '1px';
+  root.getElementById('destination').moveBefore(host, null);
+</script>

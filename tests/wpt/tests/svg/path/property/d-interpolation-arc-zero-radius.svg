@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <metadata>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/paths.html#ArcOutOfRangeParameters"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/paths.html#DProperty"/>
+    <h:meta name="assert" content="Arc commands with a zero radius are preserved when serializing and interpolating the d property."/>
+  </metadata>
+
+  <g id="container"/>
+
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="resources/interpolation-test-common.js"/>
+  <script><![CDATA[
+      'use strict';
+
+      // Zero radius on one side of the interpolation.
+      test_interpolation({
+        property: 'd',
+        from: 'path("M 0 0 A 0 10 0 0 1 50 50")',
+        to: 'path("M 0 0 A 20 30 0 0 1 50 50")'
+      }, [
+        {at: -1, expect: 'path("M 0 0 A -20 -10 0 0 1 50 50")'},
+        {at: 0, expect: 'path("M 0 0 A 0 10 0 0 1 50 50")'},
+        {at: 0.5, expect: 'path("M 0 0 A 10 20 0 0 1 50 50")'},
+        {at: 1, expect: 'path("M 0 0 A 20 30 0 0 1 50 50")'},
+        {at: 2, expect: 'path("M 0 0 A 40 50 0 0 1 50 50")'}
+      ]);
+
+      test_interpolation({
+        property: 'd',
+        from: 'path("M 0 0 A 10 0 0 0 1 50 50")',
+        to: 'path("M 0 0 A 30 20 0 0 1 50 50")'
+      }, [
+        {at: 0, expect: 'path("M 0 0 A 10 0 0 0 1 50 50")'},
+        {at: 0.5, expect: 'path("M 0 0 A 20 10 0 0 1 50 50")'},
+        {at: 1, expect: 'path("M 0 0 A 30 20 0 0 1 50 50")'}
+      ]);
+
+      // Zero radius on both sides.
+      test_interpolation({
+        property: 'd',
+        from: 'path("M 0 0 A 0 0 0 0 1 50 50")',
+        to: 'path("M 0 0 A 0 0 0 0 1 100 100")'
+      }, [
+        {at: 0, expect: 'path("M 0 0 A 0 0 0 0 1 50 50")'},
+        {at: 0.5, expect: 'path("M 0 0 A 0 0 0 0 1 75 75")'},
+        {at: 1, expect: 'path("M 0 0 A 0 0 0 0 1 100 100")'}
+      ]);
+  ]]></script>
+</svg>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Entangled MessagePort with only a messageerror listener is not garbage collected</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/web-messaging.html#ports-and-garbage-collection">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/gc.js"></script>
+<script>
+function sendPortWithMessageErrorHandler(control, onMessageError) {
+  const { port1, port2 } = new MessageChannel();
+  port1.onmessageerror = onMessageError;
+  port1.start();
+  control.postMessage(null, [port2]);
+}
+
+function sendPortWithMessageErrorListener(control, onMessageError) {
+  const { port1, port2 } = new MessageChannel();
+  port1.addEventListener("messageerror", onMessageError);
+  port1.start();
+  control.postMessage(null, [port2]);
+}
+
+for (const [description, sendPort] of [
+  ["onmessageerror", sendPortWithMessageErrorHandler],
+  ["addEventListener('messageerror')", sendPortWithMessageErrorListener],
+]) {
+  promise_test(async t => {
+    const worker = new SharedWorker("resources/post-wasm-module-sharedworker.js", `messageerror-gc-${description}-${Math.random()}`);
+    const received = new Promise(resolve => worker.port.onmessage = resolve);
+    const messageError = new Promise(resolve => sendPort(worker.port, t.step_func(e => {
+      assert_equals(e.data, null);
+      resolve();
+    })));
+    await received;
+    await garbageCollect();
+    worker.port.postMessage("send");
+    await messageError;
+  }, `Entangled MessagePort with only a messageerror listener (${description}) receives messageerror after garbage collection`);
+}
+</script>

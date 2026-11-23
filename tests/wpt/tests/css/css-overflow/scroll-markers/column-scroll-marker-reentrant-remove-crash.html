@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/584370079">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+
+<style>
+  body {
+    margin: 0;
+  }
+  #scroller {
+    overflow: hidden;
+    columns: 1;
+    column-fill: auto;
+    gap: 0;
+    width: 300px;
+    height: 100px;
+    scroll-marker-group: before;
+  }
+  #scroller::scroll-marker-group {
+    display: flex;
+    width: 300px;
+    height: 50px;
+  }
+  #scroller::column::scroll-marker {
+    display: block;
+    width: 100px;
+    height: 50px;
+    background: green;
+    content: "";
+  }
+  .content {
+    height: 300px;
+  }
+</style>
+<div id="scroller"><div class="content"></div></div>
+<div id="holder"></div>
+<script>
+  // Reading the target of a kept click event from a DOMActivate listener
+  // (while the ::column::scroll-marker's default handlers run) must not
+  // expose the pseudo-element. If it did, moving things around so that
+  // removing the originating element re-enters the clearing of the ::column
+  // pseudo-elements should still not crash.
+  const scroller = document.getElementById('scroller');
+  const holder = document.getElementById('holder');
+  let kept = null;
+  document.addEventListener('click', (e) => { kept = e; }, true);
+  document.addEventListener('DOMActivate', () => {
+    const marker = kept && kept.target;
+    if (!marker || marker === scroller) {
+      return;
+    }
+    try { holder.appendChild(marker); } catch (e) {}
+    try { marker.moveBefore(scroller, null); } catch (e) {}
+    try { scroller.remove(); } catch (e) {}
+  });
+
+  (async () => {
+    await waitForCompositorReady();
+    // Click the second (middle) ::column::scroll-marker.
+    await new test_driver.Actions()
+      .pointerMove(150, 25)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    document.documentElement.classList.remove('test-wait');
+  })();
+</script>

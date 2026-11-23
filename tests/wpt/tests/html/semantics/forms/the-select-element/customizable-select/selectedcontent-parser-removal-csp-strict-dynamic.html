@@ -10,19 +10,98 @@
 <script nonce="abc" src="/resources/testharnessreport.js"></script>
 <script nonce="abc">
   window.runs = 0;
+  window.reconnectedInlineRuns = 0;
+  window.reconnectedExternalRuns = 0;
+  window.reconnectedSelectRuns = 0;
+  window.reconnectedNoncedRuns = 0;
+  window.dynamicScriptRuns = 0;
+  window.templateScriptRuns = 0;
+  window.populatedScriptRuns = 0;
 </script>
 <select>
   <button><selectedcontent></selectedcontent></button>
   <b><div><option selected>one</option></b></div>
   <option selected><script src="data:text/javascript,runs++"></script><span>two</span></option>
 </select>
+<select id="reconnected-inline">
+  <button>
+    <selectedcontent>
+      <b><option selected><div id="moved-inline"><script>window.reconnectedInlineRuns++;</script></b></div></option>
+    </selectedcontent>
+  </button>
+</select>
+<select id="reconnected-external">
+  <button>
+    <selectedcontent>
+      <b><option selected><div id="moved-external"><script src="data:text/javascript,window.reconnectedExternalRuns++"></script></b></div></option>
+    </selectedcontent>
+  </button>
+</select>
+<select id="reconnected-selectedcontent">
+  <selectedcontent></selectedcontent>
+  <i><div><option selected>one</option></i></div>
+  <button>
+    <selectedcontent id="target-sc">
+      <b><div id="moved-reconnected-sc"><script></script><script>window.reconnectedSelectRuns++;</script></b></div>
+    </selectedcontent>
+  </button>
+</select>
+<select id="reconnected-nonced">
+  <button>
+    <selectedcontent>
+      <b><option selected><div><script nonce="abc">window.reconnectedNoncedRuns++;</script></b></div></option>
+    </selectedcontent>
+  </button>
+</select>
+<template id="script-template">
+  <script>window.templateScriptRuns++;</script>
+</template>
+<script id="empty-script"></script>
 <script nonce="abc">
+  const dynamicScript = document.createElement("script");
+  dynamicScript.textContent = "window.dynamicScriptRuns++;";
+  document.body.appendChild(dynamicScript);
+  document.body.appendChild(document.getElementById("script-template").content);
+  document.getElementById("empty-script").textContent =
+      "window.populatedScriptRuns++;";
+
+  const loadPromise = new Promise(resolve => window.addEventListener("load", resolve));
+
   promise_test(async () => {
-    await new Promise(resolve => window.addEventListener("load", resolve));
+    await loadPromise;
     await new Promise(resolve => step_timeout(resolve, 0));
     assert_equals(document.querySelector("select div").parentNode,
                   document.querySelector("select"),
                   "The adoption agency algorithm should have moved the div");
     assert_equals(runs, 0, "Nonce-less scripts shouldn't run");
   }, "An option removed by the parser doesn't let a nonce-less script in a selected option run via selectedcontent");
+
+  promise_test(async () => {
+    await loadPromise;
+    await new Promise(resolve => step_timeout(resolve, 0));
+    assert_equals(document.getElementById("moved-inline").parentNode,
+                  document.querySelector("#reconnected-inline selectedcontent"),
+                  "The adoption agency algorithm should have reconnected the inline script container");
+    assert_equals(document.getElementById("moved-external").parentNode,
+                  document.querySelector("#reconnected-external selectedcontent"),
+                  "The adoption agency algorithm should have reconnected the external script container");
+    assert_equals(document.getElementById("moved-reconnected-sc").parentNode,
+                  document.getElementById("target-sc"),
+                  "The adoption agency algorithm should have reconnected the nested container");
+    assert_equals(reconnectedInlineRuns, 0,
+                  "Nonce-less inline parser script reconnected via adoption agency shouldn't run");
+    assert_equals(reconnectedExternalRuns, 0,
+                  "Nonce-less external parser script reconnected via adoption agency shouldn't run");
+    assert_equals(reconnectedSelectRuns, 0,
+                  "Nonce-less inline parser script disconnected by queued selectedcontent update shouldn't run");
+    assert_equals(reconnectedNoncedRuns, 1,
+                  "Nonced parser script reconnected via adoption agency should run");
+    assert_equals(dynamicScriptRuns, 1,
+                  "Dynamically created script should still run under strict-dynamic");
+  }, "Parser-inserted scripts disconnected by selectedcontent and reconnected by the adoption agency algorithm don't bypass 'strict-dynamic'");
+
+  test(() => {
+    assert_equals(templateScriptRuns, 1);
+    assert_equals(populatedScriptRuns, 1);
+  }, "Template scripts and initially empty parser scripts populated by script still execute under strict-dynamic");
 </script>

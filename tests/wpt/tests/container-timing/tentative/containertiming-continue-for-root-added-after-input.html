@@ -1,0 +1,45 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Container Timing: a root added after an input records until the next input</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/container-timing/resources/container-timing-helpers.js"></script>
+<input id="input">
+<script>
+  promise_test(async t => {
+    assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
+    // New roots record after an input, so take() can end each wait.
+    const collector = observeContainerEntries(t);
+    const root = addContainerRoot(document.body, 'div_ct');
+    addSquare100Image(root);
+    const beforeInput = await collector.take();
+    assert_array_equals(beforeInput.map(e => e.identifier), ['div_ct'],
+                        'entries before the first input');
+
+    const input = document.getElementById('input');
+    await test_driver.send_keys(input, 'k');
+
+    const lateRoot = addContainerRoot(document.body, 'late_ct');
+    addSquare100Image(lateRoot);
+    const afterFirstInput = await collector.take();
+    assert_array_equals(afterFirstInput.map(e => e.identifier), ['late_ct'],
+                        'entries after the first input');
+
+    await test_driver.send_keys(input, 'k');
+
+    addSquare100Image(lateRoot);
+    const afterSecondInput = await collector.take();
+    assert_equals(afterSecondInput.length, 0,
+                  'entries after the second input');
+  }, 'A container root added after an input records until the next input.');
+</script>
+</body>

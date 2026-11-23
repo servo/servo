@@ -24,8 +24,9 @@ promise_test(async t => {
   const answer1 = await answerPcFirst.createAnswer();
   await offerPc.setRemoteDescription(answer1);
   await answerPcFirst.setLocalDescription(answer1);
-  // Renegotiate with PC 2
-  const offer2 = await offerPc.createOffer();
+  // Renegotiate with PC 2. Handing over to a peer with a different certificate
+  // (fingerprint) is only allowed as part of an ICE restart (RFC 9429 5.11).
+  const offer2 = await offerPc.createOffer({iceRestart: true});
   await offerPc.setLocalDescription(offer2);
   await answerPcSecond.setRemoteDescription(offer2);
   const answer2 = await answerPcSecond.createAnswer();
@@ -61,7 +62,7 @@ promise_test(async t => {
   await answerPcSecond.setLocalDescription(await answerPcSecond.createAnswer());
 
   // Now we can initiate an offer from the new PC.
-  const offer2 = await answerPcSecond.createOffer();
+  const offer2 = await answerPcSecond.createOffer({iceRestart: true});
   await answerPcSecond.setLocalDescription(offer2);
   await offerPc.setRemoteDescription(offer2);
   const answer2 = await offerPc.createAnswer();

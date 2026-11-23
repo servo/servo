@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+
+<html class="reftest-wait">
+
+<title>AccentColor changes when accent-color is changed</title>
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#widget-accent">
+<link rel="match" href="accentcolor-dynamic-ref.html">
+
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+
+<style>
+  #container {
+    display: flex;
+    gap: 20px;
+  }
+
+  .common {
+    width: 100px;
+    height: 100px;
+    accent-color: #261200;
+  }
+
+  #text { color: AccentColor; }
+  #background { background-color: AccentColor; }
+  #border { box-sizing: border-box; border: 10px AccentColor solid; }
+  #gradient { background: linear-gradient(AccentColor 0 50%, blue 50% 100%); }
+  #drop-shadow { background-color: black; filter: drop-shadow(10px 10px 0 AccentColor); }
+</style>
+
+<div id="container">
+  <div class="common" id="text">Text in AccentColor color</div>
+  <div class="common" id="background"></div>
+  <div class="common" id="border"></div>
+  <div class="common" id="gradient"></div>
+  <div class="common" id="drop-shadow"></div>
+</div>
+
+<script>
+  onload = async () => {
+    await waitForAtLeastOneFrame();
+    await waitForAtLeastOneFrame();
+    await waitForAtLeastOneFrame();
+
+    let commonRule = document.styleSheets[0].cssRules[1];
+    commonRule.style.accentColor = "blue";
+
+    await waitForAtLeastOneFrame();
+    await waitForAtLeastOneFrame();
+    await waitForAtLeastOneFrame();
+
+    takeScreenshot();
+  }
+</script>
+
+</html>

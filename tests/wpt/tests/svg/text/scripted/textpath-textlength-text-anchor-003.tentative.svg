@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>'textLength' on &#x3c;textPath&#x3e; with 'text-anchor' adjustments, single character, lengthAdjust=spacing</title>
+  <html:script src="/resources/testharness.js"/>
+  <html:script src="/resources/testharnessreport.js"/>
+  <html:link rel="stylesheet" href="/fonts/ahem.css"/>
+  <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElement"/>
+  <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextElementTextLengthAttribute"/>
+  <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextAnchoringProperties"/>
+  <defs>
+    <path id="p" d="M0,25h100"/>
+  </defs>
+  <g font-family="Ahem" font-size="20px">
+    <text expected-x="40">
+      <textPath href="#p" textLength="25" lengthAdjust="spacing"
+                text-anchor="middle" startOffset="50%">X</textPath>
+    </text>
+
+    <text expected-x="80" transform="translate(0 50)">
+      <textPath href="#p" textLength="25" lengthAdjust="spacing"
+                text-anchor="end" startOffset="100%">X</textPath>
+    </text>
+  </g>
+  <script>
+    test(t => {
+      let texts = Array.from(document.getElementsByTagName('text'));
+      for (let text of texts) {
+        let bbox = text.getBBox();
+        let textpath = text.firstElementChild;
+        let description = 'text-anchor=' + textpath.getAttribute('text-anchor');
+        assert_approx_equals(bbox.x, parseFloat(text.getAttribute('expected-x')), 0.5,
+                             'x, ' + description);
+      }
+    });
+  </script>
+</svg>

@@ -1,0 +1,222 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Input Checkbox defaultIndeterminate</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#attr-input-defaultindeterminate">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox)">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function createCheckbox() {
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  return input;
+}
+
+test(() => {
+  assert_equals("defaultIndeterminate" in HTMLInputElement.prototype, true);
+}, "defaultIndeterminate is exposed");
+
+test(() => {
+  const input = createCheckbox();
+  assert_false(input.defaultIndeterminate);
+  assert_false(input.indeterminate);
+
+  input.defaultIndeterminate = true;
+  assert_true(input.hasAttribute("defaultindeterminate"));
+  assert_equals(input.getAttribute("defaultindeterminate"), "");
+  assert_true(input.defaultIndeterminate);
+  assert_true(input.indeterminate);
+
+  input.defaultIndeterminate = false;
+  assert_false(input.hasAttribute("defaultindeterminate"));
+  assert_false(input.defaultIndeterminate);
+  assert_false(input.indeterminate);
+}, "defaultIndeterminate reflects a boolean content attribute");
+
+for (const value of ["", "defaultindeterminate", "false"]) {
+  test(() => {
+    const container = document.createElement("div");
+    container.innerHTML =
+        `<input type=checkbox defaultindeterminate="${value}">`;
+    const input = container.firstChild;
+
+    assert_true(input.defaultIndeterminate);
+    assert_true(input.indeterminate);
+    assert_true(input.matches(":indeterminate"));
+    assert_false(input.checked);
+  }, `Parsed defaultindeterminate="${value}" initializes indeterminate`);
+}
+
+test(() => {
+  const input = createCheckbox();
+  input.setAttribute("defaultindeterminate", "false");
+  assert_true(input.defaultIndeterminate);
+  assert_true(input.indeterminate);
+
+  input.removeAttribute("defaultindeterminate");
+  assert_false(input.defaultIndeterminate);
+  assert_false(input.indeterminate);
+
+  input.setAttribute("defaultindeterminate", "");
+  assert_true(input.defaultIndeterminate);
+  assert_true(input.indeterminate);
+}, "Content attribute changes update indeterminate while it is not dirty");
+
+for (const value of [false, true]) {
+  test(() => {
+    const input = createCheckbox();
+    input.defaultIndeterminate = value;
+    input.indeterminate = value;
+
+    input.defaultIndeterminate = !value;
+    assert_equals(input.defaultIndeterminate, !value);
+    assert_equals(input.indeterminate, value);
+
+    input.defaultIndeterminate = value;
+    assert_equals(input.defaultIndeterminate, value);
+    assert_equals(input.indeterminate, value);
+  }, `Assigning indeterminate=${value}, even without a state change, makes it dirty`);
+}
+
+test(() => {
+  const input = createCheckbox();
+  input.defaultIndeterminate = true;
+  assert_false(input.checked);
+  assert_true(input.indeterminate);
+
+  input.click();
+  assert_true(input.checked);
+  assert_false(input.indeterminate);
+
+  input.defaultChecked = true;
+  input.defaultChecked = false;
+  assert_true(input.checked);
+
+  input.defaultIndeterminate = false;
+  input.defaultIndeterminate = true;
+  assert_false(input.indeterminate);
+}, "Clicking a checkbox makes both checkedness and indeterminateness dirty");
+
+test(t => {
+  const input = createCheckbox();
+  input.defaultIndeterminate = true;
+  assert_false(input.checked);
+  assert_true(input.indeterminate);
+
+  let clickFired = false;
+  input.addEventListener("click", t.step_func(event => {
+    clickFired = true;
+    event.preventDefault();
+    assert_true(input.checked);
+    assert_false(input.indeterminate);
+  }));
+
+  input.click();
+  assert_true(clickFired);
+  assert_false(input.checked);
+  assert_true(input.indeterminate);
+
+  input.defaultIndeterminate = false;
+  assert_false(input.defaultIndeterminate);
+  assert_true(input.indeterminate);
+}, "Canceling a click with preventDefault leaves indeterminateness dirty");
+
+test(() => {
+  const input = createCheckbox();
+  input.checked = true;
+  input.defaultIndeterminate = true;
+  assert_true(input.checked);
+  assert_true(input.indeterminate);
+
+  input.defaultIndeterminate = false;
+  assert_true(input.checked);
+  assert_false(input.indeterminate);
+}, "dirty checkedness doesn't trigger dirty indeterminateness");
+
+test(() => {
+  const input = createCheckbox();
+  input.indeterminate = true;
+  input.defaultChecked = true;
+  assert_true(input.indeterminate);
+  assert_true(input.checked);
+
+  input.defaultChecked = false;
+  assert_true(input.indeterminate);
+  assert_false(input.checked);
+}, "dirty indeterminateness doesn't trigger dirty checkedness");
+
+for (const value of [false, true]) {
+  test(() => {
+    const input = createCheckbox();
+    input.defaultIndeterminate = value;
+
+    const clone = input.cloneNode();
+    assert_equals(clone.defaultIndeterminate, value);
+    assert_equals(clone.indeterminate, value);
+
+    clone.defaultIndeterminate = !value;
+    assert_equals(clone.indeterminate, !value);
+    assert_equals(input.defaultIndeterminate, value);
+    assert_equals(input.indeterminate, value);
+  }, `cloneNode() preserves non-dirty indeterminate=${value}`);
+
+  for (const defaultValue of [false, true]) {
+    test(() => {
+      const input = createCheckbox();
+      input.defaultIndeterminate = defaultValue;
+      input.indeterminate = value;
+
+      const clone = input.cloneNode();
+      assert_equals(clone.defaultIndeterminate, defaultValue);
+      assert_equals(clone.indeterminate, value);
+
+      clone.defaultIndeterminate = value;
+      assert_equals(clone.indeterminate, value);
+      clone.defaultIndeterminate = !value;
+      assert_equals(clone.indeterminate, value);
+      assert_equals(input.defaultIndeterminate, defaultValue);
+      assert_equals(input.indeterminate, value);
+    }, `cloneNode() preserves dirty indeterminate=${value} with defaultIndeterminate=${defaultValue}`);
+  }
+}
+
+for (const value of [false, true]) {
+  test(() => {
+    const form = document.createElement("form");
+    const input = createCheckbox();
+    form.appendChild(input);
+    input.defaultIndeterminate = !value;
+    input.indeterminate = !value;
+    input.defaultIndeterminate = value;
+    assert_equals(input.indeterminate, !value);
+
+    form.reset();
+    assert_equals(input.defaultIndeterminate, value);
+    assert_equals(input.indeterminate, value);
+
+    input.defaultIndeterminate = !value;
+    assert_equals(input.indeterminate, !value);
+  }, `Form reset restores indeterminate=${value} from the current default and clears its dirty state`);
+}
+
+test(() => {
+  const form = document.createElement("form");
+  const input = createCheckbox();
+  form.appendChild(input);
+  input.defaultChecked = true;
+  input.defaultIndeterminate = true;
+
+  input.click();
+  assert_false(input.checked);
+  assert_false(input.indeterminate);
+
+  form.reset();
+  assert_true(input.checked);
+  assert_true(input.indeterminate);
+
+  input.defaultChecked = false;
+  input.defaultIndeterminate = false;
+  assert_false(input.checked);
+  assert_false(input.indeterminate);
+}, "Form reset restores checkedness and indeterminateness after checkbox activation");
+</script>

@@ -1,0 +1,36 @@
+<!doctype html>
+<meta charset="utf-8" />
+<link rel="help" href="https://dom.spec.whatwg.org/#clone-a-single-node" />
+<link
+  rel="match"
+  href="reference/scoped-registry-static-clone-print-ref.html"
+/>
+<style>
+  print-marker {
+    display: block;
+    background: cyan;
+    height: 60px;
+    width: 60px;
+  }
+</style>
+<body>
+  <script>
+    const registry = new CustomElementRegistry();
+    registry.define(
+      "print-marker",
+      class extends HTMLElement {
+        constructor() {
+          super();
+          if (this.ownerDocument !== document) {
+            this.style.background = "red";
+          }
+        }
+      },
+    );
+    document.body.append(
+      document.createElement("print-marker", {
+        customElementRegistry: registry,
+      }),
+    );
+  </script>
+</body>

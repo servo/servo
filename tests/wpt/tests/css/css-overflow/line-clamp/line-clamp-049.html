@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Overflow: Invalidation test for content in stacking context in iframe with stacking context in IFC after line-clamp</title>
+<link rel="author" title="delan azabani" href="mailto:dazabani@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-048-ref.html">
+<meta name="assert" content="Content after the clamp point should be hidden, even if it creates a new stacking context, it’s in an iframe, that iframe creates a new stacking context, and that iframe is inside an independent formatting context. This test checks that changing the line-clamp property dynamically can show content that was previously hidden.">
+<script src="/common/reftest-wait.js"></script>
+<style>
+.clamp {
+  line-clamp: 4;
+  font: 16px / 32px serif;
+  white-space: pre;
+  padding: 0 4px;
+  background-color: yellow;
+}
+.ifc {
+  display: flow-root;
+}
+.stacking-context {
+  position: relative;
+  z-index: 1;
+  width: 100px;
+  height: 100px;
+}
+#iframe {
+  border: none;
+  width: 100px;
+  height: 100px;
+  display: block;
+}
+</style>
+
+<div class="clamp">Line 1
+Line 2
+Line 3
+Line 4
+Line 5
+<div class="ifc"><iframe id="iframe" class="stacking-context" srcdoc="
+  <!doctype html>
+  <body style='margin: 0;'>
+  <div style='background: green; position: relative; z-index: 1; width: 100px; height: 100px;'>
+"></iframe></div></div>
+
+<script>
+  iframe.addEventListener("load", () => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.querySelector(".clamp").style.lineClamp = 7;
+        takeScreenshot();
+      });
+    });
+  });
+</script>

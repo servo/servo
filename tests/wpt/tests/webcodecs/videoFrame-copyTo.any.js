@@ -329,6 +329,39 @@ promise_test(async t => {
 }, 'Test invalid rect.');
 
 promise_test(async t => {
+  const frame = makeI420_4x2();
+  const options = {
+      rect: {x: 0, y: 0, width: 3, height: 2},
+  };
+  const expectedLayout = [
+      {offset: 0, stride: 3},
+      {offset: 6, stride: 2},
+      {offset: 8, stride: 2},
+  ];
+  const expectedData = new Uint8Array([
+      1, 2, 3,  // y
+      5, 6, 7,
+      9, 10,    // u
+      11, 12    // v
+  ]);
+  assert_equals(frame.allocationSize(options), expectedData.length, 'allocationSize()');
+  const data = new Uint8Array(expectedData.length);
+  const layout = await frame.copyTo(data, options);
+  assert_layout_equals(layout, expectedLayout);
+  assert_buffer_equals(data, expectedData);
+}, 'Test odd width rect.');
+
+promise_test(async t => {
+  const frame = makeI420_4x2();
+  const options = {
+      rect: {x: 1, y: 0, width: 2, height: 2},
+  };
+  assert_throws_js(TypeError, () => frame.allocationSize(options));
+  const data = new Uint8Array(12);
+  await promise_rejects_js(t, TypeError, frame.copyTo(data, options));
+}, 'Test rect with unaligned x.');
+
+promise_test(async t => {
   let init = {
     format: 'I420',
     timestamp: 1234,
@@ -360,10 +393,14 @@ promise_test(async t => {
           redV);
 
   let frame = new VideoFrame(data, init);
-  assert_equals(frame.codedWidth, init.visibleRect.width);
-  assert_equals(frame.codedHeight, init.visibleRect.height);
-  assert_equals(frame.visibleRect.x, 0);
-  assert_equals(frame.visibleRect.y, 0);
+  t.add_cleanup(() => frame.close());
+  // The constructor may retain, crop, or reposition the visible rectangle.
+  assert_greater_than_equal(frame.visibleRect.x, 0);
+  assert_greater_than_equal(frame.visibleRect.y, 0);
+  assert_greater_than_equal(
+      frame.codedWidth, frame.visibleRect.x + frame.visibleRect.width);
+  assert_greater_than_equal(
+      frame.codedHeight, frame.visibleRect.y + frame.visibleRect.height);
   assert_equals(frame.visibleRect.width, init.visibleRect.width);
   assert_equals(frame.visibleRect.height, init.visibleRect.height);
   assert_equals(frame.displayWidth, init.visibleRect.width);
@@ -377,8 +414,14 @@ promise_test(async t => {
   // of `data`, but it's simpler and works better with testharness.js operators
   // to just create a fresh packed version for direct comparison.
   let packed_data = new Uint8Array(frame.allocationSize(options));
-  fillYUV(packed_data, frame.codedWidth, frame.codedHeight, frame.visibleRect,
-          redY, redU, redV);
+  const packedRect = {
+    x: 0,
+    y: 0,
+    width: init.visibleRect.width,
+    height: init.visibleRect.height,
+  };
+  fillYUV(packed_data, packedRect.width, packedRect.height, packedRect, redY,
+          redU, redV);
 
   assert_array_equals(copied_data, packed_data, `Copied frame data incorrect.`);
 }, 'copyTo from byte data with non-default visibleRect');

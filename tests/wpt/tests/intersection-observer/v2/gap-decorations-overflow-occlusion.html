@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>IntersectionObserver V2: gap decoration painted outside container box occludes target</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://w3c.github.io/IntersectionObserver/v2/">
+<meta name="assert" content="A row rule painted outside a flex container border box due to overflowing flex items occludes an underlying IntersectionObserver target.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #target {
+    position: absolute;
+    left: 50px;
+    top: 130px;
+    width: 100px;
+    height: 60px;
+    background: blue;
+  }
+  #occluder {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    width: 400px;
+    height: 10px;
+    row-gap: 20px;
+    row-rule: 120px solid red;
+  }
+  .item {
+    width: 0;
+    height: 150px;
+    flex-shrink: 0;
+  }
+</style>
+<div id="target"></div>
+<div id="occluder">
+  <div class="item"></div>
+  <div class="item"></div>
+</div>
+<script>
+  setup({ single_test: true });
+  const target = document.getElementById("target");
+  new IntersectionObserver(entries => {
+    assert_false(entries[0].isVisible);
+    done();
+  }, {trackVisibility: true, delay: 100}).observe(target);
+</script>

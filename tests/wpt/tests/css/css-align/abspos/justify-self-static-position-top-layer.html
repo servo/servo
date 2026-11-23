@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>justify-self aligns a statically-positioned top layer box within the initial containing block</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#staticpos-rect">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#justify-abspos">
+<link rel="match" href="justify-self-static-position-top-layer-ref.html">
+<meta name="assert" content="Boxes in the top layer use the initial containing block as their static-position rectangle, so justify-self aligns them within it rather than within their parent.">
+<style>
+.parent {
+  width: 200px;
+  margin-left: 100px;
+}
+
+[popover] {
+  inset: auto;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  width: 50px;
+  height: 50px;
+  background-color: green;
+}
+</style>
+<div class="parent"><div popover="manual" style="top: 0; justify-self: start"></div></div>
+<div class="parent"><div popover="manual" style="top: 60px; justify-self: center"></div></div>
+<div class="parent"><div popover="manual" style="top: 120px; justify-self: end"></div></div>
+<script>
+for (const popover of document.querySelectorAll("[popover]"))
+  popover.showPopover();
+</script>

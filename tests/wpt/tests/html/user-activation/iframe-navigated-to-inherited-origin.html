@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<meta name="variant" content="?about-blank">
+<meta name="variant" content="?srcdoc">
+<meta name="variant" content="?blob">
+<title>User activation propagation across a navigation of an iframe to a document that inherits an origin</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#apply-the-history-step">
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+  <iframe id="child" width="200" height="50"></iframe>
+</body>
+
+<script>
+  'use strict';
+
+  let uuid1 = token();
+
+  // Each variant navigates the iframe to a document that takes this page's
+  // origin rather than having one of its own: "determine the origin" returns
+  // the source origin for about:blank and for about:srcdoc, and a blob: URL
+  // carries its creator's. The destination is then same origin with both the
+  // document it replaces and the initiator, so nothing stops the carry-over.
+  // Contrast iframe-sandboxed-navigated-by-itself.html, where a sandbox hands
+  // out a new opaque origin and those two conditions fail together.
+  const variant = location.search;
+  let loaded = `/common/dispatcher/remote-executor.html?uuid=${uuid1}`;
+  const markup = "<p>A document that inherited an origin.</p>";
+
+  promise_test(async test => {
+    const child = document.getElementById("child");
+    const first = new RemoteContext(uuid1);
+
+    // Load a document in the iframe. The executor only answers once the
+    // document has loaded, so this doubles as waiting for it.
+    child.src = loaded;
+    {
+      const result = await first.execute_script(getUserActivationState);
+      assertUserActivationState(result, false, false, "after iframe loaded");
+    }
+
+    // Confirm that the iframe gets user activation after a click. Clicking the
+    // iframe element lands the click inside the document it shows.
+    await test_driver.click(child);
+    {
+      const result = await first.execute_script(getUserActivationState);
+      assertUserActivationState(result, true, true, "after iframe clicked");
+    }
+
+    // Navigate the iframe from here, so that this page is the initiator for
+    // every variant and the only thing that differs is where the destination
+    // gets its origin from.
+    const loadedAgain = new Promise(resolve => {
+      child.addEventListener("load", resolve, {once: true});
+    });
+
+    if (variant === "?srcdoc") {
+      child.srcdoc = markup;
+    } else if (variant === "?blob") {
+      const url = URL.createObjectURL(new Blob([markup], {type: "text/html"}));
+      test.add_cleanup(() => URL.revokeObjectURL(url));
+      child.src = url;
+    } else {
+      child.src = "about:blank";
+    }
+
+    await loadedAgain;
+
+    // The destination has no executor to answer for it, and it is same origin
+    // with this page, so read it through the frame directly.
+    assert_equals(child.contentWindow.origin, location.origin,
+          "The document the iframe shows inherited this page's origin");
+    assertUserActivationState(
+          [child.contentWindow.navigator.userActivation.isActive,
+           child.contentWindow.navigator.userActivation.hasBeenActive],
+          false, true, "after the iframe was navigated");
+}, "User activation propagation across a navigation of an iframe to a " +
+   "document that inherits an origin");
+</script>

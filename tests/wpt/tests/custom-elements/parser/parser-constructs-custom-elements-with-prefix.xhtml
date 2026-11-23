@@ -1,0 +1,25 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:p="http://www.w3.org/1999/xhtml">
+<head>
+<title>Custom Elements: XML parser must preserve the namespace prefix of a custom element</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/xhtml.html#parsing-xhtml-documents:create-an-element-for-the-token"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+class MyCustomElement extends HTMLElement {}
+customElements.define('my-custom-element', MyCustomElement);
+</script>
+<p:my-custom-element id="instance"></p:my-custom-element>
+<script>
+test(() => {
+  const instance = document.getElementById('instance');
+  assert_true(instance instanceof MyCustomElement);
+  assert_equals(instance.prefix, 'p');
+  assert_equals(instance.localName, 'my-custom-element');
+  assert_equals(instance.tagName, 'p:my-custom-element');
+}, 'XML parser must preserve the namespace prefix of a custom element');
+</script>
+</body>
+</html>

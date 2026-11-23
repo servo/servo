@@ -402,7 +402,7 @@ Sources:
 
   promise_test(() => {
     const key = '{{uuid()}}';
-    const url = makeRequestURL(key, ['httpsOrigin', 'httpOrigin', 'httpsOrigin'], responseParams);
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpOrigin', 'httpsOrigin'], responseParams, { stashedRedirect: true });
     const userActivated = false;
     return induceRequest('GET', url, userActivated)
       .then(() => retrieve(key))
@@ -414,7 +414,7 @@ Sources:
 
   promise_test(() => {
     const key = '{{uuid()}}';
-    const url = makeRequestURL(key, ['httpsOrigin', 'httpOrigin', 'httpsOrigin'], responseParams);
+    const url = makeRequestURL(key, ['httpsOrigin', 'httpOrigin', 'httpsOrigin'], responseParams, { stashedRedirect: true });
     const userActivated = false;
     return induceRequest('POST', url, userActivated)
       .then(() => retrieve(key))

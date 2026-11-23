@@ -120,3 +120,25 @@ tests.forEach(test => promise_test(async t => {
                       () => builder.matmul(inputA, inputB, options), regrexp);
                 }
               }, test.name));
+
+// matmul requires 2-D to 5-D input (min=2, max=5).
+// In-range coverage is provided by the Cartesian (a rank, b rank) test below,
+// so the full `validateOperandRank` wrapper would duplicate that work.
+validateOperandRankOutOfRange('matmul', 'a', (builder, a) => {
+  const b = builder.input(
+      'b', {dataType: a.dataType, shape: [kExampleDimSize, kExampleDimSize]});
+  return builder.matmul(a, b);
+});
+
+validateOperandRankOutOfRange('matmul', 'b', (builder, b) => {
+  const a = builder.input(
+      'a', {dataType: b.dataType, shape: [kExampleDimSize, kExampleDimSize]});
+  return builder.matmul(a, b);
+});
+
+// Accept every (a rank, b rank) pair allowed by opSupportLimits. matmul
+// contracts a's last dim (K) with b's second-to-last dim (K); with uniform
+// [kExampleDimSize] dims K matches, and any leading batch dims broadcast
+// trivially at any independent ranks in [2, max].
+validateTwoOperandsRankInRange('matmul', 'a', 'b',
+                               (builder, a, b) => builder.matmul(a, b));

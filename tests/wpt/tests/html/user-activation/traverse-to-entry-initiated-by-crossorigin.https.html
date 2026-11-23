@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<meta name="variant" content="?store">
+<meta name="variant" content="?no-store">
+<meta name="timeout" content="long">
+<title>User activation propagation across a traversal to an entry whose navigation was initiated by a cross-origin window</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#apply-the-history-step">
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/helper.sub.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+  <p>Non-zero-sized body to allow clicks.</p>
+</body>
+
+<script>
+  'use strict';
+
+  let uuid1 = token();
+  let uuid2 = token();
+  let uuid3 = token();
+  let uuid4 = token();
+
+  let opened = executorPath + uuid1;
+  // The initiator is cross-origin but same site, the origin
+  // navigate-initiated-by-crossorigin.html also initiates from. The condition
+  // this test is about compares origins, so the site the initiator is on makes
+  // no difference to it, and a cross-site initiator would additionally need
+  // Firefox to let a cross-site document write another window's location,
+  // which it does not.
+  let navigator_window =
+        `${get_host_info().HTTPS_REMOTE_ORIGIN}${executorPath}${uuid4}`;
+  // The "no-store" variant keeps the entry we traverse back to out of the
+  // back/forward cache, so that the traversal has to repopulate it. Both
+  // variants are worth running: the initiator the entry recorded has to rule
+  // the carry-over out for a document that is reactivated as well as for one
+  // that is populated from scratch.
+  const noStore = location.search === "?no-store";
+  let navigated_to = originSameOrigin + executorPath + uuid2 +
+                     (noStore ? "&pipe=header(Cache-Control,no-store)" : "");
+  let navigated_on = executorPath + uuid3;
+
+  promise_test(async test => {
+    // Let a cross-origin window navigate the window below, so that the entry it
+    // lands on records a cross-origin initiator, and then navigate on and
+    // traverse back to that entry. The initiator is what rules the carry-over
+    // out, and by then the window that was the initiator is no longer the one
+    // asking for the traversal: only the entry still knows about it.
+    let w;
+    document.body.onclick = () => {
+      w = window.open(opened);
+    };
+
+    await test_driver.click(document.body);
+    assert_true(!!w, "A window is opened");
+    // Close the window at the end of the test, so that a later test in the same
+    // session cannot click a window this one left behind.
+    test.add_cleanup(() => w && w.close());
+
+    const first = new RemoteContext(uuid1);
+    const second = new RemoteContext(uuid2);
+    const third = new RemoteContext(uuid3);
+    const navigator_context = new RemoteContext(uuid4);
+
+    // Wait for the window to be shown.
+    await first.execute_script(waitUntilShown);
+
+    // Give the window user activation, which also allows it to open the
+    // cross-origin window below.
+    await test_driver.click(w.document.documentElement);
+
+    // Read the state the click produced and let the window open a cross-origin
+    // one in the same call. The cross-origin window navigates it away.
+    {
+      const result = await first.execute_script(url => {
+        const state = [navigator.userActivation.isActive,
+                       navigator.userActivation.hasBeenActive];
+        window.open(url);
+        return state;
+      }, [navigator_window]);
+      assertUserActivationState(result, true, true, "after window clicked");
+    }
+
+    // The window above opened a cross-origin one, which there is no handle for
+    // here, so ask it to close itself at the end of the test. Suspending its
+    // executor first lets it answer this task before it goes away.
+    test.add_cleanup(() => new RemoteContext(uuid4).execute_script(() => {
+      prepareNavigation(() => window.close());
+    }));
+
+    await navigator_context.execute_script(async url => {
+      await window.pageShowPromise;
+      opener.location = url;
+    }, [navigated_to]);
+
+    // The second document gets nothing carried over, because the entry it
+    // landed on records the cross-origin window as the initiator.
+    {
+      const result = await second.execute_script(getUserActivationStateWhenShown);
+      assertUserActivationState(result, false, false,
+            "after window navigated by a cross-origin window");
+    }
+
+    // Navigate on to a third same-origin document and give it user activation,
+    // so that there is something for the traversal below to carry over.
+    await second.execute_script(url => {
+      prepareNavigation(() => {
+        location.href = url;
+      });
+    }, [navigated_on]);
+
+    await third.execute_script(waitUntilShown);
+    await test_driver.click(w.document.documentElement);
+    {
+      const result = await third.execute_script(getUserActivationState);
+      assertUserActivationState(result, true, true, "after window clicked again");
+    }
+
+    // Traverse back to the second document.
+    await third.execute_script(() => {
+      prepareNavigation(() => {
+        history.back();
+      });
+    });
+
+    // Confirm that the second document still does not have the sticky user
+    // activation. The two documents are same origin and no redirect was
+    // involved, so the initiator the entry recorded is the only thing ruling
+    // the carry-over out.
+    const result = await second.execute_script(getUserActivationStateWhenShown);
+
+    if (noStore) {
+      await assert_not_bfcached(second);
+    } else {
+      await assert_bfcached(second);
+    }
+
+    assertUserActivationState(result, false, false, "after traversing back");
+}, "User activation propagation across a traversal to an entry whose " +
+   "navigation was initiated by a cross-origin window");
+</script>

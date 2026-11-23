@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<title>User activation propagation across a navigation to a document sandboxed by Content-Security-Policy</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#apply-the-history-step">
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+  <p>Non-zero-sized body to allow clicks.</p>
+</body>
+
+<script>
+  'use strict';
+
+  let driver = token();
+  let uuid1 = token();
+  let uuid2 = token();
+
+  // A `Content-Security-Policy: sandbox` header gives a top-level document the
+  // opaque origin that the `sandbox` attribute gives a frame, so the carry-over
+  // is ruled out for the same reasons as in
+  // iframe-sandboxed-navigated-by-itself.html. Only the destination is
+  // sandboxed here: the window has to be same origin with this page while it is
+  // clicked, since an opaque-origin document cannot be reached through the
+  // handle.
+
+  const executor = "/common/dispatcher/executor.html?uuid=";
+  let opened = executor + uuid1;
+  let navigated_to = executor + uuid2 +
+                     "&pipe=header(Content-Security-Policy, sandbox allow-scripts)";
+
+  const reportState = `
+    send("${driver}", JSON.stringify([self.origin,
+        navigator.userActivation.isActive,
+        navigator.userActivation.hasBeenActive]));
+  `;
+
+  promise_test(async test => {
+    let w;
+    document.body.onclick = () => {
+      w = window.open(opened);
+    };
+
+    await test_driver.click(document.body);
+    assert_true(!!w, "A window is opened");
+    // Close the window at the end of the test, so that a later test in the same
+    // session cannot click a window this one left behind.
+    test.add_cleanup(() => w && w.close());
+
+    // Check that the new window does not have user activation initially.
+    await send(uuid1, reportState);
+    {
+      const [origin, ...state] = JSON.parse(await receive(driver));
+      assert_equals(origin, location.origin,
+            "The window starts out same origin with this page");
+      assertUserActivationState(state, false, false, "after window opened");
+    }
+
+    // Confirm that the new window gets user activation after a click.
+    await test_driver.click(w.document.documentElement);
+    await send(uuid1, reportState);
+    {
+      const [, ...state] = JSON.parse(await receive(driver));
+      assertUserActivationState(state, true, true, "after window clicked");
+    }
+
+    // Let the window navigate itself to the sandboxed document.
+    await send(uuid1, `location.href = "${navigated_to}";`);
+
+    // Confirm that the sandboxed document has no user activation. Its origin is
+    // opaque, so it is same origin with neither the document it replaced nor
+    // the initiator, and both of those conditions rule the carry-over out.
+    await send(uuid2, reportState);
+    {
+      const [origin, ...state] = JSON.parse(await receive(driver));
+      assert_equals(origin, "null", "The sandboxed document's origin is opaque");
+      assertUserActivationState(state, false, false,
+            "after the window navigated to a sandboxed document");
+    }
+}, "User activation propagation across a navigation to a document sandboxed " +
+   "by Content-Security-Policy");
+</script>

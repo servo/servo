@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<title>User activation propagation across a chain of same-origin navigations and a reload</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#apply-the-history-step">
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+  <p>Non-zero-sized body to allow clicks.</p>
+</body>
+
+<script>
+  'use strict';
+
+  let uuid1 = token();
+  let uuid2 = token();
+  let uuid3 = token();
+
+  let second = `/common/dispatcher/remote-executor.html?uuid=${uuid2}`;
+  let third = `/common/dispatcher/remote-executor.html?uuid=${uuid3}`;
+
+  promise_test(async test => {
+    // Walk a window through two navigations and a reload after a single click.
+    // The condition reads the sticky activation of the document being replaced,
+    // not how that document came by it, so a document that only has it because
+    // it was carried over hands it on in turn.
+    let w;
+    document.body.onclick = () => {
+      w = window.open(`/common/dispatcher/remote-executor.html?uuid=${uuid1}`);
+    };
+
+    await test_driver.click(document.body);
+    assert_true(!!w, "A window is opened");
+    // Close the window at the end of the test, so that a later test in the same
+    // session cannot click a window this one left behind.
+    test.add_cleanup(() => w && w.close());
+
+    const first_context = new RemoteContext(uuid1);
+    const second_context = new RemoteContext(uuid2);
+    const third_context = new RemoteContext(uuid3);
+
+    // Check that the new window does not have user activation initially.
+    {
+      const result = await first_context.execute_script(getUserActivationState);
+      assertUserActivationState(result, false, false, "after window opened");
+    }
+
+    // Confirm that the new window gets user activation after a click. This is
+    // the only click in the test; every step below is script.
+    await test_driver.click(w.document.documentElement);
+    {
+      const result = await first_context.execute_script(getUserActivationState);
+      assertUserActivationState(result, true, true, "after window clicked");
+    }
+
+    // Navigate the window to a second same-origin document.
+    await first_context.execute_script(url => {
+      executor.suspend(() => {
+        location.href = url;
+      });
+    }, [second]);
+
+    {
+      const result = await second_context.execute_script(getUserActivationState);
+      assertUserActivationState(result, false, true,
+            "after the first navigation");
+    }
+
+    // Navigate on to a third one. The document driving this navigation never
+    // saw a click of its own.
+    await second_context.execute_script(url => {
+      executor.suspend(() => {
+        location.href = url;
+      });
+    }, [third]);
+
+    {
+      const result = await third_context.execute_script(getUserActivationState);
+      assertUserActivationState(result, false, true,
+            "after the second navigation");
+    }
+
+    // Reload the third document, which a reload has to keep as well.
+    await third_context.execute_script(() => {
+      executor.suspend(() => {
+        location.reload();
+      });
+    });
+
+    {
+      const [navigationType, state] = await third_context.execute_script(() =>
+            [performance.getEntriesByType("navigation")[0].type,
+             [navigator.userActivation.isActive,
+              navigator.userActivation.hasBeenActive]]);
+      assert_equals(navigationType, "reload", "The window was reloaded");
+      assertUserActivationState(state, false, true, "after the reload");
+    }
+}, "User activation propagation across a chain of same-origin navigations and a reload");
+</script>

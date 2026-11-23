@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml" width="100" height="100">
+  <title>Never-rendered elements are not rendered when the display presentation attribute is set</title>
+  <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/render.html#TermNeverRenderedElement"/>
+  <h:link rel="match" href="never-rendered-element-display-ref.svg"/>
+  <h:meta name="assert" content="A never-rendered element is never directly rendered, regardless of the display value, so display=&quot;inline&quot; does not make its children paint. A paint server inside such a defs can still be used."/>
+  <defs display="inline">
+    <linearGradient id="green" display="inline">
+      <stop offset="0" stop-color="green"/>
+      <stop offset="1" stop-color="green"/>
+    </linearGradient>
+  </defs>
+  <rect width="100" height="100" fill="url(#green)"/>
+  <defs display="inline">
+    <rect width="100" height="100" fill="red"/>
+  </defs>
+  <title display="inline">
+    <rect width="100" height="100" fill="red"/>
+  </title>
+  <desc display="inline">
+    <rect width="100" height="100" fill="red"/>
+  </desc>
+  <metadata display="inline">
+    <rect width="100" height="100" fill="red"/>
+  </metadata>
+  <symbol display="inline">
+    <rect width="100" height="100" fill="red"/>
+  </symbol>
+  <marker display="inline">
+    <rect width="100" height="100" fill="red"/>
+  </marker>
+  <pattern display="inline">
+    <rect width="100" height="100" fill="red"/>
+  </pattern>
+</svg>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Two grid-lanes rows can expand in the same fragmentainer</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="match" href="row-expansion-008-ref.html">
+<style>
+  .multicol { columns: 3; column-gap: 0; column-fill: auto; width: 240px; height: 100px; background: lightgray; }
+  .lanes { display: grid-lanes; grid-template-rows: auto auto; width: 80px; }
+  .lanes > div { width: 40px; }
+  .break { break-before: column; }
+</style>
+<div class="multicol">
+  <div class="lanes">
+    <!-- Row 1 finishes in column 2 and grows there. Row 2 then starts
+         in the same column and grows before continuing into column 3. -->
+    <div style="grid-row: 1; background: orange;">
+      <div style="height: 60px;"></div>
+      <div class="break" style="height: 60px;"></div>
+    </div>
+    <div style="grid-row: 1; background: teal;"></div>
+    <div style="grid-row: 2; background: purple;">
+      <div style="height: 10px;"></div>
+      <div class="break" style="height: 10px;"></div>
+    </div>
+    <div style="grid-row: 2; background: blue;"></div>
+  </div>
+</div>
